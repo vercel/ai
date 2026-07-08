@@ -38,13 +38,13 @@ The Qwen provider is available in the `qwen-ai-provider` module. You can install
 You can import the default provider instance `qwen` from `qwen-ai-provider`:
 
 ```ts
-import { qwen } from "qwen-ai-provider";
+import { qwen } from 'qwen-ai-provider';
 ```
 
 If you need a customized setup, you can import `createQwen` from `qwen-ai-provider` and create a provider instance with your settings:
 
 ```ts
-import { createQwen } from "qwen-ai-provider";
+import { createQwen } from 'qwen-ai-provider';
 
 const qwen = createQwen({
   // optional settings, e.g.
@@ -82,7 +82,7 @@ The first argument is the model id, e.g. `qwen-plus`.
 Some Qwen chat models support tool calls.
 
 ```ts
-const model = qwen("qwen-plus");
+const model = qwen('qwen-plus');
 ```
 
 ### Example
@@ -90,12 +90,12 @@ const model = qwen("qwen-plus");
 You can use Qwen language models to generate text with the `generateText` function:
 
 ```ts
-import { qwen } from "qwen-ai-provider";
-import { generateText } from "ai";
+import { qwen } from 'qwen-ai-provider';
+import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: qwen("qwen-plus"),
-  prompt: "Write a vegetarian lasagna recipe for 4 people.",
+  model: qwen('qwen-plus'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
 
@@ -126,7 +126,7 @@ You can create models that call the [Qwen embeddings API](https://www.alibabaclo
 using the `.embeddingModel()` factory method.
 
 ```ts
-const model = qwen.embeddingModel("text-embedding-v3");
+const model = qwen.embeddingModel('text-embedding-v3');
 ```
 
 ### Model Capabilities

@@ -13,7 +13,7 @@ API keys can be obtained from the [DeepSeek Platform](https://platform.deepseek.
 
 The DeepSeek provider is available via the `@ai-sdk/deepseek` module. You can install it with:
 
-<Tabs items={["pnpm", "npm", "yarn", "bun"]}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @ai-sdk/deepseek" dark />
   </Tab>
@@ -33,16 +33,16 @@ The DeepSeek provider is available via the `@ai-sdk/deepseek` module. You can in
 You can import the default provider instance `deepSeek` from `@ai-sdk/deepseek`:
 
 ```ts
-import { deepSeek } from "@ai-sdk/deepseek";
+import { deepSeek } from '@ai-sdk/deepseek';
 ```
 
 For custom configuration, you can import `createDeepSeek` and create a provider instance with your settings:
 
 ```ts
-import { createDeepSeek } from "@ai-sdk/deepseek";
+import { createDeepSeek } from '@ai-sdk/deepseek';
 
 const deepSeek = createDeepSeek({
-  apiKey: process.env.DEEPSEEK_API_KEY ?? "",
+  apiKey: process.env.DEEPSEEK_API_KEY ?? '',
 });
 ```
 
@@ -71,21 +71,21 @@ You can use the following optional settings to customize the DeepSeek provider i
 You can create language models using a provider instance:
 
 ```ts
-import { deepSeek } from "@ai-sdk/deepseek";
-import { generateText } from "ai";
+import { deepSeek } from '@ai-sdk/deepseek';
+import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: deepSeek("deepseek-chat"),
-  prompt: "Write a vegetarian lasagna recipe for 4 people.",
+  model: deepSeek('deepseek-chat'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
 
 You can also use the `.chat()` or `.languageModel()` factory methods:
 
 ```ts
-const model = deepSeek.chat("deepseek-chat");
+const model = deepSeek.chat('deepseek-chat');
 // or
-const model = deepSeek.languageModel("deepseek-chat");
+const model = deepSeek.languageModel('deepseek-chat');
 ```
 
 DeepSeek language models can be used in the `streamText` function
@@ -96,7 +96,6 @@ The following optional provider options are available for DeepSeek models:
 - `thinking` _object_
 
   Optional. Controls thinking mode (chain-of-thought reasoning). You can enable thinking mode either by using the `deepseek-reasoner` model or by setting this option.
-
   - `type`: `'adaptive' | 'enabled' | 'disabled'` - Enable, disable, or let the model decide (`adaptive`) when to think. See [DeepSeek's thinking mode docs](https://api-docs.deepseek.com/guides/thinking_mode).
 
 - `reasoningEffort` _'low' | 'medium' | 'high' | 'xhigh' | 'max'_
@@ -112,16 +111,16 @@ The following optional provider options are available for DeepSeek models:
 import {
   deepSeek,
   type DeepSeekLanguageModelChatOptions,
-} from "@ai-sdk/deepseek";
-import { generateText } from "ai";
+} from '@ai-sdk/deepseek';
+import { generateText } from 'ai';
 
 const { text, reasoning } = await generateText({
-  model: deepSeek("deepseek-chat"),
+  model: deepSeek('deepseek-chat'),
   prompt: 'How many "r"s are in the word "strawberry"?',
   providerOptions: {
     deepseek: {
-      thinking: { type: "enabled" },
-      reasoningEffort: "high",
+      thinking: { type: 'enabled' },
+      reasoningEffort: 'high',
     } satisfies DeepSeekLanguageModelChatOptions,
   },
 });
@@ -132,21 +131,21 @@ const { text, reasoning } = await generateText({
 DeepSeek has reasoning support for the `deepseek-reasoner` model. The reasoning is exposed through streaming:
 
 ```ts
-import { deepSeek } from "@ai-sdk/deepseek";
-import { streamText } from "ai";
+import { deepSeek } from '@ai-sdk/deepseek';
+import { streamText } from 'ai';
 
 const result = streamText({
-  model: deepSeek("deepseek-reasoner"),
+  model: deepSeek('deepseek-reasoner'),
   prompt: 'How many "r"s are in the word "strawberry"?',
 });
 
 for await (const part of result.stream) {
-  if (part.type === "reasoning") {
+  if (part.type === 'reasoning') {
     // This is the reasoning text
-    console.log("Reasoning:", part.text);
-  } else if (part.type === "text") {
+    console.log('Reasoning:', part.text);
+  } else if (part.type === 'text') {
     // This is the final answer
-    console.log("Answer:", part.text);
+    console.log('Answer:', part.text);
   }
 }
 ```
@@ -159,12 +158,12 @@ on how to integrate reasoning into your chatbot.
 DeepSeek provides context caching on disk technology that can significantly reduce token costs for repeated content. You can access the cache hit/miss metrics through the `providerMetadata` property in the response:
 
 ```ts
-import { deepSeek } from "@ai-sdk/deepseek";
-import { generateText } from "ai";
+import { deepSeek } from '@ai-sdk/deepseek';
+import { generateText } from 'ai';
 
 const result = await generateText({
-  model: deepSeek("deepseek-chat"),
-  prompt: "Your prompt here",
+  model: deepSeek('deepseek-chat'),
+  prompt: 'Your prompt here',
 });
 
 console.log(result.providerMetadata);

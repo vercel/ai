@@ -33,14 +33,14 @@ You can install it with
 You can import the default provider instance `groq` from `@ai-sdk/groq`:
 
 ```ts
-import { groq } from "@ai-sdk/groq";
+import { groq } from '@ai-sdk/groq';
 ```
 
 If you need a customized setup, you can import `createGroq` from `@ai-sdk/groq`
 and create a provider instance with your settings:
 
 ```ts
-import { createGroq } from "@ai-sdk/groq";
+import { createGroq } from '@ai-sdk/groq';
 
 const groq = createGroq({
   // custom settings
@@ -76,7 +76,7 @@ You can create [Groq models](https://console.groq.com/docs/models) using a provi
 The first argument is the model id, e.g. `gemma2-9b-it`.
 
 ```ts
-const model = groq("gemma2-9b-it");
+const model = groq('gemma2-9b-it');
 ```
 
 ### Reasoning Models
@@ -86,18 +86,18 @@ You can configure how the reasoning is exposed in the generated text by using th
 It supports the options `parsed`, `hidden`, and `raw`.
 
 ```ts
-import { groq, type GroqLanguageModelChatOptions } from "@ai-sdk/groq";
-import { generateText } from "ai";
+import { groq, type GroqLanguageModelChatOptions } from '@ai-sdk/groq';
+import { generateText } from 'ai';
 
 const result = await generateText({
-  model: groq("qwen/qwen3-32b"),
+  model: groq('qwen/qwen3-32b'),
   providerOptions: {
     groq: {
-      reasoningFormat: "parsed",
-      reasoningEffort: "default",
+      reasoningFormat: 'parsed',
+      reasoningEffort: 'default',
       parallelToolCalls: true, // Enable parallel function calling (default: true)
-      user: "user-123", // Unique identifier for end-user (optional)
-      serviceTier: "flex", // Use flex tier for higher throughput (optional)
+      user: 'user-123', // Unique identifier for end-user (optional)
+      serviceTier: 'flex', // Use flex tier for higher throughput (optional)
     } satisfies GroqLanguageModelChatOptions,
   },
   prompt: 'How many "r"s are in the word "strawberry"?',
@@ -115,7 +115,6 @@ The following optional provider options are available for Groq language models:
 - **reasoningEffort** _'low' | 'medium' | 'high' | 'none' | 'default'_
 
   Controls the level of effort the model will put into reasoning.
-
   - `qwen/qwen3-32b`
     - Supported values:
       - `none`: Disable reasoning. The model will not use any reasoning tokens.
@@ -155,7 +154,6 @@ The following optional provider options are available for Groq language models:
 - **serviceTier** _'on_demand' | 'performance' | 'flex' | 'auto'_
 
   Service tier for the request. Defaults to `'on_demand'`.
-
   - `'on_demand'`: Default tier with consistent performance and fairness
   - `'performance'`: Prioritized tier for latency-sensitive workloads
   - `'flex'`: Higher throughput tier (10x rate limits) optimized for workloads that can handle occasional request failures
@@ -171,12 +169,12 @@ Structured outputs are enabled by default for Groq models.
 You can disable them by setting the `structuredOutputs` option to `false`.
 
 ```ts
-import { groq } from "@ai-sdk/groq";
-import { generateText, Output } from "ai";
-import { z } from "zod";
+import { groq } from '@ai-sdk/groq';
+import { generateText, Output } from 'ai';
+import { z } from 'zod';
 
 const result = await generateText({
-  model: groq("moonshotai/kimi-k2-instruct-0905"),
+  model: groq('moonshotai/kimi-k2-instruct-0905'),
   output: Output.object({
     schema: z.object({
       recipe: z.object({
@@ -186,7 +184,7 @@ const result = await generateText({
       }),
     }),
   }),
-  prompt: "Generate a simple pasta recipe.",
+  prompt: 'Generate a simple pasta recipe.',
 });
 
 console.log(JSON.stringify(result.output, null, 2));
@@ -195,12 +193,12 @@ console.log(JSON.stringify(result.output, null, 2));
 You can disable structured outputs for models that don't support them:
 
 ```ts highlight="9"
-import { groq, type GroqLanguageModelChatOptions } from "@ai-sdk/groq";
-import { generateText, Output } from "ai";
-import { z } from "zod";
+import { groq, type GroqLanguageModelChatOptions } from '@ai-sdk/groq';
+import { generateText, Output } from 'ai';
+import { z } from 'zod';
 
 const result = await generateText({
-  model: groq("gemma2-9b-it"),
+  model: groq('gemma2-9b-it'),
   providerOptions: {
     groq: {
       structuredOutputs: false,
@@ -215,7 +213,7 @@ const result = await generateText({
       }),
     }),
   }),
-  prompt: "Generate a simple pasta recipe in JSON format.",
+  prompt: 'Generate a simple pasta recipe in JSON format.',
 });
 
 console.log(JSON.stringify(result.output, null, 2));
@@ -234,12 +232,12 @@ console.log(JSON.stringify(result.output, null, 2));
 You can use Groq language models to generate text with the `generateText` function:
 
 ```ts
-import { groq } from "@ai-sdk/groq";
-import { generateText } from "ai";
+import { groq } from '@ai-sdk/groq';
+import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: groq("gemma2-9b-it"),
-  prompt: "Write a vegetarian lasagna recipe for 4 people.",
+  model: groq('gemma2-9b-it'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
 
@@ -248,20 +246,20 @@ const { text } = await generateText({
 Groq's multi-modal models like `meta-llama/llama-4-scout-17b-16e-instruct` support image inputs. You can include images in your messages using either URLs or base64-encoded data:
 
 ```ts
-import { groq } from "@ai-sdk/groq";
-import { generateText } from "ai";
+import { groq } from '@ai-sdk/groq';
+import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: groq("meta-llama/llama-4-scout-17b-16e-instruct"),
+  model: groq('meta-llama/llama-4-scout-17b-16e-instruct'),
   messages: [
     {
-      role: "user",
+      role: 'user',
       content: [
-        { type: "text", text: "What do you see in this image?" },
+        { type: 'text', text: 'What do you see in this image?' },
         {
-          type: "file",
-          mediaType: "image",
-          data: "https://example.com/image.jpg",
+          type: 'file',
+          mediaType: 'image',
+          data: 'https://example.com/image.jpg',
         },
       ],
     },
@@ -272,22 +270,22 @@ const { text } = await generateText({
 You can also use base64-encoded images:
 
 ```ts
-import { groq } from "@ai-sdk/groq";
-import { generateText } from "ai";
-import { readFileSync } from "fs";
+import { groq } from '@ai-sdk/groq';
+import { generateText } from 'ai';
+import { readFileSync } from 'fs';
 
-const imageData = readFileSync("path/to/image.jpg", "base64");
+const imageData = readFileSync('path/to/image.jpg', 'base64');
 
 const { text } = await generateText({
-  model: groq("meta-llama/llama-4-scout-17b-16e-instruct"),
+  model: groq('meta-llama/llama-4-scout-17b-16e-instruct'),
   messages: [
     {
-      role: "user",
+      role: 'user',
       content: [
-        { type: "text", text: "Describe this image in detail." },
+        { type: 'text', text: 'Describe this image in detail.' },
         {
-          type: "file",
-          mediaType: "image",
+          type: 'file',
+          mediaType: 'image',
           data: `data:image/jpeg;base64,${imageData}`,
         },
       ],
@@ -347,17 +345,17 @@ Browser search is only available for these specific models:
 ### Basic Usage
 
 ```ts
-import { groq } from "@ai-sdk/groq";
-import { generateText } from "ai";
+import { groq } from '@ai-sdk/groq';
+import { generateText } from 'ai';
 
 const result = await generateText({
-  model: groq("openai/gpt-oss-120b"), // Must use supported model
+  model: groq('openai/gpt-oss-120b'), // Must use supported model
   prompt:
-    "What are the latest developments in AI? Please search for recent news.",
+    'What are the latest developments in AI? Please search for recent news.',
   tools: {
     browser_search: groq.tools.browserSearch({}),
   },
-  toolChoice: "required", // Ensure the tool is used
+  toolChoice: 'required', // Ensure the tool is used
 });
 
 console.log(result.text);
@@ -366,20 +364,20 @@ console.log(result.text);
 ### Streaming Example
 
 ```ts
-import { groq } from "@ai-sdk/groq";
-import { streamText } from "ai";
+import { groq } from '@ai-sdk/groq';
+import { streamText } from 'ai';
 
 const result = streamText({
-  model: groq("openai/gpt-oss-120b"),
-  prompt: "Search for the latest tech news and summarize it.",
+  model: groq('openai/gpt-oss-120b'),
+  prompt: 'Search for the latest tech news and summarize it.',
   tools: {
     browser_search: groq.tools.browserSearch({}),
   },
-  toolChoice: "required",
+  toolChoice: 'required',
 });
 
 for await (const delta of result.stream) {
-  if (delta.type === "text-delta") {
+  if (delta.type === 'text-delta') {
     process.stdout.write(delta.text);
   }
 }
@@ -407,13 +405,13 @@ The provider automatically validates model compatibility:
 ```ts
 // ✅ Supported - will work
 const result = await generateText({
-  model: groq("openai/gpt-oss-120b"),
+  model: groq('openai/gpt-oss-120b'),
   tools: { browser_search: groq.tools.browserSearch({}) },
 });
 
 // ❌ Unsupported - will show warning and ignore tool
 const result = await generateText({
-  model: groq("gemma2-9b-it"),
+  model: groq('gemma2-9b-it'),
   tools: { browser_search: groq.tools.browserSearch({}) },
 });
 // Warning: "Browser search is only supported on models: openai/gpt-oss-20b, openai/gpt-oss-120b"
@@ -433,21 +431,21 @@ using the `.transcription()` factory method.
 The first argument is the model id e.g. `whisper-large-v3`.
 
 ```ts
-const model = groq.transcription("whisper-large-v3");
+const model = groq.transcription('whisper-large-v3');
 ```
 
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the input language in ISO-639-1 (e.g. `en`) format will improve accuracy and latency.
 
 ```ts highlight="6"
-import { transcribe } from "ai";
-import { groq, type GroqTranscriptionModelOptions } from "@ai-sdk/groq";
-import { readFile } from "fs/promises";
+import { transcribe } from 'ai';
+import { groq, type GroqTranscriptionModelOptions } from '@ai-sdk/groq';
+import { readFile } from 'fs/promises';
 
 const result = await transcribe({
-  model: groq.transcription("whisper-large-v3"),
-  audio: await readFile("audio.mp3"),
+  model: groq.transcription('whisper-large-v3'),
+  audio: await readFile('audio.mp3'),
   providerOptions: {
-    groq: { language: "en" } satisfies GroqTranscriptionModelOptions,
+    groq: { language: 'en' } satisfies GroqTranscriptionModelOptions,
   },
 });
 ```

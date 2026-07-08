@@ -48,16 +48,16 @@ The Vercel provider is available via the `@ai-sdk/vercel` module. You can instal
 You can import the default provider instance `vercel` from `@ai-sdk/vercel`:
 
 ```ts
-import { vercel } from "@ai-sdk/vercel";
+import { vercel } from '@ai-sdk/vercel';
 ```
 
 If you need a customized setup, you can import `createVercel` from `@ai-sdk/vercel` and create a provider instance with your settings:
 
 ```ts
-import { createVercel } from "@ai-sdk/vercel";
+import { createVercel } from '@ai-sdk/vercel';
 
 const vercel = createVercel({
-  apiKey: process.env.VERCEL_API_KEY ?? "",
+  apiKey: process.env.VERCEL_API_KEY ?? '',
 });
 ```
 
@@ -88,12 +88,12 @@ You can use the following optional settings to customize the Vercel provider ins
 You can create language models using a provider instance. The first argument is the model ID, for example:
 
 ```ts
-import { vercel } from "@ai-sdk/vercel";
-import { generateText } from "ai";
+import { vercel } from '@ai-sdk/vercel';
+import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: vercel("v0-1.5-md"),
-  prompt: "Create a Next.js AI chatbot",
+  model: vercel('v0-1.5-md'),
+  prompt: 'Create a Next.js AI chatbot',
 });
 ```
 

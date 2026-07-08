@@ -11,7 +11,7 @@ The official [Runpod](https://runpod.io) provider contains language model and im
 
 The Runpod provider is available in the `@runpod/ai-sdk-provider` module. You can install it with:
 
-<Tabs items={["pnpm", "npm", "yarn", "bun"]}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @runpod/ai-sdk-provider" dark />
   </Tab>
@@ -31,17 +31,17 @@ The Runpod provider is available in the `@runpod/ai-sdk-provider` module. You ca
 You can import the default provider instance `runpod` from `@runpod/ai-sdk-provider`:
 
 ```ts
-import { runpod } from "@runpod/ai-sdk-provider";
+import { runpod } from '@runpod/ai-sdk-provider';
 ```
 
 If you need a customized setup, you can import `createRunpod` and create a provider instance with your settings:
 
 ```ts
-import { createRunpod } from "@runpod/ai-sdk-provider";
+import { createRunpod } from '@runpod/ai-sdk-provider';
 
 const runpod = createRunpod({
-  apiKey: "your-api-key", // optional, defaults to RUNPOD_API_KEY environment variable
-  baseURL: "custom-url", // optional, for custom endpoints
+  apiKey: 'your-api-key', // optional, defaults to RUNPOD_API_KEY environment variable
+  baseURL: 'custom-url', // optional, for custom endpoints
   headers: {
     /* custom headers */
   }, // optional
@@ -77,12 +77,12 @@ You can use the following optional settings to customize the Runpod provider ins
 You can create language models using the provider instance. The first argument is the model ID:
 
 ```ts
-import { runpod } from "@runpod/ai-sdk-provider";
-import { generateText } from "ai";
+import { runpod } from '@runpod/ai-sdk-provider';
+import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: runpod("qwen/qwen3-32b-awq"),
-  prompt: "What is the capital of Germany?",
+  model: runpod('qwen/qwen3-32b-awq'),
+  prompt: 'What is the capital of Germany?',
 });
 ```
 
@@ -95,13 +95,13 @@ const { text } = await generateText({
 ### Streaming
 
 ```ts
-import { runpod } from "@runpod/ai-sdk-provider";
-import { streamText } from "ai";
+import { runpod } from '@runpod/ai-sdk-provider';
+import { streamText } from 'ai';
 
 const { textStream } = await streamText({
-  model: runpod("qwen/qwen3-32b-awq"),
+  model: runpod('qwen/qwen3-32b-awq'),
   prompt:
-    "Write a short poem about artificial intelligence in exactly 4 lines.",
+    'Write a short poem about artificial intelligence in exactly 4 lines.',
   temperature: 0.7,
 });
 
@@ -123,10 +123,10 @@ for await (const delta of textStream) {
 
 ```ts
 const { text } = await generateText({
-  model: runpod("qwen/qwen3-32b-awq"),
+  model: runpod('qwen/qwen3-32b-awq'),
   messages: [
-    { role: "system", content: "You are a helpful assistant." },
-    { role: "user", content: "What is the capital of France?" },
+    { role: 'system', content: 'You are a helpful assistant.' },
+    { role: 'user', content: 'What is the capital of France?' },
   ],
 });
 ```
@@ -134,17 +134,17 @@ const { text } = await generateText({
 ### Tool Calling
 
 ```ts
-import { generateText, tool } from "ai";
-import { z } from "zod";
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
 
 const { text, toolCalls } = await generateText({
-  model: runpod("openai/gpt-oss-120b"),
-  prompt: "What is the weather like in San Francisco?",
+  model: runpod('openai/gpt-oss-120b'),
+  prompt: 'What is the weather like in San Francisco?',
   tools: {
     getWeather: tool({
-      description: "Get weather information for a city",
+      description: 'Get weather information for a city',
       inputSchema: z.object({
-        city: z.string().describe("The city name"),
+        city: z.string().describe('The city name'),
       }),
       execute: async ({ city }) => {
         return `The weather in ${city} is sunny.`;
@@ -166,9 +166,9 @@ Using [`Output`](/docs/reference/ai-sdk-core/output) to enforce structured outpu
 You can still return structured data by instructing the model to return JSON and validating it yourself.
 
 ```ts
-import { runpod } from "@runpod/ai-sdk-provider";
-import { generateText } from "ai";
-import { z } from "zod";
+import { runpod } from '@runpod/ai-sdk-provider';
+import { generateText } from 'ai';
+import { z } from 'zod';
 
 const RecipeSchema = z.object({
   name: z.string(),
@@ -177,14 +177,14 @@ const RecipeSchema = z.object({
 });
 
 const { text } = await generateText({
-  model: runpod("qwen/qwen3-32b-awq"),
+  model: runpod('qwen/qwen3-32b-awq'),
   messages: [
     {
-      role: "system",
+      role: 'system',
       content:
-        "return ONLY valid JSON matching { name: string; ingredients: string[]; steps: string[] }",
+        'return ONLY valid JSON matching { name: string; ingredients: string[]; steps: string[] }',
     },
-    { role: "user", content: "generate a lasagna recipe." },
+    { role: 'user', content: 'generate a lasagna recipe.' },
   ],
   temperature: 0,
 });
@@ -206,18 +206,18 @@ You can create Runpod image models using the `.imageModel()` factory method.
 ### Basic Usage
 
 ```ts
-import { runpod } from "@runpod/ai-sdk-provider";
-import { generateImage } from "ai";
+import { runpod } from '@runpod/ai-sdk-provider';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: runpod.imageModel("qwen/qwen-image"),
-  prompt: "A serene mountain landscape at sunset",
-  aspectRatio: "4:3",
+  model: runpod.imageModel('qwen/qwen-image'),
+  prompt: 'A serene mountain landscape at sunset',
+  aspectRatio: '4:3',
 });
 
 // Save to filesystem
-import { writeFileSync } from "fs";
-writeFileSync("landscape.jpg", image.uint8Array);
+import { writeFileSync } from 'fs';
+writeFileSync('landscape.jpg', image.uint8Array);
 ```
 
 **Returns:**
@@ -248,13 +248,13 @@ An up-to-date list of all available image models can be found in the [Runpod Pub
 
 ```ts
 const { image } = await generateImage({
-  model: runpod.imageModel("bytedance/seedream-3.0"),
-  prompt: "A sunset over mountains",
-  size: "1328x1328",
+  model: runpod.imageModel('bytedance/seedream-3.0'),
+  prompt: 'A sunset over mountains',
+  size: '1328x1328',
   seed: 42,
   providerOptions: {
     runpod: {
-      negative_prompt: "blurry, low quality",
+      negative_prompt: 'blurry, low quality',
       enable_safety_checker: true,
     },
   },
@@ -268,23 +268,23 @@ Transform existing images using text prompts.
 ```ts
 // Example: Transform existing image
 const { image } = await generateImage({
-  model: runpod.imageModel("black-forest-labs/flux-1-kontext-dev"),
-  prompt: "Transform this into a cyberpunk style with neon lights",
-  aspectRatio: "1:1",
+  model: runpod.imageModel('black-forest-labs/flux-1-kontext-dev'),
+  prompt: 'Transform this into a cyberpunk style with neon lights',
+  aspectRatio: '1:1',
   providerOptions: {
     runpod: {
-      image: "https://example.com/input-image.jpg",
+      image: 'https://example.com/input-image.jpg',
     },
   },
 });
 
 // Example: Using base64 encoded image
 const { image } = await generateImage({
-  model: runpod.imageModel("black-forest-labs/flux-1-kontext-dev"),
-  prompt: "Make this image look like a painting",
+  model: runpod.imageModel('black-forest-labs/flux-1-kontext-dev'),
+  prompt: 'Make this image look like a painting',
   providerOptions: {
     runpod: {
-      image: "data:image/png;base64,iVBORw0KGgoAAAANS...",
+      image: 'data:image/png;base64,iVBORw0KGgoAAAANS...',
     },
   },
 });
@@ -295,17 +295,17 @@ const { image } = await generateImage({
 ```ts
 // Full control over generation parameters
 const { image } = await generateImage({
-  model: runpod.imageModel("black-forest-labs/flux-1-dev"),
-  prompt: "A majestic dragon breathing fire in a medieval castle",
-  size: "1328x1328",
+  model: runpod.imageModel('black-forest-labs/flux-1-dev'),
+  prompt: 'A majestic dragon breathing fire in a medieval castle',
+  size: '1328x1328',
   seed: 42, // For reproducible results
   providerOptions: {
     runpod: {
-      negative_prompt: "blurry, low quality, distorted, ugly, bad anatomy",
+      negative_prompt: 'blurry, low quality, distorted, ugly, bad anatomy',
       enable_safety_checker: true,
       num_inference_steps: 50, // Higher quality (default: 28)
       guidance: 3.5, // Stronger prompt adherence (default: 2)
-      output_format: "png", // High quality format
+      output_format: 'png', // High quality format
       // Polling settings for long generations
       maxPollAttempts: 30,
       pollIntervalMillis: 4000,
@@ -315,14 +315,14 @@ const { image } = await generateImage({
 
 // Fast generation with minimal steps
 const { image } = await generateImage({
-  model: runpod.imageModel("black-forest-labs/flux-1-schnell"),
-  prompt: "A simple red apple",
-  aspectRatio: "1:1",
+  model: runpod.imageModel('black-forest-labs/flux-1-schnell'),
+  prompt: 'A simple red apple',
+  aspectRatio: '1:1',
   providerOptions: {
     runpod: {
       num_inference_steps: 2, // Even faster (default: 4)
       guidance: 10, // Higher guidance for simple prompts
-      output_format: "jpg", // Smaller file size
+      output_format: 'jpg', // Smaller file size
     },
   },
 });

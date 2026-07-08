@@ -34,16 +34,16 @@ The Cerebras provider is available via the `@ai-sdk/cerebras` module. You can in
 You can import the default provider instance `cerebras` from `@ai-sdk/cerebras`:
 
 ```ts
-import { cerebras } from "@ai-sdk/cerebras";
+import { cerebras } from '@ai-sdk/cerebras';
 ```
 
 For custom configuration, you can import `createCerebras` and create a provider instance with your settings:
 
 ```ts
-import { createCerebras } from "@ai-sdk/cerebras";
+import { createCerebras } from '@ai-sdk/cerebras';
 
 const cerebras = createCerebras({
-  apiKey: process.env.CEREBRAS_API_KEY ?? "",
+  apiKey: process.env.CEREBRAS_API_KEY ?? '',
 });
 ```
 
@@ -72,12 +72,12 @@ You can use the following optional settings to customize the Cerebras provider i
 You can create language models using a provider instance:
 
 ```ts
-import { cerebras } from "@ai-sdk/cerebras";
-import { generateText } from "ai";
+import { cerebras } from '@ai-sdk/cerebras';
+import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: cerebras("llama3.1-8b"),
-  prompt: "Write a vegetarian lasagna recipe for 4 people.",
+  model: cerebras('llama3.1-8b'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
 
@@ -87,14 +87,14 @@ Cerebras language models can be used in the `streamText` function
 You can create Cerebras language models using a provider instance. The first argument is the model ID, e.g. `llama-3.3-70b`:
 
 ```ts
-const model = cerebras("llama-3.3-70b");
+const model = cerebras('llama-3.3-70b');
 ```
 
 You can also use the `.languageModel()` and `.chat()` methods:
 
 ```ts
-const model = cerebras.languageModel("llama-3.3-70b");
-const model = cerebras.chat("llama-3.3-70b");
+const model = cerebras.languageModel('llama-3.3-70b');
+const model = cerebras.chat('llama-3.3-70b');
 ```
 
 ### Reasoning Models
@@ -104,23 +104,23 @@ Cerebras offers several reasoning models including `gpt-oss-120b`, `qwen-3-32b`,
 For `gpt-oss-120b`, you can control the reasoning depth using the `reasoningEffort` provider option:
 
 ```ts
-import { cerebras } from "@ai-sdk/cerebras";
-import { streamText } from "ai";
+import { cerebras } from '@ai-sdk/cerebras';
+import { streamText } from 'ai';
 
 const result = streamText({
-  model: cerebras("gpt-oss-120b"),
+  model: cerebras('gpt-oss-120b'),
   providerOptions: {
     cerebras: {
-      reasoningEffort: "medium",
+      reasoningEffort: 'medium',
     },
   },
   prompt: 'How many "r"s are in the word "strawberry"?',
 });
 
 for await (const part of result.stream) {
-  if (part.type === "reasoning") {
-    console.log("Reasoning:", part.text);
-  } else if (part.type === "text-delta") {
+  if (part.type === 'reasoning') {
+    console.log('Reasoning:', part.text);
+  } else if (part.type === 'text-delta') {
     process.stdout.write(part.textDelta);
   }
 }

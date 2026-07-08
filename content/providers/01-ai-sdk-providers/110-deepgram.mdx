@@ -32,13 +32,13 @@ The Deepgram provider is available in the `@ai-sdk/deepgram` module. You can ins
 You can import the default provider instance `deepgram` from `@ai-sdk/deepgram`:
 
 ```ts
-import { deepgram } from "@ai-sdk/deepgram";
+import { deepgram } from '@ai-sdk/deepgram';
 ```
 
 If you need a customized setup, you can import `createDeepgram` from `@ai-sdk/deepgram` and create a provider instance with your settings:
 
 ```ts
-import { createDeepgram } from "@ai-sdk/deepgram";
+import { createDeepgram } from '@ai-sdk/deepgram';
 
 const deepgram = createDeepgram({
   // custom settings, e.g.
@@ -72,33 +72,33 @@ using the `.speech()` factory method.
 The first argument is the model id, which includes the voice. Deepgram embeds the voice directly in the model ID (e.g., `aura-2-helena-en`).
 
 ```ts
-const model = deepgram.speech("aura-2-helena-en");
+const model = deepgram.speech('aura-2-helena-en');
 ```
 
 You can use the model with the `generateSpeech` function:
 
 ```ts
-import { generateSpeech } from "ai";
-import { deepgram } from "@ai-sdk/deepgram";
+import { generateSpeech } from 'ai';
+import { deepgram } from '@ai-sdk/deepgram';
 
 const result = await generateSpeech({
-  model: deepgram.speech("aura-2-helena-en"),
-  text: "Hello, world!",
+  model: deepgram.speech('aura-2-helena-en'),
+  text: 'Hello, world!',
 });
 ```
 
 You can also pass additional provider-specific options using the `providerOptions` argument:
 
 ```ts highlight="7-11"
-import { generateSpeech } from "ai";
-import { deepgram, type DeepgramSpeechModelOptions } from "@ai-sdk/deepgram";
+import { generateSpeech } from 'ai';
+import { deepgram, type DeepgramSpeechModelOptions } from '@ai-sdk/deepgram';
 
 const result = await generateSpeech({
-  model: deepgram.speech("aura-2-helena-en"),
-  text: "Hello, world!",
+  model: deepgram.speech('aura-2-helena-en'),
+  text: 'Hello, world!',
   providerOptions: {
     deepgram: {
-      encoding: "linear16",
+      encoding: 'linear16',
       sampleRate: 24000,
     } satisfies DeepgramSpeechModelOptions,
   },
@@ -176,22 +176,22 @@ using the `.transcription()` factory method.
 The first argument is the model id e.g. `nova-3`.
 
 ```ts
-const model = deepgram.transcription("nova-3");
+const model = deepgram.transcription('nova-3');
 ```
 
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the `summarize` option will enable summaries for sections of content.
 
 ```ts highlight="6"
-import { transcribe } from "ai";
+import { transcribe } from 'ai';
 import {
   deepgram,
   type DeepgramTranscriptionModelOptions,
-} from "@ai-sdk/deepgram";
-import { readFile } from "fs/promises";
+} from '@ai-sdk/deepgram';
+import { readFile } from 'fs/promises';
 
 const result = await transcribe({
-  model: deepgram.transcription("nova-3"),
-  audio: await readFile("audio.mp3"),
+  model: deepgram.transcription('nova-3'),
+  audio: await readFile('audio.mp3'),
   providerOptions: {
     deepgram: {
       summarize: true,

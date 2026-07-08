@@ -28,7 +28,7 @@ npm install ai-sdk-provider-claude-code@ai-sdk-v4 ai@^4.0.0
 
 ## Setup
 
-<Tabs items={["pnpm", "npm", "yarn", "bun"]}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add ai-sdk-provider-claude-code" dark />
   </Tab>
@@ -48,24 +48,24 @@ npm install ai-sdk-provider-claude-code@ai-sdk-v4 ai@^4.0.0
 You can import the default provider instance `claudeCode` from `ai-sdk-provider-claude-code`:
 
 ```ts
-import { claudeCode } from "ai-sdk-provider-claude-code";
+import { claudeCode } from 'ai-sdk-provider-claude-code';
 ```
 
 If you need a customized setup, you can import `createClaudeCode` and create a provider instance with your settings:
 
 ```ts
-import { createClaudeCode } from "ai-sdk-provider-claude-code";
+import { createClaudeCode } from 'ai-sdk-provider-claude-code';
 
 const claudeCode = createClaudeCode({
-  allowedTools: ["Read", "Write", "Edit"],
-  disallowedTools: ["Bash"],
+  allowedTools: ['Read', 'Write', 'Edit'],
+  disallowedTools: ['Bash'],
   mcpServers: {
-    "my-server": {
-      command: "node",
-      args: ["server.js"],
+    'my-server': {
+      command: 'node',
+      args: ['server.js'],
     },
   },
-  permissionMode: "default",
+  permissionMode: 'default',
 });
 ```
 
@@ -84,7 +84,7 @@ You can use the following optional settings to customize the provider instance:
 You can create models that call Claude through the Claude Agent SDK using the provider instance:
 
 ```ts
-const model = claudeCode("sonnet");
+const model = claudeCode('sonnet');
 ```
 
 Supported model shortcuts:
@@ -96,19 +96,19 @@ Supported model shortcuts:
 You can also use full model identifiers directly:
 
 ```ts
-const model = claudeCode("claude-opus-4-5");
-const model = claudeCode("claude-sonnet-4-5-20250514");
+const model = claudeCode('claude-opus-4-5');
+const model = claudeCode('claude-sonnet-4-5-20250514');
 ```
 
 ### Example
 
 ```ts
-import { claudeCode } from "ai-sdk-provider-claude-code";
-import { generateText } from "ai";
+import { claudeCode } from 'ai-sdk-provider-claude-code';
+import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: claudeCode("sonnet"),
-  prompt: "Write a vegetarian lasagna recipe for 4 people.",
+  model: claudeCode('sonnet'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
 

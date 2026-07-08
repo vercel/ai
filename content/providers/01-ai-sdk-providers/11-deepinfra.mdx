@@ -32,16 +32,16 @@ The DeepInfra provider is available via the `@ai-sdk/deepinfra` module. You can 
 You can import the default provider instance `deepInfra` from `@ai-sdk/deepinfra`:
 
 ```ts
-import { deepInfra } from "@ai-sdk/deepinfra";
+import { deepInfra } from '@ai-sdk/deepinfra';
 ```
 
 If you need a customized setup, you can import `createDeepInfra` from `@ai-sdk/deepinfra` and create a provider instance with your settings:
 
 ```ts
-import { createDeepInfra } from "@ai-sdk/deepinfra";
+import { createDeepInfra } from '@ai-sdk/deepinfra';
 
 const deepInfra = createDeepInfra({
-  apiKey: process.env.DEEPINFRA_API_KEY ?? "",
+  apiKey: process.env.DEEPINFRA_API_KEY ?? '',
 });
 ```
 
@@ -76,12 +76,12 @@ You can use the following optional settings to customize the DeepInfra provider 
 You can create language models using a provider instance. The first argument is the model ID, for example:
 
 ```ts
-import { deepInfra } from "@ai-sdk/deepinfra";
-import { generateText } from "ai";
+import { deepInfra } from '@ai-sdk/deepinfra';
+import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: deepInfra("meta-llama/Meta-Llama-3.1-70B-Instruct"),
-  prompt: "Write a vegetarian lasagna recipe for 4 people.",
+  model: deepInfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
 
@@ -128,13 +128,13 @@ You can create DeepInfra image models using the `.image()` factory method.
 For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
 
 ```ts
-import { deepInfra, type DeepInfraImageModelOptions } from "@ai-sdk/deepinfra";
-import { generateImage } from "ai";
+import { deepInfra, type DeepInfraImageModelOptions } from '@ai-sdk/deepinfra';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: deepInfra.image("stabilityai/sd3.5"),
-  prompt: "A futuristic cityscape at sunset",
-  aspectRatio: "16:9",
+  model: deepInfra.image('stabilityai/sd3.5'),
+  prompt: 'A futuristic cityscape at sunset',
+  aspectRatio: '16:9',
 });
 ```
 
@@ -150,13 +150,13 @@ const { image } = await generateImage({
 You can pass model-specific parameters using the `providerOptions.deepinfra` field:
 
 ```ts
-import { deepInfra } from "@ai-sdk/deepinfra";
-import { generateImage } from "ai";
+import { deepInfra } from '@ai-sdk/deepinfra';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: deepInfra.image("stabilityai/sd3.5"),
-  prompt: "A futuristic cityscape at sunset",
-  aspectRatio: "16:9",
+  model: deepInfra.image('stabilityai/sd3.5'),
+  prompt: 'A futuristic cityscape at sunset',
+  aspectRatio: '16:9',
   providerOptions: {
     deepinfra: {
       num_inference_steps: 30,
@@ -216,15 +216,15 @@ DeepInfra supports image editing through models like `Qwen/Qwen-Image-Edit`. Pas
 Transform an existing image using text prompts:
 
 ```ts
-const imageBuffer = readFileSync("./input-image.png");
+const imageBuffer = readFileSync('./input-image.png');
 
 const { images } = await generateImage({
-  model: deepInfra.image("Qwen/Qwen-Image-Edit"),
+  model: deepInfra.image('Qwen/Qwen-Image-Edit'),
   prompt: {
-    text: "Turn the cat into a golden retriever dog",
+    text: 'Turn the cat into a golden retriever dog',
     images: [imageBuffer],
   },
-  size: "1024x1024",
+  size: '1024x1024',
 });
 ```
 
@@ -233,13 +233,13 @@ const { images } = await generateImage({
 Edit specific parts of an image using a mask. Transparent areas in the mask indicate where the image should be edited:
 
 ```ts
-const image = readFileSync("./input-image.png");
-const mask = readFileSync("./mask.png");
+const image = readFileSync('./input-image.png');
+const mask = readFileSync('./mask.png');
 
 const { images } = await generateImage({
-  model: deepInfra.image("Qwen/Qwen-Image-Edit"),
+  model: deepInfra.image('Qwen/Qwen-Image-Edit'),
   prompt: {
-    text: "A sunlit indoor lounge area with a pool containing a flamingo",
+    text: 'A sunlit indoor lounge area with a pool containing a flamingo',
     images: [image],
     mask: mask,
   },
@@ -251,13 +251,13 @@ const { images } = await generateImage({
 Combine multiple reference images into a single output:
 
 ```ts
-const cat = readFileSync("./cat.png");
-const dog = readFileSync("./dog.png");
+const cat = readFileSync('./cat.png');
+const dog = readFileSync('./dog.png');
 
 const { images } = await generateImage({
-  model: deepInfra.image("Qwen/Qwen-Image-Edit"),
+  model: deepInfra.image('Qwen/Qwen-Image-Edit'),
   prompt: {
-    text: "Create a scene with both animals together, playing as friends",
+    text: 'Create a scene with both animals together, playing as friends',
     images: [cat, dog],
   },
 });
@@ -300,12 +300,12 @@ You can create DeepInfra embedding models using the `.embeddingModel()` factory 
 For more on embedding models with the AI SDK see [embed()](/docs/reference/ai-sdk-core/embed).
 
 ```ts
-import { deepInfra } from "@ai-sdk/deepinfra";
-import { embed } from "ai";
+import { deepInfra } from '@ai-sdk/deepinfra';
+import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: deepInfra.embeddingModel("BAAI/bge-large-en-v1.5"),
-  value: "sunny day at the beach",
+  model: deepInfra.embeddingModel('BAAI/bge-large-en-v1.5'),
+  value: 'sunny day at the beach',
 });
 ```
 

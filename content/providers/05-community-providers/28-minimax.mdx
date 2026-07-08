@@ -13,7 +13,7 @@ API keys can be obtained from the [MiniMax Platform](https://platform.minimax.io
 
 The MiniMax provider is available via the `vercel-minimax-ai-provider` module. You can install it with:
 
-<Tabs items={["pnpm", "npm", "yarn", "bun"]}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add vercel-minimax-ai-provider" dark />
   </Tab>
@@ -37,19 +37,19 @@ The MiniMax provider supports two API compatibility modes:
 You can import the default provider instance `minimax` from `vercel-minimax-ai-provider`:
 
 ```ts
-import { minimax } from "vercel-minimax-ai-provider";
+import { minimax } from 'vercel-minimax-ai-provider';
 ```
 
 Or explicitly use the Anthropic-compatible instance:
 
 ```ts
-import { minimaxAnthropic } from "vercel-minimax-ai-provider";
+import { minimaxAnthropic } from 'vercel-minimax-ai-provider';
 ```
 
 Or OpenAI-compatible API format:
 
 ```ts
-import { minimaxOpenAI } from "vercel-minimax-ai-provider";
+import { minimaxOpenAI } from 'vercel-minimax-ai-provider';
 ```
 
 ## Custom Configuration
@@ -59,7 +59,7 @@ For custom configuration, you can use the `createMinimax` (Anthropic-compatible)
 ### Anthropic-Compatible Configuration (Default)
 
 ```ts
-import { createMinimax } from "vercel-minimax-ai-provider";
+import { createMinimax } from 'vercel-minimax-ai-provider';
 
 const minimax = createMinimax({
   apiKey: process.env.MINIMAX_API_KEY,
@@ -73,7 +73,6 @@ You can use the following optional settings to customize the MiniMax provider in
 - **baseURL** _string_
 
   Use a different URL prefix for API calls.
-
   - Anthropic-compatible default: `https://api.minimax.io/anthropic/v1`
   - OpenAI-compatible default: `https://api.minimax.io/v1`
 
@@ -120,12 +119,12 @@ Both formats access the same MiniMax models with the same capabilities.
 ### Basic Text Generation
 
 ```ts
-import { minimax } from "vercel-minimax-ai-provider";
-import { generateText } from "ai";
+import { minimax } from 'vercel-minimax-ai-provider';
+import { generateText } from 'ai';
 
 const result = await generateText({
-  model: minimax("MiniMax-M2"),
-  prompt: "Explain quantum computing in simple terms.",
+  model: minimax('MiniMax-M2'),
+  prompt: 'Explain quantum computing in simple terms.',
 });
 
 console.log(result.text);
@@ -134,12 +133,12 @@ console.log(result.text);
 ### Streaming
 
 ```ts
-import { minimax } from "vercel-minimax-ai-provider";
-import { streamText } from "ai";
+import { minimax } from 'vercel-minimax-ai-provider';
+import { streamText } from 'ai';
 
 const result = streamText({
-  model: minimax("MiniMax-M2"),
-  prompt: "Write a short story about a robot learning to paint.",
+  model: minimax('MiniMax-M2'),
+  prompt: 'Write a short story about a robot learning to paint.',
 });
 
 for await (const chunk of result.textStream) {

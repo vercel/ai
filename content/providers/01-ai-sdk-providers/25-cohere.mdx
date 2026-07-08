@@ -32,14 +32,14 @@ The Cohere provider is available in the `@ai-sdk/cohere` module. You can install
 You can import the default provider instance `cohere` from `@ai-sdk/cohere`:
 
 ```ts
-import { cohere } from "@ai-sdk/cohere";
+import { cohere } from '@ai-sdk/cohere';
 ```
 
 If you need a customized setup, you can import `createCohere` from `@ai-sdk/cohere`
 and create a provider instance with your settings:
 
 ```ts
-import { createCohere } from "@ai-sdk/cohere";
+import { createCohere } from '@ai-sdk/cohere';
 
 const cohere = createCohere({
   // custom settings
@@ -81,7 +81,7 @@ The first argument is the model id, e.g. `command-r-plus`.
 Some Cohere chat models support tool calls.
 
 ```ts
-const model = cohere("command-r-plus");
+const model = cohere('command-r-plus');
 ```
 
 ### Example
@@ -89,12 +89,12 @@ const model = cohere("command-r-plus");
 You can use Cohere language models to generate text with the `generateText` function:
 
 ```ts
-import { cohere } from "@ai-sdk/cohere";
-import { generateText } from "ai";
+import { cohere } from '@ai-sdk/cohere';
+import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: cohere("command-r-plus"),
-  prompt: "Write a vegetarian lasagna recipe for 4 people.",
+  model: cohere('command-r-plus'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
 
@@ -132,21 +132,21 @@ and support structured data generation with [`Output`](/docs/reference/ai-sdk-co
 Vision-capable Cohere models such as `command-a-vision-07-2025` accept image inputs as part of the message content. You can pass images as raw bytes, base64-encoded strings, or URLs:
 
 ```ts
-import { cohere } from "@ai-sdk/cohere";
-import { generateText } from "ai";
-import { readFileSync } from "node:fs";
+import { cohere } from '@ai-sdk/cohere';
+import { generateText } from 'ai';
+import { readFileSync } from 'node:fs';
 
 const { text } = await generateText({
-  model: cohere("command-a-vision-07-2025"),
+  model: cohere('command-a-vision-07-2025'),
   messages: [
     {
-      role: "user",
+      role: 'user',
       content: [
-        { type: "text", text: "Describe the image in detail." },
+        { type: 'text', text: 'Describe the image in detail.' },
         {
-          type: "file",
-          mediaType: "image",
-          data: readFileSync("./data/comic-cat.png"),
+          type: 'file',
+          mediaType: 'image',
+          data: readFileSync('./data/comic-cat.png'),
         },
       ],
     },
@@ -157,24 +157,24 @@ const { text } = await generateText({
 You can use the `cohere` provider option on a file part to set the [image input detail](https://docs.cohere.com/docs/image-inputs) to `high`, `low`, or `auto`:
 
 ```ts highlight="2,16-18"
-import { cohere } from "@ai-sdk/cohere";
-import { generateText } from "ai";
+import { cohere } from '@ai-sdk/cohere';
+import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: cohere("command-a-vision-07-2025"),
+  model: cohere('command-a-vision-07-2025'),
   messages: [
     {
-      role: "user",
+      role: 'user',
       content: [
-        { type: "text", text: "Describe the image in detail." },
+        { type: 'text', text: 'Describe the image in detail.' },
         {
-          type: "file",
-          mediaType: "image",
-          data: "https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true",
+          type: 'file',
+          mediaType: 'image',
+          data: 'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
 
           // Cohere specific options - image detail:
           providerOptions: {
-            cohere: { detail: "high" },
+            cohere: { detail: 'high' },
           },
         },
       ],
@@ -188,19 +188,19 @@ const { text } = await generateText({
 Cohere has introduced reasoning with the `command-a-reasoning-08-2025` model. You can learn more at https://docs.cohere.com/docs/reasoning.
 
 ```ts
-import { cohere, type CohereLanguageModelChatOptions } from "@ai-sdk/cohere";
-import { generateText } from "ai";
+import { cohere, type CohereLanguageModelChatOptions } from '@ai-sdk/cohere';
+import { generateText } from 'ai';
 
 async function main() {
   const { text, reasoning } = await generateText({
-    model: cohere("command-a-reasoning-08-2025"),
+    model: cohere('command-a-reasoning-08-2025'),
     prompt:
       "Alice has 3 brothers and she also has 2 sisters. How many sisters does Alice's brother have?",
     // optional: reasoning options
     providerOptions: {
       cohere: {
         thinking: {
-          type: "enabled",
+          type: 'enabled',
           tokenBudget: 100,
         },
       } satisfies CohereLanguageModelChatOptions,
@@ -220,21 +220,21 @@ You can create models that call the [Cohere embed API](https://docs.cohere.com/v
 using the `.embedding()` factory method.
 
 ```ts
-const model = cohere.embedding("embed-english-v3.0");
+const model = cohere.embedding('embed-english-v3.0');
 ```
 
 You can use Cohere embedding models to generate embeddings with the `embed` function:
 
 ```ts
-import { cohere, type CohereEmbeddingModelOptions } from "@ai-sdk/cohere";
-import { embed } from "ai";
+import { cohere, type CohereEmbeddingModelOptions } from '@ai-sdk/cohere';
+import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: cohere.embedding("embed-english-v3.0"),
-  value: "sunny day at the beach",
+  model: cohere.embedding('embed-english-v3.0'),
+  value: 'sunny day at the beach',
   providerOptions: {
     cohere: {
-      inputType: "search_document",
+      inputType: 'search_document',
     } satisfies CohereEmbeddingModelOptions,
   },
 });
@@ -243,16 +243,16 @@ const { embedding } = await embed({
 Cohere embedding models support additional provider options that can be passed via `providerOptions.cohere`:
 
 ```ts
-import { cohere, type CohereEmbeddingModelOptions } from "@ai-sdk/cohere";
-import { embed } from "ai";
+import { cohere, type CohereEmbeddingModelOptions } from '@ai-sdk/cohere';
+import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: cohere.embedding("embed-english-v3.0"),
-  value: "sunny day at the beach",
+  model: cohere.embedding('embed-english-v3.0'),
+  value: 'sunny day at the beach',
   providerOptions: {
     cohere: {
-      inputType: "search_document",
-      truncate: "END",
+      inputType: 'search_document',
+      truncate: 'END',
     } satisfies CohereEmbeddingModelOptions,
   },
 });
@@ -263,7 +263,6 @@ The following provider options are available:
 - **inputType** _'search_document' | 'search_query' | 'classification' | 'clustering'_
 
   Specifies the type of input passed to the model. Default is `search_query`.
-
   - `search_document`: Used for embeddings stored in a vector database for search use-cases.
   - `search_query`: Used for embeddings of search queries run against a vector DB to find relevant documents.
   - `classification`: Used for embeddings passed through a text classifier.
@@ -273,7 +272,6 @@ The following provider options are available:
 
   Specifies how the API will handle inputs longer than the maximum token length.
   Default is `END`.
-
   - `NONE`: If selected, when the input exceeds the maximum input token length will return an error.
   - `START`: Will discard the start of the input until the remaining input is exactly the maximum input token length for the model.
   - `END`: Will discard the end of the input until the remaining input is exactly the maximum input token length for the model.
@@ -296,25 +294,25 @@ You can create models that call the [Cohere rerank API](https://docs.cohere.com/
 using the `.reranking()` factory method.
 
 ```ts
-const model = cohere.reranking("rerank-v3.5");
+const model = cohere.reranking('rerank-v3.5');
 ```
 
 You can use Cohere reranking models to rerank documents with the `rerank` function:
 
 ```ts
-import { cohere } from "@ai-sdk/cohere";
-import { rerank } from "ai";
+import { cohere } from '@ai-sdk/cohere';
+import { rerank } from 'ai';
 
 const documents = [
-  "sunny day at the beach",
-  "rainy afternoon in the city",
-  "snowy night in the mountains",
+  'sunny day at the beach',
+  'rainy afternoon in the city',
+  'snowy night in the mountains',
 ];
 
 const { ranking } = await rerank({
-  model: cohere.reranking("rerank-v3.5"),
+  model: cohere.reranking('rerank-v3.5'),
   documents,
-  query: "talk about rain",
+  query: 'talk about rain',
   topN: 2,
 });
 
@@ -328,13 +326,13 @@ console.log(ranking);
 Cohere reranking models support additional provider options that can be passed via `providerOptions.cohere`:
 
 ```ts
-import { cohere, type CohereRerankingModelOptions } from "@ai-sdk/cohere";
-import { rerank } from "ai";
+import { cohere, type CohereRerankingModelOptions } from '@ai-sdk/cohere';
+import { rerank } from 'ai';
 
 const { ranking } = await rerank({
-  model: cohere.reranking("rerank-v3.5"),
-  documents: ["sunny day at the beach", "rainy afternoon in the city"],
-  query: "talk about rain",
+  model: cohere.reranking('rerank-v3.5'),
+  documents: ['sunny day at the beach', 'rainy afternoon in the city'],
+  query: 'talk about rain',
   providerOptions: {
     cohere: {
       maxTokensPerDoc: 1000,

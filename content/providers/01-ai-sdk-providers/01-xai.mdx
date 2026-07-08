@@ -33,17 +33,17 @@ install it with
 You can import the default provider instance `xai` from `@ai-sdk/xai`:
 
 ```ts
-import { xai } from "@ai-sdk/xai";
+import { xai } from '@ai-sdk/xai';
 ```
 
 If you need a customized setup, you can import `createXai` from `@ai-sdk/xai`
 and create a provider instance with your settings:
 
 ```ts
-import { createXai } from "@ai-sdk/xai";
+import { createXai } from '@ai-sdk/xai';
 
 const xai = createXai({
-  apiKey: "your-api-key",
+  apiKey: 'your-api-key',
 });
 ```
 
@@ -76,7 +76,7 @@ You can create [xAI models](https://console.x.ai) using a provider instance. The
 first argument is the model id, e.g. `grok-4.20-non-reasoning`.
 
 ```ts
-const model = xai("grok-4.20-non-reasoning");
+const model = xai('grok-4.20-non-reasoning');
 ```
 
 <Note>
@@ -91,12 +91,12 @@ const model = xai("grok-4.20-non-reasoning");
 You can use xAI language models to generate text with the `generateText` function:
 
 ```ts
-import { xai } from "@ai-sdk/xai";
-import { generateText } from "ai";
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai("grok-4.20-non-reasoning"),
-  prompt: "Write a vegetarian lasagna recipe for 4 people.",
+  model: xai('grok-4.20-non-reasoning'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
 
@@ -112,14 +112,14 @@ works for both the Responses API (default) and the Chat Completions API
 (`xai.chat()`).
 
 ```ts
-import { xai } from "@ai-sdk/xai";
-import { generateText } from "ai";
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai("grok-4.3"),
-  prompt: "Explain quantum entanglement.",
+  model: xai('grok-4.3'),
+  prompt: 'Explain quantum entanglement.',
   providerOptions: {
-    xai: { reasoningEffort: "medium" },
+    xai: { reasoningEffort: 'medium' },
   },
 });
 ```
@@ -151,9 +151,9 @@ You can create models that call the [xAI Realtime API](https://docs.x.ai/docs/gu
 using the `.experimental_realtime()` factory method.
 
 ```ts
-import { xai } from "@ai-sdk/xai";
+import { xai } from '@ai-sdk/xai';
 
-const model = xai.experimental_realtime("grok-voice-latest");
+const model = xai.experimental_realtime('grok-voice-latest');
 ```
 
 Realtime sessions run in the browser and require a short-lived token created on
@@ -161,7 +161,7 @@ your server with `xai.experimental_realtime.getToken()`:
 
 ```ts
 const token = await xai.experimental_realtime.getToken({
-  model: "grok-voice-latest",
+  model: 'grok-voice-latest',
 });
 ```
 
@@ -173,7 +173,7 @@ calling pattern.
 The xAI Responses API is the default when using `xai(modelId)` (since AI SDK 7). You can also use `xai.responses(modelId)` explicitly. This enables the model to autonomously orchestrate tool calls and research on xAI's servers.
 
 ```ts
-const model = xai.responses("grok-4.20-non-reasoning");
+const model = xai.responses('grok-4.20-non-reasoning');
 ```
 
 The Responses API provides server-side tools that the model can autonomously execute during its reasoning process:
@@ -191,20 +191,20 @@ The Responses API provides server-side tools that the model can autonomously exe
 The Responses API supports image input with vision models:
 
 ```ts
-import { xai } from "@ai-sdk/xai";
-import { generateText } from "ai";
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai.responses("grok-3"),
+  model: xai.responses('grok-3'),
   messages: [
     {
-      role: "user",
+      role: 'user',
       content: [
-        { type: "text", text: "What do you see in this image?" },
+        { type: 'text', text: 'What do you see in this image?' },
         {
-          type: "file",
-          mediaType: "image",
-          data: fs.readFileSync("./image.png"),
+          type: 'file',
+          mediaType: 'image',
+          data: fs.readFileSync('./image.png'),
         },
       ],
     },
@@ -216,22 +216,22 @@ You can control the resolution at which the model processes an image with
 the `imageDetail` provider option on the image part:
 
 ```ts
-import { xai } from "@ai-sdk/xai";
-import { generateText } from "ai";
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai("grok-4.3"),
+  model: xai('grok-4.3'),
   messages: [
     {
-      role: "user",
+      role: 'user',
       content: [
-        { type: "text", text: "What do you see in this image?" },
+        { type: 'text', text: 'What do you see in this image?' },
         {
-          type: "file",
-          mediaType: "image/png",
-          data: fs.readFileSync("./image.png"),
+          type: 'file',
+          mediaType: 'image/png',
+          data: fs.readFileSync('./image.png'),
           providerOptions: {
-            xai: { imageDetail: "low" },
+            xai: { imageDetail: 'low' },
           },
         },
       ],
@@ -253,22 +253,22 @@ When not set, the image is processed at full resolution.
 The web search tool enables autonomous web research with optional domain filtering and image understanding:
 
 ```ts
-import { xai } from "@ai-sdk/xai";
-import { generateText } from "ai";
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
 
 const { text, sources } = await generateText({
-  model: xai.responses("grok-4.20-non-reasoning"),
-  prompt: "What are the latest developments in AI?",
+  model: xai.responses('grok-4.20-non-reasoning'),
+  prompt: 'What are the latest developments in AI?',
   tools: {
     web_search: xai.tools.webSearch({
-      allowedDomains: ["arxiv.org", "openai.com"],
+      allowedDomains: ['arxiv.org', 'openai.com'],
       enableImageUnderstanding: true,
     }),
   },
 });
 
 console.log(text);
-console.log("Citations:", sources);
+console.log('Citations:', sources);
 ```
 
 #### Web Search Parameters
@@ -295,13 +295,13 @@ The X search tool enables searching X (Twitter) for posts, with filtering by han
 
 ```ts
 const { text, sources } = await generateText({
-  model: xai.responses("grok-4.20-non-reasoning"),
-  prompt: "What are people saying about AI on X this week?",
+  model: xai.responses('grok-4.20-non-reasoning'),
+  prompt: 'What are people saying about AI on X this week?',
   tools: {
     x_search: xai.tools.xSearch({
-      allowedXHandles: ["elonmusk", "xai"],
-      fromDate: "2025-10-23",
-      toDate: "2025-10-30",
+      allowedXHandles: ['elonmusk', 'xai'],
+      fromDate: '2025-10-23',
+      toDate: '2025-10-30',
       enableImageUnderstanding: true,
       enableVideoUnderstanding: true,
     }),
@@ -341,9 +341,9 @@ The code execution tool enables the model to write and execute Python code for c
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses("grok-4.20-non-reasoning"),
+  model: xai.responses('grok-4.20-non-reasoning'),
   prompt:
-    "Calculate the compound interest for $10,000 at 5% annually for 10 years",
+    'Calculate the compound interest for $10,000 at 5% annually for 10 years',
   tools: {
     code_execution: xai.tools.codeExecution(),
   },
@@ -356,8 +356,8 @@ The view image tool enables the model to view and analyze images:
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses("grok-4.20-non-reasoning"),
-  prompt: "Describe what you see in the image",
+  model: xai.responses('grok-4.20-non-reasoning'),
+  prompt: 'Describe what you see in the image',
   tools: {
     view_image: xai.tools.viewImage(),
   },
@@ -370,8 +370,8 @@ The view X video tool enables the model to view and analyze videos from X (Twitt
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses("grok-4.20-non-reasoning"),
-  prompt: "Summarize the content of this X video",
+  model: xai.responses('grok-4.20-non-reasoning'),
+  prompt: 'Summarize the content of this X video',
   tools: {
     view_x_video: xai.tools.viewXVideo(),
   },
@@ -384,14 +384,14 @@ The MCP server tool enables the model to connect to remote [Model Context Protoc
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses("grok-4.20-non-reasoning"),
-  prompt: "Use the weather tool to check conditions in San Francisco",
+  model: xai.responses('grok-4.20-non-reasoning'),
+  prompt: 'Use the weather tool to check conditions in San Francisco',
   tools: {
     weather_server: xai.tools.mcpServer({
-      serverUrl: "https://example.com/mcp",
-      serverLabel: "weather-service",
-      serverDescription: "Weather data provider",
-      allowedTools: ["get_weather", "get_forecast"],
+      serverUrl: 'https://example.com/mcp',
+      serverLabel: 'weather-service',
+      serverDescription: 'Weather data provider',
+      allowedTools: ['get_weather', 'get_forecast'],
     }),
   },
 });
@@ -428,21 +428,21 @@ const { text } = await generateText({
 The file search tool enables searching through documents stored in xAI vector stores (collections):
 
 ```ts
-import { xai, type XaiLanguageModelResponsesOptions } from "@ai-sdk/xai";
-import { streamText } from "ai";
+import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
+import { streamText } from 'ai';
 
 const result = streamText({
-  model: xai.responses("grok-4.20-reasoning"),
-  prompt: "What documents do you have access to?",
+  model: xai.responses('grok-4.20-reasoning'),
+  prompt: 'What documents do you have access to?',
   tools: {
     file_search: xai.tools.fileSearch({
-      vectorStoreIds: ["collection_your-collection-id"],
+      vectorStoreIds: ['collection_your-collection-id'],
       maxNumResults: 10,
     }),
   },
   providerOptions: {
     xai: {
-      include: ["file_search_call.results"],
+      include: ['file_search_call.results'],
     } satisfies XaiLanguageModelResponsesOptions,
   },
 });
@@ -475,31 +475,31 @@ const result = streamText({
 You can combine multiple server-side tools for comprehensive research:
 
 ```ts
-import { xai } from "@ai-sdk/xai";
-import { streamText } from "ai";
+import { xai } from '@ai-sdk/xai';
+import { streamText } from 'ai';
 
 const { stream } = streamText({
-  model: xai.responses("grok-4.20-non-reasoning"),
-  prompt: "Research AI safety developments and calculate risk metrics",
+  model: xai.responses('grok-4.20-non-reasoning'),
+  prompt: 'Research AI safety developments and calculate risk metrics',
   tools: {
     web_search: xai.tools.webSearch(),
     x_search: xai.tools.xSearch(),
     code_execution: xai.tools.codeExecution(),
     file_search: xai.tools.fileSearch({
-      vectorStoreIds: ["collection_your-documents"],
+      vectorStoreIds: ['collection_your-documents'],
     }),
     data_service: xai.tools.mcpServer({
-      serverUrl: "https://data.example.com/mcp",
-      serverLabel: "data-service",
+      serverUrl: 'https://data.example.com/mcp',
+      serverLabel: 'data-service',
     }),
   },
 });
 
 for await (const part of stream) {
-  if (part.type === "text-delta") {
+  if (part.type === 'text-delta') {
     process.stdout.write(part.text);
-  } else if (part.type === "source" && part.sourceType === "url") {
-    console.log("\nSource:", part.url);
+  } else if (part.type === 'source' && part.sourceType === 'url') {
+    console.log('\nSource:', part.url);
   }
 }
 ```
@@ -509,14 +509,14 @@ for await (const part of stream) {
 The Responses API supports the following provider options:
 
 ```ts
-import { xai, type XaiLanguageModelResponsesOptions } from "@ai-sdk/xai";
-import { generateText } from "ai";
+import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
+import { generateText } from 'ai';
 
 const result = await generateText({
-  model: xai.responses("grok-4.20-non-reasoning"),
+  model: xai.responses('grok-4.20-non-reasoning'),
   providerOptions: {
     xai: {
-      reasoningEffort: "high",
+      reasoningEffort: 'high',
     } satisfies XaiLanguageModelResponsesOptions,
   },
   // ...
@@ -588,15 +588,15 @@ const model = xai.speech();
 Use xAI speech models with the `generateSpeech` function:
 
 ```ts
-import { xai } from "@ai-sdk/xai";
-import { generateSpeech } from "ai";
+import { xai } from '@ai-sdk/xai';
+import { generateSpeech } from 'ai';
 
 const result = await generateSpeech({
   model: xai.speech(),
-  text: "Hello from the AI SDK!",
-  voice: "ara",
-  language: "en",
-  outputFormat: "mp3",
+  text: 'Hello from the AI SDK!',
+  voice: 'ara',
+  language: 'en',
+  outputFormat: 'mp3',
   speed: 1.1,
 });
 ```
@@ -637,13 +637,13 @@ const result = await generateSpeech({
 You can pass xAI-specific controls using `providerOptions.xai`:
 
 ```ts
-import { xai, type XaiSpeechModelOptions } from "@ai-sdk/xai";
-import { generateSpeech } from "ai";
+import { xai, type XaiSpeechModelOptions } from '@ai-sdk/xai';
+import { generateSpeech } from 'ai';
 
 const result = await generateSpeech({
   model: xai.speech(),
-  text: "A high fidelity narration sample.",
-  outputFormat: "mp3",
+  text: 'A high fidelity narration sample.',
+  outputFormat: 'mp3',
   providerOptions: {
     xai: {
       sampleRate: 44100,
@@ -692,13 +692,13 @@ const model = xai.transcription();
 Use xAI transcription models with the `transcribe` function:
 
 ```ts
-import { xai } from "@ai-sdk/xai";
-import { transcribe } from "ai";
-import { readFile } from "fs/promises";
+import { xai } from '@ai-sdk/xai';
+import { transcribe } from 'ai';
+import { readFile } from 'fs/promises';
 
 const result = await transcribe({
   model: xai.transcription(),
-  audio: await readFile("meeting.mp3"),
+  audio: await readFile('meeting.mp3'),
 });
 ```
 
@@ -707,18 +707,18 @@ const result = await transcribe({
 You can pass xAI-specific controls using `providerOptions.xai`:
 
 ```ts
-import { xai, type XaiTranscriptionModelOptions } from "@ai-sdk/xai";
-import { transcribe } from "ai";
-import { readFile } from "fs/promises";
+import { xai, type XaiTranscriptionModelOptions } from '@ai-sdk/xai';
+import { transcribe } from 'ai';
+import { readFile } from 'fs/promises';
 
 const result = await transcribe({
   model: xai.transcription(),
-  audio: await readFile("meeting.mp3"),
+  audio: await readFile('meeting.mp3'),
   providerOptions: {
     xai: {
-      language: "en",
+      language: 'en',
       format: true,
-      keyterm: ["AI SDK", "Grok"],
+      keyterm: ['AI SDK', 'Grok'],
       diarize: true,
     } satisfies XaiTranscriptionModelOptions,
   },
@@ -764,7 +764,6 @@ const result = await transcribe({
 - **streaming** _object_
 
   Options for streaming speech-to-text over WebSocket. Use with `experimental_streamTranscribe`.
-
   - **interimResults** _boolean_
 
     Emits partial transcripts while speech is being processed.
@@ -800,12 +799,12 @@ const result = await transcribe({
 You can create xAI image models using the `.image()` factory method. For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
 
 ```ts
-import { xai } from "@ai-sdk/xai";
-import { generateImage } from "ai";
+import { xai } from '@ai-sdk/xai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: xai.image("grok-imagine-image"),
-  prompt: "A futuristic cityscape at sunset",
+  model: xai.image('grok-imagine-image'),
+  prompt: 'A futuristic cityscape at sunset',
 });
 ```
 
@@ -829,16 +828,16 @@ xAI supports image editing through the `grok-imagine-image` model. Pass input im
 Transform an existing image using text prompts:
 
 ```ts
-import { xai } from "@ai-sdk/xai";
-import { generateImage } from "ai";
-import { readFileSync } from "fs";
+import { xai } from '@ai-sdk/xai';
+import { generateImage } from 'ai';
+import { readFileSync } from 'fs';
 
-const imageBuffer = readFileSync("./input-image.png");
+const imageBuffer = readFileSync('./input-image.png');
 
 const { images } = await generateImage({
-  model: xai.image("grok-imagine-image"),
+  model: xai.image('grok-imagine-image'),
   prompt: {
-    text: "Turn the cat into a golden retriever dog",
+    text: 'Turn the cat into a golden retriever dog',
     images: [imageBuffer],
   },
 });
@@ -849,17 +848,17 @@ const { images } = await generateImage({
 Combine or reference multiple input images in the prompt:
 
 ```ts
-import { xai } from "@ai-sdk/xai";
-import { generateImage } from "ai";
-import { readFileSync } from "fs";
+import { xai } from '@ai-sdk/xai';
+import { generateImage } from 'ai';
+import { readFileSync } from 'fs';
 
-const cat = readFileSync("./cat.png");
-const dog = readFileSync("./dog.png");
+const cat = readFileSync('./cat.png');
+const dog = readFileSync('./dog.png');
 
 const { images } = await generateImage({
-  model: xai.image("grok-imagine-image"),
+  model: xai.image('grok-imagine-image'),
   prompt: {
-    text: "Combine these two animals into a group photo",
+    text: 'Combine these two animals into a group photo',
     images: [cat, dog],
   },
 });
@@ -870,15 +869,15 @@ const { images } = await generateImage({
 Apply artistic styles to an image:
 
 ```ts
-const imageBuffer = readFileSync("./input-image.png");
+const imageBuffer = readFileSync('./input-image.png');
 
 const { images } = await generateImage({
-  model: xai.image("grok-imagine-image"),
+  model: xai.image('grok-imagine-image'),
   prompt: {
-    text: "Transform this into a watercolor painting style",
+    text: 'Transform this into a watercolor painting style',
     images: [imageBuffer],
   },
-  aspectRatio: "1:1",
+  aspectRatio: '1:1',
 });
 ```
 
@@ -892,17 +891,17 @@ const { images } = await generateImage({
 You can customize the image generation behavior with provider-specific settings via `providerOptions.xai`:
 
 ```ts
-import { xai, type XaiImageModelOptions } from "@ai-sdk/xai";
-import { generateImage } from "ai";
+import { xai, type XaiImageModelOptions } from '@ai-sdk/xai';
+import { generateImage } from 'ai';
 
 const { images } = await generateImage({
-  model: xai.image("grok-imagine-image-pro"),
-  prompt: "A futuristic cityscape at sunset",
-  aspectRatio: "16:9",
+  model: xai.image('grok-imagine-image-pro'),
+  prompt: 'A futuristic cityscape at sunset',
+  aspectRatio: '16:9',
   providerOptions: {
     xai: {
-      resolution: "2k",
-      quality: "high",
+      resolution: '2k',
+      quality: 'high',
     } satisfies XaiImageModelOptions,
   },
 });
@@ -937,13 +936,13 @@ This provider supports standard video generation from text prompts or image inpu
 Generate videos from text prompts:
 
 ```ts
-import { xai, type XaiVideoModelOptions } from "@ai-sdk/xai";
-import { experimental_generateVideo as generateVideo } from "ai";
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
-  model: xai.video("grok-imagine-video"),
-  prompt: "A chicken flying into the sunset in the style of 90s anime.",
-  aspectRatio: "16:9",
+  model: xai.video('grok-imagine-video'),
+  prompt: 'A chicken flying into the sunset in the style of 90s anime.',
+  aspectRatio: '16:9',
   duration: 5,
   providerOptions: {
     xai: {
@@ -958,14 +957,14 @@ const { video } = await generateVideo({
 Generate videos using an image as the starting frame with an optional text prompt. This uses the standard generation path rather than a separate provider mode:
 
 ```ts
-import { xai, type XaiVideoModelOptions } from "@ai-sdk/xai";
-import { experimental_generateVideo as generateVideo } from "ai";
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
-  model: xai.video("grok-imagine-video"),
+  model: xai.video('grok-imagine-video'),
   prompt: {
-    image: "https://example.com/start-frame.png",
-    text: "The cat slowly turns its head and blinks",
+    image: 'https://example.com/start-frame.png',
+    text: 'The cat slowly turns its head and blinks',
   },
   duration: 5,
   providerOptions: {
@@ -979,17 +978,17 @@ const { video } = await generateVideo({
 You can also pass the starting frame via the top-level `frameImages` option using the `first_frame` role. This is provider-agnostic and accepts file data (e.g. a `Buffer`) or a `{ type: 'url', url }` object:
 
 ```ts
-import { xai, type XaiVideoModelOptions } from "@ai-sdk/xai";
-import { experimental_generateVideo as generateVideo } from "ai";
-import fs from "node:fs";
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { experimental_generateVideo as generateVideo } from 'ai';
+import fs from 'node:fs';
 
 const { video } = await generateVideo({
-  model: xai.video("grok-imagine-video"),
-  prompt: "The cat slowly turns its head and blinks",
+  model: xai.video('grok-imagine-video'),
+  prompt: 'The cat slowly turns its head and blinks',
   frameImages: [
     {
-      image: fs.readFileSync("./start-frame.png"),
-      frameType: "first_frame",
+      image: fs.readFileSync('./start-frame.png'),
+      frameType: 'first_frame',
     },
   ],
   duration: 5,
@@ -1012,16 +1011,16 @@ const { video } = await generateVideo({
 Edit an existing video using a text prompt by providing a source video URL via provider options:
 
 ```ts
-import { xai, type XaiVideoModelOptions } from "@ai-sdk/xai";
-import { experimental_generateVideo as generateVideo } from "ai";
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
-  model: xai.video("grok-imagine-video"),
-  prompt: "Give the person sunglasses and a hat",
+  model: xai.video('grok-imagine-video'),
+  prompt: 'Give the person sunglasses and a hat',
   providerOptions: {
     xai: {
-      mode: "edit-video",
-      videoUrl: "https://example.com/source-video.mp4",
+      mode: 'edit-video',
+      videoUrl: 'https://example.com/source-video.mp4',
       pollTimeoutMs: 600000, // 10 minutes
     } satisfies XaiVideoModelOptions,
   },
@@ -1041,21 +1040,21 @@ You can use it to chain sequential edits or branch into concurrent edits
 using `Promise.all`:
 
 ```ts
-import { xai, type XaiVideoModelOptions } from "@ai-sdk/xai";
-import { experimental_generateVideo as generateVideo } from "ai";
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { experimental_generateVideo as generateVideo } from 'ai';
 
 const providerOptions = {
   xai: {
-    mode: "edit-video",
-    videoUrl: "https://example.com/source-video.mp4",
+    mode: 'edit-video',
+    videoUrl: 'https://example.com/source-video.mp4',
     pollTimeoutMs: 600000,
   } satisfies XaiVideoModelOptions,
 };
 
 // Step 1: Apply an initial edit
 const step1 = await generateVideo({
-  model: xai.video("grok-imagine-video"),
-  prompt: "Add a party hat to the person",
+  model: xai.video('grok-imagine-video'),
+  prompt: 'Add a party hat to the person',
   providerOptions,
 });
 
@@ -1065,22 +1064,22 @@ const step1VideoUrl = step1.providerMetadata?.xai?.videoUrl as string;
 // Step 2: Apply two more edits concurrently, building on step 1
 const [withSunglasses, withScarf] = await Promise.all([
   generateVideo({
-    model: xai.video("grok-imagine-video"),
-    prompt: "Add sunglasses",
+    model: xai.video('grok-imagine-video'),
+    prompt: 'Add sunglasses',
     providerOptions: {
       xai: {
-        mode: "edit-video",
+        mode: 'edit-video',
         videoUrl: step1VideoUrl,
         pollTimeoutMs: 600000,
       },
     },
   }),
   generateVideo({
-    model: xai.video("grok-imagine-video"),
-    prompt: "Add a scarf",
+    model: xai.video('grok-imagine-video'),
+    prompt: 'Add a scarf',
     providerOptions: {
       xai: {
-        mode: "edit-video",
+        mode: 'edit-video',
         videoUrl: step1VideoUrl,
         pollTimeoutMs: 600000,
       },
@@ -1094,15 +1093,15 @@ const [withSunglasses, withScarf] = await Promise.all([
 Extend an existing video from its last frame. The `duration` controls the length of the extension only, not the total output. The output inherits `aspectRatio` and `resolution` from the source video.
 
 ```ts
-import { xai, type XaiVideoModelOptions } from "@ai-sdk/xai";
-import { experimental_generateVideo as generateVideo } from "ai";
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { experimental_generateVideo as generateVideo } from 'ai';
 
 // Step 1: Generate a source video
 const source = await generateVideo({
-  model: xai.video("grok-imagine-video"),
-  prompt: "A cat sitting on a sunlit windowsill, tail gently swishing.",
+  model: xai.video('grok-imagine-video'),
+  prompt: 'A cat sitting on a sunlit windowsill, tail gently swishing.',
   duration: 5,
-  aspectRatio: "16:9",
+  aspectRatio: '16:9',
   providerOptions: {
     xai: {
       pollTimeoutMs: 600000,
@@ -1114,12 +1113,12 @@ const sourceUrl = source.providerMetadata?.xai?.videoUrl as string;
 
 // Step 2: Extend the video with a new scene
 const extended = await generateVideo({
-  model: xai.video("grok-imagine-video"),
-  prompt: "The cat turns its head, notices a butterfly, and leaps off.",
+  model: xai.video('grok-imagine-video'),
+  prompt: 'The cat turns its head, notices a butterfly, and leaps off.',
   duration: 6,
   providerOptions: {
     xai: {
-      mode: "extend-video",
+      mode: 'extend-video',
       videoUrl: sourceUrl,
       pollTimeoutMs: 600000,
     } satisfies XaiVideoModelOptions,
@@ -1138,23 +1137,23 @@ const extended = await generateVideo({
 Provide reference images to guide the video's style and content. Unlike image-to-video, reference images are not used as the first frame — the model incorporates their visual elements into the generated video. Each reference image can be a public HTTPS URL or a base64 data URI.
 
 ```ts
-import { xai, type XaiVideoModelOptions } from "@ai-sdk/xai";
-import { experimental_generateVideo as generateVideo } from "ai";
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
-  model: xai.video("grok-imagine-video"),
+  model: xai.video('grok-imagine-video'),
   prompt:
-    "The comic cat from <IMAGE_1> and the comic dog from <IMAGE_2> " +
-    "are having a playful chase through a sunlit park. " +
-    "Cinematic slow-motion, warm afternoon light.",
+    'The comic cat from <IMAGE_1> and the comic dog from <IMAGE_2> ' +
+    'are having a playful chase through a sunlit park. ' +
+    'Cinematic slow-motion, warm afternoon light.',
   duration: 8,
-  aspectRatio: "16:9",
+  aspectRatio: '16:9',
   providerOptions: {
     xai: {
-      mode: "reference-to-video",
+      mode: 'reference-to-video',
       referenceImageUrls: [
-        "https://example.com/comic-cat.png",
-        "https://example.com/comic-dog.png",
+        'https://example.com/comic-cat.png',
+        'https://example.com/comic-dog.png',
       ],
       pollTimeoutMs: 600000,
     } satisfies XaiVideoModelOptions,
@@ -1167,21 +1166,21 @@ Use `<IMAGE_1>`, `<IMAGE_2>`, etc. in your prompt to reference specific images. 
 Alternatively, use the provider-agnostic top-level `inputReferences` option. Providing it automatically selects reference-to-video mode, and it accepts file data (e.g. a `Buffer`) or `{ type: 'url', url }` objects:
 
 ```ts
-import { xai, type XaiVideoModelOptions } from "@ai-sdk/xai";
-import { experimental_generateVideo as generateVideo } from "ai";
-import fs from "node:fs";
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { experimental_generateVideo as generateVideo } from 'ai';
+import fs from 'node:fs';
 
 const { video } = await generateVideo({
-  model: xai.video("grok-imagine-video"),
+  model: xai.video('grok-imagine-video'),
   prompt:
-    "The comic cat and the comic dog are having a playful chase " +
-    "through a sunlit park. Cinematic slow-motion, warm afternoon light.",
+    'The comic cat and the comic dog are having a playful chase ' +
+    'through a sunlit park. Cinematic slow-motion, warm afternoon light.',
   inputReferences: [
-    fs.readFileSync("./comic-cat.png"),
-    fs.readFileSync("./comic-dog.png"),
+    fs.readFileSync('./comic-cat.png'),
+    fs.readFileSync('./comic-dog.png'),
   ],
   duration: 8,
-  aspectRatio: "16:9",
+  aspectRatio: '16:9',
   providerOptions: {
     xai: {
       pollTimeoutMs: 600000,
@@ -1220,7 +1219,6 @@ You can validate the provider options using the `XaiVideoModelOptions` type.
 - **mode** _'edit-video' | 'extend-video' | 'reference-to-video'_
 
   Selects the explicit video operation. Each mode is mutually exclusive:
-
   - `'edit-video'` — edit an existing video (requires `videoUrl`)
   - `'extend-video'` — extend a video from its last frame (requires `videoUrl`)
   - `'reference-to-video'` — generate from reference images (requires `referenceImageUrls`)
