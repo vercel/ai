@@ -31,6 +31,7 @@ import { convertToXaiChatMessages } from './convert-to-xai-chat-messages';
 import { convertXaiChatUsage } from './convert-xai-chat-usage';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapXaiFinishReason } from './map-xai-finish-reason';
+import { supportsReasoningEffort } from './supports-reasoning-effort';
 import {
   xaiLanguageModelChatOptions,
   type XaiChatModelId,
@@ -139,6 +140,31 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
     });
     warnings.push(...toolWarnings);
 
+    let reasoningEffort = options.reasoningEffort;
+    if (reasoningEffort == null && isCustomReasoning(reasoning)) {
+      if (!supportsReasoningEffort(this.modelId)) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'reasoning',
+          details: `reasoning "${reasoning}" is not supported by this model.`,
+        });
+      } else if (reasoning === 'none') {
+        reasoningEffort = 'none';
+      } else {
+        reasoningEffort = mapReasoningToProviderEffort({
+          reasoning,
+          effortMap: {
+            minimal: 'low',
+            low: 'low',
+            medium: 'medium',
+            high: 'high',
+            xhigh: 'high',
+          },
+          warnings,
+        });
+      }
+    }
+
     const baseArgs = {
       // model id
       model: this.modelId,
@@ -153,23 +179,7 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
       temperature,
       top_p: topP,
       seed,
-      reasoning_effort:
-        options.reasoningEffort ??
-        (isCustomReasoning(reasoning)
-          ? reasoning === 'none'
-            ? undefined
-            : mapReasoningToProviderEffort({
-                reasoning,
-                effortMap: {
-                  minimal: 'low',
-                  low: 'low',
-                  medium: 'medium',
-                  high: 'high',
-                  xhigh: 'high',
-                },
-                warnings,
-              })
-          : undefined),
+      reasoning_effort: reasoningEffort,
 
       // parallel function calling
       parallel_function_calling: options.parallel_function_calling,

@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.9
+
+### Patch Changes
+
+- 7401c2c: Pass documented Gemini external HTTPS file URLs through without downloading them.
+
 ## 4.0.8
 
 ### Patch Changes

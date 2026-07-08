@@ -42,6 +42,7 @@ import {
   type OutboundMessage,
 } from './codex-bridge-protocol';
 import { CLI_SHIM_FILENAME } from './bridge/cli-relay';
+import { VERSION } from './version';
 
 type CodexChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 type CodexRespawnStrategy = 'replay' | 'rerun';
@@ -61,6 +62,11 @@ type WriteSkillsResult = {
  * model deterministic and the telemetry (`gen_ai.request.model`) accurate.
  */
 const DEFAULT_CODEX_MODEL = 'gpt-5.3-codex';
+
+/**
+ * Value to use in User-Agent and `x-client-app` headers.
+ */
+const CODEX_CLIENT_APP = `ai-sdk/harness-codex/${VERSION}`;
 
 export type CodexHarnessSettings = {
   readonly auth?: CodexAuthOptions;
@@ -334,6 +340,7 @@ export function createCodex(
           : undefined;
       const env = {
         ...resolveCodexEnv(settings.auth),
+        AI_SDK_HARNESS_CLIENT_APP: CODEX_CLIENT_APP,
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
         ...(codexSkillSetup

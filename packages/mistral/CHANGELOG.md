@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 4.0.6
+
+### Patch Changes
+
+- ec8c408: Forward Mistral presence and frequency penalties without unsupported warnings.
+
 ## 4.0.5
 
 ### Patch Changes

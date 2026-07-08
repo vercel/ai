@@ -1299,7 +1299,7 @@ describe('XaiChatLanguageModel', () => {
       );
     });
 
-    it('should not set reasoning_effort for top-level reasoning none', async () => {
+    it('should map top-level reasoning none to reasoning_effort: "none"', async () => {
       prepareJsonFixtureResponse('xai-text');
 
       await reasoningModel.doGenerate({
@@ -1307,9 +1307,9 @@ describe('XaiChatLanguageModel', () => {
         reasoning: 'none',
       });
 
-      expect(
-        (await server.calls[0].requestBodyJson).reasoning_effort,
-      ).toBeUndefined();
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'none',
+      );
     });
 
     it('should prefer providerOptions reasoningEffort over top-level reasoning', async () => {
@@ -1325,6 +1325,49 @@ describe('XaiChatLanguageModel', () => {
 
       expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
         'high',
+      );
+    });
+
+    it('should omit reasoning_effort and warn for models that do not support it', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      const modelWithoutReasoningEffort = new XaiChatLanguageModel(
+        'grok-4.20-reasoning',
+        testConfig,
+      );
+
+      const result = await modelWithoutReasoningEffort.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      expect(
+        (await server.calls[0].requestBodyJson).reasoning_effort,
+      ).toBeUndefined();
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'reasoning',
+        details: 'reasoning "none" is not supported by this model.',
+      });
+    });
+
+    it('should still pass providerOptions reasoningEffort for models that do not support top-level reasoning', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      const modelWithoutReasoningEffort = new XaiChatLanguageModel(
+        'grok-4.20-reasoning',
+        testConfig,
+      );
+
+      await modelWithoutReasoningEffort.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          xai: { reasoningEffort: 'none' },
+        },
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'none',
       );
     });
 

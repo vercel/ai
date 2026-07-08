@@ -1,5 +1,12 @@
 # ai
 
+## 7.0.17
+
+### Patch Changes
+
+- Updated dependencies [cad8227]
+  - @ai-sdk/gateway@4.0.13
+
 ## 7.0.16
 
 ### Patch Changes
