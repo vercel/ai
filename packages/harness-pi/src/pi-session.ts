@@ -195,6 +195,7 @@ export interface CreatePiSessionInput {
   readonly sessionWorkDir: string;
   readonly skills: ReadonlyArray<HarnessV1Skill>;
   readonly settings: PiSessionSettings;
+  readonly clientApp: string;
   readonly isResume: boolean;
   readonly permissionMode?: HarnessV1PermissionMode;
   readonly builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
@@ -334,6 +335,7 @@ export async function createPiSession(
       authStorage,
       modelRegistry,
     },
+    clientApp: input.clientApp,
   });
   const resolveModel = createPiModelResolver(modelRegistry, resolverEnv);
   // Resolve once: deterministic given the configured model. This is the Pi

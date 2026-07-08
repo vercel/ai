@@ -109,6 +109,7 @@ const TOOL_KIND: Readonly<Record<string, 'readonly' | 'edit' | 'bash'>> = {
   skill: 'edit',
   todowrite: 'edit',
 };
+const HARNESS_CLIENT_APP = procEnv.AI_SDK_HARNESS_CLIENT_APP;
 
 const args = parseArgs(argv.slice(2));
 const workdir = args.workdir ?? emitFatal('Missing --workdir argument.');
@@ -265,6 +266,9 @@ function buildProviderConfig(
         options: {
           apiKey: procEnv.AI_GATEWAY_API_KEY,
           baseURL: toOpenCodeGatewayBaseUrl(procEnv.AI_GATEWAY_BASE_URL),
+          ...(HARNESS_CLIENT_APP
+            ? { headers: { 'x-client-app': HARNESS_CLIENT_APP } }
+            : {}),
         },
         ...(modelID
           ? {

@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.13
+
+### Patch Changes
+
+- cad8227: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.12
 
 ### Patch Changes
