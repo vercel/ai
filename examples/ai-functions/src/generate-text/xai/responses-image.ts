@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: xai.responses('grok-3'),
+    model: xai.responses('grok-4.5'),
     messages: [
       {
         role: 'user',
