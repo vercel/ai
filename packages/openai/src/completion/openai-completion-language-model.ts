@@ -16,6 +16,14 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
+<<<<<<< HEAD
+=======
+import { throwIfOpenAIStreamErrorBeforeOutput } from '../openai-stream-error';
+import {
+  convertOpenAICompletionUsage,
+  type OpenAICompletionUsage,
+} from './convert-openai-completion-usage';
+>>>>>>> ae00aeb871 ([v6.0] fix(openai): throw on early stream error events (#16805))
 import { convertToOpenAICompletionPrompt } from './convert-to-openai-completion-prompt';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
@@ -219,11 +227,13 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
       },
     };
 
+    const url = this.config.url({
+      path: '/completions',
+      modelId: this.modelId,
+    });
+
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: this.config.url({
-        path: '/completions',
-        modelId: this.modelId,
-      }),
+      url,
       headers: combineHeaders(this.config.headers(), options.headers),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
@@ -234,17 +244,32 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
+<<<<<<< HEAD
     let finishReason: LanguageModelV2FinishReason = 'unknown';
     const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
     const usage: LanguageModelV2Usage = {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
+=======
+    const checkedResponse = await throwIfOpenAIStreamErrorBeforeOutput({
+      stream: response,
+      getError: chunk => ('error' in chunk ? chunk.error : undefined),
+      isOutputChunk: isOpenAICompletionOutputChunk,
+      url,
+      requestBodyValues: body,
+      responseHeaders,
+    });
+
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
+>>>>>>> ae00aeb871 ([v6.0] fix(openai): throw on early stream error events (#16805))
     };
     let isFirstChunk = true;
 
-    return {
-      stream: response.pipeThrough(
+    const result = {
+      stream: checkedResponse.pipeThrough(
         new TransformStream<
           ParseResult<OpenAICompletionChunk>,
           LanguageModelV2StreamPart
@@ -327,5 +352,13 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
       request: { body },
       response: { headers: responseHeaders },
     };
+
+    return result;
   }
+}
+
+function isOpenAICompletionOutputChunk(chunk: OpenAICompletionChunk): boolean {
+  return (
+    !('error' in chunk) && chunk.choices.some(choice => choice.text.length > 0)
+  );
 }

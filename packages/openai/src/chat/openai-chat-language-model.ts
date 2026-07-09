@@ -22,6 +22,14 @@ import {
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
+<<<<<<< HEAD
+=======
+import { throwIfOpenAIStreamErrorBeforeOutput } from '../openai-stream-error';
+import {
+  convertOpenAIChatUsage,
+  type OpenAIChatUsage,
+} from './convert-openai-chat-usage';
+>>>>>>> ae00aeb871 ([v6.0] fix(openai): throw on early stream error events (#16805))
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
@@ -425,11 +433,13 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       },
     };
 
+    const url = this.config.url({
+      path: '/chat/completions',
+      modelId: this.modelId,
+    });
+
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: this.config.url({
-        path: '/chat/completions',
-        modelId: this.modelId,
-      }),
+      url,
       headers: combineHeaders(this.config.headers(), options.headers),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
@@ -438,6 +448,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
+    });
+
+    const checkedResponse = await throwIfOpenAIStreamErrorBeforeOutput({
+      stream: response,
+      getError: chunk => ('error' in chunk ? chunk.error : undefined),
+      isOutputChunk: isOpenAIChatOutputChunk,
+      url,
+      requestBodyValues: body,
+      responseHeaders,
     });
 
     const toolCalls: Array<{
@@ -461,8 +480,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
 
     const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
 
-    return {
-      stream: response.pipeThrough(
+    const result = {
+      stream: checkedResponse.pipeThrough(
         new TransformStream<
           ParseResult<OpenAIChatChunk>,
           LanguageModelV2StreamPart
@@ -715,5 +734,23 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       request: { body },
       response: { headers: responseHeaders },
     };
+
+    return result;
   }
+}
+
+function isOpenAIChatOutputChunk(chunk: OpenAIChatChunk): boolean {
+  if ('error' in chunk) {
+    return false;
+  }
+
+  return chunk.choices.some(choice => {
+    const delta = choice.delta;
+
+    return (
+      (delta?.content != null && delta.content.length > 0) ||
+      (delta?.tool_calls != null && delta.tool_calls.length > 0) ||
+      (delta?.annotations != null && delta.annotations.length > 0)
+    );
+  });
 }

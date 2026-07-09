@@ -230,7 +230,35 @@ export type OpenAIResponsesReasoning = {
   }>;
 };
 
+<<<<<<< HEAD
 export const openaiResponsesChunkSchema = lazyValidator(() =>
+=======
+// Captured from the Responses API when OpenAI returned an early
+// insufficient_quota stream error after HTTP 200. This shape differs from the
+// currently documented ResponseErrorEvent below.
+const openaiResponsesNestedErrorChunkSchema = z.object({
+  type: z.literal('error'),
+  sequence_number: z.number(),
+  error: z.object({
+    type: z.string(),
+    code: z.string(),
+    message: z.string(),
+    param: z.string().nullish(),
+  }),
+});
+
+// Current OpenAI OpenAPI docs define ResponseErrorEvent with top-level
+// code/message/param fields.
+const openaiResponsesErrorChunkSchema = z.object({
+  type: z.literal('error'),
+  sequence_number: z.number(),
+  code: z.string().nullish(),
+  message: z.string(),
+  param: z.string().nullish(),
+});
+
+export const openaiResponsesChunkSchema = lazySchema(() =>
+>>>>>>> ae00aeb871 ([v6.0] fix(openai): throw on early stream error events (#16805))
   zodSchema(
     z.union([
       z.object({
@@ -277,6 +305,42 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
         }),
       }),
       z.object({
+<<<<<<< HEAD
+=======
+        type: z.literal('response.failed'),
+        sequence_number: z.number(),
+        response: z.object({
+          error: z
+            .object({
+              code: z.string().nullish(),
+              message: z.string(),
+            })
+            .nullish(),
+          incomplete_details: z.object({ reason: z.string() }).nullish(),
+          usage: z
+            .object({
+              input_tokens: z.number(),
+              input_tokens_details: z
+                .object({
+                  cached_tokens: z.number().nullish(),
+                  orchestration_input_tokens: z.number().nullish(),
+                  orchestration_input_cached_tokens: z.number().nullish(),
+                })
+                .nullish(),
+              output_tokens: z.number(),
+              output_tokens_details: z
+                .object({
+                  reasoning_tokens: z.number().nullish(),
+                  orchestration_output_tokens: z.number().nullish(),
+                })
+                .nullish(),
+            })
+            .nullish(),
+          service_tier: z.string().nullish(),
+        }),
+      }),
+      z.object({
+>>>>>>> ae00aeb871 ([v6.0] fix(openai): throw on early stream error events (#16805))
         type: z.literal('response.created'),
         response: z.object({
           id: z.string(),
@@ -510,6 +574,7 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
         summary_index: z.number(),
       }),
       z.object({
+<<<<<<< HEAD
         type: z.literal('error'),
         sequence_number: z.number(),
         error: z.object({
@@ -519,6 +584,22 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
           param: z.string().nullish(),
         }),
       }),
+=======
+        type: z.literal('response.apply_patch_call_operation_diff.delta'),
+        item_id: z.string(),
+        output_index: z.number(),
+        delta: z.string(),
+        obfuscation: z.string().nullish(),
+      }),
+      z.object({
+        type: z.literal('response.apply_patch_call_operation_diff.done'),
+        item_id: z.string(),
+        output_index: z.number(),
+        diff: z.string(),
+      }),
+      openaiResponsesNestedErrorChunkSchema,
+      openaiResponsesErrorChunkSchema,
+>>>>>>> ae00aeb871 ([v6.0] fix(openai): throw on early stream error events (#16805))
       z
         .object({ type: z.string() })
         .loose()

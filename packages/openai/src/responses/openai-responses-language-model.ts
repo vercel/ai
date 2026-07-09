@@ -21,6 +21,12 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
+<<<<<<< HEAD
+=======
+import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
+import { throwIfOpenAIStreamErrorBeforeOutput } from '../openai-stream-error';
+import type { applyPatchInputSchema } from '../tool/apply-patch';
+>>>>>>> ae00aeb871 ([v6.0] fix(openai): throw on early stream error events (#16805))
 import type {
   codeInterpreterInputSchema,
   codeInterpreterOutputSchema,
@@ -749,6 +755,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
+    const checkedResponse = await throwIfOpenAIStreamErrorBeforeOutput({
+      stream: response,
+      getError: chunk =>
+        isErrorChunk(chunk) ||
+        (isResponseFailedChunk(chunk) && chunk.response.error != null)
+          ? chunk
+          : undefined,
+      isOutputChunk: isResponseOutputChunk,
+      url,
+      requestBodyValues: body,
+      responseHeaders,
+    });
+
     const self = this;
     const providerKey = this.config.provider.replace('.responses', ''); // can be 'openai' or 'azure'. provider is 'openai.responses' or 'azure.responses'.
 
@@ -796,10 +815,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     > = {};
 
     let serviceTier: string | undefined;
+<<<<<<< HEAD
     let orchestrationUsage: ResponsesUsageProviderMetadata | undefined;
+=======
+    const hostedToolSearchCallIds: string[] = [];
+    let encounteredStreamError = false;
+>>>>>>> ae00aeb871 ([v6.0] fix(openai): throw on early stream error events (#16805))
 
-    return {
-      stream: response.pipeThrough(
+    const result = {
+      stream: checkedResponse.pipeThrough(
         new TransformStream<
           ParseResult<OpenAIResponsesChunk>,
           LanguageModelV2StreamPart
@@ -1277,9 +1301,41 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               if (typeof value.response.service_tier === 'string') {
                 serviceTier = value.response.service_tier;
               }
+<<<<<<< HEAD
               orchestrationUsage = getOrchestrationUsageMetadata(
                 value.response.usage,
               );
+=======
+            } else if (isResponseFailedChunk(value)) {
+              const incompleteReason =
+                value.response.incomplete_details?.reason;
+              finishReason = {
+                unified: incompleteReason
+                  ? mapOpenAIResponseFinishReason({
+                      finishReason: incompleteReason,
+                      hasFunctionCall,
+                    })
+                  : 'error',
+                raw: incompleteReason ?? 'error',
+              };
+              usage = value.response.usage ?? undefined;
+
+              if (!encounteredStreamError && value.response.error != null) {
+                encounteredStreamError = true;
+                controller.enqueue({
+                  type: 'error',
+                  error: {
+                    type: 'response.failed',
+                    sequence_number: value.sequence_number,
+                    response: {
+                      error: value.response.error,
+                      incomplete_details: value.response.incomplete_details,
+                      service_tier: value.response.service_tier,
+                    },
+                  },
+                });
+              }
+>>>>>>> ae00aeb871 ([v6.0] fix(openai): throw on early stream error events (#16805))
             } else if (isResponseAnnotationAddedChunk(value)) {
               ongoingAnnotations.push(value.annotation);
               if (value.annotation.type === 'url_citation') {
@@ -1314,6 +1370,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 });
               }
             } else if (isErrorChunk(value)) {
+              encounteredStreamError = true;
+              finishReason = { unified: 'error', raw: 'error' };
               controller.enqueue({ type: 'error', error: value });
             }
           },
@@ -1349,6 +1407,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       request: { body },
       response: { headers: responseHeaders },
     };
+
+    return result;
   }
 }
 
@@ -1422,6 +1482,15 @@ function isErrorChunk(
   chunk: OpenAIResponsesChunk,
 ): chunk is OpenAIResponsesChunk & { type: 'error' } {
   return chunk.type === 'error';
+}
+
+function isResponseOutputChunk(chunk: OpenAIResponsesChunk): boolean {
+  return !(
+    chunk.type === 'response.created' ||
+    chunk.type === 'response.failed' ||
+    chunk.type === 'error' ||
+    chunk.type === 'unknown_chunk'
+  );
 }
 
 function mapWebSearchOutput(
