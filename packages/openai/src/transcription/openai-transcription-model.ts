@@ -391,11 +391,10 @@ function createOpenAIRealtimeTranscriptionStream({
   return new ReadableStream({
     start: controller => {
       const WebSocketConstructor = getWebSocketConstructor(webSocket);
-      const ws = new WebSocketConstructor(
-        url,
-        getOpenAIRealtimeProtocols(headers),
-        { headers },
-      );
+      const connection = getOpenAIRealtimeConnection(headers);
+      const ws = new WebSocketConstructor(url, connection.protocols, {
+        headers: connection.headers,
+      });
       let audioReader:
         | ReadableStreamDefaultReader<Uint8Array | string>
         | undefined;
@@ -564,15 +563,36 @@ function buildOpenAIRealtimeTranscriptionSession({
   };
 }
 
-function getOpenAIRealtimeProtocols(
+// When an Authorization bearer token is present, it is moved into the
+// `openai-insecure-api-key.<token>` subprotocol so that native `WebSocket`
+// implementations (which ignore the `headers` option) can authenticate.
+// The Authorization header must then be stripped: header-capable
+// implementations (e.g. `ws`) would otherwise send both auth channels and
+// OpenAI rejects the handshake ("You must only send one of protocol api key
+// and Authorization header").
+function getOpenAIRealtimeConnection(
   headers: Record<string, string | undefined>,
-): string[] {
+): {
+  protocols: string[];
+  headers: Record<string, string | undefined>;
+} {
   const authorization = headers.Authorization ?? headers.authorization;
   const token = authorization?.startsWith('Bearer ')
     ? authorization.slice('Bearer '.length)
     : undefined;
 
-  return token == null
-    ? ['realtime']
-    : ['realtime', `openai-insecure-api-key.${token}`];
+  if (token == null) {
+    return { protocols: ['realtime'], headers };
+  }
+
+  const {
+    Authorization: _authorization,
+    authorization: _authorizationLowercase,
+    ...headersWithoutAuthorization
+  } = headers;
+
+  return {
+    protocols: ['realtime', `openai-insecure-api-key.${token}`],
+    headers: headersWithoutAuthorization,
+  };
 }
