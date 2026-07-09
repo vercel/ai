@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import { describe, expect, it, vi } from 'vitest';
 import {
   convertToGoogleMessages,
@@ -947,6 +948,65 @@ describe('tool messages', () => {
         text: `{"type":"file","data":{"type":"data","data":"base64pdfdata"},"mediaType":"application/pdf","filename":"report.pdf"}`,
       },
     ]);
+  });
+
+  it('issue #16072: should not serialize PDF file tool results as text on the non-Gemini-3 path', async () => {
+    const liveFixture = JSON.parse(
+      fs.readFileSync(
+        'src/__fixtures__/issue-16072-google-pdf-tool-result-live.json',
+        'utf8',
+      ),
+    );
+    const liveSecondRequest =
+      liveFixture.calls[1].request.body.contents[2].parts;
+    const livePdfTextPart = liveSecondRequest.find(
+      (part: any) =>
+        typeof part.text === 'string' && part.text.includes('JVBERi0xLjQK'),
+    );
+
+    expect(livePdfTextPart).toEqual({
+      text: expect.stringContaining('JVBERi0xLjQK'),
+    });
+    expect(
+      liveFixture.calls[1].response.body.usageMetadata.promptTokensDetails,
+    ).toEqual([{ modality: 'TEXT', tokenCount: 203 }]);
+
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'catalogSearch',
+              toolCallId: 'testCallId',
+              output: {
+                type: 'content',
+                value: [
+                  { type: 'text', text: 'metadata' },
+                  {
+                    type: 'file',
+                    data: { type: 'data', data: 'JVBERi0xLjQK' },
+                    mediaType: 'application/pdf',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      { supportsFunctionResponseParts: false },
+    );
+
+    const textParts = result.contents.flatMap(content =>
+      content.parts
+        .filter(part => 'text' in part)
+        .map(part => (part as { text: string }).text),
+    );
+
+    expect(textParts).not.toEqual(
+      expect.arrayContaining([expect.stringContaining('JVBERi0xLjQK')]),
+    );
   });
 
   it('should keep URL tool result parts on the legacy path', async () => {

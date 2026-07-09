@@ -1,0 +1,189 @@
+{
+  "issue": 16072,
+  "recordedAt": "2026-07-09T12:27:03.834Z",
+  "model": "gemini-2.5-flash-lite",
+  "resultText": "",
+  "calls": [
+    {
+      "request": {
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent",
+        "body": {
+          "generationConfig": {
+            "maxOutputTokens": 64
+          },
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "Call the catalogSearch tool, then answer briefly based on the tool result."
+                }
+              ]
+            }
+          ],
+          "tools": [
+            {
+              "functionDeclarations": [
+                {
+                  "name": "catalogSearch",
+                  "description": "Return catalog PDF metadata and document data."
+                }
+              ]
+            }
+          ],
+          "toolConfig": {
+            "functionCallingConfig": {
+              "mode": "ANY",
+              "allowedFunctionNames": [
+                "catalogSearch"
+              ]
+            }
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "functionCall": {
+                      "name": "catalogSearch",
+                      "args": {}
+                    }
+                  }
+                ],
+                "role": "model"
+              },
+              "finishReason": "STOP",
+              "index": 0,
+              "finishMessage": "Model generated function call(s)."
+            }
+          ],
+          "usageMetadata": {
+            "promptTokenCount": 44,
+            "candidatesTokenCount": 9,
+            "totalTokenCount": 53,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 44
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "modelVersion": "gemini-2.5-flash-lite",
+          "responseId": "kpNPapqwA76LkdUP0vGIOA"
+        }
+      }
+    },
+    {
+      "request": {
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent",
+        "body": {
+          "generationConfig": {
+            "maxOutputTokens": 64
+          },
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "Call the catalogSearch tool, then answer briefly based on the tool result."
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "functionCall": {
+                    "id": "5fDycx9iBBu5hB0y",
+                    "name": "catalogSearch",
+                    "args": {}
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "functionResponse": {
+                    "id": "5fDycx9iBBu5hB0y",
+                    "name": "catalogSearch",
+                    "response": {
+                      "name": "catalogSearch",
+                      "content": "metadata"
+                    }
+                  }
+                },
+                {
+                  "text": "{\"type\":\"file\",\"data\":{\"type\":\"data\",\"data\":\"JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyA+PgplbmRvYmoKeHJlZgowIDIKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1Jvb3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjU4CiUlRU9G\"},\"mediaType\":\"application/pdf\"}"
+                }
+              ]
+            }
+          ],
+          "tools": [
+            {
+              "functionDeclarations": [
+                {
+                  "name": "catalogSearch",
+                  "description": "Return catalog PDF metadata and document data."
+                }
+              ]
+            }
+          ],
+          "toolConfig": {
+            "functionCallingConfig": {
+              "mode": "ANY",
+              "allowedFunctionNames": [
+                "catalogSearch"
+              ]
+            }
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "functionCall": {
+                      "name": "catalogSearch",
+                      "args": {}
+                    }
+                  }
+                ],
+                "role": "model"
+              },
+              "finishReason": "STOP",
+              "index": 0,
+              "finishMessage": "Model generated function call(s)."
+            }
+          ],
+          "usageMetadata": {
+            "promptTokenCount": 203,
+            "candidatesTokenCount": 9,
+            "totalTokenCount": 212,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 203
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "modelVersion": "gemini-2.5-flash-lite",
+          "responseId": "l5NPasf1FsWmkdUPjN2OiAU"
+        }
+      }
+    }
+  ],
+  "observation": "The second generateContent request sends the PDF tool result as a JSON string text part instead of functionResponse.parts.inlineData."
+}
