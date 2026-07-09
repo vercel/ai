@@ -172,9 +172,31 @@ describe('convertToPerplexityMessages', () => {
       });
     });
 
-    it('accepts top-level-only "application" mediaType for PDF without error', () => {
+    it('accepts top-level-only "application" mediaType for PDF via detection', () => {
       const pdfBase64 = 'JVBERi0xLjQ=';
 
+      const result = convertToPerplexityMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'application',
+              data: { type: 'data' as const, data: pdfBase64 },
+              filename: 'doc.pdf',
+            },
+          ],
+        },
+      ]);
+
+      expect((result[0].content as unknown[])[0]).toEqual({
+        type: 'file_url',
+        file_url: { url: pdfBase64 },
+        file_name: 'doc.pdf',
+      });
+    });
+
+    it('throws for unsupported file media types', () => {
       expect(() =>
         convertToPerplexityMessages([
           {
@@ -182,14 +204,14 @@ describe('convertToPerplexityMessages', () => {
             content: [
               {
                 type: 'file',
-                mediaType: 'application',
-                data: { type: 'data' as const, data: pdfBase64 },
-                filename: 'doc.pdf',
+                mediaType: 'audio/mpeg',
+                data: { type: 'data' as const, data: 'SUQzBA==' },
+                filename: 'clip.mp3',
               },
             ],
           },
         ]),
-      ).not.toThrow();
+      ).toThrow(UnsupportedFunctionalityError);
     });
 
     it('normalizes image/* wildcard via detection', () => {

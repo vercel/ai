@@ -57,7 +57,38 @@ export function convertToPerplexityMessages(
                   }
                   case 'url':
                   case 'data': {
-                    if (part.mediaType === 'application/pdf') {
+                    const topLevelType = getTopLevelMediaType(part.mediaType);
+
+                    if (topLevelType === 'image') {
+                      return part.data.type === 'url'
+                        ? {
+                            type: 'image_url',
+                            image_url: {
+                              url: part.data.url.toString(),
+                            },
+                          }
+                        : {
+                            type: 'image_url',
+                            image_url: {
+                              url: `data:${resolveFullMediaType({
+                                part,
+                              })};base64,${
+                                typeof part.data.data === 'string'
+                                  ? part.data.data
+                                  : convertUint8ArrayToBase64(part.data.data)
+                              }`,
+                            },
+                          };
+                    }
+
+                    if (topLevelType === 'application') {
+                      const fullMediaType = resolveFullMediaType({ part });
+                      if (fullMediaType !== 'application/pdf') {
+                        throw new UnsupportedFunctionalityError({
+                          functionality: `file part media type ${fullMediaType}`,
+                        });
+                      }
+
                       return part.data.type === 'url'
                         ? {
                             type: 'file_url',
@@ -76,28 +107,11 @@ export function convertToPerplexityMessages(
                             },
                             file_name: part.filename || `document-${index}.pdf`,
                           };
-                    } else if (
-                      getTopLevelMediaType(part.mediaType) === 'image'
-                    ) {
-                      return part.data.type === 'url'
-                        ? {
-                            type: 'image_url',
-                            image_url: {
-                              url: part.data.url.toString(),
-                            },
-                          }
-                        : {
-                            type: 'image_url',
-                            image_url: {
-                              url: `data:${resolveFullMediaType({ part })};base64,${
-                                typeof part.data.data === 'string'
-                                  ? part.data.data
-                                  : convertUint8ArrayToBase64(part.data.data)
-                              }`,
-                            },
-                          };
                     }
-                    return undefined;
+
+                    throw new UnsupportedFunctionalityError({
+                      functionality: `file part media type "${part.mediaType}"`,
+                    });
                   }
                 }
               }
