@@ -6,7 +6,10 @@ import type {
   PerplexityMessageContent,
   PerplexityPrompt,
 } from './perplexity-language-model-prompt';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
+import {
+  convertBase64ToUint8Array,
+  convertUint8ArrayToBase64,
+} from '@ai-sdk/provider-utils';
 
 export function convertToPerplexityMessages(
   prompt: LanguageModelV3Prompt,
@@ -25,7 +28,8 @@ export function convertToPerplexityMessages(
         const hasMultipartContent = content.some(
           part =>
             (part.type === 'file' && part.mediaType.startsWith('image/')) ||
-            (part.type === 'file' && part.mediaType === 'application/pdf'),
+            (part.type === 'file' &&
+              getTopLevelMediaType(part.mediaType) === 'application'),
         );
 
         const messageContent = content
@@ -38,8 +42,15 @@ export function convertToPerplexityMessages(
                 };
               }
               case 'file': {
-<<<<<<< HEAD
-                if (part.mediaType === 'application/pdf') {
+                if (getTopLevelMediaType(part.mediaType) === 'application') {
+                  const fullMediaType = resolveApplicationMediaType(part);
+
+                  if (fullMediaType !== 'application/pdf') {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: `file part media type ${fullMediaType}`,
+                    });
+                  }
+
                   return part.data instanceof URL
                     ? {
                         type: 'file_url',
@@ -76,76 +87,10 @@ export function convertToPerplexityMessages(
                           }`,
                         },
                       };
-=======
-                switch (part.data.type) {
-                  case 'reference': {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: 'file parts with provider references',
-                    });
-                  }
-                  case 'text': {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: 'text file parts',
-                    });
-                  }
-                  case 'url':
-                  case 'data': {
-                    const topLevelMediaType = getTopLevelMediaType(
-                      part.mediaType,
-                    );
-
-                    if (topLevelMediaType === 'application') {
-                      const fullMediaType = resolveFullMediaType({ part });
-
-                      if (fullMediaType !== 'application/pdf') {
-                        throw new UnsupportedFunctionalityError({
-                          functionality: `file part media type ${fullMediaType}`,
-                        });
-                      }
-
-                      return part.data.type === 'url'
-                        ? {
-                            type: 'file_url',
-                            file_url: {
-                              url: part.data.url.toString(),
-                            },
-                            file_name: part.filename,
-                          }
-                        : {
-                            type: 'file_url',
-                            file_url: {
-                              url:
-                                typeof part.data.data === 'string'
-                                  ? part.data.data
-                                  : convertUint8ArrayToBase64(part.data.data),
-                            },
-                            file_name: part.filename || `document-${index}.pdf`,
-                          };
-                    } else if (topLevelMediaType === 'image') {
-                      return part.data.type === 'url'
-                        ? {
-                            type: 'image_url',
-                            image_url: {
-                              url: part.data.url.toString(),
-                            },
-                          }
-                        : {
-                            type: 'image_url',
-                            image_url: {
-                              url: `data:${resolveFullMediaType({ part })};base64,${
-                                typeof part.data.data === 'string'
-                                  ? part.data.data
-                                  : convertUint8ArrayToBase64(part.data.data)
-                              }`,
-                            },
-                          };
-                    }
-                    throw new UnsupportedFunctionalityError({
-                      functionality: `file part media type ${part.mediaType}`,
-                    });
-                  }
->>>>>>> 7927171aa (fix: @ai-sdk/perplexity silently drops unsupported file parts and top-level-only PDF attachments (#16972))
                 }
+                throw new UnsupportedFunctionalityError({
+                  functionality: `file part media type ${part.mediaType}`,
+                });
               }
             }
           })
@@ -174,4 +119,56 @@ export function convertToPerplexityMessages(
   }
 
   return messages;
+}
+
+function getTopLevelMediaType(mediaType: string): string {
+  const slashIndex = mediaType.indexOf('/');
+  return slashIndex === -1 ? mediaType : mediaType.substring(0, slashIndex);
+}
+
+function isFullMediaType(mediaType: string): boolean {
+  const slashIndex = mediaType.indexOf('/');
+  if (slashIndex === -1) {
+    return false;
+  }
+  const subtype = mediaType.substring(slashIndex + 1);
+  return subtype.length > 0 && subtype !== '*';
+}
+
+function resolveApplicationMediaType(part: {
+  mediaType: string;
+  data: Uint8Array | string | URL;
+}): string {
+  if (isFullMediaType(part.mediaType)) {
+    return part.mediaType;
+  }
+
+  if (part.data instanceof URL) {
+    throw new UnsupportedFunctionalityError({
+      functionality: `file of media type "${part.mediaType}" must specify subtype since it is not passed as inline bytes`,
+    });
+  }
+
+  if (isPdfData(part.data)) {
+    return 'application/pdf';
+  }
+
+  throw new UnsupportedFunctionalityError({
+    functionality: `file of media type "${part.mediaType}" must specify subtype since it could not be auto-detected`,
+  });
+}
+
+function isPdfData(data: Uint8Array | string): boolean {
+  const bytes =
+    typeof data === 'string'
+      ? convertBase64ToUint8Array(data.substring(0, Math.min(data.length, 8)))
+      : data;
+
+  return (
+    bytes.length >= 4 &&
+    bytes[0] === 0x25 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x44 &&
+    bytes[3] === 0x46
+  );
 }
