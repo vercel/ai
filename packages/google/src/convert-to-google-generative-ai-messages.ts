@@ -187,8 +187,10 @@ function appendLegacyToolResultParts(
           },
         });
         break;
-<<<<<<< HEAD:packages/google/src/convert-to-google-generative-ai-messages.ts
       case 'image-data':
+      case 'file-data': {
+        const topLevelMediaType = String(contentPart.mediaType).split('/')[0];
+
         parts.push(
           {
             inlineData: {
@@ -197,33 +199,14 @@ function appendLegacyToolResultParts(
             },
           },
           {
-            text: 'Tool executed successfully and returned this image as a response',
+            text:
+              `Tool executed successfully and returned this ` +
+              `${topLevelMediaType === 'image' ? 'image' : 'file'} ` +
+              `as a response`,
           },
         );
-=======
-      case 'file': {
-        if (contentPart.data.type === 'data') {
-          const topLevelMediaType = getTopLevelMediaType(contentPart.mediaType);
-
-          parts.push(
-            {
-              inlineData: {
-                mimeType: resolveFullMediaType({ part: contentPart }),
-                data: convertToBase64(contentPart.data.data),
-              },
-            },
-            {
-              text:
-                `Tool executed successfully and returned this ` +
-                `${topLevelMediaType === 'image' ? 'image' : 'file'} ` +
-                `as a response`,
-            },
-          );
-        } else {
-          parts.push({ text: JSON.stringify(contentPart) });
-        }
->>>>>>> 17d66c54c (fix: Google provider serializes PDF tool result file data as text on the legacy path (#16994)):packages/google/src/convert-to-google-messages.ts
         break;
+      }
       default:
         parts.push({ text: JSON.stringify(contentPart) });
         break;

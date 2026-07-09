@@ -825,9 +825,6 @@ describe('tool messages', () => {
         text: 'Tool executed successfully and returned this image as a response',
       },
       {
-<<<<<<< HEAD:packages/google/src/convert-to-google-generative-ai-messages.test.ts
-        text: '{"type":"file-data","data":"base64pdfdata","mediaType":"application/pdf","filename":"report.pdf"}',
-=======
         inlineData: {
           mimeType: 'application/pdf',
           data: 'base64pdfdata',
@@ -835,13 +832,12 @@ describe('tool messages', () => {
       },
       {
         text: 'Tool executed successfully and returned this file as a response',
->>>>>>> 17d66c54c (fix: Google provider serializes PDF tool result file data as text on the legacy path (#16994)):packages/google/src/convert-to-google-messages.test.ts
       },
     ]);
   });
 
   it('issue #16072: should not serialize PDF file tool results as text on the non-Gemini-3 path', async () => {
-    const result = convertToGoogleMessages(
+    const result = convertToGoogleGenerativeAIMessages(
       [
         {
           role: 'tool',
@@ -855,8 +851,8 @@ describe('tool messages', () => {
                 value: [
                   { type: 'text', text: 'metadata' },
                   {
-                    type: 'file',
-                    data: { type: 'data', data: 'JVBERi0xLjQK' },
+                    type: 'file-data',
+                    data: 'JVBERi0xLjQK',
                     mediaType: 'application/pdf',
                   },
                 ],

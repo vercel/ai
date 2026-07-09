@@ -355,6 +355,9 @@ describe('doGenerate', () => {
   const TEST_URL_GEMINI_1_5_FLASH =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
+  const TEST_URL_GEMINI_2_5_FLASH_LITE =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
+
   const TEST_URL_GEMINI_3_PRO =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent';
 
@@ -364,6 +367,7 @@ describe('doGenerate', () => {
     [TEST_URL_GEMINI_2_0_FLASH_EXP]: {},
     [TEST_URL_GEMINI_1_0_PRO]: {},
     [TEST_URL_GEMINI_1_5_FLASH]: {},
+    [TEST_URL_GEMINI_2_5_FLASH_LITE]: {},
     [TEST_URL_GEMINI_3_PRO]: {},
   });
 
@@ -415,7 +419,8 @@ describe('doGenerate', () => {
       | typeof TEST_URL_GEMINI_2_0_PRO
       | typeof TEST_URL_GEMINI_2_0_FLASH_EXP
       | typeof TEST_URL_GEMINI_1_0_PRO
-      | typeof TEST_URL_GEMINI_1_5_FLASH;
+      | typeof TEST_URL_GEMINI_1_5_FLASH
+      | typeof TEST_URL_GEMINI_2_5_FLASH_LITE;
   }) => {
     server.urls[url].response = {
       type: 'json-value',
@@ -472,8 +477,8 @@ describe('doGenerate', () => {
                 value: [
                   { type: 'text', text: 'metadata' },
                   {
-                    type: 'file',
-                    data: { type: 'data', data: 'JVBERi0xLjQK' },
+                    type: 'file-data',
+                    data: 'JVBERi0xLjQK',
                     mediaType: 'application/pdf',
                   },
                 ],

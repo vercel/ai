@@ -1,5 +1,5 @@
-import { createGoogle } from '@ai-sdk/google';
-import { generateText, isStepCount, tool } from 'ai';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { generateText, stepCountIs, tool } from 'ai';
 import { z } from 'zod';
 
 const pdfBase64 =
@@ -8,7 +8,7 @@ const pdfBase64 =
 async function main() {
   const calls: Array<{ url: string; requestBody: any; responseBody?: any }> =
     [];
-  const google = createGoogle({
+  const google = createGoogleGenerativeAI({
     fetch: async (input, init) => {
       const call: { url: string; requestBody: any; responseBody?: any } = {
         url: String(input),
@@ -51,7 +51,7 @@ async function main() {
       }),
     },
     toolChoice: { type: 'tool', toolName: 'catalogSearch' },
-    stopWhen: isStepCount(2),
+    stopWhen: stepCountIs(2),
   });
 
   const secondRequest = calls[1]?.requestBody;
