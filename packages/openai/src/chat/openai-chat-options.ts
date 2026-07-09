@@ -109,7 +109,7 @@ export const openaiLanguageModelChatOptions = lazySchema(() =>
        * Reasoning effort for reasoning models. Defaults to `medium`.
        */
       reasoningEffort: z
-        .enum(['none', 'minimal', 'low', 'medium', 'high', 'xhigh'])
+        .enum(['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'])
         .optional(),
 
       /**
@@ -164,10 +164,24 @@ export const openaiLanguageModelChatOptions = lazySchema(() =>
       promptCacheKey: z.string().optional(),
 
       /**
+       * Prompt cache behavior for GPT-5.6 and later models.
+       * `mode` controls whether OpenAI also places an implicit breakpoint.
+       * `ttl` sets the minimum cache lifetime and currently only supports 30 minutes.
+       */
+      promptCacheOptions: z
+        .object({
+          mode: z.enum(['implicit', 'explicit']).optional(),
+          ttl: z.literal('30m').optional(),
+        })
+        .optional(),
+
+      /**
        * The retention policy for the prompt cache.
        * - 'in_memory': Default. Standard prompt caching behavior.
        * - '24h': Extended prompt caching that keeps cached prefixes active for up to 24 hours.
-       *          Currently only available for 5.1 series models.
+       *          Available for models before GPT-5.6 that support extended caching.
+       *
+       * @deprecated For GPT-5.6 and later models, use `promptCacheOptions.ttl`.
        *
        * @default 'in_memory'
        */

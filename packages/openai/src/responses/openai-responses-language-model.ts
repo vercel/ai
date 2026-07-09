@@ -341,6 +341,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       service_tier: openaiOptions?.serviceTier,
       include,
       prompt_cache_key: openaiOptions?.promptCacheKey,
+      prompt_cache_options: openaiOptions?.promptCacheOptions,
       prompt_cache_retention: openaiOptions?.promptCacheRetention,
       safety_identifier: openaiOptions?.safetyIdentifier,
       top_logprobs: topLogprobs,
@@ -349,13 +350,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       // model-specific settings:
       ...(isReasoningModel &&
         (openaiOptions?.reasoningEffort != null ||
-          openaiOptions?.reasoningSummary != null) && {
+          openaiOptions?.reasoningSummary != null ||
+          openaiOptions?.reasoningMode != null ||
+          openaiOptions?.reasoningContext != null) && {
           reasoning: {
             ...(openaiOptions?.reasoningEffort != null && {
               effort: openaiOptions.reasoningEffort,
             }),
             ...(openaiOptions?.reasoningSummary != null && {
               summary: openaiOptions.reasoningSummary,
+            }),
+            ...(openaiOptions?.reasoningMode != null && {
+              mode: openaiOptions.reasoningMode,
+            }),
+            ...(openaiOptions?.reasoningContext != null && {
+              context: openaiOptions.reasoningContext,
             }),
           },
         }),
@@ -404,6 +413,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           type: 'unsupported',
           feature: 'reasoningSummary',
           details: 'reasoningSummary is not supported for non-reasoning models',
+        });
+      }
+
+      if (openaiOptions?.reasoningMode != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'reasoningMode',
+          details: 'reasoningMode is not supported for non-reasoning models',
+        });
+      }
+
+      if (openaiOptions?.reasoningContext != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'reasoningContext',
+          details: 'reasoningContext is not supported for non-reasoning models',
         });
       }
     }
@@ -997,6 +1022,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         ...(typeof response.service_tier === 'string'
           ? { serviceTier: response.service_tier }
           : {}),
+        ...(response.reasoning?.context != null
+          ? { reasoningContext: response.reasoning.context }
+          : {}),
       } satisfies ResponsesProviderMetadata,
     };
 
@@ -1130,6 +1158,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     > = {};
 
     let serviceTier: string | undefined;
+    let reasoningContext: ResponsesProviderMetadata['reasoningContext'];
     const hostedToolSearchCallIds: string[] = [];
     let encounteredStreamError = false;
 
@@ -2048,6 +2077,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               if (typeof value.response.service_tier === 'string') {
                 serviceTier = value.response.service_tier;
               }
+              if (value.response.reasoning?.context != null) {
+                reasoningContext = value.response.reasoning.context;
+              }
             } else if (isResponseFailedChunk(value)) {
               const incompleteReason =
                 value.response.incomplete_details?.reason;
@@ -2061,6 +2093,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 raw: incompleteReason ?? 'error',
               };
               usage = value.response.usage ?? undefined;
+              if (value.response.reasoning?.context != null) {
+                reasoningContext = value.response.reasoning.context;
+              }
 
               if (!encounteredStreamError && value.response.error != null) {
                 encounteredStreamError = true;
@@ -2158,6 +2193,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 responseId: responseId,
                 ...(logprobs.length > 0 ? { logprobs } : {}),
                 ...(serviceTier !== undefined ? { serviceTier } : {}),
+                ...(reasoningContext !== undefined ? { reasoningContext } : {}),
               } satisfies ResponsesProviderMetadata,
             };
 

@@ -33,6 +33,37 @@ describe('convertToOpenAIResponsesInput', () => {
       expect(result.input).toEqual([{ role: 'developer', content: 'Hello' }]);
     });
 
+    it('should add a prompt cache breakpoint to a system message', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'system',
+            content: 'Hello',
+            providerOptions: {
+              openai: { promptCacheBreakpoint: { mode: 'explicit' } },
+            },
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'developer',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'developer',
+          content: [
+            {
+              type: 'input_text',
+              text: 'Hello',
+              prompt_cache_breakpoint: { mode: 'explicit' },
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should remove system messages', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [{ role: 'system', content: 'Hello' }],
@@ -63,6 +94,65 @@ describe('convertToOpenAIResponsesInput', () => {
 
       expect(result.input).toEqual([
         { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+      ]);
+    });
+
+    it('should add prompt cache breakpoints to supported content blocks', async () => {
+      const promptCacheBreakpoint = { mode: 'explicit' } as const;
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Hello',
+                providerOptions: { openai: { promptCacheBreakpoint } },
+              },
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: new URL('https://example.com/image.png'),
+                providerOptions: { openai: { promptCacheBreakpoint } },
+              },
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data: 'file-pdf-123',
+                providerOptions: { openai: { promptCacheBreakpoint } },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        fileIdPrefixes: ['file-'],
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_text',
+              text: 'Hello',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+            {
+              type: 'input_image',
+              image_url: 'https://example.com/image.png',
+              detail: undefined,
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+            {
+              type: 'input_file',
+              file_id: 'file-pdf-123',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+          ],
+        },
       ]);
     });
 
@@ -2817,6 +2907,81 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+    it('should forward prompt cache breakpoints on multipart function call output', async () => {
+      const promptCacheBreakpoint = { mode: 'explicit' } as const;
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_cached_123',
+                toolName: 'search',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'text',
+                      text: 'Cached result',
+                      providerOptions: {
+                        openai: { promptCacheBreakpoint },
+                      },
+                    },
+                    {
+                      type: 'image-data',
+                      mediaType: 'image/png',
+                      data: 'base64_data',
+                      providerOptions: {
+                        openai: { promptCacheBreakpoint },
+                      },
+                    },
+                    {
+                      type: 'file-url',
+                      url: 'https://example.com/result.pdf',
+                      providerOptions: {
+                        openai: { promptCacheBreakpoint },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_cached_123',
+          output: [
+            {
+              type: 'input_text',
+              text: 'Cached result',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+            {
+              type: 'input_image',
+              image_url: 'data:image/png;base64,base64_data',
+              detail: undefined,
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+            {
+              type: 'input_file',
+              file_url: 'https://example.com/result.pdf',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+          ],
+        },
+      ]);
+      expect(result.warnings).toEqual([]);
+    });
+
     it('should convert multiple tool result parts in a single message', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
@@ -4874,6 +5039,84 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ]
       `);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should forward prompt cache breakpoints on multipart custom tool output', async () => {
+      const promptCacheBreakpoint = { mode: 'explicit' } as const;
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_custom_cached_007',
+                toolName: 'write_sql',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'text',
+                      text: 'Cached custom result',
+                      providerOptions: {
+                        openai: { promptCacheBreakpoint },
+                      },
+                    },
+                    {
+                      type: 'image-url',
+                      url: 'https://example.com/chart.png',
+                      providerOptions: {
+                        openai: { promptCacheBreakpoint },
+                      },
+                    },
+                    {
+                      type: 'file-data',
+                      mediaType: 'application/pdf',
+                      data: 'AQIDBAU=',
+                      filename: 'report.pdf',
+                      providerOptions: {
+                        openai: { promptCacheBreakpoint },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'custom_tool_call_output',
+          call_id: 'call_custom_cached_007',
+          output: [
+            {
+              type: 'input_text',
+              text: 'Cached custom result',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+            {
+              type: 'input_image',
+              image_url: 'https://example.com/chart.png',
+              detail: undefined,
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+            {
+              type: 'input_file',
+              filename: 'report.pdf',
+              file_data: 'data:application/pdf;base64,AQIDBAU=',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+          ],
+        },
+      ]);
       expect(result.warnings).toEqual([]);
     });
 

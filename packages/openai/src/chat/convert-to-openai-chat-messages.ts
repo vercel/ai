@@ -2,12 +2,23 @@ import {
   UnsupportedFunctionalityError,
   type SharedV3Warning,
   type LanguageModelV3Prompt,
+  type SharedV3ProviderOptions,
 } from '@ai-sdk/provider';
 import type { OpenAIChatPrompt } from './openai-chat-prompt';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 function serializeToolCallArguments(input: unknown): string {
   return JSON.stringify(input === undefined ? {} : input);
+}
+
+type OpenAIPromptCacheBreakpoint = { mode: 'explicit' };
+
+function getPromptCacheBreakpoint(
+  providerOptions: SharedV3ProviderOptions | undefined,
+): OpenAIPromptCacheBreakpoint | undefined {
+  return providerOptions?.openai?.promptCacheBreakpoint as
+    | OpenAIPromptCacheBreakpoint
+    | undefined;
 }
 
 export function convertToOpenAIChatMessages({
@@ -23,16 +34,44 @@ export function convertToOpenAIChatMessages({
   const messages: OpenAIChatPrompt = [];
   const warnings: Array<SharedV3Warning> = [];
 
-  for (const { role, content } of prompt) {
+  for (const { role, content, providerOptions } of prompt) {
     switch (role) {
       case 'system': {
         switch (systemMessageMode) {
           case 'system': {
-            messages.push({ role: 'system', content });
+            const promptCacheBreakpoint =
+              getPromptCacheBreakpoint(providerOptions);
+            messages.push({
+              role: 'system',
+              content:
+                promptCacheBreakpoint == null
+                  ? content
+                  : [
+                      {
+                        type: 'text',
+                        text: content,
+                        prompt_cache_breakpoint: promptCacheBreakpoint,
+                      },
+                    ],
+            });
             break;
           }
           case 'developer': {
-            messages.push({ role: 'developer', content });
+            const promptCacheBreakpoint =
+              getPromptCacheBreakpoint(providerOptions);
+            messages.push({
+              role: 'developer',
+              content:
+                promptCacheBreakpoint == null
+                  ? content
+                  : [
+                      {
+                        type: 'text',
+                        text: content,
+                        prompt_cache_breakpoint: promptCacheBreakpoint,
+                      },
+                    ],
+            });
             break;
           }
           case 'remove': {
@@ -53,7 +92,11 @@ export function convertToOpenAIChatMessages({
       }
 
       case 'user': {
-        if (content.length === 1 && content[0].type === 'text') {
+        if (
+          content.length === 1 &&
+          content[0].type === 'text' &&
+          getPromptCacheBreakpoint(content[0].providerOptions) == null
+        ) {
           messages.push({ role: 'user', content: content[0].text });
           break;
         }
@@ -63,9 +106,21 @@ export function convertToOpenAIChatMessages({
           content: content.map((part, index) => {
             switch (part.type) {
               case 'text': {
-                return { type: 'text', text: part.text };
+                const promptCacheBreakpoint = getPromptCacheBreakpoint(
+                  part.providerOptions,
+                );
+                return {
+                  type: 'text',
+                  text: part.text,
+                  ...(promptCacheBreakpoint != null && {
+                    prompt_cache_breakpoint: promptCacheBreakpoint,
+                  }),
+                };
               }
               case 'file': {
+                const promptCacheBreakpoint = getPromptCacheBreakpoint(
+                  part.providerOptions,
+                );
                 if (part.mediaType.startsWith('image/')) {
                   const mediaType =
                     part.mediaType === 'image/*'
@@ -83,6 +138,9 @@ export function convertToOpenAIChatMessages({
                       // OpenAI specific extension: image detail
                       detail: part.providerOptions?.openai?.imageDetail,
                     },
+                    ...(promptCacheBreakpoint != null && {
+                      prompt_cache_breakpoint: promptCacheBreakpoint,
+                    }),
                   };
                 } else if (part.mediaType.startsWith('audio/')) {
                   if (part.data instanceof URL) {
@@ -99,6 +157,9 @@ export function convertToOpenAIChatMessages({
                           data: convertToBase64(part.data),
                           format: 'wav',
                         },
+                        ...(promptCacheBreakpoint != null && {
+                          prompt_cache_breakpoint: promptCacheBreakpoint,
+                        }),
                       };
                     }
                     case 'audio/mp3':
@@ -109,6 +170,9 @@ export function convertToOpenAIChatMessages({
                           data: convertToBase64(part.data),
                           format: 'mp3',
                         },
+                        ...(promptCacheBreakpoint != null && {
+                          prompt_cache_breakpoint: promptCacheBreakpoint,
+                        }),
                       };
                     }
 
@@ -135,6 +199,9 @@ export function convertToOpenAIChatMessages({
                             filename: part.filename ?? `part-${index}.pdf`,
                             file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
                           },
+                    ...(promptCacheBreakpoint != null && {
+                      prompt_cache_breakpoint: promptCacheBreakpoint,
+                    }),
                   };
                 } else {
                   throw new UnsupportedFunctionalityError({
@@ -151,6 +218,12 @@ export function convertToOpenAIChatMessages({
 
       case 'assistant': {
         let text = '';
+        const textParts: Array<{
+          type: 'text';
+          text: string;
+          prompt_cache_breakpoint?: OpenAIPromptCacheBreakpoint;
+        }> = [];
+        let hasPromptCacheBreakpoint = false;
         const toolCalls: Array<{
           id: string;
           type: 'function';
@@ -160,7 +233,18 @@ export function convertToOpenAIChatMessages({
         for (const part of content) {
           switch (part.type) {
             case 'text': {
+              const promptCacheBreakpoint = getPromptCacheBreakpoint(
+                part.providerOptions,
+              );
               text += part.text;
+              textParts.push({
+                type: 'text',
+                text: part.text,
+                ...(promptCacheBreakpoint != null && {
+                  prompt_cache_breakpoint: promptCacheBreakpoint,
+                }),
+              });
+              hasPromptCacheBreakpoint ||= promptCacheBreakpoint != null;
               break;
             }
             case 'tool-call': {
@@ -179,7 +263,11 @@ export function convertToOpenAIChatMessages({
 
         messages.push({
           role: 'assistant',
-          content: toolCalls.length > 0 ? text || null : text,
+          content: hasPromptCacheBreakpoint
+            ? textParts
+            : toolCalls.length > 0
+              ? text || null
+              : text,
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
 
@@ -192,6 +280,13 @@ export function convertToOpenAIChatMessages({
             continue;
           }
           const output = toolResponse.output;
+          const promptCacheBreakpoint =
+            (output.type === 'content'
+              ? output.value
+                  .map(part => getPromptCacheBreakpoint(part.providerOptions))
+                  .find(breakpoint => breakpoint != null)
+              : getPromptCacheBreakpoint(output.providerOptions)) ??
+            getPromptCacheBreakpoint(toolResponse.providerOptions);
 
           let contentValue: string;
           switch (output.type) {
@@ -212,7 +307,16 @@ export function convertToOpenAIChatMessages({
           messages.push({
             role: 'tool',
             tool_call_id: toolResponse.toolCallId,
-            content: contentValue,
+            content:
+              promptCacheBreakpoint == null
+                ? contentValue
+                : [
+                    {
+                      type: 'text',
+                      text: contentValue,
+                      prompt_cache_breakpoint: promptCacheBreakpoint,
+                    },
+                  ],
           });
         }
         break;
