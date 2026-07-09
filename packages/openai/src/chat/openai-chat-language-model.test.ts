@@ -195,6 +195,7 @@ describe('doGenerate', () => {
       };
       prompt_tokens_details?: {
         cached_tokens?: number;
+        cache_write_tokens?: number | null;
       };
     };
     finish_reason?: string;
@@ -295,6 +296,7 @@ describe('doGenerate', () => {
           "prediction": undefined,
           "presence_penalty": undefined,
           "prompt_cache_key": undefined,
+          "prompt_cache_options": undefined,
           "prompt_cache_retention": undefined,
           "reasoning_effort": undefined,
           "response_format": undefined,
@@ -540,6 +542,25 @@ describe('doGenerate', () => {
       model: 'gpt-5.1-codex-max',
       messages: [{ role: 'user', content: 'Hello' }],
       reasoning_effort: 'xhigh',
+    });
+  });
+
+  it('should pass reasoningEffort max setting', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const model = provider.chat('gpt-5.6');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: { reasoningEffort: 'max' },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-5.6',
+      messages: [{ role: 'user', content: 'Hello' }],
+      reasoning_effort: 'max',
     });
   });
 
@@ -1210,6 +1231,35 @@ describe('doGenerate', () => {
     `);
   });
 
+  it.each([
+    { cacheWriteTokens: 0, expectedUsage: { cacheWriteTokens: 0 } },
+    { cacheWriteTokens: null, expectedUsage: undefined },
+  ])(
+    'should expose cache write tokens $cacheWriteTokens in provider metadata',
+    async ({ cacheWriteTokens, expectedUsage }) => {
+      prepareJsonResponse({
+        usage: {
+          prompt_tokens: 15,
+          completion_tokens: 20,
+          total_tokens: 35,
+          prompt_tokens_details: {
+            cache_write_tokens: cacheWriteTokens,
+          },
+        },
+      });
+
+      const result = await provider.chat('gpt-5.6').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.providerMetadata).toStrictEqual({
+        openai: {
+          ...(expectedUsage != null && { usage: expectedUsage }),
+        },
+      });
+    },
+  );
+
   it('should return accepted_prediction_tokens and rejected_prediction_tokens in completion_details_tokens', async () => {
     prepareJsonResponse({
       usage: {
@@ -1454,6 +1504,31 @@ describe('doGenerate', () => {
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
       prompt_cache_key: 'test-cache-key-123',
+    });
+  });
+
+  it('should send promptCacheOptions extension value', async () => {
+    prepareJsonResponse({ content: '' });
+
+    await provider.chat('gpt-5.6').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          promptCacheOptions: {
+            mode: 'explicit',
+            ttl: '30m',
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-5.6',
+      messages: [{ role: 'user', content: 'Hello' }],
+      prompt_cache_options: {
+        mode: 'explicit',
+        ttl: '30m',
+      },
     });
   });
 
@@ -1745,6 +1820,7 @@ describe('doStream', () => {
       completion_tokens: number;
       prompt_tokens_details?: {
         cached_tokens?: number;
+        cache_write_tokens?: number | null;
       };
       completion_tokens_details?: {
         reasoning_tokens?: number;
@@ -2682,6 +2758,7 @@ describe('doStream', () => {
           "prediction": undefined,
           "presence_penalty": undefined,
           "prompt_cache_key": undefined,
+          "prompt_cache_options": undefined,
           "prompt_cache_retention": undefined,
           "reasoning_effort": undefined,
           "response_format": undefined,
@@ -2816,6 +2893,43 @@ describe('doStream', () => {
         }
       `);
   });
+
+  it.each([
+    { cacheWriteTokens: 0, expectedUsage: { cacheWriteTokens: 0 } },
+    { cacheWriteTokens: null, expectedUsage: undefined },
+  ])(
+    'should expose streaming cache write tokens $cacheWriteTokens in provider metadata',
+    async ({ cacheWriteTokens, expectedUsage }) => {
+      prepareStreamResponse({
+        content: [],
+        usage: {
+          prompt_tokens: 15,
+          completion_tokens: 20,
+          total_tokens: 35,
+          prompt_tokens_details: {
+            cache_write_tokens: cacheWriteTokens,
+          },
+        },
+      });
+
+      const { stream } = await provider.chat('gpt-5.6').doStream({
+        prompt: TEST_PROMPT,
+      });
+      const finish = (await convertReadableStreamToArray(stream)).at(-1);
+
+      expect(finish).toMatchObject({
+        type: 'finish',
+        providerMetadata: {
+          openai: {
+            ...(expectedUsage != null && { usage: expectedUsage }),
+          },
+        },
+      });
+      if (expectedUsage == null) {
+        expect(finish).not.toHaveProperty('providerMetadata.openai.usage');
+      }
+    },
+  );
 
   it('should return accepted_prediction_tokens and rejected_prediction_tokens in providerMetadata', async () => {
     prepareStreamResponse({

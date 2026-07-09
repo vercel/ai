@@ -36,18 +36,49 @@ export type OpenAIResponsesIncludeOptions =
 
 export type OpenAIResponsesSystemMessage = {
   role: 'system' | 'developer';
-  content: string;
+  content:
+    | string
+    | Array<{
+        type: 'input_text';
+        text: string;
+        prompt_cache_breakpoint?: { mode: 'explicit' };
+      }>;
 };
 
 export type OpenAIResponsesUserMessage = {
   role: 'user';
   content: Array<
-    | { type: 'input_text'; text: string }
-    | { type: 'input_image'; image_url: string }
-    | { type: 'input_image'; file_id: string }
-    | { type: 'input_file'; file_url: string }
-    | { type: 'input_file'; filename: string; file_data: string }
-    | { type: 'input_file'; file_id: string }
+    | {
+        type: 'input_text';
+        text: string;
+        prompt_cache_breakpoint?: { mode: 'explicit' };
+      }
+    | {
+        type: 'input_image';
+        image_url: string;
+        prompt_cache_breakpoint?: { mode: 'explicit' };
+      }
+    | {
+        type: 'input_image';
+        file_id: string;
+        prompt_cache_breakpoint?: { mode: 'explicit' };
+      }
+    | {
+        type: 'input_file';
+        file_url: string;
+        prompt_cache_breakpoint?: { mode: 'explicit' };
+      }
+    | {
+        type: 'input_file';
+        filename: string;
+        file_data: string;
+        prompt_cache_breakpoint?: { mode: 'explicit' };
+      }
+    | {
+        type: 'input_file';
+        file_id: string;
+        prompt_cache_breakpoint?: { mode: 'explicit' };
+      }
   >;
 };
 
@@ -72,9 +103,22 @@ export type OpenAIResponsesFunctionCallOutput = {
   output:
     | string
     | Array<
-        | { type: 'input_text'; text: string }
-        | { type: 'input_image'; image_url: string }
-        | { type: 'input_file'; filename: string; file_data: string }
+        | {
+            type: 'input_text';
+            text: string;
+            prompt_cache_breakpoint?: { mode: 'explicit' };
+          }
+        | {
+            type: 'input_image';
+            image_url: string;
+            prompt_cache_breakpoint?: { mode: 'explicit' };
+          }
+        | {
+            type: 'input_file';
+            filename: string;
+            file_data: string;
+            prompt_cache_breakpoint?: { mode: 'explicit' };
+          }
       >;
 };
 
@@ -261,6 +305,7 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
             input_tokens_details: z
               .object({
                 cached_tokens: z.number().nullish(),
+                cache_write_tokens: z.number().nullish(),
                 orchestration_input_tokens: z.number().nullish(),
                 orchestration_input_cached_tokens: z.number().nullish(),
               })
@@ -273,6 +318,11 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
               })
               .nullish(),
           }),
+          reasoning: z
+            .object({
+              context: z.string().nullish(),
+            })
+            .nullish(),
           service_tier: z.string().nullish(),
         }),
       }),
@@ -736,6 +786,11 @@ export const openaiResponsesResponseSchema = lazyValidator(() =>
         )
         .optional(),
       service_tier: z.string().nullish(),
+      reasoning: z
+        .object({
+          context: z.string().nullish(),
+        })
+        .nullish(),
       incomplete_details: z.object({ reason: z.string() }).nullish(),
       usage: z
         .object({
@@ -743,6 +798,7 @@ export const openaiResponsesResponseSchema = lazyValidator(() =>
           input_tokens_details: z
             .object({
               cached_tokens: z.number().nullish(),
+              cache_write_tokens: z.number().nullish(),
               orchestration_input_tokens: z.number().nullish(),
               orchestration_input_cached_tokens: z.number().nullish(),
             })

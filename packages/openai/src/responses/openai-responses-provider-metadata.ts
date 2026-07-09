@@ -15,15 +15,16 @@ export type ResponsesProviderMetadata = {
   responseId: string | null | undefined;
   logprobs?: Array<OpenAIResponsesLogprobs>;
   serviceTier?: string;
+  reasoningContext?: string;
   /**
-   * Orchestration token usage details (e.g. Sakana-style orchestration) that
-   * the Responses API reports alongside the standard usage. Surfaced here so
-   * downstream consumers (e.g. the AI Gateway) can bill it.
+   * Provider-specific token usage details, including prompt cache writes and
+   * orchestration usage. Surfaced here so downstream consumers can bill it.
    */
   usage?: ResponsesUsageProviderMetadata;
 };
 
 export type ResponsesUsageProviderMetadata = {
+  cacheWriteTokens?: number;
   orchestrationInputTokens?: number;
   orchestrationInputCachedTokens?: number;
   orchestrationOutputTokens?: number;

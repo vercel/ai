@@ -236,6 +236,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       service_tier: openaiOptions?.serviceTier,
       include,
       prompt_cache_key: openaiOptions?.promptCacheKey,
+      prompt_cache_options: openaiOptions?.promptCacheOptions,
       prompt_cache_retention: openaiOptions?.promptCacheRetention,
       safety_identifier: openaiOptions?.safetyIdentifier,
       top_logprobs: topLogprobs,
@@ -244,13 +245,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       // model-specific settings:
       ...(modelCapabilities.isReasoningModel &&
         (openaiOptions?.reasoningEffort != null ||
-          openaiOptions?.reasoningSummary != null) && {
+          openaiOptions?.reasoningSummary != null ||
+          openaiOptions?.reasoningMode != null ||
+          openaiOptions?.reasoningContext != null) && {
           reasoning: {
             ...(openaiOptions?.reasoningEffort != null && {
               effort: openaiOptions.reasoningEffort,
             }),
             ...(openaiOptions?.reasoningSummary != null && {
               summary: openaiOptions.reasoningSummary,
+            }),
+            ...(openaiOptions?.reasoningMode != null && {
+              mode: openaiOptions.reasoningMode,
+            }),
+            ...(openaiOptions?.reasoningContext != null && {
+              context: openaiOptions.reasoningContext,
             }),
           },
         }),
@@ -299,6 +308,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           type: 'unsupported-setting',
           setting: 'reasoningSummary',
           details: 'reasoningSummary is not supported for non-reasoning models',
+        });
+      }
+
+      if (openaiOptions?.reasoningMode != null) {
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'reasoningMode',
+          details: 'reasoningMode is not supported for non-reasoning models',
+        });
+      }
+
+      if (openaiOptions?.reasoningContext != null) {
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'reasoningContext',
+          details: 'reasoningContext is not supported for non-reasoning models',
         });
       }
     }
@@ -686,11 +711,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       providerMetadata[providerKey].serviceTier = response.service_tier;
     }
 
+    if (response.reasoning?.context != null) {
+      providerMetadata[providerKey].reasoningContext =
+        response.reasoning.context;
+    }
+
     const usage = response.usage!; // defined when there is no error
 
-    const orchestrationUsage = getOrchestrationUsageMetadata(usage);
-    if (orchestrationUsage != null) {
-      providerMetadata[providerKey].usage = orchestrationUsage;
+    const responsesUsage = getResponsesUsageMetadata(usage);
+    if (responsesUsage != null) {
+      providerMetadata[providerKey].usage = responsesUsage;
     }
 
     return {
@@ -796,7 +826,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     > = {};
 
     let serviceTier: string | undefined;
-    let orchestrationUsage: ResponsesUsageProviderMetadata | undefined;
+    let reasoningContext: string | undefined;
+    let responsesUsage: ResponsesUsageProviderMetadata | undefined;
 
     return {
       stream: response.pipeThrough(
@@ -1277,9 +1308,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               if (typeof value.response.service_tier === 'string') {
                 serviceTier = value.response.service_tier;
               }
-              orchestrationUsage = getOrchestrationUsageMetadata(
-                value.response.usage,
-              );
+              if (value.response.reasoning?.context != null) {
+                reasoningContext = value.response.reasoning.context;
+              }
+              responsesUsage = getResponsesUsageMetadata(value.response.usage);
             } else if (isResponseAnnotationAddedChunk(value)) {
               ongoingAnnotations.push(value.annotation);
               if (value.annotation.type === 'url_citation') {
@@ -1333,8 +1365,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               providerMetadata[providerKey].serviceTier = serviceTier;
             }
 
-            if (orchestrationUsage != null) {
-              providerMetadata[providerKey].usage = orchestrationUsage;
+            if (reasoningContext !== undefined) {
+              providerMetadata[providerKey].reasoningContext = reasoningContext;
+            }
+
+            if (responsesUsage != null) {
+              providerMetadata[providerKey].usage = responsesUsage;
             }
 
             controller.enqueue({
@@ -1452,14 +1488,14 @@ function mapWebSearchOutput(
 }
 
 /**
- * Extracts orchestration token usage details (e.g. Sakana-style orchestration)
- * from the Responses API usage so they can be surfaced via provider metadata.
- * Returns `undefined` when no orchestration usage is present.
+ * Extracts provider-specific usage details from the Responses API so they can
+ * be surfaced via provider metadata. Returns `undefined` when none are present.
  */
-function getOrchestrationUsageMetadata(
+function getResponsesUsageMetadata(
   usage:
     | {
         input_tokens_details?: {
+          cache_write_tokens?: number | null;
           orchestration_input_tokens?: number | null;
           orchestration_input_cached_tokens?: number | null;
         } | null;
@@ -1470,6 +1506,7 @@ function getOrchestrationUsageMetadata(
     | null
     | undefined,
 ): ResponsesUsageProviderMetadata | undefined {
+  const cacheWriteTokens = usage?.input_tokens_details?.cache_write_tokens;
   const orchestrationInputTokens =
     usage?.input_tokens_details?.orchestration_input_tokens;
   const orchestrationInputCachedTokens =
@@ -1478,6 +1515,7 @@ function getOrchestrationUsageMetadata(
     usage?.output_tokens_details?.orchestration_output_tokens;
 
   if (
+    cacheWriteTokens == null &&
     orchestrationInputTokens == null &&
     orchestrationInputCachedTokens == null &&
     orchestrationOutputTokens == null
@@ -1486,6 +1524,7 @@ function getOrchestrationUsageMetadata(
   }
 
   return {
+    ...(cacheWriteTokens != null && { cacheWriteTokens }),
     ...(orchestrationInputTokens != null && { orchestrationInputTokens }),
     ...(orchestrationInputCachedTokens != null && {
       orchestrationInputCachedTokens,

@@ -207,10 +207,24 @@ export const openaiResponsesProviderOptionsSchema = lazyValidator(() =>
       promptCacheKey: z.string().nullish(),
 
       /**
+       * Prompt cache behavior for GPT-5.6 and later models.
+       * `mode` controls whether OpenAI also places an implicit breakpoint.
+       * `ttl` sets the minimum cache lifetime and currently only supports 30 minutes.
+       */
+      promptCacheOptions: z
+        .object({
+          mode: z.enum(['implicit', 'explicit']).optional(),
+          ttl: z.literal('30m').optional(),
+        })
+        .optional(),
+
+      /**
        * The retention policy for the prompt cache.
        * - 'in_memory': Default. Standard prompt caching behavior.
        * - '24h': Extended prompt caching that keeps cached prefixes active for up to 24 hours.
-       *          Currently only available for 5.1 series models.
+       *          Available for models before GPT-5.6 that support extended caching.
+       *
+       * @deprecated For GPT-5.6 and later models, use `promptCacheOptions.ttl`.
        *
        * @default 'in_memory'
        */
@@ -219,14 +233,26 @@ export const openaiResponsesProviderOptionsSchema = lazyValidator(() =>
       /**
        * Reasoning effort for reasoning models. Defaults to `medium`. If you use
        * `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
-       * Valid values: 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'
-       *
-       * The 'none' type for `reasoningEffort` is only available for OpenAI's GPT-5.1
-       * models. Also, the 'xhigh' type for `reasoningEffort` is only available for
-       * OpenAI's GPT-5.1-Codex-Max model. Setting `reasoningEffort` to 'none' or 'xhigh' with unsupported models will result in
-       * an error.
+       * GPT-5.6 supports 'none' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'.
+       * Supported values vary by model.
        */
       reasoningEffort: z.string().nullish(),
+
+      /**
+       * Controls how much model work GPT-5.6 performs before returning a final answer.
+       * `standard` is the default. `pro` increases quality, latency, and token usage.
+       */
+      reasoningMode: z.enum(['standard', 'pro']).optional(),
+
+      /**
+       * Controls which available reasoning items GPT-5.6 can use.
+       * `auto` uses the model default, `current_turn` excludes reasoning from earlier
+       * turns, and `all_turns` makes compatible earlier reasoning available.
+       */
+      reasoningContext: z
+        .enum(['auto', 'current_turn', 'all_turns'])
+        .optional(),
+
       reasoningSummary: z.string().nullish(),
       safetyIdentifier: z.string().nullish(),
       serviceTier: z.enum(['auto', 'flex', 'priority', 'default']).nullish(),

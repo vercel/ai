@@ -23,6 +23,35 @@ describe('convertToOpenAIResponsesInput', () => {
       expect(result.input).toEqual([{ role: 'developer', content: 'Hello' }]);
     });
 
+    it('should add a prompt cache breakpoint to a system message', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'system',
+            content: 'Hello',
+            providerOptions: {
+              openai: { promptCacheBreakpoint: { mode: 'explicit' } },
+            },
+          },
+        ],
+        systemMessageMode: 'developer',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'developer',
+          content: [
+            {
+              type: 'input_text',
+              text: 'Hello',
+              prompt_cache_breakpoint: { mode: 'explicit' },
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should remove system messages', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [{ role: 'system', content: 'Hello' }],
@@ -49,6 +78,63 @@ describe('convertToOpenAIResponsesInput', () => {
 
       expect(result.input).toEqual([
         { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+      ]);
+    });
+
+    it('should add prompt cache breakpoints to supported content blocks', async () => {
+      const promptCacheBreakpoint = { mode: 'explicit' } as const;
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Hello',
+                providerOptions: { openai: { promptCacheBreakpoint } },
+              },
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: new URL('https://example.com/image.png'),
+                providerOptions: { openai: { promptCacheBreakpoint } },
+              },
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data: 'file-pdf-123',
+                providerOptions: { openai: { promptCacheBreakpoint } },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        fileIdPrefixes: ['file-'],
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_text',
+              text: 'Hello',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+            {
+              type: 'input_image',
+              image_url: 'https://example.com/image.png',
+              detail: undefined,
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+            {
+              type: 'input_file',
+              file_id: 'file-pdf-123',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+          ],
+        },
       ]);
     });
 
@@ -1754,6 +1840,94 @@ describe('convertToOpenAIResponsesInput', () => {
   });
 
   describe('tool messages', () => {
+    it('should add a prompt cache breakpoint to a text tool result', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                output: {
+                  type: 'text',
+                  value: 'Cached tool output',
+                },
+                providerOptions: {
+                  openai: { promptCacheBreakpoint: { mode: 'explicit' } },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_123',
+          output: [
+            {
+              type: 'input_text',
+              text: 'Cached tool output',
+              prompt_cache_breakpoint: { mode: 'explicit' },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should place a tool-result-level breakpoint on the final nested output part', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                output: {
+                  type: 'content',
+                  value: [
+                    { type: 'text', text: 'First part' },
+                    {
+                      type: 'media',
+                      mediaType: 'image/png',
+                      data: 'base64_data',
+                    },
+                  ],
+                },
+                providerOptions: {
+                  openai: { promptCacheBreakpoint: { mode: 'explicit' } },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_123',
+          output: [
+            { type: 'input_text', text: 'First part' },
+            {
+              type: 'input_image',
+              image_url: 'data:image/png;base64,base64_data',
+              prompt_cache_breakpoint: { mode: 'explicit' },
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should convert single tool result part with json value', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [

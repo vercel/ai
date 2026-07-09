@@ -2,6 +2,7 @@ import {
   type LanguageModelV2CallWarning,
   type LanguageModelV2Prompt,
   type LanguageModelV2ToolCallPart,
+  type SharedV2ProviderOptions,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -20,6 +21,16 @@ import type {
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
 } from './openai-responses-api';
+
+type OpenAIPromptCacheBreakpoint = { mode: 'explicit' };
+
+function getPromptCacheBreakpoint(
+  providerOptions: SharedV2ProviderOptions | undefined,
+): OpenAIPromptCacheBreakpoint | undefined {
+  return providerOptions?.openai?.promptCacheBreakpoint as
+    | OpenAIPromptCacheBreakpoint
+    | undefined;
+}
 
 /**
  * Check if a string is a file ID based on the given prefixes
@@ -49,16 +60,44 @@ export async function convertToOpenAIResponsesInput({
   let input: OpenAIResponsesInput = [];
   const warnings: Array<LanguageModelV2CallWarning> = [];
 
-  for (const { role, content } of prompt) {
+  for (const { role, content, providerOptions } of prompt) {
     switch (role) {
       case 'system': {
         switch (systemMessageMode) {
           case 'system': {
-            input.push({ role: 'system', content });
+            const promptCacheBreakpoint =
+              getPromptCacheBreakpoint(providerOptions);
+            input.push({
+              role: 'system',
+              content:
+                promptCacheBreakpoint == null
+                  ? content
+                  : [
+                      {
+                        type: 'input_text',
+                        text: content,
+                        prompt_cache_breakpoint: promptCacheBreakpoint,
+                      },
+                    ],
+            });
             break;
           }
           case 'developer': {
-            input.push({ role: 'developer', content });
+            const promptCacheBreakpoint =
+              getPromptCacheBreakpoint(providerOptions);
+            input.push({
+              role: 'developer',
+              content:
+                promptCacheBreakpoint == null
+                  ? content
+                  : [
+                      {
+                        type: 'input_text',
+                        text: content,
+                        prompt_cache_breakpoint: promptCacheBreakpoint,
+                      },
+                    ],
+            });
             break;
           }
           case 'remove': {
@@ -84,9 +123,21 @@ export async function convertToOpenAIResponsesInput({
           content: content.map((part, index) => {
             switch (part.type) {
               case 'text': {
-                return { type: 'input_text', text: part.text };
+                const promptCacheBreakpoint = getPromptCacheBreakpoint(
+                  part.providerOptions,
+                );
+                return {
+                  type: 'input_text',
+                  text: part.text,
+                  ...(promptCacheBreakpoint != null && {
+                    prompt_cache_breakpoint: promptCacheBreakpoint,
+                  }),
+                };
               }
               case 'file': {
+                const promptCacheBreakpoint = getPromptCacheBreakpoint(
+                  part.providerOptions,
+                );
                 if (part.mediaType.startsWith('image/')) {
                   const mediaType =
                     part.mediaType === 'image/*'
@@ -104,12 +155,18 @@ export async function convertToOpenAIResponsesInput({
                             image_url: `data:${mediaType};base64,${convertToBase64(part.data)}`,
                           }),
                     detail: part.providerOptions?.openai?.imageDetail,
+                    ...(promptCacheBreakpoint != null && {
+                      prompt_cache_breakpoint: promptCacheBreakpoint,
+                    }),
                   };
                 } else if (part.mediaType === 'application/pdf') {
                   if (part.data instanceof URL) {
                     return {
                       type: 'input_file',
                       file_url: part.data.toString(),
+                      ...(promptCacheBreakpoint != null && {
+                        prompt_cache_breakpoint: promptCacheBreakpoint,
+                      }),
                     };
                   }
                   return {
@@ -121,6 +178,9 @@ export async function convertToOpenAIResponsesInput({
                           filename: part.filename ?? `part-${index}.pdf`,
                           file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
                         }),
+                    ...(promptCacheBreakpoint != null && {
+                      prompt_cache_breakpoint: promptCacheBreakpoint,
+                    }),
                   };
                 } else {
                   throw new UnsupportedFunctionalityError({
@@ -309,6 +369,9 @@ export async function convertToOpenAIResponsesInput({
       case 'tool': {
         for (const part of content) {
           const output = part.output;
+          const promptCacheBreakpoint = getPromptCacheBreakpoint(
+            part.providerOptions,
+          );
 
           if (
             hasLocalShellTool &&
@@ -332,28 +395,61 @@ export async function convertToOpenAIResponsesInput({
           switch (output.type) {
             case 'text':
             case 'error-text':
-              contentValue = output.value;
+              contentValue =
+                promptCacheBreakpoint == null
+                  ? output.value
+                  : [
+                      {
+                        type: 'input_text',
+                        text: output.value,
+                        prompt_cache_breakpoint: promptCacheBreakpoint,
+                      },
+                    ];
               break;
             case 'json':
             case 'error-json':
-              contentValue = JSON.stringify(output.value);
+              contentValue =
+                promptCacheBreakpoint == null
+                  ? JSON.stringify(output.value)
+                  : [
+                      {
+                        type: 'input_text',
+                        text: JSON.stringify(output.value),
+                        prompt_cache_breakpoint: promptCacheBreakpoint,
+                      },
+                    ];
               break;
             case 'content':
-              contentValue = output.value.map(item => {
+              contentValue = output.value.map((item, index) => {
+                const isBreakpoint =
+                  promptCacheBreakpoint != null &&
+                  index === output.value.length - 1;
                 switch (item.type) {
                   case 'text': {
-                    return { type: 'input_text' as const, text: item.text };
+                    return {
+                      type: 'input_text' as const,
+                      text: item.text,
+                      ...(isBreakpoint && {
+                        prompt_cache_breakpoint: promptCacheBreakpoint,
+                      }),
+                    };
                   }
                   case 'media': {
                     return item.mediaType.startsWith('image/')
                       ? {
                           type: 'input_image' as const,
                           image_url: `data:${item.mediaType};base64,${item.data}`,
+                          ...(isBreakpoint && {
+                            prompt_cache_breakpoint: promptCacheBreakpoint,
+                          }),
                         }
                       : {
                           type: 'input_file' as const,
                           filename: 'data',
                           file_data: `data:${item.mediaType};base64,${item.data}`,
+                          ...(isBreakpoint && {
+                            prompt_cache_breakpoint: promptCacheBreakpoint,
+                          }),
                         };
                   }
                 }

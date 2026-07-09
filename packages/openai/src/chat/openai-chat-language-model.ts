@@ -177,6 +177,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       reasoning_effort: openaiOptions.reasoningEffort,
       service_tier: openaiOptions.serviceTier,
       prompt_cache_key: openaiOptions.promptCacheKey,
+      prompt_cache_options: openaiOptions.promptCacheOptions,
       prompt_cache_retention: openaiOptions.promptCacheRetention,
       safety_identifier: openaiOptions.safetyIdentifier,
 
@@ -387,6 +388,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       providerMetadata.openai.rejectedPredictionTokens =
         completionTokenDetails?.rejected_prediction_tokens;
     }
+    if (promptTokenDetails?.cache_write_tokens != null) {
+      providerMetadata.openai.usage = {
+        cacheWriteTokens: promptTokenDetails.cache_write_tokens,
+      };
+    }
     if (choice.logprobs?.content != null) {
       providerMetadata.openai.logprobs = choice.logprobs.content;
     }
@@ -515,6 +521,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
                 undefined;
               usage.cachedInputTokens =
                 value.usage.prompt_tokens_details?.cached_tokens ?? undefined;
+              if (
+                value.usage.prompt_tokens_details?.cache_write_tokens != null
+              ) {
+                providerMetadata.openai.usage = {
+                  cacheWriteTokens:
+                    value.usage.prompt_tokens_details.cache_write_tokens,
+                };
+              }
 
               if (
                 value.usage.completion_tokens_details
