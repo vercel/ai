@@ -267,6 +267,53 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('sends the structured thinking configuration to the bridge', async () => {
+    const thinking = { type: 'enabled' as const, display: 'omitted' as const };
+    const harness = createClaudeCode({ thinking });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      prompt: 'think about this',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({ thinking });
+
+    await session.doDestroy();
+  });
+
+  it('defaults to summarized adaptive thinking', async () => {
+    const harness = createClaudeCode();
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      prompt: 'think about this',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({
+      thinking: { type: 'adaptive', display: 'summarized' },
+    });
+
+    await session.doDestroy();
+  });
+
   it('writes standard Claude skill files and enables their names on start', async () => {
     const writes: Array<{ path: string; content: string }> = [];
     const runs: string[] = [];

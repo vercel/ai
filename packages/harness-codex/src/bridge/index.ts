@@ -27,6 +27,11 @@ import {
   parseToolRelayCommand,
 } from './cli-relay';
 import {
+  createCodexStepTracker,
+  defaultUsage,
+  type CodexStepTracker,
+} from './codex-step-tracker';
+import {
   ToolRelayAuthorizer,
   ToolRelayPendingCalls,
   isToolRelayRequestFromAllowedProcess,
@@ -235,6 +240,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   let turnUsage: Record<string, unknown> | undefined;
   const textByItem = new Map<string, string>();
   const reasoningByItem = new Map<string, string>();
+  const stepTracker = createCodexStepTracker({ send: emit });
 
   try {
     const { events } = await thread.runStreamed(userMessage, {
@@ -267,10 +273,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           }
         }
         if (relayCall) {
+          stepTracker.observeEvent({ event, itemId: event.item.id });
           continue;
         }
       }
       if (relay && isHostMcpToolEvent(event)) {
+        stepTracker.observeEvent({ event, itemId: event.item?.id });
         const relayCall = relayCallFromCodexMcpEvent(event);
         if (relayCall) relay.authorizeToolCall(relayCall);
         continue;
@@ -279,6 +287,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         send: emit,
         textByItem,
         reasoningByItem,
+        stepTracker,
         setTurnUsage: u => (turnUsage = u),
         emitWarning: turn.emitWarning,
         emitError: turn.emitError,
@@ -383,6 +392,7 @@ function translateAndEmit(
     send: Emit;
     textByItem: Map<string, string>;
     reasoningByItem: Map<string, string>;
+    stepTracker: CodexStepTracker;
     setTurnUsage: (u: Record<string, unknown>) => void;
     emitWarning: BridgeTurn['emitWarning'];
     emitError: BridgeTurn['emitError'];
@@ -390,11 +400,7 @@ function translateAndEmit(
 ): void {
   if (event.type === 'turn.completed') {
     if (event.usage) ctx.setTurnUsage(mapUsage(event.usage));
-    ctx.send({
-      type: 'finish-step',
-      finishReason: { unified: 'stop', raw: 'stop' },
-      usage: event.usage ? mapUsage(event.usage) : defaultUsage(),
-    });
+    ctx.stepTracker.finishStep();
     return;
   }
   if (event.type === 'turn.failed') {
@@ -414,6 +420,9 @@ function translateAndEmit(
   if (!event.item) return;
   const item = event.item;
   const id = item.id ?? randomUUID();
+  const observeStep = (): void => {
+    ctx.stepTracker.observeEvent({ event, itemId: id });
+  };
 
   if (item.type === 'agent_message' && typeof item.text === 'string') {
     /*
@@ -435,6 +444,7 @@ function translateAndEmit(
       ctx.textByItem.set(id, next);
     }
     if (event.type === 'item.completed') ctx.send({ type: 'text-end', id });
+    observeStep();
     return;
   }
 
@@ -451,6 +461,7 @@ function translateAndEmit(
     }
     if (event.type === 'item.completed')
       ctx.send({ type: 'reasoning-end', id });
+    observeStep();
     return;
   }
 
@@ -477,6 +488,7 @@ function translateAndEmit(
         },
       });
     }
+    observeStep();
     return;
   }
 
@@ -499,6 +511,7 @@ function translateAndEmit(
         result: extractMcpToolCallResult(item),
       });
     }
+    observeStep();
     return;
   }
 
@@ -521,6 +534,7 @@ function translateAndEmit(
         result: item.result ?? null,
       });
     }
+    observeStep();
     return;
   }
 
@@ -537,6 +551,7 @@ function translateAndEmit(
         path: change.path,
       });
     }
+    observeStep();
     return;
   }
 
@@ -564,13 +579,6 @@ function mapUsage(usage: Record<string, number>): Record<string, unknown> {
       total: usage.output_tokens ?? 0,
       text: usage.output_tokens ?? 0,
     },
-  };
-}
-
-function defaultUsage(): Record<string, unknown> {
-  return {
-    inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
-    outputTokens: { total: 0, text: 0 },
   };
 }
 
