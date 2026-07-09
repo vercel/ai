@@ -1049,6 +1049,43 @@ describe('doStream', () => {
     `);
   });
 
+  it('should return the request body', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [],
+    };
+
+    const result = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(result.request?.body).toMatchInlineSnapshot(`
+      {
+        "additionalModelRequestFields": undefined,
+        "additionalModelResponseFieldPaths": [
+          "/delta/stop_sequence",
+        ],
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "system": [
+          {
+            "text": "System Prompt",
+          },
+        ],
+      }
+    `);
+  });
+
   it('should support guardrails', async () => {
     setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
@@ -3223,6 +3260,36 @@ describe('doGenerate', () => {
       });
 
       expect(result).toMatchSnapshot();
+    });
+
+    it('should return the request body', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.request?.body).toMatchInlineSnapshot(`
+        {
+          "additionalModelRequestFields": undefined,
+          "additionalModelResponseFieldPaths": [
+            "/delta/stop_sequence",
+          ],
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": [
+            {
+              "text": "System Prompt",
+            },
+          ],
+        }
+      `);
     });
 
     it('should extract usage', async () => {
