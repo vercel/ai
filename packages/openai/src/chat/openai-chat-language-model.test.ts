@@ -257,6 +257,7 @@ describe('doGenerate', () => {
           "prediction": undefined,
           "presence_penalty": undefined,
           "prompt_cache_key": undefined,
+          "prompt_cache_options": undefined,
           "prompt_cache_retention": undefined,
           "reasoning_effort": undefined,
           "response_format": undefined,
@@ -685,6 +686,25 @@ describe('doGenerate', () => {
       model: 'gpt-5.1-codex-max',
       messages: [{ role: 'user', content: 'Hello' }],
       reasoning_effort: 'xhigh',
+    });
+  });
+
+  it('should pass reasoningEffort max setting', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('gpt-5.6');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: { reasoningEffort: 'max' },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-5.6',
+      messages: [{ role: 'user', content: 'Hello' }],
+      reasoning_effort: 'max',
     });
   });
 
@@ -1387,6 +1407,7 @@ describe('doGenerate', () => {
           total_tokens: 35,
           prompt_tokens_details: {
             cached_tokens: 1152,
+            cache_write_tokens: 256,
           },
         },
         system_fingerprint: 'fp_3bc1b5746c',
@@ -1403,7 +1424,7 @@ describe('doGenerate', () => {
       {
         "inputTokens": {
           "cacheRead": 1152,
-          "cacheWrite": undefined,
+          "cacheWrite": 256,
           "noCache": -1137,
           "total": 15,
         },
@@ -1416,6 +1437,7 @@ describe('doGenerate', () => {
           "completion_tokens": 20,
           "prompt_tokens": 15,
           "prompt_tokens_details": {
+            "cache_write_tokens": 256,
             "cached_tokens": 1152,
           },
           "total_tokens": 35,
@@ -1919,6 +1941,31 @@ describe('doGenerate', () => {
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
       prompt_cache_retention: '24h',
+    });
+  });
+
+  it('should send promptCacheOptions extension value', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    await provider.chat('gpt-5.6').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          promptCacheOptions: {
+            mode: 'explicit',
+            ttl: '30m',
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-5.6',
+      messages: [{ role: 'user', content: 'Hello' }],
+      prompt_cache_options: {
+        mode: 'explicit',
+        ttl: '30m',
+      },
     });
   });
 
@@ -3342,6 +3389,7 @@ describe('doStream', () => {
           "prediction": undefined,
           "presence_penalty": undefined,
           "prompt_cache_key": undefined,
+          "prompt_cache_options": undefined,
           "prompt_cache_retention": undefined,
           "reasoning_effort": undefined,
           "response_format": undefined,

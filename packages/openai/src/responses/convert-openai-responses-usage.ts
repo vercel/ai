@@ -5,6 +5,7 @@ export type OpenAIResponsesUsage = {
   output_tokens: number;
   input_tokens_details?: {
     cached_tokens?: number | null;
+    cache_write_tokens?: number | null;
     orchestration_input_tokens?: number | null;
     orchestration_input_cached_tokens?: number | null;
   } | null;
@@ -37,6 +38,8 @@ export function convertOpenAIResponsesUsage(
   const inputTokens = usage.input_tokens;
   const outputTokens = usage.output_tokens;
   const cachedTokens = usage.input_tokens_details?.cached_tokens ?? 0;
+  const cacheWriteTokens =
+    usage.input_tokens_details?.cache_write_tokens ?? undefined;
   const reasoningTokens = usage.output_tokens_details?.reasoning_tokens ?? 0;
 
   return {
@@ -44,7 +47,7 @@ export function convertOpenAIResponsesUsage(
       total: inputTokens,
       noCache: inputTokens - cachedTokens,
       cacheRead: cachedTokens,
-      cacheWrite: undefined,
+      cacheWrite: cacheWriteTokens,
     },
     outputTokens: {
       total: outputTokens,

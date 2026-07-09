@@ -534,6 +534,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             input_tokens_details: z
               .object({
                 cached_tokens: z.number().nullish(),
+                cache_write_tokens: z.number().nullish(),
                 orchestration_input_tokens: z.number().nullish(),
                 orchestration_input_cached_tokens: z.number().nullish(),
               })
@@ -546,6 +547,11 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
               })
               .nullish(),
           }),
+          reasoning: z
+            .object({
+              context: z.enum(['current_turn', 'all_turns']).nullish(),
+            })
+            .nullish(),
           service_tier: z.string().nullish(),
         }),
       }),
@@ -566,6 +572,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
               input_tokens_details: z
                 .object({
                   cached_tokens: z.number().nullish(),
+                  cache_write_tokens: z.number().nullish(),
                   orchestration_input_tokens: z.number().nullish(),
                   orchestration_input_cached_tokens: z.number().nullish(),
                 })
@@ -577,6 +584,11 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
                   orchestration_output_tokens: z.number().nullish(),
                 })
                 .nullish(),
+            })
+            .nullish(),
+          reasoning: z
+            .object({
+              context: z.enum(['current_turn', 'all_turns']).nullish(),
             })
             .nullish(),
           service_tier: z.string().nullish(),
@@ -1426,6 +1438,11 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
         )
         .optional(),
       service_tier: z.string().nullish(),
+      reasoning: z
+        .object({
+          context: z.enum(['current_turn', 'all_turns']).nullish(),
+        })
+        .nullish(),
       incomplete_details: z.object({ reason: z.string() }).nullish(),
       usage: z
         .object({
@@ -1433,6 +1450,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
           input_tokens_details: z
             .object({
               cached_tokens: z.number().nullish(),
+              cache_write_tokens: z.number().nullish(),
               orchestration_input_tokens: z.number().nullish(),
               orchestration_input_cached_tokens: z.number().nullish(),
             })
