@@ -1,4 +1,8 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import {
+  convertArrayToReadableStream,
+  convertReadableStreamToArray,
+} from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
 import {
   GatewayInternalServerError,
@@ -157,6 +161,184 @@ describe('GatewayTranscriptionModel', () => {
       expect(result.language).toBeUndefined();
       expect(result.durationInSeconds).toBeUndefined();
       expect(result.warnings).toStrictEqual([]);
+    });
+  });
+
+  describe('doStream', () => {
+    function prepareStreamResponse({
+      chunks,
+    }: {
+      chunks?: string[];
+    } = {}) {
+      server.urls['https://api.test.com/transcription-model'].response = {
+        type: 'stream-chunks',
+        chunks: chunks ?? [
+          `data: ${JSON.stringify({ type: 'stream-start', warnings: [] })}\n\n`,
+          `data: ${JSON.stringify({ type: 'transcript-delta', delta: 'Hello' })}\n\n`,
+          `data: ${JSON.stringify({ type: 'transcript-delta', delta: ' world' })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'finish',
+            text: 'Hello world',
+            segments: [{ text: 'Hello world', startSecond: 0, endSecond: 1 }],
+            language: 'en',
+            durationInSeconds: 1,
+          })}\n\n`,
+        ],
+      };
+    }
+
+    const inputAudioFormat = { type: 'audio/pcm', rate: 24000 } as const;
+
+    it('should send the streaming model config headers', async () => {
+      prepareStreamResponse();
+
+      await createTestModel().doStream({
+        audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+        inputAudioFormat,
+        headers: { 'Custom-Header': 'test-value' },
+      });
+
+      expect(server.calls[0].requestHeaders).toMatchObject({
+        authorization: 'Bearer test-token',
+        'custom-header': 'test-value',
+        'ai-transcription-model-specification-version': '4',
+        'ai-model-id': 'openai/gpt-4o-transcribe',
+        'ai-transcription-model-streaming': 'true',
+      });
+    });
+
+    it('should buffer audio chunks into a single base64 payload', async () => {
+      prepareStreamResponse();
+
+      await createTestModel().doStream({
+        audio: convertArrayToReadableStream([
+          new Uint8Array([1, 2]),
+          // string chunks are base64-encoded raw bytes ([3, 4] === 'AwQ=')
+          'AwQ=',
+        ]),
+        inputAudioFormat,
+        providerOptions: { openai: { streaming: { delay: 'low' } } },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        audio: 'AQIDBA==',
+        inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+        providerOptions: { openai: { streaming: { delay: 'low' } } },
+      });
+    });
+
+    it('should stream transcript parts', async () => {
+      prepareStreamResponse();
+
+      const { stream } = await createTestModel().doStream({
+        audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+        inputAudioFormat,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+        { type: 'stream-start', warnings: [] },
+        { type: 'transcript-delta', delta: 'Hello' },
+        { type: 'transcript-delta', delta: ' world' },
+        {
+          type: 'finish',
+          text: 'Hello world',
+          segments: [{ text: 'Hello world', startSecond: 0, endSecond: 1 }],
+          language: 'en',
+          durationInSeconds: 1,
+        },
+      ]);
+    });
+
+    it('should coerce response-metadata timestamps to Date', async () => {
+      prepareStreamResponse({
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'response-metadata',
+            timestamp: '2026-01-01T00:00:00.000Z',
+            modelId: 'openai/gpt-realtime-whisper',
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'finish',
+            text: 'Hello world',
+            segments: [],
+          })}\n\n`,
+        ],
+      });
+
+      const { stream } = await createTestModel().doStream({
+        audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+        inputAudioFormat,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts[0]).toStrictEqual({
+        type: 'response-metadata',
+        timestamp: new Date('2026-01-01T00:00:00.000Z'),
+        modelId: 'openai/gpt-realtime-whisper',
+      });
+    });
+
+    it('should drop raw chunks unless includeRawChunks is set', async () => {
+      prepareStreamResponse({
+        chunks: [
+          `data: ${JSON.stringify({ type: 'raw', rawValue: { a: 1 } })}\n\n`,
+          `data: ${JSON.stringify({ type: 'transcript-delta', delta: 'Hi' })}\n\n`,
+          `data: ${JSON.stringify({ type: 'finish', text: 'Hi', segments: [] })}\n\n`,
+        ],
+      });
+
+      const { stream } = await createTestModel().doStream({
+        audio: convertArrayToReadableStream([new Uint8Array([1])]),
+        inputAudioFormat,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+        { type: 'transcript-delta', delta: 'Hi' },
+        { type: 'finish', text: 'Hi', segments: [] },
+      ]);
+    });
+
+    it('should keep raw chunks when includeRawChunks is true', async () => {
+      prepareStreamResponse({
+        chunks: [
+          `data: ${JSON.stringify({ type: 'raw', rawValue: { a: 1 } })}\n\n`,
+          `data: ${JSON.stringify({ type: 'finish', text: 'Hi', segments: [] })}\n\n`,
+        ],
+      });
+
+      const { stream } = await createTestModel().doStream({
+        audio: convertArrayToReadableStream([new Uint8Array([1])]),
+        inputAudioFormat,
+        includeRawChunks: true,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+        { type: 'raw', rawValue: { a: 1 } },
+        { type: 'finish', text: 'Hi', segments: [] },
+      ]);
+    });
+
+    it('should throw GatewayInvalidRequestError on 400', async () => {
+      server.urls['https://api.test.com/transcription-model'].response = {
+        type: 'error',
+        status: 400,
+        body: JSON.stringify({
+          error: {
+            message: 'Invalid audio format',
+            type: 'invalid_request_error',
+          },
+        }),
+      };
+
+      await expect(
+        createTestModel().doStream({
+          audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+          inputAudioFormat,
+        }),
+      ).rejects.toSatisfy(
+        err =>
+          GatewayInvalidRequestError.isInstance(err) && err.statusCode === 400,
+      );
     });
   });
 

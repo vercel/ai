@@ -113,9 +113,9 @@ export function streamTranscribe({
       message:
         `The ${resolvedModel.provider} model "${resolvedModel.modelId}" does not support streaming transcription.` +
         (typeof model === 'string'
-          ? ' String model IDs resolve through the global provider (AI Gateway by default),' +
-            ' which does not support streaming transcription yet.' +
-            " Pass a provider model instance instead, e.g. openai.transcription('gpt-realtime-whisper')."
+          ? ' String model IDs resolve through the global provider (AI Gateway by default).' +
+            " Use a model that supports streaming transcription, e.g. 'openai/gpt-realtime-whisper'" +
+            " or a provider model instance such as openai.transcription('gpt-realtime-whisper')."
           : ''),
     });
   }
