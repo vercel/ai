@@ -38,6 +38,7 @@ export function convertToPerplexityMessages(
                 };
               }
               case 'file': {
+<<<<<<< HEAD
                 if (part.mediaType === 'application/pdf') {
                   return part.data instanceof URL
                     ? {
@@ -75,6 +76,75 @@ export function convertToPerplexityMessages(
                           }`,
                         },
                       };
+=======
+                switch (part.data.type) {
+                  case 'reference': {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'file parts with provider references',
+                    });
+                  }
+                  case 'text': {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'text file parts',
+                    });
+                  }
+                  case 'url':
+                  case 'data': {
+                    const topLevelMediaType = getTopLevelMediaType(
+                      part.mediaType,
+                    );
+
+                    if (topLevelMediaType === 'application') {
+                      const fullMediaType = resolveFullMediaType({ part });
+
+                      if (fullMediaType !== 'application/pdf') {
+                        throw new UnsupportedFunctionalityError({
+                          functionality: `file part media type ${fullMediaType}`,
+                        });
+                      }
+
+                      return part.data.type === 'url'
+                        ? {
+                            type: 'file_url',
+                            file_url: {
+                              url: part.data.url.toString(),
+                            },
+                            file_name: part.filename,
+                          }
+                        : {
+                            type: 'file_url',
+                            file_url: {
+                              url:
+                                typeof part.data.data === 'string'
+                                  ? part.data.data
+                                  : convertUint8ArrayToBase64(part.data.data),
+                            },
+                            file_name: part.filename || `document-${index}.pdf`,
+                          };
+                    } else if (topLevelMediaType === 'image') {
+                      return part.data.type === 'url'
+                        ? {
+                            type: 'image_url',
+                            image_url: {
+                              url: part.data.url.toString(),
+                            },
+                          }
+                        : {
+                            type: 'image_url',
+                            image_url: {
+                              url: `data:${resolveFullMediaType({ part })};base64,${
+                                typeof part.data.data === 'string'
+                                  ? part.data.data
+                                  : convertUint8ArrayToBase64(part.data.data)
+                              }`,
+                            },
+                          };
+                    }
+                    throw new UnsupportedFunctionalityError({
+                      functionality: `file part media type ${part.mediaType}`,
+                    });
+                  }
+>>>>>>> 7927171aa (fix: @ai-sdk/perplexity silently drops unsupported file parts and top-level-only PDF attachments (#16972))
                 }
               }
             }
