@@ -20,6 +20,7 @@ async function generateWithCachedPrefix(question: string) {
     model: openai.responses('gpt-5.6'),
     reasoning: 'none',
     maxOutputTokens: 80,
+    allowSystemInMessages: true,
     messages: [
       {
         role: 'system',

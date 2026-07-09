@@ -17,6 +17,7 @@ async function streamWithCachedPrefix(label: string, question: string) {
     model: openai.chat('gpt-5.6'),
     reasoning: 'none',
     maxOutputTokens: 80,
+    allowSystemInMessages: true,
     messages: [
       {
         role: 'system',
