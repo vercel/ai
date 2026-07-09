@@ -959,6 +959,74 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should expand standalone threshold provider option into safetySettings', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          threshold: 'BLOCK_NONE',
+        },
+      },
+    });
+
+    const expectedSafetySettings = [
+      {
+        category: 'HARM_CATEGORY_HATE_SPEECH',
+        threshold: 'BLOCK_NONE',
+      },
+      {
+        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+        threshold: 'BLOCK_NONE',
+      },
+      {
+        category: 'HARM_CATEGORY_HARASSMENT',
+        threshold: 'BLOCK_NONE',
+      },
+      {
+        category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+        threshold: 'BLOCK_NONE',
+      },
+    ];
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.safetySettings).toEqual(
+      expect.arrayContaining(expectedSafetySettings),
+    );
+    expect(requestBody.safetySettings).toHaveLength(
+      expectedSafetySettings.length,
+    );
+  });
+
+  it('should let safetySettings take precedence over standalone threshold provider option', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          threshold: 'BLOCK_NONE',
+          safetySettings: [
+            {
+              category: 'HARM_CATEGORY_HATE_SPEECH',
+              threshold: 'BLOCK_ONLY_HIGH',
+            },
+          ],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.safetySettings).toEqual([
+      {
+        category: 'HARM_CATEGORY_HATE_SPEECH',
+        threshold: 'BLOCK_ONLY_HIGH',
+      },
+    ]);
+  });
+
   it('should pass tools and toolChoice', async () => {
     prepareJsonFixtureResponse('google-text');
 

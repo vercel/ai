@@ -26,7 +26,11 @@ export type XaiResponsesSystemMessage = {
 
 export type XaiResponsesUserMessageContentPart =
   | { type: 'input_text'; text: string }
-  | { type: 'input_image'; image_url: string }
+  | {
+      type: 'input_image';
+      image_url: string;
+      detail?: 'low' | 'high' | 'auto';
+    }
   | { type: 'input_file'; file_id: string }
   | { type: 'input_file'; file_url: string };
 

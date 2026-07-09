@@ -1,5 +1,18 @@
 # @ai-sdk/anthropic
 
+## 4.0.10
+
+### Patch Changes
+
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+
+## 4.0.9
+
+### Patch Changes
+
+- 2e45d9c: fix(anthropic): wrap invalid tool input in object
+
 ## 4.0.8
 
 ### Patch Changes

@@ -45,9 +45,15 @@ import {
   type InboundMessage,
   type OutboundMessage,
 } from './claude-code-bridge-protocol';
+import { VERSION } from './version';
 
 type ClaudeCodeChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 type ClaudeCodeRespawnStrategy = 'replay' | 'rerun';
+
+/**
+ * Value to use in User-Agent and `x-client-app` headers.
+ */
+const CLAUDE_CODE_CLIENT_APP = `ai-sdk/harness-claude-code/${VERSION}`;
 
 export type ClaudeCodeHarnessSettings = {
   readonly auth?: ClaudeCodeAuthOptions;
@@ -565,6 +571,13 @@ export function createClaudeCode(
       const token = randomBytes(32).toString('hex');
       const env = {
         ...resolveClaudeCodeEnv(settings.auth),
+        /*
+         * The Claude Agent SDK does not expose arbitrary model-request
+         * headers. It reads this environment variable and sends the value as
+         * `x-client-app`, while also appending `client-app/<value>` to
+         * `User-Agent`, so this is the attribution path for AI Gateway.
+         */
+        CLAUDE_AGENT_SDK_CLIENT_APP: CLAUDE_CODE_CLIENT_APP,
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
         ...(sandboxHomeDir ? { HOME: sandboxHomeDir } : {}),
