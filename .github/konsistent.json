@@ -87,9 +87,6 @@
           "use": "aisdk/provider-model-file-must-export-model-class",
           "excludeFiles": [
             "${providerId}-video-model.ts",
-            "packages/amazon-bedrock/src/amazon-bedrock-image-model.ts",
-            "packages/deepinfra/src/deepinfra-image-model.ts",
-            "packages/fireworks/src/fireworks-image-model.ts",
             "packages/gateway/src/gateway-embedding-model.ts",
             "packages/gateway/src/gateway-image-model.ts",
             "packages/gateway/src/gateway-language-model.ts",
@@ -97,9 +94,7 @@
             "packages/gateway/src/gateway-reranking-model.ts",
             "packages/gateway/src/gateway-speech-model.ts",
             "packages/gateway/src/gateway-transcription-model.ts",
-            "packages/mistral/src/mistral-embedding-model.ts",
-            "packages/openai-compatible/src/image/openai-compatible-image-model.ts",
-            "packages/perplexity/src/perplexity-language-model.ts"
+            "packages/openai-compatible/src/image/openai-compatible-image-model.ts"
           ]
         },
         {
@@ -111,10 +106,7 @@
         },
         {
           "use": "aisdk/provider-video-model-file-must-export-model-class",
-          "excludeFiles": [
-            "packages/bytedance/src/bytedance-video-model.ts",
-            "packages/gateway/src/gateway-video-model.ts"
-          ]
+          "excludeFiles": ["packages/gateway/src/gateway-video-model.ts"]
         },
         "aisdk/provider-language-model-file-must-import-workflow-serialization",
         "aisdk/provider-model-options-file-must-export-model-options-type",

@@ -9,6 +9,7 @@ import {
 import { z } from 'zod/v4';
 import { InvalidArgumentError } from '../error';
 import { jsonValueSchema } from '../types/json-value';
+import { getOwn } from '../util/get-own';
 import { providerMetadataSchema } from '../types/provider-metadata';
 import type {
   DataUIPart,
@@ -456,7 +457,7 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
               InferUIMessageTools<UI_MESSAGE>
             >;
             const toolName = toolPart.type.slice(5);
-            const tool = tools[toolName];
+            const tool = getOwn(tools, toolName);
 
             if (
               !tool &&

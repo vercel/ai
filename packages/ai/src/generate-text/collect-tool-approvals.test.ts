@@ -335,6 +335,44 @@ describe('collectToolApprovals', () => {
     );
   });
 
+  it.each(['toString', 'constructor', 'valueOf', '__proto__'])(
+    'should throw for an unknown approvalId that matches the inherited object property "%s"',
+    approvalId => {
+      // Guards against inherited-property lookups: an approvalId that is not an
+      // own key of the request map must be treated as unknown, not resolved to
+      // a value on Object.prototype.
+      expect(() =>
+        collectToolApprovals({
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: { value: 'test-input' },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-approval-response',
+                  approvalId, // no request with this id exists
+                  approved: true,
+                },
+              ],
+            },
+          ],
+        }),
+      ).toThrow(
+        `Tool approval response references unknown approvalId: ${JSON.stringify(approvalId)}`,
+      );
+    },
+  );
+
   it('should work for 2 approvals, 2 rejections, 1 approval with tool result, 1 rejection with tool result', () => {
     const result = collectToolApprovals({
       messages: [

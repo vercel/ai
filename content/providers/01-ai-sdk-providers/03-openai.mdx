@@ -11,21 +11,7 @@ The [OpenAI](https://openai.com/) provider contains language model support for t
 
 The OpenAI provider is available in the `@ai-sdk/openai` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add @ai-sdk/openai" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install @ai-sdk/openai" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add @ai-sdk/openai" dark />
-  </Tab>
-
-  <Tab>
-    <Snippet text="bun add @ai-sdk/openai" dark />
-  </Tab>
-</Tabs>
+<InstallPackages packages="@ai-sdk/openai" />
 
 ## Provider Instance
 
@@ -363,20 +349,7 @@ The [`ai-sdk-openai-websocket-fetch`](https://www.npmjs.com/package/ai-sdk-opena
 package provides a drop-in `fetch` replacement that routes streaming requests
 through a persistent WebSocket connection.
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add ai-sdk-openai-websocket-fetch" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install ai-sdk-openai-websocket-fetch" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add ai-sdk-openai-websocket-fetch" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="bun add ai-sdk-openai-websocket-fetch" dark />
-  </Tab>
-</Tabs>
+<InstallPackages packages="ai-sdk-openai-websocket-fetch" />
 
 Pass the WebSocket fetch to `createOpenAI` via the `fetch` option:
 
@@ -2374,32 +2347,32 @@ The following optional provider options are available for OpenAI completion mode
 
 ### Model Capabilities
 
-| Model                 | Image Input         | Audio Input         | Object Generation   | Tool Usage          |
-| --------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `gpt-5.5`             | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5.4-pro`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5.4`             | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5.4-mini`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5.4-nano`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5.3-chat-latest` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5.2-pro`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5.2-chat-latest` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5.2`             | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5.1-codex-mini`  | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5.1-codex`       | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5.1-chat-latest` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5.1`             | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5-pro`           | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5`               | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5-mini`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5-nano`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5-codex`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5-chat-latest`   | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `gpt-4.1`             | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4.1-mini`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4.1-nano`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o`              | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o-mini`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                 | Image Input | Audio Input | Object Generation | Tool Usage |
+| --------------------- | ----------- | ----------- | ----------------- | ---------- |
+| `gpt-5.5`             | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-5.4-pro`         | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-5.4`             | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-5.4-mini`        | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-5.4-nano`        | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-5.3-chat-latest` | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-5.2-pro`         | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-5.2-chat-latest` | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-5.2`             | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-5.1-codex-mini`  | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-5.1-codex`       | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-5.1-chat-latest` | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-5.1`             | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-5-pro`           | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-5`               | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-5-mini`          | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-5-nano`          | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-5-codex`         | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-5-chat-latest`   | <Check />   | <Cross />   | <Cross />         | <Cross />  |
+| `gpt-4.1`             | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-4.1-mini`        | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-4.1-nano`        | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-4o`              | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-4o-mini`         | <Check />   | <Cross />   | <Check />         | <Check />  |
 
 <Note>
   The table above lists popular models. Please see the [OpenAI
@@ -2475,11 +2448,11 @@ The following optional provider options are available for OpenAI embedding model
 
 ### Model Capabilities
 
-| Model                    | Default Dimensions | Custom Dimensions   |
-| ------------------------ | ------------------ | ------------------- |
-| `text-embedding-3-large` | 3072               | <Check size={18} /> |
-| `text-embedding-3-small` | 1536               | <Check size={18} /> |
-| `text-embedding-ada-002` | 1536               | <Cross size={18} /> |
+| Model                    | Default Dimensions | Custom Dimensions |
+| ------------------------ | ------------------ | ----------------- |
+| `text-embedding-3-large` | 3072               | <Check />         |
+| `text-embedding-3-small` | 1536               | <Check />         |
+| `text-embedding-ada-002` | 1536               | <Cross />         |
 
 ## Image Models
 
@@ -2709,12 +2682,12 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                    | Transcription       | Streaming           | Duration            | Segments            | Language            |
-| ------------------------ | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `whisper-1`              | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o-mini-transcribe` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `gpt-4o-transcribe`      | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `gpt-realtime-whisper`   | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| Model                    | Transcription | Streaming | Duration  | Segments  | Language  |
+| ------------------------ | ------------- | --------- | --------- | --------- | --------- |
+| `whisper-1`              | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
+| `gpt-4o-mini-transcribe` | <Check />     | <Cross /> | <Cross /> | <Cross /> | <Cross /> |
+| `gpt-4o-transcribe`      | <Check />     | <Cross /> | <Cross /> | <Cross /> | <Cross /> |
+| `gpt-realtime-whisper`   | <Cross />     | <Check /> | <Cross /> | <Cross /> | <Cross /> |
 
 ## Speech Models
 
@@ -2771,8 +2744,8 @@ const result = await generateSpeech({
 
 ### Model Capabilities
 
-| Model             | Instructions        |
-| ----------------- | ------------------- |
-| `tts-1`           | <Check size={18} /> |
-| `tts-1-hd`        | <Check size={18} /> |
-| `gpt-4o-mini-tts` | <Check size={18} /> |
+| Model             | Instructions |
+| ----------------- | ------------ |
+| `tts-1`           | <Check />    |
+| `tts-1-hd`        | <Check />    |
+| `gpt-4o-mini-tts` | <Check />    |
