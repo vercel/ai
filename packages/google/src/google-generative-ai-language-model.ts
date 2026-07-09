@@ -50,7 +50,18 @@ import {
 } from './google-json-accumulator';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
 
+<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
 type GoogleGenerativeAIConfig = {
+=======
+const configurableSafetySettingCategories = [
+  'HARM_CATEGORY_HATE_SPEECH',
+  'HARM_CATEGORY_DANGEROUS_CONTENT',
+  'HARM_CATEGORY_HARASSMENT',
+  'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+] as const;
+
+type GoogleConfig = {
+>>>>>>> 96d40bccc (fix: standalone Google threshold provider option is silently ignored (#16922)):packages/google/src/google-language-model.ts
   provider: string;
   baseURL: string;
   headers: Resolvable<Record<string, string | undefined>>;
@@ -223,6 +234,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
         ? (googleOptions?.streamFunctionCallArguments ?? false)
         : undefined;
 
+    const safetyThreshold = googleOptions?.threshold;
+    const safetySettings =
+      googleOptions?.safetySettings ??
+      (safetyThreshold != null
+        ? configurableSafetySettingCategories.map(category => ({
+            category,
+            threshold: safetyThreshold,
+          }))
+        : undefined);
+
     const toolConfig =
       googleToolConfig ||
       streamFunctionCallArguments ||
@@ -282,7 +303,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
         },
         contents,
         systemInstruction: isGemmaModel ? undefined : systemInstruction,
-        safetySettings: googleOptions?.safetySettings,
+        safetySettings,
         tools: googleTools,
         toolConfig,
         cachedContent: googleOptions?.cachedContent,
