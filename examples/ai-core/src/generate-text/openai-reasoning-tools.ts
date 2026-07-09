@@ -6,7 +6,7 @@ import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
   const { text, reasoning, toolCalls, usage } = await generateText({
-    model: openai('gpt-5'),
+    model: openai('gpt-5.6'),
     tools: {
       weather: weatherTool,
       calculator: tool({

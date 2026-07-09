@@ -57,6 +57,7 @@ export const openaiResponsesReasoningModelIds = [
   'gpt-5.4-nano-2026-03-17',
   'gpt-5.4-pro',
   'gpt-5.4-pro-2026-03-05',
+  'gpt-5.6',
 ] as const;
 
 export const openaiResponsesModelIds = [
@@ -136,6 +137,7 @@ export type OpenAIResponsesModelId =
   | 'gpt-5.4-nano-2026-03-17'
   | 'gpt-5.4-pro'
   | 'gpt-5.4-pro-2026-03-05'
+  | 'gpt-5.6'
   | 'gpt-5-2025-08-07'
   | 'gpt-5-chat-latest'
   | 'gpt-5-codex'

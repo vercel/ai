@@ -40,7 +40,8 @@ export function getOpenAILanguageModelCapabilities(
     modelId.startsWith('gpt-5.1') ||
     modelId.startsWith('gpt-5.2') ||
     modelId.startsWith('gpt-5.3') ||
-    modelId.startsWith('gpt-5.4');
+    modelId.startsWith('gpt-5.4') ||
+    modelId.startsWith('gpt-5.6');
 
   const systemMessageMode = isReasoningModel ? 'developer' : 'system';
 
