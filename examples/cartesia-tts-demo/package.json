@@ -1,0 +1,15 @@
+{
+  "name": "@example/cartesia-tts-demo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local browser demo for Cartesia Sonic 3.5 speech and Ink-Whisper batch transcription via @ai-sdk/cartesia (uses workspace source).",
+  "scripts": {
+    "prestart": "pnpm --filter ai... --filter @ai-sdk/cartesia... build",
+    "start": "NODE_EXTRA_CA_CERTS=${NODE_EXTRA_CA_CERTS:-/etc/ssl/cert.pem} node --env-file-if-exists=.env server.mjs"
+  },
+  "dependencies": {
+    "@ai-sdk/cartesia": "workspace:*",
+    "ai": "workspace:*"
+  }
+}

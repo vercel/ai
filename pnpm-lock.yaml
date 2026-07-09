@@ -550,6 +550,15 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
 
+  examples/cartesia-tts-demo:
+    dependencies:
+      '@ai-sdk/cartesia':
+        specifier: workspace:*
+        version: link:../../packages/cartesia
+      ai:
+        specifier: workspace:*
+        version: link:../../packages/ai
+
   examples/express:
     dependencies:
       '@ai-sdk/openai':
