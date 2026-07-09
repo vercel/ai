@@ -281,6 +281,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         reasoningByItem,
         setTurnUsage: u => (turnUsage = u),
         emitWarning: turn.emitWarning,
+        emitError: turn.emitError,
       });
     }
   } catch (err) {
@@ -384,6 +385,7 @@ function translateAndEmit(
     reasoningByItem: Map<string, string>;
     setTurnUsage: (u: Record<string, unknown>) => void;
     emitWarning: BridgeTurn['emitWarning'];
+    emitError: BridgeTurn['emitError'];
   },
 ): void {
   if (event.type === 'turn.completed') {
@@ -396,14 +398,17 @@ function translateAndEmit(
     return;
   }
   if (event.type === 'turn.failed') {
-    ctx.send({
-      type: 'error',
+    ctx.emitError({
       error: event.error?.message ?? 'codex turn failed',
+      message: 'codex turn failed',
     });
     return;
   }
   if (event.type === 'error') {
-    ctx.send({ type: 'error', error: event.message ?? 'codex error' });
+    ctx.emitError({
+      error: event.message ?? 'codex error',
+      message: 'codex stream error',
+    });
     return;
   }
   if (!event.item) return;

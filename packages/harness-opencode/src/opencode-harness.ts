@@ -409,7 +409,7 @@ export function createOpenCode(
         abortSignal: startOpts.abortSignal,
         createTimeoutError: ({ proc, stdoutTail }) =>
           createBridgeStartupError({
-            message: 'opencode bridge did not become ready in time.',
+            message: 'OpenCode bridge did not become ready in time.',
             proc,
             stdoutTail,
             stderrTail,
@@ -417,7 +417,7 @@ export function createOpenCode(
           }),
         createExitError: ({ proc, stdoutTail }) =>
           createBridgeStartupError({
-            message: 'opencode bridge exited before becoming ready.',
+            message: 'OpenCode bridge exited before becoming ready.',
             proc,
             stdoutTail,
             stderrTail,
@@ -476,7 +476,7 @@ function resolveBridgePort(
   throw new HarnessCapabilityUnsupportedError({
     harnessId: 'opencode',
     message:
-      'The opencode harness needs a TCP port exposed by the sandbox. ' +
+      'The OpenCode harness needs a TCP port exposed by the sandbox. ' +
       'Create the sandbox with `ports: [<port>]` or pass `createOpenCode({ port })`.',
   });
 }
@@ -668,7 +668,7 @@ function createSession({
         return;
       }
       settleError(
-        new Error('opencode bridge closed before the turn finished.'),
+        new Error('OpenCode bridge closed before the turn finished.'),
       );
     };
     channel.onClose(onClose);
@@ -811,7 +811,7 @@ function createSession({
     doDetach: async () => {
       if (stopped) {
         throw new Error(
-          `opencode session ${sessionId} is already stopped; cannot detach.`,
+          `OpenCode session ${sessionId} is already stopped; cannot detach.`,
         );
       }
       stopped = true;
@@ -867,7 +867,7 @@ function createSession({
     doStop: async () => {
       if (stopped) {
         throw new Error(
-          `opencode session ${sessionId} is already stopped; cannot stop.`,
+          `OpenCode session ${sessionId} is already stopped; cannot stop.`,
         );
       }
       stopped = true;
@@ -879,7 +879,7 @@ function createSession({
               unsub();
               reject(
                 new Error(
-                  `opencode session ${sessionId} did not reply to detach within 5s.`,
+                  `OpenCode session ${sessionId} did not reply to detach within 5s.`,
                 ),
               );
             }, 5000);
@@ -928,7 +928,7 @@ function createSession({
     doSuspendTurn: async () => {
       if (stopped) {
         throw new Error(
-          `opencode session ${sessionId} is stopped; cannot suspend.`,
+          `OpenCode session ${sessionId} is stopped; cannot suspend.`,
         );
       }
       stopped = true;
@@ -1011,7 +1011,7 @@ function extractUserText(prompt: HarnessV1Prompt): string {
     if (part.type !== 'text') {
       throw new HarnessCapabilityUnsupportedError({
         harnessId: 'opencode',
-        message: `The opencode harness does not yet support user message parts of type '${part.type}'. Pass a string or a user message whose content contains only text parts.`,
+        message: `The OpenCode harness does not yet support user message parts of type '${part.type}'. Pass a string or a user message whose content contains only text parts.`,
       });
     }
     parts.push(part.text);

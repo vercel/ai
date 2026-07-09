@@ -144,7 +144,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       totalUsage = await runPrompt({ client, sessionId, start, turn, emit });
     }
   } catch (err) {
-    turn.emitError({ error: err, message: 'opencode turn failed' });
+    turn.emitError({ error: err, message: 'OpenCode turn failed' });
   } finally {
     emit({
       type: 'finish',
@@ -469,11 +469,45 @@ function legacyStatusType(event: OpenCodeEvent): string | undefined {
     : undefined;
 }
 
-function legacyStatusMessage(event: OpenCodeEvent): string | undefined {
+function legacyRetryStatusMessage(event: OpenCodeEvent): string {
   const status = event.properties?.status;
-  if (!status || typeof status !== 'object') return undefined;
-  const message = (status as { message?: unknown }).message;
-  return typeof message === 'string' ? message : undefined;
+  const details: string[] = [];
+  if (status && typeof status === 'object') {
+    const retryStatus = status as { attempt?: unknown; message?: unknown };
+    if (typeof retryStatus.attempt === 'number') {
+      details.push(`attempt ${retryStatus.attempt}`);
+    }
+    if (typeof retryStatus.message === 'string' && retryStatus.message.trim()) {
+      details.push(retryStatus.message.trim());
+    }
+  }
+  return details.length > 0
+    ? `OpenCode session retry: ${details.join('; ')}`
+    : 'OpenCode session retry';
+}
+
+function nextRetryEventMessage(event: OpenCodeEvent): string {
+  const props = event.properties ?? {};
+  const details: string[] = [];
+  if (typeof props.attempt === 'number') {
+    details.push(`attempt ${props.attempt}`);
+  }
+  const error = props.error;
+  if (isRecord(error)) {
+    const message =
+      stringValue(error.message) ??
+      (isRecord(error.data) ? stringValue(error.data.message) : undefined);
+    const statusCode = error.statusCode;
+    if (typeof statusCode === 'number') {
+      details.push(`HTTP ${statusCode}`);
+    }
+    if (message) details.push(message);
+  } else if (error != null) {
+    details.push(formatError(error));
+  }
+  return details.length > 0
+    ? `OpenCode session retry: ${details.join('; ')}`
+    : 'OpenCode session retry';
 }
 
 async function ensureSession({
@@ -569,9 +603,7 @@ async function runPrompt({
         sawBusy = true;
       } else if (status === 'retry') {
         sawBusy = true;
-        terminalError = legacyStatusMessage(event) ?? 'Session retry';
-        turnSettled.resolve();
-        return true;
+        turn.emitWarning({ message: legacyRetryStatusMessage(event) });
       } else if (sawBusy && status === 'idle') {
         turnSettled.resolve();
         return true;
@@ -682,9 +714,7 @@ async function runCompaction({
         sawBusy = true;
       } else if (status === 'retry') {
         sawBusy = true;
-        terminalError = legacyStatusMessage(event) ?? 'Session retry';
-        compactionSettled.resolve();
-        return true;
+        turn.emitWarning({ message: legacyRetryStatusMessage(event) });
       } else if (sawBusy && status === 'idle') {
         compactionSettled.resolve();
         return true;
@@ -1020,6 +1050,18 @@ async function translateAndEmit({
     });
     return;
   }
+  if (type === 'session.next.retried') {
+    const error = props.error ?? event;
+    if (isRecord(error) && error.isRetryable === false) {
+      turn.emitError({
+        error,
+        message: 'OpenCode session retry failed',
+      });
+    } else {
+      turn.emitWarning({ message: nextRetryEventMessage(event) });
+    }
+    return;
+  }
   if (type === 'session.next.step.ended') {
     closeLegacyOpenParts({ state, emit });
     state.turnUsage = mapUsage(props.tokens);
@@ -1058,7 +1100,14 @@ async function translateAndEmit({
     return;
   }
   if (type === 'session.error' || type === 'session.next.step.failed') {
-    emit({ type: 'error', error: formatError(props.error ?? event) });
+    const error = props.error ?? event;
+    turn.emitError({
+      error,
+      message:
+        type === 'session.error'
+          ? 'OpenCode session error'
+          : 'OpenCode step failed',
+    });
     return;
   }
   if (type === 'permission.v2.asked') {
@@ -1981,6 +2030,6 @@ function formatError(error: unknown): string {
 }
 
 function emitFatal(message: string): never {
-  process.stderr.write(`[opencode bridge] ${message}\n`);
+  process.stderr.write(`[OpenCode bridge] ${message}\n`);
   process.exit(1);
 }

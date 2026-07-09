@@ -204,6 +204,47 @@ describe('runBridge', () => {
     }
   });
 
+  it('reports bridge errors to stderr without stringifying the stream error value', async () => {
+    const stderrLines: string[] = [];
+    const writeSpy = vi.spyOn(process.stderr, 'write').mockImplementation(((
+      chunk: string | Uint8Array,
+      encodingOrCallback?:
+        | BufferEncoding
+        | ((err?: Error | null | undefined) => void),
+      callback?: (err?: Error | null | undefined) => void,
+    ) => {
+      stderrLines.push(
+        typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString(),
+      );
+      const cb =
+        typeof encodingOrCallback === 'function'
+          ? encodingOrCallback
+          : callback;
+      cb?.();
+      return true;
+    }) as typeof process.stderr.write);
+
+    try {
+      const error = { name: 'AdapterError', data: { message: 'boom' } };
+      const handle = await startBridge(async (_start, turn) => {
+        turn.emitError({ error, message: 'adapter failed' });
+        turn.emit({ type: 'finish' });
+      });
+      const client = await connect(handle.port);
+      await client.waitFor(f => f.type === 'bridge-hello');
+      client.send({ type: 'start' });
+      const errorFrame = await client.waitFor(f => f.type === 'error');
+      await client.waitFor(f => f.type === 'finish');
+
+      expect(errorFrame.error).toEqual(error);
+      expect(stderrLines).toContain(
+        '[harness:test:error] adapter failed: {"name":"AdapterError","data":{"message":"boom"}}\n',
+      );
+    } finally {
+      writeSpy.mockRestore();
+    }
+  });
+
   it('clears the log per turn but keeps seq monotonic across turns', async () => {
     let turnNo = 0;
     const handle = await startBridge(async (_start, turn) => {
