@@ -296,7 +296,6 @@ export function translatePiEvent(
         for (const toolCallId of extractPiToolCallIds(event.message)) {
           state.pendingStepToolCallIds.add(toolCallId);
         }
-        parts.push(...finishStep(state));
       } else {
         state.pendingStepToolCallIds.clear();
         parts.push(...finishStep(state));

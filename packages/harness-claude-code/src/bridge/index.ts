@@ -591,7 +591,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 
       if (type === 'stream_event') {
         handleStreamEvent(msg.event, partialBlocks, emit);
-        closeStepIfReady();
         continue;
       }
 
@@ -632,7 +631,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         if (opensStep || toolUseIds.length === 0) {
           stepOpen = true;
           if (usage) pendingStepUsage = usage;
-          closeStepIfReady();
         }
         continue;
       }

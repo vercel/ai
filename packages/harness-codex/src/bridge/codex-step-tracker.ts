@@ -52,10 +52,6 @@ export function createCodexStepTracker(input: {
         }
         return;
       }
-
-      if (event.type === 'item.completed' && shouldCloseModelItem(item)) {
-        finishStep();
-      }
     },
     finishStep,
   };
@@ -77,10 +73,6 @@ function isToolStepItem(item: CodexStepTrackerItem): boolean {
     item.type === 'file_change' ||
     item.type === 'todo_list'
   );
-}
-
-function shouldCloseModelItem(item: CodexStepTrackerItem): boolean {
-  return item.type === 'agent_message';
 }
 
 export function defaultUsage(): Record<string, unknown> {

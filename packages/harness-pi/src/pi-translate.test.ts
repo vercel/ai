@@ -96,7 +96,7 @@ describe('translatePiEvent', () => {
     expect(closing.find(p => p.type === 'text-end')).toBeDefined();
   });
 
-  it('emits finish-step at message_end when the assistant requested no tools', () => {
+  it('emits finish-step at turn_end when the assistant requested no tools', () => {
     const state = createPiTranslatorState();
     emit(
       [
@@ -124,7 +124,14 @@ describe('translatePiEvent', () => {
       state,
     );
 
-    expect(closing.map(p => p.type)).toEqual(['text-end', 'finish-step']);
+    expect(closing.map(p => p.type)).toEqual(['text-end']);
+
+    const turnEnd = translatePiEvent(
+      { type: 'turn_end' } as PiSessionEvent,
+      state,
+    );
+
+    expect(turnEnd.map(p => p.type)).toEqual(['finish-step']);
   });
 
   it('waits for requested tool executions before emitting finish-step', () => {
