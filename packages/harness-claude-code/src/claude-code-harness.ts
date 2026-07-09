@@ -45,6 +45,7 @@ import {
   type InboundMessage,
   type OutboundMessage,
 } from './claude-code-bridge-protocol';
+import type { ClaudeCodeThinkingConfig } from './claude-code-thinking';
 import { VERSION } from './version';
 
 type ClaudeCodeChannel = SandboxChannel<OutboundMessage, InboundMessage>;
@@ -68,10 +69,10 @@ export type ClaudeCodeHarnessSettings = {
    */
   readonly maxTurns?: number;
   /**
-   * Controls extended-thinking behavior. `'off'` disables thinking,
-   * `'on'` forces it on, `'adaptive'` lets the runtime decide.
+   * Controls extended-thinking behavior and whether reasoning is summarized or
+   * omitted. Defaults to `{ type: 'adaptive', display: 'summarized' }`.
    */
-  readonly thinking?: 'off' | 'on' | 'adaptive';
+  readonly thinking?: ClaudeCodeThinkingConfig;
   /**
    * Override the port the bridge binds inside the sandbox. By default the
    * adapter uses the first port the sandbox declares via `sandbox.ports`.
@@ -416,6 +417,10 @@ export function createClaudeCode(
   settings: ClaudeCodeHarnessSettings = {},
 ): HarnessV1<typeof CLAUDE_CODE_BUILTIN_TOOLS> {
   let cachedBootstrap: HarnessV1Bootstrap | undefined;
+  const thinking = settings.thinking ?? {
+    type: 'adaptive',
+    display: 'summarized',
+  };
 
   return {
     specificationVersion: 'harness-v1',
@@ -519,7 +524,7 @@ export function createClaudeCode(
             proc: undefined,
             model: settings.model,
             maxTurns: settings.maxTurns,
-            thinking: settings.thinking,
+            thinking,
             isResume: true,
             continueOnFirstPrompt: false,
             rerunContinue: false,
@@ -689,7 +694,7 @@ export function createClaudeCode(
         proc,
         model: settings.model,
         maxTurns: settings.maxTurns,
-        thinking: settings.thinking,
+        thinking,
         isResume: respawnStrategy !== undefined,
         continueOnFirstPrompt: respawnStrategy !== undefined,
         rerunContinue: respawnStrategy === 'rerun',
@@ -1069,7 +1074,7 @@ function createSession({
   proc: Experimental_SandboxProcess | undefined;
   model: string | undefined;
   maxTurns: number | undefined;
-  thinking: 'off' | 'on' | 'adaptive' | undefined;
+  thinking: ClaudeCodeThinkingConfig;
   isResume: boolean;
   continueOnFirstPrompt: boolean;
   rerunContinue: boolean;

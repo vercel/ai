@@ -151,40 +151,6 @@ function resolveInactiveNativeTools(start: StartMessage): string[] {
   return inactiveToolNames.map(name => toNativeName(name));
 }
 
-/*
- * The harness exposes a coarse `'off' | 'on' | 'adaptive'` thinking setting,
- * but the Claude Agent SDK's `thinking` option takes a structured
- * `ThinkingConfig` object. Passing the bare string silently disables extended
- * thinking (the SDK ignores the malformed value), so the model never emits
- * thinking blocks and no reasoning is streamed. Map to the SDK's shape:
- *   'adaptive' → { type: 'adaptive' }  (Claude decides depth; Opus 4.6+)
- *   'on'       → { type: 'enabled' }   (extended thinking always on)
- *   'off'      → { type: 'disabled' }
- *
- * `display: 'summarized'` is required for the model's reasoning to actually be
- * streamed: without it the thinking block arrives carrying only a signature
- * and empty `thinking_delta`s, so `reasoningText` comes back empty. We default
- * it on whenever thinking is enabled so reasoning is visible out of the box;
- * `'off'` (disabled) takes no display.
- */
-function toThinkingConfig(
-  thinking: 'off' | 'on' | 'adaptive' | undefined,
-):
-  | { type: 'adaptive' | 'enabled'; display: 'summarized' }
-  | { type: 'disabled' }
-  | undefined {
-  switch (thinking) {
-    case 'adaptive':
-      return { type: 'adaptive', display: 'summarized' };
-    case 'on':
-      return { type: 'enabled', display: 'summarized' };
-    case 'off':
-      return { type: 'disabled' };
-    default:
-      return undefined;
-  }
-}
-
 const args = parseArgs(argv.slice(2));
 const workdir = args.workdir;
 const bridgeStateDir = args.bridgeStateDir;
@@ -430,9 +396,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       ...(inactiveNativeTools.length > 0
         ? { disallowedTools: inactiveNativeTools }
         : {}),
-      ...(toThinkingConfig(start.thinking)
-        ? { thinking: toThinkingConfig(start.thinking) }
-        : {}),
+      thinking: start.thinking,
       includePartialMessages: true,
       // The `PostCompact` hook carries the compaction summary, which the
       // `compact_boundary` system message does not. Latch it for the unified
