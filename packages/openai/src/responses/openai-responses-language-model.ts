@@ -2154,6 +2154,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 raw: incompleteReason ?? 'error',
               };
               usage = value.response.usage ?? undefined;
+              if (value.response.reasoning?.context != null) {
+                reasoningContext = value.response.reasoning.context;
+              }
 
               if (!encounteredStreamError && value.response.error != null) {
                 encounteredStreamError = true;

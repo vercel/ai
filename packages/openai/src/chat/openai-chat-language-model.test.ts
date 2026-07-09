@@ -1402,9 +1402,9 @@ describe('doGenerate', () => {
           },
         ],
         usage: {
-          prompt_tokens: 15,
+          prompt_tokens: 2000,
           completion_tokens: 20,
-          total_tokens: 35,
+          total_tokens: 2020,
           prompt_tokens_details: {
             cached_tokens: 1152,
             cache_write_tokens: 256,
@@ -1425,8 +1425,8 @@ describe('doGenerate', () => {
         "inputTokens": {
           "cacheRead": 1152,
           "cacheWrite": 256,
-          "noCache": -1137,
-          "total": 15,
+          "noCache": 848,
+          "total": 2000,
         },
         "outputTokens": {
           "reasoning": 0,
@@ -1435,12 +1435,12 @@ describe('doGenerate', () => {
         },
         "raw": {
           "completion_tokens": 20,
-          "prompt_tokens": 15,
+          "prompt_tokens": 2000,
           "prompt_tokens_details": {
             "cache_write_tokens": 256,
             "cached_tokens": 1152,
           },
-          "total_tokens": 35,
+          "total_tokens": 2020,
         },
       }
     `);
@@ -3494,7 +3494,7 @@ describe('doStream', () => {
       chunks: [
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop","logprobs":null}]}\n\n`,
-        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":15,"completion_tokens":20,"total_tokens":35,"prompt_tokens_details":{"cached_tokens":1152}}}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":2000,"completion_tokens":20,"total_tokens":2020,"prompt_tokens_details":{"cached_tokens":1152,"cache_write_tokens":256}}}\n\n`,
         'data: [DONE]\n\n',
       ],
     };
@@ -3525,9 +3525,9 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": {
               "cacheRead": 1152,
-              "cacheWrite": undefined,
-              "noCache": -1137,
-              "total": 15,
+              "cacheWrite": 256,
+              "noCache": 848,
+              "total": 2000,
             },
             "outputTokens": {
               "reasoning": 0,
@@ -3536,11 +3536,12 @@ describe('doStream', () => {
             },
             "raw": {
               "completion_tokens": 20,
-              "prompt_tokens": 15,
+              "prompt_tokens": 2000,
               "prompt_tokens_details": {
+                "cache_write_tokens": 256,
                 "cached_tokens": 1152,
               },
-              "total_tokens": 35,
+              "total_tokens": 2020,
             },
           },
         }

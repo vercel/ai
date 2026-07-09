@@ -23,6 +23,33 @@ describe('system messages', () => {
     ]);
   });
 
+  it('should add a prompt cache breakpoint to a system message', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'system',
+          content: 'You are a helpful assistant.',
+          providerOptions: {
+            openai: { promptCacheBreakpoint: { mode: 'explicit' } },
+          },
+        },
+      ],
+    });
+
+    expect(result.messages).toEqual([
+      {
+        role: 'system',
+        content: [
+          {
+            type: 'text',
+            text: 'You are a helpful assistant.',
+            prompt_cache_breakpoint: { mode: 'explicit' },
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should remove system messages when requested', async () => {
     const result = convertToOpenAIChatMessages({
       prompt: [{ role: 'system', content: 'You are a helpful assistant.' }],
@@ -45,6 +72,76 @@ describe('user messages', () => {
     });
 
     expect(result.messages).toEqual([{ role: 'user', content: 'Hello' }]);
+  });
+
+  it('should add prompt cache breakpoints to supported content blocks', () => {
+    const promptCacheBreakpoint = { mode: 'explicit' } as const;
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Hello',
+              providerOptions: { openai: { promptCacheBreakpoint } },
+            },
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: {
+                type: 'url',
+                url: new URL('https://example.com/image.png'),
+              },
+              providerOptions: { openai: { promptCacheBreakpoint } },
+            },
+            {
+              type: 'file',
+              mediaType: 'audio/wav',
+              data: { type: 'data', data: 'AAECAw==' },
+              providerOptions: { openai: { promptCacheBreakpoint } },
+            },
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              data: {
+                type: 'reference',
+                reference: { openai: 'file-pdf-123' },
+              },
+              providerOptions: { openai: { promptCacheBreakpoint } },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Hello',
+            prompt_cache_breakpoint: promptCacheBreakpoint,
+          },
+          {
+            type: 'image_url',
+            image_url: { url: 'https://example.com/image.png' },
+            prompt_cache_breakpoint: promptCacheBreakpoint,
+          },
+          {
+            type: 'input_audio',
+            input_audio: { data: 'AAECAw==', format: 'wav' },
+            prompt_cache_breakpoint: promptCacheBreakpoint,
+          },
+          {
+            type: 'file',
+            file: { file_id: 'file-pdf-123' },
+            prompt_cache_breakpoint: promptCacheBreakpoint,
+          },
+        ],
+      },
+    ]);
   });
 
   it('should convert messages with image parts', async () => {

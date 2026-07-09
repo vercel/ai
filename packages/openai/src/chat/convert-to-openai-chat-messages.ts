@@ -2,6 +2,7 @@ import {
   UnsupportedFunctionalityError,
   type SharedV4Warning,
   type LanguageModelV4Prompt,
+  type SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import type { OpenAIChatPrompt } from './openai-chat-prompt';
 import {
@@ -13,6 +14,16 @@ import {
 
 function serializeToolCallArguments(input: unknown): string {
   return JSON.stringify(input === undefined ? {} : input);
+}
+
+type OpenAIPromptCacheBreakpoint = { mode: 'explicit' };
+
+function getPromptCacheBreakpoint(
+  providerOptions: SharedV4ProviderOptions | undefined,
+): OpenAIPromptCacheBreakpoint | undefined {
+  return providerOptions?.openai?.promptCacheBreakpoint as
+    | OpenAIPromptCacheBreakpoint
+    | undefined;
 }
 
 export function convertToOpenAIChatMessages({
@@ -28,16 +39,44 @@ export function convertToOpenAIChatMessages({
   const messages: OpenAIChatPrompt = [];
   const warnings: Array<SharedV4Warning> = [];
 
-  for (const { role, content } of prompt) {
+  for (const { role, content, providerOptions } of prompt) {
     switch (role) {
       case 'system': {
         switch (systemMessageMode) {
           case 'system': {
-            messages.push({ role: 'system', content });
+            const promptCacheBreakpoint =
+              getPromptCacheBreakpoint(providerOptions);
+            messages.push({
+              role: 'system',
+              content:
+                promptCacheBreakpoint == null
+                  ? content
+                  : [
+                      {
+                        type: 'text',
+                        text: content,
+                        prompt_cache_breakpoint: promptCacheBreakpoint,
+                      },
+                    ],
+            });
             break;
           }
           case 'developer': {
-            messages.push({ role: 'developer', content });
+            const promptCacheBreakpoint =
+              getPromptCacheBreakpoint(providerOptions);
+            messages.push({
+              role: 'developer',
+              content:
+                promptCacheBreakpoint == null
+                  ? content
+                  : [
+                      {
+                        type: 'text',
+                        text: content,
+                        prompt_cache_breakpoint: promptCacheBreakpoint,
+                      },
+                    ],
+            });
             break;
           }
           case 'remove': {
@@ -58,7 +97,11 @@ export function convertToOpenAIChatMessages({
       }
 
       case 'user': {
-        if (content.length === 1 && content[0].type === 'text') {
+        if (
+          content.length === 1 &&
+          content[0].type === 'text' &&
+          getPromptCacheBreakpoint(content[0].providerOptions) == null
+        ) {
           messages.push({ role: 'user', content: content[0].text });
           break;
         }
@@ -68,9 +111,21 @@ export function convertToOpenAIChatMessages({
           content: content.map((part, index) => {
             switch (part.type) {
               case 'text': {
-                return { type: 'text', text: part.text };
+                const promptCacheBreakpoint = getPromptCacheBreakpoint(
+                  part.providerOptions,
+                );
+                return {
+                  type: 'text',
+                  text: part.text,
+                  ...(promptCacheBreakpoint != null && {
+                    prompt_cache_breakpoint: promptCacheBreakpoint,
+                  }),
+                };
               }
               case 'file': {
+                const promptCacheBreakpoint = getPromptCacheBreakpoint(
+                  part.providerOptions,
+                );
                 switch (part.data.type) {
                   case 'reference': {
                     return {
@@ -81,6 +136,9 @@ export function convertToOpenAIChatMessages({
                           provider: 'openai',
                         }),
                       },
+                      ...(promptCacheBreakpoint != null && {
+                        prompt_cache_breakpoint: promptCacheBreakpoint,
+                      }),
                     };
                   }
                   case 'text': {
@@ -103,6 +161,9 @@ export function convertToOpenAIChatMessages({
 
                           detail: part.providerOptions?.openai?.imageDetail,
                         },
+                        ...(promptCacheBreakpoint != null && {
+                          prompt_cache_breakpoint: promptCacheBreakpoint,
+                        }),
                       };
                     } else if (topLevel === 'audio') {
                       if (part.data.type === 'url') {
@@ -121,6 +182,9 @@ export function convertToOpenAIChatMessages({
                               data: convertToBase64(part.data.data),
                               format: 'wav',
                             },
+                            ...(promptCacheBreakpoint != null && {
+                              prompt_cache_breakpoint: promptCacheBreakpoint,
+                            }),
                           };
                         }
                         case 'audio/mp3':
@@ -131,6 +195,9 @@ export function convertToOpenAIChatMessages({
                               data: convertToBase64(part.data.data),
                               format: 'mp3',
                             },
+                            ...(promptCacheBreakpoint != null && {
+                              prompt_cache_breakpoint: promptCacheBreakpoint,
+                            }),
                           };
                         }
 
@@ -161,6 +228,9 @@ export function convertToOpenAIChatMessages({
                           filename: part.filename ?? `part-${index}.pdf`,
                           file_data: `data:application/pdf;base64,${convertToBase64(part.data.data)}`,
                         },
+                        ...(promptCacheBreakpoint != null && {
+                          prompt_cache_breakpoint: promptCacheBreakpoint,
+                        }),
                       };
                     }
                   }

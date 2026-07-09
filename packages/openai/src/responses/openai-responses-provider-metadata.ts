@@ -15,7 +15,7 @@ export type ResponsesProviderMetadata = {
   responseId: string | null | undefined;
   logprobs?: Array<OpenAIResponsesLogprobs>;
   serviceTier?: string;
-  reasoningContext?: 'current_turn' | 'all_turns';
+  reasoningContext?: string;
 };
 
 export type ResponsesReasoningProviderMetadata = {
