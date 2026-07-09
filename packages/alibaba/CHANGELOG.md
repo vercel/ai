@@ -1,5 +1,15 @@
 # @ai-sdk/alibaba
 
+## 1.0.37
+
+### Patch Changes
+
+- e1af05f: feat (video): support video (not just image) reference inputs in `inputReferences` for reference-to-video generation
+- Updated dependencies [e1af05f]
+  - @ai-sdk/provider@3.0.14
+  - @ai-sdk/openai-compatible@2.0.59
+  - @ai-sdk/provider-utils@4.0.38
+
 ## 1.0.36
 
 ### Patch Changes

@@ -1,5 +1,16 @@
 # @ai-sdk/xai
 
+## 3.0.106
+
+### Patch Changes
+
+- e1af05f: feat (video): support video (not just image) reference inputs in `inputReferences` for reference-to-video generation
+- 1ce0d1c: feat (provider/xai): add grok-4.5 model id
+- Updated dependencies [e1af05f]
+  - @ai-sdk/provider@3.0.14
+  - @ai-sdk/openai-compatible@2.0.59
+  - @ai-sdk/provider-utils@4.0.38
+
 ## 3.0.105
 
 ### Patch Changes

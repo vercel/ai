@@ -1,5 +1,14 @@
 # @ai-sdk/openai
 
+## 3.0.83
+
+### Patch Changes
+
+- 34b5acc: feat(provider/openai,provider/gateway): add gpt-5.6 model ids
+- Updated dependencies [e1af05f]
+  - @ai-sdk/provider@3.0.14
+  - @ai-sdk/provider-utils@4.0.38
+
 ## 3.0.82
 
 ### Patch Changes

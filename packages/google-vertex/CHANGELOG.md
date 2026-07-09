@@ -1,5 +1,19 @@
 # @ai-sdk/google-vertex
 
+## 4.0.159
+
+### Patch Changes
+
+- e1af05f: feat (video): support video (not just image) reference inputs in `inputReferences` for reference-to-video generation
+- Updated dependencies [bbac4da]
+- Updated dependencies [3fda3bc]
+- Updated dependencies [e1af05f]
+  - @ai-sdk/google@3.0.91
+  - @ai-sdk/provider@3.0.14
+  - @ai-sdk/anthropic@3.0.96
+  - @ai-sdk/openai-compatible@2.0.59
+  - @ai-sdk/provider-utils@4.0.38
+
 ## 4.0.158
 
 ### Patch Changes

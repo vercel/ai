@@ -1,5 +1,18 @@
 # ai
 
+## 6.0.222
+
+### Patch Changes
+
+- e1af05f: feat (video): support video (not just image) reference inputs in `inputReferences` for reference-to-video generation
+- Updated dependencies [2bfb16a]
+- Updated dependencies [34b5acc]
+- Updated dependencies [e1af05f]
+- Updated dependencies [1ce0d1c]
+  - @ai-sdk/gateway@3.0.146
+  - @ai-sdk/provider@3.0.14
+  - @ai-sdk/provider-utils@4.0.38
+
 ## 6.0.221
 
 ### Patch Changes
