@@ -751,6 +751,77 @@ describe('user messages', () => {
 });
 
 describe('tool calls', () => {
+  it('should add a prompt cache breakpoint to assistant text content', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'Cached assistant content',
+              providerOptions: {
+                openai: { promptCacheBreakpoint: { mode: 'explicit' } },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'text',
+            text: 'Cached assistant content',
+            prompt_cache_breakpoint: { mode: 'explicit' },
+          },
+        ],
+        tool_calls: undefined,
+      },
+    ]);
+  });
+
+  it('should add a prompt cache breakpoint to tool text content', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'cached-tool',
+              toolName: 'cached-tool',
+              output: {
+                type: 'text',
+                value: 'Cached tool content',
+                providerOptions: {
+                  openai: { promptCacheBreakpoint: { mode: 'explicit' } },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toEqual([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'text',
+            text: 'Cached tool content',
+            prompt_cache_breakpoint: { mode: 'explicit' },
+          },
+        ],
+        tool_call_id: 'cached-tool',
+      },
+    ]);
+  });
+
   it('should stringify arguments to tool calls', () => {
     const result = convertToOpenAIChatMessages({
       prompt: [

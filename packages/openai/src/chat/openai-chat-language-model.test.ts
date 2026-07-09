@@ -1425,7 +1425,7 @@ describe('doGenerate', () => {
         "inputTokens": {
           "cacheRead": 1152,
           "cacheWrite": 256,
-          "noCache": 848,
+          "noCache": 592,
           "total": 2000,
         },
         "outputTokens": {
@@ -3526,7 +3526,7 @@ describe('doStream', () => {
             "inputTokens": {
               "cacheRead": 1152,
               "cacheWrite": 256,
-              "noCache": 848,
+              "noCache": 592,
               "total": 2000,
             },
             "outputTokens": {

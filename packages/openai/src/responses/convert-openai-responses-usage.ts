@@ -45,7 +45,7 @@ export function convertOpenAIResponsesUsage(
   return {
     inputTokens: {
       total: inputTokens,
-      noCache: inputTokens - cachedTokens,
+      noCache: inputTokens - cachedTokens - (cacheWriteTokens ?? 0),
       cacheRead: cachedTokens,
       cacheWrite: cacheWriteTokens,
     },

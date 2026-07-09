@@ -46,7 +46,7 @@ export function convertOpenAIChatUsage(
   return {
     inputTokens: {
       total: promptTokens,
-      noCache: promptTokens - cachedTokens,
+      noCache: promptTokens - cachedTokens - (cacheWriteTokens ?? 0),
       cacheRead: cachedTokens,
       cacheWrite: cacheWriteTokens,
     },

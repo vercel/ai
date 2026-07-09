@@ -337,7 +337,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             "inputTokens": {
               "cacheRead": 234,
               "cacheWrite": 45,
-              "noCache": 111,
+              "noCache": 66,
               "total": 345,
             },
             "outputTokens": {
@@ -6384,7 +6384,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         usage: {
           inputTokens: {
             total: 100,
-            noCache: 60,
+            noCache: 35,
             cacheRead: 40,
             cacheWrite: 25,
           },

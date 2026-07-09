@@ -54,7 +54,7 @@ export interface ChatCompletionContentPartFile {
 
 export interface ChatCompletionAssistantMessage {
   role: 'assistant';
-  content?: string | null;
+  content?: string | null | Array<ChatCompletionContentPartText>;
   tool_calls?: Array<ChatCompletionMessageToolCall>;
 }
 
@@ -69,6 +69,6 @@ export interface ChatCompletionMessageToolCall {
 
 export interface ChatCompletionToolMessage {
   role: 'tool';
-  content: string;
+  content: string | Array<ChatCompletionContentPartText>;
   tool_call_id: string;
 }

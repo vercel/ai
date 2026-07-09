@@ -245,6 +245,12 @@ export function convertToOpenAIChatMessages({
 
       case 'assistant': {
         let text = '';
+        const textParts: Array<{
+          type: 'text';
+          text: string;
+          prompt_cache_breakpoint?: OpenAIPromptCacheBreakpoint;
+        }> = [];
+        let hasPromptCacheBreakpoint = false;
         const toolCalls: Array<{
           id: string;
           type: 'function';
@@ -254,7 +260,18 @@ export function convertToOpenAIChatMessages({
         for (const part of content) {
           switch (part.type) {
             case 'text': {
+              const promptCacheBreakpoint = getPromptCacheBreakpoint(
+                part.providerOptions,
+              );
               text += part.text;
+              textParts.push({
+                type: 'text',
+                text: part.text,
+                ...(promptCacheBreakpoint != null && {
+                  prompt_cache_breakpoint: promptCacheBreakpoint,
+                }),
+              });
+              hasPromptCacheBreakpoint ||= promptCacheBreakpoint != null;
               break;
             }
             case 'tool-call': {
@@ -273,7 +290,11 @@ export function convertToOpenAIChatMessages({
 
         messages.push({
           role: 'assistant',
-          content: toolCalls.length > 0 ? text || null : text,
+          content: hasPromptCacheBreakpoint
+            ? textParts
+            : toolCalls.length > 0
+              ? text || null
+              : text,
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
 
@@ -286,6 +307,13 @@ export function convertToOpenAIChatMessages({
             continue;
           }
           const output = toolResponse.output;
+          const promptCacheBreakpoint =
+            (output.type === 'content'
+              ? output.value
+                  .map(part => getPromptCacheBreakpoint(part.providerOptions))
+                  .find(breakpoint => breakpoint != null)
+              : getPromptCacheBreakpoint(output.providerOptions)) ??
+            getPromptCacheBreakpoint(toolResponse.providerOptions);
 
           let contentValue: string;
           switch (output.type) {
@@ -306,7 +334,16 @@ export function convertToOpenAIChatMessages({
           messages.push({
             role: 'tool',
             tool_call_id: toolResponse.toolCallId,
-            content: contentValue,
+            content:
+              promptCacheBreakpoint == null
+                ? contentValue
+                : [
+                    {
+                      type: 'text',
+                      text: contentValue,
+                      prompt_cache_breakpoint: promptCacheBreakpoint,
+                    },
+                  ],
           });
         }
         break;
