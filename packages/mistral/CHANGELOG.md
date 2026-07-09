@@ -1,5 +1,14 @@
 # @ai-sdk/mistral
 
+## 4.0.8
+
+### Patch Changes
+
+- dcb7965: feat(mistral): add `providerOptions` schema and type for Mistral embedding model requests
+- Updated dependencies [0f93c57]
+  - @ai-sdk/provider@4.0.3
+  - @ai-sdk/provider-utils@5.0.7
+
 ## 4.0.7
 
 ### Patch Changes
