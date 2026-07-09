@@ -1,5 +1,59 @@
 # @ai-sdk/harness
 
+## 1.0.21
+
+### Patch Changes
+
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+  - ai@7.0.18
+
+## 1.0.20
+
+### Patch Changes
+
+- b7aa06a: fix(harness): include step numbers on harness step-end telemetry events.
+  - ai@7.0.17
+
+## 1.0.19
+
+### Patch Changes
+
+- Updated dependencies [a8f9b6d]
+  - ai@7.0.16
+
+## 1.0.18
+
+### Patch Changes
+
+- ai@7.0.15
+
+## 1.0.17
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - ai@7.0.14
+  - @ai-sdk/provider@4.0.2
+  - @ai-sdk/provider-utils@5.0.5
+
+## 1.0.16
+
+### Patch Changes
+
+- ai@7.0.13
+
+## 1.0.15
+
+### Patch Changes
+
+- Updated dependencies [ecfeb6f]
+- Updated dependencies [a193137]
+- Updated dependencies [c6f5e62]
+  - ai@7.0.12
+  - @ai-sdk/provider-utils@5.0.4
+
 ## 1.0.14
 
 ### Patch Changes

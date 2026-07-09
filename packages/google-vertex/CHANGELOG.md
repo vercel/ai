@@ -1,5 +1,55 @@
 # @ai-sdk/google-vertex
 
+## 5.0.13
+
+### Patch Changes
+
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+  - @ai-sdk/openai-compatible@3.0.6
+  - @ai-sdk/anthropic@4.0.10
+  - @ai-sdk/google@4.0.10
+
+## 5.0.12
+
+### Patch Changes
+
+- Updated dependencies [7401c2c]
+- Updated dependencies [2e45d9c]
+  - @ai-sdk/google@4.0.9
+  - @ai-sdk/anthropic@4.0.9
+
+## 5.0.11
+
+### Patch Changes
+
+- Updated dependencies [0aa0ff3]
+  - @ai-sdk/anthropic@4.0.8
+
+## 5.0.10
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - @ai-sdk/provider@4.0.2
+  - @ai-sdk/provider-utils@5.0.5
+  - @ai-sdk/anthropic@4.0.7
+  - @ai-sdk/google@4.0.8
+  - @ai-sdk/openai-compatible@3.0.5
+
+## 5.0.9
+
+### Patch Changes
+
+- Updated dependencies [c6f5e62]
+- Updated dependencies [679c52a]
+- Updated dependencies [bd8d172]
+  - @ai-sdk/anthropic@4.0.6
+  - @ai-sdk/google@4.0.7
+  - @ai-sdk/provider-utils@5.0.4
+  - @ai-sdk/openai-compatible@3.0.4
+
 ## 5.0.8
 
 ### Patch Changes

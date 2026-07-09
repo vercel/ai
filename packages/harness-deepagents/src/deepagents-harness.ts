@@ -39,11 +39,16 @@ import {
   type InboundMessage,
   type OutboundMessage,
 } from './deepagents-bridge-protocol';
+import { VERSION } from './version';
 
 type DeepAgentsChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 
 // Pure derived state in /tmp; reinstalled per sandbox, persistence is the provider snapshot.
 const BOOTSTRAP_DIR = '/tmp/harness/deepagents';
+/**
+ * Value to use in User-Agent and `x-client-app` headers.
+ */
+const DEEPAGENTS_CLIENT_APP = `ai-sdk/harness-deepagents/${VERSION}`;
 
 // Pinned ripgrep release + per-arch tarball checksums (verified before install).
 const RIPGREP_VERSION = '14.1.1';
@@ -283,6 +288,7 @@ export function createDeepAgents(
 
       const env = {
         ...resolveDeepAgentsEnv({ auth: settings.auth }),
+        AI_SDK_HARNESS_CLIENT_APP: DEEPAGENTS_CLIENT_APP,
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
       };

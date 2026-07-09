@@ -1,5 +1,55 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.21
+
+### Patch Changes
+
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+  - @ai-sdk/harness@1.0.21
+
+## 1.0.20
+
+### Patch Changes
+
+- b2d0306: feat(harness): send `User-Agent` and `x-client-app` headers in harness adapters
+- Updated dependencies [b7aa06a]
+  - @ai-sdk/harness@1.0.20
+
+## 1.0.19
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.19
+
+## 1.0.18
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.18
+
+## 1.0.17
+
+### Patch Changes
+
+- Updated dependencies [5c5c0f5]
+  - @ai-sdk/provider-utils@5.0.5
+  - @ai-sdk/harness@1.0.17
+
+## 1.0.16
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.16
+
+## 1.0.15
+
+### Patch Changes
+
+- Updated dependencies [c6f5e62]
+  - @ai-sdk/provider-utils@5.0.4
+  - @ai-sdk/harness@1.0.15
+
 ## 1.0.14
 
 ### Patch Changes

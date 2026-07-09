@@ -2597,7 +2597,7 @@ describe('Chat', () => {
   });
 
   describe('addToolApprovalResponse', () => {
-    it('preserves approval signature when responding manually', async () => {
+    it('should preserve signed approval metadata when recording the response', async () => {
       const chat = new TestChat({
         id: '123',
         generateId: mockId({ prefix: 'newid' }),
@@ -2614,6 +2614,7 @@ describe('Chat', () => {
             id: 'id-1',
             role: 'assistant',
             parts: [
+              { type: 'step-start' },
               {
                 type: 'tool-weather',
                 toolCallId: 'call-1',
@@ -2621,7 +2622,8 @@ describe('Chat', () => {
                 input: { city: 'Tokyo' },
                 approval: {
                   id: 'approval-1',
-                  signature: 'signed-approval-token',
+                  isAutomatic: false,
+                  signature: 'signed-approval-envelope',
                 },
               },
             ],
@@ -2632,13 +2634,18 @@ describe('Chat', () => {
       await chat.addToolApprovalResponse({
         id: 'approval-1',
         approved: true,
+        reason: 'looks good',
       });
 
-      expect((chat.messages[1].parts[0] as any).approval).toEqual({
-        id: 'approval-1',
-        approved: true,
-        reason: undefined,
-        signature: 'signed-approval-token',
+      expect(chat.messages[1].parts[1]).toMatchObject({
+        state: 'approval-responded',
+        approval: {
+          id: 'approval-1',
+          approved: true,
+          reason: 'looks good',
+          isAutomatic: false,
+          signature: 'signed-approval-envelope',
+        },
       });
     });
 
