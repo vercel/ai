@@ -1015,6 +1015,7 @@ export const anthropicResponseSchema = lazySchema(() =>
           ),
         })
         .nullish(),
+      diagnostics: z.looseObject({}).nullable().nullish(),
     }),
   ),
 );
@@ -1070,6 +1071,7 @@ export const anthropicChunkSchema = lazySchema(() =>
               id: z.string(),
             })
             .nullish(),
+          diagnostics: z.looseObject({}).nullable().nullish(),
         }),
       }),
       z.object({

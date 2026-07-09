@@ -87,6 +87,13 @@ export interface AnthropicMessageMetadata {
   };
 
   /**
+   * Cache diagnostics response, when the request opts into Anthropic cache
+   * diagnostics. `null` means the request had no prior message to compare or
+   * no divergence was detected; an object may contain a `cache_miss_reason`.
+   */
+  diagnostics?: JSONObject | null;
+
+  /**
    * Usage breakdown by iteration when compaction is triggered.
    *
    * When compaction occurs, this array contains usage for each sampling iteration.

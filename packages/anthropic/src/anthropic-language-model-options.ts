@@ -168,6 +168,20 @@ export const anthropicLanguageModelOptions = z.object({
     .optional(),
 
   /**
+   * Cache diagnostics settings for diagnosing prompt cache misses.
+   * See https://docs.anthropic.com/en/docs/build-with-claude/cache-diagnostics
+   */
+  cacheDiagnostics: z
+    .object({
+      /**
+       * The previous response id to compare against. Use null on the first
+       * request to opt in before a previous response exists.
+       */
+      previousMessageId: z.string().nullable(),
+    })
+    .optional(),
+
+  /**
    * Metadata to include with the request.
    *
    * See https://platform.claude.com/docs/en/api/messages/create for details.

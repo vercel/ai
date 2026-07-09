@@ -228,6 +228,8 @@ export function createGoogleVertexAnthropic(
       supportsNativeStructuredOutput: false,
       // Vertex Anthropic doesn't support strict mode on tool definitions.
       supportsStrictTools: false,
+      // Anthropic cache diagnostics are only supported on the Claude API.
+      supportsCacheDiagnostics: false,
     });
 
   const provider = function (modelId: GoogleVertexAnthropicModelId) {

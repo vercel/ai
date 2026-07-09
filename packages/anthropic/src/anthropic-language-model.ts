@@ -150,6 +150,12 @@ export type AnthropicLanguageModelConfig = {
    * Defaults to true.
    */
   supportsStrictTools?: boolean;
+
+  /**
+   * When false, cache diagnostics provider options will be ignored and a
+   * warning emitted. Defaults to true.
+   */
+  supportsCacheDiagnostics?: boolean;
 };
 
 export class AnthropicLanguageModel implements LanguageModelV4 {
@@ -351,6 +357,17 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       (this.config.supportsStrictTools ?? true) &&
       modelSupportsStructuredOutput;
 
+    const supportsCacheDiagnostics =
+      this.config.supportsCacheDiagnostics ?? true;
+    if (anthropicOptions?.cacheDiagnostics && !supportsCacheDiagnostics) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'cacheDiagnostics',
+        details: 'cache diagnostics is not supported by this provider',
+      });
+      anthropicOptions.cacheDiagnostics = undefined;
+    }
+
     const structureOutputMode =
       anthropicOptions?.structuredOutputMode ?? 'auto';
     const useStructuredOutput =
@@ -542,6 +559,12 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         }),
       ...(anthropicOptions?.cacheControl && {
         cache_control: anthropicOptions.cacheControl,
+      }),
+      ...(anthropicOptions?.cacheDiagnostics && {
+        diagnostics: {
+          previous_message_id:
+            anthropicOptions.cacheDiagnostics.previousMessageId,
+        },
       }),
       ...(anthropicOptions?.metadata?.userId != null && {
         metadata: { user_id: anthropicOptions.metadata.userId },
@@ -766,6 +789,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
     if (anthropicOptions?.taskBudget) {
       betas.add('task-budgets-2026-03-13');
+    }
+
+    if (anthropicOptions?.cacheDiagnostics) {
+      betas.add('cache-diagnosis-2026-04-07');
     }
 
     if (anthropicOptions?.speed === 'fast') {
@@ -1456,6 +1483,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           usage: response.usage as JSONObject,
           stopSequence: response.stop_sequence ?? null,
           ...(stopDetails != null ? { stopDetails } : {}),
+          ...(response.diagnostics !== undefined
+            ? { diagnostics: response.diagnostics as JSONObject | null }
+            : {}),
 
           iterations: response.usage.iterations
             ? response.usage.iterations.map(
@@ -1554,6 +1584,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       unified: 'other',
       raw: undefined,
     };
+    let diagnostics: JSONObject | null | undefined;
     const usage: AnthropicUsage = {
       input_tokens: 0,
       output_tokens: 0,
@@ -2464,6 +2495,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 };
               }
 
+              if (value.message.diagnostics !== undefined) {
+                diagnostics = value.message.diagnostics as JSONObject | null;
+              }
+
               if (value.message.stop_reason != null) {
                 finishReason = {
                   unified: mapAnthropicStopReason({
@@ -2607,6 +2642,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 usage: (rawUsage as JSONObject) ?? null,
                 stopSequence,
                 ...(stopDetails != null ? { stopDetails } : {}),
+                ...(diagnostics !== undefined ? { diagnostics } : {}),
                 iterations: usage.iterations
                   ? usage.iterations.map(
                       iter =>

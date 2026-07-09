@@ -5879,6 +5879,155 @@ describe('AnthropicLanguageModel', () => {
       expect(result.warnings).toStrictEqual([]);
     });
 
+    it('should pass cache diagnostics to request body and add beta header', async () => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            cacheDiagnostics: { previousMessageId: 'msg_previous' },
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "diagnostics": {
+            "previous_message_id": "msg_previous",
+          },
+          "max_tokens": 4096,
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "claude-3-haiku-20240307",
+        }
+      `);
+
+      expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
+        'cache-diagnosis-2026-04-07',
+      );
+      expect(result.warnings).toStrictEqual([]);
+    });
+
+    it('should support cache diagnostics first-turn opt-in', async () => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            cacheDiagnostics: { previousMessageId: null },
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "diagnostics": {
+            "previous_message_id": null,
+          },
+          "max_tokens": 4096,
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "claude-3-haiku-20240307",
+        }
+      `);
+
+      expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
+        'cache-diagnosis-2026-04-07',
+      );
+      expect(result.warnings).toStrictEqual([]);
+    });
+
+    it('should expose cache diagnostics response metadata', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'json-value',
+        body: {
+          id: 'msg_017TfcQ4AgGxKyBduUpqYPZn',
+          type: 'message',
+          role: 'assistant',
+          content: [{ type: 'text', text: 'Hello, World!' }],
+          model: 'claude-3-haiku-20240307',
+          stop_reason: 'end_turn',
+          stop_sequence: null,
+          usage: { input_tokens: 4, output_tokens: 30 },
+          diagnostics: {
+            cache_miss_reason: {
+              type: 'tools_changed',
+              cache_missed_input_tokens: 1024,
+            },
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            cacheDiagnostics: { previousMessageId: 'msg_previous' },
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      expect(result.providerMetadata?.anthropic?.diagnostics).toEqual({
+        cache_miss_reason: {
+          type: 'tools_changed',
+          cache_missed_input_tokens: 1024,
+        },
+      });
+    });
+
+    it('should warn and omit cache diagnostics when unsupported', async () => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const { AnthropicLanguageModel } =
+        await import('./anthropic-language-model');
+      const model = new AnthropicLanguageModel('claude-3-haiku-20240307', {
+        provider: 'test-provider',
+        baseURL: 'https://api.anthropic.com/v1',
+        headers: {},
+        supportsCacheDiagnostics: false,
+      });
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            cacheDiagnostics: { previousMessageId: 'msg_previous' },
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.diagnostics).toBeUndefined();
+      expect(server.calls[0].requestHeaders['anthropic-beta']).toBeUndefined();
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'cacheDiagnostics',
+          details: 'cache diagnostics is not supported by this provider',
+        },
+      ]);
+    });
+
     it('should pass metadata with user_id to request body', async () => {
       prepareJsonFixtureResponse('anthropic-text');
 
@@ -8390,6 +8539,43 @@ describe('AnthropicLanguageModel', () => {
       expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
         'another-beta-2025-06-01',
       );
+    });
+
+    it('should expose streaming cache diagnostics response metadata', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_1","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1},"diagnostics":{"cache_miss_reason":{"type":"messages_changed","cache_missed_input_tokens":2048}}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":5}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            cacheDiagnostics: { previousMessageId: 'msg_previous' },
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      const chunks = await convertReadableStreamToArray(result.stream);
+      const finishPart = chunks.find(part => part.type === 'finish');
+
+      expect(
+        finishPart?.type === 'finish'
+          ? finishPart.providerMetadata?.anthropic?.diagnostics
+          : undefined,
+      ).toEqual({
+        cache_miss_reason: {
+          type: 'messages_changed',
+          cache_missed_input_tokens: 2048,
+        },
+      });
     });
 
     it('should support cache control', async () => {
