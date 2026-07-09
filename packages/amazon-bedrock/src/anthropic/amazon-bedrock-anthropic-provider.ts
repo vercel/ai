@@ -21,6 +21,7 @@ import {
   createSigV4FetchFunction,
   type AmazonBedrockCredentials,
 } from '../amazon-bedrock-sigv4-fetch';
+import { encodeModelId } from '../amazon-bedrock-encode-model-id';
 import { createAmazonBedrockAnthropicFetch } from './amazon-bedrock-anthropic-fetch';
 import type { AmazonBedrockAnthropicModelId } from './amazon-bedrock-anthropic-options';
 import { VERSION } from '../version';
@@ -258,7 +259,7 @@ export function createAmazonBedrockAnthropic(
       fetch: fetchFunction,
 
       buildRequestUrl: (baseURL, isStreaming) =>
-        `${baseURL}/model/${encodeURIComponent(modelId)}/${
+        `${baseURL}/model/${encodeModelId(modelId)}/${
           isStreaming ? 'invoke-with-response-stream' : 'invoke'
         }`,
 
