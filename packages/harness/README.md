@@ -31,7 +31,7 @@ const agent = new HarnessAgent({
   sandboxConfig: {
     bootstrapHash: 'ripgrep-v1',
     onBootstrap: async ({ session, abortSignal }) => {
-      const result = await session.run({
+      const streamResult = await session.run({
         command:
           'command -v rg >/dev/null || (apt-get update && apt-get install -y ripgrep)',
         abortSignal,
@@ -60,18 +60,18 @@ const agent = new HarnessAgent({
 const session = await agent.createSession();
 
 try {
-  const result = await agent.generate({
+  const generateResult = await agent.generate({
     session,
     prompt: 'Fix the failing test in src/auth.ts',
   });
-  console.log(result.text);
+  console.log(generateResult.text);
 
   // Streaming
-  const result = await agent.stream({
+  const streamResult = await agent.stream({
     session,
     prompt: 'Now write a regression test',
   });
-  for await (const part of result.stream) {
+  for await (const part of streamResult.stream) {
     if (part.type === 'text-delta') {
       process.stdout.write(part.text);
     }
