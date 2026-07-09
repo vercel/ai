@@ -1,7 +1,7 @@
-import type { BridgeEvent } from '@ai-sdk/harness/bridge';
+import type { HarnessV1StreamPart } from '@ai-sdk/harness';
 import { mapUsage } from './opencode-usage';
 
-type FinishStepEvent = Extract<BridgeEvent, { type: 'finish-step' }>;
+type FinishStepEvent = Extract<HarnessV1StreamPart, { type: 'finish-step' }>;
 
 export function mapOpenCodeFinishReason(
   reason: string,
