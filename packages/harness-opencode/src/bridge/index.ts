@@ -401,7 +401,9 @@ async function legacySessionPrompt({
   sessionId: string;
   start: StartMessage;
 }): Promise<{ error?: unknown; data?: unknown }> {
-  return (client as any).session.prompt({
+  const session = (client as any).session;
+  const prompt = session.promptAsync ?? session.prompt;
+  return prompt.call(session, {
     sessionID: sessionId,
     ...(start.instructions ? { system: start.instructions } : {}),
     ...(start.variant ? { variant: start.variant } : {}),
@@ -567,6 +569,7 @@ async function runPrompt({
     client,
     sessionId,
   }).catch(() => undefined);
+  const eventsReady = createDeferred<void>();
   let stepUsage: HarnessUsage | undefined;
   let latestSessionTokens: OpenCodeTokenUsage | undefined;
   const eventLoop = consumeEvents({
@@ -589,6 +592,7 @@ async function runPrompt({
       emit(msg);
     },
     signal: eventsAbort.signal,
+    onSubscribed: () => eventsReady.resolve(undefined),
     onEvent: event => {
       if (event.type === 'session.updated') {
         latestSessionTokens =
@@ -614,11 +618,15 @@ async function runPrompt({
         return true;
       }
     },
-  }).finally(() => turnSettled.resolve());
+  }).finally(() => {
+    eventsReady.resolve(undefined);
+    turnSettled.resolve();
+  });
   emit({
     type: 'stream-start',
     ...(start.model ? { modelId: start.model } : {}),
   });
+  await eventsReady.promise;
   const prompted = await legacySessionPrompt({
     client,
     sessionId,
@@ -761,6 +769,7 @@ async function consumeEvents({
   turn,
   emit,
   signal,
+  onSubscribed,
   onEvent,
 }: {
   client: OpenCodeClient;
@@ -770,9 +779,11 @@ async function consumeEvents({
   turn: BridgeTurn;
   emit: Emit;
   signal: AbortSignal;
+  onSubscribed?: () => void;
   onEvent?: (event: OpenCodeEvent) => boolean | void;
 }): Promise<void> {
   const stream = await subscribeLegacyEvents({ client, signal });
+  onSubscribed?.();
   if (!stream) return;
   const state = createTranslationState();
   for await (const rawEvent of stream) {
@@ -2020,7 +2031,11 @@ function parseArgs(args: string[]): {
 }
 
 function formatError(error: unknown): string {
-  if (error instanceof Error) return error.message;
+  if (error instanceof Error) {
+    const cause = 'cause' in error ? error.cause : undefined;
+    if (cause === undefined) return error.message;
+    return `${error.message}: ${formatError(cause)}`;
+  }
   if (typeof error === 'string') return error;
   try {
     return JSON.stringify(error);
