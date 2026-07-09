@@ -1,5 +1,23 @@
 # @ai-sdk/policy
 
+## 1.0.19
+
+### Patch Changes
+
+- aad737d: Use own-property checks when resolving per-tool approvals so tool names and approval ids that match inherited object properties (e.g. `constructor`, `toString`, `valueOf`, `__proto__`) are treated as unconfigured/absent.
+
+  - `@ai-sdk/policy-opa`: `wrapMcpTools` builds its per-tool map with a null prototype and reads supplied approvals via an own-property check, and `shadow` guards its per-tool map lookup the same way.
+  - `ai`: tool and tool-context lookups keyed by a model- or client-supplied name now go through an own-property check (`getOwn`), so a name matching an inherited object property resolves to "no such tool"/"unconfigured" instead of a prototype value. This covers the approval path (per-tool approval resolution and replay re-validation) as well as tool-call parsing, execution, streaming callbacks, and UI message conversion/validation. The human-in-the-loop approval matching (`collectToolApprovals`) and streaming tool-name maps are built with a null prototype so a client-supplied id that matches an inherited property no longer slips past the "unknown approval" / "tool call not found" guards.
+
+- 47bd0a6: `wrapMcpTools`: per-tool approval functions now fail closed. In the per-tool map form, a per-tool approval function that returns a "no opinion" result (`not-applicable` or `undefined`) is now forced through the configured fallback (`user-approval` by default), matching the generic-function form. Previously such a result passed through and the tool resolved to `not-applicable`, letting it run without an approval request. Static per-tool statuses the caller configured explicitly are unchanged.
+- Updated dependencies [be7f05a]
+- Updated dependencies [ee55a07]
+- Updated dependencies [aad737d]
+- Updated dependencies [0f93c57]
+  - ai@7.0.19
+  - @ai-sdk/provider@4.0.3
+  - @ai-sdk/provider-utils@5.0.7
+
 ## 1.0.18
 
 ### Patch Changes

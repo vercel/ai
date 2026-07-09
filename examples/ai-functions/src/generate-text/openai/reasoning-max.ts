@@ -1,20 +1,19 @@
-import { generateText } from 'ai';
-import { run } from '../../lib/run';
 import {
   openai,
   type OpenAILanguageModelResponsesOptions,
   type OpenaiResponsesReasoningProviderMetadata,
 } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+import { run } from '../../lib/run';
+
 run(async () => {
   const result = await generateText({
     model: openai('gpt-5.6'),
     prompt: 'How many "r"s are in the word "strawberry"?',
-    reasoning: 'low',
     providerOptions: {
       openai: {
+        reasoningEffort: 'max',
         reasoningSummary: 'detailed',
-        store: false,
-        include: ['reasoning.encrypted_content'], // Use encrypted reasoning items
       } satisfies OpenAILanguageModelResponsesOptions,
     },
   });
@@ -33,8 +32,8 @@ run(async () => {
         } = providerMetadata;
         console.log(`itemId: ${itemId}`);
 
-        // In the Responses API, explicitly setting store to false opts out of both conversation history and reasoning token storage.
-        // As a result, reasoningEncryptedContent is used to restore the reasoning tokens for the conversation history.
+        // In the Responses API, store is set to true by default, so conversation history is cached.
+        // The reasoning tokens from that interaction are also cached, and as a result, reasoningEncryptedContent returns null.
         console.log(`reasoningEncryptedContent: ${reasoningEncryptedContent}`);
         break;
       }
