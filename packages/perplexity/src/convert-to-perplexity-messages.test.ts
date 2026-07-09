@@ -81,28 +81,6 @@ describe('convertToPerplexityMessages', () => {
         ]);
       }).toThrow(UnsupportedFunctionalityError);
     });
-<<<<<<< HEAD
-=======
-
-    it('should throw for file parts with provider references', () => {
-      expect(() =>
-        convertToPerplexityMessages([
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'file',
-                data: {
-                  type: 'reference' as const,
-                  reference: { perplexity: 'file-ref-123' },
-                },
-                mediaType: 'image/png',
-              },
-            ],
-          },
-        ]),
-      ).toThrow(UnsupportedFunctionalityError);
-    });
   });
 
   describe('top-level-only media type resolution', () => {
@@ -116,7 +94,7 @@ describe('convertToPerplexityMessages', () => {
             {
               type: 'file',
               mediaType: 'image/png',
-              data: { type: 'data' as const, data: pngBase64 },
+              data: pngBase64,
             },
           ],
         },
@@ -136,7 +114,7 @@ describe('convertToPerplexityMessages', () => {
             {
               type: 'file',
               mediaType: 'image',
-              data: { type: 'data' as const, data: pngBase64 },
+              data: pngBase64,
             },
           ],
         },
@@ -156,10 +134,7 @@ describe('convertToPerplexityMessages', () => {
             {
               type: 'file',
               mediaType: 'image',
-              data: {
-                type: 'url' as const,
-                url: new URL('https://example.com/x.png'),
-              },
+              data: new URL('https://example.com/x.png'),
             },
           ],
         },
@@ -181,7 +156,7 @@ describe('convertToPerplexityMessages', () => {
             {
               type: 'file',
               mediaType: 'application',
-              data: { type: 'data' as const, data: pdfBase64 },
+              data: pdfBase64,
               filename: 'doc.pdf',
             },
           ],
@@ -204,10 +179,7 @@ describe('convertToPerplexityMessages', () => {
               {
                 type: 'file',
                 mediaType: 'audio/mpeg',
-                data: {
-                  type: 'data' as const,
-                  data: 'SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4',
-                },
+                data: 'SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4',
                 filename: 'clip.mp3',
               },
             ],
@@ -224,7 +196,7 @@ describe('convertToPerplexityMessages', () => {
             {
               type: 'file',
               mediaType: 'image/*',
-              data: { type: 'data' as const, data: pngBase64 },
+              data: pngBase64,
             },
           ],
         },
@@ -235,6 +207,5 @@ describe('convertToPerplexityMessages', () => {
         image_url: { url: `data:image/png;base64,${pngBase64}` },
       });
     });
->>>>>>> 7927171aa (fix: @ai-sdk/perplexity silently drops unsupported file parts and top-level-only PDF attachments (#16972))
   });
 });
