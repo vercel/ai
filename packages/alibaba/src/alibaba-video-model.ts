@@ -510,6 +510,7 @@ export class AlibabaVideoModel implements Experimental_VideoModelV4 {
       const { value: statusResponse, responseHeaders: pollHeaders } =
         await getFromApi({
           url: `${this.config.baseURL}/api/v1/tasks/${taskId}`,
+          validateUrl: false,
           headers: combineHeaders(
             await resolve(this.config.headers),
             options.headers,

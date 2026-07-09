@@ -187,4 +187,72 @@ describe('fetchWithValidatedRedirects', () => {
       redirect: 'follow',
     });
   });
+
+  it('uses the injected fetch instead of the global one', async () => {
+    globalThis.fetch = vi.fn();
+    const injected = vi.fn().mockResolvedValueOnce(okResponse());
+
+    await fetchWithValidatedRedirects({
+      url: 'https://example.com/file',
+      fetch: injected,
+    });
+
+    expect(injected).toHaveBeenCalledTimes(1);
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it('strips blocked request headers before sending', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
+
+    await fetchWithValidatedRedirects({
+      url: 'https://example.com/file',
+      headers: {
+        authorization: 'Bearer secret',
+        'metadata-flavor': 'Google',
+        'x-forwarded-for': '10.0.0.1',
+        cookie: 'session=abc',
+      },
+      fetch: fetchMock,
+    });
+
+    const sent = fetchMock.mock.calls[0][1].headers as Headers;
+    expect(sent.get('metadata-flavor')).toBeNull();
+    expect(sent.get('x-forwarded-for')).toBeNull();
+    expect(sent.get('cookie')).toBeNull();
+    expect(sent.get('authorization')).toBe('Bearer secret');
+  });
+
+  it('drops Authorization and Cookie on a cross-origin redirect but keeps them same-origin', async () => {
+    // cross-origin: credentials must not follow to a different host.
+    const crossOrigin = vi
+      .fn()
+      .mockResolvedValueOnce(redirectResponse('https://other.example.net/a'))
+      .mockResolvedValueOnce(okResponse());
+
+    await fetchWithValidatedRedirects({
+      url: 'https://example.com/file',
+      headers: { authorization: 'Bearer secret' },
+      fetch: crossOrigin,
+    });
+
+    expect(
+      (crossOrigin.mock.calls[1][1].headers as Headers).get('authorization'),
+    ).toBeNull();
+
+    // same-origin: credentials are preserved across the hop.
+    const sameOrigin = vi
+      .fn()
+      .mockResolvedValueOnce(redirectResponse('https://example.com/next'))
+      .mockResolvedValueOnce(okResponse());
+
+    await fetchWithValidatedRedirects({
+      url: 'https://example.com/file',
+      headers: { authorization: 'Bearer secret' },
+      fetch: sameOrigin,
+    });
+
+    expect(
+      (sameOrigin.mock.calls[1][1].headers as Headers).get('authorization'),
+    ).toBe('Bearer secret');
+  });
 });

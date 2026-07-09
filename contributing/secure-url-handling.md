@@ -1,0 +1,54 @@
+# Secure URL handling
+
+When a provider fetches a URL with `getFromApi`, the `validateUrl` flag is
+**required** — there is no default, so every call site makes an explicit trust
+decision.
+
+## Deciding `true` vs `false`
+
+The test: **does the URL's host (or scheme) come from the provider's response
+body?**
+
+- **`validateUrl: true`** — the host comes from response-body data (a download
+  URL like `json.audio.url` / `image.url`, or a polling URL like
+  `finalPrediction.urls.get`). It is attacker-influenceable, so it is routed
+  through `fetchWithValidatedRedirects`, which rejects private/loopback/link-local
+  targets and re-validates every redirect hop. Blocked URLs throw
+  `DownloadError`.
+- **`validateUrl: false`** — the URL is built from a developer-configured
+  endpoint (`${config.baseURL}/…`, `config.url({ path })`, `${baseUrl.origin}/…`)
+  with at most a path segment or id interpolated. The host is fixed by config, so
+  there is nothing to validate, and validating it would break legitimate
+  self-hosted / localhost base URLs. (Path-only injection is not SSRF — the host
+  cannot be changed.)
+
+> If the host, or anything beyond a path segment, comes from a response body →
+> `validateUrl: true`.
+
+## Credentials
+
+When an untrusted URL may legitimately carry the API key on its first hop (e.g.
+a same-host polling URL), pass `credentialedOrigin` so headers are sent **only**
+when the URL is same-origin with it:
+
+```ts
+await getFromApi({
+  url: pollUrl, // from the response body
+  validateUrl: true,
+  credentialedOrigin: this.config.baseURL,
+  headers: authHeaders,
+  successfulResponseHandler,
+  failedResponseHandler,
+  fetch: this.config.fetch,
+});
+```
+
+## Limitations and deployment hardening
+
+The guard does string/literal checks only — it does not resolve DNS, so
+hostnames that resolve to private addresses and DNS rebinding are out of scope
+and cannot be closed inside the cross-runtime provider utilities. The user-facing
+explanation, and how a server deployment closes those gaps (network egress
+restriction, or injecting a Node `fetch` that pins the resolved IP at connect
+time), lives in the public docs:
+[Secure URL Fetching](../content/docs/06-advanced/11-secure-url-fetching.mdx).

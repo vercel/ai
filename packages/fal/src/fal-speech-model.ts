@@ -123,6 +123,8 @@ export class FalSpeechModel implements SpeechModelV4 {
     const audioUrl = json.audio.url;
     const { value: audio } = await getFromApi({
       url: audioUrl,
+      // audioUrl comes from the provider response body; validate it.
+      validateUrl: true,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),
       abortSignal: options.abortSignal,

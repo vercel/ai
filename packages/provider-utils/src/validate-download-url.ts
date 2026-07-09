@@ -116,8 +116,8 @@ function isPrivateIPv4(ip: string): boolean {
   if (a === 192 && b === 168) return true;
   // 198.18.0.0/15 (benchmarking)
   if (a === 198 && (b === 18 || b === 19)) return true;
-  // 240.0.0.0/4 (reserved, includes 255.255.255.255 broadcast)
-  if (a >= 240) return true;
+  // 224.0.0.0/4 (multicast) and 240.0.0.0/4 (reserved, incl. 255.255.255.255 broadcast)
+  if (a >= 224) return true;
 
   return false;
 }
@@ -197,6 +197,9 @@ function isPrivateIPv6(ip: string): boolean {
 
   // ff00::/8 (multicast)
   if ((groups[0] & 0xff00) === 0xff00) return true;
+
+  // 2001:db8::/32 (documentation range, not globally routable)
+  if (groups[0] === 0x2001 && groups[1] === 0x0db8) return true;
 
   // Addresses that embed an IPv4 address in their last 32 bits. For these we
   // extract the embedded IPv4 and reuse the IPv4 private-range checks, so that

@@ -201,6 +201,8 @@ export class XaiImageModel implements ImageModelV4 {
   ): Promise<Uint8Array> {
     const { value } = await getFromApi({
       url,
+      // url is a generated-image URL from the provider response; validate it.
+      validateUrl: true,
       abortSignal,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),

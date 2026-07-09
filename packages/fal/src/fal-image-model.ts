@@ -250,6 +250,8 @@ export class FalImageModel implements ImageModelV4 {
   ): Promise<Uint8Array> {
     const { value: response } = await getFromApi({
       url,
+      // url is a generated-image URL from the provider response; validate it.
+      validateUrl: true,
       // No specific headers should be needed for this request as it's a
       // generated image provided by fal.ai.
       abortSignal,

@@ -137,6 +137,15 @@ describe('validateDownloadUrl', () => {
         DownloadError,
       );
     });
+
+    it('should block 224.0.0.0/4 (multicast)', () => {
+      expect(() => validateDownloadUrl('http://224.0.0.1/file')).toThrow(
+        DownloadError,
+      );
+      expect(() => validateDownloadUrl('http://239.255.255.250/file')).toThrow(
+        DownloadError,
+      );
+    });
   });
 
   describe('blocked IPv6 addresses', () => {
@@ -163,6 +172,12 @@ describe('validateDownloadUrl', () => {
 
     it('should block fe80::/10 (link-local)', () => {
       expect(() => validateDownloadUrl('http://[fe80::1]/file')).toThrow(
+        DownloadError,
+      );
+    });
+
+    it('should block 2001:db8::/32 (documentation)', () => {
+      expect(() => validateDownloadUrl('http://[2001:db8::1]/file')).toThrow(
         DownloadError,
       );
     });
@@ -284,8 +299,10 @@ describe('validateDownloadUrl', () => {
     });
 
     it('should allow a regular public IPv6 address', () => {
+      // 2606:4700::/32 (Cloudflare) — a genuinely public, globally-routable
+      // address. `2001:db8::/32` is the documentation range and is blocked.
       expect(() =>
-        validateDownloadUrl('http://[2001:db8::1]/file'),
+        validateDownloadUrl('http://[2606:4700::1]/file'),
       ).not.toThrow();
     });
   });
