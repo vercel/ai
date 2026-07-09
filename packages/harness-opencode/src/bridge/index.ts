@@ -21,6 +21,10 @@ import {
   type OpenCodeEvent,
   unwrapOpenCodeEvent,
 } from './opencode-events';
+import {
+  legacyStepFinishPartToFinishStep,
+  mapOpenCodeFinishReason,
+} from './opencode-finish-step';
 import { prependOpenCodeBinToPath } from './opencode-path';
 import {
   addUsage,
@@ -777,6 +781,7 @@ type TranslationState = {
   turnUsage: Record<string, unknown> | undefined;
   legacyTextPartIds: Set<string>;
   legacyReasoningPartIds: Set<string>;
+  legacyStepFinishPartIds: Set<string>;
 };
 
 function createTranslationState(): TranslationState {
@@ -793,6 +798,7 @@ function createTranslationState(): TranslationState {
     turnUsage: undefined,
     legacyTextPartIds: new Set(),
     legacyReasoningPartIds: new Set(),
+    legacyStepFinishPartIds: new Set(),
   };
 }
 
@@ -860,6 +866,7 @@ async function translateAndEmit({
 
   if (type === 'message.part.updated') {
     if (emitLegacyTextPartUpdate({ part: props.part, state, emit })) return;
+    if (emitLegacyStepFinishPart({ part: props.part, state, emit })) return;
     emitLegacyToolPart({ part: props.part, state, emit });
     return;
   }
@@ -1026,7 +1033,7 @@ async function translateAndEmit({
     emit({
       type: 'finish-step',
       finishReason: {
-        unified: mapFinishReason(String(props.finish ?? 'stop')),
+        unified: mapOpenCodeFinishReason(String(props.finish ?? 'stop')),
         raw: String(props.finish ?? 'stop'),
       },
       usage: state.turnUsage,
@@ -1185,6 +1192,28 @@ function closeLegacyOpenParts({
     state.textDeltas.delete(id);
   }
   state.legacyTextPartIds.clear();
+}
+
+function emitLegacyStepFinishPart({
+  part,
+  state,
+  emit,
+}: {
+  part: unknown;
+  state: TranslationState;
+  emit: Emit;
+}): boolean {
+  const event = legacyStepFinishPartToFinishStep(part);
+  if (!event) return false;
+  const id = isRecord(part) ? stringValue(part.id) : undefined;
+  if (id) {
+    if (state.legacyStepFinishPartIds.has(id)) return true;
+    state.legacyStepFinishPartIds.add(id);
+  }
+  closeLegacyOpenParts({ state, emit });
+  state.turnUsage = event.usage as Record<string, unknown>;
+  emit(event);
+  return true;
 }
 
 function emitLegacyToolPart({
@@ -1592,7 +1621,7 @@ async function emitContextFallback({
   emit({
     type: 'finish-step',
     finishReason: {
-      unified: mapFinishReason(rawFinish),
+      unified: mapOpenCodeFinishReason(rawFinish),
       raw: rawFinish,
     },
     usage: mapUsage(assistant.tokens),
@@ -1722,19 +1751,6 @@ function emitAssistantContentPart(part: unknown, emit: Emit): void {
   emit({ type: 'reasoning-start', id });
   if (text) emit({ type: 'reasoning-delta', id, delta: text });
   emit({ type: 'reasoning-end', id });
-}
-
-function mapFinishReason(
-  reason: string,
-): 'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' {
-  const normalized = reason.toLowerCase();
-  if (normalized.includes('length')) return 'length';
-  if (normalized.includes('filter')) return 'content-filter';
-  if (normalized.includes('tool')) return 'tool-calls';
-  if (normalized.includes('error') || normalized.includes('fail'))
-    return 'error';
-  if (normalized === 'stop' || normalized === 'end') return 'stop';
-  return 'other';
 }
 
 async function startToolRelay({
