@@ -37,6 +37,13 @@ import {
 import { prepareTools } from './google-prepare-tools';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
 
+const configurableSafetySettingCategories = [
+  'HARM_CATEGORY_HATE_SPEECH',
+  'HARM_CATEGORY_DANGEROUS_CONTENT',
+  'HARM_CATEGORY_HARASSMENT',
+  'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+] as const;
+
 type GoogleGenerativeAIConfig = {
   provider: string;
   baseURL: string;
@@ -124,6 +131,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       sanitizedServiceTier = VertexServiceTierMap[googleOptions.serviceTier];
     }
 
+    const safetyThreshold = googleOptions?.threshold;
+    const safetySettings =
+      googleOptions?.safetySettings ??
+      (safetyThreshold != null
+        ? configurableSafetySettingCategories.map(category => ({
+            category,
+            threshold: safetyThreshold,
+          }))
+        : undefined);
+
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
     const supportsFunctionResponseParts = this.modelId.startsWith('gemini-3');
 
@@ -183,7 +200,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         },
         contents,
         systemInstruction: isGemmaModel ? undefined : systemInstruction,
-        safetySettings: googleOptions?.safetySettings,
+        safetySettings,
         tools: googleTools,
         toolConfig: googleOptions?.retrievalConfig
           ? {
