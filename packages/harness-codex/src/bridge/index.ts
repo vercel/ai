@@ -280,6 +280,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         textByItem,
         reasoningByItem,
         setTurnUsage: u => (turnUsage = u),
+        emitWarning: turn.emitWarning,
       });
     }
   } catch (err) {
@@ -382,6 +383,7 @@ function translateAndEmit(
     textByItem: Map<string, string>;
     reasoningByItem: Map<string, string>;
     setTurnUsage: (u: Record<string, unknown>) => void;
+    emitWarning: BridgeTurn['emitWarning'];
   },
 ): void {
   if (event.type === 'turn.completed') {
@@ -534,10 +536,11 @@ function translateAndEmit(
   }
 
   if (item.type === 'error' && event.type === 'item.completed') {
-    ctx.send({
-      type: 'error',
-      error: (item as { message?: string }).message ?? 'codex item error',
-    });
+    const message =
+      typeof item.message === 'string' && item.message.trim()
+        ? item.message
+        : 'codex reported a non-fatal error item';
+    ctx.emitWarning({ message });
     return;
   }
 }

@@ -129,6 +129,13 @@ export interface BridgeTurn {
     error?: unknown;
   }): void;
 
+  /**
+   * Emit a non-fatal bridge warning to stderr using the runtime's harness
+   * prefix. This is diagnostic-only: it does not emit a stream event, does not
+   * consume a `seq`, and does not fail the turn.
+   */
+  emitWarning(input: { message: string }): void;
+
   emitError(input: { error: unknown; message?: string }): void;
 }
 
@@ -420,6 +427,16 @@ export async function runBridge<TStart extends { type: 'start' }>(
     } catch {}
   };
 
+  const emitWarning = (input: { message: string }): void => {
+    try {
+      for (const line of input.message.split('\n')) {
+        if (line.trim().length > 0) {
+          rawStderrWrite(`[harness:${bridgeType}:warn] ${line}\n`);
+        }
+      }
+    } catch {}
+  };
+
   const emitError = (input: { error: unknown; message?: string }): void => {
     writeErrorToStderr({
       message: input.message ?? 'bridge error',
@@ -539,6 +556,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
                 : {}),
             });
           },
+          emitWarning,
           emitError,
         };
         currentUserMessages = turn.pendingUserMessages;
