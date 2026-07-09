@@ -54,6 +54,13 @@ import {
 } from './google-json-accumulator';
 import { mapGoogleFinishReason } from './map-google-finish-reason';
 
+const configurableSafetySettingCategories = [
+  'HARM_CATEGORY_HATE_SPEECH',
+  'HARM_CATEGORY_DANGEROUS_CONTENT',
+  'HARM_CATEGORY_HARASSMENT',
+  'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+] as const;
+
 type GoogleConfig = {
   provider: string;
   baseURL: string;
@@ -258,6 +265,16 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         ? (googleOptions?.streamFunctionCallArguments ?? false)
         : undefined;
 
+    const safetyThreshold = googleOptions?.threshold;
+    const safetySettings =
+      googleOptions?.safetySettings ??
+      (safetyThreshold != null
+        ? configurableSafetySettingCategories.map(category => ({
+            category,
+            threshold: safetyThreshold,
+          }))
+        : undefined);
+
     const toolConfig =
       googleToolConfig ||
       streamFunctionCallArguments ||
@@ -317,7 +334,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         },
         contents,
         systemInstruction: isGemmaModel ? undefined : systemInstruction,
-        safetySettings: googleOptions?.safetySettings,
+        safetySettings,
         tools: googleTools,
         toolConfig,
         cachedContent: googleOptions?.cachedContent,
