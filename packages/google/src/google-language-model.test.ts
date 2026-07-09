@@ -960,17 +960,9 @@ describe('doGenerate', () => {
   });
 
   it('should expand standalone threshold provider option into safetySettings', async () => {
-    const liveFixture = JSON.parse(
-      fs.readFileSync('src/__fixtures__/google-threshold-live.json', 'utf8'),
-    );
-    server.urls[TEST_URL_GEMINI_2_5_FLASH].response = {
-      type: 'json-value',
-      body: liveFixture.response.body,
-    };
+    prepareJsonFixtureResponse('google-text');
 
-    const gemini25Model = provider.chat('gemini-2.5-flash');
-
-    await gemini25Model.doGenerate({
+    await model.doGenerate({
       prompt: TEST_PROMPT,
       providerOptions: {
         google: {
@@ -1005,6 +997,34 @@ describe('doGenerate', () => {
     expect(requestBody.safetySettings).toHaveLength(
       expectedSafetySettings.length,
     );
+  });
+
+  it('should let safetySettings take precedence over standalone threshold provider option', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          threshold: 'BLOCK_NONE',
+          safetySettings: [
+            {
+              category: 'HARM_CATEGORY_HATE_SPEECH',
+              threshold: 'BLOCK_ONLY_HIGH',
+            },
+          ],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.safetySettings).toEqual([
+      {
+        category: 'HARM_CATEGORY_HATE_SPEECH',
+        threshold: 'BLOCK_ONLY_HIGH',
+      },
+    ]);
   });
 
   it('should pass tools and toolChoice', async () => {
