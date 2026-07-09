@@ -8133,6 +8133,144 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  describe('resuming input-streaming tool calls', () => {
+    it('should continue static tool input deltas from the last assistant message', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start' },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'tool-call-14027',
+          inputTextDelta: '"Draft" }',
+        },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: {
+          role: 'assistant',
+          id: 'original-id',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'tool-create_document',
+              toolCallId: 'tool-call-14027',
+              state: 'input-streaming',
+              input: undefined,
+              rawInput: '{ "title": ',
+              title: 'Create document',
+              toolMetadata: { source: 'resume' },
+            } as any,
+          ],
+        },
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state!.message.parts).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "step-start",
+          },
+          {
+            "errorText": undefined,
+            "input": {
+              "title": "Draft",
+            },
+            "output": undefined,
+            "preliminary": undefined,
+            "providerExecuted": undefined,
+            "rawInput": "{ "title": "Draft" }",
+            "state": "input-streaming",
+            "title": "Create document",
+            "toolCallId": "tool-call-14027",
+            "toolMetadata": {
+              "source": "resume",
+            },
+            "type": "tool-create_document",
+          },
+        ]
+      `);
+    });
+
+    it('should continue dynamic tool input deltas from the last assistant message', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start' },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'dynamic-call-14027',
+          inputTextDelta: '1 }',
+        },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: {
+          role: 'assistant',
+          id: 'original-id',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'dynamic-tool',
+              toolName: 'calculate',
+              toolCallId: 'dynamic-call-14027',
+              state: 'input-streaming',
+              input: undefined,
+              rawInput: '{ "a": ',
+              title: 'Calculator',
+              toolMetadata: { source: 'resume' },
+            } as any,
+          ],
+        },
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state!.message.parts).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "step-start",
+          },
+          {
+            "errorText": undefined,
+            "input": {
+              "a": 1,
+            },
+            "output": undefined,
+            "preliminary": undefined,
+            "providerExecuted": undefined,
+            "rawInput": "{ "a": 1 }",
+            "state": "input-streaming",
+            "title": "Calculator",
+            "toolCallId": "dynamic-call-14027",
+            "toolMetadata": {
+              "source": "resume",
+            },
+            "toolName": "calculate",
+            "type": "dynamic-tool",
+          },
+        ]
+      `);
+    });
+  });
+
   describe('initial tool execution after approval (static tool)', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([

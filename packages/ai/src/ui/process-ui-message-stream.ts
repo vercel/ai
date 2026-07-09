@@ -44,10 +44,44 @@ export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
       dynamic?: boolean;
       title?: string;
       toolMetadata?: JSONObject;
+      rawInput?: boolean;
     }
   >;
   finishReason?: FinishReason;
 };
+
+function createPartialToolCallsFromLastMessage<UI_MESSAGE extends UIMessage>(
+  lastMessage: UI_MESSAGE | undefined,
+): StreamingUIMessageState<UI_MESSAGE>['partialToolCalls'] {
+  const partialToolCalls: StreamingUIMessageState<UI_MESSAGE>['partialToolCalls'] =
+    createIdMap();
+
+  if (lastMessage?.role !== 'assistant') {
+    return partialToolCalls;
+  }
+
+  for (const [index, part] of lastMessage.parts.entries()) {
+    if (!isToolUIPart(part) || part.state !== 'input-streaming') {
+      continue;
+    }
+
+    const rawInput = (part as { rawInput?: unknown }).rawInput;
+    partialToolCalls[part.toolCallId] = {
+      text: typeof rawInput === 'string' ? rawInput : '',
+      index,
+      toolName:
+        part.type === 'dynamic-tool'
+          ? part.toolName
+          : (getStaticToolName(part) as string),
+      dynamic: part.type === 'dynamic-tool' ? true : undefined,
+      title: part.title,
+      toolMetadata: part.toolMetadata,
+      rawInput: typeof rawInput === 'string',
+    };
+  }
+
+  return partialToolCalls;
+}
 
 export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
   lastMessage,
@@ -71,7 +105,7 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
           } as UI_MESSAGE),
     activeTextParts: createIdMap(),
     activeReasoningParts: createIdMap(),
-    partialToolCalls: createIdMap(),
+    partialToolCalls: createPartialToolCallsFromLastMessage(lastMessage),
   };
 }
 
@@ -151,6 +185,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               | {
                   state: 'input-streaming';
                   input: unknown;
+                  rawInput?: unknown;
                   providerExecuted?: boolean;
                   providerMetadata?: ProviderMetadata;
                 }
@@ -263,6 +298,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               | {
                   state: 'input-streaming';
                   input: unknown;
+                  rawInput?: unknown;
                   providerMetadata?: ProviderMetadata;
                 }
               | {
@@ -606,6 +642,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   input: partialArgs,
                   title: partialToolCall.title,
                   toolMetadata: partialToolCall.toolMetadata,
+                  rawInput: partialToolCall.rawInput
+                    ? partialToolCall.text
+                    : undefined,
                 });
               } else {
                 updateToolPart({
@@ -615,6 +654,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   input: partialArgs,
                   title: partialToolCall.title,
                   toolMetadata: partialToolCall.toolMetadata,
+                  rawInput: partialToolCall.rawInput
+                    ? partialToolCall.text
+                    : undefined,
                 });
               }
 
