@@ -116,6 +116,49 @@ const { text } = await generateText({
 });
 ```
 
+## Knowledge Base Retrieval
+
+The Amazon Bedrock provider includes support for **Managed Knowledge Bases**, allowing you to retrieve relevant documents from your Bedrock Knowledge Base directly within the AI SDK.
+
+```typescript
+import { bedrockKnowledgeBaseRetriever } from '@ai-sdk/amazon-bedrock';
+
+const retriever = bedrockKnowledgeBaseRetriever({
+  knowledgeBaseId: 'ABCDEFGHIJ',
+  region: 'us-west-2',
+});
+
+const results = await retriever.retrieve('What is our refund policy?');
+```
+
+### Features
+
+- **Managed Knowledge Base support** — Connect to Amazon Bedrock Managed Knowledge Bases without provisioning your own vector store infrastructure.
+- **Agentic Retrieval** — Enable advanced query decomposition and managed reranking by setting the `USE_AGENTIC_RETRIEVAL` environment variable to `true`. Agentic retrieval automatically breaks complex queries into sub-queries and reranks results for improved relevance.
+
+```bash
+export USE_AGENTIC_RETRIEVAL=true
+```
+
+> **SDK requirement:** `@aws-sdk/client-bedrock-agent-runtime >= 3.750.0` for managed search and agentic retrieval.
+
+**Reranking options** for managed search: `MANAGED` (default — automatic), `NONE` (disable reranking), `CUSTOM` (your own Bedrock reranking model e.g. Cohere Rerank v3.5).
+
+**Required IAM Permissions:**
+```json
+{
+  "Effect": "Allow",
+  "Action": [
+    "bedrock:Retrieve",
+    "bedrock:AgenticRetrieveStream"
+  ],
+  "Resource": "arn:aws:bedrock:<region>:<account-id>:knowledge-base/<kb-id>"
+}
+```
+
+**Resources:** [Build a Managed KB](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-build-managed.html) | [Retrieve API](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-test-retrieve.html) | [Agentic Retrieval](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-test-agentic.html)
+```
+
 ## Documentation
 
 Please check out the **[Amazon Bedrock provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/amazon-bedrock)** for more information.

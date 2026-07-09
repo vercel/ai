@@ -25,3 +25,9 @@ export type {
   AmazonBedrockRerankingModelOptions as BedrockRerankingOptions,
 } from './reranking/amazon-bedrock-reranking-model-options';
 export { VERSION } from './version';
+export {
+  bedrockKnowledgeBaseRetriever,
+  type BedrockKBRetrieverOptions,
+  type RetrievalResult,
+  type RetrievalResponse,
+} from './bedrock-knowledge-base-retriever';
