@@ -1,5 +1,14 @@
 # @ai-sdk/perplexity
 
+## 4.0.8
+
+### Patch Changes
+
+- 7927171: Fix Perplexity prompt conversion for file parts with unsupported media types and top-level PDF media types.
+- Updated dependencies [0f93c57]
+  - @ai-sdk/provider@4.0.3
+  - @ai-sdk/provider-utils@5.0.7
+
 ## 4.0.7
 
 ### Patch Changes
