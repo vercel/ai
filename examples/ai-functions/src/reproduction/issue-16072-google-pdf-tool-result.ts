@@ -3,19 +3,27 @@ import { generateText, isStepCount, tool } from 'ai';
 import { z } from 'zod';
 
 const pdfBase64 =
-  'JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyA+PgplbmRvYmoKeHJlZgowIDIKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1Jvb3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjU4CiUlRU9G';
+  'JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAyMDAgMjAwXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA1IDAgUiA+PiA+PiAvQ29udGVudHMgNCAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA0MyA+PgpzdHJlYW0KQlQgL0YxIDEyIFRmIDcyIDEyMCBUZCAoSXNzdWUgMTYwNzIpIFRqIEVUCgplbmRzdHJlYW0KZW5kb2JqCjUgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iagp4cmVmCjAgNgowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyNDEgMDAwMDAgbiAKMDAwMDAwMDMzNCAwMDAwMCBuIAp0cmFpbGVyCjw8IC9Sb290IDEgMCBSIC9TaXplIDYgPj4Kc3RhcnR4cmVmCjQwNAolJUVPRgo=';
 
 async function main() {
-  const requests: Array<{ url: string; body: any }> = [];
+  const calls: Array<{ url: string; requestBody: any; responseBody?: any }> =
+    [];
   const google = createGoogle({
     fetch: async (input, init) => {
-      requests.push({
+      const call: { url: string; requestBody: any; responseBody?: any } = {
         url: String(input),
-        body:
+        requestBody:
           typeof init?.body === 'string' ? JSON.parse(init.body) : undefined,
-      });
+      };
+      calls.push(call);
 
-      return fetch(input, init);
+      const response = await fetch(input, init);
+      call.responseBody = await response
+        .clone()
+        .json()
+        .catch(() => undefined);
+
+      return response;
     },
   });
 
@@ -46,7 +54,8 @@ async function main() {
     stopWhen: isStepCount(2),
   });
 
-  const secondRequest = requests[1]?.body;
+  const secondRequest = calls[1]?.requestBody;
+  const secondResponse = calls[1]?.responseBody;
   const toolResultParts =
     secondRequest?.contents?.find(
       (content: any) =>
@@ -57,21 +66,43 @@ async function main() {
     (part: any) =>
       typeof part.text === 'string' && part.text.includes(pdfBase64),
   );
-
-  console.log(
-    JSON.stringify(
-      {
-        requestCount: requests.length,
-        observedToolResultParts: toolResultParts,
-      },
-      null,
-      2,
-    ),
+  const pdfInlineDataPart = toolResultParts.find(
+    (part: any) =>
+      part.inlineData?.mimeType === 'application/pdf' &&
+      part.inlineData?.data === pdfBase64,
   );
+  const hasDocumentTokens =
+    secondResponse?.usageMetadata?.promptTokensDetails?.some(
+      (detail: any) => detail.modality === 'DOCUMENT',
+    ) === true;
+
+  const output = {
+    requestCount: calls.length,
+    observedToolResultParts: toolResultParts,
+    promptTokensDetails:
+      secondResponse?.usageMetadata?.promptTokensDetails ?? [],
+    hasPdfTextPart: pdfTextPart != null,
+    hasPdfInlineDataPart: pdfInlineDataPart != null,
+    hasDocumentTokens,
+  };
+
+  console.log(JSON.stringify(output, null, 2));
 
   if (pdfTextPart != null) {
     throw new Error(
       'Reproduced issue #16072: PDF file tool result was serialized as a JSON text part instead of file/document data.',
+    );
+  }
+
+  if (pdfInlineDataPart == null) {
+    throw new Error(
+      'Expected the PDF tool result to be sent as an inlineData part.',
+    );
+  }
+
+  if (!hasDocumentTokens) {
+    throw new Error(
+      'Expected the live Google response to report document tokens for the PDF tool result.',
     );
   }
 }
