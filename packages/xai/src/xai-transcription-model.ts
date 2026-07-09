@@ -276,6 +276,12 @@ function createXaiStreamingTranscriptionStream({
       const WebSocketConstructor = getWebSocketConstructor(webSocket);
       const ws = new WebSocketConstructor(url, undefined, { headers });
       const doneTexts = new Map<number, string>();
+      // Finalized utterances per channel (`speech_final` events), plus the
+      // latest still-revisable text per channel: xAI's `transcript.done`
+      // arrives with an empty `text`, so the finish text is reconstructed
+      // from these when that happens.
+      const finalizedTexts = new Map<number, string[]>();
+      const pendingTexts = new Map<number, string>();
       let doneDuration: number | undefined;
       let audioReader:
         | ReadableStreamDefaultReader<Uint8Array | string>
@@ -363,8 +369,23 @@ function createXaiStreamingTranscriptionStream({
 
               case 'transcript.partial': {
                 const id = channelId(raw.channel_index);
-                const timing = timingFromXaiEvent(raw);
-                if (raw.is_final) {
+                const channelIndex = raw.channel_index ?? 0;
+                // Only `speech_final` marks a completed utterance. xAI also
+                // sends `is_final: true` for finalized *fragments* whose text
+                // the eventual `speech_final` event merges and re-punctuates
+                // (and it re-sends that final text once with
+                // `speech_final: false` first) — treating those as finals
+                // produced duplicated and later-revised `transcript-final`
+                // parts, so they surface as partials instead.
+                if (raw.is_final && raw.speech_final) {
+                  const timing = timingFromXaiEvent(raw);
+                  if (raw.text) {
+                    finalizedTexts.set(channelIndex, [
+                      ...(finalizedTexts.get(channelIndex) ?? []),
+                      raw.text,
+                    ]);
+                  }
+                  pendingTexts.delete(channelIndex);
                   controller.enqueue({
                     type: 'transcript-final',
                     id,
@@ -373,6 +394,7 @@ function createXaiStreamingTranscriptionStream({
                     channelIndex: raw.channel_index,
                   });
                 } else {
+                  pendingTexts.set(channelIndex, raw.text ?? '');
                   controller.enqueue({
                     type: 'transcript-partial',
                     id,
@@ -387,7 +409,17 @@ function createXaiStreamingTranscriptionStream({
 
               case 'transcript.done': {
                 const channelIndex = raw.channel_index ?? 0;
-                doneTexts.set(channelIndex, raw.text ?? '');
+                // xAI sends `transcript.done` with an empty `text`; fall back
+                // to the finalized utterances (plus any trailing text that
+                // never got a `speech_final`) so `finish.text` carries the
+                // transcript.
+                const accumulated = [
+                  ...(finalizedTexts.get(channelIndex) ?? []),
+                  ...(pendingTexts.get(channelIndex)
+                    ? [pendingTexts.get(channelIndex) as string]
+                    : []),
+                ].join(' ');
+                doneTexts.set(channelIndex, raw.text || accumulated);
                 doneDuration = raw.duration ?? doneDuration;
                 maybeFinish();
                 break;
