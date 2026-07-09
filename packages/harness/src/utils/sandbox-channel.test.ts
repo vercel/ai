@@ -10,12 +10,18 @@ const outboundSchema = z.discriminatedUnion('type', [
     delta: z.string(),
   }),
   z.object({ type: z.literal('finish') }),
+  z.object({
+    type: z.literal('bridge-interrupted'),
+    ok: z.boolean(),
+    error: z.unknown().optional(),
+  }),
   z.object({ type: z.literal('error'), error: z.unknown() }),
 ]);
 type Outbound = z.infer<typeof outboundSchema>;
 type Inbound =
   | { type: 'start' }
   | { type: 'abort' }
+  | { type: 'interrupt' }
   | { type: 'resume'; lastSeenEventId: number };
 
 type FakeSocket = {
@@ -157,6 +163,35 @@ describe('SandboxChannel', () => {
     expect(connector.current().sent).toEqual([
       JSON.stringify({ type: 'abort' }),
     ]);
+  });
+
+  it('sends interrupt and resolves after the bridge acknowledges it', async () => {
+    const connector = makeConnector();
+    const channel = makeChannel(connector);
+    await channel.open();
+
+    const interrupted = channel.interrupt();
+    expect(connector.current().sent).toEqual([
+      JSON.stringify({ type: 'interrupt' }),
+    ]);
+
+    connector.current().deliver({ type: 'bridge-interrupted', ok: true });
+    await expect(interrupted).resolves.toBeUndefined();
+  });
+
+  it('rejects interrupt when the bridge reports a failure', async () => {
+    const connector = makeConnector();
+    const channel = makeChannel(connector);
+    await channel.open();
+
+    const interrupted = channel.interrupt();
+    connector.current().deliver({
+      type: 'bridge-interrupted',
+      ok: false,
+      error: { message: 'native interrupt failed' },
+    });
+
+    await expect(interrupted).rejects.toThrow(/native interrupt failed/);
   });
 
   it('refuses to send once terminally closed', async () => {

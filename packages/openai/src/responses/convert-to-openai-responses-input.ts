@@ -1,6 +1,7 @@
 import {
   UnsupportedFunctionalityError,
   type LanguageModelV4Prompt,
+  type SharedV4ProviderOptions,
   type LanguageModelV4ToolApprovalResponsePart,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
@@ -39,6 +40,17 @@ import {
 
 function serializeToolCallArguments(input: unknown): string {
   return JSON.stringify(input === undefined ? {} : input);
+}
+
+type OpenAIPromptCacheBreakpoint = { mode: 'explicit' };
+
+function getPromptCacheBreakpoint(
+  providerOptions: SharedV4ProviderOptions | undefined,
+  providerOptionsName: string,
+): OpenAIPromptCacheBreakpoint | undefined {
+  return providerOptions?.[providerOptionsName]?.promptCacheBreakpoint as
+    | OpenAIPromptCacheBreakpoint
+    | undefined;
 }
 
 /**
@@ -89,16 +101,48 @@ export async function convertToOpenAIResponsesInput({
   const warnings: Array<SharedV4Warning> = [];
   const processedApprovalIds = new Set<string>();
 
-  for (const { role, content } of prompt) {
+  for (const { role, content, providerOptions } of prompt) {
     switch (role) {
       case 'system': {
         switch (systemMessageMode) {
           case 'system': {
-            input.push({ role: 'system', content });
+            const promptCacheBreakpoint = getPromptCacheBreakpoint(
+              providerOptions,
+              providerOptionsName,
+            );
+            input.push({
+              role: 'system',
+              content:
+                promptCacheBreakpoint == null
+                  ? content
+                  : [
+                      {
+                        type: 'input_text',
+                        text: content,
+                        prompt_cache_breakpoint: promptCacheBreakpoint,
+                      },
+                    ],
+            });
             break;
           }
           case 'developer': {
-            input.push({ role: 'developer', content });
+            const promptCacheBreakpoint = getPromptCacheBreakpoint(
+              providerOptions,
+              providerOptionsName,
+            );
+            input.push({
+              role: 'developer',
+              content:
+                promptCacheBreakpoint == null
+                  ? content
+                  : [
+                      {
+                        type: 'input_text',
+                        text: content,
+                        prompt_cache_breakpoint: promptCacheBreakpoint,
+                      },
+                    ],
+            });
             break;
           }
           case 'remove': {
@@ -124,9 +168,23 @@ export async function convertToOpenAIResponsesInput({
           content: content.map((part, index) => {
             switch (part.type) {
               case 'text': {
-                return { type: 'input_text', text: part.text };
+                const promptCacheBreakpoint = getPromptCacheBreakpoint(
+                  part.providerOptions,
+                  providerOptionsName,
+                );
+                return {
+                  type: 'input_text',
+                  text: part.text,
+                  ...(promptCacheBreakpoint != null && {
+                    prompt_cache_breakpoint: promptCacheBreakpoint,
+                  }),
+                };
               }
               case 'file': {
+                const promptCacheBreakpoint = getPromptCacheBreakpoint(
+                  part.providerOptions,
+                  providerOptionsName,
+                );
                 switch (part.data.type) {
                   case 'reference': {
                     const fileId = resolveProviderReference({
@@ -141,12 +199,18 @@ export async function convertToOpenAIResponsesInput({
                         detail:
                           part.providerOptions?.[providerOptionsName]
                             ?.imageDetail,
+                        ...(promptCacheBreakpoint != null && {
+                          prompt_cache_breakpoint: promptCacheBreakpoint,
+                        }),
                       };
                     }
 
                     return {
                       type: 'input_file',
                       file_id: fileId,
+                      ...(promptCacheBreakpoint != null && {
+                        prompt_cache_breakpoint: promptCacheBreakpoint,
+                      }),
                     };
                   }
                   case 'text': {
@@ -172,12 +236,18 @@ export async function convertToOpenAIResponsesInput({
                         detail:
                           part.providerOptions?.[providerOptionsName]
                             ?.imageDetail,
+                        ...(promptCacheBreakpoint != null && {
+                          prompt_cache_breakpoint: promptCacheBreakpoint,
+                        }),
                       };
                     } else {
                       if (part.data.type === 'url') {
                         return {
                           type: 'input_file',
                           file_url: part.data.url.toString(),
+                          ...(promptCacheBreakpoint != null && {
+                            prompt_cache_breakpoint: promptCacheBreakpoint,
+                          }),
                         };
                       }
 
@@ -204,6 +274,9 @@ export async function convertToOpenAIResponsesInput({
                                   : `part-${index}`),
                               file_data: `data:${fullMediaType};base64,${convertToBase64(part.data.data)}`,
                             }),
+                        ...(promptCacheBreakpoint != null && {
+                          prompt_cache_breakpoint: promptCacheBreakpoint,
+                        }),
                       };
                     }
                   }
@@ -813,9 +886,19 @@ export async function convertToOpenAIResponsesInput({
               case 'content':
                 outputValue = output.value
                   .map(item => {
+                    const promptCacheBreakpoint = getPromptCacheBreakpoint(
+                      item.providerOptions,
+                      providerOptionsName,
+                    );
                     switch (item.type) {
                       case 'text':
-                        return { type: 'input_text' as const, text: item.text };
+                        return {
+                          type: 'input_text' as const,
+                          text: item.text,
+                          ...(promptCacheBreakpoint != null && {
+                            prompt_cache_breakpoint: promptCacheBreakpoint,
+                          }),
+                        };
                       case 'file': {
                         const topLevel = getTopLevelMediaType(item.mediaType);
                         const imageDetail =
@@ -831,12 +914,18 @@ export async function convertToOpenAIResponsesInput({
                               type: 'input_image' as const,
                               image_url: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
                               detail: imageDetail,
+                              ...(promptCacheBreakpoint != null && {
+                                prompt_cache_breakpoint: promptCacheBreakpoint,
+                              }),
                             };
                           }
                           return {
                             type: 'input_file' as const,
                             filename: item.filename ?? 'data',
                             file_data: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
+                            ...(promptCacheBreakpoint != null && {
+                              prompt_cache_breakpoint: promptCacheBreakpoint,
+                            }),
                           };
                         }
 
@@ -846,11 +935,17 @@ export async function convertToOpenAIResponsesInput({
                               type: 'input_image' as const,
                               image_url: item.data.url.toString(),
                               detail: imageDetail,
+                              ...(promptCacheBreakpoint != null && {
+                                prompt_cache_breakpoint: promptCacheBreakpoint,
+                              }),
                             };
                           }
                           return {
                             type: 'input_file' as const,
                             file_url: item.data.url.toString(),
+                            ...(promptCacheBreakpoint != null && {
+                              prompt_cache_breakpoint: promptCacheBreakpoint,
+                            }),
                           };
                         }
 
@@ -897,9 +992,19 @@ export async function convertToOpenAIResponsesInput({
             case 'content':
               contentValue = output.value
                 .map(item => {
+                  const promptCacheBreakpoint = getPromptCacheBreakpoint(
+                    item.providerOptions,
+                    providerOptionsName,
+                  );
                   switch (item.type) {
                     case 'text': {
-                      return { type: 'input_text' as const, text: item.text };
+                      return {
+                        type: 'input_text' as const,
+                        text: item.text,
+                        ...(promptCacheBreakpoint != null && {
+                          prompt_cache_breakpoint: promptCacheBreakpoint,
+                        }),
+                      };
                     }
 
                     case 'file': {
@@ -917,12 +1022,18 @@ export async function convertToOpenAIResponsesInput({
                             type: 'input_image' as const,
                             image_url: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
                             detail: imageDetail,
+                            ...(promptCacheBreakpoint != null && {
+                              prompt_cache_breakpoint: promptCacheBreakpoint,
+                            }),
                           };
                         }
                         return {
                           type: 'input_file' as const,
                           filename: item.filename ?? 'data',
                           file_data: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
+                          ...(promptCacheBreakpoint != null && {
+                            prompt_cache_breakpoint: promptCacheBreakpoint,
+                          }),
                         };
                       }
 
@@ -932,11 +1043,17 @@ export async function convertToOpenAIResponsesInput({
                             type: 'input_image' as const,
                             image_url: item.data.url.toString(),
                             detail: imageDetail,
+                            ...(promptCacheBreakpoint != null && {
+                              prompt_cache_breakpoint: promptCacheBreakpoint,
+                            }),
                           };
                         }
                         return {
                           type: 'input_file' as const,
                           file_url: item.data.url.toString(),
+                          ...(promptCacheBreakpoint != null && {
+                            prompt_cache_breakpoint: promptCacheBreakpoint,
+                          }),
                         };
                       }
 
