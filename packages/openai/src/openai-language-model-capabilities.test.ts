@@ -61,6 +61,9 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['gpt-5.4-nano', true],
       ['gpt-5.4-nano-2026-03-17', true],
       ['gpt-5.6', true],
+      ['gpt-5.6-luna', true],
+      ['gpt-5.6-sol', true],
+      ['gpt-5.6-terra', true],
       ['new-unknown-model', true],
     ])('%s reasoning model: %s', (modelId, expectedCapabilities) => {
       expect(
@@ -87,6 +90,9 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['gpt-5.4-mini-2026-03-17', true],
       ['gpt-5.4-nano-2026-03-17', true],
       ['gpt-5.6', true],
+      ['gpt-5.6-luna', true],
+      ['gpt-5.6-sol', true],
+      ['gpt-5.6-terra', true],
       ['gpt-5', false],
       ['gpt-5-mini', false],
       ['gpt-5-nano', false],
