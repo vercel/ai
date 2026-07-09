@@ -50,9 +50,6 @@ import {
 } from './google-json-accumulator';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
 
-<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
-type GoogleGenerativeAIConfig = {
-=======
 const configurableSafetySettingCategories = [
   'HARM_CATEGORY_HATE_SPEECH',
   'HARM_CATEGORY_DANGEROUS_CONTENT',
@@ -60,8 +57,7 @@ const configurableSafetySettingCategories = [
   'HARM_CATEGORY_SEXUALLY_EXPLICIT',
 ] as const;
 
-type GoogleConfig = {
->>>>>>> 96d40bccc (fix: standalone Google threshold provider option is silently ignored (#16922)):packages/google/src/google-language-model.ts
+type GoogleGenerativeAIConfig = {
   provider: string;
   baseURL: string;
   headers: Resolvable<Record<string, string | undefined>>;
