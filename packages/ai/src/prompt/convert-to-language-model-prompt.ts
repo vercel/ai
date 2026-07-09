@@ -28,6 +28,7 @@ import {
 import { convertToLanguageModelV4FilePart } from './file-part-data';
 import { logWarnings } from '../logger/log-warnings';
 import type { Warning } from '../types/warning';
+import { getLatestAssistantApprovalTurn } from '../util/get-latest-assistant-approval-turn';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import type { StandardizedPrompt } from './standardize-prompt';
 import { MissingToolResultsError } from '../error/missing-tool-result-error';
@@ -51,37 +52,8 @@ export async function convertToLanguageModelPrompt({
     supportedUrls,
   );
 
-  const approvalIdToToolCallId = new Map<string, string>();
-  for (const message of prompt.messages) {
-    if (message.role === 'assistant' && Array.isArray(message.content)) {
-      for (const part of message.content) {
-        if (
-          part.type === 'tool-approval-request' &&
-          'approvalId' in part &&
-          'toolCallId' in part
-        ) {
-          approvalIdToToolCallId.set(
-            part.approvalId as string,
-            part.toolCallId as string,
-          );
-        }
-      }
-    }
-  }
-
-  const approvedToolCallIds = new Set<string>();
-  for (const message of prompt.messages) {
-    if (message.role === 'tool') {
-      for (const part of message.content) {
-        if (part.type === 'tool-approval-response') {
-          const toolCallId = approvalIdToToolCallId.get(part.approvalId);
-          if (toolCallId) {
-            approvedToolCallIds.add(toolCallId);
-          }
-        }
-      }
-    }
-  }
+  const approvalResolvedToolCallIds =
+    collectApprovalResolvedToolCallIdsFromLatestAssistantTurn(prompt.messages);
 
   const messages = [
     ...(prompt.instructions != null
@@ -136,8 +108,8 @@ export async function convertToLanguageModelPrompt({
       }
       case 'user':
       case 'system':
-        // remove approved tool calls from the set before checking:
-        for (const id of approvedToolCallIds) {
+        // remove approval-resolved tool calls from the set before checking:
+        for (const id of approvalResolvedToolCallIds) {
           toolCallIds.delete(id);
         }
 
@@ -150,8 +122,8 @@ export async function convertToLanguageModelPrompt({
     }
   }
 
-  // remove approved tool calls from the set before checking:
-  for (const id of approvedToolCallIds) {
+  // remove approval-resolved tool calls from the set before checking:
+  for (const id of approvalResolvedToolCallIds) {
     toolCallIds.delete(id);
   }
 
@@ -166,6 +138,49 @@ export async function convertToLanguageModelPrompt({
     // Note: provider-executed tool-approval-response parts are preserved.
     message => message.role !== 'tool' || message.content.length > 0,
   );
+}
+
+function collectApprovalResolvedToolCallIdsFromLatestAssistantTurn(
+  messages: ModelMessage[],
+): Set<string> {
+  const approvalTurn = getLatestAssistantApprovalTurn(messages);
+
+  if (approvalTurn == null) {
+    return new Set();
+  }
+
+  const { latestAssistantContent, suffixMessages } = approvalTurn;
+  const approvalIdToToolCallId = new Map<string, string>();
+  for (const part of latestAssistantContent) {
+    if (
+      part.type === 'tool-approval-request' &&
+      'approvalId' in part &&
+      'toolCallId' in part
+    ) {
+      approvalIdToToolCallId.set(
+        part.approvalId as string,
+        part.toolCallId as string,
+      );
+    }
+  }
+
+  const approvalResolvedToolCallIds = new Set<string>();
+  for (const message of suffixMessages) {
+    if (message.role !== 'tool') {
+      continue;
+    }
+
+    for (const part of message.content) {
+      if (part.type === 'tool-approval-response') {
+        const toolCallId = approvalIdToToolCallId.get(part.approvalId);
+        if (toolCallId != null) {
+          approvalResolvedToolCallIds.add(toolCallId);
+        }
+      }
+    }
+  }
+
+  return approvalResolvedToolCallIds;
 }
 
 /**

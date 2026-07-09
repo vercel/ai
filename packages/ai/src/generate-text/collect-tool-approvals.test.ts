@@ -110,6 +110,47 @@ describe('collectToolApprovals', () => {
     `);
   });
 
+  it('should return approved approval with approved response followed by user context', () => {
+    const result = collectToolApprovals({
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: { value: 'test-input' },
+            },
+            {
+              type: 'tool-approval-request',
+              approvalId: 'approval-id-1',
+              toolCallId: 'call-1',
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-approval-response',
+              approvalId: 'approval-id-1',
+              approved: true,
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: 'extra context',
+        },
+      ],
+    });
+
+    expect(result.approvedToolApprovals).toHaveLength(1);
+    expect(result.approvedToolApprovals[0].toolCall.toolCallId).toBe('call-1');
+    expect(result.deniedToolApprovals).toHaveLength(0);
+  });
+
   it('should return processed approval with approved response and tool result', () => {
     const result = collectToolApprovals({
       messages: [
@@ -154,6 +195,54 @@ describe('collectToolApprovals', () => {
         "deniedToolApprovals": [],
       }
     `);
+  });
+
+  it('should return processed approval with approved response and tool result followed by user context', () => {
+    const result = collectToolApprovals({
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: { value: 'test-input' },
+            },
+            {
+              type: 'tool-approval-request',
+              approvalId: 'approval-id-1',
+              toolCallId: 'call-1',
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-approval-response',
+              approvalId: 'approval-id-1',
+              approved: true,
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              output: { type: 'text', value: 'test-output' },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: 'extra context',
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      approvedToolApprovals: [],
+      deniedToolApprovals: [],
+    });
   });
 
   it('should return denied approval with denied response', () => {
@@ -219,6 +308,48 @@ describe('collectToolApprovals', () => {
     `);
   });
 
+  it('should return denied approval with denied response followed by system context', () => {
+    const result = collectToolApprovals({
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: { value: 'test-input' },
+            },
+            {
+              type: 'tool-approval-request',
+              approvalId: 'approval-id-1',
+              toolCallId: 'call-1',
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-approval-response',
+              approvalId: 'approval-id-1',
+              approved: false,
+              reason: 'test-reason',
+            },
+          ],
+        },
+        {
+          role: 'system',
+          content: 'extra context',
+        },
+      ],
+    });
+
+    expect(result.approvedToolApprovals).toHaveLength(0);
+    expect(result.deniedToolApprovals).toHaveLength(1);
+    expect(result.deniedToolApprovals[0].toolCall.toolCallId).toBe('call-1');
+  });
+
   it('should return processed approval with denied response and tool result', () => {
     const result = collectToolApprovals({
       messages: [
@@ -264,6 +395,48 @@ describe('collectToolApprovals', () => {
         "deniedToolApprovals": [],
       }
     `);
+  });
+
+  it('should ignore approval responses before a later assistant response', () => {
+    const result = collectToolApprovals({
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: { value: 'test-input' },
+            },
+            {
+              type: 'tool-approval-request',
+              approvalId: 'approval-id-1',
+              toolCallId: 'call-1',
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-approval-response',
+              approvalId: 'approval-id-1',
+              approved: true,
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: 'later response',
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      approvedToolApprovals: [],
+      deniedToolApprovals: [],
+    });
   });
 
   it('should throw when approval response has unknown approvalId', () => {

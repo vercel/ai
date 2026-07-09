@@ -28261,6 +28261,301 @@ describe('streamText', () => {
       });
     });
 
+    describe('when local tool approval responses are followed by context messages', () => {
+      function createContinuationModel(prompts: LanguageModelV4Prompt[]) {
+        return new MockLanguageModelV4({
+          doStream: async ({ prompt }) => {
+            prompts.push(prompt);
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                { type: 'text-start', id: '1' },
+                {
+                  type: 'text-delta',
+                  id: '1',
+                  delta: 'continued',
+                },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        });
+      }
+
+      function createApprovedToolMessages({
+        approved,
+        includeToolResult = false,
+        includeLaterAssistant = false,
+      }: {
+        approved: boolean;
+        includeToolResult?: boolean;
+        includeLaterAssistant?: boolean;
+      }): ModelMessage[] {
+        return [
+          { role: 'user', content: 'test-input' },
+          {
+            role: 'assistant',
+            content: [
+              {
+                input: { value: 'value' },
+                providerExecuted: undefined,
+                providerOptions: undefined,
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                type: 'tool-call',
+              },
+              {
+                approvalId: 'id-1',
+                toolCallId: 'call-1',
+                type: 'tool-approval-request',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                approvalId: 'id-1',
+                type: 'tool-approval-response',
+                approved,
+                reason: approved ? undefined : 'not allowed',
+              },
+              ...(includeToolResult
+                ? [
+                    {
+                      type: 'tool-result' as const,
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      output: {
+                        type: 'text' as const,
+                        value: 'existing result',
+                      },
+                    },
+                  ]
+                : []),
+            ],
+          },
+          ...(includeLaterAssistant
+            ? [
+                {
+                  role: 'assistant' as const,
+                  content: 'already continued',
+                },
+              ]
+            : []),
+          { role: 'user', content: 'extra context' },
+        ];
+      }
+
+      it('should execute an approved local tool exactly once', async () => {
+        const prompts: LanguageModelV4Prompt[] = [];
+        const executeFunction = vi.fn().mockReturnValue('result1');
+
+        const result = streamText({
+          model: createContinuationModel(prompts),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: executeFunction,
+            }),
+          },
+          toolApproval: {
+            tool1: 'user-approval',
+          },
+          stopWhen: isStepCount(3),
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
+          },
+          messages: createApprovedToolMessages({ approved: true }),
+        });
+
+        await result.consumeStream();
+
+        expect(executeFunction).toHaveBeenCalledTimes(1);
+        expect(executeFunction).toHaveBeenCalledWith(
+          { value: 'value' },
+          expect.objectContaining({
+            toolCallId: 'call-1',
+            messages: expect.any(Array),
+          }),
+        );
+        expect(await result.responseMessages).toEqual([
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                output: {
+                  type: 'text',
+                  value: 'result1',
+                },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'continued',
+                providerOptions: undefined,
+              },
+            ],
+          },
+        ]);
+        expect(prompts).toHaveLength(1);
+      });
+
+      it('should produce a denial result when a denied approval has trailing user context', async () => {
+        const prompts: LanguageModelV4Prompt[] = [];
+        const executeFunction = vi.fn().mockReturnValue('result1');
+
+        const result = streamText({
+          model: createContinuationModel(prompts),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: executeFunction,
+            }),
+          },
+          toolApproval: {
+            tool1: 'user-approval',
+          },
+          stopWhen: isStepCount(3),
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
+          },
+          messages: createApprovedToolMessages({ approved: false }),
+        });
+
+        await result.consumeStream();
+
+        expect(executeFunction).not.toHaveBeenCalled();
+        expect(await result.responseMessages).toEqual([
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                output: {
+                  type: 'execution-denied',
+                  reason: 'not allowed',
+                },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'continued',
+                providerOptions: undefined,
+              },
+            ],
+          },
+        ]);
+        expect(prompts).toHaveLength(1);
+      });
+
+      it('should not execute an approved local tool again when a tool result already exists', async () => {
+        const prompts: LanguageModelV4Prompt[] = [];
+        const executeFunction = vi.fn().mockReturnValue('result1');
+
+        const result = streamText({
+          model: createContinuationModel(prompts),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: executeFunction,
+            }),
+          },
+          toolApproval: {
+            tool1: 'user-approval',
+          },
+          stopWhen: isStepCount(3),
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
+          },
+          messages: createApprovedToolMessages({
+            approved: true,
+            includeToolResult: true,
+          }),
+        });
+
+        await result.consumeStream();
+
+        expect(executeFunction).not.toHaveBeenCalled();
+        expect(await result.responseMessages).toEqual([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'continued',
+                providerOptions: undefined,
+              },
+            ],
+          },
+        ]);
+        expect(prompts).toHaveLength(1);
+      });
+
+      it('should not replay an older approval behind a later assistant response', async () => {
+        const prompts: LanguageModelV4Prompt[] = [];
+        const executeFunction = vi.fn().mockReturnValue('result1');
+        const onError = vi.fn();
+
+        const result = streamText({
+          model: createContinuationModel(prompts),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: executeFunction,
+            }),
+          },
+          toolApproval: {
+            tool1: 'user-approval',
+          },
+          stopWhen: isStepCount(3),
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
+          },
+          onError,
+          messages: createApprovedToolMessages({
+            approved: true,
+            includeLaterAssistant: true,
+          }),
+        });
+
+        await result.consumeStream();
+
+        expect(executeFunction).not.toHaveBeenCalled();
+        expect(onError).toHaveBeenCalledWith({
+          error: expect.objectContaining({
+            message: 'Tool result is missing for tool call call-1.',
+          }),
+        });
+        await expect(result.text).rejects.toThrow(
+          'No output generated. Check the stream for errors.',
+        );
+        expect(prompts).toHaveLength(0);
+      });
+    });
+
     describe('provider-executed tool (MCP) approval', () => {
       describe('when a provider-executed tool emits tool-approval-request', () => {
         let result: StreamTextResult<any, any, any>;
