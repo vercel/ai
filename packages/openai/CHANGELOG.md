@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.11
+
+### Patch Changes
+
+- b2b1bb9: feat(provider/openai): add GPT-5.6 reasoning and prompt cache controls
+
 ## 4.0.10
 
 ### Patch Changes
