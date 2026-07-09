@@ -1476,14 +1476,16 @@ function createSession({
       }
       stopped = true;
       /*
-       * Gracefully freeze the active turn at a precise cursor. `channel.suspend`
-       * stops processing inbound frames (the cursor stops advancing exactly at
-       * the last delivered event), drains what was already dispatched, then
-       * closes the host socket with reason `'suspended'` — which `wireTurn`'s
-       * `onClose` treats as a clean turn end. The bridge keeps the turn running
-       * and accumulates events past the cursor for the next slice to replay. The
+       * First ask the runtime to interrupt the active model turn, then freeze
+       * the host at a precise cursor. `channel.suspend` stops processing
+       * inbound frames (the cursor stops advancing exactly at the last
+       * delivered event), drains what was already dispatched, then closes the
+       * host socket with reason `'suspended'` — which `wireTurn`'s `onClose`
+       * treats as a clean turn end. The bridge keeps the turn running and
+       * accumulates events past the cursor for the next slice to replay. The
        * sandbox process is deliberately left alive (no `shutdown`/`detach`).
        */
+      await channel.interrupt();
       const lastSeenEventId = await channel.suspend();
       const payload: HarnessV1ContinueTurnState = {
         type: 'continue-turn',

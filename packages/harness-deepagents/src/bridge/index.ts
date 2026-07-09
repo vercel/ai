@@ -398,6 +398,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         approvalId,
         toolCallId: approvalId,
       });
+      flushStep();
       const decision = await turn.requestToolApproval(approvalId);
       if (decision.approved) {
         const queue = approvedToolQueue.get(action.name) ?? [];

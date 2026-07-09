@@ -216,6 +216,7 @@ function createPermissionOptions(input: {
   inactiveNativeTools: readonly string[];
   turn: BridgeTurn;
   emit: Emit;
+  finishApprovalStep: (approvalId: string) => void;
   nativeToolCallNames: Map<string, string>;
   approvalRequestedToolUseIds: Set<string>;
 }): Record<string, unknown> {
@@ -271,6 +272,7 @@ function createPermissionOptions(input: {
         approvalId,
         toolCallId: approvalId,
       });
+      input.finishApprovalStep(approvalId);
 
       const decision = await input.turn.requestToolApproval(approvalId);
       return decision.approved
@@ -342,6 +344,33 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
    */
   const nativeToolCallNames = new Map<string, string>();
   const approvalRequestedToolUseIds = new Set<string>();
+  const partialBlocks = new Map<
+    number,
+    { id: string; kind: 'text' | 'thinking' }
+  >();
+  let stepUsage: Record<string, unknown> | undefined;
+  let pendingStepToolUseIds = new Set<string>();
+  let pendingStepUsage: Record<string, unknown> | undefined;
+  let stepOpen = false;
+
+  const emitFinishStep = (usage: Record<string, unknown> | undefined): void => {
+    emit({
+      type: 'finish-step',
+      finishReason: { unified: 'stop', raw: 'stop' },
+      usage: usage ?? defaultUsage(),
+    });
+    stepUsage = usage ?? stepUsage;
+    pendingStepUsage = undefined;
+    pendingStepToolUseIds = new Set();
+    stepOpen = false;
+  };
+
+  const closeStepIfReady = (): void => {
+    if (!stepOpen || pendingStepToolUseIds.size > 0 || partialBlocks.size > 0) {
+      return;
+    }
+    emitFinishStep(pendingStepUsage);
+  };
 
   /*
    * Tool-use ids that originated from the MCP server hosting user-supplied
@@ -416,6 +445,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     inactiveNativeTools,
     turn,
     emit,
+    finishApprovalStep: approvalId => {
+      stepOpen = true;
+      pendingStepToolUseIds.delete(approvalId);
+      closeStepIfReady();
+    },
     nativeToolCallNames,
     approvalRequestedToolUseIds,
   });
@@ -462,17 +496,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       abortSignal: abortCtl.signal,
     },
   });
+  turn.onInterrupt(() => q.interrupt());
 
-  let stepUsage: Record<string, unknown> | undefined;
+  let turnUsage: Record<string, unknown> | undefined;
   let totalCostUsd: number | undefined;
   let observedTerminalError: string | undefined;
   let emittedTerminalError = false;
   let emittedTerminalFinish = false;
   let streamStarted = false;
-  const partialBlocks = new Map<
-    number,
-    { id: string; kind: 'text' | 'thinking' }
-  >();
 
   const emitTerminalError = (message: string | undefined): void => {
     const normalized = message?.trim();
@@ -560,25 +591,34 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 
       if (type === 'stream_event') {
         handleStreamEvent(msg.event, partialBlocks, emit);
+        closeStepIfReady();
         continue;
       }
 
       if (type === 'assistant' && msg.message?.content) {
+        const usage = mapUsage(msg.message.usage);
+        const toolUseIds: string[] = [];
+        let opensStep = false;
         for (const block of msg.message.content) {
           if (
             block.type === 'tool_use' &&
             typeof block.id === 'string' &&
             typeof block.name === 'string'
           ) {
+            toolUseIds.push(block.id);
             const mcpPrefix = 'mcp__harness-tools__';
             if (block.name.startsWith(mcpPrefix)) {
+              pendingStepToolUseIds.add(block.id);
               mcpToolUseIds.add(block.id);
+              opensStep = true;
               continue;
             }
             nativeToolCallNames.set(block.id, block.name);
             if (approvalRequestedToolUseIds.has(block.id)) {
               continue;
             }
+            pendingStepToolUseIds.add(block.id);
+            opensStep = true;
             emit({
               type: 'tool-call',
               toolCallId: block.id,
@@ -588,6 +628,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
               providerExecuted: true,
             });
           }
+        }
+        if (opensStep || toolUseIds.length === 0) {
+          stepOpen = true;
+          if (usage) pendingStepUsage = usage;
+          closeStepIfReady();
         }
         continue;
       }
@@ -600,6 +645,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           ) {
             if (mcpToolUseIds.has(block.tool_use_id)) {
               mcpToolUseIds.delete(block.tool_use_id);
+              pendingStepToolUseIds.delete(block.tool_use_id);
               continue;
             }
             approvalRequestedToolUseIds.delete(block.tool_use_id);
@@ -630,8 +676,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
               result,
               isError,
             });
+            pendingStepToolUseIds.delete(block.tool_use_id);
           }
         }
+        closeStepIfReady();
         continue;
       }
 
@@ -644,20 +692,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           }
           const usage = msg.usage ?? msg.message?.usage;
           const harnessUsage = mapUsage(usage);
-          if (harnessUsage) stepUsage = harnessUsage;
+          if (harnessUsage) turnUsage = harnessUsage;
           if (typeof msg.total_cost_usd === 'number') {
             totalCostUsd = (totalCostUsd ?? 0) + msg.total_cost_usd;
           }
-          const metadata =
-            typeof msg.total_cost_usd === 'number'
-              ? { 'claude-code': { costUsd: msg.total_cost_usd } }
-              : undefined;
-          emit({
-            type: 'finish-step',
-            finishReason: { unified: 'stop', raw: 'stop' },
-            usage: harnessUsage ?? defaultUsage(),
-            ...(metadata ? { harnessMetadata: metadata } : {}),
-          });
+          if (stepOpen) emitFinishStep(harnessUsage ?? pendingStepUsage);
           queryInput.close();
           break;
         } else {
@@ -686,7 +725,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   emit({
     type: 'finish',
     finishReason: { unified: 'stop', raw: 'stop' },
-    totalUsage: stepUsage ?? defaultUsage(),
+    totalUsage: turnUsage ?? stepUsage ?? defaultUsage(),
     ...(totalCostUsd !== undefined
       ? { harnessMetadata: { 'claude-code': { costUsd: totalCostUsd } } }
       : {}),

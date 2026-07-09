@@ -167,6 +167,35 @@ describe('runBridge', () => {
     expect(observed.output).toBe('OK');
   });
 
+  it('runs the active turn interrupt handler before acknowledging interrupt', async () => {
+    let interrupted = false;
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => {
+      release = resolve;
+    });
+    const handle = await startBridge(async (_start, turn) => {
+      turn.onInterrupt(async () => {
+        await gate;
+        interrupted = true;
+      });
+      await new Promise<void>(() => {});
+    });
+    const client = await connect(handle.port);
+    await client.waitFor(f => f.type === 'bridge-hello');
+    client.send({ type: 'start' });
+
+    client.send({ type: 'interrupt' });
+    await new Promise(resolve => setTimeout(resolve, 20));
+    expect(client.frames.some(f => f.type === 'bridge-interrupted')).toBe(
+      false,
+    );
+
+    release();
+    const ack = await client.waitFor(f => f.type === 'bridge-interrupted');
+    expect(interrupted).toBe(true);
+    expect(ack).toMatchObject({ type: 'bridge-interrupted', ok: true });
+  });
+
   it('clears the log per turn but keeps seq monotonic across turns', async () => {
     let turnNo = 0;
     const handle = await startBridge(async (_start, turn) => {

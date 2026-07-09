@@ -112,6 +112,13 @@ export interface BridgeTurn {
   /** Aborts when the host sends `abort`. */
   readonly abortSignal: AbortSignal;
 
+  /**
+   * Register the runtime-specific interrupt hook for this active turn. The
+   * shared bridge invokes it when the host sends `interrupt`, then acknowledges
+   * only after the hook settles.
+   */
+  onInterrupt(handler: () => void | Promise<void>): void;
+
   /** True for the first turn since this bridge process started. */
   readonly firstTurn: boolean;
 
@@ -167,6 +174,7 @@ type InboundControl =
     }
   | { type: 'user-message'; text: string }
   | { type: 'abort' }
+  | { type: 'interrupt' }
   | { type: 'shutdown' }
   | { type: 'detach' }
   | { type: 'resume'; lastSeenEventId: number };
@@ -212,6 +220,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
   let isFirstTurn = true;
   let turnAbort: AbortController | undefined;
   let currentUserMessages: string[] | undefined;
+  let currentInterruptHandler: (() => void | Promise<void>) | undefined;
 
   // Diagnostics. Resolved per turn from `start.debug` with a sandbox-side
   // env fallback; gates console capture + structured `debug-event`s.
@@ -471,6 +480,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
         void writeFile(eventLogPath, '').catch(() => {});
         turnAbort = new AbortController();
         currentTurnState = 'running';
+        currentInterruptHandler = undefined;
         void writeStartConfig(msg);
         void writeBridgeMeta('running');
         const startDebug = (msg as { debug?: BridgeDebugConfig }).debug;
@@ -498,6 +508,9 @@ export async function runBridge<TStart extends { type: 'start' }>(
             }),
           pendingUserMessages: [],
           abortSignal: turnAbort.signal,
+          onInterrupt: handler => {
+            currentInterruptHandler = handler;
+          },
           firstTurn,
           bridgeLog: input => {
             const level = input.level ?? 'debug';
@@ -520,6 +533,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
         } catch (err) {
           emit({ type: 'error', error: serialiseError(err) });
         } finally {
+          currentInterruptHandler = undefined;
           currentTurnState = 'waiting';
           void writeBridgeMeta('waiting');
         }
@@ -546,6 +560,22 @@ export async function runBridge<TStart extends { type: 'start' }>(
         return;
       case 'abort':
         turnAbort?.abort();
+        return;
+      case 'interrupt':
+        try {
+          if (currentInterruptHandler) {
+            await currentInterruptHandler();
+          } else {
+            turnAbort?.abort();
+          }
+          sendControl({ type: 'bridge-interrupted', ok: true });
+        } catch (err) {
+          sendControl({
+            type: 'bridge-interrupted',
+            ok: false,
+            error: serialiseError(err),
+          });
+        }
         return;
       case 'resume':
         replay(ws, msg.lastSeenEventId);
