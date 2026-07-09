@@ -128,6 +128,8 @@ export interface BridgeTurn {
     attrs?: Record<string, unknown>;
     error?: unknown;
   }): void;
+
+  emitError(input: { error: unknown; message?: string }): void;
 }
 
 export interface RunBridgeOptions<TStart extends { type: 'start' }> {
@@ -402,6 +404,30 @@ export async function runBridge<TStart extends { type: 'start' }>(
    */
   const rawStdoutWrite = process.stdout.write.bind(process.stdout);
   const rawStderrWrite = process.stderr.write.bind(process.stderr);
+
+  const writeErrorToStderr = (input: {
+    message: string;
+    error: unknown;
+  }): void => {
+    try {
+      const formatted = formatBridgeError(input.error);
+      rawStderrWrite(
+        `[harness:${bridgeType}:error] ${input.message}: ${formatted.message}\n`,
+      );
+      if (formatted.stack) {
+        rawStderrWrite(`${formatted.stack}\n`);
+      }
+    } catch {}
+  };
+
+  const emitError = (input: { error: unknown; message?: string }): void => {
+    writeErrorToStderr({
+      message: input.message ?? 'bridge error',
+      error: input.error,
+    });
+    emit({ type: 'error', error: serialiseError(input.error) });
+  };
+
   const installConsoleCapture = (): void => {
     if (consoleCaptureInstalled) return;
     consoleCaptureInstalled = true;
@@ -513,12 +539,13 @@ export async function runBridge<TStart extends { type: 'start' }>(
                 : {}),
             });
           },
+          emitError,
         };
         currentUserMessages = turn.pendingUserMessages;
         try {
           await onStart(msg as TStart, turn);
         } catch (err) {
-          emit({ type: 'error', error: serialiseError(err) });
+          emitError({ error: err, message: 'bridge turn failed' });
         } finally {
           currentTurnState = 'waiting';
           void writeBridgeMeta('waiting');
@@ -669,10 +696,10 @@ export async function runBridge<TStart extends { type: 'start' }>(
 
   // Surface bridge-internal crashes to the host instead of dying silently.
   process.on('uncaughtException', err => {
-    emit({ type: 'error', error: serialiseError(err) });
+    emitError({ error: err, message: 'uncaught exception' });
   });
   process.on('unhandledRejection', err => {
-    emit({ type: 'error', error: serialiseError(err) });
+    emitError({ error: err, message: 'unhandled rejection' });
   });
 
   await new Promise<void>((resolve, reject) => {

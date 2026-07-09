@@ -283,7 +283,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       });
     }
   } catch (err) {
-    emit({ type: 'error', error: serialiseError(err) });
+    turn.emitError({ error: err, message: 'codex turn failed' });
     return;
   } finally {
     relay?.close();
@@ -709,13 +709,6 @@ function parseArgs(args: string[]): {
     }
   }
   return out;
-}
-
-function serialiseError(err: unknown): unknown {
-  if (err instanceof Error) {
-    return { name: err.name, message: err.message, stack: err.stack };
-  }
-  return err;
 }
 
 function emitFatal(message: string): never {

@@ -673,7 +673,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     }
   } catch (err) {
     if (!(abortCtl.signal.aborted && emittedTerminalError)) {
-      emit({ type: 'error', error: serialiseError(err) });
+      turn.emitError({ error: err, message: 'claude-code turn failed' });
     }
     return;
   } finally {
@@ -952,13 +952,6 @@ function parseArgs(args: string[]): {
     }
   }
   return out;
-}
-
-function serialiseError(err: unknown): unknown {
-  if (err instanceof Error) {
-    return { name: err.name, message: err.message, stack: err.stack };
-  }
-  return err;
 }
 
 function emitFatal(message: string): never {

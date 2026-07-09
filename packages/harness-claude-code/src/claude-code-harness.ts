@@ -22,6 +22,10 @@ import {
 } from '@ai-sdk/harness';
 import {
   classifyDiskLog,
+  createBridgeErrorHandler,
+  createBridgeStartupError,
+  drainBridgeProcessStream,
+  forwardBridgeProcessStream,
   markBridgeStarting,
   resolveSandboxHomeDir,
   SandboxChannel,
@@ -480,6 +484,10 @@ export function createClaudeCode(
               }),
             )
         : undefined;
+      const onBridgeError = createBridgeErrorHandler({
+        harnessId: 'claude-code',
+        sessionId: startOpts.sessionId,
+      });
 
       // Builds the `connect` thunk a `SandboxChannel` re-invokes on every
       // (re)connect: open the socket, then wait for `bridge-hello` so the
@@ -508,6 +516,7 @@ export function createClaudeCode(
             outboundSchema: outboundMessageSchema,
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
+            onBridgeError,
           });
           await attachChannel.open(isContinue ? { resume: true } : undefined);
           return createSession({
@@ -625,14 +634,10 @@ export function createClaudeCode(
       });
 
       const bridgeStartupStderr: string[] = [];
-      /*
-       * Bridge stderr is the only diagnostic channel for sandbox-side crashes
-       * and startup failures. Start forwarding before `bridge-ready`, otherwise
-       * module-resolution, auth, and syntax errors can be lost behind the
-       * generic startup failure below.
-       */
-      const bridgeStartupStderrDone = forwardBridgeStderr({
+      const bridgeStartupStderrDone = forwardBridgeProcessStream({
         stream: proc.stderr,
+        streamName: 'stderr',
+        source: 'claude-code',
         collectTail: bridgeStartupStderr,
       });
       void bridgeStartupStderrDone;
@@ -660,7 +665,7 @@ export function createClaudeCode(
             stderrDone: bridgeStartupStderrDone,
           }),
       });
-      void drainRest(proc.stdout);
+      void drainBridgeProcessStream(proc.stdout);
 
       const wsUrl =
         (await sandboxSession.getPortUrl({
@@ -672,6 +677,7 @@ export function createClaudeCode(
         connect: buildConnect(wsUrl),
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
+        onBridgeError,
         // In replay mode the respawned bridge reloaded the finished turn from
         // disk; seed the cursor and resume so it streams the tail (incl.
         // `finish`) rather than starting empty.
@@ -766,126 +772,6 @@ async function readBridgeAsset(name: string): Promise<string> {
     }
   }
   throw lastErr ?? new Error(`bridge asset not found: ${name}`);
-}
-
-async function createBridgeStartupError({
-  message,
-  proc,
-  stdoutTail,
-  stderrTail,
-  stderrDone,
-}: {
-  message: string;
-  proc: Experimental_SandboxProcess;
-  stdoutTail: string[];
-  stderrTail: string[];
-  stderrDone: Promise<void>;
-}): Promise<Error> {
-  await Promise.race([
-    stderrDone,
-    new Promise<void>(resolve => setTimeout(resolve, 250)),
-  ]).catch(() => {});
-
-  let exitStatus = '';
-  try {
-    const result = (await Promise.race([
-      proc.wait(),
-      new Promise<undefined>(resolve => setTimeout(resolve, 250)),
-    ])) as { exitCode?: number } | undefined;
-    if (result?.exitCode !== undefined) {
-      exitStatus = ` Exit code: ${result.exitCode}.`;
-    }
-  } catch {}
-
-  const details: string[] = [];
-  if (stdoutTail.length > 0) {
-    details.push(`stdout:\n${stdoutTail.join('\n')}`);
-  }
-  if (stderrTail.length > 0) {
-    details.push(`stderr:\n${stderrTail.join('\n')}`);
-  }
-
-  return new Error(
-    `${message}${exitStatus}${
-      details.length > 0 ? `\n\n${details.join('\n\n')}` : ''
-    }`,
-  );
-}
-
-function lineDecoder() {
-  let buffer = '';
-  return {
-    push(chunk: string): string[] {
-      buffer += chunk;
-      const lines: string[] = [];
-      let nl: number;
-      while ((nl = buffer.indexOf('\n')) !== -1) {
-        const raw = buffer.slice(0, nl);
-        buffer = buffer.slice(nl + 1);
-        const line = raw.replace(/\r$/, '').trim();
-        if (line.length > 0) lines.push(line);
-      }
-      return lines;
-    },
-    flush(): string[] {
-      const line = buffer.replace(/\r$/, '').trim();
-      buffer = '';
-      return line.length > 0 ? [line] : [];
-    },
-  };
-}
-
-async function forwardBridgeStderr({
-  stream,
-  collectTail,
-}: {
-  stream: ReadableStream<Uint8Array>;
-  collectTail?: string[];
-}): Promise<void> {
-  try {
-    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
-    const decoder = lineDecoder();
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) {
-        for (const line of decoder.flush()) {
-          const trimmed = line.trim();
-          if (!trimmed) continue;
-          if (collectTail) {
-            collectTail.push(trimmed);
-            if (collectTail.length > 20) collectTail.shift();
-          }
-          // eslint-disable-next-line no-console
-          console.log(`[bridge stderr] ${trimmed}`);
-        }
-        return;
-      }
-      if (value) {
-        for (const line of decoder.push(value)) {
-          const trimmed = line.trim();
-          if (!trimmed) continue;
-          if (collectTail) {
-            collectTail.push(trimmed);
-            if (collectTail.length > 20) collectTail.shift();
-          }
-          // eslint-disable-next-line no-console
-          console.log(`[bridge stderr] ${trimmed}`);
-        }
-      }
-    }
-  } catch {
-    // Reader errors are non-fatal — best-effort diagnostic only.
-  }
-}
-
-async function drainRest(stream: ReadableStream<Uint8Array>): Promise<void> {
-  try {
-    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
-    while (true) {
-      const { done } = await reader.read();
-      if (done) return;
-    }
-  } catch {}
 }
 
 /**

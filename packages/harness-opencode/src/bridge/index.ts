@@ -144,7 +144,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       totalUsage = await runPrompt({ client, sessionId, start, turn, emit });
     }
   } catch (err) {
-    emit({ type: 'error', error: serialiseError(err) });
+    turn.emitError({ error: err, message: 'opencode turn failed' });
   } finally {
     emit({
       type: 'finish',
@@ -1978,13 +1978,6 @@ function formatError(error: unknown): string {
   } catch {
     return String(error);
   }
-}
-
-function serialiseError(err: unknown): unknown {
-  if (err instanceof Error) {
-    return { name: err.name, message: err.message, stack: err.stack };
-  }
-  return err;
 }
 
 function emitFatal(message: string): never {

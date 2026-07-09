@@ -23,6 +23,10 @@ import {
 } from '@ai-sdk/harness';
 import {
   classifyDiskLog,
+  createBridgeErrorHandler,
+  createBridgeStartupError,
+  drainBridgeProcessStream,
+  forwardBridgeProcessStream,
   markBridgeStarting,
   resolveSandboxHomeDir,
   SandboxChannel,
@@ -274,6 +278,10 @@ export function createOpenCode(
               }),
             )
         : undefined;
+      const onBridgeError = createBridgeErrorHandler({
+        harnessId: 'opencode',
+        sessionId: startOpts.sessionId,
+      });
 
       if (coords) {
         try {
@@ -287,6 +295,7 @@ export function createOpenCode(
             outboundSchema: outboundMessageSchema,
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
+            onBridgeError,
           });
           await attachChannel.open(isContinue ? { resume: true } : undefined);
           return createSession({
@@ -383,6 +392,13 @@ export function createOpenCode(
         env,
         abortSignal: startOpts.abortSignal,
       });
+      const stderrTail: string[] = [];
+      const bridgeStderrDone = forwardBridgeProcessStream({
+        stream: proc.stderr,
+        streamName: 'stderr',
+        source: 'opencode',
+        collectTail: stderrTail,
+      });
 
       const { port: boundPort } = await waitForBridgeReady({
         proc,
@@ -391,13 +407,24 @@ export function createOpenCode(
         bridgeType: 'opencode',
         timeoutMs,
         abortSignal: startOpts.abortSignal,
-        createTimeoutError: () =>
-          new Error('opencode bridge did not become ready in time.'),
-        createExitError: () =>
-          new Error('opencode bridge exited before becoming ready.'),
+        createTimeoutError: ({ proc, stdoutTail }) =>
+          createBridgeStartupError({
+            message: 'opencode bridge did not become ready in time.',
+            proc,
+            stdoutTail,
+            stderrTail,
+            stderrDone: bridgeStderrDone,
+          }),
+        createExitError: ({ proc, stdoutTail }) =>
+          createBridgeStartupError({
+            message: 'opencode bridge exited before becoming ready.',
+            proc,
+            stdoutTail,
+            stderrTail,
+            stderrDone: bridgeStderrDone,
+          }),
       });
-      void drainRest(proc.stdout);
-      void forwardBridgeStderr(proc.stderr);
+      void drainBridgeProcessStream(proc.stdout);
 
       const wsUrl =
         (await sandboxSession.getPortUrl({
@@ -409,6 +436,7 @@ export function createOpenCode(
         connect: () => openWebSocket(wsUrl),
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
+        onBridgeError,
         ...(respawnStrategy === 'replay'
           ? { initialLastSeenEventId: coords?.lastSeenEventId ?? 0 }
           : {}),
@@ -495,34 +523,6 @@ async function writeOpenCodeSkills({
   });
 
   return { skillsDir };
-}
-
-async function forwardBridgeStderr(
-  stream: ReadableStream<Uint8Array>,
-): Promise<void> {
-  try {
-    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) return;
-      if (value) {
-        const trimmed = value.endsWith('\n') ? value.slice(0, -1) : value;
-        if (trimmed.length > 0) {
-          console.log(`[bridge stderr] ${trimmed}`);
-        }
-      }
-    }
-  } catch {}
-}
-
-async function drainRest(stream: ReadableStream<Uint8Array>): Promise<void> {
-  try {
-    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
-    while (true) {
-      const { done } = await reader.read();
-      if (done) return;
-    }
-  } catch {}
 }
 
 function openWebSocket(url: string): Promise<WebSocket> {
