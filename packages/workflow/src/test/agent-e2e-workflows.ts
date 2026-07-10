@@ -143,7 +143,7 @@ export async function agentErrorToolE2e() {
 }
 
 // ============================================================================
-// experimental_repairToolCall serialization
+// repairToolCall serialization
 // ============================================================================
 
 async function repairToolCall({
@@ -179,7 +179,7 @@ export async function agentRepairToolCallE2e() {
   const result = await agent.stream({
     messages: [{ role: 'user', content: 'add 3 and 7' }],
     writable: getWritable(),
-    experimental_repairToolCall: repairToolCall as any,
+    repairToolCall: repairToolCall as any,
   });
   return {
     stepCount: result.steps.length,

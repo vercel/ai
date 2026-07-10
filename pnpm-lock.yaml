@@ -3324,12 +3324,9 @@ importers:
       ai:
         specifier: workspace:*
         version: link:../ai
-      react:
-        specifier: ^18 || ~19.0.1 || ~19.1.2 || ^19.2.1
-        version: 19.2.6
       swr:
         specifier: ^2.4.1
-        version: 2.4.1(react@19.2.6)
+        version: 2.4.1(react@18.3.1)
       throttleit:
         specifier: 2.1.0
         version: 2.1.0
@@ -3342,7 +3339,7 @@ importers:
         version: 6.9.1
       '@testing-library/react':
         specifier: ^16.3.2
-        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@testing-library/user-event':
         specifier: ^14.6.1
         version: 14.6.1(@testing-library/dom@10.4.1)
@@ -3367,9 +3364,12 @@ importers:
       msw:
         specifier: 2.6.4
         version: 2.6.4(@types/node@22.19.19)(typescript@5.8.3)
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
       react-dom:
-        specifier: ^19.2.6
-        version: 19.2.6(react@19.2.6)
+        specifier: ^18.3.1
+        version: 18.3.1(react@18.3.1)
       tsup:
         specifier: ^7.2.0
         version: 7.2.0(@swc/core@1.15.3(@swc/helpers@0.5.21))(postcss@8.5.15)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.21))(@types/node@22.19.19)(typescript@5.8.3))(typescript@5.8.3)
@@ -29957,16 +29957,6 @@ snapshots:
       '@types/react': 18.3.28
       '@types/react-dom': 18.3.7(@types/react@18.3.28)
 
-  '@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)':
-    dependencies:
-      '@babel/runtime': 7.29.2
-      '@testing-library/dom': 10.4.1
-      react: 19.2.6
-      react-dom: 19.2.6(react@19.2.6)
-    optionalDependencies:
-      '@types/react': 18.3.28
-      '@types/react-dom': 18.3.7(@types/react@18.3.28)
-
   '@testing-library/svelte-core@1.0.0(svelte@5.55.7)':
     dependencies:
       svelte: 5.55.7
@@ -40857,11 +40847,11 @@ snapshots:
       picocolors: 1.1.1
       sax: 1.6.0
 
-  swr@2.4.1(react@19.2.6):
+  swr@2.4.1(react@18.3.1):
     dependencies:
       dequal: 2.0.3
-      react: 19.2.6
-      use-sync-external-store: 1.6.0(react@19.2.6)
+      react: 18.3.1
+      use-sync-external-store: 1.6.0(react@18.3.1)
 
   swrv@1.2.0(vue@3.5.38(typescript@5.8.3)):
     dependencies:
@@ -41893,9 +41883,9 @@ snapshots:
     optionalDependencies:
       '@types/react': 18.3.28
 
-  use-sync-external-store@1.6.0(react@19.2.6):
+  use-sync-external-store@1.6.0(react@18.3.1):
     dependencies:
-      react: 19.2.6
+      react: 18.3.1
 
   utif@2.0.1:
     dependencies:

@@ -356,7 +356,8 @@ export function streamText<
   providerOptions,
   activeTools,
   toolOrder,
-  experimental_repairToolCall: repairToolCall,
+  experimental_repairToolCall,
+  repairToolCall = experimental_repairToolCall,
   experimental_refineToolInput: refineToolInput,
   experimental_transform: transform,
   experimental_download: download,
@@ -493,6 +494,13 @@ export function streamText<
 
     /**
      * A function that attempts to repair a tool call that failed to parse.
+     */
+    repairToolCall?: ToolCallRepairFunction<TOOLS>;
+
+    /**
+     * A function that attempts to repair a tool call that failed to parse.
+     *
+     * @deprecated Use `repairToolCall` instead.
      */
     experimental_repairToolCall?: ToolCallRepairFunction<TOOLS>;
 

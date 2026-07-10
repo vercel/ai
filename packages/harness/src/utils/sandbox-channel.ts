@@ -58,6 +58,8 @@ export interface SandboxChannelOptions<TOut> {
     event: Extract<TOut, { type: 'sandbox-log' | 'debug-event' }>,
   ) => void;
 
+  onBridgeError?: (event: Extract<TOut, { type: 'error' }>) => void;
+
   /**
    * Seed the host-side cursor before the first connect. Pass the
    * `lastSeenEventId` persisted from a prior process so the bridge replays only
@@ -116,6 +118,9 @@ export class SandboxChannel<
   private readonly onDiagnostic:
     | ((event: Extract<TOut, { type: 'sandbox-log' | 'debug-event' }>) => void)
     | undefined;
+  private readonly onBridgeError:
+    | ((event: Extract<TOut, { type: 'error' }>) => void)
+    | undefined;
   private readonly maxElapsedMs: number;
   private readonly initialDelayMs: number;
   private readonly maxDelayMs: number;
@@ -142,6 +147,7 @@ export class SandboxChannel<
     this.outboundSchema = options.outboundSchema;
     this.onDebug = options.onDebug;
     this.onDiagnostic = options.onDiagnostic;
+    this.onBridgeError = options.onBridgeError;
     this.maxElapsedMs = options.reconnect?.maxElapsedMs ?? 30_000;
     this.initialDelayMs = options.reconnect?.initialDelayMs ?? 50;
     this.maxDelayMs = options.reconnect?.maxDelayMs ?? 2_000;
@@ -480,6 +486,9 @@ export class SandboxChannel<
         message as Extract<TOut, { type: 'sandbox-log' | 'debug-event' }>,
       );
       return;
+    }
+    if (message.type === 'error') {
+      this.onBridgeError?.(message as Extract<TOut, { type: 'error' }>);
     }
     const type = message.type as EventTypeOf<TOut>;
     const set = this.listeners.get(type);

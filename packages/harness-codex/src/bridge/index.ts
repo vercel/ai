@@ -289,10 +289,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         reasoningByItem,
         stepTracker,
         setTurnUsage: u => (turnUsage = u),
+        emitWarning: turn.emitWarning,
+        emitError: turn.emitError,
       });
     }
   } catch (err) {
-    emit({ type: 'error', error: serialiseError(err) });
+    turn.emitError({ error: err, message: 'codex turn failed' });
     return;
   } finally {
     relay?.close();
@@ -392,6 +394,8 @@ function translateAndEmit(
     reasoningByItem: Map<string, string>;
     stepTracker: CodexStepTracker;
     setTurnUsage: (u: Record<string, unknown>) => void;
+    emitWarning: BridgeTurn['emitWarning'];
+    emitError: BridgeTurn['emitError'];
   },
 ): void {
   if (event.type === 'turn.completed') {
@@ -400,14 +404,17 @@ function translateAndEmit(
     return;
   }
   if (event.type === 'turn.failed') {
-    ctx.send({
-      type: 'error',
+    ctx.emitError({
       error: event.error?.message ?? 'codex turn failed',
+      message: 'codex turn failed',
     });
     return;
   }
   if (event.type === 'error') {
-    ctx.send({ type: 'error', error: event.message ?? 'codex error' });
+    ctx.emitError({
+      error: event.message ?? 'codex error',
+      message: 'codex stream error',
+    });
     return;
   }
   if (!event.item) return;
@@ -549,10 +556,11 @@ function translateAndEmit(
   }
 
   if (item.type === 'error' && event.type === 'item.completed') {
-    ctx.send({
-      type: 'error',
-      error: (item as { message?: string }).message ?? 'codex item error',
-    });
+    const message =
+      typeof item.message === 'string' && item.message.trim()
+        ? item.message
+        : 'codex reported a non-fatal error item';
+    ctx.emitWarning({ message });
     return;
   }
 }
@@ -717,13 +725,6 @@ function parseArgs(args: string[]): {
     }
   }
   return out;
-}
-
-function serialiseError(err: unknown): unknown {
-  if (err instanceof Error) {
-    return { name: err.name, message: err.message, stack: err.stack };
-  }
-  return err;
 }
 
 function emitFatal(message: string): never {

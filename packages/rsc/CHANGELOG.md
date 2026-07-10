@@ -1,5 +1,14 @@
 # @ai-sdk/rsc
 
+## 3.0.20
+
+### Patch Changes
+
+- 1146118: chore (rsc): mark package as ESM and remove leftover dual CJS/ESM publishing artifacts from package.json (`module` field and `module` export condition). The published entrypoints are now `dist/*.js` instead of `dist/*.mjs`.
+- Updated dependencies [b9ac19f]
+- Updated dependencies [a4186d6]
+  - ai@7.0.20
+
 ## 3.0.19
 
 ### Patch Changes

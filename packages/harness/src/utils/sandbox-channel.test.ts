@@ -425,4 +425,43 @@ describe('SandboxChannel', () => {
     // Diagnostics still advance the resume cursor (they carry a seq).
     expect(channel.lastSeenEventId).toBe(3);
   });
+
+  it('reports error frames to onBridgeError and still dispatches them normally', async () => {
+    const connector = makeConnector();
+    const errors: Outbound[] = [];
+    const channel = new SandboxChannel<Outbound, Inbound>({
+      connect: connector.connect,
+      outboundSchema,
+      onBridgeError: e => errors.push(e),
+    });
+    await channel.open();
+
+    const listenerEvents: Outbound[] = [];
+    channel.on('error', event => listenerEvents.push(event));
+    connector.current().deliver(
+      {
+        type: 'error',
+        error: {
+          name: 'Error',
+          message: 'boom',
+          stack: 'Error: boom',
+        },
+      },
+      1,
+    );
+    await flush();
+
+    expect(errors).toEqual([
+      {
+        type: 'error',
+        error: {
+          name: 'Error',
+          message: 'boom',
+          stack: 'Error: boom',
+        },
+      },
+    ]);
+    expect(listenerEvents).toEqual(errors);
+    expect(channel.lastSeenEventId).toBe(1);
+  });
 });
