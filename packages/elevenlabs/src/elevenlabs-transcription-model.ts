@@ -77,7 +77,7 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
       new File([blob], 'audio', { type: mediaType }),
       `audio.${fileExtension}`,
     );
-    formData.append('diarize', 'true');
+    formData.append('diarize', String(elevenlabsOptions?.diarize ?? true));
 
     // Add provider-specific options
     if (elevenlabsOptions) {
@@ -89,10 +89,6 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
           elevenlabsOptions.timestampsGranularity ?? undefined,
         file_format: elevenlabsOptions.fileFormat ?? undefined,
       };
-
-      if (typeof elevenlabsOptions.diarize === 'boolean') {
-        formData.append('diarize', String(elevenlabsOptions.diarize));
-      }
 
       for (const key in transcriptionModelOptions) {
         const value =

@@ -117,6 +117,64 @@ describe('doGenerate', () => {
         }
       `);
     });
+
+    describe('diarize', () => {
+      function createFormDataCapturingProvider() {
+        const captured: { formData?: FormData } = {};
+
+        const capturingProvider = createElevenLabs({
+          apiKey: 'test-api-key',
+          fetch: async (input, init) => {
+            captured.formData = init?.body as FormData;
+            return fetch(input, init);
+          },
+        });
+
+        return { capturingProvider, captured };
+      }
+
+      it('should send diarize as true by default', async () => {
+        const { capturingProvider, captured } =
+          createFormDataCapturingProvider();
+
+        await capturingProvider.transcription('scribe_v1').doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+        });
+
+        expect(captured.formData?.getAll('diarize')).toEqual(['true']);
+      });
+
+      it('should send a single diarize field when diarize is disabled', async () => {
+        const { capturingProvider, captured } =
+          createFormDataCapturingProvider();
+
+        await capturingProvider.transcription('scribe_v1').doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+          providerOptions: {
+            elevenlabs: { diarize: false },
+          },
+        });
+
+        expect(captured.formData?.getAll('diarize')).toEqual(['false']);
+      });
+
+      it('should keep the diarize default when other options are set', async () => {
+        const { capturingProvider, captured } =
+          createFormDataCapturingProvider();
+
+        await capturingProvider.transcription('scribe_v1').doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+          providerOptions: {
+            elevenlabs: { languageCode: 'en' },
+          },
+        });
+
+        expect(captured.formData?.getAll('diarize')).toEqual(['true']);
+      });
+    });
   });
 
   describe('response headers', () => {
