@@ -485,6 +485,81 @@ describe('convertToGoogleInteractionsInput', () => {
     });
   });
 
+  describe('text file parts', () => {
+    it('maps a text/plain reference part to a document block with the resolved Files API URI', () => {
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Summarize this text document' },
+            {
+              type: 'file',
+              mediaType: 'text/plain',
+              data: {
+                type: 'reference',
+                reference: {
+                  google:
+                    'https://generativelanguage.googleapis.com/v1beta/files/txt-abc',
+                },
+              },
+            },
+          ],
+        },
+      ];
+      const result = convertToGoogleInteractionsInput({ prompt });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "input": [
+            {
+              "content": [
+                {
+                  "text": "Summarize this text document",
+                  "type": "text",
+                },
+                {
+                  "mime_type": "text/plain",
+                  "type": "document",
+                  "uri": "https://generativelanguage.googleapis.com/v1beta/files/txt-abc",
+                },
+              ],
+              "type": "user_input",
+            },
+          ],
+          "systemInstruction": undefined,
+          "warnings": [],
+        }
+      `);
+    });
+    it('emits a warning and drops unsupported non-text/* media types', () => {
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'font/woff2',
+              data: {
+                type: 'reference',
+                reference: {
+                  google:
+                    'https://generativelanguage.googleapis.com/v1beta/files/font-xyz',
+                },
+              },
+            },
+          ],
+        },
+      ];
+      const result = convertToGoogleInteractionsInput({ prompt });
+      expect(result.warnings).toEqual([
+        {
+          type: 'other',
+          message:
+            'google.interactions: unsupported file media type "font/woff2"; part dropped.',
+        },
+      ]);
+    });
+  });
+
   describe('video file parts', () => {
     it('passes a YouTube URL through as a video block with `uri`', () => {
       const prompt: LanguageModelV4Prompt = [

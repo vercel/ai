@@ -265,6 +265,9 @@ function convertFilePartToContent({
     case 'application':
       kind = 'document';
       break;
+    case 'text':
+      kind = 'document';
+      break;
     default:
       kind = undefined;
   }
