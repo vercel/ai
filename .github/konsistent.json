@@ -28,6 +28,16 @@
       ]
     },
     {
+      "name": "package-must-follow-general-code-requirements",
+      "description": "Every package directory must contain a specific minimum set of files.",
+      "paths": ["packages/*/src/**/*.ts", "!packages/codemod"],
+      "must": [
+        {
+          "use": "aisdk/package-must-import-zod-from-v4"
+        }
+      ]
+    },
+    {
       "name": "provider-package-must-export-required-symbols",
       "description": "Every provider package must have specific files that export a specific set of symbols.",
       "paths": [

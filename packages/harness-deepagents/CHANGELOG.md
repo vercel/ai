@@ -1,5 +1,29 @@
 # @ai-sdk/harness-deepagents
 
+## 1.0.24
+
+### Patch Changes
+
+- Updated dependencies [44e988a]
+  - @ai-sdk/harness@1.0.25
+
+## 1.0.23
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.24
+
+## 1.0.22
+
+### Patch Changes
+
+- 39c8276: fix(harness): improve opaque sandbox bridge error handling
+- 91fe6d8: fix(harness): emit `finish-step` stream parts correctly per the underlying model steps
+- Updated dependencies [39c8276]
+- Updated dependencies [91fe6d8]
+- Updated dependencies [0be5014]
+  - @ai-sdk/harness@1.0.23
+
 ## 1.0.21
 
 ### Patch Changes
