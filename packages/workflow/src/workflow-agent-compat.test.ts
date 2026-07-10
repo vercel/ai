@@ -18,7 +18,7 @@ import {
 } from 'ai';
 import { MockLanguageModelV4, convertArrayToReadableStream } from 'ai/test';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { WorkflowAgent } from './workflow-agent.js';
 
 // ============================================================================
