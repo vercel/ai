@@ -9,6 +9,7 @@ import {
 import type { InferUIMessageData, UIMessage } from './ui-messages';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { UIMessageStreamError } from '../error/ui-message-stream-error';
+import { validateUIMessages } from './validate-ui-messages';
 
 function createUIMessageStream(parts: UIMessageChunk[]) {
   return convertArrayToReadableStream(parts);
@@ -3149,7 +3150,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": undefined,
+                  "rawInput": "",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "tool-call-0",
@@ -3175,7 +3176,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": undefined,
+                  "rawInput": "{"testArg":"t",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "tool-call-0",
@@ -3201,7 +3202,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": undefined,
+                  "rawInput": "{"testArg":"test-value"}}",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "tool-call-0",
@@ -5172,7 +5173,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": true,
-                  "rawInput": undefined,
+                  "rawInput": "",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "tool-call-1",
@@ -5198,7 +5199,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": true,
-                  "rawInput": undefined,
+                  "rawInput": "{ "query": "test" }",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "tool-call-1",
@@ -5544,6 +5545,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": true,
+                  "rawInput": "",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "tool-call-1",
@@ -5570,7 +5572,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": true,
-                  "rawInput": undefined,
+                  "rawInput": "{ "query": "test" }",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "tool-call-1",
@@ -6045,6 +6047,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
+                  "rawInput": "",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "tool-call-1",
@@ -6071,7 +6074,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": undefined,
+                  "rawInput": "{ "query": "test" }",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "tool-call-1",
@@ -6697,7 +6700,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": undefined,
+                  "rawInput": "",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "call-1",
@@ -6723,7 +6726,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": undefined,
+                  "rawInput": "{ "cities": "San Francisco" }",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "call-1",
@@ -8160,7 +8163,7 @@ describe('processUIMessageStream', () => {
               rawInput: '{ "title": ',
               title: 'Create document',
               toolMetadata: { source: 'resume' },
-            } as any,
+            },
           ],
         },
       });
@@ -8228,7 +8231,7 @@ describe('processUIMessageStream', () => {
               rawInput: '{ "a": ',
               title: 'Calculator',
               toolMetadata: { source: 'resume' },
-            } as any,
+            },
           ],
         },
       });
@@ -8268,6 +8271,71 @@ describe('processUIMessageStream', () => {
           },
         ]
       `);
+    });
+
+    it('should persist raw input through validation before resuming', async () => {
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream: createUIMessageStream([
+            { type: 'start' },
+            {
+              type: 'tool-input-start',
+              toolCallId: 'dynamic-call-persisted',
+              toolName: 'calculate',
+              dynamic: true,
+            },
+            {
+              type: 'tool-input-delta',
+              toolCallId: 'dynamic-call-persisted',
+              inputTextDelta: '{ "a": ',
+            },
+            { type: 'finish' },
+          ]),
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      const [validatedMessage] = await validateUIMessages({
+        messages: [state.message],
+      });
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: validatedMessage,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream: createUIMessageStream([
+            { type: 'start' },
+            {
+              type: 'tool-input-delta',
+              toolCallId: 'dynamic-call-persisted',
+              inputTextDelta: '1 }',
+            },
+            { type: 'finish' },
+          ]),
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state.message.parts[0]).toMatchObject({
+        type: 'dynamic-tool',
+        toolCallId: 'dynamic-call-persisted',
+        state: 'input-streaming',
+        input: { a: 1 },
+        rawInput: '{ "a": 1 }',
+      });
     });
   });
 

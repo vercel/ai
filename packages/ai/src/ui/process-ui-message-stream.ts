@@ -336,7 +336,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               anyPart.input = anyOptions.input;
               anyPart.output = anyOptions.output;
               anyPart.errorText = anyOptions.errorText;
-              anyPart.rawInput = anyOptions.rawInput ?? anyPart.rawInput;
+              if (options.state === 'input-streaming') {
+                anyPart.rawInput = anyOptions.rawInput;
+              } else {
+                anyPart.rawInput = undefined;
+              }
               anyPart.preliminary = anyOptions.preliminary;
               if (options.title !== undefined) {
                 anyPart.title = options.title;
@@ -373,6 +377,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 state: options.state,
                 input: anyOptions.input,
                 output: anyOptions.output,
+                ...(options.state === 'input-streaming'
+                  ? { rawInput: anyOptions.rawInput }
+                  : {}),
                 errorText: anyOptions.errorText,
                 preliminary: anyOptions.preliminary,
                 providerExecuted: anyOptions.providerExecuted,
@@ -586,6 +593,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 dynamic: chunk.dynamic,
                 title: chunk.title,
                 toolMetadata: chunk.toolMetadata,
+                rawInput: true,
               };
 
               if (chunk.dynamic) {
@@ -594,6 +602,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   toolName: chunk.toolName,
                   state: 'input-streaming',
                   input: undefined,
+                  rawInput: '',
                   providerExecuted: chunk.providerExecuted,
                   title: chunk.title,
                   toolMetadata: chunk.toolMetadata,
@@ -605,6 +614,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   toolName: chunk.toolName,
                   state: 'input-streaming',
                   input: undefined,
+                  rawInput: '',
                   providerExecuted: chunk.providerExecuted,
                   title: chunk.title,
                   toolMetadata: chunk.toolMetadata,
