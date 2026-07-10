@@ -4,6 +4,16 @@
 
 ### Patch Changes
 
+- Updated dependencies [be7f05a]
+- Updated dependencies [ee55a07]
+- Updated dependencies [aad737d]
+- Updated dependencies [0f93c57]
+  - ai@7.0.19
+
+## 0.0.1
+
+### Patch Changes
+
 - ai@7.0.18
 
 ## 0.0.1
