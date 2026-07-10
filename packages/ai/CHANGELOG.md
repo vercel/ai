@@ -1,5 +1,12 @@
 # ai
 
+## 7.0.20
+
+### Patch Changes
+
+- b9ac19f: Flush compressed Node.js response chunks as they are piped so UI message and text streams remain incremental in Express and Next.js.
+- a4186d6: Promote the `repairToolCall` option to stable, with a deprecated `experimental_repairToolCall` alias for backwards compatibility.
+
 ## 7.0.19
 
 ### Patch Changes

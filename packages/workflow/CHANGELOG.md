@@ -1,5 +1,15 @@
 # @ai-sdk/workflow
 
+## 1.0.20
+
+### Patch Changes
+
+- a4186d6: Promote the `repairToolCall` option to stable, with a deprecated `experimental_repairToolCall` alias for backwards compatibility.
+- c29e0d7: fix (workflow): mark package as ESM so the published files match the `main`, `types`, and `exports` entrypoints in package.json. Previously `require('@ai-sdk/workflow')` failed with `MODULE_NOT_FOUND` because the declared CommonJS entrypoints were never published.
+- Updated dependencies [b9ac19f]
+- Updated dependencies [a4186d6]
+  - ai@7.0.20
+
 ## 1.0.19
 
 ### Patch Changes

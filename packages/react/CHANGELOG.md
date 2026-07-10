@@ -1,5 +1,14 @@
 # @ai-sdk/react
 
+## 4.0.21
+
+### Patch Changes
+
+- d26bf99: Align React development dependencies with React 18 so workspace-linked examples do not bundle duplicate React copies.
+- Updated dependencies [b9ac19f]
+- Updated dependencies [a4186d6]
+  - ai@7.0.20
+
 ## 4.0.20
 
 ### Patch Changes
