@@ -560,6 +560,13 @@ describe('doStream', () => {
       'realtime',
       'openai-insecure-api-key.test-api-key',
     ]);
+    // OpenAI rejects handshakes that send both auth channels:
+    expect(Object.keys(ws.options?.headers ?? {})).not.toContain(
+      'Authorization',
+    );
+    expect(Object.keys(ws.options?.headers ?? {})).not.toContain(
+      'authorization',
+    );
 
     ws.open();
     await flush();
@@ -654,6 +661,135 @@ describe('doStream', () => {
       transcript: 'Hello',
     });
     await expect(partsPromise).resolves.toBeDefined();
+  });
+
+  it('should strip only the Authorization header and pass other headers to the WebSocket constructor', async () => {
+    MockWebSocket.instances = [];
+    const model = new OpenAITranscriptionModel('gpt-realtime-whisper', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://api.openai.com/v1${path}`,
+      headers: () => ({
+        Authorization: 'Bearer test-api-key',
+        'OpenAI-Organization': 'test-organization',
+        'Custom-Header': 'custom-value',
+      }),
+      webSocket: MockWebSocket,
+    });
+
+    const result = await model.doStream({
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+
+    expect(ws.protocols).toEqual([
+      'realtime',
+      'openai-insecure-api-key.test-api-key',
+    ]);
+    expect(ws.options?.headers).toMatchObject({
+      'OpenAI-Organization': 'test-organization',
+      'Custom-Header': 'custom-value',
+    });
+    expect(Object.keys(ws.options?.headers ?? {})).not.toContain(
+      'Authorization',
+    );
+    expect(Object.keys(ws.options?.headers ?? {})).not.toContain(
+      'authorization',
+    );
+
+    ws.open();
+    await flush();
+    ws.message({
+      type: 'conversation.item.input_audio_transcription.completed',
+      item_id: 'item-1',
+      transcript: 'Hello',
+    });
+    await expect(partsPromise).resolves.toBeDefined();
+  });
+
+  it('should use only the realtime protocol and pass headers unchanged when there is no Authorization header', async () => {
+    MockWebSocket.instances = [];
+    const model = new OpenAITranscriptionModel('gpt-realtime-whisper', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://api.openai.com/v1${path}`,
+      headers: () => ({ 'Custom-Header': 'custom-value' }),
+      webSocket: MockWebSocket,
+    });
+
+    const result = await model.doStream({
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+
+    expect(ws.protocols).toEqual(['realtime']);
+    expect(ws.options?.headers).toMatchObject({
+      'Custom-Header': 'custom-value',
+    });
+
+    ws.open();
+    await flush();
+    ws.message({
+      type: 'conversation.item.input_audio_transcription.completed',
+      item_id: 'item-1',
+      transcript: 'Hello',
+    });
+    await expect(partsPromise).resolves.toBeDefined();
+  });
+
+  it('should strip undefined header values before the WebSocket constructor', async () => {
+    MockWebSocket.instances = [];
+    const model = new OpenAITranscriptionModel('gpt-realtime-whisper', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://api.openai.com/v1${path}`,
+      headers: () => ({ Authorization: 'Bearer test-api-key' }),
+      webSocket: MockWebSocket,
+    });
+
+    const result = await model.doStream({
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+      headers: { 'Custom-Header': 'custom-value', 'X-Unset': undefined },
+    });
+
+    void result.stream.cancel();
+    const headers = MockWebSocket.instances[0].options?.headers ?? {};
+    expect(headers).not.toHaveProperty('X-Unset');
+    expect(Object.values(headers)).not.toContain(undefined);
+    expect(headers).toMatchObject({ 'Custom-Header': 'custom-value' });
+  });
+
+  it('should cancel the audio stream when the WebSocket constructor throws', async () => {
+    let audioCancelled = false;
+    const audio = new ReadableStream<Uint8Array>({
+      cancel() {
+        audioCancelled = true;
+      },
+    });
+    const model = new OpenAITranscriptionModel('gpt-realtime-whisper', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://api.openai.com/v1${path}`,
+      headers: () => ({ Authorization: 'Bearer test-api-key' }),
+      webSocket: class {
+        constructor() {
+          throw new Error('constructor failed');
+        }
+      } as never,
+    });
+
+    const result = await model.doStream({
+      audio,
+      inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+    });
+
+    await expect(convertReadableStreamToArray(result.stream)).rejects.toThrow(
+      'constructor failed',
+    );
+    expect(audioCancelled).toBe(true);
   });
 
   it('should warn about unsupported non-streaming provider options', async () => {

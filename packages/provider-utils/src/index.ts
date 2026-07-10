@@ -1,6 +1,10 @@
 export { asArray } from './as-array';
 export type { Arrayable } from './as-array';
 export * from './combine-headers';
+export {
+  connectToWebSocket,
+  type WebSocketConnection,
+} from './connect-to-websocket';
 export { convertAsyncIteratorToReadableStream } from './convert-async-iterator-to-readable-stream';
 export { convertInlineFileDataToUint8Array } from './convert-inline-file-data-to-uint8-array';
 export { convertImageModelFileToDataUri } from './convert-image-model-file-to-data-uri';

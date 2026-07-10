@@ -10,16 +10,17 @@ import {
   convertBase64ToUint8Array,
   convertToBase64,
   createJsonResponseHandler,
-  getWebSocketConstructor,
+  connectToWebSocket,
   mediaTypeToExtension,
   parseProviderOptions,
   postFormDataToApi,
-  readWebSocketMessageText,
   safeParseJSON,
   serializeModelOptions,
   toWebSocketUrl,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
+  type WebSocketConnection,
+  type WebSocketLike,
 } from '@ai-sdk/provider-utils';
 import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
@@ -390,22 +391,21 @@ function createOpenAIRealtimeTranscriptionStream({
 
   return new ReadableStream({
     start: controller => {
-      const WebSocketConstructor = getWebSocketConstructor(webSocket);
-      const ws = new WebSocketConstructor(
-        url,
-        getOpenAIRealtimeProtocols(headers),
-        { headers },
-      );
+      const realtimeConnection = getOpenAIRealtimeConnection(headers);
       let audioReader:
         | ReadableStreamDefaultReader<Uint8Array | string>
         | undefined;
+      let connection: WebSocketConnection | undefined;
 
       cleanup = (closeCode?: number) => {
-        abortSignal?.removeEventListener('abort', abort);
-        void audioReader?.cancel().catch(() => {});
-        try {
-          ws.close(closeCode);
-        } catch {}
+        if (audioReader != null) {
+          void audioReader.cancel().catch(() => {});
+        } else {
+          // pre-open failure or abort: cancel the caller's audio stream so an
+          // upstream producer piping into it does not hang:
+          void audio.cancel().catch(() => {});
+        }
+        connection?.close(closeCode);
       };
 
       const finishWithError = (error: unknown) => {
@@ -431,22 +431,13 @@ function createOpenAIRealtimeTranscriptionStream({
         cleanup(1000);
       };
 
-      const abort = () => {
-        finishWithError(abortSignal?.reason ?? new Error('Aborted'));
-      };
-      if (abortSignal?.aborted) {
-        abort();
-        return;
-      }
-      abortSignal?.addEventListener('abort', abort, { once: true });
-
-      const sendAudio = async () => {
+      const sendAudio = async (socket: WebSocketLike) => {
         audioReader = audio.getReader();
         try {
           while (true) {
             const { done, value } = await audioReader.read();
             if (done || finished) break;
-            ws.send(
+            socket.send(
               JSON.stringify({
                 type: 'input_audio_buffer.append',
                 audio: convertToBase64(value),
@@ -457,63 +448,65 @@ function createOpenAIRealtimeTranscriptionStream({
           audioReader.releaseLock();
         }
         if (!finished) {
-          ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
+          socket.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
         }
       };
 
-      ws.onopen = () => {
-        controller.enqueue({ type: 'stream-start', warnings });
-        ws.send(JSON.stringify(sessionUpdate));
-        void sendAudio().catch(finishWithError);
-      };
+      connection = connectToWebSocket({
+        url,
+        protocols: realtimeConnection.protocols,
+        headers: realtimeConnection.headers,
+        webSocket,
+        abortSignal,
+        onAbort: finishWithError,
+        onProcessingError: finishWithError,
+        onOpen: socket => {
+          controller.enqueue({ type: 'stream-start', warnings });
+          socket.send(JSON.stringify(sessionUpdate));
+          void sendAudio(socket).catch(finishWithError);
+        },
+        onMessageText: async text => {
+          const parsed = await safeParseJSON({ text });
+          if (!parsed.success) return;
+          const raw = parsed.value as OpenAIRealtimeTranscriptionEvent;
 
-      ws.onmessage = event => {
-        void readWebSocketMessageText(event.data)
-          .then(async text => {
-            const parsed = await safeParseJSON({ text });
-            if (!parsed.success) return;
-            const raw = parsed.value as OpenAIRealtimeTranscriptionEvent;
+          if (includeRawChunks) {
+            controller.enqueue({ type: 'raw', rawValue: raw });
+          }
 
-            if (includeRawChunks) {
-              controller.enqueue({ type: 'raw', rawValue: raw });
+          switch (raw.type) {
+            case 'conversation.item.input_audio_transcription.delta': {
+              controller.enqueue({
+                type: 'transcript-delta',
+                id: raw.item_id,
+                delta: raw.delta ?? '',
+              });
+              break;
             }
 
-            switch (raw.type) {
-              case 'conversation.item.input_audio_transcription.delta': {
-                controller.enqueue({
-                  type: 'transcript-delta',
-                  id: raw.item_id,
-                  delta: raw.delta ?? '',
-                });
-                break;
-              }
-
-              case 'conversation.item.input_audio_transcription.completed': {
-                finish(raw.transcript ?? '', raw.item_id);
-                break;
-              }
-
-              case 'error': {
-                finishWithError(
-                  new Error(raw.error?.message ?? 'OpenAI realtime error'),
-                );
-                break;
-              }
+            case 'conversation.item.input_audio_transcription.completed': {
+              finish(raw.transcript ?? '', raw.item_id);
+              break;
             }
-          })
-          .catch(finishWithError);
-      };
 
-      ws.onerror = () => {
-        finishWithError(new Error('OpenAI realtime transcription error'));
-      };
-
-      ws.onclose = () => {
-        if (finished) return;
-        finished = true;
-        cleanup();
-        controller.close();
-      };
+            case 'error': {
+              finishWithError(
+                new Error(raw.error?.message ?? 'OpenAI realtime error'),
+              );
+              break;
+            }
+          }
+        },
+        onSocketError: () => {
+          finishWithError(new Error('OpenAI realtime transcription error'));
+        },
+        onClose: () => {
+          if (finished) return;
+          finished = true;
+          cleanup();
+          controller.close();
+        },
+      });
     },
 
     cancel: () => {
@@ -564,15 +557,32 @@ function buildOpenAIRealtimeTranscriptionSession({
   };
 }
 
-function getOpenAIRealtimeProtocols(
+// The bearer token rides the `openai-insecure-api-key` subprotocol (native
+// `WebSocket` cannot send headers) and the Authorization header is stripped:
+// OpenAI rejects handshakes that send both auth channels.
+function getOpenAIRealtimeConnection(
   headers: Record<string, string | undefined>,
-): string[] {
+): {
+  protocols: string[];
+  headers: Record<string, string | undefined>;
+} {
   const authorization = headers.Authorization ?? headers.authorization;
   const token = authorization?.startsWith('Bearer ')
     ? authorization.slice('Bearer '.length)
     : undefined;
 
-  return token == null
-    ? ['realtime']
-    : ['realtime', `openai-insecure-api-key.${token}`];
+  if (token == null) {
+    return { protocols: ['realtime'], headers };
+  }
+
+  const {
+    Authorization: _authorization,
+    authorization: _authorizationLowercase,
+    ...headersWithoutAuthorization
+  } = headers;
+
+  return {
+    protocols: ['realtime', `openai-insecure-api-key.${token}`],
+    headers: headersWithoutAuthorization,
+  };
 }
