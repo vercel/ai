@@ -2008,7 +2008,7 @@ importers:
         version: link:../../tools/tsconfig
       tsup:
         specifier: ^8.5.1
-        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.15)(tsx@4.22.0)(typescript@5.6.3)(yaml@2.9.0)
+        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.16)(tsx@4.22.0)(typescript@5.6.3)(yaml@2.9.0)
       typescript:
         specifier: 5.6.3
         version: 5.6.3
