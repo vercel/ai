@@ -183,11 +183,11 @@ export class VercelSandboxProvider implements HarnessV1SandboxProvider {
         );
         resolvedId = stopResult.snapshot?.id;
         if (resolvedId == null) {
-          resolvedId = await pollForTemplateSnapshot(
-            templateName,
-            getSandboxLookupParams(baseParams),
-            options?.abortSignal,
-          );
+          resolvedId = await pollForTemplateSnapshot({
+            name: templateName,
+            lookupParams: getSandboxLookupParams(baseParams),
+            abortSignal: options?.abortSignal,
+          });
         }
       }
 
@@ -287,11 +287,15 @@ function getSnapshotCache(): SnapshotCache {
   return cache;
 }
 
-async function pollForTemplateSnapshot(
-  name: string,
-  lookupParams: ReturnType<typeof getSandboxLookupParams>,
-  abortSignal: AbortSignal | undefined,
-): Promise<string> {
+async function pollForTemplateSnapshot({
+  name,
+  lookupParams,
+  abortSignal,
+}: {
+  name: string;
+  lookupParams: ReturnType<typeof getSandboxLookupParams>;
+  abortSignal: AbortSignal | undefined;
+}): Promise<string> {
   const deadline = Date.now() + SNAPSHOT_POLL_TIMEOUT_MS;
   while (Date.now() < deadline) {
     abortSignal?.throwIfAborted();

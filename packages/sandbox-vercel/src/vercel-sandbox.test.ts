@@ -2,13 +2,18 @@ import type { Sandbox } from '@vercel/sandbox';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createVercelSandbox } from './vercel-sandbox';
 
-const { createMock, getMock } = vi.hoisted(() => ({
+const { createMock, getMock, getOrCreateMock } = vi.hoisted(() => ({
   createMock: vi.fn(),
   getMock: vi.fn(),
+  getOrCreateMock: vi.fn(),
 }));
 
 vi.mock('@vercel/sandbox', () => ({
-  Sandbox: { create: createMock, get: getMock },
+  Sandbox: {
+    create: createMock,
+    get: getMock,
+    getOrCreate: getOrCreateMock,
+  },
 }));
 
 type MockSpies = {
@@ -226,6 +231,12 @@ describe('createVercelSandbox (create from scratch)', () => {
   beforeEach(() => {
     createMock.mockReset();
     getMock.mockReset();
+    getOrCreateMock.mockReset();
+    (
+      globalThis as {
+        [key: symbol]: Map<string, string> | undefined;
+      }
+    )[Symbol.for('ai-sdk.harness.vercel-template-snapshots')]?.clear();
   });
 
   it('applies a 30 minute default timeout when none is provided', async () => {
@@ -291,6 +302,39 @@ describe('createVercelSandbox (create from scratch)', () => {
 
     expect(getMock).toHaveBeenCalledWith({
       name: 'ai-sdk-harness-session-session-123',
+      token: 'token_test',
+      teamId: 'team_test',
+      projectId: 'prj_test',
+      signal: abortController.signal,
+    });
+  });
+
+  it('forwards credentials when polling for a template snapshot', async () => {
+    const { sandbox: template } = makeMockSandbox({
+      stop: vi.fn(async () => ({})),
+    });
+    const { sandbox: refreshedTemplate } = makeMockSandbox();
+    const { sandbox: fork } = makeMockSandbox();
+    Object.assign(template, { currentSnapshotId: undefined });
+    Object.assign(refreshedTemplate, { currentSnapshotId: 'snap_123' });
+    getOrCreateMock.mockResolvedValueOnce(template);
+    getMock.mockResolvedValueOnce(refreshedTemplate);
+    createMock.mockResolvedValueOnce(fork);
+    const abortController = new AbortController();
+
+    await createVercelSandbox({
+      token: 'token_test',
+      teamId: 'team_test',
+      projectId: 'prj_test',
+    }).createSession({
+      identity: 'template-test',
+      abortSignal: abortController.signal,
+      onFirstCreate: async () => {},
+    });
+
+    expect(getMock).toHaveBeenCalledWith({
+      name: 'ai-sdk-harness-template-test',
+      resume: false,
       token: 'token_test',
       teamId: 'team_test',
       projectId: 'prj_test',
