@@ -80,7 +80,10 @@ Use `createClaudeCode()` to configure the runtime:
 const harness = createClaudeCode({
   model: 'claude-sonnet-4-6',
   maxTurns: 10,
-  thinking: 'adaptive',
+  thinking: {
+    type: 'adaptive',
+    display: 'summarized',
+  },
 });
 ```
 
@@ -89,7 +92,10 @@ Settings:
 - `auth`: direct Anthropic or AI Gateway authentication settings.
 - `model`: Anthropic model id passed to the underlying Claude Code runtime.
 - `maxTurns`: maximum internal turns before yielding.
-- `thinking`: `off`, `on`, or `adaptive`.
+- `thinking`: extended-thinking configuration. `type` can be `enabled`,
+  `disabled`, or `adaptive`. For enabled or adaptive thinking, `display` can be
+  `summarized` or `omitted`. Defaults to
+  `{ type: 'adaptive', display: 'summarized' }`.
 - `port`: bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the bridge to start.
 

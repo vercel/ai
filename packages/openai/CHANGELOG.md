@@ -1,5 +1,20 @@
 # @ai-sdk/openai
 
+## 4.0.11
+
+### Patch Changes
+
+- b2b1bb9: feat(provider/openai): add GPT-5.6 reasoning and prompt cache controls
+
+## 4.0.10
+
+### Patch Changes
+
+- fdb6d5d: feat(provider/openai,provider/gateway): add gpt-5.6 model ids
+- Updated dependencies [0f93c57]
+  - @ai-sdk/provider@4.0.3
+  - @ai-sdk/provider-utils@5.0.7
+
 ## 4.0.9
 
 ### Patch Changes

@@ -1,5 +1,24 @@
 # @ai-sdk/gateway
 
+## 4.0.16
+
+### Patch Changes
+
+- 308a519: chore: enforce consistent imports from `zod/v4` instead of `zod`
+- 7fe53d2: chore(provider/gateway): update gateway model settings files
+
+## 4.0.15
+
+### Patch Changes
+
+- e12411e: chore(provider/gateway): update gateway model settings files
+- 5d894a7: feat(gateway): expose ruleId on GatewayForbiddenError so callers can identify which routing rule denied a request
+- fdb6d5d: feat(provider/openai,provider/gateway): add gpt-5.6 model ids
+- d25a084: feat (provider/xai): add grok-4.5 model id
+- Updated dependencies [0f93c57]
+  - @ai-sdk/provider@4.0.3
+  - @ai-sdk/provider-utils@5.0.7
+
 ## 4.0.14
 
 ### Patch Changes
