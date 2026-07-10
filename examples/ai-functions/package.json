@@ -6,6 +6,7 @@
   "dependencies": {
     "@ai-sdk/alibaba": "workspace:*",
     "@ai-sdk/amazon-bedrock": "workspace:*",
+    "@ai-sdk/amazon-transcribe": "workspace:*",
     "@ai-sdk/anthropic": "workspace:*",
     "@ai-sdk/anthropic-aws": "workspace:*",
     "@ai-sdk/assemblyai": "workspace:*",
