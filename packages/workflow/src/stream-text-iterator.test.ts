@@ -618,13 +618,13 @@ describe('streamTextIterator', () => {
       expect(toolWithoutMeta?.providerOptions).toBeUndefined();
     });
 
-    it('should strip OpenAI itemId from providerMetadata to avoid reasoning item errors', async () => {
+    it('should pass OpenAI itemId through as opaque provider metadata', async () => {
       const mockWritable = createMockWritable();
       const mockModel = vi.fn();
 
       let capturedPrompt: LanguageModelV4Prompt | undefined;
 
-      // OpenAI Responses API returns itemId which requires reasoning items we don't preserve
+      // OpenAI Responses API returns itemId references to preceding reasoning items.
       const toolCallWithOpenAIMetadata: LanguageModelV4ToolCall = {
         type: 'tool-call',
         toolCallId: 'call-1',
@@ -684,18 +684,21 @@ describe('streamTextIterator', () => {
         part => part.type === 'tool-call',
       );
 
-      // itemId should be stripped, leaving no providerOptions
       expect(toolCallPart).toBeDefined();
-      expect(toolCallPart.providerOptions).toBeUndefined();
+      expect(toolCallPart.providerOptions).toEqual({
+        openai: {
+          itemId: 'fc_0402bf2d292dd7ed00697a35fb10e0819ab0098545c4d0d7f5',
+        },
+      });
     });
 
-    it('should preserve other OpenAI metadata while stripping itemId', async () => {
+    it('should preserve all OpenAI metadata fields', async () => {
       const mockWritable = createMockWritable();
       const mockModel = vi.fn();
 
       let capturedPrompt: LanguageModelV4Prompt | undefined;
 
-      // OpenAI metadata with both itemId (should be stripped) and other fields (should be preserved)
+      // OpenAI metadata with an item reference and an additional provider field.
       const toolCallWithMixedOpenAIMetadata: LanguageModelV4ToolCall = {
         type: 'tool-call',
         toolCallId: 'call-1',
@@ -756,22 +759,22 @@ describe('streamTextIterator', () => {
         part => part.type === 'tool-call',
       );
 
-      // itemId should be stripped, but other fields preserved
       expect(toolCallPart).toBeDefined();
       expect(toolCallPart.providerOptions).toEqual({
         openai: {
+          itemId: 'fc_0402bf2d292dd7ed00697a35fb10e0819ab0098545c4d0d7f5',
           someOtherField: 'should-be-preserved',
         },
       });
     });
 
-    it('should preserve Gemini metadata while stripping OpenAI itemId in mixed provider metadata', async () => {
+    it('should preserve mixed Gemini and OpenAI metadata', async () => {
       const mockWritable = createMockWritable();
       const mockModel = vi.fn();
 
       let capturedPrompt: LanguageModelV4Prompt | undefined;
 
-      // Mixed provider metadata - Gemini should be fully preserved, OpenAI itemId stripped
+      // Mixed provider metadata must survive without provider-specific filtering.
       const toolCallWithMixedProviders: LanguageModelV4ToolCall = {
         type: 'tool-call',
         toolCallId: 'call-1',
@@ -782,7 +785,7 @@ describe('streamTextIterator', () => {
             thoughtSignature: 'sig_gemini_preserved',
           },
           openai: {
-            itemId: 'fc_should_be_stripped',
+            itemId: 'fc_preserved',
           },
         },
       };
@@ -834,13 +837,333 @@ describe('streamTextIterator', () => {
         part => part.type === 'tool-call',
       );
 
-      // Gemini metadata should be preserved, OpenAI itemId stripped
       expect(toolCallPart).toBeDefined();
       expect(toolCallPart.providerOptions).toEqual({
         google: {
           thoughtSignature: 'sig_gemini_preserved',
         },
+        openai: {
+          itemId: 'fc_preserved',
+        },
       });
+    });
+  });
+
+  describe('reasoning content preservation', () => {
+    it('should include reasoning before tool calls with provider options intact', async () => {
+      let capturedPrompt: LanguageModelV4Prompt | undefined;
+
+      const toolCall: ParsedToolCall = {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'lookup',
+        input: { query: 'weather' },
+        providerExecuted: true,
+        providerMetadata: {
+          openai: { itemId: 'fc_requires_reasoning' },
+        },
+      };
+
+      vi.mocked(doStreamStep)
+        .mockResolvedValueOnce(
+          createMockDoStreamStepResult({
+            toolCalls: [toolCall],
+            finishReason: 'tool-calls',
+            finishRaw: 'tool_calls',
+            rawOverrides: {
+              reasoning: [
+                {
+                  text: 'I should look this up.',
+                  providerMetadata: {
+                    openai: {
+                      itemId: 'rs_reasoning_item',
+                      reasoningEncryptedContent: 'encrypted-reasoning',
+                    },
+                  },
+                },
+              ],
+            },
+          }),
+        )
+        .mockImplementationOnce(async prompt => {
+          capturedPrompt = prompt;
+          return createMockDoStreamStepResult();
+        });
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {
+          lookup: {
+            description: 'Look up information',
+            execute: async () => ({ ok: true }),
+          },
+        } as unknown as ToolSet,
+        writable: createMockWritable(),
+        model: vi.fn() as any,
+      });
+
+      const firstResult = await iterator.next();
+      const firstValue = firstResult.value as StreamTextIteratorYieldValue;
+      expect(firstValue.step?.content[0]).toEqual({
+        type: 'reasoning',
+        text: 'I should look this up.',
+        providerMetadata: {
+          openai: {
+            itemId: 'rs_reasoning_item',
+            reasoningEncryptedContent: 'encrypted-reasoning',
+          },
+        },
+      });
+      expect(firstValue.step?.reasoning[0]).toEqual({
+        type: 'reasoning',
+        text: 'I should look this up.',
+        providerOptions: {
+          openai: {
+            itemId: 'rs_reasoning_item',
+            reasoningEncryptedContent: 'encrypted-reasoning',
+          },
+        },
+      });
+      await iterator.next([
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'lookup',
+          output: { type: 'json', value: { ok: true } },
+        },
+      ]);
+
+      const assistantMessage = capturedPrompt?.find(
+        message => message.role === 'assistant',
+      );
+      expect(assistantMessage?.content).toEqual([
+        {
+          type: 'reasoning',
+          text: 'I should look this up.',
+          providerOptions: {
+            openai: {
+              itemId: 'rs_reasoning_item',
+              reasoningEncryptedContent: 'encrypted-reasoning',
+            },
+          },
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'lookup',
+          input: { query: 'weather' },
+          providerExecuted: true,
+          providerOptions: {
+            openai: { itemId: 'fc_requires_reasoning' },
+          },
+        },
+      ]);
+    });
+
+    it('should retain metadata-only reasoning parts', async () => {
+      let capturedPrompt: LanguageModelV4Prompt | undefined;
+
+      vi.mocked(doStreamStep)
+        .mockResolvedValueOnce(
+          createMockDoStreamStepResult({
+            toolCalls: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'lookup',
+                input: {},
+              },
+            ],
+            finishReason: 'tool-calls',
+            rawOverrides: {
+              reasoning: [
+                {
+                  text: '',
+                  providerMetadata: {
+                    openai: {
+                      itemId: 'rs_encrypted',
+                      reasoningEncryptedContent: 'encrypted-only',
+                    },
+                  },
+                },
+              ],
+            },
+          }),
+        )
+        .mockImplementationOnce(async prompt => {
+          capturedPrompt = prompt;
+          return createMockDoStreamStepResult();
+        });
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {
+          lookup: { description: 'Look up information' },
+        } as unknown as ToolSet,
+        writable: createMockWritable(),
+        model: vi.fn() as any,
+      });
+
+      await iterator.next();
+      await iterator.next([
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'lookup',
+          output: { type: 'json', value: { ok: true } },
+        },
+      ]);
+
+      const assistantMessage = capturedPrompt?.find(
+        message => message.role === 'assistant',
+      );
+      expect(assistantMessage?.content[0]).toEqual({
+        type: 'reasoning',
+        text: '',
+        providerOptions: {
+          openai: {
+            itemId: 'rs_encrypted',
+            reasoningEncryptedContent: 'encrypted-only',
+          },
+        },
+      });
+    });
+
+    it('should preserve interleaved reasoning files and tool calls', async () => {
+      let capturedPrompt: LanguageModelV4Prompt | undefined;
+      const toolCalls: ParsedToolCall[] = [
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'lookup',
+          input: { query: 'first' },
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call-2',
+          toolName: 'lookup',
+          input: { query: 'second' },
+        },
+      ];
+
+      vi.mocked(doStreamStep)
+        .mockResolvedValueOnce(
+          createMockDoStreamStepResult({
+            toolCalls,
+            finishReason: 'tool-calls',
+            finishRaw: 'tool_calls',
+            rawOverrides: {
+              reasoning: [{ text: 'first' }, { text: 'second' }],
+              reasoningFiles: [
+                {
+                  data: 'c2lnbmVkLXRob3VnaHQ=',
+                  mediaType: 'application/octet-stream',
+                  providerMetadata: {
+                    google: { thoughtSignature: 'file-signature' },
+                  },
+                },
+              ],
+              reasoningAndToolCallOrder: [
+                { type: 'reasoning', index: 0 },
+                { type: 'tool-call', index: 0 },
+                { type: 'reasoning-file', index: 0 },
+                { type: 'reasoning', index: 1 },
+                { type: 'tool-call', index: 1 },
+              ],
+            },
+          }),
+        )
+        .mockImplementationOnce(async prompt => {
+          capturedPrompt = prompt;
+          return createMockDoStreamStepResult();
+        });
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {
+          lookup: { description: 'Look up information' },
+        } as unknown as ToolSet,
+        writable: createMockWritable(),
+        model: vi.fn() as any,
+      });
+
+      const firstResult = await iterator.next();
+      const firstValue = firstResult.value as StreamTextIteratorYieldValue;
+      expect(firstValue.step?.content.map(part => part.type)).toEqual([
+        'reasoning',
+        'tool-call',
+        'reasoning-file',
+        'reasoning',
+        'tool-call',
+      ]);
+      const reasoningFile = firstValue.step?.content.find(
+        part => part.type === 'reasoning-file',
+      );
+      expect(reasoningFile).toMatchObject({
+        type: 'reasoning-file',
+        providerMetadata: {
+          google: { thoughtSignature: 'file-signature' },
+        },
+      });
+      if (reasoningFile?.type !== 'reasoning-file') {
+        throw new Error('Expected reasoning-file content');
+      }
+      expect(reasoningFile.file.base64).toBe('c2lnbmVkLXRob3VnaHQ=');
+      expect(firstValue.step?.reasoning).toEqual([
+        { type: 'reasoning', text: 'first' },
+        {
+          type: 'reasoning-file',
+          data: 'c2lnbmVkLXRob3VnaHQ=',
+          mediaType: 'application/octet-stream',
+          providerOptions: {
+            google: { thoughtSignature: 'file-signature' },
+          },
+        },
+        { type: 'reasoning', text: 'second' },
+      ]);
+
+      await iterator.next([
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'lookup',
+          output: { type: 'json', value: { ok: true } },
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call-2',
+          toolName: 'lookup',
+          output: { type: 'json', value: { ok: true } },
+        },
+      ]);
+
+      const assistantMessage = capturedPrompt?.find(
+        message => message.role === 'assistant',
+      );
+      expect(assistantMessage?.content).toEqual([
+        { type: 'reasoning', text: 'first' },
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'lookup',
+          input: { query: 'first' },
+        },
+        {
+          type: 'reasoning-file',
+          data: { type: 'data', data: 'c2lnbmVkLXRob3VnaHQ=' },
+          mediaType: 'application/octet-stream',
+          providerOptions: {
+            google: { thoughtSignature: 'file-signature' },
+          },
+        },
+        { type: 'reasoning', text: 'second' },
+        {
+          type: 'tool-call',
+          toolCallId: 'call-2',
+          toolName: 'lookup',
+          input: { query: 'second' },
+        },
+      ]);
     });
   });
 

@@ -7,6 +7,7 @@ import type {
 import type { Context } from '@ai-sdk/provider-utils';
 import {
   experimental_filterActiveTools as filterActiveTools,
+  DefaultGeneratedFile,
   type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
   type Experimental_SandboxSession as SandboxSession,
   type Instructions,
@@ -70,6 +71,12 @@ function mergePrepareStepGenerationSettings(
 
   return { ...current, ...definedOverrides };
 }
+
+type WorkflowStepContentPart = StepResult<ToolSet, any>['content'][number];
+type WorkflowReasoningContentPart = Extract<
+  WorkflowStepContentPart,
+  { type: 'reasoning' | 'reasoning-file' }
+>;
 
 /**
  * The value yielded by the stream text iterator when tool calls are requested.
@@ -363,37 +370,12 @@ export async function* streamTextIterator({
       if (finishReason === 'tool-calls') {
         lastStepWasToolCalls = true;
 
-        const textContent = step.content.filter(
-          item => item.type === 'text',
-        ) as Array<{ type: 'text'; text: string }>;
-
-        // Add assistant message with text and tool calls to the conversation
-        // Note: providerMetadata from the tool call is mapped to providerOptions
-        // in the prompt format, following the AI SDK convention. This is critical
-        // for providers like Gemini that require thoughtSignature to be preserved
-        // across multi-turn tool calls. Some fields are sanitized before mapping.
+        // Preserve reasoning alongside tool calls. Their provider metadata can
+        // contain references that are only valid when both parts are carried
+        // into the next provider request together.
         conversationPrompt.push({
           role: 'assistant',
-          content: [
-            ...textContent,
-            ...toolCalls.map(toolCall => {
-              const sanitizedMetadata = sanitizeProviderMetadataForToolCall(
-                toolCall.providerMetadata,
-              );
-              return {
-                type: 'tool-call' as const,
-                toolCallId: toolCall.toolCallId,
-                toolName: toolCall.toolName,
-                input: toolCall.input,
-                ...(sanitizedMetadata != null
-                  ? {
-                      providerOptions:
-                        sanitizedMetadata as SharedV4ProviderOptions,
-                    }
-                  : {}),
-              };
-            }),
-          ],
+          content: buildAssistantPromptContent(raw, toolCalls),
         });
 
         // Yield the tool calls along with the current conversation messages
@@ -522,17 +504,94 @@ function buildStepResult(
   },
 ): StepResult<ToolSet, any> {
   const { text, reasoning: reasoningParts, responseMetadata, warnings } = raw;
-  const reasoningText = reasoningParts.map(r => r.text).join('') || undefined;
+  const reasoningText =
+    reasoningParts.map(part => part.text).join('') || undefined;
 
-  const validToolCalls = toolCalls
-    .filter(tc => !tc.invalid)
-    .map(tc => ({
-      type: 'tool-call' as const,
-      toolCallId: tc.toolCallId,
-      toolName: tc.toolName,
-      input: tc.input,
-      ...(tc.dynamic ? { dynamic: true as const } : {}),
-    }));
+  const reasoningContentByIndex = reasoningParts.map(part => ({
+    type: 'reasoning' as const,
+    text: part.text,
+    ...(part.providerMetadata != null
+      ? { providerMetadata: part.providerMetadata }
+      : {}),
+  }));
+  const reasoningFileContentByIndex = (raw.reasoningFiles ?? []).map(part => ({
+    type: 'reasoning-file' as const,
+    file: new DefaultGeneratedFile({
+      data: part.data,
+      mediaType: part.mediaType,
+    }),
+    ...(part.providerMetadata != null
+      ? { providerMetadata: part.providerMetadata }
+      : {}),
+  }));
+
+  const toolCallContentByIndex = toolCalls.map(toolCall =>
+    toolCall.invalid
+      ? undefined
+      : ({
+          type: 'tool-call' as const,
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.toolName,
+          input: toolCall.input,
+          ...(toolCall.dynamic ? { dynamic: true as const } : {}),
+        } as const),
+  );
+  const validToolCalls = toolCallContentByIndex.filter(
+    (
+      toolCall,
+    ): toolCall is NonNullable<(typeof toolCallContentByIndex)[number]> =>
+      toolCall != null,
+  );
+
+  const contentOrder = getReasoningAndToolCallOrder(raw, toolCalls);
+  const orderedGeneratedContent: WorkflowStepContentPart[] = [];
+  for (const part of contentOrder) {
+    switch (part.type) {
+      case 'reasoning': {
+        const reasoningPart = reasoningContentByIndex[part.index];
+        if (reasoningPart != null) {
+          orderedGeneratedContent.push(reasoningPart);
+        }
+        break;
+      }
+      case 'reasoning-file': {
+        const reasoningFile = reasoningFileContentByIndex[part.index];
+        if (reasoningFile != null) {
+          orderedGeneratedContent.push(reasoningFile);
+        }
+        break;
+      }
+      case 'tool-call': {
+        const toolCall = toolCallContentByIndex[part.index];
+        if (toolCall != null) {
+          orderedGeneratedContent.push(toolCall);
+        }
+        break;
+      }
+    }
+  }
+  const reasoningContent = orderedGeneratedContent.filter(
+    (part): part is WorkflowReasoningContentPart =>
+      part.type === 'reasoning' || part.type === 'reasoning-file',
+  );
+  const reasoning = reasoningContent.map(part =>
+    part.type === 'reasoning'
+      ? {
+          type: 'reasoning' as const,
+          text: part.text,
+          ...(part.providerMetadata != null
+            ? { providerOptions: part.providerMetadata }
+            : {}),
+        }
+      : {
+          type: 'reasoning-file' as const,
+          data: part.file.base64,
+          mediaType: part.file.mediaType,
+          ...(part.providerMetadata != null
+            ? { providerOptions: part.providerMetadata }
+            : {}),
+        },
+  );
 
   return {
     callId: 'workflow-agent',
@@ -547,13 +606,10 @@ function buildStepResult(
     toolsContext: opts.toolsContext ?? {},
     content: [
       ...(text ? [{ type: 'text' as const, text }] : []),
-      ...validToolCalls,
+      ...orderedGeneratedContent,
     ],
     text,
-    reasoning: reasoningParts.map(r => ({
-      type: 'reasoning' as const,
-      text: r.text,
-    })),
+    reasoning,
     reasoningText,
     files: [],
     sources: [],
@@ -606,38 +662,86 @@ function buildStepResult(
   } as StepResult<ToolSet, any>;
 }
 
-/**
- * Strip OpenAI's itemId from providerMetadata (requires reasoning items we don't preserve).
- * Preserves all other provider metadata (e.g., Gemini's thoughtSignature).
- */
-function sanitizeProviderMetadataForToolCall(
-  metadata: unknown,
-): Record<string, unknown> | undefined {
-  if (metadata == null) return undefined;
+function getReasoningAndToolCallOrder(
+  raw: DoStreamStepRawResult,
+  toolCalls: ParsedToolCall[],
+): NonNullable<DoStreamStepRawResult['reasoningAndToolCallOrder']> {
+  return (
+    raw.reasoningAndToolCallOrder ?? [
+      ...raw.reasoning.map((_, index) => ({
+        type: 'reasoning' as const,
+        index,
+      })),
+      ...(raw.reasoningFiles ?? []).map((_, index) => ({
+        type: 'reasoning-file' as const,
+        index,
+      })),
+      ...toolCalls.map((_, index) => ({
+        type: 'tool-call' as const,
+        index,
+      })),
+    ]
+  );
+}
 
-  const meta = metadata as Record<string, unknown>;
+function buildAssistantPromptContent(
+  raw: DoStreamStepRawResult,
+  toolCalls: ParsedToolCall[],
+): Extract<LanguageModelV4Prompt[number], { role: 'assistant' }>['content'] {
+  const content: Extract<
+    LanguageModelV4Prompt[number],
+    { role: 'assistant' }
+  >['content'] = [];
 
-  // Check if OpenAI metadata exists and needs sanitization
-  if ('openai' in meta && meta.openai != null) {
-    const { openai, ...restProviders } = meta;
-    const openaiMeta = openai as Record<string, unknown>;
-
-    // Remove itemId from OpenAI metadata - it requires reasoning items we don't preserve
-    const { itemId: _itemId, ...restOpenai } = openaiMeta;
-
-    // Reconstruct metadata without itemId
-    const hasOtherOpenaiFields = Object.keys(restOpenai).length > 0;
-    const hasOtherProviders = Object.keys(restProviders).length > 0;
-
-    if (hasOtherOpenaiFields && hasOtherProviders) {
-      return { ...restProviders, openai: restOpenai };
-    } else if (hasOtherOpenaiFields) {
-      return { openai: restOpenai };
-    } else if (hasOtherProviders) {
-      return restProviders;
+  for (const part of getReasoningAndToolCallOrder(raw, toolCalls)) {
+    switch (part.type) {
+      case 'reasoning': {
+        const reasoningPart = raw.reasoning[part.index];
+        if (reasoningPart != null) {
+          content.push({
+            type: 'reasoning',
+            text: reasoningPart.text,
+            ...(reasoningPart.providerMetadata != null
+              ? { providerOptions: reasoningPart.providerMetadata }
+              : {}),
+          });
+        }
+        break;
+      }
+      case 'reasoning-file': {
+        const reasoningFile = raw.reasoningFiles?.[part.index];
+        if (reasoningFile != null) {
+          content.push({
+            type: 'reasoning-file',
+            data: { type: 'data', data: reasoningFile.data },
+            mediaType: reasoningFile.mediaType,
+            ...(reasoningFile.providerMetadata != null
+              ? { providerOptions: reasoningFile.providerMetadata }
+              : {}),
+          });
+        }
+        break;
+      }
+      case 'tool-call': {
+        const toolCall = toolCalls[part.index];
+        if (toolCall != null) {
+          content.push({
+            type: 'tool-call',
+            toolCallId: toolCall.toolCallId,
+            toolName: toolCall.toolName,
+            input: toolCall.input,
+            ...(toolCall.providerExecuted != null
+              ? { providerExecuted: toolCall.providerExecuted }
+              : {}),
+            ...(toolCall.providerMetadata != null
+              ? { providerOptions: toolCall.providerMetadata }
+              : {}),
+          });
+        }
+        break;
+      }
     }
-    return undefined;
   }
 
-  return meta;
+  return content;
 }

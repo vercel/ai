@@ -1,6 +1,7 @@
 import type {
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
+  SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   experimental_streamLanguageModelCall as streamModelCall,
@@ -66,7 +67,7 @@ export interface ParsedToolCall {
   toolName: string;
   input: unknown;
   providerExecuted?: boolean;
-  providerMetadata?: Record<string, unknown>;
+  providerMetadata?: SharedV4ProviderMetadata;
   dynamic?: boolean;
   invalid?: boolean;
   error?: unknown;
@@ -79,7 +80,7 @@ export interface StreamFinish {
   finishReason: FinishReason;
   rawFinishReason: string | undefined;
   usage: LanguageModelUsage;
-  providerMetadata?: Record<string, unknown>;
+  providerMetadata?: SharedV4ProviderMetadata;
 }
 
 /**
@@ -94,7 +95,20 @@ export interface StreamFinish {
  */
 export interface DoStreamStepRawResult {
   text: string;
-  reasoning: Array<{ text: string }>;
+  reasoning: Array<{
+    text: string;
+    providerMetadata?: SharedV4ProviderMetadata;
+  }>;
+  reasoningFiles?: Array<{
+    data: string;
+    mediaType: string;
+    providerMetadata?: SharedV4ProviderMetadata;
+  }>;
+  reasoningAndToolCallOrder?: Array<
+    | { type: 'reasoning'; index: number }
+    | { type: 'reasoning-file'; index: number }
+    | { type: 'tool-call'; index: number }
+  >;
   responseMetadata?: { id?: string; timestamp?: Date; modelId?: string };
   warnings?: unknown[];
 }
@@ -164,7 +178,32 @@ export async function doStreamStep(
 
   // Minimal aggregation — only what buildStepResult needs outside the step.
   let text = '';
-  const reasoningParts: Array<{ text: string }> = [];
+  const reasoningAndToolCallOrder: NonNullable<
+    DoStreamStepRawResult['reasoningAndToolCallOrder']
+  > = [];
+  const reasoningParts: Array<{
+    text: string;
+    providerMetadata?: SharedV4ProviderMetadata;
+  }> = [];
+  const reasoningFiles: NonNullable<DoStreamStepRawResult['reasoningFiles']> =
+    [];
+  const reasoningPartIndexes = new Map<string, number>();
+  const upsertReasoningPart = (
+    id: string,
+    providerMetadata?: SharedV4ProviderMetadata,
+  ) => {
+    let partIndex = reasoningPartIndexes.get(id);
+    if (partIndex == null) {
+      partIndex = reasoningParts.push({ text: '' }) - 1;
+      reasoningPartIndexes.set(id, partIndex);
+      reasoningAndToolCallOrder.push({ type: 'reasoning', index: partIndex });
+    }
+    const reasoningPart = reasoningParts[partIndex];
+    if (providerMetadata != null) {
+      reasoningPart.providerMetadata = providerMetadata;
+    }
+    return reasoningPart;
+  };
   let responseMetadata:
     | { id?: string; timestamp?: Date; modelId?: string }
     | undefined;
@@ -179,25 +218,50 @@ export async function doStreamStep(
         case 'text-delta':
           text += part.text;
           break;
-        case 'reasoning-delta':
-          reasoningParts.push({ text: part.text });
+        case 'reasoning-start':
+          upsertReasoningPart(part.id, part.providerMetadata);
           break;
+        case 'reasoning-delta': {
+          const reasoningPart = upsertReasoningPart(
+            part.id,
+            part.providerMetadata,
+          );
+          reasoningPart.text += part.text;
+          break;
+        }
+        case 'reasoning-end': {
+          upsertReasoningPart(part.id, part.providerMetadata);
+          reasoningPartIndexes.delete(part.id);
+          break;
+        }
+        case 'reasoning-file': {
+          const index =
+            reasoningFiles.push({
+              data: part.file.base64,
+              mediaType: part.file.mediaType,
+              ...(part.providerMetadata != null
+                ? { providerMetadata: part.providerMetadata }
+                : {}),
+            }) - 1;
+          reasoningAndToolCallOrder.push({ type: 'reasoning-file', index });
+          break;
+        }
         case 'tool-call': {
           // parseToolCall adds dynamic/invalid/error at runtime
           const toolCallPart = part as typeof part & Partial<ParsedToolCall>;
-          toolCalls.push({
-            type: 'tool-call',
-            toolCallId: toolCallPart.toolCallId,
-            toolName: toolCallPart.toolName,
-            input: toolCallPart.input,
-            providerExecuted: toolCallPart.providerExecuted,
-            providerMetadata: toolCallPart.providerMetadata as
-              | Record<string, unknown>
-              | undefined,
-            dynamic: toolCallPart.dynamic,
-            invalid: toolCallPart.invalid,
-            error: toolCallPart.error,
-          });
+          const index =
+            toolCalls.push({
+              type: 'tool-call',
+              toolCallId: toolCallPart.toolCallId,
+              toolName: toolCallPart.toolName,
+              input: toolCallPart.input,
+              providerExecuted: toolCallPart.providerExecuted,
+              providerMetadata: toolCallPart.providerMetadata,
+              dynamic: toolCallPart.dynamic,
+              invalid: toolCallPart.invalid,
+              error: toolCallPart.error,
+            }) - 1;
+          reasoningAndToolCallOrder.push({ type: 'tool-call', index });
           break;
         }
         case 'tool-result':
@@ -229,9 +293,7 @@ export async function doStreamStep(
             finishReason: part.finishReason,
             rawFinishReason: part.rawFinishReason,
             usage: part.usage,
-            providerMetadata: part.providerMetadata as
-              | Record<string, unknown>
-              | undefined,
+            providerMetadata: part.providerMetadata,
           };
           break;
         case 'model-call-start':
@@ -257,6 +319,8 @@ export async function doStreamStep(
     raw: {
       text,
       reasoning: reasoningParts,
+      reasoningFiles,
+      reasoningAndToolCallOrder,
       responseMetadata,
       warnings,
     },
