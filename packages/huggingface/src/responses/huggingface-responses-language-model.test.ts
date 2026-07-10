@@ -757,6 +757,33 @@ describe('HuggingFaceResponsesLanguageModel', () => {
       `);
     });
 
+    it('should base64-encode binary image data', async () => {
+      await createModel('deepseek-ai/DeepSeek-V3-0324').doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'What do you see?' },
+              {
+                type: 'file',
+                mediaType: 'image/jpeg',
+                data: {
+                  type: 'data' as const,
+                  data: new Uint8Array([1, 2, 3, 4]),
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.input[0].content[1]).toEqual({
+        type: 'input_image',
+        image_url: 'data:image/jpeg;base64,AQIDBA==',
+      });
+    });
+
     it('should throw for file parts with provider references', async () => {
       await expect(
         createModel('Qwen/Qwen2.5-VL-32B-Instruct').doGenerate({
