@@ -1115,6 +1115,9 @@ class DefaultStreamTextResult<
       }
     > = createIdMap();
     let recordedNoOutputError: NoOutputGeneratedError | undefined;
+    let transformedOutputReadyForToolExecution:
+      | DelayedPromise<void>
+      | undefined;
 
     const eventProcessor = new TransformStream<
       EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
@@ -1126,6 +1129,19 @@ class DefaultStreamTextResult<
         const { part } = chunk;
 
         await onChunk?.({ chunk: part });
+
+        // Client tools execute upstream of stream transforms. Wait until
+        // transformed assistant output reaches this boundary before running
+        // the next tool, so paced transforms cannot be overtaken by tool
+        // side effects such as console output.
+        if (
+          transformedOutputReadyForToolExecution?.isPending() &&
+          (part.type === 'text-end' ||
+            part.type === 'reasoning-end' ||
+            part.type === 'tool-call')
+        ) {
+          transformedOutputReadyForToolExecution.resolve();
+        }
 
         if (part.type === 'error') {
           const error = wrapGatewayError(part.error);
@@ -1737,6 +1753,11 @@ class DefaultStreamTextResult<
         currentStep: number;
         usage: LanguageModelUsage;
       }) {
+        const stepTransformedOutputReadyForToolExecution =
+          new DelayedPromise<void>();
+        transformedOutputReadyForToolExecution =
+          stepTransformedOutputReadyForToolExecution;
+
         // Set up step timeout if configured
         const stepTimeoutId = setAbortTimeout({
           abortController: stepAbortController,
@@ -1991,6 +2012,8 @@ class DefaultStreamTextResult<
 
             executeToolInTelemetryContext: telemetryDispatcher.executeTool,
             runInTracingChannelSpan: runInTracingChannelSpanInStep,
+            awaitBeforeToolExecution: () =>
+              stepTransformedOutputReadyForToolExecution.promise,
           });
 
           // Conditionally include request.body based on include settings.

@@ -51,6 +51,7 @@ export function executeToolsFromStream<
   onToolExecutionEnd,
   executeToolInTelemetryContext,
   runInTracingChannelSpan,
+  awaitBeforeToolExecution,
 }: {
   stream: ReadableStream<LanguageModelStreamPart<TOOLS>>;
   tools: TOOLS | undefined;
@@ -70,6 +71,7 @@ export function executeToolsFromStream<
   runInTracingChannelSpan?: NonNullable<
     TelemetryDispatcher['runInTracingChannelSpan']
   >;
+  awaitBeforeToolExecution?: () => Promise<void>;
 }): ReadableStream<ExecuteToolsStreamPart<TOOLS>> {
   const toolCallsToExecute: Array<TypedToolCall<TOOLS>> = [];
 
@@ -197,6 +199,10 @@ export function executeToolsFromStream<
           }
 
           case 'model-call-end': {
+            if (toolCallsToExecute.length > 0) {
+              await awaitBeforeToolExecution?.();
+            }
+
             await Promise.all(
               toolCallsToExecute.map(async toolCall => {
                 try {

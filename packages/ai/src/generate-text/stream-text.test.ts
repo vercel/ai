@@ -54,6 +54,7 @@ import {
 } from '../types/usage';
 import type { StepResult } from './step-result';
 import { isLoopFinished, isStepCount } from './stop-condition';
+import { smoothStream } from './smooth-stream';
 import { streamText } from './stream-text';
 import type { StreamTextResult, TextStreamPart } from './stream-text-result';
 import type {
@@ -17985,6 +17986,135 @@ describe('streamText', () => {
         expect(
           await convertAsyncIterableToArray(result.textStream),
         ).toStrictEqual(['HELLO', ', ', 'WORLD!']);
+      });
+
+      it('should emit smoothed text before executing the next tool call', async () => {
+        const firstStepText =
+          'I will help you replace Sunny with Rainy in hello.txt. First, let me read the file. ';
+        const secondStepText =
+          'Now I can see the file contents. I will replace Sunny with Rainy. Done!';
+
+        let modelCallCount = 0;
+        const events: Array<
+          | { type: 'text'; text: string; visibleText: string }
+          | { type: 'tool-execute' }
+        > = [];
+
+        const result = streamText({
+          model: new MockLanguageModelV4({
+            doStream: async () => {
+              modelCallCount++;
+
+              if (modelCallCount === 1) {
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'stream-start',
+                      warnings: [],
+                    },
+                    {
+                      type: 'response-metadata',
+                      id: 'id-1',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(0),
+                    },
+                    { type: 'text-start', id: 'text-1' },
+                    {
+                      type: 'text-delta',
+                      id: 'text-1',
+                      delta: firstStepText,
+                    },
+                    { type: 'text-end', id: 'text-1' },
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'call-1',
+                      toolName: 'readFile',
+                      input: '{"path":"hello.txt"}',
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: {
+                        unified: 'tool-calls',
+                        raw: 'tool-calls',
+                      },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              }
+
+              if (modelCallCount === 2) {
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'stream-start',
+                      warnings: [],
+                    },
+                    {
+                      type: 'response-metadata',
+                      id: 'id-2',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(0),
+                    },
+                    { type: 'text-start', id: 'text-2' },
+                    {
+                      type: 'text-delta',
+                      id: 'text-2',
+                      delta: secondStepText,
+                    },
+                    { type: 'text-end', id: 'text-2' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              }
+
+              throw new Error(`Unexpected model call ${modelCallCount}`);
+            },
+          }),
+          prompt: 'replace "Sunny" with "Rainy" in hello.txt',
+          tools: {
+            readFile: tool({
+              inputSchema: jsonSchema({
+                type: 'object',
+                properties: { path: { type: 'string' } },
+                required: ['path'],
+                additionalProperties: false,
+              }),
+              execute: async () => {
+                events.push({ type: 'tool-execute' });
+                return 'One\nSunny\nDay';
+              },
+            }),
+          },
+          stopWhen: isStepCount(2),
+          experimental_transform: smoothStream({
+            chunking: 'word',
+            delayInMs: 1,
+          }),
+        });
+
+        let visibleText = '';
+
+        for await (const text of result.textStream) {
+          visibleText += text;
+          events.push({ type: 'text', text, visibleText });
+        }
+
+        const toolExecuteIndex = events.findIndex(
+          event => event.type === 'tool-execute',
+        );
+        const firstStepCompleteIndex = events.findIndex(
+          event =>
+            event.type === 'text' && event.visibleText.includes(firstStepText),
+        );
+
+        expect(toolExecuteIndex).not.toBe(-1);
+        expect(firstStepCompleteIndex).not.toBe(-1);
+        expect(toolExecuteIndex).toBeGreaterThan(firstStepCompleteIndex);
       });
 
       it('result.text should be transformed', async () => {
