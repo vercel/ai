@@ -3588,6 +3588,48 @@ describe('cache control', () => {
       });
     });
 
+    it('should wrap non-object (invalid) tool call input in an object', async () => {
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'cityAttractions',
+                // malformed JSON the model produced, kept as a raw string
+                input: '{ "city": "San Francisco", }',
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result).toEqual({
+        prompt: {
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool_use',
+                  name: 'cityAttractions',
+                  id: 'call-1',
+                  input: { rawInvalidInput: '{ "city": "San Francisco", }' },
+                  cache_control: undefined,
+                },
+              ],
+            },
+          ],
+        },
+        betas: new Set(),
+      });
+    });
+
     it('should set cache_control on last assistant message part with message cache control', async () => {
       const result = await convertToAnthropicPrompt({
         prompt: [

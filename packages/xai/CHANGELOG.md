@@ -1,5 +1,38 @@
 # @ai-sdk/xai
 
+## 4.0.10
+
+### Patch Changes
+
+- 0f93c57: feat (video): support video (not just image) reference inputs in `inputReferences` for reference-to-video generation
+- d25a084: feat (provider/xai): add grok-4.5 model id
+- Updated dependencies [0f93c57]
+  - @ai-sdk/provider@4.0.3
+  - @ai-sdk/openai-compatible@3.0.7
+  - @ai-sdk/provider-utils@5.0.7
+
+## 4.0.9
+
+### Patch Changes
+
+- 72eee24: feat: support `imageDetail` provider option on image file parts to control image processing resolution
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+  - @ai-sdk/openai-compatible@3.0.6
+
+## 4.0.8
+
+### Patch Changes
+
+- 8e006de: fix: send reasoning effort `none` to the xAI API when the top-level `reasoning: 'none'` option is set
+- 8e006de: fix: omit the reasoning effort parameter and emit an unsupported warning when the top-level `reasoning` option is used with xAI models that reject it (`grok-4.20-reasoning`, `grok-4.20-non-reasoning`, and dated variants)
+
+## 4.0.7
+
+### Patch Changes
+
+- 5520b8a: Emit provider-executed tool results for completed xAI Responses API streaming tool calls.
+
 ## 4.0.6
 
 ### Patch Changes

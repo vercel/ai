@@ -1,7 +1,10 @@
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import { describe, expect, it, vi } from 'vitest';
 import type { HarnessV1, HarnessV1SandboxProvider } from '../v1';
-import { prepareHarnessSandboxTemplate, prewarmHarness } from './prewarm';
+import {
+  prepareHarnessSandboxTemplate,
+  prewarmHarness,
+} from './prepare-harness-sandbox-template';
 
 function makeHarness(): HarnessV1 {
   return {

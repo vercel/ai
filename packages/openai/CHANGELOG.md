@@ -1,5 +1,34 @@
 # @ai-sdk/openai
 
+## 4.0.11
+
+### Patch Changes
+
+- b2b1bb9: feat(provider/openai): add GPT-5.6 reasoning and prompt cache controls
+
+## 4.0.10
+
+### Patch Changes
+
+- fdb6d5d: feat(provider/openai,provider/gateway): add gpt-5.6 model ids
+- Updated dependencies [0f93c57]
+  - @ai-sdk/provider@4.0.3
+  - @ai-sdk/provider-utils@5.0.7
+
+## 4.0.9
+
+### Patch Changes
+
+- ac306ed: Fix `StreamingToolCallTracker` finalizing streaming tool calls on parsable partial JSON. Tool calls now only finalize during stream flush, restoring the behavior of #13137: a parsable argument buffer can still be the prefix of a longer argument string, so finalizing early could act on truncated tool inputs.
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+
+## 4.0.8
+
+### Patch Changes
+
+- b51ed36: Send inline image file parts in OpenAI chat requests as data URLs instead of bare base64 strings.
+
 ## 4.0.7
 
 ### Patch Changes
