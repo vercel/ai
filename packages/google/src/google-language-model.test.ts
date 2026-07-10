@@ -3822,6 +3822,96 @@ describe('doGenerate', () => {
       });
     });
 
+    describe('Gemini 2.5 models (frequencyPenalty/presencePenalty unsupported)', () => {
+      const gemini25FlashModel = provider.chat('gemini-2.5-flash');
+
+      it('should strip frequencyPenalty and warn for gemini-2.5 models', async () => {
+        server.urls[TEST_URL_GEMINI_2_5_FLASH].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        const result = await gemini25FlashModel.doGenerate({
+          prompt: TEST_PROMPT,
+          frequencyPenalty: 0.5,
+        });
+
+        expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+          'generationConfig.frequencyPenalty',
+        );
+        expect(result.warnings).toContainEqual({
+          type: 'unsupported',
+          feature: 'frequencyPenalty',
+          details:
+            'frequencyPenalty is not supported for gemini-2.5 models and will be ignored.',
+        });
+      });
+
+      it('should strip presencePenalty and warn for gemini-2.5 models', async () => {
+        server.urls[TEST_URL_GEMINI_2_5_FLASH].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        const result = await gemini25FlashModel.doGenerate({
+          prompt: TEST_PROMPT,
+          presencePenalty: 0.5,
+        });
+
+        expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+          'generationConfig.presencePenalty',
+        );
+        expect(result.warnings).toContainEqual({
+          type: 'unsupported',
+          feature: 'presencePenalty',
+          details:
+            'presencePenalty is not supported for gemini-2.5 models and will be ignored.',
+        });
+      });
+
+      it('should not warn when frequencyPenalty/presencePenalty are not set', async () => {
+        server.urls[TEST_URL_GEMINI_2_5_FLASH].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        const result = await gemini25FlashModel.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.warnings).not.toContainEqual(
+          expect.objectContaining({ feature: 'frequencyPenalty' }),
+        );
+        expect(result.warnings).not.toContainEqual(
+          expect.objectContaining({ feature: 'presencePenalty' }),
+        );
+      });
+
+      it('should still pass frequencyPenalty/presencePenalty through for gemini-2.0 models (regression)', async () => {
+        const gemini20FlashModel = provider.chat('gemini-2.0-flash-exp');
+        server.urls[TEST_URL_GEMINI_2_0_FLASH_EXP].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        const result = await gemini20FlashModel.doGenerate({
+          prompt: TEST_PROMPT,
+          frequencyPenalty: 0.5,
+          presencePenalty: 0.3,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            frequencyPenalty: 0.5,
+            presencePenalty: 0.3,
+          },
+        });
+        expect(result.warnings).not.toContainEqual(
+          expect.objectContaining({ feature: 'frequencyPenalty' }),
+        );
+      });
+    });
+
     describe('providerOptions precedence', () => {
       it('should use providerOptions thinkingConfig when both reasoning and providerOptions are set', async () => {
         prepareJsonFixtureResponse('google-text');

@@ -276,7 +276,7 @@ console.log(reasoning); // Reasoning summary
 
 For Gemini 2.5 models, use the `thinkingBudget` parameter to control the number of thinking tokens:
 
-```ts
+````ts
 import { google, GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
@@ -298,7 +298,21 @@ const { text, reasoning } = await generateText({
 console.log(text);
 
 console.log(reasoning); // Reasoning summary
-```
+
+````
+
+### Unsupported Settings on Gemini 2.5 Models
+
+Gemini 2.5 models do not support the `frequencyPenalty` and `presencePenalty` settings (these were removed by Google in the 2.5 series API). If you set either of these on a Gemini 2.5 model, the AI SDK will omit them from the request and surface an `unsupported` warning on the result instead of forwarding them to the API, which would otherwise fail with an `INVALID_ARGUMENT` error.
+
+```ts
+const result = await generateText({
+  model: google('gemini-2.5-flash'),
+  prompt: 'Write a short story about a robot.',
+  frequencyPenalty: 0.5, // ignored for gemini-2.5 models
+});
+console.log(result.warnings); // includes an 'unsupported' warning for frequencyPenalty
+````
 
 ### File Inputs
 
