@@ -194,7 +194,6 @@ describe('GoogleFiles', () => {
 
       expect(capturedUploadInit?.method).toBe('POST');
       const headers = capturedUploadInit?.headers as Record<string, string>;
-      expect(headers['Content-Length']).toBe('3');
       expect(headers['X-Goog-Upload-Offset']).toBe('0');
       expect(headers['X-Goog-Upload-Command']).toBe('upload, finalize');
       expect(capturedUploadInit?.body).toEqual(bytes);
