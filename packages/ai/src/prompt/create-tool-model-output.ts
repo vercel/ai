@@ -30,5 +30,10 @@ export async function createToolModelOutput({
 }
 
 function toJSONValue(value: unknown): JSONValue {
-  return value === undefined ? null : (value as JSONValue);
+  if (value === undefined) {
+    return null;
+  }
+
+  const serialized = JSON.stringify(value);
+  return serialized === undefined ? null : JSON.parse(serialized);
 }

@@ -4727,6 +4727,100 @@ describe('generateText', () => {
         expect(result.responseMessages).toMatchSnapshot();
       });
 
+      it('result.responseMessages should JSON serialize object tool outputs', async () => {
+        const recordId = '507f1f77bcf86cd799439011';
+        let responseCount = 0;
+
+        class ObjectIdLike {
+          toJSON() {
+            return recordId;
+          }
+        }
+
+        const result = await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => {
+              switch (responseCount++) {
+                case 0:
+                  return {
+                    ...dummyResponseValues,
+                    content: [
+                      {
+                        type: 'tool-call',
+                        toolCallType: 'function',
+                        toolCallId: 'call-1',
+                        toolName: 'lookupRecord',
+                        input: '{}',
+                      },
+                    ],
+                    finishReason: { unified: 'tool-calls', raw: undefined },
+                  };
+                case 1:
+                  return {
+                    ...dummyResponseValues,
+                    content: [{ type: 'text', text: 'done' }],
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                  };
+                default:
+                  throw new Error(
+                    `Unexpected response count: ${responseCount}`,
+                  );
+              }
+            },
+          }),
+          tools: {
+            lookupRecord: tool({
+              inputSchema: z.object({}),
+              execute: async () => ({ id: new ObjectIdLike() }),
+            }),
+          },
+          prompt: 'look up the record',
+          stopWhen: isStepCount(2),
+        });
+
+        expect(result.responseMessages).toEqual([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'lookupRecord',
+                input: {},
+                providerExecuted: undefined,
+                providerOptions: undefined,
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'lookupRecord',
+                output: {
+                  type: 'json',
+                  value: {
+                    id: recordId,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'done',
+                providerOptions: undefined,
+              },
+            ],
+          },
+        ]);
+      });
+
       it('result.totalUsage should sum token usage', () => {
         expect(result.totalUsage).toMatchInlineSnapshot(`
           {
