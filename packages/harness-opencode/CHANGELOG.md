@@ -1,5 +1,11 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.28
+
+### Patch Changes
+
+- c93803d: fix(harness): improve CLI relay tool invocation logic
+
 ## 1.0.27
 
 ### Patch Changes
