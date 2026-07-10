@@ -3073,6 +3073,313 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  it('should preserve progressive top-level string tool input', async () => {
+    const stream = createUIMessageStream([
+      { type: 'start', messageId: 'msg-123' },
+      { type: 'start-step' },
+      {
+        type: 'tool-input-start',
+        toolCallId: 'tool-call-string',
+        toolName: 'test-tool',
+      },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'tool-call-string',
+        inputTextDelta: '{"payload":"a',
+      },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'tool-call-string',
+        inputTextDelta: 'bc',
+      },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'tool-call-string',
+        inputTextDelta: '\\n',
+      },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'tool-call-string',
+        inputTextDelta: 'def',
+      },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'tool-call-string',
+        inputTextDelta: '"}',
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'tool-call-string',
+        toolName: 'test-tool',
+        input: { payload: 'abc\ndef' },
+      },
+      { type: 'finish' },
+    ]);
+
+    state = createStreamingUIMessageState({
+      messageId: 'msg-123',
+      lastMessage: undefined,
+    });
+    await consumeStream({
+      stream: processUIMessageStream({
+        stream,
+        runUpdateMessageJob,
+        onError: error => {
+          throw error;
+        },
+      }),
+    });
+
+    const inputs = writeCalls.flatMap(({ message }) => {
+      const part = message.parts.find(
+        part =>
+          'toolCallId' in part &&
+          part.toolCallId === 'tool-call-string' &&
+          'input' in part,
+      );
+      return part == null ? [] : [(part as { input: unknown }).input];
+    });
+    expect(inputs).toEqual([
+      undefined,
+      { payload: 'a' },
+      { payload: 'abc' },
+      { payload: 'abc\n' },
+      { payload: 'abc\ndef' },
+      { payload: 'abc\ndef' },
+      { payload: 'abc\ndef' },
+    ]);
+    expect(
+      state!.partialToolCalls['tool-call-string'].streamingString,
+    ).toBeUndefined();
+  });
+
+  it('should replace progressive dynamic tool input objects', async () => {
+    const inputReferences: unknown[] = [];
+    const stream = createUIMessageStream([
+      { type: 'start', messageId: 'msg-123' },
+      { type: 'start-step' },
+      {
+        type: 'tool-input-start',
+        toolCallId: 'tool-call-dynamic',
+        toolName: 'test-tool',
+        dynamic: true,
+      },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'tool-call-dynamic',
+        inputTextDelta: '{"payload":"a',
+      },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'tool-call-dynamic',
+        inputTextDelta: 'bc',
+      },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'tool-call-dynamic',
+        inputTextDelta: 'def',
+      },
+      { type: 'finish' },
+    ]);
+
+    state = createStreamingUIMessageState({
+      messageId: 'msg-123',
+      lastMessage: undefined,
+    });
+    await consumeStream({
+      stream: processUIMessageStream({
+        stream,
+        runUpdateMessageJob: async job => {
+          await job({
+            state: state!,
+            write: () => {
+              const part = state!.message.parts.find(
+                part =>
+                  part.type === 'dynamic-tool' &&
+                  part.toolCallId === 'tool-call-dynamic',
+              );
+              if (
+                part != null &&
+                'state' in part &&
+                part.state === 'input-streaming' &&
+                'input' in part &&
+                part.input != null
+              ) {
+                inputReferences.push(part.input);
+              }
+            },
+          });
+        },
+        onError: error => {
+          throw error;
+        },
+      }),
+    });
+
+    expect(inputReferences).toEqual([
+      { payload: 'a' },
+      { payload: 'abc' },
+      { payload: 'abcdef' },
+    ]);
+    expect(inputReferences[0]).not.toBe(inputReferences[1]);
+    expect(inputReferences[1]).not.toBe(inputReferences[2]);
+  });
+
+  it('should not fast-path __proto__ tool input', async () => {
+    const stream = createUIMessageStream([
+      { type: 'start', messageId: 'msg-123' },
+      { type: 'start-step' },
+      {
+        type: 'tool-input-start',
+        toolCallId: 'tool-call-proto',
+        toolName: 'test-tool',
+      },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'tool-call-proto',
+        inputTextDelta: '{"__proto__":"safe',
+      },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'tool-call-proto',
+        inputTextDelta: ' value',
+      },
+      { type: 'finish' },
+    ]);
+
+    state = createStreamingUIMessageState({
+      messageId: 'msg-123',
+      lastMessage: undefined,
+    });
+    await consumeStream({
+      stream: processUIMessageStream({
+        stream,
+        runUpdateMessageJob,
+        onError: error => {
+          throw error;
+        },
+      }),
+    });
+
+    const part = state!.message.parts.find(
+      part => 'toolCallId' in part && part.toolCallId === 'tool-call-proto',
+    );
+    expect(
+      part != null && 'input' in part ? part.input : undefined,
+    ).toBeUndefined();
+    expect(
+      state!.partialToolCalls['tool-call-proto'].streamingString,
+    ).toBeUndefined();
+  });
+
+  it('should stop appending after trailing tool input', async () => {
+    const stream = createUIMessageStream([
+      { type: 'start', messageId: 'msg-123' },
+      { type: 'start-step' },
+      {
+        type: 'tool-input-start',
+        toolCallId: 'tool-call-trailing',
+        toolName: 'test-tool',
+      },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'tool-call-trailing',
+        inputTextDelta: '{"payload":"a',
+      },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'tool-call-trailing',
+        inputTextDelta: '"}"x',
+      },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'tool-call-trailing',
+        inputTextDelta: 'y',
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'tool-call-trailing',
+        toolName: 'test-tool',
+        input: { payload: 'a' },
+      },
+      { type: 'finish' },
+    ]);
+
+    state = createStreamingUIMessageState({
+      messageId: 'msg-123',
+      lastMessage: undefined,
+    });
+    await consumeStream({
+      stream: processUIMessageStream({
+        stream,
+        runUpdateMessageJob,
+        onError: error => {
+          throw error;
+        },
+      }),
+    });
+
+    const inputs = writeCalls.flatMap(({ message }) => {
+      const part = message.parts.find(
+        part =>
+          'toolCallId' in part &&
+          part.toolCallId === 'tool-call-trailing' &&
+          'input' in part,
+      );
+      return part == null ? [] : [(part as { input: unknown }).input];
+    });
+    expect(inputs).toEqual([
+      undefined,
+      { payload: 'a' },
+      { payload: 'a' },
+      { payload: 'a' },
+      { payload: 'a' },
+    ]);
+  });
+
+  it('should clear streaming string state after tool input error', async () => {
+    const stream = createUIMessageStream([
+      { type: 'start', messageId: 'msg-123' },
+      { type: 'start-step' },
+      {
+        type: 'tool-input-start',
+        toolCallId: 'tool-call-error',
+        toolName: 'test-tool',
+      },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'tool-call-error',
+        inputTextDelta: '{"payload":"cached',
+      },
+      {
+        type: 'tool-input-error',
+        toolCallId: 'tool-call-error',
+        toolName: 'test-tool',
+        input: '{"payload":"cached',
+        errorText: 'Invalid tool input',
+      },
+      { type: 'finish' },
+    ]);
+
+    state = createStreamingUIMessageState({
+      messageId: 'msg-123',
+      lastMessage: undefined,
+    });
+    await consumeStream({
+      stream: processUIMessageStream({
+        stream,
+        runUpdateMessageJob,
+        onError: error => {
+          throw error;
+        },
+      }),
+    });
+
+    expect(
+      state!.partialToolCalls['tool-call-error'].streamingString,
+    ).toBeUndefined();
+  });
+
   describe('tool call streaming', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([

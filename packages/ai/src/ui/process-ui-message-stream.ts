@@ -31,6 +31,17 @@ import {
   type UIMessage,
   type UIMessagePart,
 } from './ui-messages';
+
+function isPlainStringDelta(delta: string): boolean {
+  for (let index = 0; index < delta.length; index++) {
+    const code = delta.charCodeAt(index);
+    if (code === 0x22 || code === 0x5c || code <= 0x1f) {
+      return false;
+    }
+  }
+  return true;
+}
+
 export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   message: UI_MESSAGE;
   activeTextParts: Record<string, TextUIPart>;
@@ -44,6 +55,10 @@ export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
       dynamic?: boolean;
       title?: string;
       toolMetadata?: JSONObject;
+      streamingString?: {
+        key: string;
+        value: string;
+      };
     }
   >;
   finishReason?: FinishReason;
@@ -592,11 +607,49 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 });
               }
 
-              partialToolCall.text += chunk.inputTextDelta;
+              const delta = chunk.inputTextDelta;
+              partialToolCall.text += delta;
 
-              const { value: partialArgs } = await parsePartialJson(
-                partialToolCall.text,
-              );
+              let partialArgs: unknown;
+              if (
+                partialToolCall.streamingString != null &&
+                isPlainStringDelta(delta)
+              ) {
+                partialToolCall.streamingString.value += delta;
+                partialArgs = {
+                  [partialToolCall.streamingString.key]:
+                    partialToolCall.streamingString.value,
+                };
+              } else {
+                const { value } = await parsePartialJson(partialToolCall.text);
+                partialArgs = value;
+
+                const match = partialToolCall.text.match(
+                  /^\s*\{\s*"([^"\\]*)"\s*:\s*"([^"\\]*)$/,
+                );
+                const partialObject =
+                  typeof partialArgs === 'object' &&
+                  partialArgs !== null &&
+                  !Array.isArray(partialArgs)
+                    ? (partialArgs as JSONObject)
+                    : undefined;
+
+                if (
+                  match != null &&
+                  isPlainStringDelta(match[1]) &&
+                  isPlainStringDelta(match[2]) &&
+                  partialObject != null &&
+                  Object.keys(partialObject).length === 1 &&
+                  partialObject[match[1]] === match[2]
+                ) {
+                  partialToolCall.streamingString = {
+                    key: match[1],
+                    value: match[2],
+                  };
+                } else {
+                  partialToolCall.streamingString = undefined;
+                }
+              }
 
               if (partialToolCall.dynamic) {
                 updateDynamicToolPart({
@@ -623,6 +676,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'tool-input-available': {
+              const partialToolCall = state.partialToolCalls[chunk.toolCallId];
+              if (partialToolCall != null) {
+                partialToolCall.streamingString = undefined;
+              }
+
               if (chunk.dynamic) {
                 updateDynamicToolPart({
                   toolCallId: chunk.toolCallId,
@@ -662,6 +720,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'tool-input-error': {
+              const partialToolCall = state.partialToolCalls[chunk.toolCallId];
+              if (partialToolCall != null) {
+                partialToolCall.streamingString = undefined;
+              }
+
               // When a part already exists for this toolCallId (e.g. from
               // tool-input-start), honour its type so we update in place
               // instead of creating a duplicate with a mismatched type.
