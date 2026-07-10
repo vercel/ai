@@ -213,7 +213,7 @@ export class HarnessStreamTextResult<
     usage: LanguageModelV4Usage;
     providerMetadata: ProviderMetadata | undefined;
     warnings: CallWarning[];
-  }): void {
+  }): StepResult<TOOLS, RUNTIME_CONTEXT> {
     const normalizedUsage = asLanguageModelUsage(input.usage);
     const finishReason = input.finishReason.unified;
     const rawFinishReason = input.finishReason.raw;
@@ -267,6 +267,8 @@ export class HarnessStreamTextResult<
     this.stepNumber += 1;
     this.currentStepContent = [];
     this.currentStepWarnings = [];
+
+    return step;
   }
 
   /**
@@ -278,7 +280,20 @@ export class HarnessStreamTextResult<
     providerMetadata: ProviderMetadata | undefined;
   }): Promise<void> {
     if (this.settled) return;
-    this.settled = true;
+
+    /*
+     * Do not flush trailing content that has not been captured by a
+     * `finish-step`. A terminal `finish` closes the turn but is not a semantic
+     * step boundary, so buffered content indicates an invalid harness stream.
+     */
+    if (this.currentStepContent.length > 0) {
+      this.fail(
+        new Error(
+          'HarnessAgent: received terminal finish with unclosed step content. Harness adapters must emit `finish-step` before `finish`.',
+        ),
+      );
+      return;
+    }
 
     if (input != null) {
       this.finalFinishReason = input.finishReason.unified;
@@ -287,39 +302,7 @@ export class HarnessStreamTextResult<
       this.accumulatedUsage = asLanguageModelUsage(input.totalUsage);
     }
 
-    // Flush any trailing content not yet captured by a finish-step. We
-    // construct the step directly here (the public `finishStep` takes V4
-    // shapes; we already have AI SDK shapes at this point).
-    if (this.currentStepContent.length > 0) {
-      const trailingStep = new DefaultStepResult<TOOLS, RUNTIME_CONTEXT>({
-        callId: generateId(),
-        stepNumber: this.stepNumber,
-        provider: this.providerName,
-        modelId: this.modelId,
-        runtimeContext: this.runtimeContext,
-        toolsContext: this.toolsContext,
-        content: this.currentStepContent,
-        finishReason: this.finalFinishReason,
-        rawFinishReason: this.finalRawFinishReason,
-        usage: createNullLanguageModelUsage(),
-        performance: createEmptyPerformance(),
-        warnings:
-          this.currentStepWarnings.length > 0
-            ? this.currentStepWarnings
-            : undefined,
-        request: {},
-        response: {
-          id: generateId(),
-          timestamp: new Date(),
-          modelId: this.modelId,
-          messages: [],
-        },
-        providerMetadata: this.finalProviderMetadata,
-      });
-      this.stepsBuffer.push(trailingStep);
-      this.currentStepContent = [];
-      this.currentStepWarnings = [];
-    }
+    this.settled = true;
 
     const finalStep =
       this.stepsBuffer.length > 0

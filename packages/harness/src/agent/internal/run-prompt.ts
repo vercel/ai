@@ -26,7 +26,13 @@ import type {
   LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 import { parseToolCall } from 'ai/internal';
-import type { ContentPart, TelemetryOptions, TextStreamPart } from 'ai';
+import type {
+  ContentPart,
+  ProviderMetadata,
+  StepResult,
+  TelemetryOptions,
+  TextStreamPart,
+} from 'ai';
 import type { HarnessAgentToolApprovalContinuation } from '../harness-agent-tool-approval-continuation';
 import type { HarnessAgentToolApprovalConfiguration } from '../harness-agent-settings';
 import { HarnessStreamTextResult } from './harness-stream-text-result';
@@ -203,18 +209,30 @@ export function runPrompt<
       unified: 'tool-calls',
       raw: undefined,
     };
-    const finishForToolApprovalPause = async (): Promise<void> => {
+    const completeStep = (input: {
+      finishReason: LanguageModelV4FinishReason;
+      usage: LanguageModelV4Usage;
+      providerMetadata: ProviderMetadata | undefined;
+    }): StepResult<TOOLS, RUNTIME_CONTEXT> => {
       telemetry.stepFinish({
-        finishReason: toolCallsFinishReason,
-        usage: zeroUsage,
+        finishReason: input.finishReason,
+        usage: input.usage,
+        providerMetadata: input.providerMetadata,
         content: buildStepContent(),
       });
       resetStepContent();
-      result.finishStep({
+      return result.finishStep({
+        finishReason: input.finishReason,
+        usage: input.usage,
+        providerMetadata: input.providerMetadata,
+        warnings: [],
+      });
+    };
+    const finishForToolApprovalPause = async (): Promise<void> => {
+      completeStep({
         finishReason: toolCallsFinishReason,
         usage: zeroUsage,
         providerMetadata: undefined,
-        warnings: [],
       });
       telemetry.end({
         finishReason: toolCallsFinishReason,
@@ -528,18 +546,10 @@ export function runPrompt<
 
         // Drive step boundaries.
         if (value.type === 'finish-step') {
-          telemetry.stepFinish({
+          completeStep({
             finishReason: value.finishReason,
             usage: value.usage,
             providerMetadata: value.harnessMetadata,
-            content: buildStepContent(),
-          });
-          resetStepContent();
-          result.finishStep({
-            finishReason: value.finishReason,
-            usage: value.usage,
-            providerMetadata: value.harnessMetadata,
-            warnings: [],
           });
         }
 
