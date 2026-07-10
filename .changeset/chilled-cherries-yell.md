@@ -6,4 +6,4 @@
 "ai": patch
 ---
 
-fix: only import zod from `zod/v4`
+chore: enforce consistent imports from `zod/v4` instead of `zod`
