@@ -783,6 +783,129 @@ describe('convertToGoogleInteractionsInput', () => {
         ]
       `);
     });
+
+    it('maps a reference text/plain file part to a document block with the resolved Files API URI', () => {
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'summarize this text document' },
+            {
+              type: 'file',
+              mediaType: 'text/plain',
+              data: {
+                type: 'reference',
+                reference: {
+                  google:
+                    'https://generativelanguage.googleapis.com/v1beta/files/text-abc',
+                },
+              },
+            },
+          ],
+        },
+      ];
+
+      const result = convertToGoogleInteractionsInput({ prompt });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "input": [
+            {
+              "content": [
+                {
+                  "text": "summarize this text document",
+                  "type": "text",
+                },
+                {
+                  "mime_type": "text/plain",
+                  "type": "document",
+                  "uri": "https://generativelanguage.googleapis.com/v1beta/files/text-abc",
+                },
+              ],
+              "type": "user_input",
+            },
+          ],
+          "systemInstruction": undefined,
+          "warnings": [],
+        }
+      `);
+    });
+
+    it('maps a url text/plain file part to a document block with `uri` (URL passthrough)', () => {
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'text/markdown',
+              data: {
+                type: 'url',
+                url: new URL('https://example.com/notes.md'),
+              },
+            },
+          ],
+        },
+      ];
+
+      const result = convertToGoogleInteractionsInput({ prompt });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "input": [
+            {
+              "content": [
+                {
+                  "mime_type": "text/markdown",
+                  "type": "document",
+                  "uri": "https://example.com/notes.md",
+                },
+              ],
+              "type": "user_input",
+            },
+          ],
+          "systemInstruction": undefined,
+          "warnings": [],
+        }
+      `);
+    });
+
+    it('maps a binary text/plain data file part to a document block', () => {
+      const bytes = new Uint8Array([104, 105]);
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'text/plain',
+              data: { type: 'data', data: bytes },
+            },
+          ],
+        },
+      ];
+
+      const result = convertToGoogleInteractionsInput({ prompt });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "input": [
+            {
+              "content": [
+                {
+                  "data": "aGk=",
+                  "mime_type": "text/plain",
+                  "type": "document",
+                },
+              ],
+              "type": "user_input",
+            },
+          ],
+          "systemInstruction": undefined,
+          "warnings": [],
+        }
+      `);
+    });
   });
 
   describe('assistant tool-call parts', () => {
