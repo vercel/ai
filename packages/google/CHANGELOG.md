@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.12
+
+### Patch Changes
+
+- e40118c: Forward text file references as documents when using the Google Interactions API.
+
 ## 4.0.11
 
 ### Patch Changes

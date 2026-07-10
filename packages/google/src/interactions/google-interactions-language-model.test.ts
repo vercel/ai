@@ -175,6 +175,61 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
     });
   });
 
+  describe('text ProviderReference file', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('basic');
+    });
+
+    it('forwards the uploaded text document to the model', async () => {
+      const result = await provider
+        .interactions('gemini-3.5-flash')
+        .doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Return only the secret verification code from the attached text document.',
+                },
+                {
+                  type: 'file',
+                  mediaType: 'text/plain',
+                  data: {
+                    type: 'reference',
+                    reference: {
+                      google:
+                        'https://generativelanguage.googleapis.com/v1beta/files/gzed1s6hqcsn',
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        input: [
+          {
+            type: 'user_input',
+            content: [
+              {
+                type: 'text',
+                text: 'Return only the secret verification code from the attached text document.',
+              },
+              {
+                type: 'document',
+                uri: 'https://generativelanguage.googleapis.com/v1beta/files/gzed1s6hqcsn',
+                mime_type: 'text/plain',
+              },
+            ],
+          },
+        ],
+      });
+      expect(result.warnings).toEqual([]);
+    });
+  });
+
   describe('multi-turn input', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('basic');

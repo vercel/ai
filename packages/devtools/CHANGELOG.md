@@ -1,5 +1,11 @@
 # @ai-sdk/devtools
 
+## 1.0.4
+
+### Patch Changes
+
+- c29e0d7: chore (devtools): remove leftover `module` field from package.json (dual CJS/ESM publishing was removed in AI SDK 7)
+
 ## 1.0.3
 
 ### Patch Changes
