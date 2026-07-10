@@ -113,6 +113,11 @@ function getStartSpanAttributes(
   );
 }
 
+function getStartSpanContext(tracer: MockTracer, callIndex: number) {
+  const mock = tracer.startSpan as ReturnType<typeof vi.fn>;
+  return mock.mock.calls[callIndex][2];
+}
+
 function getSpanStartAttributes(
   tracer: MockTracer,
   span: MockSpan,
@@ -901,6 +906,88 @@ describe('OpenTelemetry', () => {
 
       const mock = tracer.startSpan as ReturnType<typeof vi.fn>;
       expect(mock.mock.calls[2][2]).toBe(mock.mock.calls[3][2]);
+    });
+
+    it('keeps interleaved generateText tool spans scoped to their callId', () => {
+      integration = new OpenTelemetry({
+        tracer,
+        enrichSpan: ({ callId }) => ({ 'test.call_id': callId }),
+      });
+
+      const callA = 'concurrent-call-a';
+      const callB = 'concurrent-call-b';
+
+      integration.onStart!(
+        makeOnStartEvent({ callId: callA, functionId: 'agent-a' }),
+      );
+      integration.onStart!(
+        makeOnStartEvent({ callId: callB, functionId: 'agent-b' }),
+      );
+      integration.onStepStart!(makeStepStartEvent({ callId: callA }));
+      integration.onStepStart!(makeStepStartEvent({ callId: callB }));
+      integration.onLanguageModelCallStart!(
+        makeLanguageModelCallStartEvent({ callId: callB }),
+      );
+      integration.onToolExecutionStart!(
+        makeToolCallStartEvent({
+          callId: callA,
+          toolCall: {
+            type: 'tool-call',
+            toolCallId: 'tool-call-a',
+            toolName: 'toolA',
+            input: { query: 'a' },
+          },
+        }),
+      );
+      integration.onLanguageModelCallStart!(
+        makeLanguageModelCallStartEvent({ callId: callA }),
+      );
+      integration.onToolExecutionStart!(
+        makeToolCallStartEvent({
+          callId: callB,
+          toolCall: {
+            type: 'tool-call',
+            toolCallId: 'tool-call-b',
+            toolName: 'toolB',
+            input: { query: 'b' },
+          },
+        }),
+      );
+
+      expect(
+        tracer.spans.map((span, index) => ({
+          name: span.name,
+          callId: getStartSpanAttributes(tracer, index)['test.call_id'],
+          agentName: getStartSpanAttributes(tracer, index)['gen_ai.agent.name'],
+        })),
+      ).toEqual([
+        {
+          name: 'invoke_agent gpt-4',
+          callId: callA,
+          agentName: 'agent-a',
+        },
+        {
+          name: 'invoke_agent gpt-4',
+          callId: callB,
+          agentName: 'agent-b',
+        },
+        { name: 'step 1', callId: callA, agentName: undefined },
+        { name: 'step 1', callId: callB, agentName: undefined },
+        { name: 'chat gpt-4', callId: callB, agentName: undefined },
+        { name: 'execute_tool toolA', callId: callA, agentName: undefined },
+        { name: 'chat gpt-4', callId: callA, agentName: undefined },
+        { name: 'execute_tool toolB', callId: callB, agentName: undefined },
+      ]);
+
+      expect(getStartSpanContext(tracer, 4)).toBe(
+        getStartSpanContext(tracer, 7),
+      );
+      expect(getStartSpanContext(tracer, 5)).toBe(
+        getStartSpanContext(tracer, 6),
+      );
+      expect(getStartSpanContext(tracer, 5)).not.toBe(
+        getStartSpanContext(tracer, 7),
+      );
     });
 
     it('sets gen_ai.tool.call.result on success', () => {
