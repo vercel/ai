@@ -21,6 +21,10 @@ import {
   type OpenCodeEvent,
   unwrapOpenCodeEvent,
 } from './opencode-events';
+import {
+  legacyStepFinishPartToFinishStep,
+  mapOpenCodeFinishReason,
+} from './opencode-finish-step';
 import { prependOpenCodeBinToPath } from './opencode-path';
 import {
   addUsage,
@@ -109,6 +113,7 @@ const TOOL_KIND: Readonly<Record<string, 'readonly' | 'edit' | 'bash'>> = {
   skill: 'edit',
   todowrite: 'edit',
 };
+const HARNESS_CLIENT_APP = procEnv.AI_SDK_HARNESS_CLIENT_APP;
 
 const args = parseArgs(argv.slice(2));
 const workdir = args.workdir ?? emitFatal('Missing --workdir argument.');
@@ -143,7 +148,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       totalUsage = await runPrompt({ client, sessionId, start, turn, emit });
     }
   } catch (err) {
-    emit({ type: 'error', error: serialiseError(err) });
+    turn.emitError({ error: err, message: 'OpenCode turn failed' });
   } finally {
     emit({
       type: 'finish',
@@ -265,6 +270,9 @@ function buildProviderConfig(
         options: {
           apiKey: procEnv.AI_GATEWAY_API_KEY,
           baseURL: toOpenCodeGatewayBaseUrl(procEnv.AI_GATEWAY_BASE_URL),
+          ...(HARNESS_CLIENT_APP
+            ? { headers: { 'x-client-app': HARNESS_CLIENT_APP } }
+            : {}),
         },
         ...(modelID
           ? {
@@ -397,7 +405,9 @@ async function legacySessionPrompt({
   sessionId: string;
   start: StartMessage;
 }): Promise<{ error?: unknown; data?: unknown }> {
-  return (client as any).session.prompt({
+  const session = (client as any).session;
+  const prompt = session.promptAsync ?? session.prompt;
+  return prompt.call(session, {
     sessionID: sessionId,
     ...(start.instructions ? { system: start.instructions } : {}),
     ...(start.variant ? { variant: start.variant } : {}),
@@ -465,11 +475,45 @@ function legacyStatusType(event: OpenCodeEvent): string | undefined {
     : undefined;
 }
 
-function legacyStatusMessage(event: OpenCodeEvent): string | undefined {
+function legacyRetryStatusMessage(event: OpenCodeEvent): string {
   const status = event.properties?.status;
-  if (!status || typeof status !== 'object') return undefined;
-  const message = (status as { message?: unknown }).message;
-  return typeof message === 'string' ? message : undefined;
+  const details: string[] = [];
+  if (status && typeof status === 'object') {
+    const retryStatus = status as { attempt?: unknown; message?: unknown };
+    if (typeof retryStatus.attempt === 'number') {
+      details.push(`attempt ${retryStatus.attempt}`);
+    }
+    if (typeof retryStatus.message === 'string' && retryStatus.message.trim()) {
+      details.push(retryStatus.message.trim());
+    }
+  }
+  return details.length > 0
+    ? `OpenCode session retry: ${details.join('; ')}`
+    : 'OpenCode session retry';
+}
+
+function nextRetryEventMessage(event: OpenCodeEvent): string {
+  const props = event.properties ?? {};
+  const details: string[] = [];
+  if (typeof props.attempt === 'number') {
+    details.push(`attempt ${props.attempt}`);
+  }
+  const error = props.error;
+  if (isRecord(error)) {
+    const message =
+      stringValue(error.message) ??
+      (isRecord(error.data) ? stringValue(error.data.message) : undefined);
+    const statusCode = error.statusCode;
+    if (typeof statusCode === 'number') {
+      details.push(`HTTP ${statusCode}`);
+    }
+    if (message) details.push(message);
+  } else if (error != null) {
+    details.push(formatError(error));
+  }
+  return details.length > 0
+    ? `OpenCode session retry: ${details.join('; ')}`
+    : 'OpenCode session retry';
 }
 
 async function ensureSession({
@@ -529,6 +573,7 @@ async function runPrompt({
     client,
     sessionId,
   }).catch(() => undefined);
+  const eventsReady = createDeferred<void>();
   let stepUsage: HarnessUsage | undefined;
   let latestSessionTokens: OpenCodeTokenUsage | undefined;
   const eventLoop = consumeEvents({
@@ -551,6 +596,7 @@ async function runPrompt({
       emit(msg);
     },
     signal: eventsAbort.signal,
+    onSubscribed: () => eventsReady.resolve(undefined),
     onEvent: event => {
       if (event.type === 'session.updated') {
         latestSessionTokens =
@@ -565,9 +611,7 @@ async function runPrompt({
         sawBusy = true;
       } else if (status === 'retry') {
         sawBusy = true;
-        terminalError = legacyStatusMessage(event) ?? 'Session retry';
-        turnSettled.resolve();
-        return true;
+        turn.emitWarning({ message: legacyRetryStatusMessage(event) });
       } else if (sawBusy && status === 'idle') {
         turnSettled.resolve();
         return true;
@@ -578,11 +622,15 @@ async function runPrompt({
         return true;
       }
     },
-  }).finally(() => turnSettled.resolve());
+  }).finally(() => {
+    eventsReady.resolve(undefined);
+    turnSettled.resolve();
+  });
   emit({
     type: 'stream-start',
     ...(start.model ? { modelId: start.model } : {}),
   });
+  await eventsReady.promise;
   const prompted = await legacySessionPrompt({
     client,
     sessionId,
@@ -678,9 +726,7 @@ async function runCompaction({
         sawBusy = true;
       } else if (status === 'retry') {
         sawBusy = true;
-        terminalError = legacyStatusMessage(event) ?? 'Session retry';
-        compactionSettled.resolve();
-        return true;
+        turn.emitWarning({ message: legacyRetryStatusMessage(event) });
       } else if (sawBusy && status === 'idle') {
         compactionSettled.resolve();
         return true;
@@ -727,6 +773,7 @@ async function consumeEvents({
   turn,
   emit,
   signal,
+  onSubscribed,
   onEvent,
 }: {
   client: OpenCodeClient;
@@ -736,9 +783,11 @@ async function consumeEvents({
   turn: BridgeTurn;
   emit: Emit;
   signal: AbortSignal;
+  onSubscribed?: () => void;
   onEvent?: (event: OpenCodeEvent) => boolean | void;
 }): Promise<void> {
   const stream = await subscribeLegacyEvents({ client, signal });
+  onSubscribed?.();
   if (!stream) return;
   const state = createTranslationState();
   for await (const rawEvent of stream) {
@@ -773,6 +822,7 @@ type TranslationState = {
   turnUsage: Record<string, unknown> | undefined;
   legacyTextPartIds: Set<string>;
   legacyReasoningPartIds: Set<string>;
+  legacyStepFinishPartIds: Set<string>;
 };
 
 function createTranslationState(): TranslationState {
@@ -789,6 +839,7 @@ function createTranslationState(): TranslationState {
     turnUsage: undefined,
     legacyTextPartIds: new Set(),
     legacyReasoningPartIds: new Set(),
+    legacyStepFinishPartIds: new Set(),
   };
 }
 
@@ -856,6 +907,7 @@ async function translateAndEmit({
 
   if (type === 'message.part.updated') {
     if (emitLegacyTextPartUpdate({ part: props.part, state, emit })) return;
+    if (emitLegacyStepFinishPart({ part: props.part, state, emit })) return;
     emitLegacyToolPart({ part: props.part, state, emit });
     return;
   }
@@ -1016,13 +1068,25 @@ async function translateAndEmit({
     });
     return;
   }
+  if (type === 'session.next.retried') {
+    const error = props.error ?? event;
+    if (isRecord(error) && error.isRetryable === false) {
+      turn.emitError({
+        error,
+        message: 'OpenCode session retry failed',
+      });
+    } else {
+      turn.emitWarning({ message: nextRetryEventMessage(event) });
+    }
+    return;
+  }
   if (type === 'session.next.step.ended') {
     closeLegacyOpenParts({ state, emit });
     state.turnUsage = mapUsage(props.tokens);
     emit({
       type: 'finish-step',
       finishReason: {
-        unified: mapFinishReason(String(props.finish ?? 'stop')),
+        unified: mapOpenCodeFinishReason(String(props.finish ?? 'stop')),
         raw: String(props.finish ?? 'stop'),
       },
       usage: state.turnUsage,
@@ -1054,7 +1118,14 @@ async function translateAndEmit({
     return;
   }
   if (type === 'session.error' || type === 'session.next.step.failed') {
-    emit({ type: 'error', error: formatError(props.error ?? event) });
+    const error = props.error ?? event;
+    turn.emitError({
+      error,
+      message:
+        type === 'session.error'
+          ? 'OpenCode session error'
+          : 'OpenCode step failed',
+    });
     return;
   }
   if (type === 'permission.v2.asked') {
@@ -1181,6 +1252,28 @@ function closeLegacyOpenParts({
     state.textDeltas.delete(id);
   }
   state.legacyTextPartIds.clear();
+}
+
+function emitLegacyStepFinishPart({
+  part,
+  state,
+  emit,
+}: {
+  part: unknown;
+  state: TranslationState;
+  emit: Emit;
+}): boolean {
+  const event = legacyStepFinishPartToFinishStep(part);
+  if (!event) return false;
+  const id = isRecord(part) ? stringValue(part.id) : undefined;
+  if (id) {
+    if (state.legacyStepFinishPartIds.has(id)) return true;
+    state.legacyStepFinishPartIds.add(id);
+  }
+  closeLegacyOpenParts({ state, emit });
+  state.turnUsage = event.usage as Record<string, unknown>;
+  emit(event);
+  return true;
 }
 
 function emitLegacyToolPart({
@@ -1588,7 +1681,7 @@ async function emitContextFallback({
   emit({
     type: 'finish-step',
     finishReason: {
-      unified: mapFinishReason(rawFinish),
+      unified: mapOpenCodeFinishReason(rawFinish),
       raw: rawFinish,
     },
     usage: mapUsage(assistant.tokens),
@@ -1718,19 +1811,6 @@ function emitAssistantContentPart(part: unknown, emit: Emit): void {
   emit({ type: 'reasoning-start', id });
   if (text) emit({ type: 'reasoning-delta', id, delta: text });
   emit({ type: 'reasoning-end', id });
-}
-
-function mapFinishReason(
-  reason: string,
-): 'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' {
-  const normalized = reason.toLowerCase();
-  if (normalized.includes('length')) return 'length';
-  if (normalized.includes('filter')) return 'content-filter';
-  if (normalized.includes('tool')) return 'tool-calls';
-  if (normalized.includes('error') || normalized.includes('fail'))
-    return 'error';
-  if (normalized === 'stop' || normalized === 'end') return 'stop';
-  return 'other';
 }
 
 async function startToolRelay({
@@ -1967,7 +2047,11 @@ function parseArgs(args: string[]): {
 }
 
 function formatError(error: unknown): string {
-  if (error instanceof Error) return error.message;
+  if (error instanceof Error) {
+    const cause = 'cause' in error ? error.cause : undefined;
+    if (cause === undefined) return error.message;
+    return `${error.message}: ${formatError(cause)}`;
+  }
   if (typeof error === 'string') return error;
   try {
     return JSON.stringify(error);
@@ -1976,14 +2060,7 @@ function formatError(error: unknown): string {
   }
 }
 
-function serialiseError(err: unknown): unknown {
-  if (err instanceof Error) {
-    return { name: err.name, message: err.message, stack: err.stack };
-  }
-  return err;
-}
-
 function emitFatal(message: string): never {
-  process.stderr.write(`[opencode bridge] ${message}\n`);
+  process.stderr.write(`[OpenCode bridge] ${message}\n`);
   process.exit(1);
 }

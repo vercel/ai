@@ -1207,10 +1207,6 @@ return createUIMessageStreamResponse({
 
 ## Tool Call Repair
 
-<Note type="warning">
-  The tool call repair feature is experimental and may change in the future.
-</Note>
-
 Language models sometimes fail to generate valid tool calls,
 especially when the input schema is complex or the model is smaller.
 
@@ -1219,7 +1215,7 @@ in the next step to give it an opportunity to fix it.
 However, you may want to control how invalid tool calls are repaired without requiring
 additional steps that pollute the message history.
 
-You can use the `experimental_repairToolCall` function to attempt to repair the tool call
+You can use the `repairToolCall` function to attempt to repair the tool call
 with a custom function.
 
 You can use different strategies to repair the tool call:
@@ -1239,12 +1235,7 @@ const result = await generateText({
   tools,
   prompt,
 
-  experimental_repairToolCall: async ({
-    toolCall,
-    tools,
-    inputSchema,
-    error,
-  }) => {
+  repairToolCall: async ({ toolCall, tools, inputSchema, error }) => {
     if (NoSuchToolError.isInstance(error)) {
       return null; // do not attempt to fix invalid tool names
     }
@@ -1280,7 +1271,7 @@ const result = await generateText({
   tools,
   prompt,
 
-  experimental_repairToolCall: async ({
+  repairToolCall: async ({
     toolCall,
     tools,
     error,

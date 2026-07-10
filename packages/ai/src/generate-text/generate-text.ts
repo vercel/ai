@@ -50,6 +50,7 @@ import {
   type LanguageModelUsage,
 } from '../types/usage';
 import type { DownloadFunction } from '../util/download/download-function';
+import { getOwn } from '../util/get-own';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { mergeObjects } from '../util/merge-objects';
 import { now as originalNow } from '../util/now';
@@ -247,7 +248,8 @@ export async function generateText<
   activeTools,
   toolOrder,
   prepareStep,
-  experimental_repairToolCall: repairToolCall,
+  experimental_repairToolCall,
+  repairToolCall = experimental_repairToolCall,
   experimental_refineToolInput: refineToolInput,
   experimental_download: download,
   runtimeContext = {} as RUNTIME_CONTEXT,
@@ -376,6 +378,13 @@ export async function generateText<
 
     /**
      * A function that attempts to repair a tool call that failed to parse.
+     */
+    repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
+
+    /**
+     * A function that attempts to repair a tool call that failed to parse.
+     *
+     * @deprecated Use `repairToolCall` instead.
      */
     experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
 
@@ -717,7 +726,7 @@ export async function generateText<
           const modelOutput = await createToolModelOutput({
             toolCallId: output.toolCallId,
             input: output.input,
-            tool: tools?.[output.toolName],
+            tool: getOwn(tools, output.toolName),
             output:
               output.type === 'tool-result' ? output.output : output.error,
             errorMode: output.type === 'tool-error' ? 'text' : 'none',
@@ -1040,7 +1049,7 @@ export async function generateText<
                   continue; // ignore invalid tool calls
                 }
 
-                const tool = tools?.[toolCall.toolName];
+                const tool = getOwn(tools, toolCall.toolName);
 
                 if (tool == null) {
                   // ignore tool calls for tools that are not available,
@@ -1234,7 +1243,7 @@ export async function generateText<
               // the client tool's result is sent back.
               for (const toolCall of stepToolCalls) {
                 if (!toolCall.providerExecuted) continue;
-                const tool = tools?.[toolCall.toolName];
+                const tool = getOwn(tools, toolCall.toolName);
                 if (tool?.type === 'provider' && tool.supportsDeferredResults) {
                   // Check if this tool call already has a result in the current response
                   const hasResultInResponse = currentModelResponse.content.some(
@@ -1699,7 +1708,7 @@ function asContent<TOOLS extends ToolSet>({
         // result may be deferred to a later turn. In this case, there's no matching tool-call
         // in the current response.
         if (toolCall == null) {
-          const tool = tools?.[part.toolName];
+          const tool = getOwn(tools, part.toolName);
           const supportsDeferredResults =
             tool?.type === 'provider' && tool.supportsDeferredResults;
 

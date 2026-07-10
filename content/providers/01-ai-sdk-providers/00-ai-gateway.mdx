@@ -506,7 +506,7 @@ import { generateText, tool } from 'ai';
 import { z } from 'zod';
 
 const { text } = await generateText({
-  model: 'xai/grok-4',
+  model: 'xai/grok-4.5',
   prompt: 'What is the weather like in San Francisco?',
   tools: {
     getWeather: tool({

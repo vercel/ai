@@ -1,5 +1,54 @@
 # @ai-sdk/react
 
+## 4.0.21
+
+### Patch Changes
+
+- d26bf99: Align React development dependencies with React 18 so workspace-linked examples do not bundle duplicate React copies.
+- Updated dependencies [b9ac19f]
+- Updated dependencies [a4186d6]
+  - ai@7.0.20
+
+## 4.0.20
+
+### Patch Changes
+
+- Updated dependencies [be7f05a]
+- Updated dependencies [ee55a07]
+- Updated dependencies [aad737d]
+- Updated dependencies [0f93c57]
+  - ai@7.0.19
+  - @ai-sdk/provider@4.0.3
+  - @ai-sdk/mcp@2.0.10
+  - @ai-sdk/provider-utils@5.0.7
+
+## 4.0.19
+
+### Patch Changes
+
+- 0363440: Promote `useObject` (React, Vue) and `StructuredObject` (Svelte) to stable exports, with deprecated experimental aliases for backwards compatibility.
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+  - ai@7.0.18
+  - @ai-sdk/mcp@2.0.9
+
+## 4.0.18
+
+### Patch Changes
+
+- 3271474: Promote the `throttle` option on `useChat` and `useCompletion` to stable, with a deprecated `experimental_throttle` alias for backwards compatibility.
+- Updated dependencies [3e6e955]
+- Updated dependencies [eebd14b]
+  - @ai-sdk/mcp@2.0.8
+  - ai@7.0.17
+
+## 4.0.17
+
+### Patch Changes
+
+- Updated dependencies [a8f9b6d]
+  - ai@7.0.16
+
 ## 4.0.16
 
 ### Patch Changes

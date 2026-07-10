@@ -499,6 +499,30 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         ]
       `);
     });
+
+    it('should expose finishReason and totalUsage on the stream result', async () => {
+      const agent = new WorkflowAgent({
+        model: mockModel,
+      });
+
+      const { writable } = createMockWritable();
+      const result = await agent.stream({
+        messages: [{ role: 'user' as const, content: 'test' }],
+        writable,
+      });
+
+      expect({
+        finishReason: result.finishReason,
+        inputTokens: result.totalUsage.inputTokens,
+        outputTokens: result.totalUsage.outputTokens,
+      }).toMatchInlineSnapshot(`
+        {
+          "finishReason": "stop",
+          "inputTokens": 3,
+          "outputTokens": 10,
+        }
+      `);
+    });
   });
 
   describe('experimental_onStart', () => {

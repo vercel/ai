@@ -831,6 +831,201 @@ describe('XaiResponsesLanguageModel', () => {
         });
       });
 
+      describe('top-level reasoning', () => {
+        it('should map top-level reasoning to reasoning effort', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.3',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'high',
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning.effort).toBe('high');
+        });
+
+        it('should map top-level reasoning none to reasoning effort "none"', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.3',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'none',
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning.effort).toBe('none');
+        });
+
+        it('should prefer providerOptions reasoningEffort over top-level reasoning', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.3',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'none',
+            providerOptions: {
+              xai: {
+                reasoningEffort: 'high',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning.effort).toBe('high');
+        });
+
+        it('should omit reasoning effort and warn for models that do not support it', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.20-reasoning',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          const result = await createModel('grok-4.20-reasoning').doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'none',
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning).toBeUndefined();
+          expect(result.warnings).toContainEqual({
+            type: 'unsupported',
+            feature: 'reasoning',
+            details: 'reasoning "none" is not supported by this model.',
+          });
+        });
+
+        it('should still pass providerOptions reasoningEffort for models that do not support top-level reasoning', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.20-reasoning',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel('grok-4.20-reasoning').doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                reasoningEffort: 'none',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning.effort).toBe('none');
+        });
+      });
+
+      describe('image detail', () => {
+        it('should pass detail from the imageDetail provider option on image parts', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.3',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel('grok-4.3').doGenerate({
+            prompt: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: 'What is in this image?' },
+                  {
+                    type: 'file',
+                    mediaType: 'image/png',
+                    data: { type: 'data', data: Buffer.from([0, 1, 2, 3]) },
+                    providerOptions: { xai: { imageDetail: 'high' } },
+                  },
+                ],
+              },
+            ],
+          });
+
+          expect((await server.calls[0].requestBodyJson).input).toEqual([
+            {
+              role: 'user',
+              content: [
+                { type: 'input_text', text: 'What is in this image?' },
+                {
+                  type: 'input_image',
+                  image_url: 'data:image/png;base64,AAECAw==',
+                  detail: 'high',
+                },
+              ],
+            },
+          ]);
+        });
+
+        it('should not set detail when the imageDetail provider option is not set', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.3',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel('grok-4.3').doGenerate({
+            prompt: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: 'What is in this image?' },
+                  {
+                    type: 'file',
+                    mediaType: 'image/png',
+                    data: { type: 'data', data: Buffer.from([0, 1, 2, 3]) },
+                  },
+                ],
+              },
+            ],
+          });
+
+          expect((await server.calls[0].requestBodyJson).input).toEqual([
+            {
+              role: 'user',
+              content: [
+                { type: 'input_text', text: 'What is in this image?' },
+                {
+                  type: 'input_image',
+                  image_url: 'data:image/png;base64,AAECAw==',
+                },
+              ],
+            },
+          ]);
+        });
+      });
+
       it('should warn about unsupported stopSequences', async () => {
         prepareJsonResponse({
           id: 'resp_123',

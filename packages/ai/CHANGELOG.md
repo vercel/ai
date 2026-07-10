@@ -1,5 +1,54 @@
 # ai
 
+## 7.0.20
+
+### Patch Changes
+
+- b9ac19f: Flush compressed Node.js response chunks as they are piped so UI message and text streams remain incremental in Express and Next.js.
+- a4186d6: Promote the `repairToolCall` option to stable, with a deprecated `experimental_repairToolCall` alias for backwards compatibility.
+
+## 7.0.19
+
+### Patch Changes
+
+- be7f05a: Add `fingerprintTools` and `detectToolDrift` to detect MCP tool-definition drift ("rug pull"). Pin a tool set's server-controlled fields (string description, input schema, title) at trust time with `fingerprintTools`, then diff later fetches with `detectToolDrift` to catch injected descriptions or widened schemas before passing tools to the model. Baseline storage and the drift response remain the app's responsibility.
+- ee55a07: Preserve tool approval signatures when approvals transition to responded.
+- aad737d: Use own-property checks when resolving per-tool approvals so tool names and approval ids that match inherited object properties (e.g. `constructor`, `toString`, `valueOf`, `__proto__`) are treated as unconfigured/absent.
+
+  - `@ai-sdk/policy-opa`: `wrapMcpTools` builds its per-tool map with a null prototype and reads supplied approvals via an own-property check, and `shadow` guards its per-tool map lookup the same way.
+  - `ai`: tool and tool-context lookups keyed by a model- or client-supplied name now go through an own-property check (`getOwn`), so a name matching an inherited object property resolves to "no such tool"/"unconfigured" instead of a prototype value. This covers the approval path (per-tool approval resolution and replay re-validation) as well as tool-call parsing, execution, streaming callbacks, and UI message conversion/validation. The human-in-the-loop approval matching (`collectToolApprovals`) and streaming tool-name maps are built with a null prototype so a client-supplied id that matches an inherited property no longer slips past the "unknown approval" / "tool call not found" guards.
+
+- 0f93c57: feat (video): support video (not just image) reference inputs in `inputReferences` for reference-to-video generation
+- Updated dependencies [e12411e]
+- Updated dependencies [5d894a7]
+- Updated dependencies [fdb6d5d]
+- Updated dependencies [0f93c57]
+- Updated dependencies [d25a084]
+  - @ai-sdk/gateway@4.0.15
+  - @ai-sdk/provider@4.0.3
+  - @ai-sdk/provider-utils@5.0.7
+
+## 7.0.18
+
+### Patch Changes
+
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+  - @ai-sdk/gateway@4.0.14
+
+## 7.0.17
+
+### Patch Changes
+
+- Updated dependencies [cad8227]
+  - @ai-sdk/gateway@4.0.13
+
+## 7.0.16
+
+### Patch Changes
+
+- a8f9b6d: Preserve signed tool approval metadata when recording approval responses.
+
 ## 7.0.15
 
 ### Patch Changes
