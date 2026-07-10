@@ -95,6 +95,15 @@ export {
   type StreamingToolCallTrackerOptions,
 } from './streaming-tool-call-tracker';
 export { stripFileExtension } from './strip-file-extension';
+export {
+  parseTranscriptionStreamClientFrame,
+  parseTranscriptionStreamPart,
+  serializeTranscriptionStreamPart,
+  TRANSCRIPTION_STREAM_AUDIO_DONE_FRAME_TYPE,
+  TRANSCRIPTION_STREAM_START_FRAME_TYPE,
+  type Experimental_TranscriptionStreamClientFrame,
+  type Experimental_TranscriptionStreamStartFrame,
+} from './transcription-stream-envelope';
 export * from './uint8-utils';
 export { validateDownloadUrl } from './validate-download-url';
 export * from './validate-types';
