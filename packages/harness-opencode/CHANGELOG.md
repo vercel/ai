@@ -1,5 +1,13 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.25
+
+### Patch Changes
+
+- 79fa6bc: fix(harness-opencode): fix OpenCode hitting `undici` headers timeout during long turns
+- Updated dependencies [44e988a]
+  - @ai-sdk/harness@1.0.25
+
 ## 1.0.24
 
 ### Patch Changes
