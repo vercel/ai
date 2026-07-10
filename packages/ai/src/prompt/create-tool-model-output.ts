@@ -1,5 +1,9 @@
 import { getErrorMessage, type JSONValue } from '@ai-sdk/provider';
-import type { Tool, ToolResultOutput } from '@ai-sdk/provider-utils';
+import {
+  parseJSON,
+  type Tool,
+  type ToolResultOutput,
+} from '@ai-sdk/provider-utils';
 
 export async function createToolModelOutput({
   toolCallId,
@@ -17,7 +21,7 @@ export async function createToolModelOutput({
   if (errorMode === 'text') {
     return { type: 'error-text', value: getErrorMessage(output) };
   } else if (errorMode === 'json') {
-    return { type: 'error-json', value: toJSONValue(output) };
+    return { type: 'error-json', value: await toJSONValue(output) };
   }
 
   if (tool?.toModelOutput) {
@@ -26,14 +30,16 @@ export async function createToolModelOutput({
 
   return typeof output === 'string'
     ? { type: 'text', value: output }
-    : { type: 'json', value: toJSONValue(output) };
+    : { type: 'json', value: await toJSONValue(output) };
 }
 
-function toJSONValue(value: unknown): JSONValue {
+async function toJSONValue(value: unknown): Promise<JSONValue> {
   if (value === undefined) {
     return null;
   }
 
   const serialized = JSON.stringify(value);
-  return serialized === undefined ? null : JSON.parse(serialized);
+  return serialized === undefined
+    ? null
+    : await parseJSON({ text: serialized });
 }
