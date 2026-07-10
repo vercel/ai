@@ -1,0 +1,38 @@
+{
+  "id": "v1_Chd1S3hRYXQ2dU44UDJuc0VQbzZXVjZBOBIXdUt4UWF0NnVOOFAybnNFUG82V1Y2QTg",
+  "status": "completed",
+  "usage": {
+    "total_tokens": 233,
+    "total_input_tokens": 13,
+    "input_tokens_by_modality": [
+      {
+        "modality": "text",
+        "tokens": 13
+      }
+    ],
+    "total_cached_tokens": 0,
+    "total_output_tokens": 29,
+    "total_tool_use_tokens": 0,
+    "total_thought_tokens": 191
+  },
+  "created": "2026-07-10T08:26:32Z",
+  "updated": "2026-07-10T08:26:32Z",
+  "service_tier": "standard",
+  "steps": [
+    {
+      "signature": "EpIHCo8HARFNMg/xUeg6MAEQVqdv9E3MkRuBMRJSEewod3l6RgfuDVsoeET6x+jJenKC/t9DuKiUqh+r3Xx5nckyWaVmkfscy5jfKZ7RdFNvFEyQi0BovCzn3v8IfXU+IaG+2CMdQ+FjMQwY1Vck5whcYBiutfsLYES/KWDgSFOGlmZJ7sGExKZ/4vr2UczlqDgmsq5QlAl9A6tG5uM4vRSnKLIpybzHK1fyE/ovmMf9l78eA/0V7xB8KRKIP2CJuutbWM1hIejsHytik0H0CjgfWWNCPuP2sfRCTEGmKQ9g7kBNg1LEG/qWIvYpvu0JbgYbv8HDKCXmqZc7o5Lww1ERs7hLcIrMSNe5iN9qXNmfplg3J4VxVAv+Obh9D1M0lZw33YhjB5x3/4v+eLZ4itGUPA0SAyY4AJe/1b6RFwpdXt+GrwPri25wIj1cP9JAuTMQjOmKCY1ss4iOwceDNn8k80c1Y+0gKmsIEITFwrbgcNr+anTKTwJNHAJZqemVOimU8+KgoFZ0tJfYuOfjY6H4aVhSRz2InkGwszO/EEI9kaxq1piMFjv1sRC9oszZbUkVxPlQPA3v/z1/iGbT3BLcscXPOkOSpu3dnhs5wRSfL7BZs53h6mYn1zNeUEt5uvafaPP8pReqhNtxENVLxzOFV3EnvXj46z2lI672wTGSIu2V+51fhjuxcy1LpzGobOGMydW0W+tqC7eu32IRG3EmKm3ld5nxIand4aC8B3tQNwprRUx7MQ0bxJGVoN2vdVeDTXjglwrxbD0fre8Kgd0K0hf78Z7q7uCZlrmB21DUYWja1bsNMbY06VrQew2xyYBQVbouN02bXlkWuE6R9LsdPYHAxkWXmUtrrOctnHJQw36BkmoRaWeemi1sUREsdzDtsAvEcjG7CdySzpMN0CUxUOT8Pdeag9lak08CC5atvZHZRlf4c+WNHMGhoKxu2s/eX0CMLa1K+PkkJ5FCimYbP+DmEiqz86ZS4eA7ZnJkj7x2PgV2DCBKHnQqkQJzKTlWX7IOxYmyfP8yCcsRFifWaKHiAkeEXXwDBHJIrNmZA2eMUVFx4HRb8DonGQbGDwTYXaj9xizK4tmOEONAreSR2XWgus03xRZZ4jQiDYxM2HUEKJEGp5T5y+bHPg5ksX0zshU4a6bRjOJ4u+Fqpl0VzEOwtG36m+DF2/abTFgtf7+8w5xwrRzBDW9qQTYHZXAjHaI=",
+      "type": "thought"
+    },
+    {
+      "content": [
+        {
+          "text": "It looks like you forgot to attach or paste the text document! Please provide the text, and I will extract the secret verification code for you.",
+          "type": "text"
+        }
+      ],
+      "type": "model_output"
+    }
+  ],
+  "object": "interaction",
+  "model": "gemini-3.5-flash"
+}
