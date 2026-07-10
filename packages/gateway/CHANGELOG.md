@@ -1,5 +1,15 @@
 # @ai-sdk/gateway
 
+## 2.0.110
+
+### Patch Changes
+
+- 6a823a6: feat(gateway): expose ruleId on GatewayForbiddenError so callers can identify which routing rule denied a request
+- ed8b811: Backport: chore(provider/gateway): update gateway model settings files
+- 4f00314: Backport: chore(provider/gateway): update gateway model settings files
+- 8549807: feat(provider/openai,provider/gateway): add gpt-5.6 model ids
+- 3c89617: feat (provider/xai): add grok-4.5 model id
+
 ## 2.0.109
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/perplexity
 
+## 2.0.34
+
+### Patch Changes
+
+- 509f1c6: Fix Perplexity prompt conversion for file parts with unsupported media types and top-level PDF media types.
+
 ## 2.0.33
 
 ### Patch Changes

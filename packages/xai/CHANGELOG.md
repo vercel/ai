@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.77
+
+### Patch Changes
+
+- 3c89617: feat (provider/xai): add grok-4.5 model id
+
 ## 2.0.76
 
 ### Patch Changes

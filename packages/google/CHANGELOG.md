@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.79
+
+### Patch Changes
+
+- af229e7: Expand standalone Google `threshold` provider options into safety settings.
+
 ## 2.0.78
 
 ### Patch Changes
