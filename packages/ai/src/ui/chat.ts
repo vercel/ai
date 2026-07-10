@@ -254,6 +254,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   private sendAutomaticallyWhen?: ChatInit<UI_MESSAGE>['sendAutomaticallyWhen'];
 
   private activeResponse: ActiveResponse<UI_MESSAGE> | undefined = undefined;
+  private resumePromise: Promise<void> | undefined = undefined;
   private jobExecutor = new SerialJobExecutor();
 
   constructor({
@@ -459,9 +460,35 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
   /**
    * Attempt to resume an ongoing streaming response.
+   *
+   * Concurrent calls are deduplicated: while a resume request is in flight,
+   * additional calls reuse the same promise instead of issuing another
+   * request. This prevents a burst of duplicate resume requests when multiple
+   * `useChat` hooks share a single Chat instance (e.g. via a shared chat
+   * context) and each triggers a resume on mount. Once the in-flight resume
+   * settles, a later call starts a fresh request.
+   *
+   * Note this is first-call-wins: the in-flight request is reused as-is, so
+   * options passed by later concurrent callers are not applied while a resume
+   * is already running. That is an acceptable tradeoff for collapsing the
+   * duplicate-request storm, since in the shared-context scenario every caller
+   * issues the same parameterless resume.
    */
   resumeStream = async (options: ChatRequestOptions = {}): Promise<void> => {
-    await this.makeRequest({ trigger: 'resume-stream', ...options });
+    if (this.resumePromise) {
+      return this.resumePromise;
+    }
+
+    this.resumePromise = this.makeRequest({
+      trigger: 'resume-stream',
+      ...options,
+    })
+      .then(() => undefined)
+      .finally(() => {
+        this.resumePromise = undefined;
+      });
+
+    return this.resumePromise;
   };
 
   /**
