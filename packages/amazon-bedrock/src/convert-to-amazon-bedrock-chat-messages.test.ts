@@ -1456,6 +1456,145 @@ describe('assistant messages', () => {
     });
   });
 
+  it('should combine an inline assistant tool result with a following user message while preserving cache point order', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'search',
+            input: { query: 'weather' },
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'search',
+            output: { type: 'text', value: 'Sunny' },
+            providerOptions: {
+              bedrock: { cachePoint: { type: 'default', ttl: '5m' } },
+            },
+          },
+        ],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'What about tomorrow?' }],
+        providerOptions: {
+          bedrock: { cachePoint: { type: 'default', ttl: '1h' } },
+        },
+      },
+    ]);
+
+    expect(result.messages).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            toolUse: {
+              toolUseId: 'call-1',
+              name: 'search',
+              input: { query: 'weather' },
+            },
+          },
+        ],
+      },
+      {
+        role: 'user',
+        content: [
+          {
+            toolResult: {
+              toolUseId: 'call-1',
+              content: [{ text: 'Sunny' }],
+            },
+          },
+          { cachePoint: { type: 'default', ttl: '5m' } },
+          { text: 'What about tomorrow?' },
+          { cachePoint: { type: 'default', ttl: '1h' } },
+        ],
+      },
+    ]);
+  });
+
+  it('should combine an inline assistant tool result with a following tool message', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'search',
+            input: { query: 'weather' },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-2',
+            toolName: 'forecast',
+            input: { location: 'home' },
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'search',
+            output: { type: 'text', value: 'Sunny' },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-2',
+            toolName: 'forecast',
+            output: { type: 'text', value: 'Rain tomorrow' },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.messages).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            toolUse: {
+              toolUseId: 'call-1',
+              name: 'search',
+              input: { query: 'weather' },
+            },
+          },
+          {
+            toolUse: {
+              toolUseId: 'call-2',
+              name: 'forecast',
+              input: { location: 'home' },
+            },
+          },
+        ],
+      },
+      {
+        role: 'user',
+        content: [
+          {
+            toolResult: {
+              toolUseId: 'call-1',
+              content: [{ text: 'Sunny' }],
+            },
+          },
+          {
+            toolResult: {
+              toolUseId: 'call-2',
+              content: [{ text: 'Rain tomorrow' }],
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should preserve empty text blocks when reasoning blocks are present', async () => {
     const result = await convertToAmazonBedrockChatMessages([
       {

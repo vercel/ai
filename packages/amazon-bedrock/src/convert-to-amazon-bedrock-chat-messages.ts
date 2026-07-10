@@ -90,6 +90,18 @@ export async function convertToAmazonBedrockChatMessages(
   let system: AmazonBedrockSystemMessages = [];
   const messages: AmazonBedrockMessages = [];
 
+  const appendMessage = (
+    message: AmazonBedrockAssistantMessage | AmazonBedrockUserMessage,
+  ) => {
+    const previousMessage = messages.at(-1);
+
+    if (previousMessage?.role === message.role) {
+      previousMessage.content.push(...message.content);
+    } else {
+      messages.push(message);
+    }
+  };
+
   let documentCounter = 0;
   const generateDocumentName = () => `document-${++documentCounter}`;
 
@@ -251,7 +263,7 @@ export async function convertToAmazonBedrockChatMessages(
           pushCachePoint(amazonBedrockContent, providerOptions);
         }
 
-        messages.push({ role: 'user', content: amazonBedrockContent });
+        appendMessage({ role: 'user', content: amazonBedrockContent });
 
         break;
       }
@@ -264,7 +276,7 @@ export async function convertToAmazonBedrockChatMessages(
 
         const flushAssistantContent = () => {
           if (amazonBedrockContent.length > 0) {
-            messages.push({
+            appendMessage({
               role: 'assistant',
               content: [...amazonBedrockContent],
             });
@@ -274,7 +286,7 @@ export async function convertToAmazonBedrockChatMessages(
 
         const flushToolResultContent = () => {
           if (toolResultContent.length > 0) {
-            messages.push({ role: 'user', content: toolResultContent });
+            appendMessage({ role: 'user', content: toolResultContent });
             toolResultContent = [];
           }
         };
