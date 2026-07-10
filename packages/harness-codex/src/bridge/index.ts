@@ -19,24 +19,19 @@ import type { HarnessV1BuiltinToolName } from '@ai-sdk/harness';
 import type { StartMessage } from '../codex-bridge-protocol';
 import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { createServer, type Server } from 'node:http';
 // Temporary workaround for upstream codex MCP-tool bug — see ./cli-relay.ts
 import {
   CLI_SHIM_FILENAME,
   buildCliShimScript,
-  parseToolRelayCommand,
+  parseToolRelayCommands,
 } from './cli-relay';
 import {
   createCodexStepTracker,
   defaultUsage,
   type CodexStepTracker,
 } from './codex-step-tracker';
-import {
-  ToolRelayAuthorizer,
-  ToolRelayPendingCalls,
-  isToolRelayRequestFromAllowedProcess,
-  type ToolRelayCall,
-} from './tool-relay-auth';
+import { startAuthorizedToolRelay, type ToolRelay } from './tool-relay';
+import type { ToolRelayCall } from './tool-relay-auth';
 import { argv, env as procEnv, stdout } from 'node:process';
 
 /*
@@ -100,12 +95,6 @@ await runBridge<StartMessage>({
 });
 
 type Emit = (msg: Record<string, unknown>) => void;
-type ToolRelay = {
-  port: number;
-  close(): void;
-  authorizeToolCall(call: ToolRelayCall): void;
-  authorizeAnyToolCall(): void;
-};
 
 async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const emit: Emit = msg => turn.emit(msg as BridgeEvent);
@@ -142,7 +131,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   if (start.tools && start.tools.length > 0) {
     cliShimPath = `${cliShimDir}/${CLI_SHIM_FILENAME}`;
     relay = await startToolRelay({
-      allowedScriptPaths: [cliShimPath, `${bootstrapDir}/host-tool-mcp.mjs`],
       tools: start.tools,
       emit,
       requestToolResult: turn.requestToolResult,
@@ -258,21 +246,19 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       }
       // Temporary workaround for upstream codex MCP-tool bug — see ./cli-relay.ts
       if (cliShimPath && event.item?.type === 'command_execution') {
-        const relayCall =
+        const relayCalls =
           typeof event.item.command === 'string'
-            ? parseToolRelayCommand({
+            ? parseToolRelayCommands({
                 command: event.item.command,
                 cliShimPath,
               })
             : undefined;
-        if (event.type === 'item.started' && relay) {
-          if (relayCall) {
+        if (event.type === 'item.started' && relay && relayCalls) {
+          for (const relayCall of relayCalls) {
             relay.authorizeToolCall(relayCall);
-          } else if (typeof event.item.command !== 'string') {
-            relay.authorizeAnyToolCall();
           }
         }
-        if (relayCall) {
+        if (relayCalls) {
           stepTracker.observeEvent({ event, itemId: event.item.id });
           continue;
         }
@@ -589,116 +575,17 @@ function mapUsage(usage: Record<string, number>): Record<string, unknown> {
  * (via `requestToolResult`), and responds with `{ result }`.
  */
 async function startToolRelay({
-  allowedScriptPaths,
   tools,
   emit,
   requestToolResult,
 }: {
-  allowedScriptPaths: ReadonlyArray<string>;
   tools: ReadonlyArray<{ name: string }>;
   emit: Emit;
   requestToolResult: (
     toolCallId: string,
   ) => Promise<{ output: unknown; isError?: boolean }>;
 }): Promise<ToolRelay> {
-  const toolNames = new Set(tools.map(t => t.name));
-  const allowedScriptPathSet = new Set(allowedScriptPaths);
-  const authorizer = new ToolRelayAuthorizer();
-  const pendingCalls = new ToolRelayPendingCalls();
-
-  const server = createServer(async (req, res) => {
-    try {
-      if (req.method !== 'POST' || req.url !== '/') {
-        res.writeHead(401, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'unauthorized tool relay request' }));
-        return;
-      }
-      const chunks: Buffer[] = [];
-      for await (const chunk of req) {
-        chunks.push(chunk as Buffer);
-      }
-      const body = Buffer.concat(chunks).toString('utf8');
-      const { requestId, toolName, input } = JSON.parse(body) as {
-        requestId: string;
-        toolName: string;
-        input: unknown;
-      };
-
-      if (!toolNames.has(toolName)) {
-        res.writeHead(403, { 'Content-Type': 'application/json' });
-        res.end(
-          JSON.stringify({ error: `Tool "${toolName}" is not available` }),
-        );
-        return;
-      }
-      const relayCall = { toolName, input };
-      const authorized =
-        authorizer.consumeToolCall(relayCall) ||
-        (await isToolRelayRequestFromAllowedProcess({
-          socket: req.socket,
-          allowedScriptPaths: allowedScriptPathSet,
-        }));
-      if (!authorized) {
-        res.writeHead(401, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'unauthorized tool relay request' }));
-        return;
-      }
-
-      const { result } = pendingCalls.begin({
-        call: relayCall,
-        run: async () => {
-          emit({
-            type: 'tool-call',
-            toolCallId: requestId,
-            toolName,
-            input: JSON.stringify(input ?? {}),
-            providerExecuted: false,
-          });
-
-          const toolResult = await requestToolResult(requestId);
-          emit({
-            type: 'tool-result',
-            toolCallId: requestId,
-            toolName,
-            result: toolResult.output ?? null,
-            isError: !!toolResult.isError,
-          });
-          return toolResult;
-        },
-      });
-      const { output } = await result;
-
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ result: output }));
-    } catch (error) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          error: error instanceof Error ? error.message : String(error),
-        }),
-      );
-    }
-  });
-
-  await new Promise<void>(resolve =>
-    server.listen(0, '127.0.0.1', () => resolve()),
-  );
-  const address = server.address();
-  if (!address || typeof address === 'string') {
-    throw new Error('tool relay did not expose a numeric port');
-  }
-  return {
-    port: address.port,
-    close: () => closeServer(server),
-    authorizeToolCall: call => authorizer.authorizeToolCall(call),
-    authorizeAnyToolCall: () => authorizer.authorizeAnyToolCall(),
-  };
-}
-
-function closeServer(server: Server): void {
-  try {
-    server.close();
-  } catch {}
+  return startAuthorizedToolRelay({ tools, emit, requestToolResult });
 }
 
 function parseArgs(args: string[]): {
