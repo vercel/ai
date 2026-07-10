@@ -1,5 +1,8 @@
 {
   "extends": "./.nuxt/tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
   "references": [
     {
       "path": "../../packages/ai"

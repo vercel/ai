@@ -4,19 +4,31 @@ export default defineConfig([
   {
     entry: { index: 'src/index.ts' },
     format: ['esm'],
-    dts: true,
+    dts: {
+      compilerOptions: {
+        ignoreDeprecations: '6.0',
+      },
+    },
     sourcemap: true,
   },
   {
     entry: { 'agent/index': 'agent/index.ts' },
     format: ['esm'],
-    dts: true,
+    dts: {
+      compilerOptions: {
+        ignoreDeprecations: '6.0',
+      },
+    },
     sourcemap: true,
   },
   {
     entry: { 'utils/index': 'utils/index.ts' },
     format: ['esm'],
-    dts: true,
+    dts: {
+      compilerOptions: {
+        ignoreDeprecations: '6.0',
+      },
+    },
     sourcemap: true,
   },
   {
@@ -27,7 +39,11 @@ export default defineConfig([
     format: ['esm'],
     target: 'es2022',
     platform: 'node',
-    dts: true,
+    dts: {
+      compilerOptions: {
+        ignoreDeprecations: '6.0',
+      },
+    },
     sourcemap: true,
     external: ['ws'],
   },

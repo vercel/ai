@@ -4,7 +4,11 @@ export default defineConfig([
   {
     entry: ['src/index.ts'],
     format: ['esm'],
-    dts: true,
+    dts: {
+      compilerOptions: {
+        ignoreDeprecations: '6.0',
+      },
+    },
     sourcemap: true,
     // Keep library target conservative for wide compatibility
     target: 'es2018',
@@ -20,7 +24,11 @@ export default defineConfig([
     entry: ['src/test/index.ts'],
     outDir: 'dist/test',
     format: ['esm'],
-    dts: true,
+    dts: {
+      compilerOptions: {
+        ignoreDeprecations: '6.0',
+      },
+    },
     sourcemap: true,
     // Chai uses BigInt literals; ensure the target supports it and avoid bundling chai
     target: 'es2020',

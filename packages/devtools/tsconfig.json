@@ -3,6 +3,7 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "types": ["node", "vite/client"],
     "esModuleInterop": true,
     "strict": true,
     "composite": true,
@@ -10,7 +11,6 @@
     "declaration": true,
     "outDir": "./dist",
     "rootDir": "./src",
-    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./src/viewer/client/*"

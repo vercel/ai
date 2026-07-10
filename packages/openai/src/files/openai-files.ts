@@ -9,6 +9,7 @@ import {
   createJsonResponseHandler,
   parseProviderOptions,
   postFormDataToApi,
+  toArrayBufferBackedUint8Array,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
@@ -17,6 +18,7 @@ import {
   openaiFilesOptionsSchema,
   type OpenAIFilesOptions,
 } from './openai-files-options';
+
 interface OpenAIFilesConfig {
   provider: string;
   baseURL: string;
@@ -47,7 +49,7 @@ export class OpenAIFiles implements FilesV4 {
 
     const fileBytes = convertInlineFileDataToUint8Array(data);
 
-    const blob = new Blob([fileBytes], {
+    const blob = new Blob([toArrayBufferBackedUint8Array(fileBytes)], {
       type: mediaType,
     });
 

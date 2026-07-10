@@ -7,6 +7,7 @@ export default defineConfig([
     dts: {
       compilerOptions: {
         composite: false,
+        ignoreDeprecations: '6.0',
       },
     },
     sourcemap: true,

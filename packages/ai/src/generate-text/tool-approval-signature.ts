@@ -1,14 +1,20 @@
-import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
+import {
+  convertBase64ToUint8Array,
+  toArrayBufferBackedUint8Array,
+} from '@ai-sdk/provider-utils';
 import { hashCanonical, toBase64url } from '../util/canonical-hash';
 
 const encoder = new TextEncoder();
 
-function fromBase64url(str: string): Uint8Array {
+function fromBase64url(str: string): Uint8Array<ArrayBuffer> {
   return convertBase64ToUint8Array(str);
 }
 
 async function importKey(secret: string | Uint8Array): Promise<CryptoKey> {
-  const keyData = typeof secret === 'string' ? encoder.encode(secret) : secret;
+  const keyData =
+    typeof secret === 'string'
+      ? encoder.encode(secret)
+      : toArrayBufferBackedUint8Array(secret);
   return crypto.subtle.importKey(
     'raw',
     keyData,
@@ -23,7 +29,7 @@ function buildPayload(
   toolCallId: string,
   toolName: string,
   inputDigest: string,
-): Uint8Array {
+): Uint8Array<ArrayBuffer> {
   return encoder.encode(
     `${approvalId}\n${toolCallId}\n${toolName}\n${inputDigest}`,
   );

@@ -48,7 +48,8 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "@workflow/vitest": "4.0.1",
     "tsup": "^8.5.1",
-    "typescript": "5.8.3",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "typescript-7": "npm:typescript@7.0.2",
     "vitest": "4.1.6",
     "workflow": "4.2.4",
     "zod": "3.25.76"

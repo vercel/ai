@@ -62,7 +62,7 @@
     "publint": "^0.3.21",
     "svelte": "^5.55.7",
     "svelte-check": "^4.4.8",
-    "typescript": "^5.9.3",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
     "vite": "^6.4.3",
     "vitest": "^4.1.6",
     "zod": "3.25.76"

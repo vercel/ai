@@ -8,6 +8,7 @@
     ],
     "allowJs": true,
     "skipLibCheck": true,
+    "noUncheckedSideEffectImports": false,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "esModuleInterop": true,

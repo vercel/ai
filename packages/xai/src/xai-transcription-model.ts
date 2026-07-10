@@ -15,6 +15,7 @@ import {
   readWebSocketMessageText,
   safeParseJSON,
   serializeModelOptions,
+  toArrayBufferBackedUint8Array,
   toWebSocketUrl,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
@@ -119,7 +120,7 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
 
     const blob =
       audio instanceof Uint8Array
-        ? new Blob([audio])
+        ? new Blob([toArrayBufferBackedUint8Array(audio)])
         : new Blob([convertBase64ToUint8Array(audio)]);
     const fileExtension = mediaTypeToExtension(mediaType);
 

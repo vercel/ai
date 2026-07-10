@@ -9,6 +9,7 @@ import {
   createJsonResponseHandler,
   parseProviderOptions,
   postFormDataToApi,
+  toArrayBufferBackedUint8Array,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { xaiFailedResponseHandler } from '../xai-error';
@@ -17,6 +18,7 @@ import {
   xaiFilesOptionsSchema,
   type XaiFilesOptions,
 } from './xai-files-options';
+
 interface XaiFilesConfig {
   provider: string;
   baseURL: string | undefined;
@@ -47,7 +49,7 @@ export class XaiFiles implements FilesV4 {
 
     const fileBytes = convertInlineFileDataToUint8Array(data);
 
-    const blob = new Blob([fileBytes], {
+    const blob = new Blob([toArrayBufferBackedUint8Array(fileBytes)], {
       type: mediaType,
     });
 

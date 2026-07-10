@@ -3,6 +3,49 @@
 // "TypeError: Illegal invocation: function called with incorrect this reference"
 const { btoa, atob } = globalThis;
 
+/**
+ * Creates a transform stream that decodes binary chunks into strings.
+ *
+ * Unlike `TextDecoderStream`, this accepts shared buffer sources, matching the
+ * input supported by `TextDecoder.decode`.
+ */
+export function createTextDecoderStream(): TransformStream<
+  AllowSharedBufferSource,
+  string
+> {
+  const decoder = new TextDecoder();
+
+  return new TransformStream<AllowSharedBufferSource, string>({
+    transform(chunk, controller) {
+      const text = decoder.decode(chunk, { stream: true });
+      if (text.length > 0) {
+        controller.enqueue(text);
+      }
+    },
+    flush(controller) {
+      const text = decoder.decode();
+      if (text.length > 0) {
+        controller.enqueue(text);
+      }
+    },
+  });
+}
+
+/**
+ * Returns a Uint8Array backed by an ArrayBuffer.
+ *
+ * Creates a new view without copying when the input is already backed by an
+ * ArrayBuffer. SharedArrayBuffer-backed and cross-realm inputs are copied into
+ * a new ArrayBuffer.
+ */
+export function toArrayBufferBackedUint8Array(
+  value: Uint8Array,
+): Uint8Array<ArrayBuffer> {
+  return value.buffer instanceof ArrayBuffer
+    ? new Uint8Array(value.buffer, value.byteOffset, value.byteLength)
+    : new Uint8Array(value);
+}
+
 export function convertBase64ToUint8Array(base64String: string) {
   const base64Url = base64String.replace(/-/g, '+').replace(/_/g, '/');
   const latin1string = atob(base64Url);

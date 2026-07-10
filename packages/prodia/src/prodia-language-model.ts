@@ -19,6 +19,7 @@ import {
   postFormDataToApi,
   resolve,
   serializeModelOptions,
+  toArrayBufferBackedUint8Array,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   zodSchema,
@@ -231,7 +232,9 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
               : '';
       formData.append(
         'input',
-        new Blob([imageBytes], { type: imageMediaType }),
+        new Blob([toArrayBufferBackedUint8Array(imageBytes)], {
+          type: imageMediaType,
+        }),
         'input' + fileExtension,
       );
     }

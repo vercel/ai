@@ -17,6 +17,7 @@ import {
   readWebSocketMessageText,
   safeParseJSON,
   serializeModelOptions,
+  toArrayBufferBackedUint8Array,
   toWebSocketUrl,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
@@ -29,6 +30,7 @@ import {
   type OpenAITranscriptionModelId,
   type OpenAITranscriptionModelOptions,
 } from './openai-transcription-model-options';
+
 export type OpenAITranscriptionCallOptions = Omit<
   TranscriptionModelV4CallOptions,
   'providerOptions'
@@ -178,7 +180,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
     const formData = new FormData();
     const blob =
       audio instanceof Uint8Array
-        ? new Blob([audio])
+        ? new Blob([toArrayBufferBackedUint8Array(audio)])
         : new Blob([convertBase64ToUint8Array(audio)]);
 
     formData.append('model', this.modelId);

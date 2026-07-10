@@ -9,6 +9,7 @@ import {
   createJsonResponseHandler,
   lazySchema,
   postFormDataToApi,
+  toArrayBufferBackedUint8Array,
   zodSchema,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
@@ -52,7 +53,9 @@ export class AnthropicFiles implements FilesV4 {
   }: FilesV4UploadFileCallOptions): Promise<FilesV4UploadFileResult> {
     const fileBytes = convertInlineFileDataToUint8Array(data);
 
-    const blob = new Blob([fileBytes], { type: mediaType });
+    const blob = new Blob([toArrayBufferBackedUint8Array(fileBytes)], {
+      type: mediaType,
+    });
 
     const formData = new FormData();
     if (filename != null) {

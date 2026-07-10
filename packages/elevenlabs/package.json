@@ -50,7 +50,8 @@
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8.5.1",
-    "typescript": "5.6.3",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "typescript-7": "npm:typescript@7.0.2",
     "zod": "3.25.76"
   },
   "peerDependencies": {

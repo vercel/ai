@@ -5,6 +5,7 @@ import {
   readResponseWithSizeLimit,
   DEFAULT_MAX_DOWNLOAD_SIZE,
 } from './read-response-with-size-limit';
+import { toArrayBufferBackedUint8Array } from './uint8-utils';
 
 /**
  * Download a file from a URL and return it as a Blob.
@@ -38,11 +39,13 @@ export async function downloadBlob(
       });
     }
 
-    const data = await readResponseWithSizeLimit({
-      response,
-      url,
-      maxBytes: options?.maxBytes ?? DEFAULT_MAX_DOWNLOAD_SIZE,
-    });
+    const data = toArrayBufferBackedUint8Array(
+      await readResponseWithSizeLimit({
+        response,
+        url,
+        maxBytes: options?.maxBytes ?? DEFAULT_MAX_DOWNLOAD_SIZE,
+      }),
+    );
 
     const contentType = response.headers.get('content-type') ?? undefined;
     return new Blob([data], contentType ? { type: contentType } : undefined);

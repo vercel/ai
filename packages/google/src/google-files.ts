@@ -12,6 +12,7 @@ import {
   delay,
   lazySchema,
   parseProviderOptions,
+  toArrayBufferBackedUint8Array,
   zodSchema,
   getFromApi,
   type FetchFunction,
@@ -107,7 +108,7 @@ export class GoogleFiles implements FilesV4 {
         'X-Goog-Upload-Offset': '0',
         'X-Goog-Upload-Command': 'upload, finalize',
       },
-      body: fileBytes,
+      body: toArrayBufferBackedUint8Array(fileBytes),
     });
 
     if (!uploadResponse.ok) {

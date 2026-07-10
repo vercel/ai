@@ -7,7 +7,11 @@ export default defineConfig([
     banner: {},
     format: ['esm'],
     external: ['vue'],
-    dts: true,
+    dts: {
+      compilerOptions: {
+        ignoreDeprecations: '6.0',
+      },
+    },
     sourcemap: true,
   },
 ]);

@@ -6,6 +6,7 @@ import {
   getFromApi,
   postFormDataToApi,
   resolve,
+  toArrayBufferBackedUint8Array,
   type FetchFunction,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
@@ -77,7 +78,11 @@ export class AnthropicSkills implements SkillsV4 {
 
     for (const file of params.files) {
       const content = convertInlineFileDataToUint8Array(file.data);
-      formData.append('files[]', new Blob([content]), file.path);
+      formData.append(
+        'files[]',
+        new Blob([toArrayBufferBackedUint8Array(content)]),
+        file.path,
+      );
     }
 
     const headers = await this.getHeaders();

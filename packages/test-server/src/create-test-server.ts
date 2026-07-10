@@ -194,10 +194,13 @@ export function createTestServer<
           }
 
           case 'binary': {
-            return HttpResponse.arrayBuffer(response.body, {
-              status: 200,
-              headers: response.headers,
-            });
+            return HttpResponse.arrayBuffer(
+              Uint8Array.from(response.body).buffer,
+              {
+                status: 200,
+                headers: response.headers,
+              },
+            );
           }
 
           case 'error':

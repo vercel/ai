@@ -7,6 +7,7 @@ import {
   parseProviderOptions,
   postFormDataToApi,
   serializeModelOptions,
+  toArrayBufferBackedUint8Array,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -67,7 +68,7 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
     const formData = new FormData();
     const blob =
       audio instanceof Uint8Array
-        ? new Blob([audio])
+        ? new Blob([toArrayBufferBackedUint8Array(audio)])
         : new Blob([convertBase64ToUint8Array(audio)]);
 
     formData.append('model_id', this.modelId);

@@ -52,7 +52,8 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "deepagents": "1.10.2",
     "tsup": "^8.5.1",
-    "typescript": "5.8.3",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "typescript-7": "npm:typescript@7.0.2",
     "zod": "3.25.76"
   },
   "engines": {

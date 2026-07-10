@@ -12,6 +12,7 @@
     "update-references": "update-ts-references && node tools/split-ts-references.mjs",
     "type-check": "tsc --build",
     "type-check:full": "tsc --build tsconfig.with-examples.json",
+    "type-check:ts6": "tsc6 --build",
     "publint": "turbo publint",
     "test": "turbo test --concurrency 16 --filter=!@example/*",
     "test:ci": "turbo test --concurrency 16 --filter=!@example/* --filter=!ai --filter=!@ai-sdk/codemod --only",
@@ -48,7 +49,8 @@
     "react": "19.0.0-rc-cc1ec60d0d-20240607",
     "react-dom": "19.0.0-rc-cc1ec60d0d-20240607",
     "turbo": "2.9.14",
-    "typescript": "5.8.3",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "typescript-7": "npm:typescript@7.0.2",
     "ultracite": "7.3.2",
     "update-ts-references": "^3.6.0",
     "vitest": "4.1.6"

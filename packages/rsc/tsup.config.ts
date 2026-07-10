@@ -8,7 +8,11 @@ export default defineConfig([
     outDir: 'dist',
     format: ['esm'],
     external: ['react', 'zod'],
-    dts: true,
+    dts: {
+      compilerOptions: {
+        ignoreDeprecations: '6.0',
+      },
+    },
     sourcemap: true,
   },
   // RSC APIs - server, client
@@ -17,7 +21,11 @@ export default defineConfig([
     outDir: 'dist',
     format: ['esm'],
     external: ['react', 'zod', /\/rsc-shared/],
-    dts: true,
+    dts: {
+      compilerOptions: {
+        ignoreDeprecations: '6.0',
+      },
+    },
     sourcemap: true,
   },
   // RSC APIs - types
@@ -25,6 +33,10 @@ export default defineConfig([
     entry: ['src/types/index.ts'],
     outDir: 'dist',
     format: ['esm'],
-    dts: true,
+    dts: {
+      compilerOptions: {
+        ignoreDeprecations: '6.0',
+      },
+    },
   },
 ]);
