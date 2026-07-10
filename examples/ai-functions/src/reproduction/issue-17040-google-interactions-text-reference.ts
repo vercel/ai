@@ -1,14 +1,10 @@
 import { createGoogle } from '@ai-sdk/google';
 import { generateText, uploadFile } from 'ai';
-import fs from 'node:fs/promises';
 
 const secret = 'ISSUE-17040-TEXT-FILE-ONLY-9f31c7';
-const fixturePath =
-  '../../packages/google/src/interactions/__fixtures__/issue-17040-text-reference.json';
 
 async function main() {
   let interactionRequest: unknown;
-  let interactionResponse: unknown;
 
   const google = createGoogle({
     fetch: async (input, init) => {
@@ -22,11 +18,6 @@ async function main() {
       }
 
       const response = await fetch(input, init);
-
-      if (url.endsWith('/v1beta/interactions')) {
-        interactionResponse = await response.clone().json();
-      }
-
       return response;
     },
   });
@@ -60,11 +51,6 @@ async function main() {
     ],
   });
 
-  await fs.writeFile(
-    fixturePath,
-    `${JSON.stringify(interactionResponse, null, 2)}\n`,
-  );
-
   const output = {
     providerReference,
     warnings: result.warnings,
@@ -72,7 +58,6 @@ async function main() {
     responseText: result.text,
     expectedSecret: secret,
     responseContainsSecret: result.text.includes(secret),
-    recordedFixture: fixturePath,
   };
 
   console.log(JSON.stringify(output, null, 2));

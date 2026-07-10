@@ -177,7 +177,7 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
 
   describe('text ProviderReference file', () => {
     beforeEach(() => {
-      prepareJsonFixtureResponse('issue-17040-text-reference');
+      prepareJsonFixtureResponse('basic');
     });
 
     it('forwards the uploaded text document to the model', async () => {
