@@ -455,6 +455,83 @@ describe('doGenerate', () => {
     };
   };
 
+  it('should send PDF tool result data as inlineData for Gemini 2.5 legacy tool results', async () => {
+    server.urls[TEST_URL_GEMINI_2_5_FLASH_LITE].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [{ text: 'done' }],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+          },
+        ],
+      },
+    };
+
+    const model = provider.chat('gemini-2.5-flash-lite');
+
+    await model.doGenerate({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'catalogSearch',
+              toolCallId: 'testCallId',
+              output: {
+                type: 'content',
+                value: [
+                  { type: 'text', text: 'metadata' },
+                  {
+                    type: 'file',
+                    data: { type: 'data', data: 'JVBERi0xLjQK' },
+                    mediaType: 'application/pdf',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    const parts = requestBody.contents[0].parts;
+    const textParts = parts
+      .filter((part: any) => part.text != null)
+      .map((part: any) => part.text);
+
+    expect(textParts).not.toEqual(
+      expect.arrayContaining([expect.stringContaining('JVBERi0xLjQK')]),
+    );
+    expect(parts).toEqual([
+      {
+        functionResponse: {
+          id: 'testCallId',
+          name: 'catalogSearch',
+          response: {
+            name: 'catalogSearch',
+            content: 'metadata',
+          },
+        },
+      },
+      {
+        inlineData: {
+          mimeType: 'application/pdf',
+          data: 'JVBERi0xLjQK',
+        },
+      },
+      {
+        text: 'Tool executed successfully and returned this file as a response',
+      },
+    ]);
+  });
+
   describe('text', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('google-text');

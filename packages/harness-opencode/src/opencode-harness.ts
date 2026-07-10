@@ -23,6 +23,10 @@ import {
 } from '@ai-sdk/harness';
 import {
   classifyDiskLog,
+  createBridgeErrorHandler,
+  createBridgeStartupError,
+  drainBridgeProcessStream,
+  forwardBridgeProcessStream,
   markBridgeStarting,
   resolveSandboxHomeDir,
   SandboxChannel,
@@ -274,6 +278,10 @@ export function createOpenCode(
               }),
             )
         : undefined;
+      const onBridgeError = createBridgeErrorHandler({
+        harnessId: 'opencode',
+        sessionId: startOpts.sessionId,
+      });
 
       if (coords) {
         try {
@@ -287,6 +295,7 @@ export function createOpenCode(
             outboundSchema: outboundMessageSchema,
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
+            onBridgeError,
           });
           await attachChannel.open(isContinue ? { resume: true } : undefined);
           return createSession({
@@ -383,6 +392,13 @@ export function createOpenCode(
         env,
         abortSignal: startOpts.abortSignal,
       });
+      const stderrTail: string[] = [];
+      const bridgeStderrDone = forwardBridgeProcessStream({
+        stream: proc.stderr,
+        streamName: 'stderr',
+        source: 'opencode',
+        collectTail: stderrTail,
+      });
 
       const { port: boundPort } = await waitForBridgeReady({
         proc,
@@ -391,13 +407,24 @@ export function createOpenCode(
         bridgeType: 'opencode',
         timeoutMs,
         abortSignal: startOpts.abortSignal,
-        createTimeoutError: () =>
-          new Error('opencode bridge did not become ready in time.'),
-        createExitError: () =>
-          new Error('opencode bridge exited before becoming ready.'),
+        createTimeoutError: ({ proc, stdoutTail }) =>
+          createBridgeStartupError({
+            message: 'OpenCode bridge did not become ready in time.',
+            proc,
+            stdoutTail,
+            stderrTail,
+            stderrDone: bridgeStderrDone,
+          }),
+        createExitError: ({ proc, stdoutTail }) =>
+          createBridgeStartupError({
+            message: 'OpenCode bridge exited before becoming ready.',
+            proc,
+            stdoutTail,
+            stderrTail,
+            stderrDone: bridgeStderrDone,
+          }),
       });
-      void drainRest(proc.stdout);
-      void forwardBridgeStderr(proc.stderr);
+      void drainBridgeProcessStream(proc.stdout);
 
       const wsUrl =
         (await sandboxSession.getPortUrl({
@@ -409,6 +436,7 @@ export function createOpenCode(
         connect: () => openWebSocket(wsUrl),
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
+        onBridgeError,
         ...(respawnStrategy === 'replay'
           ? { initialLastSeenEventId: coords?.lastSeenEventId ?? 0 }
           : {}),
@@ -448,7 +476,7 @@ function resolveBridgePort(
   throw new HarnessCapabilityUnsupportedError({
     harnessId: 'opencode',
     message:
-      'The opencode harness needs a TCP port exposed by the sandbox. ' +
+      'The OpenCode harness needs a TCP port exposed by the sandbox. ' +
       'Create the sandbox with `ports: [<port>]` or pass `createOpenCode({ port })`.',
   });
 }
@@ -495,34 +523,6 @@ async function writeOpenCodeSkills({
   });
 
   return { skillsDir };
-}
-
-async function forwardBridgeStderr(
-  stream: ReadableStream<Uint8Array>,
-): Promise<void> {
-  try {
-    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) return;
-      if (value) {
-        const trimmed = value.endsWith('\n') ? value.slice(0, -1) : value;
-        if (trimmed.length > 0) {
-          console.log(`[bridge stderr] ${trimmed}`);
-        }
-      }
-    }
-  } catch {}
-}
-
-async function drainRest(stream: ReadableStream<Uint8Array>): Promise<void> {
-  try {
-    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
-    while (true) {
-      const { done } = await reader.read();
-      if (done) return;
-    }
-  } catch {}
 }
 
 function openWebSocket(url: string): Promise<WebSocket> {
@@ -668,7 +668,7 @@ function createSession({
         return;
       }
       settleError(
-        new Error('opencode bridge closed before the turn finished.'),
+        new Error('OpenCode bridge closed before the turn finished.'),
       );
     };
     channel.onClose(onClose);
@@ -811,7 +811,7 @@ function createSession({
     doDetach: async () => {
       if (stopped) {
         throw new Error(
-          `opencode session ${sessionId} is already stopped; cannot detach.`,
+          `OpenCode session ${sessionId} is already stopped; cannot detach.`,
         );
       }
       stopped = true;
@@ -867,7 +867,7 @@ function createSession({
     doStop: async () => {
       if (stopped) {
         throw new Error(
-          `opencode session ${sessionId} is already stopped; cannot stop.`,
+          `OpenCode session ${sessionId} is already stopped; cannot stop.`,
         );
       }
       stopped = true;
@@ -879,7 +879,7 @@ function createSession({
               unsub();
               reject(
                 new Error(
-                  `opencode session ${sessionId} did not reply to detach within 5s.`,
+                  `OpenCode session ${sessionId} did not reply to detach within 5s.`,
                 ),
               );
             }, 5000);
@@ -928,10 +928,11 @@ function createSession({
     doSuspendTurn: async () => {
       if (stopped) {
         throw new Error(
-          `opencode session ${sessionId} is stopped; cannot suspend.`,
+          `OpenCode session ${sessionId} is stopped; cannot suspend.`,
         );
       }
       stopped = true;
+      await channel.interrupt();
       const lastSeenEventId = await channel.suspend();
       const payload: HarnessV1ContinueTurnState = {
         type: 'continue-turn',
@@ -1011,7 +1012,7 @@ function extractUserText(prompt: HarnessV1Prompt): string {
     if (part.type !== 'text') {
       throw new HarnessCapabilityUnsupportedError({
         harnessId: 'opencode',
-        message: `The opencode harness does not yet support user message parts of type '${part.type}'. Pass a string or a user message whose content contains only text parts.`,
+        message: `The OpenCode harness does not yet support user message parts of type '${part.type}'. Pass a string or a user message whose content contains only text parts.`,
       });
     }
     parts.push(part.text);

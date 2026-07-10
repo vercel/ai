@@ -1,5 +1,16 @@
 # @ai-sdk/google
 
+## 4.0.11
+
+### Patch Changes
+
+- 17d66c5: Fix Google tool result conversion to send file data as inline data instead of JSON text on the legacy tool-result path.
+- 96d40bc: Expand standalone Google `threshold` provider options into safety settings.
+- 0f93c57: feat (video): support video (not just image) reference inputs in `inputReferences` for reference-to-video generation
+- Updated dependencies [0f93c57]
+  - @ai-sdk/provider@4.0.3
+  - @ai-sdk/provider-utils@5.0.7
+
 ## 4.0.10
 
 ### Patch Changes

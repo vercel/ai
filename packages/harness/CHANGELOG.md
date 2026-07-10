@@ -1,5 +1,25 @@
 # @ai-sdk/harness
 
+## 1.0.23
+
+### Patch Changes
+
+- 39c8276: fix(harness): improve opaque sandbox bridge error handling
+- 91fe6d8: fix(harness): emit `finish-step` stream parts correctly per the underlying model steps
+- 0be5014: fix(harness): fix obsolete portions of harness package readme
+
+## 1.0.22
+
+### Patch Changes
+
+- Updated dependencies [be7f05a]
+- Updated dependencies [ee55a07]
+- Updated dependencies [aad737d]
+- Updated dependencies [0f93c57]
+  - ai@7.0.19
+  - @ai-sdk/provider@4.0.3
+  - @ai-sdk/provider-utils@5.0.7
+
 ## 1.0.21
 
 ### Patch Changes

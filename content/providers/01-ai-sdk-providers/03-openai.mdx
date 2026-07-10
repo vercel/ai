@@ -187,15 +187,19 @@ The following provider options are available:
 - **user** _string_
   A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. Defaults to `undefined`.
 
-- **reasoningEffort** _'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'_
+- **reasoningEffort** _'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'_
   Reasoning effort for reasoning models. Defaults to `medium`. If you use `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
 
 <Note>
-  The 'none' type for `reasoningEffort` is only available for OpenAI's GPT-5.1
-  models. Also, the 'xhigh' type for `reasoningEffort` is only available for
-  OpenAI's GPT-5.1-Codex-Max model. Setting `reasoningEffort` to 'none' or
-  'xhigh' with unsupported models will result in an error.
+  Supported reasoning efforts vary by model. GPT-5.6 supports `'none'`, `'low'`,
+  `'medium'`, `'high'`, `'xhigh'`, and `'max'`.
 </Note>
+
+- **reasoningMode** _'standard' | 'pro'_
+  Controls how much model work GPT-5.6 performs before returning a final answer. `'standard'` is the default. Use `'pro'` for difficult tasks where quality matters more than latency and token usage.
+
+- **reasoningContext** _'auto' | 'current_turn' | 'all_turns'_
+  Controls which available reasoning items GPT-5.6 can reuse. `'auto'` uses the model default, `'current_turn'` excludes reasoning from earlier turns, and `'all_turns'` makes compatible earlier reasoning available. The effective context is returned as `providerMetadata.openai.reasoningContext`.
 
 - **reasoningSummary** _'auto' | 'detailed'_
   Controls whether the model returns its reasoning process. Set to `'auto'` for a condensed summary, `'detailed'` for more comprehensive reasoning. Defaults to `undefined` (no reasoning summaries). When enabled, reasoning summaries appear in the stream as events with type `'reasoning'` and in non-streaming responses within the `reasoning` field.
@@ -238,8 +242,11 @@ The following provider options are available:
 - **promptCacheKey** _string_
   A cache key for manual prompt caching control. Used by OpenAI to cache responses for similar requests to optimize your cache hit rates.
 
+- **promptCacheOptions** _object_
+  Configures prompt caching for GPT-5.6 and later models. `mode` can be `'implicit'` or `'explicit'`, and `ttl` currently only supports `'30m'`. In explicit mode, only content blocks marked with a prompt cache breakpoint are cached.
+
 - **promptCacheRetention** _'in_memory' | '24h'_
-  The retention policy for the prompt cache. Set to `'24h'` to enable extended prompt caching, which keeps cached prefixes active for up to 24 hours. Defaults to `'in_memory'` for standard prompt caching. Note: `'24h'` is currently only available for the 5.1 series of models.
+  The legacy retention policy for models before GPT-5.6. Set to `'24h'` to enable extended prompt caching on supported models. For GPT-5.6 and later models, use `promptCacheOptions.ttl` instead.
 
 - **safetyIdentifier** _string_
   A stable identifier used to help detect users of your application that may be violating OpenAI's usage policies. The IDs should be a string that uniquely identifies each user.
@@ -271,7 +278,8 @@ const providerMetadata = result.providerMetadata as
   | OpenaiResponsesProviderMetadata
   | undefined;
 
-const { responseId, logprobs, serviceTier } = providerMetadata?.openai ?? {};
+const { responseId, logprobs, serviceTier, reasoningContext } =
+  providerMetadata?.openai ?? {};
 
 // responseId can be used to continue a conversation (previousResponseId).
 console.log(responseId);
@@ -285,6 +293,8 @@ The following OpenAI-specific metadata may be returned:
   Log probabilities of output tokens (when enabled).
 - **serviceTier** _(optional)_
   Service tier information returned by the API.
+- **reasoningContext** _(optional)_
+  Effective persisted-reasoning context returned by GPT-5.6 (`'current_turn'` or `'all_turns'`).
 
 #### Reasoning Output
 
@@ -1764,11 +1774,13 @@ The following optional provider options are available for OpenAI chat models:
   A unique identifier representing your end-user, which can help OpenAI to
   monitor and detect abuse. [Learn more](https://platform.openai.com/docs/guides/safety-best-practices/end-user-ids).
 
-- **reasoningEffort** _'minimal' | 'low' | 'medium' | 'high' | 'xhigh'_
+- **reasoningEffort** _'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'_
 
   Reasoning effort for reasoning models. Defaults to `medium`. If you use
   `providerOptions` to set the `reasoningEffort` option, this
   model setting will be ignored.
+
+  Supported reasoning efforts vary by model. GPT-5.6 supports `'none'`, `'low'`, `'medium'`, `'high'`, `'xhigh'`, and `'max'`.
 
 - **maxCompletionTokens** _number_
 
@@ -1807,9 +1819,13 @@ The following optional provider options are available for OpenAI chat models:
 
   A cache key for manual prompt caching control. Used by OpenAI to cache responses for similar requests to optimize your cache hit rates.
 
+- **promptCacheOptions** _object_
+
+  Configures prompt caching for GPT-5.6 and later models. `mode` can be `'implicit'` or `'explicit'`, and `ttl` currently only supports `'30m'`. In explicit mode, only content blocks marked with a prompt cache breakpoint are cached.
+
 - **promptCacheRetention** _'in_memory' | '24h'_
 
-  The retention policy for the prompt cache. Set to `'24h'` to enable extended prompt caching, which keeps cached prefixes active for up to 24 hours. Defaults to `'in_memory'` for standard prompt caching. Note: `'24h'` is currently only available for the 5.1 series of models.
+  The legacy retention policy for models before GPT-5.6. Set to `'24h'` to enable extended prompt caching on supported models. For GPT-5.6 and later models, use `promptCacheOptions.ttl` instead.
 
 - **safetyIdentifier** _string_
 
@@ -2111,7 +2127,7 @@ const rejectedPredictionTokens = openaiMetadata?.rejectedPredictionTokens;
 
 #### Image Detail
 
-You can use the `openai` provider option to set the [image input detail](https://platform.openai.com/docs/guides/images-vision?api-mode=responses#specify-image-input-detail-level) to `high`, `low`, or `auto`:
+You can use the `openai` provider option to set the [image input detail](https://platform.openai.com/docs/guides/images-vision?api-mode=responses#specify-image-input-detail-level) to `high`, `low`, `original`, or `auto`:
 
 ```ts highlight="13-16"
 const result = await generateText({
@@ -2136,6 +2152,8 @@ const result = await generateText({
   ],
 });
 ```
+
+For GPT-5.6, `original` preserves the input dimensions without resizing to a patch budget or pixel-dimension limit. `auto` and an omitted detail setting use the same sizing behavior as `original`, which can increase input token usage for large images.
 
 <Note type="warning">
   Because the `UIMessage` type (used by AI SDK UI hooks like `useChat`) does not
@@ -2186,9 +2204,8 @@ including `gpt-4o` and `gpt-4o-mini`.
 - Prompt caching is automatically enabled for these models, when the prompt is 1024 tokens or longer. It does
   not need to be explicitly enabled.
 - You can use the response `usage` to access the number of prompt tokens that were a cache hit via `usage.inputTokenDetails.cacheReadTokens`.
-- Note that caching behavior is dependent on load on OpenAI's infrastructure. Prompt prefixes generally remain in the
-  cache following 5-10 minutes of inactivity before they are evicted, but during off-peak periods they may persist for up
-  to an hour.
+- For GPT-5.6 and later models, `usage.inputTokenDetails.cacheWriteTokens` reports tokens written to the cache.
+- For GPT-5.6 and later models, `promptCacheOptions.ttl` sets a minimum cache lifetime of 30 minutes. Earlier models generally retain in-memory prefixes for 5-10 minutes of inactivity, up to one hour.
 
 ```ts highlight="11"
 import { openai } from '@ai-sdk/openai';
@@ -2221,19 +2238,61 @@ const { text, usage } = await generateText({
 console.log('Cached tokens:', usage.inputTokenDetails.cacheReadTokens);
 ```
 
-For GPT-5.1 models, you can enable extended prompt caching that keeps cached prefixes active for up to 24 hours:
+GPT-5.6 and later models support explicit cache breakpoints on text, image, and file content blocks. Set a request-level cache key and mark the end of each reusable prefix with `promptCacheBreakpoint`:
+
+```ts highlight="9-12,20-28"
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const { usage } = await generateText({
+  model: openai('gpt-5.6'),
+  providerOptions: {
+    openai: {
+      promptCacheKey: 'tenant:acme:support-v1',
+      promptCacheOptions: { mode: 'explicit', ttl: '30m' },
+    } satisfies OpenAILanguageModelResponsesOptions,
+  },
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: `A stable prefix of at least 1024 tokens...`,
+          providerOptions: {
+            openai: {
+              promptCacheBreakpoint: { mode: 'explicit' },
+            },
+          },
+        },
+        { type: 'text', text: 'What should I do next?' },
+      ],
+    },
+  ],
+});
+
+console.log('Cache reads:', usage.inputTokenDetails.cacheReadTokens);
+console.log('Cache writes:', usage.inputTokenDetails.cacheWriteTokens);
+```
+
+In `'implicit'` mode, OpenAI places an automatic breakpoint on the latest message and also honors explicit breakpoints. In `'explicit'` mode, only marked content blocks are eligible for caching; a request without any explicit breakpoint does not use prompt caching.
+
+For models before GPT-5.6 that support extended caching, you can keep cached prefixes active for up to 24 hours:
 
 ```ts highlight="7-12"
 import { openai, type OpenAILanguageModelChatOptions } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const { text, usage } = await generateText({
-  model: openai.chat('gpt-5.1'),
+  model: openai.chat('gpt-5.5'),
   prompt: `A 1024-token or longer prompt...`,
   providerOptions: {
     openai: {
       promptCacheKey: 'my-custom-cache-key-123',
-      promptCacheRetention: '24h', // Extended caching for GPT-5.1
+      promptCacheRetention: '24h',
     } satisfies OpenAILanguageModelChatOptions,
   },
 });
@@ -2349,6 +2408,10 @@ The following optional provider options are available for OpenAI completion mode
 
 | Model                 | Image Input | Audio Input | Object Generation | Tool Usage |
 | --------------------- | ----------- | ----------- | ----------------- | ---------- |
+| `gpt-5.6`             | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-5.6-luna`        | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-5.6-sol`         | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-5.6-terra`       | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-5.5`             | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-5.4-pro`         | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-5.4`             | <Check />   | <Cross />   | <Check />         | <Check />  |
