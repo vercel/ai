@@ -616,10 +616,22 @@ export async function runBridge<TStart extends { type: 'start' }>(
         return;
       case 'interrupt':
         try {
-          if (currentInterruptHandler) {
-            await currentInterruptHandler();
-          } else {
-            turnAbort?.abort();
+          /*
+           * A bridge waiting for a host tool result or approval is already
+           * paused at a resumable boundary. Interrupting the native runtime at
+           * that point terminates the operation that owns the pending request,
+           * so a later host process cannot satisfy it. Active turns without
+           * pending host input are interrupted before suspension as usual.
+           */
+          if (
+            pendingToolResults.size === 0 &&
+            pendingToolApprovals.size === 0
+          ) {
+            if (currentInterruptHandler) {
+              await currentInterruptHandler();
+            } else {
+              turnAbort?.abort();
+            }
           }
           sendControl({ type: 'bridge-interrupted', ok: true });
         } catch (err) {
