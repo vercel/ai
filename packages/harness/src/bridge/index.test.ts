@@ -274,6 +274,74 @@ describe('runBridge', () => {
     expect(ack).toMatchObject({ type: 'bridge-interrupted', ok: true });
   });
 
+  it('preserves a turn waiting for a host tool result when interrupted', async () => {
+    let interrupted = false;
+    const handle = await startBridge(async (_start, turn) => {
+      turn.onInterrupt(() => {
+        interrupted = true;
+      });
+      turn.emit({ type: 'tool-call', toolCallId: 'tool-1' });
+      const result = await turn.requestToolResult('tool-1');
+      turn.emit({ type: 'text-delta', delta: String(result.output) });
+      turn.emit({ type: 'finish' });
+    });
+    const client = await connect(handle.port);
+    await client.waitFor(f => f.type === 'bridge-hello');
+    client.send({ type: 'start' });
+    await client.waitFor(f => f.type === 'tool-call');
+
+    client.send({ type: 'interrupt' });
+    const ack = await client.waitFor(f => f.type === 'bridge-interrupted');
+    expect(interrupted).toBe(false);
+    expect(ack).toMatchObject({ type: 'bridge-interrupted', ok: true });
+
+    client.send({
+      type: 'tool-result',
+      toolCallId: 'tool-1',
+      output: 'sunny',
+    });
+    await client.waitFor(f => f.type === 'finish');
+    expect(client.frames).toContainEqual(
+      expect.objectContaining({ type: 'text-delta', delta: 'sunny' }),
+    );
+  });
+
+  it('preserves a turn waiting for host approval when interrupted', async () => {
+    let interrupted = false;
+    const handle = await startBridge(async (_start, turn) => {
+      turn.onInterrupt(() => {
+        interrupted = true;
+      });
+      turn.emit({
+        type: 'tool-approval-request',
+        approvalId: 'approval-1',
+        toolCallId: 'tool-1',
+      });
+      const response = await turn.requestToolApproval('approval-1');
+      turn.emit({ type: 'text-delta', delta: String(response.approved) });
+      turn.emit({ type: 'finish' });
+    });
+    const client = await connect(handle.port);
+    await client.waitFor(f => f.type === 'bridge-hello');
+    client.send({ type: 'start' });
+    await client.waitFor(f => f.type === 'tool-approval-request');
+
+    client.send({ type: 'interrupt' });
+    const ack = await client.waitFor(f => f.type === 'bridge-interrupted');
+    expect(interrupted).toBe(false);
+    expect(ack).toMatchObject({ type: 'bridge-interrupted', ok: true });
+
+    client.send({
+      type: 'tool-approval-response',
+      approvalId: 'approval-1',
+      approved: true,
+    });
+    await client.waitFor(f => f.type === 'finish');
+    expect(client.frames).toContainEqual(
+      expect.objectContaining({ type: 'text-delta', delta: 'true' }),
+    );
+  });
+
   it('clears the log per turn but keeps seq monotonic across turns', async () => {
     let turnNo = 0;
     const handle = await startBridge(async (_start, turn) => {
