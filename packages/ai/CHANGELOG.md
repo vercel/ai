@@ -1,5 +1,14 @@
 # ai
 
+## 7.0.21
+
+### Patch Changes
+
+- 308a519: chore: enforce consistent imports from `zod/v4` instead of `zod`
+- Updated dependencies [308a519]
+- Updated dependencies [7fe53d2]
+  - @ai-sdk/gateway@4.0.16
+
 ## 7.0.20
 
 ### Patch Changes
