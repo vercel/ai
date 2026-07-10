@@ -26,7 +26,7 @@ importers:
         version: 9.1.7
       konsistent:
         specifier: ^1.0.0-beta
-        version: 1.0.0-beta.1
+        version: 1.0.0-beta.2
       konsistent-provider:
         specifier: workspace:*
         version: link:tools/konsistent-provider
@@ -7626,6 +7626,13 @@ packages:
     peerDependencies:
       zod: ^4
 
+  '@konsistent/convention@1.0.0-beta.2':
+    resolution: {integrity: sha512-EpmxNCXRrOkTRTLKjGSd7KFFi4pK0gpwHQ7RtYzMOgwhVuul1965vxxkmuPtLggXy7hkVUUgXuCKl8ppAG4hfg==}
+    engines: {node: '>=22.11.0'}
+    hasBin: true
+    peerDependencies:
+      zod: ^4
+
   '@kwsites/file-exists@1.1.1':
     resolution: {integrity: sha512-m9/5YGR18lIwxSFDwfE3oA7bWuq9kdau6ugN4H2rJeyhFQZcG9AgSHkQtSD15a8WvTgfz9aikZMrKPHvbpqFiw==}
 
@@ -12069,8 +12076,8 @@ packages:
   '@vitest/pretty-format@3.2.4':
     resolution: {integrity: sha512-IVNZik8IVRJRTr9fxlitMKeJeXFFFN0JaB9PHPGQ8NKQbGpfjlTx9zO4RefN8gp7eqjNy8nyK3NZmBzOPeIxtA==}
 
-  '@vitest/pretty-format@3.2.6':
-    resolution: {integrity: sha512-lb7XXXzmm2h2ASzFnRvQpDo6onT1NmMJA3tkGTWiBFtRJ9lxGY3d3mm/Apt36gej2bkkOVLL/yTOtufDaFa/jA==}
+  '@vitest/pretty-format@3.2.7':
+    resolution: {integrity: sha512-KUHlwqVu0sRlhCdyPdQ/wBoTfRahjUky1MubOmYw9fWfIZy1gNoHpuaaQBPAaMaVYdQYHJLurzj8ECCj5OwTqA==}
 
   '@vitest/pretty-format@4.1.6':
     resolution: {integrity: sha512-h5SxD/IzNhZYnrSZRsUZQIC+vD0GY8cUvq0iwsmkFKixRCKLLWqCXa/FIQ4S1R+sI+PGoojkHsdNrbZiM9Qpgw==}
@@ -16254,8 +16261,8 @@ packages:
   kolorist@1.8.0:
     resolution: {integrity: sha512-Y+60/zizpJ3HRH8DCss+q95yr6145JXZo46OTpFvDZWLfRCE4qChOyk1b26nMaNpfHHgxagk9dXT5OP0Tfe+dQ==}
 
-  konsistent@1.0.0-beta.1:
-    resolution: {integrity: sha512-1izi+r5Jqoz9gEzS/7l6tkBoHhRaDerAovjBTxlwyUzAVDAxmj6QL84H8mN5aoi9rh1eloO0s12C5M2L+o3SFg==}
+  konsistent@1.0.0-beta.2:
+    resolution: {integrity: sha512-TW86mzwHOoTNtxEeb3m/LirqJ81ZK+UXn+4lxyTVsPXRfZQoWMMKJYcaoL1LT1G09oI70pyDzD72l4LDjIAQeg==}
     engines: {node: '>=22.11.0'}
     hasBin: true
 
@@ -26009,6 +26016,12 @@ snapshots:
       jiti: 2.7.0
       zod: 4.4.3
 
+  '@konsistent/convention@1.0.0-beta.2(zod@4.4.3)':
+    dependencies:
+      citty: 0.2.2
+      jiti: 2.7.0
+      zod: 4.4.3
+
   '@kwsites/file-exists@1.1.1':
     dependencies:
       debug: 4.4.3(supports-color@8.1.1)
@@ -31060,7 +31073,7 @@ snapshots:
       tinyrainbow: 2.0.0
     optional: true
 
-  '@vitest/pretty-format@3.2.6':
+  '@vitest/pretty-format@3.2.7':
     dependencies:
       tinyrainbow: 2.0.0
     optional: true
@@ -36699,14 +36712,14 @@ snapshots:
 
   kolorist@1.8.0: {}
 
-  konsistent@1.0.0-beta.1:
+  konsistent@1.0.0-beta.2:
     dependencies:
-      '@konsistent/convention': 1.0.0-beta.1(zod@4.4.3)
+      '@konsistent/convention': 1.0.0-beta.2(zod@4.4.3)
       citty: 0.2.2
       picocolors: 1.1.1
       resolve.exports: 2.0.3
       tinyglobby: 0.2.17
-      typescript: 5.9.3
+      typescript: 5.8.3
       zod: 4.4.3
 
   kuler@2.0.0: {}
@@ -42566,7 +42579,7 @@ snapshots:
       '@types/chai': 5.2.3
       '@vitest/expect': 3.2.4
       '@vitest/mocker': 3.2.4(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(yaml@2.9.0))
-      '@vitest/pretty-format': 3.2.6
+      '@vitest/pretty-format': 3.2.7
       '@vitest/runner': 3.2.4
       '@vitest/snapshot': 3.2.4
       '@vitest/spy': 3.2.4
