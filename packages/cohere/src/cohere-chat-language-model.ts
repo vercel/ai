@@ -278,6 +278,8 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
 
     let isActiveReasoning = false;
 
+    const generateId = this.config.generateId;
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -422,6 +424,31 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
                   pendingToolCall.hasFinished = true;
                   pendingToolCall = null;
                 }
+                return;
+              }
+
+              case 'citation-start': {
+                const citation = value.delta?.message?.citations;
+
+                if (citation != null) {
+                  controller.enqueue({
+                    type: 'source',
+                    sourceType: 'document',
+                    id: generateId(),
+                    mediaType: 'text/plain',
+                    title: citation.sources?.[0]?.document?.title || 'Document',
+                    providerMetadata: {
+                      cohere: {
+                        start: citation.start ?? null,
+                        end: citation.end ?? null,
+                        text: citation.text ?? null,
+                        sources: citation.sources ?? [],
+                        ...(citation.type && { citationType: citation.type }),
+                      },
+                    },
+                  });
+                }
+
                 return;
               }
 
@@ -574,6 +601,38 @@ const cohereChatResponseSchema = z.object({
 const cohereChatChunkSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('citation-start'),
+    index: z.number().nullish(),
+    delta: z
+      .object({
+        message: z
+          .object({
+            citations: z
+              .object({
+                start: z.number().nullish(),
+                end: z.number().nullish(),
+                text: z.string().nullish(),
+                sources: z
+                  .array(
+                    z.object({
+                      type: z.string().optional(),
+                      id: z.string().optional(),
+                      document: z
+                        .object({
+                          id: z.string().optional(),
+                          text: z.string().optional(),
+                          title: z.string().optional(),
+                        })
+                        .nullish(),
+                    }),
+                  )
+                  .nullish(),
+                type: z.string().optional(),
+              })
+              .nullish(),
+          })
+          .nullish(),
+      })
+      .nullish(),
   }),
   z.object({
     type: z.literal('citation-end'),
