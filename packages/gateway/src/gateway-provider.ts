@@ -6,6 +6,7 @@ import {
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { asGatewayError, GatewayAuthenticationError } from './errors';
@@ -207,6 +208,14 @@ export interface GatewayProviderSettings {
    * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /**
+   * Custom WebSocket implementation used for streaming transcription. This is
+   * useful for testing or for runtimes without a global WebSocket. A
+   * header-capable implementation is not required — Gateway WebSocket auth is
+   * carried in the subprotocols.
+   */
+  webSocket?: WebSocketConstructor;
 
   /**
    * How frequently to refresh the metadata cache in milliseconds.
@@ -516,6 +525,7 @@ export function createGateway(
       headers: getHeaders,
       fetch: options.fetch,
       o11yHeaders: createO11yHeaders(),
+      webSocket: options.webSocket,
     });
   };
   provider.transcriptionModel = createTranscriptionModel;
