@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 4.0.16
+
+### Patch Changes
+
+- 308a519: chore: enforce consistent imports from `zod/v4` instead of `zod`
+- 7fe53d2: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.15
 
 ### Patch Changes
