@@ -90,7 +90,7 @@ importers:
         specifier: 4.0.159
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
-        specifier: 3.0.50
+        specifier: 3.0.51
         version: link:../../packages/groq
       '@ai-sdk/mcp':
         specifier: 1.0.61
