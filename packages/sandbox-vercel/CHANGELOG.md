@@ -1,5 +1,18 @@
 # @ai-sdk/sandbox-vercel
 
+## 1.0.27
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.27
+
+## 1.0.26
+
+### Patch Changes
+
+- 7312d30: fix(sandbox-vercel): forward Vercel Sandbox credentials when resuming named harness sessions
+  - @ai-sdk/harness@1.0.26
+
 ## 1.0.25
 
 ### Patch Changes
