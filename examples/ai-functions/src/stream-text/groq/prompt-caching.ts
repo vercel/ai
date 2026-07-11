@@ -2,7 +2,7 @@ import { groq } from '@ai-sdk/groq';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
-const MODEL = 'qwen/qwen3-32b'; // 'openai/gpt-oss-120b';
+const MODEL = 'openai/gpt-oss-120b';
 
 const REFERENCE = (
   'The quick brown fox jumps over the lazy dog. ' +
