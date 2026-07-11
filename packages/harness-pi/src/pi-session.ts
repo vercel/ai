@@ -15,20 +15,21 @@ import { mkdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { Type } from 'typebox';
-import type {
-  HarnessV1ContinueTurnOptions,
-  HarnessV1ContinueTurnState,
-  HarnessV1PromptControl,
-  HarnessV1PromptTurnOptions,
-  HarnessV1NetworkSandboxSession,
-  HarnessV1PermissionMode,
-  HarnessV1ResumeSessionState,
-  HarnessV1Session,
-  HarnessV1Skill,
-  HarnessV1StreamPart,
-  HarnessV1ToolSpec,
+import {
+  type HarnessV1BuiltinToolFiltering,
+  type HarnessV1ContinueTurnOptions,
+  type HarnessV1ContinueTurnState,
+  type HarnessV1PromptControl,
+  type HarnessV1PromptTurnOptions,
+  type HarnessV1NetworkSandboxSession,
+  type HarnessV1PermissionMode,
+  type HarnessV1ResumeSessionState,
+  type HarnessV1Session,
+  type HarnessV1Skill,
+  type HarnessV1StreamPart,
+  type HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
-import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
+import { resolveSandboxHomeDir } from '@ai-sdk/harness/utils';
 import { resolvePiEnv, type PiAuthOptions } from './pi-auth';
 import { getPiTerminalError, parseNativeEvent } from './pi-events';
 import { createPiModelResolver } from './pi-model-resolver';
@@ -38,9 +39,11 @@ import { writePiSkills } from './pi-skills';
 import {
   persistSessionFileToSandbox,
   pullSessionFileFromSandbox,
+  safePiSessionFileName,
 } from './pi-resume-state';
 import {
   createPiTranslatorState,
+  finishPiApprovalStep,
   translatePiEvent,
   type PiTranslatorState,
 } from './pi-translate';
@@ -117,26 +120,6 @@ function createHarnessPiSkills({
   });
 }
 
-async function resolveSandboxHomeDir({
-  sandbox,
-  abortSignal,
-}: {
-  sandbox: Experimental_SandboxSession;
-  abortSignal?: AbortSignal;
-}): Promise<string> {
-  const result = await sandbox.run({
-    command: 'printf "%s" "$HOME"',
-    ...(abortSignal ? { abortSignal } : {}),
-  });
-  const homeDir = result.stdout.trim();
-  if (result.exitCode !== 0 || !homeDir || !path.posix.isAbsolute(homeDir)) {
-    throw new Error(
-      `Unable to resolve sandbox HOME directory: ${result.stderr || result.stdout}`,
-    );
-  }
-  return homeDir;
-}
-
 const PI_NATIVE_BUILTIN_NAMES = [
   'read',
   'write',
@@ -151,6 +134,18 @@ const NATIVE_TO_COMMON: Readonly<Record<string, string>> = {
   find: 'glob',
 };
 
+const PUBLIC_TO_NATIVE: Readonly<
+  Record<string, (typeof PI_NATIVE_BUILTIN_NAMES)[number]>
+> = {
+  read: 'read',
+  write: 'write',
+  edit: 'edit',
+  bash: 'bash',
+  grep: 'grep',
+  glob: 'find',
+  ls: 'ls',
+};
+
 const PI_NATIVE_TOOL_KINDS: Readonly<
   Record<(typeof PI_NATIVE_BUILTIN_NAMES)[number], 'readonly' | 'edit' | 'bash'>
 > = {
@@ -162,6 +157,24 @@ const PI_NATIVE_TOOL_KINDS: Readonly<
   find: 'readonly',
   ls: 'readonly',
 };
+
+function resolveActivePiBuiltinNames(
+  toolFiltering: HarnessV1BuiltinToolFiltering | undefined,
+): ReadonlyArray<(typeof PI_NATIVE_BUILTIN_NAMES)[number]> {
+  if (toolFiltering == null) return PI_NATIVE_BUILTIN_NAMES;
+  if (toolFiltering.mode === 'allow') {
+    return toolFiltering.toolNames
+      .map(name => PUBLIC_TO_NATIVE[name])
+      .filter(
+        (name): name is (typeof PI_NATIVE_BUILTIN_NAMES)[number] =>
+          name != null,
+      );
+  }
+  return PI_NATIVE_BUILTIN_NAMES.filter(
+    native =>
+      !toolFiltering.toolNames.includes(NATIVE_TO_COMMON[native] ?? native),
+  );
+}
 
 export type PiThinkingLevel =
   | 'off'
@@ -183,8 +196,10 @@ export interface CreatePiSessionInput {
   readonly sessionWorkDir: string;
   readonly skills: ReadonlyArray<HarnessV1Skill>;
   readonly settings: PiSessionSettings;
+  readonly clientApp: string;
   readonly isResume: boolean;
   readonly permissionMode?: HarnessV1PermissionMode;
+  readonly builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
   readonly resumeSessionFileName?: string;
   readonly abortSignal?: AbortSignal;
 }
@@ -268,11 +283,14 @@ export async function createPiSession(
   // host mirror so SessionManager.open can read it.
   let resumeSessionFilePath: string | undefined;
   if (input.isResume && input.resumeSessionFileName) {
+    const resumeSessionFileName = safePiSessionFileName(
+      input.resumeSessionFileName,
+    );
     resumeSessionFilePath = await pullSessionFileFromSandbox({
       sandbox,
       sessionWorkDir: input.sessionWorkDir,
       hostSessionDir,
-      sessionFileName: input.resumeSessionFileName,
+      sessionFileName: resumeSessionFileName,
       ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
     });
   }
@@ -318,6 +336,7 @@ export async function createPiSession(
       authStorage,
       modelRegistry,
     },
+    clientApp: input.clientApp,
   });
   const resolveModel = createPiModelResolver(modelRegistry, resolverEnv);
   // Resolve once: deterministic given the configured model. This is the Pi
@@ -489,6 +508,14 @@ export async function createPiSession(
       approvalId: args.toolCallId,
       toolCallId: args.toolCallId,
     });
+    if (translatorState) {
+      for (const part of finishPiApprovalStep(
+        translatorState,
+        args.toolCallId,
+      )) {
+        currentEmit?.(part);
+      }
+    }
     return new Promise(resolve => {
       pendingToolApprovals.set(args.toolCallId, { resolve });
     });
@@ -498,8 +525,11 @@ export async function createPiSession(
     customTools: ToolDefinition[];
     builtinNames: string[];
   } {
+    const builtinNames = resolveActivePiBuiltinNames(
+      input.builtinToolFiltering,
+    );
     const customTools: ToolDefinition[] = [
-      ...PI_NATIVE_BUILTIN_NAMES.map(native =>
+      ...builtinNames.map(native =>
         buildBuiltinToolDefinition({
           native,
           remoteOps,
@@ -512,7 +542,7 @@ export async function createPiSession(
     ];
     return {
       customTools,
-      builtinNames: [...PI_NATIVE_BUILTIN_NAMES],
+      builtinNames: [...builtinNames],
     };
   }
 
@@ -569,7 +599,7 @@ export async function createPiSession(
     // round-trip it without guessing the extension.
     const candidatePath = sessionManager.getSessionFile();
     if (candidatePath) {
-      sessionFileName = path.basename(candidatePath);
+      sessionFileName = safePiSessionFileName(path.basename(candidatePath));
     }
 
     translatorState = createPiTranslatorState({
@@ -685,10 +715,6 @@ export async function createPiSession(
             reasoning: undefined,
           },
         };
-        // `finish-step` populates the step's finishReason + usage (the
-        // agent's result builder reads this); `finish` marks the turn end
-        // with totalUsage.
-        currentEmit?.({ type: 'finish-step', finishReason, usage });
         currentEmit?.({
           type: 'finish',
           finishReason,

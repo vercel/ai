@@ -31,6 +31,11 @@ export const fireworksLanguageModelOptions = z.object({
    */
   promptCacheKey: z.string().optional(),
 
+  /**
+   * Use Fireworks Priority serving path for higher reliability during peak traffic.
+   */
+  serviceTier: z.enum(['priority']).optional(),
+
   thinking: z
     .object({
       type: z.enum(['enabled', 'disabled']).optional(),

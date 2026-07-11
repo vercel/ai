@@ -61,6 +61,33 @@ export const xaiTranscriptionModelOptionsSchema = lazySchema(() =>
        * Include filler words such as "uh" and "um" in the transcript.
        */
       fillerWords: z.boolean().nullish(),
+
+      /**
+       * Options for streaming speech-to-text over WebSocket.
+       */
+      streaming: z
+        .object({
+          /**
+           * Emit interim transcript results while speech is being processed.
+           */
+          interimResults: z.boolean().optional(),
+
+          /**
+           * Silence duration in milliseconds before an utterance-final event.
+           */
+          endpointing: z.number().int().min(0).max(5000).optional(),
+
+          /**
+           * End-of-turn detection threshold. When set, enables Smart Turn.
+           */
+          smartTurn: z.number().min(0).max(1).optional(),
+
+          /**
+           * Maximum silence duration in milliseconds before forcing speech_final.
+           */
+          smartTurnTimeout: z.number().int().min(1).max(5000).optional(),
+        })
+        .optional(),
     }),
   ),
 );

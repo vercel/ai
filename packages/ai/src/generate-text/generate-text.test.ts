@@ -6450,6 +6450,77 @@ describe('generateText', () => {
     });
   });
 
+  describe('options.repairToolCall', () => {
+    const invalidToolCallModel = () =>
+      new MockLanguageModelV4({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          content: [
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: `{ "value": broken`, // invalid JSON
+            },
+          ],
+        }),
+      });
+
+    const repairToolCallTools = {
+      tool1: tool({
+        inputSchema: z.object({ value: z.string() }),
+        execute: async ({ value }) => `result-${value}`,
+      }),
+    };
+
+    it('should use the repaired tool call', async () => {
+      const result = await generateText({
+        model: invalidToolCallModel(),
+        tools: repairToolCallTools,
+        prompt: 'test-input',
+        repairToolCall: async ({ toolCall }) => ({
+          ...toolCall,
+          input: `{ "value": "repaired" }`,
+        }),
+      });
+
+      expect(result.toolCalls).toStrictEqual([
+        expect.objectContaining({
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          input: { value: 'repaired' },
+        }),
+      ]);
+      expect(result.toolResults).toStrictEqual([
+        expect.objectContaining({ output: 'result-repaired' }),
+      ]);
+    });
+
+    it('should support the deprecated experimental_repairToolCall option', async () => {
+      const result = await generateText({
+        model: invalidToolCallModel(),
+        tools: repairToolCallTools,
+        prompt: 'test-input',
+        experimental_repairToolCall: async ({ toolCall }) => ({
+          ...toolCall,
+          input: `{ "value": "repaired" }`,
+        }),
+      });
+
+      expect(result.toolCalls).toStrictEqual([
+        expect.objectContaining({
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          input: { value: 'repaired' },
+        }),
+      ]);
+      expect(result.toolResults).toStrictEqual([
+        expect.objectContaining({ output: 'result-repaired' }),
+      ]);
+    });
+  });
+
   describe('options.activeTools', () => {
     it('should filter available tools to only the ones in activeTools', async () => {
       let tools:

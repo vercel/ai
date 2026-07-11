@@ -76,7 +76,7 @@ const result = streamText({
   model: 'openai/gpt-5.4',
   tools: await mcpClient.tools(),
   prompt: 'Use the available tools to answer the user question.',
-  onFinish: async () => {
+  onEnd: async () => {
     await mcpClient.close();
   },
 });
@@ -93,12 +93,35 @@ HTTP is recommended for production deployments:
 ```ts
 import { createMCPClient } from '@ai-sdk/mcp';
 
+const savedSession = await loadMcpSession();
+let currentSessionId = savedSession?.sessionId;
+
 const mcpClient = await createMCPClient({
   transport: {
     type: 'http',
     url: 'https://your-server.com/mcp',
+    initialSessionId: savedSession?.sessionId,
+    initialProtocolVersion: savedSession?.initializeResult.protocolVersion,
+    terminateSessionOnClose: false,
+    onSessionIdChange: sessionId => {
+      currentSessionId = sessionId;
+    },
+    onSessionExpired: sessionId => {
+      if (currentSessionId === sessionId) {
+        currentSessionId = undefined;
+        void clearMcpSession();
+      }
+    },
   },
+  initialInitializeResult: savedSession?.initializeResult,
 });
+
+if (currentSessionId) {
+  await saveMcpSession({
+    sessionId: currentSessionId,
+    initializeResult: mcpClient.initializeResult,
+  });
+}
 ```
 
 SSE is also supported for MCP servers that use Server-Sent Events:

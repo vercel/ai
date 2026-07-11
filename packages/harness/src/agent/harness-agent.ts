@@ -1,6 +1,7 @@
 import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
 import type {
   HarnessV1Bootstrap,
+  HarnessV1BuiltinToolFiltering,
   HarnessV1NetworkSandboxSession,
   HarnessV1SandboxProvider,
 } from '../v1';
@@ -24,6 +25,7 @@ import type {
   HarnessAgentSandboxConfig,
   HarnessAgentSettings,
 } from './harness-agent-settings';
+import type { HarnessAllTools } from './harness-agent-tool-types';
 import { HarnessAgentSession } from './harness-agent-session';
 import type {
   HarnessAgentAdapter,
@@ -55,18 +57,9 @@ import {
   permissionModeNeedsBuiltinSupport,
   resolvePermissionMode,
 } from './internal/permission-mode';
+import { resolveHarnessAgentToolFiltering } from './internal/tool-filtering';
 
-/** Extract the builtin tool set type from a harness adapter parameter. */
-type BuiltinToolsOf<H> = H extends HarnessAgentAdapter<infer T> ? T : never;
-
-/**
- * Type-level merge of a harness's builtin tools with user-defined tools.
- * User tools override builtins on key collision.
- */
-export type HarnessAllTools<
-  THarness extends HarnessAgentAdapter<any>,
-  TUserTools extends ToolSet,
-> = Omit<BuiltinToolsOf<THarness>, keyof TUserTools> & TUserTools;
+export type { HarnessAllTools } from './harness-agent-tool-types';
 
 /**
  * Required `session` extension on every `HarnessAgent.generate` /
@@ -138,7 +131,10 @@ export class HarnessAgent<
 
   private readonly settings: HarnessAgentSettings<THarness, TUserTools>;
   private readonly sandboxConfig: HarnessAgentSandboxConfig;
-  private readonly userTools: TUserTools;
+  private readonly activeUserTools: TUserTools;
+  private readonly builtinToolFiltering:
+    | HarnessV1BuiltinToolFiltering
+    | undefined;
   private readonly permissionMode: HarnessAgentPermissionMode;
 
   constructor(settings: HarnessAgentSettings<THarness, TUserTools>) {
@@ -147,10 +143,23 @@ export class HarnessAgent<
     this.settings = settings;
     this.sandboxConfig = sandboxConfig;
     this.id = settings.id;
-    this.userTools = settings.tools ?? ({} as TUserTools);
+    const userTools = settings.tools ?? ({} as TUserTools);
     this.permissionMode = resolvePermissionMode({
       permissionMode: settings.permissionMode,
     });
+    const tools = {
+      ...settings.harness.builtinTools,
+      ...userTools,
+    } as HarnessAllTools<THarness, TUserTools>;
+    const toolFiltering = resolveHarnessAgentToolFiltering({
+      harness: settings.harness,
+      userTools,
+      allTools: tools,
+      activeTools: settings.activeTools,
+      inactiveTools: settings.inactiveTools,
+    });
+    this.activeUserTools = toolFiltering.activeUserTools;
+    this.builtinToolFiltering = toolFiltering.builtinToolFiltering;
     if (
       Object.keys(settings.harness.builtinTools).length > 0 &&
       permissionModeNeedsBuiltinSupport({
@@ -163,10 +172,7 @@ export class HarnessAgent<
         harnessId: settings.harness.harnessId,
       });
     }
-    this.tools = {
-      ...settings.harness.builtinTools,
-      ...this.userTools,
-    } as HarnessAllTools<THarness, TUserTools>;
+    this.tools = tools;
   }
 
   /** Identifier of the harness backing this agent. */
@@ -323,6 +329,7 @@ export class HarnessAgent<
         resumeFrom: validatedResumeFrom,
         continueFrom: effectiveContinueFrom,
         permissionMode: this.permissionMode,
+        builtinToolFiltering: this.builtinToolFiltering,
         abortSignal,
         observability: buildObservability({ settings: this.settings }),
       };
@@ -502,7 +509,9 @@ export class HarnessAgent<
       >({
         instructions: this.settings.instructions,
         tools: this.tools,
+        activeTools: this.activeUserTools,
         toolSpecs: this._toToolSpecs(),
+        builtinToolFiltering: this.builtinToolFiltering,
         runtimeContext: input.runtimeContext,
         abortSignal: input.abortSignal,
         telemetry: this.settings.telemetry,
@@ -517,7 +526,9 @@ export class HarnessAgent<
       prompt: input.turnInput.prompt,
       instructions: this.settings.instructions,
       tools: this.tools,
+      activeTools: this.activeUserTools,
       toolSpecs: this._toToolSpecs(),
+      builtinToolFiltering: this.builtinToolFiltering,
       runtimeContext: input.runtimeContext,
       abortSignal: input.abortSignal,
       telemetry: this.settings.telemetry,
@@ -604,7 +615,7 @@ export class HarnessAgent<
   private _toToolSpecs(): HarnessAgentToolSpec[] {
     const specs: HarnessAgentToolSpec[] = [];
     for (const [name, tool] of Object.entries(
-      this.userTools as Record<string, unknown>,
+      this.activeUserTools as Record<string, unknown>,
     )) {
       const t = tool as {
         description?: string;

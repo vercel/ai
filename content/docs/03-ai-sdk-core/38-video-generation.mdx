@@ -171,6 +171,65 @@ const { video } = await generateVideo({
 });
 ```
 
+### First and Last Frame
+
+Some video models support first-last-frame generation, where you provide the
+starting and/or ending frames of the video. Use the `frameImages` option to pass
+role-tagged images in a provider-agnostic way:
+
+```tsx highlight={"5-16"}
+const { video } = await generateVideo({
+  model: __VIDEO_MODEL__,
+  prompt: 'The cat walks across the scene and transforms into a dog by the end',
+  frameImages: [
+    {
+      image: 'https://example.com/first-frame.png',
+      frameType: 'first_frame',
+    },
+    {
+      image: 'https://example.com/last-frame.png',
+      frameType: 'last_frame',
+    },
+  ],
+});
+```
+
+### Reference Inputs
+
+Some video models support reference-to-video generation, where you provide one or
+more reference images or videos that the model incorporates into the generated video. Use the `inputReferences` option to pass
+these inputs in a provider-agnostic way:
+
+```tsx highlight={"5-8"}
+const { video } = await generateVideo({
+  model: __VIDEO_MODEL__,
+  prompt: 'The two characters meet in a bustling market',
+  inputReferences: [
+    'https://example.com/character-1.png',
+    'https://example.com/character-2.png',
+  ],
+});
+```
+
+For URL-based video references, use the object form with an explicit `mediaType`:
+
+```tsx highlight={"5-10"}
+const { video } = await generateVideo({
+  model: __VIDEO_MODEL__,
+  prompt: 'Match the motion in the reference clip',
+  inputReferences: [
+    {
+      data: 'https://example.com/reference.mp4',
+      mediaType: 'video/mp4',
+    },
+  ],
+});
+```
+
+Providers route each reference by its media type (image vs. video) and emit a
+warning when a reference kind is unsupported (for example, providers that accept
+only image references warn and ignore a video reference).
+
 ### Providing a Seed
 
 You can provide a seed to the `experimental_generateVideo` function to control the output of the video generation process.

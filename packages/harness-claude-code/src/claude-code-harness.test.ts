@@ -96,10 +96,14 @@ function fakeNetworkSandboxSessionForStartupFailure({
 
 function fakeNetworkSandboxSessionForStartupSuccess({
   bridgePortUrl,
+  spawns,
+  spawnEnvs,
   writes,
   runs,
 }: {
   bridgePortUrl: string;
+  spawns?: string[];
+  spawnEnvs?: Array<Record<string, string | undefined>>;
   writes: Array<{ path: string; content: string }>;
   runs: string[];
 }): HarnessV1NetworkSandboxSession {
@@ -121,12 +125,22 @@ function fakeNetworkSandboxSessionForStartupSuccess({
     }) => {
       writes.push({ path, content });
     },
-    spawn: async () => ({
-      stdout: textStream('{"type":"bridge-ready","port":4319}\n'),
-      stderr: textStream(''),
-      kill: async () => {},
-      wait: async () => ({ exitCode: 0 }),
-    }),
+    spawn: async ({
+      command,
+      env,
+    }: {
+      command: string;
+      env?: Record<string, string | undefined>;
+    }) => {
+      spawns?.push(command);
+      if (env) spawnEnvs?.push(env);
+      return {
+        stdout: textStream('{"type":"bridge-ready","port":4319}\n'),
+        stderr: textStream(''),
+        kill: async () => {},
+        wait: async () => ({ exitCode: 0 }),
+      };
+    },
   };
   return {
     id: 'test-sandbox',
@@ -162,6 +176,7 @@ describe('createClaudeCode adapter', () => {
     expect(harness.harnessId).toBe('claude-code');
     expect(harness.specificationVersion).toBe('harness-v1');
     expect(harness.supportsBuiltinToolApprovals).toBe(true);
+    expect(harness.supportsBuiltinToolFiltering).toBe(true);
     expect(Object.keys(harness.builtinTools)).toEqual([
       'read',
       'write',
@@ -180,6 +195,7 @@ describe('createClaudeCode adapter', () => {
       'TaskList',
       'TaskStop',
       'TaskOutput',
+      'Monitor',
       'ListMcpResources',
       'ReadMcpResource',
       'ExitPlanMode',
@@ -218,6 +234,84 @@ describe('createClaudeCode adapter', () => {
         sessionWorkDir: '/vercel/sandbox/claude-code-s1',
       }),
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
+  });
+
+  it('quotes dynamic startup paths in shell commands', async () => {
+    const runs: string[] = [];
+    const spawns: string[] = [];
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const writes: Array<{ path: string; content: string }> = [];
+    const harness = createClaudeCode();
+    const session = await harness.doStart({
+      sessionId: 's1; env > /tmp/leak #',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        runs,
+        spawns,
+        spawnEnvs,
+        writes,
+      }),
+      sessionWorkDir:
+        '/vercel/sandbox/claude-code-s1; env > /tmp/workdir-leak #',
+    });
+
+    expect(runs).toContain(
+      "mkdir -p '/vercel/sandbox/claude-code-s1; env > /tmp/workdir-leak #' '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/bridge'",
+    );
+    expect(spawns).toEqual([
+      "node /tmp/harness/claude-code/bridge.mjs --workdir '/vercel/sandbox/claude-code-s1; env > /tmp/workdir-leak #' --bridge-state-dir '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/bridge'",
+    ]);
+    expect(spawnEnvs.at(0)?.CLAUDE_AGENT_SDK_CLIENT_APP).toBe(
+      'ai-sdk/harness-claude-code/0.0.0-test',
+    );
+    await session.doDestroy();
+  });
+
+  it('sends the structured thinking configuration to the bridge', async () => {
+    const thinking = { type: 'enabled' as const, display: 'omitted' as const };
+    const harness = createClaudeCode({ thinking });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      prompt: 'think about this',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({ thinking });
+
+    await session.doDestroy();
+  });
+
+  it('defaults to summarized adaptive thinking', async () => {
+    const harness = createClaudeCode();
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      prompt: 'think about this',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({
+      thinking: { type: 'adaptive', display: 'summarized' },
+    });
+
+    await session.doDestroy();
   });
 
   it('writes standard Claude skill files and enables their names on start', async () => {
@@ -267,7 +361,7 @@ describe('createClaudeCode adapter', () => {
     const bridgeMetaWrite = writes.find(write =>
       write.path.endsWith('/bridge-meta.json'),
     );
-    expect(runs).toContain("mkdir -p '/home/vercel-sandbox'/.claude/skills");
+    expect(runs).toContain("mkdir -p '/home/vercel-sandbox/.claude/skills'");
     expect(bridgeMetaWrite).toEqual({
       path: '/vercel/sandbox/.agent-runs/s1/bridge/bridge-meta.json',
       content: JSON.stringify({ type: 'claude-code', state: 'starting' }),
@@ -333,7 +427,7 @@ describe('createClaudeCode adapter', () => {
     ).rejects.toThrow('Invalid Claude Code skill file path');
     expect(writes).toEqual([]);
     expect(runs).not.toContain(
-      "mkdir -p '/home/vercel-sandbox'/.claude/skills",
+      "mkdir -p '/home/vercel-sandbox/.claude/skills'",
     );
   });
 

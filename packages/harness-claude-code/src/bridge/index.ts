@@ -9,7 +9,6 @@ import {
   type BridgeEvent,
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
-import type { HarnessV1BuiltinToolName } from '@ai-sdk/harness';
 import { createCompactionLatch } from './compaction-latch';
 import type { StartMessage } from '../claude-code-bridge-protocol';
 import { randomUUID } from 'node:crypto';
@@ -34,7 +33,7 @@ import { argv, stdout } from 'node:process';
  */
 import * as claudeAgentSdk from '@anthropic-ai/claude-agent-sdk';
 import * as mcpServerModule from '@modelcontextprotocol/sdk/server/mcp.js';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { toClaudeSkillsOption } from './claude-skills-option';
 
 /*
@@ -42,7 +41,16 @@ import { toClaudeSkillsOption } from './claude-skills-option';
  * map (e.g. `WebFetch`, `NotebookEdit`) have no common equivalent; their
  * native name is forwarded as-is on `tool-call` events.
  */
-const NATIVE_TO_COMMON: Readonly<Record<string, HarnessV1BuiltinToolName>> = {
+type CommonBuiltinToolName =
+  | 'read'
+  | 'write'
+  | 'edit'
+  | 'bash'
+  | 'glob'
+  | 'grep'
+  | 'webSearch';
+
+const NATIVE_TO_COMMON: Readonly<Record<string, CommonBuiltinToolName>> = {
   Read: 'read',
   Write: 'write',
   Edit: 'edit',
@@ -51,6 +59,37 @@ const NATIVE_TO_COMMON: Readonly<Record<string, HarnessV1BuiltinToolName>> = {
   Grep: 'grep',
   WebSearch: 'webSearch',
 };
+
+const PUBLIC_TO_NATIVE: Readonly<Record<string, string>> = {
+  read: 'Read',
+  write: 'Write',
+  edit: 'Edit',
+  bash: 'Bash',
+  glob: 'Glob',
+  grep: 'Grep',
+  webSearch: 'WebSearch',
+  WebFetch: 'WebFetch',
+  NotebookEdit: 'NotebookEdit',
+  TodoWrite: 'TodoWrite',
+  Agent: 'Agent',
+  TaskCreate: 'TaskCreate',
+  TaskGet: 'TaskGet',
+  TaskUpdate: 'TaskUpdate',
+  TaskList: 'TaskList',
+  TaskStop: 'TaskStop',
+  TaskOutput: 'TaskOutput',
+  Monitor: 'Monitor',
+  ListMcpResources: 'ListMcpResources',
+  ReadMcpResource: 'ReadMcpResource',
+  ExitPlanMode: 'ExitPlanMode',
+  EnterWorktree: 'EnterWorktree',
+  ExitWorktree: 'ExitWorktree',
+  AskUserQuestion: 'AskUserQuestion',
+  Skill: 'Skill',
+};
+
+const PUBLIC_TOOL_NAMES = Object.keys(PUBLIC_TO_NATIVE);
+const UNRECOVERABLE_API_RETRY_STATUSES = new Set([401, 403, 404]);
 
 const NATIVE_TOOL_KINDS: Readonly<
   Record<string, 'readonly' | 'edit' | 'bash'>
@@ -78,44 +117,39 @@ const NATIVE_TOOL_KINDS: Readonly<
   Skill: 'edit',
   AskUserQuestion: 'readonly',
   Bash: 'bash',
+  Monitor: 'bash',
 };
 
-function toCommonName(nativeName: string): HarnessV1BuiltinToolName | string {
+function toCommonName(nativeName: string): CommonBuiltinToolName | string {
   return NATIVE_TO_COMMON[nativeName] ?? nativeName;
 }
 
-/*
- * The harness exposes a coarse `'off' | 'on' | 'adaptive'` thinking setting,
- * but the Claude Agent SDK's `thinking` option takes a structured
- * `ThinkingConfig` object. Passing the bare string silently disables extended
- * thinking (the SDK ignores the malformed value), so the model never emits
- * thinking blocks and no reasoning is streamed. Map to the SDK's shape:
- *   'adaptive' → { type: 'adaptive' }  (Claude decides depth; Opus 4.6+)
- *   'on'       → { type: 'enabled' }   (extended thinking always on)
- *   'off'      → { type: 'disabled' }
- *
- * `display: 'summarized'` is required for the model's reasoning to actually be
- * streamed: without it the thinking block arrives carrying only a signature
- * and empty `thinking_delta`s, so `reasoningText` comes back empty. We default
- * it on whenever thinking is enabled so reasoning is visible out of the box;
- * `'off'` (disabled) takes no display.
- */
-function toThinkingConfig(
-  thinking: 'off' | 'on' | 'adaptive' | undefined,
-):
-  | { type: 'adaptive' | 'enabled'; display: 'summarized' }
-  | { type: 'disabled' }
-  | undefined {
-  switch (thinking) {
-    case 'adaptive':
-      return { type: 'adaptive', display: 'summarized' };
-    case 'on':
-      return { type: 'enabled', display: 'summarized' };
-    case 'off':
-      return { type: 'disabled' };
-    default:
-      return undefined;
-  }
+function toNativeName(toolName: string): string {
+  return PUBLIC_TO_NATIVE[toolName] ?? toolName;
+}
+
+function resolveNativeTools(start: StartMessage): string[] | undefined {
+  const toolFiltering = start.builtinToolFiltering;
+  if (toolFiltering == null) return undefined;
+  const activeToolNames =
+    toolFiltering.mode === 'allow'
+      ? toolFiltering.toolNames
+      : PUBLIC_TOOL_NAMES.filter(
+          name => !toolFiltering.toolNames.includes(name),
+        );
+  return activeToolNames.map(name => toNativeName(name));
+}
+
+function resolveInactiveNativeTools(start: StartMessage): string[] {
+  const toolFiltering = start.builtinToolFiltering;
+  if (toolFiltering == null) return [];
+  const inactiveToolNames =
+    toolFiltering.mode === 'allow'
+      ? PUBLIC_TOOL_NAMES.filter(
+          name => !toolFiltering.toolNames.includes(name),
+        )
+      : toolFiltering.toolNames;
+  return inactiveToolNames.map(name => toNativeName(name));
 }
 
 const args = parseArgs(argv.slice(2));
@@ -146,13 +180,20 @@ type Emit = (msg: Record<string, unknown>) => void;
 
 function createPermissionOptions(input: {
   start: StartMessage;
+  inactiveNativeTools: readonly string[];
   turn: BridgeTurn;
   emit: Emit;
+  finishApprovalStep: (approvalId: string) => void;
   nativeToolCallNames: Map<string, string>;
   approvalRequestedToolUseIds: Set<string>;
 }): Record<string, unknown> {
   const permissionMode = input.start.permissionMode ?? 'allow-all';
-  if (permissionMode === 'allow-all') {
+  const inactiveNativeTools = new Set(input.inactiveNativeTools);
+  const permissionSettings = createPermissionSettings({
+    permissionMode,
+    inactiveNativeTools,
+  });
+  if (permissionMode === 'allow-all' && inactiveNativeTools.size === 0) {
     return {
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
@@ -163,7 +204,7 @@ function createPermissionOptions(input: {
     permissionMode:
       permissionMode === 'allow-edits' ? 'acceptEdits' : 'default',
     allowDangerouslySkipPermissions: false,
-    settings: createPermissionSettings({ permissionMode }),
+    ...(permissionSettings ? { settings: permissionSettings } : {}),
     canUseTool: async (
       toolName: string,
       toolInput: Record<string, unknown>,
@@ -173,6 +214,7 @@ function createPermissionOptions(input: {
         return { behavior: 'allow', updatedInput: toolInput };
       }
       if (
+        !inactiveNativeTools.has(toolName) &&
         !nativeToolRequiresApproval({
           nativeName: toolName,
           permissionMode,
@@ -197,6 +239,7 @@ function createPermissionOptions(input: {
         approvalId,
         toolCallId: approvalId,
       });
+      input.finishApprovalStep(approvalId);
 
       const decision = await input.turn.requestToolApproval(approvalId);
       return decision.approved
@@ -212,21 +255,26 @@ function createPermissionOptions(input: {
 
 function createPermissionSettings(input: {
   permissionMode: 'allow-reads' | 'allow-edits' | 'allow-all';
+  inactiveNativeTools: ReadonlySet<string>;
 }): Record<string, unknown> | undefined {
-  const askRules = Object.entries(NATIVE_TOOL_KINDS)
-    .filter(([, kind]) =>
-      input.permissionMode === 'allow-reads'
+  const askRules = new Set<string>();
+  for (const [nativeName, kind] of Object.entries(NATIVE_TOOL_KINDS)) {
+    if (
+      input.inactiveNativeTools.has(nativeName) ||
+      (input.permissionMode === 'allow-reads'
         ? kind === 'edit' || kind === 'bash'
         : input.permissionMode === 'allow-edits'
           ? kind === 'bash'
-          : false,
-    )
-    .map(([nativeName]) => `${nativeName}(*)`);
+          : false)
+    ) {
+      askRules.add(`${nativeName}(*)`);
+    }
+  }
 
-  if (askRules.length === 0) return undefined;
+  if (askRules.size === 0) return undefined;
 
   return {
-    permissions: { ask: askRules },
+    permissions: { ask: [...askRules] },
     sandbox: { autoAllowBashIfSandboxed: false },
   };
 }
@@ -263,6 +311,33 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
    */
   const nativeToolCallNames = new Map<string, string>();
   const approvalRequestedToolUseIds = new Set<string>();
+  const partialBlocks = new Map<
+    number,
+    { id: string; kind: 'text' | 'thinking' }
+  >();
+  let stepUsage: Record<string, unknown> | undefined;
+  let pendingStepToolUseIds = new Set<string>();
+  let pendingStepUsage: Record<string, unknown> | undefined;
+  let stepOpen = false;
+
+  const emitFinishStep = (usage: Record<string, unknown> | undefined): void => {
+    emit({
+      type: 'finish-step',
+      finishReason: { unified: 'stop', raw: 'stop' },
+      usage: usage ?? defaultUsage(),
+    });
+    stepUsage = usage ?? stepUsage;
+    pendingStepUsage = undefined;
+    pendingStepToolUseIds = new Set();
+    stepOpen = false;
+  };
+
+  const closeStepIfReady = (): void => {
+    if (!stepOpen || pendingStepToolUseIds.size > 0 || partialBlocks.size > 0) {
+      return;
+    }
+    emitFinishStep(pendingStepUsage);
+  };
 
   /*
    * Tool-use ids that originated from the MCP server hosting user-supplied
@@ -330,10 +405,18 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     abortSignal: abortCtl.signal,
   });
   const skillsOption = toClaudeSkillsOption(start.skills);
+  const nativeTools = resolveNativeTools(start);
+  const inactiveNativeTools = resolveInactiveNativeTools(start);
   const permissionOptions = createPermissionOptions({
     start,
+    inactiveNativeTools,
     turn,
     emit,
+    finishApprovalStep: approvalId => {
+      stepOpen = true;
+      pendingStepToolUseIds.delete(approvalId);
+      closeStepIfReady();
+    },
     nativeToolCallNames,
     approvalRequestedToolUseIds,
   });
@@ -344,9 +427,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       ...(start.model ? { model: start.model } : {}),
       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
       ...(skillsOption ? { skills: skillsOption } : {}),
-      ...(toThinkingConfig(start.thinking)
-        ? { thinking: toThinkingConfig(start.thinking) }
+      ...(nativeTools !== undefined ? { tools: nativeTools } : {}),
+      ...(inactiveNativeTools.length > 0
+        ? { disallowedTools: inactiveNativeTools }
         : {}),
+      thinking: start.thinking,
       includePartialMessages: true,
       // The `PostCompact` hook carries the compaction summary, which the
       // `compact_boundary` system message does not. Latch it for the unified
@@ -376,24 +461,24 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       abortSignal: abortCtl.signal,
     },
   });
+  turn.onInterrupt(() => q.interrupt());
 
-  let stepUsage: Record<string, unknown> | undefined;
+  let turnUsage: Record<string, unknown> | undefined;
   let totalCostUsd: number | undefined;
   let observedTerminalError: string | undefined;
   let emittedTerminalError = false;
   let emittedTerminalFinish = false;
   let streamStarted = false;
-  const partialBlocks = new Map<
-    number,
-    { id: string; kind: 'text' | 'thinking' }
-  >();
 
   const emitTerminalError = (message: string | undefined): void => {
     const normalized = message?.trim();
     if (!normalized || emittedTerminalError || emittedTerminalFinish) return;
     observedTerminalError = normalized;
     emittedTerminalError = true;
-    emit({ type: 'error', error: normalized });
+    turn.emitError({
+      error: normalized,
+      message: 'claude-code terminal error',
+    });
     queryInput.close();
     abortCtl.abort();
   };
@@ -401,10 +486,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   try {
     for await (const msg of q as AsyncIterable<ClaudeMessage>) {
       if (abortCtl.signal.aborted) break;
-
-      if (typeof msg.error === 'string' && msg.error.trim()) {
-        observedTerminalError = msg.error.trim();
-      }
 
       const type = msg.type;
 
@@ -425,24 +506,33 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         streamStarted = true;
       }
 
+      if (type === 'system' && msg.subtype === 'api_retry') {
+        if (
+          typeof msg.error_status === 'number' &&
+          UNRECOVERABLE_API_RETRY_STATUSES.has(msg.error_status)
+        ) {
+          emitTerminalError(
+            `HTTP ${msg.error_status}: ${
+              msg.error ?? 'provider request failed'
+            }`,
+          );
+          continue;
+        }
+
+        turn.emitWarning({ message: formatApiRetryWarning(msg) });
+        continue;
+      }
+
+      if (typeof msg.error === 'string' && msg.error.trim()) {
+        observedTerminalError = msg.error.trim();
+      }
+
       if (
         type === 'auth_status' &&
         typeof msg.error === 'string' &&
         msg.error.trim()
       ) {
         emitTerminalError(msg.error);
-        continue;
-      }
-
-      if (
-        type === 'system' &&
-        msg.subtype === 'api_retry' &&
-        typeof msg.error_status === 'number' &&
-        [401, 403, 404].includes(msg.error_status)
-      ) {
-        emitTerminalError(
-          `HTTP ${msg.error_status}: ${msg.error ?? 'provider request failed'}`,
-        );
         continue;
       }
 
@@ -478,21 +568,29 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       }
 
       if (type === 'assistant' && msg.message?.content) {
+        const usage = mapUsage(msg.message.usage);
+        const toolUseIds: string[] = [];
+        let opensStep = false;
         for (const block of msg.message.content) {
           if (
             block.type === 'tool_use' &&
             typeof block.id === 'string' &&
             typeof block.name === 'string'
           ) {
+            toolUseIds.push(block.id);
             const mcpPrefix = 'mcp__harness-tools__';
             if (block.name.startsWith(mcpPrefix)) {
+              pendingStepToolUseIds.add(block.id);
               mcpToolUseIds.add(block.id);
+              opensStep = true;
               continue;
             }
             nativeToolCallNames.set(block.id, block.name);
             if (approvalRequestedToolUseIds.has(block.id)) {
               continue;
             }
+            pendingStepToolUseIds.add(block.id);
+            opensStep = true;
             emit({
               type: 'tool-call',
               toolCallId: block.id,
@@ -502,6 +600,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
               providerExecuted: true,
             });
           }
+        }
+        if (opensStep || toolUseIds.length === 0) {
+          stepOpen = true;
+          if (usage) pendingStepUsage = usage;
         }
         continue;
       }
@@ -514,6 +616,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           ) {
             if (mcpToolUseIds.has(block.tool_use_id)) {
               mcpToolUseIds.delete(block.tool_use_id);
+              pendingStepToolUseIds.delete(block.tool_use_id);
               continue;
             }
             approvalRequestedToolUseIds.delete(block.tool_use_id);
@@ -544,8 +647,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
               result,
               isError,
             });
+            pendingStepToolUseIds.delete(block.tool_use_id);
           }
         }
+        closeStepIfReady();
         continue;
       }
 
@@ -558,20 +663,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           }
           const usage = msg.usage ?? msg.message?.usage;
           const harnessUsage = mapUsage(usage);
-          if (harnessUsage) stepUsage = harnessUsage;
+          if (harnessUsage) turnUsage = harnessUsage;
           if (typeof msg.total_cost_usd === 'number') {
             totalCostUsd = (totalCostUsd ?? 0) + msg.total_cost_usd;
           }
-          const metadata =
-            typeof msg.total_cost_usd === 'number'
-              ? { 'claude-code': { costUsd: msg.total_cost_usd } }
-              : undefined;
-          emit({
-            type: 'finish-step',
-            finishReason: { unified: 'stop', raw: 'stop' },
-            usage: harnessUsage ?? defaultUsage(),
-            ...(metadata ? { harnessMetadata: metadata } : {}),
-          });
+          if (stepOpen) emitFinishStep(harnessUsage ?? pendingStepUsage);
           queryInput.close();
           break;
         } else {
@@ -587,7 +683,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     }
   } catch (err) {
     if (!(abortCtl.signal.aborted && emittedTerminalError)) {
-      emit({ type: 'error', error: serialiseError(err) });
+      turn.emitError({ error: err, message: 'claude-code turn failed' });
     }
     return;
   } finally {
@@ -600,7 +696,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   emit({
     type: 'finish',
     finishReason: { unified: 'stop', raw: 'stop' },
-    totalUsage: stepUsage ?? defaultUsage(),
+    totalUsage: turnUsage ?? stepUsage ?? defaultUsage(),
     ...(totalCostUsd !== undefined
       ? { harnessMetadata: { 'claude-code': { costUsd: totalCostUsd } } }
       : {}),
@@ -611,7 +707,10 @@ type ClaudeMessage = {
   type?: string;
   subtype?: string;
   error?: string;
-  error_status?: number;
+  error_status?: number | null;
+  attempt?: number;
+  max_retries?: number;
+  retry_delay_ms?: number;
   patch?: { status?: string; error?: string };
   compact_metadata?: {
     trigger: 'manual' | 'auto';
@@ -633,6 +732,25 @@ type ClaudeMessage = {
   usage?: Record<string, unknown>;
   total_cost_usd?: number;
 };
+
+function formatApiRetryWarning(msg: ClaudeMessage): string {
+  const details: string[] = [];
+  if (typeof msg.attempt === 'number') {
+    const maxRetries =
+      typeof msg.max_retries === 'number' ? `/${msg.max_retries}` : '';
+    details.push(`attempt ${msg.attempt}${maxRetries}`);
+  }
+  if (typeof msg.error_status === 'number') {
+    details.push(`HTTP ${msg.error_status}`);
+  }
+  if (typeof msg.retry_delay_ms === 'number') {
+    details.push(`retrying in ${msg.retry_delay_ms}ms`);
+  }
+  if (msg.error) details.push(msg.error);
+  return details.length > 0
+    ? `Claude Code API retry: ${details.join('; ')}`
+    : 'Claude Code API retry';
+}
 
 function handleStreamEvent(
   event: ClaudeMessage['event'] | undefined,
@@ -866,13 +984,6 @@ function parseArgs(args: string[]): {
     }
   }
   return out;
-}
-
-function serialiseError(err: unknown): unknown {
-  if (err instanceof Error) {
-    return { name: err.name, message: err.message, stack: err.stack };
-  }
-  return err;
 }
 
 function emitFatal(message: string): never {

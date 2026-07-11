@@ -9,6 +9,7 @@ import {
   type HarnessV1,
   type HarnessV1Bootstrap,
   type HarnessV1BuiltinTool,
+  type HarnessV1BuiltinToolFiltering,
   type HarnessV1ContinueTurnState,
   type HarnessV1DebugConfig,
   type HarnessV1NetworkSandboxSession,
@@ -22,9 +23,16 @@ import {
 } from '@ai-sdk/harness';
 import {
   classifyDiskLog,
+  createBridgeErrorHandler,
+  createBridgeStartupError,
+  drainBridgeProcessStream,
+  forwardBridgeProcessStream,
   markBridgeStarting,
+  resolveSandboxHomeDir,
   SandboxChannel,
+  shellQuote,
   waitForBridgeReady,
+  writeSkills as writeHarnessSkills,
 } from '@ai-sdk/harness/utils';
 import {
   tool,
@@ -32,7 +40,7 @@ import {
   type Experimental_SandboxSession,
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import {
   resolveOpenCodeEnv,
   splitOpenCodeModel,
@@ -43,6 +51,7 @@ import {
   type InboundMessage,
   type OutboundMessage,
 } from './opencode-bridge-protocol';
+import { VERSION } from './version';
 
 type OpenCodeChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 type OpenCodeRespawnStrategy = 'replay' | 'rerun';
@@ -50,6 +59,11 @@ type OpenCodeRespawnStrategy = 'replay' | 'rerun';
 type WriteSkillsResult = {
   readonly skillsDir: string;
 };
+
+/**
+ * Value to use in User-Agent and `x-client-app` headers.
+ */
+const OPENCODE_CLIENT_APP = `ai-sdk/harness-opencode/${VERSION}`;
 
 export type OpenCodeHarnessSettings = {
   readonly auth?: OpenCodeAuthOptions;
@@ -72,123 +86,99 @@ const OPENCODE_BUILTIN_TOOLS = {
     nativeName: 'view',
     toolUseKind: 'readonly',
     description: 'Read file contents',
-    inputSchema: z
-      .object({
-        file_path: z.string().optional(),
-        path: z.string().optional(),
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      file_path: z.string().optional(),
+      path: z.string().optional(),
+    }),
   }),
   write: commonTool('write', {
     nativeName: 'write',
     toolUseKind: 'edit',
     description: 'Write content to a file',
-    inputSchema: z
-      .object({
-        file_path: z.string().optional(),
-        path: z.string().optional(),
-        content: z.string().optional(),
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      file_path: z.string().optional(),
+      path: z.string().optional(),
+      content: z.string().optional(),
+    }),
   }),
   edit: commonTool('edit', {
     nativeName: 'edit',
     toolUseKind: 'edit',
     description: 'Edit a file by replacing text',
-    inputSchema: z
-      .object({
-        file_path: z.string().optional(),
-        path: z.string().optional(),
-        old_string: z.string().optional(),
-        new_string: z.string().optional(),
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      file_path: z.string().optional(),
+      path: z.string().optional(),
+      old_string: z.string().optional(),
+      new_string: z.string().optional(),
+    }),
   }),
   bash: commonTool('bash', {
     nativeName: 'bash',
     toolUseKind: 'bash',
     description: 'Execute a shell command',
-    inputSchema: z
-      .object({
-        command: z.string().optional(),
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      command: z.string().optional(),
+    }),
   }),
   glob: commonTool('glob', {
     nativeName: 'glob',
     toolUseKind: 'readonly',
     description: 'Find files matching a glob pattern',
-    inputSchema: z
-      .object({
-        pattern: z.string().optional(),
-        path: z.string().optional(),
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      pattern: z.string().optional(),
+      path: z.string().optional(),
+    }),
   }),
   grep: commonTool('grep', {
     nativeName: 'grep',
     toolUseKind: 'readonly',
     description: 'Search file contents with regex',
-    inputSchema: z
-      .object({
-        pattern: z.string().optional(),
-        path: z.string().optional(),
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      pattern: z.string().optional(),
+      path: z.string().optional(),
+    }),
   }),
   ls: tool({
     description: 'List directory contents',
-    inputSchema: z
-      .object({
-        path: z.string().optional(),
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      path: z.string().optional(),
+    }),
   }),
   webfetch: tool({
     description: 'Fetch a URL',
-    inputSchema: z
-      .object({
-        url: z.string().optional(),
-        prompt: z.string().optional(),
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      url: z.string().optional(),
+      prompt: z.string().optional(),
+    }),
   }),
   skill: tool({
     description: 'Load an OpenCode skill by name',
-    inputSchema: z
-      .object({
-        name: z.string().optional(),
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      name: z.string().optional(),
+    }),
   }),
   todowrite: tool({
     description: 'Replace the OpenCode session todo list',
-    inputSchema: z
-      .object({
-        todos: z
-          .array(
-            z
-              .object({
-                content: z.string().optional(),
-                status: z.string().optional(),
-                priority: z.string().optional(),
-              })
-              .passthrough(),
-          )
-          .optional(),
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      todos: z
+        .array(
+          z.looseObject({
+            content: z.string().optional(),
+            status: z.string().optional(),
+            priority: z.string().optional(),
+          }),
+        )
+        .optional(),
+    }),
   }),
   agent: tool({
     description: 'Run an OpenCode subagent',
-    inputSchema: z
-      .object({
-        agent: z.string().optional(),
-        prompt: z.string().optional(),
-        description: z.string().optional(),
-        metadata: optionalStringRecord,
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      agent: z.string().optional(),
+      prompt: z.string().optional(),
+      description: z.string().optional(),
+      metadata: optionalStringRecord,
+    }),
   }),
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
@@ -288,6 +278,10 @@ export function createOpenCode(
               }),
             )
         : undefined;
+      const onBridgeError = createBridgeErrorHandler({
+        harnessId: 'opencode',
+        sessionId: startOpts.sessionId,
+      });
 
       if (coords) {
         try {
@@ -301,6 +295,7 @@ export function createOpenCode(
             outboundSchema: outboundMessageSchema,
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
+            onBridgeError,
           });
           await attachChannel.open(isContinue ? { resume: true } : undefined);
           return createSession({
@@ -319,6 +314,7 @@ export function createOpenCode(
             sandboxId,
             debug: startOpts.observability?.debug,
             permissionMode: startOpts.permissionMode,
+            builtinToolFiltering: startOpts.builtinToolFiltering,
           });
         } catch {}
       }
@@ -350,7 +346,7 @@ export function createOpenCode(
       const xdgStateHome = `${sandboxHomeDir}/.local/state`;
       const skillSetup =
         startOpts.skills && startOpts.skills.length > 0
-          ? await writeSkills({
+          ? await writeOpenCodeSkills({
               sandbox: session,
               skills: startOpts.skills,
               homeDir: sandboxHomeDir,
@@ -363,6 +359,7 @@ export function createOpenCode(
           model: settings.model,
           provider: settings.provider,
         }),
+        AI_SDK_HARNESS_CLIENT_APP: OPENCODE_CLIENT_APP,
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
         HOME: sandboxHomeDir,
@@ -395,6 +392,13 @@ export function createOpenCode(
         env,
         abortSignal: startOpts.abortSignal,
       });
+      const stderrTail: string[] = [];
+      const bridgeStderrDone = forwardBridgeProcessStream({
+        stream: proc.stderr,
+        streamName: 'stderr',
+        source: 'opencode',
+        collectTail: stderrTail,
+      });
 
       const { port: boundPort } = await waitForBridgeReady({
         proc,
@@ -403,13 +407,24 @@ export function createOpenCode(
         bridgeType: 'opencode',
         timeoutMs,
         abortSignal: startOpts.abortSignal,
-        createTimeoutError: () =>
-          new Error('opencode bridge did not become ready in time.'),
-        createExitError: () =>
-          new Error('opencode bridge exited before becoming ready.'),
+        createTimeoutError: ({ proc, stdoutTail }) =>
+          createBridgeStartupError({
+            message: 'OpenCode bridge did not become ready in time.',
+            proc,
+            stdoutTail,
+            stderrTail,
+            stderrDone: bridgeStderrDone,
+          }),
+        createExitError: ({ proc, stdoutTail }) =>
+          createBridgeStartupError({
+            message: 'OpenCode bridge exited before becoming ready.',
+            proc,
+            stdoutTail,
+            stderrTail,
+            stderrDone: bridgeStderrDone,
+          }),
       });
-      void drainRest(proc.stdout);
-      void forwardBridgeStderr(proc.stderr);
+      void drainBridgeProcessStream(proc.stdout);
 
       const wsUrl =
         (await sandboxSession.getPortUrl({
@@ -421,6 +436,7 @@ export function createOpenCode(
         connect: () => openWebSocket(wsUrl),
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
+        onBridgeError,
         ...(respawnStrategy === 'replay'
           ? { initialLastSeenEventId: coords?.lastSeenEventId ?? 0 }
           : {}),
@@ -445,6 +461,7 @@ export function createOpenCode(
         sandboxId,
         debug: startOpts.observability?.debug,
         permissionMode: startOpts.permissionMode,
+        builtinToolFiltering: startOpts.builtinToolFiltering,
       });
     },
   };
@@ -459,7 +476,7 @@ function resolveBridgePort(
   throw new HarnessCapabilityUnsupportedError({
     harnessId: 'opencode',
     message:
-      'The opencode harness needs a TCP port exposed by the sandbox. ' +
+      'The OpenCode harness needs a TCP port exposed by the sandbox. ' +
       'Create the sandbox with `ports: [<port>]` or pass `createOpenCode({ port })`.',
   });
 }
@@ -482,7 +499,7 @@ async function readBridgeAsset(name: string): Promise<string> {
   throw lastErr ?? new Error(`bridge asset not found: ${name}`);
 }
 
-async function writeSkills({
+async function writeOpenCodeSkills({
   sandbox,
   skills,
   homeDir,
@@ -493,122 +510,19 @@ async function writeSkills({
   homeDir: string;
   abortSignal?: AbortSignal;
 }): Promise<WriteSkillsResult> {
-  for (const skill of skills) {
-    safeOpenCodeSkillName(skill.name);
-    for (const file of skill.files ?? []) {
-      safeOpenCodeSkillFilePath({ skillName: skill.name, filePath: file.path });
-    }
-  }
-
   const skillsDir = path.posix.join(homeDir, '.agents', 'skills');
-  await sandbox.run({
-    command: `mkdir -p ${shellQuote(skillsDir)}`,
+  await writeHarnessSkills({
+    sandbox,
+    rootDir: skillsDir,
+    skills,
     abortSignal,
+    invalidSkillNameMessage: ({ name }) =>
+      `Invalid OpenCode skill name: ${name}`,
+    invalidSkillFilePathMessage: ({ skillName, filePath }) =>
+      `Invalid OpenCode skill file path for ${skillName}: ${filePath}`,
   });
-
-  for (const skill of skills) {
-    const name = safeOpenCodeSkillName(skill.name);
-    const skillDir = path.posix.join(skillsDir, name);
-    const content = `---\nname: ${skill.name}\ndescription: ${skill.description}\n---\n\n${skill.content}`;
-    await sandbox.writeTextFile({
-      path: path.posix.join(skillDir, 'SKILL.md'),
-      content,
-      abortSignal,
-    });
-
-    for (const file of skill.files ?? []) {
-      const filePath = safeOpenCodeSkillFilePath({
-        skillName: skill.name,
-        filePath: file.path,
-      });
-      await sandbox.writeTextFile({
-        path: path.posix.join(skillDir, filePath),
-        content: file.content,
-        abortSignal,
-      });
-    }
-  }
 
   return { skillsDir };
-}
-
-async function resolveSandboxHomeDir({
-  sandbox,
-  abortSignal,
-}: {
-  sandbox: Experimental_SandboxSession;
-  abortSignal?: AbortSignal;
-}): Promise<string> {
-  const result = await sandbox.run({
-    command: 'printf "%s" "$HOME"',
-    abortSignal,
-  });
-  const homeDir = result.stdout.trim();
-  if (result.exitCode !== 0 || !homeDir || !path.posix.isAbsolute(homeDir)) {
-    throw new Error(
-      `Unable to resolve sandbox HOME directory: ${result.stderr || result.stdout}`,
-    );
-  }
-  return homeDir;
-}
-
-function safeOpenCodeSkillName(name: string): string {
-  if (!/^[A-Za-z0-9._-]+$/.test(name) || name === '.' || name === '..') {
-    throw new Error(`Invalid OpenCode skill name: ${name}`);
-  }
-  return name;
-}
-
-function safeOpenCodeSkillFilePath({
-  skillName,
-  filePath,
-}: {
-  skillName: string;
-  filePath: string;
-}): string {
-  const normalized = path.posix.normalize(filePath);
-  if (
-    normalized === '.' ||
-    normalized.startsWith('../') ||
-    path.posix.isAbsolute(normalized)
-  ) {
-    throw new Error(
-      `Invalid OpenCode skill file path for ${skillName}: ${filePath}`,
-    );
-  }
-  return normalized;
-}
-
-function shellQuote(value: string): string {
-  return `'${value.replace(/'/g, `'\\''`)}'`;
-}
-
-async function forwardBridgeStderr(
-  stream: ReadableStream<Uint8Array>,
-): Promise<void> {
-  try {
-    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) return;
-      if (value) {
-        const trimmed = value.endsWith('\n') ? value.slice(0, -1) : value;
-        if (trimmed.length > 0) {
-          console.log(`[bridge stderr] ${trimmed}`);
-        }
-      }
-    }
-  } catch {}
-}
-
-async function drainRest(stream: ReadableStream<Uint8Array>): Promise<void> {
-  try {
-    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
-    while (true) {
-      const { done } = await reader.read();
-      if (done) return;
-    }
-  } catch {}
 }
 
 function openWebSocket(url: string): Promise<WebSocket> {
@@ -643,6 +557,7 @@ function createSession({
   sandboxId,
   debug,
   permissionMode,
+  builtinToolFiltering,
 }: {
   sessionId: string;
   channel: OpenCodeChannel;
@@ -659,6 +574,7 @@ function createSession({
   sandboxId: string;
   debug: HarnessV1DebugConfig | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
+  builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
@@ -752,7 +668,7 @@ function createSession({
         return;
       }
       settleError(
-        new Error('opencode bridge closed before the turn finished.'),
+        new Error('OpenCode bridge closed before the turn finished.'),
       );
     };
     channel.onClose(onClose);
@@ -810,6 +726,7 @@ function createSession({
     provider,
     ...(reasoningVariant ? { variant: reasoningVariant } : {}),
     ...(permissionMode ? { permissionMode } : {}),
+    ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
     ...(pendingResumeSessionId
       ? { resumeSessionId: pendingResumeSessionId }
       : latestOpenCodeSessionId
@@ -894,7 +811,7 @@ function createSession({
     doDetach: async () => {
       if (stopped) {
         throw new Error(
-          `opencode session ${sessionId} is already stopped; cannot detach.`,
+          `OpenCode session ${sessionId} is already stopped; cannot detach.`,
         );
       }
       stopped = true;
@@ -950,7 +867,7 @@ function createSession({
     doStop: async () => {
       if (stopped) {
         throw new Error(
-          `opencode session ${sessionId} is already stopped; cannot stop.`,
+          `OpenCode session ${sessionId} is already stopped; cannot stop.`,
         );
       }
       stopped = true;
@@ -962,7 +879,7 @@ function createSession({
               unsub();
               reject(
                 new Error(
-                  `opencode session ${sessionId} did not reply to detach within 5s.`,
+                  `OpenCode session ${sessionId} did not reply to detach within 5s.`,
                 ),
               );
             }, 5000);
@@ -1011,10 +928,11 @@ function createSession({
     doSuspendTurn: async () => {
       if (stopped) {
         throw new Error(
-          `opencode session ${sessionId} is stopped; cannot suspend.`,
+          `OpenCode session ${sessionId} is stopped; cannot suspend.`,
         );
       }
       stopped = true;
+      await channel.interrupt();
       const lastSeenEventId = await channel.suspend();
       const payload: HarnessV1ContinueTurnState = {
         type: 'continue-turn',
@@ -1094,7 +1012,7 @@ function extractUserText(prompt: HarnessV1Prompt): string {
     if (part.type !== 'text') {
       throw new HarnessCapabilityUnsupportedError({
         harnessId: 'opencode',
-        message: `The opencode harness does not yet support user message parts of type '${part.type}'. Pass a string or a user message whose content contains only text parts.`,
+        message: `The OpenCode harness does not yet support user message parts of type '${part.type}'. Pass a string or a user message whose content contains only text parts.`,
       });
     }
     parts.push(part.text);

@@ -142,11 +142,13 @@ export function createFireworks(
           | undefined;
         const reasoningHistory = args.reasoningHistory as string | undefined;
         const promptCacheKey = args.promptCacheKey as string | undefined;
+        const serviceTier = args.serviceTier as string | undefined;
 
         const {
           thinking: _,
           reasoningHistory: __,
           promptCacheKey: ___,
+          serviceTier: ____,
           reasoning_effort,
           ...rest
         } = args;
@@ -164,6 +166,9 @@ export function createFireworks(
           }),
           ...(promptCacheKey !== undefined && {
             prompt_cache_key: promptCacheKey,
+          }),
+          ...(serviceTier !== undefined && {
+            service_tier: serviceTier,
           }),
           ...(thinking && {
             thinking: {

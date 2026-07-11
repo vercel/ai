@@ -1,5 +1,115 @@
 # @ai-sdk/gateway
 
+## 4.0.16
+
+### Patch Changes
+
+- 308a519: chore: enforce consistent imports from `zod/v4` instead of `zod`
+- 7fe53d2: chore(provider/gateway): update gateway model settings files
+
+## 4.0.15
+
+### Patch Changes
+
+- e12411e: chore(provider/gateway): update gateway model settings files
+- 5d894a7: feat(gateway): expose ruleId on GatewayForbiddenError so callers can identify which routing rule denied a request
+- fdb6d5d: feat(provider/openai,provider/gateway): add gpt-5.6 model ids
+- d25a084: feat (provider/xai): add grok-4.5 model id
+- Updated dependencies [0f93c57]
+  - @ai-sdk/provider@4.0.3
+  - @ai-sdk/provider-utils@5.0.7
+
+## 4.0.14
+
+### Patch Changes
+
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+
+## 4.0.13
+
+### Patch Changes
+
+- cad8227: chore(provider/gateway): update gateway model settings files
+
+## 4.0.12
+
+### Patch Changes
+
+- 0c3c7e4: feat(alibaba): support wan2.7 text-to-video and reference-to-video models with the new protocol (`input.media`, `resolution` + `ratio`)
+- c8d2726: chore(provider/gateway): update gateway model settings files
+
+## 4.0.11
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - @ai-sdk/provider@4.0.2
+  - @ai-sdk/provider-utils@5.0.5
+
+## 4.0.10
+
+### Patch Changes
+
+- 31abef7: chore(provider/gateway): update gateway model settings files
+
+## 4.0.9
+
+### Patch Changes
+
+- c6f5e62: Prevent prototype pollution when synchronously parsing provider JSON inputs and expose `secureJsonParse` from provider-utils.
+- Updated dependencies [c6f5e62]
+  - @ai-sdk/provider-utils@5.0.4
+
+## 4.0.8
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - @ai-sdk/provider-utils@5.0.3
+
+## 4.0.7
+
+### Patch Changes
+
+- 2edc641: chore(provider/gateway): update gateway model settings files
+- c18018c: feat (provider/anthropic): add `claude-sonnet-5` model id
+
+## 4.0.6
+
+### Patch Changes
+
+- 0274f34: feat (video): add first-class `frameImages` and `inputReferences` call options for video generation
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - @ai-sdk/provider-utils@5.0.2
+
+## 4.0.5
+
+### Patch Changes
+
+- 7e3c99e: chore(provider/gateway): update gateway model settings files
+
+## 4.0.4
+
+### Patch Changes
+
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+
+## 4.0.3
+
+### Patch Changes
+
+- 728eaa0: feat(provider/gateway): add `has` provider option to restrict routing to models with given capabilities (e.g. `implicit-caching`)
+
+## 4.0.2
+
+### Patch Changes
+
+- 9dce0a7: Add realtime models to Gateway metadata and generated model settings support.
+
 ## 4.0.1
 
 ### Patch Changes

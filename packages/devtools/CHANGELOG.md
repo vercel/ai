@@ -1,5 +1,33 @@
 # @ai-sdk/devtools
 
+## 1.0.4
+
+### Patch Changes
+
+- c29e0d7: chore (devtools): remove leftover `module` field from package.json (dual CJS/ESM publishing was removed in AI SDK 7)
+
+## 1.0.3
+
+### Patch Changes
+
+- Updated dependencies [0f93c57]
+  - @ai-sdk/provider@4.0.3
+
+## 1.0.2
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - @ai-sdk/provider@4.0.2
+
+## 1.0.1
+
+### Patch Changes
+
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+
 ## 1.0.0
 
 ### Major Changes

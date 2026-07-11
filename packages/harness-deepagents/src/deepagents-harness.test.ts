@@ -2,11 +2,7 @@ import type { HarnessV1NetworkSandboxSession } from '@ai-sdk/harness';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
 import { describe, expect, it, vi } from 'vitest';
-import {
-  createDeepAgents,
-  DEEPAGENTS_BUILTIN_TOOLS,
-  DEEPAGENTS_DEFAULT_CONTEXT_WINDOW,
-} from './deepagents-harness';
+import { createDeepAgents } from './deepagents-harness';
 
 // Captures the wireTurn `onClose` handler so tests can fire a close with a chosen reason.
 const closeHolder: { fire?: (code: number, reason: string) => void } = {};
@@ -59,17 +55,28 @@ function textStream(text: string): ReadableStream<Uint8Array> {
   });
 }
 
-function fakeSandboxSession(): HarnessV1NetworkSandboxSession {
+function fakeSandboxSession({
+  spawnEnvs,
+}: {
+  spawnEnvs?: Array<Record<string, string | undefined>>;
+} = {}): HarnessV1NetworkSandboxSession {
   const session = {
     run: async () => ({ exitCode: 0, stdout: '', stderr: '' }),
     readTextFile: async () => null,
     writeTextFile: async () => {},
-    spawn: async () => ({
-      stdout: textStream('{"type":"bridge-ready","port":4319}\n'),
-      stderr: textStream(''),
-      kill: async () => {},
-      wait: async () => ({ exitCode: 0 }),
-    }),
+    spawn: async ({
+      env,
+    }: {
+      env?: Record<string, string | undefined>;
+    } = {}) => {
+      if (env) spawnEnvs?.push(env);
+      return {
+        stdout: textStream('{"type":"bridge-ready","port":4319}\n'),
+        stderr: textStream(''),
+        kill: async () => {},
+        wait: async () => ({ exitCode: 0 }),
+      };
+    },
   };
   return {
     id: 'test-sandbox',
@@ -105,33 +112,7 @@ describe('createDeepAgents', () => {
     expect(harness.specificationVersion).toBe('harness-v1');
     expect(harness.harnessId).toBe('deepagents');
     expect(harness.supportsBuiltinToolApprovals).toBe(true);
-  });
-
-  it('lists every model-callable DeepAgents built-in tool', () => {
-    expect(Object.keys(DEEPAGENTS_BUILTIN_TOOLS).sort()).toEqual([
-      'bash',
-      'edit',
-      'glob',
-      'grep',
-      'ls',
-      'read',
-      'task',
-      'write',
-      'write_todos',
-    ]);
-  });
-
-  it('maps common tools to their DeepAgents native names', () => {
-    expect(DEEPAGENTS_BUILTIN_TOOLS.read.nativeName).toBe('read_file');
-    expect(DEEPAGENTS_BUILTIN_TOOLS.write.nativeName).toBe('write_file');
-    expect(DEEPAGENTS_BUILTIN_TOOLS.edit.nativeName).toBe('edit_file');
-    expect(DEEPAGENTS_BUILTIN_TOOLS.bash.nativeName).toBe('execute');
-    expect(DEEPAGENTS_BUILTIN_TOOLS.grep.nativeName).toBe('grep');
-    expect(DEEPAGENTS_BUILTIN_TOOLS.glob.nativeName).toBe('glob');
-  });
-
-  it('has a default context window', () => {
-    expect(DEEPAGENTS_DEFAULT_CONTEXT_WINDOW).toBe(200_000);
+    expect(harness.supportsBuiltinToolFiltering).toBeUndefined();
   });
 
   it('ships the node bridge files and a pnpm install command in its bootstrap', async () => {
@@ -161,6 +142,22 @@ describe('createDeepAgents', () => {
   it('exposes a lifecycle state schema for resume payloads', () => {
     const harness = createDeepAgents();
     expect(harness.lifecycleStateSchema).toBeDefined();
+  });
+
+  it('passes the harness client app to the bridge environment', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const harness = createDeepAgents();
+    const session = await harness.doStart({
+      sessionId: 'test-session',
+      sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+      sandboxSession: fakeSandboxSession({ spawnEnvs }),
+    } as unknown as Parameters<typeof harness.doStart>[0]);
+
+    expect(spawnEnvs.at(0)?.AI_SDK_HARNESS_CLIENT_APP).toBe(
+      'ai-sdk/harness-deepagents/0.0.0-test',
+    );
+
+    await session.doDestroy();
   });
 
   it('resolves the turn when the channel closes with reason "suspended"', async () => {

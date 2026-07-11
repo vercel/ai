@@ -1,5 +1,197 @@
 # @ai-sdk/harness
 
+## 1.0.27
+
+### Patch Changes
+
+- Updated dependencies [8f89c25]
+  - ai@7.0.22
+
+## 1.0.26
+
+### Patch Changes
+
+- Updated dependencies [308a519]
+  - ai@7.0.21
+
+## 1.0.25
+
+### Patch Changes
+
+- 44e988a: fix(harness): fix harness tool approval regression
+
+## 1.0.24
+
+### Patch Changes
+
+- Updated dependencies [b9ac19f]
+- Updated dependencies [a4186d6]
+  - ai@7.0.20
+
+## 1.0.23
+
+### Patch Changes
+
+- 39c8276: fix(harness): improve opaque sandbox bridge error handling
+- 91fe6d8: fix(harness): emit `finish-step` stream parts correctly per the underlying model steps
+- 0be5014: fix(harness): fix obsolete portions of harness package readme
+
+## 1.0.22
+
+### Patch Changes
+
+- Updated dependencies [be7f05a]
+- Updated dependencies [ee55a07]
+- Updated dependencies [aad737d]
+- Updated dependencies [0f93c57]
+  - ai@7.0.19
+  - @ai-sdk/provider@4.0.3
+  - @ai-sdk/provider-utils@5.0.7
+
+## 1.0.21
+
+### Patch Changes
+
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+  - ai@7.0.18
+
+## 1.0.20
+
+### Patch Changes
+
+- b7aa06a: fix(harness): include step numbers on harness step-end telemetry events.
+  - ai@7.0.17
+
+## 1.0.19
+
+### Patch Changes
+
+- Updated dependencies [a8f9b6d]
+  - ai@7.0.16
+
+## 1.0.18
+
+### Patch Changes
+
+- ai@7.0.15
+
+## 1.0.17
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - ai@7.0.14
+  - @ai-sdk/provider@4.0.2
+  - @ai-sdk/provider-utils@5.0.5
+
+## 1.0.16
+
+### Patch Changes
+
+- ai@7.0.13
+
+## 1.0.15
+
+### Patch Changes
+
+- Updated dependencies [ecfeb6f]
+- Updated dependencies [a193137]
+- Updated dependencies [c6f5e62]
+  - ai@7.0.12
+  - @ai-sdk/provider-utils@5.0.4
+
+## 1.0.14
+
+### Patch Changes
+
+- Updated dependencies [0a87626]
+  - ai@7.0.11
+
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - ai@7.0.10
+  - @ai-sdk/provider-utils@5.0.3
+
+## 1.0.12
+
+### Patch Changes
+
+- 7859cea: feat(harness): add tool filtering via `activeTools` and `inactiveTools`
+- c857346: feat(harness): add utility functions for certain duplicated layers in harnesses
+
+## 1.0.11
+
+### Patch Changes
+
+- ai@7.0.9
+
+## 1.0.10
+
+### Patch Changes
+
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - ai@7.0.8
+  - @ai-sdk/provider-utils@5.0.2
+
+## 1.0.9
+
+### Patch Changes
+
+- Updated dependencies [d598481]
+  - ai@7.0.7
+
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [989402d]
+  - ai@7.0.6
+
+## 1.0.7
+
+### Patch Changes
+
+- Updated dependencies [a2750db]
+  - ai@7.0.5
+
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+  - ai@7.0.4
+
+## 1.0.5
+
+### Patch Changes
+
+- ai@7.0.3
+
+## 1.0.4
+
+### Patch Changes
+
+- c493634: fix(harness): fix harness Zod usage to be v3/v4 compatible
+
+## 1.0.3
+
+### Patch Changes
+
+- 51d10a0: feat(harness): add `prepareSandboxForHarness` utility to prepare a caller-owned sandbox for one or more harnesses
+
+## 1.0.2
+
+### Patch Changes
+
+- ai@7.0.2
+
 ## 1.0.1
 
 ### Patch Changes

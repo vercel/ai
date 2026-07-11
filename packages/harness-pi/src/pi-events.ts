@@ -1,55 +1,49 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 /**
  * Pi `session.subscribe` emits a discriminated union of events. The exact
- * shape evolves with Pi versions; we accept the events with `passthrough()`
- * and extract only the fields we recognise. The `type` field is required
- * and stringly-typed because Pi may add new types we want to ignore.
+ * shape evolves with Pi versions; we accept loose objects and extract only
+ * the fields we recognise. The `type` field is required and stringly-typed
+ * because Pi may add new types we want to ignore.
  */
-export const piSessionEventSchema = z
-  .object({
-    type: z.string(),
-    assistantMessageEvent: z
-      .object({
-        type: z.string().optional(),
-        delta: z.string().optional(),
-      })
-      .passthrough()
-      .optional(),
-    toolCallId: z.string().optional(),
-    toolName: z.string().optional(),
-    args: z.unknown().optional(),
-    input: z.unknown().optional(),
-    result: z.unknown().optional(),
-    content: z.unknown().optional(),
-    isError: z.boolean().optional(),
-    // Compaction events (`compaction_start` / `compaction_end`). `result` (a
-    // `CompactionResult`) rides the shared `result` field above; `reason`
-    // distinguishes manual vs automatic (threshold/overflow) compaction.
-    reason: z.string().optional(),
-    aborted: z.boolean().optional(),
-    error: z
-      .union([
-        z.string(),
-        z
-          .object({
-            errorMessage: z.string().optional(),
-            stopReason: z.string().optional(),
-          })
-          .passthrough(),
-      ])
-      .optional(),
-    message: z
-      .object({
-        role: z.string().optional(),
-        content: z.unknown().optional(),
-        stopReason: z.string().optional(),
+export const piSessionEventSchema = z.looseObject({
+  type: z.string(),
+  assistantMessageEvent: z
+    .looseObject({
+      type: z.string().optional(),
+      delta: z.string().optional(),
+    })
+    .optional(),
+  toolCallId: z.string().optional(),
+  toolName: z.string().optional(),
+  args: z.unknown().optional(),
+  input: z.unknown().optional(),
+  result: z.unknown().optional(),
+  content: z.unknown().optional(),
+  isError: z.boolean().optional(),
+  // Compaction events (`compaction_start` / `compaction_end`). `result` (a
+  // `CompactionResult`) rides the shared `result` field above; `reason`
+  // distinguishes manual vs automatic (threshold/overflow) compaction.
+  reason: z.string().optional(),
+  aborted: z.boolean().optional(),
+  error: z
+    .union([
+      z.string(),
+      z.looseObject({
         errorMessage: z.string().optional(),
-      })
-      .passthrough()
-      .optional(),
-  })
-  .passthrough();
+        stopReason: z.string().optional(),
+      }),
+    ])
+    .optional(),
+  message: z
+    .looseObject({
+      role: z.string().optional(),
+      content: z.unknown().optional(),
+      stopReason: z.string().optional(),
+      errorMessage: z.string().optional(),
+    })
+    .optional(),
+});
 
 export type PiSessionEvent = z.infer<typeof piSessionEventSchema>;
 
