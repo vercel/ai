@@ -39,6 +39,8 @@ export function convertGroqUsage(
   }
 
   const promptTokens = usage.prompt_tokens ?? 0;
+  const cacheReadTokens =
+    usage.prompt_tokens_details?.cached_tokens ?? undefined;
   const completionTokens = usage.completion_tokens ?? 0;
   const reasoningTokens =
     usage.completion_tokens_details?.reasoning_tokens ?? undefined;
@@ -46,12 +48,6 @@ export function convertGroqUsage(
     reasoningTokens != null
       ? completionTokens - reasoningTokens
       : completionTokens;
-
-  // Groq reports prompt-cache hits (implicit caching, 50% discount) in
-  // prompt_tokens_details.cached_tokens. Groq has no cache-creation charge, so
-  // there is no cacheWrite. cached_tokens is a subset of prompt_tokens.
-  const cacheReadTokens =
-    usage.prompt_tokens_details?.cached_tokens ?? undefined;
 
   return {
     inputTokens: {
