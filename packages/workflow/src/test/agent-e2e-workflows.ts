@@ -6,7 +6,7 @@ import { WorkflowAgent } from '../workflow-agent.js';
 import { mockTextModel, mockSequenceModel } from '../providers/mock.js';
 import { createTestSandbox } from './test-sandbox.js';
 import { FatalError, getWritable } from 'workflow';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 // ============================================================================
 // Tool step functions

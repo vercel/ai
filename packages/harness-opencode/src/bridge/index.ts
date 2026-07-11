@@ -5,7 +5,6 @@ import {
 } from '@ai-sdk/harness/bridge';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
-import { createServer, type Server } from 'node:http';
 import path from 'node:path';
 import { argv, env as procEnv } from 'node:process';
 import type { StartMessage } from '../opencode-bridge-protocol';
@@ -35,21 +34,12 @@ import {
   type HarnessUsage,
   type OpenCodeTokenUsage,
 } from './opencode-usage';
-import {
-  ToolRelayAuthorizer,
-  isToolRelayRequestFromAllowedProcess,
-  type ToolRelayCall,
-} from './tool-relay-auth';
+import { startAuthorizedToolRelay, type ToolRelay } from './tool-relay';
 
 type Emit = (msg: Record<string, unknown>) => void;
 
 type OpenCodeClient = ReturnType<typeof createOpencodeClient>;
 type OpenCodeServer = Awaited<ReturnType<typeof createOpencodeServer>>;
-type ToolRelay = {
-  port: number;
-  close(): void;
-  authorizeToolCall(call: ToolRelayCall): void;
-};
 
 type RuntimeState = {
   server?: OpenCodeServer;
@@ -172,7 +162,6 @@ async function ensureRuntime({
   if (start.tools && start.tools.length > 0) {
     runtime.toolNames = new Set(start.tools.map(tool => tool.name));
     runtime.relay = await startToolRelay({
-      allowedScriptPaths: [`${bootstrapDir}/host-tool-mcp.mjs`],
       tools: start.tools,
       emit,
       requestToolResult: turn.requestToolResult,
@@ -405,7 +394,9 @@ async function legacySessionPrompt({
   sessionId: string;
   start: StartMessage;
 }): Promise<{ error?: unknown; data?: unknown }> {
-  return (client as any).session.prompt({
+  const session = (client as any).session;
+  const prompt = session.promptAsync ?? session.prompt;
+  return prompt.call(session, {
     sessionID: sessionId,
     ...(start.instructions ? { system: start.instructions } : {}),
     ...(start.variant ? { variant: start.variant } : {}),
@@ -571,6 +562,7 @@ async function runPrompt({
     client,
     sessionId,
   }).catch(() => undefined);
+  const eventsReady = createDeferred<void>();
   let stepUsage: HarnessUsage | undefined;
   let latestSessionTokens: OpenCodeTokenUsage | undefined;
   const eventLoop = consumeEvents({
@@ -593,6 +585,7 @@ async function runPrompt({
       emit(msg);
     },
     signal: eventsAbort.signal,
+    onSubscribed: () => eventsReady.resolve(undefined),
     onEvent: event => {
       if (event.type === 'session.updated') {
         latestSessionTokens =
@@ -618,11 +611,15 @@ async function runPrompt({
         return true;
       }
     },
-  }).finally(() => turnSettled.resolve());
+  }).finally(() => {
+    eventsReady.resolve(undefined);
+    turnSettled.resolve();
+  });
   emit({
     type: 'stream-start',
     ...(start.model ? { modelId: start.model } : {}),
   });
+  await eventsReady.promise;
   const prompted = await legacySessionPrompt({
     client,
     sessionId,
@@ -765,6 +762,7 @@ async function consumeEvents({
   turn,
   emit,
   signal,
+  onSubscribed,
   onEvent,
 }: {
   client: OpenCodeClient;
@@ -774,9 +772,11 @@ async function consumeEvents({
   turn: BridgeTurn;
   emit: Emit;
   signal: AbortSignal;
+  onSubscribed?: () => void;
   onEvent?: (event: OpenCodeEvent) => boolean | void;
 }): Promise<void> {
   const stream = await subscribeLegacyEvents({ client, signal });
+  onSubscribed?.();
   if (!stream) return;
   const state = createTranslationState();
   for await (const rawEvent of stream) {
@@ -1803,105 +1803,17 @@ function emitAssistantContentPart(part: unknown, emit: Emit): void {
 }
 
 async function startToolRelay({
-  allowedScriptPaths,
   tools,
   emit,
   requestToolResult,
 }: {
-  allowedScriptPaths: ReadonlyArray<string>;
   tools: ReadonlyArray<{ name: string }>;
   emit: Emit;
   requestToolResult: (
     toolCallId: string,
   ) => Promise<{ output: unknown; isError?: boolean }>;
 }): Promise<ToolRelay> {
-  const toolNames = new Set(tools.map(t => t.name));
-  const allowedScriptPathSet = new Set(allowedScriptPaths);
-  const authorizer = new ToolRelayAuthorizer();
-  const server = createServer(async (req, res) => {
-    try {
-      if (req.method !== 'POST' || req.url !== '/') {
-        res.writeHead(401, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'unauthorized tool relay request' }));
-        return;
-      }
-      const chunks: Buffer[] = [];
-      for await (const chunk of req) {
-        chunks.push(chunk as Buffer);
-      }
-      const body = Buffer.concat(chunks).toString('utf8');
-      const { requestId, toolName, input } = JSON.parse(body) as {
-        requestId: string;
-        toolName: string;
-        input: unknown;
-      };
-
-      if (!toolNames.has(toolName)) {
-        res.writeHead(403, { 'Content-Type': 'application/json' });
-        res.end(
-          JSON.stringify({ error: `Tool "${toolName}" is not available` }),
-        );
-        return;
-      }
-      const authorized =
-        authorizer.consumeToolCall({ toolName, input }) ||
-        (await isToolRelayRequestFromAllowedProcess({
-          socket: req.socket,
-          allowedScriptPaths: allowedScriptPathSet,
-        }));
-      if (!authorized) {
-        res.writeHead(401, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'unauthorized tool relay request' }));
-        return;
-      }
-
-      emit({
-        type: 'tool-call',
-        toolCallId: requestId,
-        toolName,
-        input: JSON.stringify(input ?? {}),
-        providerExecuted: false,
-      });
-
-      const { output, isError } = await requestToolResult(requestId);
-      emit({
-        type: 'tool-result',
-        toolCallId: requestId,
-        toolName,
-        result: output ?? null,
-        isError: !!isError,
-      });
-
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ result: output }));
-    } catch (error) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          error: error instanceof Error ? error.message : String(error),
-        }),
-      );
-    }
-  });
-
-  await new Promise<void>(resolve =>
-    server.listen(0, '127.0.0.1', () => resolve()),
-  );
-  const address = server.address();
-  if (!address || typeof address === 'string') {
-    throw new Error('tool relay did not expose a numeric port');
-  }
-  return {
-    port: address.port,
-    close: () => closeServer(server),
-    authorizeToolCall: call => authorizer.authorizeToolCall(call),
-  };
-}
-
-function closeServer(server: Server): void {
-  try {
-    server.close();
-  } catch {}
+  return startAuthorizedToolRelay({ tools, emit, requestToolResult });
 }
 
 function createDeferred<T>(): {
@@ -2036,7 +1948,11 @@ function parseArgs(args: string[]): {
 }
 
 function formatError(error: unknown): string {
-  if (error instanceof Error) return error.message;
+  if (error instanceof Error) {
+    const cause = 'cause' in error ? error.cause : undefined;
+    if (cause === undefined) return error.message;
+    return `${error.message}: ${formatError(cause)}`;
+  }
   if (typeof error === 'string') return error;
   try {
     return JSON.stringify(error);

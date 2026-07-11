@@ -1,5 +1,36 @@
 # @ai-sdk/harness-codex
 
+## 1.0.29
+
+### Patch Changes
+
+- c93803d: fix(harness): improve CLI relay tool invocation logic
+
+## 1.0.28
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.27
+
+## 1.0.27
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.26
+
+## 1.0.26
+
+### Patch Changes
+
+- Updated dependencies [44e988a]
+  - @ai-sdk/harness@1.0.25
+
+## 1.0.25
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.24
+
 ## 1.0.24
 
 ### Patch Changes
