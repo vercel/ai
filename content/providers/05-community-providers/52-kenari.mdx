@@ -1,0 +1,123 @@
+---
+title: Kenari
+description: Kenari Provider for the AI SDK
+---
+
+# Kenari
+
+[Kenari](https://kenari.id) is an LLM gateway from Indonesia with prepaid billing in Rupiah. One API key covers the whole catalog (GLM, Kimi, DeepSeek, GPT, Claude, and more), topped up via QRIS or crypto instead of a credit card:
+
+- **One key, many models**: a single `kn-` key for models from multiple vendors
+- **Prepaid Rupiah wallet**: QRIS and crypto top-up, no credit card or monthly commitment
+- **Transparent pricing**: per-token rates in the live catalog, free routes marked as free
+- **OpenAI-compatible API**: `/v1/chat/completions` and `/v1/responses` endpoints
+- **BYOK option**: route your own provider keys through the same API at no charge
+
+Learn more in the [Kenari documentation](https://kenari.id/docs).
+
+## Setup
+
+The Kenari provider is available in the `@kenarihq/ai-sdk-provider` module. You can install it with:
+
+<InstallPackages packages="@kenarihq/ai-sdk-provider" />
+
+## Provider Instance
+
+To create a Kenari provider instance, use the `createKenari` function:
+
+```typescript
+import { createKenari } from '@kenarihq/ai-sdk-provider';
+
+const kenari = createKenari({
+  apiKey: 'YOUR_KENARI_API_KEY',
+});
+```
+
+The API key defaults to the `KENARI_API_KEY` environment variable. You can create a key in the [Kenari dashboard](https://kenari.id/keys).
+
+## Language Models
+
+Create a model with any id from the Kenari catalog:
+
+```typescript
+const model = kenari('glm-5-2');
+```
+
+The full list with live per-token pricing is served by [`GET https://kenari.id/v1/models`](https://kenari.id/docs#models).
+
+## Examples
+
+### `generateText`
+
+```javascript
+import { createKenari } from '@kenarihq/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const kenari = createKenari({
+  apiKey: 'YOUR_KENARI_API_KEY',
+});
+
+const { text } = await generateText({
+  model: kenari('glm-5-2'),
+  prompt: 'What is Kenari?',
+});
+
+console.log(text);
+```
+
+### `streamText`
+
+```javascript
+import { createKenari } from '@kenarihq/ai-sdk-provider';
+import { streamText } from 'ai';
+
+const kenari = createKenari({
+  apiKey: 'YOUR_KENARI_API_KEY',
+});
+
+const result = streamText({
+  model: kenari('kimi-k2-7-code'),
+  prompt: 'Write a short story about AI.',
+});
+
+for await (const chunk of result.textStream) {
+  console.log(chunk);
+}
+```
+
+### Tool Calls
+
+```javascript
+import { createKenari } from '@kenarihq/ai-sdk-provider';
+import { generateText, tool, stepCountIs } from 'ai';
+import { z } from 'zod';
+
+const kenari = createKenari({
+  apiKey: 'YOUR_KENARI_API_KEY',
+});
+
+const { text } = await generateText({
+  model: kenari('glm-5-2'),
+  tools: {
+    weather: tool({
+      description: 'Get the weather for a city',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async ({ city }) => `${city}: 31C, sunny`,
+    }),
+  },
+  stopWhen: stepCountIs(3),
+  prompt: 'What is the weather in Jakarta?',
+});
+
+console.log(text);
+```
+
+## Additional Notes
+
+1. **Language models only**: `embeddingModel` and `imageModel` throw `NoSuchModelError`.
+
+2. **Reasoning models**: some catalog models reason before answering and spend output tokens on it. Keep `maxOutputTokens` at 512 or higher so the visible answer is not consumed by the reasoning budget.
+
+3. **Usage and billing**: the AI SDK `usage` object carries the same token counts the gateway bills against your wallet.
+
+For more information, visit the [Kenari documentation](https://kenari.id/docs) and the [provider repository](https://github.com/kenarihq/ai-sdk-provider).
