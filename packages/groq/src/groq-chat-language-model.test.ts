@@ -286,9 +286,9 @@ describe('doGenerate', () => {
     expect(usage).toMatchInlineSnapshot(`
       {
         "inputTokens": {
-          "cacheRead": undefined,
+          "cacheRead": 15,
           "cacheWrite": undefined,
-          "noCache": 20,
+          "noCache": 5,
           "total": 20,
         },
         "outputTokens": {
