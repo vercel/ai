@@ -18,17 +18,17 @@ The ByteDance provider is available via the `@ai-sdk/bytedance` module. You can 
 You can import the default provider instance `byteDance` from `@ai-sdk/bytedance`:
 
 ```ts
-import { byteDance } from "@ai-sdk/bytedance";
+import { byteDance } from '@ai-sdk/bytedance';
 ```
 
 If you need a customized setup, you can import `createByteDance` and create a provider instance with your settings:
 
 ```ts
-import { createByteDance } from "@ai-sdk/bytedance";
+import { createByteDance } from '@ai-sdk/bytedance';
 
 const byteDance = createByteDance({
-  apiKey: "your-api-key", // optional, defaults to ARK_API_KEY environment variable
-  baseURL: "custom-url", // optional
+  apiKey: 'your-api-key', // optional, defaults to ARK_API_KEY environment variable
+  baseURL: 'custom-url', // optional
   headers: {
     /* custom headers */
   }, // optional
@@ -68,13 +68,13 @@ For more on image generation with the AI SDK see [generateImage()](/docs/referen
 Generate images from text prompts:
 
 ```ts
-import { byteDance, type ByteDanceImageModelOptions } from "@ai-sdk/bytedance";
-import { generateImage } from "ai";
+import { byteDance, type ByteDanceImageModelOptions } from '@ai-sdk/bytedance';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: byteDance.image("seedream-5-0-260128"),
-  prompt: "A salamander in a forest pond at dusk surrounded by fireflies",
-  size: "2048x2048",
+  model: byteDance.image('seedream-5-0-260128'),
+  prompt: 'A salamander in a forest pond at dusk surrounded by fireflies',
+  size: '2048x2048',
   providerOptions: {
     bytedance: {
       watermark: false,
@@ -96,16 +96,16 @@ Pass input images via `prompt.images` to transform an existing image
 (image-to-image):
 
 ```ts
-import { readFileSync } from "node:fs";
-import { byteDance, type ByteDanceImageModelOptions } from "@ai-sdk/bytedance";
-import { generateImage } from "ai";
+import { readFileSync } from 'node:fs';
+import { byteDance, type ByteDanceImageModelOptions } from '@ai-sdk/bytedance';
+import { generateImage } from 'ai';
 
-const inputImage = readFileSync("./input-image.png");
+const inputImage = readFileSync('./input-image.png');
 
 const { image } = await generateImage({
-  model: byteDance.image("seedream-5-0-260128"),
+  model: byteDance.image('seedream-5-0-260128'),
   prompt: {
-    text: "Change the salamander to a snow weasel",
+    text: 'Change the salamander to a snow weasel',
     images: [inputImage],
   },
   providerOptions: {
@@ -121,14 +121,14 @@ references into a single output (multi-image blending). Images may be provided
 as binary data, base64 strings, or URLs:
 
 ```ts
-import { byteDance, type ByteDanceImageModelOptions } from "@ai-sdk/bytedance";
-import { generateImage } from "ai";
+import { byteDance, type ByteDanceImageModelOptions } from '@ai-sdk/bytedance';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: byteDance.image("seedream-5-0-260128"),
+  model: byteDance.image('seedream-5-0-260128'),
   prompt: {
-    text: "Replace the clothing in image 1 with the outfit from image 2",
-    images: ["https://example.com/model.png", "https://example.com/outfit.png"],
+    text: 'Replace the clothing in image 1 with the outfit from image 2',
+    images: ['https://example.com/model.png', 'https://example.com/outfit.png'],
   },
   providerOptions: {
     bytedance: {
@@ -211,14 +211,14 @@ For more on video generation with the AI SDK see [generateVideo()](/docs/referen
 Generate videos from text prompts:
 
 ```ts
-import { byteDance, type ByteDanceVideoModelOptions } from "@ai-sdk/bytedance";
-import { experimental_generateVideo as generateVideo } from "ai";
+import { byteDance, type ByteDanceVideoModelOptions } from '@ai-sdk/bytedance';
+import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
-  model: byteDance.video("seedance-1-0-pro-250528"),
+  model: byteDance.video('seedance-1-0-pro-250528'),
   prompt:
-    "Photorealistic style: Under a clear blue sky, a vast expanse of white daisy fields stretches out. The camera gradually zooms in and fixates on a close-up of a single daisy.",
-  aspectRatio: "16:9",
+    'Photorealistic style: Under a clear blue sky, a vast expanse of white daisy fields stretches out. The camera gradually zooms in and fixates on a close-up of a single daisy.',
+  aspectRatio: '16:9',
   duration: 5,
   providerOptions: {
     bytedance: {
@@ -235,14 +235,14 @@ console.log(video.url);
 Generate videos from a first-frame image with an optional text prompt:
 
 ```ts
-import { byteDance, type ByteDanceVideoModelOptions } from "@ai-sdk/bytedance";
-import { experimental_generateVideo as generateVideo } from "ai";
+import { byteDance, type ByteDanceVideoModelOptions } from '@ai-sdk/bytedance';
+import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
-  model: byteDance.video("seedance-1-5-pro-251215"),
+  model: byteDance.video('seedance-1-5-pro-251215'),
   prompt: {
-    image: "https://example.com/first-frame.png",
-    text: "The cat slowly turns its head and blinks",
+    image: 'https://example.com/first-frame.png',
+    text: 'The cat slowly turns its head and blinks',
   },
   duration: 5,
   providerOptions: {
@@ -258,14 +258,14 @@ const { video } = await generateVideo({
 Seedance 1.5 Pro supports generating synchronized audio alongside the video:
 
 ```ts
-import { byteDance, type ByteDanceVideoModelOptions } from "@ai-sdk/bytedance";
-import { experimental_generateVideo as generateVideo } from "ai";
+import { byteDance, type ByteDanceVideoModelOptions } from '@ai-sdk/bytedance';
+import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
-  model: byteDance.video("seedance-1-5-pro-251215"),
+  model: byteDance.video('seedance-1-5-pro-251215'),
   prompt: {
-    image: "https://example.com/pianist.png",
-    text: "A young man sits at a piano, playing calmly. Gentle piano music plays in sync with his movements.",
+    image: 'https://example.com/pianist.png',
+    text: 'A young man sits at a piano, playing calmly. Gentle piano music plays in sync with his movements.',
   },
   duration: 5,
   providerOptions: {
@@ -282,19 +282,19 @@ const { video } = await generateVideo({
 Generate smooth transitions between a starting and ending keyframe image:
 
 ```ts
-import { byteDance, type ByteDanceVideoModelOptions } from "@ai-sdk/bytedance";
-import { experimental_generateVideo as generateVideo } from "ai";
+import { byteDance, type ByteDanceVideoModelOptions } from '@ai-sdk/bytedance';
+import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
-  model: byteDance.video("seedance-1-5-pro-251215"),
+  model: byteDance.video('seedance-1-5-pro-251215'),
   prompt: {
-    image: "https://example.com/first-frame.jpg",
-    text: "Create a 360-degree orbiting camera shot based on this photo",
+    image: 'https://example.com/first-frame.jpg',
+    text: 'Create a 360-degree orbiting camera shot based on this photo',
   },
   duration: 5,
   providerOptions: {
     bytedance: {
-      lastFrameImage: "https://example.com/last-frame.jpg",
+      lastFrameImage: 'https://example.com/last-frame.jpg',
       generateAudio: true,
       watermark: false,
     } satisfies ByteDanceVideoModelOptions,
@@ -307,21 +307,21 @@ const { video } = await generateVideo({
 Using the Seedance 1.0 Lite I2V model, you can provide multiple reference images (1-4) that the model uses to faithfully reproduce object shapes, colors, and textures:
 
 ```ts
-import { byteDance, type ByteDanceVideoModelOptions } from "@ai-sdk/bytedance";
-import { experimental_generateVideo as generateVideo } from "ai";
+import { byteDance, type ByteDanceVideoModelOptions } from '@ai-sdk/bytedance';
+import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
-  model: byteDance.video("seedance-1-0-lite-i2v-250428"),
+  model: byteDance.video('seedance-1-0-lite-i2v-250428'),
   prompt:
-    "A boy wearing glasses and a blue T-shirt from [Image 1] and a corgi dog from [Image 2], sitting on the lawn from [Image 3], in 3D cartoon style",
-  aspectRatio: "16:9",
+    'A boy wearing glasses and a blue T-shirt from [Image 1] and a corgi dog from [Image 2], sitting on the lawn from [Image 3], in 3D cartoon style',
+  aspectRatio: '16:9',
   duration: 5,
   providerOptions: {
     bytedance: {
       referenceImages: [
-        "https://example.com/boy.png",
-        "https://example.com/corgi.png",
-        "https://example.com/lawn.png",
+        'https://example.com/boy.png',
+        'https://example.com/corgi.png',
+        'https://example.com/lawn.png',
       ],
       watermark: false,
     } satisfies ByteDanceVideoModelOptions,
@@ -334,18 +334,18 @@ const { video } = await generateVideo({
 Seedance 2.0 supports reference videos that guide the style, motion, or composition of the generated video:
 
 ```ts
-import { byteDance, type ByteDanceVideoModelOptions } from "@ai-sdk/bytedance";
-import { experimental_generateVideo as generateVideo } from "ai";
+import { byteDance, type ByteDanceVideoModelOptions } from '@ai-sdk/bytedance';
+import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
-  model: byteDance.video("dreamina-seedance-2-0-260128"),
+  model: byteDance.video('dreamina-seedance-2-0-260128'),
   prompt:
-    "First-person perspective promotional ad, using the composition and camera movement from the reference video",
-  aspectRatio: "16:9",
+    'First-person perspective promotional ad, using the composition and camera movement from the reference video',
+  aspectRatio: '16:9',
   duration: 4,
   providerOptions: {
     bytedance: {
-      referenceVideos: ["https://example.com/reference-video.mp4"],
+      referenceVideos: ['https://example.com/reference-video.mp4'],
       watermark: false,
     } satisfies ByteDanceVideoModelOptions,
   },
@@ -357,17 +357,17 @@ const { video } = await generateVideo({
 Seedance 2.0 supports reference audio that is used as background music or sound for the generated video:
 
 ```ts
-import { byteDance, type ByteDanceVideoModelOptions } from "@ai-sdk/bytedance";
-import { experimental_generateVideo as generateVideo } from "ai";
+import { byteDance, type ByteDanceVideoModelOptions } from '@ai-sdk/bytedance';
+import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
-  model: byteDance.video("dreamina-seedance-2-0-260128"),
-  prompt: "A serene mountain landscape at sunrise with gentle camera movement",
-  aspectRatio: "16:9",
+  model: byteDance.video('dreamina-seedance-2-0-260128'),
+  prompt: 'A serene mountain landscape at sunrise with gentle camera movement',
+  aspectRatio: '16:9',
   duration: 4,
   providerOptions: {
     bytedance: {
-      referenceAudio: ["https://example.com/background-music.mp3"],
+      referenceAudio: ['https://example.com/background-music.mp3'],
       generateAudio: true,
       watermark: false,
     } satisfies ByteDanceVideoModelOptions,
