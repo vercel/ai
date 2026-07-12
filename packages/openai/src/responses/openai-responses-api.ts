@@ -43,6 +43,7 @@ export type OpenAIResponsesInputItem =
 
 export type OpenAIResponsesIncludeValue =
   | 'web_search_call.action.sources'
+  | 'web_search_call.results'
   | 'code_interpreter_call.outputs'
   | 'computer_call_output.output.image_url'
   | 'file_search_call.results'
@@ -72,18 +73,49 @@ export type OpenAIResponsesApplyPatchOperationDiffDoneChunk = {
 
 export type OpenAIResponsesSystemMessage = {
   role: 'system' | 'developer';
-  content: string;
+  content:
+    | string
+    | Array<{
+        type: 'input_text';
+        text: string;
+        prompt_cache_breakpoint?: { mode: 'explicit' };
+      }>;
 };
 
 export type OpenAIResponsesUserMessage = {
   role: 'user';
   content: Array<
-    | { type: 'input_text'; text: string }
-    | { type: 'input_image'; image_url: string }
-    | { type: 'input_image'; file_id: string }
-    | { type: 'input_file'; file_url: string }
-    | { type: 'input_file'; filename: string; file_data: string }
-    | { type: 'input_file'; file_id: string }
+    | {
+        type: 'input_text';
+        text: string;
+        prompt_cache_breakpoint?: { mode: 'explicit' };
+      }
+    | {
+        type: 'input_image';
+        image_url: string;
+        prompt_cache_breakpoint?: { mode: 'explicit' };
+      }
+    | {
+        type: 'input_image';
+        file_id: string;
+        prompt_cache_breakpoint?: { mode: 'explicit' };
+      }
+    | {
+        type: 'input_file';
+        file_url: string;
+        prompt_cache_breakpoint?: { mode: 'explicit' };
+      }
+    | {
+        type: 'input_file';
+        filename: string;
+        file_data: string;
+        prompt_cache_breakpoint?: { mode: 'explicit' };
+      }
+    | {
+        type: 'input_file';
+        file_id: string;
+        prompt_cache_breakpoint?: { mode: 'explicit' };
+      }
   >;
 };
 
@@ -109,10 +141,27 @@ export type OpenAIResponsesFunctionCallOutput = {
   output:
     | string
     | Array<
-        | { type: 'input_text'; text: string }
-        | { type: 'input_image'; image_url: string }
-        | { type: 'input_file'; filename: string; file_data: string }
-        | { type: 'input_file'; file_url: string }
+        | {
+            type: 'input_text';
+            text: string;
+            prompt_cache_breakpoint?: { mode: 'explicit' };
+          }
+        | {
+            type: 'input_image';
+            image_url: string;
+            prompt_cache_breakpoint?: { mode: 'explicit' };
+          }
+        | {
+            type: 'input_file';
+            filename: string;
+            file_data: string;
+            prompt_cache_breakpoint?: { mode: 'explicit' };
+          }
+        | {
+            type: 'input_file';
+            file_url: string;
+            prompt_cache_breakpoint?: { mode: 'explicit' };
+          }
       >;
 };
 
@@ -286,14 +335,22 @@ export type OpenAIResponsesFileSearchToolCompoundFilter = {
   >;
 };
 
+export type OpenAIResponsesFunctionTool = {
+  type: 'function';
+  name: string;
+  description: string | undefined;
+  parameters: JSONSchema7;
+  strict?: boolean;
+  defer_loading?: boolean;
+};
+
 export type OpenAIResponsesTool =
+  | OpenAIResponsesFunctionTool
   | {
-      type: 'function';
+      type: 'namespace';
       name: string;
-      description: string | undefined;
-      parameters: JSONSchema7;
-      strict?: boolean;
-      defer_loading?: boolean;
+      description: string;
+      tools: Array<OpenAIResponsesFunctionTool>;
     }
   | {
       type: 'apply_patch';
@@ -470,6 +527,30 @@ export type OpenAIResponsesReasoning = {
   }>;
 };
 
+// Captured from the Responses API when OpenAI returned an early
+// insufficient_quota stream error after HTTP 200. This shape differs from the
+// currently documented ResponseErrorEvent below.
+const openaiResponsesNestedErrorChunkSchema = z.object({
+  type: z.literal('error'),
+  sequence_number: z.number(),
+  error: z.object({
+    type: z.string(),
+    code: z.string(),
+    message: z.string(),
+    param: z.string().nullish(),
+  }),
+});
+
+// Current OpenAI OpenAPI docs define ResponseErrorEvent with top-level
+// code/message/param fields.
+const openaiResponsesErrorChunkSchema = z.object({
+  type: z.literal('error'),
+  sequence_number: z.number(),
+  code: z.string().nullish(),
+  message: z.string(),
+  param: z.string().nullish(),
+});
+
 export const openaiResponsesChunkSchema = lazySchema(() =>
   zodSchema(
     z.union([
@@ -499,18 +580,32 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
           usage: z.object({
             input_tokens: z.number(),
             input_tokens_details: z
-              .object({ cached_tokens: z.number().nullish() })
+              .object({
+                cached_tokens: z.number().nullish(),
+                cache_write_tokens: z.number().nullish(),
+                orchestration_input_tokens: z.number().nullish(),
+                orchestration_input_cached_tokens: z.number().nullish(),
+              })
               .nullish(),
             output_tokens: z.number(),
             output_tokens_details: z
-              .object({ reasoning_tokens: z.number().nullish() })
+              .object({
+                reasoning_tokens: z.number().nullish(),
+                orchestration_output_tokens: z.number().nullish(),
+              })
               .nullish(),
           }),
+          reasoning: z
+            .object({
+              context: z.string().nullish(),
+            })
+            .nullish(),
           service_tier: z.string().nullish(),
         }),
       }),
       z.object({
         type: z.literal('response.failed'),
+        sequence_number: z.number(),
         response: z.object({
           error: z
             .object({
@@ -523,12 +618,25 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             .object({
               input_tokens: z.number(),
               input_tokens_details: z
-                .object({ cached_tokens: z.number().nullish() })
+                .object({
+                  cached_tokens: z.number().nullish(),
+                  cache_write_tokens: z.number().nullish(),
+                  orchestration_input_tokens: z.number().nullish(),
+                  orchestration_input_cached_tokens: z.number().nullish(),
+                })
                 .nullish(),
               output_tokens: z.number(),
               output_tokens_details: z
-                .object({ reasoning_tokens: z.number().nullish() })
+                .object({
+                  reasoning_tokens: z.number().nullish(),
+                  orchestration_output_tokens: z.number().nullish(),
+                })
                 .nullish(),
+            })
+            .nullish(),
+          reasoning: z
+            .object({
+              context: z.string().nullish(),
             })
             .nullish(),
           service_tier: z.string().nullish(),
@@ -1028,16 +1136,8 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         output_index: z.number(),
         diff: z.string(),
       }),
-      z.object({
-        type: z.literal('error'),
-        sequence_number: z.number(),
-        error: z.object({
-          type: z.string(),
-          code: z.string(),
-          message: z.string(),
-          param: z.string().nullish(),
-        }),
-      }),
+      openaiResponsesNestedErrorChunkSchema,
+      openaiResponsesErrorChunkSchema,
       z
         .object({ type: z.string() })
         .loose()
@@ -1386,16 +1486,29 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
         )
         .optional(),
       service_tier: z.string().nullish(),
+      reasoning: z
+        .object({
+          context: z.string().nullish(),
+        })
+        .nullish(),
       incomplete_details: z.object({ reason: z.string() }).nullish(),
       usage: z
         .object({
           input_tokens: z.number(),
           input_tokens_details: z
-            .object({ cached_tokens: z.number().nullish() })
+            .object({
+              cached_tokens: z.number().nullish(),
+              cache_write_tokens: z.number().nullish(),
+              orchestration_input_tokens: z.number().nullish(),
+              orchestration_input_cached_tokens: z.number().nullish(),
+            })
             .nullish(),
           output_tokens: z.number(),
           output_tokens_details: z
-            .object({ reasoning_tokens: z.number().nullish() })
+            .object({
+              reasoning_tokens: z.number().nullish(),
+              orchestration_output_tokens: z.number().nullish(),
+            })
             .nullish(),
         })
         .optional(),

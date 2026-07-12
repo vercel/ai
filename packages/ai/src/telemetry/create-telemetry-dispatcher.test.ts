@@ -27,7 +27,7 @@ describe('createTelemetryDispatcher', () => {
     expect(telemetry.onToolExecutionEnd).toBeDefined();
     expect(telemetry.onStepEnd).toBeDefined();
     expect(telemetry.onObjectStepStart).toBeDefined();
-    expect(telemetry.onObjectStepFinish).toBeDefined();
+    expect(telemetry.onObjectStepEnd).toBeDefined();
     expect(telemetry.onEmbedStart).toBeDefined();
     expect(telemetry.onEmbedEnd).toBeDefined();
     expect(telemetry.onRerankStart).toBeDefined();
@@ -35,11 +35,24 @@ describe('createTelemetryDispatcher', () => {
     expect(telemetry.onEnd).toBeDefined();
     expect(telemetry.onAbort).toBeDefined();
     expect(telemetry.onError).toBeDefined();
-    expect(telemetry.executeLanguageModelCall).toBeUndefined();
-    expect(telemetry.executeTool).toBeUndefined();
+    expect(telemetry.executeLanguageModelCall).toBeDefined();
+    expect(telemetry.executeTool).toBeDefined();
 
     await expect(telemetry.onStart!(dummyEvent)).resolves.toBeUndefined();
     await expect(telemetry.onError!(dummyEvent)).resolves.toBeUndefined();
+    await expect(
+      telemetry.executeLanguageModelCall!({
+        callId: 'call-1',
+        execute: async () => 'result',
+      }),
+    ).resolves.toBe('result');
+    await expect(
+      telemetry.executeTool!({
+        callId: 'call-1',
+        toolCallId: 'tool-1',
+        execute: async () => 'result',
+      }),
+    ).resolves.toBe('result');
   });
 
   it('accepts a single integration', async () => {
@@ -164,7 +177,7 @@ describe('createTelemetryDispatcher', () => {
       onToolExecutionEnd: vi.fn(),
       onStepEnd: vi.fn(),
       onObjectStepStart: vi.fn(),
-      onObjectStepFinish: vi.fn(),
+      onObjectStepEnd: vi.fn(),
       onEmbedStart: vi.fn(),
       onEmbedEnd: vi.fn(),
       onRerankStart: vi.fn(),
@@ -186,7 +199,7 @@ describe('createTelemetryDispatcher', () => {
     await telemetry.onToolExecutionEnd!(dummyEvent);
     await telemetry.onStepEnd!(dummyEvent);
     await telemetry.onObjectStepStart!(dummyEvent);
-    await telemetry.onObjectStepFinish!(dummyEvent);
+    await telemetry.onObjectStepEnd!(dummyEvent);
     await telemetry.onEmbedStart!(dummyEvent);
     await telemetry.onEmbedEnd!(dummyEvent);
     await telemetry.onRerankStart!(dummyEvent);
@@ -203,7 +216,7 @@ describe('createTelemetryDispatcher', () => {
     expect(integration.onToolExecutionEnd).toHaveBeenCalledOnce();
     expect(integration.onStepEnd).toHaveBeenCalledOnce();
     expect(integration.onObjectStepStart).toHaveBeenCalledOnce();
-    expect(integration.onObjectStepFinish).toHaveBeenCalledOnce();
+    expect(integration.onObjectStepEnd).toHaveBeenCalledOnce();
     expect(integration.onEmbedStart).toHaveBeenCalledOnce();
     expect(integration.onEmbedEnd).toHaveBeenCalledOnce();
     expect(integration.onRerankStart).toHaveBeenCalledOnce();
@@ -233,7 +246,7 @@ describe('createTelemetryDispatcher', () => {
         onToolExecutionEnd: vi.fn(),
         onStepEnd: vi.fn(),
         onObjectStepStart: vi.fn(),
-        onObjectStepFinish: vi.fn(),
+        onObjectStepEnd: vi.fn(),
         onEmbedStart: vi.fn(),
         onEmbedEnd: vi.fn(),
         onRerankStart: vi.fn(),
@@ -255,7 +268,7 @@ describe('createTelemetryDispatcher', () => {
       expect(telemetry.onToolExecutionEnd).toBeUndefined();
       expect(telemetry.onStepEnd).toBeUndefined();
       expect(telemetry.onObjectStepStart).toBeUndefined();
-      expect(telemetry.onObjectStepFinish).toBeUndefined();
+      expect(telemetry.onObjectStepEnd).toBeUndefined();
       expect(telemetry.onEmbedStart).toBeUndefined();
       expect(telemetry.onEmbedEnd).toBeUndefined();
       expect(telemetry.onRerankStart).toBeUndefined();
@@ -449,12 +462,17 @@ describe('createTelemetryDispatcher', () => {
   });
 
   describe('executeLanguageModelCall', () => {
-    it('returns undefined when no integrations implement executeLanguageModelCall', () => {
+    it('passes through when no integrations implement executeLanguageModelCall', async () => {
       const telemetry = createTelemetryDispatcher({
         telemetry: { integrations: { onStart: vi.fn() } },
       });
 
-      expect(telemetry.executeLanguageModelCall).toBeUndefined();
+      await expect(
+        telemetry.executeLanguageModelCall!({
+          callId: 'call-1',
+          execute: async () => 'result',
+        }),
+      ).resolves.toBe('result');
     });
 
     it('wraps execute with a single integration', async () => {
@@ -489,7 +507,6 @@ describe('createTelemetryDispatcher', () => {
         async executeLanguageModelCall<T>({
           execute,
         }: {
-          callId: string;
           execute: () => PromiseLike<T>;
         }) {
           this.calls += 1;
@@ -512,12 +529,18 @@ describe('createTelemetryDispatcher', () => {
   });
 
   describe('executeTool', () => {
-    it('returns undefined when no integrations implement executeTool', () => {
+    it('passes through when no integrations implement executeTool', async () => {
       const telemetry = createTelemetryDispatcher({
         telemetry: { integrations: { onStart: vi.fn() } },
       });
 
-      expect(telemetry.executeTool).toBeUndefined();
+      await expect(
+        telemetry.executeTool!({
+          callId: 'call-1',
+          toolCallId: 'tool-1',
+          execute: async () => 'result',
+        }),
+      ).resolves.toBe('result');
     });
 
     it('wraps execute with a single integration', async () => {
@@ -613,13 +636,7 @@ describe('createTelemetryDispatcher', () => {
       class ExecuteToolIntegration implements Telemetry {
         calls = 0;
 
-        async executeTool<T>({
-          execute,
-        }: {
-          callId: string;
-          toolCallId: string;
-          execute: () => PromiseLike<T>;
-        }) {
+        async executeTool<T>({ execute }: { execute: () => PromiseLike<T> }) {
           this.calls += 1;
           return execute();
         }

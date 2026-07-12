@@ -10,7 +10,7 @@ export const xaiWebSearchAgent = new ToolLoopAgent({
       enableImageUnderstanding: true,
     }),
   },
-  experimental_onStepStart: ({ messages }) => {
+  onStepStart: ({ messages }) => {
     console.log('Messages:', JSON.stringify(messages, null, 2));
   },
   onStepFinish: ({ response }) => {

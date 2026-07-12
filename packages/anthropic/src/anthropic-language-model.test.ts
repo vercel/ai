@@ -15,7 +15,7 @@ import { asSchema } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import type { AnthropicLanguageModelOptions } from './anthropic-language-model-options';
 import { getModelCapabilities } from './anthropic-language-model';
 import { anthropic, createAnthropic } from './anthropic-provider';
@@ -221,6 +221,51 @@ describe('AnthropicLanguageModel', () => {
       });
     });
 
+    describe('reasoning (thinking disabled)', () => {
+      it('should forward thinking { type: "disabled" } to the API instead of stripping it', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-5').doGenerate({
+          prompt: TEST_PROMPT,
+          maxOutputTokens: 100,
+          providerOptions: {
+            anthropic: {
+              thinking: { type: 'disabled' },
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.thinking).toEqual({ type: 'disabled' });
+        // disabled thinking must not reserve a thinking budget in max_tokens
+        expect(requestBody.max_tokens).toBe(100);
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('should not strip temperature / topP / topK when thinking is disabled', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          maxOutputTokens: 100,
+          temperature: 0.5,
+          topK: 0.1,
+          providerOptions: {
+            anthropic: {
+              thinking: { type: 'disabled' },
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.thinking).toEqual({ type: 'disabled' });
+        // unlike enabled thinking, disabled thinking keeps sampling params
+        expect(requestBody.temperature).toBe(0.5);
+        expect(requestBody.top_k).toBe(0.1);
+        expect(result.warnings).toEqual([]);
+      });
+    });
+
     describe('top-level reasoning (newer models with adaptive thinking)', () => {
       it('should not set thinking config when reasoning is "provider-default"', async () => {
         prepareJsonFixtureResponse('anthropic-text');
@@ -245,7 +290,7 @@ describe('AnthropicLanguageModel', () => {
         });
 
         const requestBody = await server.calls[0].requestBodyJson;
-        expect(requestBody.thinking).toBeUndefined();
+        expect(requestBody.thinking).toEqual({ type: 'disabled' });
         expect(requestBody.output_config).toBeUndefined();
         expect(result.warnings).toEqual([]);
       });
@@ -396,7 +441,7 @@ describe('AnthropicLanguageModel', () => {
         });
 
         const requestBody = await server.calls[0].requestBodyJson;
-        expect(requestBody.thinking).toBeUndefined();
+        expect(requestBody.thinking).toEqual({ type: 'disabled' });
         expect(result.warnings).toEqual([]);
       });
 
@@ -536,7 +581,7 @@ describe('AnthropicLanguageModel', () => {
         });
 
         const requestBody = await server.calls[0].requestBodyJson;
-        expect(requestBody.thinking).toBeUndefined();
+        expect(requestBody.thinking).toEqual({ type: 'disabled' });
         expect(requestBody.output_config).toBeUndefined();
       });
 
@@ -1534,6 +1579,164 @@ describe('AnthropicLanguageModel', () => {
           },
         }
       `);
+    });
+
+    describe('refusal stop reason', () => {
+      it('should map a classifier refusal to content-filter and expose stop details', async () => {
+        prepareJsonFixtureResponse('anthropic-refusal');
+
+        const result = await provider('claude-fable-5').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.finishReason).toMatchInlineSnapshot(`
+          {
+            "raw": "refusal",
+            "unified": "content-filter",
+          }
+        `);
+        expect(result.providerMetadata?.anthropic?.stopDetails)
+          .toMatchInlineSnapshot(`
+          {
+            "category": "cyber",
+            "explanation": "This request triggered restrictions on violative cyber content and was blocked under Anthropic's Usage Policy.",
+            "recommendedModel": "claude-fable-5",
+            "type": "refusal",
+          }
+        `);
+      });
+
+      it('should map a refusal without stop details to content-filter and omit stop details', async () => {
+        prepareJsonFixtureResponse('anthropic-refusal-no-details');
+
+        const result = await provider('claude-fable-5').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.finishReason).toMatchInlineSnapshot(`
+          {
+            "raw": "refusal",
+            "unified": "content-filter",
+          }
+        `);
+        expect(result.providerMetadata?.anthropic?.stopDetails).toBeUndefined();
+      });
+    });
+
+    describe('fallbacks', () => {
+      it('should pass fallbacks to the request body and add the beta header', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-fable-5').doGenerate({
+          prompt: TEST_PROMPT,
+          maxOutputTokens: 1024,
+          providerOptions: {
+            anthropic: {
+              fallbacks: [
+                {
+                  model: 'claude-opus-4-8',
+                  max_tokens: 8192,
+                  thinking: { type: 'disabled' },
+                  speed: 'fast',
+                },
+              ],
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "fallbacks": [
+              {
+                "max_tokens": 8192,
+                "model": "claude-opus-4-8",
+                "speed": "fast",
+                "thinking": {
+                  "type": "disabled",
+                },
+              },
+            ],
+            "max_tokens": 1024,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-fable-5",
+          }
+        `);
+
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
+          'server-side-fallback-2026-06-01',
+        );
+      });
+
+      it('should not add the beta header when fallbacks is an empty array', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-fable-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              fallbacks: [],
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.fallbacks).toBeUndefined();
+        expect(
+          server.calls[0].requestHeaders['anthropic-beta'],
+        ).toBeUndefined();
+      });
+
+      it('should drop the fallback content block and surface the fallback iteration', async () => {
+        prepareJsonFixtureResponse('anthropic-fallback');
+
+        const result = await provider('claude-fable-5').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        // The `fallback` content block is dropped; only the served answer text remains.
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "The printing press was invented by Johannes Gutenberg around 1440.",
+              "type": "text",
+            },
+          ]
+        `);
+
+        // The fallback hop is preserved in the Anthropic-specific iterations.
+        expect(result.providerMetadata?.anthropic?.iterations)
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "inputTokens": 408,
+              "model": "claude-fable-5",
+              "outputTokens": 0,
+              "type": "message",
+            },
+            {
+              "inputTokens": 412,
+              "model": "claude-opus-4-8",
+              "outputTokens": 264,
+              "type": "fallback_message",
+            },
+          ]
+        `);
+
+        // Top-level usage reflects the served (fallback) answer, not the
+        // blocked primary attempt (which had 0 output tokens).
+        expect(result.usage.inputTokens.total).toBe(412);
+        expect(result.usage.outputTokens.total).toBe(264);
+      });
     });
 
     it('should expose the raw response headers', async () => {
@@ -6817,6 +7020,79 @@ describe('AnthropicLanguageModel', () => {
       });
     });
 
+    it('should map a streamed classifier refusal to content-filter and expose stop details', async () => {
+      prepareChunksFixtureResponse('anthropic-refusal');
+
+      const { stream } = await provider('claude-fable-5').doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+      const finishPart = result.find(part => part.type === 'finish');
+
+      expect(finishPart).toMatchObject({
+        type: 'finish',
+        finishReason: {
+          unified: 'content-filter',
+          raw: 'refusal',
+        },
+      });
+      expect(
+        finishPart?.type === 'finish'
+          ? finishPart.providerMetadata?.anthropic?.stopDetails
+          : undefined,
+      ).toMatchInlineSnapshot(`
+        {
+          "category": "cyber",
+          "explanation": "This request triggered restrictions on violative cyber content and was blocked under Anthropic's Usage Policy.",
+          "recommendedModel": "claude-fable-5",
+          "type": "refusal",
+        }
+      `);
+    });
+
+    it('should drop the streamed fallback content block and surface the fallback iteration', async () => {
+      prepareChunksFixtureResponse('anthropic-fallback');
+
+      const { stream } = await provider('claude-fable-5').doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+
+      // No content parts are emitted for the dropped `fallback` block; only
+      // the served answer text streams through.
+      const textDeltas = result
+        .filter(part => part.type === 'text-delta')
+        .map(part => (part.type === 'text-delta' ? part.delta : ''))
+        .join('');
+      expect(textDeltas).toBe(
+        'The printing press was invented by Johannes Gutenberg around 1440.',
+      );
+
+      const finishPart = result.find(part => part.type === 'finish');
+      expect(
+        finishPart?.type === 'finish'
+          ? finishPart.providerMetadata?.anthropic?.iterations
+          : undefined,
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "inputTokens": 408,
+            "model": "claude-fable-5",
+            "outputTokens": 0,
+            "type": "message",
+          },
+          {
+            "inputTokens": 412,
+            "model": "claude-opus-4-8",
+            "outputTokens": 264,
+            "type": "fallback_message",
+          },
+        ]
+      `);
+    });
+
     it('should stream reasoning deltas', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
@@ -8780,6 +9056,47 @@ describe('AnthropicLanguageModel', () => {
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
       });
+
+      it('should preserve the text editor discriminator for streamed skill tool calls', async () => {
+        prepareChunksFixtureResponse(
+          'anthropic-code-execution-20250825.pptx-skill',
+        );
+
+        const result = await model.doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+          providerOptions: {
+            anthropic: {
+              container: {
+                skills: [{ type: 'anthropic', skillId: 'pptx' }],
+              },
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        const parts = await convertReadableStreamToArray(result.stream);
+        const skillReadToolCall = parts.find(
+          part =>
+            part.type === 'tool-call' &&
+            part.toolName === 'code_execution' &&
+            part.input.includes('/skills/pptx/SKILL.md'),
+        );
+
+        expect(skillReadToolCall).toMatchObject({
+          type: 'tool-call',
+          toolName: 'code_execution',
+          input:
+            '{"type": "text_editor_code_execution","command": "view", "path": "/skills/pptx/SKILL.md"}',
+          providerExecuted: true,
+        });
+      });
     });
 
     describe('function tool', () => {
@@ -10385,8 +10702,34 @@ describe('getModelCapabilities', () => {
     `);
   });
 
+  it('should return correct capabilities for claude-fable-5', () => {
+    expect(getModelCapabilities('claude-fable-5')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "supportsAdaptiveThinking": true,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": true,
+      }
+    `);
+  });
+
   it('should return correct capabilities for claude-opus-4-7', () => {
     expect(getModelCapabilities('claude-opus-4-7')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "supportsAdaptiveThinking": true,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": true,
+      }
+    `);
+  });
+
+  it('should return correct capabilities for claude-sonnet-5', () => {
+    expect(getModelCapabilities('claude-sonnet-5')).toMatchInlineSnapshot(`
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,

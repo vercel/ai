@@ -181,7 +181,7 @@ export class VercelSandboxSession implements SandboxSession {
   }
 
   get description() {
-    return `Vercel Sandbox ID: ${this.sandbox.sandboxId}\nRoot directory: ${rootDirectory}`;
+    return `Vercel Sandbox name: ${this.sandbox.name}\nRoot directory: ${rootDirectory}`;
   }
 }
 

@@ -23,7 +23,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { googleFailedResponseHandler } from '../google-error';
 import { buildGoogleInteractionsStreamTransform } from './build-google-interactions-stream-transform';
-import { convertGoogleInteractionsUsage } from './convert-google-interactions-usage';
+import {
+  convertGoogleInteractionsUsage,
+  getGoogleInteractionsOutputTokensByModality,
+} from './convert-google-interactions-usage';
 import { convertToGoogleInteractionsInput } from './convert-to-google-interactions-input';
 import {
   googleInteractionsEventSchema,
@@ -459,7 +462,6 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     const url = `${this.config.baseURL}/interactions`;
 
     const mergedHeaders = combineHeaders(
-      INTERACTIONS_API_REVISION_HEADER,
       this.config.headers ? await resolve(this.config.headers) : undefined,
       options.headers,
     );
@@ -547,10 +549,15 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
      * `response.id` is omitted when `store: false` (fully stateless mode), so
      * `interactionId` is only surfaced when the API actually returned one.
      */
+    const outputTokensByModality = getGoogleInteractionsOutputTokensByModality(
+      response.usage,
+    );
+
     const providerMetadata: SharedV4ProviderMetadata = {
       google: {
         ...(interactionId != null ? { interactionId } : {}),
         ...(serviceTier != null ? { serviceTier } : {}),
+        ...(outputTokensByModality != null ? { outputTokensByModality } : {}),
       },
     };
 
@@ -588,7 +595,6 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     const url = `${this.config.baseURL}/interactions`;
 
     const mergedHeaders = combineHeaders(
-      INTERACTIONS_API_REVISION_HEADER,
       this.config.headers ? await resolve(this.config.headers) : undefined,
       options.headers,
     );
@@ -756,15 +762,6 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     };
   }
 }
-
-/*
- * Pins the Interactions API revision the SDK targets. Sent on every request
- * the model issues so model-id calls, agent calls, polling, SSE reconnects,
- * and cancellation all hit the same schema.
- */
-const INTERACTIONS_API_REVISION_HEADER: Record<string, string> = {
-  'Api-Revision': '2026-05-20',
-};
 
 function pruneUndefined<T extends Record<string, unknown>>(obj: T): T {
   const result: Record<string, unknown> = {};

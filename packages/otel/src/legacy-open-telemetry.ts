@@ -26,7 +26,7 @@ import type {
   GenerateTextStepStartEvent,
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
-  OutputInterface as Output,
+  Output,
   RerankingModelCallEndEvent,
   RerankEndEvent,
   RerankStartEvent,
@@ -38,6 +38,7 @@ import type {
 } from 'ai';
 import { assembleOperationName } from './assemble-operation-name';
 import { getBaseTelemetryAttributes } from './get-base-telemetry-attributes';
+import { sanitizeAttributeValue } from './sanitize-attribute-value';
 import { stringifyForTelemetry } from './stringify-for-telemetry';
 
 function recordSpanError(span: Span, error: unknown): void {
@@ -88,7 +89,10 @@ function selectAttributes(
     ) {
       if (telemetry?.recordInputs === false) continue;
       const resolved = value.input();
-      if (resolved != null) result[key] = resolved;
+      if (resolved != null) {
+        const sanitized = sanitizeAttributeValue(resolved);
+        if (sanitized != null) result[key] = sanitized;
+      }
       continue;
     }
 
@@ -99,11 +103,15 @@ function selectAttributes(
     ) {
       if (telemetry?.recordOutputs === false) continue;
       const resolved = value.output();
-      if (resolved != null) result[key] = resolved;
+      if (resolved != null) {
+        const sanitized = sanitizeAttributeValue(resolved);
+        if (sanitized != null) result[key] = sanitized;
+      }
       continue;
     }
 
-    result[key] = value as AttributeValue;
+    const sanitized = sanitizeAttributeValue(value as AttributeValue);
+    if (sanitized != null) result[key] = sanitized;
   }
 
   return result;
@@ -112,7 +120,7 @@ function selectAttributes(
 interface OtelStepStartEvent<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends AISDKContext = AISDKContext,
-  OUTPUT extends Output = Output,
+  OUTPUT extends Output.Output = Output.Output,
 > extends GenerateTextStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   readonly promptMessages?: LanguageModelV4Prompt;
   readonly stepTools?: ReadonlyArray<Record<string, unknown>>;
@@ -412,7 +420,7 @@ export class LegacyOpenTelemetry implements Telemetry {
   }
 
   /** @deprecated */
-  onObjectStepFinish(event: GenerateObjectStepEndEvent): void {
+  onObjectStepEnd(event: GenerateObjectStepEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.stepSpan) return;
 

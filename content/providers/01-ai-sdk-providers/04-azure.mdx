@@ -11,21 +11,7 @@ The [Azure OpenAI](https://azure.microsoft.com/en-us/products/ai-services/openai
 
 The Azure OpenAI provider is available in the `@ai-sdk/azure` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add @ai-sdk/azure" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install @ai-sdk/azure" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add @ai-sdk/azure" dark />
-  </Tab>
-
-  <Tab>
-    <Snippet text="bun add @ai-sdk/azure" dark />
-  </Tab>
-</Tabs>
+<InstallPackages packages="@ai-sdk/azure" />
 
 ## Provider Instance
 
@@ -98,7 +84,9 @@ You can use the following optional settings to customize the OpenAI provider ins
   Either this or `resourceName` can be used.
   When a baseURL is provided, the resourceName is ignored.
 
-  With a baseURL, the resolved URL is `{baseURL}/v1{path}`.
+  With an Azure OpenAI baseURL, the resolved URL is `{baseURL}/v1{path}`.
+  With a non-Azure custom gateway baseURL, the resolved URL is `{baseURL}{path}`;
+  the SDK does not append `/v1` or an `api-version` query parameter in this mode.
 
 - **headers** _Record&lt;string,string&gt;_
 
@@ -285,6 +273,30 @@ The following optional provider options are available for OpenAI chat models:
 
   A unique identifier representing your end-user, which can help OpenAI to
   monitor and detect abuse. Learn more.
+
+### DeepSeek Chat Models
+
+You can create Azure-hosted DeepSeek chat models using the `.deepseek()` factory method:
+
+```ts
+const model = azure.deepseek('your-deepseek-deployment-name');
+```
+
+Use this factory for Azure DeepSeek models that support DeepSeek's chat
+reasoning fields, such as `deepseek-v4-pro` and `deepseek-v4-flash`. The
+factory maps top-level `reasoning` to DeepSeek `reasoning_effort` request
+settings, and parses streamed `reasoning_content` as AI SDK reasoning parts.
+
+```ts
+import { azure, type AzureDeepSeekLanguageModelOptions } from '@ai-sdk/azure';
+import { generateText } from 'ai';
+
+const result = generateText({
+  model: azure.deepseek('your-deepseek-deployment-name'),
+  prompt: 'How many "r"s are in the word "strawberry"?',
+  reasoning: 'high',
+});
+```
 
 ### Responses Models
 
@@ -486,7 +498,7 @@ import { generateText } from 'ai';
 
 const azure = createAzure({
   headers: {
-    'x-ms-oai-image-generation-deployment': 'gpt-image-1', // use your own image model deployment
+    'x-ms-oai-image-generation-deployment': 'gpt-image-2', // use your own image model deployment
   },
 });
 
@@ -1032,7 +1044,7 @@ When using useDeploymentBasedUrls, the default api-version is not valid. You mus
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the input language in ISO-639-1 (e.g. `en`) format will improve accuracy and latency.
 
 ```ts highlight="6"
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import { azure, type OpenAITranscriptionModelOptions } from '@ai-sdk/azure';
 import { readFile } from 'fs/promises';
 
@@ -1073,11 +1085,11 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                    | Transcription       | Duration            | Segments            | Language            |
-| ------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
-| `whisper-1`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o-mini-transcribe` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `gpt-4o-transcribe`      | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| Model                    | Transcription | Duration  | Segments  | Language  |
+| ------------------------ | ------------- | --------- | --------- | --------- |
+| `whisper-1`              | <Check />     | <Check /> | <Check /> | <Check /> |
+| `gpt-4o-mini-transcribe` | <Check />     | <Cross /> | <Cross /> | <Cross /> |
+| `gpt-4o-transcribe`      | <Check />     | <Cross /> | <Cross /> | <Cross /> |
 
 ## Speech Models
 
@@ -1093,7 +1105,7 @@ const model = azure.speech('your-tts-deployment-name');
 
 ```ts
 import { azure } from '@ai-sdk/azure';
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 
 const result = await generateSpeech({
   model: azure.speech('your-tts-deployment-name'),
@@ -1106,7 +1118,7 @@ You can also pass additional provider-specific options using the `providerOption
 
 ```ts
 import { azure, type OpenAISpeechModelOptions } from '@ai-sdk/azure';
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 
 const result = await generateSpeech({
   model: azure.speech('your-tts-deployment-name'),
@@ -1137,8 +1149,8 @@ The following provider options are available:
 
 Azure OpenAI supports TTS models through deployments. The capabilities depend on which model version your deployment is using:
 
-| Model Version     | Instructions        |
-| ----------------- | ------------------- |
-| `tts-1`           | <Cross size={18} /> |
-| `tts-1-hd`        | <Cross size={18} /> |
-| `gpt-4o-mini-tts` | <Check size={18} /> |
+| Model Version     | Instructions |
+| ----------------- | ------------ |
+| `tts-1`           | <Cross />    |
+| `tts-1-hd`        | <Cross />    |
+| `gpt-4o-mini-tts` | <Check />    |

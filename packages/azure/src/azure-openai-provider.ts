@@ -7,6 +7,7 @@ import {
   OpenAISpeechModel,
   OpenAITranscriptionModel,
 } from '@ai-sdk/openai/internal';
+import { DeepSeekChatLanguageModel } from '@ai-sdk/deepseek/internal';
 import {
   InvalidArgumentError,
   type EmbeddingModelV4,
@@ -20,6 +21,7 @@ import {
   loadApiKey,
   loadSetting,
   normalizeHeaders,
+  withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
@@ -38,6 +40,11 @@ export interface AzureOpenAIProvider extends ProviderV4 {
    * Creates an Azure OpenAI chat model for text generation.
    */
   chat(deploymentId: string): LanguageModelV4;
+
+  /**
+   * Creates an Azure-hosted DeepSeek chat model for text generation.
+   */
+  deepseek(deploymentId: string): LanguageModelV4;
 
   /**
    * Creates an Azure OpenAI responses API model for text generation.
@@ -107,7 +114,8 @@ export interface AzureOpenAIProviderSettings {
    * Use a different URL prefix for API calls, e.g. to use proxy servers. Either this or `resourceName` can be used.
    * When a baseURL is provided, the resourceName is ignored.
    *
-   * With a baseURL, the resolved URL is `{baseURL}/v1{path}`.
+   * With an Azure OpenAI baseURL, the resolved URL is `{baseURL}/v1{path}`.
+   * With a non-Azure custom gateway baseURL, the resolved URL is `{baseURL}{path}`.
    */
   baseURL?: string;
 
@@ -145,6 +153,12 @@ export interface AzureOpenAIProviderSettings {
    * `{baseURL}/v1{path}?api-version={apiVersion}`.
    */
   useDeploymentBasedUrls?: boolean;
+}
+
+function isAzureOpenAIBaseURL(baseURL: string | undefined) {
+  return (
+    baseURL == null || new URL(baseURL).hostname.endsWith('.openai.azure.com')
+  );
 }
 
 /**
@@ -207,21 +221,29 @@ export function createAzure(
     });
 
   const apiVersion = options.apiVersion ?? 'v1';
+  const useAzureOpenAIEndpoint = isAzureOpenAIBaseURL(options.baseURL);
 
   const url = ({ path, modelId }: { path: string; modelId: string }) => {
-    const baseUrlPrefix =
-      options.baseURL ?? `https://${getResourceName()}.openai.azure.com/openai`;
+    const baseUrlPrefix = withoutTrailingSlash(
+      options.baseURL ?? `https://${getResourceName()}.openai.azure.com/openai`,
+    );
 
     let fullUrl: URL;
     if (options.useDeploymentBasedUrls) {
       // Use deployment-based format for compatibility with certain Azure OpenAI models
       fullUrl = new URL(`${baseUrlPrefix}/deployments/${modelId}${path}`);
+    } else if (!useAzureOpenAIEndpoint) {
+      // Custom gateways can own Azure routing and versioning themselves.
+      fullUrl = new URL(`${baseUrlPrefix}${path}`);
     } else {
       // Use v1 API format - no deployment ID in URL
       fullUrl = new URL(`${baseUrlPrefix}/v1${path}`);
     }
 
-    fullUrl.searchParams.set('api-version', apiVersion);
+    if (useAzureOpenAIEndpoint || options.useDeploymentBasedUrls) {
+      fullUrl.searchParams.set('api-version', apiVersion);
+    }
+
     return fullUrl.toString();
   };
 
@@ -231,6 +253,15 @@ export function createAzure(
       url,
       headers: getHeaders,
       fetch,
+    });
+
+  const createDeepSeekModel = (deploymentName: string) =>
+    new DeepSeekChatLanguageModel(deploymentName, {
+      provider: 'azure.deepseek',
+      url,
+      headers: getHeaders,
+      fetch,
+      supportsThinking: false,
     });
 
   const createCompletionModel = (modelId: string) =>
@@ -296,6 +327,7 @@ export function createAzure(
   provider.specificationVersion = 'v4' as const;
   provider.languageModel = createResponsesModel;
   provider.chat = createChatModel;
+  provider.deepseek = createDeepSeekModel;
   provider.completion = createCompletionModel;
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;

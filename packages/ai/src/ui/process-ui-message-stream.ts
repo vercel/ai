@@ -9,6 +9,7 @@ import {
   type InferUIMessageChunk,
   type UIMessageChunk,
 } from '../ui-message-stream/ui-message-chunks';
+import { createIdMap } from '../util/create-id-map';
 import type { ErrorHandler } from '../util/error-handler';
 import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
@@ -68,9 +69,9 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
               InferUIMessageTools<UI_MESSAGE>
             >[],
           } as UI_MESSAGE),
-    activeTextParts: {},
-    activeReasoningParts: {},
-    partialToolCalls: {},
+    activeTextParts: createIdMap(),
+    activeReasoningParts: createIdMap(),
+    partialToolCalls: createIdMap(),
   };
 }
 
@@ -704,10 +705,13 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             case 'tool-approval-request': {
               const toolInvocation = getToolInvocation(chunk.toolCallId);
               toolInvocation.state = 'approval-requested';
-              toolInvocation.approval =
-                chunk.isAutomatic === true
-                  ? { id: chunk.approvalId, isAutomatic: true }
-                  : { id: chunk.approvalId };
+              toolInvocation.approval = {
+                id: chunk.approvalId,
+                ...(chunk.isAutomatic === true ? { isAutomatic: true } : {}),
+                ...(chunk.signature != null
+                  ? { signature: chunk.signature }
+                  : {}),
+              };
               write();
               break;
             }
@@ -727,6 +731,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 approved: chunk.approved,
                 ...(chunk.reason != null ? { reason: chunk.reason } : {}),
                 ...(approval.isAutomatic === true ? { isAutomatic: true } : {}),
+                ...(approval.signature != null
+                  ? { signature: approval.signature }
+                  : {}),
               };
               if (chunk.providerExecuted != null) {
                 toolInvocation.providerExecuted = chunk.providerExecuted;
@@ -822,8 +829,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'finish-step': {
               // reset the current text and reasoning parts
-              state.activeTextParts = {};
-              state.activeReasoningParts = {};
+              state.activeTextParts = createIdMap();
+              state.activeReasoningParts = createIdMap();
               break;
             }
 

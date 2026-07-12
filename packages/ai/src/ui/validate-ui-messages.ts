@@ -9,6 +9,7 @@ import {
 import { z } from 'zod/v4';
 import { InvalidArgumentError } from '../error';
 import { jsonValueSchema } from '../types/json-value';
+import { getOwn } from '../util/get-own';
 import { providerMetadataSchema } from '../types/provider-metadata';
 import type {
   DataUIPart,
@@ -132,6 +133,7 @@ const uiMessagesSchema = lazySchema(() =>
                     approved: z.never().optional(),
                     reason: z.never().optional(),
                     isAutomatic: z.boolean().optional(),
+                    signature: z.string().optional(),
                   }),
                 }),
                 z.object({
@@ -150,6 +152,7 @@ const uiMessagesSchema = lazySchema(() =>
                     approved: z.boolean(),
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
+                    signature: z.string().optional(),
                   }),
                 }),
                 z.object({
@@ -171,6 +174,7 @@ const uiMessagesSchema = lazySchema(() =>
                       approved: z.literal(true),
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
+                      signature: z.string().optional(),
                     })
                     .optional(),
                 }),
@@ -193,6 +197,7 @@ const uiMessagesSchema = lazySchema(() =>
                       approved: z.literal(true),
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
+                      signature: z.string().optional(),
                     })
                     .optional(),
                 }),
@@ -212,6 +217,7 @@ const uiMessagesSchema = lazySchema(() =>
                     approved: z.literal(false),
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
+                    signature: z.string().optional(),
                   }),
                 }),
                 z.object({
@@ -253,6 +259,7 @@ const uiMessagesSchema = lazySchema(() =>
                     approved: z.never().optional(),
                     reason: z.never().optional(),
                     isAutomatic: z.boolean().optional(),
+                    signature: z.string().optional(),
                   }),
                 }),
                 z.object({
@@ -270,6 +277,7 @@ const uiMessagesSchema = lazySchema(() =>
                     approved: z.boolean(),
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
+                    signature: z.string().optional(),
                   }),
                 }),
                 z.object({
@@ -290,6 +298,7 @@ const uiMessagesSchema = lazySchema(() =>
                       approved: z.literal(true),
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
+                      signature: z.string().optional(),
                     })
                     .optional(),
                 }),
@@ -311,6 +320,7 @@ const uiMessagesSchema = lazySchema(() =>
                       approved: z.literal(true),
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
+                      signature: z.string().optional(),
                     })
                     .optional(),
                 }),
@@ -329,6 +339,7 @@ const uiMessagesSchema = lazySchema(() =>
                     approved: z.literal(false),
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
+                    signature: z.string().optional(),
                   }),
                 }),
               ]),
@@ -446,7 +457,7 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
               InferUIMessageTools<UI_MESSAGE>
             >;
             const toolName = toolPart.type.slice(5);
-            const tool = tools[toolName];
+            const tool = getOwn(tools, toolName);
 
             if (
               !tool &&

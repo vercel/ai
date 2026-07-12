@@ -88,6 +88,13 @@ await runAgentTUI({
               description:
                 'The model context window size in tokens. When provided, the terminal UI shows total token usage as a percentage of this context window.',
             },
+            {
+              name: 'sandbox',
+              type: 'Experimental_SandboxSession',
+              isOptional: true,
+              description:
+                'Sandbox session that is passed through to the agent as `experimental_sandbox` on every call.',
+            },
           ],
         },
       ],
@@ -100,6 +107,7 @@ await runAgentTUI({
 <PropertiesTable
   content={[
     {
+      name: 'returns',
       type: 'Promise<void>',
       description: 'A promise that resolves when the terminal UI exits.',
     },
@@ -159,6 +167,28 @@ await runAgentTUI({
   contextSize: 200_000,
 });
 ```
+
+## Example with Sandbox
+
+```ts
+import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
+
+const sandboxSession = await createJustBashSandbox({
+  cwd: '/home/user',
+}).createSession();
+
+await runAgentTUI({
+  title: 'Sandbox Assistant',
+  agent,
+  sandbox: sandboxSession.restricted(),
+});
+```
+
+The sandbox is forwarded to every `agent.stream()` call as
+`experimental_sandbox`, making it available to tool description functions and
+tool `execute` functions. Include the sandbox description in the agent
+instructions when the model should know sandbox-specific details such as the
+working directory or exposed ports.
 
 ## Compatibility
 

@@ -67,6 +67,7 @@ await runAgentTUI({
   tools: 'collapsed',
   reasoning: 'hidden',
   responseStatistics: 'outputTokenCount',
+  sandbox,
 });
 ```
 
@@ -77,3 +78,4 @@ Settings:
 - `tools`: tool call rendering mode. Use `"full"` to show tool input and output, `"collapsed"` to show only tool cards, `"auto-collapsed"` to show the latest tool expanded until another visible section appears, or `"hidden"` to omit tool calls. Defaults to `"auto-collapsed"`.
 - `reasoning`: reasoning rendering mode. Use `"full"` to show reasoning, `"collapsed"` to show only reasoning cards, `"auto-collapsed"` to show the latest reasoning expanded until another visible section appears, or `"hidden"` to omit reasoning. Defaults to `"auto-collapsed"`.
 - `responseStatistics`: response header statistic. Use `"outputTokensPerSecond"` to show output token throughput or `"outputTokenCount"` to show output token count. Defaults to `"outputTokensPerSecond"`.
+- `sandbox`: optional sandbox session forwarded to every agent call as `experimental_sandbox` for tool descriptions and tool execution.

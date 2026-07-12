@@ -16,6 +16,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { resolveLanguageModel } from '../model/resolve-model';
+import { getOwn } from '../util/get-own';
 import type { Instructions, Prompt } from '../prompt';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
@@ -320,16 +321,21 @@ export async function streamLanguageModelCall<
     callbacks: onStart,
   });
 
+  const languageModelCallContext = {
+    provider: resolvedModel.provider,
+    modelId: resolvedModel.modelId,
+    instructions: standardizedPrompt.instructions,
+    messages: standardizedPrompt.messages,
+    tools: stepTools,
+    ...callSettings,
+  };
+  const languageModelCallStartEvent = {
+    callId: effectiveCallId,
+    ...languageModelCallContext,
+  };
+
   await notify({
-    event: {
-      callId: effectiveCallId,
-      provider: resolvedModel.provider,
-      modelId: resolvedModel.modelId,
-      instructions: standardizedPrompt.instructions,
-      messages: standardizedPrompt.messages,
-      tools: stepTools,
-      ...callSettings,
-    },
+    event: languageModelCallStartEvent,
     callbacks: onLanguageModelCallStart,
   });
 
@@ -340,7 +346,7 @@ export async function streamLanguageModelCall<
     response,
     request,
   } = await executeLanguageModelCallInTelemetryContext({
-    callId: effectiveCallId,
+    ...languageModelCallStartEvent,
     execute: async () =>
       await resolvedModel.doStream({
         ...callSettings,
@@ -710,7 +716,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         }
 
         case 'tool-input-start': {
-          const tool = tools?.[chunk.toolName];
+          const tool = getOwn(tools, chunk.toolName);
 
           controller.enqueue({
             ...chunk,

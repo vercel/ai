@@ -25,6 +25,11 @@ export type MCPAppToolCallParams = {
 };
 
 export type MCPAppBridgeHandlers = {
+  /**
+   * Tools the MCP App is allowed to invoke via `tools/call`. Deny-by-default:
+   * if omitted, the (untrusted) app cannot call any tool. List only the tools
+   * the app is meant to see.
+   */
   allowedTools?: string[];
   callTool?: (params: MCPAppToolCallParams) => Promise<unknown> | unknown;
   readResource?: (params: { uri: string }) => Promise<unknown> | unknown;

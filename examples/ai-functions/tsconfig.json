@@ -55,6 +55,9 @@
       "path": "../../packages/bytedance"
     },
     {
+      "path": "../../packages/cartesia"
+    },
+    {
       "path": "../../packages/cerebras"
     },
     {
@@ -95,6 +98,24 @@
     },
     {
       "path": "../../packages/groq"
+    },
+    {
+      "path": "../../packages/harness"
+    },
+    {
+      "path": "../../packages/harness-claude-code"
+    },
+    {
+      "path": "../../packages/harness-codex"
+    },
+    {
+      "path": "../../packages/harness-deepagents"
+    },
+    {
+      "path": "../../packages/harness-opencode"
+    },
+    {
+      "path": "../../packages/harness-pi"
     },
     {
       "path": "../../packages/huggingface"
@@ -152,6 +173,12 @@
     },
     {
       "path": "../../packages/revai"
+    },
+    {
+      "path": "../../packages/sandbox-just-bash"
+    },
+    {
+      "path": "../../packages/sandbox-vercel"
     },
     {
       "path": "../../packages/togetherai"

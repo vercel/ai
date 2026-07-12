@@ -13,6 +13,9 @@
   ],
   "references": [
     {
+      "path": "../deepseek"
+    },
+    {
       "path": "../openai"
     },
     {

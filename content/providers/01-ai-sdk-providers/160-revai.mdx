@@ -11,21 +11,7 @@ The [Rev.ai](https://www.rev.ai/) provider contains language model support for t
 
 The Rev.ai provider is available in the `@ai-sdk/revai` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add @ai-sdk/revai" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install @ai-sdk/revai" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add @ai-sdk/revai" dark />
-  </Tab>
-
-  <Tab>
-    <Snippet text="bun add @ai-sdk/revai" dark />
-  </Tab>
-</Tabs>
+<InstallPackages packages="@ai-sdk/revai" />
 
 ## Provider Instance
 
@@ -78,7 +64,7 @@ const model = revai.transcription('machine');
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the input language in ISO-639-1 (e.g. `en`) format can sometimes improve transcription performance if known beforehand.
 
 ```ts highlight="7"
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import { revai } from '@ai-sdk/revai';
 import { type RevaiTranscriptionModelOptions } from '@ai-sdk/revai';
 import { readFile } from 'fs/promises';
@@ -214,8 +200,8 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model      | Transcription       | Duration            | Segments            | Language            |
-| ---------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `machine`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `low_cost` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `fusion`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model      | Transcription | Duration  | Segments  | Language  |
+| ---------- | ------------- | --------- | --------- | --------- |
+| `machine`  | <Check />     | <Check /> | <Check /> | <Check /> |
+| `low_cost` | <Check />     | <Check /> | <Check /> | <Check /> |
+| `fusion`   | <Check />     | <Check /> | <Check /> | <Check /> |

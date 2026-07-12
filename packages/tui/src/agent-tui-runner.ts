@@ -14,6 +14,7 @@ import {
   getToolName,
   isToolUIPart,
   type StepResultPerformance,
+  type Experimental_SandboxSession,
   type LanguageModelUsage,
   type TextStreamPart,
   type ToolSet,
@@ -93,6 +94,7 @@ export class AgentTUIRunner<TAgent extends AgentTUIAgent = AgentTUIAgent> {
   private readonly reasoning: TerminalPartDisplayMode;
   private readonly responseStatistics: ResponseStatisticsMode;
   private readonly contextSize?: number;
+  private readonly sandbox?: Experimental_SandboxSession;
 
   constructor(options: AgentTUIRunnerOptions<TAgent>) {
     this.agent = options.agent;
@@ -103,6 +105,7 @@ export class AgentTUIRunner<TAgent extends AgentTUIAgent = AgentTUIAgent> {
     this.responseStatistics =
       options.responseStatistics ?? defaultResponseStatistics;
     this.contextSize = options.contextSize;
+    this.sandbox = options.sandbox;
   }
 
   async run() {
@@ -216,6 +219,7 @@ export class AgentTUIRunner<TAgent extends AgentTUIAgent = AgentTUIAgent> {
       }),
       abortSignal: abortController.signal,
       options: undefined,
+      experimental_sandbox: this.sandbox,
     });
 
     return {

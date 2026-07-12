@@ -1,25 +1,22 @@
-import { Sandbox } from '@vercel/sandbox';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { run } from '../../lib/run';
-import { VercelSandboxSession } from '../../sandbox/vercel-sandbox';
 import { sandboxAgent } from './sandbox-agent';
 import { printFullStream } from '../../lib/print-full-stream';
 
 run(async () => {
-  const sandbox = new VercelSandboxSession(
-    await Sandbox.create({
-      timeout: 5 * 60 * 1000,
-      runtime: 'node22',
-    }),
-  );
+  const sandboxSession = await createVercelSandbox({
+    timeout: 5 * 60 * 1000,
+    runtime: 'node22',
+  }).createSession();
 
   try {
     const result = await sandboxAgent.stream({
       prompt: 'Run ls -la and tell me what you see.',
-      experimental_sandbox: sandbox,
+      experimental_sandbox: sandboxSession.restricted(),
     });
 
     await printFullStream({ result });
   } finally {
-    await sandbox.stop();
+    await sandboxSession.stop();
   }
 });
