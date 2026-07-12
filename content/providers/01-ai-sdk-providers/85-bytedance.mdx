@@ -92,8 +92,8 @@ const { image } = await generateImage({
 
 ### Image Editing
 
-ByteDance Seedream performs edits on the same endpoint as generation. Pass input
-images via `prompt.images` to transform an existing image (image-to-image):
+Pass input images via `prompt.images` to transform an existing image
+(image-to-image):
 
 ```ts
 import { readFileSync } from "node:fs";
@@ -182,8 +182,7 @@ type them with `ByteDanceImageModelOptions`.
   other models support `standard` only.
 
 <Note>
-  The output format is requested as `b64_json` automatically so the SDK receives
-  the image bytes. Additional ModelArk fields can also be passed through
+  Additional ModelArk fields can also be passed through
   `providerOptions.bytedance` and are validated by ModelArk.
 </Note>
 
