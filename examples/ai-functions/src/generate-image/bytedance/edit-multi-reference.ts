@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { byteDance, type ByteDanceImageModelOptions } from '@ai-sdk/bytedance';
 import { generateImage } from 'ai';
 import { presentImages } from '../../lib/present-image';
@@ -5,7 +6,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const prompt =
-    'Combine the style of image 1 with the subject of image 2 in a creative composition';
+    'Combine the cat from image 1 and the dog from image 2 into a single creative composition';
   console.log(`PROMPT: ${prompt}`);
 
   const result = await generateImage({
@@ -13,8 +14,8 @@ run(async () => {
     prompt: {
       text: prompt,
       images: [
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/1280px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg',
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Cat_November_2010-1a.jpg/1200px-Cat_November_2010-1a.jpg',
+        readFileSync('data/comic-cat.png'),
+        readFileSync('data/comic-dog.png'),
       ],
     },
     providerOptions: {
