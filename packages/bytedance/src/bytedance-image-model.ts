@@ -20,9 +20,6 @@ import {
 } from './bytedance-image-model-options';
 import type { ByteDanceImageModelId } from './bytedance-image-settings';
 
-// Provider options that are mapped explicitly to ByteDance request fields. Any
-// other key on `providerOptions.bytedance` is passed through to the request
-// body unchanged.
 const HANDLED_PROVIDER_OPTIONS = new Set([
   'watermark',
   'outputFormat',
@@ -111,10 +108,6 @@ export class ByteDanceImageModel implements ImageModelV4 {
       schema: byteDanceImageModelOptionsSchema,
     })) as ByteDanceImageModelOptions | undefined;
 
-    // ByteDance uses a single JSON endpoint for text-to-image and
-    // image-to-image. For editing / multi-image, the input images are passed
-    // in the `image` field (a single string or an array of strings) rather than
-    // a multipart `/images/edits` upload.
     const image =
       files != null && files.length > 0
         ? files.length === 1
