@@ -18,8 +18,12 @@ const MAX_DOWNLOAD_REDIRECTS = 10;
  * guard.
  *
  * Request headers are also protected: {@link sanitizeRequestHeaders} strips
- * proxy/metadata/cookie/hop-by-hop headers before the first request, and
- * `Authorization`/`Cookie` are dropped on a cross-origin redirect.
+ * proxy/metadata/cookie/hop-by-hop headers before the first request, and all
+ * caller headers except `User-Agent` are dropped on a cross-origin redirect.
+ * The fetch spec only strips `Authorization` on cross-origin redirects because
+ * in a browser, CORS preflighting protects custom headers; there is no CORS on
+ * the server, so provider API keys carried in custom headers (e.g. `x-key`)
+ * must be dropped here as well.
  *
  * A `redirect: 'manual'` request yields an unreadable opaque response in the
  * browser (and in other spec-compliant fetch implementations), so the redirect
@@ -94,11 +98,16 @@ export async function fetchWithValidatedRedirects({
       await cancelResponseBody(response);
       const nextUrl = new URL(location, currentUrl).toString();
 
-      // Drop credentials before following a redirect that crosses origin so
-      // Authorization / Cookie are never sent to a different host.
+      // Drop all caller headers except the user-agent before following a
+      // redirect that crosses origin. Only stripping Authorization (as the
+      // fetch spec does) is not enough on the server: providers authenticate
+      // with custom headers too (e.g. `x-key`), and without CORS there is
+      // nothing else stopping them from riding to a foreign host.
       if (currentHeaders !== undefined && !isSameOrigin(nextUrl, currentUrl)) {
-        currentHeaders.delete('authorization');
-        currentHeaders.delete('cookie');
+        const userAgent = currentHeaders.get('user-agent');
+        currentHeaders = new Headers(
+          userAgent == null ? undefined : { 'user-agent': userAgent },
+        );
       }
 
       currentUrl = nextUrl;
