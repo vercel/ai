@@ -15,6 +15,7 @@ import type { TranscriptionModel } from '../types/transcription-model';
 import type { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import type { Warning } from '../types/warning';
 import { asAsyncIterableStream } from '../util/async-iterable-stream';
+import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { VERSION } from '../version';
 import type {
   StreamTranscriptionResult,
@@ -253,7 +254,8 @@ export function streamTranscribe({
       audio,
       inputAudioFormat,
       providerOptions,
-      abortSignal,
+      // merged so cancelling fullStream also aborts a still-pending doStream
+      abortSignal: mergeAbortSignals(abortSignal, pipeAbortController.signal),
       headers: headersWithUserAgent,
       includeRawChunks,
     });

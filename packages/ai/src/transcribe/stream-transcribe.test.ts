@@ -85,7 +85,8 @@ describe('experimental_streamTranscribe', () => {
 
     await convertAsyncIterableToArray(result.fullStream);
 
-    expect(capturedArgs).toStrictEqual({
+    const { abortSignal: capturedSignal, ...capturedRest } = capturedArgs;
+    expect(capturedRest).toStrictEqual({
       audio,
       inputAudioFormat,
       providerOptions: { mock: { option: 'value' } },
@@ -93,9 +94,12 @@ describe('experimental_streamTranscribe', () => {
         'custom-request-header': 'request-header-value',
         'user-agent': 'ai/0.0.0-test',
       },
-      abortSignal,
       includeRawChunks: true,
     });
+    // the model receives a merged signal that follows the caller's signal
+    expect(capturedSignal?.aborted).toBe(false);
+    abortController.abort();
+    expect(capturedSignal?.aborted).toBe(true);
   });
 
   it('should stream transcript parts and resolve final metadata', async () => {
@@ -333,5 +337,26 @@ describe('experimental_streamTranscribe', () => {
       expect(modelStreamCancelled).toBe(true);
     });
     await expect(result.text).rejects.toThrow();
+  });
+
+  it('should abort a still-pending doStream when fullStream is cancelled', async () => {
+    let observedSignal: AbortSignal | undefined;
+
+    const result = streamTranscribe({
+      model: new MockTranscriptionModelV4({
+        doStream: ({ abortSignal }) => {
+          observedSignal = abortSignal;
+          return new Promise(() => {}); // setup that never completes
+        },
+      }),
+      audio: new ReadableStream(),
+      inputAudioFormat,
+    });
+
+    await result.fullStream.cancel();
+
+    await vi.waitFor(() => {
+      expect(observedSignal?.aborted).toBe(true);
+    });
   });
 });

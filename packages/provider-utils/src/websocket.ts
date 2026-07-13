@@ -64,19 +64,34 @@ export async function readWebSocketMessageText(data: unknown): Promise<string> {
   return String(data);
 }
 
+const WEBSOCKET_OPEN_STATE = 1;
+
 /**
  * Waits until the socket's send buffer drains below `highWaterMark` bytes.
  * No-op for implementations that do not expose `bufferedAmount`. There is no
- * portable drain event, so this polls.
+ * portable drain event, so this polls. Returns as soon as the socket is no
+ * longer open or the signal aborts — `bufferedAmount` never drains on a
+ * closed socket, so waiting on would poll forever.
  */
 export async function waitForWebSocketBufferDrain(
   socket: WebSocketLike,
   {
     highWaterMark = 1024 * 1024,
     pollIntervalMs = 20,
-  }: { highWaterMark?: number; pollIntervalMs?: number } = {},
+    abortSignal,
+  }: {
+    highWaterMark?: number;
+    pollIntervalMs?: number;
+    abortSignal?: AbortSignal;
+  } = {},
 ): Promise<void> {
-  while ((socket.bufferedAmount ?? 0) > highWaterMark) {
+  while (
+    socket.readyState === WEBSOCKET_OPEN_STATE &&
+    (socket.bufferedAmount ?? 0) > highWaterMark
+  ) {
+    if (abortSignal?.aborted === true) {
+      return;
+    }
     await delay(pollIntervalMs);
   }
 }

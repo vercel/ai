@@ -856,6 +856,33 @@ describe('doStream', () => {
     ).not.toContain('authorization');
   });
 
+  it('should let per-call authorization headers override configuration headers across casings', async () => {
+    MockWebSocket.instances = [];
+    const model = new OpenAITranscriptionModel('gpt-realtime-whisper', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://api.openai.com/v1${path}`,
+      headers: () => ({ Authorization: 'Bearer config-key' }),
+      webSocket: MockWebSocket,
+    });
+
+    const result = await model.doStream({
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+      // lowercase scheme + lowercase header key, both case-insensitive
+      headers: { authorization: 'bearer per-call-key' },
+    });
+
+    void result.stream.cancel();
+    const ws = MockWebSocket.instances[0];
+    expect(ws.protocols).toEqual([
+      'realtime',
+      'openai-insecure-api-key.per-call-key',
+    ]);
+    expect(
+      Object.keys(ws.options?.headers ?? {}).map(key => key.toLowerCase()),
+    ).not.toContain('authorization');
+  });
+
   it('should warn about unsupported non-streaming provider options', async () => {
     MockWebSocket.instances = [];
     const model = new OpenAITranscriptionModel('gpt-realtime-whisper', {

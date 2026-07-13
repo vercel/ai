@@ -48,4 +48,35 @@ describe('waitForWebSocketBufferDrain', () => {
     await wait;
     expect(drained).toBe(true);
   });
+
+  it('should resolve when the socket is no longer open even with a full buffer', async () => {
+    // bufferedAmount never drains on a closed socket
+    const socket = socketWithBuffer(100);
+    socket.readyState = 3;
+    await expect(
+      waitForWebSocketBufferDrain(socket, { highWaterMark: 10 }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('should resolve when the socket closes mid-wait', async () => {
+    const socket = socketWithBuffer(100);
+    const wait = waitForWebSocketBufferDrain(socket, {
+      highWaterMark: 10,
+      pollIntervalMs: 1,
+    });
+    socket.readyState = 3;
+    await expect(wait).resolves.toBeUndefined();
+  });
+
+  it('should resolve when the abort signal fires mid-wait', async () => {
+    const socket = socketWithBuffer(100);
+    const controller = new AbortController();
+    const wait = waitForWebSocketBufferDrain(socket, {
+      highWaterMark: 10,
+      pollIntervalMs: 1,
+      abortSignal: controller.signal,
+    });
+    controller.abort();
+    await expect(wait).resolves.toBeUndefined();
+  });
 });

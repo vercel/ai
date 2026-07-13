@@ -571,12 +571,16 @@ function getOpenAIRealtimeConnection(
   protocols: string[];
   headers: Record<string, string | undefined>;
 } {
-  const authorization = Object.entries(headers).find(
-    ([key, value]) => key.toLowerCase() === 'authorization' && value != null,
-  )?.[1];
-  const token = authorization?.startsWith('Bearer ')
-    ? authorization.slice('Bearer '.length)
-    : undefined;
+  // last case-variant wins: combineHeaders keeps case-distinct keys and
+  // spreads per-call headers after configuration headers
+  let authorization: string | undefined;
+  for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase() === 'authorization' && value != null) {
+      authorization = value;
+    }
+  }
+  // the HTTP auth scheme is case-insensitive
+  const token = authorization?.match(/^bearer\s+(.+)$/i)?.[1];
 
   if (token == null) {
     return { protocols: ['realtime'], headers };
