@@ -2,6 +2,7 @@ import type {
   EmbeddingModelV4,
   ImageModelV4,
   LanguageModelV4,
+  Experimental_VideoModelV4,
   ProviderV4,
 } from '@ai-sdk/provider';
 import {
@@ -17,6 +18,7 @@ import type { MetadataExtractor } from './chat/openai-compatible-metadata-extrac
 import { OpenAICompatibleCompletionLanguageModel } from './completion/openai-compatible-completion-language-model';
 import { OpenAICompatibleEmbeddingModel } from './embedding/openai-compatible-embedding-model';
 import { OpenAICompatibleImageModel } from './image/openai-compatible-image-model';
+import { OpenAICompatibleVideoModel } from './video/openai-compatible-video-model';
 import { VERSION } from './version';
 
 export interface OpenAICompatibleProvider<
@@ -24,6 +26,7 @@ export interface OpenAICompatibleProvider<
   COMPLETION_MODEL_IDS extends string = string,
   EMBEDDING_MODEL_IDS extends string = string,
   IMAGE_MODEL_IDS extends string = string,
+  VIDEO_MODEL_IDS extends string = string,
 > extends ProviderV4 {
   (modelId: CHAT_MODEL_IDS): LanguageModelV4;
 
@@ -44,6 +47,7 @@ export interface OpenAICompatibleProvider<
   textEmbeddingModel(modelId: EMBEDDING_MODEL_IDS): EmbeddingModelV4;
 
   imageModel(modelId: IMAGE_MODEL_IDS): ImageModelV4;
+  videoModel(modelId: VIDEO_MODEL_IDS): Experimental_VideoModelV4;
 }
 
 export interface OpenAICompatibleProviderSettings {
@@ -125,13 +129,15 @@ export function createOpenAICompatible<
   COMPLETION_MODEL_IDS extends string,
   EMBEDDING_MODEL_IDS extends string,
   IMAGE_MODEL_IDS extends string,
+  VIDEO_MODEL_IDS extends string,
 >(
   options: OpenAICompatibleProviderSettings,
 ): OpenAICompatibleProvider<
   CHAT_MODEL_IDS,
   COMPLETION_MODEL_IDS,
   EMBEDDING_MODEL_IDS,
-  IMAGE_MODEL_IDS
+  IMAGE_MODEL_IDS,
+  VIDEO_MODEL_IDS
 > {
   const baseURL = withoutTrailingSlash(options.baseURL);
   const providerName = options.name;
@@ -192,6 +198,9 @@ export function createOpenAICompatible<
   const createImageModel = (modelId: IMAGE_MODEL_IDS) =>
     new OpenAICompatibleImageModel(modelId, getCommonModelConfig('image'));
 
+  const createVideoModel = (modelId: VIDEO_MODEL_IDS) =>
+    new OpenAICompatibleVideoModel(modelId, getCommonModelConfig('video'));
+
   const provider = (modelId: CHAT_MODEL_IDS) => createLanguageModel(modelId);
 
   provider.specificationVersion = 'v4' as const;
@@ -201,11 +210,13 @@ export function createOpenAICompatible<
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.imageModel = createImageModel;
+  provider.videoModel = createVideoModel;
 
   return provider as OpenAICompatibleProvider<
     CHAT_MODEL_IDS,
     COMPLETION_MODEL_IDS,
     EMBEDDING_MODEL_IDS,
-    IMAGE_MODEL_IDS
+    IMAGE_MODEL_IDS,
+    VIDEO_MODEL_IDS
   >;
 }
