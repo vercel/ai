@@ -1,5 +1,13 @@
 # ai
 
+## 7.0.23
+
+### Patch Changes
+
+- 930f949: feat(ai): wrap embedMany in tracing channel context
+- Updated dependencies [867f80a]
+  - @ai-sdk/gateway@4.0.17
+
 ## 7.0.22
 
 ### Patch Changes
