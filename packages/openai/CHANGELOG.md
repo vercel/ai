@@ -1,5 +1,17 @@
 # @ai-sdk/openai
 
+## 4.0.13
+
+### Patch Changes
+
+- 7805e4a: Fix realtime transcription auth header handling: per-call `authorization` headers now override configuration headers regardless of header-key casing (last case-variant wins), and the `Bearer` scheme is matched case-insensitively.
+- cd12954: Reject empty OpenAI, Anthropic, and Replicate base URLs with a helpful AI SDK
+  invalid argument error.
+- Updated dependencies [4be62c1]
+- Updated dependencies [7805e4a]
+- Updated dependencies [cd12954]
+  - @ai-sdk/provider-utils@5.0.9
+
 ## 4.0.12
 
 ### Patch Changes

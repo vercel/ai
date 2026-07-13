@@ -1,5 +1,18 @@
 # ai
 
+## 7.0.25
+
+### Patch Changes
+
+- 7805e4a: Cancelling the `experimental_streamTranscribe` `fullStream` now also aborts a still-pending `doStream` setup, so a model whose `doStream` has not yet resolved is cancelled instead of leaking.
+- f8e82fd: Update the `experimental_streamTranscribe` unsupported-model error message now that gateway string model IDs can support streaming transcription.
+- Updated dependencies [4be62c1]
+- Updated dependencies [f8e82fd]
+- Updated dependencies [7805e4a]
+- Updated dependencies [cd12954]
+  - @ai-sdk/provider-utils@5.0.9
+  - @ai-sdk/gateway@4.0.19
+
 ## 7.0.24
 
 ### Patch Changes
