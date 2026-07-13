@@ -64,7 +64,10 @@ export async function fetchWithValidatedRedirects({
   const perHopInit = (redirect: RequestRedirect): RequestInit => {
     const init: RequestInit = { signal: abortSignal, redirect };
     if (currentHeaders !== undefined) {
-      init.headers = currentHeaders;
+      // Snapshot per hop: the platform fetch reads headers synchronously, but
+      // an injected fetch may defer, and a later cross-origin drop must not
+      // mutate what an earlier hop observes.
+      init.headers = new Headers(currentHeaders);
     }
     return init;
   };
