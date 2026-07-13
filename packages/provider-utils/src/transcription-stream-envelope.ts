@@ -53,7 +53,7 @@ export const TRANSCRIPTION_STREAM_AUDIO_DONE_FRAME_TYPE =
 /**
  * The client's session start frame. Optional keys are omitted when undefined.
  */
-export type Experimental_TranscriptionStreamStartFrame = {
+export type TranscriptionStreamStartFrame = {
   type: typeof TRANSCRIPTION_STREAM_START_FRAME_TYPE;
 
   /** Audio format of the binary audio frames, e.g. `{ type: 'audio/pcm', rate: 16000 }`. */
@@ -70,10 +70,10 @@ export type Experimental_TranscriptionStreamStartFrame = {
 };
 
 /** Server-side classification of a client TEXT frame. */
-export type Experimental_TranscriptionStreamClientFrame =
+export type TranscriptionStreamClientFrame =
   | {
       type: 'start';
-      frame: Experimental_TranscriptionStreamStartFrame;
+      frame: TranscriptionStreamStartFrame;
     }
   | {
       type: 'audio-done';
@@ -95,7 +95,7 @@ export type Experimental_TranscriptionStreamClientFrame =
  */
 export function parseTranscriptionStreamClientFrame(
   text: string,
-): Experimental_TranscriptionStreamClientFrame {
+): TranscriptionStreamClientFrame {
   let value: unknown;
   try {
     value = secureJsonParse(text);
@@ -162,7 +162,7 @@ export function parseTranscriptionStreamClientFrame(
       }
       return {
         type: 'start',
-        frame: frame as Experimental_TranscriptionStreamStartFrame,
+        frame: frame as TranscriptionStreamStartFrame,
       };
     }
 
@@ -210,8 +210,9 @@ function isError(value: unknown): value is Error {
  * Client-side: parse a server TEXT frame into a transcription stream part.
  * Returns `undefined` for malformed or unsafe (prototype-polluting) JSON
  * (parsed with `secureJsonParse`), unknown part types, and known part types
- * whose required fields are missing or mistyped — downstream SDK code
- * dereferences those fields, so a drifted server must not crash the stream.
+ * whose required or optional fields are missing or mistyped (including
+ * warning and segment elements) — downstream SDK code dereferences those
+ * fields, so a drifted server must not crash or pollute the stream.
  * Revives `response-metadata.timestamp` to a `Date`.
  */
 export function parseTranscriptionStreamPart(
@@ -232,26 +233,56 @@ export function parseTranscriptionStreamPart(
 
   switch (part.type) {
     case 'stream-start':
-      // warning elements are dereferenced downstream (e.g. logWarnings)
-      return Array.isArray(part.warnings) && part.warnings.every(isPlainObject)
+      return Array.isArray(part.warnings) && part.warnings.every(isWarning)
         ? part
         : undefined;
 
     case 'transcript-delta':
-      return typeof part.delta === 'string' ? part : undefined;
+      return isString(part.delta) &&
+        isOptional(part.id, isString) &&
+        isOptional(part.providerMetadata, isPlainObject)
+        ? part
+        : undefined;
 
     case 'transcript-partial':
+      return isString(part.text) &&
+        isOptional(part.id, isString) &&
+        isOptional(part.startSecond, isNumber) &&
+        isOptional(part.durationInSeconds, isNumber) &&
+        isOptional(part.channelIndex, isNumber) &&
+        isOptional(part.providerMetadata, isPlainObject)
+        ? part
+        : undefined;
+
     case 'transcript-final':
-      return typeof part.text === 'string' ? part : undefined;
+      return isString(part.text) &&
+        isOptional(part.id, isString) &&
+        isOptional(part.startSecond, isNumber) &&
+        isOptional(part.endSecond, isNumber) &&
+        isOptional(part.channelIndex, isNumber) &&
+        isOptional(part.providerMetadata, isPlainObject)
+        ? part
+        : undefined;
 
     case 'finish':
-      return typeof part.text === 'string' &&
+      return isString(part.text) &&
         Array.isArray(part.segments) &&
-        part.segments.every(isPlainObject)
+        part.segments.every(isSegment) &&
+        isOptional(part.language, isString) &&
+        isOptional(part.durationInSeconds, isNumber) &&
+        isOptional(part.providerMetadata, isPlainObject)
         ? part
         : undefined;
 
     case 'response-metadata': {
+      if (
+        !(
+          isOptional(part.modelId, isString) &&
+          isOptional(part.headers, isPlainObject)
+        )
+      ) {
+        return undefined;
+      }
       // Envelope rule 4: timestamps ride as ISO 8601 strings.
       const timestamp: unknown = part.timestamp;
       if (timestamp == null) {
@@ -277,6 +308,34 @@ export function parseTranscriptionStreamPart(
   }
 }
 
+function isString(value: unknown): value is string {
+  return typeof value === 'string';
+}
+
+function isNumber(value: unknown): value is number {
+  return typeof value === 'number';
+}
+
+function isOptional(
+  value: unknown,
+  check: (value: unknown) => boolean,
+): boolean {
+  return value === undefined || check(value);
+}
+
 function isPlainObject(value: unknown): boolean {
   return typeof value === 'object' && value != null && !Array.isArray(value);
+}
+
+function isWarning(value: unknown): boolean {
+  return isPlainObject(value) && isString((value as { type?: unknown }).type);
+}
+
+function isSegment(value: unknown): boolean {
+  return (
+    isPlainObject(value) &&
+    isString((value as { text?: unknown }).text) &&
+    isNumber((value as { startSecond?: unknown }).startSecond) &&
+    isNumber((value as { endSecond?: unknown }).endSecond)
+  );
 }

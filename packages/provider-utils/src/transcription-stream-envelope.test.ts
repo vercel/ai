@@ -402,6 +402,54 @@ describe('parseTranscriptionStreamPart', () => {
     ],
     ['raw without rawValue', { type: 'raw' }],
     ['error without error', { type: 'error' }],
+    [
+      'stream-start with warning elements missing a type',
+      { type: 'stream-start', warnings: [{ message: 'no type' }] },
+    ],
+    [
+      'stream-start with non-string warning types',
+      { type: 'stream-start', warnings: [{ type: 42 }] },
+    ],
+    [
+      'transcript-delta with a numeric id',
+      { type: 'transcript-delta', delta: 'Hel', id: 42 },
+    ],
+    [
+      'transcript-partial with a non-numeric startSecond',
+      { type: 'transcript-partial', text: 'Hel', startSecond: 'zero' },
+    ],
+    [
+      'transcript-final with a numeric id',
+      { type: 'transcript-final', text: 'Hello', id: 7 },
+    ],
+    [
+      'transcript-final with a non-numeric endSecond',
+      { type: 'transcript-final', text: 'Hello', endSecond: 'one' },
+    ],
+    [
+      'finish with incomplete segment elements',
+      { type: 'finish', text: 'Hello', segments: [{}] },
+    ],
+    [
+      'finish with mistyped segment timings',
+      {
+        type: 'finish',
+        text: 'Hello',
+        segments: [{ text: 'Hello', startSecond: 'zero', endSecond: 1 }],
+      },
+    ],
+    [
+      'finish with a non-string language',
+      { type: 'finish', text: 'Hello', segments: [], language: 42 },
+    ],
+    [
+      'finish with a non-numeric durationInSeconds',
+      { type: 'finish', text: 'Hello', segments: [], durationInSeconds: '7' },
+    ],
+    [
+      'response-metadata with a non-string modelId',
+      { type: 'response-metadata', modelId: 42 },
+    ],
   ])('should return undefined for %s', (_name, part) => {
     expect(parseTranscriptionStreamPart(JSON.stringify(part))).toBeUndefined();
   });
