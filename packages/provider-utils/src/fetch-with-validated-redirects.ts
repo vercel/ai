@@ -74,14 +74,17 @@ export async function fetchWithValidatedRedirects({
   trustedOrigin?: string;
 }): Promise<Response> {
   // Left undefined when no headers are provided (bare request); otherwise
-  // sanitized once and mutated in place across hops (cross-origin drop below).
+  // sanitized once and replaced on a cross-origin hop (credential drop below).
   let currentHeaders =
     headers === undefined ? undefined : sanitizeRequestHeaders(headers);
 
   const perHopInit = (redirect: RequestRedirect): RequestInit => {
     const init: RequestInit = { signal: abortSignal, redirect };
     if (currentHeaders !== undefined) {
-      init.headers = currentHeaders;
+      // Snapshot per hop: the platform fetch reads headers synchronously, but
+      // an injected fetch may defer, and hops between credential drops would
+      // otherwise share one instance.
+      init.headers = new Headers(currentHeaders);
     }
     return init;
   };

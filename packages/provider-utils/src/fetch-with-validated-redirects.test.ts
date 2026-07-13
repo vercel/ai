@@ -188,6 +188,27 @@ describe('fetchWithValidatedRedirects', () => {
     });
   });
 
+  it('passes each hop an independent header snapshot (later hops must not mutate earlier ones)', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(redirectResponse('https://other.example.net/a'))
+      .mockResolvedValueOnce(okResponse());
+
+    await fetchWithValidatedRedirects({
+      url: 'https://example.com/file',
+      headers: { authorization: 'Bearer secret' },
+      fetch: fetchMock,
+    });
+
+    const firstHop = fetchMock.mock.calls[0][1].headers as Headers;
+    const secondHop = fetchMock.mock.calls[1][1].headers as Headers;
+    expect(firstHop).not.toBe(secondHop);
+    // The cross-origin credential drop on the second hop must not be visible
+    // in the header set the first hop was issued with.
+    expect(firstHop.get('authorization')).toBe('Bearer secret');
+    expect(secondHop.get('authorization')).toBeNull();
+  });
+
   it('skips validation for hops same-origin with trustedOrigin', async () => {
     // A self-hosted deployment: the configured origin is private, and its
     // response URLs (and same-origin redirects) point back at it.
