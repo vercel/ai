@@ -88,14 +88,29 @@ export function connectToWebSocket({
   }
 
   const openedSocket = socket;
-  socket.onopen = () => onOpen?.(openedSocket);
+  socket.onopen = () => {
+    try {
+      onOpen?.(openedSocket);
+    } catch (error) {
+      onProcessingError(error);
+    }
+  };
+  // Messages are processed through a promise tail so async decoding (e.g.
+  // Blob frames) cannot reorder them, and error/close handling cannot
+  // overtake a still-decoding terminal frame.
+  let tail: Promise<void> = Promise.resolve();
   socket.onmessage = event => {
-    void readWebSocketMessageText(event.data)
+    tail = tail
+      .then(() => readWebSocketMessageText(event.data))
       .then(text => onMessageText(text))
       .catch(onProcessingError);
   };
-  socket.onerror = () => onSocketError?.();
-  socket.onclose = () => onClose?.();
+  socket.onerror = () => {
+    tail = tail.then(() => onSocketError?.()).catch(onProcessingError);
+  };
+  socket.onclose = () => {
+    tail = tail.then(() => onClose?.()).catch(onProcessingError);
+  };
 
   return { socket, close };
 }

@@ -469,6 +469,45 @@ describe('doStream', () => {
     expect(audioCancelled).toBe(true);
   });
 
+  it('should cancel the audio stream when an audio send throws mid-stream', async () => {
+    MockWebSocket.instances = [];
+    let audioCancelled = false;
+    const audio = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array([1, 2, 3]));
+      },
+      cancel() {
+        audioCancelled = true;
+      },
+    });
+    const model = new XaiTranscriptionModel('', {
+      provider: 'xai.transcription',
+      baseURL: 'https://api.x.ai/v1',
+      headers: () => ({ Authorization: 'Bearer test-api-key' }),
+      webSocket: MockWebSocket,
+    });
+
+    const result = await model.doStream({
+      audio,
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    // subscribe before triggering the failure: the stream errors while
+    // flushing, and an unsubscribed rejection fails the vitest run
+    const assertion = expect(partsPromise).rejects.toThrow('send failed');
+    const ws = MockWebSocket.instances[0];
+    ws.send.mockImplementation((data: unknown) => {
+      if (data instanceof Uint8Array) {
+        throw new Error('send failed');
+      }
+    });
+
+    ws.message({ type: 'transcript.created' });
+    await assertion;
+    expect(audioCancelled).toBe(true);
+  });
+
   // live API behavior: finals are re-sent (`speech_final` false then true)
   // and `transcript.done` carries an empty `text`.
   it('should emit one transcript-final per utterance and reconstruct the finish text when transcript.done is empty', async () => {

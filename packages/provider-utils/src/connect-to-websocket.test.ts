@@ -126,7 +126,7 @@ describe('connectToWebSocket', () => {
     expect(onMessageText).toHaveBeenCalledWith('frame-2');
   });
 
-  it('should route open, socket error, and close events', () => {
+  it('should route open, socket error, and close events', async () => {
     MockWebSocket.instances = [];
     const onOpen = vi.fn();
     const onSocketError = vi.fn();
@@ -139,8 +139,49 @@ describe('connectToWebSocket', () => {
     ws.onerror?.({});
     ws.onclose?.({});
     expect(onOpen).toHaveBeenCalledWith(ws);
+    await flush();
     expect(onSocketError).toHaveBeenCalledOnce();
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('should route onOpen throws to onProcessingError', () => {
+    MockWebSocket.instances = [];
+    const onProcessingError = vi.fn();
+
+    connectToWebSocket({
+      ...baseOptions,
+      onProcessingError,
+      onOpen: () => {
+        throw new Error('send failed');
+      },
+    });
+
+    MockWebSocket.instances[0].onopen?.({});
+    expect(onProcessingError).toHaveBeenCalledWith(new Error('send failed'));
+  });
+
+  it('should process messages in order and run close after pending messages', async () => {
+    MockWebSocket.instances = [];
+    const events: string[] = [];
+    const onClose = vi.fn(() => {
+      events.push('close');
+    });
+
+    connectToWebSocket({
+      ...baseOptions,
+      onMessageText: text => {
+        events.push(text);
+      },
+      onClose,
+    });
+
+    const ws = MockWebSocket.instances[0];
+    // Blob decoding is genuinely async; a string frame decodes immediately.
+    ws.onmessage?.({ data: new Blob(['slow-frame']) });
+    ws.onmessage?.({ data: 'fast-frame' });
+    ws.onclose?.({});
+    await vi.waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(events).toEqual(['slow-frame', 'fast-frame', 'close']);
   });
 
   it('should close the socket with the code and swallow close throws', () => {

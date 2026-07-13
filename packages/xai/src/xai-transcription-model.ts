@@ -15,6 +15,7 @@ import {
   safeParseJSON,
   serializeModelOptions,
   toWebSocketUrl,
+  waitForWebSocketBufferDrain,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
   type FetchFunction,
@@ -332,9 +333,13 @@ function createXaiStreamingTranscriptionStream({
                 ? value
                 : convertBase64ToUint8Array(value),
             );
+            // backpressure: pause reads while the socket buffer is full
+            await waitForWebSocketBufferDrain(socket);
           }
         } finally {
           audioReader.releaseLock();
+          // unlocked again: cleanup must cancel `audio`, not the reader
+          audioReader = undefined;
         }
         if (!finished) {
           socket.send(JSON.stringify({ type: 'audio.done' }));

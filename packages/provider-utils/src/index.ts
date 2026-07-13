@@ -103,6 +103,7 @@ export {
   getWebSocketConstructor,
   readWebSocketMessageText,
   toWebSocketUrl,
+  waitForWebSocketBufferDrain,
   type WebSocketConstructor,
   type WebSocketLike,
 } from './websocket';

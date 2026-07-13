@@ -19,6 +19,7 @@ import {
   toWebSocketUrl,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
+  waitForWebSocketBufferDrain,
   type WebSocketConnection,
   type WebSocketLike,
 } from '@ai-sdk/provider-utils';
@@ -443,9 +444,13 @@ function createOpenAIRealtimeTranscriptionStream({
                 audio: convertToBase64(value),
               }),
             );
+            // backpressure: pause reads while the socket buffer is full
+            await waitForWebSocketBufferDrain(socket);
           }
         } finally {
           audioReader.releaseLock();
+          // unlocked again: cleanup must cancel `audio`, not the reader
+          audioReader = undefined;
         }
         if (!finished) {
           socket.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
@@ -566,7 +571,9 @@ function getOpenAIRealtimeConnection(
   protocols: string[];
   headers: Record<string, string | undefined>;
 } {
-  const authorization = headers.Authorization ?? headers.authorization;
+  const authorization = Object.entries(headers).find(
+    ([key, value]) => key.toLowerCase() === 'authorization' && value != null,
+  )?.[1];
   const token = authorization?.startsWith('Bearer ')
     ? authorization.slice('Bearer '.length)
     : undefined;
@@ -575,14 +582,12 @@ function getOpenAIRealtimeConnection(
     return { protocols: ['realtime'], headers };
   }
 
-  const {
-    Authorization: _authorization,
-    authorization: _authorizationLowercase,
-    ...headersWithoutAuthorization
-  } = headers;
-
   return {
     protocols: ['realtime', `openai-insecure-api-key.${token}`],
-    headers: headersWithoutAuthorization,
+    headers: Object.fromEntries(
+      Object.entries(headers).filter(
+        ([key]) => key.toLowerCase() !== 'authorization',
+      ),
+    ),
   };
 }

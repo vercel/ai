@@ -792,6 +792,70 @@ describe('doStream', () => {
     expect(audioCancelled).toBe(true);
   });
 
+  it('should cancel the audio stream when an audio send throws mid-stream', async () => {
+    MockWebSocket.instances = [];
+    let audioCancelled = false;
+    const audio = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array([1, 2, 3]));
+      },
+      cancel() {
+        audioCancelled = true;
+      },
+    });
+    const model = new OpenAITranscriptionModel('gpt-realtime-whisper', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://api.openai.com/v1${path}`,
+      headers: () => ({ Authorization: 'Bearer test-api-key' }),
+      webSocket: MockWebSocket,
+    });
+
+    const result = await model.doStream({
+      audio,
+      inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    // subscribe before triggering the failure: the stream errors while
+    // flushing, and an unsubscribed rejection fails the vitest run
+    const assertion = expect(partsPromise).rejects.toThrow('send failed');
+    const ws = MockWebSocket.instances[0];
+    ws.send.mockImplementation((data: string) => {
+      if (String(data).includes('input_audio_buffer.append')) {
+        throw new Error('send failed');
+      }
+    });
+
+    ws.open();
+    await assertion;
+    expect(audioCancelled).toBe(true);
+  });
+
+  it('should carry mixed-case Authorization headers into the subprotocol and strip them', async () => {
+    MockWebSocket.instances = [];
+    const model = new OpenAITranscriptionModel('gpt-realtime-whisper', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://api.openai.com/v1${path}`,
+      headers: () => ({ AUTHORIZATION: 'Bearer test-api-key' }),
+      webSocket: MockWebSocket,
+    });
+
+    const result = await model.doStream({
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+    });
+
+    void result.stream.cancel();
+    const ws = MockWebSocket.instances[0];
+    expect(ws.protocols).toEqual([
+      'realtime',
+      'openai-insecure-api-key.test-api-key',
+    ]);
+    expect(
+      Object.keys(ws.options?.headers ?? {}).map(key => key.toLowerCase()),
+    ).not.toContain('authorization');
+  });
+
   it('should warn about unsupported non-streaming provider options', async () => {
     MockWebSocket.instances = [];
     const model = new OpenAITranscriptionModel('gpt-realtime-whisper', {
