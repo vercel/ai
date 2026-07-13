@@ -1,5 +1,15 @@
 # @ai-sdk/openai
 
+## 4.0.12
+
+### Patch Changes
+
+- e193290: Add `connectToWebSocket` to `@ai-sdk/provider-utils`: a shared WebSocket connect layer (constructor resolution, header hygiene, abort wiring, message decoding) analogous to `postToApi` for HTTP. The openai and xai streaming transcription models now use it instead of hand-rolled connects. For openai and xai this also means WebSocket constructor failures now surface as stream errors instead of throwing synchronously from `doStream`, an already-aborted signal no longer constructs a socket, and the caller's audio stream is cancelled on pre-open failures. Messages are processed in order with close handling deferred behind pending frames, audio send loops apply backpressure via the socket's bufferedAmount, and failed sends cancel the caller's audio stream.
+- e193290: Fix streaming transcription over header-capable WebSocket implementations: the realtime WebSocket handshake sent the api key in both the `openai-insecure-api-key` subprotocol and the `Authorization` header, which OpenAI rejects ("You must only send one of protocol api key and Authorization header"). The Authorization header is now stripped when the subprotocol carries the key.
+- e193290: Strip undefined header values before the streaming transcription WebSocket constructor (header-capable implementations like `ws` throw on undefined values).
+- Updated dependencies [e193290]
+  - @ai-sdk/provider-utils@5.0.8
+
 ## 4.0.11
 
 ### Patch Changes

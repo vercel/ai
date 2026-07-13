@@ -251,7 +251,7 @@ describe('serializeTranscriptionStreamPart', () => {
   });
 
   it.each<[string, unknown]>([
-    ['a bigint payload', { big: 1n }],
+    ['a bigint payload', { big: BigInt(1) }],
     [
       'a cyclic payload',
       (() => {
