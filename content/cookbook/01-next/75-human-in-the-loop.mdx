@@ -329,6 +329,10 @@ export async function POST(req: Request) {
 
 In this example, only payments over $1000 require approval. Smaller amounts execute automatically.
 
+### Revalidate Mutable State
+
+Approval confirms the tool input shown to the user; it does not freeze external state. Before an approved tool performs a side effect using mutable data, fetch the current authoritative values and compare every security-relevant field, such as the amount, recipient, asset, and network, with the values the user approved. If anything changed, stop and request approval again. Use an idempotency key for the side-effect request so retries cannot duplicate the action.
+
 ### Handling Denial
 
 When a user denies a tool execution, the model receives the denial and can respond accordingly. To prevent the model from retrying the same tool call, add an instruction:
