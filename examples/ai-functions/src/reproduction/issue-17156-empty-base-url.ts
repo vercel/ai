@@ -121,15 +121,6 @@ async function main() {
   });
 
   const primaryResults = [explicitOpenAI, environmentOpenAI];
-  const output = {
-    expected:
-      'OpenAI provider creation rejects an empty baseURL with a helpful AI SDK error mentioning the invalid base URL.',
-    primaryResults,
-    secondaryOtherProviderCheck: explicitAnthropic,
-  };
-
-  console.log(JSON.stringify(output, null, 2));
-
   const primaryFailures = primaryResults.filter(
     result => !isHelpfulBaseURLError(result),
   );
@@ -144,6 +135,28 @@ async function main() {
         .join('; ')}`,
     );
   }
+
+  if (!isHelpfulBaseURLError(explicitAnthropic)) {
+    throw new Error(
+      `Other provider check failed: ${explicitAnthropic.scenario} failed during ${explicitAnthropic.failurePhase} with ${explicitAnthropic.error?.name}: ${explicitAnthropic.error?.message}`,
+    );
+  }
+
+  const liveResult = await generateText({
+    model: createOpenAI()('gpt-4o-mini'),
+    prompt: 'Reply with exactly: empty base URL validation works',
+    maxOutputTokens: 20,
+  });
+
+  const output = {
+    expected:
+      'OpenAI provider creation rejects an empty baseURL with a helpful AI SDK error mentioning the invalid base URL.',
+    primaryResults,
+    secondaryOtherProviderCheck: explicitAnthropic,
+    liveOpenAIResponse: liveResult.text,
+  };
+
+  console.log(JSON.stringify(output, null, 2));
 }
 
 main().catch(error => {
