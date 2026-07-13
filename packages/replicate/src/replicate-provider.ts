@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  validateBaseURL,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -74,7 +75,8 @@ export function createReplicate(
   options: ReplicateProviderSettings = {},
 ): ReplicateProvider {
   const baseURL =
-    withoutTrailingSlash(options.baseURL) ?? 'https://api.replicate.com/v1';
+    withoutTrailingSlash(validateBaseURL(options.baseURL)) ??
+    'https://api.replicate.com/v1';
 
   const getHeaders = () =>
     withUserAgentSuffix(
