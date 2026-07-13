@@ -1,8 +1,13 @@
 # Secure URL handling
 
-When a provider fetches a URL with `getFromApi`, the `validateUrl` flag is
-**required** — there is no default, so every call site makes an explicit trust
-decision.
+When a provider fetches a URL with `getFromApi`, always set the `validateUrl`
+flag explicitly so every call site makes a visible trust decision. The option
+is optional in the type only for backwards compatibility with external callers
+of `@ai-sdk/provider-utils`; omitting it behaves like `false` (no validation),
+so provider code in this repository must never leave it out. The
+`ai-sdk/require-validate-url` oxlint rule (`tools/oxlint-plugin-ai-sdk`)
+enforces this in CI: `pnpm check` fails for any `getFromApi` call without an
+explicit `validateUrl`.
 
 ## Deciding `true` vs `false`
 

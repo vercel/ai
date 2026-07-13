@@ -31,15 +31,18 @@ export const getFromApi = async <T>({
   abortSignal?: AbortSignal;
   fetch?: FetchFunction;
   /**
-   * Required. Set `true` when `url` is untrusted (e.g. taken from a provider
-   * response body): it is routed through {@link fetchWithValidatedRedirects},
-   * which rejects private/loopback/link-local targets and re-validates redirect
+   * Set `true` when `url` is untrusted (e.g. taken from a provider response
+   * body): it is routed through {@link fetchWithValidatedRedirects}, which
+   * rejects private/loopback/link-local targets and re-validates redirect
    * hops; blocked URLs throw `DownloadError`. Set `false` only for URLs built
-   * from a developer-configured endpoint. It is required (no default) so every
-   * call site makes an explicit trust decision rather than inheriting an
-   * unsafe one.
+   * from a developer-configured endpoint.
+   *
+   * Optional for backwards compatibility with existing callers; omitting it
+   * behaves like `false` (no validation). Provider code in this repository
+   * must always pass it explicitly so every call site makes a visible trust
+   * decision — see `contributing/secure-url-handling.md`.
    */
-  validateUrl: boolean;
+  validateUrl?: boolean;
   /**
    * When set, `headers` are sent only if `url` is same-origin with this origin
    * (the user-agent suffix is always kept). Pass the provider's configured

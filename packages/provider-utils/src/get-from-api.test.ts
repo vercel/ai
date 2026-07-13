@@ -366,6 +366,24 @@ describe('getFromApi', () => {
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
+    it('does not validate the URL when validateUrl is omitted (backwards compatibility)', async () => {
+      const mockFetch = vi.fn().mockResolvedValue(okJson());
+
+      // oxlint-disable-next-line ai-sdk/require-validate-url -- deliberately omitted: this test pins the backwards-compatible default
+      await getFromApi({
+        url: 'http://127.0.0.1/file',
+        successfulResponseHandler:
+          createJsonResponseHandler(mockResponseSchema),
+        failedResponseHandler: createStatusCodeErrorResponseHandler(),
+        fetch: mockFetch,
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://127.0.0.1/file',
+        expect.objectContaining({ method: 'GET' }),
+      );
+    });
+
     it('does not validate the URL when validateUrl is false', async () => {
       const mockFetch = vi.fn().mockResolvedValue(okJson());
 
