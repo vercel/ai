@@ -16,9 +16,9 @@
 "@ai-sdk/revai": patch
 ---
 
-fix(provider-utils): validate provider-response URLs in `getFromApi` and make the trust decision required
+fix(provider-utils): validate provider-response URLs in `getFromApi`
 
-`getFromApi` now has a **required** `validateUrl` flag (no default) so every call site makes an explicit trust decision instead of inheriting an unsafe one. When `true`, the URL is routed through `fetchWithValidatedRedirects` — the same guard used by `downloadBlob` — which rejects private/loopback/link-local targets, re-validates every redirect hop, strips proxy/metadata/cookie request headers, and drops `Authorization`/`Cookie` on cross-origin redirects; blocked URLs throw `DownloadError`. It is enabled at the image/video/audio download and polling call sites where the URL comes from a provider response body; URLs built from developer-configured endpoints pass `validateUrl: false` and are unaffected.
+`getFromApi` now has a `validateUrl` flag. It is optional so existing callers keep compiling (omitting it behaves like `false`, i.e. no validation), but all AI SDK provider packages set it explicitly at every call site so each one makes a visible trust decision. When `true`, the URL is routed through `fetchWithValidatedRedirects` — the same guard used by `downloadBlob` — which rejects private/loopback/link-local targets, re-validates every redirect hop, strips proxy/metadata/cookie request headers, and drops `Authorization`/`Cookie` on cross-origin redirects; blocked URLs throw `DownloadError`. It is enabled at the image/video/audio download and polling call sites where the URL comes from a provider response body; URLs built from developer-configured endpoints pass `validateUrl: false` and are unaffected.
 
 A new optional `credentialedOrigin` withholds caller headers unless the URL is same-origin with it, so the API key is not sent to a response-supplied host on a different origin.
 
