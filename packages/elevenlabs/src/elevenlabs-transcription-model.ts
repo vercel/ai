@@ -91,7 +91,10 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
       };
 
       if (typeof elevenlabsOptions.diarize === 'boolean') {
-        formData.append('diarize', String(elevenlabsOptions.diarize));
+        // `set`, not `append`: a default `diarize=true` is written above, and appending would
+        // send the field twice (`diarize=true` *and* `diarize=false`), leaving it to the server
+        // to pick — so an explicit `diarize: false` could be silently ignored.
+        formData.set('diarize', String(elevenlabsOptions.diarize));
       }
 
       for (const key in transcriptionModelOptions) {

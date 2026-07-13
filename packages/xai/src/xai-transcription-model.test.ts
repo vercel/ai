@@ -127,7 +127,10 @@ describe('doGenerate', () => {
       multichannel: 'true',
       channels: '2',
       diarize: 'true',
-      keyterm: 'Grok',
+      // xAI takes multiple keyterms as repeated `keyterm` fields, and the model appends one per
+      // entry. This read `'Grok'` only because the multipart test helper used to overwrite
+      // repeated keys, dropping every value but the last — the request always carried both.
+      keyterm: ['AI SDK', 'Grok'],
       filler_words: 'true',
     });
   });
