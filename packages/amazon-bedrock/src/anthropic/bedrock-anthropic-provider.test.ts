@@ -479,16 +479,15 @@ describe('bedrock-anthropic-provider', () => {
   });
 
   it('should translate eager_input_streaming on tools into the fine-grained-tool-streaming beta', () => {
-    const provider = createAmazonBedrockAnthropic({
+    const provider = createBedrockAnthropic({
       region: 'us-east-1',
       accessKeyId: 'test-key',
       secretAccessKey: 'test-secret',
     });
     provider('test-model-id');
 
-    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
-      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
-    ];
+    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
+      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
     const config = constructorCall[1];
 
     const transformedBody = config.transformRequestBody?.(
@@ -521,16 +520,15 @@ describe('bedrock-anthropic-provider', () => {
   });
 
   it('should not add the fine-grained-tool-streaming beta when no tool has eager_input_streaming', () => {
-    const provider = createAmazonBedrockAnthropic({
+    const provider = createBedrockAnthropic({
       region: 'us-east-1',
       accessKeyId: 'test-key',
       secretAccessKey: 'test-secret',
     });
     provider('test-model-id');
 
-    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
-      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
-    ];
+    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
+      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
     const config = constructorCall[1];
 
     const transformedBody = config.transformRequestBody?.(
@@ -552,16 +550,15 @@ describe('bedrock-anthropic-provider', () => {
   });
 
   it('should strip eager_input_streaming from tools that also get version remapped', () => {
-    const provider = createAmazonBedrockAnthropic({
+    const provider = createBedrockAnthropic({
       region: 'us-east-1',
       accessKeyId: 'test-key',
       secretAccessKey: 'test-secret',
     });
     provider('test-model-id');
 
-    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
-      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
-    ];
+    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
+      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
     const config = constructorCall[1];
 
     const transformedBody = config.transformRequestBody?.(
