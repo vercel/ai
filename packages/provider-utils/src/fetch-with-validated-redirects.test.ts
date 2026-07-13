@@ -224,6 +224,60 @@ describe('fetchWithValidatedRedirects', () => {
     });
   });
 
+  it('passes each hop an independent header snapshot (later hops must not mutate earlier ones)', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(redirectResponse('https://other.example.net/a'))
+      .mockResolvedValueOnce(okResponse());
+
+    await fetchWithValidatedRedirects({
+      url: 'https://example.com/file',
+      headers: { authorization: 'Bearer secret' },
+      fetch: fetchMock,
+    });
+
+    const firstHop = fetchMock.mock.calls[0][1].headers as Headers;
+    const secondHop = fetchMock.mock.calls[1][1].headers as Headers;
+    expect(firstHop).not.toBe(secondHop);
+    // The cross-origin credential drop on the second hop must not be visible
+    // in the header set the first hop was issued with.
+    expect(firstHop.get('authorization')).toBe('Bearer secret');
+    expect(secondHop.get('authorization')).toBeNull();
+  });
+
+  it('skips validation for hops same-origin with trustedOrigin', async () => {
+    // A self-hosted deployment: the configured origin is private, and its
+    // response URLs (and same-origin redirects) point back at it.
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(redirectResponse('http://localhost:5000/final'))
+      .mockResolvedValueOnce(okResponse());
+
+    const response = await fetchWithValidatedRedirects({
+      url: 'http://localhost:5000/predictions/123',
+      trustedOrigin: 'http://localhost:5000',
+      fetch: fetchMock,
+    });
+
+    expect(response.ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('validates hops on other origins even when trustedOrigin is set', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(redirectResponse('http://169.254.169.254/'));
+
+    await expect(
+      fetchWithValidatedRedirects({
+        url: 'http://localhost:5000/predictions/123',
+        trustedOrigin: 'http://localhost:5000',
+        fetch: fetchMock,
+      }),
+    ).rejects.toThrow(DownloadError);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('uses the injected fetch instead of the global one', async () => {
     globalThis.fetch = vi.fn();
     const injected = vi.fn().mockResolvedValueOnce(okResponse());
@@ -258,8 +312,9 @@ describe('fetchWithValidatedRedirects', () => {
     expect(sent.get('authorization')).toBe('Bearer secret');
   });
 
-  it('drops Authorization and Cookie on a cross-origin redirect but keeps them same-origin', async () => {
-    // cross-origin: credentials must not follow to a different host.
+  it('drops all caller headers except user-agent on a cross-origin redirect but keeps them same-origin', async () => {
+    // cross-origin: no caller header — including custom API-key headers the
+    // fetch spec would let through — may follow to a different host.
     const crossOrigin = vi
       .fn()
       .mockResolvedValueOnce(redirectResponse('https://other.example.net/a'))
@@ -267,15 +322,20 @@ describe('fetchWithValidatedRedirects', () => {
 
     await fetchWithValidatedRedirects({
       url: 'https://example.com/file',
-      headers: { authorization: 'Bearer secret' },
+      headers: {
+        authorization: 'Bearer secret',
+        'x-key': 'provider-api-key',
+        'user-agent': 'ai-sdk/test',
+      },
       fetch: crossOrigin,
     });
 
-    expect(
-      (crossOrigin.mock.calls[1][1].headers as Headers).get('authorization'),
-    ).toBeNull();
+    const secondHop = crossOrigin.mock.calls[1][1].headers as Headers;
+    expect(secondHop.get('authorization')).toBeNull();
+    expect(secondHop.get('x-key')).toBeNull();
+    expect(secondHop.get('user-agent')).toBe('ai-sdk/test');
 
-    // same-origin: credentials are preserved across the hop.
+    // same-origin: caller headers are preserved across the hop.
     const sameOrigin = vi
       .fn()
       .mockResolvedValueOnce(redirectResponse('https://example.com/next'))
@@ -283,12 +343,30 @@ describe('fetchWithValidatedRedirects', () => {
 
     await fetchWithValidatedRedirects({
       url: 'https://example.com/file',
-      headers: { authorization: 'Bearer secret' },
+      headers: { authorization: 'Bearer secret', 'x-key': 'provider-api-key' },
       fetch: sameOrigin,
     });
 
-    expect(
-      (sameOrigin.mock.calls[1][1].headers as Headers).get('authorization'),
-    ).toBe('Bearer secret');
+    const sameOriginHop = sameOrigin.mock.calls[1][1].headers as Headers;
+    expect(sameOriginHop.get('authorization')).toBe('Bearer secret');
+    expect(sameOriginHop.get('x-key')).toBe('provider-api-key');
+  });
+
+  it('does not re-attach dropped headers when a later hop returns to the original origin', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(redirectResponse('https://other.example.net/a'))
+      .mockResolvedValueOnce(redirectResponse('https://example.com/back'))
+      .mockResolvedValueOnce(okResponse());
+
+    await fetchWithValidatedRedirects({
+      url: 'https://example.com/file',
+      headers: { authorization: 'Bearer secret', 'x-key': 'provider-api-key' },
+      fetch: fetchMock,
+    });
+
+    const thirdHop = fetchMock.mock.calls[2][1].headers as Headers;
+    expect(thirdHop.get('authorization')).toBeNull();
+    expect(thirdHop.get('x-key')).toBeNull();
   });
 });

@@ -223,6 +223,7 @@ export class ReplicateVideoModel implements Experimental_VideoModelV4 {
           // pollUrl comes from the provider response body.
           validateUrl: true,
           credentialedOrigin: this.config.baseURL,
+          trustedOrigin: this.config.baseURL,
           headers: await resolve(this.config.headers),
           successfulResponseHandler: createJsonResponseHandler(
             replicatePredictionSchema,
