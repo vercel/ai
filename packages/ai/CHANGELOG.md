@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.26
+
+### Patch Changes
+
+- 27d294d: feat(ai): group orphaned tool calls after tool approvals under parent span
+
 ## 7.0.25
 
 ### Patch Changes
