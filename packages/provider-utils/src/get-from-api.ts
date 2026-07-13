@@ -44,7 +44,7 @@ export const getFromApi = async <T>({
    * (the user-agent suffix is always kept). Pass the provider's configured
    * base URL alongside `validateUrl: true` so credentials never ride a request
    * to a response-supplied host on a different origin (e.g. a CDN). Redirects
-   * that later cross origin drop credentials regardless (see
+   * that later cross origin drop all caller headers regardless (see
    * {@link fetchWithValidatedRedirects}).
    */
   credentialedOrigin?: string;

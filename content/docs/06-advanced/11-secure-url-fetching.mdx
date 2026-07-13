@@ -29,9 +29,10 @@ When the SDK fetches a URL taken from a provider response, it:
   an internal address is blocked; the redirect is never followed blindly.
 - **Strips risky request headers** — proxy-forwarding, cloud-metadata, and
   cookie headers are removed before the request.
-- **Drops credentials across origins** — `Authorization`/`Cookie` are not sent
-  to a host on a different origin than the provider's, including after a
-  redirect that crosses origin.
+- **Drops credentials across origins** — caller headers (`Authorization`,
+  `Cookie`, and provider-specific API-key headers alike) are not sent to a host
+  on a different origin than the provider's; a redirect that crosses origin
+  drops all of them except the user-agent.
 
 A blocked URL surfaces as a `DownloadError`.
 
