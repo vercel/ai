@@ -305,7 +305,7 @@ describe('getFromApi', () => {
       expect(sentHeaders.get('user-agent')).toContain('ai-sdk/provider-utils');
     });
 
-    it('drops Authorization when a redirect crosses origin', async () => {
+    it('drops all caller headers except user-agent when a redirect crosses origin', async () => {
       const mockFetch = vi
         .fn()
         .mockResolvedValueOnce(redirectTo('https://other.example.net/asset'))
@@ -314,7 +314,10 @@ describe('getFromApi', () => {
       await getFromApi({
         url: 'https://cdn.example.com/image.png',
         validateUrl: true,
-        headers: { authorization: 'Bearer secret' },
+        headers: {
+          authorization: 'Bearer secret',
+          'x-key': 'provider-api-key',
+        },
         successfulResponseHandler:
           createJsonResponseHandler(mockResponseSchema),
         failedResponseHandler: createStatusCodeErrorResponseHandler(),
@@ -323,6 +326,44 @@ describe('getFromApi', () => {
 
       const secondHopHeaders = mockFetch.mock.calls[1][1].headers as Headers;
       expect(secondHopHeaders.get('authorization')).toBeNull();
+      expect(secondHopHeaders.get('x-key')).toBeNull();
+      // the user-agent suffix still identifies the SDK on the redirected hop.
+      expect(secondHopHeaders.get('user-agent')).toContain(
+        'ai-sdk/provider-utils',
+      );
+    });
+
+    it('fetches a private URL when it is same-origin with trustedOrigin (self-hosted deployments)', async () => {
+      const mockFetch = vi.fn().mockResolvedValue(okJson());
+
+      const result = await getFromApi({
+        url: 'http://localhost:5000/predictions/123',
+        validateUrl: true,
+        trustedOrigin: 'http://localhost:5000',
+        successfulResponseHandler:
+          createJsonResponseHandler(mockResponseSchema),
+        failedResponseHandler: createStatusCodeErrorResponseHandler(),
+        fetch: mockFetch,
+      });
+
+      expect(result.value).toEqual(mockSuccessResponse);
+    });
+
+    it('still rejects a private URL on a different origin than trustedOrigin', async () => {
+      const mockFetch = vi.fn();
+
+      await expect(
+        getFromApi({
+          url: 'http://169.254.169.254/latest/meta-data/',
+          validateUrl: true,
+          trustedOrigin: 'http://localhost:5000',
+          successfulResponseHandler:
+            createJsonResponseHandler(mockResponseSchema),
+          failedResponseHandler: createStatusCodeErrorResponseHandler(),
+          fetch: mockFetch,
+        }),
+      ).rejects.toThrow(DownloadError);
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it('does not validate the URL when validateUrl is omitted (backwards compatibility)', async () => {

@@ -303,6 +303,7 @@ export class FireworksImageModel implements ImageModelV4 {
       // imageUrl comes from the provider response body.
       validateUrl: true,
       credentialedOrigin: this.config.baseURL,
+      trustedOrigin: this.config.baseURL,
       headers,
       abortSignal,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),

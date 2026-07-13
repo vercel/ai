@@ -22,6 +22,7 @@ export const getFromApi = async <T>({
   fetch = getOriginalFetch(),
   validateUrl,
   credentialedOrigin,
+  trustedOrigin,
 }: {
   url: string;
   headers?: Record<string, string | undefined>;
@@ -47,10 +48,21 @@ export const getFromApi = async <T>({
    * (the user-agent suffix is always kept). Pass the provider's configured
    * base URL alongside `validateUrl: true` so credentials never ride a request
    * to a response-supplied host on a different origin (e.g. a CDN). Redirects
-   * that later cross origin drop credentials regardless (see
+   * that later cross origin drop all caller headers regardless (see
    * {@link fetchWithValidatedRedirects}).
    */
   credentialedOrigin?: string;
+  /**
+   * A developer-configured origin (e.g. the provider's `baseURL`) that is
+   * exempt from URL validation when `validateUrl` is `true`. A response URL
+   * (or redirect hop) that is same-origin with it is fetched without target
+   * validation — it points at exactly the host a config-derived
+   * `validateUrl: false` request would fetch anyway, so blocking it would
+   * only break legitimate self-hosted / localhost deployments whose response
+   * URLs point back at the configured host. Hops on any other origin are
+   * still validated. Must never be derived from response data.
+   */
+  trustedOrigin?: string;
 }) => {
   try {
     // Withhold caller headers when the URL is not same-origin with the origin
@@ -72,6 +84,7 @@ export const getFromApi = async <T>({
           headers: requestHeaders,
           abortSignal,
           fetch,
+          trustedOrigin,
         })
       : await fetch(url, {
           method: 'GET',

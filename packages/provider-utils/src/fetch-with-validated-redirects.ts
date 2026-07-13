@@ -18,8 +18,12 @@ const MAX_DOWNLOAD_REDIRECTS = 10;
  * guard.
  *
  * Request headers are also protected: {@link sanitizeRequestHeaders} strips
- * proxy/metadata/cookie/hop-by-hop headers before the first request, and
- * `Authorization`/`Cookie` are dropped on a cross-origin redirect.
+ * proxy/metadata/cookie/hop-by-hop headers before the first request, and all
+ * caller headers except `User-Agent` are dropped on a cross-origin redirect.
+ * The fetch spec only strips `Authorization` on cross-origin redirects because
+ * in a browser, CORS preflighting protects custom headers; there is no CORS on
+ * the server, so provider API keys carried in custom headers (e.g. `x-key`)
+ * must be dropped here as well.
  *
  * A `redirect: 'manual'` request yields an unreadable opaque response in the
  * browser (and in other spec-compliant fetch implementations), so the redirect
@@ -28,6 +32,13 @@ const MAX_DOWNLOAD_REDIRECTS = 10;
  * constrained by CORS and cannot reach a server's internal network or
  * cloud-metadata). On any other runtime we cannot validate the hop, so we fail
  * closed rather than follow it blindly and bypass the guard.
+ *
+ * A hop that is same-origin with `trustedOrigin` (the developer-configured
+ * provider endpoint) skips target validation: that origin is exactly what an
+ * unvalidated, config-derived request would fetch anyway, and validating it
+ * would break legitimate self-hosted / localhost deployments whose response
+ * URLs point back at the configured host. Hops on any other origin are always
+ * validated.
  *
  * The returned response is the final (non-redirect) response. The caller is
  * responsible for checking `response.ok` and reading the body.
@@ -49,12 +60,18 @@ export async function fetchWithValidatedRedirects({
   abortSignal,
   maxRedirects = MAX_DOWNLOAD_REDIRECTS,
   fetch = globalThis.fetch,
+  trustedOrigin,
 }: {
   url: string;
   headers?: HeadersInit;
   abortSignal?: AbortSignal;
   maxRedirects?: number;
   fetch?: FetchFunction;
+  /**
+   * A developer-configured origin (e.g. the provider's `baseURL`) whose hops
+   * skip target validation. Must never be derived from response data.
+   */
+  trustedOrigin?: string;
 }): Promise<Response> {
   // Left undefined when no headers are provided (bare request); otherwise
   // sanitized once and mutated in place across hops (cross-origin drop below).
@@ -72,7 +89,14 @@ export async function fetchWithValidatedRedirects({
   let currentUrl = url;
   // The bound also acts as a backstop against an unterminated redirect chain.
   for (let redirectCount = 0; redirectCount <= maxRedirects; redirectCount++) {
-    validateDownloadUrl(currentUrl);
+    // The developer-configured origin is trusted by definition; validating it
+    // would reject legitimate self-hosted / localhost deployments.
+    if (
+      trustedOrigin === undefined ||
+      !isSameOrigin(currentUrl, trustedOrigin)
+    ) {
+      validateDownloadUrl(currentUrl);
+    }
 
     const response = await fetch(currentUrl, perHopInit('manual'));
 
@@ -94,11 +118,16 @@ export async function fetchWithValidatedRedirects({
       await cancelResponseBody(response);
       const nextUrl = new URL(location, currentUrl).toString();
 
-      // Drop credentials before following a redirect that crosses origin so
-      // Authorization / Cookie are never sent to a different host.
+      // Drop all caller headers except the user-agent before following a
+      // redirect that crosses origin. Only stripping Authorization (as the
+      // fetch spec does) is not enough on the server: providers authenticate
+      // with custom headers too (e.g. `x-key`), and without CORS there is
+      // nothing else stopping them from riding to a foreign host.
       if (currentHeaders !== undefined && !isSameOrigin(nextUrl, currentUrl)) {
-        currentHeaders.delete('authorization');
-        currentHeaders.delete('cookie');
+        const userAgent = currentHeaders.get('user-agent');
+        currentHeaders = new Headers(
+          userAgent == null ? undefined : { 'user-agent': userAgent },
+        );
       }
 
       currentUrl = nextUrl;

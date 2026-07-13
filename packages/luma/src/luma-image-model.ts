@@ -348,6 +348,7 @@ export class LumaImageModel implements ImageModelV4 {
       url,
       // url is a generated-image URL from the provider response; validate it.
       validateUrl: true,
+      trustedOrigin: this.config.baseURL,
       // No specific headers should be needed for this request as it's a
       // generated image provided by Luma.
       abortSignal,
