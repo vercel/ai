@@ -21,6 +21,12 @@ export type {
 } from './embedding/openai-compatible-embedding-model-options';
 export { OpenAICompatibleImageModel } from './image/openai-compatible-image-model';
 export type {
+  OpenAICompatibleVideoModelId,
+  OpenAICompatibleVideoModelOptions,
+  /** @deprecated Use `OpenAICompatibleVideoModelOptions` instead. */
+  OpenAICompatibleVideoModelOptions as OpenAICompatibleVideoProviderOptions,
+} from './video/openai-compatible-video-model-options';
+export type {
   OpenAICompatibleErrorData,
   ProviderErrorStructure,
 } from './openai-compatible-error';
