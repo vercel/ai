@@ -1,307 +1,62 @@
 # AGENTS.md
 
-This file provides context for AI coding assistants (Cursor, GitHub Copilot, Claude Code, etc.) working with the Vercel AI SDK repository.
-
-## Project Overview
-
-The **AI SDK** by Vercel is a TypeScript/JavaScript SDK for building AI-powered applications with Large Language Models (LLMs). It provides a unified interface for multiple AI providers and framework integrations.
-
-- **Repository**: https://github.com/vercel/ai
-- **Documentation**: https://ai-sdk.dev/docs
-- **License**: Apache-2.0
-
-## Repository Structure
-
-This is a **monorepo** using pnpm workspaces and Turborepo.
-
-### Key Directories
-
-| Directory                 | Description                                                                          |
-| ------------------------- | ------------------------------------------------------------------------------------ |
-| `packages/ai`             | Main SDK package (`ai` on npm)                                                       |
-| `packages/provider`       | Provider interface specifications (`@ai-sdk/provider`)                               |
-| `packages/provider-utils` | Shared utilities for providers and core (`@ai-sdk/provider-utils`)                   |
-| `packages/<provider>`     | AI provider implementations (openai, anthropic, google, azure, amazon-bedrock, etc.) |
-| `packages/<framework>`    | UI framework integrations (react, vue, svelte, angular, rsc)                         |
-| `packages/codemod`        | Automated migrations for major releases                                              |
-| `examples/`               | Example applications (ai-functions, next-openai, etc.)                               |
-| `content/`                | Documentation source files (MDX)                                                     |
-| `contributing/`           | Contributor guides and documentation                                                 |
-| `tools/`                  | Internal tooling (tsconfig)                                                          |
-
-### Core Package Dependencies
-
-```
-ai ─────────────────┬──▶ @ai-sdk/provider-utils ──▶ @ai-sdk/provider
-                    │
-@ai-sdk/<provider> ─┴──▶ @ai-sdk/provider-utils ──▶ @ai-sdk/provider
-```
-
-## Development Setup
-
-### Requirements
-
-- **Node.js**: v22, v24, or v26 (v22 recommended for development)
-- **pnpm**: v10+ (`npm install -g pnpm@10`)
-
-### Initial Setup
-
-```bash
-pnpm install        # Install all dependencies
-pnpm build          # Build all packages
-```
-
-## Development Commands
-
-### Root-Level Commands
-
-| Command                  | Description                                                       |
-| ------------------------ | ----------------------------------------------------------------- |
-| `pnpm install`           | Install dependencies                                              |
-| `pnpm build`             | Build all packages                                                |
-| `pnpm test`              | Run all tests (excludes examples)                                 |
-| `pnpm check`             | Run linting (oxlint) and formatting (oxfmt) checks                |
-| `pnpm fix`               | Fix linting and formatting issues                                 |
-| `pnpm type-check:full`   | TypeScript type checking (includes examples)                      |
-| `pnpm changeset`         | Add a changeset for your PR                                       |
-| `pnpm update-references` | Update tsconfig.json references after adding package dependencies |
-
-### Package-Level Commands
-
-Run these from within a package directory (e.g., `packages/ai`):
-
-| Command            | Description                 |
-| ------------------ | --------------------------- |
-| `pnpm build`       | Build the package           |
-| `pnpm build:watch` | Build with watch mode       |
-| `pnpm test`        | Run all tests (node + edge) |
-| `pnpm test:node`   | Run Node.js tests only      |
-| `pnpm test:edge`   | Run Edge runtime tests only |
-| `pnpm test:watch`  | Run tests in watch mode     |
-
-### Running Examples
-
-```bash
-cd examples/ai-functions
-pnpm tsx src/stream-text/openai/basic.ts    # Run a specific example
-```
-
-### AI Functions Example Layout
-
-- Place examples under `examples/ai-functions/src/<function>/<provider>/`
-- Use `basic.ts` for the provider entry example file
-- Place all other examples in the same provider folder using descriptive `kebab-case` file names
-- Do not create flat top-level provider files like `src/stream-text/openai.ts`
-
-## Core APIs
-
-| Function                   | Purpose                    | Package |
-| -------------------------- | -------------------------- | ------- |
-| `generateText`             | Generate text completion   | `ai`    |
-| `streamText`               | Stream text completion     | `ai`    |
-| `generateObject`           | Generate structured output | `ai`    |
-| `streamObject`             | Stream structured output   | `ai`    |
-| `embed` / `embedMany`      | Generate embeddings        | `ai`    |
-| `generateImage`            | Generate images            | `ai`    |
-| `tool`                     | Define a tool              | `ai`    |
-| `jsonSchema` / `zodSchema` | Define schemas             | `ai`    |
-
-## Import Patterns
-
-| What                                          | Import From                                   |
-| --------------------------------------------- | --------------------------------------------- |
-| Core functions (`generateText`, `streamText`) | `ai`                                          |
-| Tool/schema utilities (`tool`, `jsonSchema`)  | `ai`                                          |
-| Provider implementations                      | `@ai-sdk/<provider>` (e.g., `@ai-sdk/openai`) |
-| Error classes                                 | `ai` (re-exports from `@ai-sdk/provider`)     |
-| Provider type interfaces (`LanguageModelV4`)  | `@ai-sdk/provider`                            |
-| Provider implementation utilities             | `@ai-sdk/provider-utils`                      |
-
-## Coding Standards
-
-### Formatting
-
-- **Formatter**: oxfmt (via `pnpm fix` or `ultracite fix`)
-- **Linter**: oxlint (via `pnpm check` or `ultracite check`)
-- **Config**: `.oxfmtrc.jsonc` (formatter) and `.oxlintrc.json` (linter)
-- **Pre-commit hook**: Runs `pnpm install` if `package.json` changes are staged
-
-### Testing
-
-- **Framework**: Vitest
-- **Test files**: `*.test.ts` alongside source files
-- **Type tests**: `*.test-d.ts` for type-level tests
-- **Fixtures**: Store in `__fixtures__` subfolders
-- **Snapshots**: Store in `__snapshots__` subfolders
-
-### Zod Usage
-
-The SDK supports both Zod 3 and Zod 4. Use correct imports:
-
-```typescript
-// For Zod 3 (compatibility code only)
-import * as z3 from 'zod/v3';
-
-// For Zod 4
-import * as z4 from 'zod/v4';
-// Use z4.core.$ZodType for type references
-```
-
-### JSON parsing
-
-Never use `JSON.parse` directly in production code to prevent security risks.
-Instead use `parseJSON` or `safeParseJSON` from `@ai-sdk/provider-utils`.
-
-### Type Checking
-
-Always run type checking after making code changes:
-
-```bash
-pnpm type-check:full    # Run from workspace root
-```
-
-This ensures your changes don't introduce type errors across the codebase, including examples.
-
-### File Naming Conventions
-
-- Source files: `kebab-case.ts`
-- Test files: `kebab-case.test.ts`
-- Type test files: `kebab-case.test-d.ts`
-- React/UI components: `kebab-case.tsx`
-
-## Error Pattern
-
-Errors extend `AISDKError` from `@ai-sdk/provider` and use a marker pattern for `instanceof` checks:
-
-```typescript
-import { AISDKError } from '@ai-sdk/provider';
-
-const name = 'AI_MyError';
-const marker = `vercel.ai.error.${name}`;
-const symbol = Symbol.for(marker);
-
-export class MyError extends AISDKError {
-  private readonly [symbol] = true; // used in isInstance
-
-  constructor({ message, cause }: { message: string; cause?: unknown }) {
-    super({ name, message, cause });
-  }
-
-  static isInstance(error: unknown): error is MyError {
-    return AISDKError.hasMarker(error, marker);
-  }
-}
-```
-
-## Architecture Decision Records (ADRs)
-
-This repo uses ADRs in `contributing/decisions/` to capture important architecture decisions. Before making changes that touch architecture (new dependencies, new patterns, API design, infrastructure), check existing ADRs:
-
-1. Read `contributing/decisions/README.md` for the index of decisions.
-2. Read any accepted ADRs relevant to your area of work. Follow the decisions and implementation patterns they specify.
-3. If you encounter a pattern in the code and wonder "why is it done this way?", check whether an ADR explains it.
-4. If your work would contradict an existing accepted ADR, stop and discuss with the human before proceeding.
-
-To propose or create a new ADR, use the ADR skill.
-
-## Project Philosophies
-
-For an overview of the project's key philosophies that guide decision making, see `contributing/project-philosophies.md`.
-
-## Architecture
-
-### Provider Pattern
-
-The SDK uses a layered provider architecture following the adapter pattern:
-
-1. **Specifications** (`@ai-sdk/provider`): Defines interfaces like `LanguageModelV4`
-2. **Utilities** (`@ai-sdk/provider-utils`): Shared code for implementing providers
-3. **Providers** (`@ai-sdk/<provider>`): Concrete implementations for each AI service
-4. **Core** (`ai`): High-level functions like `generateText`, `streamText`, `generateObject`
-
-For a focused conceptual walkthrough of AI functions, model specifications, and provider implementations, see `architecture/provider-abstraction.md`.
-
-### Provider Development
-
-**Provider Options Schemas** (user-facing):
-
-- Use `.optional()` unless `null` is meaningful
-- Be as restrictive as possible for future flexibility
-
-**Response Schemas** (API responses):
-
-- Use `.nullish()` instead of `.optional()`
-- Keep minimal - only include properties you need
-- Allow flexibility for provider API changes
-
-### Adding New Packages
-
-1. Create folder under `packages/<name>`
-2. Add to root `tsconfig.json` references
-3. Run `pnpm update-references` if adding dependencies between packages
-
-## Contributing Guides
-
-| Task                  | Guide                                   |
-| --------------------- | --------------------------------------- |
-| Add new provider      | `contributing/add-new-provider.md`      |
-| Add new model         | `contributing/add-new-model.md`         |
-| Testing & fixtures    | `contributing/testing.md`               |
-| Provider architecture | `contributing/provider-architecture.md` |
-| Building new features | `contributing/building-new-features.md` |
-| Codemods              | `contributing/codemods.md`              |
-
-## Changesets
-
-- **Required**: Every PR modifying production code needs a changeset
-- **Default**: Use `patch` (non-breaking changes)
-- **Command**: `pnpm changeset` in workspace root
-- **Note**: Don't select example packages - they're not published
-
-## Task Completion Guidelines
-
-These guidelines outline typical artifacts for different task types. Use judgment to adapt based on scope and context.
-
-### Bug Fixes
-
-A complete bug fix typically includes:
-
-1. **Reproduction example**: Create/update an example in `examples/` that demonstrates the bug before fixing
-2. **Unit tests**: Add tests that would fail without the fix (regression tests)
-3. **Implementation**: Fix the bug
-4. **Manual verification**: Run the reproduction example to confirm the fix
-5. **Changeset**: Describe what was broken and how it's fixed
-
-### New Features
-
-A complete feature typically includes:
-
-1. **Implementation**: Build the feature
-2. **Examples**: Add usage examples in `examples/` demonstrating the feature
-3. **Unit tests**: Comprehensive test coverage for new functionality
-4. **Documentation**: Update relevant docs in `content/` for public APIs
-5. **Changeset**: Describe the feature for release notes
-
-### Refactoring / Internal Changes
-
-- Unit tests for any changed behavior
-- No documentation needed for internal-only changes
-- Changeset only if it affects published packages
-
-### When to Deviate
-
-These are guidelines, not rigid rules. Adjust based on:
-
-- **Scope**: Trivial fixes (typos, comments) may not need examples
-- **Visibility**: Internal changes may not need documentation
-- **Context**: Some changes span multiple categories
-
-When uncertain about expected artifacts, ask for clarification.
-
-## Do Not
-
-- Add minor/major changesets
-- Change public APIs without updating documentation
-- Use `require()` for imports
-- Add new dependencies without running `pnpm update-references`
-- Modify `content/docs/08-migration-guides` or `packages/codemod` as part of broader codebase changes
+## Stack Overview
+`vercel/ai` is the AI SDK, a TypeScript toolkit for building AI-powered applications and agents. It is structured as a pnpm/Turborepo monorepo containing the core `ai` package, a shared provider abstraction, and numerous first-party LLM provider integrations, plus a separate `examples/` directory (often Next.js/React apps). This is a library/monorepo, not a deployable application — there is no deployment target configured. Node.js `^22.0.0 || ^24.0.0 || ^26.0.0` is required.
+
+## Running, Building, Testing
+Package manager is `pnpm`. All cross-package orchestration goes through Turborepo (`turbo.json`).
+
+- `pnpm build` — `turbo build --concurrency 16`, builds all workspace packages.
+- `pnpm build:packages` — builds only `@ai-sdk/*` and `ai` packages (excludes examples).
+- `pnpm build:examples` — builds only `@example/*` packages.
+- `pnpm dev` — `turbo dev` with local/remote cache read-only and `--continue`, for iterative dev across packages.
+- `pnpm test` — `turbo test --concurrency 16 --filter=!@example/*`, runs tests (Vitest) for all packages except examples.
+- `pnpm test:ci` — CI variant of test, additionally excluding `ai` and `@ai-sdk/codemod`, run with `--only`.
+- `pnpm test:update` — updates test snapshots across non-example packages.
+- `pnpm type-check` — `tsc --build` using TypeScript project references.
+- `pnpm type-check:full` — type-checks including examples via `tsconfig.with-examples.json`.
+- `pnpm check` / `pnpm fix` — run `ultracite check` / `ultracite fix` (lint/format wrapper).
+- `pnpm konsistent` — runs `konsistent:validate` and `konsistent:check` together via Turbo, using `.github/konsistent.json`.
+- `pnpm update-references` — regenerates TypeScript project references (`update-ts-references`) and splits them (`tools/split-ts-references.mjs`).
+- `pnpm validate:docs` — validates properties tables in docs (`tools/validate-properties-tables.mjs`).
+- `pnpm changeset` — creates a changeset for a pending release.
+- `pnpm ci:version` / `pnpm ci:release` — changeset version/publish flow; not meant to be run manually outside CI/release process.
+- `pnpm clean` — `turbo clean`.
+- `pnpm worktree:setup` — runs `tools/worktree-setup.sh` (purpose not documented beyond the script name — verify before relying on it).
+- `pnpm prepare` — runs `husky` to install git hooks (executed automatically after install).
+
+## Folder Conventions
+- `packages/` — the monorepo workspace packages: the core `ai` library, `@ai-sdk/*` provider integrations, and shared tooling packages. This is where library source code lives.
+- `examples/` — standalone example projects (frequently Next.js/React apps) demonstrating SDK usage. Excluded from the default `test` and filtered separately in `build:examples`.
+- Workspace membership and package boundaries are defined in `pnpm-workspace.yaml`; task pipelines and caching behavior are defined in `turbo.json` — check both before adding a new package or script.
+
+## Patterns To Follow
+- Use `pnpm` exclusively (workspace uses `pnpm-workspace.yaml`); do not use `npm` or `yarn` to install or add dependencies.
+- Run tasks through Turbo filters (`--filter=@ai-sdk/*`, `--filter=!@example/*`, etc.) rather than invoking a package's script directly, to stay consistent with existing CI commands.
+- Add a changeset (`pnpm changeset`) for any change to a published package under `packages/`, since releases are managed via `@changesets/cli`.
+- After adding/removing/moving packages or changing internal `tsconfig` references, run `pnpm update-references` to keep TypeScript project references in sync — the build relies on `tsc --build`.
+- Use `pnpm check` / `pnpm fix` (Ultracite, wrapping `oxlint`/`oxfmt`) for linting and formatting rather than invoking `oxlint`/`oxfmt` directly, to match the configured ruleset.
+- Write unit/integration tests with Vitest; use Playwright (`@playwright/test`) only for end-to-end scenarios where it's already set up.
+
+## Patterns To Avoid
+- Do not run a plain `npm install` or commit a `package-lock.json` / `yarn.lock` — this breaks the pnpm workspace.
+- Do not include `examples/` or `@example/*` packages in library test/build commands intended for `packages/` — they are explicitly filtered out (`--filter=!@example/*`) in `test` and `test:ci`.
+- Do not bypass `changeset` for changes intended to be published — `ci:version`/`ci:release` depend on changesets existing.
+- Do not hand-edit generated TypeScript project reference files; regenerate them with `pnpm update-references` instead.
+- Do not add ESLint/Prettier configs alongside the existing oxlint/oxfmt/Ultracite setup — this repo uses `oxlint`/`oxfmt` via `ultracite`, not the ESLint/Prettier stack.
+
+## Gotchas
+- Node version is constrained to `^22.0.0 || ^24.0.0 || ^26.0.0` — verify your local Node version matches before installing or running scripts.
+- `test:ci` deliberately excludes the `ai` package and `@ai-sdk/codemod` in addition to examples — local `test` results may not fully match CI for those packages.
+- `husky` hooks are installed via the `prepare` script, which runs automatically on `pnpm install`; if hooks seem missing, re-run `pnpm install`.
+- `lint-staged` is present as a dev dependency, implying pre-commit linting is wired through Husky — check `.husky/` and `package.json` `lint-staged` config (not shown here) if commits are being blocked or reformatted unexpectedly.
+- `konsistent` has its own config at `.github/konsistent.json` and separate `validate`/`check` sub-scripts — failures here are a distinct category from type-check or lint failures.
+- No environment variable keys are declared at the root; individual provider packages or examples likely require their own API keys (e.g. for OpenAI, Anthropic, etc.) but none are documented at this level — check each package/example's own docs before running it.
+
+## Confidence & Assumptions
+- No `envExampleKeys` were found at the root, so no environment variables are documented here — assume individual provider packages/examples require their own API keys, but this is not verifiable from the given data.
+- The Next.js version is unspecified (`version: null`); Next.js appears only as a devDependency, likely used for `examples/`, not for the core library itself — could not confirm App Router vs Pages Router usage, or whether Next.js is used anywhere outside examples.
+- `pnpm worktree:setup` and `tools/worktree-setup.sh` purpose is inferred only from the script name; actual behavior not verified.
+- No CI configuration file was listed in key config files, though `test:ci` and `ci:release`/`ci:version` scripts imply a CI pipeline exists (likely GitHub Actions, given `.github/scripts/` references) — could not confirm specifics.
+- No deployment target is configured or implied; this repo is treated as a library/monorepo, not a deployable app.
+- `readmeSummary` was empty, so no additional project framing beyond the stack summary was available.
