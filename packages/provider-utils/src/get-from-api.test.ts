@@ -328,6 +328,7 @@ describe('getFromApi', () => {
     it('does not validate the URL when validateUrl is omitted (backwards compatibility)', async () => {
       const mockFetch = vi.fn().mockResolvedValue(okJson());
 
+      // oxlint-disable-next-line ai-sdk/require-validate-url -- deliberately omitted: this test pins the backwards-compatible default
       await getFromApi({
         url: 'http://127.0.0.1/file',
         successfulResponseHandler:

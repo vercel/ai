@@ -20,7 +20,10 @@ to prevent unnecessary breakages.
 When a provider fetches a URL with `getFromApi` from `@ai-sdk/provider-utils`,
 always set the `validateUrl` option explicitly. It is optional in the type only
 to avoid breaking external callers of `@ai-sdk/provider-utils` — omitting it
-skips validation, so provider code must never leave it out.
+skips validation, so provider code must never leave it out. This is enforced in
+CI by the `ai-sdk/require-validate-url` oxlint rule
+(`tools/oxlint-plugin-ai-sdk`), which fails `pnpm check` for any `getFromApi`
+call without an explicit `validateUrl`.
 
 - `validateUrl: true` — the URL's host comes from a provider response body
   (an image/audio/video download URL or a polling URL). It is routed through
