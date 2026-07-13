@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 4.0.12
+
+### Patch Changes
+
+- 308a519: chore: enforce consistent imports from `zod/v4` instead of `zod`
+
 ## 4.0.11
 
 ### Patch Changes

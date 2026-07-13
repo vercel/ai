@@ -1,5 +1,28 @@
 # ai
 
+## 7.0.23
+
+### Patch Changes
+
+- 930f949: feat(ai): wrap embedMany in tracing channel context
+- Updated dependencies [867f80a]
+  - @ai-sdk/gateway@4.0.17
+
+## 7.0.22
+
+### Patch Changes
+
+- 8f89c25: Add the Cartesia provider with Sonic 3.5 speech generation, Ink-Whisper batch transcription, and Ink 2 realtime transcription support.
+
+## 7.0.21
+
+### Patch Changes
+
+- 308a519: chore: enforce consistent imports from `zod/v4` instead of `zod`
+- Updated dependencies [308a519]
+- Updated dependencies [7fe53d2]
+  - @ai-sdk/gateway@4.0.16
+
 ## 7.0.20
 
 ### Patch Changes
