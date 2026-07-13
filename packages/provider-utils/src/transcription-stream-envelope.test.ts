@@ -289,7 +289,9 @@ describe('parseTranscriptionStreamPart', () => {
     },
   ])('should round-trip a $type part', part => {
     expect(
-      parseTranscriptionStreamPart(serializeTranscriptionStreamPart(part)),
+      parseTranscriptionStreamPart(
+        serializeTranscriptionStreamPart(part) ?? '',
+      ),
     ).toEqual(part);
   });
 
@@ -299,7 +301,7 @@ describe('parseTranscriptionStreamPart', () => {
         type: 'response-metadata',
         timestamp: new Date('2026-01-01T00:00:00.000Z'),
         modelId: 'openai/gpt-realtime-whisper',
-      }),
+      }) ?? '',
     );
 
     expect(part).toEqual({
