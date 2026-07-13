@@ -159,6 +159,7 @@ export class FalVideoModel implements Experimental_VideoModelV4 {
             // statusUrl comes from the queue response body.
             validateUrl: true,
             credentialedOrigin: submitUrl,
+            trustedOrigin: submitUrl,
             headers: combineHeaders(this.config.headers?.(), options.headers),
             failedResponseHandler: async ({
               response,
