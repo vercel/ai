@@ -1,5 +1,14 @@
 # ai
 
+## 7.0.24
+
+### Patch Changes
+
+- e193290: Cancel the caller's `audio` stream when `experimental_streamTranscribe` fails before or during streaming. Previously, when the model's `doStream` rejected before a stream existed (e.g. missing API key or other auth failure), the audio stream was never consumed or cancelled, so an upstream producer piping into it would hang forever.
+- Updated dependencies [e193290]
+  - @ai-sdk/provider-utils@5.0.8
+  - @ai-sdk/gateway@4.0.18
+
 ## 7.0.23
 
 ### Patch Changes

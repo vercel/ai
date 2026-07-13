@@ -1,5 +1,16 @@
 # @ai-sdk/xai
 
+## 4.0.11
+
+### Patch Changes
+
+- e193290: Add `connectToWebSocket` to `@ai-sdk/provider-utils`: a shared WebSocket connect layer (constructor resolution, header hygiene, abort wiring, message decoding) analogous to `postToApi` for HTTP. The openai and xai streaming transcription models now use it instead of hand-rolled connects. For openai and xai this also means WebSocket constructor failures now surface as stream errors instead of throwing synchronously from `doStream`, an already-aborted signal no longer constructs a socket, and the caller's audio stream is cancelled on pre-open failures. Messages are processed in order with close handling deferred behind pending frames, audio send loops apply backpressure via the socket's bufferedAmount, and failed sends cancel the caller's audio stream.
+- e193290: Strip undefined header values before the streaming transcription WebSocket constructor (header-capable implementations like `ws` throw on undefined values).
+- e193290: Fix streaming transcription stream parts against the live xAI STT API: `transcript-final` was emitted for every `is_final: true` event, but xAI re-sends the finalized text with `speech_final: false` before the `speech_final: true` event (duplicating finals) and also finalizes _fragments_ whose text the eventual `speech_final` event merges and re-punctuates (later-revised finals). `transcript-final` is now only emitted on `speech_final: true`; finalized fragments surface as `transcript-partial`. Additionally, xAI's `transcript.done` event arrives with an empty `text`, which produced an empty `finish.text` and made `experimental_streamTranscribe` throw `NoTranscriptGeneratedError` despite a full transcript having streamed — the finish text now falls back to the accumulated finalized utterances (plus any trailing unfinalized text).
+- Updated dependencies [e193290]
+  - @ai-sdk/provider-utils@5.0.8
+  - @ai-sdk/openai-compatible@3.0.8
+
 ## 4.0.10
 
 ### Patch Changes
