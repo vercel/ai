@@ -5,9 +5,11 @@ import {
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  GatewayAuthenticationError,
   GatewayError,
   GatewayInternalServerError,
   GatewayInvalidRequestError,
+  GatewayRateLimitError,
 } from './errors';
 import type { GatewayConfig } from './gateway-config';
 import { GatewayTranscriptionModel } from './gateway-transcription-model';
@@ -651,6 +653,83 @@ describe('GatewayTranscriptionModel', () => {
           err.message.includes('model overloaded'),
       );
       expect(ws.close).toHaveBeenCalled();
+    });
+
+    it.each([
+      ['authentication_error', GatewayAuthenticationError],
+      ['invalid_request_error', GatewayInvalidRequestError],
+      ['rate_limit_exceeded', GatewayRateLimitError],
+    ] as const)(
+      'should map %s error parts to the public gateway error class',
+      async (errorType, errorClass) => {
+        const model = createStreamingTestModel();
+
+        const result = await model.doStream({
+          audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+          inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+        });
+
+        const partsPromise = convertReadableStreamToArray(result.stream);
+        const assertion = expect(partsPromise).rejects.toSatisfy(err =>
+          errorClass.isInstance(err),
+        );
+        const ws = MockWebSocket.instances[0];
+        ws.open();
+        await flush();
+
+        ws.message({
+          type: 'error',
+          error: { message: 'request rejected', type: errorType },
+        });
+        await flush();
+        ws.onclose?.({});
+        await assertion;
+      },
+    );
+
+    it('should stop sending audio after a server error part while keeping the stream open until close', async () => {
+      const model = createStreamingTestModel();
+      let audioCancelled = false;
+      const audio = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new Uint8Array([1, 2, 3]));
+        },
+        cancel() {
+          audioCancelled = true;
+        },
+      });
+
+      const result = await model.doStream({
+        audio,
+        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      });
+
+      const reader = result.stream.getReader();
+      const ws = MockWebSocket.instances[0];
+      ws.open();
+      await flush();
+
+      ws.message({ type: 'error', error: { message: 'model overloaded' } });
+      await expect(reader.read()).resolves.toEqual({
+        done: false,
+        value: { type: 'error', error: { message: 'model overloaded' } },
+      });
+
+      // outbound audio stops on the terminal error part
+      await vi.waitFor(() => expect(audioCancelled).toBe(true));
+      const audioDoneFrames = ws.send.mock.calls.filter(
+        call =>
+          typeof call[0] === 'string' &&
+          call[0].includes('transcription-stream.audio-done'),
+      );
+      expect(audioDoneFrames).toHaveLength(0);
+
+      ws.onclose?.({});
+      await expect(reader.read()).rejects.toSatisfy(
+        err =>
+          GatewayError.isInstance(err) &&
+          err.message.includes('model overloaded'),
+      );
     });
 
     it('should stringify non-object error part payloads in the terminal error', async () => {

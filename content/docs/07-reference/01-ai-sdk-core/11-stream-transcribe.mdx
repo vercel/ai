@@ -152,8 +152,9 @@ console.log(await result.text);
 
 Streaming transcription over WebSocket is serialized with the experimental
 transcription-stream envelope defined in `@ai-sdk/provider-utils`
-(`parseTranscriptionStreamClientFrame`, `serializeTranscriptionStreamPart`,
-`parseTranscriptionStreamPart`): the client sends one
+(`experimental_parseTranscriptionStreamClientFrame`,
+`experimental_serializeTranscriptionStreamPart`,
+`experimental_parseTranscriptionStreamPart`): the client sends one
 `transcription-stream.start` TEXT frame, audio as BINARY frames, and a
 `transcription-stream.audio-done` TEXT frame; each server TEXT frame is one
 JSON-serialized transcription stream part. AI Gateway implements the server

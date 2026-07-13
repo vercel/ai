@@ -15,12 +15,12 @@ import {
   createJsonResponseHandler,
   connectToWebSocket,
   normalizeHeaders,
-  parseTranscriptionStreamPart,
+  experimental_parseTranscriptionStreamPart as parseTranscriptionStreamPart,
   postJsonToApi,
   resolve,
-  TRANSCRIPTION_STREAM_AUDIO_DONE_FRAME_TYPE,
+  EXPERIMENTAL_TRANSCRIPTION_STREAM_AUDIO_DONE_FRAME_TYPE as TRANSCRIPTION_STREAM_AUDIO_DONE_FRAME_TYPE,
   waitForWebSocketBufferDrain,
-  TRANSCRIPTION_STREAM_START_FRAME_TYPE,
+  EXPERIMENTAL_TRANSCRIPTION_STREAM_START_FRAME_TYPE as TRANSCRIPTION_STREAM_START_FRAME_TYPE,
   type Experimental_TranscriptionStreamStartFrame,
   type Resolvable,
   type WebSocketConnection,
@@ -28,7 +28,7 @@ import {
   type WebSocketLike,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { asGatewayError } from './errors';
+import { asGatewayError, createGatewayErrorFromResponse } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
 import { VERCEL_AI_GATEWAY_TEAM_HEADER } from './gateway-headers';
@@ -242,6 +242,7 @@ function createGatewayTranscriptionStream({
         | undefined;
       let hasServerErrorPart = false;
       let lastServerError: unknown;
+      let audioStopped = false;
       let connection: WebSocketConnection | undefined;
 
       cleanup = (closeCode?: number) => {
@@ -256,6 +257,16 @@ function createGatewayTranscriptionStream({
         connection?.close(closeCode);
       };
 
+      const stopAudio = () => {
+        audioStopped = true;
+        if (audioReader != null) {
+          void audioReader.cancel().catch(() => {});
+          audioReader = undefined;
+        } else {
+          void audio.cancel().catch(() => {});
+        }
+      };
+
       const finishWithError = (error: unknown) => {
         if (finished) return;
         finished = true;
@@ -264,10 +275,11 @@ function createGatewayTranscriptionStream({
       };
 
       const sendAudio = async (socket: WebSocketLike) => {
-        audioReader = audio.getReader();
+        const reader = audio.getReader();
+        audioReader = reader;
         try {
           while (true) {
-            const { done, value } = await audioReader.read();
+            const { done, value } = await reader.read();
             if (done || finished) break;
             // Binary frames; base64 string chunks are decoded first. Caller
             // chunks are split to stay under server frame-size limits
@@ -289,11 +301,13 @@ function createGatewayTranscriptionStream({
             }
           }
         } finally {
-          audioReader.releaseLock();
+          reader.releaseLock();
           // unlocked again: cleanup must cancel `audio`, not the reader
-          audioReader = undefined;
+          if (audioReader === reader) {
+            audioReader = undefined;
+          }
         }
-        if (!finished) {
+        if (!finished && !audioStopped) {
           socket.send(
             JSON.stringify({
               type: TRANSCRIPTION_STREAM_AUDIO_DONE_FRAME_TYPE,
@@ -339,6 +353,10 @@ function createGatewayTranscriptionStream({
             // to promise-based consumers.
             hasServerErrorPart = true;
             lastServerError = part.error;
+            // envelope rule 5: error parts are terminal — stop sending audio
+            // while the server holds the connection open (e.g. for its final
+            // billing flush)
+            stopAudio();
           }
 
           controller.enqueue(part);
@@ -349,14 +367,18 @@ function createGatewayTranscriptionStream({
           );
         },
         onClose: () => {
+          if (hasServerErrorPart) {
+            if (finished) return;
+            void createErrorFromServerErrorPart(
+              lastServerError,
+              authMethod,
+            ).then(finishWithError);
+            return;
+          }
           finishWithError(
-            hasServerErrorPart
-              ? new Error(
-                  `AI Gateway transcription stream failed: ${getServerErrorMessage(lastServerError)}`,
-                )
-              : new Error(
-                  'AI Gateway transcription stream closed before a finish part was received',
-                ),
+            new Error(
+              'AI Gateway transcription stream closed before a finish part was received',
+            ),
           );
         },
       });
@@ -440,4 +462,43 @@ function getServerErrorMessage(error: unknown): string {
   }
   // JSON-stringifies object payloads (`String` would yield '[object Object]').
   return getErrorMessage(error);
+}
+
+/** Canonical status codes for server error-part types (no HTTP status exists on the WebSocket). */
+const SERVER_ERROR_STATUS_CODES: Record<string, number> = {
+  authentication_error: 401,
+  failed_dependency: 424,
+  forbidden: 403,
+  internal_server_error: 500,
+  invalid_request_error: 400,
+  model_not_found: 404,
+  rate_limit_exceeded: 429,
+};
+
+/**
+ * Maps a server error-part payload (`{ message, type }`) to the public
+ * Gateway error class for its type; unknown shapes keep the generic message.
+ */
+async function createErrorFromServerErrorPart(
+  error: unknown,
+  authMethod: 'api-key' | 'oidc' | undefined,
+): Promise<unknown> {
+  if (
+    typeof error === 'object' &&
+    error != null &&
+    'message' in error &&
+    typeof error.message === 'string' &&
+    'type' in error &&
+    typeof error.type === 'string' &&
+    error.type in SERVER_ERROR_STATUS_CODES
+  ) {
+    return createGatewayErrorFromResponse({
+      response: { error: { message: error.message, type: error.type } },
+      statusCode: SERVER_ERROR_STATUS_CODES[error.type],
+      authMethod,
+    });
+  }
+  return new Error(
+    `AI Gateway transcription stream failed: ${getServerErrorMessage(error)}`,
+  );
 }
