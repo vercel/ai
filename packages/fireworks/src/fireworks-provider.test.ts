@@ -122,6 +122,14 @@ describe('FireworksProvider', () => {
       expect(config.includeUsage).toBe(true);
     });
 
+    it('should enable structured outputs so JSON response format schemas are sent to the API', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const config = OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
+      expect(config.supportsStructuredOutputs).toBe(true);
+    });
+
     it('should pass transformRequestBody that converts thinking options', () => {
       const provider = createFireworks();
       provider.chatModel('test-model');

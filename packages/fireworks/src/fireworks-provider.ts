@@ -136,6 +136,7 @@ export function createFireworks(
       ...getCommonModelConfig('chat'),
       includeUsage: true,
       errorStructure: fireworksErrorStructure,
+      supportsStructuredOutputs: true,
       transformRequestBody: args => {
         const thinking = args.thinking as
           | { type?: string; budgetTokens?: number }
