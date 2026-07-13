@@ -156,8 +156,8 @@ export class OpenAICompatibleVideoModel implements Experimental_VideoModelV4 {
     }
 
     // Step 2: Poll for completion
-    const pollIntervalMs = deprecatedOptions?.pollIntervalMs ?? 5000; // 5 seconds
-    const pollTimeoutMs = deprecatedOptions?.pollTimeoutMs ?? 600000; // 10 minutes
+    const pollIntervalMs = compatibleOptions?.pollIntervalMs ?? 5000; // 5 seconds
+    const pollTimeoutMs = compatibleOptions?.pollTimeoutMs ?? 600000; // 10 minutes
     const startTime = Date.now();
     let response: OpenaiCompatibleResponse;
     let responseHeaders: Record<string, string> | undefined;
