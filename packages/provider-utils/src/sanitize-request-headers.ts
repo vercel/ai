@@ -3,9 +3,10 @@
  * routing, proxy/origin spoofing, cloud-metadata, cookies, and hop-by-hop
  * transport headers (RFC 7230 §6.1).
  *
- * `Authorization` is intentionally not listed — it's needed on the first hop of
- * some provider polling calls, and is dropped on cross-origin redirect instead
- * (see `fetch-with-validated-redirects`).
+ * `Authorization` and other credential-bearing caller headers (e.g. `x-key`)
+ * are intentionally not listed — they're needed on the first hop of some
+ * provider polling calls. Instead, all caller headers except the user-agent are
+ * dropped on a cross-origin redirect (see `fetch-with-validated-redirects`).
  */
 const BLOCKED_REQUEST_HEADERS: readonly string[] = [
   // Hop-by-hop / transport (RFC 7230 §6.1)

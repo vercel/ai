@@ -276,6 +276,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
         // resultUrl comes from the provider response body.
         validateUrl: true,
         credentialedOrigin: apiOrigin,
+        trustedOrigin: apiOrigin,
         headers: combineHeaders(this.config.headers?.(), options.headers),
         failedResponseHandler: gladiaFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(

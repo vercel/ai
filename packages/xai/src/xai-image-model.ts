@@ -203,6 +203,7 @@ export class XaiImageModel implements ImageModelV4 {
       url,
       // url is a generated-image URL from the provider response; validate it.
       validateUrl: true,
+      trustedOrigin: this.config.baseURL,
       abortSignal,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),
