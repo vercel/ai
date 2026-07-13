@@ -33,6 +33,13 @@ const MAX_DOWNLOAD_REDIRECTS = 10;
  * cloud-metadata). On any other runtime we cannot validate the hop, so we fail
  * closed rather than follow it blindly and bypass the guard.
  *
+ * A hop that is same-origin with `trustedOrigin` (the developer-configured
+ * provider endpoint) skips target validation: that origin is exactly what an
+ * unvalidated, config-derived request would fetch anyway, and validating it
+ * would break legitimate self-hosted / localhost deployments whose response
+ * URLs point back at the configured host. Hops on any other origin are always
+ * validated.
+ *
  * The returned response is the final (non-redirect) response. The caller is
  * responsible for checking `response.ok` and reading the body.
  *
@@ -53,12 +60,18 @@ export async function fetchWithValidatedRedirects({
   abortSignal,
   maxRedirects = MAX_DOWNLOAD_REDIRECTS,
   fetch = globalThis.fetch,
+  trustedOrigin,
 }: {
   url: string;
   headers?: HeadersInit;
   abortSignal?: AbortSignal;
   maxRedirects?: number;
   fetch?: FetchFunction;
+  /**
+   * A developer-configured origin (e.g. the provider's `baseURL`) whose hops
+   * skip target validation. Must never be derived from response data.
+   */
+  trustedOrigin?: string;
 }): Promise<Response> {
   // Left undefined when no headers are provided (bare request); otherwise
   // sanitized once and mutated in place across hops (cross-origin drop below).
@@ -76,7 +89,14 @@ export async function fetchWithValidatedRedirects({
   let currentUrl = url;
   // The bound also acts as a backstop against an unterminated redirect chain.
   for (let redirectCount = 0; redirectCount <= maxRedirects; redirectCount++) {
-    validateDownloadUrl(currentUrl);
+    // The developer-configured origin is trusted by definition; validating it
+    // would reject legitimate self-hosted / localhost deployments.
+    if (
+      trustedOrigin === undefined ||
+      !isSameOrigin(currentUrl, trustedOrigin)
+    ) {
+      validateDownloadUrl(currentUrl);
+    }
 
     const response = await fetch(currentUrl, perHopInit('manual'));
 

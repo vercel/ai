@@ -36,6 +36,13 @@ When the SDK fetches a URL taken from a provider response, it:
 
 A blocked URL surfaces as a `DownloadError`.
 
+## Self-hosted and local endpoints
+
+URLs that are same-origin with the provider endpoint **you configured** (e.g. a
+custom `baseURL` pointing at a self-hosted or `localhost` deployment) are
+exempt from these checks — they target exactly the host you told the SDK to
+talk to. Any redirect off that origin is still validated.
+
 ## Limitation: DNS resolution and DNS rebinding
 
 The built-in guard inspects the URL **as a string**. It deliberately does

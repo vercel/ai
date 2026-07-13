@@ -333,6 +333,39 @@ describe('getFromApi', () => {
       );
     });
 
+    it('fetches a private URL when it is same-origin with trustedOrigin (self-hosted deployments)', async () => {
+      const mockFetch = vi.fn().mockResolvedValue(okJson());
+
+      const result = await getFromApi({
+        url: 'http://localhost:5000/predictions/123',
+        validateUrl: true,
+        trustedOrigin: 'http://localhost:5000',
+        successfulResponseHandler:
+          createJsonResponseHandler(mockResponseSchema),
+        failedResponseHandler: createStatusCodeErrorResponseHandler(),
+        fetch: mockFetch,
+      });
+
+      expect(result.value).toEqual(mockSuccessResponse);
+    });
+
+    it('still rejects a private URL on a different origin than trustedOrigin', async () => {
+      const mockFetch = vi.fn();
+
+      await expect(
+        getFromApi({
+          url: 'http://169.254.169.254/latest/meta-data/',
+          validateUrl: true,
+          trustedOrigin: 'http://localhost:5000',
+          successfulResponseHandler:
+            createJsonResponseHandler(mockResponseSchema),
+          failedResponseHandler: createStatusCodeErrorResponseHandler(),
+          fetch: mockFetch,
+        }),
+      ).rejects.toThrow(DownloadError);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
     it('does not validate the URL when validateUrl is false', async () => {
       const mockFetch = vi.fn().mockResolvedValue(okJson());
 

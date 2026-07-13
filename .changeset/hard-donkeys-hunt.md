@@ -22,4 +22,6 @@ fix(provider-utils): validate provider-response URLs in `getFromApi` and make th
 
 A new optional `credentialedOrigin` withholds caller headers unless the URL is same-origin with it, so the API key is not sent to a response-supplied host on a different origin.
 
+A new optional `trustedOrigin` exempts URLs (and redirect hops) that are same-origin with the developer-configured provider endpoint from target validation, so self-hosted and localhost deployments whose response URLs point back at the configured host keep working; all other hops are still validated.
+
 Also closes range gaps in `validateDownloadUrl` (IPv4 `224.0.0.0/4` multicast, IPv6 `2001:db8::/32` documentation). This guard performs string/literal checks only and does not resolve DNS; hostnames that resolve to private addresses and DNS rebinding remain out of scope and must be constrained at the network layer (or by injecting a Node `fetch` that pins the resolved IP at connect time) for server deployments handling untrusted URLs. See `contributing/secure-url-handling.md`.

@@ -238,6 +238,7 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
       url: imageUrl,
       // imageUrl comes from the provider response body; validate it.
       validateUrl: true,
+      trustedOrigin: this.config.baseURL,
       // Only send credentials if the response-supplied URL points back at the
       // provider; the image is typically delivered from a CDN, so the API key
       // must not travel to a foreign host.
@@ -324,6 +325,7 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
         url: url.toString(),
         // The polling URL comes from the provider response; validate it.
         validateUrl: true,
+        trustedOrigin: this.config.baseURL,
         // Only send credentials when it stays on a trusted provider host.
         headers: isTrustedUrl(url.toString(), this.config.baseURL)
           ? headers

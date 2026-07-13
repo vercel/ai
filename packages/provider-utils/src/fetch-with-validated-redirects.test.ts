@@ -188,6 +188,39 @@ describe('fetchWithValidatedRedirects', () => {
     });
   });
 
+  it('skips validation for hops same-origin with trustedOrigin', async () => {
+    // A self-hosted deployment: the configured origin is private, and its
+    // response URLs (and same-origin redirects) point back at it.
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(redirectResponse('http://localhost:5000/final'))
+      .mockResolvedValueOnce(okResponse());
+
+    const response = await fetchWithValidatedRedirects({
+      url: 'http://localhost:5000/predictions/123',
+      trustedOrigin: 'http://localhost:5000',
+      fetch: fetchMock,
+    });
+
+    expect(response.ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('validates hops on other origins even when trustedOrigin is set', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(redirectResponse('http://169.254.169.254/'));
+
+    await expect(
+      fetchWithValidatedRedirects({
+        url: 'http://localhost:5000/predictions/123',
+        trustedOrigin: 'http://localhost:5000',
+        fetch: fetchMock,
+      }),
+    ).rejects.toThrow(DownloadError);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('uses the injected fetch instead of the global one', async () => {
     globalThis.fetch = vi.fn();
     const injected = vi.fn().mockResolvedValueOnce(okResponse());
