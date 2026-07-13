@@ -5,6 +5,7 @@ const BYPASS_LABELS = ['minor', 'major'];
 const CODE_EXTENSIONS = /\.(ts|tsx|js|jsx|mts|mjs|cts|cjs)$/;
 const TEST_FILE_PATTERNS =
   /\.(test|spec)\.(ts|tsx|js|jsx|mts|mjs|cts|cjs)$|\.test-d\.ts$/;
+const PACKAGE_BUNDLER_CONFIG = /^packages\/[^/]+\/(?:tsup|tsdown)\.config\.ts$/;
 
 function getChangedFiles(value) {
   return (value || '').trim().split(/\s+/).filter(Boolean);
@@ -12,6 +13,7 @@ function getChangedFiles(value) {
 
 function isCodeFile(path) {
   if (!path.startsWith('packages/')) return false;
+  if (PACKAGE_BUNDLER_CONFIG.test(path)) return false;
   if (TEST_FILE_PATTERNS.test(path)) return false;
   if (path.endsWith('.md')) return false;
   return CODE_EXTENSIONS.test(path);

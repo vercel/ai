@@ -7,8 +7,8 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
-    "build:watch": "pnpm clean && tsup --watch --tsconfig tsconfig.build.json",
+    "build": "pnpm clean && tsdown",
+    "build:watch": "pnpm clean && tsdown --watch",
     "clean": "del-cli dist *.tsbuildinfo",
     "type-check": "tsc --build",
     "test": "vitest --config vitest.config.js --run",
@@ -56,7 +56,7 @@
     "msw": "2.6.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "tsup": "^7.2.0",
+    "tsdown": "0.22.4",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "typescript-7": "npm:typescript@7.0.2",
     "zod": "3.25.76"

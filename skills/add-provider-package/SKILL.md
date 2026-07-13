@@ -45,7 +45,7 @@ packages/<provider>/
 ├── package.json
 ├── tsconfig.json
 ├── tsconfig.build.json
-├── tsup.config.ts
+├── tsdown.config.ts
 ├── turbo.json
 ├── vitest.node.config.js
 ├── vitest.edge.config.js
@@ -64,7 +64,7 @@ Set up your `package.json` with:
 - `"license": "Apache-2.0"`
 - `"sideEffects": false`
 - Dependencies on `@ai-sdk/provider` and `@ai-sdk/provider-utils` (use `workspace:*`)
-- Dev dependencies: `@ai-sdk/test-server`, `@types/node`, `@vercel/ai-tsconfig`, `tsup`, `typescript`, `zod`
+- Dev dependencies: `@ai-sdk/test-server`, `@types/node`, `@vercel/ai-tsconfig`, `zod`, and the current exact `tsdown` plus TypeScript 6 alias pins copied from a sibling provider package
 - `"engines": { "node": ">=22" }`
 - Peer dependency on `zod` (both v3 and v4): `"zod": "^3.25.76 || ^4.1.8"`
 
@@ -103,6 +103,9 @@ Example package entry point configuration:
 ```json
 {
   "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": false
+  },
   "exclude": [
     "**/*.test.ts",
     "**/*.test-d.ts",
@@ -112,19 +115,30 @@ Example package entry point configuration:
 }
 ```
 
-### 4. Configure Build Tool (tsup)
+### 4. Configure Build Tool (tsdown)
 
-Create `tsup.config.ts`:
+Create `tsdown.config.ts`:
 
 ```typescript
-import { defineConfig } from 'tsup';
+import { defineConfig } from 'tsdown';
+import { removeDanglingDeclarationSourcemapComments } from '../../tools/tsdown/declaration-sourcemaps.mts';
 
 export default defineConfig({
   entry: ['src/index.ts'],
-  format: ['cjs', 'esm'],
-  dts: true,
+  format: ['esm'],
+  outDir: 'dist',
+  tsconfig: 'tsconfig.build.json',
+  dts: {
+    sourcemap: false,
+  },
+  outputOptions: {
+    plugins: [removeDanglingDeclarationSourcemapComments()],
+  },
   sourcemap: true,
-  clean: true,
+  target: 'es2018',
+  platform: 'node',
+  clean: false,
+  fixedExtension: false,
 });
 ```
 
@@ -338,7 +352,7 @@ If `main` is set up to publish `beta` releases, no further action is necessary. 
 - [ ] Package structure created in `packages/<provider>`
 - [ ] `package.json` configured with correct dependencies
 - [ ] TypeScript configs set up (`tsconfig.json`, `tsconfig.build.json`)
-- [ ] Build configuration (`tsup.config.ts`)
+- [ ] Build configuration (`tsdown.config.ts`)
 - [ ] Test configurations (`vitest.node.config.js`, `vitest.edge.config.js`)
 - [ ] Provider implementation complete
 - [ ] Model classes implement appropriate interfaces
@@ -358,7 +372,7 @@ If `main` is set up to publish `beta` releases, no further action is necessary. 
 - **Missing tsconfig references**: Run `pnpm update-references` from workspace root
 - **Type errors in examples**: Run `pnpm type-check:full` to catch issues early
 - **Test failures**: Ensure both Node and Edge tests pass
-- **Build errors**: Check that `tsup.config.ts` is configured correctly
+- **Build errors**: Check that `tsdown.config.ts` is configured correctly
 
 ## Related Documentation
 

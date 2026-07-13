@@ -1,5 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["tools/tsdown/**"],
   "globalEnv": ["CI", "PORT"],
   "tasks": {
     "build": {

@@ -16,8 +16,8 @@ import { argv, stdout } from 'node:process';
 
 /*
  * CONSTRAINT — the third-party imports below are NEVER bundled into the
- * compiled `bridge/index.mjs`. They are declared `external` in
- * tsup.config.ts and resolved at runtime from the node_modules that this
+ * compiled `bridge/index.mjs`. They are listed in `deps.neverBundle` in
+ * tsdown.config.ts and resolved at runtime from the node_modules that this
  * bridge installs *inside the sandbox* from `src/bridge/package.json` (and
  * its pinned `pnpm-lock.yaml`). That bridge package.json — NOT this host
  * package — is the single source of truth for these packages and their
@@ -28,7 +28,7 @@ import { argv, stdout } from 'node:process';
  * in sync, or the bridge will either get the dependency bundled in or fail
  * to resolve it in the sandbox:
  *   1. the import statement below,
- *   2. the `external` array in tsup.config.ts, and
+ *   2. the `deps.neverBundle` array in tsdown.config.ts, and
  *   3. the dependency entry in `src/bridge/package.json`.
  */
 import * as claudeAgentSdk from '@anthropic-ai/claude-agent-sdk';

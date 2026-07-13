@@ -7,7 +7,7 @@
   "main": "./dist/rsc-client.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsup --tsconfig tsconfig.build.json",
+    "build": "tsdown",
     "build:watch": "pnpm build --watch",
     "clean": "del-cli dist",
     "type-check": "tsc --noEmit",
@@ -63,7 +63,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-server-dom-webpack": "18.3.0-canary-eb33bd747-20240312",
-    "tsup": "^7.2.0",
+    "tsdown": "0.22.4",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "typescript-7": "npm:typescript@7.0.2",
     "zod": "3.25.76"

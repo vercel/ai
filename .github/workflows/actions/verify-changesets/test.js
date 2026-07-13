@@ -456,6 +456,69 @@ test('package markdown-only change does not require changeset', async () => {
   assert.strictEqual(lstat.mock.callCount(), 0);
 });
 
+for (const configFile of ['tsup.config.ts', 'tsdown.config.ts']) {
+  test(`package ${configFile} change does not require changeset`, async () => {
+    const event = { pull_request: { labels: [] } };
+    const env = {
+      CHANGED_FILES: '',
+      CHANGED_PACKAGE_FILES: `packages/ai/${configFile}`,
+    };
+
+    const readFile = mockReadFile(() => {});
+    const lstat = mockLstat();
+
+    await verifyChangesets(event, env, readFile, lstat);
+    assert.strictEqual(readFile.mock.callCount(), 1);
+    assert.strictEqual(lstat.mock.callCount(), 0);
+  });
+}
+
+test('other package config code still requires a changeset', async () => {
+  const event = { pull_request: { labels: [] } };
+  const env = {
+    CHANGED_FILES: '',
+    CHANGED_PACKAGE_FILES:
+      'packages/ai/vite.config.ts packages/ai/src/tsdown.config.ts',
+  };
+
+  const readFile = mockReadFile(async path => {
+    if (path.endsWith('package.json')) {
+      return JSON.stringify({ name: 'ai' });
+    }
+  });
+  const lstat = mockLstat();
+
+  await assert.rejects(
+    () => verifyChangesets(event, env, readFile, lstat),
+    new Error(
+      `Missing changeset - packages were modified but no .changeset/*.md file was found. Run 'pnpm changeset' to create one.`,
+    ),
+  );
+});
+
+test('source change alongside bundler config still requires a changeset', async () => {
+  const event = { pull_request: { labels: [] } };
+  const env = {
+    CHANGED_FILES: '',
+    CHANGED_PACKAGE_FILES:
+      'packages/ai/tsdown.config.ts packages/ai/src/index.ts',
+  };
+
+  const readFile = mockReadFile(async path => {
+    if (path.endsWith('package.json')) {
+      return JSON.stringify({ name: 'ai' });
+    }
+  });
+  const lstat = mockLstat();
+
+  await assert.rejects(
+    () => verifyChangesets(event, env, readFile, lstat),
+    new Error(
+      `Missing changeset - packages were modified but no .changeset/*.md file was found. Run 'pnpm changeset' to create one.`,
+    ),
+  );
+});
+
 test('package code change bypassed with "minor" label', async () => {
   const event = { pull_request: { labels: [{ name: 'minor' }] } };
   const env = {

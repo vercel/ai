@@ -45,7 +45,6 @@
   "exclude": [
     "dist",
     "build",
-    "node_modules",
-    "tsup.config.ts"
+    "node_modules"
   ]
 }

@@ -32,7 +32,7 @@ We welcome your contributions to our code and documentation. Here's how you can 
 
 ### Environment Setup
 
-AI SDK development requires PNPM v9 (lockfile version) or higher and Node v22.
+AI SDK development requires PNPM v9 (lockfile version) or higher and Node v22.18+, v24.11+, or v26.
 
 ### Setting Up the Repository Locally
 
@@ -40,7 +40,7 @@ To set up the repository on your local machine, follow these steps:
 
 1. **Fork the Repository**: Make a copy of the repository to your GitHub account.
 2. **Clone the Repository**: Clone the repository to your local machine, e.g. using `git clone`.
-3. **Install Node**: If you haven't already, install Node v22.
+3. **Install Node**: If you haven't already, install Node v22.18+, v24.11+, or v26.
 4. **Install pnpm**: If you haven't already, install pnpm v10. You can do this by running `npm install -g pnpm@10` if you're using npm. Alternatively, if you're using Homebrew (Mac), you can run `brew install pnpm`. For more see [the pnpm site](https://pnpm.io/installation).
 5. **Install Dependencies**: Navigate to the project directory and run `pnpm install` to install all necessary dependencies. This also sets up Git hooks via Husky.
 6. **Build the Project**: Run `pnpm build` in the root to build all packages.

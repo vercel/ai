@@ -1,5 +1,5 @@
 // Shared in-sandbox bridge runtime. Adapter `bridge.mjs` bundles re-bundle
-// this module (tsup inlines it; `ws` stays external and resolves from the
+// this module (tsdown inlines it; `ws` stays external and resolves from the
 // sandbox-installed node_modules). It owns everything generic to the bridge
 // transport — the WebSocket server, token auth, single-flight connection
 // replacement, the in-memory event log + monotonic `seq`, resume replay, and

@@ -21,8 +21,8 @@
     "doc": "./docs"
   },
   "scripts": {
-    "build": "tsup --tsconfig tsconfig.build.json",
-    "build:watch": "tsup --tsconfig tsconfig.build.json --watch",
+    "build": "tsdown",
+    "build:watch": "tsdown --watch",
     "clean": "del-cli dist docs && del-cli internal/dist",
     "prepack": "mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/90-elevenlabs.mdx ./docs/",
     "postpack": "del-cli docs",
@@ -49,7 +49,7 @@
     "@ai-sdk/test-server": "workspace:*",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "tsup": "^8.5.1",
+    "tsdown": "0.22.4",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "typescript-7": "npm:typescript@7.0.2",
     "zod": "3.25.76"

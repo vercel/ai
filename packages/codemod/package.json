@@ -17,9 +17,9 @@
     "README.md"
   ],
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
+    "build": "pnpm clean && tsdown",
     "clean": "del-cli dist *.tsbuildinfo",
-    "dev": "tsup --watch",
+    "dev": "tsdown --watch",
     "type-check": "tsc --build",
     "test": "vitest --config vitest.config.ts --run",
     "test:watch": "vitest",
@@ -36,7 +36,7 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "ai": "workspace:*",
     "msw": "2.6.4",
-    "tsup": "^8.5.1",
+    "tsdown": "0.22.4",
     "tsx": "4.19.2",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "typescript-7": "npm:typescript@7.0.2",

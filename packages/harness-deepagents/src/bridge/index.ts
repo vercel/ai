@@ -1,4 +1,4 @@
-// In-sandbox turn driver on `@ai-sdk/harness/bridge`; third-party imports stay external (tsup) and install in-sandbox from src/bridge/package.json — keep import/externals/deps in sync.
+// In-sandbox turn driver on `@ai-sdk/harness/bridge`; third-party imports stay external (tsdown) and install in-sandbox from src/bridge/package.json — keep imports, deps.neverBundle, and package dependencies in sync.
 
 import { randomUUID } from 'node:crypto';
 import { argv, env as procEnv } from 'node:process';
