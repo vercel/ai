@@ -71,6 +71,12 @@ for await (const part of result.fullStream) {
 console.log(await result.text);
 ```
 
+`fullStream` is a single-consumer live stream and can only be accessed once.
+When you need both stream parts and final results, access `fullStream` first and
+await the result promises while or after consuming it. Accessing a result
+promise first consumes the stream internally, so `fullStream` is no longer
+available. This avoids retaining an unbounded replay buffer for live audio.
+
 To access the final transcript metadata:
 
 ```ts

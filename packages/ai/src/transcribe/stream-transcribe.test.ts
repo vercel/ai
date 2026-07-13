@@ -359,4 +359,147 @@ describe('experimental_streamTranscribe', () => {
       expect(observedSignal?.aborted).toBe(true);
     });
   });
+
+  it('should resolve the result promises without consuming fullStream', async () => {
+    const result = streamTranscribe({
+      model: new MockTranscriptionModelV4({
+        doStream: async () =>
+          createStreamResponse([
+            { type: 'stream-start', warnings: [] },
+            { type: 'transcript-delta', id: 'item-1', delta: 'Hello' },
+            {
+              type: 'finish',
+              text: 'Hello',
+              segments: [{ text: 'Hello', startSecond: 0, endSecond: 1 }],
+              language: 'en',
+              durationInSeconds: 1,
+            },
+          ]),
+      }),
+      audio,
+      inputAudioFormat,
+    });
+
+    // no fullStream access: accessing a promise consumes the stream
+    expect(await result.text).toBe('Hello');
+    expect(await result.segments).toEqual([
+      { text: 'Hello', startSecond: 0, endSecond: 1 },
+    ]);
+    expect(await result.warnings).toEqual([]);
+  });
+
+  it('should reject the result promises without consuming fullStream when no transcript is produced', async () => {
+    const result = streamTranscribe({
+      model: new MockTranscriptionModelV4({
+        doStream: async () =>
+          createStreamResponse([{ type: 'stream-start', warnings: [] }]),
+      }),
+      audio,
+      inputAudioFormat,
+    });
+
+    await expect(result.text).rejects.toThrow('No transcript generated.');
+  });
+
+  it('should reject fullStream access after a result promise claimed the stream', async () => {
+    const result = streamTranscribe({
+      model: new MockTranscriptionModelV4({
+        doStream: async () =>
+          createStreamResponse([
+            { type: 'stream-start', warnings: [] },
+            { type: 'transcript-delta', id: 'item-1', delta: 'Hello' },
+            { type: 'finish', text: 'Hello', segments: [] },
+          ]),
+      }),
+      audio,
+      inputAudioFormat,
+    });
+
+    expect(await result.text).toBe('Hello');
+    expect(() => result.fullStream).toThrow(
+      'fullStream cannot be accessed after a result promise.',
+    );
+  });
+
+  it('should support iterating fullStream before awaiting promises', async () => {
+    const result = streamTranscribe({
+      model: new MockTranscriptionModelV4({
+        doStream: async () =>
+          createStreamResponse([
+            { type: 'stream-start', warnings: [] },
+            { type: 'transcript-delta', id: 'item-1', delta: 'Hello' },
+            { type: 'finish', text: 'Hello', segments: [] },
+          ]),
+      }),
+      audio,
+      inputAudioFormat,
+    });
+
+    const parts = await convertAsyncIterableToArray(result.fullStream);
+    expect(parts).toEqual([
+      { type: 'transcript-delta', id: 'item-1', delta: 'Hello' },
+    ]);
+    expect(await result.text).toBe('Hello');
+  });
+
+  it('should resolve a result promise while fullStream is actively consumed', async () => {
+    let modelController!: ReadableStreamDefaultController<TranscriptionModelV4StreamPart>;
+    const modelStream = new ReadableStream<TranscriptionModelV4StreamPart>({
+      start(controller) {
+        modelController = controller;
+      },
+    });
+    const result = streamTranscribe({
+      model: new MockTranscriptionModelV4({
+        doStream: async () => ({ stream: modelStream }),
+      }),
+      audio,
+      inputAudioFormat,
+    });
+    const reader = result.fullStream.getReader();
+
+    modelController.enqueue({ type: 'stream-start', warnings: [] });
+    modelController.enqueue({
+      type: 'transcript-delta',
+      id: 'item-1',
+      delta: 'Hello',
+    });
+    await expect(reader.read()).resolves.toEqual({
+      done: false,
+      value: { type: 'transcript-delta', id: 'item-1', delta: 'Hello' },
+    });
+
+    // Keep consuming fullStream while awaiting the result promise.
+    const streamDone = reader.read();
+    const text = result.text;
+    modelController.enqueue({ type: 'finish', text: 'Hello', segments: [] });
+    modelController.close();
+    expect(await text).toBe('Hello');
+    await expect(streamDone).resolves.toEqual({
+      done: true,
+      value: undefined,
+    });
+  });
+
+  it('should reject a second fullStream access', async () => {
+    const result = streamTranscribe({
+      model: new MockTranscriptionModelV4({
+        doStream: async () =>
+          createStreamResponse([
+            { type: 'stream-start', warnings: [] },
+            { type: 'finish', text: 'Hello', segments: [] },
+          ]),
+      }),
+      audio,
+      inputAudioFormat,
+    });
+
+    const fullStream = result.fullStream;
+    const textAssertion = expect(result.text).rejects.toThrow();
+    expect(() => result.fullStream).toThrow(
+      'fullStream can only be accessed once.',
+    );
+    await fullStream.cancel();
+    await textAssertion;
+  });
 });
