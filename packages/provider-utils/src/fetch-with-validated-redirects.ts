@@ -8,6 +8,11 @@ import { validateDownloadUrl } from './validate-download-url';
 
 const MAX_DOWNLOAD_REDIRECTS = 10;
 
+// Redirect status codes per the fetch spec (https://fetch.spec.whatwg.org/#redirect-status).
+// Notably 300 (Multiple Choices) and 304 (Not Modified) are NOT redirects,
+// even when a server attaches a Location header.
+const REDIRECT_STATUS_CODES = new Set([301, 302, 303, 307, 308]);
+
 /**
  * Fetches a URL while enforcing the download guard on every hop.
  *
@@ -87,7 +92,7 @@ export async function fetchWithValidatedRedirects({
     }
 
     const location = response.headers.get('location');
-    if (response.status >= 300 && response.status < 400 && location) {
+    if (REDIRECT_STATUS_CODES.has(response.status) && location) {
       // Release the redirect response's connection before moving to the next
       // hop. Whether that hop is followed or rejected by the guard, an
       // unconsumed 3xx body would leak the underlying socket.

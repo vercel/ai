@@ -133,6 +133,42 @@ describe('fetchWithValidatedRedirects', () => {
     );
   });
 
+  it.each([301, 302, 303, 307, 308])('follows a %d redirect', async status => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        redirectResponse('https://cdn.example.com/file', status),
+      )
+      .mockResolvedValueOnce(okResponse());
+    globalThis.fetch = fetchMock;
+
+    await fetchWithValidatedRedirects({ url: 'https://example.com/file' });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([300, 304])(
+    'returns a %d response as final even when it carries a Location header',
+    async status => {
+      // Per the fetch spec, only 301/302/303/307/308 are redirect statuses.
+      // A hostile Location on a non-redirect status must not be followed —
+      // not even to a private address.
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(
+          redirectResponse('http://169.254.169.254/', status),
+        );
+      globalThis.fetch = fetchMock;
+
+      const response = await fetchWithValidatedRedirects({
+        url: 'https://example.com/file',
+      });
+
+      expect(response.status).toBe(status);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    },
+  );
+
   it('rejects once the redirect limit is exceeded', async () => {
     const fetchMock = vi
       .fn()
