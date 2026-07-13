@@ -175,7 +175,7 @@ export class OpenAICompatibleVideoModel implements Experimental_VideoModelV4 {
       const { value: statusResponse, responseHeaders: statusHeaders } =
         await getFromApi({
           url: this.config.url({
-            path: '/videos/${taskId}',
+            path: `/videos/${taskId}`,
             modelId: this.modelId,
           }),
           headers: combineHeaders(await resolve(this.config.headers), options.headers),
