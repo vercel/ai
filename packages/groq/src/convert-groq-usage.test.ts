@@ -65,6 +65,37 @@ describe('convertGroqUsage', () => {
     });
   });
 
+  it('should extract cached input tokens', () => {
+    const result = convertGroqUsage({
+      prompt_tokens: 20,
+      completion_tokens: 5,
+      prompt_tokens_details: {
+        cached_tokens: 15,
+      },
+    });
+
+    expect(result).toStrictEqual({
+      inputTokens: {
+        total: 20,
+        noCache: 5,
+        cacheRead: 15,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: 5,
+        text: 5,
+        reasoning: undefined,
+      },
+      raw: {
+        prompt_tokens: 20,
+        completion_tokens: 5,
+        prompt_tokens_details: {
+          cached_tokens: 15,
+        },
+      },
+    });
+  });
+
   it('should extract reasoning tokens from completion_tokens_details', () => {
     const result = convertGroqUsage({
       prompt_tokens: 79,
