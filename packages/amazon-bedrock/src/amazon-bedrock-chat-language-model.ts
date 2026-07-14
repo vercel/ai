@@ -665,6 +665,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
         headers: responseHeaders,
       },
       warnings,
+      request: { body: args },
       ...(providerMetadata && { providerMetadata }),
     };
   }
@@ -1090,7 +1091,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
           },
         }),
       ),
-      // TODO request?
+      request: { body: args },
       response: { headers: responseHeaders },
     };
   }

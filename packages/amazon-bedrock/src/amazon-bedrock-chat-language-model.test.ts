@@ -67,7 +67,6 @@ const mockTrace = {
 const fakeFetchWithAuth = injectFetchHeaders({ 'x-amz-auth': 'test-auth' });
 
 const modelId = 'anthropic.claude-3-haiku-20240307-v1:0';
-const issue13927ModelId = 'us.anthropic.claude-opus-4-6-v1';
 const anthropicModelId = 'anthropic.claude-3-5-sonnet-20240620-v1:0'; // Define at top level
 const baseUrl = 'https://bedrock-runtime.us-east-1.amazonaws.com';
 
@@ -75,12 +74,6 @@ const streamUrl = `${baseUrl}/model/${encodeURIComponent(
   modelId,
 )}/converse-stream`;
 const generateUrl = `${baseUrl}/model/${encodeURIComponent(modelId)}/converse`;
-const issue13927StreamUrl = `${baseUrl}/model/${encodeURIComponent(
-  issue13927ModelId,
-)}/converse-stream`;
-const issue13927GenerateUrl = `${baseUrl}/model/${encodeURIComponent(
-  issue13927ModelId,
-)}/converse`;
 const anthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   anthropicModelId,
 )}/converse`;
@@ -113,13 +106,6 @@ const server = createTestServer({
       chunks: [],
     },
   },
-  [issue13927GenerateUrl]: {},
-  [issue13927StreamUrl]: {
-    response: {
-      type: 'stream-chunks',
-      chunks: [],
-    },
-  },
   // Configure the server for the Anthropic model from the start
   [anthropicGenerateUrl]: {},
   [novaGenerateUrl]: {},
@@ -130,12 +116,9 @@ const server = createTestServer({
 
 function prepareJsonFixtureResponse(
   filename: string,
-  {
-    headers,
-    url = generateUrl,
-  }: { headers?: Record<string, string>; url?: string } = {},
+  { headers }: { headers?: Record<string, string> } = {},
 ) {
-  server.urls[url].response = {
+  server.urls[generateUrl].response = {
     type: 'json-value',
     headers,
     body: JSON.parse(
@@ -146,10 +129,7 @@ function prepareJsonFixtureResponse(
 
 function prepareChunksFixtureResponse(
   filename: string,
-  {
-    headers,
-    url = streamUrl,
-  }: { headers?: Record<string, string>; url?: string } = {},
+  { headers }: { headers?: Record<string, string> } = {},
 ) {
   const chunks = fs
     .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
@@ -157,7 +137,7 @@ function prepareChunksFixtureResponse(
     .filter(Boolean)
     .map(line => line + '\n');
 
-  server.urls[url].response = {
+  server.urls[streamUrl].response = {
     type: 'stream-chunks',
     headers,
     chunks,
@@ -179,13 +159,6 @@ beforeEach(() => {
 });
 
 const model = new AmazonBedrockChatLanguageModel(modelId, {
-  baseUrl: () => baseUrl,
-  headers: {},
-  fetch: fakeFetchWithAuth,
-  generateId: () => 'test-id',
-});
-
-const issue13927Model = new AmazonBedrockChatLanguageModel(issue13927ModelId, {
   baseUrl: () => baseUrl,
   headers: {},
   fetch: fakeFetchWithAuth,
@@ -229,19 +202,36 @@ const opusAnthropicModel = new AmazonBedrockChatLanguageModel(
 let mockOptions: { success: boolean; errorValue?: any } = { success: true };
 
 describe('doGenerate request metadata', () => {
-  it('should return the Bedrock request body for observability', async () => {
-    prepareJsonFixtureResponse('issue-13927-request-metadata', {
-      url: issue13927GenerateUrl,
-    });
+  it('should return the request body', async () => {
+    prepareJsonFixtureResponse('amazon-bedrock-text');
 
-    const result = await issue13927Model.doGenerate({
+    const result = await model.doGenerate({
       prompt: TEST_PROMPT,
     });
 
-    expect(result.request?.body).toBeDefined();
-    expect(JSON.stringify(result.request?.body)).toBe(
-      JSON.stringify(await server.calls[0].requestBodyJson),
-    );
+    expect(result.request?.body).toMatchInlineSnapshot(`
+      {
+        "additionalModelRequestFields": undefined,
+        "additionalModelResponseFieldPaths": [
+          "/delta/stop_sequence",
+        ],
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "system": [
+          {
+            "text": "System Prompt",
+          },
+        ],
+      }
+    `);
   });
 });
 
@@ -331,20 +321,35 @@ describe('doStream', () => {
       `);
     });
 
-    it('should return the Bedrock request body for observability', async () => {
-      prepareChunksFixtureResponse('issue-13927-request-metadata', {
-        url: issue13927StreamUrl,
-      });
-
-      const result = await issue13927Model.doStream({
+    it('should return the request body', async () => {
+      const result = await model.doStream({
         prompt: TEST_PROMPT,
         includeRawChunks: false,
       });
 
-      expect(result.request?.body).toBeDefined();
-      expect(JSON.stringify(result.request?.body)).toBe(
-        JSON.stringify(await server.calls[0].requestBodyJson),
-      );
+      expect(result.request?.body).toMatchInlineSnapshot(`
+        {
+          "additionalModelRequestFields": undefined,
+          "additionalModelResponseFieldPaths": [
+            "/delta/stop_sequence",
+          ],
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": [
+            {
+              "text": "System Prompt",
+            },
+          ],
+        }
+      `);
     });
   });
 
