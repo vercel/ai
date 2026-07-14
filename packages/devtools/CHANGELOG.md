@@ -1,5 +1,11 @@
 # @ai-sdk/devtools
 
+## 1.0.5
+
+### Patch Changes
+
+- 27d294d: feat(ai): group orphaned tool calls after tool approvals under parent span
+
 ## 1.0.4
 
 ### Patch Changes

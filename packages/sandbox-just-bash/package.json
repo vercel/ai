@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/sandbox-just-bash",
-  "version": "1.0.27",
+  "version": "1.0.31",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,

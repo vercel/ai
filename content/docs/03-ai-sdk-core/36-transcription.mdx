@@ -83,10 +83,13 @@ const durationInSeconds = await result.durationInSeconds; // duration in seconds
 The `audio` stream must contain raw audio chunks. `Uint8Array` chunks are raw bytes; `string` chunks are base64-encoded raw bytes. Always set `inputAudioFormat` to match the chunks you send.
 
 <Note>
-  Streaming transcription requires a provider model instance (e.g.
-  `openai.transcription('gpt-realtime-whisper')`). String model IDs resolve
-  through the global provider (AI Gateway by default), which does not support
-  streaming transcription yet.
+  String model IDs resolve through the global provider (AI Gateway by
+  default). AI Gateway supports streaming transcription for supported models
+  (e.g. `openai/gpt-realtime-whisper`, `xai/grok-stt`), so string IDs work:
+  `experimental_streamTranscribe({ model: 'openai/gpt-realtime-whisper', ...
+  })`. You can also pass a provider model instance (e.g.
+  `openai.transcription('gpt-realtime-whisper')`) to stream directly against
+  the provider.
 </Note>
 
 OpenAI streaming transcription uses `openai.transcription('gpt-realtime-whisper')`. xAI uses the same `xai.transcription()` model for request/response and streaming transcription; `experimental_streamTranscribe` uses xAI's WebSocket STT transport under the hood.
