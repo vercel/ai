@@ -438,6 +438,7 @@ describe('DirectChatTransport', () => {
 
       const result = await transport.reconnectToStream({
         chatId: 'chat-1',
+        abortSignal: undefined,
       });
 
       expect(result).toBeNull();
