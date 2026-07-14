@@ -1,4 +1,9 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import {
+  convertArrayToReadableStream,
+  convertReadableStreamToArray,
+} from '@ai-sdk/provider-utils/test';
+import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
 import { createElevenLabs } from './elevenlabs-provider';
 import { readFile } from 'node:fs/promises';
@@ -18,6 +23,40 @@ const server = createTestServer({
   'https://api.elevenlabs.io/v1/speech-to-text': {},
 });
 
+class MockWebSocket {
+  static instances: MockWebSocket[] = [];
+
+  readyState = 0;
+  bufferedAmount = 0;
+  send = vi.fn();
+  close = vi.fn(() => {
+    this.readyState = 3;
+  });
+  onopen: ((event: unknown) => void) | null = null;
+  onmessage: ((event: { data: unknown }) => void) | null = null;
+  onerror: ((event: unknown) => void) | null = null;
+  onclose: ((event: unknown) => void) | null = null;
+
+  constructor(
+    public url: string | URL,
+    public protocols?: string | string[],
+    public options?: { headers?: Record<string, string | undefined> },
+  ) {
+    MockWebSocket.instances.push(this);
+  }
+
+  open() {
+    this.readyState = 1;
+    this.onopen?.({});
+  }
+
+  message(value: unknown) {
+    this.onmessage?.({ data: JSON.stringify(value) });
+  }
+}
+
+const flush = () => new Promise(resolve => setTimeout(resolve, 0));
+
 function prepareJsonFixtureResponse(
   filename: string,
   headers?: Record<string, string>,
@@ -32,6 +71,15 @@ function prepareJsonFixtureResponse(
 }
 
 describe('doGenerate', () => {
+  it('should reject scribe_v2_realtime for non-streaming transcription', async () => {
+    await expect(
+      provider.transcription('scribe_v2_realtime').doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      }),
+    ).rejects.toBeInstanceOf(UnsupportedFunctionalityError);
+  });
+
   describe('transcription', () => {
     beforeEach(() => prepareJsonFixtureResponse('elevenlabs-transcription'));
 
@@ -190,5 +238,317 @@ describe('doGenerate', () => {
 
       expect(result).toMatchSnapshot();
     });
+  });
+});
+
+describe('doStream', () => {
+  beforeEach(() => {
+    MockWebSocket.instances = [];
+  });
+
+  it('streams Scribe v2 Realtime and maps partial, committed, and timestamped output', async () => {
+    const testDate = new Date(0);
+    const model = new ElevenLabsTranscriptionModel('scribe_v2_realtime', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://api.elevenlabs.io${path}`,
+      headers: () => ({
+        'xi-api-key': 'test-api-key',
+        'Custom-Provider-Header': 'provider-value',
+      }),
+      webSocket: MockWebSocket,
+      _internal: { currentDate: () => testDate },
+    });
+
+    const result = await model.doStream({
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3]), 'BAUG']),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      headers: { 'Custom-Request-Header': 'request-value' },
+      providerOptions: {
+        elevenlabs: {
+          languageCode: 'en',
+          streaming: {
+            commitStrategy: 'manual',
+            enableLogging: false,
+            includeLanguageDetection: true,
+            includeTimestamps: true,
+            keyterms: ['Vercel', 'AI SDK'],
+            minSilenceDurationMs: 200,
+            minSpeechDurationMs: 150,
+            noVerbatim: true,
+            previousText: 'Earlier context',
+            vadSilenceThresholdSecs: 1.2,
+            vadThreshold: 0.5,
+          },
+        },
+      },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    const url = new URL(ws.url);
+    expect(url.origin + url.pathname).toBe(
+      'wss://api.elevenlabs.io/v1/speech-to-text/realtime',
+    );
+    expect(Object.fromEntries(url.searchParams)).toMatchObject({
+      audio_format: 'pcm_16000',
+      commit_strategy: 'manual',
+      enable_logging: 'false',
+      include_language_detection: 'true',
+      include_timestamps: 'true',
+      language_code: 'en',
+      min_silence_duration_ms: '200',
+      min_speech_duration_ms: '150',
+      model_id: 'scribe_v2_realtime',
+      no_verbatim: 'true',
+      vad_silence_threshold_secs: '1.2',
+      vad_threshold: '0.5',
+    });
+    expect(url.searchParams.getAll('keyterms')).toEqual(['Vercel', 'AI SDK']);
+    expect(ws.options?.headers).toMatchObject({
+      'xi-api-key': 'test-api-key',
+      'Custom-Provider-Header': 'provider-value',
+      'Custom-Request-Header': 'request-value',
+    });
+
+    ws.open();
+    ws.message({
+      message_type: 'session_started',
+      session_id: 'session-1',
+      config: {},
+    });
+    await flush();
+
+    expect(ws.send.mock.calls.map(([value]) => JSON.parse(value))).toEqual([
+      {
+        message_type: 'input_audio_chunk',
+        audio_base_64: 'AQID',
+        commit: false,
+        sample_rate: 16000,
+        previous_text: 'Earlier context',
+      },
+      {
+        message_type: 'input_audio_chunk',
+        audio_base_64: 'BAUG',
+        commit: false,
+        sample_rate: 16000,
+      },
+      {
+        message_type: 'input_audio_chunk',
+        audio_base_64: '',
+        commit: true,
+        sample_rate: 16000,
+      },
+    ]);
+
+    ws.message({ message_type: 'partial_transcript', text: 'Hello wor' });
+    ws.message({
+      message_type: 'committed_transcript',
+      text: 'Hello world.',
+    });
+    ws.message({
+      message_type: 'committed_transcript_with_timestamps',
+      text: 'Hello world.',
+      language_code: 'en',
+      words: [
+        { text: 'Hello', start: 0, end: 0.4, type: 'word' },
+        { text: ' ', start: 0.4, end: 0.45, type: 'spacing' },
+        { text: 'world.', start: 0.45, end: 0.9, type: 'word' },
+      ],
+    });
+
+    await expect(partsPromise).resolves.toEqual([
+      { type: 'stream-start', warnings: [] },
+      {
+        type: 'transcript-partial',
+        id: 'session-1',
+        text: 'Hello wor',
+      },
+      {
+        type: 'transcript-final',
+        id: 'session-1:0',
+        text: 'Hello world.',
+      },
+      {
+        type: 'finish',
+        text: 'Hello world.',
+        segments: [
+          { text: 'Hello', startSecond: 0, endSecond: 0.4 },
+          { text: ' ', startSecond: 0.4, endSecond: 0.45 },
+          { text: 'world.', startSecond: 0.45, endSecond: 0.9 },
+        ],
+        language: 'en',
+        durationInSeconds: 0.9,
+      },
+    ]);
+    expect(result.response).toEqual({
+      timestamp: testDate,
+      modelId: 'scribe_v2_realtime',
+    });
+    expect(ws.close).toHaveBeenCalledWith(1000);
+  });
+
+  it('supports 8 kHz mu-law input', async () => {
+    const model = createElevenLabs({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('scribe_v2_realtime');
+    const result = await model.doStream!({
+      audio: convertArrayToReadableStream([new Uint8Array([1])]),
+      inputAudioFormat: { type: 'audio/pcmu', rate: 8000 },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    expect(new URL(ws.url).searchParams.get('audio_format')).toBe('ulaw_8000');
+    ws.open();
+    ws.message({ message_type: 'session_started', session_id: 'session-1' });
+    await flush();
+    ws.message({ message_type: 'committed_transcript', text: 'Hello' });
+    await expect(partsPromise).resolves.toBeDefined();
+  });
+
+  it('defaults PCM input without a rate to 16 kHz', async () => {
+    const model = createElevenLabs({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('scribe_v2_realtime');
+    const result = await model.doStream!({
+      audio: convertArrayToReadableStream([]),
+      inputAudioFormat: { type: 'audio/pcm' },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    expect(new URL(ws.url).searchParams.get('audio_format')).toBe('pcm_16000');
+    ws.open();
+    ws.message({ message_type: 'session_started', session_id: 'session-1' });
+    await flush();
+    ws.message({ message_type: 'committed_transcript', text: 'Hello' });
+    await expect(partsPromise).resolves.toBeDefined();
+  });
+
+  it('rejects non-realtime models and unsupported input formats', async () => {
+    await expect(
+      createElevenLabs({
+        apiKey: 'test-api-key',
+        webSocket: MockWebSocket,
+      }).transcription('scribe_v2').doStream!({
+        audio: convertArrayToReadableStream([]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      }),
+    ).rejects.toBeInstanceOf(UnsupportedFunctionalityError);
+
+    await expect(
+      createElevenLabs({
+        apiKey: 'test-api-key',
+        webSocket: MockWebSocket,
+      }).transcription('scribe_v2_realtime').doStream!({
+        audio: convertArrayToReadableStream([]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 32000 },
+      }),
+    ).rejects.toThrow('ElevenLabs realtime transcription supports');
+  });
+
+  it('rejects background filtering together with timestamps', async () => {
+    await expect(
+      createElevenLabs({
+        apiKey: 'test-api-key',
+        webSocket: MockWebSocket,
+      }).transcription('scribe_v2_realtime').doStream!({
+        audio: convertArrayToReadableStream([]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+        providerOptions: {
+          elevenlabs: {
+            streaming: {
+              filterBackgroundAudio: true,
+              includeTimestamps: true,
+            },
+          },
+        },
+      }),
+    ).rejects.toThrow('cannot be combined');
+  });
+
+  it('warns about batch-only provider options', async () => {
+    const result = await createElevenLabs({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('scribe_v2_realtime').doStream!({
+      audio: convertArrayToReadableStream([new Uint8Array([1])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: {
+        elevenlabs: { diarize: true, numSpeakers: 2 },
+      },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ message_type: 'session_started', session_id: 'session-1' });
+    await flush();
+    ws.message({ message_type: 'committed_transcript', text: 'Hello' });
+    const parts = await partsPromise;
+    expect(parts[0]).toEqual({
+      type: 'stream-start',
+      warnings: [
+        {
+          type: 'unsupported',
+          feature: 'providerOptions.elevenlabs.diarize',
+          details:
+            'ElevenLabs realtime transcription does not support diarize.',
+        },
+        {
+          type: 'unsupported',
+          feature: 'providerOptions.elevenlabs.numSpeakers',
+          details:
+            'ElevenLabs realtime transcription does not support numSpeakers.',
+        },
+      ],
+    });
+  });
+
+  it('errors the stream with the provider error message', async () => {
+    const result = await createElevenLabs({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('scribe_v2_realtime').doStream!({
+      audio: convertArrayToReadableStream([new Uint8Array([1])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ message_type: 'session_started', session_id: 'session-1' });
+    const assertion = expect(partsPromise).rejects.toThrow('quota exhausted');
+    ws.message({ message_type: 'quota_exceeded', error: 'quota exhausted' });
+    await assertion;
+    expect(ws.close).toHaveBeenCalled();
+  });
+
+  it('cancels the audio stream when the WebSocket constructor throws', async () => {
+    let audioCancelled = false;
+    const audio = new ReadableStream<Uint8Array>({
+      cancel() {
+        audioCancelled = true;
+      },
+    });
+    const model = createElevenLabs({
+      apiKey: 'test-api-key',
+      webSocket: class {
+        constructor() {
+          throw new Error('constructor failed');
+        }
+      } as never,
+    }).transcription('scribe_v2_realtime');
+
+    const result = await model.doStream!({
+      audio,
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+    });
+    await expect(convertReadableStreamToArray(result.stream)).rejects.toThrow(
+      'constructor failed',
+    );
+    expect(audioCancelled).toBe(true);
   });
 });

@@ -36,7 +36,7 @@ You can use the following optional settings to customize the ElevenLabs provider
 
 - **apiKey** _string_
 
-  API key that is being sent using the `Authorization` header.
+  API key that is being sent using the `xi-api-key` header.
   It defaults to the `ELEVENLABS_API_KEY` environment variable.
 
 - **headers** _Record&lt;string,string&gt;_
@@ -49,6 +49,12 @@ You can use the following optional settings to customize the ElevenLabs provider
   Defaults to the global `fetch` function.
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
+
+- **webSocket** _WebSocketConstructor_
+
+  Custom WebSocket implementation for realtime transcription. A
+  header-capable implementation is required in runtimes whose native WebSocket
+  constructor cannot send the `xi-api-key` authentication header.
 
 ## Speech Models
 
@@ -168,10 +174,10 @@ const result = await generateSpeech({
 You can create models that call the [ElevenLabs transcription API](https://elevenlabs.io/speech-to-text)
 using the `.transcription()` factory method.
 
-The first argument is the model id e.g. `scribe_v1`.
+The first argument is the model id e.g. `scribe_v2`.
 
 ```ts
-const model = elevenLabs.transcription('scribe_v1');
+const model = elevenLabs.transcription('scribe_v2');
 ```
 
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the input language in ISO-639-1 (e.g. `en`) format can sometimes improve transcription performance if known beforehand.
@@ -184,7 +190,7 @@ import {
 } from '@ai-sdk/elevenlabs';
 
 const result = await transcribe({
-  model: elevenLabs.transcription('scribe_v1'),
+  model: elevenLabs.transcription('scribe_v2'),
   audio: new Uint8Array([1, 2, 3, 4]),
   providerOptions: {
     elevenlabs: {
@@ -233,9 +239,57 @@ The following provider options are available:
   For `'pcm_s16le_16'`, the input audio must be 16-bit PCM at a 16kHz sample rate, single channel (mono), and little-endian byte order.
   Latency will be lower than with passing an encoded waveform.
 
+### Realtime Transcription
+
+Scribe v2 Realtime supports live transcription through the experimental
+`streamTranscribe` API. It accepts raw PCM audio at 8, 16, 22.05, 24, 44.1, or
+48 kHz, or 8 kHz mu-law audio.
+
+```ts
+import {
+  createElevenLabs,
+  type ElevenLabsProviderSettings,
+} from '@ai-sdk/elevenlabs';
+import { experimental_streamTranscribe as streamTranscribe } from 'ai';
+import { WebSocket } from 'ws';
+
+const elevenLabs = createElevenLabs({
+  webSocket: WebSocket as unknown as ElevenLabsProviderSettings['webSocket'],
+});
+
+const result = streamTranscribe({
+  model: elevenLabs.transcription('scribe_v2_realtime'),
+  audio,
+  inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+  providerOptions: {
+    elevenlabs: {
+      languageCode: 'en',
+      streaming: {
+        includeLanguageDetection: true,
+        includeTimestamps: true,
+      },
+    },
+  },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'transcript-partial') {
+    console.log(part.text);
+  }
+}
+```
+
+The `streaming` provider options mirror ElevenLabs' realtime transcription
+settings: `commitStrategy`, `enableLogging`, `filterBackgroundAudio`,
+`includeLanguageDetection`, `includeTimestamps`, `keyterms`,
+`minSilenceDurationMs`, `minSpeechDurationMs`, `noVerbatim`, `previousText`,
+`vadSilenceThresholdSecs`, and `vadThreshold`.
+
 ### Model Capabilities
 
 | Model                    | Transcription | Duration  | Segments  | Language  |
 | ------------------------ | ------------- | --------- | --------- | --------- |
 | `scribe_v1`              | <Check />     | <Check /> | <Check /> | <Check /> |
 | `scribe_v1_experimental` | <Check />     | <Check /> | <Check /> | <Check /> |
+| `scribe_v2`              | <Check />     | <Check /> | <Check /> | <Check /> |
+| `scribe_v2_realtime`     | <Check />     | <Check /> | <Check /> | <Check /> |
