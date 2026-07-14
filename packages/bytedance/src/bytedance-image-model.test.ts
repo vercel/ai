@@ -61,7 +61,7 @@ describe('ByteDanceImageModel', () => {
       expect(model.provider).toBe('bytedance.image');
       expect(model.modelId).toBe('seedream-5-0-260128');
       expect(model.specificationVersion).toBe('v4');
-      expect(model.maxImagesPerCall).toBe(10);
+      expect(model.maxImagesPerCall).toBe(1);
     });
   });
 
@@ -144,14 +144,13 @@ describe('ByteDanceImageModel', () => {
       });
     });
 
-    it('should warn for unsupported settings (aspectRatio, seed, n, mask)', async () => {
+    it('should warn for unsupported settings (aspectRatio, seed, mask)', async () => {
       const model = createBasicModel();
 
       const result = await model.doGenerate(
         createDefaultGenerateParams({
           aspectRatio: '16:9',
           seed: 123,
-          n: 2,
           mask: {
             type: 'file',
             data: new Uint8Array([1]),
@@ -162,7 +161,7 @@ describe('ByteDanceImageModel', () => {
 
       expect(
         result.warnings.map(w => ('feature' in w ? w.feature : w.type)),
-      ).toStrictEqual(['aspectRatio', 'seed', 'n', 'mask']);
+      ).toStrictEqual(['aspectRatio', 'seed', 'mask']);
     });
 
     it('should pass headers', async () => {

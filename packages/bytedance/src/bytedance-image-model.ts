@@ -37,8 +37,10 @@ interface ByteDanceImageModelConfig extends ByteDanceConfig {
 
 export class ByteDanceImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
-  // seedream-5-0-pro supports up to 10 reference images; other models up to 14.
-  readonly maxImagesPerCall = 10;
+  // The API has no output-count parameter, so a single call returns one image;
+  // `generateImage` fans `n` out into `n` calls. Batches of related images are
+  // available via the `sequentialImageGeneration` provider option instead.
+  readonly maxImagesPerCall = 1;
 
   get provider(): string {
     return this.config.provider;
@@ -51,7 +53,6 @@ export class ByteDanceImageModel implements ImageModelV4 {
 
   async doGenerate({
     prompt,
-    n,
     size,
     aspectRatio,
     seed,
@@ -77,17 +78,6 @@ export class ByteDanceImageModel implements ImageModelV4 {
 
     if (seed != null) {
       warnings.push({ type: 'unsupported', feature: 'seed' });
-    }
-
-    if (n != null && n > 1) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'n',
-        details:
-          'ByteDance generates batches via `sequential_image_generation`. Set ' +
-          "providerOptions.bytedance.sequential_image_generation to 'auto' and " +
-          'sequential_image_generation_options.max_images instead of `n`.',
-      });
     }
 
     if (mask != null) {
