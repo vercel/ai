@@ -203,6 +203,7 @@ describe('createClaudeCode adapter', () => {
       'ExitWorktree',
       'AskUserQuestion',
       'Skill',
+      'ToolSearch',
     ]);
     expect(harness.builtinTools.read.nativeName).toBe('Read');
     expect(harness.builtinTools.read.commonName).toBe('read');

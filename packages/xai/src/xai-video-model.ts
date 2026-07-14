@@ -428,6 +428,7 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
       const { value: statusResponse, responseHeaders: pollHeaders } =
         await getFromApi({
           url: `${baseURL}/videos/${requestId}`,
+          validateUrl: false,
           headers: combineHeaders(this.config.headers(), options.headers),
           successfulResponseHandler: createJsonResponseHandler(
             xaiVideoStatusResponseSchema,

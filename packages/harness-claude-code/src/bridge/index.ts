@@ -86,6 +86,7 @@ const PUBLIC_TO_NATIVE: Readonly<Record<string, string>> = {
   ExitWorktree: 'ExitWorktree',
   AskUserQuestion: 'AskUserQuestion',
   Skill: 'Skill',
+  ToolSearch: 'ToolSearch',
 };
 
 const PUBLIC_TOOL_NAMES = Object.keys(PUBLIC_TO_NATIVE);
@@ -116,6 +117,7 @@ const NATIVE_TOOL_KINDS: Readonly<
   ExitPlanMode: 'edit',
   Skill: 'edit',
   AskUserQuestion: 'readonly',
+  ToolSearch: 'readonly',
   Bash: 'bash',
   Monitor: 'bash',
 };

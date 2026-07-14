@@ -1,5 +1,17 @@
 # @ai-sdk/devtools
 
+## 1.0.6
+
+### Patch Changes
+
+- 5be55f1: Use an explicit latest tag in the DevTools viewer command so it starts from monorepo workspaces where DevTools is only installed transitively.
+
+## 1.0.5
+
+### Patch Changes
+
+- 27d294d: feat(ai): group orphaned tool calls after tool approvals under parent span
+
 ## 1.0.4
 
 ### Patch Changes
