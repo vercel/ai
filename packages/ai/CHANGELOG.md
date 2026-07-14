@@ -1,5 +1,16 @@
 # ai
 
+## 6.0.226
+
+### Patch Changes
+
+- 94219a2: Allow validating assistant UI messages with empty parts so persisted errored responses remain loadable.
+- b1be847: Prevent pending tool executions from enqueueing results after a model stream error closes the result stream.
+- Updated dependencies [06fb54c]
+- Updated dependencies [bc46977]
+  - @ai-sdk/provider-utils@4.0.39
+  - @ai-sdk/gateway@3.0.150
+
 ## 6.0.225
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.135
+
+### Patch Changes
+
+- 7c05582: Avoid unreliable synthetic response tools when structured output is combined with tools on Bedrock Claude Opus 4.7 and 4.8.
+- Updated dependencies [06fb54c]
+  - @ai-sdk/provider-utils@4.0.39
+  - @ai-sdk/anthropic@3.0.97
+  - @ai-sdk/openai@3.0.85
+
 ## 4.0.134
 
 ### Patch Changes
