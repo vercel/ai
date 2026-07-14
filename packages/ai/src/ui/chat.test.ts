@@ -1517,7 +1517,7 @@ describe('Chat', () => {
     });
 
     while ((chat.messages[0]?.parts[1] as any)?.text !== 'resumed') {
-      await vi.advanceTimersByTimeAsync(0);
+      await delay();
     }
 
     expect(resumeSettled).toBe(false);
