@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/google-vertex",
-  "version": "5.0.18",
+  "version": "5.0.19",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
