@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.22
+
+### Patch Changes
+
+- 43fc411: Return Bedrock Converse request bodies from language model generation and streaming calls.
+
 ## 5.0.21
 
 ### Patch Changes
