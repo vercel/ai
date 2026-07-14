@@ -35,10 +35,7 @@ import {
   sanitizeJsonSchema,
 } from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
-import {
-  BEDROCK_NATIVE_STRUCTURED_OUTPUT_UNION_LIMIT,
-  countUnionTypedParameters,
-} from './count-union-typed-parameters';
+import { checkNativeStructuredOutputLimits } from './bedrock-native-structured-output-limits';
 import {
   BEDROCK_STOP_REASONS,
   type AmazonBedrockConverseInput,
@@ -203,50 +200,39 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       this.modelId.includes('claude-fable-5') ||
       this.modelId.includes('claude-sonnet-5');
 
-    // Anthropic's native structured-output compiler (`output_config.format`)
-    // supports only a subset of JSON Schema. Sanitize the schema (strip
-    // unsupported validation keywords into descriptions) up front, mirroring
-    // the `@ai-sdk/anthropic` messages path, so bounded schemas don't 400.
+    // Strip JSON Schema keywords Anthropic's native compiler rejects (mirrors
+    // the `@ai-sdk/anthropic` messages path) so bounded schemas don't 400.
     const nativeStructuredOutputSchema =
       responseFormat?.type === 'json' && responseFormat.schema != null
         ? sanitizeJsonSchema(responseFormat.schema)
         : undefined;
 
-    // Even sanitized, the native compiler rejects schemas with more than
-    // `BEDROCK_NATIVE_STRUCTURED_OUTPUT_UNION_LIMIT` union-typed parameters. The
-    // tool-based JSON path has no such limit, so route large/union-heavy
-    // schemas there instead of 400ing.
-    const nativeStructuredOutputUnionCount =
+    // Sanitized schemas can still exceed the native compiler's complexity
+    // limits; route those to the tool-based path, which has none.
+    const nativeStructuredOutputLimitCheck =
       nativeStructuredOutputSchema != null
-        ? countUnionTypedParameters(nativeStructuredOutputSchema)
-        : 0;
+        ? checkNativeStructuredOutputLimits(nativeStructuredOutputSchema)
+        : undefined;
 
-    const withinNativeStructuredOutputUnionLimit =
-      nativeStructuredOutputUnionCount <=
-      BEDROCK_NATIVE_STRUCTURED_OUTPUT_UNION_LIMIT;
+    const modelCanUseNativeStructuredOutput =
+      isAnthropicModel &&
+      !modelRejectsNativeStructuredOutput &&
+      (modelSupportsStructuredOutput || isThinkingEnabled) &&
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null;
 
     const useNativeStructuredOutput =
-      isAnthropicModel &&
-      !modelRejectsNativeStructuredOutput &&
-      (modelSupportsStructuredOutput || isThinkingEnabled) &&
-      responseFormat?.type === 'json' &&
-      responseFormat.schema != null &&
-      withinNativeStructuredOutputUnionLimit;
+      modelCanUseNativeStructuredOutput &&
+      (nativeStructuredOutputLimitCheck?.withinLimits ?? false);
 
     if (
-      isAnthropicModel &&
-      !modelRejectsNativeStructuredOutput &&
-      (modelSupportsStructuredOutput || isThinkingEnabled) &&
-      responseFormat?.type === 'json' &&
-      responseFormat.schema != null &&
-      !withinNativeStructuredOutputUnionLimit
+      modelCanUseNativeStructuredOutput &&
+      nativeStructuredOutputLimitCheck != null &&
+      !nativeStructuredOutputLimitCheck.withinLimits
     ) {
       warnings.push({
         type: 'other',
-        message:
-          `Structured output schema has ${nativeStructuredOutputUnionCount} union-typed parameters, ` +
-          `exceeding Bedrock's native structured-output limit of ${BEDROCK_NATIVE_STRUCTURED_OUTPUT_UNION_LIMIT}. ` +
-          `Falling back to tool-based JSON output for this request.`,
+        message: nativeStructuredOutputLimitCheck.reason!,
       });
     }
 

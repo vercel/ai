@@ -5078,6 +5078,69 @@ describe('doGenerate', () => {
     ).toBe(true);
   });
 
+  it('should fall back to the json response tool when the schema exceeds the native optional-parameter limit', async () => {
+    server.urls[newerAnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'tool-1',
+                  name: 'json',
+                  input: { field0: 'a' },
+                },
+              },
+            ],
+            role: 'assistant',
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'tool_use',
+      },
+    };
+
+    // 25 optional properties (none required) => over the limit of 24, but only
+    // one union type, so this exercises the optional-parameter limit alone.
+    const properties = Object.fromEntries(
+      Array.from({ length: 25 }, (_, i) => [`field${i}`, { type: 'string' }]),
+    );
+
+    const { warnings } = await newerAnthropicModel.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a record' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties,
+          required: [],
+          additionalProperties: false,
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(
+      requestBody.additionalModelRequestFields?.output_config?.format,
+    ).toBeUndefined();
+    expect(requestBody.toolConfig).toBeDefined();
+
+    expect(
+      warnings.some(
+        warning =>
+          warning.type === 'other' &&
+          warning.message.includes('optional parameters'),
+      ),
+    ).toBe(true);
+  });
+
   it('should use JSON instructions instead of a response tool when structured output is combined with tools on models without strict tool support', async () => {
     server.urls[opusAnthropicGenerateUrl].response = {
       type: 'json-value',
