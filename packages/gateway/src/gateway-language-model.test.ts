@@ -63,6 +63,13 @@ describe('GatewayLanguageModel', () => {
       id = 'test-id',
       created = 1711115037,
       model = 'test-model',
+    }: {
+      content?: { type: string; text: string };
+      usage?: unknown;
+      finish_reason?: string;
+      id?: string;
+      created?: number;
+      model?: string;
     } = {}) {
       server.urls['https://api.test.com/language-model'].response = {
         type: 'json-value',
@@ -107,12 +114,15 @@ describe('GatewayLanguageModel', () => {
       expect(content).toEqual({ type: 'text', text: 'Hello, World!' });
     });
 
-    it('should extract usage information', async () => {
+    it('should normalize flat usage information', async () => {
       prepareJsonResponse({
         content: { type: 'text', text: 'Test' },
         usage: {
-          prompt_tokens: 10,
-          completion_tokens: 20,
+          inputTokens: 10,
+          outputTokens: 20,
+          totalTokens: 30,
+          reasoningTokens: 2,
+          cachedInputTokens: 3,
         },
       });
 
@@ -121,8 +131,17 @@ describe('GatewayLanguageModel', () => {
       });
 
       expect(usage).toEqual({
-        prompt_tokens: 10,
-        completion_tokens: 20,
+        inputTokens: {
+          total: 10,
+          noCache: undefined,
+          cacheRead: 3,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 20,
+          text: undefined,
+          reasoning: 2,
+        },
       });
     });
 
@@ -608,8 +627,11 @@ describe('GatewayLanguageModel', () => {
             type: 'finish',
             finishReason: finish_reason,
             usage: {
-              prompt_tokens: 10,
-              completion_tokens: 20,
+              inputTokens: 10,
+              outputTokens: 20,
+              totalTokens: 30,
+              reasoningTokens: 2,
+              cachedInputTokens: 3,
             },
           })}\n\n`,
         ],
@@ -644,8 +666,17 @@ describe('GatewayLanguageModel', () => {
             "finishReason": "stop",
             "type": "finish",
             "usage": {
-              "completion_tokens": 20,
-              "prompt_tokens": 10,
+              "inputTokens": {
+                "cacheRead": 3,
+                "cacheWrite": undefined,
+                "noCache": undefined,
+                "total": 10,
+              },
+              "outputTokens": {
+                "reasoning": 2,
+                "text": undefined,
+                "total": 20,
+              },
             },
           },
         ]
