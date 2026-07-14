@@ -4954,6 +4954,63 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should omit maxItems from native structured-output schemas', async () => {
+    server.urls[newerAnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            content: [{ text: '{"tags":["test"]}' }],
+            role: 'assistant',
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'end_turn',
+      },
+    };
+
+    await newerAnthropicModel.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate tags' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            tags: {
+              type: 'array',
+              items: { type: 'string' },
+              maxItems: 3,
+            },
+            maxItems: { type: 'string' },
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(
+      requestBody.additionalModelRequestFields?.output_config?.format,
+    ).toEqual({
+      type: 'json_schema',
+      schema: {
+        type: 'object',
+        properties: {
+          tags: {
+            type: 'array',
+            items: { type: 'string' },
+          },
+          maxItems: { type: 'string' },
+        },
+      },
+    });
+  });
+
   it('should use JSON instructions instead of a response tool when structured output is combined with tools on models without strict tool support', async () => {
     server.urls[opusAnthropicGenerateUrl].response = {
       type: 'json-value',

@@ -1,5 +1,6 @@
 import type {
   JSONObject,
+  JSONValue,
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4Content,
@@ -355,7 +356,9 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
           ...amazonBedrockOptions.additionalModelRequestFields?.output_config,
           format: {
             type: 'json_schema',
-            schema: responseFormat!.schema,
+            schema: removeUnsupportedNativeStructuredOutputKeywords(
+              responseFormat!.schema,
+            ),
           },
         },
       };
@@ -1100,6 +1103,85 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
     const encodedModelId = encodeURIComponent(modelId);
     return `${this.config.baseUrl()}/model/${encodedModelId}`;
   }
+}
+
+/**
+ * Bedrock's native structured-output API rejects the JSON Schema `maxItems`
+ * keyword. Remove it only from schema nodes so that a user property named
+ * `maxItems` remains part of the output contract.
+ */
+function removeUnsupportedNativeStructuredOutputKeywords(
+  schema: JSONObject,
+): JSONObject {
+  return visitSchema(schema);
+}
+
+function visitSchema(schema: JSONObject): JSONObject {
+  const { maxItems: _, ...result } = schema;
+
+  for (const key of [
+    'additionalItems',
+    'additionalProperties',
+    'contains',
+    'if',
+    'not',
+    'propertyNames',
+    'then',
+    'else',
+  ] as const) {
+    if (isJSONObject(result[key])) {
+      result[key] = visitSchema(result[key]);
+    }
+  }
+
+  for (const key of ['allOf', 'anyOf', 'oneOf'] as const) {
+    if (Array.isArray(result[key])) {
+      result[key] = result[key].map(item =>
+        isJSONObject(item) ? visitSchema(item) : item,
+      );
+    }
+  }
+
+  if (Array.isArray(result.items)) {
+    result.items = Array.isArray(result.items)
+      ? result.items.map(item =>
+          isJSONObject(item) ? visitSchema(item) : item,
+        )
+      : result.items;
+  } else if (isJSONObject(result.items)) {
+    result.items = visitSchema(result.items);
+  }
+
+  for (const key of [
+    'definitions',
+    '$defs',
+    'patternProperties',
+    'properties',
+  ] as const) {
+    if (isJSONObject(result[key])) {
+      result[key] = Object.fromEntries(
+        Object.entries(result[key]).map(([name, definition]) => [
+          name,
+          isJSONObject(definition) ? visitSchema(definition) : definition,
+        ]),
+      );
+    }
+  }
+
+  if (isJSONObject(result.dependencies)) {
+    result.dependencies = Object.fromEntries(
+      Object.entries(result.dependencies).map(([name, dependency]) => [
+        name,
+        isJSONObject(dependency) ? visitSchema(dependency) : dependency,
+      ]),
+    );
+  }
+
+  return result;
+}
+
+function isJSONObject(value: JSONValue | undefined): value is JSONObject {
+  return value != null && !Array.isArray(value) && typeof value === 'object';
 }
 
 class JsonObjectTextExtractor {
