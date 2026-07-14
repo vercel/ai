@@ -615,6 +615,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
         headers: responseHeaders,
       },
       warnings,
+      request: { body: args },
       ...(providerMetadata && { providerMetadata }),
     };
   }
@@ -1034,7 +1035,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
           },
         }),
       ),
-      // TODO request?
+      request: { body: args },
       response: { headers: responseHeaders },
     };
   }
