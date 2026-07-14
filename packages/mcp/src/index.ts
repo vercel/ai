@@ -22,6 +22,7 @@ export {
   type MCPAppResourceCSP,
   type MCPAppResourceMeta,
 } from './tool/mcp-apps';
+export { getMCPToolAnnotations, isMCPToolCall } from './tool/tool-annotations';
 export { ElicitationRequestSchema, ElicitResultSchema } from './tool/types';
 export type {
   CallToolResult,

@@ -2777,6 +2777,144 @@ describe('MCPClient', () => {
         toolName: 'typed-titled-tool',
       });
     });
+
+    it('should surface all behavioral annotation hints on metadata.annotations', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'hinted-tool',
+            description: 'A tool with behavioral hints',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+            annotations: {
+              readOnlyHint: true,
+              destructiveHint: false,
+              idempotentHint: true,
+              openWorldHint: false,
+            },
+          },
+        ],
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const tools = await client.tools();
+      expect(tools['hinted-tool'].metadata).toMatchObject({
+        annotations: {
+          readOnlyHint: true,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      });
+    });
+
+    it('should only include defined hints and omit undefined ones', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'partial-hint-tool',
+            description: 'A tool with a single hint',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+            annotations: {
+              readOnlyHint: true,
+            },
+          },
+        ],
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const tools = await client.tools();
+      expect(tools['partial-hint-tool'].metadata).toMatchObject({
+        annotations: { readOnlyHint: true },
+      });
+      expect(
+        (tools['partial-hint-tool'].metadata as { annotations: object })
+          .annotations,
+      ).toEqual({ readOnlyHint: true });
+    });
+
+    it('should not set metadata.annotations when no hints are present', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'title-only-tool',
+            description: 'A tool with only an annotation title',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+            annotations: {
+              title: 'Annotation Title',
+            },
+          },
+        ],
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const tools = await client.tools();
+      expect(tools['title-only-tool'].title).toBe('Annotation Title');
+      expect(tools['title-only-tool'].metadata).toEqual({
+        clientName: 'ai-sdk-mcp-client',
+        title: 'Annotation Title',
+        toolName: 'title-only-tool',
+      });
+    });
+
+    it('should surface annotation hints on typed tools with schemas', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'typed-hinted-tool',
+            description: 'A typed tool with hints',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                input: { type: 'string' },
+              },
+            },
+            annotations: {
+              readOnlyHint: false,
+              destructiveHint: true,
+            },
+          },
+        ],
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const tools = await client.tools({
+        schemas: {
+          'typed-hinted-tool': {
+            inputSchema: z.object({
+              input: z.string(),
+            }),
+          },
+        },
+      });
+
+      expect(tools['typed-hinted-tool'].metadata).toMatchObject({
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+        },
+      });
+    });
   });
 
   describe('protocol version negotiation', () => {

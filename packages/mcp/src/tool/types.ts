@@ -15,6 +15,21 @@ export type McpProviderMetadata = {
   title?: string;
   toolName?: string;
   app?: JSONObject;
+  /**
+   * Behavioral hints from the MCP tool's `annotations`.
+   *
+   * Per the MCP spec these are untrusted hints (not guarantees) and are
+   * surfaced here so consumers can read them from `toolCall.toolMetadata`
+   * (e.g. to gate approval on `destructiveHint` / `!readOnlyHint`).
+   *
+   * @see https://modelcontextprotocol.io/specification/2025-11-25/server/tools#tool
+   */
+  annotations?: {
+    readOnlyHint?: boolean;
+    destructiveHint?: boolean;
+    idempotentHint?: boolean;
+    openWorldHint?: boolean;
+  };
 };
 
 /** MCP tool metadata - keys should follow MCP _meta key format specification */
@@ -168,6 +183,10 @@ const ToolSchema = z
       z
         .object({
           title: z.optional(z.string()),
+          readOnlyHint: z.optional(z.boolean()),
+          destructiveHint: z.optional(z.boolean()),
+          idempotentHint: z.optional(z.boolean()),
+          openWorldHint: z.optional(z.boolean()),
         })
         .loose(),
     ),

@@ -53,6 +53,7 @@ import {
   type ListResourcesResult,
   type ListPromptsResult,
   type ListToolsResult,
+  type MCPTool,
   type McpToolSet,
   type Notification,
   type PaginatedRequest,
@@ -90,6 +91,35 @@ function getErrorStatusCode(error: unknown): number | undefined {
   }
 
   return undefined;
+}
+
+/**
+ * Extracts the behavioral hints from an MCP tool's `annotations`, returning
+ * only the keys that are defined. Returns `undefined` when no hint is present
+ * so callers can omit `metadata.annotations` entirely rather than emitting `{}`.
+ */
+function pickAnnotationHints(
+  annotations: MCPTool['annotations'],
+): McpProviderMetadata['annotations'] | undefined {
+  if (annotations == null) {
+    return undefined;
+  }
+
+  const hints: NonNullable<McpProviderMetadata['annotations']> = {};
+  if (annotations.readOnlyHint != null) {
+    hints.readOnlyHint = annotations.readOnlyHint;
+  }
+  if (annotations.destructiveHint != null) {
+    hints.destructiveHint = annotations.destructiveHint;
+  }
+  if (annotations.idempotentHint != null) {
+    hints.idempotentHint = annotations.idempotentHint;
+  }
+  if (annotations.openWorldHint != null) {
+    hints.openWorldHint = annotations.openWorldHint;
+  }
+
+  return Object.keys(hints).length > 0 ? hints : undefined;
 }
 
 function getStringErrorCode(error: unknown): string | undefined {
@@ -833,10 +863,12 @@ class DefaultMCPClient implements MCPClient {
       const outputSchema =
         schemas !== 'automatic' ? schemas[name]?.outputSchema : undefined;
       const appMeta = getMCPAppToolMeta({ _meta });
+      const annotationHints = pickAnnotationHints(annotations);
       const metadata = {
         clientName: this.clientInfo.name,
         toolName: name,
         ...(resolvedTitle != null ? { title: resolvedTitle } : {}),
+        ...(annotationHints != null ? { annotations: annotationHints } : {}),
         ...(appMeta?.resourceUri != null
           ? {
               app: {
