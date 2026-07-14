@@ -228,7 +228,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       : googleOptions?.serviceTier;
 
     // personGeneration, prominentPeople and imageOutputOptions are only
-    // supported by the Vertex AI API; the Gemini API rejects them.
+    // supported by the Vertex AI API, the Gemini API rejects them.
     let imageConfig = googleOptions?.imageConfig;
     if (imageConfig != null && !isVertexProvider) {
       const {
