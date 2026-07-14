@@ -93,6 +93,11 @@ const newerAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   newerAnthropicModelId,
 )}/converse`;
 
+const opusAnthropicModelId = 'us.anthropic.claude-opus-4-8';
+const opusAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  opusAnthropicModelId,
+)}/converse`;
+
 const server = createTestServer({
   [generateUrl]: {},
   [streamUrl]: {
@@ -106,6 +111,7 @@ const server = createTestServer({
   [novaGenerateUrl]: {},
   [openaiGenerateUrl]: {},
   [newerAnthropicGenerateUrl]: {},
+  [opusAnthropicGenerateUrl]: {},
 });
 
 function prepareJsonFixtureResponse(
@@ -183,7 +189,51 @@ const newerAnthropicModel = new AmazonBedrockChatLanguageModel(
   },
 );
 
+const opusAnthropicModel = new AmazonBedrockChatLanguageModel(
+  opusAnthropicModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
 let mockOptions: { success: boolean; errorValue?: any } = { success: true };
+
+describe('doGenerate request metadata', () => {
+  it('should return the request body', async () => {
+    prepareJsonFixtureResponse('amazon-bedrock-text');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.request?.body).toMatchInlineSnapshot(`
+      {
+        "additionalModelRequestFields": undefined,
+        "additionalModelResponseFieldPaths": [
+          "/delta/stop_sequence",
+        ],
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "system": [
+          {
+            "text": "System Prompt",
+          },
+        ],
+      }
+    `);
+  });
+});
 
 describe('doStream', () => {
   beforeEach(() => {
@@ -267,6 +317,37 @@ describe('doStream', () => {
           "connection": "keep-alive",
           "content-type": "text/event-stream",
           "test-header": "test-value",
+        }
+      `);
+    });
+
+    it('should return the request body', async () => {
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(result.request?.body).toMatchInlineSnapshot(`
+        {
+          "additionalModelRequestFields": undefined,
+          "additionalModelResponseFieldPaths": [
+            "/delta/stop_sequence",
+          ],
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": [
+            {
+              "text": "System Prompt",
+            },
+          ],
         }
       `);
     });
@@ -4870,6 +4951,91 @@ describe('doGenerate', () => {
           "type": "json_schema",
         },
       }
+    `);
+  });
+
+  it('should use JSON instructions instead of a response tool when structured output is combined with tools on models without strict tool support', async () => {
+    server.urls[opusAnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            content: [{ text: '```json\n{"name":"Test"}\n```.' }],
+            role: 'assistant',
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'end_turn',
+      },
+    };
+
+    const result = await opusAnthropicModel.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Look up and generate a name' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      },
+      tools: [
+        {
+          type: 'function',
+          name: 'lookupName',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toMatchInlineSnapshot(`
+      {
+        "tools": [
+          {
+            "toolSpec": {
+              "inputSchema": {
+                "json": {
+                  "properties": {},
+                  "type": "object",
+                },
+              },
+              "name": "lookupName",
+            },
+          },
+        ],
+      }
+    `);
+    expect(
+      requestBody.additionalModelRequestFields?.output_config,
+    ).toMatchInlineSnapshot(`undefined`);
+    expect(requestBody.system).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "JSON schema:
+      {"type":"object","properties":{"name":{"type":"string"}},"required":["name"]}
+      You MUST answer with only a JSON object that matches the JSON schema above. Do not wrap it in markdown fences or include any other text.",
+        },
+      ]
+    `);
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "{"name":"Test"}",
+          "type": "text",
+        },
+      ]
     `);
   });
 

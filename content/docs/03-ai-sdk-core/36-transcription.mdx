@@ -71,6 +71,12 @@ for await (const part of result.fullStream) {
 console.log(await result.text);
 ```
 
+`fullStream` is a single-consumer live stream and can only be accessed once.
+When you need both stream parts and final results, access `fullStream` first and
+await the result promises while or after consuming it. Accessing a result
+promise first consumes the stream internally, so `fullStream` is no longer
+available. This avoids retaining an unbounded replay buffer for live audio.
+
 To access the final transcript metadata:
 
 ```ts
@@ -83,10 +89,13 @@ const durationInSeconds = await result.durationInSeconds; // duration in seconds
 The `audio` stream must contain raw audio chunks. `Uint8Array` chunks are raw bytes; `string` chunks are base64-encoded raw bytes. Always set `inputAudioFormat` to match the chunks you send.
 
 <Note>
-  Streaming transcription requires a provider model instance (e.g.
-  `openai.transcription('gpt-realtime-whisper')`). String model IDs resolve
-  through the global provider (AI Gateway by default), which does not support
-  streaming transcription yet.
+  String model IDs resolve through the global provider (AI Gateway by
+  default). AI Gateway supports streaming transcription for supported models
+  (e.g. `openai/gpt-realtime-whisper`, `xai/grok-stt`), so string IDs work:
+  `experimental_streamTranscribe({ model: 'openai/gpt-realtime-whisper', ...
+  })`. You can also pass a provider model instance (e.g.
+  `openai.transcription('gpt-realtime-whisper')`) to stream directly against
+  the provider.
 </Note>
 
 OpenAI streaming transcription uses `openai.transcription('gpt-realtime-whisper')`. xAI uses the same `xai.transcription()` model for request/response and streaming transcription; `experimental_streamTranscribe` uses xAI's WebSocket STT transport under the hood.
