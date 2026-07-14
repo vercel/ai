@@ -904,6 +904,58 @@ describe('Chat', () => {
     });
   });
 
+  it('should resolve stop after the aborted request has finished', async () => {
+    const events: Array<string> = [];
+    let controller!: ReadableStreamDefaultController<UIMessageChunk>;
+    const responseStream = new ReadableStream<UIMessageChunk>({
+      start: controllerArg => {
+        controller = controllerArg;
+
+        controller.enqueue({ type: 'start' });
+        controller.enqueue({ type: 'start-step' });
+        controller.enqueue({ type: 'text-start', id: 'text-1' });
+        controller.enqueue({
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'Hello',
+        });
+      },
+    });
+
+    const chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: {
+        sendMessages: async options => {
+          options.abortSignal?.addEventListener('abort', () => {
+            events.push('abort');
+            controller.error(new DOMException('Aborted', 'AbortError'));
+          });
+          return responseStream;
+        },
+        reconnectToStream: () => {
+          throw new Error('not implemented');
+        },
+      },
+      onFinish: () => {
+        events.push('finish');
+      },
+    });
+
+    chat.sendMessage({
+      text: 'Hello, world!',
+    });
+
+    while ((chat.messages[1]?.parts[1] as any)?.text !== 'Hello') {
+      await vi.advanceTimersByTimeAsync(0);
+    }
+
+    await chat.stop().then(() => events.push('stop-resolved'));
+
+    expect(events).toEqual(['abort', 'finish', 'stop-resolved']);
+    expect(chat.status).toBe('ready');
+  });
+
   it('should include the metadata of text message', async () => {
     server.urls['http://localhost:3000/api/chat'].response = {
       type: 'stream-chunks',
