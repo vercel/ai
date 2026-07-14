@@ -182,7 +182,12 @@ export const googleLanguageModelOptions = lazySchema(() =>
            * Vertex AI only.
            */
           personGeneration: z
-            .enum(['ALLOW_NONE', 'ALLOW_ADULT', 'ALLOW_ALL'])
+            .enum([
+              'PERSON_GENERATION_UNSPECIFIED',
+              'ALLOW_ALL',
+              'ALLOW_ADULT',
+              'ALLOW_NONE',
+            ])
             .optional(),
 
           /**
