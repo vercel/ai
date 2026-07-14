@@ -485,7 +485,6 @@ describe('deepseek', () => {
 
     await provider.deepseek('deepseek-v4-flash').doGenerate({
       prompt: TEST_PROMPT,
-      reasoning: 'high',
       responseFormat: {
         type: 'json',
         schema: {
@@ -494,6 +493,11 @@ describe('deepseek', () => {
           required: ['sentiment'],
           additionalProperties: false,
         },
+      },
+      providerOptions: {
+        azure: {
+          reasoningEffort: 'high',
+        } satisfies AzureDeepSeekLanguageModelOptions,
       },
     });
 

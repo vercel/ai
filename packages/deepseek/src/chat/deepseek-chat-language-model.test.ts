@@ -1,19 +1,11 @@
-<<<<<<< HEAD
-import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
-=======
-import type { JSONSchema7, LanguageModelV4Prompt } from '@ai-sdk/provider';
->>>>>>> 49ae04db3c (fix: Azure DeepSeek structured output returns JSON in reasoning with empty text (#17244))
+import type { JSONSchema7, LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createDeepSeek } from '../deepseek-provider';
-<<<<<<< HEAD
-import type { DeepSeekLanguageModelOptions } from './deepseek-chat-options';
-=======
 import { DeepSeekChatLanguageModel } from './deepseek-chat-language-model';
-import type { DeepSeekLanguageModelChatOptions } from './deepseek-chat-language-model-options';
->>>>>>> 49ae04db3c (fix: Azure DeepSeek structured output returns JSON in reasoning with empty text (#17244))
+import type { DeepSeekLanguageModelOptions } from './deepseek-chat-options';
 
 const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -541,7 +533,7 @@ describe('DeepSeekChatLanguageModel', () => {
             providerOptions: {
               azure: {
                 strictJsonSchema: false,
-              } satisfies DeepSeekLanguageModelChatOptions,
+              } satisfies DeepSeekLanguageModelOptions,
             },
           });
 
