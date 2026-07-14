@@ -98,7 +98,11 @@ The `audio` stream must contain raw audio chunks. `Uint8Array` chunks are raw by
   the provider.
 </Note>
 
-OpenAI streaming transcription uses `openai.transcription('gpt-realtime-whisper')`. xAI uses the same `xai.transcription()` model for request/response and streaming transcription; `experimental_streamTranscribe` uses xAI's WebSocket STT transport under the hood.
+OpenAI streaming transcription uses `openai.transcription('gpt-realtime-whisper')`.
+Cartesia uses `cartesia.transcription('ink-2')` for streaming-only Ink 2
+transcription. xAI uses the same `xai.transcription()` model for request/response
+and streaming transcription; `experimental_streamTranscribe` selects the
+provider's WebSocket STT transport.
 
 ```ts
 import { xai } from '@ai-sdk/xai';
@@ -316,5 +320,6 @@ try {
 | [Google Vertex](/providers/ai-sdk-providers/google-vertex#transcription-models) | `telephony`              |
 | [xAI](/providers/ai-sdk-providers/xai#transcription-models)                     | `default`                |
 | [Cartesia](/providers/ai-sdk-providers/cartesia#transcription-models)           | `ink-whisper`            |
+| [Cartesia](/providers/ai-sdk-providers/cartesia#streaming-transcription-models) | `ink-2`                  |
 
 Above are a small subset of the transcription models supported by the AI SDK providers. For more, see the respective provider documentation.
