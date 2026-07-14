@@ -160,13 +160,43 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   let toolResultsStreamController: ReadableStreamDefaultController<
     SingleRequestTextStreamPart<TOOLS>
   > | null = null;
+  let toolResultsStreamClosed = false;
   const toolResultsStream = new ReadableStream<
     SingleRequestTextStreamPart<TOOLS>
   >({
     start(controller) {
       toolResultsStreamController = controller;
     },
+    cancel() {
+      toolResultsStreamClosed = true;
+    },
   });
+
+  function enqueueToolResult(chunk?: SingleRequestTextStreamPart<TOOLS>) {
+    if (toolResultsStreamClosed) {
+      return;
+    }
+
+    try {
+      toolResultsStreamController!.enqueue(chunk);
+    } catch {
+      toolResultsStreamClosed = true;
+    }
+  }
+
+  function closeToolResultsStream() {
+    if (toolResultsStreamClosed) {
+      return;
+    }
+
+    toolResultsStreamClosed = true;
+
+    try {
+      toolResultsStreamController!.close();
+    } catch {
+      // suppress errors when the stream has been closed
+    }
+  }
 
   // keep track of outstanding tool results for stream closing:
   const outstandingToolResults = new Set<string>();
@@ -187,10 +217,10 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
       // are received to ensure that the frontend receives tool results before a message
       // finish event arrives.
       if (finishChunk != null) {
-        toolResultsStreamController!.enqueue(finishChunk);
+        enqueueToolResult(finishChunk);
       }
 
-      toolResultsStreamController!.close();
+      closeToolResultsStream();
     }
   }
 
@@ -255,7 +285,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         case 'tool-approval-request': {
           const toolCall = toolCallsByToolCallId.get(chunk.toolCallId);
           if (toolCall == null) {
-            toolResultsStreamController!.enqueue({
+            enqueueToolResult({
               type: 'error',
               error: new ToolCallNotFoundForApprovalError({
                 toolCallId: chunk.toolCallId,
@@ -288,7 +318,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
             controller.enqueue(toolCall);
 
             if (toolCall.invalid) {
-              toolResultsStreamController!.enqueue({
+              enqueueToolResult({
                 type: 'tool-error',
                 toolCallId: toolCall.toolCallId,
                 toolName: toolCall.toolName,
@@ -338,7 +368,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 input: toolCall.input,
               });
 
-              toolResultsStreamController!.enqueue({
+              enqueueToolResult({
                 type: 'tool-approval-request',
                 approvalId,
                 toolCall,
@@ -368,14 +398,14 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 onToolCallStart,
                 onToolCallFinish,
                 onPreliminaryToolResult: result => {
-                  toolResultsStreamController!.enqueue(result);
+                  enqueueToolResult(result);
                 },
               })
                 .then(result => {
-                  toolResultsStreamController!.enqueue(result);
+                  enqueueToolResult(result);
                 })
                 .catch(error => {
-                  toolResultsStreamController!.enqueue({
+                  enqueueToolResult({
                     type: 'error',
                     error,
                   });
@@ -386,7 +416,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 });
             }
           } catch (error) {
-            toolResultsStreamController!.enqueue({ type: 'error', error });
+            enqueueToolResult({ type: 'error', error });
           }
 
           break;
@@ -397,7 +427,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           const toolCall = toolCallsByToolCallId.get(chunk.toolCallId);
 
           if (chunk.isError) {
-            toolResultsStreamController!.enqueue({
+            enqueueToolResult({
               type: 'tool-error',
               toolCallId: chunk.toolCallId,
               toolName,
