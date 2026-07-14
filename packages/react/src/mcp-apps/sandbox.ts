@@ -95,29 +95,48 @@ export function getMCPAppCSP(csp?: MCPAppResourceCSP): string | undefined {
 }
 
 /**
+ * A permission an MCP App may request and a host may allow.
+ */
+export type MCPAppPermission =
+  | 'camera'
+  | 'microphone'
+  | 'geolocation'
+  | 'clipboardWrite';
+
+const MCP_APP_PERMISSION_FEATURES: Record<MCPAppPermission, string> = {
+  camera: 'camera',
+  microphone: 'microphone',
+  geolocation: 'geolocation',
+  clipboardWrite: 'clipboard-write',
+};
+
+/**
  * Converts MCP App permission metadata into an iframe `allow` attribute.
+ *
+ * Deny-by-default: a capability is granted only when it is both requested in
+ * `permissions` and present in the host `allowedPermissions` allowlist.
+ * Omitting the allowlist grants nothing, mirroring `allowedTools` in the bridge.
  *
  * @example
  * ```ts
- * const allow = getMCPAppAllowAttribute({
- *   microphone: {},
- *   clipboardWrite: {},
- * });
- * // "microphone; clipboard-write"
+ * const allow = getMCPAppAllowAttribute(
+ *   { microphone: {}, camera: {} },
+ *   ['microphone'],
+ * );
+ * // "microphone" — camera requested by server but not host-allowed
  * ```
  */
 export function getMCPAppAllowAttribute(
   permissions?: Record<string, unknown>,
+  allowedPermissions?: MCPAppPermission[],
 ): string | undefined {
-  if (permissions == null) {
+  if (permissions == null || allowedPermissions == null) {
     return undefined;
   }
 
-  const allow = [];
-  if (permissions.camera) allow.push('camera');
-  if (permissions.microphone) allow.push('microphone');
-  if (permissions.geolocation) allow.push('geolocation');
-  if (permissions.clipboardWrite) allow.push('clipboard-write');
+  const allow = allowedPermissions
+    .filter(permission => Boolean(permissions[permission]))
+    .map(permission => MCP_APP_PERMISSION_FEATURES[permission]);
 
   return allow.length > 0 ? allow.join('; ') : undefined;
 }
