@@ -4700,6 +4700,97 @@ describe('doGenerate', () => {
     expect(requestBody.additionalModelRequestFields?.thinking).toBeDefined();
   });
 
+  it("should use the json tool instead of native output_config.format when structuredOutputMode is 'jsonTool'", async () => {
+    // claude-sonnet-4-6 supports native structured output, so 'auto' would emit
+    // `output_config.format`. 'jsonTool' must force the tool-based path instead,
+    // so partitions/regions that reject that field (e.g. GovCloud) are not sent it.
+    server.urls[newerAnthropicGenerateUrl].response = {
+      type: 'json-value' as const,
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'stop_sequence',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+    mockPrepareAnthropicTools.mockReturnValue(
+      Promise.resolve({
+        tools: undefined,
+        toolChoice: undefined,
+        toolWarnings: [],
+        betas: new Set(),
+      }),
+    );
+
+    await newerAnthropicModel.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a recipe' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { recipe: { type: 'string' } },
+          required: ['recipe'],
+        },
+      },
+      providerOptions: {
+        bedrock: {
+          structuredOutputMode: 'jsonTool',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(
+      requestBody.additionalModelRequestFields?.output_config?.format,
+    ).toBeUndefined();
+  });
+
+  it("should force native output_config.format when structuredOutputMode is 'outputFormat'", async () => {
+    prepareJsonFixtureResponse('amazon-bedrock-text');
+
+    await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a recipe' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { recipe: { type: 'string' } },
+          required: ['recipe'],
+        },
+      },
+      providerOptions: {
+        bedrock: {
+          structuredOutputMode: 'outputFormat',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(
+      requestBody.additionalModelRequestFields?.output_config?.format,
+    ).toEqual({
+      type: 'json_schema',
+      schema: {
+        type: 'object',
+        properties: { recipe: { type: 'string' } },
+        required: ['recipe'],
+      },
+    });
+  });
+
   it('should merge output_config.effort and output_config.format when thinking with maxReasoningEffort and structured output', async () => {
     prepareJsonFixtureResponse('amazon-bedrock-text');
 

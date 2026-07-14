@@ -188,9 +188,19 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
     const { supportsStructuredOutput: modelSupportsStructuredOutput } =
       getModelCapabilities(this.modelId);
 
+    // `'auto'` (default) preserves prior behavior: native output when the model
+    // supports it (or thinking is enabled). `'jsonTool'` forces the tool-based
+    // path — required on partitions/regions that reject `output_config.format`
+    // (e.g. GovCloud). `'outputFormat'` always uses native output.
+    const structuredOutputMode =
+      amazonBedrockOptions.structuredOutputMode ?? 'auto';
+
     const useNativeStructuredOutput =
       isAnthropicModel &&
-      (modelSupportsStructuredOutput || isThinkingEnabled) &&
+      structuredOutputMode !== 'jsonTool' &&
+      (structuredOutputMode === 'outputFormat' ||
+        modelSupportsStructuredOutput ||
+        isThinkingEnabled) &&
       responseFormat?.type === 'json' &&
       responseFormat.schema != null;
 
