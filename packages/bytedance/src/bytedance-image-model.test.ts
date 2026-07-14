@@ -1,4 +1,4 @@
-import type { ImageModelV4CallOptions } from '@ai-sdk/provider';
+import type { ImageModelV3CallOptions } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
@@ -26,7 +26,7 @@ function createBasicModel({
   });
 }
 
-function createDefaultGenerateParams(overrides = {}): ImageModelV4CallOptions {
+function createDefaultGenerateParams(overrides = {}): ImageModelV3CallOptions {
   return {
     prompt,
     files: undefined,
@@ -60,7 +60,7 @@ describe('ByteDanceImageModel', () => {
 
       expect(model.provider).toBe('bytedance.image');
       expect(model.modelId).toBe('seedream-5-0-260128');
-      expect(model.specificationVersion).toBe('v4');
+      expect(model.specificationVersion).toBe('v3');
       expect(model.maxImagesPerCall).toBe(1);
     });
   });

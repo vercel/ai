@@ -1,7 +1,7 @@
 import type {
-  ImageModelV4,
-  ImageModelV4CallOptions,
-  SharedV4Warning,
+  ImageModelV3,
+  ImageModelV3CallOptions,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -35,8 +35,8 @@ interface ByteDanceImageModelConfig extends ByteDanceConfig {
   };
 }
 
-export class ByteDanceImageModel implements ImageModelV4 {
-  readonly specificationVersion = 'v4';
+export class ByteDanceImageModel implements ImageModelV3 {
+  readonly specificationVersion = 'v3';
   // The API has no output-count parameter, so a single call returns one image;
   // `generateImage` fans `n` out into `n` calls. Batches of related images are
   // available via the `sequentialImageGeneration` provider option instead.
@@ -61,10 +61,10 @@ export class ByteDanceImageModel implements ImageModelV4 {
     abortSignal,
     files,
     mask,
-  }: ImageModelV4CallOptions): Promise<
-    Awaited<ReturnType<ImageModelV4['doGenerate']>>
+  }: ImageModelV3CallOptions): Promise<
+    Awaited<ReturnType<ImageModelV3['doGenerate']>>
   > {
-    const warnings: Array<SharedV4Warning> = [];
+    const warnings: Array<SharedV3Warning> = [];
 
     if (aspectRatio != null) {
       warnings.push({

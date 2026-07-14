@@ -1,13 +1,8 @@
 import {
   type Experimental_VideoModelV3,
+  type ImageModelV3,
   NoSuchModelError,
-<<<<<<< HEAD
   type ProviderV3,
-=======
-  type Experimental_VideoModelV4,
-  type ImageModelV4,
-  type ProviderV4,
->>>>>>> 7fd7dabbb1 (feat (provider/bytedance): add Seedream image model support (#17121))
 } from '@ai-sdk/provider';
 import {
   type FetchFunction,
@@ -53,21 +48,17 @@ export interface ByteDanceProvider extends ProviderV3 {
   /**
    * Creates a model for video generation.
    */
-<<<<<<< HEAD
   videoModel(modelId: ByteDanceVideoModelId): Experimental_VideoModelV3;
-=======
-  videoModel(modelId: ByteDanceVideoModelId): Experimental_VideoModelV4;
 
   /**
    * Creates a model for image generation.
    */
-  image(modelId: ByteDanceImageModelId): ImageModelV4;
+  image(modelId: ByteDanceImageModelId): ImageModelV3;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId: ByteDanceImageModelId): ImageModelV4;
->>>>>>> 7fd7dabbb1 (feat (provider/bytedance): add Seedream image model support (#17121))
+  imageModel(modelId: ByteDanceImageModelId): ImageModelV3;
 }
 
 const defaultBaseURL = 'https://ark.ap-southeast.bytepluses.com/api/v3';
