@@ -4935,39 +4935,43 @@ describe('doGenerate', () => {
 
     const requestBody = await server.calls[0].requestBodyJson;
 
-    expect(requestBody.toolConfig).toEqual({
-      tools: [
-        {
-          toolSpec: {
-            name: 'lookupName',
-            inputSchema: {
-              json: {
-                type: 'object',
-                properties: {},
+    expect(requestBody.toolConfig).toMatchInlineSnapshot(`
+      {
+        "tools": [
+          {
+            "toolSpec": {
+              "inputSchema": {
+                "json": {
+                  "properties": {},
+                  "type": "object",
+                },
               },
+              "name": "lookupName",
             },
           },
+        ],
+      }
+    `);
+    expect(
+      requestBody.additionalModelRequestFields?.output_config,
+    ).toMatchInlineSnapshot(`undefined`);
+    expect(requestBody.system).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "JSON schema:
+      {"type":"object","properties":{"name":{"type":"string"}},"required":["name"]}
+      You MUST answer with only a JSON object that matches the JSON schema above. Do not wrap it in markdown fences or include any other text.",
         },
-      ],
-    });
-    expect(requestBody.additionalModelRequestFields?.output_config).toBe(
-      undefined,
-    );
-    expect(requestBody.system).toEqual([
-      {
-        text: [
-          'JSON schema:',
-          '{"type":"object","properties":{"name":{"type":"string"}},"required":["name"]}',
-          'You MUST answer with only a JSON object that matches the JSON schema above. Do not wrap it in markdown fences or include any other text.',
-        ].join('\n'),
-      },
-    ]);
-    expect(result.content).toEqual([
-      {
-        type: 'text',
-        text: '{"name":"Test"}',
-      },
-    ]);
+      ]
+    `);
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "{"name":"Test"}",
+          "type": "text",
+        },
+      ]
+    `);
   });
 
   it('should extract reasoning text with signature', async () => {
