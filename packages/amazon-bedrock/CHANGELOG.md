@@ -1,5 +1,34 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.20
+
+### Patch Changes
+
+- ce5d968: fix(provider/amazon-bedrock): translate eager_input_streaming into the fine-grained-tool-streaming beta for Anthropic models
+
+## 5.0.19
+
+### Patch Changes
+
+- Updated dependencies [4be62c1]
+- Updated dependencies [7805e4a]
+- Updated dependencies [7805e4a]
+- Updated dependencies [cd12954]
+  - @ai-sdk/provider-utils@5.0.9
+  - @ai-sdk/anthropic@4.0.14
+  - @ai-sdk/openai@4.0.13
+
+## 5.0.18
+
+### Patch Changes
+
+- Updated dependencies [e193290]
+- Updated dependencies [e193290]
+- Updated dependencies [e193290]
+  - @ai-sdk/provider-utils@5.0.8
+  - @ai-sdk/openai@4.0.12
+  - @ai-sdk/anthropic@4.0.13
+
 ## 5.0.17
 
 ### Patch Changes

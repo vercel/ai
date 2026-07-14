@@ -15,6 +15,7 @@ import type { TranscriptionModel } from '../types/transcription-model';
 import type { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import type { Warning } from '../types/warning';
 import { asAsyncIterableStream } from '../util/async-iterable-stream';
+import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { VERSION } from '../version';
 import type {
   StreamTranscriptionResult,
@@ -113,9 +114,10 @@ export function streamTranscribe({
       message:
         `The ${resolvedModel.provider} model "${resolvedModel.modelId}" does not support streaming transcription.` +
         (typeof model === 'string'
-          ? ' String model IDs resolve through the global provider (AI Gateway by default),' +
-            ' which does not support streaming transcription yet.' +
-            " Pass a provider model instance instead, e.g. openai.transcription('gpt-realtime-whisper')."
+          ? ' String model IDs resolve through the global provider (AI Gateway by default).' +
+            ' If that provider does not support streaming transcription, pass a provider model' +
+            " instance instead (e.g. openai.transcription('gpt-realtime-whisper'))" +
+            ' or upgrade @ai-sdk/gateway to a version with streaming transcription support.'
           : ''),
     });
   }
@@ -253,7 +255,8 @@ export function streamTranscribe({
       audio,
       inputAudioFormat,
       providerOptions,
-      abortSignal,
+      // merged so cancelling fullStream also aborts a still-pending doStream
+      abortSignal: mergeAbortSignals(abortSignal, pipeAbortController.signal),
       headers: headersWithUserAgent,
       includeRawChunks,
     });
@@ -271,6 +274,12 @@ export function streamTranscribe({
     const reason =
       error ?? new Error('Transcription stream was cancelled or errored.');
     rejectPendingPromises(reason);
+    // When `doStream` rejects before the model stream exists (e.g. auth or
+    // header resolution failure), nothing has taken ownership of `audio` yet,
+    // so cancel it directly — otherwise an upstream producer piping into it
+    // hangs forever. When the model did take a reader, `audio` is locked and
+    // the cancel rejects, which is fine: the model's cleanup owns it then.
+    audio.cancel(reason).catch(() => {});
     transform.writable.abort(reason).catch(() => {
       // the writable is already errored when the model stream failed mid-pipe
     });
