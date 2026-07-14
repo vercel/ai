@@ -16,6 +16,13 @@ import {
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
+=======
+  injectJsonInstructionIntoMessages,
+  isCustomReasoning,
+  mapReasoningToProviderBudget,
+  mapReasoningToProviderEffort,
+>>>>>>> b0e9d24110 (fix: Bedrock Claude Opus structured output fails after multi-step tool calls (#17222)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -75,9 +82,16 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
     providerOptions,
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
   }: LanguageModelV3CallOptions): Promise<{
     command: BedrockConverseInput;
     warnings: SharedV3Warning[];
+=======
+  }: LanguageModelV4CallOptions): Promise<{
+    command: AmazonBedrockConverseInput;
+    warnings: SharedV4Warning[];
+    usesJsonInstruction: boolean;
+>>>>>>> b0e9d24110 (fix: Bedrock Claude Opus structured output fails after multi-step tool calls (#17222)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
     usesJsonResponseTool: boolean;
     betas: Set<string>;
   }> {
@@ -145,16 +159,41 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       bedrockOptions.reasoningConfig?.type === 'enabled' ||
       bedrockOptions.reasoningConfig?.type === 'adaptive';
 
+    const modelRejectsNativeStructuredOutput =
+      this.modelId.includes('claude-opus-4-7') ||
+      this.modelId.includes('claude-opus-4-8') ||
+      this.modelId.includes('claude-fable-5') ||
+      this.modelId.includes('claude-sonnet-5');
+
     const useNativeStructuredOutput =
       isAnthropicModel &&
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
       isThinkingEnabled &&
       responseFormat?.type === 'json' &&
       responseFormat.schema != null;
 
     const jsonResponseTool: LanguageModelV3FunctionTool | undefined =
+=======
+      !modelRejectsNativeStructuredOutput &&
+      (modelSupportsStructuredOutput || isThinkingEnabled) &&
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null;
+
+    const useJsonInstructionForStructuredOutput =
+      isAnthropicModel &&
+      (this.modelId.includes('claude-opus-4-7') ||
+        this.modelId.includes('claude-opus-4-8')) &&
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
-      !useNativeStructuredOutput
+      tools != null &&
+      tools.length > 0;
+
+    const jsonResponseTool: LanguageModelV4FunctionTool | undefined =
+>>>>>>> b0e9d24110 (fix: Bedrock Claude Opus structured output fails after multi-step tool calls (#17222)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      !useNativeStructuredOutput &&
+      !useJsonInstructionForStructuredOutput
         ? {
             type: 'function',
             name: 'json',
@@ -367,6 +406,15 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       }
     }
 
+    if (useJsonInstructionForStructuredOutput) {
+      filteredPrompt = injectJsonInstructionIntoMessages({
+        messages: filteredPrompt,
+        schema: responseFormat!.schema,
+        schemaSuffix:
+          'You MUST answer with only a JSON object that matches the JSON schema above. Do not wrap it in markdown fences or include any other text.',
+      });
+    }
+
     const isMistral = isMistralModel(this.modelId);
     const { system, messages } = await convertToBedrockChatMessages(
       filteredPrompt,
@@ -408,6 +456,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
           : {}),
       },
       warnings,
+      usesJsonInstruction: useJsonInstructionForStructuredOutput,
       usesJsonResponseTool: jsonResponseTool != null,
       betas,
     };
@@ -431,6 +480,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     const {
       command: args,
       warnings,
+      usesJsonInstruction,
       usesJsonResponseTool,
     } = await this.getArgs(options);
 
@@ -452,12 +502,18 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
 
     const content: Array<LanguageModelV3Content> = [];
     let isJsonResponseFromTool = false;
+    const jsonObjectTextExtractor = usesJsonInstruction
+      ? new JsonObjectTextExtractor()
+      : undefined;
 
     // map response content to content array
     for (const part of response.output.message.content) {
       // text
       if (part.text != null) {
-        content.push({ type: 'text', text: part.text });
+        content.push({
+          type: 'text',
+          text: jsonObjectTextExtractor?.process(part.text) ?? part.text,
+        });
       }
 
       // reasoning
@@ -586,6 +642,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     const {
       command: args,
       warnings,
+      usesJsonInstruction,
       usesJsonResponseTool,
     } = await this.getArgs(options);
     const modelId = this.modelId;
@@ -614,6 +671,9 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
     let isJsonResponseFromTool = false;
     let stopSequence: string | null = null;
+    const jsonObjectTextExtractor = usesJsonInstruction
+      ? new JsonObjectTextExtractor()
+      : undefined;
 
     const contentBlocks: Record<
       number,
@@ -773,11 +833,18 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
                 });
               }
 
-              controller.enqueue({
-                type: 'text-delta',
-                id: String(blockIndex),
-                delta: value.contentBlockDelta.delta.text,
-              });
+              const textDelta =
+                jsonObjectTextExtractor?.process(
+                  value.contentBlockDelta.delta.text,
+                ) ?? value.contentBlockDelta.delta.text;
+
+              if (textDelta.length > 0) {
+                controller.enqueue({
+                  type: 'text-delta',
+                  id: String(blockIndex),
+                  delta: textDelta,
+                });
+              }
             }
 
             if (value.contentBlockStop?.contentBlockIndex != null) {
@@ -995,7 +1062,73 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
   }
 }
 
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
 const BedrockStopReasonSchema = z.union([
+=======
+class JsonObjectTextExtractor {
+  private started = false;
+  private completed = false;
+  private depth = 0;
+  private inString = false;
+  private escaped = false;
+
+  process(text: string): string {
+    let result = '';
+
+    for (const character of text) {
+      if (this.completed) {
+        break;
+      }
+
+      if (!this.started) {
+        if (character !== '{') {
+          continue;
+        }
+
+        this.started = true;
+        this.depth = 1;
+        result += character;
+        continue;
+      }
+
+      result += character;
+
+      if (this.escaped) {
+        this.escaped = false;
+        continue;
+      }
+
+      if (character === '\\' && this.inString) {
+        this.escaped = true;
+        continue;
+      }
+
+      if (character === '"') {
+        this.inString = !this.inString;
+        continue;
+      }
+
+      if (this.inString) {
+        continue;
+      }
+
+      if (character === '{') {
+        this.depth++;
+      } else if (character === '}') {
+        this.depth--;
+
+        if (this.depth === 0) {
+          this.completed = true;
+        }
+      }
+    }
+
+    return result;
+  }
+}
+
+const AmazonBedrockStopReasonSchema = z.union([
+>>>>>>> b0e9d24110 (fix: Bedrock Claude Opus structured output fails after multi-step tool calls (#17222)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
   z.enum(BEDROCK_STOP_REASONS),
   z.string(),
 ]);
