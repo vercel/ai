@@ -1,12 +1,38 @@
 import type { MCPAppResourceCSP } from '@ai-sdk/mcp';
 
-// Drop values that could break out of their CSP directive. Whitespace, ";" and
-// "," would otherwise let a source add extra sources, directives, or policies.
+// CSP source values come from the (untrusted) MCP server. Rather than
+// denylisting bad characters on the raw string (which an encoding like "%3B"
+// can slip past), canonicalize each value: parse it as an absolute URL so any
+// percent-encoding is decoded, keep only https/wss origins, then re-check the
+// decoded origin so a separator that decoded back into ";" "," or whitespace
+// cannot split the directive.
+const ALLOWED_CSP_SCHEMES = new Set(['https:', 'wss:']);
+
 function sanitizeCSPSources(sources?: string[]): string[] {
-  return (sources ?? []).filter(
-    source =>
-      typeof source === 'string' && source.length > 0 && !/[\s;,]/.test(source),
-  );
+  const result: string[] = [];
+  for (const source of sources ?? []) {
+    if (typeof source !== 'string') {
+      continue;
+    }
+
+    let origin: string;
+    try {
+      const url = new URL(source);
+      if (!ALLOWED_CSP_SCHEMES.has(url.protocol) || url.host.length === 0) {
+        continue;
+      }
+      origin = url.origin;
+    } catch {
+      continue;
+    }
+
+    if (/[\s;,]/.test(origin)) {
+      continue;
+    }
+
+    result.push(origin);
+  }
+  return result;
 }
 
 /**
