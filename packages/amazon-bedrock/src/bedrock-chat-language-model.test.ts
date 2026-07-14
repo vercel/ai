@@ -200,7 +200,7 @@ let mockOptions: { success: boolean; errorValue?: any } = { success: true };
 
 describe('doGenerate request metadata', () => {
   it('should return the request body', async () => {
-    prepareJsonFixtureResponse('amazon-bedrock-text');
+    prepareJsonFixtureResponse('bedrock-text');
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
