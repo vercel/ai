@@ -1,5 +1,16 @@
 import type { MCPAppResourceCSP } from '@ai-sdk/mcp';
 
+// Drop values that could break out of their CSP directive. Whitespace, ";" and
+// "," would otherwise let a source add extra sources, directives, or policies.
+function sanitizeCSPSources(sources?: string[]): string[] {
+  return (sources ?? []).filter(
+    source =>
+      typeof source === 'string' &&
+      source.length > 0 &&
+      !/[\s;,]/.test(source),
+  );
+}
+
 /**
  * Default sandbox permissions for the outer sandbox proxy iframe.
  */
@@ -30,9 +41,9 @@ export function getMCPAppCSP(csp?: MCPAppResourceCSP): string | undefined {
     return undefined;
   }
 
-  const connectSrc = ["'self'", ...(csp.connectDomains ?? [])];
-  const imgSrc = ["'self'", 'data:', ...(csp.resourceDomains ?? [])];
-  const frameSrc = ["'self'", ...(csp.frameDomains ?? [])];
+  const connectSrc = ["'self'", ...sanitizeCSPSources(csp.connectDomains)];
+  const imgSrc = ["'self'", 'data:', ...sanitizeCSPSources(csp.resourceDomains)];
+  const frameSrc = ["'self'", ...sanitizeCSPSources(csp.frameDomains)];
 
   return [
     "default-src 'none'",
