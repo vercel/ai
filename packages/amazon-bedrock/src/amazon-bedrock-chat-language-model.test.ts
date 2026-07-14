@@ -286,6 +286,18 @@ describe('doStream', () => {
         }
       `);
     });
+
+    it('should expose the request body', async () => {
+      const { request } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(request?.body).toMatchObject({
+        messages: expect.any(Array),
+        system: expect.any(Array),
+      });
+    });
   });
 
   describe('reasoning', () => {
@@ -3286,6 +3298,17 @@ describe('doGenerate', () => {
           "timestamp": undefined,
         }
       `);
+    });
+
+    it('should expose the request body', async () => {
+      const { request } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(request?.body).toMatchObject({
+        messages: expect.any(Array),
+        system: expect.any(Array),
+      });
     });
 
     it('should expose the raw response headers', async () => {
