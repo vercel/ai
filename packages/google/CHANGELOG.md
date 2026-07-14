@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.16
+
+### Patch Changes
+
+- 662ddfc: Allow google.interactions agent requests to include supported tools, including file_search.
+
 ## 4.0.15
 
 ### Patch Changes

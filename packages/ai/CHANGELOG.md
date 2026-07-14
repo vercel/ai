@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.28
+
+### Patch Changes
+
+- 0bc8d4f: Fix chat `onFinish` handling when overlapping requests clear the active response before a resume stream finishes.
+
 ## 7.0.27
 
 ### Patch Changes
