@@ -5,9 +5,7 @@ import type { MCPAppResourceCSP } from '@ai-sdk/mcp';
 function sanitizeCSPSources(sources?: string[]): string[] {
   return (sources ?? []).filter(
     source =>
-      typeof source === 'string' &&
-      source.length > 0 &&
-      !/[\s;,]/.test(source),
+      typeof source === 'string' && source.length > 0 && !/[\s;,]/.test(source),
   );
 }
 
@@ -42,7 +40,11 @@ export function getMCPAppCSP(csp?: MCPAppResourceCSP): string | undefined {
   }
 
   const connectSrc = ["'self'", ...sanitizeCSPSources(csp.connectDomains)];
-  const imgSrc = ["'self'", 'data:', ...sanitizeCSPSources(csp.resourceDomains)];
+  const imgSrc = [
+    "'self'",
+    'data:',
+    ...sanitizeCSPSources(csp.resourceDomains),
+  ];
   const frameSrc = ["'self'", ...sanitizeCSPSources(csp.frameDomains)];
 
   return [
