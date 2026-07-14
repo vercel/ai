@@ -88,8 +88,6 @@ const openaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   openaiModelId,
 )}/converse`;
 
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.test.ts
-=======
 const newerAnthropicModelId = 'anthropic.claude-sonnet-4-6-v1';
 const newerAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   newerAnthropicModelId,
@@ -100,7 +98,6 @@ const opusAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   opusAnthropicModelId,
 )}/converse`;
 
->>>>>>> b0e9d24110 (fix: Bedrock Claude Opus structured output fails after multi-step tool calls (#17222)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.test.ts
 const server = createTestServer({
   [generateUrl]: {},
   [streamUrl]: {
@@ -113,11 +110,8 @@ const server = createTestServer({
   [anthropicGenerateUrl]: {},
   [novaGenerateUrl]: {},
   [openaiGenerateUrl]: {},
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.test.ts
-=======
   [newerAnthropicGenerateUrl]: {},
   [opusAnthropicGenerateUrl]: {},
->>>>>>> b0e9d24110 (fix: Bedrock Claude Opus structured output fails after multi-step tool calls (#17222)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.test.ts
 });
 
 function prepareJsonFixtureResponse(
@@ -185,9 +179,7 @@ const openaiModel = new BedrockChatLanguageModel(openaiModelId, {
   generateId: () => 'test-id',
 });
 
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.test.ts
-=======
-const newerAnthropicModel = new AmazonBedrockChatLanguageModel(
+const newerAnthropicModel = new BedrockChatLanguageModel(
   newerAnthropicModelId,
   {
     baseUrl: () => baseUrl,
@@ -197,17 +189,13 @@ const newerAnthropicModel = new AmazonBedrockChatLanguageModel(
   },
 );
 
-const opusAnthropicModel = new AmazonBedrockChatLanguageModel(
-  opusAnthropicModelId,
-  {
-    baseUrl: () => baseUrl,
-    headers: {},
-    fetch: fakeFetchWithAuth,
-    generateId: () => 'test-id',
-  },
-);
+const opusAnthropicModel = new BedrockChatLanguageModel(opusAnthropicModelId, {
+  baseUrl: () => baseUrl,
+  headers: {},
+  fetch: fakeFetchWithAuth,
+  generateId: () => 'test-id',
+});
 
->>>>>>> b0e9d24110 (fix: Bedrock Claude Opus structured output fails after multi-step tool calls (#17222)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.test.ts
 let mockOptions: { success: boolean; errorValue?: any } = { success: true };
 
 describe('doStream', () => {
@@ -4646,8 +4634,6 @@ describe('doGenerate', () => {
     expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
   });
 
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.test.ts
-=======
   it('should use native output_config.format for models with structured output support even without thinking enabled', async () => {
     server.urls[newerAnthropicGenerateUrl].response = {
       type: 'json-value',
@@ -4792,7 +4778,6 @@ describe('doGenerate', () => {
     `);
   });
 
->>>>>>> b0e9d24110 (fix: Bedrock Claude Opus structured output fails after multi-step tool calls (#17222)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.test.ts
   it('should extract reasoning text with signature', async () => {
     server.urls[generateUrl].response = {
       type: 'json-value',
