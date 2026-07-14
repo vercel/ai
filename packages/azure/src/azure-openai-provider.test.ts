@@ -355,7 +355,7 @@ describe('deepseek', () => {
   });
 
   it('should send a json_schema response format for structured output', async () => {
-    prepareJsonFixtureResponse('azure-deepseek-reasoning.1', undefined, 'chat');
+    prepareJsonFixtureResponse('azure-deepseek-reasoning.1', 'chat');
 
     await provider.deepseek('deepseek-v4-flash').doGenerate({
       prompt: TEST_PROMPT,
