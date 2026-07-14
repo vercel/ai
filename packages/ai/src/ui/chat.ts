@@ -22,10 +22,11 @@ import {
   type FileUIPart,
   type InferUIMessageData,
   type InferUIMessageMetadata,
+  type InferUIMessageToolCall,
+  type InferUIMessageToolOutputs,
   type InferUIMessageTools,
   type UIDataTypes,
   type UIMessage,
-  type InferUIMessageToolCall,
   type UIMessagePart,
   type UITools,
 } from './ui-messages';
@@ -153,7 +154,10 @@ export type ChatOnErrorCallback = (error: Error) => void;
 export type ChatOnToolCallCallback<UI_MESSAGE extends UIMessage = UIMessage> =
   (options: {
     toolCall: InferUIMessageToolCall<UI_MESSAGE>;
-  }) => void | PromiseLike<void>;
+  }) =>
+    | InferUIMessageToolOutputs<UI_MESSAGE>
+    | void
+    | PromiseLike<InferUIMessageToolOutputs<UI_MESSAGE> | void>;
 
 export type ChatOnDataCallback<UI_MESSAGE extends UIMessage> = (
   dataPart: DataUIPart<InferUIMessageData<UI_MESSAGE>>,

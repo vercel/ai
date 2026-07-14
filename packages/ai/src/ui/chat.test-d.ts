@@ -39,6 +39,13 @@ describe('onToolCall', () => {
         toolName: 'simple';
         input: number;
       }>();
+
+      expectTypeOf<ReturnType<ToolCallCallback<Tools>>>().toEqualTypeOf<
+        string | void | PromiseLike<string | void>
+      >();
+
+      const callback: ToolCallCallback<Tools> = async () => 'result';
+      expectTypeOf(callback).toMatchTypeOf<ToolCallCallback<Tools>>();
     });
 
     it('single tool without output schema', () => {
