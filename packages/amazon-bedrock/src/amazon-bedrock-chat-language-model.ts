@@ -30,8 +30,15 @@ import {
   type ParseResult,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
-import { getModelCapabilities } from '@ai-sdk/anthropic/internal';
+import {
+  getModelCapabilities,
+  sanitizeJsonSchema,
+} from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
+import {
+  BEDROCK_NATIVE_STRUCTURED_OUTPUT_UNION_LIMIT,
+  countUnionTypedParameters,
+} from './count-union-typed-parameters';
 import {
   BEDROCK_STOP_REASONS,
   type AmazonBedrockConverseInput,
@@ -196,12 +203,52 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       this.modelId.includes('claude-fable-5') ||
       this.modelId.includes('claude-sonnet-5');
 
+    // Anthropic's native structured-output compiler (`output_config.format`)
+    // supports only a subset of JSON Schema. Sanitize the schema (strip
+    // unsupported validation keywords into descriptions) up front, mirroring
+    // the `@ai-sdk/anthropic` messages path, so bounded schemas don't 400.
+    const nativeStructuredOutputSchema =
+      responseFormat?.type === 'json' && responseFormat.schema != null
+        ? sanitizeJsonSchema(responseFormat.schema)
+        : undefined;
+
+    // Even sanitized, the native compiler rejects schemas with more than
+    // `BEDROCK_NATIVE_STRUCTURED_OUTPUT_UNION_LIMIT` union-typed parameters. The
+    // tool-based JSON path has no such limit, so route large/union-heavy
+    // schemas there instead of 400ing.
+    const nativeStructuredOutputUnionCount =
+      nativeStructuredOutputSchema != null
+        ? countUnionTypedParameters(nativeStructuredOutputSchema)
+        : 0;
+
+    const withinNativeStructuredOutputUnionLimit =
+      nativeStructuredOutputUnionCount <=
+      BEDROCK_NATIVE_STRUCTURED_OUTPUT_UNION_LIMIT;
+
     const useNativeStructuredOutput =
       isAnthropicModel &&
       !modelRejectsNativeStructuredOutput &&
       (modelSupportsStructuredOutput || isThinkingEnabled) &&
       responseFormat?.type === 'json' &&
-      responseFormat.schema != null;
+      responseFormat.schema != null &&
+      withinNativeStructuredOutputUnionLimit;
+
+    if (
+      isAnthropicModel &&
+      !modelRejectsNativeStructuredOutput &&
+      (modelSupportsStructuredOutput || isThinkingEnabled) &&
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      !withinNativeStructuredOutputUnionLimit
+    ) {
+      warnings.push({
+        type: 'other',
+        message:
+          `Structured output schema has ${nativeStructuredOutputUnionCount} union-typed parameters, ` +
+          `exceeding Bedrock's native structured-output limit of ${BEDROCK_NATIVE_STRUCTURED_OUTPUT_UNION_LIMIT}. ` +
+          `Falling back to tool-based JSON output for this request.`,
+      });
+    }
 
     const useJsonInstructionForStructuredOutput =
       isAnthropicModel &&
@@ -355,7 +402,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
           ...amazonBedrockOptions.additionalModelRequestFields?.output_config,
           format: {
             type: 'json_schema',
-            schema: responseFormat!.schema,
+            schema: nativeStructuredOutputSchema!,
           },
         },
       };

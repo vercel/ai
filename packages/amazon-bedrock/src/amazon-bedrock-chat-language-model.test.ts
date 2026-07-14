@@ -4771,9 +4771,11 @@ describe('doGenerate', () => {
                 ingredients: { type: 'array', items: { type: 'string' } },
               },
               required: ['name', 'ingredients'],
+              additionalProperties: false,
             },
           },
           required: ['recipe'],
+          additionalProperties: false,
         },
       },
     });
@@ -4826,6 +4828,7 @@ describe('doGenerate', () => {
             name: { type: 'string' },
           },
           required: ['name'],
+          additionalProperties: false,
         },
       },
     });
@@ -4935,23 +4938,144 @@ describe('doGenerate', () => {
 
     expect(requestBody.additionalModelRequestFields?.output_config)
       .toMatchInlineSnapshot(`
-      {
-        "format": {
-          "schema": {
-            "properties": {
-              "name": {
-                "type": "string",
+        {
+          "format": {
+            "schema": {
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string",
+                },
               },
+              "required": [
+                "name",
+              ],
+              "type": "object",
             },
-            "required": [
-              "name",
-            ],
-            "type": "object",
+            "type": "json_schema",
           },
-          "type": "json_schema",
+        }
+      `);
+  });
+
+  it('should sanitize unsupported JSON schema keywords on the native output_config path', async () => {
+    server.urls[newerAnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            content: [{ text: '{"count":3,"slug":"abc"}' }],
+            role: 'assistant',
+          },
         },
-      }
-    `);
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'end_turn',
+      },
+    };
+
+    await newerAnthropicModel.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a record' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            count: { type: 'integer', minimum: 0, maximum: 10 },
+            slug: { type: 'string', minLength: 1, pattern: '^[a-z]+$' },
+          },
+          required: ['count', 'slug'],
+          additionalProperties: false,
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    // Used native structured output (no json response tool).
+    expect(requestBody.toolConfig).toBeUndefined();
+
+    const schema =
+      requestBody.additionalModelRequestFields?.output_config?.format?.schema;
+
+    // Unsupported numeric/string keywords are stripped and moved to descriptions.
+    expect(schema.properties.count.minimum).toBeUndefined();
+    expect(schema.properties.count.maximum).toBeUndefined();
+    expect(schema.properties.count.description).toContain('minimum: 0');
+    expect(schema.properties.count.description).toContain('maximum: 10');
+    expect(schema.properties.slug.minLength).toBeUndefined();
+    expect(schema.properties.slug.pattern).toBeUndefined();
+    expect(schema.additionalProperties).toBe(false);
+  });
+
+  it('should fall back to the json response tool when the schema exceeds the native union-parameter limit', async () => {
+    server.urls[newerAnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'tool-1',
+                  name: 'json',
+                  input: { field0: 'a' },
+                },
+              },
+            ],
+            role: 'assistant',
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'tool_use',
+      },
+    };
+
+    // 17 nullable properties => 17 union-typed parameters, over the limit of 16.
+    const properties = Object.fromEntries(
+      Array.from({ length: 17 }, (_, i) => [
+        `field${i}`,
+        { type: ['string', 'null'] },
+      ]),
+    );
+
+    const { warnings } = await newerAnthropicModel.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a record' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties,
+          required: Object.keys(properties),
+          additionalProperties: false,
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    // Native structured output NOT used; routed to the tool-based JSON path.
+    expect(
+      requestBody.additionalModelRequestFields?.output_config?.format,
+    ).toBeUndefined();
+    expect(requestBody.toolConfig).toBeDefined();
+
+    expect(
+      warnings.some(
+        warning =>
+          warning.type === 'other' &&
+          warning.message.includes('union-typed parameters'),
+      ),
+    ).toBe(true);
   });
 
   it('should use JSON instructions instead of a response tool when structured output is combined with tools on models without strict tool support', async () => {
