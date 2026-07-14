@@ -203,6 +203,24 @@ The following optional provider options are available for Google models:
     - 2K
     - 4K
 
+  - **personGeneration** _string_
+
+    Optional. Controls the generation of people in images. Available on Vertex AI only. Can be one of the following:
+    - `ALLOW_NONE`
+    - `ALLOW_ADULT`
+    - `ALLOW_ALL`
+
+  - **prominentPeople** _string_
+
+    Optional. Controls whether generation of prominent people (celebrities) is allowed. When set together with `personGeneration`, `personGeneration` takes precedence. Available on Vertex AI only. Can be one of the following:
+    - `PROMINENT_PEOPLE_UNSPECIFIED`
+    - `ALLOW_PROMINENT_PEOPLE`
+    - `BLOCK_PROMINENT_PEOPLE`
+
+  - **imageOutputOptions** _\{ mimeType?: 'image/jpeg' | 'image/png', compressionQuality?: number \}_
+
+    Optional. The image output format for generated images. Available on Vertex AI only.
+
 - **audioTimestamp** _boolean_
 
   Optional. Enables timestamp understanding for audio-only files.
