@@ -18,7 +18,13 @@ function sanitizeCSPSources(sources?: string[]): string[] {
     let origin: string;
     try {
       const url = new URL(source);
-      if (!ALLOWED_CSP_SCHEMES.has(url.protocol) || url.host.length === 0) {
+      // Reject non-https/wss, the empty host, and a bare "*" host (which would
+      // match every origin and defeat the allowlist, like scheme-only "https:").
+      if (
+        !ALLOWED_CSP_SCHEMES.has(url.protocol) ||
+        url.host.length === 0 ||
+        url.host === '*'
+      ) {
         continue;
       }
       origin = url.origin;
@@ -26,7 +32,9 @@ function sanitizeCSPSources(sources?: string[]): string[] {
       continue;
     }
 
-    if (/[\s;,]/.test(origin)) {
+    // Drop separators that split the directive and quotes that could break out
+    // of an HTML attribute the policy may be embedded in downstream.
+    if (/["'`\s;,]/.test(origin)) {
       continue;
     }
 

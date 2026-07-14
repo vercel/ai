@@ -67,6 +67,24 @@ describe('getMCPAppCSP', () => {
     expect(csp!.split(';')).toHaveLength(9);
   });
 
+  it('drops match-all wildcards and quote characters', () => {
+    const csp = getMCPAppCSP({
+      connectDomains: [
+        'https://*',
+        'https://a"b.example.com',
+        "https://a'b.example.com",
+      ],
+      resourceDomains: ['https://ok.example.com'],
+    });
+
+    // every connect source is rejected, leaving only 'self'
+    expect(csp).toContain("connect-src 'self';");
+    expect(csp).not.toContain('"');
+    expect(csp).not.toContain('https://*');
+    // an untainted value is still allowed
+    expect(csp).toContain('https://ok.example.com');
+  });
+
   it('drops non-https/wss schemes and bare keyword sources', () => {
     const csp = getMCPAppCSP({
       connectDomains: [
