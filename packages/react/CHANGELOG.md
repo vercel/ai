@@ -1,5 +1,174 @@
 # @ai-sdk/react
 
+## 4.0.29
+
+### Patch Changes
+
+- 519c72b: fix (react/mcp-apps): sanitize server-supplied CSP domains in `getMCPAppCSP` so values cannot inject extra directives, sources, or policies into the generated Content-Security-Policy
+
+## 4.0.28
+
+### Patch Changes
+
+- Updated dependencies [ac01b79]
+- Updated dependencies [31c7be8]
+- Updated dependencies [2696562]
+  - ai@7.0.27
+  - @ai-sdk/provider-utils@5.0.10
+  - @ai-sdk/mcp@2.0.13
+
+## 4.0.27
+
+### Patch Changes
+
+- Updated dependencies [27d294d]
+  - ai@7.0.26
+
+## 4.0.26
+
+### Patch Changes
+
+- Updated dependencies [4be62c1]
+- Updated dependencies [7805e4a]
+- Updated dependencies [7805e4a]
+- Updated dependencies [f8e82fd]
+- Updated dependencies [cd12954]
+  - @ai-sdk/provider-utils@5.0.9
+  - ai@7.0.25
+  - @ai-sdk/mcp@2.0.12
+
+## 4.0.25
+
+### Patch Changes
+
+- Updated dependencies [e193290]
+- Updated dependencies [e193290]
+  - @ai-sdk/provider-utils@5.0.8
+  - ai@7.0.24
+  - @ai-sdk/mcp@2.0.11
+
+## 4.0.24
+
+### Patch Changes
+
+- Updated dependencies [930f949]
+  - ai@7.0.23
+
+## 4.0.23
+
+### Patch Changes
+
+- Updated dependencies [8f89c25]
+  - ai@7.0.22
+
+## 4.0.22
+
+### Patch Changes
+
+- Updated dependencies [308a519]
+  - ai@7.0.21
+
+## 4.0.21
+
+### Patch Changes
+
+- d26bf99: Align React development dependencies with React 18 so workspace-linked examples do not bundle duplicate React copies.
+- Updated dependencies [b9ac19f]
+- Updated dependencies [a4186d6]
+  - ai@7.0.20
+
+## 4.0.20
+
+### Patch Changes
+
+- Updated dependencies [be7f05a]
+- Updated dependencies [ee55a07]
+- Updated dependencies [aad737d]
+- Updated dependencies [0f93c57]
+  - ai@7.0.19
+  - @ai-sdk/provider@4.0.3
+  - @ai-sdk/mcp@2.0.10
+  - @ai-sdk/provider-utils@5.0.7
+
+## 4.0.19
+
+### Patch Changes
+
+- 0363440: Promote `useObject` (React, Vue) and `StructuredObject` (Svelte) to stable exports, with deprecated experimental aliases for backwards compatibility.
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+  - ai@7.0.18
+  - @ai-sdk/mcp@2.0.9
+
+## 4.0.18
+
+### Patch Changes
+
+- 3271474: Promote the `throttle` option on `useChat` and `useCompletion` to stable, with a deprecated `experimental_throttle` alias for backwards compatibility.
+- Updated dependencies [3e6e955]
+- Updated dependencies [eebd14b]
+  - @ai-sdk/mcp@2.0.8
+  - ai@7.0.17
+
+## 4.0.17
+
+### Patch Changes
+
+- Updated dependencies [a8f9b6d]
+  - ai@7.0.16
+
+## 4.0.16
+
+### Patch Changes
+
+- ai@7.0.15
+
+## 4.0.15
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - ai@7.0.14
+  - @ai-sdk/provider@4.0.2
+  - @ai-sdk/provider-utils@5.0.5
+  - @ai-sdk/mcp@2.0.7
+
+## 4.0.14
+
+### Patch Changes
+
+- ai@7.0.13
+
+## 4.0.13
+
+### Patch Changes
+
+- Updated dependencies [ecfeb6f]
+- Updated dependencies [a193137]
+- Updated dependencies [c6f5e62]
+- Updated dependencies [3c30eb4]
+  - ai@7.0.12
+  - @ai-sdk/provider-utils@5.0.4
+  - @ai-sdk/mcp@2.0.6
+
+## 4.0.12
+
+### Patch Changes
+
+- 8b2dc3c: fix(react): use the latest transport in useChat instead of a stale one
+- Updated dependencies [0a87626]
+  - ai@7.0.11
+
+## 4.0.11
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - ai@7.0.10
+  - @ai-sdk/mcp@2.0.5
+  - @ai-sdk/provider-utils@5.0.3
+
 ## 4.0.10
 
 ### Patch Changes

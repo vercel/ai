@@ -10,6 +10,7 @@ import {
   isFullMediaType,
   resolveFullMediaType,
   resolveProviderReference,
+  secureJsonParse,
 } from '@ai-sdk/provider-utils';
 import type {
   GoogleContent,
@@ -162,10 +163,9 @@ function appendLegacyToolResultParts(
         });
         break;
       case 'file': {
-        if (
-          contentPart.data.type === 'data' &&
-          getTopLevelMediaType(contentPart.mediaType) === 'image'
-        ) {
+        if (contentPart.data.type === 'data') {
+          const topLevelMediaType = getTopLevelMediaType(contentPart.mediaType);
+
           parts.push(
             {
               inlineData: {
@@ -174,7 +174,10 @@ function appendLegacyToolResultParts(
               },
             },
             {
-              text: 'Tool executed successfully and returned this image as a response',
+              text:
+                `Tool executed successfully and returned this ` +
+                `${topLevelMediaType === 'image' ? 'image' : 'file'} ` +
+                `as a response`,
             },
           );
         } else {
@@ -468,7 +471,7 @@ export function convertToGoogleMessages(
                         toolType: serverToolType,
                         args:
                           typeof part.input === 'string'
-                            ? JSON.parse(part.input)
+                            ? secureJsonParse(part.input)
                             : part.input,
                         id: serverToolCallId,
                       },

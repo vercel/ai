@@ -14,7 +14,7 @@ import {
   type Experimental_SandboxSession,
 } from 'ai';
 import { assertType, describe, expectTypeOf, it } from 'vitest';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 const model = new MockLanguageModelV4({
   doStream: async () => ({

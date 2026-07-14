@@ -13,9 +13,11 @@ import type {
 import {
   loadApiKey,
   loadOptionalSetting,
+  validateBaseURL,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { OpenAIChatLanguageModel } from './chat/openai-chat-language-model';
 import type { OpenAIChatModelId } from './chat/openai-chat-language-model-options';
@@ -158,6 +160,12 @@ export interface OpenAIProviderSettings {
    * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /**
+   * Custom WebSocket implementation. This is useful for testing or for
+   * runtimes that need a WebSocket constructor with header support.
+   */
+  webSocket?: WebSocketConstructor;
 }
 
 /**
@@ -168,10 +176,12 @@ export function createOpenAI(
 ): OpenAIProvider {
   const baseURL =
     withoutTrailingSlash(
-      loadOptionalSetting({
-        settingValue: options.baseURL,
-        environmentVariableName: 'OPENAI_BASE_URL',
-      }),
+      validateBaseURL(
+        loadOptionalSetting({
+          settingValue: options.baseURL,
+          environmentVariableName: 'OPENAI_BASE_URL',
+        }),
+      ),
     ) ?? 'https://api.openai.com/v1';
 
   const providerName = options.name ?? 'openai';
@@ -229,6 +239,7 @@ export function createOpenAI(
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      webSocket: options.webSocket,
     });
 
   const createSpeechModel = (modelId: OpenAISpeechModelId) =>

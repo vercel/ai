@@ -10,6 +10,7 @@ import {
   createJsonResponseHandler,
   delay,
   getFromApi,
+  getTopLevelMediaType,
   parseProviderOptions,
   postJsonToApi,
   type FetchFunction,
@@ -62,6 +63,9 @@ function resolveStartImage(
   return getFirstFrameImage(options) ?? options.image;
 }
 
+const isVideoFile = (file: Experimental_VideoModelV4File): boolean =>
+  file.mediaType != null && getTopLevelMediaType(file.mediaType) === 'video';
+
 function fileToXaiImageUrl(file: Experimental_VideoModelV4File): string {
   if (file.type === 'url') {
     return file.url;
@@ -71,17 +75,35 @@ function fileToXaiImageUrl(file: Experimental_VideoModelV4File): string {
     typeof file.data === 'string'
       ? file.data
       : convertUint8ArrayToBase64(file.data);
-  return `data:${file.mediaType ?? 'image/png'};base64,${base64Data}`;
+  return `data:${file.mediaType};base64,${base64Data}`;
 }
 
 // Resolves the reference images for R2V generation. First-class
 // `inputReferences` win over the legacy `referenceImageUrls` provider option.
+// Video references are not supported for reference-to-video and are skipped
+// with a warning.
 function resolveReferenceImages(
   options: XaiVideoDoGenerateOptions,
   xaiOptions: XaiParsedVideoModelOptions | undefined,
+  warnings: SharedV4Warning[],
 ): Array<{ url: string }> | undefined {
   if (options.inputReferences != null && options.inputReferences.length > 0) {
-    return options.inputReferences.map(reference => ({
+    const imageReferences = options.inputReferences.filter(reference => {
+      if (isVideoFile(reference)) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'inputReferences',
+          details:
+            'xAI reference-to-video accepts image references only. The video ' +
+            'reference was ignored. Use providerOptions.xai.mode ' +
+            '"extend-video" to continue from a video.',
+        });
+        return false;
+      }
+      return true;
+    });
+
+    return imageReferences.map(reference => ({
       url: fileToXaiImageUrl(reference),
     }));
   }
@@ -278,24 +300,44 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
     // nested xAI request image object.
     const startImage = resolveStartImage(options);
     if (startImage != null) {
-      body.image = { url: fileToXaiImageUrl(startImage) };
+      if (isVideoFile(startImage)) {
+        const fromFrameImages = getFirstFrameImage(options) != null;
+        warnings.push({
+          type: 'unsupported',
+          feature: fromFrameImages ? 'frameImages' : 'image',
+          details:
+            'xAI does not accept a video as a start/frame image. The video ' +
+            'was ignored. Use providerOptions.xai.mode "extend-video" to ' +
+            'continue from a video instead.',
+        });
+      } else {
+        body.image = { url: fileToXaiImageUrl(startImage) };
+      }
     }
 
     // xAI has no first-last-frame interpolation; warn and ignore last_frame.
-    if (getLastFrameImage(options) != null) {
+    const lastFrameImage = getLastFrameImage(options);
+    if (lastFrameImage != null) {
       warnings.push({
         type: 'unsupported',
         feature: 'frameImages',
-        details:
-          'xAI video models do not support last_frame. Use ' +
-          'providerOptions.xai.mode "extend-video" to continue from a ' +
-          "video's last frame. The last frame image was ignored.",
+        details: isVideoFile(lastFrameImage)
+          ? 'xAI does not accept a video as a start/frame image. The video ' +
+            'last frame was ignored. Use providerOptions.xai.mode ' +
+            '"extend-video" to continue from a video instead.'
+          : 'xAI video models do not support last_frame. Use ' +
+            'providerOptions.xai.mode "extend-video" to continue from a ' +
+            "video's last frame. The last frame image was ignored.",
       });
     }
 
     // Reference images for R2V (reference-to-video) generation
     if (hasReferenceImages) {
-      const referenceImages = resolveReferenceImages(options, xaiOptions);
+      const referenceImages = resolveReferenceImages(
+        options,
+        xaiOptions,
+        warnings,
+      );
       if (referenceImages != null) {
         body.reference_images = referenceImages;
       }
@@ -386,6 +428,7 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
       const { value: statusResponse, responseHeaders: pollHeaders } =
         await getFromApi({
           url: `${baseURL}/videos/${requestId}`,
+          validateUrl: false,
           headers: combineHeaders(this.config.headers(), options.headers),
           successfulResponseHandler: createJsonResponseHandler(
             xaiVideoStatusResponseSchema,

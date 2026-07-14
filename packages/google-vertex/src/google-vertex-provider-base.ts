@@ -1,6 +1,10 @@
 import {
+  GoogleInteractionsLanguageModel,
   GoogleLanguageModel,
   GoogleSpeechModel,
+  type GoogleInteractionsAgentName,
+  type GoogleInteractionsModelId,
+  type GoogleInteractionsModelInput,
 } from '@ai-sdk/google/internal';
 import type {
   Experimental_VideoModelV4,
@@ -71,6 +75,19 @@ export interface GoogleVertexProvider extends ProviderV4 {
   (modelId: GoogleVertexModelId): LanguageModelV4;
 
   languageModel: (modelId: GoogleVertexModelId) => LanguageModelV4;
+
+  /**
+   * Creates a language model targeting the Gemini Interactions API
+   * (`.../locations/{region}/interactions`) on Vertex, reusing the Vertex
+   * OAuth credentials. Pass a model id (e.g. `gemini-omni-flash-preview`) or an
+   * `{ agent }` / `{ managedAgent }` reference.
+   */
+  interactions(
+    modelIdOrAgent:
+      | GoogleInteractionsModelId
+      | { agent: GoogleInteractionsAgentName }
+      | { managedAgent: string },
+  ): LanguageModelV4;
 
   /**
    * Creates a model for image generation.
@@ -270,6 +287,31 @@ export function createGoogleVertex(
     });
   };
 
+  const createInteractionsModel = (
+    modelIdOrAgent:
+      | GoogleInteractionsModelId
+      | { agent: GoogleInteractionsAgentName }
+      | { managedAgent: string },
+  ) => {
+    if (apiKey) {
+      throw new Error(
+        'Google Vertex Interactions models do not support Express Mode API keys. Use standard Google Cloud credentials instead.',
+      );
+    }
+
+    return new GoogleInteractionsLanguageModel(
+      modelIdOrAgent as GoogleInteractionsModelInput,
+      {
+        // The Interactions API is a location-scoped resource
+        // (`.../locations/{region}/interactions`), so it uses the
+        // endpoint-style base URL without the `/publishers/google` suffix that
+        // the base-model paths carry.
+        ...createConfig('interactions', { endpoint: true }),
+        generateId: options.generateId ?? generateId,
+      },
+    );
+  };
+
   const createEmbeddingModel = (modelId: GoogleVertexEmbeddingModelId) =>
     new GoogleVertexEmbeddingModel(modelId, createConfig('embedding'));
 
@@ -321,6 +363,7 @@ export function createGoogleVertex(
 
   provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
+  provider.interactions = createInteractionsModel;
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;

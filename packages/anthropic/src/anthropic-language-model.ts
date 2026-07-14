@@ -28,6 +28,7 @@ import {
   postJsonToApi,
   resolve,
   resolveProviderReference,
+  secureJsonParse,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -421,6 +422,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     const thinkingType = anthropicOptions?.thinking?.type;
     const isThinking =
       thinkingType === 'enabled' || thinkingType === 'adaptive';
+    // `disabled` must still be forwarded to the API: some models (e.g. Sonnet 5)
+    // default thinking on, so omitting it would leave thinking enabled and
+    // consume the max_tokens budget.
+    const sendThinking = isThinking || thinkingType === 'disabled';
     let thinkingBudget =
       thinkingType === 'enabled'
         ? anthropicOptions?.thinking?.budgetTokens
@@ -444,7 +449,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       stop_sequences: stopSequences,
 
       // provider specific settings:
-      ...(isThinking && {
+      ...(sendThinking && {
         thinking: {
           type: thinkingType,
           ...(thinkingBudget != null && { budget_tokens: thinkingBudget }),
@@ -2126,7 +2131,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                         contentBlock.input === '' ? '{}' : contentBlock.input;
                       if (contentBlock.providerToolName === 'code_execution') {
                         try {
-                          const parsed = JSON.parse(finalInput);
+                          const parsed = secureJsonParse(finalInput);
                           if (
                             parsed != null &&
                             typeof parsed === 'object' &&

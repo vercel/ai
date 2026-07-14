@@ -276,6 +276,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             reasoning: {
               effort: null,
               summary: null,
+              context: 'current_turn',
             },
             store: true,
             temperature: 1,
@@ -292,6 +293,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               input_tokens: 345,
               input_tokens_details: {
                 cached_tokens: 234,
+                cache_write_tokens: 45,
               },
               output_tokens: 538,
               output_tokens_details: {
@@ -334,8 +336,8 @@ describe('OpenAIResponsesLanguageModel', () => {
           {
             "inputTokens": {
               "cacheRead": 234,
-              "cacheWrite": undefined,
-              "noCache": 111,
+              "cacheWrite": 45,
+              "noCache": 66,
               "total": 345,
             },
             "outputTokens": {
@@ -346,6 +348,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             "raw": {
               "input_tokens": 345,
               "input_tokens_details": {
+                "cache_write_tokens": 45,
                 "cached_tokens": 234,
               },
               "output_tokens": 538,
@@ -435,6 +438,7 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         expect(result.providerMetadata).toStrictEqual({
           openai: {
+            reasoningContext: 'current_turn',
             responseId: 'resp_67c97c0203188190a025beb4a75242bc',
           },
         });
@@ -1126,6 +1130,100 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send GPT-5.6 reasoning effort, mode, and context', async () => {
+        const { warnings } = await createModel('gpt-5.6').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'max',
+              reasoningMode: 'pro',
+              reasoningContext: 'all_turns',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5.6',
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+          reasoning: {
+            effort: 'max',
+            summary: 'detailed',
+            mode: 'pro',
+            context: 'all_turns',
+          },
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should let GPT-5.6 use its default effort with pro mode', async () => {
+        const { warnings } = await createModel('gpt-5.6').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              reasoningMode: 'pro',
+              reasoningContext: 'auto',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5.6',
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+          reasoning: {
+            mode: 'pro',
+            context: 'auto',
+          },
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should warn about GPT-5.6 reasoning controls on non-reasoning models', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              reasoningMode: 'pro',
+              reasoningContext: 'all_turns',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-4o',
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+        });
+        expect(warnings).toStrictEqual([
+          {
+            type: 'unsupported',
+            feature: 'reasoningMode',
+            details: 'reasoningMode is not supported for non-reasoning models',
+          },
+          {
+            type: 'unsupported',
+            feature: 'reasoningContext',
+            details:
+              'reasoningContext is not supported for non-reasoning models',
+          },
+        ]);
+      });
+
       it.each(nonReasoningModelIds)(
         'should not send and warn about unsupported reasoningEffort and reasoningSummary provider options for %s',
         async modelId => {
@@ -1502,6 +1600,33 @@ describe('OpenAIResponsesLanguageModel', () => {
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
           ],
           prompt_cache_retention: '24h',
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send promptCacheOptions provider option', async () => {
+        const { warnings } = await createModel('gpt-5.6').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              promptCacheOptions: {
+                mode: 'explicit',
+                ttl: '30m',
+              },
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5.6',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          prompt_cache_options: {
+            mode: 'explicit',
+            ttl: '30m',
+          },
         });
 
         expect(warnings).toStrictEqual([]);
@@ -6210,6 +6335,61 @@ describe('OpenAIResponsesLanguageModel', () => {
         toolCallEvent as Extract<typeof toolCallEvent, { type: 'tool-call' }>
       ).providerMetadata?.openai as Record<string, unknown> | undefined;
       expect(meta?.namespace).toBeUndefined();
+    });
+
+    it('should expose reasoning context and cache writes when streaming', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:${JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_gpt56',
+              created_at: 1783620000,
+              model: 'gpt-5.6',
+            },
+          })}\n\n`,
+          `data:${JSON.stringify({
+            type: 'response.completed',
+            response: {
+              incomplete_details: null,
+              reasoning: { context: 'all_turns' },
+              usage: {
+                input_tokens: 100,
+                input_tokens_details: {
+                  cached_tokens: 40,
+                  cache_write_tokens: 25,
+                },
+                output_tokens: 20,
+                output_tokens_details: { reasoning_tokens: 5 },
+              },
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-5.6').doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      expect(events.at(-1)).toMatchObject({
+        type: 'finish',
+        providerMetadata: {
+          openai: {
+            responseId: 'resp_gpt56',
+            reasoningContext: 'all_turns',
+          },
+        },
+        usage: {
+          inputTokens: {
+            total: 100,
+            noCache: 35,
+            cacheRead: 40,
+            cacheWrite: 25,
+          },
+        },
+      });
     });
 
     it('Should handle service tier', async () => {
