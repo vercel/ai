@@ -1,0 +1,5 @@
+{"messageStart":{"role":"assistant"}}
+{"contentBlockDelta":{"contentBlockIndex":0,"delta":{"text":"OK"}}}
+{"contentBlockStop":{"contentBlockIndex":0}}
+{"messageStop":{"additionalModelResponseFields":{"delta":{"stop_sequence":null}},"stopReason":"end_turn"}}
+{"metadata":{"metrics":{"latencyMs":1669},"usage":{"inputTokens":12,"outputTokens":4,"serverToolUsage":{},"totalTokens":16}}}
