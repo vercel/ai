@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { MockTracer } from '../test/mock-tracer';
+import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { runToolsTransformation } from './run-tools-transformation';
 
 const testUsage = {
@@ -297,6 +298,70 @@ describe('runToolsTransformation', () => {
         },
       ]
     `);
+  });
+
+  it('should not produce an unhandled rejection when tool executions finish after the model stream errors', async () => {
+    let inputStreamController!: ReadableStreamDefaultController<LanguageModelV2StreamPart>;
+    const inputStream = new ReadableStream<LanguageModelV2StreamPart>({
+      start(controller) {
+        inputStreamController = controller;
+        controller.enqueue({
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'delayedToolA',
+          input: `{ "value": "test-a" }`,
+        });
+        controller.enqueue({
+          type: 'tool-call',
+          toolCallId: 'call-2',
+          toolName: 'delayedToolB',
+          input: `{ "value": "test-b" }`,
+        });
+      },
+    });
+
+    const toolResultA = createResolvablePromise<string>();
+    const toolResultB = createResolvablePromise<string>();
+
+    const transformedStream = runToolsTransformation({
+      tools: {
+        delayedToolA: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: () => toolResultA.promise,
+        },
+        delayedToolB: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: () => toolResultB.promise,
+        },
+      },
+      generatorStream: inputStream,
+      tracer: new MockTracer(),
+      telemetry: undefined,
+      messages: [],
+      system: undefined,
+      abortSignal: undefined,
+      repairToolCall: undefined,
+      experimental_context: undefined,
+    });
+
+    const reader = transformedStream.getReader();
+
+    expect(await reader.read()).toMatchObject({
+      value: { type: 'tool-call', toolCallId: 'call-1' },
+    });
+    expect(await reader.read()).toMatchObject({
+      value: { type: 'tool-call', toolCallId: 'call-2' },
+    });
+
+    const modelStreamError = new Error('model stream error');
+    inputStreamController.error(modelStreamError);
+
+    await expect(reader.read()).rejects.toBe(modelStreamError);
+
+    toolResultA.resolve('result-a');
+    await delay(0);
+    toolResultB.resolve('result-b');
+    await delay(0);
   });
 
   it('should try to repair tool call when the tool name is not found', async () => {

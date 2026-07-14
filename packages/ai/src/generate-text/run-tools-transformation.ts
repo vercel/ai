@@ -132,13 +132,43 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   let toolResultsStreamController: ReadableStreamDefaultController<
     SingleRequestTextStreamPart<TOOLS>
   > | null = null;
+  let toolResultsStreamClosed = false;
   const toolResultsStream = new ReadableStream<
     SingleRequestTextStreamPart<TOOLS>
   >({
     start(controller) {
       toolResultsStreamController = controller;
     },
+    cancel() {
+      toolResultsStreamClosed = true;
+    },
   });
+
+  function enqueueToolResult(chunk: SingleRequestTextStreamPart<TOOLS>) {
+    if (toolResultsStreamClosed) {
+      return;
+    }
+
+    try {
+      toolResultsStreamController!.enqueue(chunk);
+    } catch {
+      toolResultsStreamClosed = true;
+    }
+  }
+
+  function closeToolResultsStream() {
+    if (toolResultsStreamClosed) {
+      return;
+    }
+
+    toolResultsStreamClosed = true;
+
+    try {
+      toolResultsStreamController!.close();
+    } catch {
+      // suppress errors when the stream has been closed
+    }
+  }
 
   // keep track of outstanding tool results for stream closing:
   const outstandingToolResults = new Set<string>();
@@ -158,10 +188,10 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
       // are received to ensure that the frontend receives tool results before a message
       // finish event arrives.
       if (finishChunk != null) {
-        toolResultsStreamController!.enqueue(finishChunk);
+        enqueueToolResult(finishChunk);
       }
 
-      toolResultsStreamController!.close();
+      closeToolResultsStream();
     }
   }
 
@@ -234,7 +264,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
             // handle invalid tool calls:
             if (toolCall.invalid) {
-              toolResultsStreamController!.enqueue({
+              enqueueToolResult({
                 type: 'tool-error',
                 toolCallId: toolCall.toolCallId,
                 toolName: toolCall.toolName,
@@ -301,7 +331,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                     });
 
                     for await (const part of stream) {
-                      toolResultsStreamController!.enqueue({
+                      enqueueToolResult({
                         ...toolCall,
                         type: 'tool-result',
                         output: part.output,
@@ -316,7 +346,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                     }
                   } catch (error) {
                     recordErrorOnSpan(span, error);
-                    toolResultsStreamController!.enqueue({
+                    enqueueToolResult({
                       ...toolCall,
                       type: 'tool-error',
                       error,
@@ -352,7 +382,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               });
             }
           } catch (error) {
-            toolResultsStreamController!.enqueue({ type: 'error', error });
+            enqueueToolResult({ type: 'error', error });
           }
 
           break;
@@ -362,7 +392,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           const toolName = chunk.toolName as keyof TOOLS & string;
 
           if (chunk.isError) {
-            toolResultsStreamController!.enqueue({
+            enqueueToolResult({
               type: 'tool-error',
               toolCallId: chunk.toolCallId,
               toolName,
