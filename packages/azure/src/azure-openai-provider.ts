@@ -231,6 +231,20 @@ export function createAzure(
       fetch,
     });
 
+<<<<<<< HEAD
+=======
+  const createDeepSeekModel = (deploymentName: string) =>
+    new DeepSeekChatLanguageModel(deploymentName, {
+      provider: 'azure.deepseek',
+      url,
+      headers: getHeaders,
+      fetch,
+      supportsThinking: false,
+      // json_object with thinking enabled makes Azure return the JSON in reasoning_content with empty content
+      supportsStructuredOutputs: true,
+    });
+
+>>>>>>> 55be3231b9 (Backport: fix: Azure DeepSeek structured output returns JSON in reasoning with empty text (#17250))
   const createCompletionModel = (modelId: string) =>
     new OpenAICompletionLanguageModel(modelId, {
       provider: 'azure.completion',
