@@ -29,12 +29,13 @@ reproduction, test case, review, or context should be credited.
 Remove the section if it's not needed.
 -->
 
-## Manual Verification
+## End-to-End Verification
 
 <!--
 For features & bugfixes.
-Please explain how you *manually* verified that the change works end-to-end as expected (excluding automated tests).
 Remove the section if it's not needed (e.g. for docs).
+Please explain how you verified that the change works end-to-end as expected.
+Do not include integration/unit tests or linting
 -->
 
 ## Checklist
