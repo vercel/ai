@@ -1,5 +1,12 @@
 # @ai-sdk/openai-compatible
 
+## 1.0.43
+
+### Patch Changes
+
+- Updated dependencies [c6e1d1a]
+  - @ai-sdk/provider-utils@3.0.29
+
 ## 1.0.42
 
 ### Patch Changes

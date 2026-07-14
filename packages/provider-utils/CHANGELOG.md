@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.0.29
+
+### Patch Changes
+
+- c6e1d1a: Accept callable Standard Schema validators that do not provide JSON Schema conversion.
+
 ## 3.0.28
 
 ### Patch Changes
