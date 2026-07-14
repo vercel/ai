@@ -75,6 +75,8 @@ export function getMCPAppCSP(csp?: MCPAppResourceCSP): string | undefined {
 
   return [
     "default-src 'none'",
+    "base-uri 'none'",
+    "form-action 'none'",
     "script-src 'unsafe-inline'",
     "style-src 'unsafe-inline'",
     `connect-src ${connectSrc.join(' ')}`,

@@ -18,6 +18,13 @@ describe('getMCPAppCSP', () => {
     expect(csp).toContain("frame-src 'self' https://frame.example.com");
   });
 
+  it("locks down base-uri and form-action to 'none'", () => {
+    const csp = getMCPAppCSP({});
+
+    expect(csp).toContain("base-uri 'none'");
+    expect(csp).toContain("form-action 'none'");
+  });
+
   it('preserves wildcard subdomains and explicit ports', () => {
     const csp = getMCPAppCSP({
       connectDomains: ['https://*.example.com', 'https://api.example.com:8443'],
@@ -40,8 +47,8 @@ describe('getMCPAppCSP', () => {
     expect(csp).not.toContain('attacker.example');
     expect(csp).not.toContain('evil.example');
     expect(csp).not.toContain('script-src-elem');
-    // policy still has exactly its seven intended directives
-    expect(csp!.split(';')).toHaveLength(7);
+    // policy still has exactly its nine intended directives
+    expect(csp!.split(';')).toHaveLength(9);
     // untainted values are unaffected
     expect(csp).toContain('https://ok.example.com');
   });
@@ -57,7 +64,7 @@ describe('getMCPAppCSP', () => {
     expect(csp).not.toContain('%2C');
     expect(csp).not.toContain(';b.example.com');
     expect(csp).toContain("connect-src 'self';");
-    expect(csp!.split(';')).toHaveLength(7);
+    expect(csp!.split(';')).toHaveLength(9);
   });
 
   it('drops non-https/wss schemes and bare keyword sources', () => {
