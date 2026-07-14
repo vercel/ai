@@ -307,6 +307,7 @@ export class GoogleVideoModel implements Experimental_VideoModelV4 {
       const { value: statusOperation, responseHeaders: pollHeaders } =
         await getFromApi({
           url: `${this.config.baseURL}/${operationName}`,
+          validateUrl: false,
           headers: combineHeaders(
             await resolve(this.config.headers),
             options.headers,

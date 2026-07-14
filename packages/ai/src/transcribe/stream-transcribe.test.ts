@@ -85,7 +85,8 @@ describe('experimental_streamTranscribe', () => {
 
     await convertAsyncIterableToArray(result.fullStream);
 
-    expect(capturedArgs).toStrictEqual({
+    const { abortSignal: capturedSignal, ...capturedRest } = capturedArgs;
+    expect(capturedRest).toStrictEqual({
       audio,
       inputAudioFormat,
       providerOptions: { mock: { option: 'value' } },
@@ -93,9 +94,12 @@ describe('experimental_streamTranscribe', () => {
         'custom-request-header': 'request-header-value',
         'user-agent': 'ai/0.0.0-test',
       },
-      abortSignal,
       includeRawChunks: true,
     });
+    // the model receives a merged signal that follows the caller's signal
+    expect(capturedSignal?.aborted).toBe(false);
+    abortController.abort();
+    expect(capturedSignal?.aborted).toBe(true);
   });
 
   it('should stream transcript parts and resolve final metadata', async () => {
@@ -228,6 +232,71 @@ describe('experimental_streamTranscribe', () => {
     });
   });
 
+  it('should cancel the audio stream when doStream rejects', async () => {
+    let audioCancelReason: unknown;
+    const audioStream = new ReadableStream<Uint8Array>({
+      cancel(reason) {
+        audioCancelReason = reason;
+      },
+    });
+
+    const result = streamTranscribe({
+      model: new MockTranscriptionModelV4({
+        doStream: async () => {
+          throw new Error('authentication failed');
+        },
+      }),
+      audio: audioStream,
+      inputAudioFormat,
+    });
+
+    await expect(
+      convertAsyncIterableToArray(result.fullStream),
+    ).rejects.toThrow('authentication failed');
+    await expect(result.text).rejects.toThrow('authentication failed');
+    await vi.waitFor(() => {
+      expect(audioCancelReason).toMatchObject({
+        message: 'authentication failed',
+      });
+    });
+  });
+
+  it('should not interfere with a model-owned audio stream when the model stream errors mid-pipe', async () => {
+    let audioReaderTaken = false;
+    const audioStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array([1, 2, 3]));
+      },
+    });
+
+    const result = streamTranscribe({
+      model: new MockTranscriptionModelV4({
+        doStream: async ({ audio: modelAudio }) => {
+          // the model takes ownership of the audio stream, as providers do:
+          void modelAudio.getReader();
+          audioReaderTaken = true;
+          return {
+            stream: new ReadableStream<TranscriptionModelV4StreamPart>({
+              start(controller) {
+                controller.enqueue({ type: 'stream-start', warnings: [] });
+                controller.error(new Error('connection lost'));
+              },
+            }),
+            response: { timestamp: testDate, modelId: 'test-model-id' },
+          };
+        },
+      }),
+      audio: audioStream,
+      inputAudioFormat,
+    });
+
+    await expect(
+      convertAsyncIterableToArray(result.fullStream),
+    ).rejects.toThrow('connection lost');
+    expect(audioReaderTaken).toBe(true);
+    await expect(result.text).rejects.toThrow('connection lost');
+  });
+
   it('should cancel the model stream when fullStream is cancelled early', async () => {
     let modelStreamCancelled = false;
 
@@ -268,5 +337,26 @@ describe('experimental_streamTranscribe', () => {
       expect(modelStreamCancelled).toBe(true);
     });
     await expect(result.text).rejects.toThrow();
+  });
+
+  it('should abort a still-pending doStream when fullStream is cancelled', async () => {
+    let observedSignal: AbortSignal | undefined;
+
+    const result = streamTranscribe({
+      model: new MockTranscriptionModelV4({
+        doStream: ({ abortSignal }) => {
+          observedSignal = abortSignal;
+          return new Promise(() => {}); // setup that never completes
+        },
+      }),
+      audio: new ReadableStream(),
+      inputAudioFormat,
+    });
+
+    await result.fullStream.cancel();
+
+    await vi.waitFor(() => {
+      expect(observedSignal?.aborted).toBe(true);
+    });
   });
 });
