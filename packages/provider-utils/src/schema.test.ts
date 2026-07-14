@@ -1,46 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as z4 from 'zod/v4';
 import { safeParseJSON } from './parse-json';
-<<<<<<< HEAD
 import { zodSchema } from './zod-schema';
-=======
-import { asSchema, zodSchema, type StandardSchema } from './schema';
-
-describe('asSchema', () => {
-  it('should create an object schema when no schema is provided', async () => {
-    const schema = asSchema(undefined);
-
-    expect(await schema.jsonSchema).toStrictEqual({
-      type: 'object',
-      properties: {},
-      additionalProperties: false,
-    });
-  });
-
-  it('should validate with callable standard schemas', async () => {
-    class CallableStandardSchema {
-      static readonly '~standard' = {
-        version: 1 as const,
-        vendor: 'effect',
-        validate: (value: unknown) =>
-          typeof value === 'object' &&
-          value !== null &&
-          'model' in value &&
-          typeof value.model === 'string'
-            ? { value: { model: value.model } }
-            : { issues: [{ message: 'model must be a string' }] },
-      };
-    }
-
-    const schema = asSchema(CallableStandardSchema);
-
-    await expect(schema.validate?.({ model: 'test-model' })).resolves.toEqual({
-      success: true,
-      value: { model: 'test-model' },
-    });
-  });
-});
->>>>>>> 31c7be805 (fix: Effect Standard Schema classes fail as message metadata validators (#17191))
 
 describe('zodSchema', () => {
   describe('zod/v4', () => {

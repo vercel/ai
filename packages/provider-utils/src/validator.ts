@@ -92,9 +92,9 @@ export function asValidator<OBJECT>(
 ): Validator<OBJECT> {
   return isValidator(value)
     ? value
-    : typeof value === 'function'
-      ? value()
-      : standardSchemaValidator(value);
+    : '~standard' in value
+      ? standardSchemaValidator(value)
+      : value();
 }
 
 export function standardSchemaValidator<OBJECT>(
