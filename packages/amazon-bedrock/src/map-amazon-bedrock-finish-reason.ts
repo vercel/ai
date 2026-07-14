@@ -4,6 +4,7 @@ import type { AmazonBedrockStopReason } from './amazon-bedrock-api-types';
 export function mapAmazonBedrockFinishReason(
   finishReason: AmazonBedrockStopReason,
   isJsonResponseFromTool?: boolean,
+  isMalformedToolUseRecovered?: boolean,
 ): LanguageModelV4FinishReason['unified'] {
   switch (finishReason) {
     case 'stop_sequence':
@@ -16,6 +17,12 @@ export function mapAmazonBedrockFinishReason(
       return 'content-filter';
     case 'tool_use':
       return isJsonResponseFromTool ? 'stop' : 'tool-calls';
+    case 'malformed_tool_use':
+      return isMalformedToolUseRecovered
+        ? isJsonResponseFromTool
+          ? 'stop'
+          : 'tool-calls'
+        : 'other';
     default:
       return 'other';
   }

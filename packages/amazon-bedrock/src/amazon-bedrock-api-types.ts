@@ -112,6 +112,7 @@ export const BEDROCK_STOP_REASONS = [
   'guardrail_intervened',
   'tool-calls',
   'tool_use',
+  'malformed_tool_use',
 ] as const;
 
 export type AmazonBedrockStopReason = (typeof BEDROCK_STOP_REASONS)[number];
