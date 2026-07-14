@@ -1,5 +1,11 @@
 # @ai-sdk/bytedance
 
+## 2.0.11
+
+### Patch Changes
+
+- 7fd7dab: feat (provider/bytedance): add Seedream image model support via `.image()` / `.imageModel()`, with typed `ByteDanceImageModelOptions` provider options
+
 ## 2.0.10
 
 ### Patch Changes

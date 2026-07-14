@@ -1,5 +1,11 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.32
+
+### Patch Changes
+
+- c93c87e: fix(harness-claude-code): add ToolSearch to claude code builtin tools
+
 ## 1.0.31
 
 ### Patch Changes
