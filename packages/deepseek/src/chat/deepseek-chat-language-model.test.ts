@@ -1,10 +1,19 @@
+<<<<<<< HEAD
 import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
+=======
+import type { JSONSchema7, LanguageModelV4Prompt } from '@ai-sdk/provider';
+>>>>>>> 49ae04db3c (fix: Azure DeepSeek structured output returns JSON in reasoning with empty text (#17244))
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createDeepSeek } from '../deepseek-provider';
+<<<<<<< HEAD
 import type { DeepSeekLanguageModelOptions } from './deepseek-chat-options';
+=======
+import { DeepSeekChatLanguageModel } from './deepseek-chat-language-model';
+import type { DeepSeekLanguageModelChatOptions } from './deepseek-chat-language-model-options';
+>>>>>>> 49ae04db3c (fix: Azure DeepSeek structured output returns JSON in reasoning with empty text (#17244))
 
 const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -457,6 +466,104 @@ describe('DeepSeekChatLanguageModel', () => {
           });
 
           expect(result).toMatchSnapshot();
+        });
+      });
+
+      describe('json response format with structured outputs', () => {
+        const structuredOutputsModel = new DeepSeekChatLanguageModel(
+          'deepseek-v4-flash',
+          {
+            provider: 'azure.deepseek',
+            url: () => 'https://api.deepseek.com/chat/completions',
+            headers: () => ({}),
+            supportsStructuredOutputs: true,
+          },
+        );
+
+        const TEST_SCHEMA: JSONSchema7 = {
+          type: 'object',
+          properties: { sentiment: { type: 'string' } },
+          required: ['sentiment'],
+          additionalProperties: false,
+        };
+
+        beforeEach(() => {
+          prepareJsonFixtureResponse('deepseek-json');
+        });
+
+        it('should send json_schema response format and skip schema injection', async () => {
+          const { warnings } = await structuredOutputsModel.doGenerate({
+            prompt: TEST_PROMPT,
+            responseFormat: {
+              type: 'json',
+              name: 'sentiment',
+              schema: TEST_SCHEMA,
+            },
+          });
+
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+            {
+              "messages": [
+                {
+                  "content": "Hello",
+                  "role": "user",
+                },
+              ],
+              "model": "deepseek-v4-flash",
+              "response_format": {
+                "json_schema": {
+                  "name": "sentiment",
+                  "schema": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "sentiment": {
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "sentiment",
+                    ],
+                    "type": "object",
+                  },
+                  "strict": true,
+                },
+                "type": "json_schema",
+              },
+            }
+          `);
+          expect(warnings).toStrictEqual([]);
+        });
+
+        it('should honor strictJsonSchema provider option', async () => {
+          await structuredOutputsModel.doGenerate({
+            prompt: TEST_PROMPT,
+            responseFormat: { type: 'json', schema: TEST_SCHEMA },
+            providerOptions: {
+              azure: {
+                strictJsonSchema: false,
+              } satisfies DeepSeekLanguageModelChatOptions,
+            },
+          });
+
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.response_format).toMatchObject({
+            type: 'json_schema',
+            json_schema: { strict: false, name: 'response' },
+          });
+        });
+
+        it('should fall back to json_object without a schema', async () => {
+          await structuredOutputsModel.doGenerate({
+            prompt: TEST_PROMPT,
+            responseFormat: { type: 'json' },
+          });
+
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.response_format).toStrictEqual({ type: 'json_object' });
+          expect(body.messages[0]).toStrictEqual({
+            role: 'system',
+            content: 'Return JSON.',
+          });
         });
       });
 
