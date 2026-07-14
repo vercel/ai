@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type {
-  AgentSession,
-  ToolDefinition,
+import {
+  AuthStorage,
+  type AgentSession,
+  type ToolDefinition,
+  ModelRegistry,
+  SettingsManager,
 } from '@earendil-works/pi-coding-agent';
 import type {
   HarnessV1NetworkSandboxSession,
@@ -47,6 +50,7 @@ vi.mock('@earendil-works/pi-coding-agent', () => {
     },
     SettingsManager: {
       inMemory: vi.fn(() => ({})),
+      create: vi.fn(() => ({})),
     },
   };
 });
@@ -175,6 +179,55 @@ describe('createPiSession', () => {
       }
     `,
     );
+  });
+
+  it('uses agentDir for auth, models, and settings when provided', async () => {
+    vi.mocked(AuthStorage.create).mockClear();
+    vi.mocked(ModelRegistry.create).mockClear();
+    vi.mocked(SettingsManager.inMemory).mockClear();
+    vi.mocked(SettingsManager.create).mockClear();
+
+    const sandboxSession = createSandboxSession();
+    await createPiSession({
+      sessionId: 'session-agentdir',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+      skills: [],
+      settings: {},
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: false,
+      agentDir: '/custom/.pi/agent',
+    });
+
+    expect(AuthStorage.create).toHaveBeenCalledWith(
+      '/custom/.pi/agent/auth.json',
+    );
+    expect(ModelRegistry.create).toHaveBeenCalledWith(
+      expect.anything(),
+      '/custom/.pi/agent/models.json',
+    );
+    expect(SettingsManager.create).toHaveBeenCalledTimes(1);
+    expect(SettingsManager.inMemory).not.toHaveBeenCalled();
+  });
+
+  it('falls back to temp dir and inMemory settings when agentDir is omitted', async () => {
+    vi.mocked(AuthStorage.create).mockClear();
+    vi.mocked(SettingsManager.inMemory).mockClear();
+    vi.mocked(SettingsManager.create).mockClear();
+
+    const sandboxSession = createSandboxSession();
+    await createPiSession({
+      sessionId: 'session-no-agentdir',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+      skills: [],
+      settings: {},
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: false,
+    });
+
+    expect(SettingsManager.inMemory).toHaveBeenCalledTimes(1);
+    expect(SettingsManager.create).not.toHaveBeenCalled();
   });
 });
 
