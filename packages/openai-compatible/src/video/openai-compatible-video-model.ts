@@ -2,7 +2,7 @@ import {
   AISDKError,
   type Experimental_VideoModelV4,
   type SharedV4Warning,
-} from "@ai-sdk/provider";
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonErrorResponseHandler,
@@ -13,18 +13,18 @@ import {
   postJsonToApi,
   type FetchFunction,
   resolve,
-} from "@ai-sdk/provider-utils";
-import { z } from "zod/v4";
+} from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 import {
   defaultOpenAICompatibleErrorStructure,
   type ProviderErrorStructure,
-} from "../openai-compatible-error";
-import { warnIfDeprecatedProviderOptionsKey } from "../utils/to-camel-case";
+} from '../openai-compatible-error';
+import { warnIfDeprecatedProviderOptionsKey } from '../utils/to-camel-case';
 import {
   openaiCompatibleVideoModelOptionsSchema,
   type OpenAICompatibleVideoModelOptions,
   OpenAICompatibleVideoModelId,
-} from "./openai-compatible-video-model-options";
+} from './openai-compatible-video-model-options';
 
 export type OpenAICompatibleVideoModelConfig = {
   provider: string;
@@ -38,7 +38,7 @@ export type OpenAICompatibleVideoModelConfig = {
 };
 
 export class OpenAICompatibleVideoModel implements Experimental_VideoModelV4 {
-  readonly specificationVersion = "v4";
+  readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
   get provider(): string {
@@ -51,25 +51,25 @@ export class OpenAICompatibleVideoModel implements Experimental_VideoModelV4 {
   ) {}
 
   private get providerOptionsName(): string {
-    return this.config.provider.split(".")[0].trim();
+    return this.config.provider.split('.')[0].trim();
   }
 
   async doGenerate(
-    options: Parameters<Experimental_VideoModelV4["doGenerate"]>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4["doGenerate"]>>> {
+    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
 
     // Parse provider options - check for deprecated 'openai-compatible' key
     const deprecatedOptions = (await parseProviderOptions({
-      provider: "openai-compatible",
+      provider: 'openai-compatible',
       providerOptions: options.providerOptions,
       schema: openaiCompatibleVideoModelOptionsSchema,
     })) as OpenAICompatibleVideoModelOptions | undefined;
 
     if (deprecatedOptions != null) {
       warnings.push({
-        type: "deprecated",
+        type: 'deprecated',
         setting: "providerOptions key 'openai-compatible'",
         message: "Use 'openaiCompatible' instead.",
       });
@@ -85,7 +85,7 @@ export class OpenAICompatibleVideoModel implements Experimental_VideoModelV4 {
     const compatibleOptions = Object.assign(
       deprecatedOptions ?? {},
       (await parseProviderOptions({
-        provider: "openaiCompatible",
+        provider: 'openaiCompatible',
         providerOptions: options.providerOptions,
         schema: openaiCompatibleVideoModelOptionsSchema,
       })) ?? {},
@@ -98,27 +98,27 @@ export class OpenAICompatibleVideoModel implements Experimental_VideoModelV4 {
 
     if (options.fps != null) {
       warnings.push({
-        type: "unsupported",
-        feature: "fps",
-        details: "OpenAI Compatible video models do not support custom FPS.",
+        type: 'unsupported',
+        feature: 'fps',
+        details: 'OpenAI Compatible video models do not support custom FPS.',
       });
     }
 
     if (options.seed != null) {
       warnings.push({
-        type: "unsupported",
-        feature: "seed",
-        details: "OpenAI Compatible video models do not support seed.",
+        type: 'unsupported',
+        feature: 'seed',
+        details: 'OpenAI Compatible video models do not support seed.',
       });
     }
 
     if (options.n != null && options.n > 1) {
       warnings.push({
-        type: "unsupported",
-        feature: "n",
+        type: 'unsupported',
+        feature: 'n',
         details:
-          "OpenAI Compatible video models do not support generating multiple videos per call. " +
-          "Only 1 video will be generated.",
+          'OpenAI Compatible video models do not support generating multiple videos per call. ' +
+          'Only 1 video will be generated.',
       });
     }
 
@@ -130,12 +130,12 @@ export class OpenAICompatibleVideoModel implements Experimental_VideoModelV4 {
     // Step 1: Create the task
     const { value: createResponse } = await postJsonToApi({
       url: this.config.url({
-        path: "/videos/",
+        path: '/videos/',
         modelId: this.modelId,
       }),
       headers: combineHeaders(
         await resolve(this.config.headers),
-        options.headers,
+        options.headers
       ),
       body,
       failedResponseHandler: createJsonErrorResponseHandler(
@@ -152,14 +152,14 @@ export class OpenAICompatibleVideoModel implements Experimental_VideoModelV4 {
 
     if (!taskId) {
       throw new AISDKError({
-        name: "OPENAI-COMPATIBLE_VIDEO_GENERATION_ERROR",
-        message: "No task ID returned from API",
+        name: 'OPENAI-COMPATIBLE_VIDEO_GENERATION_ERROR',
+        message: 'No task ID returned from API',
       });
     }
 
     // Step 2: Poll for completion
-    const pollIntervalMs = compatibleOptions?.pollIntervalMs ?? 5000; // 5 seconds
-    const pollTimeoutMs = compatibleOptions?.pollTimeoutMs ?? 600000; // 10 minutes
+    const pollIntervalMs = deprecatedOptions?.pollIntervalMs ?? 5000; // 5 seconds
+    const pollTimeoutMs = deprecatedOptions?.pollTimeoutMs ?? 600000; // 10 minutes
     const startTime = Date.now();
     let response: OpenaiCompatibleResponse;
     let responseHeaders: Record<string, string> | undefined;
@@ -169,7 +169,7 @@ export class OpenAICompatibleVideoModel implements Experimental_VideoModelV4 {
 
       if (Date.now() - startTime > pollTimeoutMs) {
         throw new AISDKError({
-          name: "OPENAI-COMPATIBLE_VIDEO_GENERATION_TIMEOUT",
+          name: 'OPENAI-COMPATIBLE_VIDEO_GENERATION_TIMEOUT',
           message: `Video generation timed out after ${pollTimeoutMs}ms`,
         });
       }
@@ -177,32 +177,29 @@ export class OpenAICompatibleVideoModel implements Experimental_VideoModelV4 {
       const { value: statusResponse, responseHeaders: statusHeaders } =
         await getFromApi({
           url: this.config.url({
-            path: `/videos/${taskId}`,
+            path: '/videos/${taskId}',
             modelId: this.modelId,
           }),
-          headers: combineHeaders(
-            await resolve(this.config.headers),
-            options.headers,
-          ),
+          headers: combineHeaders(await resolve(this.config.headers), options.headers),
           failedResponseHandler: createJsonErrorResponseHandler(
-            this.config.errorStructure ?? defaultOpenAICompatibleErrorStructure,
+          this.config.errorStructure ?? defaultOpenAICompatibleErrorStructure,
           ),
           successfulResponseHandler: createJsonResponseHandler(
             openaiCompatibleStatusResponseSchema,
-          ),
+        ),
           abortSignal: options.abortSignal,
           fetch: this.config.fetch,
         });
 
-      if (statusResponse.status === "succeeded") {
+      if (statusResponse.status === 'succeeded') {
         response = statusResponse;
         responseHeaders = statusHeaders;
         break;
       }
 
-      if (statusResponse.status === "failed") {
+      if (statusResponse.status === 'failed') {
         throw new AISDKError({
-          name: "OPENAI-COMPATIBLE_VIDEO_GENERATION_FAILED",
+          name: 'OPENAI-COMPATIBLE_VIDEO_GENERATION_FAILED',
           message: `Video generation failed: ${JSON.stringify(statusResponse)}`,
         });
       }
@@ -213,17 +210,17 @@ export class OpenAICompatibleVideoModel implements Experimental_VideoModelV4 {
     const videoUrl = response.url;
     if (!videoUrl) {
       throw new AISDKError({
-        name: "OPENAI-COMPATIBLE_VIDEO_GENERATION_ERROR",
-        message: "No video URL in response",
+        name: 'OPENAI-COMPATIBLE_VIDEO_GENERATION_ERROR',
+        message: 'No video URL in response',
       });
     }
 
     return {
       videos: [
         {
-          type: "url",
+          type: 'url',
           url: videoUrl,
-          mediaType: "video/mp4",
+          mediaType: 'video/mp4',
         },
       ],
       warnings,
@@ -236,9 +233,7 @@ export class OpenAICompatibleVideoModel implements Experimental_VideoModelV4 {
   }
 }
 
-type OpenaiCompatibleResponse = z.infer<
-  typeof openaiCompatibleStatusResponseSchema
->;
+type OpenaiCompatibleResponse = z.infer<typeof openaiCompatibleStatusResponseSchema>;
 
 const openaiCompatibleTaskResponseSchema = z.object({
   id: z.string().nullish(),
