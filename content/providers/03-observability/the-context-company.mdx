@@ -1,0 +1,108 @@
+---
+title: The Context Company
+description: AI agent observability for AI SDK applications with The Context Company
+---
+
+# The Context Company Observability
+
+[The Context Company](https://www.thecontextcompany.com/) is an AI observability platform that helps teams understand how users interact with production AI agents. Its AI SDK integration captures runs, model calls, tool executions, token usage, costs, sessions, users, organizations, and custom metadata. The platform uses this data to surface patterns such as user confusion, frustration, and silent failures.
+
+The `@contextcompany/ai-sdk` package supports AI SDK 7's telemetry interface. It registers the AI SDK OpenTelemetry integration and exports traces to The Context Company.
+
+<Note>
+  `@contextcompany/ai-sdk` requires AI SDK 7 and Node.js 22 or later. For AI SDK
+  5 or 6, use The Context Company's [legacy integration
+  guide](https://docs.thecontextcompany.com/frameworks/vercel-ai-sdk/v5-v6).
+</Note>
+
+## Setup
+
+Install the AI SDK integration:
+
+<InstallPackages packages="@contextcompany/ai-sdk ai @opentelemetry/api" />
+
+Set your API key:
+
+```bash filename=".env.local"
+TCC_API_KEY="..."
+```
+
+### Next.js
+
+Create an `instrumentation.ts` file in your project root. If your application uses a `src` directory, place the file inside `src` instead.
+
+```typescript filename="instrumentation.ts"
+export async function register() {
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    const { registerTCC } = await import('@contextcompany/ai-sdk/nextjs');
+    registerTCC();
+  }
+}
+```
+
+`registerTCC` composes with `@vercel/otel` and is idempotent, so development reloads do not register duplicate integrations.
+
+### Node.js
+
+For other Node.js frameworks, register the integration before making AI SDK calls. Keep the returned handle so queued traces can be flushed during shutdown.
+
+```typescript filename="telemetry.ts"
+import { registerTCC } from '@contextcompany/ai-sdk';
+
+export const tcc = registerTCC();
+```
+
+Call `shutdown()` when the process exits:
+
+```typescript filename="app.ts"
+import { tcc } from './telemetry';
+
+process.once('SIGTERM', async () => {
+  await tcc.shutdown();
+  process.exit(0);
+});
+```
+
+## Usage
+
+Once registered, AI SDK 7 calls emit telemetry automatically. Use `tccTelemetry` to attach an explicit run ID and request-specific context. TCC-specific metadata uses the `tcc.*` namespace, while custom application metadata remains unprefixed.
+
+```typescript filename="app/api/chat/route.ts"
+import { tccTelemetry } from '@contextcompany/ai-sdk/nextjs';
+import { streamText } from 'ai';
+
+export async function POST(req: Request) {
+  const { messages, sessionId, userId, orgId } = await req.json();
+  const runId = crypto.randomUUID();
+
+  const result = streamText({
+    model,
+    messages,
+    ...tccTelemetry({
+      metadata: {
+        'tcc.runId': runId,
+        'tcc.sessionId': sessionId,
+        'tcc.conversational': true,
+        'tcc.agent': 'support-assistant',
+        'tcc.userId': userId,
+        'tcc.orgId': orgId,
+        environment: 'production',
+      },
+    }),
+  });
+
+  return result.toUIMessageStreamResponse({
+    messageMetadata: () => ({ runId }),
+  });
+}
+```
+
+`tcc.runId` must be a UUID. Preserve it in your application when you need to submit user feedback, open a specific run, or correlate the run with application data.
+
+The integration supports text generation, streaming, structured output, multi-step agents, tools, embeddings, and reranking.
+
+## Resources
+
+- [The Context Company AI SDK guide](https://docs.thecontextcompany.com/frameworks/vercel-ai-sdk)
+- [AI SDK 7 example application](https://github.com/The-Context-Company/observatory/tree/main/examples/nextjs-aisdk)
+- [`@contextcompany/ai-sdk` on npm](https://www.npmjs.com/package/@contextcompany/ai-sdk)
