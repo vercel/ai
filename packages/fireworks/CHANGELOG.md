@@ -1,5 +1,12 @@
 # @ai-sdk/fireworks
 
+## 2.0.69
+
+### Patch Changes
+
+- Updated dependencies [94fda5c]
+  - @ai-sdk/openai-compatible@2.0.61
+
 ## 2.0.68
 
 ### Patch Changes
