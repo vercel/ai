@@ -4,6 +4,24 @@ import { getMdxComponents } from '@/components/mdx-components';
 import { config } from '@/lib/geistdocs/config';
 import { v6Source } from '@/lib/geistdocs/source';
 
+const pageSource = {
+  ...v6Source,
+  source: {
+    ...v6Source.source,
+    getPageTree: (...args: Parameters<typeof v6Source.source.getPageTree>) => {
+      const tree = v6Source.source.getPageTree(...args);
+      return {
+        ...tree,
+        children: tree.children.map(item =>
+          item.type === 'folder' && item.index?.url === '/docs/agents'
+            ? { ...item, index: { ...item.index, external: true } }
+            : item,
+        ),
+      };
+    },
+  },
+};
+
 const docsPage = createDocsPage({
   config,
   mdx: ({ link }) => getMdxComponents({ link, versionPrefix: '' }),
@@ -15,7 +33,7 @@ const docsPage = createDocsPage({
     },
   }),
   renderTop: ({ data }) => <MobileDocsBar toc={data.toc} />,
-  source: v6Source,
+  source: pageSource,
   tableOfContentPopover: {
     enabled: false,
   },
