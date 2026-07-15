@@ -1,5 +1,18 @@
 # @ai-sdk/openai
 
+## 4.0.15
+
+### Patch Changes
+
+- 0063c2d: Add the client-executed OpenAI Responses API computer tool with batched actions and screenshot outputs.
+
+## 4.0.14
+
+### Patch Changes
+
+- Updated dependencies [31c7be8]
+  - @ai-sdk/provider-utils@5.0.10
+
 ## 4.0.13
 
 ### Patch Changes
