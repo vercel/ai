@@ -64,7 +64,7 @@
     "svelte-check": "^4.4.8",
     "typescript": "^5.9.3",
     "vite": "^6.4.3",
-    "vitest": "^4.1.6",
+    "vitest": "^4.1.7",
     "zod": "3.25.76"
   },
   "homepage": "https://ai-sdk.dev/docs",

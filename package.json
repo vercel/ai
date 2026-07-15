@@ -51,7 +51,7 @@
     "typescript": "5.8.3",
     "ultracite": "7.3.2",
     "update-ts-references": "^3.6.0",
-    "vitest": "4.1.6"
+    "vitest": "4.1.7"
   },
   "engines": {
     "node": "^22.0.0 || ^24.0.0 || ^26.0.0"
