@@ -276,6 +276,12 @@ export function createAmazonBedrockAnthropic(
             ? {
                 type: tool_choice.type,
                 ...(tool_choice.name != null ? { name: tool_choice.name } : {}),
+                ...(tool_choice.disable_parallel_tool_use != null
+                  ? {
+                      disable_parallel_tool_use:
+                        tool_choice.disable_parallel_tool_use,
+                    }
+                  : {}),
               }
             : undefined;
 
