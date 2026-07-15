@@ -2,7 +2,7 @@ import {
   amazonBedrock,
   type AmazonBedrockLanguageModelChatOptions,
 } from '@ai-sdk/amazon-bedrock';
-import { streamText } from 'ai';
+import { streamText, toUIMessageStream } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
@@ -23,7 +23,15 @@ run(async () => {
     },
   });
 
-  for await (const chunk of result.toUIMessageStream({ sendReasoning: true })) {
-    console.log(JSON.stringify(chunk));
+  const uiMessageStream = toUIMessageStream({
+    stream: result.stream,
+    sendReasoning: true,
+  });
+
+  const reader = uiMessageStream.getReader();
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    console.log(JSON.stringify(value));
   }
 });

@@ -118,11 +118,12 @@ export class FalVideoModel implements Experimental_VideoModelV4 {
       }
     }
 
+    const submitUrl = this.config.url({
+      path: `https://queue.fal.run/fal-ai/${this.normalizedModelId}`,
+      modelId: this.modelId,
+    });
     const { value: queueResponse } = await postJsonToApi({
-      url: this.config.url({
-        path: `https://queue.fal.run/fal-ai/${this.normalizedModelId}`,
-        modelId: this.modelId,
-      }),
+      url: submitUrl,
       headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: falFailedResponseHandler,
@@ -148,12 +149,17 @@ export class FalVideoModel implements Experimental_VideoModelV4 {
 
     while (true) {
       try {
+        const statusUrl = this.config.url({
+          path: responseUrl,
+          modelId: this.modelId,
+        });
         const { value: statusResponse, responseHeaders: statusHeaders } =
           await getFromApi({
-            url: this.config.url({
-              path: responseUrl,
-              modelId: this.modelId,
-            }),
+            url: statusUrl,
+            // statusUrl comes from the queue response body.
+            validateUrl: true,
+            credentialedOrigin: submitUrl,
+            trustedOrigin: submitUrl,
             headers: combineHeaders(this.config.headers?.(), options.headers),
             failedResponseHandler: async ({
               response,

@@ -4,12 +4,14 @@ import { DevToolsTelemetry } from './integration.js';
 
 const mockCreateRun = vi.fn();
 const mockCreateStep = vi.fn();
+const mockGetStepsForRun = vi.fn();
 const mockUpdateStepResult = vi.fn();
 const mockNotifyServerAsync = vi.fn();
 
 vi.mock('./db.js', () => ({
   createRun: (...args: unknown[]) => mockCreateRun(...args),
   createStep: (...args: unknown[]) => mockCreateStep(...args),
+  getStepsForRun: (...args: unknown[]) => mockGetStepsForRun(...args),
   updateStepResult: (...args: unknown[]) => mockUpdateStepResult(...args),
   notifyServerAsync: (...args: unknown[]) => mockNotifyServerAsync(...args),
 }));
@@ -139,7 +141,7 @@ describe('DevToolsTelemetry', () => {
         }
       `);
 
-      await integration.onStepFinish!(makeStepFinishEvent());
+      await integration.onStepEnd!(makeStepFinishEvent());
       expect(mockUpdateStepResult).toHaveBeenCalledOnce();
 
       const [stepId, result] = mockUpdateStepResult.mock.calls[0];
@@ -171,7 +173,7 @@ describe('DevToolsTelemetry', () => {
 
       await integration.onStart!(makeStartEvent());
       await integration.onStepStart!(makeStepStartEvent());
-      await integration.onStepFinish!(
+      await integration.onStepEnd!(
         makeStepFinishEvent({
           request: { body: { model: 'test', prompt: 'hi' } },
           response: {
@@ -212,7 +214,7 @@ describe('DevToolsTelemetry', () => {
       );
       await integration.onStepStart!(makeStepStartEvent());
 
-      await integration.onStepFinish!(
+      await integration.onStepEnd!(
         makeStepFinishEvent({
           response: {
             id: 'resp-1',
@@ -231,10 +233,39 @@ describe('DevToolsTelemetry', () => {
         }
       `);
     });
+
+    it('groups resumed calls under a shared run id', async () => {
+      mockGetStepsForRun.mockResolvedValueOnce([]).mockResolvedValueOnce([{}]);
+      const integration = DevToolsTelemetry({
+        runId: 'tool-approval-run',
+      }) as unknown as TestIntegration;
+
+      await integration.onStart!(
+        makeStartEvent({ operationId: 'ai.streamText' }),
+      );
+      await integration.onStepStart!(makeStepStartEvent());
+      await integration.onEnd!({ callId: 'call-1' });
+
+      await integration.onStart!(
+        makeStartEvent({
+          callId: 'call-2',
+          operationId: 'ai.streamText',
+        }),
+      );
+      await integration.onStepStart!(makeStepStartEvent({ callId: 'call-2' }));
+
+      expect(mockCreateRun.mock.calls.map(([runId]) => runId)).toEqual([
+        'tool-approval-run',
+        'tool-approval-run',
+      ]);
+      expect(
+        mockCreateStep.mock.calls.map(([step]) => step.step_number),
+      ).toEqual([1, 2]);
+    });
   });
 
   describe('streamObject lifecycle', () => {
-    it('creates stream-type step via onObjectStepStart/Finish', async () => {
+    it('creates stream-type step via onObjectStepStart/End', async () => {
       const integration = createIntegration();
 
       await integration.onStart!(
@@ -251,7 +282,7 @@ describe('DevToolsTelemetry', () => {
 
       expect(mockCreateStep.mock.calls[0][0].type).toBe('stream');
 
-      await integration.onObjectStepFinish!({
+      await integration.onObjectStepEnd!({
         callId: 'call-1',
         stepNumber: 0,
         finishReason: 'stop',
@@ -326,7 +357,7 @@ describe('DevToolsTelemetry', () => {
 
       await integration.onStart!(makeStartEvent());
       await integration.onStepStart!(makeStepStartEvent());
-      await integration.onStepFinish!(makeStepFinishEvent());
+      await integration.onStepEnd!(makeStepFinishEvent());
       await integration.onEnd!({ callId: 'call-1' } as any);
 
       mockCreateStep.mockClear();

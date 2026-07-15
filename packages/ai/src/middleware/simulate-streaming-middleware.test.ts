@@ -77,7 +77,7 @@ describe('simulateStreamingMiddleware', () => {
       ...DEFAULT_SETTINGs,
     });
 
-    expect(await convertAsyncIterableToArray(result.fullStream))
+    expect(await convertAsyncIterableToArray(result.stream))
       .toMatchInlineSnapshot(`
         [
           {
@@ -114,7 +114,8 @@ describe('simulateStreamingMiddleware', () => {
               "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstOutputTokenMs": 0,
+              "timeBetweenOutputChunksMs": undefined,
+              "timeToFirstOutputMs": 0,
               "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
@@ -192,7 +193,7 @@ describe('simulateStreamingMiddleware', () => {
       ...DEFAULT_SETTINGs,
     });
 
-    expect(await convertAsyncIterableToArray(result.fullStream))
+    expect(await convertAsyncIterableToArray(result.stream))
       .toMatchInlineSnapshot(`
         [
           {
@@ -244,7 +245,15 @@ describe('simulateStreamingMiddleware', () => {
               "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstOutputTokenMs": 0,
+              "timeBetweenOutputChunksMs": {
+                "avg": 0,
+                "max": 0,
+                "median": 0,
+                "min": 0,
+                "p10": 0,
+                "p90": 0,
+              },
+              "timeToFirstOutputMs": 0,
               "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
@@ -334,7 +343,7 @@ describe('simulateStreamingMiddleware', () => {
       ...DEFAULT_SETTINGs,
     });
 
-    expect(await convertAsyncIterableToArray(result.fullStream))
+    expect(await convertAsyncIterableToArray(result.stream))
       .toMatchInlineSnapshot(`
         [
           {
@@ -420,7 +429,15 @@ describe('simulateStreamingMiddleware', () => {
               "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstOutputTokenMs": 0,
+              "timeBetweenOutputChunksMs": {
+                "avg": 0,
+                "max": 0,
+                "median": 0,
+                "min": 0,
+                "p10": 0,
+                "p90": 0,
+              },
+              "timeToFirstOutputMs": 0,
               "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
@@ -507,7 +524,7 @@ describe('simulateStreamingMiddleware', () => {
       ...DEFAULT_SETTINGs,
     });
 
-    expect(await convertAsyncIterableToArray(result.fullStream))
+    expect(await convertAsyncIterableToArray(result.stream))
       .toMatchInlineSnapshot(`
         [
           {
@@ -578,7 +595,15 @@ describe('simulateStreamingMiddleware', () => {
               "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstOutputTokenMs": 0,
+              "timeBetweenOutputChunksMs": {
+                "avg": 0,
+                "max": 0,
+                "median": 0,
+                "min": 0,
+                "p10": 0,
+                "p90": 0,
+              },
+              "timeToFirstOutputMs": 0,
               "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
@@ -680,7 +705,7 @@ describe('simulateStreamingMiddleware', () => {
       ...DEFAULT_SETTINGs,
     });
 
-    expect(await convertAsyncIterableToArray(result.fullStream))
+    expect(await convertAsyncIterableToArray(result.stream))
       .toMatchInlineSnapshot(`
         [
           {
@@ -739,7 +764,15 @@ describe('simulateStreamingMiddleware', () => {
               "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstOutputTokenMs": 0,
+              "timeBetweenOutputChunksMs": {
+                "avg": 0,
+                "max": 0,
+                "median": 0,
+                "min": 0,
+                "p10": 0,
+                "p90": 0,
+              },
+              "timeToFirstOutputMs": 0,
               "toolExecutionMs": {},
             },
             "providerMetadata": undefined,
@@ -811,7 +844,7 @@ describe('simulateStreamingMiddleware', () => {
       ...DEFAULT_SETTINGs,
     });
 
-    expect(await convertAsyncIterableToArray(result.fullStream))
+    expect(await convertAsyncIterableToArray(result.stream))
       .toMatchInlineSnapshot(`
         [
           {
@@ -848,7 +881,8 @@ describe('simulateStreamingMiddleware', () => {
               "outputTokensPerSecond": 0,
               "responseTimeMs": 0,
               "stepTimeMs": 0,
-              "timeToFirstOutputTokenMs": 0,
+              "timeBetweenOutputChunksMs": undefined,
+              "timeToFirstOutputMs": 0,
               "toolExecutionMs": {},
             },
             "providerMetadata": {
@@ -923,9 +957,7 @@ describe('simulateStreamingMiddleware', () => {
       ...DEFAULT_SETTINGs,
     });
 
-    expect(
-      await convertAsyncIterableToArray(result.fullStream),
-    ).toMatchSnapshot();
+    expect(await convertAsyncIterableToArray(result.stream)).toMatchSnapshot();
   });
 
   it('should pass through warnings from the model', async () => {

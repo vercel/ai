@@ -77,7 +77,7 @@ const factory = createProviderExecutedToolFactory<
     },
   {
     /**
-     * The advisor model ID, such as `"claude-opus-4-7"`. Billed at this
+     * The advisor model ID, such as `"claude-opus-4-8"`. Billed at this
      * model's rates for the sub-inference.
      *
      * The advisor must be at least as capable as the executor; an invalid

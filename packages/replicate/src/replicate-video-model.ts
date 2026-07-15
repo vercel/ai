@@ -217,8 +217,13 @@ export class ReplicateVideoModel implements Experimental_VideoModelV4 {
           });
         }
 
+        const pollUrl = finalPrediction.urls.get;
         const { value: statusPrediction } = await getFromApi({
-          url: finalPrediction.urls.get,
+          url: pollUrl,
+          // pollUrl comes from the provider response body.
+          validateUrl: true,
+          credentialedOrigin: this.config.baseURL,
+          trustedOrigin: this.config.baseURL,
           headers: await resolve(this.config.headers),
           successfulResponseHandler: createJsonResponseHandler(
             replicatePredictionSchema,

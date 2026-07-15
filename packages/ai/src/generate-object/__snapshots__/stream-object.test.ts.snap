@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`streamObject > callbacks > experimental_onStart > should send correct information with text prompt 1`] = `
+exports[`streamObject > callbacks > onStart > should send correct information with text prompt 1`] = `
 {
   "callId": "test-call-id",
   "frequencyPenalty": undefined,

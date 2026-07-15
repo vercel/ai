@@ -41,7 +41,11 @@ export default function Page() {
 ```
 
 ```ts filename='app/api/completion/route.ts'
-import { streamText } from 'ai';
+import {
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 __PROVIDER_IMPORT__;
 
 // Allow streaming responses up to 30 seconds
@@ -55,7 +59,9 @@ export async function POST(req: Request) {
     prompt,
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -137,12 +143,12 @@ When the user clicks the "Stop" button, the fetch request will be aborted. This 
 <Note>This feature is currently only available for React.</Note>
 
 By default, the `useCompletion` hook will trigger a render every time a new chunk is received.
-You can throttle the UI updates with the `experimental_throttle` option.
+You can throttle the UI updates with the `throttle` option.
 
 ```tsx filename="page.tsx" highlight="2-3"
 const { completion, ... } = useCompletion({
   // Throttle the completion and data updates to 50ms:
-  experimental_throttle: 50
+  throttle: 50
 })
 ```
 

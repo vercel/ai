@@ -11,6 +11,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { MessageConversionError } from '../prompt/message-conversion-error';
+import { getOwn } from '../util/get-own';
 import {
   getToolName,
   isCustomContentUIPart,
@@ -230,6 +231,9 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       approvalId: part.approval.id,
                       toolCallId: part.toolCallId,
                       isAutomatic: part.approval.isAutomatic,
+                      ...(part.approval.signature != null
+                        ? { signature: part.approval.signature }
+                        : {}),
                     });
                   }
 
@@ -253,7 +257,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                           part.state === 'output-error'
                             ? part.errorText
                             : part.output,
-                        tool: options?.tools?.[toolName],
+                        tool: getOwn(options?.tools, toolName),
                         errorMode:
                           part.state === 'output-error' ? 'json' : 'none',
                       }),
@@ -277,10 +281,12 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
               }
             }
 
-            modelMessages.push({
-              role: 'assistant',
-              content,
-            });
+            if (content.length > 0) {
+              modelMessages.push({
+                role: 'assistant',
+                content,
+              });
+            }
 
             // check if there are tool invocations with results in the block
             // Include non-provider-executed tools, OR provider-executed tools with approval responses
@@ -346,7 +352,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                         output: {
                           type: 'error-text' as const,
                           value:
-                            toolPart.approval.reason ??
+                            toolPart.approval?.reason ??
                             'Tool call execution denied.',
                         },
                         ...(toolPart.callProviderMetadata != null
@@ -370,7 +376,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                             toolPart.state === 'output-error'
                               ? toolPart.errorText
                               : toolPart.output,
-                          tool: options?.tools?.[toolName],
+                          tool: getOwn(options?.tools, toolName),
                           errorMode:
                             toolPart.state === 'output-error' ? 'text' : 'none',
                         }),

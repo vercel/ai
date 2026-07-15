@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result1 = await generateText({
-    model: openai.responses('gpt-5.4'),
+    model: openai.responses('gpt-5.6'),
     tools: {
       shell: openai.tools.shell({
         execute: async ({ action }) => {
@@ -25,7 +25,7 @@ run(async () => {
   console.log('Turn 1:', result1.text);
 
   const result2 = streamText({
-    model: openai.responses('gpt-5.4'),
+    model: openai.responses('gpt-5.6'),
     tools: {
       shell: openai.tools.shell({
         execute: async ({ action }) => {
@@ -46,7 +46,7 @@ run(async () => {
     stopWhen: isStepCount(5),
   });
 
-  for await (const chunk of result2.fullStream) {
+  for await (const chunk of result2.stream) {
     switch (chunk.type) {
       case 'text-delta': {
         process.stdout.write(chunk.text);

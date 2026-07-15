@@ -157,24 +157,7 @@ model: gateway('anthropic/claude-sonnet-4.5');
 
 To use a different provider, install its package and create a provider instance. For example, to use OpenAI directly:
 
-<div className="my-4">
-  <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-    <Tab>
-      <Snippet text="pnpm add @ai-sdk/openai" dark />
-    </Tab>
-    <Tab>
-      <Snippet text="npm install @ai-sdk/openai" dark />
-    </Tab>
-    <Tab>
-      <Snippet text="yarn add @ai-sdk/openai" dark />
-    </Tab>
-
-    <Tab>
-      <Snippet text="bun add @ai-sdk/openai" dark />
-    </Tab>
-
-  </Tabs>
-</div>
+<InstallPackages packages="@ai-sdk/openai" />
 
 ```ts
 import { openai } from '@ai-sdk/openai';
@@ -196,7 +179,7 @@ Let's enhance your agent by adding a simple weather tool.
 
 Modify your `index.ts` file to include the new weather tool:
 
-```ts filename="index.ts" highlight="2,4,24-37"
+```ts filename="index.ts" highlight="2,4,24-38"
 import { ModelMessage, streamText, tool } from 'ai';
 __PROVIDER_IMPORT__;
 import 'dotenv/config';
@@ -338,7 +321,7 @@ To solve this, you can enable multi-step tool calls using `stopWhen`. This featu
 
 Modify your `index.ts` file to configure stopping conditions with `stopWhen`:
 
-```ts filename="index.ts" highlight="38-41"
+```ts filename="index.ts" highlight="1,40-45"
 import { ModelMessage, streamText, tool, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 import 'dotenv/config';
@@ -379,7 +362,7 @@ async function main() {
         }),
       },
       stopWhen: isStepCount(5),
-      onStepFinish: async ({ toolResults }) => {
+      onStepEnd: async ({ toolResults }) => {
         if (toolResults.length) {
           console.log(JSON.stringify(toolResults, null, 2));
         }
@@ -404,7 +387,7 @@ main().catch(console.error);
 In this updated code:
 
 1. You set `stopWhen` to be when `isStepCount` 5, allowing the agent to use up to 5 "steps" for any given generation.
-2. You add an `onStepFinish` callback to log any `toolResults` from each step of the interaction, helping you understand the agent's tool usage. This means we can also delete the `toolCall` and `toolResult` `console.log` statements from the previous example.
+2. You add an `onStepEnd` callback to log any `toolResults` from each step of the interaction, helping you understand the agent's tool usage. This means we can also delete the `toolCall` and `toolResult` `console.log` statements from the previous example.
 
 Now, when you ask about the weather in a location, you should see the agent using the weather tool results to answer your question.
 
@@ -414,7 +397,7 @@ By setting `stopWhen: isStepCount(5)`, you're allowing the agent to use up to 5 
 
 Update your `index.ts` file to add a new tool to convert the temperature from Celsius to Fahrenheit:
 
-```ts filename="index.ts" highlight="37-48"
+```ts filename="index.ts" highlight="39-52"
 import { ModelMessage, streamText, tool, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 import 'dotenv/config';
@@ -469,7 +452,7 @@ async function main() {
         }),
       },
       stopWhen: isStepCount(5),
-      onStepFinish: async ({ toolResults }) => {
+      onStepEnd: async ({ toolResults }) => {
         if (toolResults.length) {
           console.log(JSON.stringify(toolResults, null, 2));
         }

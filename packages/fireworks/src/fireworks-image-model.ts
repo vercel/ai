@@ -7,6 +7,7 @@ import {
   createStatusCodeErrorResponseHandler,
   delay,
   getFromApi,
+  parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
@@ -17,6 +18,7 @@ import {
   asyncPollResponseSchema,
   asyncSubmitResponseSchema,
 } from './fireworks-image-api';
+import { fireworksImageModelOptionsSchema } from './fireworks-image-model-options';
 import type { FireworksImageModelId } from './fireworks-image-options';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;
@@ -203,6 +205,12 @@ export class FireworksImageModel implements ImageModelV4 {
     const splitSize = size?.split('x');
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const combinedHeaders = combineHeaders(this.config.headers?.(), headers);
+    const fireworksOptions =
+      (await parseProviderOptions({
+        provider: 'fireworks',
+        providerOptions,
+        schema: fireworksImageModelOptionsSchema,
+      })) ?? {};
 
     const body = {
       prompt,
@@ -211,7 +219,7 @@ export class FireworksImageModel implements ImageModelV4 {
       samples: n,
       ...(inputImage && { input_image: inputImage }),
       ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
-      ...(providerOptions.fireworks ?? {}),
+      ...fireworksOptions,
     };
 
     // Handle async models that require polling (e.g., flux-kontext-*)
@@ -286,9 +294,16 @@ export class FireworksImageModel implements ImageModelV4 {
       abortSignal,
     });
 
-    // Download the image from the URL
+    // Download the image from the URL. The URL comes from the provider
+    // response and typically points at a CDN, so only send credentials when it
+    // stays on the provider's own origin (never leak the API key to a CDN or an
+    // attacker-named host).
     const { value: imageBytes, responseHeaders } = await getFromApi({
       url: imageUrl,
+      // imageUrl comes from the provider response body.
+      validateUrl: true,
+      credentialedOrigin: this.config.baseURL,
+      trustedOrigin: this.config.baseURL,
       headers,
       abortSignal,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),

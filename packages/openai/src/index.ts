@@ -1,5 +1,7 @@
 export { createOpenAI, openai } from './openai-provider';
 export type { OpenAIProvider, OpenAIProviderSettings } from './openai-provider';
+export { OpenAIRealtimeModel as Experimental_OpenAIRealtimeModel } from './realtime/openai-realtime-model';
+export type { OpenAIRealtimeModelConfig as Experimental_OpenAIRealtimeModelConfig } from './realtime/openai-realtime-model';
 export type {
   OpenAILanguageModelResponsesOptions,
   /** @deprecated Use `OpenAILanguageModelResponsesOptions` instead. */
@@ -20,6 +22,10 @@ export type { OpenAIEmbeddingModelOptions } from './embedding/openai-embedding-m
 export type { OpenAISpeechModelOptions } from './speech/openai-speech-model-options';
 export type { OpenAITranscriptionModelOptions } from './transcription/openai-transcription-model-options';
 export type { OpenAIFilesOptions } from './files/openai-files-options';
+export type {
+  OpenAIComputerAction,
+  OpenAIComputerSafetyCheck,
+} from './tool/computer';
 export type {
   OpenaiResponsesCompactionProviderMetadata,
   OpenaiResponsesProviderMetadata,

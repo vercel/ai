@@ -1,5 +1,11 @@
 import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
-import { convertToModelMessages, streamText, type UIMessage } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+  type UIMessage,
+} from 'ai';
 export async function POST(req: Request) {
   try {
     const { messages }: { messages: UIMessage[] } = await req.json();
@@ -11,7 +17,9 @@ export async function POST(req: Request) {
       temperature: 0.7,
     });
 
-    return result.toUIMessageStreamResponse();
+    return createUIMessageStreamResponse({
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
   } catch (error) {
     console.error('Bedrock API Error:', error);
     return new Response(

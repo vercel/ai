@@ -29,6 +29,10 @@ export type {
   /** @deprecated Use `GoogleVideoModelId` instead. */
   GoogleVideoModelId as GoogleGenerativeAIVideoModelId,
 } from './google-video-settings';
+export type {
+  GoogleSpeechModelOptions,
+  GoogleSpeechModelId,
+} from './google-speech-model-options';
 export type { GoogleFilesUploadOptions } from './google-files';
 export type {
   GoogleLanguageModelInteractionsOptions,
@@ -50,5 +54,11 @@ export type {
   /** @deprecated Use `GoogleProviderSettings` instead. */
   GoogleProviderSettings as GoogleGenerativeAIProviderSettings,
 } from './google-provider';
+export { GoogleRealtimeModel as Experimental_GoogleRealtimeModel } from './realtime/google-realtime-model';
+export type { GoogleRealtimeModelConfig as Experimental_GoogleRealtimeModelConfig } from './realtime/google-realtime-model';
+export type {
+  GoogleRealtimeModelId as Experimental_GoogleRealtimeModelId,
+  GoogleRealtimeModelOptions as Experimental_GoogleRealtimeModelOptions,
+} from './realtime/google-realtime-model-options';
 
 export { VERSION } from './version';

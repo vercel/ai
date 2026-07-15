@@ -33,7 +33,7 @@ import { revai } from '@ai-sdk/revai';
 
 ```ts
 import { revai } from '@ai-sdk/revai';
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 
 const { text } = await transcribe({
   model: revai.transcription('machine'),

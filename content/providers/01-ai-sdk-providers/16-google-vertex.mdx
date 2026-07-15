@@ -20,24 +20,7 @@ The Google Vertex provider for the [AI SDK](/docs) contains language model suppo
 
 The Google Vertex, Google Vertex Anthropic, Google Vertex xAI, and Google Vertex MaaS providers are available in the `@ai-sdk/google-vertex` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add @ai-sdk/google-vertex" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install @ai-sdk/google-vertex" dark />
-  </Tab>
-  <Tab>
-    <Snippet
-      text="yarn add @ai-sdk/google-vertex @google-cloud/vertexai"
-      dark
-    />
-  </Tab>
-
-  <Tab>
-    <Snippet text="bun add @ai-sdk/google-vertex" dark />
-  </Tab>
-</Tabs>
+<InstallPackages packages="@ai-sdk/google-vertex" />
 
 ## Google Vertex Provider Usage
 
@@ -338,6 +321,51 @@ The following optional provider options are available for Google Vertex models:
 
   Consult [Google's Documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/add-labels-to-api-calls) for usage details.
 
+- **imageConfig** _object_
+
+  Optional. Configuration for image generation. Only supported by Gemini image models.
+
+  See [Google's GenerationConfig documentation](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerationConfig) for usage details.
+  - **aspectRatio** _string_
+
+    Optional. The aspect ratio of generated images. Defaults to 1:1 squares, or to matching the output image size to that of an input image. Can be one of the following:
+    - 1:1
+    - 2:3
+    - 3:2
+    - 3:4
+    - 4:3
+    - 4:5
+    - 5:4
+    - 9:16
+    - 16:9
+    - 21:9
+
+  - **imageSize** _string_
+
+    Optional. Controls the output image resolution. Defaults to 1K. Can be one of the following:
+    - 1K
+    - 2K
+    - 4K
+
+  - **personGeneration** _string_
+
+    Optional. Controls the generation of people in images. Can be one of the following:
+    - `PERSON_GENERATION_UNSPECIFIED`
+    - `ALLOW_ALL`
+    - `ALLOW_ADULT`
+    - `ALLOW_NONE`
+
+  - **prominentPeople** _string_
+
+    Optional. Controls whether generation of prominent people (celebrities) is allowed. When set together with `personGeneration`, `personGeneration` takes precedence. Can be one of the following:
+    - `PROMINENT_PEOPLE_UNSPECIFIED`
+    - `ALLOW_PROMINENT_PEOPLE`
+    - `BLOCK_PROMINENT_PEOPLE`
+
+  - **imageOutputOptions** _\{ mimeType?: 'image/jpeg' | 'image/png', compressionQuality?: number \}_
+
+    Optional. The image output format for generated images.
+
 - **streamFunctionCallArguments** _boolean_
 
   Optional. When set to true, function call arguments will be streamed
@@ -390,6 +418,37 @@ const { text } = await generateText({
 
 Google Vertex language models can also be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
+
+#### Tuned Models
+
+[Tuned models](https://cloud.google.com/vertex-ai/generative-ai/docs/deploy/overview)
+are served from a deployed endpoint and are addressed by their endpoint id rather
+than a published model name. Pass the endpoint resource with the `endpoints/`
+prefix and the provider will route the request to the deployed endpoint
+(`.../locations/{location}/endpoints/{ENDPOINT_ID}`) instead of the base model
+path (`.../publishers/google/models/{MODEL_ID}`):
+
+```ts
+import { googleVertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: googleVertex('endpoints/YOUR_ENDPOINT_ID'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+Use the deployed **endpoint** id, not the tuned model id (a tuned model has both a
+`models/...` resource and a separate `endpoints/...` resource; only the endpoint
+is callable for inference). The request and response format is identical to the
+base model, so all standard call settings and provider options continue to work.
+
+<Note>
+  Tuned models require standard Google Cloud credentials and the
+  project/location of the deployed endpoint (via `GOOGLE_VERTEX_PROJECT` /
+  `GOOGLE_VERTEX_LOCATION` or `createGoogleVertex`). [Express
+  Mode](#express-mode) API keys are not supported for tuned models.
+</Note>
 
 #### Code Execution
 
@@ -517,7 +576,7 @@ const result = streamText({
   },
 });
 
-for await (const part of result.fullStream) {
+for await (const part of result.stream) {
   switch (part.type) {
     case 'tool-input-start':
       console.log(`Tool call started: ${part.toolName}`);
@@ -581,7 +640,7 @@ const result = streamText({
   prompt: 'Explain quantum computing in simple terms.',
 });
 
-for await (const part of result.fullStream) {
+for await (const part of result.stream) {
   if (part.type === 'reasoning') {
     process.stdout.write(`THOUGHT: ${part.textDelta}\n`);
   } else if (part.type === 'text-delta') {
@@ -839,13 +898,13 @@ The following Zod features are known to not work with Google Vertex:
 
 ### Model Capabilities
 
-| Model                  | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| ---------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `gemini-3.5-flash`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-3-pro-preview` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-2.5-pro`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-2.5-flash`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-2.0-flash-001` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                  | Image Input | Object Generation | Tool Usage | Tool Streaming |
+| ---------------------- | ----------- | ----------------- | ---------- | -------------- |
+| `gemini-3.5-flash`     | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-3-pro-preview` | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-2.5-pro`       | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-2.5-flash`     | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-2.0-flash-001` | <Check />   | <Check />         | <Check />  | <Check />      |
 
 <Note>
   The table above lists popular models. Please see the [Google Vertex AI
@@ -914,10 +973,11 @@ The following optional provider options are available for Google Vertex AI embed
 
 #### Model Capabilities
 
-| Model                        | Max Values Per Call | Parallel Calls      | Multimodal          |
-| ---------------------------- | ------------------- | ------------------- | ------------------- |
-| `text-embedding-005`         | 2048                | <Check size={18} /> | <Cross size={18} /> |
-| `gemini-embedding-2-preview` | 2048                | <Check size={18} /> | <Check size={18} /> |
+| Model                        | Max Values Per Call | Parallel Calls | Multimodal |
+| ---------------------------- | ------------------- | -------------- | ---------- |
+| `text-embedding-005`         | 2048                | <Check />      | <Cross />  |
+| `gemini-embedding-2`         | 2048                | <Check />      | <Check />  |
+| `gemini-embedding-2-preview` | 2048                | <Check />      | <Check />  |
 
 <Note>
   The table above lists popular models. You can also pass any available provider
@@ -1181,11 +1241,11 @@ const { image } = await generateImage({
 
 ##### Gemini Image Model Capabilities
 
-| Model                            | Image Generation    | Image Editing       | Aspect Ratios                                       |
-| -------------------------------- | ------------------- | ------------------- | --------------------------------------------------- |
-| `gemini-3.1-flash-image-preview` | <Check size={18} /> | <Check size={18} /> | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
-| `gemini-3-pro-image-preview`     | <Check size={18} /> | <Check size={18} /> | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
-| `gemini-2.5-flash-image`         | <Check size={18} /> | <Check size={18} /> | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
+| Model                            | Image Generation | Image Editing | Aspect Ratios                                       |
+| -------------------------------- | ---------------- | ------------- | --------------------------------------------------- |
+| `gemini-3.1-flash-image-preview` | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
+| `gemini-3-pro-image-preview`     | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
+| `gemini-2.5-flash-image`         | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
 
 <Note>
   `gemini-3-pro-image-preview` supports additional features including up to 14
@@ -1222,6 +1282,53 @@ const { video } = await generateVideo({
   prompt: 'A serene mountain landscape at sunset',
   aspectRatio: '16:9',
   resolution: '1920x1080',
+  duration: 8,
+});
+```
+
+#### First and Last Frame
+
+Veo supports first-last-frame generation via the top-level `frameImages` option:
+
+```ts
+import { googleVertex } from '@ai-sdk/google-vertex';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: googleVertex.video('veo-3.1-generate-001'),
+  prompt:
+    'A hand reaches in and places a glass of milk next to the plate of cookies',
+  frameImages: [
+    {
+      image: 'gs://cloud-samples-data/generative-ai/image/cookies.png',
+      frameType: 'first_frame',
+    },
+    {
+      image: 'gs://cloud-samples-data/generative-ai/image/cookies-milk.png',
+      frameType: 'last_frame',
+    },
+  ],
+  duration: 8,
+});
+```
+
+#### Reference Images
+
+Veo 3.1 supports reference-to-video generation via the top-level `inputReferences` option:
+
+```ts
+import { googleVertex } from '@ai-sdk/google-vertex';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: googleVertex.video('veo-3.1-generate-001'),
+  prompt:
+    'The video opens with a medium shot of a woman in a high-fashion flamingo dress walking through a lagoon',
+  inputReferences: [
+    'gs://bucket/dress.png',
+    'gs://bucket/glasses.png',
+    'gs://bucket/woman.png',
+  ],
   duration: 8,
 });
 ```
@@ -1298,6 +1405,118 @@ The following provider options are available:
   The table above lists popular models. You can also pass any available provider
   model ID as a string if needed.
 </Note>
+
+### Speech Models
+
+You can create [Gemini text-to-speech](https://docs.cloud.google.com/text-to-speech/docs/gemini-tts)
+models that call the Vertex AI API using the `.speech()` factory method. For more on speech
+generation with the AI SDK see [generateSpeech()](/docs/reference/ai-sdk-core/generate-speech).
+
+```ts
+import { googleVertex } from '@ai-sdk/google-vertex';
+import { generateSpeech } from 'ai';
+
+const result = await generateSpeech({
+  model: googleVertex.speech('gemini-2.5-flash-tts'),
+  text: 'Hello, world!',
+  voice: 'Kore', // Gemini voice name
+});
+```
+
+The `voice` argument accepts one of Gemini's [30 prebuilt voices](https://ai.google.dev/gemini-api/docs/speech-generation#voices)
+(e.g. `Kore`, `Puck`, `Zephyr`); it defaults to `Kore`. Multi-speaker dialogue is available via
+`providerOptions.googleVertex.multiSpeakerVoiceConfig`.
+
+By default the audio is returned as a playable WAV (Gemini returns raw PCM, which the provider
+wraps). Set `outputFormat: 'pcm'` for the raw signed 16-bit little-endian mono bytes; the sample
+rate is reported in `result.providerMetadata.google.sampleRate`.
+
+#### Speech Model Capabilities
+
+| Model                               | Multi-speaker | Style via instructions |
+| ----------------------------------- | ------------- | ---------------------- |
+| `gemini-2.5-flash-tts`              | <Check />     | <Check />              |
+| `gemini-2.5-pro-tts`                | <Check />     | <Check />              |
+| `gemini-2.5-flash-lite-preview-tts` | <Check />     | <Check />              |
+| `gemini-3.1-flash-tts-preview`      | <Check />     | <Check />              |
+
+### Transcription Models
+
+You can transcribe audio with Google Cloud Speech-to-Text models using the
+`.transcription()` factory method together with
+[`transcribe()`](/docs/reference/ai-sdk-core/transcribe).
+
+```ts
+import { googleVertex } from '@ai-sdk/google-vertex';
+import { transcribe } from 'ai';
+import { readFile } from 'fs/promises';
+
+const result = await transcribe({
+  model: googleVertex.transcription('chirp_2'),
+  audio: await readFile('audio.wav'),
+});
+```
+
+The provider supports [Chirp](https://docs.cloud.google.com/speech-to-text/docs/models/chirp-3)
+models `chirp_2` and `chirp_3`, plus `telephony` for phone-call audio.
+Speech-to-Text uses standard Google Cloud credentials (OAuth, Application Default
+Credentials, or a service account) and calls the Cloud Speech-to-Text API.
+Express Mode API keys are not supported for transcription models. Set
+`GOOGLE_VERTEX_LOCATION` (or `providerOptions.googleVertex.region`) to a
+Speech-to-Text region. For Chirp, `chirp_2` is available in `us-central1`,
+`europe-west4`, and `asia-southeast1`; `chirp_3` in the `us` and `eu`
+multi-regions. Chirp is not available in the `global` Speech-to-Text location,
+and these regions differ from Vertex AI regions. `telephony` availability
+depends on the selected Speech-to-Text region and language.
+
+The synchronous API transcribes audio up to one minute or 10 MB, whichever is
+reached first. The spoken language is auto-detected by default; pass
+`languageCodes` to restrict it. For `telephony`, pass a supported language code
+such as `['en-US']`.
+
+```ts
+const result = await transcribe({
+  model: googleVertex.transcription('chirp_3'),
+  audio: await readFile('audio.wav'),
+  providerOptions: {
+    googleVertex: {
+      region: 'us',
+      languageCodes: ['en-US'],
+    },
+  },
+});
+```
+
+The following provider options are available:
+
+- **languageCodes** _string[]_
+
+  BCP-47 language codes to recognize, or `['auto']` to detect the spoken
+  language. Defaults to `['auto']`. Multiple explicit language codes require a
+  multi-region Speech-to-Text endpoint such as `us` or `eu`.
+
+- **enableAutomaticPunctuation** _boolean_
+
+  Whether to add punctuation to the transcript. Defaults to `true`.
+
+- **enableWordTimeOffsets** _boolean_
+
+  Whether to include word-level timestamps in `result.segments`. Defaults to
+  `true`. Google notes that enabling word-level timestamps can reduce
+  transcription quality and speed.
+
+- **region** _string_
+
+  The Speech-to-Text region for the request. Defaults to the provider
+  `location`.
+
+#### Transcription Model Capabilities
+
+| Model       | Word timestamps                                           | Language detection                                                             |
+| ----------- | --------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `chirp_2`   | Available with a potential quality and speed tradeoff     | Auto detection with `['auto']`                                                 |
+| `chirp_3`   | Available with a potential transcription quality tradeoff | Auto detection with `['auto']`                                                 |
+| `telephony` | Available                                                 | Explicit supported language codes, with alternative language detection support |
 
 ## Google Vertex Anthropic Provider Usage
 
@@ -1791,15 +2010,15 @@ These tools can be used in conjunction with supported Claude models to enable mo
 The latest Anthropic model list on Vertex AI is available [here](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude#model-list).
 See also [Anthropic Model Comparison](https://docs.anthropic.com/en/docs/about-claude/models#model-comparison).
 
-| Model                           | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Computer Use        |
-| ------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `claude-3-7-sonnet@20250219`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-3-5-sonnet-v2@20241022` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-3-5-sonnet@20240620`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `claude-3-5-haiku@20241022`     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `claude-3-sonnet@20240229`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `claude-3-haiku@20240307`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `claude-3-opus@20240229`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| Model                           | Image Input | Object Generation | Tool Usage | Tool Streaming | Computer Use |
+| ------------------------------- | ----------- | ----------------- | ---------- | -------------- | ------------ |
+| `claude-3-7-sonnet@20250219`    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    |
+| `claude-3-5-sonnet-v2@20241022` | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    |
+| `claude-3-5-sonnet@20240620`    | <Check />   | <Check />         | <Check />  | <Check />      | <Cross />    |
+| `claude-3-5-haiku@20241022`     | <Cross />   | <Check />         | <Check />  | <Check />      | <Cross />    |
+| `claude-3-sonnet@20240229`      | <Check />   | <Check />         | <Check />  | <Check />      | <Cross />    |
+| `claude-3-haiku@20240307`       | <Check />   | <Check />         | <Check />  | <Check />      | <Cross />    |
+| `claude-3-opus@20240229`        | <Check />   | <Check />         | <Check />  | <Check />      | <Cross />    |
 
 <Note>
   The table above lists popular models. You can also pass any available provider

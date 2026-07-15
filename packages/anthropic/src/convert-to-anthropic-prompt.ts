@@ -1,5 +1,7 @@
 import {
   UnsupportedFunctionalityError,
+  type JSONObject,
+  type JSONValue,
   type SharedV4Warning,
   type LanguageModelV4Message,
   type LanguageModelV4Prompt,
@@ -9,11 +11,12 @@ import {
   convertBase64ToUint8Array,
   convertToBase64,
   getTopLevelMediaType,
+  isNonNullable,
   parseProviderOptions,
   resolveFullMediaType,
   resolveProviderReference,
+  secureJsonParse,
   validateTypes,
-  isNonNullable,
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import {
@@ -48,7 +51,7 @@ function convertBytesDataToString(data: Uint8Array | string): string {
 function extractErrorValue(value: unknown): { errorCode?: string } {
   try {
     if (typeof value === 'string') {
-      return JSON.parse(value);
+      return secureJsonParse(value);
     } else if (typeof value === 'object' && value !== null) {
       return value as { errorCode?: string };
     }
@@ -99,6 +102,18 @@ export async function convertToAnthropicPrompt({
     return anthropicOptions?.citations?.enabled ?? false;
   }
 
+  async function shouldUseContainerUpload(
+    providerMetadata: SharedV4ProviderMetadata | undefined,
+  ): Promise<boolean> {
+    const anthropicOptions = await parseProviderOptions({
+      provider: 'anthropic',
+      providerOptions: providerMetadata,
+      schema: anthropicFilePartProviderOptions,
+    });
+
+    return anthropicOptions?.containerUpload ?? false;
+  }
+
   async function getDocumentMetadata(
     providerMetadata: SharedV4ProviderMetadata | undefined,
   ): Promise<{ title?: string; context?: string }> {
@@ -121,21 +136,21 @@ export async function convertToAnthropicPrompt({
 
     switch (type) {
       case 'system': {
-        if (system != null) {
-          throw new UnsupportedFunctionalityError({
-            functionality:
-              'Multiple system messages that are separated by user/assistant messages',
-          });
-        }
-
-        system = block.messages.map(({ content, providerOptions }) => ({
-          type: 'text',
+        const content = block.messages.map(({ content, providerOptions }) => ({
+          type: 'text' as const,
           text: content,
           cache_control: validator.getCacheControl(providerOptions, {
             type: 'system message',
             canCache: true,
           }),
         }));
+
+        if (system == null) {
+          system = content;
+        } else {
+          messages.push({ role: 'system', content });
+          betas.add('mid-conversation-system-2026-04-07');
+        }
 
         break;
       }
@@ -187,7 +202,16 @@ export async function convertToAnthropicPrompt({
                         });
                         betas.add('files-api-2025-04-14');
 
-                        if (getTopLevelMediaType(part.mediaType) === 'image') {
+                        if (
+                          await shouldUseContainerUpload(part.providerOptions)
+                        ) {
+                          anthropicContent.push({
+                            type: 'container_upload',
+                            file_id: fileId,
+                          });
+                        } else if (
+                          getTopLevelMediaType(part.mediaType) === 'image'
+                        ) {
                           anthropicContent.push({
                             type: 'image',
                             source: { type: 'file', file_id: fileId },
@@ -779,7 +803,7 @@ export async function convertToAnthropicPrompt({
                   type: 'tool_use',
                   id: part.toolCallId,
                   name: part.toolName,
-                  input: part.input,
+                  input: toAnthropicToolInput(part.input),
                   ...(caller && { caller }),
                   cache_control: cacheControl,
                 });
@@ -823,7 +847,7 @@ export async function convertToAnthropicPrompt({
                     let errorInfo: { type?: string; errorCode?: string } = {};
                     try {
                       if (typeof output.value === 'string') {
-                        errorInfo = JSON.parse(output.value);
+                        errorInfo = secureJsonParse(output.value);
                       } else if (
                         typeof output.value === 'object' &&
                         output.value !== null
@@ -1188,7 +1212,10 @@ export async function convertToAnthropicPrompt({
           }
         }
 
-        messages.push({ role: 'assistant', content: anthropicContent });
+        messages.push({
+          role: 'assistant',
+          content: moveToolUseBlocksToEnd(anthropicContent),
+        });
 
         break;
       }
@@ -1273,4 +1300,39 @@ function groupIntoBlocks(
   }
 
   return blocks;
+}
+
+function moveToolUseBlocksToEnd(
+  content: AnthropicAssistantMessage['content'],
+): AnthropicAssistantMessage['content'] {
+  const result: AnthropicAssistantMessage['content'] = [];
+  let segment: AnthropicAssistantMessage['content'] = [];
+
+  function flushSegment() {
+    result.push(
+      ...segment.filter(part => part.type !== 'tool_use'),
+      ...segment.filter(part => part.type === 'tool_use'),
+    );
+    segment = [];
+  }
+
+  for (const part of content) {
+    if (part.type === 'thinking' || part.type === 'redacted_thinking') {
+      flushSegment();
+      result.push(part);
+    } else {
+      segment.push(part);
+    }
+  }
+
+  flushSegment();
+
+  return result;
+}
+
+// wrap invalid tool call input because Anthropic requires it to be an object
+function toAnthropicToolInput(input: unknown): JSONObject {
+  return typeof input === 'object' && input !== null && !Array.isArray(input)
+    ? (input as JSONObject)
+    : { rawInvalidInput: input as JSONValue };
 }

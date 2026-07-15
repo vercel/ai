@@ -1,3 +1,4 @@
+export { validateJSONRPCMessage } from './tool/json-rpc-message';
 export type {
   JSONRPCError,
   JSONRPCMessage,
@@ -21,18 +22,28 @@ export {
   type MCPAppResourceCSP,
   type MCPAppResourceMeta,
 } from './tool/mcp-apps';
+export {
+  fingerprintMCPAppResource,
+  detectMCPAppResourceDrift,
+} from './tool/mcp-app-fingerprint';
 export { ElicitationRequestSchema, ElicitResultSchema } from './tool/types';
 export type {
   CallToolResult,
+  CompleteRequestParams,
+  CompleteResult,
   Configuration,
   ElicitationRequest,
   ElicitResult,
+  InitializeResult,
   ListToolsResult,
   McpProviderMetadata,
   ClientCapabilities as MCPClientCapabilities,
 } from './tool/types';
 export { auth, UnauthorizedError } from './tool/oauth';
-export type { OAuthClientProvider } from './tool/oauth';
+export type {
+  OAuthAuthorizationServerInformation,
+  OAuthClientProvider,
+} from './tool/oauth';
 export type {
   OAuthClientInformation,
   OAuthClientMetadata,

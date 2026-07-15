@@ -10,7 +10,7 @@ const skillZip = readFileSync('data/island-rescue-skill.zip').toString(
 
 run(async () => {
   const result = streamText({
-    model: openai.responses('gpt-5.4'),
+    model: openai.responses('gpt-5.6'),
     tools: {
       shell: openai.tools.shell({
         environment: {
@@ -34,7 +34,7 @@ run(async () => {
       'You are trapped and lost on a lonely island in 1895. Find a way to get rescued!',
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'text-delta': {
         process.stdout.write(chunk.text);

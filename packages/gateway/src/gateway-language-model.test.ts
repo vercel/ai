@@ -1714,4 +1714,106 @@ describe('GatewayLanguageModel', () => {
       });
     });
   });
+
+  describe('file data encoding', () => {
+    function prepareResponse() {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'json-value',
+        body: {
+          id: 'test-id',
+          created: 1711115037,
+          model: 'test-model',
+          content: { type: 'text', text: '' },
+          finish_reason: 'stop',
+          usage: { prompt_tokens: 4, completion_tokens: 30 },
+        },
+      };
+    }
+
+    it('should base64-encode Uint8Array data in a reasoning-file part', async () => {
+      prepareResponse();
+      const bytes = new Uint8Array([1, 2, 3, 4]);
+      const expectedBase64 = Buffer.from(bytes).toString('base64');
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning-file',
+              data: { type: 'data', data: bytes },
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      ];
+
+      await createTestModel().doGenerate({ prompt });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.prompt[0].content[0].data).toEqual({
+        type: 'data',
+        data: expectedBase64,
+      });
+    });
+
+    it('should base64-encode Uint8Array data in tool-result file content', async () => {
+      prepareResponse();
+      const bytes = new Uint8Array([5, 6, 7, 8]);
+      const expectedBase64 = Buffer.from(bytes).toString('base64');
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call_1',
+              toolName: 'render',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file',
+                    data: { type: 'data', data: bytes },
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ];
+
+      await createTestModel().doGenerate({ prompt });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.prompt[0].content[0].output.value[0].data).toEqual({
+        type: 'data',
+        data: expectedBase64,
+      });
+    });
+
+    it('should not modify reasoning-file data that is a URL', async () => {
+      prepareResponse();
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning-file',
+              data: { type: 'url', url: new URL('https://example.com/a.png') },
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      ];
+
+      await createTestModel().doGenerate({ prompt });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.prompt[0].content[0].data).toEqual({
+        type: 'url',
+        url: 'https://example.com/a.png',
+      });
+    });
+  });
 });

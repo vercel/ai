@@ -2,6 +2,7 @@ import {
   UnsupportedFunctionalityError,
   type LanguageModelV4Prompt,
   type LanguageModelV4ToolResultOutput,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
@@ -9,6 +10,7 @@ import {
   isFullMediaType,
   resolveFullMediaType,
   resolveProviderReference,
+  secureJsonParse,
 } from '@ai-sdk/provider-utils';
 import type {
   GoogleContent,
@@ -16,6 +18,15 @@ import type {
   GoogleFunctionResponsePart,
   GooglePrompt,
 } from './google-prompt';
+
+/**
+ * Sentinel value Google documents for replaying functionCall parts whose
+ * original thoughtSignature is not available to the client.
+ *
+ * See https://ai.google.dev/gemini-api/docs/thought-signatures.
+ */
+export const SKIP_THOUGHT_SIGNATURE_VALIDATOR =
+  'skip_thought_signature_validator';
 
 const dataUrlRegex = /^data:([^;,]+);base64,(.+)$/s;
 
@@ -152,10 +163,9 @@ function appendLegacyToolResultParts(
         });
         break;
       case 'file': {
-        if (
-          contentPart.data.type === 'data' &&
-          getTopLevelMediaType(contentPart.mediaType) === 'image'
-        ) {
+        if (contentPart.data.type === 'data') {
+          const topLevelMediaType = getTopLevelMediaType(contentPart.mediaType);
+
           parts.push(
             {
               inlineData: {
@@ -164,7 +174,10 @@ function appendLegacyToolResultParts(
               },
             },
             {
-              text: 'Tool executed successfully and returned this image as a response',
+              text:
+                `Tool executed successfully and returned this ` +
+                `${topLevelMediaType === 'image' ? 'image' : 'file'} ` +
+                `as a response`,
             },
           );
         } else {
@@ -183,6 +196,8 @@ export function convertToGoogleMessages(
   prompt: LanguageModelV4Prompt,
   options?: {
     isGemmaModel?: boolean;
+    isGemini3Model?: boolean;
+    onWarning?: (warning: SharedV4Warning) => void;
     /**
      * Names to look up under `providerOptions` when reading per-part metadata
      * (e.g. thought signatures). Tried in order; first match wins. For the
@@ -197,10 +212,20 @@ export function convertToGoogleMessages(
   const contents: Array<GoogleContent> = [];
   let systemMessagesAllowed = true;
   const isGemmaModel = options?.isGemmaModel ?? false;
+  const isGemini3Model = options?.isGemini3Model ?? false;
+  const onWarning = options?.onWarning;
   const providerOptionsNames = options?.providerOptionsNames ?? ['google'];
   const isVertexLike = !providerOptionsNames.includes('google');
   const supportsFunctionResponseParts =
     options?.supportsFunctionResponseParts ?? true;
+
+  let sentinelInjected = false;
+  const missingSignatureToolNames: string[] = [];
+  const injectSkipSignature = (toolName: string) => {
+    missingSignatureToolNames.push(toolName);
+    sentinelInjected = true;
+    return SKIP_THOUGHT_SIGNATURE_VALIDATOR;
+  };
 
   const readProviderOpts = (part: {
     providerOptions?: Record<string, unknown> | undefined;
@@ -434,6 +459,11 @@ export function convertToGoogleMessages(
                     providerOpts?.serverToolType != null
                       ? String(providerOpts.serverToolType)
                       : undefined;
+                  const effectiveThoughtSignature =
+                    thoughtSignature ??
+                    (isGemini3Model
+                      ? injectSkipSignature(part.toolName)
+                      : undefined);
 
                   if (serverToolCallId && serverToolType) {
                     return {
@@ -441,11 +471,11 @@ export function convertToGoogleMessages(
                         toolType: serverToolType,
                         args:
                           typeof part.input === 'string'
-                            ? JSON.parse(part.input)
+                            ? secureJsonParse(part.input)
                             : part.input,
                         id: serverToolCallId,
                       },
-                      thoughtSignature,
+                      thoughtSignature: effectiveThoughtSignature,
                     };
                   }
 
@@ -457,7 +487,7 @@ export function convertToGoogleMessages(
                       name: part.toolName,
                       args: part.input,
                     },
-                    thoughtSignature,
+                    thoughtSignature: effectiveThoughtSignature,
                   };
                 }
 
@@ -591,6 +621,23 @@ export function convertToGoogleMessages(
       .join('\n\n');
 
     contents[0].parts.unshift({ text: systemText + '\n\n' });
+  }
+
+  if (sentinelInjected && onWarning != null) {
+    const uniqueToolNames = Array.from(new Set(missingSignatureToolNames));
+    onWarning({
+      type: 'other',
+      message:
+        `Replayed ${missingSignatureToolNames.length} \`functionCall\` part(s) ` +
+        `for a Gemini 3 model without a \`thoughtSignature\` ` +
+        `(tools: ${uniqueToolNames.map(name => `\`${name}\``).join(', ')}). ` +
+        `Injected the documented \`skip_thought_signature_validator\` sentinel ` +
+        `to keep the request from failing with HTTP 400. ` +
+        `The likely cause is application code that drops ` +
+        '`providerOptions.google.thoughtSignature` when persisting or ' +
+        'serializing assistant tool-call messages. ' +
+        'See https://ai.google.dev/gemini-api/docs/thought-signatures.',
+    });
   }
 
   return {

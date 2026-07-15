@@ -105,9 +105,12 @@ const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
  * to the provider from the AI SDK and enable provider-specific
  * functionality that can be fully encapsulated in the provider.
  *
- * @param experimental_onStart - Callback invoked when generation begins, before the LLM call.
- * @param experimental_onStepStart - Callback invoked when the model call begins.
- * @param onStepFinish - Callback invoked when the model call completes with the raw result.
+ * @param onStart - Callback invoked when generation begins, before the LLM call.
+ * @param experimental_onStart - Deprecated alias for `onStart`.
+ * @param onStepStart - Callback invoked when the model call begins.
+ * @param experimental_onStepStart - Deprecated alias for `onStepStart`.
+ * @param onStepEnd - Callback invoked when the model call completes with the raw result.
+ * @param onStepFinish - Deprecated alias for `onStepEnd`.
  * @param onFinish - Callback invoked when the entire operation completes with the parsed object.
  *
  * @returns
@@ -198,17 +201,41 @@ export async function generateObject<
        * Callback that is called when the generateObject operation begins,
        * before the LLM call is made.
        */
+      onStart?: Callback<GenerateObjectStartEvent>;
+
+      /**
+       * Callback that is called when the generateObject operation begins,
+       * before the LLM call is made.
+       *
+       * @deprecated Use `onStart` instead.
+       */
       experimental_onStart?: Callback<GenerateObjectStartEvent>;
 
       /**
        * Callback that is called when the model call (step) begins,
        * before the provider is called.
        */
+      onStepStart?: Callback<GenerateObjectStepStartEvent>;
+
+      /**
+       * Callback that is called when the model call (step) begins,
+       * before the provider is called.
+       *
+       * @deprecated Use `onStepStart` instead.
+       */
       experimental_onStepStart?: Callback<GenerateObjectStepStartEvent>;
 
       /**
        * Callback that is called when the model call (step) completes,
        * with the raw result before JSON parsing.
+       */
+      onStepEnd?: Callback<GenerateObjectStepEndEvent>;
+
+      /**
+       * Callback that is called when the model call (step) completes,
+       * with the raw result before JSON parsing.
+       *
+       * @deprecated Use `onStepEnd` instead.
        */
       onStepFinish?: Callback<GenerateObjectStepEndEvent>;
 
@@ -243,8 +270,11 @@ export async function generateObject<
     telemetry = experimental_telemetry,
     experimental_download: download,
     providerOptions,
-    experimental_onStart: onStart,
-    experimental_onStepStart: onStepStart,
+    onStart,
+    experimental_onStart,
+    onStepStart,
+    experimental_onStepStart,
+    onStepEnd,
     onStepFinish,
     onFinish,
     _internal: {
@@ -292,6 +322,9 @@ export async function generateObject<
   const telemetryDispatcher = createTelemetryDispatcher({
     telemetry,
   });
+  const resolvedOnStart = onStart ?? experimental_onStart;
+  const resolvedOnStepStart = onStepStart ?? experimental_onStepStart;
+  const resolvedOnStepEnd = onStepEnd ?? onStepFinish;
 
   const jsonSchema = await outputStrategy.jsonSchema();
   const callId = generateId();
@@ -320,7 +353,7 @@ export async function generateObject<
       schemaName,
       schemaDescription,
     },
-    callbacks: [onStart, telemetryDispatcher.onStart],
+    callbacks: [resolvedOnStart, telemetryDispatcher.onStart],
   });
 
   try {
@@ -349,7 +382,7 @@ export async function generateObject<
         headers: headersWithUserAgent,
         promptMessages,
       },
-      callbacks: [onStepStart, telemetryDispatcher.onObjectStepStart],
+      callbacks: [resolvedOnStepStart, telemetryDispatcher.onObjectStepStart],
     });
 
     const generateResult = await retry(() =>
@@ -421,7 +454,7 @@ export async function generateObject<
 
     await notify({
       event: stepFinishEvent,
-      callbacks: [onStepFinish, telemetryDispatcher.onObjectStepFinish],
+      callbacks: [resolvedOnStepEnd, telemetryDispatcher.onObjectStepEnd],
     });
 
     const object = await parseAndValidateObjectResultWithRepair(

@@ -28,7 +28,7 @@ run(async () => {
 
     process.stdout.write('\nAssistant: ');
 
-    for await (const delta of result.fullStream) {
+    for await (const delta of result.stream) {
       switch (delta.type) {
         case 'reasoning-delta': {
           process.stdout.write('\x1b[34m' + delta.text + '\x1b[0m');

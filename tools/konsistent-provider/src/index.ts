@@ -32,6 +32,13 @@ export const conventions = defineConventions([
     },
   },
   {
+    name: 'package-must-import-zod-from-v4',
+    description: 'Every package that uses zod must import from zod/v4.',
+    mustNot: {
+      importFrom: 'zod',
+    },
+  },
+  {
     name: 'provider-package-must-export-provider-creator-and-settings',
     description:
       'Every provider package must export a provider type, creator function, and settings from its index.ts file.',
@@ -96,7 +103,9 @@ export const conventions = defineConventions([
       exportFunctions: [
         {
           name: 'create${providerId.toPascalCase()}',
-          receiveParamOfType: '${providerId.toPascalCase()}ProviderSettings',
+          receiveParamsOfTypes: [
+            '${providerId.toPascalCase()}ProviderSettings',
+          ],
           returnValueOfType: '${providerId.toPascalCase()}Provider',
         },
       ],

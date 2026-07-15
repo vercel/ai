@@ -170,13 +170,13 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>(
     status,
     messages,
     error,
-    addToolApprovalResponse: (...args) =>
-      chatInstance.value.addToolApprovalResponse(...args),
-    addToolOutput: (...args) => chatInstance.value.addToolOutput(...args),
+    addToolApprovalResponse: opts =>
+      chatInstance.value.addToolApprovalResponse(opts),
+    addToolOutput: opts => chatInstance.value.addToolOutput(opts),
     clearError: () => chatInstance.value.clearError(),
-    regenerate: () => chatInstance.value.regenerate(),
+    regenerate: opts => chatInstance.value.regenerate(opts),
     sendMessage: (...args) => chatInstance.value.sendMessage(...args),
     stop: () => chatInstance.value.stop(),
-    resumeStream: () => chatInstance.value.resumeStream(),
+    resumeStream: opts => chatInstance.value.resumeStream(opts),
   };
 }
