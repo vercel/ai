@@ -120,6 +120,11 @@ export const uiMessageChunkSchema = lazySchema(() =>
         toolCallId: z.string(),
       }),
       z.strictObject({
+        type: z.literal('tool-progress'),
+        toolCallId: z.string(),
+        progress: z.unknown(),
+      }),
+      z.strictObject({
         type: z.literal('reasoning-start'),
         id: z.string(),
         providerMetadata: providerMetadataSchema.optional(),
@@ -328,6 +333,11 @@ export type UIMessageChunk<
   | {
       type: 'tool-output-denied';
       toolCallId: string;
+    }
+  | {
+      type: 'tool-progress';
+      toolCallId: string;
+      progress: unknown;
     }
   | {
       type: 'tool-input-start';
