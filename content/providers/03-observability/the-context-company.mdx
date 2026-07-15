@@ -5,35 +5,35 @@ description: AI agent observability for AI SDK applications with The Context Com
 
 # The Context Company Observability
 
-[The Context Company](https://www.thecontextcompany.com/) ([AI SDK documentation](https://docs.thecontextcompany.com/frameworks/vercel-ai-sdk)) helps teams monitor and improve production AI agents. It combines complete AI SDK traces with analysis across runs to show what is breaking, why users struggle, and what to fix next.
+[The Context Company](https://www.thecontextcompany.com/) ([AI SDK documentation](https://docs.thecontextcompany.com/frameworks/vercel-ai-sdk)) provides observability for AI applications built with the AI SDK. Its integration captures complete traces and connects them with analysis across runs.
 
 The integration provides:
 
 - Complete traces for model calls, agent steps, tool executions, errors, usage, latency, and cost
-- First-class sessions, user and organization analytics, feedback, and custom metadata
+- Sessions, user and organization analytics, feedback, and custom metadata
 - [Pattern detection](https://docs.thecontextcompany.com/features/patterns), [insight search](https://docs.thecontextcompany.com/features/insight-search), and [recaps](https://docs.thecontextcompany.com/features/weekly-insights) that analyze behavior across runs and link findings to supporting traces
 
 The `@contextcompany/ai-sdk` package supports AI SDK 7's telemetry interface. It registers the AI SDK OpenTelemetry integration and exports traces to The Context Company.
 
-<Note>
-  `@contextcompany/ai-sdk` requires AI SDK 7 and Node.js 22 or later. For AI SDK
-  5 or 6, use The Context Company's [legacy integration
-  guide](https://docs.thecontextcompany.com/frameworks/vercel-ai-sdk/v5-v6).
-</Note>
+`@contextcompany/ai-sdk` requires AI SDK 7 and Node.js 22 or later. For AI SDK 5 or 6, use The Context Company's [legacy integration guide](https://docs.thecontextcompany.com/frameworks/vercel-ai-sdk/v5-v6).
 
 ## Setup
 
-Install the AI SDK integration:
+### 1. Install the packages
+
+Install `@contextcompany/ai-sdk`, `ai`, and `@opentelemetry/api`:
 
 <InstallPackages packages="@contextcompany/ai-sdk ai @opentelemetry/api" />
 
-Set your API key:
+### 2. Set your API key
 
 ```bash filename=".env.local"
 TCC_API_KEY="..."
 ```
 
-### Next.js
+### 3. Register the integration
+
+#### Next.js
 
 Create an `instrumentation.ts` file in your project root. If your application uses a `src` directory, place the file inside `src` instead.
 
@@ -48,7 +48,7 @@ export async function register() {
 
 `registerTCC` composes with `@vercel/otel` and is idempotent, so development reloads do not register duplicate integrations.
 
-### Node.js
+#### Node.js
 
 For other Node.js frameworks, register the integration before making AI SDK calls. Keep the returned handle so queued traces can be flushed during shutdown.
 
