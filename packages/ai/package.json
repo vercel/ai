@@ -67,7 +67,7 @@
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
     "esbuild": "^0.28.1",
-    "tsup": "^7.2.0",
+    "tsup": "^8.3.5",
     "tsx": "^4.22.0",
     "typescript": "5.8.3",
     "zod": "3.25.76"

@@ -71,7 +71,7 @@
     "@types/node": "22.19.19",
     "@types/ws": "^8.5.13",
     "@vercel/ai-tsconfig": "workspace:*",
-    "tsup": "^8.5.1",
+    "tsup": "^8.3.5",
     "typescript": "5.8.3",
     "ws": "^8.21.0",
     "zod": "3.25.76"
