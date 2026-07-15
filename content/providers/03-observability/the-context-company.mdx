@@ -5,7 +5,15 @@ description: AI agent observability for AI SDK applications with The Context Com
 
 # The Context Company Observability
 
-[The Context Company](https://www.thecontextcompany.com/) is an AI observability platform that helps teams understand how users interact with production AI agents. Its AI SDK integration captures runs, model calls, tool executions, token usage, costs, sessions, users, organizations, and custom metadata. The platform uses this data to surface patterns such as user confusion, frustration, and silent failures.
+[The Context Company](https://www.thecontextcompany.com/) ([AI SDK documentation](https://docs.thecontextcompany.com/frameworks/vercel-ai-sdk)) helps teams monitor and improve production AI agents. It combines complete AI SDK traces with analysis across runs to show what is breaking, why users struggle, and what to fix next.
+
+The integration provides:
+
+- Complete traces for model calls, agent steps, tool executions, errors, usage, latency, and cost
+- [Pattern detection](https://docs.thecontextcompany.com/features/patterns) for recurring user confusion, frustration, task failures, and custom signals
+- [Insight search](https://docs.thecontextcompany.com/features/insight-search) to investigate production behavior using natural-language questions backed by specific runs
+- [Recaps](https://docs.thecontextcompany.com/features/weekly-insights) that surface trends, anomalies, shifting user behavior, and the runs behind each finding
+- Sessions, user and organization analytics, feedback, and custom metadata
 
 The `@contextcompany/ai-sdk` package supports AI SDK 7's telemetry interface. It registers the AI SDK OpenTelemetry integration and exports traces to The Context Company.
 
