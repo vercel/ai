@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 3.0.50
+
+### Patch Changes
+
+- 86a8282: Add non-streaming Voxtral text-to-speech generation with saved voice IDs and one-off reference audio.
+
 ## 3.0.49
 
 ### Patch Changes
