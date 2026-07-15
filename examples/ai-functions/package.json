@@ -61,6 +61,7 @@
     "@ai-sdk/vercel": "workspace:*",
     "@ai-sdk/voyage": "workspace:*",
     "@ai-sdk/xai": "workspace:*",
+    "@ai-sdk/zai": "workspace:*",
     "@google/generative-ai": "0.21.0",
     "@langfuse/otel": "^4.6.1",
     "@opentelemetry/auto-instrumentations-node": "0.77.0",
