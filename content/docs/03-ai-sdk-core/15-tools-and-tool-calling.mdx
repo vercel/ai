@@ -63,7 +63,7 @@ model for each generation step. It receives the matching tool `context` from
 `toolsContext` and the current `experimental_sandbox`, if one was provided. If `prepareStep`
 updates `toolsContext` or `experimental_sandbox`, the next step uses those updated values.
 
-```ts highlight="6-14,28-33"
+```ts highlight="5-16,32-35"
 import { generateText, tool } from 'ai';
 import { z } from 'zod';
 
@@ -1397,7 +1397,7 @@ that converts the tool result into a content part.
 
 Here is an example for converting a screenshot into a content part:
 
-```ts highlight="22-27"
+```ts highlight="23-38"
 const result = await generateText({
   model: __MODEL__,
   tools: {

@@ -498,7 +498,7 @@ The response will contain the tool calls and results from the code execution.
 With [Google Search grounding](https://ai.google.dev/gemini-api/docs/google-search),
 the model has access to the latest information using Google Search.
 
-```ts highlight="8,17-20"
+```ts highlight="8,17-19"
 import { google } from '@ai-sdk/google';
 import { GoogleProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
@@ -657,7 +657,7 @@ Google provides a provider-defined URL context tool.
 
 The URL context tool allows you to provide specific URLs that you want the model to analyze directly in from the prompt.
 
-```ts highlight="9,13-17"
+```ts highlight="9,13-15"
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
@@ -818,7 +818,7 @@ This enables the model to provide answers based on your specific data sources an
   Google provider (`@ai-sdk/google`) to use this feature.
 </Note>
 
-```ts highlight="8,17-20"
+```ts highlight="5-8,13-17,25-27"
 import { createGoogleVertex } from '@ai-sdk/google-vertex';
 import { GoogleProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
@@ -2024,7 +2024,7 @@ spoken text, so `instructions: 'Say cheerfully'` with `text: 'Hello'` speaks `Sa
 For multi-speaker dialogue, pass a `multiSpeakerVoiceConfig` through `providerOptions`. Each speaker
 name must match a name used in the input text. When set, it overrides the top-level `voice`.
 
-```ts highlight="8-23"
+```ts highlight="7-22"
 import { generateSpeech } from 'ai';
 import { google, type GoogleSpeechModelOptions } from '@ai-sdk/google';
 

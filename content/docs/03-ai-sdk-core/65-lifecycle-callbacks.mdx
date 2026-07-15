@@ -218,7 +218,7 @@ const result = await generateText({
 Embedding and reranking callbacks are simpler: they expose `onStart` and `onEnd` around the operation.
 This is useful for retrieval pipelines where you want to understand how often you are embedding, how many values you embed, and how reranking changes result sets.
 
-```tsx highlight="10-23"
+```tsx highlight="10-24,32-37"
 import { embedMany, rerank } from 'ai';
 import { cohere } from '@ai-sdk/cohere';
 
