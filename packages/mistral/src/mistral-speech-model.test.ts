@@ -20,7 +20,7 @@ describe('MistralSpeechModel', () => {
   it('should expose correct provider and model information', () => {
     expect(model.provider).toBe('mistral.speech');
     expect(model.modelId).toBe(modelId);
-    expect(model.specificationVersion).toBe('v4');
+    expect(model.specificationVersion).toBe('v3');
   });
 
   it('should create speech models through both provider factories', () => {

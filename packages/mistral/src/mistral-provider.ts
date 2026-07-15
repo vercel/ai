@@ -1,15 +1,9 @@
 import {
   NoSuchModelError,
-<<<<<<< HEAD
   type EmbeddingModelV3,
   type LanguageModelV3,
   type ProviderV3,
-=======
-  type EmbeddingModelV4,
-  type LanguageModelV4,
-  type ProviderV4,
-  type SpeechModelV4,
->>>>>>> ba433f72e (feat: add non-streaming Voxtral TTS to the Mistral provider (#17286))
+  type SpeechModelV3,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -20,13 +14,9 @@ import {
 import { MistralChatLanguageModel } from './mistral-chat-language-model';
 import type { MistralChatModelId } from './mistral-chat-options';
 import { MistralEmbeddingModel } from './mistral-embedding-model';
-<<<<<<< HEAD
 import type { MistralEmbeddingModelId } from './mistral-embedding-options';
-=======
-import type { MistralEmbeddingModelId } from './mistral-embedding-model-options';
 import { MistralSpeechModel } from './mistral-speech-model';
 import type { MistralSpeechModelId } from './mistral-speech-model-options';
->>>>>>> ba433f72e (feat: add non-streaming Voxtral TTS to the Mistral provider (#17286))
 import { VERSION } from './version';
 
 export interface MistralProvider extends ProviderV3 {
@@ -55,12 +45,12 @@ export interface MistralProvider extends ProviderV3 {
   /**
    * Creates a model for speech generation (text-to-speech).
    */
-  speech(modelId: MistralSpeechModelId): SpeechModelV4;
+  speech(modelId: MistralSpeechModelId): SpeechModelV3;
 
   /**
    * Creates a model for speech generation (text-to-speech).
    */
-  speechModel(modelId: MistralSpeechModelId): SpeechModelV4;
+  speechModel(modelId: MistralSpeechModelId): SpeechModelV3;
 
   /**
    * @deprecated Use `embedding` instead.

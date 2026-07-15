@@ -1,12 +1,9 @@
-import type { SharedV4Warning, SpeechModelV4 } from '@ai-sdk/provider';
+import type { SharedV3Warning, SpeechModelV3 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
   parseProviderOptions,
   postToApi,
-  serializeModelOptions,
-  WORKFLOW_DESERIALIZE,
-  WORKFLOW_SERIALIZE,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -28,22 +25,8 @@ interface MistralSpeechModelConfig {
 
 type MistralSpeechOutputFormat = 'pcm' | 'wav' | 'mp3' | 'flac' | 'opus';
 
-export class MistralSpeechModel implements SpeechModelV4 {
-  readonly specificationVersion = 'v4';
-
-  static [WORKFLOW_SERIALIZE](model: MistralSpeechModel) {
-    return serializeModelOptions({
-      modelId: model.modelId,
-      config: model.config,
-    });
-  }
-
-  static [WORKFLOW_DESERIALIZE](options: {
-    modelId: MistralSpeechModelId;
-    config: MistralSpeechModelConfig;
-  }) {
-    return new MistralSpeechModel(options.modelId, options.config);
-  }
+export class MistralSpeechModel implements SpeechModelV3 {
+  readonly specificationVersion = 'v3';
 
   get provider(): string {
     return this.config.provider;
@@ -62,8 +45,8 @@ export class MistralSpeechModel implements SpeechModelV4 {
     speed,
     language,
     providerOptions,
-  }: Parameters<SpeechModelV4['doGenerate']>[0]) {
-    const warnings: SharedV4Warning[] = [];
+  }: Parameters<SpeechModelV3['doGenerate']>[0]) {
+    const warnings: SharedV3Warning[] = [];
     const mistralOptions = await parseProviderOptions({
       provider: 'mistral',
       providerOptions,
@@ -129,8 +112,8 @@ export class MistralSpeechModel implements SpeechModelV4 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
+    options: Parameters<SpeechModelV3['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<SpeechModelV3['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, requestBodyValues, warnings } =
       await this.getArgs(options);

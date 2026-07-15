@@ -344,7 +344,7 @@ Use a preset or saved voice ID with [`generateSpeech`](/docs/reference/ai-sdk-co
 
 ```ts
 import { mistral } from '@ai-sdk/mistral';
-import { generateSpeech } from 'ai';
+import { experimental_generateSpeech as generateSpeech } from 'ai';
 
 const result = await generateSpeech({
   model: mistral.speech('voxtral-mini-tts-2603'),
@@ -368,7 +368,7 @@ audio. Pass it through `providerOptions.mistral.refAudio` and use
 ```ts highlight="9-13"
 import { readFile } from 'node:fs/promises';
 import { mistral, type MistralSpeechModelOptions } from '@ai-sdk/mistral';
-import { generateSpeech } from 'ai';
+import { experimental_generateSpeech as generateSpeech } from 'ai';
 
 const referenceAudio = await readFile('./reference.mp3');
 
@@ -390,7 +390,7 @@ is redacted from request metadata and API call errors returned by the provider.
   Only use reference audio with the speaker's explicit consent. Follow Mistral's
   voice cloning usage policy and disclose AI-generated audio when required. This
   provider integration supports non-streaming speech generation; Mistral's
-  streaming speech API is not exposed through `SpeechModelV4`.
+  streaming speech API is not exposed through `SpeechModelV3`.
 </Note>
 
 ### Model Capabilities
