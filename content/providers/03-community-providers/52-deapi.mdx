@@ -1,0 +1,205 @@
+---
+title: deAPI
+description: Learn how to use the deAPI provider.
+---
+
+# deAPI Provider
+
+[deapi-ai/deapi-ai-sdk-provider](https://github.com/deapi-ai/deapi-ai-sdk-provider) is a community provider for [deAPI](https://deapi.ai) — OpenAI-compatible inference for open-source models. It provides **image generation**, **embeddings**, **speech** (text-to-speech), and **transcription** (speech-to-text) support for the AI SDK.
+
+<Note>
+  deAPI is a non-LLM inference surface — it does not offer language / chat
+  models. `deapi.languageModel(...)` throws a `NoSuchModelError`, so text
+  generation, tool calling, and structured output are not available through this
+  provider.
+</Note>
+
+## Setup
+
+The deAPI provider is available in the `@deapi/ai-sdk-provider` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @deapi/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @deapi/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @deapi/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @deapi/ai-sdk-provider" dark />
+  </Tab>
+</Tabs>
+
+`ai` (the AI SDK) is a peer dependency — supported range `>=6 <7`. Install it alongside the provider if you haven't already.
+
+## Provider Instance
+
+You can import the default provider instance `deapi` from `@deapi/ai-sdk-provider`:
+
+```ts
+import { deapi } from '@deapi/ai-sdk-provider';
+```
+
+If you need a customized setup, you can import `createDeAPI` and create a provider instance with your settings:
+
+```ts
+import { createDeAPI } from '@deapi/ai-sdk-provider';
+
+const deapi = createDeAPI({
+  apiKey: process.env.DEAPI_API_KEY, // optional, defaults to DEAPI_API_KEY
+  baseURL: 'https://oai.deapi.ai/v1', // optional, this is the default
+});
+```
+
+You can use the following optional settings to customize the deAPI provider instance:
+
+- **apiKey** _string_
+
+  API key that is sent using the `Authorization` header. It defaults to the
+  `DEAPI_API_KEY` environment variable. deAPI keys start with the `dpn-sk-`
+  prefix. Authentication is lazy: the key is resolved per request, so a missing
+  key only throws when you invoke a model — not at import or construction time.
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls. The default is
+  `https://oai.deapi.ai/v1`, the OpenAI-compatible endpoint. It is validated at
+  construction: it must be an absolute `https` URL (`http` is allowed only for
+  loopback hosts such as `localhost`) and must not contain embedded
+  credentials. The deAPI **native** surface (`/api/v2`) is async/job-based and
+  is rejected — it is not OpenAI-compatible.
+
+- **headers** _Record&lt;string, string&gt;_
+
+  Custom headers to include in the requests. Do **not** pass an `Authorization`
+  header here — the provider manages authentication itself and rejects an
+  `Authorization` header in `headers` so it cannot silently override the real
+  key.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch)
+  implementation. You can use it as a middleware to intercept requests, or to
+  provide a custom fetch implementation for e.g. testing.
+
+The provider exposes both canonical methods and short aliases — all are public and supported:
+
+| Canonical                      | Alias                     | Returns             |
+| ------------------------------ | ------------------------- | ------------------- |
+| `deapi.imageModel(id)`         | `deapi.image(id)`         | image model         |
+| `deapi.embeddingModel(id)`     | `deapi.embedding(id)`     | embedding model     |
+| `deapi.speechModel(id)`        | `deapi.speech(id)`        | speech model        |
+| `deapi.transcriptionModel(id)` | `deapi.transcription(id)` | transcription model |
+
+## Image Generation
+
+You can create deAPI image models using the `.image()` factory method (an alias of `.imageModel()`), and generate images with the AI SDK's `generateImage` function:
+
+```ts
+import { deapi } from '@deapi/ai-sdk-provider';
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: deapi.image('Flux1schnell'),
+  prompt: 'a single red apple on a white table, studio light',
+  size: '512x512',
+});
+
+// image.uint8Array holds the decoded image bytes; image.base64 the base64 string.
+console.log(image.uint8Array.length);
+```
+
+deAPI returns images as `b64_json`, which the AI SDK decodes to a `Uint8Array` for you.
+
+<Note>
+  Only image *generation* is supported. Passing `files` or a `mask` to an image
+  model (image editing / inpainting) throws an `UnsupportedFunctionalityError`.
+</Note>
+
+## Embeddings
+
+You can create deAPI embedding models using the `.embedding()` factory method (an alias of `.embeddingModel()`), and embed values with the AI SDK's `embed` function:
+
+```ts
+import { deapi } from '@deapi/ai-sdk-provider';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: deapi.embedding('Bge_M3_FP16'),
+  value: 'sunny day at the beach',
+});
+
+console.log(embedding.length); // 1024
+```
+
+The number of dimensions depends on the model you choose (`Bge_M3_FP16` returns 1024-dimensional vectors at the time of writing).
+
+## Speech (Text-to-Speech)
+
+You can create deAPI speech models using the `.speech()` factory method (an alias of `.speechModel()`), and synthesize audio with the AI SDK's `experimental_generateSpeech` function. deAPI's speech endpoint is synchronous and returns binary audio directly:
+
+```ts
+import { deapi } from '@deapi/ai-sdk-provider';
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+
+const { audio } = await generateSpeech({
+  model: deapi.speech('Kokoro'),
+  text: 'Hello from deAPI.',
+  voice: 'alloy', // optional, defaults to 'alloy'
+});
+
+// audio.uint8Array holds the decoded audio bytes (mp3 by default).
+console.log(audio.uint8Array.length);
+```
+
+The default output format is `mp3` (`audio/mpeg`) and the default voice is `alloy`. Pass `outputFormat` to request a different container, and `voice` to choose a different voice. deAPI-specific options (`speed`, `language`, `instructions`) can be supplied via `providerOptions.deapi`.
+
+## Transcription (Speech-to-Text)
+
+You can create deAPI transcription models using the `.transcription()` factory method (an alias of `.transcriptionModel()`), and transcribe audio with the AI SDK's `experimental_transcribe` function. Pass the audio bytes (a `Uint8Array`, `Buffer`, or base64 string); the AI SDK detects the media type and forwards it to the provider:
+
+```ts
+import { deapi } from '@deapi/ai-sdk-provider';
+import { experimental_transcribe as transcribe } from 'ai';
+import { readFile } from 'node:fs/promises';
+
+const { text } = await transcribe({
+  model: deapi.transcription('WhisperLargeV3'),
+  audio: await readFile('./speech.mp3'),
+});
+
+console.log(text);
+```
+
+The audio is uploaded as multipart `file` form data; the API returns `{ text }`. A single audio file must be **20 MB or smaller** — a larger file is rejected with a clear error before any request is made. Segment timings, detected language, and duration are not returned by this surface.
+
+## Model IDs
+
+Model identifiers are plain slug strings passed through to deAPI. New deAPI models work without a package update — the model id type stays open, so any current slug is accepted.
+
+Do not hardcode model lists in application logic. Discover the available models live via the OpenAI-compatible models endpoint:
+
+```bash
+curl https://oai.deapi.ai/v1/models \
+  -H "Authorization: Bearer $DEAPI_API_KEY"
+```
+
+The slugs shown above — `Flux1schnell` (image), `Bge_M3_FP16` (embeddings), `Kokoro` (speech), and `WhisperLargeV3` (transcription) — are illustrative examples only, not an exhaustive or guaranteed list. Always check `/v1/models` for what is currently offered.
+
+## Limitations
+
+This provider is deliberately scoped to deAPI's non-LLM inference surface:
+
+- **No language / chat / completion models.** `deapi.languageModel(...)` throws a `NoSuchModelError`. Tool calling and structured output (which depend on language models) are therefore not available.
+- **No image editing (inpainting).** Only image generation is supported; passing `files` or a `mask` throws an `UnsupportedFunctionalityError`.
+- **Transcription returns text only** — no segment timings, detected language, or duration. A single audio file is capped at 20 MB.
+- **Video is not exposed.** deAPI video generation is available only via the deAPI native REST API; the AI SDK provider interface has no video model.
+
+## Additional Resources
+
+- [GitHub repository](https://github.com/deapi-ai/deapi-ai-sdk-provider)
+- [deAPI documentation](https://docs.deapi.ai)
+- [deAPI OpenAI-compatibility reference](https://docs.deapi.ai/openai-compatibility)
