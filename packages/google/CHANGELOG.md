@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.81
+
+### Patch Changes
+
+- c6552b9: fix(provider/google): forward Vertex-only imageConfig options (personGeneration, prominentPeople, imageOutputOptions)
+
 ## 2.0.80
 
 ### Patch Changes
