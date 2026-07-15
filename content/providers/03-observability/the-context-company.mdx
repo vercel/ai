@@ -10,10 +10,8 @@ description: AI agent observability for AI SDK applications with The Context Com
 The integration provides:
 
 - Complete traces for model calls, agent steps, tool executions, errors, usage, latency, and cost
-- [Pattern detection](https://docs.thecontextcompany.com/features/patterns) for recurring user confusion, frustration, task failures, and custom signals
-- [Insight search](https://docs.thecontextcompany.com/features/insight-search) to investigate production behavior using natural-language questions backed by specific runs
-- [Recaps](https://docs.thecontextcompany.com/features/weekly-insights) that surface trends, anomalies, shifting user behavior, and the runs behind each finding
-- Sessions, user and organization analytics, feedback, and custom metadata
+- First-class sessions, user and organization analytics, feedback, and custom metadata
+- [Pattern detection](https://docs.thecontextcompany.com/features/patterns), [insight search](https://docs.thecontextcompany.com/features/insight-search), and [recaps](https://docs.thecontextcompany.com/features/weekly-insights) that analyze behavior across runs and link findings to supporting traces
 
 The `@contextcompany/ai-sdk` package supports AI SDK 7's telemetry interface. It registers the AI SDK OpenTelemetry integration and exports traces to The Context Company.
 
@@ -108,6 +106,34 @@ export async function POST(req: Request) {
 `tcc.runId` must be a UUID. Preserve it in your application when you need to submit user feedback, open a specific run, or correlate the run with application data.
 
 The integration supports text generation, streaming, structured output, multi-step agents, tools, embeddings, and reranking.
+
+## Multi-step agents and tools
+
+No additional tracing code is required for tools or multi-step agents. AI SDK 7 emits the complete operation through the integration registered by `registerTCC`.
+
+The resulting trace contains:
+
+- One agent run for the complete operation
+- One model step for every `chat` operation
+- One tool-call record for every `execute_tool` operation
+
+The integration also captures token usage, cached tokens, model IDs, finish reasons, errors, and aborts.
+
+## Feedback
+
+Calls without `tcc.runId` still receive a generated run ID. Provide an explicit UUID when you need feedback, deep links, or correlation with application data.
+
+Preserve the run ID in your application, then submit feedback from a server route:
+
+```typescript filename="feedback-route.ts"
+import { submitFeedback } from '@contextcompany/ai-sdk/nextjs';
+
+await submitFeedback({
+  runId,
+  score: 'thumbs_up',
+  text: 'This was helpful!',
+});
+```
 
 ## Resources
 
