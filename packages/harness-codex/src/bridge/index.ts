@@ -15,7 +15,9 @@ import {
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
 import type { StartMessage } from '../codex-bridge-protocol';
+import { accessSync, constants, statSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
+import { delimiter, join } from 'node:path';
 // Temporary workaround for upstream codex MCP-tool bug — see ./cli-relay.ts
 import {
   CLI_SHIM_FILENAME,
@@ -48,6 +50,27 @@ import { argv, env as procEnv, stdout } from 'node:process';
  *   3. the dependency entry in `src/bridge/package.json`.
  */
 import * as codexSdkModule from '@openai/codex-sdk';
+
+function resolveCodexPathOverride(): string | undefined {
+  for (const value of [
+    procEnv.CODEX_PATH,
+    procEnv.CODEX_CLI,
+    procEnv.CODEX_BINARY,
+  ]) {
+    const path = value?.trim();
+    if (path) return path;
+  }
+
+  const binaryName = process.platform === 'win32' ? 'codex.exe' : 'codex';
+  for (const dir of (procEnv.PATH ?? '').split(delimiter)) {
+    if (!dir) continue;
+    const path = join(dir, binaryName);
+    try {
+      accessSync(path, constants.X_OK);
+      if (statSync(path).isFile()) return path;
+    } catch {}
+  }
+}
 
 const args = parseArgs(argv.slice(2));
 const workdir = requireArg({ value: args.workdir, name: '--workdir' });
@@ -153,8 +176,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   }
   const usesConfiguredModelProvider =
     typeof codexConfig.model_provider === 'string';
+  const codexPathOverride = resolveCodexPathOverride();
 
   const codex = new codexSdk.Codex({
+    ...(codexPathOverride ? { codexPathOverride } : {}),
     ...(procEnv.CODEX_API_KEY ? { apiKey: procEnv.CODEX_API_KEY } : {}),
     ...(!usesConfiguredModelProvider && apiBaseUrl
       ? { baseUrl: apiBaseUrl }

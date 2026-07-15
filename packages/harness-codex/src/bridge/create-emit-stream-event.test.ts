@@ -3,7 +3,7 @@ import type { CodexStepTracker } from './codex-step-tracker';
 import { createEmitStreamEvent } from './create-emit-stream-event';
 
 describe('createEmitStreamEvent', () => {
-  it('emits thread, accumulated text, and usage events', () => {
+  it('emits thread, final text, and usage events', () => {
     const emitted: Record<string, unknown>[] = [];
     const observed: unknown[] = [];
     const usages: unknown[] = [];
@@ -51,21 +51,27 @@ describe('createEmitStreamEvent', () => {
             "type": "bridge-thread",
           },
           {
-            "id": "message-1",
+            "rawValue": {
+              "item": {
+                "id": "message-1",
+                "text": "hello world",
+                "type": "agent_message",
+              },
+              "type": "item.completed",
+            },
+            "type": "raw",
+          },
+          {
+            "id": "codex-final-message",
             "type": "text-start",
           },
           {
-            "delta": "hello",
-            "id": "message-1",
+            "delta": "hello world",
+            "id": "codex-final-message",
             "type": "text-delta",
           },
           {
-            "delta": " world",
-            "id": "message-1",
-            "type": "text-delta",
-          },
-          {
-            "id": "message-1",
+            "id": "codex-final-message",
             "type": "text-end",
           },
         ],
@@ -113,6 +119,73 @@ describe('createEmitStreamEvent', () => {
         ],
       }
     `);
+  });
+
+  it('emits only the last completed agent message as text', () => {
+    const emitted: Record<string, unknown>[] = [];
+    const stepTracker = {
+      observeEvent: () => {},
+      finishStep: () => {},
+    } as CodexStepTracker;
+    const emitStreamEvent = createEmitStreamEvent({
+      send: event => emitted.push(event),
+      stepTracker,
+      setTurnUsage: () => {},
+      setThreadId: () => {},
+      emitWarning: () => {},
+      emitError: () => {},
+    });
+    const progress = {
+      type: 'item.completed' as const,
+      item: { type: 'agent_message', id: 'progress', text: 'Working on it.' },
+    };
+    const final = {
+      type: 'item.completed' as const,
+      item: { type: 'agent_message', id: 'final', text: 'Done.' },
+    };
+
+    emitStreamEvent(progress);
+    emitStreamEvent(final);
+    emitStreamEvent({ type: 'turn.completed' });
+
+    expect(emitted).toEqual([
+      { type: 'raw', rawValue: progress },
+      { type: 'raw', rawValue: final },
+      { type: 'text-start', id: 'codex-final-message' },
+      { type: 'text-delta', id: 'codex-final-message', delta: 'Done.' },
+      { type: 'text-end', id: 'codex-final-message' },
+    ]);
+  });
+
+  it('does not promote an agent message when the turn fails', () => {
+    const emitted: Record<string, unknown>[] = [];
+    const errors: unknown[] = [];
+    const stepTracker = {
+      observeEvent: () => {},
+      finishStep: () => {},
+    } as CodexStepTracker;
+    const emitStreamEvent = createEmitStreamEvent({
+      send: event => emitted.push(event),
+      stepTracker,
+      setTurnUsage: () => {},
+      setThreadId: () => {},
+      emitWarning: () => {},
+      emitError: error => errors.push(error),
+    });
+
+    emitStreamEvent({
+      type: 'item.completed',
+      item: { type: 'agent_message', id: 'progress', text: 'Working on it.' },
+    });
+    emitStreamEvent({
+      type: 'turn.failed',
+      error: { message: 'failed' },
+    });
+
+    expect(emitted.some(event => String(event.type).startsWith('text-'))).toBe(
+      false,
+    );
+    expect(errors).toHaveLength(1);
   });
 
   it('preserves command and MCP result translation', () => {
