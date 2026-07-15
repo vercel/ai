@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 4.0.21
+
+### Patch Changes
+
+- 7069785: chore(provider/gateway): update gateway model settings files
+- 4bf9ac2: feat (provider/gateway): add `gateway.experimental_transcription.getToken` for minting transcription-bound client secrets
+
 ## 4.0.20
 
 ### Patch Changes
