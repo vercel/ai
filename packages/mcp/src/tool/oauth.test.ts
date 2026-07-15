@@ -576,6 +576,27 @@ describe('discoverAuthorizationServerMetadata', () => {
     expect(metadata).toEqual(tenantMetadata);
   });
 
+  it('accepts OAuth metadata without code_challenge_methods_supported', async () => {
+    const metadataWithoutPkceMethods = {
+      issuer: 'https://auth.example.com',
+      authorization_endpoint: 'https://auth.example.com/authorize',
+      token_endpoint: 'https://auth.example.com/token',
+      response_types_supported: ['code'],
+    };
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => metadataWithoutPkceMethods,
+    });
+
+    const metadata = await discoverAuthorizationServerMetadata(
+      'https://auth.example.com',
+    );
+
+    expect(metadata).toEqual(metadataWithoutPkceMethods);
+  });
+
   it('tries URLs in order and returns first successful metadata', async () => {
     // First OAuth URL fails with 404
     mockFetch.mockResolvedValueOnce({
