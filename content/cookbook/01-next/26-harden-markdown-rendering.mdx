@@ -1,0 +1,202 @@
+---
+title: Harden Markdown Rendering
+description: Safely render and preprocess AI-generated Markdown in Next.js to mitigate image exfiltration and related prompt-injection attacks.
+tags: ['next', 'streaming', 'chatbot', 'markdown', 'security']
+---
+
+# Harden Markdown Rendering
+
+AI chat UIs often render model output as Markdown or HTML. That is a common place for [Markdown image exfiltration attacks](https://simonwillison.net/tags/exfiltration-attacks/): a compromised or manipulated response can inject an image URL that leaks conversation content to an attacker-controlled host when the browser fetches it. See also [a concrete exfiltration example](https://simonwillison.net/2025/May/23/remote-prompt-injection-in-gitlab-duo/).
+
+This recipe shows two complementary defenses for Next.js + AI SDK apps:
+
+1. **UI rendering** — use [`harden-react-markdown`](https://www.npmjs.com/package/harden-react-markdown) so Markdown rendered in React does not freely load arbitrary remote images/URLs.
+2. **Markdown leaving the app** — use [`markdown-to-markdown-sanitizer`](https://www.npmjs.com/package/markdown-to-markdown-sanitizer) before you store, forward, or hand Markdown to another system.
+
+It builds on the same streaming chat pattern as [Markdown Chatbot with Memoization](/cookbook/next/markdown-chatbot-with-memoization).
+
+## Installation
+
+```bash
+npm install ai @ai-sdk/react harden-react-markdown react-markdown markdown-to-markdown-sanitizer
+```
+
+## Server
+
+Stream Markdown from the model as usual. Keep the system prompt explicit about formatting so the client can render consistently.
+
+```tsx filename='app/api/chat/route.ts'
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+  type UIMessage,
+} from 'ai';
+
+export async function POST(req: Request) {
+  const { messages }: { messages: UIMessage[] } = await req.json();
+
+  const result = streamText({
+    system:
+      'You are a helpful assistant. Respond to the user in Markdown format.',
+    model: 'openai/gpt-4o',
+    messages: await convertToModelMessages(messages),
+  });
+
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
+}
+```
+
+## Hardened Markdown component
+
+Wrap `react-markdown` with `harden-react-markdown`. Prefer an allowlist for image hosts you control; default-denying remote images is the safest baseline for chat UIs.
+
+```tsx filename='components/hardened-markdown.tsx'
+'use client';
+
+import ReactMarkdown from 'react-markdown';
+import hardenReactMarkdown from 'harden-react-markdown';
+
+const HardenedReactMarkdown = hardenReactMarkdown(ReactMarkdown);
+
+type HardenedMarkdownProps = {
+  content: string;
+};
+
+export function HardenedMarkdown({ content }: HardenedMarkdownProps) {
+  return (
+    <HardenedReactMarkdown
+      // Resolve relative URLs against your site origin.
+      defaultOrigin="https://example.com"
+      // Deny remote images by default (blocks classic Markdown image exfiltration).
+      // Add specific prefixes (e.g. `https://cdn.example.com/`) only as needed.
+      allowedImagePrefixes={[]}
+      // Prefer concrete prefixes over bare schemes; open redirects can bypass weak prefixes.
+      allowedLinkPrefixes={['https://example.com/', 'https://github.com/']}
+    >
+      {content}
+    </HardenedReactMarkdown>
+  );
+}
+```
+
+## Optional: sanitize Markdown before it leaves your app
+
+If you persist assistant Markdown, send it to another service, or re-ingest it later, sanitize to Markdown (not HTML) so dangerous constructs are stripped while keeping text portable.
+
+```ts filename='lib/sanitize-markdown.ts'
+import { sanitizeMarkdown } from 'markdown-to-markdown-sanitizer';
+
+export function sanitizeAssistantMarkdown(markdown: string): string {
+  return sanitizeMarkdown(markdown, {
+    defaultOrigin: 'https://example.com',
+    // Prefer path-specific prefixes; bare origins are easier to bypass via open redirects.
+    allowedLinkPrefixes: ['https://example.com/'],
+    allowedImagePrefixes: [],
+  });
+}
+```
+
+Example: sanitize before writing to storage after a stream completes:
+
+```ts filename='lib/persist-message.ts'
+import { sanitizeAssistantMarkdown } from './sanitize-markdown';
+
+export async function persistAssistantText(rawMarkdown: string) {
+  const safe = sanitizeAssistantMarkdown(rawMarkdown);
+  // await db.messages.create({ content: safe })
+  return safe;
+}
+```
+
+## Client
+
+Render assistant text through the hardened component. User messages can stay as plain text unless you also interpret user Markdown.
+
+```tsx filename='app/page.tsx'
+'use client';
+
+import { Chat, useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+import { useState } from 'react';
+import { HardenedMarkdown } from '@/components/hardened-markdown';
+
+const chat = new Chat({
+  transport: new DefaultChatTransport({
+    api: '/api/chat',
+  }),
+});
+
+export default function Page() {
+  const { messages } = useChat({ chat });
+
+  return (
+    <div className="flex flex-col w-full max-w-xl py-24 mx-auto stretch">
+      <div className="space-y-8 mb-4">
+        {messages.map(message => (
+          <div key={message.id}>
+            <div className="font-bold mb-2">
+              {message.role === 'user' ? 'You' : 'Assistant'}
+            </div>
+            <div className="prose space-y-2">
+              {message.parts.map(part => {
+                if (part.type === 'text') {
+                  if (message.role === 'assistant') {
+                    return (
+                      <HardenedMarkdown
+                        key={`${message.id}-text`}
+                        content={part.text}
+                      />
+                    );
+                  }
+                  return <div key={`${message.id}-text`}>{part.text}</div>;
+                }
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <MessageInput />
+    </div>
+  );
+}
+
+function MessageInput() {
+  const [input, setInput] = useState('');
+  const { sendMessage } = useChat({ chat });
+
+  return (
+    <form
+      onSubmit={event => {
+        event.preventDefault();
+        sendMessage({ text: input });
+        setInput('');
+      }}
+    >
+      <input
+        className="fixed bottom-0 w-full max-w-xl p-2 mb-8 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 rounded shadow-xl"
+        placeholder="Say something..."
+        value={input}
+        onChange={event => setInput(event.target.value)}
+      />
+    </form>
+  );
+}
+```
+
+## Threat model checklist
+
+- Treat model output as **untrusted**, even from your own prompted app.
+- Prefer **no remote images** in chat Markdown unless the host is under your control.
+- Sanitize Markdown **again** at trust boundaries (DB, webhooks, third-party tools).
+- Pair this with the memoization recipe if streams are long: hardening and memoization solve different problems (security vs. render cost).
+
+<Note>
+  Package APIs evolve. Confirm current option names for
+  `harden-react-markdown` and `markdown-to-markdown-sanitizer` against their
+  npm READMEs before shipping.
+</Note>
