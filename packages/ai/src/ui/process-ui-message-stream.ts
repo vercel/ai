@@ -766,7 +766,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerExecuted: chunk.providerExecuted,
                   providerMetadata: chunk.providerMetadata,
                   title: toolInvocation.title,
-                  toolMetadata: toolInvocation.toolMetadata,
+                  toolMetadata:
+                    chunk.toolMetadata ?? toolInvocation.toolMetadata,
                 });
               } else {
                 updateToolPart({
@@ -779,7 +780,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   preliminary: chunk.preliminary,
                   providerMetadata: chunk.providerMetadata,
                   title: toolInvocation.title,
-                  toolMetadata: toolInvocation.toolMetadata,
+                  toolMetadata:
+                    chunk.toolMetadata ?? toolInvocation.toolMetadata,
                 });
               }
 
@@ -800,7 +802,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerExecuted: chunk.providerExecuted,
                   providerMetadata: chunk.providerMetadata,
                   title: toolInvocation.title,
-                  toolMetadata: toolInvocation.toolMetadata,
+                  toolMetadata:
+                    chunk.toolMetadata ?? toolInvocation.toolMetadata,
                 });
               } else {
                 updateToolPart({
@@ -813,7 +816,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerExecuted: chunk.providerExecuted,
                   providerMetadata: chunk.providerMetadata,
                   title: toolInvocation.title,
-                  toolMetadata: toolInvocation.toolMetadata,
+                  toolMetadata:
+                    chunk.toolMetadata ?? toolInvocation.toolMetadata,
                 });
               }
 

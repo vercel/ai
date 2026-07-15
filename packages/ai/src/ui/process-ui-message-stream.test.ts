@@ -5822,7 +5822,7 @@ describe('processUIMessageStream', () => {
       });
     });
 
-    it('should preserve tool metadata on dynamic tool parts', async () => {
+    it('should apply output metadata to dynamic tool parts', async () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
@@ -5839,6 +5839,7 @@ describe('processUIMessageStream', () => {
           toolCallId: 'tool-call-1',
           output: { result: 'provider-result' },
           dynamic: true,
+          toolMetadata: { downloadable: true },
         },
         { type: 'finish-step' },
         { type: 'finish' },
@@ -5879,7 +5880,7 @@ describe('processUIMessageStream', () => {
           "title": undefined,
           "toolCallId": "tool-call-1",
           "toolMetadata": {
-            "clientName": "MyMCPClient",
+            "downloadable": true,
           },
           "toolName": "tool-name",
           "type": "dynamic-tool",
