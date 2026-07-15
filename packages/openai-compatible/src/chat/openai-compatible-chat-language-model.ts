@@ -434,18 +434,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
             metadataExtractor?.processChunk(chunk.rawValue);
 
             // handle error chunks:
-<<<<<<< HEAD
             if ('error' in value) {
               finishReason = 'error';
-              controller.enqueue({ type: 'error', error: value.error.message });
-=======
-            if ('error' in chunk.value) {
-              finishReason = { unified: 'error', raw: undefined };
-              controller.enqueue({
-                type: 'error',
-                error: chunk.value.error,
-              });
->>>>>>> 0b612675e (fix: OpenAI-compatible chat SSE errors lose structured error fields (#17230))
+              controller.enqueue({ type: 'error', error: value.error });
               return;
             }
 
