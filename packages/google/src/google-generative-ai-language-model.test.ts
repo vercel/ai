@@ -2136,58 +2136,8 @@ describe('doGenerate', () => {
     });
   });
 
-<<<<<<< HEAD
-=======
-  it('should pass imageConfig.imageSize in provider options', async () => {
-    prepareJsonFixtureResponse('google-text');
-
-    await model.doGenerate({
-      prompt: TEST_PROMPT,
-      providerOptions: {
-        google: {
-          imageConfig: {
-            imageSize: '4K',
-          },
-        },
-      },
-    });
-
-    expect(await server.calls[0].requestBodyJson).toMatchObject({
-      generationConfig: {
-        imageConfig: {
-          imageSize: '4K',
-        },
-      },
-    });
-  });
-
-  it('should pass imageConfig with both aspectRatio and imageSize', async () => {
-    prepareJsonFixtureResponse('google-text');
-
-    await model.doGenerate({
-      prompt: TEST_PROMPT,
-      providerOptions: {
-        google: {
-          imageConfig: {
-            aspectRatio: '16:9',
-            imageSize: '2K',
-          },
-        },
-      },
-    });
-
-    expect(await server.calls[0].requestBodyJson).toMatchObject({
-      generationConfig: {
-        imageConfig: {
-          aspectRatio: '16:9',
-          imageSize: '2K',
-        },
-      },
-    });
-  });
-
   it('should pass imageConfig.personGeneration, imageConfig.prominentPeople and imageConfig.imageOutputOptions on Vertex', async () => {
-    prepareJsonFixtureResponse('google-text');
+    prepareJsonResponse({});
 
     const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
       provider: 'google.vertex.chat',
@@ -2230,7 +2180,7 @@ describe('doGenerate', () => {
   });
 
   it('should warn and drop Vertex-only imageConfig fields on the Gemini API', async () => {
-    prepareJsonFixtureResponse('google-text');
+    prepareJsonResponse({});
 
     const { warnings } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -2258,7 +2208,6 @@ describe('doGenerate', () => {
     ]);
   });
 
->>>>>>> 020836c418 (Backport: fix(provider/google): forward Vertex-only imageConfig options (personGeneration, prominentPeople, imageOutputOptions) (#17271))
   it('should pass retrievalConfig in provider options', async () => {
     prepareJsonResponse({ url: TEST_URL_GEMINI_2_0_FLASH_EXP });
 
