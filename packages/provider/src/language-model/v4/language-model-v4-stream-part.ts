@@ -95,6 +95,9 @@ export type LanguageModelV4StreamPart =
       usage: LanguageModelV4Usage;
       finishReason: LanguageModelV4FinishReason;
       providerMetadata?: SharedV4ProviderMetadata;
+      // warnings discovered during streaming, e.g. reasoning tokens
+      // were spent but no reasoning content was returned by the provider.
+      warnings?: Array<SharedV4Warning>;
     }
 
   // raw chunks if enabled

@@ -615,6 +615,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     const generateId = this.config.generateId;
     let hasToolCalls = false;
     let hasEmittedResponseMetadata = false;
+    let hasReasoningParts = false;
 
     // Track active blocks to group consecutive parts of same type
     let currentTextBlockId: string | null = null;
@@ -812,6 +813,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                       });
                     }
 
+                    hasReasoningParts = true;
+
                     controller.enqueue({
                       type: 'reasoning-delta',
                       id: currentReasoningBlockId,
@@ -874,6 +877,10 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                     data: { type: 'data', data: part.inlineData.data },
                     providerMetadata: fileMeta,
                   });
+
+                  if (hasThought) {
+                    hasReasoningParts = true;
+                  }
                 } else if ('toolCall' in part && part.toolCall) {
                   const toolCallId = part.toolCall.id ?? generateId();
                   lastServerToolCallId = toolCallId;
@@ -1121,11 +1128,34 @@ export class GoogleLanguageModel implements LanguageModelV4 {
               });
             }
 
+            const finishWarnings: SharedV4Warning[] = [];
+
+            // Detect: the provider spent reasoning tokens (thoughtsTokenCount > 0)
+            // but no reasoning parts were emitted in the stream.
+            // See https://github.com/vercel/ai/issues/15704
+            if (
+              !hasReasoningParts &&
+              usage != null &&
+              (usage.thoughtsTokenCount ?? 0) > 0
+            ) {
+              finishWarnings.push({
+                type: 'other',
+                message:
+                  `The model reported ${usage.thoughtsTokenCount} reasoning tokens in usage, ` +
+                  'but no reasoning content parts were returned in the stream. ' +
+                  'This can happen intermittently with Google/Vertex AI, especially with long contexts. ' +
+                  'See https://github.com/vercel/ai/issues/15704',
+              });
+            }
+
             controller.enqueue({
               type: 'finish',
               finishReason,
               usage: convertGoogleUsage(usage),
               providerMetadata,
+              ...(finishWarnings.length > 0
+                ? { warnings: finishWarnings }
+                : {}),
             });
           },
         }),

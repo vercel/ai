@@ -4305,6 +4305,9 @@ describe('doStream', () => {
   const TEST_URL_GEMINI_3_PRO =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:streamGenerateContent';
 
+  const TEST_URL_GEMINI_3_FLASH =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:streamGenerateContent';
+
   const server = createTestServer({
     [TEST_URL_GEMINI_PRO]: {},
     [TEST_URL_GEMINI_2_0_PRO]: {},
@@ -4312,6 +4315,7 @@ describe('doStream', () => {
     [TEST_URL_GEMINI_1_0_PRO]: {},
     [TEST_URL_GEMINI_1_5_FLASH]: {},
     [TEST_URL_GEMINI_3_PRO]: {},
+    [TEST_URL_GEMINI_3_FLASH]: {},
   });
 
   function prepareChunksFixtureResponse(
@@ -7363,6 +7367,77 @@ describe('doStream', () => {
         expect(reasoningDeltaEvent.providerMetadata).toHaveProperty('vertex');
         expect(reasoningDeltaEvent.providerMetadata).not.toHaveProperty(
           'google',
+        );
+      }
+    });
+
+    it('should emit a warning when reasoning tokens are spent but no reasoning parts are returned', async () => {
+      server.urls[TEST_URL_GEMINI_3_FLASH].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: {
+                  parts: [{ text: 'Here is the answer.' }],
+                  role: 'model',
+                },
+                index: 0,
+              },
+            ],
+            usageMetadata: {
+              promptTokenCount: 10,
+              candidatesTokenCount: 5,
+              totalTokenCount: 115,
+              thoughtsTokenCount: 100,
+            },
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: {
+                  parts: [{ text: ' That is all.' }],
+                  role: 'model',
+                },
+                finishReason: 'STOP',
+                index: 0,
+              },
+            ],
+            usageMetadata: {
+              promptTokenCount: 10,
+              candidatesTokenCount: 8,
+              totalTokenCount: 118,
+              thoughtsTokenCount: 100,
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const model = new GoogleLanguageModel('gemini-3-flash-preview', {
+        provider: 'google.vertex',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { Authorization: 'Bearer test-token' },
+        generateId: () => 'test-id',
+      });
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      const finishPart = parts.find(p => p.type === 'finish');
+      expect(finishPart).toBeDefined();
+      expect(finishPart!.warnings).toBeDefined();
+      expect(finishPart!.warnings).toHaveLength(1);
+      expect(finishPart!.warnings![0].type).toBe('other');
+      if (finishPart!.warnings![0].type === 'other') {
+        expect(finishPart!.warnings![0].message).toContain(
+          '100 reasoning tokens',
+        );
+        expect(finishPart!.warnings![0].message).toContain(
+          'no reasoning content',
         );
       }
     });

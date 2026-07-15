@@ -544,6 +544,9 @@ export type TextStreamFinishStepPart = {
   finishReason: FinishReason;
   rawFinishReason: string | undefined;
   providerMetadata: ProviderMetadata | undefined;
+  // warnings discovered during the model call, e.g. reasoning tokens
+  // were spent but no reasoning content was returned by the provider.
+  warnings?: CallWarning[];
 };
 
 export type TextStreamStartPart = {
