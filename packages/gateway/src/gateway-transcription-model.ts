@@ -181,7 +181,10 @@ export class GatewayTranscriptionModel implements TranscriptionModelV4 {
  * WS(S), model id in `?ai-model-id=` (browser `WebSocket` cannot set headers;
  * slash-safe for qualified ids like `openai/gpt-realtime-whisper`).
  */
-function toGatewayTranscriptionUrl(baseURL: string, modelId: string): string {
+export function toGatewayTranscriptionUrl(
+  baseURL: string,
+  modelId: string,
+): string {
   const url = new URL(`${baseURL.replace(/^http/, 'ws')}/transcription-model`);
   url.searchParams.set('ai-model-id', modelId);
   return url.toString();
