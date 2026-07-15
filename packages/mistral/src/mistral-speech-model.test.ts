@@ -20,7 +20,7 @@ describe('MistralSpeechModel', () => {
   it('should expose correct provider and model information', () => {
     expect(model.provider).toBe('mistral.speech');
     expect(model.modelId).toBe(modelId);
-    expect(model.specificationVersion).toBe('v4');
+    expect(model.specificationVersion).toBe('v2');
   });
 
   it('should create speech models through both provider factories', () => {
@@ -127,8 +127,8 @@ describe('doGenerate', () => {
     });
     expect(result.warnings).toContainEqual(
       expect.objectContaining({
-        type: 'unsupported',
-        feature: 'outputFormat',
+        type: 'unsupported-setting',
+        setting: 'outputFormat',
       }),
     );
   });
@@ -145,16 +145,16 @@ describe('doGenerate', () => {
 
     expect(result.warnings).toEqual([
       expect.objectContaining({
-        type: 'unsupported',
-        feature: 'instructions',
+        type: 'unsupported-setting',
+        setting: 'instructions',
       }),
       expect.objectContaining({
-        type: 'unsupported',
-        feature: 'speed',
+        type: 'unsupported-setting',
+        setting: 'speed',
       }),
       expect.objectContaining({
-        type: 'unsupported',
-        feature: 'language',
+        type: 'unsupported-setting',
+        setting: 'language',
       }),
     ]);
   });

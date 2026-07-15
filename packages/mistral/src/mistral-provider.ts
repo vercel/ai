@@ -3,13 +3,7 @@ import {
   type LanguageModelV2,
   type ProviderV2,
   NoSuchModelError,
-<<<<<<< HEAD
-=======
-  type EmbeddingModelV4,
-  type LanguageModelV4,
-  type ProviderV4,
-  type SpeechModelV4,
->>>>>>> ba433f72e (feat: add non-streaming Voxtral TTS to the Mistral provider (#17286))
+  type SpeechModelV2,
 } from '@ai-sdk/provider';
 import {
   type FetchFunction,
@@ -20,13 +14,9 @@ import {
 import { MistralChatLanguageModel } from './mistral-chat-language-model';
 import type { MistralChatModelId } from './mistral-chat-options';
 import { MistralEmbeddingModel } from './mistral-embedding-model';
-<<<<<<< HEAD
 import type { MistralEmbeddingModelId } from './mistral-embedding-options';
-=======
-import type { MistralEmbeddingModelId } from './mistral-embedding-model-options';
 import { MistralSpeechModel } from './mistral-speech-model';
 import type { MistralSpeechModelId } from './mistral-speech-model-options';
->>>>>>> ba433f72e (feat: add non-streaming Voxtral TTS to the Mistral provider (#17286))
 import { VERSION } from './version';
 
 export interface MistralProvider extends ProviderV2 {
@@ -49,31 +39,19 @@ Creates a model for text generation.
 
   textEmbedding(modelId: MistralEmbeddingModelId): EmbeddingModelV2<string>;
 
-<<<<<<< HEAD
   textEmbeddingModel: (
     modelId: MistralEmbeddingModelId,
   ) => EmbeddingModelV2<string>;
-=======
-  /**
-   * Creates a model for speech generation (text-to-speech).
-   */
-  speech(modelId: MistralSpeechModelId): SpeechModelV4;
 
   /**
    * Creates a model for speech generation (text-to-speech).
    */
-  speechModel(modelId: MistralSpeechModelId): SpeechModelV4;
+  speech(modelId: MistralSpeechModelId): SpeechModelV2;
 
   /**
-   * @deprecated Use `embedding` instead.
+   * Creates a model for speech generation (text-to-speech).
    */
-  textEmbedding(modelId: MistralEmbeddingModelId): EmbeddingModelV4;
-
-  /**
-   * @deprecated Use `embeddingModel` instead.
-   */
-  textEmbeddingModel(modelId: MistralEmbeddingModelId): EmbeddingModelV4;
->>>>>>> ba433f72e (feat: add non-streaming Voxtral TTS to the Mistral provider (#17286))
+  speechModel(modelId: MistralSpeechModelId): SpeechModelV2;
 }
 
 export interface MistralProviderSettings {

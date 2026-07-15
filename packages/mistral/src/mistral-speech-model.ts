@@ -1,12 +1,9 @@
-import type { SharedV4Warning, SpeechModelV4 } from '@ai-sdk/provider';
+import type { SpeechModelV2, SpeechModelV2CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
   parseProviderOptions,
   postToApi,
-  serializeModelOptions,
-  WORKFLOW_DESERIALIZE,
-  WORKFLOW_SERIALIZE,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -28,22 +25,8 @@ interface MistralSpeechModelConfig {
 
 type MistralSpeechOutputFormat = 'pcm' | 'wav' | 'mp3' | 'flac' | 'opus';
 
-export class MistralSpeechModel implements SpeechModelV4 {
-  readonly specificationVersion = 'v4';
-
-  static [WORKFLOW_SERIALIZE](model: MistralSpeechModel) {
-    return serializeModelOptions({
-      modelId: model.modelId,
-      config: model.config,
-    });
-  }
-
-  static [WORKFLOW_DESERIALIZE](options: {
-    modelId: MistralSpeechModelId;
-    config: MistralSpeechModelConfig;
-  }) {
-    return new MistralSpeechModel(options.modelId, options.config);
-  }
+export class MistralSpeechModel implements SpeechModelV2 {
+  readonly specificationVersion = 'v2';
 
   get provider(): string {
     return this.config.provider;
@@ -62,8 +45,8 @@ export class MistralSpeechModel implements SpeechModelV4 {
     speed,
     language,
     providerOptions,
-  }: Parameters<SpeechModelV4['doGenerate']>[0]) {
-    const warnings: SharedV4Warning[] = [];
+  }: Parameters<SpeechModelV2['doGenerate']>[0]) {
+    const warnings: SpeechModelV2CallWarning[] = [];
     const mistralOptions = await parseProviderOptions({
       provider: 'mistral',
       providerOptions,
@@ -75,16 +58,16 @@ export class MistralSpeechModel implements SpeechModelV4 {
       responseFormat = outputFormat as MistralSpeechOutputFormat;
     } else {
       warnings.push({
-        type: 'unsupported',
-        feature: 'outputFormat',
+        type: 'unsupported-setting',
+        setting: 'outputFormat',
         details: `Unsupported output format: ${outputFormat}. Using mp3 instead.`,
       });
     }
 
     if (instructions != null) {
       warnings.push({
-        type: 'unsupported',
-        feature: 'instructions',
+        type: 'unsupported-setting',
+        setting: 'instructions',
         details:
           'Mistral speech models do not support the `instructions` option. ' +
           'Use a reference audio clip to guide delivery.',
@@ -93,8 +76,8 @@ export class MistralSpeechModel implements SpeechModelV4 {
 
     if (speed != null) {
       warnings.push({
-        type: 'unsupported',
-        feature: 'speed',
+        type: 'unsupported-setting',
+        setting: 'speed',
         details:
           'Mistral speech models do not support the `speed` option. It was ignored.',
       });
@@ -102,8 +85,8 @@ export class MistralSpeechModel implements SpeechModelV4 {
 
     if (language != null) {
       warnings.push({
-        type: 'unsupported',
-        feature: 'language',
+        type: 'unsupported-setting',
+        setting: 'language',
         details:
           'Mistral speech models do not support the `language` option. ' +
           'Language is inferred from the input text and voice.',
@@ -129,8 +112,8 @@ export class MistralSpeechModel implements SpeechModelV4 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
+    options: Parameters<SpeechModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<SpeechModelV2['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, requestBodyValues, warnings } =
       await this.getArgs(options);
