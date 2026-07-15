@@ -21,9 +21,9 @@ import {
 } from '../openai-compatible-error';
 import { warnIfDeprecatedProviderOptionsKey } from '../utils/to-camel-case';
 import {
-  openaiCompatibleVideoModelOptionsSchema,
+  type OpenAICompatibleVideoModelId,
   type OpenAICompatibleVideoModelOptions,
-  OpenAICompatibleVideoModelId,
+  openaiCompatibleVideoModelOptionsSchema,
 } from './openai-compatible-video-model-options';
 
 export type OpenAICompatibleVideoModelConfig = {
@@ -82,20 +82,6 @@ export class OpenAICompatibleVideoModel implements Experimental_VideoModelV4 {
       warnings,
     });
 
-    const compatibleOptions = Object.assign(
-      deprecatedOptions ?? {},
-      (await parseProviderOptions({
-        provider: 'openaiCompatible',
-        providerOptions: options.providerOptions,
-        schema: openaiCompatibleVideoModelOptionsSchema,
-      })) ?? {},
-      (await parseProviderOptions({
-        provider: this.providerOptionsName,
-        providerOptions: options.providerOptions,
-        schema: openaiCompatibleVideoModelOptionsSchema,
-      })) ?? {},
-    );
-
     if (options.fps != null) {
       warnings.push({
         type: 'unsupported',
@@ -135,7 +121,7 @@ export class OpenAICompatibleVideoModel implements Experimental_VideoModelV4 {
       }),
       headers: combineHeaders(
         await resolve(this.config.headers),
-        options.headers
+        options.headers,
       ),
       body,
       failedResponseHandler: createJsonErrorResponseHandler(
@@ -180,15 +166,19 @@ export class OpenAICompatibleVideoModel implements Experimental_VideoModelV4 {
             path: '/videos/${taskId}',
             modelId: this.modelId,
           }),
-          headers: combineHeaders(await resolve(this.config.headers), options.headers),
+          headers: combineHeaders(
+            await resolve(this.config.headers),
+            options.headers,
+          ),
           failedResponseHandler: createJsonErrorResponseHandler(
-          this.config.errorStructure ?? defaultOpenAICompatibleErrorStructure,
+            this.config.errorStructure ?? defaultOpenAICompatibleErrorStructure,
           ),
           successfulResponseHandler: createJsonResponseHandler(
             openaiCompatibleStatusResponseSchema,
-        ),
+          ),
           abortSignal: options.abortSignal,
           fetch: this.config.fetch,
+          validateUrl: true,
         });
 
       if (statusResponse.status === 'succeeded') {
@@ -233,7 +223,9 @@ export class OpenAICompatibleVideoModel implements Experimental_VideoModelV4 {
   }
 }
 
-type OpenaiCompatibleResponse = z.infer<typeof openaiCompatibleStatusResponseSchema>;
+type OpenaiCompatibleResponse = z.infer<
+  typeof openaiCompatibleStatusResponseSchema
+>;
 
 const openaiCompatibleTaskResponseSchema = z.object({
   id: z.string().nullish(),
