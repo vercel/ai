@@ -4,7 +4,6 @@ import type {
   LanguageModelV4StreamPart,
   LanguageModelV4GenerateResult,
   LanguageModelV4StreamResult,
-  LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -101,7 +100,6 @@ export class GatewayLanguageModel implements LanguageModelV4 {
 
       return {
         ...responseBody,
-        usage: normalizeGatewayUsage(responseBody.usage),
         request: { body: args },
         response: { headers: responseHeaders, body: rawResponse },
         warnings,
@@ -170,10 +168,6 @@ export class GatewayLanguageModel implements LanguageModelV4 {
                   typeof streamPart.timestamp === 'string'
                 ) {
                   streamPart.timestamp = new Date(streamPart.timestamp);
-                }
-
-                if (streamPart.type === 'finish') {
-                  streamPart.usage = normalizeGatewayUsage(streamPart.usage);
                 }
 
                 controller.enqueue(streamPart);
@@ -245,40 +239,4 @@ function maybeBase64EncodeFileData<T extends { type: string }>(data: T): T {
     }
   }
   return data;
-}
-
-function normalizeGatewayUsage(
-  usage: LanguageModelV4Usage,
-): LanguageModelV4Usage {
-  if (usage == null || typeof usage !== 'object') {
-    return usage;
-  }
-
-  const legacyUsage = usage as unknown as {
-    inputTokens?: number;
-    outputTokens?: number;
-    reasoningTokens?: number;
-    cachedInputTokens?: number;
-  };
-
-  if (
-    typeof legacyUsage.inputTokens !== 'number' &&
-    typeof legacyUsage.outputTokens !== 'number'
-  ) {
-    return usage;
-  }
-
-  return {
-    inputTokens: {
-      total: legacyUsage.inputTokens,
-      noCache: undefined,
-      cacheRead: legacyUsage.cachedInputTokens,
-      cacheWrite: undefined,
-    },
-    outputTokens: {
-      total: legacyUsage.outputTokens,
-      text: undefined,
-      reasoning: legacyUsage.reasoningTokens,
-    },
-  };
 }
