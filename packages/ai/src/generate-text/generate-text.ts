@@ -35,6 +35,20 @@ import { type LanguageModelUsage, addLanguageModelUsage } from '../types/usage';
 import { asArray } from '../util/as-array';
 import type { DownloadFunction } from '../util/download/download-function';
 import { prepareRetries } from '../util/prepare-retries';
+<<<<<<< HEAD
+=======
+import { setAbortTimeout } from '../util/set-abort-timeout';
+import { VERSION } from '../version';
+import type {
+  OnFinishEvent,
+  OnStartEvent,
+  OnStepFinishEvent,
+  OnStepStartEvent,
+  OnToolCallFinishEvent,
+  OnToolCallStartEvent,
+} from './callback-events';
+import { collectToolApprovals } from './collect-tool-approvals';
+>>>>>>> 8ed1f838af ([v6.0] fix(ai): tag step/chunk timeout aborts with TimeoutError reason (#16803))
 import type { ContentPart } from './content-part';
 import { extractTextContent } from './extract-text-content';
 import type { GenerateTextResult } from './generate-text-result';
@@ -312,10 +326,19 @@ A function that attempts to repair a tool call that failed to parse.
         const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
 
         do {
+<<<<<<< HEAD
           const stepInputMessages = [
             ...initialPrompt.messages,
             ...responseMessages,
           ];
+=======
+          // Set up step timeout if configured
+          const stepTimeoutId = setAbortTimeout({
+            abortController: stepAbortController,
+            label: 'Step',
+            timeoutMs: stepTimeoutMs,
+          });
+>>>>>>> 8ed1f838af ([v6.0] fix(ai): tag step/chunk timeout aborts with TimeoutError reason (#16803))
 
           const prepareStepResult = await prepareStep?.({
             model,

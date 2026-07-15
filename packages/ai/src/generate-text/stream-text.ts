@@ -66,6 +66,20 @@ import { createStitchableStream } from '../util/create-stitchable-stream';
 import type { DownloadFunction } from '../util/download/download-function';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
+<<<<<<< HEAD
+=======
+import { setAbortTimeout } from '../util/set-abort-timeout';
+import { collectToolApprovals } from './collect-tool-approvals';
+import { validateApprovedToolApprovals } from './validate-tool-approvals';
+import type {
+  OnFinishEvent,
+  OnStartEvent,
+  OnStepFinishEvent,
+  OnStepStartEvent,
+  OnToolCallFinishEvent,
+  OnToolCallStartEvent,
+} from './callback-events';
+>>>>>>> 8ed1f838af ([v6.0] fix(ai): tag step/chunk timeout aborts with TimeoutError reason (#16803))
 import type { ContentPart } from './content-part';
 import type { Output } from './output';
 import type { PrepareStepFunction } from './prepare-step';
@@ -1081,7 +1095,16 @@ class DefaultStreamTextResult<
         }) {
           const includeRawChunks = self.includeRawChunks;
 
+<<<<<<< HEAD
           stepFinish = new DelayedPromise<void>();
+=======
+          // Set up step timeout if configured
+          const stepTimeoutId = setAbortTimeout({
+            abortController: stepAbortController,
+            label: 'Step',
+            timeoutMs: stepTimeoutMs,
+          });
+>>>>>>> 8ed1f838af ([v6.0] fix(ai): tag step/chunk timeout aborts with TimeoutError reason (#16803))
 
           const initialPrompt = await standardizePrompt({
             system,
@@ -1090,10 +1113,23 @@ class DefaultStreamTextResult<
             allowSystemInMessages,
           } as Prompt);
 
+<<<<<<< HEAD
           const stepInputMessages = [
             ...initialPrompt.messages,
             ...responseMessages,
           ];
+=======
+          function resetChunkTimeout() {
+            if (chunkTimeoutId != null) {
+              clearTimeout(chunkTimeoutId);
+            }
+            chunkTimeoutId = setAbortTimeout({
+              abortController: chunkAbortController,
+              label: 'Chunk',
+              timeoutMs: chunkTimeoutMs,
+            });
+          }
+>>>>>>> 8ed1f838af ([v6.0] fix(ai): tag step/chunk timeout aborts with TimeoutError reason (#16803))
 
           const prepareStepResult = await prepareStep?.({
             model,
