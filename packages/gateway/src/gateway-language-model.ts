@@ -4,6 +4,7 @@ import type {
   LanguageModelV4StreamPart,
   LanguageModelV4GenerateResult,
   LanguageModelV4StreamResult,
+  JSONObject,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -58,6 +59,30 @@ export class GatewayLanguageModel implements LanguageModelV4 {
 
   private async getArgs(options: LanguageModelV4CallOptions) {
     const { abortSignal: _abortSignal, ...optionsWithoutSignal } = options;
+
+    if (optionsWithoutSignal.providerOptions) {
+      const { gateway: gatewayOpts, ...otherProviderOpts } =
+        optionsWithoutSignal.providerOptions;
+
+      if (
+        gatewayOpts != null &&
+        typeof gatewayOpts === 'object' &&
+        !Array.isArray(gatewayOpts)
+      ) {
+        const updatedGateway: Record<string, unknown> = {
+          ...(gatewayOpts as Record<string, unknown>),
+        };
+
+        if (Object.keys(otherProviderOpts).length > 0) {
+          updatedGateway['providerOptions'] = otherProviderOpts;
+
+          optionsWithoutSignal.providerOptions = {
+            ...optionsWithoutSignal.providerOptions,
+            gateway: updatedGateway as JSONObject,
+          };
+        }
+      }
+    }
 
     return {
       args: this.maybeEncodeFileParts(optionsWithoutSignal),

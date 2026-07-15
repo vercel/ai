@@ -55,4 +55,7 @@ export type GatewayProviderOptions = {
 
   /** Filter to providers with zero data retention agreements. */
   zeroDataRetention?: boolean;
+
+  /** Provider options keyed by provider name, used for fallback model support. */
+  providerOptions?: Record<string, Record<string, unknown>>;
 };
