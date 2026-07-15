@@ -23,7 +23,7 @@ const createDocsCollection = (dir: string) =>
   });
 
 export const docsV6 = createDocsCollection('content/v6/docs');
-export const docsCanary = createDocsCollection('content/canary/docs');
+export const docsV7 = createDocsCollection('content/v7/docs');
 
 export default defineGeistdocsSourceConfig({
   mdxOptions: {

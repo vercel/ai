@@ -3,9 +3,9 @@
  * Syncs and transforms docs content into apps/docs/content/.
  *
  * Sources:
- *   - canary: ../../content/docs (this repo's working tree, i.e. `main`)
- *   - v6:     content/docs from a reviewed `release-v6.0` commit (git, with
- *             a GitHub tarball fallback for environments without git access)
+ *   - v7: ../../content/docs (this repo's working tree, i.e. `main`)
+ *   - v6: content/docs from a reviewed `release-v6.0` commit (git, with
+ *         a GitHub tarball fallback for environments without git access)
  *
  * Transforms (content authored with `NN-` ordering prefixes -> fumadocs):
  *   1. Strips `NN-` numeric prefixes from every path segment.
@@ -39,7 +39,7 @@ const force = process.argv.includes("--force");
 
 /** Version definitions. `ref: null` means the local working tree. */
 const versions = [
-  { id: "canary", ref: null },
+  { id: "v7", ref: null },
   // Update this SHA explicitly when stable v6 documentation changes should
   // ship. Pinning keeps builds reproducible and content changes reviewable.
   { id: "v6", ref: "31e168b16f71a2abc03a1fae69176886577337f4" },

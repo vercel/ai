@@ -1,5 +1,5 @@
 import { createVersionedSources } from '@vercel/geistdocs/source';
-import { docsCanary, docsV6 } from '@/.source/server';
+import { docsV6, docsV7 } from '@/.source/server';
 import { config } from './config';
 
 export const versions = createVersionedSources({
@@ -15,8 +15,8 @@ export const versions = createVersionedSources({
     },
     {
       id: 'v7',
-      label: 'v7 (Canary)',
-      docs: docsCanary,
+      label: 'v7',
+      docs: docsV7,
       baseUrl: '/v7/docs',
       routePrefix: '/v7',
     },

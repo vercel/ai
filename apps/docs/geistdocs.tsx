@@ -14,8 +14,8 @@ export const content: NonNullable<GeistdocsConfig['content']> = [
   { id: 'v6', label: 'v6', dir: 'content/v6/docs', route: '/docs' },
   {
     id: 'v7',
-    label: 'v7 (Canary)',
-    dir: 'content/canary/docs',
+    label: 'v7',
+    dir: 'content/v7/docs',
     route: '/v7/docs',
   },
 ];
@@ -26,13 +26,13 @@ export const versions: NonNullable<GeistdocsConfig['versions']> = {
     {
       id: 'v6',
       label: 'v6',
-      description: 'Current stable documentation',
+      description: 'v6 documentation',
       routePrefix: '',
     },
     {
       id: 'v7',
-      label: 'v7 (Canary)',
-      description: 'Prerelease documentation',
+      label: 'v7',
+      description: 'Latest documentation',
       routePrefix: '/v7',
     },
   ],
