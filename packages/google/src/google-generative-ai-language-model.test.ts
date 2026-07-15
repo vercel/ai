@@ -3073,7 +3073,7 @@ describe('doGenerate', () => {
   it('should pass imageConfig.personGeneration, imageConfig.prominentPeople and imageConfig.imageOutputOptions on Vertex', async () => {
     prepareJsonFixtureResponse('google-text');
 
-    const vertexModel = new GoogleLanguageModel('gemini-pro', {
+    const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
       provider: 'google.vertex.chat',
       baseURL: 'https://generativelanguage.googleapis.com/v1beta',
       headers: { 'x-goog-api-key': 'test-api-key' },
