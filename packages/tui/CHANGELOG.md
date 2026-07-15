@@ -1,5 +1,11 @@
 # @ai-sdk/tui
 
+## 1.0.29
+
+### Patch Changes
+
+- 6175a94: Allow `runAgentTUI` to communicate with remote agents through a `ChatTransport`.
+
 ## 1.0.28
 
 ### Patch Changes
