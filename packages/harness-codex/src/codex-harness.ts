@@ -86,6 +86,8 @@ const CODEX_CLIENT_APP = `ai-sdk/harness-codex/${VERSION}`;
 
 export type CodexHarnessSettings = {
   readonly auth?: CodexAuthOptions;
+  /** Path to a Codex executable inside the sandbox. */
+  readonly codexPath?: string;
   /**
    * Additional configuration passed through to Codex as-is. Codex config keys
    * typically use snake_case and must be provided in that form. Values managed
@@ -380,6 +382,7 @@ export function createCodex(
           : undefined;
       const env = {
         ...sandboxAuthEnvironment,
+        ...(settings.codexPath ? { CODEX_PATH: settings.codexPath } : {}),
         AI_SDK_HARNESS_CLIENT_APP: CODEX_CLIENT_APP,
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),

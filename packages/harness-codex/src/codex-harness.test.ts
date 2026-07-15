@@ -248,12 +248,12 @@ describe('createCodex adapter', () => {
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
   });
 
-  it('quotes dynamic startup paths in shell commands', async () => {
+  it('quotes startup paths and forwards codexPath', async () => {
     const runs: string[] = [];
     const spawns: string[] = [];
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const writes: Array<{ path: string; content: string }> = [];
-    const harness = createCodex();
+    const harness = createCodex({ codexPath: '/opt/codex/bin/codex' });
     const session = await harness.doStart({
       sessionId: 's1; env > /tmp/leak #',
       sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
@@ -276,6 +276,7 @@ describe('createCodex adapter', () => {
       'ai-sdk/harness-codex/0.0.0-test',
     );
     expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
+    expect(spawnEnvs.at(0)?.CODEX_PATH).toBe('/opt/codex/bin/codex');
     expect(session.modelId).toBe('gpt-5.5');
     await session.doDestroy();
   });
