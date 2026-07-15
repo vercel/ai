@@ -130,6 +130,97 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     if (googleOptions?.serviceTier && isVertexProvider) {
       sanitizedServiceTier = VertexServiceTierMap[googleOptions.serviceTier];
     }
+<<<<<<< HEAD
+=======
+    if (
+      (googleOptions?.sharedRequestType || googleOptions?.requestType) &&
+      !isVertexProvider
+    ) {
+      warnings.push({
+        type: 'other',
+        message:
+          "'sharedRequestType' and 'requestType' are Vertex AI options and " +
+          `are ignored with the current Google provider (${this.config.provider}).`,
+      });
+    }
+
+    const vertexPaygoHeaders: Record<string, string> | undefined =
+      isVertexProvider &&
+      (googleOptions?.sharedRequestType || googleOptions?.requestType)
+        ? {
+            ...(googleOptions.sharedRequestType && {
+              'X-Vertex-AI-LLM-Shared-Request-Type':
+                googleOptions.sharedRequestType,
+            }),
+            ...(googleOptions.requestType && {
+              'X-Vertex-AI-LLM-Request-Type': googleOptions.requestType,
+            }),
+          }
+        : undefined;
+    const bodyServiceTier = isVertexProvider
+      ? undefined
+      : googleOptions?.serviceTier;
+
+    // personGeneration, prominentPeople and imageOutputOptions are only
+    // supported by the Vertex AI API, the Gemini API rejects them.
+    let imageConfig = googleOptions?.imageConfig;
+    if (imageConfig != null && !isVertexProvider) {
+      const {
+        personGeneration,
+        prominentPeople,
+        imageOutputOptions,
+        ...geminiApiImageConfig
+      } = imageConfig;
+      const droppedImageConfigFields = Object.entries({
+        personGeneration,
+        prominentPeople,
+        imageOutputOptions,
+      })
+        .filter(([, value]) => value != null)
+        .map(([key]) => `'imageConfig.${key}'`);
+      if (droppedImageConfigFields.length > 0) {
+        warnings.push({
+          type: 'other',
+          message:
+            `${droppedImageConfigFields.join(', ')} ` +
+            `${droppedImageConfigFields.length === 1 ? 'is a Vertex AI option and is' : 'are Vertex AI options and are'} ` +
+            `ignored with the current Google provider (${this.config.provider}).`,
+        });
+        imageConfig = geminiApiImageConfig;
+      }
+    }
+
+    const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
+    const isGemini3Model = /^gemini-3[.-]/.test(this.modelId);
+    const supportsFunctionResponseParts = isGemini3Model;
+
+    const { contents, systemInstruction } = convertToGoogleGenerativeAIMessages(
+      prompt,
+      {
+        isGemmaModel,
+        isGemini3Model,
+        providerOptionsName,
+        supportsFunctionResponseParts,
+        onWarning: warning => warnings.push(warning),
+      },
+    );
+
+    const {
+      tools: googleTools,
+      toolConfig: googleToolConfig,
+      toolWarnings,
+    } = prepareTools({
+      tools,
+      toolChoice,
+      modelId: this.modelId,
+      isVertexProvider,
+    });
+
+    const streamFunctionCallArguments =
+      isStreaming && isVertexProvider
+        ? (googleOptions?.streamFunctionCallArguments ?? false)
+        : undefined;
+>>>>>>> 020836c418 (Backport: fix(provider/google): forward Vertex-only imageConfig options (personGeneration, prominentPeople, imageOutputOptions) (#17271))
 
     const safetyThreshold = googleOptions?.threshold;
     const safetySettings =
@@ -191,12 +282,19 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           // provider options:
           responseModalities: googleOptions?.responseModalities,
           thinkingConfig: googleOptions?.thinkingConfig,
+<<<<<<< HEAD
           ...(googleOptions?.imageConfig && {
             imageConfig: googleOptions.imageConfig,
           }),
           ...(googleOptions?.mediaResolution && {
             mediaResolution: googleOptions.mediaResolution,
           }),
+=======
+          ...(googleOptions?.mediaResolution && {
+            mediaResolution: googleOptions.mediaResolution,
+          }),
+          ...(imageConfig && { imageConfig }),
+>>>>>>> 020836c418 (Backport: fix(provider/google): forward Vertex-only imageConfig options (personGeneration, prominentPeople, imageOutputOptions) (#17271))
         },
         contents,
         systemInstruction: isGemmaModel ? undefined : systemInstruction,
