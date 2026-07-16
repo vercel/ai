@@ -4115,63 +4115,37 @@ describe('processUIMessageStream', () => {
               "role": "assistant",
             },
           },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "errorText": undefined,
-                  "input": {
-                    "city": "London",
-                  },
-                  "output": "test-result",
-                  "preliminary": undefined,
-                  "providerExecuted": undefined,
-                  "rawInput": undefined,
-                  "state": "output-available",
-                  "title": undefined,
-                  "toolCallId": "tool-call-id",
-                  "type": "tool-tool-name",
-                },
-              ],
-              "role": "assistant",
-            },
-          },
         ]
       `);
     });
 
     it('should have the correct final message state', async () => {
       expect(state!.message).toMatchInlineSnapshot(`
-                    {
-                      "id": "msg-123",
-                      "metadata": undefined,
-                      "parts": [
-                        {
-                          "type": "step-start",
-                        },
-                        {
-                          "errorText": undefined,
-                          "input": {
-                            "city": "London",
-                          },
-                          "output": "test-result",
-                          "preliminary": undefined,
-                          "providerExecuted": undefined,
-                          "rawInput": undefined,
-                          "state": "output-available",
-                          "title": undefined,
-                          "toolCallId": "tool-call-id",
-                          "type": "tool-tool-name",
-                        },
-                      ],
-                      "role": "assistant",
-                    }
-                  `);
+        {
+          "id": "msg-123",
+          "metadata": undefined,
+          "parts": [
+            {
+              "type": "step-start",
+            },
+            {
+              "errorText": undefined,
+              "input": {
+                "city": "London",
+              },
+              "output": undefined,
+              "preliminary": undefined,
+              "providerExecuted": undefined,
+              "rawInput": undefined,
+              "state": "input-available",
+              "title": undefined,
+              "toolCallId": "tool-call-id",
+              "type": "tool-tool-name",
+            },
+          ],
+          "role": "assistant",
+        }
+      `);
     });
   });
 

@@ -22,11 +22,10 @@ import {
   type FileUIPart,
   type InferUIMessageData,
   type InferUIMessageMetadata,
-  type InferUIMessageToolCall,
-  type InferUIMessageToolOutputs,
   type InferUIMessageTools,
   type UIDataTypes,
   type UIMessage,
+  type InferUIMessageToolCall,
   type UIMessagePart,
   type UITools,
 } from './ui-messages';
@@ -154,10 +153,7 @@ export type ChatOnErrorCallback = (error: Error) => void;
 export type ChatOnToolCallCallback<UI_MESSAGE extends UIMessage = UIMessage> =
   (options: {
     toolCall: InferUIMessageToolCall<UI_MESSAGE>;
-  }) =>
-    | InferUIMessageToolOutputs<UI_MESSAGE>
-    | void
-    | PromiseLike<InferUIMessageToolOutputs<UI_MESSAGE> | void>;
+  }) => void | PromiseLike<void>;
 
 export type ChatOnDataCallback<UI_MESSAGE extends UIMessage> = (
   dataPart: DataUIPart<InferUIMessageData<UI_MESSAGE>>,
@@ -212,8 +208,8 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
    * Optional callback function that is invoked when a tool call is received.
    * Intended for automatic client-side tool execution.
    *
-   * You can optionally return a result for the tool call,
-   * either synchronously or asynchronously.
+   * To add the tool output, call `addToolOutput` without awaiting it inside
+   * this callback. The callback's return value is not used.
    */
   onToolCall?: ChatOnToolCallCallback<UI_MESSAGE>;
 

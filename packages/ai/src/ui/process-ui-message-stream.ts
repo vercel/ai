@@ -24,7 +24,6 @@ import {
   type InferUIMessageData,
   type InferUIMessageMetadata,
   type InferUIMessageToolCall,
-  type InferUIMessageToolOutputs,
   type InferUIMessageTools,
   type ReasoningUIPart,
   type TextUIPart,
@@ -91,10 +90,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   dataPartSchemas?: UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>;
   onToolCall?: (options: {
     toolCall: InferUIMessageToolCall<UI_MESSAGE>;
-  }) =>
-    | InferUIMessageToolOutputs<UI_MESSAGE>
-    | void
-    | PromiseLike<InferUIMessageToolOutputs<UI_MESSAGE> | void>;
+  }) => void | PromiseLike<void>;
   onData?: (dataPart: DataUIPart<InferUIMessageData<UI_MESSAGE>>) => void;
   runUpdateMessageJob: (
     job: (options: {
@@ -658,32 +654,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               // requires additional state management for error handling etc.
               // Skip calling onToolCall for provider-executed tools since they are already executed
               if (onToolCall && !chunk.providerExecuted) {
-                const output = await onToolCall({
+                await onToolCall({
                   toolCall: chunk as InferUIMessageToolCall<UI_MESSAGE>,
                 });
-
-                if (output !== undefined) {
-                  if (chunk.dynamic) {
-                    updateDynamicToolPart({
-                      toolCallId: chunk.toolCallId,
-                      toolName: chunk.toolName,
-                      state: 'output-available',
-                      input: chunk.input,
-                      output,
-                      preliminary: undefined,
-                    });
-                  } else {
-                    updateToolPart({
-                      toolCallId: chunk.toolCallId,
-                      toolName: chunk.toolName,
-                      state: 'output-available',
-                      input: chunk.input,
-                      output,
-                    });
-                  }
-
-                  write();
-                }
               }
               break;
             }
