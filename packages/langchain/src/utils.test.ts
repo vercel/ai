@@ -265,6 +265,60 @@ describe('convertUserContent', () => {
     ]);
   });
 
+  it('should convert large binary image data without exceeding the call stack', () => {
+    // Real images are far larger than the argument limit of
+    // String.fromCharCode(...bytes), which threw "Maximum call stack size
+    // exceeded" for binary of this size.
+    const largeImage = new Uint8Array(300_000);
+    for (let i = 0; i < largeImage.length; i++) {
+      largeImage[i] = i % 256;
+    }
+
+    const content: UserContent = [
+      { type: 'image', image: largeImage, mediaType: 'image/png' },
+    ];
+
+    const result = convertUserContent(content);
+
+    const block = (
+      result.content as unknown as Array<{
+        type: string;
+        image_url: { url: string };
+      }>
+    )[0];
+    expect(block.type).toBe('image_url');
+
+    const base64 = block.image_url.url.split(',')[1];
+    const decoded = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    expect(decoded).toEqual(largeImage);
+  });
+
+  it('should convert large binary file data without exceeding the call stack', () => {
+    const largeFile = new Uint8Array(300_000);
+    for (let i = 0; i < largeFile.length; i++) {
+      largeFile[i] = i % 256;
+    }
+
+    const content: UserContent = [
+      {
+        type: 'file',
+        data: largeFile,
+        mediaType: 'application/pdf',
+        filename: 'large.pdf',
+      },
+    ];
+
+    const result = convertUserContent(content);
+
+    const block = (
+      result.content as unknown as Array<{ type: string; data: string }>
+    )[0];
+    expect(block.type).toBe('file');
+
+    const decoded = Uint8Array.from(atob(block.data), c => c.charCodeAt(0));
+    expect(decoded).toEqual(largeFile);
+  });
+
   it('should include image parts with URL using OpenAI image_url format', () => {
     const content: UserContent = [
       { type: 'text', text: 'What is in this image?' },
