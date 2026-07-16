@@ -1,5 +1,28 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.23
+
+### Patch Changes
+
+- Updated dependencies [0063c2d]
+  - @ai-sdk/openai@4.0.15
+
+## 5.0.22
+
+### Patch Changes
+
+- 43fc411: Return Bedrock Converse request bodies from language model generation and streaming calls.
+
+## 5.0.21
+
+### Patch Changes
+
+- b0e9d24: Avoid unreliable synthetic response tools when structured output is combined with tools on Bedrock Claude Opus 4.7 and 4.8.
+- Updated dependencies [31c7be8]
+  - @ai-sdk/provider-utils@5.0.10
+  - @ai-sdk/anthropic@4.0.15
+  - @ai-sdk/openai@4.0.14
+
 ## 5.0.20
 
 ### Patch Changes

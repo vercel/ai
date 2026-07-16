@@ -114,6 +114,102 @@ describe('XaiVideoModel', () => {
       });
     });
 
+    it('should pass user unchanged to the video generation endpoint', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            user: 'tenant/user:123',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/videos/generations`,
+      );
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'grok-imagine-video',
+        prompt,
+        user: 'tenant/user:123',
+      });
+    });
+
+    it('should omit user when it is not configured', async () => {
+      const model = createModel();
+
+      await model.doGenerate({ ...defaultOptions });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty('user');
+    });
+
+    it('should pass user unchanged to the video editing endpoint', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'edit-video',
+            videoUrl: 'https://example.com/source-video.mp4',
+            user: 'tenant/user:123',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(server.calls[0].requestUrl).toBe(`${TEST_BASE_URL}/videos/edits`);
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'grok-imagine-video',
+        prompt,
+        video: { url: 'https://example.com/source-video.mp4' },
+        user: 'tenant/user:123',
+      });
+    });
+
+    it('should not pass user to the video extension endpoint', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'extend-video',
+            videoUrl: 'https://example.com/source-video.mp4',
+            user: 'tenant/user:123',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/videos/extensions`,
+      );
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty('user');
+    });
+
+    it('should reject non-string user values', async () => {
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          providerOptions: {
+            xai: {
+              user: 123,
+              pollIntervalMs: 10,
+              pollTimeoutMs: 5000,
+            },
+          },
+        }),
+      ).rejects.toThrow(InvalidArgumentError);
+    });
+
     it('should poll the correct status URL', async () => {
       const model = createModel();
 

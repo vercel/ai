@@ -933,6 +933,7 @@ const { video } = await generateVideo({
   duration: 5,
   providerOptions: {
     xai: {
+      user: 'user-123',
       pollTimeoutMs: 600000, // 10 minutes
     } satisfies XaiVideoModelOptions,
   },
@@ -1202,6 +1203,14 @@ You can validate the provider options using the `XaiVideoModelOptions` type.
   Video resolution. When using the SDK's standard `resolution` parameter,
   `1280x720` maps to `720p` and `854x480` maps to `480p`.
   Use this provider option to pass the native format directly.
+
+- **user** _string_
+
+  Optional identifier for the end user responsible for the request. xAI uses
+  this value for abuse monitoring. It is sent unchanged for video generation
+  (including reference-to-video) and video editing requests, and is omitted
+  when not configured. It is not sent for video extension requests. Use an
+  opaque stable identifier and avoid sending unnecessary personal information.
 
 - **mode** _'edit-video' | 'extend-video' | 'reference-to-video'_
 

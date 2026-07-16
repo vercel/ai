@@ -1,5 +1,30 @@
 # ai
 
+## 7.0.29
+
+### Patch Changes
+
+- Updated dependencies [7069785]
+- Updated dependencies [4bf9ac2]
+  - @ai-sdk/gateway@4.0.21
+
+## 7.0.28
+
+### Patch Changes
+
+- 0bc8d4f: Fix chat `onFinish` handling when overlapping requests clear the active response before a resume stream finishes.
+
+## 7.0.27
+
+### Patch Changes
+
+- ac01b79: Allow validating assistant UI messages with empty parts so persisted errored responses remain loadable.
+- 2696562: `experimental_streamTranscribe` result promises now resolve without consuming `fullStream`: accessing any result promise consumes the stream internally. Previously `await result.text` alone deadlocked on transform backpressure. Because live transcription streams can be unbounded, `fullStream` is explicitly single-consumer (no replay buffering): access it once, before any result promise, when both stream parts and final results are needed.
+- Updated dependencies [31c7be8]
+- Updated dependencies [4d096f6]
+  - @ai-sdk/provider-utils@5.0.10
+  - @ai-sdk/gateway@4.0.20
+
 ## 7.0.26
 
 ### Patch Changes

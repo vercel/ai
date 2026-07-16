@@ -1,5 +1,29 @@
 # @ai-sdk/azure
 
+## 4.0.16
+
+### Patch Changes
+
+- Updated dependencies [0063c2d]
+  - @ai-sdk/openai@4.0.15
+
+## 4.0.15
+
+### Patch Changes
+
+- 49ae04d: fix: Azure DeepSeek structured output returns JSON in reasoning with empty text
+- Updated dependencies [49ae04d]
+  - @ai-sdk/deepseek@3.0.11
+
+## 4.0.14
+
+### Patch Changes
+
+- Updated dependencies [31c7be8]
+  - @ai-sdk/provider-utils@5.0.10
+  - @ai-sdk/deepseek@3.0.10
+  - @ai-sdk/openai@4.0.14
+
 ## 4.0.13
 
 ### Patch Changes

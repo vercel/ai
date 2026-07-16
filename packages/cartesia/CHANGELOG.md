@@ -1,5 +1,18 @@
 # @ai-sdk/cartesia
 
+## 3.0.4
+
+### Patch Changes
+
+- 529a5ef: Add Ink 2 streaming transcription through `TranscriptionModelV4.doStream` and the shared WebSocket transport.
+
+## 3.0.3
+
+### Patch Changes
+
+- Updated dependencies [31c7be8]
+  - @ai-sdk/provider-utils@5.0.10
+
 ## 3.0.2
 
 ### Patch Changes

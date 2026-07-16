@@ -1,5 +1,24 @@
 # @ai-sdk/google
 
+## 4.0.17
+
+### Patch Changes
+
+- 5b4a299: fix(provider/google): forward Vertex-only imageConfig options (personGeneration, prominentPeople, imageOutputOptions)
+
+## 4.0.16
+
+### Patch Changes
+
+- 662ddfc: Allow google.interactions agent requests to include supported tools, including file_search.
+
+## 4.0.15
+
+### Patch Changes
+
+- Updated dependencies [31c7be8]
+  - @ai-sdk/provider-utils@5.0.10
+
 ## 4.0.14
 
 ### Patch Changes

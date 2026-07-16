@@ -359,6 +359,10 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
       });
     }
 
+    if (!isExtension && xaiOptions?.user !== undefined) {
+      body.user = xaiOptions.user;
+    }
+
     if (xaiOptions != null) {
       for (const [key, value] of Object.entries(xaiOptions)) {
         if (
@@ -369,6 +373,7 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
             'resolution',
             'videoUrl',
             'referenceImageUrls',
+            'user',
           ].includes(key)
         ) {
           body[key] = value;
