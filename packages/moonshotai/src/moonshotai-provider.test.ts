@@ -73,7 +73,7 @@ describe('MoonshotAIProvider', () => {
 
     it('should return a chat model when called as a function', () => {
       const provider = createMoonshotAI();
-      const modelId = 'kimi-k2.5';
+      const modelId = 'kimi-k3';
 
       const model = provider(modelId);
       expect(model).toBeInstanceOf(MoonshotAIChatLanguageModel);
