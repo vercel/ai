@@ -69,6 +69,37 @@ describe('withUserAgentSuffix', () => {
     expect(result['user-agent']).toBe('ai-sdk/0.0.0-test');
   });
 
+  it('should sanitize slashes in suffix parts to produce valid RFC 9110 tokens', () => {
+    // Bun sets navigator.userAgent = "Bun/1.3.9" which produces
+    // "runtime/bun/1.3.9" — slashes in tokens are invalid per RFC 9110.
+    // Azure OpenAI rejects requests with such a User-Agent header.
+    const result = withUserAgentSuffix(
+      {},
+      'ai-sdk-provider-utils/0.0.0-test',
+      'runtime/bun/1.3.9',
+    );
+
+    expect(result['user-agent']).toBe(
+      'ai-sdk-provider-utils/0.0.0-test runtime/bun-1.3.9',
+    );
+  });
+
+  it('should sanitize the "runtime/node.js/<version>" part produced for Node.js < 21.1', () => {
+    // getRuntimeEnvironmentUserAgent() falls back to
+    // `runtime/node.js/${process.version}` on Node.js versions that predate
+    // navigator.userAgent (< 21.1). This also contains a slash nested inside
+    // the token portion and must be sanitized the same way as the Bun case.
+    const result = withUserAgentSuffix(
+      {},
+      'ai-sdk-provider-utils/0.0.0-test',
+      'runtime/node.js/v20.11.0',
+    );
+
+    expect(result['user-agent']).toBe(
+      'ai-sdk-provider-utils/0.0.0-test runtime/node.js-v20.11.0',
+    );
+  });
+
   it('should handle array header entries', () => {
     const headers: HeadersInit = [
       ['Authorization', 'Bearer token123'],

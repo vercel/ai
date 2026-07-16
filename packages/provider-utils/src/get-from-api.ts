@@ -74,7 +74,7 @@ export const getFromApi = async <T>({
 
     const requestHeaders = withUserAgentSuffix(
       outgoingHeaders,
-      `ai-sdk/provider-utils/${VERSION}`,
+      `ai-sdk-provider-utils/${VERSION}`,
       getRuntimeEnvironmentUserAgent(),
     );
 
