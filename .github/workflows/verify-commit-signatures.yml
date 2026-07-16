@@ -1,0 +1,105 @@
+name: Verify Commit Signatures
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify Commit Signatures
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # pull_request_target keeps this workflow on the trusted default branch.
+      # Do not check out or execute code from the pull request in this job.
+      - name: Verify every commit signature
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const query = `
+              query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $number) {
+                    commits(first: 100, after: $cursor) {
+                      nodes {
+                        commit {
+                          abbreviatedOid
+                          signature {
+                            isValid
+                            signer {
+                              login
+                            }
+                            state
+                          }
+                          url
+                        }
+                      }
+                      pageInfo {
+                        endCursor
+                        hasNextPage
+                      }
+                    }
+                  }
+                }
+              }
+            `;
+
+            const commits = [];
+            let cursor = null;
+
+            do {
+              const result = await github.graphql(query, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                number: context.payload.pull_request.number,
+                cursor,
+              });
+
+              const connection = result.repository.pullRequest.commits;
+              commits.push(...connection.nodes.map(node => node.commit));
+              cursor = connection.pageInfo.hasNextPage
+                ? connection.pageInfo.endCursor
+                : null;
+            } while (cursor != null);
+
+            const unverifiedCommits = commits.filter(
+              commit =>
+                commit.signature?.isValid !== true ||
+                commit.signature.signer == null,
+            );
+
+            if (unverifiedCommits.length === 0) {
+              await core.summary
+                .addHeading('Commit signature verification passed')
+                .addRaw(
+                  `All ${commits.length} commit${commits.length === 1 ? '' : 's'} have GitHub-verified signatures.`,
+                )
+                .write();
+              return;
+            }
+
+            const failures = unverifiedCommits.map(commit => {
+              const reason =
+                commit.signature == null
+                  ? 'unsigned'
+                  : commit.signature.isValid !== true
+                    ? commit.signature.state.toLowerCase()
+                    : 'signature is not linked to a GitHub user';
+
+              return `- [\`${commit.abbreviatedOid}\`](${commit.url}): ${reason}`;
+            });
+
+            await core.summary
+              .addHeading('Commit signature verification failed')
+              .addRaw(failures.join('\n'))
+              .addRaw(
+                '\n\nSign or re-sign these commits with a key linked to your GitHub account, then force-push the rewritten commits.',
+              )
+              .write();
+
+            core.setFailed(
+              `${unverifiedCommits.length} of ${commits.length} commits do not have a GitHub-verified signature.`,
+            );
