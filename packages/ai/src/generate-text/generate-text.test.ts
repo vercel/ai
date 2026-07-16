@@ -6670,6 +6670,20 @@ describe('generateText', () => {
             "options": {
               "abortSignal": undefined,
               "context": {},
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call-1",
+            },
+            "type": "onInputStart",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "context": {},
               "input": {
                 "value": "value",
               },
