@@ -259,7 +259,11 @@ export function convertToOpenAIChatMessages({
 
         messages.push({
           role: 'assistant',
-          content: hasPromptCacheBreakpoint ? textParts : text,
+          content: hasPromptCacheBreakpoint
+            ? textParts
+            : toolCalls.length > 0
+              ? text || null
+              : text,
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
 

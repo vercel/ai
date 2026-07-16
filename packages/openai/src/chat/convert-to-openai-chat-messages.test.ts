@@ -514,6 +514,66 @@ describe('user messages', () => {
   });
 });
 
+describe('assistant messages', () => {
+  it('should use null content when there are only tool calls', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              input: { city: 'San Francisco' },
+              toolCallId: 'weather-call',
+              toolName: 'weather',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": null,
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "function": {
+                "arguments": "{"city":"San Francisco"}",
+                "name": "weather",
+              },
+              "id": "weather-call",
+              "type": "function",
+            },
+          ],
+        },
+      ]
+    `);
+  });
+
+  it('should preserve empty content when there are no tool calls', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: '' }],
+        },
+      ],
+    });
+
+    expect(result.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "",
+          "role": "assistant",
+          "tool_calls": undefined,
+        },
+      ]
+    `);
+  });
+});
+
 describe('tool calls', () => {
   it('should add a prompt cache breakpoint to assistant text content', () => {
     const result = convertToOpenAIChatMessages({
@@ -614,7 +674,7 @@ describe('tool calls', () => {
     expect(result.messages).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             type: 'function',
