@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.109
+
+### Patch Changes
+
+- b0db900: feat(provider/xai): support end-user identifiers for video generation and editing
+
 ## 3.0.108
 
 ### Patch Changes

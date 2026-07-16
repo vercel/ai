@@ -1,5 +1,11 @@
 # @ai-sdk/moonshotai
 
+## 2.0.38
+
+### Patch Changes
+
+- 103056e: feat: add kimi-k3 model and `reasoningEffort` provider option
+
 ## 2.0.37
 
 ### Patch Changes
