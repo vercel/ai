@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.113
+
+### Patch Changes
+
+- 21eef03: Send null content for tool-call-only assistant messages.
+
 ## 2.0.112
 
 ### Patch Changes
