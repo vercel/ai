@@ -85,6 +85,29 @@ describe('doGenerate', () => {
     ).rejects.toBeInstanceOf(UnsupportedFunctionalityError);
   });
 
+  it('warns when streaming options are passed to batch transcription', async () => {
+    prepareJsonFixtureResponse('elevenlabs-transcription');
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        elevenlabs: {
+          streaming: { includeTimestamps: true },
+        },
+      },
+    });
+
+    expect(result.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'providerOptions.elevenlabs.streaming',
+        details:
+          'ElevenLabs batch transcription does not support streaming options.',
+      },
+    ]);
+  });
+
   describe('transcription', () => {
     beforeEach(() => prepareJsonFixtureResponse('elevenlabs-transcription'));
 

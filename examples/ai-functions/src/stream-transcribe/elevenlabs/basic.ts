@@ -7,6 +7,7 @@ import {
   experimental_streamTranscribe as streamTranscribe,
   generateSpeech,
 } from 'ai';
+import { setTimeout as delay } from 'node:timers/promises';
 import { WebSocket } from 'ws';
 import { run } from '../../lib/run';
 
@@ -25,15 +26,23 @@ run(async () => {
     outputFormat: 'pcm',
   });
 
-  // Stream the raw audio in chunks, as a microphone would:
+  // Stream the raw audio in chunks, as a microphone would.
   const bytes = speech.audio.uint8Array;
-  const chunkSize = 16 * 1024;
+  // At 24kHz, 16-bit mono PCM, 4,800 bytes represents 100ms of audio.
+  const chunkSize = 4800;
+  let offset = 0;
   const audio = new ReadableStream<Uint8Array>({
-    start(controller) {
-      for (let i = 0; i < bytes.length; i += chunkSize) {
-        controller.enqueue(bytes.slice(i, i + chunkSize));
+    async pull(controller) {
+      if (offset >= bytes.length) {
+        controller.close();
+        return;
       }
-      controller.close();
+
+      controller.enqueue(bytes.slice(offset, offset + chunkSize));
+      offset += chunkSize;
+      if (offset < bytes.length) {
+        await delay(100);
+      }
     },
   });
 

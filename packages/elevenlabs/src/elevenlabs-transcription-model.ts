@@ -113,6 +113,15 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
       schema: elevenLabsTranscriptionModelOptionsSchema,
     });
 
+    if (elevenlabsOptions?.streaming != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.elevenlabs.streaming',
+        details:
+          'ElevenLabs batch transcription does not support streaming options.',
+      });
+    }
+
     // Create form data with base fields
     const formData = new FormData();
     const blob =
@@ -344,7 +353,6 @@ function buildElevenLabsRealtimeTranscriptionUrl({
   modelId: string;
   streamingOptions:
     | NonNullable<ElevenLabsTranscriptionModelOptions['streaming']>
-    | null
     | undefined;
 }): URL {
   const url = new URL(baseUrl);

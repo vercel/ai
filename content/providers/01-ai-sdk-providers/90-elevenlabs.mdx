@@ -110,6 +110,7 @@ const result = await generateSpeech({
 
 - **voiceSettings** _object or null_  
   Optional. Voice settings that override stored settings for the given voice. These are applied only to the current request.
+
   - **stability** _double or null_  
     Optional. Determines how stable the voice is and the randomness between each generation. Lower values introduce broader emotional range; higher values result in a more monotonous voice.
   - **useSpeakerBoost** _boolean or null_  
@@ -122,6 +123,7 @@ const result = await generateSpeech({
 - **pronunciationDictionaryLocators** _array of objects or null_  
   Optional. A list of pronunciation dictionary locators to apply to the text, in order. Up to 3 locators per request.  
   Each locator object:
+
   - **pronunciationDictionaryId** _string_ (required)  
     The ID of the pronunciation dictionary.
   - **versionId** _string or null_ (optional)  
@@ -145,6 +147,7 @@ const result = await generateSpeech({
 - **applyTextNormalization** _enum_  
   Optional. Controls text normalization.  
   Allowed values: `'auto'` (default), `'on'`, `'off'`.
+
   - `'auto'`: System decides whether to apply normalization (e.g., spelling out numbers).
   - `'on'`: Always apply normalization.
   - `'off'`: Never apply normalization.  
@@ -239,11 +242,21 @@ The following provider options are available:
   For `'pcm_s16le_16'`, the input audio must be 16-bit PCM at a 16kHz sample rate, single channel (mono), and little-endian byte order.
   Latency will be lower than with passing an encoded waveform.
 
-### Realtime Transcription
+### Model Capabilities
 
-Scribe v2 Realtime supports live transcription through the experimental
-`streamTranscribe` API. It accepts raw PCM audio at 8, 16, 22.05, 24, 44.1, or
-48 kHz, or 8 kHz mu-law audio.
+| Model                    | Transcription | Duration  | Segments  | Language  |
+| ------------------------ | ------------- | --------- | --------- | --------- |
+| `scribe_v1`              | <Check />     | <Check /> | <Check /> | <Check /> |
+| `scribe_v1_experimental` | <Check />     | <Check /> | <Check /> | <Check /> |
+| `scribe_v2`              | <Check />     | <Check /> | <Check /> | <Check /> |
+
+## Streaming Transcription Models
+
+<Note type="warning">Streaming transcription is an experimental feature.</Note>
+
+Scribe v2 Realtime supports live transcription through
+`experimental_streamTranscribe`. It accepts raw PCM audio at 8, 16, 22.05, 24,
+44.1, or 48 kHz, or 8 kHz mu-law audio.
 
 ```ts
 import {
@@ -274,10 +287,18 @@ const result = streamTranscribe({
 
 for await (const part of result.fullStream) {
   if (part.type === 'transcript-partial') {
-    console.log(part.text);
+    console.log('partial:', part.text);
+  }
+
+  if (part.type === 'transcript-final') {
+    console.log('final:', part.text);
   }
 }
 ```
+
+The ElevenLabs realtime endpoint authenticates with a WebSocket header. Use a
+header-capable WebSocket implementation, such as `ws`, in runtimes whose native
+WebSocket constructor cannot send headers.
 
 The `streaming` provider options mirror ElevenLabs' realtime transcription
 settings: `commitStrategy`, `enableLogging`, `filterBackgroundAudio`,
@@ -285,11 +306,11 @@ settings: `commitStrategy`, `enableLogging`, `filterBackgroundAudio`,
 `minSilenceDurationMs`, `minSpeechDurationMs`, `noVerbatim`, `previousText`,
 `vadSilenceThresholdSecs`, and `vadThreshold`.
 
+See [Transcription](/docs/ai-sdk-core/transcription) for more information about
+streaming transcription.
+
 ### Model Capabilities
 
-| Model                    | Transcription | Duration  | Segments  | Language  |
-| ------------------------ | ------------- | --------- | --------- | --------- |
-| `scribe_v1`              | <Check />     | <Check /> | <Check /> | <Check /> |
-| `scribe_v1_experimental` | <Check />     | <Check /> | <Check /> | <Check /> |
-| `scribe_v2`              | <Check />     | <Check /> | <Check /> | <Check /> |
-| `scribe_v2_realtime`     | <Check />     | <Check /> | <Check /> | <Check /> |
+| Model                | Streaming Transcription | Timestamps          | Language Detection  |
+| -------------------- | ----------------------- | ------------------- | ------------------- |
+| `scribe_v2_realtime` | <Check size={18} />     | <Check size={18} /> | <Check size={18} /> |
