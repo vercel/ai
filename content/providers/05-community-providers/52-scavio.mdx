@@ -1,0 +1,80 @@
+---
+title: Scavio
+description: Real-time Google/YouTube/Amazon/Walmart/Reddit/TikTok/Instagram search tools for the AI SDK.
+---
+
+# Scavio
+
+[Scavio](https://scavio.dev) is a search API built for AI agents. The [`@scavio/ai-sdk`](https://www.npmjs.com/package/@scavio/ai-sdk) package provides AI SDK tools that give your agents real-time search across:
+
+- **Google** web search (`scavioSearch`)
+- **YouTube** video search (`scavioYoutubeSearch`)
+- **Reddit** post and community search (`scavioRedditSearch`)
+- **Amazon** product search (`scavioAmazonSearch`)
+- **Walmart** product search (`scavioWalmartSearch`)
+- **TikTok** video search (`scavioTiktokSearch`)
+- **Instagram** user search (`scavioInstagramSearch`)
+
+Learn more in the [Scavio documentation](https://scavio.dev/docs/vercel).
+
+## Setup
+
+The Scavio tools are available in the `@scavio/ai-sdk` module. You can install it with:
+
+<InstallPackages packages="@scavio/ai-sdk" />
+
+`ai` and `zod` are peer dependencies.
+
+Set your Scavio API key:
+
+```bash
+export SCAVIO_API_KEY=sk_live_your_api_key
+```
+
+You can get your API key from the [Scavio dashboard](https://dashboard.scavio.dev).
+
+## Examples
+
+### `generateText` with a single tool
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { scavioSearch } from '@scavio/ai-sdk';
+
+const { text } = await generateText({
+  model: openai('gpt-5.5'),
+  tools: { scavio_search: scavioSearch({ maxResults: 5 }) },
+  stopWhen: stepCountIs(3),
+  prompt: 'What did Vercel announce at their most recent Ship conference?',
+});
+
+console.log(text);
+```
+
+### `generateText` with all tools
+
+Use `scavioTools()` to pass every Scavio search tool at once and let the model pick the right source:
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { scavioTools } from '@scavio/ai-sdk';
+
+const { text } = await generateText({
+  model: openai('gpt-5.5'),
+  tools: scavioTools(),
+  stopWhen: stepCountIs(5),
+  prompt: 'Compare prices for a mechanical keyboard on Amazon and Walmart.',
+});
+
+console.log(text);
+```
+
+Each tool factory accepts an optional config object with `apiKey` (falls back to the `SCAVIO_API_KEY` environment variable) and `maxResults` (defaults to 10).
+
+## Additional Resources
+
+- [Scavio Documentation](https://scavio.dev/docs/vercel)
+- [GitHub Repository](https://github.com/scavio-ai/vercel-ai-scavio)
+- [Scavio Dashboard](https://dashboard.scavio.dev)
