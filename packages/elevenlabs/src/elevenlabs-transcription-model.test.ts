@@ -53,6 +53,11 @@ class MockWebSocket {
   message(value: unknown) {
     this.onmessage?.({ data: JSON.stringify(value) });
   }
+
+  remoteClose() {
+    this.readyState = 3;
+    this.onclose?.({});
+  }
 }
 
 const flush = () => new Promise(resolve => setTimeout(resolve, 0));
@@ -385,6 +390,106 @@ describe('doStream', () => {
       modelId: 'scribe_v2_realtime',
     });
     expect(ws.close).toHaveBeenCalledWith(1000);
+  });
+
+  it('finishes with committed text when the socket closes before timestamps arrive', async () => {
+    const result = await createElevenLabs({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('scribe_v2_realtime').doStream!({
+      audio: convertArrayToReadableStream([new Uint8Array([1])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: {
+        elevenlabs: { streaming: { includeTimestamps: true } },
+      },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ message_type: 'session_started', session_id: 'session-1' });
+    await flush();
+    ws.message({ message_type: 'committed_transcript', text: 'Hello' });
+    ws.remoteClose();
+
+    await expect(partsPromise).resolves.toEqual([
+      { type: 'stream-start', warnings: [] },
+      {
+        type: 'transcript-final',
+        id: 'session-1:0',
+        text: 'Hello',
+      },
+      {
+        type: 'finish',
+        text: 'Hello',
+        segments: [],
+        language: undefined,
+        durationInSeconds: undefined,
+      },
+    ]);
+  });
+
+  it('finishes a timestamp-only response to the final commit', async () => {
+    const result = await createElevenLabs({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('scribe_v2_realtime').doStream!({
+      audio: convertArrayToReadableStream([new Uint8Array([1])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: {
+        elevenlabs: { streaming: { includeTimestamps: true } },
+      },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ message_type: 'session_started', session_id: 'session-1' });
+    await flush();
+    ws.message({
+      message_type: 'committed_transcript_with_timestamps',
+      text: 'Hello',
+      language_code: 'en',
+      words: [{ text: 'Hello', start: 0, end: 0.4, type: 'word' }],
+    });
+
+    await expect(partsPromise).resolves.toEqual([
+      { type: 'stream-start', warnings: [] },
+      {
+        type: 'transcript-final',
+        id: 'session-1:0',
+        text: 'Hello',
+        startSecond: 0,
+        endSecond: 0.4,
+      },
+      {
+        type: 'finish',
+        text: 'Hello',
+        segments: [{ text: 'Hello', startSecond: 0, endSecond: 0.4 }],
+        language: 'en',
+        durationInSeconds: 0.4,
+      },
+    ]);
+  });
+
+  it('errors when the upstream closes before the final commit', async () => {
+    const result = await createElevenLabs({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('scribe_v2_realtime').doStream!({
+      audio: new ReadableStream<Uint8Array>(),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ message_type: 'session_started', session_id: 'session-1' });
+    ws.remoteClose();
+
+    await expect(partsPromise).rejects.toThrow(
+      'ElevenLabs realtime transcription stream closed before completion',
+    );
   });
 
   it('supports 8 kHz mu-law input', async () => {

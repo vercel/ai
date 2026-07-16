@@ -500,9 +500,15 @@ function createElevenLabsRealtimeTranscriptionStream({
         onAbort: finishWithError,
         onClose: () => {
           if (finished) return;
-          finished = true;
-          cleanup();
-          controller.close();
+          if (endOfInput && finalCommitEventCount != null) {
+            finish();
+            return;
+          }
+          finishWithError(
+            new Error(
+              'ElevenLabs realtime transcription stream closed before completion.',
+            ),
+          );
         },
         onMessageText: async text => {
           const parsed = await safeParseJSON({ text });
@@ -605,8 +611,9 @@ function createElevenLabsRealtimeTranscriptionStream({
 
               if (
                 endOfInput &&
-                finalCommitEventCount != null &&
-                timestampedCommitCount >= finalCommitEventCount
+                timestampedCommitCount > committedEventsAtEndOfInput &&
+                (finalCommitEventCount == null ||
+                  timestampedCommitCount >= finalCommitEventCount)
               ) {
                 finish();
               }
