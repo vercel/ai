@@ -645,6 +645,143 @@ export default function Chat() {
 }
 ```
 
+## Reacting to server-executed tools
+
+Server-side tools run inside your route handler, but their full lifecycle is streamed to the client:
+the tool part of the assistant message moves through the states `input-streaming`, `input-available`, and finally `output-available` or `output-error`.
+There is no dedicated `useChat` callback for these transitions:
+`onToolCall` is intended for automatic client-side tool execution, and no callback fires when a tool result arrives.
+
+There are two supported patterns for driving UI from server-side tool activity:
+
+### Deriving status from tool part states
+
+For status that is rendered inside the conversation, you do not need a callback.
+Derive it from the `state` property of the tool parts, as shown in the [tool call streaming](#tool-call-streaming) section above:
+
+```tsx filename='app/page.tsx'
+// ...
+// where you render the message parts:
+message.parts.map(part => {
+  switch (part.type) {
+    case 'tool-getWeatherInformation':
+      switch (part.state) {
+        case 'input-streaming':
+        case 'input-available':
+          return <div>Getting the weather information...</div>;
+        case 'output-available':
+          return <pre>{JSON.stringify(part.output, null, 2)}</pre>;
+        case 'output-error':
+          return <div>Error: {part.errorText}</div>;
+      }
+  }
+});
+// ...
+```
+
+### Streaming tool status as data parts
+
+For status UI that lives outside the message list (e.g. a status label near the chat input),
+you can stream a transient [custom data part](/docs/ai-sdk-ui/streaming-data) to the client when the tool starts executing
+and handle it with the `onData` callback.
+
+First, define a message type with a data part schema for the status:
+
+```tsx filename='ai/types.ts'
+import { UIMessage } from 'ai';
+
+export type MyUIMessage = UIMessage<
+  never,
+  { 'tool-status': { label: string } }
+>;
+```
+
+On the server, write the data part next to the tool's `execute` function using the `createUIMessageStream` writer:
+
+```tsx filename='app/api/chat/route.ts'
+import {
+  convertToModelMessages,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
+import { z } from 'zod';
+import type { MyUIMessage } from '@/ai/types';
+
+export async function POST(req: Request) {
+  const { messages }: { messages: MyUIMessage[] } = await req.json();
+
+  const stream = createUIMessageStream<MyUIMessage>({
+    execute: async ({ writer }) => {
+      const result = streamText({
+        model: __MODEL__,
+        messages: await convertToModelMessages(messages),
+        tools: {
+          searchKnowledgeBase: {
+            description: 'Search the knowledge base',
+            inputSchema: z.object({ query: z.string() }),
+            execute: async ({ query }) => {
+              // announce the tool execution to the client:
+              writer.write({
+                type: 'data-tool-status',
+                data: { label: 'Searching the knowledge base...' },
+                transient: true, // won't be added to message history
+              });
+
+              return await searchKnowledgeBase(query);
+            },
+          },
+        },
+      });
+
+      writer.merge(toUIMessageStream({ stream: result.stream }));
+    },
+  });
+
+  return createUIMessageStreamResponse({ stream });
+}
+```
+
+On the client, handle the data part in `onData`:
+
+```tsx filename='app/page.tsx'
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import { useState } from 'react';
+import type { MyUIMessage } from '@/ai/types';
+
+export default function Chat() {
+  const [toolStatus, setToolStatus] = useState<string>();
+
+  const { messages, sendMessage } = useChat<MyUIMessage>({
+    onData: dataPart => {
+      if (dataPart.type === 'data-tool-status') {
+        setToolStatus(dataPart.data.label);
+      }
+    },
+    onFinish: () => setToolStatus(undefined),
+  });
+
+  // render toolStatus while the response is streaming
+  // ...
+}
+```
+
+This pattern also works for backends that do not use the AI SDK on the server:
+any backend that emits the [UI Message Stream Protocol](/docs/ai-sdk-ui/stream-protocol#data-stream-protocol)
+can write the same transient data part when a tool starts executing.
+
+<Note type="warning">
+  Do not use `onToolCall` to track the status of server-side tools. It is
+  intended for automatic client-side tool execution: it only fires once the
+  complete tool input is available (not when the tool call starts streaming), it
+  never fires for provider-executed tool calls, and no callback fires when the
+  tool output arrives. Use the tool part states or transient data parts shown
+  above instead.
+</Note>
+
 ## Step start parts
 
 When you are using multi-step tool calls, the AI SDK will add step start parts to the assistant messages.
