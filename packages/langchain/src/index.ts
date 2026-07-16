@@ -1,4 +1,6 @@
 export {
+  baseMessagesToUIMessages,
+  stateSnapshotToUIMessages,
   toBaseMessages,
   toUIMessageStream,
   convertModelMessages,

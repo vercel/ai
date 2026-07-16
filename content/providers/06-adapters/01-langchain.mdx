@@ -25,6 +25,8 @@ enabling you to use LangChain models and LangGraph agents with AI SDK UI compone
 ## Features
 
 - Convert AI SDK `UIMessage` to LangChain `BaseMessage` format using `toBaseMessages`
+- Restore AI SDK `UIMessage` objects from LangChain `BaseMessage` history using `baseMessagesToUIMessages`
+- Restore chat history from LangGraph `StateSnapshot` objects using `stateSnapshotToUIMessages`
 - Transform LangChain/LangGraph streams to AI SDK `UIMessageStream` using `toUIMessageStream`
 - Support for `streamEvents()` output for granular event streaming and observability
 - `LangSmithDeploymentTransport` for connecting directly to a deployed LangGraph graph
@@ -461,6 +463,43 @@ const langchainMessages = convertModelMessages(modelMessages);
 - `modelMessages`: `ModelMessage[]` - Array of model messages
 
 **Returns:** `BaseMessage[]`
+
+### `baseMessagesToUIMessages(messages)`
+
+Converts LangChain `BaseMessage` objects to AI SDK `UIMessage` objects. Tool
+results are folded into the matching assistant tool part by `tool_call_id`,
+which makes the result suitable for `useChat`'s `messages`.
+
+```ts
+import { baseMessagesToUIMessages } from '@ai-sdk/langchain';
+
+const uiMessages = baseMessagesToUIMessages(langchainMessages);
+```
+
+**Parameters:**
+
+- `messages`: `BaseMessage[]` - Array of LangChain messages
+
+**Returns:** `UIMessage[]`
+
+### `stateSnapshotToUIMessages(snapshot)`
+
+Converts a LangGraph `StateSnapshot` to AI SDK `UIMessage` objects. This reads
+messages from `snapshot.values.messages` and restores pending human-in-the-loop
+tool approvals from LangGraph interrupts.
+
+```ts
+import { stateSnapshotToUIMessages } from '@ai-sdk/langchain';
+
+const state = await agent.getState({ configurable: { thread_id: threadId } });
+const uiMessages = stateSnapshotToUIMessages(state);
+```
+
+**Parameters:**
+
+- `snapshot`: `StateSnapshot` - LangGraph state snapshot returned by `getState`
+
+**Returns:** `UIMessage[]`
 
 ### `toUIMessageStream(stream)`
 

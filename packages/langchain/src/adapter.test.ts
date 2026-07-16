@@ -6,12 +6,16 @@ import {
   toUIMessageStream,
   toBaseMessages,
   convertModelMessages,
+  baseMessagesToUIMessages,
+  stateSnapshotToUIMessages,
 } from './adapter';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { ModelMessage, UIMessage } from 'ai';
 import {
   AIMessage,
   AIMessageChunk,
+  ChatMessage,
+  FunctionMessage,
   HumanMessage,
   SystemMessage,
   ToolMessage,
@@ -1390,6 +1394,689 @@ describe('toBaseMessages', () => {
         image_url: { url: 'data:image/png;base64,abc123' },
       },
     ]);
+  });
+});
+
+describe('baseMessagesToUIMessages', () => {
+  it('should convert system and user messages', () => {
+    const result = baseMessagesToUIMessages([
+      new SystemMessage({ id: 'system-1', content: 'Be helpful.' }),
+      new HumanMessage({ id: 'human-1', content: 'Hello!' }),
+    ]);
+
+    expect(result).toEqual([
+      {
+        id: 'system-1',
+        role: 'system',
+        parts: [{ type: 'text', text: 'Be helpful.' }],
+      },
+      {
+        id: 'human-1',
+        role: 'user',
+        parts: [{ type: 'text', text: 'Hello!' }],
+      },
+    ]);
+  });
+
+  it('should fold ToolMessage results into matching assistant tool parts', () => {
+    const result = baseMessagesToUIMessages([
+      new HumanMessage({ id: 'human-1', content: 'Weather in Recife?' }),
+      new AIMessage({
+        id: 'assistant-1',
+        content: 'I will check.',
+        tool_calls: [
+          {
+            id: 'call-weather',
+            name: 'get_weather',
+            args: { city: 'Recife' },
+          },
+        ],
+      }),
+      new ToolMessage({
+        id: 'tool-1',
+        tool_call_id: 'call-weather',
+        content: 'Sunny, 29C',
+      }),
+    ]);
+
+    expect(result).toEqual([
+      {
+        id: 'human-1',
+        role: 'user',
+        parts: [{ type: 'text', text: 'Weather in Recife?' }],
+      },
+      {
+        id: 'assistant-1',
+        role: 'assistant',
+        parts: [
+          { type: 'text', text: 'I will check.' },
+          {
+            type: 'dynamic-tool',
+            toolName: 'get_weather',
+            toolCallId: 'call-weather',
+            state: 'output-available',
+            input: { city: 'Recife' },
+            output: 'Sunny, 29C',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert plain Python AIMessageChunk objects from RemoteGraph', () => {
+    const result = baseMessagesToUIMessages([
+      {
+        id: 'assistant-python',
+        type: 'AIMessageChunk',
+        content: 'Restored from Python',
+      },
+    ] as any);
+
+    expect(result).toEqual([
+      {
+        id: 'assistant-python',
+        role: 'assistant',
+        parts: [{ type: 'text', text: 'Restored from Python' }],
+      },
+    ]);
+  });
+
+  it('should convert ChatMessage instances using their chat role', () => {
+    const result = baseMessagesToUIMessages([
+      new ChatMessage({ id: 'chat-1', role: 'assistant', content: 'Hi' }),
+    ]);
+
+    expect(result).toEqual([
+      {
+        id: 'chat-1',
+        role: 'assistant',
+        parts: [{ type: 'text', text: 'Hi' }],
+      },
+    ]);
+  });
+
+  it('should preserve FunctionMessage content as a dynamic tool result', () => {
+    const result = baseMessagesToUIMessages([
+      new FunctionMessage({
+        id: 'function-1',
+        name: 'lookup',
+        content: 'Function result',
+      }),
+    ]);
+
+    expect(result).toEqual([
+      {
+        id: 'function-1',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'dynamic-tool',
+            toolName: 'lookup',
+            toolCallId: 'function-1',
+            state: 'output-available',
+            input: {},
+            output: 'Function result',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should restore image URLs with an image media type for round trips', async () => {
+    const uiMessages = baseMessagesToUIMessages([
+      new HumanMessage({
+        id: 'human-image',
+        content: [
+          { type: 'text', text: 'Describe this image.' },
+          {
+            type: 'image_url',
+            image_url: { url: 'https://example.com/image.png' },
+          },
+        ],
+      }),
+    ]);
+
+    expect(uiMessages).toEqual([
+      {
+        id: 'human-image',
+        role: 'user',
+        parts: [
+          { type: 'text', text: 'Describe this image.' },
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            url: 'https://example.com/image.png',
+          },
+        ],
+      },
+    ]);
+
+    const roundTripped = await toBaseMessages(uiMessages);
+    expect(roundTripped[0].content).toEqual([
+      { type: 'text', text: 'Describe this image.' },
+      {
+        type: 'image_url',
+        image_url: { url: 'https://example.com/image.png' },
+      },
+    ]);
+  });
+
+  it('should keep empty messages valid with an empty text part', () => {
+    const result = baseMessagesToUIMessages([
+      new AIMessage({ id: 'assistant-empty', content: '' }),
+    ]);
+
+    expect(result).toEqual([
+      {
+        id: 'assistant-empty',
+        role: 'assistant',
+        parts: [{ type: 'text', text: '' }],
+      },
+    ]);
+  });
+
+  it('should create unique UI message ids when LangChain ids repeat', () => {
+    const result = baseMessagesToUIMessages([
+      new HumanMessage({ id: 'duplicate-id', content: 'First' }),
+      new HumanMessage({ id: 'duplicate-id', content: 'Second' }),
+    ]);
+
+    expect(result.map(message => message.id)).toEqual([
+      'duplicate-id',
+      'duplicate-id-1',
+    ]);
+  });
+
+  it('should synthesize tool call ids per message to avoid collisions', () => {
+    const result = baseMessagesToUIMessages([
+      {
+        id: 'assistant-1',
+        type: 'ai',
+        content: '',
+        additional_kwargs: {
+          tool_calls: [
+            {
+              function: {
+                name: 'lookup',
+                arguments: '{"query":"first"}',
+              },
+            },
+          ],
+        },
+      },
+      {
+        id: 'assistant-2',
+        type: 'ai',
+        content: '',
+        additional_kwargs: {
+          tool_calls: [
+            {
+              function: {
+                name: 'lookup',
+                arguments: '{"query":"second"}',
+              },
+            },
+          ],
+        },
+      },
+    ] as any);
+
+    expect(result[0].parts[0]).toMatchObject({
+      type: 'dynamic-tool',
+      toolCallId: 'call_assistant-1_0',
+    });
+    expect(result[1].parts[0]).toMatchObject({
+      type: 'dynamic-tool',
+      toolCallId: 'call_assistant-2_0',
+    });
+  });
+
+  it('should restore non-string tool errors with default error text', () => {
+    const result = baseMessagesToUIMessages([
+      new ToolMessage({
+        id: 'tool-error',
+        tool_call_id: 'call-error',
+        content: [{ type: 'json', value: { message: 'boom' } }] as any,
+        status: 'error',
+      }),
+    ]);
+
+    expect(result[0].parts[0]).toMatchObject({
+      type: 'dynamic-tool',
+      toolCallId: 'call-error',
+      state: 'output-error',
+      input: {},
+      errorText: 'Tool execution failed',
+    });
+  });
+
+  it('should preserve citation source ids and provider metadata like streaming', () => {
+    const result = baseMessagesToUIMessages([
+      new AIMessage({
+        id: 'assistant-source',
+        content: [
+          {
+            type: 'text',
+            text: 'Cited text',
+            annotations: [
+              {
+                type: 'citation',
+                url: 'https://example.com/source',
+                title: 'Example source',
+                citedText: 'Cited text',
+                startIndex: 0,
+                endIndex: 10,
+              },
+            ],
+          },
+        ],
+      }),
+    ]);
+
+    expect(result[0].parts).toContainEqual({
+      type: 'source-url',
+      sourceId: 'https://example.com/source',
+      url: 'https://example.com/source',
+      title: 'Example source',
+      providerMetadata: {
+        langchain: {
+          citedText: 'Cited text',
+          startIndex: 0,
+          endIndex: 10,
+        },
+      },
+    });
+  });
+});
+
+describe('stateSnapshotToUIMessages', () => {
+  it('should read messages from snapshot values', () => {
+    const result = stateSnapshotToUIMessages({
+      values: {
+        messages: [
+          new HumanMessage({ id: 'human-1', content: 'Hello snapshot' }),
+        ],
+      },
+    } as any);
+
+    expect(result).toEqual([
+      {
+        id: 'human-1',
+        role: 'user',
+        parts: [{ type: 'text', text: 'Hello snapshot' }],
+      },
+    ]);
+  });
+
+  it('should mark matching interrupted tool calls as approval requested', () => {
+    const result = stateSnapshotToUIMessages({
+      values: {
+        messages: [
+          new AIMessage({
+            id: 'assistant-1',
+            content: '',
+            tool_calls: [
+              {
+                id: 'call-delete',
+                name: 'delete_file',
+                args: { filename: 'report.pdf' },
+              },
+            ],
+          }),
+        ],
+      },
+      tasks: [
+        {
+          id: 'task-1',
+          name: 'agent',
+          interrupts: [
+            {
+              value: {
+                actionRequests: [
+                  {
+                    name: 'delete_file',
+                    args: { filename: 'report.pdf' },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    } as any);
+
+    expect(result[0]).toMatchObject({
+      id: 'assistant-1',
+      role: 'assistant',
+      parts: [
+        {
+          type: 'dynamic-tool',
+          toolName: 'delete_file',
+          toolCallId: 'call-delete',
+          state: 'approval-requested',
+          input: { filename: 'report.pdf' },
+          approval: { id: 'call-delete' },
+        },
+      ],
+    });
+  });
+
+  it('should not convert completed matching tool calls back to approval requested', () => {
+    const result = stateSnapshotToUIMessages({
+      values: {
+        messages: [
+          new AIMessage({
+            id: 'assistant-1',
+            content: '',
+            tool_calls: [
+              {
+                id: 'call-delete-complete',
+                name: 'delete_file',
+                args: { filename: 'report.pdf' },
+              },
+            ],
+          }),
+          new ToolMessage({
+            id: 'tool-1',
+            tool_call_id: 'call-delete-complete',
+            content: 'Deleted',
+          }),
+        ],
+      },
+      tasks: [
+        {
+          id: 'task-1',
+          name: 'agent',
+          interrupts: [
+            {
+              value: {
+                actionRequests: [
+                  {
+                    name: 'delete_file',
+                    args: { filename: 'report.pdf' },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    } as any);
+
+    expect(result[0]).toMatchObject({
+      id: 'assistant-1',
+      role: 'assistant',
+      parts: [
+        {
+          type: 'dynamic-tool',
+          toolName: 'delete_file',
+          toolCallId: 'call-delete-complete',
+          state: 'output-available',
+          input: { filename: 'report.pdf' },
+          output: 'Deleted',
+        },
+        {
+          type: 'dynamic-tool',
+          toolName: 'delete_file',
+          state: 'approval-requested',
+        },
+      ],
+    });
+  });
+
+  it('should dedupe interrupts exposed at the snapshot root and task level', () => {
+    const interruptValue = {
+      actionRequests: [
+        {
+          name: 'delete_file',
+          args: { filename: 'report.pdf' },
+        },
+      ],
+    };
+    const result = stateSnapshotToUIMessages({
+      values: {
+        messages: [
+          new AIMessage({
+            id: 'assistant-1',
+            content: '',
+            tool_calls: [
+              {
+                id: 'call-delete-complete',
+                name: 'delete_file',
+                args: { filename: 'report.pdf' },
+              },
+            ],
+          }),
+          new ToolMessage({
+            id: 'tool-1',
+            tool_call_id: 'call-delete-complete',
+            content: 'Deleted',
+          }),
+        ],
+      },
+      interrupts: [
+        {
+          value: interruptValue,
+        },
+      ],
+      tasks: [
+        {
+          id: 'task-1',
+          name: 'agent',
+          interrupts: [
+            {
+              value: interruptValue,
+            },
+          ],
+        },
+      ],
+    } as any);
+
+    const approvalParts = result[0].parts.filter(
+      part =>
+        part.type === 'dynamic-tool' && part.state === 'approval-requested',
+    );
+
+    expect(result[0].parts).toHaveLength(2);
+    expect(approvalParts).toHaveLength(1);
+  });
+
+  it('should match interrupts without args to tool calls with empty input', () => {
+    const result = stateSnapshotToUIMessages({
+      values: {
+        messages: [
+          new AIMessage({
+            id: 'assistant-1',
+            content: '',
+            tool_calls: [
+              {
+                id: 'call-no-args',
+                name: 'confirm',
+                args: {},
+              },
+            ],
+          }),
+        ],
+      },
+      tasks: [
+        {
+          id: 'task-1',
+          name: 'agent',
+          interrupts: [
+            {
+              value: {
+                actionRequests: [
+                  {
+                    name: 'confirm',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    } as any);
+
+    expect(result[0]).toMatchObject({
+      parts: [
+        {
+          type: 'dynamic-tool',
+          toolCallId: 'call-no-args',
+          state: 'approval-requested',
+          input: {},
+        },
+      ],
+    });
+    expect(result[0].parts).toHaveLength(1);
+  });
+
+  it('should match interrupts by tool call id before input key', () => {
+    const result = stateSnapshotToUIMessages({
+      values: {
+        messages: [
+          new AIMessage({
+            id: 'assistant-1',
+            content: '',
+            tool_calls: [
+              {
+                id: 'call-delete',
+                name: 'delete_file',
+                args: { filename: 'old.pdf' },
+              },
+            ],
+          }),
+        ],
+      },
+      tasks: [
+        {
+          id: 'task-1',
+          name: 'agent',
+          interrupts: [
+            {
+              value: {
+                actionRequests: [
+                  {
+                    id: 'call-delete',
+                    name: 'delete_file',
+                    args: { filename: 'new.pdf' },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    } as any);
+
+    expect(result[0]).toMatchObject({
+      parts: [
+        {
+          type: 'dynamic-tool',
+          toolCallId: 'call-delete',
+          state: 'approval-requested',
+          input: { filename: 'old.pdf' },
+        },
+      ],
+    });
+    expect(result[0].parts).toHaveLength(1);
+  });
+
+  it('should match interrupts with stable object key order', () => {
+    const result = stateSnapshotToUIMessages({
+      values: {
+        messages: [
+          new AIMessage({
+            id: 'assistant-1',
+            content: '',
+            tool_calls: [
+              {
+                id: 'call-reorder',
+                name: 'send_email',
+                args: { to: 'a@example.com', subject: 'Hi' },
+              },
+            ],
+          }),
+        ],
+      },
+      tasks: [
+        {
+          id: 'task-1',
+          name: 'agent',
+          interrupts: [
+            {
+              value: {
+                actionRequests: [
+                  {
+                    name: 'send_email',
+                    args: { subject: 'Hi', to: 'a@example.com' },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    } as any);
+
+    expect(result[0]).toMatchObject({
+      parts: [
+        {
+          type: 'dynamic-tool',
+          toolCallId: 'call-reorder',
+          state: 'approval-requested',
+        },
+      ],
+    });
+    expect(result[0].parts).toHaveLength(1);
+  });
+
+  it('should read prebuilt HumanInterrupt action_request values', () => {
+    const result = stateSnapshotToUIMessages({
+      values: {
+        messages: [
+          new AIMessage({
+            id: 'assistant-1',
+            content: '',
+            tool_calls: [
+              {
+                id: 'call-prebuilt',
+                name: 'send_email',
+                args: { to: 'a@example.com' },
+              },
+            ],
+          }),
+        ],
+      },
+      tasks: [
+        {
+          id: 'task-1',
+          name: 'agent',
+          interrupts: [
+            {
+              value: [
+                {
+                  action_request: {
+                    action: 'send_email',
+                    args: { to: 'a@example.com' },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as any);
+
+    expect(result[0]).toMatchObject({
+      parts: [
+        {
+          type: 'dynamic-tool',
+          toolCallId: 'call-prebuilt',
+          state: 'approval-requested',
+        },
+      ],
+    });
+    expect(result[0].parts).toHaveLength(1);
   });
 });
 
