@@ -23,6 +23,7 @@ import {
 } from '../amazon-bedrock-sigv4-fetch';
 import { createAmazonBedrockAnthropicFetch } from './amazon-bedrock-anthropic-fetch';
 import type { AmazonBedrockAnthropicModelId } from './amazon-bedrock-anthropic-options';
+import { formatBedrockModelId } from '../format-bedrock-model-id';
 import { VERSION } from '../version';
 
 // Bedrock requires newer tool versions than the default Anthropic SDK versions
@@ -258,7 +259,7 @@ export function createAmazonBedrockAnthropic(
       fetch: fetchFunction,
 
       buildRequestUrl: (baseURL, isStreaming) =>
-        `${baseURL}/model/${encodeURIComponent(modelId)}/${
+        `${baseURL}/model/${formatBedrockModelId(modelId)}/${
           isStreaming ? 'invoke-with-response-stream' : 'invoke'
         }`,
 
