@@ -687,6 +687,12 @@ export class OpenTelemetry implements Telemetry {
         | undefined,
       'gen_ai.request.top_k': state.settings.topK as number | undefined,
       'gen_ai.request.top_p': state.settings.topP as number | undefined,
+      'gen_ai.system_instructions': event.instructions
+        ? {
+            input: () =>
+              JSON.stringify(formatSystemInstructions(event.instructions!)),
+          }
+        : undefined,
       'gen_ai.input.messages': {
         input: () => {
           const formattedMessages = formatModelMessages({
