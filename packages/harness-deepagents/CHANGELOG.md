@@ -1,5 +1,11 @@
 # @ai-sdk/harness-deepagents
 
+## 1.0.34
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.35
+
 ## 1.0.33
 
 ### Patch Changes

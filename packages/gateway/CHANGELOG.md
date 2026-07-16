@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 4.0.22
+
+### Patch Changes
+
+- 341616a: feat: add kimi-k3 model and `reasoningEffort` provider option
+- 70fc45c: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.21
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 4.0.15
+
+### Patch Changes
+
+- 91a3d6e: feat(provider/xai): support end-user identifiers for video generation and editing
+
 ## 4.0.14
 
 ### Patch Changes
