@@ -148,24 +148,15 @@ export const xaiVideoModelOptions = z.union([
   autoDetectSchema,
 ]);
 
-<<<<<<< HEAD:packages/xai/src/xai-video-options.ts
 const runtimeSchema = z
   .object({
     mode: modeSchema.optional(),
     videoUrl: nonEmptyStringSchema.optional(),
     referenceImageUrls: z.array(nonEmptyStringSchema).min(1).max(7).optional(),
+    user: z.string().optional(),
     ...baseFields,
   })
   .passthrough();
-=======
-const runtimeSchema = z.looseObject({
-  mode: modeSchema.optional(),
-  videoUrl: nonEmptyStringSchema.optional(),
-  referenceImageUrls: z.array(nonEmptyStringSchema).min(1).max(7).optional(),
-  user: z.string().optional(),
-  ...baseFields,
-});
->>>>>>> 91a3d6e9f (feat: pass end-user identifiers to xAI video generation and editing requests (#17312)):packages/xai/src/xai-video-model-options.ts
 
 export type XaiParsedVideoModelOptions = z.infer<typeof runtimeSchema>;
 
