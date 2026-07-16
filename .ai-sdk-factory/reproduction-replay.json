@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 17366,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-17366-anthropic-invalid-provider-tool.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-17366-anthropic-invalid-provider-tool.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #17366: generateText and streamText sent orphaned srvtoolu_ tool_result blocks that Anthropic rejected."
+  }
+}

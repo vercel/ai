@@ -1,0 +1,8 @@
+{
+  "type": "error",
+  "error": {
+    "type": "invalid_request_error",
+    "message": "messages.2.content.0: unexpected `tool_use_id` found in `tool_result` blocks: srvtoolu_issue_17366_invalid. Each `tool_result` block must have a corresponding `tool_use` block in the previous message."
+  },
+  "request_id": "req_011Cd65WVh8Zrvno3NunpJ73"
+}
