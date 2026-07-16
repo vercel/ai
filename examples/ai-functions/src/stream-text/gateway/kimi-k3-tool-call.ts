@@ -1,8 +1,4 @@
-<<<<<<< HEAD:examples/ai-functions/src/stream-text/gateway/kimi-k2-5-tool-call.ts
-import { type FireworksLanguageModelOptions } from '@ai-sdk/fireworks';
-=======
 import type { MoonshotAILanguageModelOptions } from '@ai-sdk/moonshotai';
->>>>>>> 341616a326 (feat: add kimi-k3 model and `reasoningEffort` provider option (#17394)):examples/ai-functions/src/stream-text/gateway/kimi-k3-tool-call.ts
 import { gateway } from '@ai-sdk/gateway';
 import { stepCountIs, streamText } from 'ai';
 import { printFullStream } from '../../lib/print-full-stream';

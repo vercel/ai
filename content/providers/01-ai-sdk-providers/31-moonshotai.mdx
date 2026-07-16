@@ -162,7 +162,6 @@ The following optional provider options are available for Moonshot AI language m
 - **thinking** _object_
 
   Configuration for thinking/reasoning models like Kimi K2 Thinking.
-
   - **type** _'enabled' | 'disabled'_
 
     Whether to enable thinking mode
@@ -174,14 +173,12 @@ The following optional provider options are available for Moonshot AI language m
 - **reasoningHistory** _'disabled' | 'interleaved' | 'preserved'_
 
   Controls how reasoning history is handled in multi-turn conversations:
-
   - `'disabled'`: Remove reasoning from history
   - `'interleaved'`: Include reasoning between tool calls within a single turn
   - `'preserved'`: Keep all reasoning in history
 
 ## Model Capabilities
 
-<<<<<<< HEAD
 | Model                    | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
 | `moonshot-v1-8k`         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -189,22 +186,10 @@ The following optional provider options are available for Moonshot AI language m
 | `moonshot-v1-128k`       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `kimi-k2`                | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `kimi-k2.5`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `kimi-k3`                | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `kimi-k2-thinking`       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `kimi-k2-thinking-turbo` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `kimi-k2-turbo`          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-=======
-| Model                    | Image Input | Object Generation | Tool Usage | Tool Streaming |
-| ------------------------ | ----------- | ----------------- | ---------- | -------------- |
-| `moonshot-v1-8k`         | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `moonshot-v1-32k`        | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `moonshot-v1-128k`       | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `kimi-k2`                | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `kimi-k2.5`              | <Check />   | <Check />         | <Check />  | <Check />      |
-| `kimi-k2-thinking`       | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `kimi-k2-thinking-turbo` | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `kimi-k2-turbo`          | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `kimi-k3`                | <Check />   | <Check />         | <Check />  | <Check />      |
->>>>>>> 341616a326 (feat: add kimi-k3 model and `reasoningEffort` provider option (#17394))
 
 <Note>
   Please see the [Moonshot AI docs](https://platform.moonshot.ai/docs/intro) for

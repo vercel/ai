@@ -10,13 +10,7 @@ export type MoonshotAIChatModelId =
   | 'kimi-k2-thinking-turbo'
   | 'kimi-k2-turbo'
   | 'kimi-k2.5'
-<<<<<<< HEAD
-=======
-  | 'kimi-k2.6'
-  | 'kimi-k2.7-code'
-  | 'kimi-k2.7-code-highspeed'
   | 'kimi-k3'
->>>>>>> 341616a326 (feat: add kimi-k3 model and `reasoningEffort` provider option (#17394))
   | (string & {});
 
 export const moonshotaiLanguageModelOptions = z.object({
