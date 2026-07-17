@@ -100,30 +100,6 @@ export const customTool = dynamicTool({
               description: 'Optional conversion function that maps the tool result to an output that can be used by the language model.'
             },
             {
-<<<<<<< HEAD
-=======
-              name: 'onInputStart',
-              isOptional: true,
-              type: '(options: ToolExecutionOptions<Context>) => void | PromiseLike<void>',
-              description:
-                'Optional function that is called when the model starts generating the tool input. In non-streaming contexts, it is called immediately before onInputAvailable.'
-            },
-            {
-              name: 'onInputDelta',
-              isOptional: true,
-              type: '(options: { inputTextDelta: string } & ToolExecutionOptions<Context>) => void | PromiseLike<void>',
-              description:
-                'Optional function that is called when an argument streaming delta is available. Only called when the tool is used in a streaming context.'
-            },
-            {
-              name: 'onInputAvailable',
-              isOptional: true,
-              type: '(options: { input: unknown } & ToolExecutionOptions<Context>) => void | PromiseLike<void>',
-              description:
-                'Optional function that is called when a tool call can be started, even if the execute function is not provided.'
-            },
-            {
->>>>>>> cd064585a (fix: ensure tool input lifecycle callbacks start before input becomes available (#17393))
               name: 'providerOptions',
               isOptional: true,
               type: 'ProviderOptions',

@@ -101,32 +101,8 @@ Use descriptions to make the input understandable for the language model.
   inputSchema: FlexibleSchema<INPUT>;
 
   /**
-<<<<<<< HEAD
-   * Optional function that is called when the argument streaming starts.
-   * Only called when the tool is used in a streaming context.
-=======
-   * An optional schema describing the context that the tool expects.
-   *
-   * The context is passed to execute function as part of the execution options.
-   */
-  contextSchema?: FlexibleSchema<CONTEXT>;
-
-  /**
-   * Whether the tool needs approval before it can be executed.
-   *
-   * @deprecated Tool approval is handled on a `generateText` / `streamText` level now.
-   */
-  needsApproval?:
-    | boolean
-    | ToolNeedsApprovalFunction<
-        [INPUT] extends [never] ? unknown : INPUT,
-        NoInfer<CONTEXT>
-      >;
-
-  /**
    * Optional function that is called when the model starts generating the tool input.
    * In non-streaming contexts, it is called immediately before `onInputAvailable`.
->>>>>>> cd064585a (fix: ensure tool input lifecycle callbacks start before input becomes available (#17393))
    */
   onInputStart?: (options: ToolCallOptions) => void | PromiseLike<void>;
 
