@@ -1,5 +1,13 @@
 # @ai-sdk/harness-codex
 
+## 1.0.38
+
+### Patch Changes
+
+- Updated dependencies [cd06458]
+  - @ai-sdk/provider-utils@5.0.11
+  - @ai-sdk/harness@1.0.36
+
 ## 1.0.37
 
 ### Patch Changes
