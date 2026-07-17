@@ -514,12 +514,9 @@ describe('XaiResponsesLanguageModel', () => {
                         text: 'The requested image is attached.',
                       },
                       {
-                        type: 'file',
+                        type: 'media',
                         mediaType: 'image/png',
-                        data: {
-                          type: 'data',
-                          data: Buffer.from([0, 1, 2, 3]),
-                        },
+                        data: 'AAECAw==',
                       },
                     ],
                   },

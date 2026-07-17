@@ -182,26 +182,14 @@ export async function convertToXaiResponsesInput({
                     });
                     break;
                   }
-                  case 'file': {
-                    if (
-                      getTopLevelMediaType(item.mediaType) === 'image' &&
-                      (item.data.type === 'data' || item.data.type === 'url')
-                    ) {
+                  case 'media': {
+                    if (item.mediaType.startsWith('image/')) {
                       outputValue.push({
                         type: 'input_image',
-                        image_url:
-                          item.data.type === 'url'
-                            ? item.data.url.toString()
-                            : `data:${resolveFullMediaType({ part: item })};base64,${convertToBase64(item.data.data)}`,
+                        image_url: `data:${item.mediaType};base64,${item.data}`,
                       });
                     }
                     break;
-                  }
-                  case 'custom': {
-                    break;
-                  }
-                  default: {
-                    const _exhaustiveCheck: never = item;
                   }
                 }
               }

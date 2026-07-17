@@ -406,7 +406,7 @@ describe('convertToXaiResponsesInput', () => {
       `);
     });
 
-    it('should preserve image URLs in content output', async () => {
+    it('should preserve images in content output', async () => {
       const result = await convertToXaiResponsesInput({
         prompt: [
           {
@@ -424,12 +424,9 @@ describe('convertToXaiResponsesInput', () => {
                       text: 'The requested image is attached.',
                     },
                     {
-                      type: 'file',
+                      type: 'media',
                       mediaType: 'image/png',
-                      data: {
-                        type: 'url',
-                        url: new URL('https://example.com/image.png'),
-                      },
+                      data: 'AAECAw==',
                     },
                   ],
                 },
@@ -449,7 +446,7 @@ describe('convertToXaiResponsesInput', () => {
                 "type": "input_text",
               },
               {
-                "image_url": "https://example.com/image.png",
+                "image_url": "data:image/png;base64,AAECAw==",
                 "type": "input_image",
               },
             ],
