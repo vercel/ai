@@ -26,6 +26,8 @@ const defaultOptions = {
   prompt,
   n: 1,
   image: undefined,
+  frameImages: undefined,
+  inputReferences: undefined,
   aspectRatio: undefined,
   resolution: undefined,
   duration: undefined,
@@ -110,6 +112,102 @@ describe('XaiVideoModel', () => {
         model: 'grok-imagine-video',
         prompt,
       });
+    });
+
+    it('should pass user unchanged to the video generation endpoint', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            user: 'tenant/user:123',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/videos/generations`,
+      );
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'grok-imagine-video',
+        prompt,
+        user: 'tenant/user:123',
+      });
+    });
+
+    it('should omit user when it is not configured', async () => {
+      const model = createModel();
+
+      await model.doGenerate({ ...defaultOptions });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty('user');
+    });
+
+    it('should pass user unchanged to the video editing endpoint', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'edit-video',
+            videoUrl: 'https://example.com/source-video.mp4',
+            user: 'tenant/user:123',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(server.calls[0].requestUrl).toBe(`${TEST_BASE_URL}/videos/edits`);
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'grok-imagine-video',
+        prompt,
+        video: { url: 'https://example.com/source-video.mp4' },
+        user: 'tenant/user:123',
+      });
+    });
+
+    it('should not pass user to the video extension endpoint', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'extend-video',
+            videoUrl: 'https://example.com/source-video.mp4',
+            user: 'tenant/user:123',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/videos/extensions`,
+      );
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty('user');
+    });
+
+    it('should reject non-string user values', async () => {
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          providerOptions: {
+            xai: {
+              user: 123,
+              pollIntervalMs: 10,
+              pollTimeoutMs: 5000,
+            },
+          },
+        }),
+      ).rejects.toThrow(InvalidArgumentError);
     });
 
     it('should poll the correct status URL', async () => {
@@ -246,6 +344,28 @@ describe('XaiVideoModel', () => {
       expect(body).toMatchObject({
         image: { url: 'data:image/jpeg;base64,aGVsbG8=' },
       });
+    });
+
+    it('should warn and exclude a video image input from the image field', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        image: {
+          type: 'url',
+          url: 'https://example.com/clip.mp4',
+          mediaType: 'video/mp4',
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('image');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'image',
+        }),
+      );
     });
 
     it('should send video object to /videos/edits for video editing with explicit mode', async () => {
@@ -855,6 +975,280 @@ describe('XaiVideoModel', () => {
           },
         }),
       ).rejects.toThrow(InvalidArgumentError);
+    });
+  });
+
+  describe('frameImages', () => {
+    it('should map a first_frame URL image to the image field', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        frameImages: [
+          {
+            image: { type: 'url', url: 'https://example.com/first.png' },
+            frameType: 'first_frame',
+          },
+        ],
+      });
+
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/videos/generations`,
+      );
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        image: { url: 'https://example.com/first.png' },
+      });
+    });
+
+    it('should map a first_frame file image to a data URI image field', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        frameImages: [
+          {
+            image: {
+              type: 'file',
+              data: new Uint8Array([137, 80, 78, 71]),
+              mediaType: 'image/png',
+            },
+            frameType: 'first_frame',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        image: { url: 'data:image/png;base64,iVBORw==' },
+      });
+    });
+
+    it('should prefer the first_frame image over the image-to-video image input', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        image: { type: 'url', url: 'https://example.com/image-input.png' },
+        frameImages: [
+          {
+            image: { type: 'url', url: 'https://example.com/first.png' },
+            frameType: 'first_frame',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        image: { url: 'https://example.com/first.png' },
+      });
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should warn and exclude a video first_frame from the image field', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        frameImages: [
+          {
+            image: {
+              type: 'url',
+              url: 'https://example.com/clip.mp4',
+              mediaType: 'video/mp4',
+            },
+            frameType: 'first_frame',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('image');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'frameImages',
+        }),
+      );
+    });
+
+    it('should warn and ignore a last_frame image', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        frameImages: [
+          {
+            image: { type: 'url', url: 'https://example.com/first.png' },
+            frameType: 'first_frame',
+          },
+          {
+            image: { type: 'url', url: 'https://example.com/last.png' },
+            frameType: 'last_frame',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        image: { url: 'https://example.com/first.png' },
+      });
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'frameImages',
+        }),
+      );
+    });
+  });
+
+  describe('inputReferences', () => {
+    it('should map URL inputReferences to reference_images and select R2V', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          { type: 'url', url: 'https://example.com/ref1.jpg' },
+          { type: 'url', url: 'https://example.com/ref2.jpg' },
+        ],
+      });
+
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/videos/generations`,
+      );
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        reference_images: [
+          { url: 'https://example.com/ref1.jpg' },
+          { url: 'https://example.com/ref2.jpg' },
+        ],
+      });
+    });
+
+    it('should map file inputReferences to data URI reference_images', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          {
+            type: 'file',
+            data: new Uint8Array([137, 80, 78, 71]),
+            mediaType: 'image/png',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        reference_images: [{ url: 'data:image/png;base64,iVBORw==' }],
+      });
+    });
+
+    it('should prefer inputReferences over the legacy referenceImageUrls option', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          { type: 'url', url: 'https://example.com/first-class.jpg' },
+        ],
+        providerOptions: {
+          xai: {
+            referenceImageUrls: ['https://example.com/legacy.jpg'],
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        reference_images: [{ url: 'https://example.com/first-class.jpg' }],
+      });
+    });
+
+    it('should ignore and warn about inputReferences when frameImages are present', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        frameImages: [
+          {
+            image: { type: 'url', url: 'https://example.com/first.png' },
+            frameType: 'first_frame',
+          },
+        ],
+        inputReferences: [{ type: 'url', url: 'https://example.com/ref1.jpg' }],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        image: { url: 'https://example.com/first.png' },
+      });
+      expect(body).not.toHaveProperty('reference_images');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'inputReferences',
+        }),
+      );
+    });
+
+    it('should warn and exclude a video inputReference from reference_images', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          { type: 'url', url: 'https://example.com/ref1.jpg' },
+          {
+            type: 'url',
+            url: 'https://example.com/clip.mp4',
+            mediaType: 'video/mp4',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        reference_images: [{ url: 'https://example.com/ref1.jpg' }],
+      });
+      expect(body.reference_images).toHaveLength(1);
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'inputReferences',
+        }),
+      );
+    });
+
+    it('should ignore and warn about inputReferences in edit-video mode', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [{ type: 'url', url: 'https://example.com/ref1.jpg' }],
+        providerOptions: {
+          xai: {
+            mode: 'edit-video',
+            videoUrl: 'https://example.com/source-video.mp4',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(server.calls[0].requestUrl).toBe(`${TEST_BASE_URL}/videos/edits`);
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('reference_images');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'inputReferences',
+        }),
+      );
     });
   });
 

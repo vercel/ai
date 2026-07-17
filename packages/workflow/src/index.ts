@@ -45,3 +45,5 @@ export {
   type SendMessagesOptions,
   type ReconnectToStreamOptions,
 } from './workflow-chat-transport.js';
+
+export { normalizeUIMessageStreamParts } from './normalize-ui-message-stream.js';

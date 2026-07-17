@@ -1,5 +1,131 @@
 # @ai-sdk/assemblyai
 
+## 3.0.10
+
+### Patch Changes
+
+- Updated dependencies [31c7be8]
+  - @ai-sdk/provider-utils@5.0.10
+
+## 3.0.9
+
+### Patch Changes
+
+- Updated dependencies [4be62c1]
+- Updated dependencies [7805e4a]
+- Updated dependencies [cd12954]
+  - @ai-sdk/provider-utils@5.0.9
+
+## 3.0.8
+
+### Patch Changes
+
+- Updated dependencies [e193290]
+  - @ai-sdk/provider-utils@5.0.8
+
+## 3.0.7
+
+### Patch Changes
+
+- Updated dependencies [0f93c57]
+  - @ai-sdk/provider@4.0.3
+  - @ai-sdk/provider-utils@5.0.7
+
+## 3.0.6
+
+### Patch Changes
+
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+
+## 3.0.5
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - @ai-sdk/provider@4.0.2
+  - @ai-sdk/provider-utils@5.0.5
+
+## 3.0.4
+
+### Patch Changes
+
+- ec598e2: feat(assemblyai): support universal-3-5-pro and expand the transcription provider
+
+  - Add current speech models `universal-3-5-pro`, `universal-3-pro`, and
+    `universal-2`, routed via AssemblyAI's `speech_models` parameter (the
+    deprecated singular `speech_model` is used only for the legacy `best` model).
+    Using `universal-3-pro`/`universal-2` emits an informational warning
+    suggesting `universal-3-5-pro`.
+  - Deprecate the legacy `best` model (still works, warns) and remove `nano`,
+    which AssemblyAI no longer accepts.
+  - Surface speaker diarization and audio-intelligence results: `doGenerate` now
+    returns the full raw response on `response.body` and populates
+    `providerMetadata.assemblyai` with `utterances`, `entities`,
+    `sentimentAnalysisResults`, `contentSafetyLabels`, `iabCategoriesResult`, and
+    `autoHighlightsResult`.
+  - Add provider options for newer request parameters: `prompt`, `keytermsPrompt`,
+    `temperature`, `removeAudioTags`, `domain`, `speakerOptions`,
+    `languageDetectionOptions`, `redactPiiAudioOptions`,
+    `redactPiiReturnUnredacted`, and `redactStaticEntities`. Deprecate
+    `wordBoost`/`boostParam` in favor of `keytermsPrompt` (AssemblyAI rejects
+    `word_boost` on the newer models).
+  - Fix transcription segment timings, which were reported in milliseconds instead
+    of seconds.
+
+- Updated dependencies [c6f5e62]
+  - @ai-sdk/provider-utils@5.0.4
+
+## 3.0.3
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - @ai-sdk/provider-utils@5.0.3
+
+## 3.0.2
+
+### Patch Changes
+
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - @ai-sdk/provider-utils@5.0.2
+
+## 3.0.1
+
+### Patch Changes
+
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+
+## 3.0.0
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+- 8359612: Start v7 pre-release
+- 04e9009: chore: make provider implementations code patterns more consistent, including renaming certain exported symbols
+
+  For all externally exported symbols that were renamed, the old names continue to work via deprecated aliases.
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+- 9f0e36c: trigger release for all packages after provenance setup
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- 0c4c275: trigger initial canary release
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- b8396f0: trigger initial beta release
+- f6d2127: chore(assembly-ai): update v3 specs to v4
+- b3976a2: Add workflow serialization support to all provider models.
+
+  **`@ai-sdk/provider-utils`:** New `serializeModel()` helper that extracts only serializable properties from a model instance, filtering out functions and objects containing functions. Third-party provider authors can use this to add workflow support to their own models.
+
+  **All providers:** `headers` is now optional in provider config types. This is non-breaking — existing code that passes `headers` continues to work. Custom provider implementations that construct model configs manually can now omit `headers`, which is useful when models are deserialized from a workflow step boundary where auth is provided separately.
+
+  All provider model classes now include `WORKFLOW_SERIALIZE` and `WORKFLOW_DESERIALIZE` static methods, enabling them to cross workflow step boundaries without serialization errors.
+
 ## 3.0.0-beta.52
 
 ### Patch Changes

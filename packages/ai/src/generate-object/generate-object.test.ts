@@ -662,7 +662,7 @@ describe('generateObject', () => {
           },
         });
 
-        expect(result).rejects.toThrow(
+        await expect(result).rejects.toThrow(
           'No object generated: response did not match schema.',
         );
       });

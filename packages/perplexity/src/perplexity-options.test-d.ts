@@ -1,6 +1,9 @@
 import type { LanguageModelV4CallOptions } from '@ai-sdk/provider';
 import { describe, expectTypeOf, it } from 'vitest';
-import type { PerplexityLanguageModelOptions } from './index';
+import type {
+  PerplexityLanguageModelId,
+  PerplexityLanguageModelOptions,
+} from './index';
 
 describe('PerplexityLanguageModelOptions', () => {
   it('accepts documented provider options and additional pass-through parameters', () => {
@@ -23,5 +26,12 @@ describe('PerplexityLanguageModelOptions', () => {
     expectTypeOf<{
       search_recency_filter: 'decade';
     }>().not.toMatchTypeOf<PerplexityLanguageModelOptions>();
+  });
+});
+
+describe('PerplexityLanguageModelId', () => {
+  it('accepts documented model ids and arbitrary strings', () => {
+    expectTypeOf<'sonar-pro'>().toMatchTypeOf<PerplexityLanguageModelId>();
+    expectTypeOf<'custom-model'>().toMatchTypeOf<PerplexityLanguageModelId>();
   });
 });

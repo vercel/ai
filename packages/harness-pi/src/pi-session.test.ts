@@ -62,6 +62,25 @@ describe('createPiSession', () => {
     });
   });
 
+  it('rejects unsafe resume session filenames before sandbox restore', async () => {
+    const sandboxSession = createSandboxSession();
+
+    await expect(
+      createPiSession({
+        sessionId: 'session-unsafe',
+        sandboxSession,
+        sessionWorkDir: '/sandbox/work',
+        skills: [],
+        settings: {},
+        clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+        isResume: true,
+        resumeSessionFileName: '../session.jsonl',
+      }),
+    ).rejects.toThrow('Invalid Pi session file name');
+
+    expect(sandboxSession.readBinaryFile).not.toHaveBeenCalled();
+  });
+
   it('parks a pending tool turn on suspend and resumes it in-process', async () => {
     const toolStarted = createDeferred<void>();
     let resolvedToolResult: unknown;
@@ -98,6 +117,7 @@ describe('createPiSession', () => {
       sessionWorkDir: '/sandbox/work',
       skills: [],
       settings: {},
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
       isResume: false,
     });
     const toolSpecs: HarnessV1ToolSpec[] = [{ name: 'weather' }];
@@ -122,6 +142,7 @@ describe('createPiSession', () => {
       sessionWorkDir: '/sandbox/work',
       skills: [],
       settings: {},
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
       isResume: true,
     });
     const resumedControl = await resumedSession.doContinueTurn({
