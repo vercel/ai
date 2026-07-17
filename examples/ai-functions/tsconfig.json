@@ -190,6 +190,9 @@
       "path": "../../packages/sandbox-vercel"
     },
     {
+      "path": "../../packages/speechify"
+    },
+    {
       "path": "../../packages/togetherai"
     },
     {
