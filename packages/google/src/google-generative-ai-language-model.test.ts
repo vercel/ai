@@ -385,7 +385,7 @@ describe('doGenerate', () => {
           headers: { 'content-type': 'text/event-stream' },
         }),
       );
-    const testProvider = createGoogle({
+    const testProvider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
       fetch,
       generateId: () => 'test-id',
