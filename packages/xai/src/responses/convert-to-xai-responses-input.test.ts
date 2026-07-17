@@ -424,12 +424,8 @@ describe('convertToXaiResponsesInput', () => {
                       text: 'The requested image is attached.',
                     },
                     {
-                      type: 'file',
-                      mediaType: 'image/png',
-                      data: {
-                        type: 'url',
-                        url: new URL('https://example.com/image.png'),
-                      },
+                      type: 'image-url',
+                      url: 'https://example.com/image.png',
                     },
                   ],
                 },

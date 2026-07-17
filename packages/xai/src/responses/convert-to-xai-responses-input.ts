@@ -241,21 +241,24 @@ export async function convertToXaiResponsesInput({
                     });
                     break;
                   }
-                  case 'file': {
-                    if (
-                      getTopLevelMediaType(item.mediaType) === 'image' &&
-                      (item.data.type === 'data' || item.data.type === 'url')
-                    ) {
-                      outputValue.push({
-                        type: 'input_image',
-                        image_url:
-                          item.data.type === 'url'
-                            ? item.data.url.toString()
-                            : `data:${resolveFullMediaType({ part: item })};base64,${convertToBase64(item.data.data)}`,
-                      });
-                    }
+                  case 'image-data': {
+                    outputValue.push({
+                      type: 'input_image',
+                      image_url: `data:${item.mediaType};base64,${item.data}`,
+                    });
                     break;
                   }
+                  case 'image-url': {
+                    outputValue.push({
+                      type: 'input_image',
+                      image_url: item.url,
+                    });
+                    break;
+                  }
+                  case 'file-data':
+                  case 'file-url':
+                  case 'file-id':
+                  case 'image-file-id':
                   case 'custom': {
                     break;
                   }
