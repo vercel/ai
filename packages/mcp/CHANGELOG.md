@@ -1,5 +1,13 @@
 # @ai-sdk/mcp
 
+## 2.0.15
+
+### Patch Changes
+
+- d84ea43: fix(mcp): accept OAuth metadata without code challenge methods
+- Updated dependencies [cd06458]
+  - @ai-sdk/provider-utils@5.0.11
+
 ## 2.0.14
 
 ### Patch Changes
