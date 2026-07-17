@@ -1,5 +1,16 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.137
+
+### Patch Changes
+
+- e5e532e: fix(bedrock): support application inference profile ARNs
+- Updated dependencies [19093fd]
+- Updated dependencies [10366a2]
+  - @ai-sdk/provider-utils@4.0.40
+  - @ai-sdk/anthropic@3.0.98
+  - @ai-sdk/openai@3.0.86
+
 ## 4.0.136
 
 ### Patch Changes

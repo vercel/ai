@@ -1,5 +1,14 @@
 # @ai-sdk/xai
 
+## 3.0.110
+
+### Patch Changes
+
+- 09ecf7b: fix(xai): handle empty HTTP 202 responses while polling videos
+- Updated dependencies [19093fd]
+  - @ai-sdk/provider-utils@4.0.40
+  - @ai-sdk/openai-compatible@2.0.62
+
 ## 3.0.109
 
 ### Patch Changes

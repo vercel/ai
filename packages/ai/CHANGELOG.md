@@ -1,5 +1,14 @@
 # ai
 
+## 6.0.230
+
+### Patch Changes
+
+- 19093fd: fix(ai): call `onInputStart` before `onInputAvailable` during non-streaming tool calls
+- Updated dependencies [19093fd]
+  - @ai-sdk/provider-utils@4.0.40
+  - @ai-sdk/gateway@3.0.153
+
 ## 6.0.229
 
 ### Patch Changes
