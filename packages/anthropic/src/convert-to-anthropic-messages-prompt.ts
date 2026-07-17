@@ -23,8 +23,14 @@ import {
   type AnthropicToolResultContent,
   type AnthropicUserMessage,
   type AnthropicWebFetchToolResultContent,
+<<<<<<< HEAD:packages/anthropic/src/convert-to-anthropic-messages-prompt.ts
 } from './anthropic-messages-api';
 import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
+=======
+  type Citation,
+} from './anthropic-api';
+import { anthropicFilePartProviderOptions } from './anthropic-language-model-options';
+>>>>>>> afcf19c40 (fix: preserve Anthropic web search citations across multi-turn assistant message replay (#17398)):packages/anthropic/src/convert-to-anthropic-prompt.ts
 import { CacheControlValidator } from './get-cache-control';
 import { advisor_20260301OutputSchema } from './tool/advisor_20260301';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
@@ -507,7 +513,7 @@ export async function convertToAnthropicMessagesPrompt({
               case 'text': {
                 // Check if this is a compaction block (via providerMetadata)
                 const textMetadata = part.providerOptions?.anthropic as
-                  | { type?: string }
+                  | { type?: string; citations?: Citation[] }
                   | undefined;
 
                 if (textMetadata?.type === 'compaction') {
@@ -526,7 +532,9 @@ export async function convertToAnthropicMessagesPrompt({
                       isLastBlock && isLastMessage && isLastContentPart
                         ? part.text.trim()
                         : part.text,
-
+                    ...(textMetadata?.citations != null && {
+                      citations: textMetadata.citations,
+                    }),
                     cache_control: cacheControl,
                   });
                 }
