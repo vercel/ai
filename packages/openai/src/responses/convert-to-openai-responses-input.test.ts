@@ -3318,6 +3318,62 @@ describe('convertToOpenAIResponsesInput', () => {
     });
   });
 
+  it('should serialize a function named tool_search as a function call', async () => {
+    const result = await convertToOpenAIResponsesInput({
+      toolNameMapping: testToolNameMapping,
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call_123',
+              toolName: 'tool_search',
+              input: {
+                query: 'synthetic query',
+                limit: 10,
+              },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call_123',
+              toolName: 'tool_search',
+              output: { type: 'json', value: { matches: [] } },
+            },
+          ],
+        },
+      ],
+      systemMessageMode: 'system',
+      providerOptionsName: 'openai',
+      store: false,
+    });
+
+    expect(result).toEqual({
+      input: [
+        {
+          type: 'function_call',
+          call_id: 'call_123',
+          name: 'tool_search',
+          arguments: JSON.stringify({
+            query: 'synthetic query',
+            limit: 10,
+          }),
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_123',
+          output: JSON.stringify({ matches: [] }),
+        },
+      ],
+      warnings: [],
+    });
+  });
+
   describe('provider-defined tools', () => {
     it('should convert single provider-executed tool call and result into item reference with store: true', async () => {
       const result = await convertToOpenAIResponsesInput({
@@ -3367,6 +3423,7 @@ describe('convertToOpenAIResponsesInput', () => {
     it('should reconstruct hosted tool search call and output with store: false', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
+        hasToolSearchTool: true,
         prompt: [
           {
             role: 'assistant',
@@ -3448,6 +3505,7 @@ describe('convertToOpenAIResponsesInput', () => {
     it('should use distinct item references for hosted tool search call and output with store: true', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
+        hasToolSearchTool: true,
         prompt: [
           {
             role: 'assistant',
@@ -3514,6 +3572,7 @@ describe('convertToOpenAIResponsesInput', () => {
     it('should serialize client tool search output with call_id from tool role', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
+        hasToolSearchTool: true,
         prompt: [
           {
             role: 'assistant',
@@ -3609,6 +3668,7 @@ describe('convertToOpenAIResponsesInput', () => {
     it('should use call_id (not item id) for client tool search call serialization', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
+        hasToolSearchTool: true,
         prompt: [
           {
             role: 'assistant',

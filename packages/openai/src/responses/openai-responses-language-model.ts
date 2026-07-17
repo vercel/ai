@@ -349,6 +349,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         hasShellTool: hasOpenAITool('openai.shell'),
         hasApplyPatchTool: hasOpenAITool('openai.apply_patch'),
         hasComputerTool: hasOpenAITool('openai.computer'),
+        hasToolSearchTool: hasOpenAITool('openai.tool_search'),
         customProviderToolNames:
           customProviderToolNames.size > 0
             ? customProviderToolNames
