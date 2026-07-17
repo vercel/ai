@@ -258,7 +258,7 @@ describe('request URL', () => {
         },
       );
     });
-    const inferenceProfileModel = new AmazonBedrockChatLanguageModel(
+    const inferenceProfileModel = new BedrockChatLanguageModel(
       inferenceProfileArn,
       {
         baseUrl: () => baseUrl,
