@@ -82,6 +82,61 @@ const dummyResponseValues = {
   warnings: [],
 };
 
+describe('abort signal handling', () => {
+  it('should reject when the abort signal fires during tool execution', async () => {
+    const abortController = new AbortController();
+    const abortError = new DOMException('tool execution aborted', 'AbortError');
+    let modelCallCount = 0;
+
+    const result = generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async () => {
+          modelCallCount++;
+
+          if (modelCallCount === 1) {
+            return {
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: `{ "value": "value" }`,
+                },
+              ],
+            };
+          }
+
+          return {
+            ...dummyResponseValues,
+            content: [],
+            finishReason: { unified: 'other', raw: 'unknown' },
+          };
+        },
+      }),
+      tools: {
+        tool1: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: async (_input, { abortSignal }) => {
+            abortController.abort(abortError);
+            abortSignal?.throwIfAborted();
+          },
+        },
+      },
+      prompt: 'test-input',
+      abortSignal: abortController.signal,
+      stopWhen: isStepCount(10),
+      maxRetries: 0,
+    });
+
+    await expect(result).rejects.toMatchInlineSnapshot(
+      `[AbortError: tool execution aborted]`,
+    );
+    expect(modelCallCount).toBe(1);
+  });
+});
+
 const modelWithSources = new MockLanguageModelV4({
   doGenerate: {
     ...dummyResponseValues,

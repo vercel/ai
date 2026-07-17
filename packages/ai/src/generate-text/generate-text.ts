@@ -1528,6 +1528,13 @@ async function executeTools<TOOLS extends ToolSet>({
     ),
   );
 
+  if (
+    abortSignal?.aborted &&
+    toolResults.some(result => result?.output.type === 'tool-error')
+  ) {
+    abortSignal.throwIfAborted();
+  }
+
   return toolResults.filter(
     (result): result is NonNullable<typeof result> => result != null,
   );
