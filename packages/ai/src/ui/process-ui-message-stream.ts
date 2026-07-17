@@ -35,6 +35,10 @@ export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   message: UI_MESSAGE;
   activeTextParts: Record<string, TextUIPart>;
   activeReasoningParts: Record<string, ReasoningUIPart>;
+  activeToolParts: Record<
+    string,
+    ToolUIPart<InferUIMessageTools<UI_MESSAGE>> | DynamicToolUIPart
+  >;
   partialToolCalls: Record<
     string,
     {
@@ -56,21 +60,38 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
   lastMessage: UI_MESSAGE | undefined;
   messageId: string;
 }): StreamingUIMessageState<UI_MESSAGE> {
+  const message =
+    lastMessage?.role === 'assistant'
+      ? lastMessage
+      : ({
+          id: messageId,
+          metadata: undefined,
+          role: 'assistant',
+          parts: [] as UIMessagePart<
+            InferUIMessageData<UI_MESSAGE>,
+            InferUIMessageTools<UI_MESSAGE>
+          >[],
+        } as UI_MESSAGE);
+
+  // Seed the active tool parts from the message being continued so that a
+  // resumed tool call (e.g. a tool executed after an approval that was carried
+  // over in lastMessage) updates the existing part instead of creating a
+  // duplicate. Parts created within the stream are added as they arrive, and
+  // the set is reset at each step boundary.
+  const activeToolParts: StreamingUIMessageState<UI_MESSAGE>['activeToolParts'] =
+    createIdMap();
+  for (const part of message.parts) {
+    if (isToolUIPart(part)) {
+      activeToolParts[part.toolCallId] =
+        part as (typeof activeToolParts)[string];
+    }
+  }
+
   return {
-    message:
-      lastMessage?.role === 'assistant'
-        ? lastMessage
-        : ({
-            id: messageId,
-            metadata: undefined,
-            role: 'assistant',
-            parts: [] as UIMessagePart<
-              InferUIMessageData<UI_MESSAGE>,
-              InferUIMessageTools<UI_MESSAGE>
-            >[],
-          } as UI_MESSAGE),
+    message,
     activeTextParts: createIdMap(),
     activeReasoningParts: createIdMap(),
+    activeToolParts,
     partialToolCalls: createIdMap(),
   };
 }
@@ -105,11 +126,14 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
       async transform(chunk, controller) {
         await runUpdateMessageJob(async ({ state, write }) => {
           function getToolInvocation(toolCallId: string) {
-            const toolInvocations = state.message.parts.filter(isToolUIPart);
-
-            const toolInvocation = toolInvocations.find(
-              invocation => invocation.toolCallId === toolCallId,
-            );
+            // Scope the lookup to the current step's active tool part: providers
+            // may reuse a response-scoped tool call id (e.g. `call_0`) across
+            // steps, so a global search by id would resolve to an earlier step's
+            // tool part.
+            const activePart = state.activeToolParts[toolCallId];
+            const toolInvocation = state.message.parts
+              .filter(isToolUIPart)
+              .find(invocation => invocation === activePart);
 
             if (toolInvocation == null) {
               throw new UIMessageStreamError({
@@ -178,11 +202,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 }
             ),
           ) {
-            const part = state.message.parts.find(
-              part =>
-                isStaticToolUIPart(part) &&
-                part.toolCallId === options.toolCallId,
-            ) as ToolUIPart<InferUIMessageTools<UI_MESSAGE>> | undefined;
+            const activePart = state.activeToolParts[options.toolCallId];
+            const part =
+              activePart != null && isStaticToolUIPart(activePart)
+                ? (activePart as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>)
+                : undefined;
 
             const anyOptions = options as any;
             const anyPart = part as any;
@@ -222,7 +246,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 }
               }
             } else {
-              state.message.parts.push({
+              const newPart = {
                 type: `tool-${options.toolName}`,
                 toolCallId: options.toolCallId,
                 state: options.state,
@@ -248,7 +272,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 )
                   ? { callProviderMetadata: anyOptions.providerMetadata }
                   : {}),
-              } as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>);
+              } as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>;
+              state.message.parts.push(newPart);
+              state.activeToolParts[options.toolCallId] = newPart;
             }
           }
 
@@ -285,11 +311,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 }
             ),
           ) {
-            const part = state.message.parts.find(
-              part =>
-                part.type === 'dynamic-tool' &&
-                part.toolCallId === options.toolCallId,
-            ) as DynamicToolUIPart | undefined;
+            const activePart = state.activeToolParts[options.toolCallId];
+            const part =
+              activePart?.type === 'dynamic-tool'
+                ? (activePart as DynamicToolUIPart)
+                : undefined;
 
             const anyOptions = options as any;
             const anyPart = part as any;
@@ -330,7 +356,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 }
               }
             } else {
-              state.message.parts.push({
+              const newPart = {
                 type: 'dynamic-tool',
                 toolName: options.toolName,
                 toolCallId: options.toolCallId,
@@ -356,7 +382,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 )
                   ? { callProviderMetadata: anyOptions.providerMetadata }
                   : {}),
-              } as DynamicToolUIPart);
+              } as DynamicToolUIPart;
+              state.message.parts.push(newPart);
+              state.activeToolParts[options.toolCallId] = newPart;
             }
           }
 
@@ -828,9 +856,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'finish-step': {
-              // reset the current text and reasoning parts
+              // reset the current text, reasoning, and tool parts so the next
+              // step starts a fresh part even if a tool call id is reused
               state.activeTextParts = createIdMap();
               state.activeReasoningParts = createIdMap();
+              state.activeToolParts = createIdMap();
               break;
             }
 

@@ -9385,4 +9385,73 @@ describe('processUIMessageStream', () => {
       ]);
     });
   });
+
+  describe('tool call id reused across steps', () => {
+    // Reproduces https://github.com/vercel/ai/issues/17347: a provider (e.g. the
+    // OpenAI Responses API through Amazon Bedrock) may return the same
+    // response-scoped tool call id in more than one step. Each step is a
+    // distinct tool call, so it must become its own UI tool part instead of
+    // overwriting the earlier one.
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-1' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'call_0',
+          toolName: 'recordStep',
+          input: { step: 1 },
+          providerMetadata: { openai: { itemId: 'fc_step_1' } },
+        },
+        {
+          type: 'tool-output-available',
+          toolCallId: 'call_0',
+          output: { ok: 1 },
+        },
+        { type: 'finish-step' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'call_0',
+          toolName: 'recordStep',
+          input: { step: 2 },
+          providerMetadata: { openai: { itemId: 'fc_step_2' } },
+        },
+        {
+          type: 'tool-output-available',
+          toolCallId: 'call_0',
+          output: { ok: 2 },
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-1',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('keeps a separate tool part for each step', () => {
+      const toolParts = state!.message.parts.filter(
+        part => part.type === 'tool-recordStep',
+      );
+
+      expect(toolParts).toHaveLength(2);
+      expect(toolParts).toMatchObject([
+        { input: { step: 1 }, output: { ok: 1 } },
+        { input: { step: 2 }, output: { ok: 2 } },
+      ]);
+    });
+  });
 });
