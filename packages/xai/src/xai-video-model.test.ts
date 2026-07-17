@@ -1,6 +1,5 @@
 import { InvalidArgumentError } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import * as fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { XaiVideoModel } from './xai-video-model';
 
@@ -22,14 +21,6 @@ const doneStatusResponse = {
   model: 'grok-imagine-video',
   progress: 100,
 };
-
-const livePendingStatusResponse = JSON.parse(
-  fs.readFileSync('src/__fixtures__/xai-video-status-pending.1.json', 'utf8'),
-);
-
-const liveDoneStatusResponse = JSON.parse(
-  fs.readFileSync('src/__fixtures__/xai-video-status-done.1.json', 'utf8'),
-);
 
 const defaultOptions = {
   prompt,
@@ -1522,7 +1513,7 @@ describe('XaiVideoModel', () => {
         }) =>
           callNumber === 1
             ? { type: 'empty', status: 202 }
-            : { type: 'json-value', body: liveDoneStatusResponse };
+            : { type: 'json-value', body: doneStatusResponse };
 
         const model = createModel();
         const result = await model.doGenerate({
@@ -1530,11 +1521,13 @@ describe('XaiVideoModel', () => {
           providerOptions,
         });
 
-        expect(result.videos[0]).toStrictEqual({
-          type: 'url',
-          url: liveDoneStatusResponse.video.url,
-          mediaType: 'video/mp4',
-        });
+        expect(result.videos[0]).toMatchInlineSnapshot(`
+          {
+            "mediaType": "video/mp4",
+            "type": "url",
+            "url": "https://vidgen.x.ai/output/video-001.mp4",
+          }
+        `);
         expect(server.calls).toHaveLength(3);
       },
     );
@@ -1582,7 +1575,7 @@ describe('XaiVideoModel', () => {
         if (callNumber < 3) {
           return {
             type: 'json-value',
-            body: livePendingStatusResponse,
+            body: { status: 'pending', model: 'grok-imagine-video' },
           };
         }
         return { type: 'json-value', body: doneStatusResponse };
