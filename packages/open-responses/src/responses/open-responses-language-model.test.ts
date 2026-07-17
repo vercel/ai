@@ -68,6 +68,31 @@ describe('OpenResponsesLanguageModel', () => {
       ).rejects.toThrow('Responses API returned no output (content_filter)');
     });
 
+    it('should surface response.error message before the no-output fallback', async () => {
+      server.urls[URL].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_error',
+          created_at: 1741257730,
+          model: 'gemma-7b-it',
+          status: 'failed',
+          error: {
+            code: 'server_error',
+            message: 'The upstream provider failed to generate a response.',
+          },
+          // no `output` field
+          usage: {
+            input_tokens: 10,
+            output_tokens: 0,
+          },
+        },
+      };
+
+      await expect(
+        createModel().doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toThrow('The upstream provider failed to generate a response.');
+    });
+
     describe('basic generation', () => {
       let result: LanguageModelV4GenerateResult;
 

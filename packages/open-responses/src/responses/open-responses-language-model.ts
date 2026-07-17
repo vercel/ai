@@ -229,6 +229,18 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       fetch: this.config.fetch,
     });
 
+    if (response.error) {
+      throw new APICallError({
+        message: response.error.message,
+        url: this.config.url,
+        requestBodyValues: body,
+        statusCode: 400,
+        responseHeaders,
+        responseBody: rawResponse as string,
+        isRetryable: false,
+      });
+    }
+
     if (response.output == null) {
       const detail = response.incomplete_details?.reason ?? response.status;
       throw new APICallError({
