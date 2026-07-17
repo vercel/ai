@@ -23,6 +23,125 @@ import {
 } from './__fixtures__/langgraph';
 
 describe('toUIMessageStream', () => {
+  describe.each([
+    {
+      name: 'direct model streams',
+      createInput: () =>
+        convertArrayToReadableStream([
+          new AIMessageChunk({ content: 'Hello', id: 'model-message' }),
+        ]),
+      convertedChunks: [
+        { type: 'text-start', id: 'model-message' },
+        { type: 'text-delta', delta: 'Hello', id: 'model-message' },
+        { type: 'text-end', id: 'model-message' },
+      ],
+    },
+    {
+      name: 'LangGraph streams',
+      createInput: () =>
+        convertArrayToReadableStream([
+          [
+            'messages',
+            [
+              new AIMessageChunk({
+                content: 'Hello',
+                id: 'langgraph-message',
+              }),
+              { langgraph_step: 0 },
+            ],
+          ],
+          ['values', {}],
+        ]),
+      convertedChunks: [
+        { type: 'start-step' },
+        { type: 'text-start', id: 'langgraph-message' },
+        { type: 'text-delta', delta: 'Hello', id: 'langgraph-message' },
+        { type: 'text-end', id: 'langgraph-message' },
+        { type: 'finish-step' },
+      ],
+    },
+    {
+      name: 'streamEvents streams',
+      createInput: () =>
+        convertArrayToReadableStream([
+          {
+            event: 'on_chat_model_stream',
+            data: {
+              chunk: {
+                id: 'stream-events-message',
+                content: 'Hello',
+              },
+            },
+          },
+        ]),
+      convertedChunks: [
+        { type: 'text-start', id: 'stream-events-message' },
+        {
+          type: 'text-delta',
+          delta: 'Hello',
+          id: 'stream-events-message',
+        },
+        { type: 'text-end', id: 'stream-events-message' },
+      ],
+    },
+  ])(
+    'lifecycle chunk options for $name',
+    ({ createInput, convertedChunks }) => {
+      it.each([
+        {
+          sendStart: undefined,
+          sendFinish: undefined,
+          expectedStart: true,
+          expectedFinish: true,
+        },
+        {
+          sendStart: false,
+          sendFinish: undefined,
+          expectedStart: false,
+          expectedFinish: true,
+        },
+        {
+          sendStart: undefined,
+          sendFinish: false,
+          expectedStart: true,
+          expectedFinish: false,
+        },
+        {
+          sendStart: false,
+          sendFinish: false,
+          expectedStart: false,
+          expectedFinish: false,
+        },
+      ])(
+        'emits the requested outer chunks with sendStart=$sendStart and sendFinish=$sendFinish',
+        async ({ sendStart, sendFinish, expectedStart, expectedFinish }) => {
+          const result = await convertReadableStreamToArray(
+            toUIMessageStream(createInput(), { sendStart, sendFinish }),
+          );
+
+          expect(result).toEqual([
+            ...(expectedStart ? [{ type: 'start' as const }] : []),
+            ...convertedChunks,
+            ...(expectedFinish ? [{ type: 'finish' as const }] : []),
+          ]);
+        },
+      );
+    },
+  );
+
+  it('can suppress both lifecycle chunks for a minimal LangGraph values stream', async () => {
+    const inputStream = convertArrayToReadableStream([['values', {}]]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream, {
+        sendStart: false,
+        sendFinish: false,
+      }),
+    );
+
+    expect(result).toEqual([]);
+  });
+
   it('should emit start event on stream initialization', async () => {
     const inputStream = convertArrayToReadableStream([['values', {}]]);
 
