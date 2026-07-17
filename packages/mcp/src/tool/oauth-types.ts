@@ -63,7 +63,6 @@ export const OAuthProtectedResourceMetadataSchema = z
   })
   .passthrough();
 
-<<<<<<< HEAD
 export const OAuthMetadataSchema = z
   .object({
     issuer: z.string(),
@@ -73,29 +72,13 @@ export const OAuthMetadataSchema = z
     scopes_supported: z.array(z.string()).optional(),
     response_types_supported: z.array(z.string()),
     grant_types_supported: z.array(z.string()).optional(),
-    code_challenge_methods_supported: z.array(z.string()),
+    code_challenge_methods_supported: z.array(z.string()).optional(),
     token_endpoint_auth_methods_supported: z.array(z.string()).optional(),
     token_endpoint_auth_signing_alg_values_supported: z
       .array(z.string())
       .optional(),
   })
   .passthrough();
-=======
-export const OAuthMetadataSchema = z.looseObject({
-  issuer: z.string(),
-  authorization_endpoint: SafeUrlSchema,
-  token_endpoint: SafeUrlSchema,
-  registration_endpoint: SafeUrlSchema.optional(),
-  scopes_supported: z.array(z.string()).optional(),
-  response_types_supported: z.array(z.string()),
-  grant_types_supported: z.array(z.string()).optional(),
-  code_challenge_methods_supported: z.array(z.string()).optional(),
-  token_endpoint_auth_methods_supported: z.array(z.string()).optional(),
-  token_endpoint_auth_signing_alg_values_supported: z
-    .array(z.string())
-    .optional(),
-});
->>>>>>> d84ea43de (fix: OAuth discovery rejects RFC-compliant metadata without PKCE method declarations (#17462))
 
 /**
  * OpenID Connect Discovery 1.0 Provider Metadata
