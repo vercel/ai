@@ -4649,7 +4649,25 @@ describe('generateText', () => {
           {
             "options": {
               "abortSignal": undefined,
+<<<<<<< HEAD
               "experimental_context": undefined,
+=======
+              "context": {},
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call-1",
+            },
+            "type": "onInputStart",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "context": {},
+>>>>>>> cd064585a (fix: ensure tool input lifecycle callbacks start before input becomes available (#17393))
               "input": {
                 "value": "value",
               },
