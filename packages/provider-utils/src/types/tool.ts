@@ -159,96 +159,7 @@ export type Tool<
    */
   needsApproval?:
     | boolean
-<<<<<<< HEAD
     | ToolNeedsApprovalFunction<[INPUT] extends [never] ? unknown : INPUT>;
-=======
-    | ToolNeedsApprovalFunction<
-        [INPUT] extends [never] ? unknown : INPUT,
-        NoInfer<CONTEXT>
-      >;
-
-  /**
-   * Optional function that is called when the model starts generating the tool input.
-   * In non-streaming contexts, it is called immediately before `onInputAvailable`.
-   */
-  onInputStart?: (
-    options: ToolExecutionOptions<NoInfer<CONTEXT>>,
-  ) => void | PromiseLike<void>;
-
-  /**
-   * Optional function that is called when an argument streaming delta is available.
-   * Only called when the tool is used in a streaming context.
-   */
-  onInputDelta?: (
-    options: { inputTextDelta: string } & ToolExecutionOptions<
-      NoInfer<CONTEXT>
-    >,
-  ) => void | PromiseLike<void>;
-
-  /**
-   * Optional function that is called when a tool call can be started,
-   * even if the execute function is not provided.
-   */
-  onInputAvailable?: (
-    options: {
-      input: [INPUT] extends [never] ? unknown : INPUT;
-    } & ToolExecutionOptions<NoInfer<CONTEXT>>,
-  ) => void | PromiseLike<void>;
-
-  /**
-   * Optional conversion function that maps the tool result to an output that can be used by the language model.
-   *
-   * If not provided, the tool result will be sent as a JSON object.
-   *
-   * This function is invoked on the server by `convertToModelMessages`, so ensure that you pass the same "tools" (ToolSet) to both "convertToModelMessages" and "streamText" (or other generation APIs).
-   */
-  toModelOutput?: (options: {
-    /**
-     * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
-     */
-    toolCallId: string;
-
-    /**
-     * The input of the tool call.
-     */
-    input: [INPUT] extends [never] ? unknown : INPUT;
-
-    /**
-     * The output of the tool call.
-     */
-    output: 0 extends 1 & OUTPUT
-      ? any
-      : [OUTPUT] extends [never]
-        ? any
-        : NoInfer<OUTPUT>;
-  }) => ToolResultOutput | PromiseLike<ToolResultOutput>;
-} & ToolOutputProperties<INPUT, OUTPUT, NoInfer<CONTEXT>>;
-
-/**
- * Common properties shared by function-style tools.
- */
-type BaseFunctionTool<
-  INPUT extends JSONValue | unknown | never = any,
-  OUTPUT extends JSONValue | unknown | never = any,
-  CONTEXT extends Context | unknown | never = any,
-> = BaseTool<INPUT, OUTPUT, CONTEXT> & {
-  /**
-   * Optional description of what the tool does.
-   *
-   * Included in the tool definition sent to the language model so it can
-   * decide when and how to call the tool.
-   *
-   * Provide a string for a fixed description, or a function that returns a
-   * string from the current `context` (and optional `experimental_sandbox`) when the
-   * description should vary per call.
-   */
-  description?:
-    | string
-    | ((options: {
-        context: NoInfer<CONTEXT>;
-        experimental_sandbox?: SandboxSession;
-      }) => string);
->>>>>>> cd064585a (fix: ensure tool input lifecycle callbacks start before input becomes available (#17393))
 
   /**
    * Strict mode setting for the tool.
@@ -260,8 +171,8 @@ type BaseFunctionTool<
   strict?: boolean;
 
   /**
-   * Optional function that is called when the argument streaming starts.
-   * Only called when the tool is used in a streaming context.
+   * Optional function that is called when the model starts generating the tool input.
+   * In non-streaming contexts, it is called immediately before `onInputAvailable`.
    */
   onInputStart?: (options: ToolExecutionOptions) => void | PromiseLike<void>;
 
