@@ -883,7 +883,7 @@ describe('tool messages', () => {
 
 describe('assistant messages', () => {
   it('should preserve citations on assistant text', async () => {
-    const result = await convertToAnthropicPrompt({
+    const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
           role: 'assistant',
