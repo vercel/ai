@@ -682,9 +682,12 @@ export async function generateText<
         ...collectedDeniedToolApprovals,
         ...revalidationDeniedToolApprovals,
       ];
+      const deniedToolApprovalsWithoutResults = deniedToolApprovals.filter(
+        toolApproval => toolApproval.existingToolResult == null,
+      );
 
       if (
-        deniedToolApprovals.length > 0 ||
+        deniedToolApprovalsWithoutResults.length > 0 ||
         localApprovedToolApprovals.length > 0
       ) {
         const toolResults = await executeTools({
@@ -741,7 +744,7 @@ export async function generateText<
         }
 
         // add execution denied tool results for all denied tool approvals:
-        for (const toolApproval of deniedToolApprovals) {
+        for (const toolApproval of deniedToolApprovalsWithoutResults) {
           toolContent.push({
             type: 'tool-result' as const,
             toolCallId: toolApproval.toolCall.toolCallId,
@@ -1055,6 +1058,15 @@ export async function generateText<
                   // ignore tool calls for tools that are not available,
                   // e.g. provider-executed dynamic tools
                   continue;
+                }
+
+                if (tool.onInputStart != null) {
+                  await tool.onInputStart({
+                    toolCallId: toolCall.toolCallId,
+                    messages: stepMessages,
+                    abortSignal: mergedAbortSignal,
+                    context: runtimeContext,
+                  });
                 }
 
                 if (tool?.onInputAvailable != null) {

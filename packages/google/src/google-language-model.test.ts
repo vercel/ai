@@ -3098,6 +3098,78 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass imageConfig.personGeneration, imageConfig.prominentPeople and imageConfig.imageOutputOptions on Vertex', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    const vertexModel = new GoogleLanguageModel('gemini-pro', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+    });
+
+    const { warnings } = await vertexModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          imageConfig: {
+            aspectRatio: '16:9',
+            personGeneration: 'ALLOW_ADULT',
+            prominentPeople: 'BLOCK_PROMINENT_PEOPLE',
+            imageOutputOptions: {
+              mimeType: 'image/jpeg',
+              compressionQuality: 75,
+            },
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        imageConfig: {
+          aspectRatio: '16:9',
+          personGeneration: 'ALLOW_ADULT',
+          prominentPeople: 'BLOCK_PROMINENT_PEOPLE',
+          imageOutputOptions: {
+            mimeType: 'image/jpeg',
+            compressionQuality: 75,
+          },
+        },
+      },
+    });
+    expect(warnings).toEqual([]);
+  });
+
+  it('should warn and drop Vertex-only imageConfig fields on the Gemini API', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    const { warnings } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          imageConfig: {
+            aspectRatio: '16:9',
+            prominentPeople: 'BLOCK_PROMINENT_PEOPLE',
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.generationConfig.imageConfig).toEqual({
+      aspectRatio: '16:9',
+    });
+    expect(warnings).toEqual([
+      {
+        type: 'other',
+        message:
+          "'imageConfig.prominentPeople' is a Vertex AI option and is " +
+          'ignored with the current Google provider (google.generative-ai).',
+      },
+    ]);
+  });
+
   it('should pass retrievalConfig in provider options', async () => {
     prepareJsonFixtureResponse('google-text', {
       url: TEST_URL_GEMINI_2_0_FLASH_EXP,

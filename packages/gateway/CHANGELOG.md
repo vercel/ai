@@ -1,5 +1,26 @@
 # @ai-sdk/gateway
 
+## 4.0.23
+
+### Patch Changes
+
+- Updated dependencies [cd06458]
+  - @ai-sdk/provider-utils@5.0.11
+
+## 4.0.22
+
+### Patch Changes
+
+- 341616a: feat: add kimi-k3 model and `reasoningEffort` provider option
+- 70fc45c: chore(provider/gateway): update gateway model settings files
+
+## 4.0.21
+
+### Patch Changes
+
+- 7069785: chore(provider/gateway): update gateway model settings files
+- 4bf9ac2: feat (provider/gateway): add `gateway.experimental_transcription.getToken` for minting transcription-bound client secrets
+
 ## 4.0.20
 
 ### Patch Changes

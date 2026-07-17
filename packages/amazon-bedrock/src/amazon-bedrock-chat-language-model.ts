@@ -665,6 +665,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
         headers: responseHeaders,
       },
       warnings,
+      request: { body: args },
       ...(providerMetadata && { providerMetadata }),
     };
   }
@@ -1090,13 +1091,15 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
           },
         }),
       ),
-      // TODO request?
+      request: { body: args },
       response: { headers: responseHeaders },
     };
   }
 
   private getUrl(modelId: string) {
-    const encodedModelId = encodeURIComponent(modelId);
+    const encodedModelId = modelId.startsWith('arn:')
+      ? encodeURIComponent(modelId).replace(/%3A/g, ':').replace(/%2F/g, '/')
+      : encodeURIComponent(modelId);
     return `${this.config.baseUrl()}/model/${encodedModelId}`;
   }
 }

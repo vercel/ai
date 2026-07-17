@@ -201,6 +201,87 @@ const opusAnthropicModel = new AmazonBedrockChatLanguageModel(
 
 let mockOptions: { success: boolean; errorValue?: any } = { success: true };
 
+describe('doGenerate request metadata', () => {
+  it('should return the request body', async () => {
+    prepareJsonFixtureResponse('amazon-bedrock-text');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.request?.body).toMatchInlineSnapshot(`
+      {
+        "additionalModelRequestFields": undefined,
+        "additionalModelResponseFieldPaths": [
+          "/delta/stop_sequence",
+        ],
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "system": [
+          {
+            "text": "System Prompt",
+          },
+        ],
+      }
+    `);
+  });
+});
+
+describe('request URL', () => {
+  it('should preserve application inference profile ARN delimiters', async () => {
+    const inferenceProfileArn =
+      'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/abc123xyz';
+    const fetch = vi.fn(async () => {
+      return new Response(
+        JSON.stringify({
+          output: {
+            message: {
+              role: 'assistant',
+              content: [{ text: 'hello' }],
+            },
+          },
+          stopReason: 'end_turn',
+          usage: {
+            inputTokens: 1,
+            outputTokens: 1,
+            totalTokens: 2,
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        },
+      );
+    });
+    const inferenceProfileModel = new AmazonBedrockChatLanguageModel(
+      inferenceProfileArn,
+      {
+        baseUrl: () => baseUrl,
+        headers: {},
+        fetch,
+        generateId: () => 'test-id',
+      },
+    );
+
+    await inferenceProfileModel.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(fetch).toHaveBeenCalledWith(
+      `${baseUrl}/model/${inferenceProfileArn}/converse`,
+      expect.any(Object),
+    );
+  });
+});
+
 describe('doStream', () => {
   beforeEach(() => {
     mockOptions = { success: true, errorValue: undefined };
@@ -283,6 +364,37 @@ describe('doStream', () => {
           "connection": "keep-alive",
           "content-type": "text/event-stream",
           "test-header": "test-value",
+        }
+      `);
+    });
+
+    it('should return the request body', async () => {
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(result.request?.body).toMatchInlineSnapshot(`
+        {
+          "additionalModelRequestFields": undefined,
+          "additionalModelResponseFieldPaths": [
+            "/delta/stop_sequence",
+          ],
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": [
+            {
+              "text": "System Prompt",
+            },
+          ],
         }
       `);
     });
