@@ -1228,20 +1228,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
               switch (contentBlockType) {
                 case 'text': {
-<<<<<<< HEAD:packages/anthropic/src/anthropic-messages-language-model.ts
-                  contentBlocks[value.index] = { type: 'text' };
-=======
-                  // when a json response tool is used, the tool call is returned as text,
-                  // so we ignore the text content:
-                  if (usesJsonResponseTool) {
-                    return;
-                  }
-
                   contentBlocks[value.index] = {
                     type: 'text',
                     citations: [],
                   };
->>>>>>> afcf19c40 (fix: preserve Anthropic web search citations across multi-turn assistant message replay (#17398)):packages/anthropic/src/anthropic-language-model.ts
                   controller.enqueue({
                     type: 'text-start',
                     id: String(value.index),
@@ -1291,7 +1281,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
                 case 'tool_use': {
                   contentBlocks[value.index] = usesJsonResponseTool
-                    ? { type: 'text' }
+                    ? { type: 'text', citations: [] }
                     : {
                         type: 'tool-call',
                         toolCallId: value.content_block.id,
@@ -1300,7 +1290,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                         firstDelta: true,
                       };
 
-<<<<<<< HEAD:packages/anthropic/src/anthropic-messages-language-model.ts
                   controller.enqueue(
                     usesJsonResponseTool
                       ? { type: 'text-start', id: String(value.index) }
@@ -1310,55 +1299,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                           toolName: value.content_block.name,
                         },
                   );
-=======
-                  if (isJsonResponseTool) {
-                    isJsonResponseFromTool = true;
-
-                    contentBlocks[value.index] = {
-                      type: 'text',
-                      citations: [],
-                    };
-
-                    controller.enqueue({
-                      type: 'text-start',
-                      id: String(value.index),
-                    });
-                  } else {
-                    // Extract caller info for type-safe access
-                    const caller = part.caller;
-                    const callerInfo = caller
-                      ? {
-                          type: caller.type,
-                          toolId:
-                            'tool_id' in caller ? caller.tool_id : undefined,
-                        }
-                      : undefined;
-
-                    // Programmatic tool calling: for deferred tool calls from code_execution,
-                    // input may be present directly in content_block_start.
-                    // Only use if non-empty (empty {} means input comes via deltas)
-                    const hasNonEmptyInput =
-                      part.input && Object.keys(part.input).length > 0;
-                    const initialInput = hasNonEmptyInput
-                      ? JSON.stringify(part.input)
-                      : '';
-
-                    contentBlocks[value.index] = {
-                      type: 'tool-call',
-                      toolCallId: part.id,
-                      toolName: part.name,
-                      input: initialInput,
-                      firstDelta: initialInput.length === 0,
-                      ...(callerInfo && { caller: callerInfo }),
-                    };
-
-                    controller.enqueue({
-                      type: 'tool-input-start',
-                      id: part.id,
-                      toolName: part.name,
-                    });
-                  }
->>>>>>> afcf19c40 (fix: preserve Anthropic web search citations across multi-turn assistant message replay (#17398)):packages/anthropic/src/anthropic-language-model.ts
                   return;
                 }
 
