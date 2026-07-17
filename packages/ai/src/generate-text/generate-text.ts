@@ -452,6 +452,7 @@ A function that attempts to repair a tool call that failed to parse.
             }),
           );
 
+<<<<<<< HEAD
           // parse tool calls:
           const stepToolCalls: TypedToolCall<TOOLS>[] = await Promise.all(
             currentModelResponse.content
@@ -461,6 +462,30 @@ A function that attempts to repair a tool call that failed to parse.
               )
               .map(toolCall =>
                 parseToolCall({
+=======
+                if (tool.onInputStart != null) {
+                  await tool.onInputStart({
+                    toolCallId: toolCall.toolCallId,
+                    messages: stepMessages,
+                    abortSignal: mergedAbortSignal,
+                    context: runtimeContext,
+                  });
+                }
+
+                if (tool?.onInputAvailable != null) {
+                  await tool.onInputAvailable({
+                    input: toolCall.input,
+                    toolCallId: toolCall.toolCallId,
+                    messages: stepMessages,
+                    abortSignal: mergedAbortSignal,
+                    context: runtimeContext,
+                  });
+                }
+
+                const toolApprovalStatus = await resolveToolApproval({
+                  tools,
+                  toolApproval,
+>>>>>>> cd064585a (fix: ensure tool input lifecycle callbacks start before input becomes available (#17393))
                   toolCall,
                   tools,
                   repairToolCall,
