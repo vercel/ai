@@ -715,7 +715,7 @@ describe('toUIMessageStream', () => {
     expect(startIds.has('msg_test-002')).toBe(true);
   });
 
-  it('should handle reasoning followed by text content', async () => {
+  it('should close reasoning before starting text content', async () => {
     // Reasoning chunk
     const reasoningChunk = new AIMessageChunk({
       id: 'msg-1',
@@ -754,6 +754,10 @@ describe('toUIMessageStream', () => {
         },
         {
           "id": "msg-1",
+          "type": "reasoning-end",
+        },
+        {
+          "id": "msg-1",
           "type": "text-start",
         },
         {
@@ -764,10 +768,6 @@ describe('toUIMessageStream', () => {
         {
           "id": "msg-1",
           "type": "text-end",
-        },
-        {
-          "id": "msg-1",
-          "type": "reasoning-end",
         },
         {
           "type": "finish",
