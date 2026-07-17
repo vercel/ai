@@ -682,9 +682,12 @@ export async function generateText<
         ...collectedDeniedToolApprovals,
         ...revalidationDeniedToolApprovals,
       ];
+      const deniedToolApprovalsWithoutResults = deniedToolApprovals.filter(
+        toolApproval => toolApproval.existingToolResult == null,
+      );
 
       if (
-        deniedToolApprovals.length > 0 ||
+        deniedToolApprovalsWithoutResults.length > 0 ||
         localApprovedToolApprovals.length > 0
       ) {
         const toolResults = await executeTools({
@@ -741,7 +744,7 @@ export async function generateText<
         }
 
         // add execution denied tool results for all denied tool approvals:
-        for (const toolApproval of deniedToolApprovals) {
+        for (const toolApproval of deniedToolApprovalsWithoutResults) {
           toolContent.push({
             type: 'tool-result' as const,
             toolCallId: toolApproval.toolCall.toolCallId,
