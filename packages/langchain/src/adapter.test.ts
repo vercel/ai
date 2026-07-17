@@ -33,6 +33,26 @@ describe('toUIMessageStream', () => {
     expect(result[0]).toEqual({ type: 'start' });
   });
 
+  it('should omit the start event when sendStart is false', async () => {
+    const inputStream = convertArrayToReadableStream([['values', {}]]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream, { sendStart: false }),
+    );
+
+    expect(result).toEqual([{ type: 'finish' }]);
+  });
+
+  it('should omit the finish event when sendFinish is false', async () => {
+    const inputStream = convertArrayToReadableStream([['values', {}]]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream, { sendFinish: false }),
+    );
+
+    expect(result).toEqual([{ type: 'start' }]);
+  });
+
   it('should handle text streaming from messages', async () => {
     // Create actual AIMessageChunk instances
     const chunk1 = new AIMessage({ content: 'Hello', id: 'msg-1' });

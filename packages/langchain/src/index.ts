@@ -9,4 +9,7 @@ export {
   type LangSmithDeploymentTransportOptions,
 } from './transport';
 
-export { type StreamCallbacks } from './stream-callbacks';
+export {
+  type StreamCallbacks,
+  type ToUIMessageStreamOptions,
+} from './stream-callbacks';

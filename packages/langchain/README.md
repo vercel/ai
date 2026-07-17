@@ -221,14 +221,16 @@ Converts AI SDK `ModelMessage` objects to LangChain `BaseMessage` objects.
 
 **Returns:** `BaseMessage[]`
 
-### `toUIMessageStream(stream, callbacks?)`
+### `toUIMessageStream(stream, options?)`
 
 Converts a LangChain/LangGraph stream to an AI SDK `UIMessageStream`.
 
 **Parameters:**
 
 - `stream`: `AsyncIterable | ReadableStream` - A stream from LangChain `model.stream()`, LangGraph `graph.stream()`, or `streamEvents()`
-- `callbacks?`: `StreamCallbacks<TState>` - Optional lifecycle callbacks:
+- `options?`: `ToUIMessageStreamOptions<TState>` - Optional stream options and lifecycle callbacks:
+  - `sendStart` - Send the message start event. Defaults to `true`.
+  - `sendFinish` - Send the finish event. Defaults to `true`.
   - `onStart()` - Called when stream initializes
   - `onToken(token)` - Called for each token
   - `onText(text)` - Called for each text chunk
@@ -236,6 +238,9 @@ Converts a LangChain/LangGraph stream to an AI SDK `UIMessageStream`.
   - `onFinish(state)` - Called on success with LangGraph state (or `undefined` for other streams)
   - `onError(error)` - Called when stream errors
   - `onAbort()` - Called when stream is aborted
+
+`sendStart` and `sendFinish` only control the outer message lifecycle. LangGraph
+`start-step` and `finish-step` chunks are unchanged.
 
 **Returns:** `ReadableStream<UIMessageChunk>`
 

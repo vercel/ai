@@ -28,6 +28,25 @@ export interface StreamCallbacks<TState = unknown> {
 }
 
 /**
+ * Options for converting a LangChain stream to an AI SDK UIMessageStream.
+ */
+export interface ToUIMessageStreamOptions<
+  TState = unknown,
+> extends StreamCallbacks<TState> {
+  /**
+   * Send the message start event.
+   * Default to true.
+   */
+  sendStart?: boolean;
+
+  /**
+   * Send the finish event.
+   * Default to true.
+   */
+  sendFinish?: boolean;
+}
+
+/**
  * Creates a transform stream that invokes callbacks during text stream processing.
  *
  * Lifecycle:

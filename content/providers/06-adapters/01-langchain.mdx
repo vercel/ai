@@ -462,7 +462,7 @@ const langchainMessages = convertModelMessages(modelMessages);
 
 **Returns:** `BaseMessage[]`
 
-### `toUIMessageStream(stream)`
+### `toUIMessageStream(stream, options?)`
 
 Converts a LangChain/LangGraph stream to an AI SDK `UIMessageStream`. Automatically detects the stream type and handles direct model streams, LangGraph streams, and `streamEvents()` output.
 
@@ -492,9 +492,24 @@ return createUIMessageStreamResponse({
 });
 ```
 
+When composing the adapter output into a caller-owned `UIMessageStream`, you
+can omit the outer lifecycle chunks:
+
+```ts
+const uiMessageStream = toUIMessageStream(graphStream, {
+  sendStart: false,
+  sendFinish: false,
+});
+```
+
 **Parameters:**
 
 - `stream`: `AsyncIterable<AIMessageChunk> | ReadableStream` - LangChain model stream, LangGraph stream, or `streamEvents()` output
+- `options.sendStart`: Whether to send the message start event. Defaults to `true`.
+- `options.sendFinish`: Whether to send the finish event. Defaults to `true`.
+
+These options only control the outer message lifecycle. LangGraph `start-step`
+and `finish-step` chunks are unchanged.
 
 **Returns:** `ReadableStream<UIMessageChunk>`
 
