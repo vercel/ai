@@ -95,6 +95,7 @@ const server = createTestServer({
   'https://test-resource.openai.azure.com/openai/v1/responses': {},
   'https://test-resource.openai.azure.com/openai/v1/audio/transcriptions': {},
   'https://test-resource.openai.azure.com/openai/v1/audio/speech': {},
+  'https://our-gateway.example.com/azure/chat/completions': {},
   'https://test-resource.openai.azure.com/openai/deployments/whisper-1/audio/transcriptions':
     {},
 });
@@ -376,6 +377,41 @@ describe('chat', () => {
         `"https://test-resource.openai.azure.com/openai/v1/chat/completions?api-version=v1"`,
       );
     });
+
+    it('should use custom gateway baseURL as-is', async () => {
+      server.urls[
+        'https://our-gateway.example.com/azure/chat/completions'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-repro-13956',
+          object: 'chat.completion',
+          created: 0,
+          model: 'test-deployment',
+          choices: [
+            {
+              index: 0,
+              message: { role: 'assistant', content: 'ok' },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+        },
+      };
+
+      const provider = createAzure({
+        baseURL: 'https://our-gateway.example.com/azure',
+        apiKey: 'test-api-key',
+      });
+
+      await provider.chat('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(server.calls[0].requestUrl).toMatchInlineSnapshot(
+        `"https://our-gateway.example.com/azure/chat/completions"`,
+      );
+    });
   });
 });
 
@@ -437,6 +473,56 @@ describe('deepseek', () => {
         ],
         "model": "deepseek-v4-flash",
         "reasoning_effort": "max",
+      }
+    `);
+  });
+
+  it('should send a json_schema response format for structured output', async () => {
+    prepareJsonFixtureResponse('azure-deepseek-reasoning.1', undefined, 'chat');
+
+    await provider.deepseek('deepseek-v4-flash').doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'high',
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { sentiment: { type: 'string' } },
+          required: ['sentiment'],
+          additionalProperties: false,
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "high",
+        "response_format": {
+          "json_schema": {
+            "name": "response",
+            "schema": {
+              "additionalProperties": false,
+              "properties": {
+                "sentiment": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "sentiment",
+              ],
+              "type": "object",
+            },
+            "strict": true,
+          },
+          "type": "json_schema",
+        },
       }
     `);
   });
