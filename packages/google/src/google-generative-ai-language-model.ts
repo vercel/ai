@@ -375,7 +375,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
     const usageMetadata = response.usageMetadata;
 
-    // Associates a code execution result with its preceding call.
+    // Associates code execution results with their preceding call.
     let lastCodeExecutionToolCallId: string | undefined;
     // Associates a server-side tool response with its preceding call (tool combination).
     let lastServerToolCallId: string | undefined;
@@ -396,7 +396,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       } else if ('codeExecutionResult' in part && part.codeExecutionResult) {
         content.push({
           type: 'tool-result',
-          // Assumes a result directly follows its corresponding call part.
+          // Results correspond to the most recent executable code part.
           toolCallId: lastCodeExecutionToolCallId!,
           toolName: 'code_execution',
           result: {
@@ -404,8 +404,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
             output: part.codeExecutionResult.output ?? '',
           },
         });
-        // Clear the ID after use to avoid accidental reuse.
-        lastCodeExecutionToolCallId = undefined;
       } else if ('text' in part && part.text != null) {
         const thoughtSignatureMetadata = part.thoughtSignature
           ? {
@@ -600,7 +598,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
     // Track emitted sources to prevent duplicates
     const emittedSourceUrls = new Set<string>();
-    // Associates a code execution result with its preceding call.
+    // Associates code execution results with their preceding call.
     let lastCodeExecutionToolCallId: string | undefined;
     // Associates a server-side tool response with its preceding call (tool combination).
     let lastServerToolCallId: string | undefined;
@@ -728,7 +726,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                   'codeExecutionResult' in part &&
                   part.codeExecutionResult
                 ) {
-                  // Assumes a result directly follows its corresponding call part.
+                  // Results correspond to the most recent executable code part.
                   const toolCallId = lastCodeExecutionToolCallId;
 
                   if (toolCallId) {
@@ -741,8 +739,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                         output: part.codeExecutionResult.output ?? '',
                       },
                     });
-                    // Clear the ID after use.
-                    lastCodeExecutionToolCallId = undefined;
                   }
                 } else if ('text' in part && part.text != null) {
                   const thoughtSignatureMetadata = part.thoughtSignature
