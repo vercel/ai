@@ -87,19 +87,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         toolCallId: z.string(),
         signature: z.string().optional(),
       }),
-<<<<<<< HEAD
-      z.strictObject({
-=======
       z.looseObject({
-        type: z.literal('tool-approval-response'),
-        approvalId: z.string(),
-        approved: z.boolean(),
-        reason: z.string().optional(),
-        providerExecuted: z.boolean().optional(),
-        providerMetadata: providerMetadataSchema.optional(),
-      }),
-      z.looseObject({
->>>>>>> e35bcae87 (fix: prevent newer fields on known UI message chunks from breaking older clients (#17010))
         type: z.literal('tool-output-available'),
         toolCallId: z.string(),
         output: z.unknown(),
@@ -138,16 +126,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         id: z.string(),
         providerMetadata: providerMetadataSchema.optional(),
       }),
-<<<<<<< HEAD
-      z.strictObject({
-=======
       z.looseObject({
-        type: z.literal('custom'),
-        kind: z.string().transform(value => value as `${string}.${string}`),
-        providerMetadata: providerMetadataSchema.optional(),
-      }),
-      z.looseObject({
->>>>>>> e35bcae87 (fix: prevent newer fields on known UI message chunks from breaking older clients (#17010))
         type: z.literal('source-url'),
         sourceId: z.string(),
         url: z.string(),
@@ -168,17 +147,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         mediaType: z.string(),
         providerMetadata: providerMetadataSchema.optional(),
       }),
-<<<<<<< HEAD
-      z.strictObject({
-=======
       z.looseObject({
-        type: z.literal('reasoning-file'),
-        url: z.string(),
-        mediaType: z.string(),
-        providerMetadata: providerMetadataSchema.optional(),
-      }),
-      z.looseObject({
->>>>>>> e35bcae87 (fix: prevent newer fields on known UI message chunks from breaking older clients (#17010))
         type: z.custom<`data-${string}`>(
           (value): value is `data-${string}` =>
             typeof value === 'string' && value.startsWith('data-'),
