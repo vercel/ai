@@ -61,7 +61,6 @@ export const OAuthProtectedResourceMetadataSchema = z
   })
   .passthrough();
 
-<<<<<<< HEAD
 export const OAuthMetadataSchema = z
   .object({
     issuer: z.string(),
@@ -71,46 +70,13 @@ export const OAuthMetadataSchema = z
     scopes_supported: z.array(z.string()).optional(),
     response_types_supported: z.array(z.string()),
     grant_types_supported: z.array(z.string()).optional(),
-    code_challenge_methods_supported: z.array(z.string()),
+    code_challenge_methods_supported: z.array(z.string()).optional(),
     token_endpoint_auth_methods_supported: z.array(z.string()).optional(),
     token_endpoint_auth_signing_alg_values_supported: z
       .array(z.string())
       .optional(),
   })
   .passthrough();
-=======
-export const OAuthProtectedResourceMetadataSchema = z.looseObject({
-  resource: z.string().url(),
-  authorization_servers: z.array(SafeUrlSchema).optional(),
-  jwks_uri: z.string().url().optional(),
-  scopes_supported: z.array(z.string()).optional(),
-  bearer_methods_supported: z.array(z.string()).optional(),
-  resource_signing_alg_values_supported: z.array(z.string()).optional(),
-  resource_name: z.string().optional(),
-  resource_documentation: z.string().optional(),
-  resource_policy_uri: z.string().url().optional(),
-  resource_tos_uri: z.string().url().optional(),
-  tls_client_certificate_bound_access_tokens: z.boolean().optional(),
-  authorization_details_types_supported: z.array(z.string()).optional(),
-  dpop_signing_alg_values_supported: z.array(z.string()).optional(),
-  dpop_bound_access_tokens_required: z.boolean().optional(),
-});
-
-export const OAuthMetadataSchema = z.looseObject({
-  issuer: z.string(),
-  authorization_endpoint: SafeUrlSchema,
-  token_endpoint: SafeUrlSchema,
-  registration_endpoint: SafeUrlSchema.optional(),
-  scopes_supported: z.array(z.string()).optional(),
-  response_types_supported: z.array(z.string()),
-  grant_types_supported: z.array(z.string()).optional(),
-  code_challenge_methods_supported: z.array(z.string()).optional(),
-  token_endpoint_auth_methods_supported: z.array(z.string()).optional(),
-  token_endpoint_auth_signing_alg_values_supported: z
-    .array(z.string())
-    .optional(),
-});
->>>>>>> d84ea43de (fix: OAuth discovery rejects RFC-compliant metadata without PKCE method declarations (#17462))
 
 /**
  * OpenID Connect Discovery 1.0 Provider Metadata

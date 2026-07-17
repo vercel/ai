@@ -557,27 +557,6 @@ describe('discoverAuthorizationServerMetadata', () => {
     code_challenge_methods_supported: ['S256'],
   };
 
-<<<<<<< HEAD
-=======
-  it('returns OAuth metadata when issuer matches path-aware discovery issuer', async () => {
-    const tenantMetadata = {
-      ...validOAuthMetadata,
-      issuer: 'https://auth.example.com/tenant1',
-    };
-
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => tenantMetadata,
-    });
-
-    const metadata = await discoverAuthorizationServerMetadata(
-      'https://auth.example.com/tenant1',
-    );
-
-    expect(metadata).toEqual(tenantMetadata);
-  });
-
   it('accepts OAuth metadata when code challenge methods are omitted', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -606,7 +585,6 @@ describe('discoverAuthorizationServerMetadata', () => {
     `);
   });
 
->>>>>>> d84ea43de (fix: OAuth discovery rejects RFC-compliant metadata without PKCE method declarations (#17462))
   it('tries URLs in order and returns first successful metadata', async () => {
     // First OAuth URL fails with 404
     mockFetch.mockResolvedValueOnce({
