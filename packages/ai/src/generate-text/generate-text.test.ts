@@ -72,9 +72,6 @@ const dummyResponseValues = {
   warnings: [],
 };
 
-<<<<<<< HEAD
-const modelWithSources = new MockLanguageModelV3({
-=======
 describe('abort signal handling', () => {
   it('should reject when the abort signal fires during tool execution', async () => {
     const abortController = new AbortController();
@@ -82,7 +79,7 @@ describe('abort signal handling', () => {
     let modelCallCount = 0;
 
     const result = generateText({
-      model: new MockLanguageModelV4({
+      model: new MockLanguageModelV3({
         doGenerate: async () => {
           modelCallCount++;
 
@@ -119,7 +116,7 @@ describe('abort signal handling', () => {
       },
       prompt: 'test-input',
       abortSignal: abortController.signal,
-      stopWhen: isStepCount(10),
+      stopWhen: stepCountIs(10),
       maxRetries: 0,
     });
 
@@ -135,7 +132,7 @@ describe('abort signal handling', () => {
     let modelCallCount = 0;
 
     const result = generateText({
-      model: new MockLanguageModelV4({
+      model: new MockLanguageModelV3({
         doGenerate: async () => {
           modelCallCount++;
 
@@ -172,7 +169,7 @@ describe('abort signal handling', () => {
       },
       prompt: 'test-input',
       abortSignal: abortController.signal,
-      stopWhen: isStepCount(10),
+      stopWhen: stepCountIs(10),
       maxRetries: 0,
     });
 
@@ -183,8 +180,7 @@ describe('abort signal handling', () => {
   });
 });
 
-const modelWithSources = new MockLanguageModelV4({
->>>>>>> a4eb3f37f (fix: prevent generateText from returning partial results after cancellation in multi-step tool loops (#17461))
+const modelWithSources = new MockLanguageModelV3({
   doGenerate: {
     ...dummyResponseValues,
     content: [
