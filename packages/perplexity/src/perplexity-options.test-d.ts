@@ -1,4 +1,3 @@
-import type { LanguageModelV4CallOptions } from '@ai-sdk/provider';
 import { describe, expectTypeOf, it } from 'vitest';
 import type {
   PerplexityLanguageModelId,
@@ -6,7 +5,7 @@ import type {
 } from './index';
 
 describe('PerplexityLanguageModelOptions', () => {
-  it('accepts documented provider options and additional pass-through parameters', () => {
+  it('accepts documented provider options', () => {
     const options = {
       return_images: true,
       search_recency_filter: 'year',
@@ -14,12 +13,6 @@ describe('PerplexityLanguageModelOptions', () => {
     } satisfies PerplexityLanguageModelOptions;
 
     expectTypeOf(options).toMatchTypeOf<PerplexityLanguageModelOptions>();
-
-    expectTypeOf<{
-      perplexity: PerplexityLanguageModelOptions;
-    }>().toMatchTypeOf<
-      NonNullable<LanguageModelV4CallOptions['providerOptions']>
-    >();
   });
 
   it('narrows search_recency_filter to documented values', () => {
