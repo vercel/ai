@@ -1,5 +1,13 @@
 # @ai-sdk/react
 
+## 2.0.218
+
+### Patch Changes
+
+- Updated dependencies [2fd6076]
+  - ai@5.0.216
+  - @ai-sdk/provider-utils@3.0.30
+
 ## 2.0.217
 
 ### Patch Changes
