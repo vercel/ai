@@ -95,6 +95,7 @@ import type {
 } from './callback-events';
 import type { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
+import { filterActiveTools } from './filter-active-tools';
 import { text, type Output } from './output';
 import type {
   InferCompleteOutput,
@@ -882,6 +883,7 @@ class DefaultStreamTextResult<
     let recordedWarnings: Array<CallWarning> = [];
     const recordedSteps: StepResult<TOOLS>[] = [];
     let recordedNoOutputError: NoOutputGeneratedError | undefined;
+    let currentStepToolSet = tools;
 
     // Track provider-executed tool calls that support deferred results
     // (e.g., code_execution in programmatic tool calling scenarios).
@@ -1081,7 +1083,7 @@ class DefaultStreamTextResult<
         if (part.type === 'finish-step') {
           const stepMessages = await toResponseMessages({
             content: recordedContent,
-            tools,
+            tools: currentStepToolSet,
           });
 
           // Add step information (after response messages are updated):
@@ -1641,6 +1643,11 @@ class DefaultStreamTextResult<
 
             const stepActiveTools =
               prepareStepResult?.activeTools ?? activeTools;
+            const stepToolSet = filterActiveTools({
+              tools,
+              activeTools: stepActiveTools,
+            });
+            currentStepToolSet = stepToolSet;
 
             const { toolChoice: stepToolChoice, tools: stepTools } =
               await prepareToolsAndToolChoice({
@@ -1759,7 +1766,7 @@ class DefaultStreamTextResult<
             );
 
             const streamWithToolResults = runToolsTransformation({
-              tools,
+              tools: stepToolSet,
               generatorStream: stream,
               tracer,
               telemetry,
@@ -1967,7 +1974,7 @@ class DefaultStreamTextResult<
                       case 'tool-input-start': {
                         activeToolCallToolNames[chunk.id] = chunk.toolName;
 
-                        const tool = tools?.[chunk.toolName];
+                        const tool = stepToolSet?.[chunk.toolName];
                         if (tool?.onInputStart != null) {
                           await tool.onInputStart({
                             toolCallId: chunk.id,
@@ -1993,7 +2000,7 @@ class DefaultStreamTextResult<
 
                       case 'tool-input-delta': {
                         const toolName = activeToolCallToolNames[chunk.id];
-                        const tool = tools?.[toolName];
+                        const tool = stepToolSet?.[toolName];
 
                         if (tool?.onInputDelta != null) {
                           await tool.onInputDelta({
@@ -2167,7 +2174,7 @@ class DefaultStreamTextResult<
                     // the client tool's result is sent back.
                     for (const toolCall of stepToolCalls) {
                       if (toolCall.providerExecuted !== true) continue;
-                      const tool = tools?.[toolCall.toolName];
+                      const tool = stepToolSet?.[toolCall.toolName];
                       if (
                         tool?.type === 'provider' &&
                         tool.supportsDeferredResults
@@ -2220,7 +2227,7 @@ class DefaultStreamTextResult<
                           content:
                             // use transformed content to create the messages for the next step:
                             recordedSteps[recordedSteps.length - 1].content,
-                          tools,
+                          tools: stepToolSet,
                         })),
                       );
 
