@@ -1,0 +1,147 @@
+---
+title: Speechify
+description: Learn how to use the Speechify provider for the AI SDK.
+---
+
+# Speechify Provider
+
+The [Speechify](https://speechify.ai/) provider contains speech model support for the Speechify text-to-speech API, including word- and sentence-level speech marks (timing metadata) with every generation.
+
+## Setup
+
+The Speechify provider is available in the `@ai-sdk/speechify` module. You can install it with
+
+<InstallPackages packages="@ai-sdk/speechify" />
+
+## Provider Instance
+
+You can import the default provider instance `speechify` from `@ai-sdk/speechify`:
+
+```ts
+import { speechify } from '@ai-sdk/speechify';
+```
+
+If you need a customized setup, you can import `createSpeechify` from `@ai-sdk/speechify` and create a provider instance with your settings:
+
+```ts
+import { createSpeechify } from '@ai-sdk/speechify';
+
+const speechify = createSpeechify({
+  // custom settings, e.g.
+  fetch: customFetch,
+});
+```
+
+You can use the following optional settings to customize the Speechify provider instance:
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header.
+  It defaults to the `SPEECHIFY_API_KEY` environment variable.
+
+- **baseURL** _string_
+
+  Base URL for the API calls. Defaults to `https://api.sws.speechify.com`.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+## Speech Models
+
+You can create models that call the [Speechify speech API](https://docs.speechify.ai)
+using the `.speech()` factory method.
+
+The first argument is the model id e.g. `simba-3.2`.
+
+```ts
+const model = speechify.speech('simba-3.2');
+```
+
+The `voice` parameter takes a Speechify voice ID, including cloned voices. It defaults to `geffen_32`.
+
+```ts highlight="7"
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { speechify } from '@ai-sdk/speechify';
+
+const result = await generateSpeech({
+  model: speechify.speech('simba-3.2'),
+  text: 'Hello from Speechify!',
+  voice: 'geffen_32',
+});
+```
+
+The `outputFormat` option accepts simple names (`mp3`, `wav`, `ogg`, `aac`, `pcm`) or Speechify codec strings with sample rate and bitrate such as `mp3_24000_128`, `pcm_16000`, and `ulaw_8000` (for telephony). It defaults to `mp3`.
+
+The standard `speed` option is implemented via [SSML](https://docs.speechify.ai) prosody. Text that is already SSML (starting with `<speak`) is passed through unchanged, so you can control rate, pitch, and emotion directly in your markup.
+
+You can also pass additional provider-specific options using the `providerOptions` argument:
+
+```ts highlight="10-15"
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { speechify } from '@ai-sdk/speechify';
+import { type SpeechifySpeechModelOptions } from '@ai-sdk/speechify';
+
+const result = await generateSpeech({
+  model: speechify.speech('simba-3.2'),
+  text: 'Hello from Speechify!',
+  voice: 'geffen_32',
+  providerOptions: {
+    speechify: {
+      outputFormat: 'mp3_24000_128',
+      loudnessNormalization: true,
+      textNormalization: true,
+    } satisfies SpeechifySpeechModelOptions,
+  },
+});
+```
+
+### Provider Options
+
+The Speechify provider accepts the following options via `providerOptions.speechify`:
+
+- **ssml** _boolean_
+
+  Treat the input text as SSML. When enabled, the input is sent unchanged and the standard `speed` option is ignored (control rate via SSML instead).
+
+- **outputFormat** _string_
+
+  A Speechify codec output format string, e.g. `mp3_24000_128`, `pcm_16000`, or `ulaw_8000`. Takes precedence over the standard `outputFormat` option.
+
+- **loudnessNormalization** _boolean_
+
+  Normalize the loudness of the generated audio.
+
+- **textNormalization** _boolean_
+
+  Apply text normalization (e.g. expanding numbers and abbreviations).
+
+### Speech Marks
+
+Speechify returns word- and sentence-level timing data with every generation via provider metadata:
+
+```ts
+const result = await generateSpeech({
+  model: speechify.speech('simba-3.2'),
+  text: 'Timed speech.',
+});
+
+const { speechMarks, billableCharactersCount } =
+  result.providerMetadata.speechify;
+```
+
+### Model Capabilities
+
+| Model                | Instructions |
+| -------------------- | ------------ |
+| `simba-3.2`          | <Cross />    |
+| `simba-english`      | <Cross />    |
+| `simba-multilingual` | <Cross />    |
+| `simba-3.0`          | <Cross />    |
