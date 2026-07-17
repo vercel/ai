@@ -191,6 +191,48 @@ describe('toUIMessageStream', () => {
     `);
   });
 
+  it('should emit text from default LangGraph update streams', async () => {
+    const message = new AIMessage({
+      content: 'Hello from workflow',
+      id: 'workflow-message',
+    });
+    const inputStream = convertArrayToReadableStream([
+      {
+        agent: {
+          messages: [message],
+        },
+      },
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "start",
+        },
+        {
+          "id": "workflow-message",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello from workflow",
+          "id": "workflow-message",
+          "type": "text-delta",
+        },
+        {
+          "id": "workflow-message",
+          "type": "text-end",
+        },
+        {
+          "type": "finish",
+        },
+      ]
+    `);
+  });
+
   it('should skip messages without id', async () => {
     const msg = new AIMessage({ content: 'No ID message' });
 

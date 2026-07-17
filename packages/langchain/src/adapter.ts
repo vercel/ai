@@ -1,7 +1,8 @@
 import {
+  AIMessage,
+  AIMessageChunk,
   SystemMessage,
   type BaseMessage,
-  type AIMessageChunk,
 } from '@langchain/core/messages';
 import {
   convertToModelMessages,
@@ -20,6 +21,7 @@ import {
   extractReasoningFromContentBlocks,
   extractCitationsFromContentBlocks,
   emitSourceChunks,
+  isAIMessageChunk,
 } from './utils';
 import type { LangGraphEventState } from './types';
 import type { StreamCallbacks } from './stream-callbacks';
@@ -111,6 +113,60 @@ function isStreamEventsEvent(
   if (!('data' in obj)) return false;
   // data can be null in some events, treat as empty object
   return obj.data === null || typeof obj.data === 'object';
+}
+
+/**
+ * Processes an untagged LangGraph update from the default `updates` stream
+ * mode.
+ */
+function processLangGraphUpdate(
+  value: unknown,
+  state: LangGraphEventState,
+  controller: ReadableStreamDefaultController<UIMessageChunk>,
+): void {
+  if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+    return;
+  }
+
+  const update = value as Record<string, unknown>;
+  const nodeUpdates = Array.isArray(update.messages)
+    ? [update]
+    : Object.values(update);
+
+  for (const nodeUpdate of nodeUpdates) {
+    if (
+      nodeUpdate == null ||
+      typeof nodeUpdate !== 'object' ||
+      Array.isArray(nodeUpdate)
+    ) {
+      continue;
+    }
+
+    const messages = (nodeUpdate as { messages?: unknown }).messages;
+    if (!Array.isArray(messages)) {
+      continue;
+    }
+
+    for (const message of messages) {
+      const messageChunk =
+        AIMessage.isInstance(message) && !AIMessageChunk.isInstance(message)
+          ? new AIMessageChunk({
+              content: message.content,
+              id: message.id,
+              name: message.name,
+              additional_kwargs: message.additional_kwargs,
+              response_metadata: message.response_metadata,
+              tool_calls: message.tool_calls,
+              invalid_tool_calls: message.invalid_tool_calls,
+              usage_metadata: message.usage_metadata,
+            })
+          : message;
+
+      processLangGraphEvent(['messages', [messageChunk]], state, controller);
+    }
+
+    processLangGraphEvent(['values', nodeUpdate], state, controller);
+  }
 }
 
 /**
@@ -447,7 +503,12 @@ export function toUIMessageStream<TState = unknown>(
   /**
    * Track detected stream type: null = not yet detected
    */
-  let streamType: 'model' | 'langgraph' | 'streamEvents' | null = null;
+  let streamType:
+    | 'model'
+    | 'langgraph'
+    | 'langgraphUpdates'
+    | 'streamEvents'
+    | null = null;
 
   /**
    * Get async iterator from the stream (works for both AsyncIterable and ReadableStream)
@@ -516,8 +577,10 @@ export function toUIMessageStream<TState = unknown>(
               streamType = 'langgraph';
             } else if (isStreamEventsEvent(value)) {
               streamType = 'streamEvents';
-            } else {
+            } else if (isAIMessageChunk(value)) {
               streamType = 'model';
+            } else {
+              streamType = 'langgraphUpdates';
             }
           }
 
@@ -541,6 +604,8 @@ export function toUIMessageStream<TState = unknown>(
               modelState,
               wrappedController,
             );
+          } else if (streamType === 'langgraphUpdates') {
+            processLangGraphUpdate(value, langGraphState, wrappedController);
           } else {
             const eventArray = value as unknown[];
             const [type, data] = parseLangGraphEvent(eventArray);
@@ -549,11 +614,15 @@ export function toUIMessageStream<TState = unknown>(
               lastValuesData = data as TState;
             }
 
-            processLangGraphEvent(
-              eventArray,
-              langGraphState,
-              wrappedController,
-            );
+            if (type === 'updates') {
+              processLangGraphUpdate(data, langGraphState, wrappedController);
+            } else {
+              processLangGraphEvent(
+                eventArray,
+                langGraphState,
+                wrappedController,
+              );
+            }
           }
         }
 
@@ -577,7 +646,10 @@ export function toUIMessageStream<TState = unknown>(
             });
           }
           controller.enqueue({ type: 'finish' });
-        } else if (streamType === 'langgraph') {
+        } else if (
+          streamType === 'langgraph' ||
+          streamType === 'langgraphUpdates'
+        ) {
           /**
            * Close any open text/reasoning parts before finishing.
            * This handles streams without values events (e.g. streamMode: 'messages')
