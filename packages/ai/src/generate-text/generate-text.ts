@@ -795,6 +795,10 @@ export async function generateText<
       const pendingDeferredToolCalls = new Map<string, { toolName: string }>();
 
       do {
+        if (steps.length > 0) {
+          mergedAbortSignal?.throwIfAborted();
+        }
+
         // Set up step timeout if configured
         const stepTimeoutId = setAbortTimeout({
           abortController: stepAbortController,
@@ -1527,13 +1531,6 @@ async function executeTools<TOOLS extends ToolSet>({
         }),
     ),
   );
-
-  if (
-    abortSignal?.aborted &&
-    toolResults.some(result => result?.output.type === 'tool-error')
-  ) {
-    abortSignal.throwIfAborted();
-  }
 
   return toolResults.filter(
     (result): result is NonNullable<typeof result> => result != null,
