@@ -62,6 +62,7 @@ export interface AnthropicCompactionContent {
 export interface AnthropicTextContent {
   type: 'text';
   text: string;
+  citations?: Citation[];
   cache_control: AnthropicCacheControl | undefined;
 }
 
