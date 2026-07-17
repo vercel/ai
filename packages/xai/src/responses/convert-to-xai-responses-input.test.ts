@@ -454,22 +454,24 @@ describe('convertToXaiResponsesInput', () => {
         ],
       });
 
-      expect(result.input).toEqual([
-        {
-          type: 'function_call_output',
-          call_id: 'call_123',
-          output: [
-            {
-              type: 'input_text',
-              text: 'The requested image is attached.',
-            },
-            {
-              type: 'input_image',
-              image_url: 'https://example.com/image.png',
-            },
-          ],
-        },
-      ]);
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "text": "The requested image is attached.",
+                "type": "input_text",
+              },
+              {
+                "image_url": "https://example.com/image.png",
+                "type": "input_image",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
     });
   });
 

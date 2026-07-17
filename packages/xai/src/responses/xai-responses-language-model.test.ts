@@ -1027,9 +1027,16 @@ describe('XaiResponsesLanguageModel', () => {
       });
 
       it('should send image data in function call output', async () => {
-        prepareJsonFixtureResponse('issue-17381-tool-result-image');
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4.5',
+          output: [],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
 
-        const result = await createModel('grok-4.5').doGenerate({
+        await createModel('grok-4.5').doGenerate({
           prompt: [
             {
               role: 'user',
@@ -1076,24 +1083,42 @@ describe('XaiResponsesLanguageModel', () => {
           ],
         });
 
-        expect(result.content).toContainEqual({
-          type: 'text',
-          text: 'ZXQ-731',
-        });
-        expect((await server.calls[0].requestBodyJson).input).toContainEqual({
-          type: 'function_call_output',
-          call_id: 'call_123',
-          output: [
+        expect((await server.calls[0].requestBodyJson).input)
+          .toMatchInlineSnapshot(`
+          [
             {
-              type: 'input_text',
-              text: 'The requested image is attached.',
+              "content": [
+                {
+                  "text": "Read the tool image.",
+                  "type": "input_text",
+                },
+              ],
+              "role": "user",
             },
             {
-              type: 'input_image',
-              image_url: 'data:image/png;base64,AAECAw==',
+              "arguments": "{}",
+              "call_id": "call_123",
+              "id": "call_123",
+              "name": "inspectImage",
+              "status": "completed",
+              "type": "function_call",
             },
-          ],
-        });
+            {
+              "call_id": "call_123",
+              "output": [
+                {
+                  "text": "The requested image is attached.",
+                  "type": "input_text",
+                },
+                {
+                  "image_url": "data:image/png;base64,AAECAw==",
+                  "type": "input_image",
+                },
+              ],
+              "type": "function_call_output",
+            },
+          ]
+        `);
       });
 
       it('should warn about unsupported stopSequences', async () => {
