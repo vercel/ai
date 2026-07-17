@@ -40,6 +40,18 @@ function isSimpleAudioFormat(
 // Speechify codec output formats, e.g. `mp3_24000_128`, `pcm_16000`, `ulaw_8000`.
 const CODEC_OUTPUT_FORMAT_REGEX = /^(mp3|pcm|ogg|aac|ulaw|wav)_\d+(_\d+)?$/;
 
+const XML_ESCAPES: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&apos;',
+};
+
+function escapeXml(value: string): string {
+  return value.replace(/[&<>"']/g, char => XML_ESCAPES[char]);
+}
+
 interface SpeechifySpeechModelConfig extends SpeechifyConfig {
   _internal?: {
     currentDate?: () => Date;
@@ -102,7 +114,7 @@ export class SpeechifySpeechModel implements SpeechModelV4 {
             'The speed setting is ignored because the input is SSML. Use an SSML <prosody rate="..."> tag to control rate.',
         });
       } else {
-        input = `<speak><prosody rate="${Math.round(speed * 100)}%">${text}</prosody></speak>`;
+        input = `<speak><prosody rate="${Math.round(speed * 100)}%">${escapeXml(text)}</prosody></speak>`;
       }
     }
 

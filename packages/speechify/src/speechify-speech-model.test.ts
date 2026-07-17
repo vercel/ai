@@ -157,6 +157,19 @@ describe('doGenerate', () => {
     );
   });
 
+  it('should XML-escape text when wrapping it in SSML for speed', async () => {
+    prepareAudioResponse();
+
+    await model.doGenerate({
+      text: 'Tom & Jerry <3 "quotes"',
+      speed: 1.2,
+    });
+
+    expect((await server.calls[0].requestBodyJson).input).toBe(
+      '<speak><prosody rate="120%">Tom &amp; Jerry &lt;3 &quot;quotes&quot;</prosody></speak>',
+    );
+  });
+
   it('should pass SSML input through unchanged and warn when speed is also set', async () => {
     prepareAudioResponse();
 
