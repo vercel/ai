@@ -10,19 +10,12 @@ import {
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
   delay,
-<<<<<<< HEAD
-  type FetchFunction,
-=======
   extractResponseHeaders,
->>>>>>> 1e2ae1f81 (fix: xAI video polling fails on empty HTTP 202 responses (#17435))
+  type FetchFunction,
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
-<<<<<<< HEAD
-=======
-  type FetchFunction,
   type ResponseHandler,
->>>>>>> 1e2ae1f81 (fix: xAI video polling fails on empty HTTP 202 responses (#17435))
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
