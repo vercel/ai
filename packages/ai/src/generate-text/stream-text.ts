@@ -2171,6 +2171,13 @@ class DefaultStreamTextResult<
                     case 'model-call-end': {
                       hasReceivedTerminalChunk = true;
 
+                      // Clear chunk and step timeouts: model generation is
+                      // complete and tool execution (which may take arbitrary
+                      // time) should not count against these timers.
+                      // timeouts.toolMs already bounds individual tools.
+                      clearChunkTimeout();
+                      clearStepTimeout();
+
                       // Note: tool executions might not be finished yet when the finish event is emitted.
                       // store usage and finish reason for promises and onEnd callback:
                       stepUsage = chunk.usage;

@@ -17243,6 +17243,163 @@ describe('streamText', () => {
 
       await result.consumeStream();
     });
+
+    it('should not abort on chunk timeout during tool execution when model chunks arrive instantly', async () => {
+      let receivedAbortSignal: AbortSignal | undefined;
+      const toolDone = new DelayedPromise<void>();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async ({ abortSignal }) => {
+            receivedAbortSignal = abortSignal;
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: '{ "value": "test" }',
+                },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => {
+              await toolDone.promise;
+              return 'tool result';
+            },
+          }),
+        },
+        prompt: 'test-input',
+        timeout: { chunkMs: 50 },
+        onError: () => {},
+      });
+
+      const consumePromise = result.consumeStream();
+
+      await vi.advanceTimersByTimeAsync(100);
+
+      toolDone.resolve(undefined);
+
+      await consumePromise;
+
+      expect(receivedAbortSignal?.aborted).toBe(false);
+    });
+
+    it('should not abort on step timeout during tool execution when model finishes quickly', async () => {
+      let receivedAbortSignal: AbortSignal | undefined;
+      const toolDone = new DelayedPromise<void>();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async ({ abortSignal }) => {
+            receivedAbortSignal = abortSignal;
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: '{ "value": "test" }',
+                },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => {
+              await toolDone.promise;
+              return 'tool result';
+            },
+          }),
+        },
+        prompt: 'test-input',
+        timeout: { stepMs: 50 },
+        onError: () => {},
+      });
+
+      const consumePromise = result.consumeStream();
+
+      await vi.advanceTimersByTimeAsync(100);
+
+      toolDone.resolve(undefined);
+
+      await consumePromise;
+
+      expect(receivedAbortSignal?.aborted).toBe(false);
+    });
+
+    it('should still abort on chunk timeout when model never emits chunks', async () => {
+      let receivedAbortSignal: AbortSignal | undefined;
+      const modelHang = new DelayedPromise<void>();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async ({ abortSignal }) => {
+            receivedAbortSignal = abortSignal;
+            return {
+              stream: new ReadableStream({
+                async start(controller) {
+                  controller.enqueue({
+                    type: 'text-start',
+                    id: '1',
+                  });
+                  controller.enqueue({
+                    type: 'text-delta',
+                    id: '1',
+                    delta: 'Hello',
+                  });
+
+                  await modelHang.promise;
+
+                  controller.enqueue({
+                    type: 'text-end',
+                    id: '1',
+                  });
+                  controller.enqueue({
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: testUsage,
+                  });
+                  controller.close();
+                },
+              }),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        timeout: { chunkMs: 50 },
+        onError: () => {},
+      });
+
+      const consumePromise = result.consumeStream();
+
+      await vi.advanceTimersByTimeAsync(100);
+
+      modelHang.resolve(undefined);
+
+      await consumePromise;
+
+      expect(receivedAbortSignal?.aborted).toBe(true);
+      expect((receivedAbortSignal?.reason as Error)?.name).toBe('TimeoutError');
+    });
   });
 
   describe('tool callbacks', () => {
