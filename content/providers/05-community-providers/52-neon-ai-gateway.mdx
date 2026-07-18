@@ -7,7 +7,7 @@ description: Learn how to use the Neon AI Gateway provider for the AI SDK.
 
 [Neon AI Gateway](https://neon.com/docs/ai-gateway/overview) is a model gateway built into Neon. A branch-scoped Neon credential gives you access to models from OpenAI, Anthropic, Google, Meta, Alibaba, and other providers. The Neon provider for the AI SDK routes each model to the gateway endpoint it needs.
 
-The same provider handles text generation, streaming, tool calls, structured output, and image input. Model requests stay within the Neon branch, and short IDs such as `gpt-5-mini` and `gemini-2-5-flash` work across providers.
+It supports text generation, streaming, tool calls, structured output, and image input. Models are referenced by short IDs such as `gpt-5-mini` or `gemini-2-5-flash` regardless of who hosts them, and every request is scoped to your Neon branch.
 
 <Note>
   Neon AI Gateway is in beta. To use it, you need a paid Neon plan and a project
