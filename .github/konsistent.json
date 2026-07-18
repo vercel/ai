@@ -103,8 +103,7 @@
             "packages/gateway/src/gateway-realtime-model.ts",
             "packages/gateway/src/gateway-reranking-model.ts",
             "packages/gateway/src/gateway-speech-model.ts",
-            "packages/gateway/src/gateway-transcription-model.ts",
-            "packages/openai-compatible/src/image/openai-compatible-image-model.ts"
+            "packages/gateway/src/gateway-transcription-model.ts"
           ]
         },
         {

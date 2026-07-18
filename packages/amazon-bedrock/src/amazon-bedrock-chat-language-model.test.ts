@@ -235,6 +235,53 @@ describe('doGenerate request metadata', () => {
   });
 });
 
+describe('request URL', () => {
+  it('should preserve application inference profile ARN delimiters', async () => {
+    const inferenceProfileArn =
+      'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/abc123xyz';
+    const fetch = vi.fn(async () => {
+      return new Response(
+        JSON.stringify({
+          output: {
+            message: {
+              role: 'assistant',
+              content: [{ text: 'hello' }],
+            },
+          },
+          stopReason: 'end_turn',
+          usage: {
+            inputTokens: 1,
+            outputTokens: 1,
+            totalTokens: 2,
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        },
+      );
+    });
+    const inferenceProfileModel = new AmazonBedrockChatLanguageModel(
+      inferenceProfileArn,
+      {
+        baseUrl: () => baseUrl,
+        headers: {},
+        fetch,
+        generateId: () => 'test-id',
+      },
+    );
+
+    await inferenceProfileModel.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(fetch).toHaveBeenCalledWith(
+      `${baseUrl}/model/${inferenceProfileArn}/converse`,
+      expect.any(Object),
+    );
+  });
+});
+
 describe('doStream', () => {
   beforeEach(() => {
     mockOptions = { success: true, errorValue: undefined };

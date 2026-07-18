@@ -1,5 +1,21 @@
 # @ai-sdk/langchain
 
+## 3.0.31
+
+### Patch Changes
+
+- 223b5c3: feat(langchain): allow suppressing outer start and finish UI message chunks
+- e864c10: fix(langchain): close LangGraph reasoning before starting text
+- Updated dependencies [70f18c3]
+- Updated dependencies [cd06458]
+  - ai@7.0.31
+
+## 3.0.30
+
+### Patch Changes
+
+- ai@7.0.30
+
 ## 3.0.29
 
 ### Patch Changes

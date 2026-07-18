@@ -1,5 +1,13 @@
 # @ai-sdk/anthropic
 
+## 4.0.16
+
+### Patch Changes
+
+- afcf19c: fix(provider/anthropic): preserve web search citations when replaying assistant messages
+- Updated dependencies [cd06458]
+  - @ai-sdk/provider-utils@5.0.11
+
 ## 4.0.15
 
 ### Patch Changes
