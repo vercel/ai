@@ -34,6 +34,7 @@ import {
   writeSkills as writeHarnessSkills,
 } from '@ai-sdk/harness/utils';
 import {
+  convertUint8ArrayToBase64,
   tool,
   type Experimental_SandboxSession,
   type Experimental_SandboxProcess,
@@ -48,6 +49,7 @@ import {
   outboundMessageSchema,
   type InboundMessage,
   type OutboundMessage,
+  type PromptContentBlock,
 } from './claude-code-bridge-protocol';
 import type { ClaudeCodeThinkingConfig } from './claude-code-thinking';
 import { VERSION } from './version';
@@ -1142,15 +1144,18 @@ function createSession({
         abortSignal: promptOpts.abortSignal,
       });
 
-      let promptText = extractUserText(promptOpts.prompt);
+      let promptContent = extractUserContent(promptOpts.prompt);
       if (!instructionsApplied && promptOpts.instructions) {
-        promptText = frameInstructions(promptOpts.instructions, promptText);
+        promptContent = frameInstructions(
+          promptOpts.instructions,
+          promptContent,
+        );
       }
       instructionsApplied = true;
 
       const startMessage = {
         type: 'start' as const,
-        prompt: promptText,
+        prompt: promptContent,
         tools: (promptOpts.tools ?? []).map(t => ({
           name: t.name,
           description: t.description,
@@ -1405,42 +1410,182 @@ function createSession({
 }
 
 /*
- * Frame session instructions and the user's text so the runtime treats the
+ * Frame session instructions around the user content so the runtime treats the
  * instructions as system-provided operating guidance, not something the user
  * wrote. Without the wrapper the agent can echo the prepended text back as if
  * the user had asked for it, which is confusing since the user never typed it.
  * Applied only to the first user message of a fresh session.
+ *
+ * When the content is a plain string the result is a plain string (backward
+ * compat). When it is a structured content array (text + image blocks), the
+ * framed instructions are prepended as an extra text block.
  */
-function frameInstructions(instructions: string, userText: string): string {
-  return (
+function frameInstructions(
+  instructions: string,
+  content: string | PromptContentBlock[],
+): string | PromptContentBlock[] {
+  const instructionText =
     '<session-instructions>\n' +
     'The block below is operating guidance from the system, not a message from the user — follow it, but do not mention it or attribute it to the user.\n\n' +
     `${instructions}\n` +
-    '</session-instructions>\n\n' +
-    `<user-message>\n${userText}\n</user-message>`
-  );
+    '</session-instructions>';
+
+  if (typeof content === 'string') {
+    return `${instructionText}\n\n<user-message>\n${content}\n</user-message>`;
+  }
+
+  // Structured content: prepend the framed instructions as a text block
+  // ahead of the user's content blocks.
+  return [{ type: 'text' as const, text: instructionText }, ...content];
 }
 
 /*
- * Reduce a `HarnessV1Prompt` to the plain user text the bridge forwards
- * to the Claude SDK. File and image parts on the message are not yet
- * supported by the underlying runtime — throw rather than silently drop
- * them so callers learn about the gap instead of seeing mysteriously
- * truncated prompts.
+ * Reduce a `HarnessV1Prompt` to the content the bridge forwards to the Claude
+ * SDK. Returns a plain string when the prompt contains only text (backward
+ * compatible), or a structured `PromptContentBlock[]` array when the prompt
+ * contains inline images.
+ *
+ * Supported content parts:
+ *  - `text` → text content block
+ *  - `file` with image media type → base64 image content block
+ *  - `image` (deprecated) → base64 image content block
+ *
+ * Non-image `file` parts and other part types throw
+ * `HarnessCapabilityUnsupportedError` so callers learn about the gap.
  */
-function extractUserText(prompt: HarnessV1Prompt): string {
+function extractUserContent(
+  prompt: HarnessV1Prompt,
+): string | PromptContentBlock[] {
   if (typeof prompt === 'string') return prompt;
   const { content } = prompt;
   if (typeof content === 'string') return content;
-  const parts: string[] = [];
+
+  let hasNonText = false;
+  const blocks: PromptContentBlock[] = [];
+
   for (const part of content) {
-    if (part.type !== 'text') {
+    switch (part.type) {
+      case 'text':
+        blocks.push({ type: 'text', text: part.text });
+        break;
+
+      case 'file': {
+        const mediaType = part.mediaType ?? '';
+        const topLevel = mediaType.split('/')[0];
+        if (topLevel !== 'image') {
+          throw new HarnessCapabilityUnsupportedError({
+            harnessId: 'claude-code',
+            message:
+              `The claude-code harness does not support file parts with ` +
+              `media type '${mediaType}'. Only image media types are supported.`,
+          });
+        }
+        blocks.push({
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: mediaType,
+            data: resolveBase64Data(part.data),
+          },
+        });
+        hasNonText = true;
+        break;
+      }
+
+      case 'image': {
+        // Deprecated ImagePart — resolve to image content block.
+        const imageData = part.image;
+        if (imageData instanceof URL) {
+          throw new HarnessCapabilityUnsupportedError({
+            harnessId: 'claude-code',
+            message:
+              'The claude-code harness does not support URL-based images. ' +
+              'Pass image data as a base64 string or Uint8Array instead.',
+          });
+        }
+        blocks.push({
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: part.mediaType ?? 'image/png',
+            data: resolveBase64Data(imageData),
+          },
+        });
+        hasNonText = true;
+        break;
+      }
+
+      default:
+        throw new HarnessCapabilityUnsupportedError({
+          harnessId: 'claude-code',
+          message:
+            `The claude-code harness does not support user message parts ` +
+            `of type '${(part as { type: string }).type}'.`,
+        });
+    }
+  }
+
+  // When all parts are text, collapse to a plain string for backward compat
+  // with bridges that have not been updated.
+  if (!hasNonText) {
+    return blocks.map(b => (b as { text: string }).text).join('\n\n');
+  }
+
+  return blocks;
+}
+
+/**
+ * Resolve `DataContent | FileData | URL | ProviderReference` to a base64
+ * string. Only raw-data shapes are supported; URLs and provider references
+ * throw.
+ */
+function resolveBase64Data(data: unknown): string {
+  // Bare base64 string
+  if (typeof data === 'string') return data;
+
+  // Uint8Array / Buffer / ArrayBuffer
+  if (data instanceof Uint8Array) {
+    return convertUint8ArrayToBase64(data);
+  }
+  if (data instanceof ArrayBuffer) {
+    return convertUint8ArrayToBase64(new Uint8Array(data));
+  }
+
+  // Tagged FileData shapes
+  if (data != null && typeof data === 'object' && 'type' in data) {
+    const tagged = data as { type: string; data?: unknown };
+    if (tagged.type === 'data') {
+      return resolveBase64Data(tagged.data);
+    }
+    if (tagged.type === 'url' || tagged.type === 'reference') {
       throw new HarnessCapabilityUnsupportedError({
         harnessId: 'claude-code',
-        message: `The claude-code harness does not yet support user message parts of type '${part.type}'. Pass a string or a user message whose content contains only text parts.`,
+        message:
+          `The claude-code harness does not support '${tagged.type}' file ` +
+          `data. Pass image data as a base64 string or Uint8Array instead.`,
       });
     }
-    parts.push(part.text);
+    if (tagged.type === 'text') {
+      throw new HarnessCapabilityUnsupportedError({
+        harnessId: 'claude-code',
+        message:
+          'The claude-code harness does not support text file data for image parts.',
+      });
+    }
   }
-  return parts.join('\n\n');
+
+  // URL object (bare shorthand)
+  if (data instanceof URL) {
+    throw new HarnessCapabilityUnsupportedError({
+      harnessId: 'claude-code',
+      message:
+        'The claude-code harness does not support URL-based image data. ' +
+        'Pass image data as a base64 string or Uint8Array instead.',
+    });
+  }
+
+  throw new HarnessCapabilityUnsupportedError({
+    harnessId: 'claude-code',
+    message: 'Unsupported image data format for the claude-code harness.',
+  });
 }

@@ -10,7 +10,10 @@ import {
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
 import { createCompactionLatch } from './compaction-latch';
-import type { StartMessage } from '../claude-code-bridge-protocol';
+import type {
+  StartMessage,
+  PromptContentBlock,
+} from '../claude-code-bridge-protocol';
 import { randomUUID } from 'node:crypto';
 import { argv, stdout } from 'node:process';
 
@@ -811,12 +814,14 @@ function handleStreamEvent(
   }
 }
 
+type PromptContent = string | PromptContentBlock[];
+
 function createQueryInput({
   initialUserMessage,
   pendingUserMessages,
   abortSignal,
 }: {
-  initialUserMessage: string;
+  initialUserMessage: PromptContent;
   pendingUserMessages: string[];
   abortSignal: AbortSignal;
 }): {
@@ -833,7 +838,50 @@ function createQueryInput({
     abortSignal.addEventListener('abort', close, { once: true });
   }
 
-  const toUserMessage = (text: string): unknown => ({
+  /*
+   * Build the SDK wire-format user message from either a plain string or
+   * a structured content array. Text-only prompts produce the same shape
+   * as before (single text block); structured prompts map their content
+   * blocks into the SDK's content array, where image blocks become the
+   * `{ type: 'image', source: { type: 'base64', media_type, data } }`
+   * shape the Claude Agent SDK accepts in streaming input mode.
+   */
+  const toUserMessage = (content: PromptContent): unknown => {
+    if (typeof content === 'string') {
+      return {
+        type: 'user',
+        message: {
+          role: 'user',
+          content: [{ type: 'text', text: content }],
+        },
+      };
+    }
+    // Structured content: map PromptContentBlock[] to SDK content blocks.
+    const sdkContent = content.map(block => {
+      if (block.type === 'text') {
+        return { type: 'text', text: block.text };
+      }
+      // block.type === 'image'
+      return {
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: block.source.media_type,
+          data: block.source.data,
+        },
+      };
+    });
+    return {
+      type: 'user',
+      message: {
+        role: 'user',
+        content: sdkContent,
+      },
+    };
+  };
+
+  // Follow-up user messages (from /compact, user-message) are always text.
+  const toTextUserMessage = (text: string): unknown => ({
     type: 'user',
     message: {
       role: 'user',
@@ -859,7 +907,7 @@ function createQueryInput({
               }
               if (pendingUserMessages.length > 0) {
                 return {
-                  value: toUserMessage(pendingUserMessages.shift()!),
+                  value: toTextUserMessage(pendingUserMessages.shift()!),
                   done: false,
                 };
               }

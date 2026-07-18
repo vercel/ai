@@ -510,4 +510,240 @@ describe('createClaudeCode adapter', () => {
       expect(a).toBe(b);
     });
   });
+
+  describe('image and file part handling', () => {
+    async function startSessionAndPrompt(
+      prompt: Parameters<
+        Awaited<
+          ReturnType<ReturnType<typeof createClaudeCode>['doStart']>
+        >['doPromptTurn']
+      >[0]['prompt'],
+    ): Promise<Record<string, unknown>> {
+      const harness = createClaudeCode();
+      const session = await harness.doStart({
+        sessionId: 's1',
+        sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+          bridgePortUrl: 'ws://127.0.0.1:1',
+          writes: [],
+          runs: [],
+        }),
+        sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      });
+      const control = await session.doPromptTurn({
+        prompt,
+        emit: () => {},
+      });
+      void Promise.resolve(control.done).catch(() => {});
+      const start = lastStart();
+      await session.doDestroy();
+      return start;
+    }
+
+    it('forwards a file part with image media type and base64 string data', async () => {
+      const start = await startSessionAndPrompt({
+        role: 'user',
+        content: [
+          { type: 'text', text: 'What is in this screenshot?' },
+          { type: 'file', mediaType: 'image/png', data: 'iVBORw0KGgo=' },
+        ],
+      });
+      expect(Array.isArray(start.prompt)).toBe(true);
+      const prompt = start.prompt as Array<Record<string, unknown>>;
+      expect(prompt).toHaveLength(2);
+      expect(prompt[0]).toEqual({
+        type: 'text',
+        text: 'What is in this screenshot?',
+      });
+      expect(prompt[1]).toEqual({
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: 'image/png',
+          data: 'iVBORw0KGgo=',
+        },
+      });
+    });
+
+    it('converts Uint8Array file data to base64', async () => {
+      const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+      const start = await startSessionAndPrompt({
+        role: 'user',
+        content: [
+          { type: 'text', text: 'describe this' },
+          { type: 'file', mediaType: 'image/png', data: bytes },
+        ],
+      });
+      const prompt = start.prompt as Array<Record<string, unknown>>;
+      expect(prompt[1]).toMatchObject({
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: 'image/png',
+          // btoa of [0x89, 0x50, 0x4e, 0x47]
+          data: btoa(String.fromCodePoint(0x89, 0x50, 0x4e, 0x47)),
+        },
+      });
+    });
+
+    it('handles tagged { type: "data", data } file data', async () => {
+      const start = await startSessionAndPrompt({
+        role: 'user',
+        content: [
+          { type: 'text', text: 'describe' },
+          {
+            type: 'file',
+            mediaType: 'image/jpeg',
+            data: { type: 'data', data: 'base64encodeddata' },
+          },
+        ],
+      });
+      const prompt = start.prompt as Array<Record<string, unknown>>;
+      expect(prompt[1]).toMatchObject({
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: 'image/jpeg',
+          data: 'base64encodeddata',
+        },
+      });
+    });
+
+    it('throws for non-image file parts', async () => {
+      await expect(
+        startSessionAndPrompt({
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              data: 'pdfdata',
+            },
+          ],
+        }),
+      ).rejects.toThrow(HarnessCapabilityUnsupportedError);
+    });
+
+    it('accepts deprecated ImagePart with base64 data', async () => {
+      const start = await startSessionAndPrompt({
+        role: 'user',
+        content: [
+          { type: 'text', text: 'what do you see?' },
+          {
+            type: 'image',
+            image: 'iVBORw0KGgo=',
+            mediaType: 'image/png',
+          },
+        ],
+      });
+      const prompt = start.prompt as Array<Record<string, unknown>>;
+      expect(prompt).toHaveLength(2);
+      expect(prompt[1]).toEqual({
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: 'image/png',
+          data: 'iVBORw0KGgo=',
+        },
+      });
+    });
+
+    it('defaults ImagePart media type to image/png when not specified', async () => {
+      const start = await startSessionAndPrompt({
+        role: 'user',
+        content: [
+          { type: 'text', text: 'describe' },
+          { type: 'image', image: 'data123' },
+        ],
+      });
+      const prompt = start.prompt as Array<Record<string, unknown>>;
+      expect(prompt[1]).toMatchObject({
+        type: 'image',
+        source: { media_type: 'image/png' },
+      });
+    });
+
+    it('collapses text-only content parts to a plain string for backward compat', async () => {
+      const start = await startSessionAndPrompt({
+        role: 'user',
+        content: [
+          { type: 'text', text: 'hello' },
+          { type: 'text', text: 'world' },
+        ],
+      });
+      expect(typeof start.prompt).toBe('string');
+      expect(start.prompt).toBe('hello\n\nworld');
+    });
+
+    it('keeps a plain string prompt as a plain string', async () => {
+      const start = await startSessionAndPrompt('just text');
+      expect(start.prompt).toBe('just text');
+    });
+
+    it('throws for URL-based image data on ImagePart', async () => {
+      await expect(
+        startSessionAndPrompt({
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              image: new URL('https://example.com/img.png'),
+            },
+          ],
+        }),
+      ).rejects.toThrow(HarnessCapabilityUnsupportedError);
+    });
+
+    it('throws for URL file data on file parts', async () => {
+      await expect(
+        startSessionAndPrompt({
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: new URL('https://example.com/img.png'),
+            },
+          ],
+        }),
+      ).rejects.toThrow(HarnessCapabilityUnsupportedError);
+    });
+
+    it('prepends instructions as a text block when content is structured', async () => {
+      const harness = createClaudeCode();
+      const session = await harness.doStart({
+        sessionId: 's-instr',
+        sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+          bridgePortUrl: 'ws://127.0.0.1:1',
+          writes: [],
+          runs: [],
+        }),
+        sessionWorkDir: '/vercel/sandbox/claude-code-s-instr',
+      });
+      const control = await session.doPromptTurn({
+        prompt: {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'What is this?' },
+            { type: 'file', mediaType: 'image/png', data: 'imgdata' },
+          ],
+        },
+        instructions: 'Be concise.',
+        emit: () => {},
+      });
+      void Promise.resolve(control.done).catch(() => {});
+      const start = lastStart();
+      const prompt = start.prompt as Array<Record<string, unknown>>;
+      expect(Array.isArray(prompt)).toBe(true);
+      // First block should be the framed instructions
+      expect(prompt[0]).toMatchObject({ type: 'text' });
+      expect((prompt[0] as { text: string }).text).toContain(
+        '<session-instructions>',
+      );
+      expect((prompt[0] as { text: string }).text).toContain('Be concise.');
+      // Remaining blocks are user content
+      expect(prompt[1]).toEqual({ type: 'text', text: 'What is this?' });
+      expect(prompt[2]).toMatchObject({ type: 'image' });
+      await session.doDestroy();
+    });
+  });
 });
