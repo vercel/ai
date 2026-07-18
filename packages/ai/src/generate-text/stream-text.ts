@@ -1,4 +1,5 @@
 import {
+  AISDKError,
   getErrorMessage,
   UnsupportedFunctionalityError,
   type LanguageModelV4,
@@ -387,6 +388,7 @@ export function streamText<
   toolsContext = {} as InferToolSetContext<TOOLS>,
   experimental_include,
   include = experimental_include,
+  experimental_streamMode,
   _internal: {
     now = originalNow,
     generateId = originalGenerateId,
@@ -704,6 +706,21 @@ export function streamText<
      * @deprecated Use `include` instead.
      */
     experimental_include?: StreamTextInclude;
+    /**
+     * Enables a low-retention streaming mode for callers that only need to
+     * read the stream once (e.g. just `textStream`, or just `consumeStream()`).
+     *
+     * When set to `'single-consumer'`, the internal stream is not split via
+     * `ReadableStream.tee()`, which avoids the server-side buffering that
+     * tee() introduces for large/long-running streams. Only one of
+     * `textStream`, `stream`/`fullStream`, `consumeStream()`,
+     * `partialOutputStream`, `elementStream`, or the final-result getters
+     * (e.g. `usage`, `steps`, `finishReason`) may be accessed -- accessing a
+     * second one throws, since there is no buffered copy left to read.
+     *
+     * @experimental This API is experimental and may change without notice.
+     */
+    experimental_streamMode?: 'single-consumer';
 
     /**
      * Internal. For test use only. May change without notice.
@@ -770,6 +787,7 @@ export function streamText<
     providerOptions,
     prepareStep,
     timeout,
+    mode: experimental_streamMode,
     onChunk,
     onError,
     onEnd,
@@ -942,6 +960,10 @@ class DefaultStreamTextResult<
 
   private tools: TOOLS | undefined;
 
+  private singleConsumer: boolean;
+
+  private streamConsumed = false;
+
   constructor({
     model,
     telemetry,
@@ -991,6 +1013,7 @@ class DefaultStreamTextResult<
     toolsContext,
     download,
     include,
+    mode,
   }: {
     model: LanguageModelV4;
     telemetry: TelemetryOptions<RUNTIME_CONTEXT, TOOLS> | undefined;
@@ -1033,6 +1056,7 @@ class DefaultStreamTextResult<
     timeout: TimeoutConfiguration<TOOLS> | undefined;
     download: DownloadFunction | undefined;
     include: Required<StreamTextInclude>;
+    mode: 'single-consumer' | undefined;
 
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
@@ -1072,6 +1096,7 @@ class DefaultStreamTextResult<
   }) {
     this.outputSpecification = output;
     this.tools = tools;
+    this.singleConsumer = mode === 'single-consumer';
 
     const telemetryDispatcher = createRestrictedTelemetryDispatcher<
       TOOLS,
@@ -2511,8 +2536,26 @@ class DefaultStreamTextResult<
    *
    * Note: this leads to buffering the stream content on the server.
    * However, the LLM results are expected to be small enough to not cause issues.
+   *
+   * When `singleConsumer` is enabled, tee()-based buffering is skipped
+   * entirely: the first caller receives `baseStream` directly, and any
+   * further attempt to read the stream (via `stream`, `textStream`,
+   * `consumeStream`, `partialOutputStream`, `elementStream`, or any of the
+   * final-result getters) throws, since there is nothing left to read from.
    */
   private teeStream() {
+    if (this.singleConsumer) {
+      if (this.streamConsumed) {
+        throw new AISDKError({
+          name: 'StreamConsumedError',
+          message:
+            "experimental_streamMode: 'single-consumer' supports reading " +
+            'the stream once; it has already been consumed.',
+        });
+      }
+      this.streamConsumed = true;
+      return this.baseStream;
+    }
     const [stream1, stream2] = this.baseStream.tee();
     this.baseStream = stream2;
     return stream1;

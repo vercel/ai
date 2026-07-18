@@ -5221,6 +5221,51 @@ describe('streamText', () => {
     });
   });
 
+  describe('options.experimental_streamMode', () => {
+    it('should allow textStream to be consumed in single-consumer mode', async () => {
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        experimental_streamMode: 'single-consumer',
+      });
+      expect(
+        await convertAsyncIterableToArray(result.textStream),
+      ).toStrictEqual(['Hello', ', ', 'world!']);
+    });
+    it('should allow a single final-result getter to be read in single-consumer mode', async () => {
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        experimental_streamMode: 'single-consumer',
+      });
+      expect(await result.usage).toMatchObject({
+        inputTokens: 3,
+        outputTokens: 10,
+        totalTokens: 13,
+      });
+    });
+    it('should throw when a second stream getter is accessed before the first has been read', async () => {
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        experimental_streamMode: 'single-consumer',
+      });
+      const textStreamPromise = convertAsyncIterableToArray(result.textStream);
+      expect(() => result.stream).toThrow(/already been consumed/);
+      await textStreamPromise;
+    });
+    it('should throw synchronously when the stream getter is accessed a second time', () => {
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        experimental_streamMode: 'single-consumer',
+      });
+      // biome-ignore lint: accessing the getter is the point of the test
+      result.stream;
+      expect(() => result.stream).toThrow(/already been consumed/);
+    });
+  });
+
   describe('multiple stream consumption', () => {
     it('should support text stream, ai stream, full stream on single result object', async () => {
       const result = streamText({
