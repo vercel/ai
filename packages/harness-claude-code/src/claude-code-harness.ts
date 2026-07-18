@@ -1484,7 +1484,7 @@ function extractUserContent(
           type: 'image',
           source: {
             type: 'base64',
-            media_type: mediaType,
+            media_type: normalizeImageMediaType(mediaType),
             data: resolveBase64Data(part.data),
           },
         });
@@ -1507,7 +1507,7 @@ function extractUserContent(
           type: 'image',
           source: {
             type: 'base64',
-            media_type: part.mediaType ?? 'image/png',
+            media_type: normalizeImageMediaType(part.mediaType ?? 'image/png'),
             data: resolveBase64Data(imageData),
           },
         });
@@ -1535,13 +1535,48 @@ function extractUserContent(
 }
 
 /**
+ * Ensure the media type is a fully qualified MIME type that the Anthropic API
+ * accepts (e.g. `image/png`). Bare top-level types (`image`) and wildcards
+ * (`image/*`) are not valid `source.media_type` values; fall back to
+ * `image/png` when the subtype is missing or is `*`.
+ */
+function normalizeImageMediaType(mediaType: string): string {
+  const slashIdx = mediaType.indexOf('/');
+  if (slashIdx === -1) {
+    // Top-level only, e.g. 'image'
+    return 'image/png';
+  }
+  const subType = mediaType.slice(slashIdx + 1);
+  if (!subType || subType === '*') {
+    // Wildcard, e.g. 'image/*'
+    return 'image/png';
+  }
+  return mediaType;
+}
+
+/**
+ * Try to parse a `data:` URL and return the base64 payload. Returns
+ * `undefined` when the input is not a data URL or is not base64-encoded.
+ */
+function tryParseDataUrl(input: string): string | undefined {
+  if (!input.startsWith('data:')) return undefined;
+  const commaIdx = input.indexOf(',');
+  if (commaIdx === -1) return undefined;
+  const meta = input.slice(5, commaIdx); // between 'data:' and ','
+  if (!meta.endsWith(';base64')) return undefined;
+  return input.slice(commaIdx + 1);
+}
+
+/**
  * Resolve `DataContent | FileData | URL | ProviderReference` to a base64
- * string. Only raw-data shapes are supported; URLs and provider references
- * throw.
+ * string. Only raw-data shapes are supported; HTTP(S) URLs and provider
+ * references throw. Data URLs (`data:image/...;base64,...`) are decoded.
  */
 function resolveBase64Data(data: unknown): string {
-  // Bare base64 string
-  if (typeof data === 'string') return data;
+  // Bare base64 string or data URL
+  if (typeof data === 'string') {
+    return tryParseDataUrl(data) ?? data;
+  }
 
   // Uint8Array / Buffer / ArrayBuffer
   if (data instanceof Uint8Array) {
@@ -1553,15 +1588,33 @@ function resolveBase64Data(data: unknown): string {
 
   // Tagged FileData shapes
   if (data != null && typeof data === 'object' && 'type' in data) {
-    const tagged = data as { type: string; data?: unknown };
+    const tagged = data as { type: string; data?: unknown; url?: unknown };
     if (tagged.type === 'data') {
       return resolveBase64Data(tagged.data);
     }
-    if (tagged.type === 'url' || tagged.type === 'reference') {
+    if (tagged.type === 'url') {
+      // Data URLs can arrive via the tagged url path from useChat.
+      // Try to decode them; reject remote HTTP(S) URLs.
+      if (typeof tagged.url === 'string') {
+        const parsed = tryParseDataUrl(tagged.url);
+        if (parsed != null) return parsed;
+      }
+      if (typeof tagged.data === 'string') {
+        const parsed = tryParseDataUrl(tagged.data);
+        if (parsed != null) return parsed;
+      }
       throw new HarnessCapabilityUnsupportedError({
         harnessId: 'claude-code',
         message:
-          `The claude-code harness does not support '${tagged.type}' file ` +
+          `The claude-code harness does not support 'url' file ` +
+          `data. Pass image data as a base64 string or Uint8Array instead.`,
+      });
+    }
+    if (tagged.type === 'reference') {
+      throw new HarnessCapabilityUnsupportedError({
+        harnessId: 'claude-code',
+        message:
+          `The claude-code harness does not support 'reference' file ` +
           `data. Pass image data as a base64 string or Uint8Array instead.`,
       });
     }
@@ -1574,8 +1627,12 @@ function resolveBase64Data(data: unknown): string {
     }
   }
 
-  // URL object (bare shorthand)
+  // URL object (bare shorthand) — support data: URLs, reject others
   if (data instanceof URL) {
+    if (data.protocol === 'data:') {
+      const parsed = tryParseDataUrl(data.toString());
+      if (parsed != null) return parsed;
+    }
     throw new HarnessCapabilityUnsupportedError({
       harnessId: 'claude-code',
       message:
