@@ -654,6 +654,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       });
     }
 
+    if (response.output == null) {
+      const detail = response.incomplete_details?.reason;
+      throw new APICallError({
+        message: detail
+          ? `Responses API returned no output (${detail})`
+          : 'Responses API returned no output',
+        url,
+        requestBodyValues: body,
+        statusCode: 500,
+        responseHeaders,
+        responseBody: rawResponse as string,
+        isRetryable: false,
+      });
+    }
+
     const content: Array<LanguageModelV4Content> = [];
     const logprobs: Array<OpenAIResponsesLogprobs> = [];
 
@@ -661,8 +676,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     let hasFunctionCall = false;
     const hostedToolSearchCallIds: string[] = [];
 
-    // map response content to content array (defined when there is no error)
-    for (const part of response.output!) {
+    // map response content to content array
+    for (const part of response.output) {
       switch (part.type) {
         case 'reasoning': {
           // when there are no summary parts, we need to add an empty reasoning part:

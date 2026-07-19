@@ -1,5 +1,14 @@
 # @ai-sdk/harness-pi
 
+## 1.0.36
+
+### Patch Changes
+
+- cc3e121: fix(harness-pi): block workspace symlink escapes in file tools
+- Updated dependencies [cd06458]
+  - @ai-sdk/provider-utils@5.0.11
+  - @ai-sdk/harness@1.0.36
+
 ## 1.0.35
 
 ### Patch Changes
