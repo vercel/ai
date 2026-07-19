@@ -1,0 +1,273 @@
+---
+title: sference
+description: sference Provider for the AI SDK
+---
+
+# sference
+
+[sference](https://sference.com) is a managed-inference platform for open-weight
+models (Qwen, GLM, DeepSeek, Kimi, and more), exposing an OpenAI-compatible
+`/v1/chat/completions` endpoint with realtime sync and SSE streaming. The sference
+provider for the AI SDK maps this surface onto the
+[`LanguageModelV4`](https://ai-sdk.dev/providers/community-providers/custom-providers)
+specification so `generateText`, `streamText`, `generateObject`, `streamObject`,
+and agents work out of the box.
+
+- **Open-weight models, managed**: run Qwen, GLM, DeepSeek, Kimi and friends
+  without managing infra
+- **OpenAI-compatible**: standard `/v1/chat/completions` wire format, so the
+  provider is thin and predictable
+- **Reasoning first**: chain-of-thought from reasoning models surfaces as AI SDK
+  `reasoning` parts
+- **Prompt-cache routing**: pin a conversation to a warm worker with
+  `promptCacheKey`
+- **Flexible tiering**: `serviceTier: 'flex'` for discounted, best-effort tokens
+
+Realtime only in this release. Async (background `/v1/responses` with
+`15m` / `1h` / `24h` completion windows), streams, and batches are served by the
+Python [`sference-sdk`](https://github.com/s-ference/sference); a future release
+will expose them as a separate mode.
+
+Learn more in the [sference documentation](https://sference.com/docs).
+
+## Setup
+
+The sference provider is available in the `@sference/vercel-provider` module.
+You can install it with:
+
+```bash
+pnpm add @sference/vercel-provider
+```
+
+You'll also need the AI SDK and `zod` (peer dependencies):
+
+```bash
+pnpm add ai zod
+```
+
+## API Key Setup
+
+For security, you should set your API key as an environment variable named
+exactly `SFERENCE_API_KEY`:
+
+```
+# Linux/Mac
+export SFERENCE_API_KEY=sk_your_api_key_here
+
+# Windows Command Prompt
+set SFERENCE_API_KEY=sk_your_api_key_here
+
+# Windows PowerShell
+$env:SFERENCE_API_KEY = "sk_your_api_key_here"
+```
+
+You can obtain your sference API key from the
+[sference console](https://app.sference.com).
+
+## Provider Instance
+
+You can import the default provider instance `sference` from
+`@sference/vercel-provider`:
+
+```typescript
+import { sference } from "@sference/vercel-provider";
+```
+
+Alternatively, you can create a custom provider instance using `createSference`:
+
+```typescript
+import { createSference } from "@sference/vercel-provider";
+
+const sference = createSference({
+  apiKey: "YOUR_SFERENCE_API_KEY",
+});
+```
+
+The default `sference` instance is pre-configured against
+`https://api.sference.com/v1` and reads `SFERENCE_API_KEY` from the environment.
+
+## Language Models
+
+sference exposes chat models over the OpenAI-compatible completions endpoint.
+Use `sference.chat()` (or the equivalent `sference.languageModel()`), or just
+call the provider as a function:
+
+```typescript
+import { sference } from "@sference/vercel-provider";
+
+// All three are equivalent:
+const model = sference("Qwen/Qwen3.6-35B-A3B");
+const model = sference.chat("Qwen/Qwen3.6-35B-A3B");
+const model = sference.languageModel("Qwen/Qwen3.6-35B-A3B");
+```
+
+The model id is the sference model identifier (typically `org/model-name`).
+See the [sference model catalog](https://sference.com/models) for the full list.
+
+## Examples
+
+Here are examples of using sference with the AI SDK:
+
+### `generateText`
+
+```javascript
+import { sference } from "@sference/vercel-provider";
+import { generateText } from "ai";
+
+const { text } = await generateText({
+  model: sference("Qwen/Qwen3.6-35B-A3B"),
+  prompt: "What is sference?",
+});
+
+console.log(text);
+```
+
+### `streamText`
+
+```javascript
+import { sference } from "@sference/vercel-provider";
+import { streamText } from "ai";
+
+const result = streamText({
+  model: sference("Qwen/Qwen3.6-35B-A3B"),
+  prompt: "Write a short story about AI.",
+});
+
+for await (const chunk of result.textStream) {
+  console.log(chunk);
+}
+```
+
+### `generateObject` (structured output)
+
+```javascript
+import { sference } from "@sference/vercel-provider";
+import { generateObject } from "ai";
+import { z } from "zod";
+
+const { object } = await generateObject({
+  model: sference("Qwen/Qwen3.6-35B-A3B"),
+  schema: z.object({
+    city: z.string(),
+    country: z.string(),
+  }),
+  prompt: "Return the capital of Slovenia.",
+});
+
+console.log(object); // { city: 'Ljubljana', country: 'Slovenia' }
+```
+
+### Tool calling
+
+```javascript
+import { sference } from "@sference/vercel-provider";
+import { generateText, tool } from "ai";
+import { z } from "zod";
+
+const { toolCalls, toolResults } = await generateText({
+  model: sference("Qwen/Qwen3.6-35B-A3B"),
+  tools: {
+    get_weather: tool({
+      inputSchema: z.object({ city: z.string() }),
+      execute: async ({ city }) => `sunny in ${city}`,
+    }),
+  },
+  prompt: "What is the weather in Ljubljana?",
+});
+```
+
+## Advanced Features
+
+### Reasoning Support
+
+sference surfaces chain-of-thought from reasoning models (Qwen3, GLM, Kimi, …)
+as AI SDK `reasoning` parts. Control it with the standard AI SDK `reasoning`
+option — `none` disables thinking, any other level enables it:
+
+```javascript
+import { sference } from "@sference/vercel-provider";
+import { generateText } from "ai";
+
+const { text, reasoningText } = await generateText({
+  model: sference("Qwen/Qwen3.6-35B-A3B"),
+  prompt: "Solve this step by step: ...",
+  reasoning: "high", // enables thinking; 'none' disables it
+});
+
+console.log("Response:", text);
+console.log("Reasoning:", reasoningText);
+```
+
+`providerOptions.sference.enableThinking` takes precedence over the `reasoning`
+option when both are set.
+
+### Provider Options
+
+Pass sference-specific fields via `providerOptions.sference`:
+
+```javascript
+await generateText({
+  model: sference("Qwen/Qwen3.6-35B-A3B"),
+  prompt: "Hello",
+  providerOptions: {
+    sference: {
+      serviceTier: "flex", // discounted, lower-priority tier
+      promptCacheKey: "sess-1", // pin a conversation to one warm worker
+      enableThinking: false, // disable CoT on reasoning models
+    },
+  },
+});
+```
+
+| Option           | Type                                                     | Description                                                                                                                       |
+| ---------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `serviceTier`    | `'auto' \| 'default' \| 'flex' \| 'scale' \| 'priority'` | Processing tier. Only `flex` changes behavior: discounted tokens, lower priority, best-effort.                                    |
+| `promptCacheKey` | `string`                                                 | Stable id that routes requests with the same key to the same warm worker for prompt-cache reuse.                                  |
+| `enableThinking` | `boolean`                                                | Explicitly enable or disable thinking on reasoning models. Takes precedence over the AI SDK `reasoning` option when both are set. |
+
+### Custom Configuration
+
+Configure sference with custom settings:
+
+```typescript
+import { createSference } from "@sference/vercel-provider";
+
+const sference = createSference({
+  baseURL: "https://api.sference.com/v1", // default; set for self-hosted
+  apiKey: process.env.SFERENCE_API_KEY, // default reads SFERENCE_API_KEY
+  headers: { "X-Title": "my-app" }, // optional extra headers
+});
+```
+
+| Setting      | Default                        | Description                                                                       |
+| ------------ | ------------------------------ | --------------------------------------------------------------------------------- |
+| `baseURL`    | `https://api.sference.com/v1`  | API base URL. For self-hosted sference, point at your origin with a `/v1` suffix. |
+| `apiKey`     | `process.env.SFERENCE_API_KEY` | API key. Sent as `Authorization: Bearer …`.                                       |
+| `headers`    | —                              | Extra headers merged into every request.                                          |
+| `fetch`      | global `fetch`                 | Custom fetch implementation (tests, edge runtimes, proxies).                      |
+| `generateId` | SDK default                    | Custom id generator for stream part ids.                                          |
+
+## Supported features
+
+| Feature                                                       | Support                          |
+| ------------------------------------------------------------- | -------------------------------- |
+| `generateText` / `streamText`                                 | ✅                               |
+| `generateObject` / `streamObject` (JSON schema + json_object) | ✅                               |
+| Tool calling (function tools)                                 | ✅                               |
+| Multi-turn tool results                                       | ✅                               |
+| Multimodal image input (`image_url`)                          | ✅                               |
+| Reasoning (`reasoning_content`)                               | ✅                               |
+| `service_tier: flex`                                          | ✅                               |
+| Prompt cache routing (`prompt_cache_key`)                     | ✅                               |
+| Workflow DevKit serialization                                 | ✅                               |
+| `topK`, `presencePenalty`, `frequencyPenalty`                 | ⚠️ ignored with a warning        |
+| Provider-defined tools                                        | ⚠️ dropped with a warning        |
+| Async / batch / streams                                       | ❌ (use `sference-sdk`; planned) |
+
+## Additional Resources
+
+- [sference Provider Repository](https://github.com/s-ference/vercel-provider)
+- [sference Documentation](https://sference.com/docs)
+- [sference Model Catalog](https://sference.com/models)
+- [sference Console](https://app.sference.com)
+- [Language Model Specification V4](https://github.com/vercel/ai/tree/main/packages/provider/src/language-model/v4)
