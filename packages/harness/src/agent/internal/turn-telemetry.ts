@@ -195,6 +195,8 @@ export function createTurnTelemetry(opts: {
     dispatcher.onLanguageModelCallEnd?.(
       cast<'onLanguageModelCallEnd'>({
         callId,
+        provider,
+        modelId,
         finishReason: info.finishReason,
         responseId: callId,
         usage: info.usage,
