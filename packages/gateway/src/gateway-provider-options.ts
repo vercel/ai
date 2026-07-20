@@ -78,12 +78,6 @@ const gatewayProviderOptions = lazySchema(() =>
        */
       disallowPromptTraining: z.boolean().optional(),
       /**
-       * Whether to filter by only providers that are HIPAA compliant with
-       * Vercel AI Gateway. When enabled, only providers that have agreements
-       * with Vercel AI Gateway for HIPAA compliance will be used.
-       */
-      hipaaCompliant: z.boolean().optional(),
-      /**
        * The unique identifier for the entity against which quota is tracked.
        *
        * Used for quota management and enforcement purposes.
