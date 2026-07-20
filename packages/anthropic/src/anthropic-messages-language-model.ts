@@ -1716,6 +1716,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 type: 'response-metadata',
                 id: value.message.id ?? undefined,
                 modelId: value.message.model ?? undefined,
+                usage: {
+                  inputTokens: value.message.usage.input_tokens,
+                  outputTokens: value.message.usage.output_tokens,
+                  totalTokens:
+                    value.message.usage.input_tokens +
+                    value.message.usage.output_tokens,
+                  cachedInputTokens:
+                    value.message.usage.cache_read_input_tokens ?? undefined,
+                },
               });
 
               return;
