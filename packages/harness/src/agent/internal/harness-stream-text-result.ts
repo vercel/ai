@@ -203,6 +203,24 @@ export class HarnessStreamTextResult<
   }
 
   /**
+   * Push a continuation input into the consumer stream without attributing it
+   * to the next model step. Approval responses and client tool results arrive
+   * between model calls and therefore must not create or alter a StepResult.
+   */
+  enqueueContinuation(part: TextStreamPart<TOOLS>): void {
+    this.fullStreamController.enqueue(part);
+  }
+
+  /**
+   * Drop content replayed while a suspended host-input pause closes its
+   * already-recorded model step.
+   */
+  discardCurrentStepContent(): void {
+    this.currentStepContent = [];
+    this.currentStepWarnings = [];
+  }
+
+  /**
    * Mark the end of a step. Builds a `StepResult` from the accumulated
    * content and records it in the steps array. Accepts the V4-shaped
    * finish reason / usage the harness emits and normalizes to AI SDK's

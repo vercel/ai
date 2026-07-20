@@ -314,6 +314,42 @@ describe('runPrompt step accounting', () => {
     expect(await hasToolCall('weather')({ steps })).toBe(true);
   });
 
+  test('does not expose provider-executed tool calls as pending client results', async () => {
+    const pending: unknown[] = [];
+    const weather = tool({
+      description: 'Get weather',
+      inputSchema: z.object({ city: z.string() }),
+    });
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'SF' }),
+          providerExecuted: true,
+        },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { weather } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      onPendingToolResult: pendingResult => pending.push(pendingResult),
+    });
+
+    await done;
+    await result.consumeStream();
+
+    expect(pending).toEqual([]);
+    await expect(result.steps).resolves.toHaveLength(1);
+  });
+
   test('fails when terminal finish receives unclosed step content', async () => {
     const { result, done } = runPrompt({
       harness,
@@ -585,6 +621,8 @@ describe('runPrompt host tool generator results', () => {
         approved: true,
       }),
     );
+    expect(parts.map(part => part.type)).not.toContain('error');
+    await expect(result.steps).resolves.toEqual([]);
   });
 
   test('does not reuse a consumed approval for replayed custom tool calls', async () => {
