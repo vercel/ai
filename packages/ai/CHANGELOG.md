@@ -1,5 +1,23 @@
 # ai
 
+## 7.0.31
+
+### Patch Changes
+
+- 70f18c3: fix(ai): emit denied tool output state for client-rejected approvals
+- cd06458: fix(ai): call `onInputStart` before `onInputAvailable` during non-streaming tool calls
+- Updated dependencies [cd06458]
+  - @ai-sdk/provider-utils@5.0.11
+  - @ai-sdk/gateway@4.0.23
+
+## 7.0.30
+
+### Patch Changes
+
+- Updated dependencies [341616a]
+- Updated dependencies [70fc45c]
+  - @ai-sdk/gateway@4.0.22
+
 ## 7.0.29
 
 ### Patch Changes

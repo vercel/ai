@@ -71,7 +71,7 @@ const providers = [
   ['AI Gateway', '/providers/ai-sdk-providers/ai-gateway'],
   ['OpenAI', '/providers/ai-sdk-providers/openai'],
   ['Anthropic', '/providers/ai-sdk-providers/anthropic'],
-  ['Google', '/providers/ai-sdk-providers/google-generative-ai'],
+  ['Google', '/providers/ai-sdk-providers/google'],
   ['Amazon Bedrock', '/providers/ai-sdk-providers/amazon-bedrock'],
   ['Azure', '/providers/ai-sdk-providers/azure'],
 ] as const;
