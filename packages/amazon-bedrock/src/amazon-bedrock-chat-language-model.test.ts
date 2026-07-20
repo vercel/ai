@@ -236,71 +236,52 @@ describe('doGenerate request metadata', () => {
 });
 
 describe('request URL', () => {
-  it('should preserve application inference profile ARN delimiters', async () => {
+  describe('ARN model IDs containing a slash', () => {
     const inferenceProfileArn =
-      'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/abc123xyz';
-    const fetch = vi.fn(async () => {
-      return new Response(
-        JSON.stringify({
-          output: {
-            message: {
-              role: 'assistant',
-              content: [{ text: 'hello' }],
-            },
-          },
-          stopReason: 'end_turn',
+      'arn:aws:bedrock:eu-west-1:474668406012:inference-profile/eu.amazon.nova-lite-v1:0';
+    const encodedInferenceProfileArn = encodeURIComponent(inferenceProfileArn);
+    const unknownOperationResponse = JSON.stringify({
+      Output: {
+        __type: 'com.amazon.coral.service#UnknownOperationException',
+      },
+      Version: '1.0',
+    });
+    const converseResponse = JSON.stringify({
+      output: {
+        message: {
+          role: 'assistant',
+          content: [{ text: 'Hello!' }],
+        },
+      },
+      stopReason: 'end_turn',
+      usage: {
+        inputTokens: 1,
+        outputTokens: 1,
+        totalTokens: 2,
+      },
+    });
+    const converseStreamResponse = [
+      { messageStart: { role: 'assistant' } },
+      {
+        contentBlockDelta: {
+          contentBlockIndex: 0,
+          delta: { text: 'Hello!' },
+        },
+      },
+      { contentBlockStop: { contentBlockIndex: 0 } },
+      { messageStop: { stopReason: 'end_turn' } },
+      {
+        metadata: {
           usage: {
             inputTokens: 1,
             outputTokens: 1,
             totalTokens: 2,
           },
-        }),
-        {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
         },
-      );
-    });
-    const inferenceProfileModel = new AmazonBedrockChatLanguageModel(
-      inferenceProfileArn,
-      {
-        baseUrl: () => baseUrl,
-        headers: {},
-        fetch,
-        generateId: () => 'test-id',
       },
-    );
-
-    await inferenceProfileModel.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(fetch).toHaveBeenCalledWith(
-      `${baseUrl}/model/${inferenceProfileArn}/converse`,
-      expect.any(Object),
-    );
-  });
-
-  describe('ARN model IDs containing a slash', () => {
-    const inferenceProfileArn =
-      'arn:aws:bedrock:eu-west-1:474668406012:inference-profile/eu.amazon.nova-lite-v1:0';
-    const encodedInferenceProfileArn = encodeURIComponent(inferenceProfileArn);
-    const unknownOperationResponse = JSON.stringify(
-      JSON.parse(
-        fs.readFileSync(
-          'src/__fixtures__/issue-17523-unknown-operation.json',
-          'utf8',
-        ),
-      ),
-    );
-    const converseResponse = fs.readFileSync(
-      'src/__fixtures__/issue-17523-converse.json',
-      'utf8',
-    );
-    const converseStreamResponse = fs.readFileSync(
-      'src/__fixtures__/issue-17523-converse-stream.chunks.txt',
-      'utf8',
-    );
+    ]
+      .map(chunk => JSON.stringify(chunk))
+      .join('\n');
 
     function createInferenceProfileModel() {
       return new AmazonBedrockChatLanguageModel(inferenceProfileArn, {
@@ -319,11 +300,10 @@ describe('request URL', () => {
             {
               status: 200,
               headers: {
-                'content-type': isEncodedRoute
-                  ? url.endsWith('/converse-stream')
+                'content-type':
+                  isEncodedRoute && url.endsWith('/converse-stream')
                     ? 'application/vnd.amazon.eventstream'
-                    : 'application/json'
-                  : 'application/json',
+                    : 'application/json',
               },
             },
           );
@@ -337,10 +317,14 @@ describe('request URL', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(result.content).toContainEqual({
-        type: 'text',
-        text: 'Hello! How can I assist you today? If',
-      });
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "Hello!",
+            "type": "text",
+          },
+        ]
+      `);
     });
 
     it('should stream text through the encoded Converse route', async () => {
@@ -349,11 +333,58 @@ describe('request URL', () => {
         includeRawChunks: false,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toContainEqual({
-        type: 'text-delta',
-        id: '0',
-        delta: 'Hello',
-      });
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": undefined,
+            "modelId": "arn:aws:bedrock:eu-west-1:474668406012:inference-profile/eu.amazon.nova-lite-v1:0",
+            "timestamp": undefined,
+            "type": "response-metadata",
+          },
+          {
+            "id": "0",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello!",
+            "id": "0",
+            "type": "text-delta",
+          },
+          {
+            "id": "0",
+            "type": "text-end",
+          },
+          {
+            "finishReason": {
+              "raw": "end_turn",
+              "unified": "stop",
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "noCache": 1,
+                "total": 1,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": 1,
+                "total": 1,
+              },
+              "raw": {
+                "inputTokens": 1,
+                "outputTokens": 1,
+                "totalTokens": 2,
+              },
+            },
+          },
+        ]
+      `);
     });
   });
 });

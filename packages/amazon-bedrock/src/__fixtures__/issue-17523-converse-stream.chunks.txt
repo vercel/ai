@@ -1,7 +1,0 @@
-{"messageStart":{"role":"assistant"}}
-{"contentBlockDelta":{"contentBlockIndex":0,"delta":{"text":"Hello"}}}
-{"contentBlockDelta":{"contentBlockIndex":0,"delta":{"text":"! How can I assist you"}}}
-{"contentBlockDelta":{"contentBlockIndex":0,"delta":{"text":" today? If"}}}
-{"contentBlockStop":{"contentBlockIndex":0}}
-{"messageStop":{"stopReason":"max_tokens"}}
-{"metadata":{"metrics":{"latencyMs":317},"usage":{"inputTokens":2,"outputTokens":10,"serverToolUsage":{},"totalTokens":12}}}
