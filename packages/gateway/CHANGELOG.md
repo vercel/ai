@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 2.0.116
+
+### Patch Changes
+
+- 1fec2e5: chore(provider/gateway): remove `hipaaCompliant` provider option
+- d8e8477: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 2.0.115
 
 ### Patch Changes

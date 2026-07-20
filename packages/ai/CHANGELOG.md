@@ -1,5 +1,17 @@
 # ai
 
+## 5.0.217
+
+### Patch Changes
+
+- dcbdf32: Fix chat `onFinish` handling when overlapping requests clear the active response before a resume stream finishes.
+- d7d22d3: Allow UI message chunks to include fields added by newer server versions.
+- 01edf75: Propagate abort reasons when generation is cancelled during tool execution.
+- 473d770: Prevent tools excluded by `activeTools` from being parsed or executed.
+- Updated dependencies [1fec2e5]
+- Updated dependencies [d8e8477]
+  - @ai-sdk/gateway@2.0.116
+
 ## 5.0.216
 
 ### Patch Changes
