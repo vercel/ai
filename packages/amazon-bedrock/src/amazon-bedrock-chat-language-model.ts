@@ -1097,10 +1097,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
   }
 
   private getUrl(modelId: string) {
-    const encodedModelId = modelId.startsWith('arn:')
-      ? encodeURIComponent(modelId).replace(/%3A/g, ':').replace(/%2F/g, '/')
-      : encodeURIComponent(modelId);
-    return `${this.config.baseUrl()}/model/${encodedModelId}`;
+    return `${this.config.baseUrl()}/model/${encodeURIComponent(modelId)}`;
   }
 }
 
