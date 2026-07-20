@@ -14,10 +14,14 @@ import {
   createOpencodeServer,
 } from '@opencode-ai/sdk/v2';
 import {
+  createTranslationState,
+  emitLegacyPartDelta,
+  emitLegacyTextPartUpdate,
   emitMissingFinalDelta,
   getOpenCodeEventSessionId,
   isStepSettlementEvent,
   type OpenCodeEvent,
+  type TranslationState,
   unwrapOpenCodeEvent,
 } from './opencode-events';
 import {
@@ -798,40 +802,6 @@ async function consumeEvents({
   }
 }
 
-type TranslationState = {
-  textDeltas: Map<string, string>;
-  reasoningDeltas: Map<string, string>;
-  toolInputs: Map<string, string>;
-  toolNames: Map<string, { rawToolName: string; toolName: string }>;
-  toolCallsEmitted: Set<string>;
-  toolResultsEmitted: Set<string>;
-  hostToolCallsAuthorized: Set<string>;
-  shellCommands: Map<string, string>;
-  messageRoles: Map<string, string>;
-  turnUsage: Record<string, unknown> | undefined;
-  legacyTextPartIds: Set<string>;
-  legacyReasoningPartIds: Set<string>;
-  legacyStepFinishPartIds: Set<string>;
-};
-
-function createTranslationState(): TranslationState {
-  return {
-    textDeltas: new Map(),
-    reasoningDeltas: new Map(),
-    toolInputs: new Map(),
-    toolNames: new Map(),
-    toolCallsEmitted: new Set(),
-    toolResultsEmitted: new Set(),
-    hostToolCallsAuthorized: new Set(),
-    shellCommands: new Map(),
-    messageRoles: new Map(),
-    turnUsage: undefined,
-    legacyTextPartIds: new Set(),
-    legacyReasoningPartIds: new Set(),
-    legacyStepFinishPartIds: new Set(),
-  };
-}
-
 async function translateAndEmit({
   event,
   state,
@@ -865,32 +835,7 @@ async function translateAndEmit({
   }
 
   if (type === 'message.part.delta') {
-    const field = String(props.field ?? '');
-    const delta = String(props.delta ?? '');
-    if (!delta) return;
-    const messageID = stringValue(props.messageID);
-    if (messageID && state.messageRoles.get(messageID) === 'user') return;
-    if (field === 'text') {
-      const id = legacyPartId({ value: props, fallback: 'legacy-text' });
-      startLegacyPart({ ids: state.legacyTextPartIds, id, emit, type: 'text' });
-      state.textDeltas.set(id, `${state.textDeltas.get(id) ?? ''}${delta}`);
-      emit({ type: 'text-delta', id, delta });
-      return;
-    }
-    if (field === 'reasoning') {
-      const id = legacyPartId({ value: props, fallback: 'legacy-reasoning' });
-      startLegacyPart({
-        ids: state.legacyReasoningPartIds,
-        id,
-        emit,
-        type: 'reasoning',
-      });
-      state.reasoningDeltas.set(
-        id,
-        `${state.reasoningDeltas.get(id) ?? ''}${delta}`,
-      );
-      emit({ type: 'reasoning-delta', id, delta });
-    }
+    emitLegacyPartDelta({ props, state, emit });
     return;
   }
 
@@ -1140,88 +1085,6 @@ async function translateAndEmit({
       event,
     });
   }
-}
-
-function legacyPartId({
-  value,
-  fallback,
-}: {
-  value: Record<string, unknown>;
-  fallback: string;
-}): string {
-  return stringValue(value.partID) ?? stringValue(value.id) ?? fallback;
-}
-
-function startLegacyPart({
-  ids,
-  id,
-  emit,
-  type,
-}: {
-  ids: Set<string>;
-  id: string;
-  emit: Emit;
-  type: 'text' | 'reasoning';
-}): void {
-  if (ids.has(id)) return;
-  ids.add(id);
-  emit({ type: `${type}-start`, id });
-}
-
-function emitLegacyTextPartUpdate({
-  part,
-  state,
-  emit,
-}: {
-  part: unknown;
-  state: TranslationState;
-  emit: Emit;
-}): boolean {
-  if (!isRecord(part)) return false;
-  if (part.type !== 'text' && part.type !== 'reasoning') return false;
-  const id = stringValue(part.id);
-  if (!id) return true;
-
-  const messageID = stringValue(part.messageID);
-  if (messageID && state.messageRoles.get(messageID) === 'user') return true;
-
-  const isReasoning = part.type === 'reasoning';
-  const ids = isReasoning
-    ? state.legacyReasoningPartIds
-    : state.legacyTextPartIds;
-  const deltaMap = isReasoning ? state.reasoningDeltas : state.textDeltas;
-  const deltaType = isReasoning ? 'reasoning-delta' : 'text-delta';
-  const text = typeof part.text === 'string' ? part.text : undefined;
-
-  startLegacyPart({
-    ids,
-    id,
-    emit,
-    type: isReasoning ? 'reasoning' : 'text',
-  });
-
-  if (text !== undefined) {
-    emitMissingFinalDelta({
-      id,
-      fullText: text,
-      emittedText: deltaMap.get(id) ?? '',
-      emit,
-      type: deltaType,
-    });
-    deltaMap.set(id, text);
-  }
-
-  if (legacyPartEnded(part)) {
-    ids.delete(id);
-    deltaMap.delete(id);
-    emit({ type: isReasoning ? 'reasoning-end' : 'text-end', id });
-  }
-
-  return true;
-}
-
-function legacyPartEnded(part: Record<string, unknown>): boolean {
-  return isRecord(part.time) && part.time.end != null;
 }
 
 function closeLegacyOpenParts({

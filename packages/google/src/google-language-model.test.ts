@@ -715,7 +715,7 @@ describe('doGenerate', () => {
         modelId: response?.modelId,
       }).toMatchInlineSnapshot(`
         {
-          "id": undefined,
+          "id": "Un6LacrVMcjUxs0PmJfWoQc",
           "modelId": undefined,
           "timestamp": undefined,
         }
@@ -4423,6 +4423,23 @@ describe('doStream', () => {
       const chunks = await convertReadableStreamToArray(stream);
 
       expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
+    });
+
+    it('should emit response-metadata with the provider responseId', async () => {
+      // Gemini repeats `responseId` on every chunk; the provider emits a single
+      // response-metadata part carrying it (see google-text.chunks.txt fixture).
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const responseMetadata = (
+        await convertReadableStreamToArray(stream)
+      ).filter(chunk => chunk.type === 'response-metadata');
+
+      expect(responseMetadata).toEqual([
+        { type: 'response-metadata', id: 'bH6LaZW8Fp_3nsEPqtaSwQ4' },
+      ]);
     });
 
     it('should expose the raw response headers', async () => {
