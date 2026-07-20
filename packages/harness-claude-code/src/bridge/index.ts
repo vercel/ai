@@ -322,13 +322,13 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   let pendingStepUsage: Record<string, unknown> | undefined;
   let stepOpen = false;
 
-  const emitFinishStep = (usage: Record<string, unknown> | undefined): void => {
+  const emitFinishStep = (): void => {
     emit({
       type: 'finish-step',
       finishReason: { unified: 'stop', raw: 'stop' },
-      usage: usage ?? defaultUsage(),
+      usage: pendingStepUsage ?? defaultUsage(),
     });
-    stepUsage = usage ?? stepUsage;
+    stepUsage = pendingStepUsage ?? stepUsage;
     pendingStepUsage = undefined;
     pendingStepToolUseIds = new Set();
     stepOpen = false;
@@ -338,7 +338,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     if (!stepOpen || pendingStepToolUseIds.size > 0 || partialBlocks.size > 0) {
       return;
     }
-    emitFinishStep(pendingStepUsage);
+    emitFinishStep();
   };
 
   /*
@@ -669,7 +669,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           if (typeof msg.total_cost_usd === 'number') {
             totalCostUsd = (totalCostUsd ?? 0) + msg.total_cost_usd;
           }
-          if (stepOpen) emitFinishStep(harnessUsage ?? pendingStepUsage);
+          if (stepOpen) emitFinishStep();
           queryInput.close();
           break;
         } else {
