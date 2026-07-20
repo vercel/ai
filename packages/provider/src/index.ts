@@ -13,6 +13,7 @@ export * from './reranking-model/index';
 export * from './shared/index';
 export * from './skills/index';
 export * from './speech-model/index';
+export * from './speech-to-speech-model/index';
 export * from './transcription-model/index';
 export * from './video-model/index';
 

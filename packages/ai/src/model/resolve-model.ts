@@ -1,6 +1,7 @@
 import { gateway } from '@ai-sdk/gateway';
 import type {
   EmbeddingModelV4,
+  Experimental_SpeechToSpeechModelV4,
   Experimental_VideoModelV4,
   ImageModelV4,
   LanguageModelV4,
@@ -13,6 +14,7 @@ import { UnsupportedModelVersionError } from '../error';
 import type { EmbeddingModel } from '../types/embedding-model';
 import type { LanguageModel } from '../types/language-model';
 import type { SpeechModel } from '../types/speech-model';
+import type { SpeechToSpeechModel } from '../types/speech-to-speech-model';
 import type { TranscriptionModel } from '../types/transcription-model';
 import { asEmbeddingModelV4 } from './as-embedding-model-v4';
 import { asImageModelV4 } from './as-image-model-v4';
@@ -77,6 +79,39 @@ export function resolveTranscriptionModel(
   }
 
   return asTranscriptionModelV4(model);
+}
+
+export function resolveSpeechToSpeechModel(
+  model: SpeechToSpeechModel,
+): Experimental_SpeechToSpeechModelV4 {
+  if (typeof model === 'string') {
+    // Use raw global provider because speechToSpeechModel is experimental
+    // and not part of the ProviderV4 interface
+    const provider = globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway;
+    // TODO AI SDK v7
+    // @ts-expect-error - speechToSpeechModel support is experimental
+    const speechToSpeechModel = provider.speechToSpeechModel;
+
+    if (!speechToSpeechModel) {
+      throw new Error(
+        'The default provider does not support speech-to-speech models. ' +
+          'Please pass a provider model instance that implements the experimental speech-to-speech model specification.',
+      );
+    }
+
+    return speechToSpeechModel(model);
+  }
+
+  if (model.specificationVersion !== 'v4') {
+    const unsupportedModel: any = model;
+    throw new UnsupportedModelVersionError({
+      version: unsupportedModel.specificationVersion,
+      provider: unsupportedModel.provider,
+      modelId: unsupportedModel.modelId,
+    });
+  }
+
+  return model;
 }
 
 export function resolveSpeechModel(
