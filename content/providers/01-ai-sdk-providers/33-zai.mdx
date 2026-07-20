@@ -1,0 +1,97 @@
+---
+title: Z.AI
+description: Learn how to use Z.AI models with the AI SDK.
+---
+
+# Z.AI Provider
+
+The [Z.AI](https://z.ai) provider offers access to the GLM series of language models, including reasoning models, through an OpenAI-compatible API.
+
+API keys can be obtained from the [Z.AI console](https://z.ai).
+
+## Setup
+
+The Z.AI provider is available via the `@ai-sdk/zai` module. You can install it with:
+
+<InstallPackages packages="@ai-sdk/zai" />
+
+## Provider Instance
+
+You can import the default provider instance `zai` from `@ai-sdk/zai`:
+
+```ts
+import { zai } from '@ai-sdk/zai';
+```
+
+For custom configuration, you can import `createZai` and create a provider instance with your settings:
+
+```ts
+import { createZai } from '@ai-sdk/zai';
+
+const zai = createZai({
+  apiKey: process.env.ZAI_API_KEY ?? '',
+});
+```
+
+You can use the following optional settings to customize the Z.AI provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls.
+  The default prefix is `https://api.z.ai/api/coding/paas/v4` (Coding plan).
+  For the Chat plan, use `https://api.z.ai/api/paas/v4`.
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header. It defaults to
+  the `ZAI_API_KEY` environment variable
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation
+
+## Language Models
+
+You can create language models using a provider instance:
+
+```ts
+import { zai } from '@ai-sdk/zai';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: zai('glm-5.2'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+You can also use the `.chatModel()` or `.languageModel()` factory methods:
+
+```ts
+const model = zai.chatModel('glm-5.2');
+// or
+const model = zai.languageModel('glm-5.2');
+```
+
+Z.AI language models can be used in the `streamText` and `generateText` functions
+(see [AI SDK Core](/docs/ai-sdk-core)).
+
+## Model Capabilities
+
+| Model         | Image Input | Object Generation | Tool Usage | Tool Streaming |
+| ------------- | ----------- | ----------------- | ---------- | -------------- |
+| `glm-5.2`     | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `glm-5.1`     | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `glm-5`       | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `glm-5-turbo` | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `glm-4.7`     | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `glm-4.6`     | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `glm-4.5`     | <Cross />   | <Check />         | <Check />  | <Check />      |
+
+<Note>
+  Please see the [Z.AI docs](https://docs.z.ai) for a full list of available models.
+  You can also pass any available provider model ID as a string if needed.
+</Note>
