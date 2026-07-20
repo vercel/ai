@@ -141,6 +141,7 @@ export class HarnessStreamTextResult<
   private currentStepContent: ContentPart<TOOLS>[] = [];
   private currentStepWarnings: CallWarning[] = [];
   private stepNumber = 0;
+  private stepStarted = false;
 
   private readonly tools: TOOLS;
   private readonly runtimeContext: RUNTIME_CONTEXT;
@@ -198,6 +199,7 @@ export class HarnessStreamTextResult<
    * into the current step's content array where applicable.
    */
   enqueue(part: TextStreamPart<TOOLS>): void {
+    this.startStep();
     this.fullStreamController.enqueue(part);
     this.appendToCurrentStepContent(part);
   }
@@ -218,6 +220,7 @@ export class HarnessStreamTextResult<
   discardCurrentStepContent(): void {
     this.currentStepContent = [];
     this.currentStepWarnings = [];
+    this.stepStarted = false;
   }
 
   /**
@@ -232,6 +235,8 @@ export class HarnessStreamTextResult<
     providerMetadata: ProviderMetadata | undefined;
     warnings: CallWarning[];
   }): StepResult<TOOLS, RUNTIME_CONTEXT> {
+    this.startStep();
+
     const normalizedUsage = asLanguageModelUsage(input.usage);
     const finishReason = input.finishReason.unified;
     const rawFinishReason = input.finishReason.raw;
@@ -285,8 +290,20 @@ export class HarnessStreamTextResult<
     this.stepNumber += 1;
     this.currentStepContent = [];
     this.currentStepWarnings = [];
+    this.stepStarted = false;
 
     return step;
+  }
+
+  private startStep(): void {
+    if (this.stepStarted) return;
+
+    this.stepStarted = true;
+    this.fullStreamController.enqueue({
+      type: 'start-step',
+      request: {},
+      warnings: this.currentStepWarnings,
+    } as TextStreamPart<TOOLS>);
   }
 
   /**

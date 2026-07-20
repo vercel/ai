@@ -679,8 +679,12 @@ describe('HarnessAgent', () => {
         isError: undefined,
       },
     ]);
-    expect(continuedPartTypes).not.toContain('tool-call');
-    expect(continuedPartTypes).not.toContain('tool-result');
+    expect(continuedPartTypes).toEqual([
+      'start-step',
+      'text-delta',
+      'finish-step',
+      'finish',
+    ]);
     expect((await continued.steps).map(step => step.text)).toEqual([
       'It is 19°C in Lima.',
     ]);
