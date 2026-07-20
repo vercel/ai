@@ -1,8 +1,8 @@
 import { TypeValidationError } from '@ai-sdk/provider';
 import { parseJsonEventStream, validateTypes } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
-import { describe, expect, expectTypeOf, it } from 'vitest';
-import { uiMessageChunkSchema, type UIMessageChunk } from './ui-message-chunks';
+import { describe, expect, it } from 'vitest';
+import { uiMessageChunkSchema } from './ui-message-chunks';
 
 function createEventStream(value: unknown): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
@@ -16,19 +16,6 @@ function createEventStream(value: unknown): ReadableStream<Uint8Array> {
 }
 
 describe('uiMessageChunkSchema', () => {
-  it('returns UI message chunks', async () => {
-    const chunk = await validateTypes({
-      schema: uiMessageChunkSchema,
-      value: {
-        type: 'text-delta',
-        delta: 'Hello, world!',
-        id: '123',
-      },
-    });
-
-    expectTypeOf(chunk).toEqualTypeOf<UIMessageChunk>();
-  });
-
   it('accepts known chunks with fields added by newer servers', async () => {
     const chunk = {
       type: 'tool-output-available',

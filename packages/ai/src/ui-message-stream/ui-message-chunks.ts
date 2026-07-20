@@ -13,18 +13,8 @@ import type {
 import type { ValueOf } from '../util/value-of';
 import { lazyValidator, zodSchema } from '@ai-sdk/provider-utils';
 
-<<<<<<< HEAD
 export const uiMessageChunkSchema = lazyValidator(() =>
-  zodSchema(
-=======
-const toolMetadataSchema: z.ZodType<JSONObject> = z.record(
-  z.string(),
-  jsonValueSchema.optional(),
-);
-
-export const uiMessageChunkSchema = lazySchema(() =>
   zodSchema<UIMessageChunk>(
->>>>>>> e35bcae87 (fix: prevent newer fields on known UI message chunks from breaking older clients (#17010))
     z.union([
       z.looseObject({
         type: z.literal('text-start'),
@@ -76,25 +66,6 @@ export const uiMessageChunkSchema = lazySchema(() =>
         providerMetadata: providerMetadataSchema.optional(),
         dynamic: z.boolean().optional(),
         errorText: z.string(),
-<<<<<<< HEAD
-=======
-        title: z.string().optional(),
-      }),
-      z.looseObject({
-        type: z.literal('tool-approval-request'),
-        approvalId: z.string(),
-        toolCallId: z.string(),
-        isAutomatic: z.boolean().optional(),
-        signature: z.string().optional(),
-      }),
-      z.looseObject({
-        type: z.literal('tool-approval-response'),
-        approvalId: z.string(),
-        approved: z.boolean(),
-        reason: z.string().optional(),
-        providerExecuted: z.boolean().optional(),
-        providerMetadata: providerMetadataSchema.optional(),
->>>>>>> e35bcae87 (fix: prevent newer fields on known UI message chunks from breaking older clients (#17010))
       }),
       z.looseObject({
         type: z.literal('tool-output-available'),
@@ -111,15 +82,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         providerExecuted: z.boolean().optional(),
         dynamic: z.boolean().optional(),
       }),
-<<<<<<< HEAD
-      z.strictObject({
-=======
       z.looseObject({
-        type: z.literal('tool-output-denied'),
-        toolCallId: z.string(),
-      }),
-      z.looseObject({
->>>>>>> e35bcae87 (fix: prevent newer fields on known UI message chunks from breaking older clients (#17010))
         type: z.literal('reasoning-start'),
         id: z.string(),
         providerMetadata: providerMetadataSchema.optional(),
@@ -135,16 +98,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         id: z.string(),
         providerMetadata: providerMetadataSchema.optional(),
       }),
-<<<<<<< HEAD
-      z.strictObject({
-=======
       z.looseObject({
-        type: z.literal('custom'),
-        kind: z.string().transform(value => value as `${string}.${string}`),
-        providerMetadata: providerMetadataSchema.optional(),
-      }),
-      z.looseObject({
->>>>>>> e35bcae87 (fix: prevent newer fields on known UI message chunks from breaking older clients (#17010))
         type: z.literal('source-url'),
         sourceId: z.string(),
         url: z.string(),
@@ -165,17 +119,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         mediaType: z.string(),
         providerMetadata: providerMetadataSchema.optional(),
       }),
-<<<<<<< HEAD
-      z.strictObject({
-=======
       z.looseObject({
-        type: z.literal('reasoning-file'),
-        url: z.string(),
-        mediaType: z.string(),
-        providerMetadata: providerMetadataSchema.optional(),
-      }),
-      z.looseObject({
->>>>>>> e35bcae87 (fix: prevent newer fields on known UI message chunks from breaking older clients (#17010))
         type: z.custom<`data-${string}`>(
           (value): value is `data-${string}` =>
             typeof value === 'string' && value.startsWith('data-'),
