@@ -83,24 +83,16 @@ function hasConfiguredValue(value: unknown): boolean {
   return Object.values(value).some(hasConfiguredValue);
 }
 
-export async function resolvePiEnv({
+export function resolvePiEnv({
   options,
   env,
-  registries,
-  clientApp = HARNESS_CLIENT_APP,
 }: {
   options: PiAuthOptions | undefined;
   env: NodeJS.ProcessEnv;
-  registries: PiRegistries;
-  clientApp?: string;
-}): Promise<Record<string, string>> {
+}): Record<string, string> {
   const customEnvConfigured = hasConfiguredValue(options?.customEnv);
   if (customEnvConfigured) {
-    return applyCustomEnv({
-      customEnv: options!.customEnv ?? {},
-      registries,
-      clientApp,
-    });
+    return resolveCustomEnv({ customEnv: options!.customEnv ?? {} });
   }
 
   const gatewayConfigured = hasConfiguredValue(options?.gateway);
@@ -109,16 +101,6 @@ export async function resolvePiEnv({
     const apiKey = options!.gateway?.apiKey ?? gatewayAuthFromEnv.apiKey;
     const baseUrl = options!.gateway?.baseUrl ?? gatewayAuthFromEnv.baseUrl;
     if (apiKey) {
-      await register({
-        registries,
-        provider: 'vercel-ai-gateway',
-        apiKey,
-        config: createGatewayProviderConfig({
-          apiKey,
-          baseUrl,
-          clientApp,
-        }),
-      });
       return { AI_GATEWAY_API_KEY: apiKey, AI_GATEWAY_BASE_URL: baseUrl };
     }
     return {};
@@ -126,16 +108,6 @@ export async function resolvePiEnv({
 
   // Ambient gateway fallback.
   if (gatewayAuthFromEnv.apiKey) {
-    await register({
-      registries,
-      provider: 'vercel-ai-gateway',
-      apiKey: gatewayAuthFromEnv.apiKey,
-      config: createGatewayProviderConfig({
-        apiKey: gatewayAuthFromEnv.apiKey,
-        baseUrl: gatewayAuthFromEnv.baseUrl,
-        clientApp,
-      }),
-    });
     return {
       AI_GATEWAY_API_KEY: gatewayAuthFromEnv.apiKey,
       AI_GATEWAY_BASE_URL: gatewayAuthFromEnv.baseUrl,
@@ -145,7 +117,54 @@ export async function resolvePiEnv({
   return {};
 }
 
-async function applyCustomEnv({
+export async function registerPiProviders({
+  options,
+  resolvedEnv,
+  registries,
+  clientApp = HARNESS_CLIENT_APP,
+}: {
+  options: PiAuthOptions | undefined;
+  resolvedEnv: Record<string, string>;
+  registries: PiRegistries;
+  clientApp?: string;
+}): Promise<void> {
+  if (hasConfiguredValue(options?.customEnv)) {
+    await registerCustomProviders({
+      customEnv: options!.customEnv ?? {},
+      registries,
+      clientApp,
+    });
+    return;
+  }
+
+  const apiKey = resolvedEnv.AI_GATEWAY_API_KEY;
+  const baseUrl = resolvedEnv.AI_GATEWAY_BASE_URL;
+  if (!apiKey || !baseUrl) return;
+
+  await register({
+    registries,
+    provider: 'vercel-ai-gateway',
+    apiKey,
+    config: createGatewayProviderConfig({ apiKey, baseUrl, clientApp }),
+  });
+}
+
+function resolveCustomEnv({
+  customEnv,
+}: {
+  customEnv: Record<string, string>;
+}): Record<string, string> {
+  const apiKey = customEnv.AI_GATEWAY_API_KEY;
+  if (!apiKey) return {};
+
+  return {
+    AI_GATEWAY_API_KEY: apiKey,
+    AI_GATEWAY_BASE_URL:
+      customEnv.AI_GATEWAY_BASE_URL ?? DEFAULT_GATEWAY_BASE_URL,
+  };
+}
+
+async function registerCustomProviders({
   customEnv,
   registries,
   clientApp,
@@ -153,9 +172,7 @@ async function applyCustomEnv({
   customEnv: Record<string, string>;
   registries: PiRegistries;
   clientApp: string;
-}): Promise<Record<string, string>> {
-  const out: Record<string, string> = {};
-
+}): Promise<void> {
   const gatewayKey = customEnv.AI_GATEWAY_API_KEY;
   if (gatewayKey) {
     const baseUrl = customEnv.AI_GATEWAY_BASE_URL ?? DEFAULT_GATEWAY_BASE_URL;
@@ -169,8 +186,6 @@ async function applyCustomEnv({
         clientApp,
       }),
     });
-    out.AI_GATEWAY_API_KEY = gatewayKey;
-    out.AI_GATEWAY_BASE_URL = baseUrl;
   }
 
   if (customEnv.OPENAI_API_KEY) {
@@ -235,6 +250,4 @@ async function applyCustomEnv({
       },
     });
   }
-
-  return out;
 }
