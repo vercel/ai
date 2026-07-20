@@ -1589,6 +1589,19 @@ class DefaultStreamTextResult<
       // Re-enter the streamText tracing context after stream setup returns.
       const runInStreamTextTracingChannelContext = <T>(execute: () => T): T =>
         streamTextTracingChannelContext?.run(execute) ?? execute();
+      const runInTracingChannelSpanInStreamText =
+        telemetryDispatcher.runInTracingChannelSpan == null
+          ? undefined
+          : <T>(
+              options: Parameters<
+                NonNullable<TelemetryDispatcher['runInTracingChannelSpan']>
+              >[0] & {
+                execute: () => PromiseLike<T>;
+              },
+            ) =>
+              runInStreamTextTracingChannelContext(() =>
+                telemetryDispatcher.runInTracingChannelSpan!(options),
+              );
 
       await notify({
         event: startEvent,
@@ -1624,6 +1637,10 @@ class DefaultStreamTextResult<
           ),
           ...revalidationDeniedToolApprovals,
         ];
+        const localDeniedToolApprovalsWithoutResults =
+          localDeniedToolApprovals.filter(
+            toolApproval => toolApproval.existingToolResult == null,
+          );
 
         const deniedProviderExecutedToolApprovals = deniedToolApprovals.filter(
           toolApproval => toolApproval.toolCall.providerExecuted,
@@ -1676,8 +1693,7 @@ class DefaultStreamTextResult<
                   telemetryDispatcher.onToolExecutionEnd,
                 ),
                 executeToolInTelemetryContext: telemetryDispatcher.executeTool,
-                runInTracingChannelSpan:
-                  telemetryDispatcher.runInTracingChannelSpan,
+                runInTracingChannelSpan: runInTracingChannelSpanInStreamText,
                 onPreliminaryToolResult: result => {
                   toolExecutionStepStreamController?.enqueue(result);
                 },
@@ -1691,7 +1707,10 @@ class DefaultStreamTextResult<
           );
 
           // Local tool results (approved + denied) are sent as tool results:
-          if (toolOutputs.length > 0 || localDeniedToolApprovals.length > 0) {
+          if (
+            toolOutputs.length > 0 ||
+            localDeniedToolApprovalsWithoutResults.length > 0
+          ) {
             const localToolContent: ToolContent = [];
 
             // add regular tool results for approved tool calls:
@@ -1714,7 +1733,7 @@ class DefaultStreamTextResult<
             }
 
             // add execution denied tool results for denied local tool approvals:
-            for (const toolApproval of localDeniedToolApprovals) {
+            for (const toolApproval of localDeniedToolApprovalsWithoutResults) {
               localToolContent.push({
                 type: 'tool-result' as const,
                 toolCallId: toolApproval.toolCall.toolCallId,

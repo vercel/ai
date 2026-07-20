@@ -1,5 +1,84 @@
 # ai
 
+## 7.0.31
+
+### Patch Changes
+
+- 70f18c3: fix(ai): emit denied tool output state for client-rejected approvals
+- cd06458: fix(ai): call `onInputStart` before `onInputAvailable` during non-streaming tool calls
+- Updated dependencies [cd06458]
+  - @ai-sdk/provider-utils@5.0.11
+  - @ai-sdk/gateway@4.0.23
+
+## 7.0.30
+
+### Patch Changes
+
+- Updated dependencies [341616a]
+- Updated dependencies [70fc45c]
+  - @ai-sdk/gateway@4.0.22
+
+## 7.0.29
+
+### Patch Changes
+
+- Updated dependencies [7069785]
+- Updated dependencies [4bf9ac2]
+  - @ai-sdk/gateway@4.0.21
+
+## 7.0.28
+
+### Patch Changes
+
+- 0bc8d4f: Fix chat `onFinish` handling when overlapping requests clear the active response before a resume stream finishes.
+
+## 7.0.27
+
+### Patch Changes
+
+- ac01b79: Allow validating assistant UI messages with empty parts so persisted errored responses remain loadable.
+- 2696562: `experimental_streamTranscribe` result promises now resolve without consuming `fullStream`: accessing any result promise consumes the stream internally. Previously `await result.text` alone deadlocked on transform backpressure. Because live transcription streams can be unbounded, `fullStream` is explicitly single-consumer (no replay buffering): access it once, before any result promise, when both stream parts and final results are needed.
+- Updated dependencies [31c7be8]
+- Updated dependencies [4d096f6]
+  - @ai-sdk/provider-utils@5.0.10
+  - @ai-sdk/gateway@4.0.20
+
+## 7.0.26
+
+### Patch Changes
+
+- 27d294d: feat(ai): group orphaned tool calls after tool approvals under parent span
+
+## 7.0.25
+
+### Patch Changes
+
+- 7805e4a: Cancelling the `experimental_streamTranscribe` `fullStream` now also aborts a still-pending `doStream` setup, so a model whose `doStream` has not yet resolved is cancelled instead of leaking.
+- f8e82fd: Update the `experimental_streamTranscribe` unsupported-model error message now that gateway string model IDs can support streaming transcription.
+- Updated dependencies [4be62c1]
+- Updated dependencies [f8e82fd]
+- Updated dependencies [7805e4a]
+- Updated dependencies [cd12954]
+  - @ai-sdk/provider-utils@5.0.9
+  - @ai-sdk/gateway@4.0.19
+
+## 7.0.24
+
+### Patch Changes
+
+- e193290: Cancel the caller's `audio` stream when `experimental_streamTranscribe` fails before or during streaming. Previously, when the model's `doStream` rejected before a stream existed (e.g. missing API key or other auth failure), the audio stream was never consumed or cancelled, so an upstream producer piping into it would hang forever.
+- Updated dependencies [e193290]
+  - @ai-sdk/provider-utils@5.0.8
+  - @ai-sdk/gateway@4.0.18
+
+## 7.0.23
+
+### Patch Changes
+
+- 930f949: feat(ai): wrap embedMany in tracing channel context
+- Updated dependencies [867f80a]
+  - @ai-sdk/gateway@4.0.17
+
 ## 7.0.22
 
 ### Patch Changes

@@ -21,6 +21,7 @@ import {
   applyPatchInputSchema,
   applyPatchOutputSchema,
 } from '../tool/apply-patch';
+import { computerInputSchema, computerOutputSchema } from '../tool/computer';
 import {
   localShellInputSchema,
   localShellOutputSchema,
@@ -77,6 +78,7 @@ export async function convertToOpenAIResponsesInput({
   hasLocalShellTool = false,
   hasShellTool = false,
   hasApplyPatchTool = false,
+  hasComputerTool = false,
   customProviderToolNames,
 }: {
   prompt: LanguageModelV4Prompt;
@@ -92,6 +94,7 @@ export async function convertToOpenAIResponsesInput({
   hasLocalShellTool?: boolean;
   hasShellTool?: boolean;
   hasApplyPatchTool?: boolean;
+  hasComputerTool?: boolean;
   customProviderToolNames?: Set<string>;
 }): Promise<{
   input: OpenAIResponsesInput;
@@ -401,7 +404,7 @@ export async function convertToOpenAIResponsesInput({
               }
 
               // Provider-defined tool calls (local_shell, shell, apply_patch,
-              // and custom tools) are stored by the API and can be sent as an
+              // computer, and custom tools) are stored by the API and can be sent as an
               // `item_reference` to reduce payload size. Plain client-executed
               // function calls must NOT be: the matching `function_call_output`
               // can only reference the call by `call_id` (`call_...`), which
@@ -414,6 +417,7 @@ export async function convertToOpenAIResponsesInput({
                 (hasLocalShellTool && resolvedToolName === 'local_shell') ||
                 (hasShellTool && resolvedToolName === 'shell') ||
                 (hasApplyPatchTool && resolvedToolName === 'apply_patch') ||
+                (hasComputerTool && resolvedToolName === 'computer') ||
                 (customProviderToolNames?.has(resolvedToolName) ?? false);
 
               if (store && id != null && isProviderDefinedToolCall) {
@@ -474,6 +478,55 @@ export async function convertToOpenAIResponsesInput({
                   id: id!,
                   status: 'completed',
                   operation: parsedInput.operation,
+                });
+
+                break;
+              }
+
+              if (hasComputerTool && resolvedToolName === 'computer') {
+                const parsedInput = await validateTypes({
+                  value: part.input,
+                  schema: computerInputSchema,
+                });
+                input.push({
+                  type: 'computer_call',
+                  call_id: part.toolCallId,
+                  id: id!,
+                  status: parsedInput.status,
+                  actions: parsedInput.actions.map(action => {
+                    switch (action.type) {
+                      case 'click':
+                      case 'double_click':
+                      case 'move':
+                        return {
+                          ...action,
+                          keys: action.keys,
+                        };
+                      case 'drag':
+                        return {
+                          ...action,
+                          keys: action.keys,
+                        };
+                      case 'scroll':
+                        return {
+                          type: 'scroll' as const,
+                          x: action.x,
+                          y: action.y,
+                          scroll_x: action.scrollX,
+                          scroll_y: action.scrollY,
+                          keys: action.keys,
+                        };
+                      default:
+                        return action;
+                    }
+                  }),
+                  pending_safety_checks: parsedInput.pendingSafetyChecks.map(
+                    safetyCheck => ({
+                      id: safetyCheck.id,
+                      code: safetyCheck.code,
+                      message: safetyCheck.message,
+                    }),
+                  ),
                 });
 
                 break;
@@ -865,6 +918,35 @@ export async function convertToOpenAIResponsesInput({
               call_id: part.toolCallId,
               status: parsedOutput.status,
               output: parsedOutput.output,
+            });
+            continue;
+          }
+
+          if (
+            hasComputerTool &&
+            resolvedToolName === 'computer' &&
+            output.type === 'json'
+          ) {
+            const parsedOutput = await validateTypes({
+              value: output.value,
+              schema: computerOutputSchema,
+            });
+
+            input.push({
+              type: 'computer_call_output',
+              call_id: part.toolCallId,
+              output: {
+                type: 'computer_screenshot',
+                image_url: parsedOutput.output.imageUrl,
+                file_id: parsedOutput.output.fileId,
+                detail: parsedOutput.output.detail,
+              },
+              acknowledged_safety_checks:
+                parsedOutput.acknowledgedSafetyChecks?.map(safetyCheck => ({
+                  id: safetyCheck.id,
+                  code: safetyCheck.code,
+                  message: safetyCheck.message,
+                })),
             });
             continue;
           }

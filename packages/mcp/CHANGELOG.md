@@ -1,5 +1,48 @@
 # @ai-sdk/mcp
 
+## 2.0.15
+
+### Patch Changes
+
+- d84ea43: fix(mcp): accept OAuth metadata without code challenge methods
+- Updated dependencies [cd06458]
+  - @ai-sdk/provider-utils@5.0.11
+
+## 2.0.14
+
+### Patch Changes
+
+- 48e7e78: Harden MCP Apps handling of server-supplied resource metadata and the host/iframe bridge:
+
+  - Runtime-validate `_meta.ui` and drop malformed or non-string fields.
+  - Gate iframe permissions deny-by-default via a new `sandbox.allowedPermissions` allowlist.
+  - Derive a concrete `postMessage` target origin and validate inbound message origins.
+  - Validate inbound bridge params: limit `resources/read` to `ui://` resources and allow only `https`/`http`/`mailto` in `ui/open-link`.
+  - Add `fingerprintMCPAppResource` / `detectMCPAppResourceDrift` for pinning and comparing app resources.
+
+## 2.0.13
+
+### Patch Changes
+
+- Updated dependencies [31c7be8]
+  - @ai-sdk/provider-utils@5.0.10
+
+## 2.0.12
+
+### Patch Changes
+
+- Updated dependencies [4be62c1]
+- Updated dependencies [7805e4a]
+- Updated dependencies [cd12954]
+  - @ai-sdk/provider-utils@5.0.9
+
+## 2.0.11
+
+### Patch Changes
+
+- Updated dependencies [e193290]
+  - @ai-sdk/provider-utils@5.0.8
+
 ## 2.0.10
 
 ### Patch Changes

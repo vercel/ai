@@ -227,6 +227,35 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       ? undefined
       : googleOptions?.serviceTier;
 
+    // personGeneration, prominentPeople and imageOutputOptions are only
+    // supported by the Vertex AI API, the Gemini API rejects them.
+    let imageConfig = googleOptions?.imageConfig;
+    if (imageConfig != null && !isVertexProvider) {
+      const {
+        personGeneration,
+        prominentPeople,
+        imageOutputOptions,
+        ...geminiApiImageConfig
+      } = imageConfig;
+      const droppedImageConfigFields = Object.entries({
+        personGeneration,
+        prominentPeople,
+        imageOutputOptions,
+      })
+        .filter(([, value]) => value != null)
+        .map(([key]) => `'imageConfig.${key}'`);
+      if (droppedImageConfigFields.length > 0) {
+        warnings.push({
+          type: 'other',
+          message:
+            `${droppedImageConfigFields.join(', ')} ` +
+            `${droppedImageConfigFields.length === 1 ? 'is a Vertex AI option and is' : 'are Vertex AI options and are'} ` +
+            `ignored with the current Google provider (${this.config.provider}).`,
+        });
+        imageConfig = geminiApiImageConfig;
+      }
+    }
+
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
     const isGemini3Model = /^gemini-3[.-]/.test(this.modelId);
     const supportsFunctionResponseParts = isGemini3Model;
@@ -328,9 +357,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           ...(googleOptions?.mediaResolution && {
             mediaResolution: googleOptions.mediaResolution,
           }),
-          ...(googleOptions?.imageConfig && {
-            imageConfig: googleOptions.imageConfig,
-          }),
+          ...(imageConfig && { imageConfig }),
         },
         contents,
         systemInstruction: isGemmaModel ? undefined : systemInstruction,
@@ -387,7 +414,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
     const usageMetadata = response.usageMetadata;
 
-    // Associates a code execution result with its preceding call.
+    // Associates code execution results with their preceding call.
     let lastCodeExecutionToolCallId: string | undefined;
     // Associates a server-side tool response with its preceding call (tool combination).
     let lastServerToolCallId: string | undefined;
@@ -408,7 +435,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       } else if ('codeExecutionResult' in part && part.codeExecutionResult) {
         content.push({
           type: 'tool-result',
-          // Assumes a result directly follows its corresponding call part.
+          // Results correspond to the most recent executable code part.
           toolCallId: lastCodeExecutionToolCallId!,
           toolName: 'code_execution',
           result: {
@@ -416,8 +443,6 @@ export class GoogleLanguageModel implements LanguageModelV4 {
             output: part.codeExecutionResult.output ?? '',
           },
         });
-        // Clear the ID after use to avoid accidental reuse.
-        lastCodeExecutionToolCallId = undefined;
       } else if ('text' in part && part.text != null) {
         const thoughtSignatureMetadata = part.thoughtSignature
           ? wrapProviderMetadata({
@@ -596,7 +621,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
     // Track emitted sources to prevent duplicates
     const emittedSourceUrls = new Set<string>();
-    // Associates a code execution result with its preceding call.
+    // Associates code execution results with their preceding call.
     let lastCodeExecutionToolCallId: string | undefined;
     // Associates a server-side tool response with its preceding call (tool combination).
     let lastServerToolCallId: string | undefined;
@@ -724,7 +749,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                   'codeExecutionResult' in part &&
                   part.codeExecutionResult
                 ) {
-                  // Assumes a result directly follows its corresponding call part.
+                  // Results correspond to the most recent executable code part.
                   const toolCallId = lastCodeExecutionToolCallId;
 
                   if (toolCallId) {
@@ -737,8 +762,6 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                         output: part.codeExecutionResult.output ?? '',
                       },
                     });
-                    // Clear the ID after use.
-                    lastCodeExecutionToolCallId = undefined;
                   }
                 } else if ('text' in part && part.text != null) {
                   const thoughtSignatureMetadata = part.thoughtSignature

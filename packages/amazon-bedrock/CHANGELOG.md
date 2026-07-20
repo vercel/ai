@@ -1,5 +1,69 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.24
+
+### Patch Changes
+
+- 76db5e3: fix(bedrock): support application inference profile ARNs
+- Updated dependencies [cd06458]
+- Updated dependencies [afcf19c]
+- Updated dependencies [75f86f4]
+  - @ai-sdk/provider-utils@5.0.11
+  - @ai-sdk/anthropic@4.0.16
+  - @ai-sdk/openai@4.0.16
+
+## 5.0.23
+
+### Patch Changes
+
+- Updated dependencies [0063c2d]
+  - @ai-sdk/openai@4.0.15
+
+## 5.0.22
+
+### Patch Changes
+
+- 43fc411: Return Bedrock Converse request bodies from language model generation and streaming calls.
+
+## 5.0.21
+
+### Patch Changes
+
+- b0e9d24: Avoid unreliable synthetic response tools when structured output is combined with tools on Bedrock Claude Opus 4.7 and 4.8.
+- Updated dependencies [31c7be8]
+  - @ai-sdk/provider-utils@5.0.10
+  - @ai-sdk/anthropic@4.0.15
+  - @ai-sdk/openai@4.0.14
+
+## 5.0.20
+
+### Patch Changes
+
+- ce5d968: fix(provider/amazon-bedrock): translate eager_input_streaming into the fine-grained-tool-streaming beta for Anthropic models
+
+## 5.0.19
+
+### Patch Changes
+
+- Updated dependencies [4be62c1]
+- Updated dependencies [7805e4a]
+- Updated dependencies [7805e4a]
+- Updated dependencies [cd12954]
+  - @ai-sdk/provider-utils@5.0.9
+  - @ai-sdk/anthropic@4.0.14
+  - @ai-sdk/openai@4.0.13
+
+## 5.0.18
+
+### Patch Changes
+
+- Updated dependencies [e193290]
+- Updated dependencies [e193290]
+- Updated dependencies [e193290]
+  - @ai-sdk/provider-utils@5.0.8
+  - @ai-sdk/openai@4.0.12
+  - @ai-sdk/anthropic@4.0.13
+
 ## 5.0.17
 
 ### Patch Changes

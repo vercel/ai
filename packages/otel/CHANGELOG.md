@@ -1,5 +1,70 @@
 # @ai-sdk/otel
 
+## 1.0.31
+
+### Patch Changes
+
+- Updated dependencies [70f18c3]
+- Updated dependencies [cd06458]
+  - ai@7.0.31
+
+## 1.0.30
+
+### Patch Changes
+
+- ai@7.0.30
+
+## 1.0.29
+
+### Patch Changes
+
+- ai@7.0.29
+
+## 1.0.28
+
+### Patch Changes
+
+- Updated dependencies [0bc8d4f]
+  - ai@7.0.28
+
+## 1.0.27
+
+### Patch Changes
+
+- Updated dependencies [ac01b79]
+- Updated dependencies [2696562]
+  - ai@7.0.27
+
+## 1.0.26
+
+### Patch Changes
+
+- 27d294d: feat(ai): group orphaned tool calls after tool approvals under parent span
+- Updated dependencies [27d294d]
+  - ai@7.0.26
+
+## 1.0.25
+
+### Patch Changes
+
+- Updated dependencies [7805e4a]
+- Updated dependencies [f8e82fd]
+  - ai@7.0.25
+
+## 1.0.24
+
+### Patch Changes
+
+- Updated dependencies [e193290]
+  - ai@7.0.24
+
+## 1.0.23
+
+### Patch Changes
+
+- Updated dependencies [930f949]
+  - ai@7.0.23
+
 ## 1.0.22
 
 ### Patch Changes
