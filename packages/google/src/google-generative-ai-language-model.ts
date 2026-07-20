@@ -548,7 +548,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       },
       request: { body: args },
       response: {
-        // TODO timestamp, model id, id
+        // TODO timestamp, model id
+        id: response.responseId ?? undefined,
         headers: responseHeaders,
         body: rawResponse,
       },
@@ -590,6 +591,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
+    let hasEmittedResponseMetadata = false;
 
     // Track active blocks to group consecutive parts of same type
     let currentTextBlockId: string | null = null;
@@ -667,6 +669,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
             }
 
             const value = chunk.value;
+
+            if (!hasEmittedResponseMetadata && value.responseId != null) {
+              hasEmittedResponseMetadata = true;
+              controller.enqueue({
+                type: 'response-metadata',
+                id: value.responseId,
+              });
+            }
 
             const usageMetadata = value.usageMetadata;
 
@@ -1452,6 +1462,7 @@ export const getUrlContextMetadataSchema = () =>
 const responseSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      responseId: z.string().nullish(),
       candidates: z.array(
         z.object({
           content: getContentSchema().nullish().or(z.object({}).strict()),
@@ -1505,6 +1516,7 @@ export type UsageMetadataSchema = NonNullable<
 const chunkSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      responseId: z.string().nullish(),
       candidates: z
         .array(
           z.object({
