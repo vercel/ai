@@ -7,7 +7,7 @@ description: Learn how to use the Neon AI Gateway provider for the AI SDK.
 
 [Neon AI Gateway](https://neon.com/docs/ai-gateway/overview) is a model gateway built into Neon. A branch-scoped Neon credential gives you access to models from OpenAI, Anthropic, Google, Meta, Alibaba, and other providers. The Neon provider for the AI SDK routes each model to the gateway endpoint it needs.
 
-It supports text generation, streaming, tool calls, structured output, and image input. Models are referenced by short IDs such as `gpt-5-mini` or `gemini-2-5-flash` regardless of who hosts them, and every request is scoped to your Neon branch.
+It supports text generation, streaming, tool calls, structured output, and image input. Models are referenced by short IDs such as `gpt-5-mini` or `gemini-3-5-flash` regardless of who hosts them, and every request is scoped to your Neon branch.
 
 <Note>
   Neon AI Gateway is in beta. To use it, you need a paid Neon plan and a project
@@ -69,14 +69,14 @@ To switch providers, change the model ID:
 ```ts
 const openAIModel = neon('gpt-5-mini');
 const anthropicModel = neon('claude-haiku-4-5');
-const googleModel = neon('gemini-2-5-flash');
+const googleModel = neon('gemini-3-5-flash');
 const metaModel = neon('llama-4-maverick');
 const alibabaModel = neon('qwen3-next-80b-a3b-instruct');
 ```
 
 The model ID determines which endpoint the provider uses. OpenAI models use the Responses API, Anthropic models use the Messages API, and other models use Neon's unified OpenAI-compatible endpoint. The provider accepts canonical model IDs as well as the legacy `databricks-` prefixed form (for example `databricks-gpt-5`).
 
-Neon updates the model catalog as availability changes. Check the [Neon model catalog](https://neon.com/docs/ai-gateway/models) before choosing a model ID.
+Neon updates the model catalog as availability changes. Check the [Neon model catalog](https://neon.com/docs/ai-gateway/models) before choosing a model ID. The catalog is also published as the [`neon` provider on models.dev](https://models.dev/providers/neon/).
 
 ## Examples
 
@@ -101,7 +101,7 @@ import { neon } from '@neon/ai-sdk-provider';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: neon('gemini-2-5-flash'),
+  model: neon('gemini-3-5-flash'),
   prompt: 'Write a short story about a database branch.',
 });
 
@@ -147,5 +147,6 @@ Model requests follow the same branch isolation as the database. The [AI Gateway
 - [Neon AI Gateway documentation](https://neon.com/docs/ai-gateway/overview)
 - [Neon AI Gateway quickstart](https://neon.com/docs/ai-gateway/get-started)
 - [Neon model catalog](https://neon.com/docs/ai-gateway/models)
+- [Neon provider on models.dev](https://models.dev/providers/neon/)
 - [Neon AI SDK provider repository](https://github.com/neondatabase/neon-pkgs/tree/main/packages/ai-sdk-provider)
 - [Neon Console](https://console.neon.tech)
