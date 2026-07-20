@@ -94,6 +94,7 @@ export function runPrompt<
   onPendingToolResult?: (pendingResult: HarnessV1PendingToolResult) => void;
   onToolResultSettled?: (toolCallId: string) => void;
   onTurnFinished?: () => void;
+  onTurnFailed?: () => void;
 }): {
   result: HarnessStreamTextResult<TOOLS, RUNTIME_CONTEXT>;
   done: Promise<void>;
@@ -158,6 +159,7 @@ export function runPrompt<
         context: 'failed to start harness turn',
         error: err,
       });
+      input.onTurnFailed?.();
       result.fail(err);
       return;
     }
@@ -806,12 +808,15 @@ export function runPrompt<
             context: 'harness stream error',
             error: value.error,
           });
+          input.onTurnFailed?.();
           result.fail(value.error);
           return;
         }
       }
       if (finalFinish != null) {
         input.onTurnFinished?.();
+      } else {
+        input.onTurnFailed?.();
       }
       await result.finish(
         finalFinish
@@ -830,6 +835,7 @@ export function runPrompt<
         context: 'harness turn failed',
         error: err,
       });
+      input.onTurnFailed?.();
       result.fail(err);
     } finally {
       reader.releaseLock();

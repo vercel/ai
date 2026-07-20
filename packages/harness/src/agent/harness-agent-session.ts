@@ -204,6 +204,9 @@ export class HarnessAgentSession {
         onTurnFinished: () => {
           this.finishTrackedTurn({ turnId });
         },
+        onTurnFailed: () => {
+          this.finishTrackedTurn({ turnId });
+        },
       });
       return turn;
     } catch (error) {
@@ -270,6 +273,9 @@ export class HarnessAgentSession {
           this.pendingToolResults.delete(toolCallId);
         },
         onTurnFinished: () => {
+          this.finishTrackedTurn({ turnId });
+        },
+        onTurnFailed: () => {
           this.finishTrackedTurn({ turnId });
         },
       });

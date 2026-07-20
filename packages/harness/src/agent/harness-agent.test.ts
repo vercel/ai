@@ -41,6 +41,7 @@ function mockHarness(options: {
   supportsBuiltinToolFiltering?: boolean;
   onDoStart?: (options: Parameters<HarnessV1['doStart']>[0]) => void;
   onPromptTurn?: (options: HarnessV1PromptTurnOptions) => void;
+  promptDone?: (options: HarnessV1PromptTurnOptions) => Promise<void>;
   continueScript?: (
     submitToolResult: (input: {
       toolCallId: string;
@@ -126,7 +127,7 @@ function mockHarness(options: {
         submitToolApproval: async input => {
           toolApprovals.push(input);
         },
-        done: Promise.resolve(),
+        done: options.promptDone?.(opts) ?? Promise.resolve(),
       };
       const events = options.script(async input => {
         await control.submitToolResult(input);
@@ -457,6 +458,99 @@ describe('HarnessAgent', () => {
     expect(types).toContain('finish-step');
     expect(types).toContain('finish');
     expect(await result.text).toBe('Hi');
+
+    await session.destroy();
+  });
+
+  test('releases the session after a turn-start failure', async () => {
+    let promptTurnCount = 0;
+    const { harness } = mockHarness({
+      script: () => finishEvents(),
+      onPromptTurn: () => {
+        promptTurnCount += 1;
+        if (promptTurnCount === 1) {
+          throw new Error('failed to start turn');
+        }
+      },
+    });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession();
+
+    const failed = await agent.stream({ session, prompt: 'fail' });
+    await expect(failed.text).rejects.toThrow('failed to start turn');
+
+    expect(session.hasUnfinishedTurn()).toBe(false);
+    await expect(
+      agent.generate({ session, prompt: 'recover' }),
+    ).resolves.toBeDefined();
+
+    await session.destroy();
+  });
+
+  test('releases the session after a continued turn stream error', async () => {
+    const { harness } = mockHarness({
+      script: () => finishEvents(),
+      continueScript: () => [
+        { type: 'error', error: new Error('continued turn failed') },
+      ],
+    });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession({
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'mock',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+
+    const failed = await agent.continueStream({ session });
+    await expect(failed.text).rejects.toThrow('continued turn failed');
+
+    expect(session.hasUnfinishedTurn()).toBe(false);
+    await expect(
+      agent.generate({ session, prompt: 'recover' }),
+    ).resolves.toBeDefined();
+
+    await session.destroy();
+  });
+
+  test('releases the session after an aborted turn closes without finish', async () => {
+    let promptTurnCount = 0;
+    const abortController = new AbortController();
+    const { harness } = mockHarness({
+      onPromptTurn: () => {
+        promptTurnCount += 1;
+      },
+      promptDone: options => {
+        if (promptTurnCount > 1) return Promise.resolve();
+        const abortSignal = options.abortSignal;
+        if (abortSignal == null) {
+          throw new Error('Expected an abort signal.');
+        }
+        return new Promise(resolve => {
+          abortSignal.addEventListener('abort', () => resolve(), {
+            once: true,
+          });
+        });
+      },
+      script: () => (promptTurnCount === 1 ? [] : finishEvents()),
+    });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession();
+
+    const aborted = await agent.stream({
+      session,
+      prompt: 'abort',
+      abortSignal: abortController.signal,
+    });
+    abortController.abort();
+    await aborted.consumeStream();
+
+    expect(session.hasUnfinishedTurn()).toBe(false);
+    await expect(
+      agent.generate({ session, prompt: 'recover' }),
+    ).resolves.toBeDefined();
 
     await session.destroy();
   });
