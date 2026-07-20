@@ -445,6 +445,9 @@ describe('HarnessAgent', () => {
       types.push(part.type);
     }
 
+    // The message-level `start` part must be the first chunk, mirroring
+    // `streamText` — UI message stream consumers rely on it.
+    expect(types[0]).toBe('start');
     expect(types).toContain('text-delta');
     expect(types).toContain('finish-step');
     expect(types).toContain('finish');
@@ -1405,6 +1408,72 @@ describe('HarnessAgent', () => {
     });
     expect(doDetach).toHaveBeenCalledTimes(1);
     expect(doSuspendTurn).not.toHaveBeenCalled();
+  });
+
+  test('toUIMessageStream emits a start chunk carrying the persistence-mode message id', async () => {
+    const { harness } = mockHarness({
+      script: () => [
+        { type: 'text-start', id: 't1' },
+        { type: 'text-delta', id: 't1', delta: 'pong' },
+        { type: 'text-end', id: 't1' },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: undefined },
+          usage: {
+            inputTokens: {
+              total: undefined,
+              noCache: undefined,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: undefined,
+              text: undefined,
+              reasoning: undefined,
+            },
+          },
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: undefined },
+          totalUsage: {
+            inputTokens: {
+              total: undefined,
+              noCache: undefined,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: undefined,
+              text: undefined,
+              reasoning: undefined,
+            },
+          },
+        },
+      ],
+    });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession();
+    const result = await agent.stream({ session, prompt: 'ping' });
+
+    // Persistence mode injects the server-generated message id into the
+    // stream's `start` chunk — it never synthesizes the chunk itself. If the
+    // harness stream lacks a message-level `start` part, there is nothing to
+    // inject into, and `useChat` clients keep a locally generated assistant
+    // message id that diverges from the id used for persistence.
+    const chunks: Array<{ type: string; messageId?: string }> = [];
+    for await (const chunk of result.toUIMessageStream({
+      originalMessages: [
+        { id: 'user-1', role: 'user', parts: [{ type: 'text', text: 'ping' }] },
+      ],
+      generateMessageId: () => 'msg-server-id',
+    })) {
+      chunks.push(chunk as { type: string; messageId?: string });
+    }
+
+    expect(chunks[0]).toEqual({ type: 'start', messageId: 'msg-server-id' });
+
+    await session.destroy();
   });
 
   test('a single session can drive multiple generate() turns', async () => {

@@ -1,5 +1,30 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.24
+
+### Patch Changes
+
+- 76db5e3: fix(bedrock): support application inference profile ARNs
+- Updated dependencies [cd06458]
+- Updated dependencies [afcf19c]
+- Updated dependencies [75f86f4]
+  - @ai-sdk/provider-utils@5.0.11
+  - @ai-sdk/anthropic@4.0.16
+  - @ai-sdk/openai@4.0.16
+
+## 5.0.23
+
+### Patch Changes
+
+- Updated dependencies [0063c2d]
+  - @ai-sdk/openai@4.0.15
+
+## 5.0.22
+
+### Patch Changes
+
+- 43fc411: Return Bedrock Converse request bodies from language model generation and streaming calls.
+
 ## 5.0.21
 
 ### Patch Changes

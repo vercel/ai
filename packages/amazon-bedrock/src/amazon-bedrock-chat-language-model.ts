@@ -665,6 +665,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
         headers: responseHeaders,
       },
       warnings,
+      request: { body: args },
       ...(providerMetadata && { providerMetadata }),
     };
   }
@@ -1090,14 +1091,13 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
           },
         }),
       ),
-      // TODO request?
+      request: { body: args },
       response: { headers: responseHeaders },
     };
   }
 
   private getUrl(modelId: string) {
-    const encodedModelId = encodeURIComponent(modelId);
-    return `${this.config.baseUrl()}/model/${encodedModelId}`;
+    return `${this.config.baseUrl()}/model/${encodeURIComponent(modelId)}`;
   }
 }
 

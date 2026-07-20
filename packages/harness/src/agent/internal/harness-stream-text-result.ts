@@ -173,6 +173,13 @@ export class HarnessStreamTextResult<
     const baseStream = new ReadableStream<TextStreamPart<TOOLS>>({
       start(c) {
         controllerRef = c;
+        // Send the message-level start event as the first part, mirroring
+        // `streamText`. Downstream UI message stream consumers depend on it:
+        // `toUIMessageStream`'s persistence mode injects the response message
+        // id into this part (it never synthesizes one), so without it
+        // `useChat` clients keep a locally generated assistant message id
+        // that diverges from the id the server persists under.
+        c.enqueue({ type: 'start' });
       },
     });
     this.fullStreamController = controllerRef;

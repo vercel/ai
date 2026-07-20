@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 5.0.11
+
+### Patch Changes
+
+- cd06458: fix(ai): call `onInputStart` before `onInputAvailable` during non-streaming tool calls
+
 ## 5.0.10
 
 ### Patch Changes

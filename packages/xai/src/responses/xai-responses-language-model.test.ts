@@ -1026,6 +1026,101 @@ describe('XaiResponsesLanguageModel', () => {
         });
       });
 
+      it('should send image data in function call output', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4.5',
+          output: [],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        await createModel('grok-4.5').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Read the tool image.' }],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_123',
+                  toolName: 'inspectImage',
+                  input: {},
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_123',
+                  toolName: 'inspectImage',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'text',
+                        text: 'The requested image is attached.',
+                      },
+                      {
+                        type: 'file',
+                        mediaType: 'image/png',
+                        data: {
+                          type: 'data',
+                          data: Buffer.from([0, 1, 2, 3]),
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        });
+
+        expect((await server.calls[0].requestBodyJson).input)
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "Read the tool image.",
+                  "type": "input_text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "arguments": "{}",
+              "call_id": "call_123",
+              "id": "call_123",
+              "name": "inspectImage",
+              "status": "completed",
+              "type": "function_call",
+            },
+            {
+              "call_id": "call_123",
+              "output": [
+                {
+                  "text": "The requested image is attached.",
+                  "type": "input_text",
+                },
+                {
+                  "image_url": "data:image/png;base64,AAECAw==",
+                  "type": "input_image",
+                },
+              ],
+              "type": "function_call_output",
+            },
+          ]
+        `);
+      });
+
       it('should warn about unsupported stopSequences', async () => {
         prepareJsonResponse({
           id: 'resp_123',

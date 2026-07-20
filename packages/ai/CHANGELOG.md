@@ -1,5 +1,37 @@
 # ai
 
+## 7.0.31
+
+### Patch Changes
+
+- 70f18c3: fix(ai): emit denied tool output state for client-rejected approvals
+- cd06458: fix(ai): call `onInputStart` before `onInputAvailable` during non-streaming tool calls
+- Updated dependencies [cd06458]
+  - @ai-sdk/provider-utils@5.0.11
+  - @ai-sdk/gateway@4.0.23
+
+## 7.0.30
+
+### Patch Changes
+
+- Updated dependencies [341616a]
+- Updated dependencies [70fc45c]
+  - @ai-sdk/gateway@4.0.22
+
+## 7.0.29
+
+### Patch Changes
+
+- Updated dependencies [7069785]
+- Updated dependencies [4bf9ac2]
+  - @ai-sdk/gateway@4.0.21
+
+## 7.0.28
+
+### Patch Changes
+
+- 0bc8d4f: Fix chat `onFinish` handling when overlapping requests clear the active response before a resume stream finishes.
+
 ## 7.0.27
 
 ### Patch Changes
