@@ -683,6 +683,7 @@ describe('HarnessAgent', () => {
       },
     ]);
     expect(continuedPartTypes).toEqual([
+      'start',
       'start-step',
       'text-delta',
       'finish-step',
