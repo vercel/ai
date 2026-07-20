@@ -280,6 +280,82 @@ describe('request URL', () => {
       expect.any(Object),
     );
   });
+
+  describe('ARN model IDs containing a slash', () => {
+    const inferenceProfileArn =
+      'arn:aws:bedrock:eu-west-1:474668406012:inference-profile/eu.amazon.nova-lite-v1:0';
+    const encodedInferenceProfileArn = encodeURIComponent(inferenceProfileArn);
+    const unknownOperationResponse = JSON.stringify(
+      JSON.parse(
+        fs.readFileSync(
+          'src/__fixtures__/issue-17523-unknown-operation.json',
+          'utf8',
+        ),
+      ),
+    );
+    const converseResponse = fs.readFileSync(
+      'src/__fixtures__/issue-17523-converse.json',
+      'utf8',
+    );
+    const converseStreamResponse = fs.readFileSync(
+      'src/__fixtures__/issue-17523-converse-stream.chunks.txt',
+      'utf8',
+    );
+
+    function createInferenceProfileModel() {
+      return new AmazonBedrockChatLanguageModel(inferenceProfileArn, {
+        baseUrl: () => baseUrl,
+        headers: {},
+        fetch: async input => {
+          const url = input.toString();
+          const isEncodedRoute = url.includes(encodedInferenceProfileArn);
+
+          return new Response(
+            isEncodedRoute
+              ? url.endsWith('/converse-stream')
+                ? converseStreamResponse
+                : converseResponse
+              : unknownOperationResponse,
+            {
+              status: 200,
+              headers: {
+                'content-type': isEncodedRoute
+                  ? url.endsWith('/converse-stream')
+                    ? 'application/vnd.amazon.eventstream'
+                    : 'application/json'
+                  : 'application/json',
+              },
+            },
+          );
+        },
+        generateId: () => 'test-id',
+      });
+    }
+
+    it('should generate text through the encoded Converse route', async () => {
+      const result = await createInferenceProfileModel().doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toContainEqual({
+        type: 'text',
+        text: 'Hello! How can I assist you today? If',
+      });
+    });
+
+    it('should stream text through the encoded Converse route', async () => {
+      const { stream } = await createInferenceProfileModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toContainEqual({
+        type: 'text-delta',
+        id: '0',
+        delta: 'Hello',
+      });
+    });
+  });
 });
 
 describe('doStream', () => {
