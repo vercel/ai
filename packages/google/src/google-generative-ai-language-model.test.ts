@@ -1760,6 +1760,12 @@ describe('doGenerate', () => {
                     output: '2',
                   },
                 },
+                {
+                  codeExecutionResult: {
+                    outcome: 'OUTCOME_FAILED',
+                    output: 'ZeroDivisionError: division by zero\n',
+                  },
+                },
               ],
               role: 'model',
             },
@@ -1795,6 +1801,16 @@ describe('doGenerate', () => {
         result: {
           outcome: 'OUTCOME_OK',
           output: '2',
+        },
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'test-id',
+        toolName: 'code_execution',
+        result: {
+          outcome: 'OUTCOME_FAILED',
+          output: 'ZeroDivisionError: division by zero\n',
         },
         providerExecuted: true,
       },
@@ -3088,6 +3104,12 @@ describe('doStream', () => {
                       output: 'hello\n',
                     },
                   },
+                  {
+                    codeExecutionResult: {
+                      outcome: 'OUTCOME_FAILED',
+                      output: 'ZeroDivisionError: division by zero\n',
+                    },
+                  },
                 ],
               },
               finishReason: 'STOP',
@@ -3126,6 +3148,16 @@ describe('doStream', () => {
         result: {
           outcome: 'OUTCOME_OK',
           output: 'hello\n',
+        },
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'test-id',
+        toolName: 'code_execution',
+        result: {
+          outcome: 'OUTCOME_FAILED',
+          output: 'ZeroDivisionError: division by zero\n',
         },
         providerExecuted: true,
       },
