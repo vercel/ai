@@ -2,4 +2,4 @@
 '@ai-sdk/harness-claude-code': patch
 ---
 
-Preserve nested user tool JSON schemas when exposing tools through the Claude Code MCP bridge.
+fix(harness-claude-code): preserve nested user tool JSON schemas when exposing tools through the MCP bridge
