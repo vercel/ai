@@ -5,7 +5,7 @@ description: Learn how to use the Crusoe provider for the AI SDK.
 
 # Crusoe Provider
 
-[crusoe-ai-provider](https://github.com/acheamponge/crusoe-ai-provider) contains language model support for [Crusoe Cloud Managed Inference](https://docs.crusoecloud.com/managed-inference/overview), which provides access to open-weight models such as Llama, DeepSeek, and Qwen on sustainable, energy-efficient data centers via an OpenAI-compatible API.
+[crusoe-ai-provider](https://github.com/acheamponge/crusoe-ai-provider) contains language model support for [Crusoe Cloud Managed Inference](https://docs.crusoecloud.com/managed-inference/overview), which provides access to open-weight models such as DeepSeek, GLM, Kimi, Llama, Nemotron, and Qwen on sustainable, energy-efficient data centers via an OpenAI-compatible API.
 
 API keys can be obtained from the [Crusoe Cloud Console](https://console.crusoecloud.com/).
 
@@ -67,7 +67,7 @@ import { crusoe } from 'crusoe-ai-provider';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: crusoe('meta-llama/Llama-3.3-70B-Instruct'),
+  model: crusoe('zai/GLM-5.2'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -79,7 +79,7 @@ import { crusoe } from 'crusoe-ai-provider';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: crusoe('deepseek-ai/DeepSeek-V3-0324'),
+  model: crusoe('deepseek-ai/DeepSeek-V4-Pro'),
   prompt: 'Write a haiku about sustainable computing.',
 });
 
@@ -90,11 +90,22 @@ for await (const chunk of result.textStream) {
 
 ## Model Capabilities
 
-| Model                               | Text Generation     | Streaming           |
-| ----------------------------------- | ------------------- | ------------------- |
-| `deepseek-ai/DeepSeek-V3-0324`      | <Check size={18} /> | <Check size={18} /> |
-| `meta-llama/Llama-3.3-70B-Instruct` | <Check size={18} /> | <Check size={18} /> |
-| `qwen/Qwen3-235B-A22B`              | <Check size={18} /> | <Check size={18} /> |
+| Model                                           | Text Generation     | Streaming           |
+| ----------------------------------------------- | ------------------- | ------------------- |
+| `deepseek-ai/DeepSeek-V3-0324`                  | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-ai/DeepSeek-V4-Pro`                   | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-ai/Deepseek-V4-Flash`                 | <Check size={18} /> | <Check size={18} /> |
+| `google/gemma-4-31b-it`                         | <Check size={18} /> | <Check size={18} /> |
+| `meta-llama/Llama-3.3-70B-Instruct`             | <Check size={18} /> | <Check size={18} /> |
+| `moonshotai/Kimi-K2.6`                          | <Check size={18} /> | <Check size={18} /> |
+| `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B`         | <Check size={18} /> | <Check size={18} /> |
+| `nvidia/Nemotron-3-Nano-Omni-Reasoning-30B-A3B` | <Check size={18} /> | <Check size={18} /> |
+| `nvidia/NVIDIA-Nemotron-3-Super-120B-A12B`      | <Check size={18} /> | <Check size={18} /> |
+| `nvidia/NVIDIA-Nemotron-3-Ultra-550B`           | <Check size={18} /> | <Check size={18} /> |
+| `openai/gpt-oss-120b`                           | <Check size={18} /> | <Check size={18} /> |
+| `Qwen/Qwen3-235B-A22B-Instruct-2507`            | <Check size={18} /> | <Check size={18} /> |
+| `zai/GLM-5.1`                                   | <Check size={18} /> | <Check size={18} /> |
+| `zai/GLM-5.2`                                   | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [Crusoe Managed Inference
