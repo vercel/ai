@@ -1,5 +1,16 @@
 # ai
 
+## 6.0.231
+
+### Patch Changes
+
+- 926f5a0: Allow UI message chunks to include fields added by newer server versions.
+- 4c5a22f: Propagate abort reasons when generation is cancelled during tool execution.
+- 842a383: Prevent tools excluded by `activeTools` from being parsed or executed.
+- Updated dependencies [2dd1aab]
+- Updated dependencies [e567091]
+  - @ai-sdk/gateway@3.0.154
+
 ## 6.0.230
 
 ### Patch Changes
