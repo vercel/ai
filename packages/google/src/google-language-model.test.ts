@@ -340,6 +340,157 @@ describe('urlContextMetadata', () => {
 });
 
 describe('doGenerate', () => {
+  it('should associate multiple generated and streamed code execution results with the same tool call', async () => {
+    const response = {
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                executableCode: {
+                  language: 'PYTHON',
+                  code: "print('ok')\nprint(1/0)",
+                },
+              },
+              {
+                codeExecutionResult: {
+                  outcome: 'OUTCOME_OK',
+                  output: 'ok\n',
+                },
+              },
+              {
+                codeExecutionResult: {
+                  outcome: 'OUTCOME_FAILED',
+                  output: 'ZeroDivisionError: division by zero\n',
+                },
+              },
+            ],
+            role: 'model',
+          },
+          finishReason: 'STOP',
+        },
+      ],
+    };
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(response), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(`data: ${JSON.stringify(response)}\n\n`, {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        }),
+      );
+    const testProvider = createGoogle({
+      apiKey: 'test-api-key',
+      fetch,
+      generateId: () => 'test-id',
+    });
+
+    const { content } = await testProvider
+      .languageModel('gemini-2.0-pro')
+      .doGenerate({
+        tools: [
+          {
+            type: 'provider',
+            id: 'google.code_execution',
+            name: 'code_execution',
+            args: {},
+          },
+        ],
+        prompt: TEST_PROMPT,
+      });
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{"language":"PYTHON","code":"print('ok')\\nprint(1/0)"}",
+          "providerExecuted": true,
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-call",
+        },
+        {
+          "result": {
+            "outcome": "OUTCOME_OK",
+            "output": "ok
+      ",
+          },
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-result",
+        },
+        {
+          "result": {
+            "outcome": "OUTCOME_FAILED",
+            "output": "ZeroDivisionError: division by zero
+      ",
+          },
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-result",
+        },
+      ]
+    `);
+
+    const { stream } = await testProvider
+      .languageModel('gemini-2.0-pro')
+      .doStream({
+        tools: [
+          {
+            type: 'provider',
+            id: 'google.code_execution',
+            name: 'code_execution',
+            args: {},
+          },
+        ],
+        prompt: TEST_PROMPT,
+      });
+
+    const events = await convertReadableStreamToArray(stream);
+    const toolEvents = events.filter(
+      event => event.type === 'tool-call' || event.type === 'tool-result',
+    );
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(toolEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{"language":"PYTHON","code":"print('ok')\\nprint(1/0)"}",
+          "providerExecuted": true,
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-call",
+        },
+        {
+          "result": {
+            "outcome": "OUTCOME_OK",
+            "output": "ok
+      ",
+          },
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-result",
+        },
+        {
+          "result": {
+            "outcome": "OUTCOME_FAILED",
+            "output": "ZeroDivisionError: division by zero
+      ",
+          },
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
+
   const TEST_URL_GEMINI_PRO =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
 
