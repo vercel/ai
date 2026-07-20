@@ -48,6 +48,10 @@ pnpm --dir packages/harness-deepagents/src/bridge update @langchain/anthropic @l
 pnpm --dir packages/harness-opencode/src/bridge update @opencode-ai/sdk opencode-ai --latest --ignore-workspace --config.minimumReleaseAge=4320
 ```
 
+#### Example dependencies
+
+Check the `package.json` files in `examples/harness-e2e-next` and `examples/harness-e2e-tui` for any of the above SDKs they depend on. Those dependencies need to be updated to match the exact version used in the packages as well.
+
 ### Verification
 
 Run the verification script to ensure all relevant dependency versions are aligned:
