@@ -1,5 +1,14 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.38
+
+### Patch Changes
+
+- ab7f97a: fix(harness-opencode): route OpenCode reasoning deltas to the reasoning part instead of duplicating them as text
+- Updated dependencies [b460541]
+- Updated dependencies [079591e]
+  - @ai-sdk/harness@1.0.37
+
 ## 1.0.37
 
 ### Patch Changes
