@@ -67,6 +67,7 @@ import type { DownloadFunction } from '../util/download/download-function';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import type { ContentPart } from './content-part';
+import { filterActiveTools } from './filter-active-tools';
 import type { Output } from './output';
 import type { PrepareStepFunction } from './prepare-step';
 import type { ResponseMessage } from './response-message';
@@ -663,6 +664,7 @@ class DefaultStreamTextResult<
     let recordedRequest: LanguageModelRequestMetadata = {};
     let recordedWarnings: Array<CallWarning> = [];
     const recordedSteps: StepResult<TOOLS>[] = [];
+    let currentStepToolSet = tools;
 
     let rootSpan!: Span;
 
@@ -841,7 +843,7 @@ class DefaultStreamTextResult<
         if (part.type === 'finish-step') {
           const stepMessages = toResponseMessages({
             content: recordedContent,
-            tools,
+            tools: currentStepToolSet,
           });
 
           // Add step information (after response messages are updated):
@@ -1115,11 +1117,18 @@ class DefaultStreamTextResult<
             download,
           });
 
+          const stepActiveTools = prepareStepResult?.activeTools ?? activeTools;
+          const stepToolSet = filterActiveTools({
+            tools,
+            activeTools: stepActiveTools,
+          });
+          currentStepToolSet = stepToolSet;
+
           const { toolChoice: stepToolChoice, tools: stepTools } =
             prepareToolsAndToolChoice({
               tools,
               toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-              activeTools: prepareStepResult?.activeTools ?? activeTools,
+              activeTools: stepActiveTools,
             });
 
           const {
@@ -1192,7 +1201,7 @@ class DefaultStreamTextResult<
           );
 
           const streamWithToolResults = runToolsTransformation({
-            tools,
+            tools: stepToolSet,
             generatorStream: stream,
             tracer,
             telemetry,
@@ -1363,7 +1372,7 @@ class DefaultStreamTextResult<
                     case 'tool-input-start': {
                       activeToolCallToolNames[chunk.id] = chunk.toolName;
 
-                      const tool = tools?.[chunk.toolName];
+                      const tool = stepToolSet?.[chunk.toolName];
                       if (tool?.onInputStart != null) {
                         await tool.onInputStart({
                           toolCallId: chunk.id,
@@ -1388,7 +1397,7 @@ class DefaultStreamTextResult<
 
                     case 'tool-input-delta': {
                       const toolName = activeToolCallToolNames[chunk.id];
-                      const tool = tools?.[toolName];
+                      const tool = stepToolSet?.[toolName];
 
                       if (tool?.onInputDelta != null) {
                         await tool.onInputDelta({
@@ -1514,7 +1523,7 @@ class DefaultStreamTextResult<
                         content:
                           // use transformed content to create the messages for the next step:
                           recordedSteps[recordedSteps.length - 1].content,
-                        tools,
+                        tools: stepToolSet,
                       }),
                     );
 

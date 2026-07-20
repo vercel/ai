@@ -351,6 +351,159 @@ describe('streamText', () => {
     logWarningsSpy.mockRestore();
   });
 
+  it('should reject calls to inactive tools without executing them', async () => {
+    const execute = vi.fn(async () => 'result');
+    let providerToolCount: number | undefined;
+
+    const result = streamText({
+      model: new MockLanguageModelV2({
+        doStream: async ({ tools }) => {
+          providerToolCount = tools?.length;
+
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'weather',
+                input: JSON.stringify({ location: 'Basel' }),
+              },
+              {
+                type: 'finish',
+                finishReason: 'tool-calls',
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      }),
+      tools: {
+        weather: tool({
+          inputSchema: z.object({ location: z.string() }),
+          execute,
+        }),
+      },
+      prompt: 'test-input',
+      activeTools: [],
+    });
+
+    await result.consumeStream();
+
+    const [toolCall] = await result.toolCalls;
+
+    expect({
+      executeCallCount: execute.mock.calls.length,
+      providerToolCount,
+      toolCall: {
+        type: toolCall.type,
+        toolName: toolCall.toolName,
+        invalid: toolCall.invalid,
+        error: toolCall.invalid ? toolCall.error : undefined,
+      },
+      toolResults: await result.toolResults,
+    }).toMatchInlineSnapshot(`
+      {
+        "executeCallCount": 0,
+        "providerToolCount": 0,
+        "toolCall": {
+          "error": [AI_NoSuchToolError: Model tried to call unavailable tool 'weather'. Available tools: .],
+          "invalid": true,
+          "toolName": "weather",
+          "type": "tool-call",
+        },
+        "toolResults": [],
+      }
+    `);
+  });
+
+  it('should apply prepareStep activeTools to tool execution', async () => {
+    const execute = vi.fn(async () => 'result');
+    const providerToolCounts: Array<number | undefined> = [];
+    let modelCallCount = 0;
+
+    const result = streamText({
+      model: new MockLanguageModelV2({
+        doStream: async ({ tools }) => {
+          providerToolCounts.push(tools?.length);
+          modelCallCount++;
+
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call',
+                toolCallId: `call-${modelCallCount}`,
+                toolName: 'weather',
+                input: JSON.stringify({ location: 'Basel' }),
+              },
+              {
+                type: 'finish',
+                finishReason: 'tool-calls',
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      }),
+      tools: {
+        weather: tool({
+          inputSchema: z.object({ location: z.string() }),
+          execute,
+        }),
+      },
+      prompt: 'test-input',
+      prepareStep: ({ stepNumber }) =>
+        stepNumber === 1 ? { activeTools: [] } : undefined,
+      stopWhen: stepCountIs(2),
+    });
+
+    await result.consumeStream();
+    const steps = await result.steps;
+    const [secondStepToolCall] = steps[1].toolCalls;
+
+    expect({
+      executeCallCount: execute.mock.calls.length,
+      providerToolCounts,
+      firstStepToolResults: steps[0].toolResults,
+      secondStepToolCall: {
+        type: secondStepToolCall.type,
+        toolName: secondStepToolCall.toolName,
+        invalid: secondStepToolCall.invalid,
+        error: secondStepToolCall.invalid
+          ? secondStepToolCall.error
+          : undefined,
+      },
+      secondStepToolResults: steps[1].toolResults,
+    }).toMatchInlineSnapshot(`
+      {
+        "executeCallCount": 1,
+        "firstStepToolResults": [
+          {
+            "input": {
+              "location": "Basel",
+            },
+            "output": "result",
+            "providerExecuted": undefined,
+            "providerMetadata": undefined,
+            "toolCallId": "call-1",
+            "toolName": "weather",
+            "type": "tool-result",
+          },
+        ],
+        "providerToolCounts": [
+          1,
+          0,
+        ],
+        "secondStepToolCall": {
+          "error": [AI_NoSuchToolError: Model tried to call unavailable tool 'weather'. Available tools: .],
+          "invalid": true,
+          "toolName": "weather",
+          "type": "tool-call",
+        },
+        "secondStepToolResults": [],
+      }
+    `);
+  });
+
   describe('result.textStream', () => {
     it('should send text deltas', async () => {
       const result = streamText({

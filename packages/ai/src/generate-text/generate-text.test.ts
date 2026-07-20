@@ -242,6 +242,66 @@ describe('generateText', () => {
     logWarningsSpy.mockRestore();
   });
 
+  it('should reject calls to inactive tools without executing them', async () => {
+    const execute = vi.fn(async () => 'result');
+    let providerToolCount: number | undefined;
+
+    const result = await generateText({
+      model: new MockLanguageModelV2({
+        doGenerate: async ({ tools }) => {
+          providerToolCount = tools?.length;
+
+          return {
+            ...dummyResponseValues,
+            finishReason: 'tool-calls',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'weather',
+                input: JSON.stringify({ location: 'Basel' }),
+              },
+            ],
+          };
+        },
+      }),
+      tools: {
+        weather: tool({
+          inputSchema: z.object({ location: z.string() }),
+          execute,
+        }),
+      },
+      prompt: 'test-input',
+      activeTools: [],
+    });
+
+    const [toolCall] = result.toolCalls;
+
+    expect({
+      executeCallCount: execute.mock.calls.length,
+      providerToolCount,
+      toolCall: {
+        type: toolCall.type,
+        toolName: toolCall.toolName,
+        invalid: toolCall.invalid,
+        error: toolCall.invalid ? toolCall.error : undefined,
+      },
+      toolResults: result.toolResults,
+    }).toMatchInlineSnapshot(`
+      {
+        "executeCallCount": 0,
+        "providerToolCount": 0,
+        "toolCall": {
+          "error": [AI_NoSuchToolError: Model tried to call unavailable tool 'weather'. Available tools: .],
+          "invalid": true,
+          "toolName": "weather",
+          "type": "tool-call",
+        },
+        "toolResults": [],
+      }
+    `);
+  });
+
   describe('result.content', () => {
     it('should generate content', async () => {
       const result = await generateText({
