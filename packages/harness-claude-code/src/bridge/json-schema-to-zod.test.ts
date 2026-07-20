@@ -74,7 +74,10 @@ describe('jsonSchemaToZodShape', () => {
     ).toBe(false);
     expect(
       schema.safeParse({
-        input: { title: 'Launch plan', assignee: { id: 'user_123', notify: 1 } },
+        input: {
+          title: 'Launch plan',
+          assignee: { id: 'user_123', notify: 1 },
+        },
       }).success,
     ).toBe(false);
   });
@@ -99,15 +102,15 @@ describe('jsonSchemaToZodShape', () => {
     expect(
       schema.safeParse({ tags: ['alpha'], records: [{ id: 1 }] }).success,
     ).toBe(true);
-    expect(
-      schema.safeParse({ tags: [1], records: [{ id: 1 }] }).success,
-    ).toBe(false);
+    expect(schema.safeParse({ tags: [1], records: [{ id: 1 }] }).success).toBe(
+      false,
+    );
     expect(
       schema.safeParse({ tags: ['alpha'], records: [{ id: 1.5 }] }).success,
     ).toBe(false);
-    expect(
-      schema.safeParse({ tags: ['alpha'], records: [{}] }).success,
-    ).toBe(false);
+    expect(schema.safeParse({ tags: ['alpha'], records: [{}] }).success).toBe(
+      false,
+    );
   });
 
   it('supports nullable fields from nullable, type arrays, anyOf, and oneOf', () => {
