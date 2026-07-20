@@ -7,6 +7,9 @@ description: Middleware that applies default settings for language models
 
 `defaultSettingsMiddleware` is a middleware function that applies default settings to language model calls. This is useful when you want to establish consistent default parameters across multiple model invocations.
 
+To apply default system instructions, use
+[`defaultInstructionsMiddleware`](/docs/reference/ai-sdk-core/default-instructions-middleware).
+
 ```ts
 import { defaultSettingsMiddleware } from 'ai';
 
