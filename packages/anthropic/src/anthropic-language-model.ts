@@ -2387,6 +2387,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 type: 'response-metadata',
                 id: value.message.id ?? undefined,
                 modelId: value.message.model ?? undefined,
+                usage: convertAnthropicUsage({
+                  usage: value.message.usage,
+                  rawUsage,
+                }),
               });
 
               // Programmatic tool calling: process pre-populated content blocks

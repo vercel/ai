@@ -1,2 +1,0 @@
-{"type":"message_start","message":{"id":"gen_01KY06S26NR9DCG214Q9E573NM","type":"message","role":"assistant","content":[],"model":"xai/grok-4.5","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":0,"output_tokens":0}}}
-{"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"input_tokens":84,"output_tokens":31,"cache_read_input_tokens":128},"provider_metadata":{"gateway":{"routing":{"originalModelId":"xai/grok-4.5","resolvedProvider":"xai","finalProvider":"xai"},"generationId":"gen_01KY06S26NR9DCG214Q9E573NM"}}}
