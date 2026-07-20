@@ -1,9 +1,9 @@
 import {
-  AuthStorage,
   createAgentSession,
   DefaultResourceLoader,
   defineTool,
   ModelRegistry,
+  ModelRuntime,
   SessionManager,
   SettingsManager,
   type AgentSession,
@@ -321,24 +321,28 @@ export async function createPiSession(
 
   // Pi auth + model registry are global to this Pi session. These live on the
   // real host filesystem (`hostAgentDir`), never in the sandbox/workspace.
-  const authStorage = AuthStorage.create(path.join(hostAgentDir, 'auth.json'));
-  const modelRegistry = ModelRegistry.create(
-    authStorage,
-    path.join(hostAgentDir, 'models.json'),
-  );
+  const modelRuntime = await ModelRuntime.create({
+    authPath: path.join(hostAgentDir, 'auth.json'),
+    modelsPath: path.join(hostAgentDir, 'models.json'),
+    allowModelNetwork: false,
+  });
+  const modelRegistry = new ModelRegistry(modelRuntime);
   const settingsManager = SettingsManager.inMemory();
 
   // Run-scoped env (for the model resolver's gateway fallback heuristic).
-  const resolverEnv = resolvePiEnv({
+  const resolverEnv = await resolvePiEnv({
     options: input.settings.auth,
     env: process.env,
     registries: {
-      authStorage,
       modelRegistry,
+      modelRuntime,
     },
     clientApp: input.clientApp,
   });
-  const resolveModel = createPiModelResolver(modelRegistry, resolverEnv);
+  const resolveModel = createPiModelResolver({
+    modelRegistry,
+    env: resolverEnv,
+  });
   // Resolve once: deterministic given the configured model. This is the Pi
   // `Model` object handed to `createAgentSession`.
   const resolvedModel = resolveModel(input.settings.model);
@@ -579,8 +583,7 @@ export async function createPiSession(
     const { session } = await createAgentSession({
       cwd: sessionWorkDir,
       agentDir: hostAgentDir,
-      authStorage,
-      modelRegistry,
+      modelRuntime,
       sessionManager,
       settingsManager,
       resourceLoader,
