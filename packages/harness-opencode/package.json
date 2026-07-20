@@ -45,7 +45,7 @@
   },
   "devDependencies": {
     "@modelcontextprotocol/sdk": "1.29.0",
-    "@opencode-ai/sdk": "1.17.6",
+    "@opencode-ai/sdk": "1.18.3",
     "@types/node": "22.19.19",
     "@types/ws": "^8.5.13",
     "@vercel/ai-tsconfig": "workspace:*",
