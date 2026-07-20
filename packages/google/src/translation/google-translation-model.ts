@@ -1,0 +1,569 @@
+import {
+  InvalidArgumentError,
+  type Experimental_SpeechToSpeechModelV4 as SpeechToSpeechModelV4,
+  type Experimental_SpeechToSpeechModelV4StreamOptions as SpeechToSpeechModelV4StreamOptions,
+  type Experimental_SpeechToSpeechModelV4StreamPart as SpeechToSpeechModelV4StreamPart,
+  type Experimental_SpeechToSpeechModelV4Usage as SpeechToSpeechModelV4Usage,
+  type SharedV4Warning,
+} from '@ai-sdk/provider';
+import {
+  connectToWebSocket,
+  combineHeaders,
+  convertToBase64,
+  parseProviderOptions,
+  safeParseJSON,
+  serializeModelOptions,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
+  waitForWebSocketBufferDrain,
+  type WebSocketConnection,
+  type WebSocketConstructor,
+  type WebSocketLike,
+} from '@ai-sdk/provider-utils';
+import { getModelPath } from '../get-model-path';
+import { getRealtimeWebSocketURL } from '../get-realtime-base-url';
+import {
+  googleTranslationModelOptions,
+  type GoogleTranslationModelId,
+  type GoogleTranslationModelOptions,
+} from './google-translation-model-options';
+
+const liveWebSocketPath =
+  'google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
+
+/**
+ * After the input audio has ended, a completed turn schedules the finish
+ * after this grace period; further turn activity within the period cancels
+ * it (the server is still generating turns for the remaining input).
+ */
+const defaultFinishGraceMs = 1000;
+
+function getLiveWebSocketURL(baseURL: string, apiKey: string): URL {
+  const url = getRealtimeWebSocketURL(baseURL, liveWebSocketPath);
+  url.searchParams.set('key', apiKey);
+  return url;
+}
+
+type GoogleLiveTokensDetail = {
+  modality?: string;
+  tokenCount?: number;
+};
+
+type GoogleLiveServerMessage = {
+  setupComplete?: unknown;
+  serverContent?: {
+    modelTurn?: {
+      parts?: Array<{
+        inlineData?: { data?: string };
+      }>;
+    };
+    outputTranscription?: { text?: string };
+    inputTranscription?: { text?: string };
+    turnComplete?: boolean;
+  };
+  inputTranscription?: { text?: string };
+  usageMetadata?: {
+    promptTokensDetails?: GoogleLiveTokensDetail[];
+    responseTokensDetails?: GoogleLiveTokensDetail[];
+  };
+  error?: { message?: string };
+};
+
+export type GoogleTranslationModelConfig = {
+  provider: string;
+  baseURL: string;
+  headers: () => Record<string, string | undefined>;
+  webSocket?: WebSocketConstructor;
+  _internal?: {
+    currentDate?: () => Date;
+    finishGraceMs?: number;
+  };
+};
+
+export class GoogleTranslationModel implements SpeechToSpeechModelV4 {
+  readonly specificationVersion = 'v4';
+  readonly modelId: GoogleTranslationModelId;
+
+  private readonly config: GoogleTranslationModelConfig;
+
+  static [WORKFLOW_SERIALIZE](model: GoogleTranslationModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: GoogleTranslationModelId;
+    config: GoogleTranslationModelConfig;
+  }) {
+    return new GoogleTranslationModel(options.modelId, options.config);
+  }
+
+  get provider(): string {
+    return this.config.provider;
+  }
+
+  constructor(
+    modelId: GoogleTranslationModelId,
+    config: GoogleTranslationModelConfig,
+  ) {
+    this.modelId = modelId;
+    this.config = config;
+  }
+
+  async doStream(
+    options: SpeechToSpeechModelV4StreamOptions,
+  ): Promise<Awaited<ReturnType<SpeechToSpeechModelV4['doStream']>>> {
+    if (options.targetLanguage == null) {
+      throw new InvalidArgumentError({
+        argument: 'targetLanguage',
+        message: `targetLanguage is required for translation model '${this.modelId}'.`,
+      });
+    }
+
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const googleOptions = await parseProviderOptions({
+      provider: 'google',
+      providerOptions: options.providerOptions,
+      schema: googleTranslationModelOptions,
+    });
+    const warnings: SharedV4Warning[] = [];
+
+    if (options.inputAudioFormat.type !== 'audio/pcm') {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'inputAudioFormat.type',
+        details:
+          `The Gemini Live API only accepts 16-bit PCM input audio; ` +
+          `'${options.inputAudioFormat.type}' chunks are sent as 'audio/pcm'.`,
+      });
+    }
+
+    if (options.sourceLanguage != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'sourceLanguage',
+        details:
+          'The Gemini Live translation API auto-detects the source language and does not accept a source language.',
+      });
+    }
+
+    if (options.outputAudioFormat != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'outputAudioFormat',
+        details:
+          'The Gemini Live API always outputs 24kHz 16-bit PCM audio and does not accept an output audio format.',
+      });
+    }
+
+    const headers = combineHeaders(this.config.headers(), options.headers);
+    // last case-variant wins: combineHeaders keeps case-distinct keys and
+    // spreads per-call headers after configuration headers
+    let apiKey: string | undefined;
+    for (const [key, value] of Object.entries(headers)) {
+      if (key.toLowerCase() === 'x-goog-api-key' && value != null) {
+        apiKey = value;
+      }
+    }
+    if (apiKey == null) {
+      throw new Error(
+        'Google Generative AI API key is required for streaming translation.',
+      );
+    }
+
+    const setup = buildGoogleLiveTranslationSetup({
+      modelId: this.modelId,
+      targetLanguage: options.targetLanguage,
+      providerOptions: googleOptions,
+    });
+
+    return {
+      request: { body: setup },
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+      },
+      stream: createGoogleLiveTranslationStream({
+        webSocket: this.config.webSocket,
+        url: getLiveWebSocketURL(this.config.baseURL, apiKey),
+        headers,
+        setup,
+        inputAudioRate: options.inputAudioFormat.rate ?? 16000,
+        finishGraceMs:
+          this.config._internal?.finishGraceMs ?? defaultFinishGraceMs,
+        warnings,
+        audio: options.audio,
+        abortSignal: options.abortSignal,
+        includeRawChunks: options.includeRawChunks,
+      }),
+    };
+  }
+}
+
+function createGoogleLiveTranslationStream({
+  webSocket,
+  url,
+  headers,
+  setup,
+  inputAudioRate,
+  finishGraceMs,
+  warnings,
+  audio,
+  abortSignal,
+  includeRawChunks,
+}: {
+  webSocket: WebSocketConstructor | undefined;
+  url: URL;
+  headers: Record<string, string | undefined>;
+  setup: unknown;
+  inputAudioRate: number;
+  finishGraceMs: number;
+  warnings: SharedV4Warning[];
+  audio: ReadableStream<Uint8Array | string>;
+  abortSignal: AbortSignal | undefined;
+  includeRawChunks: boolean | undefined;
+}) {
+  let finished = false;
+  let cleanup: (closeCode?: number) => void = () => {};
+
+  return new ReadableStream<SpeechToSpeechModelV4StreamPart>({
+    start: controller => {
+      let audioReader:
+        | ReadableStreamDefaultReader<Uint8Array | string>
+        | undefined;
+      let connection: WebSocketConnection | undefined;
+
+      // The Live API contract requires waiting for the `setupComplete`
+      // server message before sending realtime input: the audio send loop
+      // is gated on this promise.
+      let resolveSetupComplete!: () => void;
+      const setupComplete = new Promise<void>(resolve => {
+        resolveSetupComplete = resolve;
+      });
+
+      // Google Live messages carry no response/item IDs; a turn counter
+      // generates consistent synthetic IDs (like the realtime event mapper).
+      let turnCounter = 0;
+      // Transcription fragments arrive incrementally and are accumulated per
+      // turn; `turnComplete` finalizes the current turn.
+      let sourceText = '';
+      let sourceTurnBuffer = '';
+      let translationText = '';
+      let translationTurnBuffer = '';
+      let audioEnded = false;
+      let usage: SpeechToSpeechModelV4Usage | undefined;
+
+      // Finalization: the Live API signals per-turn completion
+      // (`turnComplete`) but has no "all input processed" signal, and it may
+      // emit multiple turns after `audioStreamEnd` was sent (one per detected
+      // utterance). The stream therefore finishes on a turnComplete that is
+      // not followed by further turn activity:
+      // - a turnComplete while `audioEnded` is set schedules the finish after
+      //   a grace period,
+      // - a turnComplete that already arrived before `audioEnded` was set
+      //   (with no new turn content since) satisfies the condition, so
+      //   setting `audioEnded` schedules the finish as well (no hang),
+      // - new turn content (transcription or audio) cancels a pending finish:
+      //   the server is still generating turns for the remaining input
+      //   (no truncation),
+      // - a server close while a finish is pending confirms completion.
+      let openTurn = false;
+      let sawTurnComplete = false;
+      let finishTimer: ReturnType<typeof setTimeout> | undefined;
+
+      const itemId = () => `google-item-${turnCounter}`;
+
+      const cancelPendingFinish = () => {
+        if (finishTimer != null) {
+          clearTimeout(finishTimer);
+          finishTimer = undefined;
+        }
+      };
+
+      const schedulePendingFinish = () => {
+        if (finished || finishTimer != null) return;
+        finishTimer = setTimeout(() => {
+          finishTimer = undefined;
+          finish();
+        }, finishGraceMs);
+      };
+
+      const onTurnActivity = () => {
+        openTurn = true;
+        cancelPendingFinish();
+      };
+
+      cleanup = (closeCode?: number) => {
+        cancelPendingFinish();
+        if (audioReader != null) {
+          void audioReader.cancel().catch(() => {});
+        } else {
+          // pre-open failure or abort: cancel the caller's audio stream so an
+          // upstream producer piping into it does not hang:
+          void audio.cancel().catch(() => {});
+        }
+        connection?.close(closeCode);
+      };
+
+      const finishWithError = (error: unknown) => {
+        if (finished) return;
+        finished = true;
+        cleanup();
+        controller.error(error);
+      };
+
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        controller.enqueue({
+          type: 'finish',
+          sourceText,
+          outputText: translationText,
+          usage,
+        });
+        controller.close();
+        cleanup(1000);
+      };
+
+      const completeTurn = () => {
+        if (sourceTurnBuffer !== '') {
+          controller.enqueue({
+            type: 'source-transcript-final',
+            id: itemId(),
+            text: sourceTurnBuffer,
+          });
+          sourceText += sourceTurnBuffer;
+          sourceTurnBuffer = '';
+        }
+        if (translationTurnBuffer !== '') {
+          controller.enqueue({
+            type: 'output-text-final',
+            id: itemId(),
+            text: translationTurnBuffer,
+          });
+          translationText += translationTurnBuffer;
+          translationTurnBuffer = '';
+        }
+        turnCounter++;
+      };
+
+      const sendAudio = async (socket: WebSocketLike) => {
+        audioReader = audio.getReader();
+        try {
+          while (true) {
+            const { done, value } = await audioReader.read();
+            if (done || finished) break;
+            socket.send(
+              JSON.stringify({
+                realtimeInput: {
+                  audio: {
+                    data: convertToBase64(value),
+                    mimeType: `audio/pcm;rate=${inputAudioRate}`,
+                  },
+                },
+              }),
+            );
+            // backpressure: pause reads while the socket buffer is full
+            await waitForWebSocketBufferDrain(socket);
+          }
+        } finally {
+          audioReader.releaseLock();
+          // unlocked again: cleanup must cancel `audio`, not the reader
+          audioReader = undefined;
+        }
+        if (!finished) {
+          socket.send(
+            JSON.stringify({ realtimeInput: { audioStreamEnd: true } }),
+          );
+          audioEnded = true;
+          // a turnComplete already received after the final audio chunk
+          // satisfies the finish condition:
+          if (sawTurnComplete && !openTurn) {
+            schedulePendingFinish();
+          }
+        }
+      };
+
+      connection = connectToWebSocket({
+        url,
+        headers,
+        webSocket,
+        abortSignal,
+        onAbort: finishWithError,
+        onProcessingError: finishWithError,
+        onOpen: socket => {
+          controller.enqueue({ type: 'stream-start', warnings });
+          socket.send(JSON.stringify({ setup }));
+          // audio may only be sent after the server acknowledged the setup:
+          void setupComplete
+            .then(() => (finished ? undefined : sendAudio(socket)))
+            .catch(finishWithError);
+        },
+        onMessageText: async text => {
+          if (finished) return;
+          const parsed = await safeParseJSON({ text });
+          if (!parsed.success) return;
+          const message = parsed.value as GoogleLiveServerMessage;
+
+          if (includeRawChunks) {
+            controller.enqueue({ type: 'raw', rawValue: message });
+          }
+
+          if (message.setupComplete != null) {
+            resolveSetupComplete();
+          }
+
+          if (message.usageMetadata != null) {
+            usage = extractGoogleLiveUsage(message.usageMetadata);
+          }
+
+          if (message.error != null) {
+            finishWithError(
+              new Error(message.error.message ?? 'Google Live API error'),
+            );
+            return;
+          }
+
+          const inputTranscriptionText =
+            message.serverContent?.inputTranscription?.text ??
+            message.inputTranscription?.text;
+          if (inputTranscriptionText) {
+            onTurnActivity();
+            sourceTurnBuffer += inputTranscriptionText;
+            controller.enqueue({
+              type: 'source-transcript-delta',
+              id: itemId(),
+              delta: inputTranscriptionText,
+            });
+          }
+
+          const serverContent = message.serverContent;
+          if (serverContent == null) {
+            return;
+          }
+
+          for (const part of serverContent.modelTurn?.parts ?? []) {
+            if (part.inlineData?.data) {
+              onTurnActivity();
+              controller.enqueue({
+                type: 'audio',
+                id: itemId(),
+                audio: part.inlineData.data,
+              });
+            }
+          }
+
+          if (serverContent.outputTranscription?.text) {
+            onTurnActivity();
+            translationTurnBuffer += serverContent.outputTranscription.text;
+            controller.enqueue({
+              type: 'output-text-delta',
+              id: itemId(),
+              delta: serverContent.outputTranscription.text,
+            });
+          }
+
+          if (serverContent.turnComplete) {
+            completeTurn();
+            openTurn = false;
+            sawTurnComplete = true;
+            if (audioEnded) {
+              schedulePendingFinish();
+            }
+          }
+        },
+        onSocketError: () => {
+          finishWithError(new Error('Google Live translation error'));
+        },
+        onClose: ({ code, reason }) => {
+          if (finished) return;
+          // a close while a finish is pending confirms that no further turn
+          // activity follows:
+          if (finishTimer != null) {
+            finish();
+            return;
+          }
+          // a close before the finish condition was reached is an abnormal
+          // termination: surface the close diagnostics
+          finishWithError(
+            new Error(
+              `Google Live translation WebSocket closed unexpectedly before finishing` +
+                ` (code ${code ?? 'unknown'}${reason ? `, reason: ${reason}` : ''}).`,
+            ),
+          );
+        },
+      });
+    },
+
+    cancel: () => {
+      if (finished) return;
+      finished = true;
+      cleanup();
+    },
+  });
+}
+
+function extractGoogleLiveUsage(usageMetadata: {
+  promptTokensDetails?: GoogleLiveTokensDetail[];
+  responseTokensDetails?: GoogleLiveTokensDetail[];
+}): SpeechToSpeechModelV4Usage {
+  const usage: SpeechToSpeechModelV4Usage = {};
+
+  for (const detail of usageMetadata.promptTokensDetails ?? []) {
+    if (detail.tokenCount == null) continue;
+    if (detail.modality === 'AUDIO') {
+      usage.inputAudioTokens = detail.tokenCount;
+    } else if (detail.modality === 'TEXT') {
+      usage.inputTextTokens = detail.tokenCount;
+    }
+  }
+
+  for (const detail of usageMetadata.responseTokensDetails ?? []) {
+    if (detail.tokenCount == null) continue;
+    if (detail.modality === 'AUDIO') {
+      usage.outputAudioTokens = detail.tokenCount;
+    } else if (detail.modality === 'TEXT') {
+      usage.outputTextTokens = detail.tokenCount;
+    }
+  }
+
+  return usage;
+}
+
+function buildGoogleLiveTranslationSetup({
+  modelId,
+  targetLanguage,
+  providerOptions,
+}: {
+  modelId: string;
+  targetLanguage: string;
+  providerOptions: GoogleTranslationModelOptions | undefined;
+}) {
+  return {
+    model: getModelPath(modelId),
+    generationConfig: {
+      responseModalities: ['AUDIO'],
+      translationConfig: {
+        targetLanguageCode: targetLanguage,
+        ...(providerOptions?.echoTargetLanguage != null
+          ? { echoTargetLanguage: providerOptions.echoTargetLanguage }
+          : {}),
+      },
+      ...(providerOptions?.voice != null
+        ? {
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: {
+                  voiceName: providerOptions.voice,
+                },
+              },
+            },
+          }
+        : {}),
+    },
+    inputAudioTranscription: {},
+    outputAudioTranscription: {},
+  };
+}

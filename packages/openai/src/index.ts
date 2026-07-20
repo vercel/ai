@@ -21,6 +21,11 @@ export type { OpenAILanguageModelCompletionOptions } from './completion/openai-c
 export type { OpenAIEmbeddingModelOptions } from './embedding/openai-embedding-model-options';
 export type { OpenAISpeechModelOptions } from './speech/openai-speech-model-options';
 export type { OpenAITranscriptionModelOptions } from './transcription/openai-transcription-model-options';
+export { OpenAITranslationModel as Experimental_OpenAITranslationModel } from './translation/openai-translation-model';
+export type {
+  OpenAITranslationModelId as Experimental_OpenAITranslationModelId,
+  OpenAITranslationModelOptions as Experimental_OpenAITranslationModelOptions,
+} from './translation/openai-translation-model-options';
 export type { OpenAIFilesOptions } from './files/openai-files-options';
 export type {
   OpenAIComputerAction,
