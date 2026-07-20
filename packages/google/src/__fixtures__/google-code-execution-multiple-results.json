@@ -1,0 +1,56 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "executableCode": {
+              "language": "PYTHON",
+              "code": "print('ok')\nprint(1/0)"
+            },
+            "thoughtSignature": "EjQKMgFyyNp8VRG2uDen0QENDjUJEy6ZQlvEGUhI8VcgTgNaspEC3M5Cao6lhYRGpmCcClR1"
+          },
+          {
+            "codeExecutionResult": {
+              "outcome": "OUTCOME_OK",
+              "output": "ok\n"
+            }
+          },
+          {
+            "codeExecutionResult": {
+              "outcome": "OUTCOME_FAILED",
+              "output": "division by zero\nTraceback (most recent call last):\n  File \"/usr/bin/entry/entry_point\", line 109, in _run_python\n    exec(code, exec_scope)  # pylint: disable=exec-used\n    ^^^^^^^^^^^^^^^^^^^^^^\n  File \"<string>\", line 2, in <module>\nZeroDivisionError: division by zero\n"
+            }
+          },
+          {
+            "text": "The code execution resulted in the following output:\n\n```\nok\n```\n\nFollowed by an error:\n\n```python\nZeroDivisionError: division by zero\n```",
+            "thoughtSignature": "EjQKMgFyyNp8EcK2k/joUmmIxJlqtIvdJP/1F+ziwsCn9P4uyk2ZNeBiYz2Um4GXD4IEGlE9"
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 23,
+    "candidatesTokenCount": 35,
+    "totalTokenCount": 347,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 23
+      }
+    ],
+    "toolUsePromptTokenCount": 289,
+    "toolUsePromptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 289
+      }
+    ]
+  },
+  "modelVersion": "gemini-3-flash-preview",
+  "responseId": "x7hVadT9OdKT_uMP792-mAc"
+}

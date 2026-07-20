@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 11485,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/google-multiple-code-execution-results.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/google-multiple-code-execution-results.ts",
+    "packages/google/src/__fixtures__/google-code-execution-multiple-results.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Tool call undefined not found."
+  }
+}
