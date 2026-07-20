@@ -115,7 +115,7 @@ const NATIVE_TOOL_KINDS: Readonly<
   EnterWorktree: 'edit',
   ExitWorktree: 'edit',
   ExitPlanMode: 'edit',
-  Skill: 'edit',
+  Skill: 'readonly',
   AskUserQuestion: 'readonly',
   ToolSearch: 'readonly',
   Bash: 'bash',
