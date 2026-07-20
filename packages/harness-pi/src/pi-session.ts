@@ -202,6 +202,13 @@ export interface CreatePiSessionInput {
   readonly builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
   readonly resumeSessionFileName?: string;
   readonly abortSignal?: AbortSignal;
+  /**
+   * Directory holding Pi's global agent config (auth.json, models.json,
+   * settings.json). When omitted, a per-session temp dir is used (the
+   * harness cannot reuse existing CLI logins). Pass the user's agent dir
+   * (e.g. `~/.pi/agent/`) to reuse their CLI auth and model settings.
+   */
+  readonly agentDir?: string;
 }
 
 interface PendingToolResult {
@@ -320,14 +327,20 @@ export async function createPiSession(
   });
 
   // Pi auth + model registry are global to this Pi session. These live on the
-  // real host filesystem (`hostAgentDir`), never in the sandbox/workspace.
+  // real host filesystem, never in the sandbox/workspace.
+  // When `agentDir` is provided, use it instead so the harness can reuse
+  // existing CLI logins and model/settings config.
+  const agentDir = input.agentDir ?? hostAgentDir;
   const modelRuntime = await ModelRuntime.create({
-    authPath: path.join(hostAgentDir, 'auth.json'),
-    modelsPath: path.join(hostAgentDir, 'models.json'),
+    authPath: path.join(agentDir, 'auth.json'),
+    modelsPath: path.join(agentDir, 'models.json'),
     allowModelNetwork: false,
   });
   const modelRegistry = new ModelRegistry(modelRuntime);
-  const settingsManager = SettingsManager.inMemory();
+  const settingsManager =
+    input.agentDir != null
+      ? SettingsManager.create(hostWorkDir, agentDir)
+      : SettingsManager.inMemory();
 
   // Run-scoped env (for the model resolver's gateway fallback heuristic).
   const resolverEnv = await resolvePiEnv({
