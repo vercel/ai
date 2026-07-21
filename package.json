@@ -67,13 +67,8 @@
       "esbuild"
     ],
     "overrides": {
-<<<<<<< HEAD
-      "tinyexec": "1.0.2"
-=======
       "tinyexec": "1.0.2",
-      "oxlint": "1.56.0",
       "tar": "7.5.19"
->>>>>>> bd88b147c0 (fix: prevent vulnerable tar versions in the repository dependency graph (#17609))
     }
   }
 }
