@@ -60,4 +60,21 @@ describe('pipeTextStreamToResponse', () => {
       ', world!',
     ]);
   });
+
+  it('should reject when reading the stream fails', async () => {
+    const mockResponse = createMockServerResponse();
+    const error = new Error('stream read failed');
+    const stream = new ReadableStream<string>({
+      pull() {
+        throw error;
+      },
+    });
+
+    await expect(
+      pipeTextStreamToResponse({
+        response: mockResponse,
+        stream,
+      }),
+    ).rejects.toBe(error);
+  });
 });

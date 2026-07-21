@@ -1,5 +1,76 @@
 # @ai-sdk/perplexity
 
+## 4.0.13
+
+### Patch Changes
+
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+
+## 4.0.12
+
+### Patch Changes
+
+- Updated dependencies [cd06458]
+  - @ai-sdk/provider-utils@5.0.11
+
+## 4.0.11
+
+### Patch Changes
+
+- Updated dependencies [31c7be8]
+  - @ai-sdk/provider-utils@5.0.10
+
+## 4.0.10
+
+### Patch Changes
+
+- Updated dependencies [4be62c1]
+- Updated dependencies [7805e4a]
+- Updated dependencies [cd12954]
+  - @ai-sdk/provider-utils@5.0.9
+
+## 4.0.9
+
+### Patch Changes
+
+- Updated dependencies [e193290]
+  - @ai-sdk/provider-utils@5.0.8
+
+## 4.0.8
+
+### Patch Changes
+
+- 7927171: Fix Perplexity prompt conversion for file parts with unsupported media types and top-level PDF media types.
+- Updated dependencies [0f93c57]
+  - @ai-sdk/provider@4.0.3
+  - @ai-sdk/provider-utils@5.0.7
+
+## 4.0.7
+
+### Patch Changes
+
+- 8bc6172: feat(perplexity): add `PerplexityLanguageModelOptions` type and schema
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+
+## 4.0.6
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - @ai-sdk/provider@4.0.2
+  - @ai-sdk/provider-utils@5.0.5
+
+## 4.0.5
+
+### Patch Changes
+
+- Updated dependencies [c6f5e62]
+  - @ai-sdk/provider-utils@5.0.4
+
 ## 4.0.4
 
 ### Patch Changes

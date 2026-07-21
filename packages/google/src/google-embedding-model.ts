@@ -31,7 +31,7 @@ type GoogleEmbeddingConfig = {
 export class GoogleEmbeddingModel implements EmbeddingModelV4 {
   readonly specificationVersion = 'v4';
   readonly modelId: GoogleEmbeddingModelId;
-  readonly maxEmbeddingsPerCall = 2048;
+  readonly maxEmbeddingsPerCall = 100;
   readonly supportsParallelCalls = true;
 
   private readonly config: GoogleEmbeddingConfig;

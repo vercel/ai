@@ -1,5 +1,9 @@
 import { defineConfig } from 'tsup';
 
+const packageVersion = JSON.stringify(
+  (await import('./package.json', { with: { type: 'json' } })).default.version,
+);
+
 export default defineConfig([
   {
     entry: { index: 'src/index.ts' },
@@ -7,12 +11,12 @@ export default defineConfig([
     target: 'es2022',
     dts: true,
     sourcemap: true,
+    define: {
+      __PACKAGE_VERSION__: packageVersion,
+    },
   },
   {
-    entry: {
-      'bridge/index': 'src/bridge/index.ts',
-      'bridge/host-tool-mcp': 'src/bridge/host-tool-mcp.ts',
-    },
+    entry: { 'bridge/index': 'src/bridge/index.ts' },
     format: ['esm'],
     target: 'es2022',
     outExtension: () => ({ js: '.mjs' }),
@@ -24,12 +28,9 @@ export default defineConfig([
     // not resolve there. tsup externalizes package.json deps by default, hence
     // the explicit override.
     noExternal: ['@ai-sdk/harness'],
-    external: [
-      '@openai/codex-sdk',
-      '@openai/codex',
-      '@modelcontextprotocol/sdk',
-      'ws',
-      'zod',
-    ],
+    external: ['@openai/codex-sdk', '@openai/codex', 'ws'],
+    define: {
+      __PACKAGE_VERSION__: packageVersion,
+    },
   },
 ]);

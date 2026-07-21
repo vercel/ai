@@ -5,9 +5,11 @@
   "type": "module",
   "dependencies": {
     "@langchain/anthropic": "^1.0.0",
-    "@langchain/core": "^1.1.44",
-    "@langchain/langgraph": "^1.3.0",
-    "deepagents": "1.10.2",
+    "@langchain/core": "^1.2.0",
+    "@langchain/langgraph": "^1.4.4",
+    "deepagents": "1.11.0",
+    "langchain": "^1.5.0",
+    "langsmith": "^0.7.17",
     "ws": "8.21.0",
     "zod": "^4.3.6"
   }

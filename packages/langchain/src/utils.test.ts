@@ -244,7 +244,7 @@ describe('convertUserContent', () => {
     expect(result.content).toBe('Part 1 Part 2');
   });
 
-  it('should include image parts with binary data using OpenAI image_url format', () => {
+  it('should convert binary image parts to canonical image blocks', () => {
     const content: UserContent = [
       { type: 'text', text: 'Describe this image' },
       {
@@ -259,13 +259,15 @@ describe('convertUserContent', () => {
     expect(result.content).toEqual([
       { type: 'text', text: 'Describe this image' },
       {
-        type: 'image_url',
-        image_url: { url: 'data:image/png;base64,AQID' }, // base64 of [1, 2, 3]
+        type: 'image',
+        data: 'AQID', // base64 of [1, 2, 3]
+        mimeType: 'image/png',
       },
     ]);
+    expect(result.response_metadata).toEqual({ output_version: 'v1' });
   });
 
-  it('should include image parts with URL using OpenAI image_url format', () => {
+  it('should convert image URL strings to canonical image blocks', () => {
     const content: UserContent = [
       { type: 'text', text: 'What is in this image?' },
       {
@@ -279,8 +281,8 @@ describe('convertUserContent', () => {
     expect(result.content).toEqual([
       { type: 'text', text: 'What is in this image?' },
       {
-        type: 'image_url',
-        image_url: { url: 'https://example.com/image.jpg' },
+        type: 'image',
+        url: 'https://example.com/image.jpg',
       },
     ]);
   });
@@ -308,7 +310,7 @@ describe('convertUserContent', () => {
     ]);
   });
 
-  it('should handle URL objects for images using OpenAI image_url format', () => {
+  it('should convert image URL objects to canonical image blocks', () => {
     const content: UserContent = [
       { type: 'text', text: 'Describe' },
       {
@@ -322,13 +324,13 @@ describe('convertUserContent', () => {
     expect(result.content).toEqual([
       { type: 'text', text: 'Describe' },
       {
-        type: 'image_url',
-        image_url: { url: 'https://example.com/photo.png' },
+        type: 'image',
+        url: 'https://example.com/photo.png',
       },
     ]);
   });
 
-  it('should handle data URLs for images using OpenAI image_url format', () => {
+  it('should convert image data URLs to canonical image blocks', () => {
     const content: UserContent = [
       { type: 'text', text: 'Analyze' },
       {
@@ -342,13 +344,14 @@ describe('convertUserContent', () => {
     expect(result.content).toEqual([
       { type: 'text', text: 'Analyze' },
       {
-        type: 'image_url',
-        image_url: { url: 'data:image/png;base64,abc123' },
+        type: 'image',
+        data: 'abc123',
+        mimeType: 'image/png',
       },
     ]);
   });
 
-  it('should handle image files (file type with image mediaType) using OpenAI image_url format', () => {
+  it('should convert image file parts to canonical image blocks', () => {
     const content: UserContent = [
       { type: 'text', text: 'What is this?' },
       {
@@ -363,8 +366,8 @@ describe('convertUserContent', () => {
     expect(result.content).toEqual([
       { type: 'text', text: 'What is this?' },
       {
-        type: 'image_url',
-        image_url: { url: 'https://example.com/photo.jpg' },
+        type: 'image',
+        url: 'https://example.com/photo.jpg',
       },
     ]);
   });

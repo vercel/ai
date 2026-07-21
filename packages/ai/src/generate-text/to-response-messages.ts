@@ -5,6 +5,7 @@ import type {
   ToolModelMessage,
 } from '../prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
+import { getOwn } from '../util/get-own';
 import type { ContentPart } from './content-part';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 
@@ -19,6 +20,7 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
   tools: TOOLS | undefined;
 }): Promise<Array<AssistantModelMessage | ToolModelMessage>> {
   const responseMessages: Array<AssistantModelMessage | ToolModelMessage> = [];
+  const toolCallOrder = new Map<string, number>();
 
   const content: AssistantContent = [];
   for (const part of inputContent) {
@@ -79,6 +81,9 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
         });
         break;
       case 'tool-call':
+        if (!toolCallOrder.has(part.toolCallId)) {
+          toolCallOrder.set(part.toolCallId, toolCallOrder.size);
+        }
         content.push({
           type: 'tool-call',
           toolCallId: part.toolCallId,
@@ -93,7 +98,7 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
         const output = await createToolModelOutput({
           toolCallId: part.toolCallId,
           input: part.input,
-          tool: tools?.[part.toolName],
+          tool: getOwn(tools, part.toolName),
           output: part.output,
           errorMode: 'none',
         });
@@ -110,7 +115,7 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
         const output = await createToolModelOutput({
           toolCallId: part.toolCallId,
           input: part.input,
-          tool: tools?.[part.toolName],
+          tool: getOwn(tools, part.toolName),
           output: part.error,
           errorMode: 'json',
         });
@@ -185,7 +190,7 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
     const output = await createToolModelOutput({
       toolCallId: part.toolCallId,
       input: part.input,
-      tool: tools?.[part.toolName],
+      tool: getOwn(tools, part.toolName),
       output: part.type === 'tool-result' ? part.output : part.error,
       errorMode: part.type === 'tool-error' ? 'text' : 'none',
     });
@@ -204,9 +209,49 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
   if (toolResultContent.length > 0) {
     responseMessages.push({
       role: 'tool',
-      content: toolResultContent,
+      content: sortToolResultContentByToolCallOrder({
+        toolResultContent,
+        toolCallOrder,
+      }),
     });
   }
 
   return responseMessages;
+}
+
+function sortToolResultContentByToolCallOrder({
+  toolResultContent,
+  toolCallOrder,
+}: {
+  toolResultContent: ToolContent;
+  toolCallOrder: Map<string, number>;
+}): ToolContent {
+  const sortedToolResults = toolResultContent
+    .filter(part => part.type === 'tool-result')
+    .map((part, index) => ({ part, index }))
+    .sort((a, b) => {
+      const aOrder = toolCallOrder.get(a.part.toolCallId);
+      const bOrder = toolCallOrder.get(b.part.toolCallId);
+
+      if (aOrder == null && bOrder == null) {
+        return a.index - b.index;
+      }
+
+      if (aOrder == null) {
+        return 1;
+      }
+
+      if (bOrder == null) {
+        return -1;
+      }
+
+      return aOrder - bOrder || a.index - b.index;
+    })
+    .map(({ part }) => part);
+
+  let toolResultIndex = 0;
+
+  return toolResultContent.map(part =>
+    part.type === 'tool-result' ? sortedToolResults[toolResultIndex++] : part,
+  );
 }

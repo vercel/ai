@@ -30,6 +30,7 @@ export type {
   HarnessV1ContinueTurnState,
   HarnessV1LifecycleState,
   HarnessV1PendingToolApproval,
+  HarnessV1PendingToolResult,
   HarnessV1ResumeSessionState,
 } from './harness-v1-lifecycle-state';
 export type {

@@ -13,6 +13,7 @@ import { writeToServerResponse } from '../util/write-to-server-response';
  * @param options.statusText - Optional HTTP status text.
  * @param options.headers - Optional response headers.
  * @param options.stream - The text stream to pipe.
+ * @returns A promise that resolves when the stream has been written.
  */
 export function pipeTextStreamToResponse({
   response,
@@ -23,8 +24,8 @@ export function pipeTextStreamToResponse({
 }: {
   response: ServerResponse;
   stream: ReadableStream<string>;
-} & ResponseInit): void {
-  writeToServerResponse({
+} & ResponseInit): Promise<void> {
+  return writeToServerResponse({
     response,
     status,
     statusText,

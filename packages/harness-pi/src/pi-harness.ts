@@ -8,6 +8,12 @@ import { z } from 'zod/v4';
 import type { PiAuthOptions } from './pi-auth';
 import { piResumeStateSchema } from './pi-resume-state';
 import { createPiSession, type PiThinkingLevel } from './pi-session';
+import { VERSION } from './version';
+
+/**
+ * Value to use in User-Agent and `x-client-app` headers.
+ */
+const PI_CLIENT_APP = `ai-sdk/harness-pi/${VERSION}`;
 
 /**
  * Configuration knobs for `createPi`. Pi runs as an in-process Node library
@@ -27,6 +33,13 @@ export type PiHarnessSettings = {
    * `thinkingLevel` option on `createAgentSession`.
    */
   readonly thinkingLevel?: PiThinkingLevel;
+  /**
+   * Directory holding Pi's global agent config (auth.json, models.json,
+   * settings.json). When omitted, a per-session temp dir is used. Pass the
+   * user's agent dir (e.g. `~/.pi/agent/`) to reuse their CLI auth and
+   * model settings.
+   */
+  readonly agentDir?: string;
 };
 
 const PI_BUILTIN_TOOLS = {
@@ -132,6 +145,7 @@ export function createPi(
             ? { thinkingLevel: settings.thinkingLevel }
             : {}),
         },
+        clientApp: PI_CLIENT_APP,
         isResume: lifecycleState != null,
         permissionMode: startOpts.permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
@@ -141,6 +155,7 @@ export function createPi(
         ...(startOpts.abortSignal
           ? { abortSignal: startOpts.abortSignal }
           : {}),
+        ...(settings.agentDir ? { agentDir: settings.agentDir } : {}),
       });
     },
   };

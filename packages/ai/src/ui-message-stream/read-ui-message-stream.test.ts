@@ -102,6 +102,70 @@ describe('readUIMessageStream', () => {
       `);
   });
 
+  it('should preserve tool parts when tool call ids repeat across steps', async () => {
+    const stream = createUIMessageStream([
+      { type: 'start', messageId: 'msg-123' },
+      { type: 'start-step' },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'call-0',
+        toolName: 'recordStep',
+        input: { step: 1 },
+        providerMetadata: { openai: { itemId: 'fc-step-1' } },
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-0',
+        output: { recorded: 1 },
+      },
+      { type: 'finish-step' },
+      { type: 'start-step' },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'call-0',
+        toolName: 'recordStep',
+        input: { step: 2 },
+        providerMetadata: { openai: { itemId: 'fc-step-2' } },
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-0',
+        output: { recorded: 2 },
+      },
+      { type: 'finish-step' },
+      { type: 'finish' },
+    ]);
+
+    const messages = await convertAsyncIterableToArray(
+      readUIMessageStream({ stream }),
+    );
+    const toolParts = messages
+      .at(-1)!
+      .parts.filter(
+        part => part.type.startsWith('tool-') || part.type === 'dynamic-tool',
+      );
+
+    expect(toolParts).toHaveLength(2);
+    expect(toolParts).toMatchObject([
+      {
+        type: 'tool-recordStep',
+        toolCallId: 'call-0',
+        state: 'output-available',
+        input: { step: 1 },
+        output: { recorded: 1 },
+        callProviderMetadata: { openai: { itemId: 'fc-step-1' } },
+      },
+      {
+        type: 'tool-recordStep',
+        toolCallId: 'call-0',
+        state: 'output-available',
+        input: { step: 2 },
+        output: { recorded: 2 },
+        callProviderMetadata: { openai: { itemId: 'fc-step-2' } },
+      },
+    ]);
+  });
+
   it('should throw an error when encountering an error UI stream part', async () => {
     const stream = createUIMessageStream([
       { type: 'start', messageId: 'msg-123' },

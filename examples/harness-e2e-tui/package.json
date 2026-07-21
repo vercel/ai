@@ -15,7 +15,7 @@
     "@ai-sdk/harness-pi": "workspace:*",
     "@ai-sdk/sandbox-vercel": "workspace:*",
     "@ai-sdk/tui": "workspace:*",
-    "@earendil-works/pi-coding-agent": "^0.79.0",
+    "@earendil-works/pi-coding-agent": "^0.80.10",
     "@vercel/sandbox": "^2.0.1",
     "ai": "workspace:*",
     "dotenv": "16.4.5",

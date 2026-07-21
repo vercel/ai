@@ -23,6 +23,125 @@ import {
 } from './__fixtures__/langgraph';
 
 describe('toUIMessageStream', () => {
+  describe.each([
+    {
+      name: 'direct model streams',
+      createInput: () =>
+        convertArrayToReadableStream([
+          new AIMessageChunk({ content: 'Hello', id: 'model-message' }),
+        ]),
+      convertedChunks: [
+        { type: 'text-start', id: 'model-message' },
+        { type: 'text-delta', delta: 'Hello', id: 'model-message' },
+        { type: 'text-end', id: 'model-message' },
+      ],
+    },
+    {
+      name: 'LangGraph streams',
+      createInput: () =>
+        convertArrayToReadableStream([
+          [
+            'messages',
+            [
+              new AIMessageChunk({
+                content: 'Hello',
+                id: 'langgraph-message',
+              }),
+              { langgraph_step: 0 },
+            ],
+          ],
+          ['values', {}],
+        ]),
+      convertedChunks: [
+        { type: 'start-step' },
+        { type: 'text-start', id: 'langgraph-message' },
+        { type: 'text-delta', delta: 'Hello', id: 'langgraph-message' },
+        { type: 'text-end', id: 'langgraph-message' },
+        { type: 'finish-step' },
+      ],
+    },
+    {
+      name: 'streamEvents streams',
+      createInput: () =>
+        convertArrayToReadableStream([
+          {
+            event: 'on_chat_model_stream',
+            data: {
+              chunk: {
+                id: 'stream-events-message',
+                content: 'Hello',
+              },
+            },
+          },
+        ]),
+      convertedChunks: [
+        { type: 'text-start', id: 'stream-events-message' },
+        {
+          type: 'text-delta',
+          delta: 'Hello',
+          id: 'stream-events-message',
+        },
+        { type: 'text-end', id: 'stream-events-message' },
+      ],
+    },
+  ])(
+    'lifecycle chunk options for $name',
+    ({ createInput, convertedChunks }) => {
+      it.each([
+        {
+          sendStart: undefined,
+          sendFinish: undefined,
+          expectedStart: true,
+          expectedFinish: true,
+        },
+        {
+          sendStart: false,
+          sendFinish: undefined,
+          expectedStart: false,
+          expectedFinish: true,
+        },
+        {
+          sendStart: undefined,
+          sendFinish: false,
+          expectedStart: true,
+          expectedFinish: false,
+        },
+        {
+          sendStart: false,
+          sendFinish: false,
+          expectedStart: false,
+          expectedFinish: false,
+        },
+      ])(
+        'emits the requested outer chunks with sendStart=$sendStart and sendFinish=$sendFinish',
+        async ({ sendStart, sendFinish, expectedStart, expectedFinish }) => {
+          const result = await convertReadableStreamToArray(
+            toUIMessageStream(createInput(), { sendStart, sendFinish }),
+          );
+
+          expect(result).toEqual([
+            ...(expectedStart ? [{ type: 'start' as const }] : []),
+            ...convertedChunks,
+            ...(expectedFinish ? [{ type: 'finish' as const }] : []),
+          ]);
+        },
+      );
+    },
+  );
+
+  it('can suppress both lifecycle chunks for a minimal LangGraph values stream', async () => {
+    const inputStream = convertArrayToReadableStream([['values', {}]]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream, {
+        sendStart: false,
+        sendFinish: false,
+      }),
+    );
+
+    expect(result).toEqual([]);
+  });
+
   it('should emit start event on stream initialization', async () => {
     const inputStream = convertArrayToReadableStream([['values', {}]]);
 
@@ -715,7 +834,7 @@ describe('toUIMessageStream', () => {
     expect(startIds.has('msg_test-002')).toBe(true);
   });
 
-  it('should handle reasoning followed by text content', async () => {
+  it('should close reasoning before starting text content', async () => {
     // Reasoning chunk
     const reasoningChunk = new AIMessageChunk({
       id: 'msg-1',
@@ -754,6 +873,10 @@ describe('toUIMessageStream', () => {
         },
         {
           "id": "msg-1",
+          "type": "reasoning-end",
+        },
+        {
+          "id": "msg-1",
           "type": "text-start",
         },
         {
@@ -764,10 +887,6 @@ describe('toUIMessageStream', () => {
         {
           "id": "msg-1",
           "type": "text-end",
-        },
-        {
-          "id": "msg-1",
-          "type": "reasoning-end",
         },
         {
           "type": "finish",
@@ -1005,8 +1124,8 @@ describe('convertModelMessages', () => {
     expect(result[0].content).toEqual([
       { type: 'text', text: 'What is in this image?' },
       {
-        type: 'image_url',
-        image_url: { url: 'https://example.com/image.jpg' },
+        type: 'image',
+        url: 'https://example.com/image.jpg',
       },
     ]);
   });
@@ -1033,8 +1152,9 @@ describe('convertModelMessages', () => {
     expect(result[0].content).toEqual([
       { type: 'text', text: 'What is in this image?' },
       {
-        type: 'image_url',
-        image_url: { url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAE' },
+        type: 'image',
+        data: 'iVBORw0KGgoAAAANSUhEUgAAAAE',
+        mimeType: 'image/png',
       },
     ]);
   });
@@ -1060,8 +1180,9 @@ describe('convertModelMessages', () => {
     expect(result[0].content).toEqual([
       { type: 'text', text: 'Describe this.' },
       {
-        type: 'image_url',
-        image_url: { url: 'data:image/png;base64,abc123' },
+        type: 'image',
+        data: 'abc123',
+        mimeType: 'image/png',
       },
     ]);
   });
@@ -1153,8 +1274,8 @@ describe('convertModelMessages', () => {
     expect(result[0].content).toEqual([
       { type: 'text', text: 'Compare these:' },
       {
-        type: 'image_url',
-        image_url: { url: 'https://example.com/image1.jpg' },
+        type: 'image',
+        url: 'https://example.com/image1.jpg',
       },
       { type: 'text', text: 'And this document:' },
       {
@@ -1187,13 +1308,13 @@ describe('convertModelMessages', () => {
     expect(result[0].content).toEqual([
       { type: 'text', text: 'What is this?' },
       {
-        type: 'image_url',
-        image_url: { url: 'https://example.com/image.png' },
+        type: 'image',
+        url: 'https://example.com/image.png',
       },
     ]);
   });
 
-  it('should convert image files (file type with image mediaType) using image_url format', () => {
+  it('should convert image files to canonical image blocks', () => {
     const modelMessages: ModelMessage[] = [
       {
         role: 'user',
@@ -1215,8 +1336,8 @@ describe('convertModelMessages', () => {
     expect(result[0].content).toEqual([
       { type: 'text', text: 'Describe this photo.' },
       {
-        type: 'image_url',
-        image_url: { url: 'https://example.com/photo.jpg' },
+        type: 'image',
+        url: 'https://example.com/photo.jpg',
       },
     ]);
   });
@@ -1382,12 +1503,12 @@ describe('toBaseMessages', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0]).toBeInstanceOf(HumanMessage);
-    // Image files are converted to OpenAI's image_url format
     expect(result[0].content).toEqual([
       { type: 'text', text: 'What is in this image?' },
       {
-        type: 'image_url',
-        image_url: { url: 'data:image/png;base64,abc123' },
+        type: 'image',
+        data: 'abc123',
+        mimeType: 'image/png',
       },
     ]);
   });

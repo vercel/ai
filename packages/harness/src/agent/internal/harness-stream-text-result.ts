@@ -141,6 +141,7 @@ export class HarnessStreamTextResult<
   private currentStepContent: ContentPart<TOOLS>[] = [];
   private currentStepWarnings: CallWarning[] = [];
   private stepNumber = 0;
+  private stepStarted = false;
 
   private readonly tools: TOOLS;
   private readonly runtimeContext: RUNTIME_CONTEXT;
@@ -173,6 +174,13 @@ export class HarnessStreamTextResult<
     const baseStream = new ReadableStream<TextStreamPart<TOOLS>>({
       start(c) {
         controllerRef = c;
+        // Send the message-level start event as the first part, mirroring
+        // `streamText`. Downstream UI message stream consumers depend on it:
+        // `toUIMessageStream`'s persistence mode injects the response message
+        // id into this part (it never synthesizes one), so without it
+        // `useChat` clients keep a locally generated assistant message id
+        // that diverges from the id the server persists under.
+        c.enqueue({ type: 'start' });
       },
     });
     this.fullStreamController = controllerRef;
@@ -198,8 +206,28 @@ export class HarnessStreamTextResult<
    * into the current step's content array where applicable.
    */
   enqueue(part: TextStreamPart<TOOLS>): void {
+    this.startStep();
     this.fullStreamController.enqueue(part);
     this.appendToCurrentStepContent(part);
+  }
+
+  /**
+   * Push a continuation input into the consumer stream without attributing it
+   * to the next model step. Approval responses and client tool results arrive
+   * between model calls and therefore must not create or alter a StepResult.
+   */
+  enqueueContinuation(part: TextStreamPart<TOOLS>): void {
+    this.fullStreamController.enqueue(part);
+  }
+
+  /**
+   * Drop content replayed while a suspended host-input pause closes its
+   * already-recorded model step.
+   */
+  discardCurrentStepContent(): void {
+    this.currentStepContent = [];
+    this.currentStepWarnings = [];
+    this.stepStarted = false;
   }
 
   /**
@@ -213,7 +241,9 @@ export class HarnessStreamTextResult<
     usage: LanguageModelV4Usage;
     providerMetadata: ProviderMetadata | undefined;
     warnings: CallWarning[];
-  }): void {
+  }): StepResult<TOOLS, RUNTIME_CONTEXT> {
+    this.startStep();
+
     const normalizedUsage = asLanguageModelUsage(input.usage);
     const finishReason = input.finishReason.unified;
     const rawFinishReason = input.finishReason.raw;
@@ -267,6 +297,20 @@ export class HarnessStreamTextResult<
     this.stepNumber += 1;
     this.currentStepContent = [];
     this.currentStepWarnings = [];
+    this.stepStarted = false;
+
+    return step;
+  }
+
+  private startStep(): void {
+    if (this.stepStarted) return;
+
+    this.stepStarted = true;
+    this.fullStreamController.enqueue({
+      type: 'start-step',
+      request: {},
+      warnings: this.currentStepWarnings,
+    } as TextStreamPart<TOOLS>);
   }
 
   /**
@@ -278,7 +322,20 @@ export class HarnessStreamTextResult<
     providerMetadata: ProviderMetadata | undefined;
   }): Promise<void> {
     if (this.settled) return;
-    this.settled = true;
+
+    /*
+     * Do not flush trailing content that has not been captured by a
+     * `finish-step`. A terminal `finish` closes the turn but is not a semantic
+     * step boundary, so buffered content indicates an invalid harness stream.
+     */
+    if (this.currentStepContent.length > 0) {
+      this.fail(
+        new Error(
+          'HarnessAgent: received terminal finish with unclosed step content. Harness adapters must emit `finish-step` before `finish`.',
+        ),
+      );
+      return;
+    }
 
     if (input != null) {
       this.finalFinishReason = input.finishReason.unified;
@@ -287,39 +344,7 @@ export class HarnessStreamTextResult<
       this.accumulatedUsage = asLanguageModelUsage(input.totalUsage);
     }
 
-    // Flush any trailing content not yet captured by a finish-step. We
-    // construct the step directly here (the public `finishStep` takes V4
-    // shapes; we already have AI SDK shapes at this point).
-    if (this.currentStepContent.length > 0) {
-      const trailingStep = new DefaultStepResult<TOOLS, RUNTIME_CONTEXT>({
-        callId: generateId(),
-        stepNumber: this.stepNumber,
-        provider: this.providerName,
-        modelId: this.modelId,
-        runtimeContext: this.runtimeContext,
-        toolsContext: this.toolsContext,
-        content: this.currentStepContent,
-        finishReason: this.finalFinishReason,
-        rawFinishReason: this.finalRawFinishReason,
-        usage: createNullLanguageModelUsage(),
-        performance: createEmptyPerformance(),
-        warnings:
-          this.currentStepWarnings.length > 0
-            ? this.currentStepWarnings
-            : undefined,
-        request: {},
-        response: {
-          id: generateId(),
-          timestamp: new Date(),
-          modelId: this.modelId,
-          messages: [],
-        },
-        providerMetadata: this.finalProviderMetadata,
-      });
-      this.stepsBuffer.push(trailingStep);
-      this.currentStepContent = [];
-      this.currentStepWarnings = [];
-    }
+    this.settled = true;
 
     const finalStep =
       this.stepsBuffer.length > 0
@@ -436,6 +461,25 @@ export class HarnessStreamTextResult<
   }
 
   /**
+   * Settle the turn as user-aborted: emit a final `abort` part — matching
+   * `streamText`'s abort contract — and close the stream, instead of
+   * surfacing an `error` part. `toUIMessageStream` consumers then observe
+   * an `abort` chunk (and `isAborted: true`) rather than a spurious
+   * `onError`. The delayed promise accessors still reject with the
+   * underlying abort error so awaiting consumers do not hang. Idempotent.
+   */
+  abort(input: { error: unknown; reason?: string }): void {
+    if (this.settled) return;
+    this.settled = true;
+    this.fullStreamController.enqueue({
+      type: 'abort',
+      ...(input.reason !== undefined ? { reason: input.reason } : {}),
+    } as TextStreamPart<TOOLS>);
+    this.fullStreamController.close();
+    this.rejectDelayedPromises(input.error);
+  }
+
+  /**
    * Surface a fatal error as a stream `error` part + reject every delayed
    * promise so awaiting consumers stop hanging. Idempotent.
    */
@@ -447,6 +491,10 @@ export class HarnessStreamTextResult<
       error,
     } as TextStreamPart<TOOLS>);
     this.fullStreamController.close();
+    this.rejectDelayedPromises(error);
+  }
+
+  private rejectDelayedPromises(error: unknown): void {
     for (const dp of [
       this._content,
       this._text,
@@ -580,6 +628,7 @@ export class HarnessStreamTextResult<
   toUIMessageStream<UI_MESSAGE extends UIMessage>({
     originalMessages,
     generateMessageId,
+    onEnd,
     onFinish,
     messageMetadata,
     sendReasoning,
@@ -596,6 +645,7 @@ export class HarnessStreamTextResult<
         tools: this.tools,
         originalMessages,
         generateMessageId,
+        onEnd,
         onFinish,
         messageMetadata,
         sendReasoning,
@@ -618,6 +668,7 @@ export class HarnessStreamTextResult<
   toUIMessageStreamResponse<UI_MESSAGE extends UIMessage>({
     originalMessages,
     generateMessageId,
+    onEnd,
     onFinish,
     messageMetadata,
     sendReasoning,
@@ -635,6 +686,7 @@ export class HarnessStreamTextResult<
       stream: this.toUIMessageStream<UI_MESSAGE>({
         originalMessages,
         generateMessageId,
+        onEnd,
         onFinish,
         messageMetadata,
         sendReasoning,

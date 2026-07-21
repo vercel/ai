@@ -11,10 +11,13 @@ type PiModel = ReturnType<ModelRegistry['getAll']>[number];
  */
 export const DEFAULT_PI_GATEWAY_MODEL_ID = 'anthropic/claude-sonnet-4.6';
 
-export function createPiModelResolver(
-  modelRegistry: ModelRegistry,
-  env: NodeJS.ProcessEnv = process.env,
-) {
+export function createPiModelResolver({
+  modelRegistry,
+  env = process.env,
+}: {
+  modelRegistry: ModelRegistry;
+  env?: NodeJS.ProcessEnv;
+}) {
   let cachedModels: PiModel[] | undefined;
 
   const loadModels = (): PiModel[] => {
