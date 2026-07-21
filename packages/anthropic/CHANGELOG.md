@@ -1,5 +1,15 @@
 # @ai-sdk/anthropic
 
+## 4.0.17
+
+### Patch Changes
+
+- b72fc7c: fix(amazon-bedrock): sanitize unsupported JSON Schema constraints in native Anthropic structured output
+- 9218ebe: fix(provider/anthropic): warn when parallel tool use is requested with JSON tool structured output
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+
 ## 4.0.16
 
 ### Patch Changes

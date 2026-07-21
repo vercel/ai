@@ -1,5 +1,12 @@
 # @ai-sdk/workflow-harness
 
+## 1.0.38
+
+### Patch Changes
+
+- f5cdb2d: chore(harness): update primary SDK dependencies
+  - @ai-sdk/harness@1.0.38
+
 ## 1.0.37
 
 ### Patch Changes
