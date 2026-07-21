@@ -367,7 +367,12 @@ describe('AnthropicMessagesLanguageModel', () => {
           providerOptions: {
             anthropic: {
               structuredOutputMode: 'jsonTool',
+<<<<<<< HEAD:packages/anthropic/src/anthropic-messages-language-model.test.ts
             } satisfies AnthropicProviderOptions,
+=======
+              disableParallelToolUse: false,
+            } satisfies AnthropicLanguageModelOptions,
+>>>>>>> 9218ebe24b (fix(anthropic): warn when jsonTool disables parallel tool use (#17560)):packages/anthropic/src/anthropic-language-model.test.ts
           },
           responseFormat: {
             type: 'json',
@@ -426,6 +431,18 @@ describe('AnthropicMessagesLanguageModel', () => {
             ],
           }
         `);
+      });
+
+      it('should warn when parallel tool use is requested', () => {
+        expect(result.warnings).toEqual([
+          {
+            type: 'unsupported',
+            feature: 'providerOptions.anthropic.disableParallelToolUse',
+            details:
+              '`disableParallelToolUse: false` is ignored when using the JSON response tool. ' +
+              'Parallel tool use is disabled to ensure a single coherent JSON tool call.',
+          },
+        ]);
       });
 
       it('should return the json response', async () => {

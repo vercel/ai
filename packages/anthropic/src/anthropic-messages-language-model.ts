@@ -268,6 +268,24 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           }
         : undefined;
 
+<<<<<<< HEAD:packages/anthropic/src/anthropic-messages-language-model.ts
+=======
+    if (
+      jsonResponseTool != null &&
+      anthropicOptions?.disableParallelToolUse === false
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.anthropic.disableParallelToolUse',
+        details:
+          '`disableParallelToolUse: false` is ignored when using the JSON response tool. ' +
+          'Parallel tool use is disabled to ensure a single coherent JSON tool call.',
+      });
+    }
+
+    const contextManagement = anthropicOptions?.contextManagement;
+
+>>>>>>> 9218ebe24b (fix(anthropic): warn when jsonTool disables parallel tool use (#17560)):packages/anthropic/src/anthropic-language-model.ts
     // Create a shared cache control validator to track breakpoints across tools and messages
     const cacheControlValidator = new CacheControlValidator();
 
