@@ -1,0 +1,8 @@
+{
+  "error": {
+    "message": "This model does not support the format you provided.",
+    "type": "invalid_request_error",
+    "param": "messages",
+    "code": "unsupported_format"
+  }
+}

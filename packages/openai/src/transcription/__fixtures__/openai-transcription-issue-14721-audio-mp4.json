@@ -1,0 +1,13 @@
+{
+  "text": "Honestly, it was a pretty steep learning curve at first. I spent most of the first week just trying to figure out the query syntax, but after a while, things started to click and now I'm much faster with it.",
+  "usage": {
+    "type": "tokens",
+    "total_tokens": 169,
+    "input_tokens": 122,
+    "input_token_details": {
+      "text_tokens": 0,
+      "audio_tokens": 122
+    },
+    "output_tokens": 47
+  }
+}

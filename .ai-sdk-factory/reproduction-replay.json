@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 14721,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-14721-transcribe-mp4.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-14721-transcribe-mp4.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_14721_REPRODUCED: transcribe uploaded MP4 bytes as audio/wav and OpenAI rejected them with 400 unsupported_format while direct audio/mp4 transcription succeeded"
+  }
+}

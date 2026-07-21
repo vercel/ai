@@ -1,4 +1,5 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createOpenAI } from '../openai-provider';
@@ -20,6 +21,15 @@ const server = createTestServer({
 });
 
 describe('doGenerate', () => {
+  function readJsonFixture(name: string) {
+    return JSON.parse(
+      readFileSync(
+        path.join(__dirname, '__fixtures__', `${name}.json`),
+        'utf8',
+      ),
+    );
+  }
+
   function prepareJsonResponse({
     headers,
   }: {
@@ -85,6 +95,56 @@ describe('doGenerate', () => {
 
     expect(await server.calls[0].requestBodyMultipart).toMatchObject({
       model: 'whisper-1',
+    });
+  });
+
+  it('should send explicit audio/mp4 input as an m4a file', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'json-value',
+      body: readJsonFixture('openai-transcription-issue-14721-audio-mp4'),
+    };
+
+    const result = await provider
+      .transcription('gpt-4o-mini-transcribe')
+      .doGenerate({
+        audio: new Uint8Array([0x00, 0x00, 0x00, 0x1c, 0x66, 0x74, 0x79, 0x70]),
+        mediaType: 'audio/mp4',
+      });
+
+    const requestBody = await server.calls[0].requestBodyMultipart;
+    expect(requestBody?.file).toBeInstanceOf(File);
+    expect(requestBody?.file).toMatchObject({
+      name: 'audio.m4a',
+      type: 'audio/mp4',
+    });
+    expect(result.text).toContain('steep learning curve');
+  });
+
+  it('should surface the live unsupported-format response for m4a bytes mislabeled as wav', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'error',
+      status: 400,
+      body: JSON.stringify(
+        readJsonFixture('openai-transcription-issue-14721-audio-wav-error'),
+      ),
+    };
+
+    await expect(
+      provider.transcription('gpt-4o-mini-transcribe').doGenerate({
+        audio: new Uint8Array([0x00, 0x00, 0x00, 0x1c, 0x66, 0x74, 0x79, 0x70]),
+        mediaType: 'audio/wav',
+      }),
+    ).rejects.toMatchObject({
+      message: 'This model does not support the format you provided.',
+      responseBody: expect.stringContaining('unsupported_format'),
+      statusCode: 400,
+    });
+
+    const requestBody = await server.calls[0].requestBodyMultipart;
+    expect(requestBody?.file).toBeInstanceOf(File);
+    expect(requestBody?.file).toMatchObject({
+      name: 'audio.wav',
+      type: 'audio/wav',
     });
   });
 
