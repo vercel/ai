@@ -26,6 +26,7 @@ The AI SDK provides several built-in stopping conditions:
 
 - `isStepCount(count)` — stops after a specified number of steps
 - `hasToolCall(...toolNames)` — stops when any of the specified tools is called
+- `hasRepeatedToolCalls(count, options?)` — stops when consecutive steps repeat the same tool calls
 - `isLoopFinished()` — never triggers, letting the loop run until the agent is naturally finished
 
 ### Run Up to a Maximum Number of Steps
@@ -71,8 +72,52 @@ const result = await agent.generate({
 <Note>
   Use `isLoopFinished()` with caution. Without a step limit, the agent could
   potentially run indefinitely or incur significant costs if the model keeps
-  making tool calls.
+  making tool calls. Pair it with `hasRepeatedToolCalls()` to stop a loop that
+  gets stuck making identical calls.
 </Note>
+
+### Stop Repeated Tool Calls
+
+Use `hasRepeatedToolCalls()` to stop after consecutive steps repeat the same
+tool calls. Each step is compared as an order-independent collection of tool
+names and JSON-serialized inputs, so reordered parallel calls are considered
+equal while duplicate calls are preserved.
+
+```ts
+import { ToolLoopAgent, hasRepeatedToolCalls, isLoopFinished } from 'ai';
+__PROVIDER_IMPORT__;
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: {
+    // your tools
+  },
+  stopWhen: [isLoopFinished(), hasRepeatedToolCalls(3)],
+});
+
+const result = await agent.generate({
+  prompt: 'Analyze this dataset and create a summary report',
+});
+```
+
+A step without tool calls breaks the repetition streak. The condition is
+evaluated after the repeated step and its tools have executed, so it prevents
+the next model step.
+
+For polling tools, set `compareResults: true` to require both inputs and outputs
+to repeat. Repeating the same polling call with a changing result then counts as
+progress:
+
+```ts
+stopWhen: [
+  isLoopFinished(),
+  hasRepeatedToolCalls(3, { compareResults: true }),
+],
+```
+
+When `compareResults` is enabled, every call in the compared steps must have a
+corresponding successful result. Inputs and outputs that cannot be serialized
+with `JSON.stringify` do not trigger the condition.
 
 ### Combine Multiple Conditions
 

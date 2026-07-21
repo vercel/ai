@@ -1,4 +1,5 @@
 import type { Context, ToolSet } from '@ai-sdk/provider-utils';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import type { StepResult } from './step-result';
 
 /**
@@ -51,6 +52,121 @@ export function hasToolCall<TOOLS extends ToolSet>(
     steps[steps.length - 1]?.toolCalls?.some(toolCall =>
       toolName.includes(toolCall.toolName),
     ) ?? false;
+}
+
+/**
+ * Creates a stop condition that returns `true` when the most recent steps
+ * repeat the same tool calls.
+ *
+ * Tool calls are compared as an order-independent collection of tool names
+ * and JSON-serialized inputs. Duplicate calls are preserved.
+ *
+ * @param count - The number of consecutive identical tool-calling steps that
+ * should trigger the stop condition. Must be an integer greater than 1.
+ * @param options.compareResults - Whether JSON-serialized tool outputs must
+ * also match. When enabled, every tool call must have a corresponding result.
+ */
+export function hasRepeatedToolCalls(
+  count: number,
+  options?: {
+    compareResults?: boolean;
+  },
+): StopCondition<any, any> {
+  if (!Number.isInteger(count) || count < 2) {
+    throw new InvalidArgumentError({
+      parameter: 'count',
+      value: count,
+      message: 'count must be an integer greater than 1',
+    });
+  }
+
+  const compareResults = options?.compareResults ?? false;
+
+  return ({ steps }) => {
+    if (steps.length < count) {
+      return false;
+    }
+
+    const recentSteps = steps.slice(-count);
+    const expectedSignature = createToolCallSignature({
+      step: recentSteps[0],
+      compareResults,
+    });
+
+    return (
+      expectedSignature != null &&
+      recentSteps
+        .slice(1)
+        .every(
+          step =>
+            createToolCallSignature({ step, compareResults }) ===
+            expectedSignature,
+        )
+    );
+  };
+}
+
+function createToolCallSignature({
+  step,
+  compareResults,
+}: {
+  step: StepResult<any, any>;
+  compareResults: boolean;
+}): string | undefined {
+  if (step.toolCalls.length === 0) {
+    return undefined;
+  }
+
+  const resultsByToolCallId = new Map(
+    step.toolResults.map(result => [result.toolCallId, result]),
+  );
+
+  if (
+    compareResults &&
+    (resultsByToolCallId.size !== step.toolResults.length ||
+      step.toolResults.length !== step.toolCalls.length)
+  ) {
+    return undefined;
+  }
+
+  const callSignatures: string[] = [];
+
+  for (const toolCall of step.toolCalls) {
+    const serializedInput = serializeForComparison(toolCall.input);
+
+    if (serializedInput == null) {
+      return undefined;
+    }
+
+    if (!compareResults) {
+      callSignatures.push(JSON.stringify([toolCall.toolName, serializedInput]));
+      continue;
+    }
+
+    const toolResult = resultsByToolCallId.get(toolCall.toolCallId);
+    if (toolResult == null || toolResult.toolName !== toolCall.toolName) {
+      return undefined;
+    }
+
+    const serializedOutput = serializeForComparison(toolResult.output);
+    if (serializedOutput == null) {
+      return undefined;
+    }
+
+    callSignatures.push(
+      JSON.stringify([toolCall.toolName, serializedInput, serializedOutput]),
+    );
+  }
+
+  return JSON.stringify(callSignatures.sort());
+}
+
+function serializeForComparison(value: unknown): string | undefined {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return undefined;
+  }
 }
 
 /**

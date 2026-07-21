@@ -48,6 +48,7 @@ export type {
   StepResultPerformance,
 } from './step-result';
 export {
+  hasRepeatedToolCalls,
   hasToolCall,
   isLoopFinished,
   isStepCount,

@@ -1,0 +1,109 @@
+---
+title: hasRepeatedToolCalls
+description: API Reference for hasRepeatedToolCalls.
+---
+
+# `hasRepeatedToolCalls()`
+
+Creates a stop condition that triggers when the requested number of consecutive
+steps contain the same tool calls.
+
+The function compares each step as an order-independent collection of tool names
+and JSON-serialized inputs. It supports parallel calls, preserves duplicate
+calls, and ignores changing tool-call IDs.
+
+```ts
+import { ToolLoopAgent, hasRepeatedToolCalls, isLoopFinished } from 'ai';
+__PROVIDER_IMPORT__;
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: {
+    // your tools
+  },
+  stopWhen: [isLoopFinished(), hasRepeatedToolCalls(3)],
+});
+```
+
+## Import
+
+<Snippet text={`import { hasRepeatedToolCalls } from "ai"`} prompt={false} />
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'count',
+      type: 'number',
+      description:
+        'The number of consecutive identical tool-calling steps that triggers the condition. Must be an integer greater than 1.',
+    },
+    {
+      name: 'options',
+      type: '{ compareResults?: boolean }',
+      isOptional: true,
+      description: 'Optional comparison settings.',
+    },
+    {
+      name: 'options.compareResults',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Whether corresponding JSON-serialized tool outputs must also match. Defaults to false.',
+    },
+  ]}
+/>
+
+### Returns
+
+A `StopCondition` that returns `true` when the last `count` steps repeat the
+same tool calls. A step without tool calls breaks the streak.
+
+The condition is evaluated after the threshold step and its tools have
+executed. It stops the next model step; it does not prevent the threshold calls
+from executing or change the generation's finish reason.
+
+## Examples
+
+### Stop an uncapped repeated loop
+
+```ts
+import { ToolLoopAgent, hasRepeatedToolCalls, isLoopFinished } from 'ai';
+
+const agent = new ToolLoopAgent({
+  model: yourModel,
+  tools: yourTools,
+  stopWhen: [isLoopFinished(), hasRepeatedToolCalls(3)],
+});
+```
+
+### Compare tool results for polling
+
+Set `compareResults` to allow repeated inputs to continue while their outputs
+are changing:
+
+```ts
+const agent = new ToolLoopAgent({
+  model: yourModel,
+  tools: {
+    checkJobStatus: statusTool,
+  },
+  stopWhen: hasRepeatedToolCalls(3, {
+    compareResults: true,
+  }),
+});
+```
+
+When result comparison is enabled, every tool call in the compared steps must
+have a corresponding successful tool result. Inputs or outputs that cannot be
+serialized with `JSON.stringify` do not trigger the condition.
+
+## See also
+
+- [`isLoopFinished()`](/docs/reference/ai-sdk-core/loop-finished)
+- [`isStepCount()`](/docs/reference/ai-sdk-core/is-step-count)
+- [`hasToolCall()`](/docs/reference/ai-sdk-core/has-tool-call)
+- [`ToolLoopAgent`](/docs/reference/ai-sdk-core/tool-loop-agent)
