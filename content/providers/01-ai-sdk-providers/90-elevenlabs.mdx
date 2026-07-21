@@ -303,6 +303,11 @@ settings: `commitStrategy`, `enableLogging`, `filterBackgroundAudio`,
 `minSilenceDurationMs`, `minSpeechDurationMs`, `noVerbatim`, `previousText`,
 `vadSilenceThresholdSecs`, and `vadThreshold`.
 
+ElevenLabs delivers detected language on its timestamp-bearing committed event.
+When `includeLanguageDetection` is enabled, the provider requests that event
+internally, but only returns timestamp segments when `includeTimestamps` is also
+enabled. `filterBackgroundAudio` cannot be combined with either option.
+
 See [Transcription](/docs/ai-sdk-core/transcription) for more information about
 streaming transcription.
 

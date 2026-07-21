@@ -263,12 +263,13 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
 
     if (
       streamingOptions?.filterBackgroundAudio === true &&
-      streamingOptions.includeTimestamps === true
+      (streamingOptions.includeTimestamps === true ||
+        streamingOptions.includeLanguageDetection === true)
     ) {
       throw new InvalidArgumentError({
         argument: 'providerOptions',
         message:
-          'providerOptions.elevenlabs.streaming.filterBackgroundAudio cannot be combined with includeTimestamps',
+          'providerOptions.elevenlabs.streaming.filterBackgroundAudio cannot be combined with includeTimestamps or includeLanguageDetection',
       });
     }
 
@@ -298,6 +299,8 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
         abortSignal: options.abortSignal,
         audio: options.audio,
         headers: combineHeaders(this.config.headers?.(), options.headers),
+        includeLanguageDetection:
+          streamingOptions?.includeLanguageDetection === true,
         includeRawChunks: options.includeRawChunks,
         includeTimestamps: streamingOptions?.includeTimestamps === true,
         language: elevenLabsOptions?.languageCode ?? undefined,
@@ -358,13 +361,18 @@ function buildElevenLabsRealtimeTranscriptionUrl({
   const url = new URL(baseUrl);
   url.searchParams.set('model_id', modelId);
   url.searchParams.set('audio_format', inputFormat);
+  const includeDetailedCommit =
+    streamingOptions?.includeTimestamps === true ||
+    streamingOptions?.includeLanguageDetection === true;
 
   const parameters = {
     commit_strategy: streamingOptions?.commitStrategy,
     enable_logging: streamingOptions?.enableLogging,
     filter_background_audio: streamingOptions?.filterBackgroundAudio,
     include_language_detection: streamingOptions?.includeLanguageDetection,
-    include_timestamps: streamingOptions?.includeTimestamps,
+    include_timestamps: includeDetailedCommit
+      ? true
+      : streamingOptions?.includeTimestamps,
     language_code: languageCode,
     min_silence_duration_ms: streamingOptions?.minSilenceDurationMs,
     min_speech_duration_ms: streamingOptions?.minSpeechDurationMs,
@@ -388,6 +396,7 @@ function createElevenLabsRealtimeTranscriptionStream({
   abortSignal,
   audio,
   headers,
+  includeLanguageDetection,
   includeRawChunks,
   includeTimestamps,
   language,
@@ -400,6 +409,7 @@ function createElevenLabsRealtimeTranscriptionStream({
   abortSignal: AbortSignal | undefined;
   audio: ReadableStream<Uint8Array | string>;
   headers: Record<string, string | undefined>;
+  includeLanguageDetection: boolean;
   includeRawChunks: boolean | undefined;
   includeTimestamps: boolean;
   language: string | undefined;
@@ -426,6 +436,8 @@ function createElevenLabsRealtimeTranscriptionStream({
       let committedEventsAtEndOfInput = 0;
       let finalCommitEventCount: number | undefined;
       let timestampedCommitCount = 0;
+      const expectDetailedCommit =
+        includeTimestamps || includeLanguageDetection;
       const finalSegments: Array<{
         text: string;
         startSecond: number;
@@ -578,7 +590,7 @@ function createElevenLabsRealtimeTranscriptionStream({
                 committedEventCount > committedEventsAtEndOfInput
               ) {
                 finalCommitEventCount = committedEventCount;
-                if (!includeTimestamps) finish();
+                if (!expectDetailedCommit) finish();
               }
               break;
             }
@@ -604,18 +616,24 @@ function createElevenLabsRealtimeTranscriptionStream({
                   type: 'transcript-final',
                   id,
                   text,
-                  startSecond: timestampedWords[0]?.start,
-                  endSecond: timestampedWords.at(-1)?.end,
+                  ...(includeTimestamps
+                    ? {
+                        startSecond: timestampedWords[0]?.start,
+                        endSecond: timestampedWords.at(-1)?.end,
+                      }
+                    : {}),
                 });
               }
               timestampedCommitCount++;
-              finalSegments.push(
-                ...timestampedWords.map(word => ({
-                  text: word.text ?? '',
-                  startSecond: word.start,
-                  endSecond: word.end,
-                })),
-              );
+              if (includeTimestamps) {
+                finalSegments.push(
+                  ...timestampedWords.map(word => ({
+                    text: word.text ?? '',
+                    startSecond: word.start,
+                    endSecond: word.end,
+                  })),
+                );
+              }
 
               if (
                 endOfInput &&

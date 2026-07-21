@@ -415,6 +415,57 @@ describe('doStream', () => {
     expect(ws.close).toHaveBeenCalledWith(1000);
   });
 
+  it('detects language without returning timestamps unless requested', async () => {
+    const result = await createElevenLabs({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('scribe_v2_realtime').doStream!({
+      audio: convertArrayToReadableStream([new Uint8Array([1])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: {
+        elevenlabs: {
+          streaming: {
+            includeLanguageDetection: true,
+            includeTimestamps: false,
+          },
+        },
+      },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    const url = new URL(ws.url);
+    expect(url.searchParams.get('include_language_detection')).toBe('true');
+    expect(url.searchParams.get('include_timestamps')).toBe('true');
+
+    ws.open();
+    ws.message({ message_type: 'session_started', session_id: 'session-1' });
+    await flush();
+    ws.message({ message_type: 'committed_transcript', text: 'Hola' });
+    ws.message({
+      message_type: 'committed_transcript_with_timestamps',
+      text: 'Hola',
+      language_code: 'es',
+      words: [{ text: 'Hola', start: 0, end: 0.4, type: 'word' }],
+    });
+
+    await expect(partsPromise).resolves.toEqual([
+      { type: 'stream-start', warnings: [] },
+      {
+        type: 'transcript-final',
+        id: 'session-1:0',
+        text: 'Hola',
+      },
+      {
+        type: 'finish',
+        text: 'Hola',
+        segments: [],
+        language: 'es',
+        durationInSeconds: undefined,
+      },
+    ]);
+  });
+
   it('finishes with committed text when the socket closes before timestamps arrive', async () => {
     const result = await createElevenLabs({
       apiKey: 'test-api-key',
@@ -590,6 +641,26 @@ describe('doStream', () => {
             streaming: {
               filterBackgroundAudio: true,
               includeTimestamps: true,
+            },
+          },
+        },
+      }),
+    ).rejects.toThrow('cannot be combined');
+  });
+
+  it('rejects background filtering together with language detection', async () => {
+    await expect(
+      createElevenLabs({
+        apiKey: 'test-api-key',
+        webSocket: MockWebSocket,
+      }).transcription('scribe_v2_realtime').doStream!({
+        audio: convertArrayToReadableStream([]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+        providerOptions: {
+          elevenlabs: {
+            streaming: {
+              filterBackgroundAudio: true,
+              includeLanguageDetection: true,
             },
           },
         },
