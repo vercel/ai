@@ -1,9 +1,10 @@
 import {
-  LanguageModelV4CallOptions,
-  SharedV4Warning,
   UnsupportedFunctionalityError,
+  type LanguageModelV4CallOptions,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
-import { XaiToolChoice } from './xai-chat-prompt';
+import { removeAdditionalPropertiesFalse } from './remove-additional-properties';
+import type { XaiToolChoice } from './xai-chat-prompt';
 
 export function prepareTools({
   tools,
@@ -58,7 +59,7 @@ export function prepareTools({
         function: {
           name: tool.name,
           description: tool.description,
-          parameters: tool.inputSchema,
+          parameters: removeAdditionalPropertiesFalse(tool.inputSchema),
           ...(tool.strict != null ? { strict: tool.strict } : {}),
         },
       });

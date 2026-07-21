@@ -41,7 +41,7 @@ ai ─────────────────┬──▶ @ai-sdk/provi
 
 ### Requirements
 
-- **Node.js**: v18, v20, or v22 (v22 recommended for development)
+- **Node.js**: v22, v24, or v26 (v22 recommended for development)
 - **pnpm**: v10+ (`npm install -g pnpm@10`)
 
 ### Initial Setup
@@ -60,7 +60,7 @@ pnpm build          # Build all packages
 | `pnpm install`           | Install dependencies                                              |
 | `pnpm build`             | Build all packages                                                |
 | `pnpm test`              | Run all tests (excludes examples)                                 |
-| `pnpm check`             | Run linting (oxlint) and formatting (oxfmt) checks               |
+| `pnpm check`             | Run linting (oxlint) and formatting (oxfmt) checks                |
 | `pnpm fix`               | Fix linting and formatting issues                                 |
 | `pnpm type-check:full`   | TypeScript type checking (includes examples)                      |
 | `pnpm changeset`         | Add a changeset for your PR                                       |
@@ -233,6 +233,19 @@ For a focused conceptual walkthrough of AI functions, model specifications, and 
 - Use `.nullish()` instead of `.optional()`
 - Keep minimal - only include properties you need
 - Allow flexibility for provider API changes
+
+**Fetching URLs from responses**:
+
+- Every `getFromApi` call in this repository must set `validateUrl` explicitly
+  (the option is optional for backwards compatibility with external callers, but
+  omitting it skips validation — never rely on that; the
+  `ai-sdk/require-validate-url` oxlint rule fails `pnpm check` otherwise). Use
+  `true` when the URL comes from a provider response body (image/audio/video
+  download or a polling URL); use `false` only for URLs built from a configured
+  `baseURL`.
+- Pass `credentialedOrigin` when a response URL may legitimately carry the API
+  key on its first hop, so credentials are withheld off-origin.
+- See [contributing/secure-url-handling.md](contributing/secure-url-handling.md).
 
 ### Adding New Packages
 

@@ -1,9 +1,9 @@
 import {
   JSONParseError,
-  SharedV4Warning,
-  LanguageModelV4StreamPart,
   TypeValidationError,
-  LanguageModelV4Usage,
+  type SharedV4Warning,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
 import {
@@ -19,9 +19,9 @@ import { verifyNoObjectGeneratedError } from '../error/verify-no-object-generate
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { createMockServerResponse } from '../test/mock-server-response';
-import { AsyncIterableStream } from '../util/async-iterable-stream';
+import type { AsyncIterableStream } from '../util/async-iterable-stream';
 import { streamObject } from './stream-object';
-import { StreamObjectResult } from './stream-object-result';
+import type { StreamObjectResult } from './stream-object-result';
 import { asLanguageModelUsage } from '../types/usage';
 
 const testUsage: LanguageModelV4Usage = {
@@ -360,7 +360,6 @@ describe('streamObject', () => {
 
         expect(await result.usage).toMatchInlineSnapshot(`
           {
-            "cachedInputTokens": undefined,
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
               "cacheWriteTokens": undefined,
@@ -373,7 +372,6 @@ describe('streamObject', () => {
             },
             "outputTokens": 10,
             "raw": undefined,
-            "reasoningTokens": undefined,
             "totalTokens": 13,
           }
         `);
@@ -560,7 +558,7 @@ describe('streamObject', () => {
         // consume stream (runs in parallel)
         convertAsyncIterableToArray(result.partialObjectStream);
 
-        expect(result.object).rejects.toThrow(NoObjectGeneratedError);
+        await expect(result.object).rejects.toThrow(NoObjectGeneratedError);
       });
 
       it('should not lead to unhandled promise rejections when the streamed object does not match the schema', async () => {
@@ -1591,7 +1589,7 @@ describe('streamObject', () => {
       // consume stream
       await convertAsyncIterableToArray(result.partialObjectStream);
 
-      expect(result.object).rejects.toThrow(
+      await expect(result.object).rejects.toThrow(
         'No object generated: response did not match schema.',
       );
     });
@@ -1803,7 +1801,7 @@ describe('streamObject', () => {
   });
 
   describe('callbacks', () => {
-    describe('experimental_onStart', () => {
+    describe('onStart', () => {
       it('should call onStart before the model call', async () => {
         const events: string[] = [];
 
@@ -1833,7 +1831,7 @@ describe('streamObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStart: () => {
+          onStart: () => {
             events.push('onStart');
           },
         });
@@ -1843,7 +1841,7 @@ describe('streamObject', () => {
         expect(events).toEqual(['onStart', 'doStream']);
       });
 
-      it('should provide the correct event properties', async () => {
+      it('should send correct information with text prompt', async () => {
         let startEvent: any;
 
         const { partialObjectStream } = streamObject({
@@ -1873,26 +1871,63 @@ describe('streamObject', () => {
           prompt: 'test-prompt',
           temperature: 0.5,
           maxOutputTokens: 100,
-          experimental_onStart: event => {
+          telemetry: {
+            functionId: 'test-function',
+          },
+          onStart: event => {
+            startEvent = event;
+          },
+          _internal: {
+            generateId: () => 'test-call-id',
+          },
+        });
+
+        await convertAsyncIterableToArray(partialObjectStream);
+
+        expect(startEvent).toMatchSnapshot();
+      });
+
+      it('should accept deprecated experimental_telemetry as an alias for telemetry', async () => {
+        let startEvent: any;
+
+        const { partialObjectStream } = streamObject({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                {
+                  type: 'text-delta',
+                  id: '1',
+                  delta: '{ "content": "Hello, world!" }',
+                },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_telemetry: {
+            isEnabled: true,
+            functionId: 'deprecated-fn',
+          },
+          onStart: event => {
             startEvent = event;
           },
         });
 
         await convertAsyncIterableToArray(partialObjectStream);
 
-        expect(startEvent.operationId).toBe('ai.streamObject');
-        expect(startEvent.provider).toBe('test-provider');
-        expect(startEvent.modelId).toBe('test-model');
-        expect(startEvent.prompt).toBe('test-prompt');
-        expect(startEvent.temperature).toBe(0.5);
-        expect(startEvent.maxOutputTokens).toBe(100);
-        expect(startEvent.schemaName).toBe('test-schema');
-        expect(startEvent.schemaDescription).toBe('A test schema');
-        expect(startEvent.callId).toBeDefined();
+        expect(startEvent).not.toHaveProperty('isEnabled');
+        expect(startEvent).not.toHaveProperty('functionId');
       });
     });
 
-    describe('experimental_onStepStart', () => {
+    describe('onStepStart', () => {
       it('should call onStepStart before the model call', async () => {
         const events: string[] = [];
 
@@ -1922,7 +1957,7 @@ describe('streamObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStepStart: () => {
+          onStepStart: () => {
             events.push('onStepStart');
           },
         });
@@ -1958,7 +1993,7 @@ describe('streamObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStepStart: event => {
+          onStepStart: event => {
             stepStartEvent = event;
           },
         });
@@ -2088,10 +2123,10 @@ describe('streamObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStart: () => {
+          onStart: () => {
             events.push('onStart');
           },
-          experimental_onStepStart: () => {
+          onStepStart: () => {
             events.push('onStepStart');
           },
           onStepFinish: () => {
@@ -2137,10 +2172,10 @@ describe('streamObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStart: event => {
+          onStart: event => {
             callIds.push(event.callId);
           },
-          experimental_onStepStart: event => {
+          onStepStart: event => {
             callIds.push(event.callId);
           },
           onStepFinish: event => {
@@ -2181,10 +2216,10 @@ describe('streamObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStart: () => {
+          onStart: () => {
             throw new Error('onStart error');
           },
-          experimental_onStepStart: () => {
+          onStepStart: () => {
             throw new Error('onStepStart error');
           },
           onStepFinish: () => {

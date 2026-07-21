@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV2,
   LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,

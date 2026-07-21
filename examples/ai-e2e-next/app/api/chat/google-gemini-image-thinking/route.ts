@@ -1,5 +1,10 @@
 import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
-import { streamText, convertToModelMessages } from 'ai';
+import {
+  createUIMessageStreamResponse,
+  streamText,
+  convertToModelMessages,
+  toUIMessageStream,
+} from 'ai';
 
 export const maxDuration = 30;
 
@@ -21,5 +26,7 @@ export async function POST(req: Request) {
     includeRawChunks: true,
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }

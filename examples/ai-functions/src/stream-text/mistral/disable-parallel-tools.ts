@@ -1,6 +1,6 @@
 import { streamText, tool } from 'ai';
 import { z } from 'zod';
-import { mistral, type MistralLanguageModelOptions } from '@ai-sdk/mistral';
+import { mistral, type MistralLanguageModelChatOptions } from '@ai-sdk/mistral';
 import { run } from '../../lib/run';
 
 run(async () => {
@@ -23,11 +23,11 @@ run(async () => {
     providerOptions: {
       mistral: {
         parallelToolCalls: false,
-      } satisfies MistralLanguageModelOptions,
+      } satisfies MistralLanguageModelChatOptions,
     },
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'text-delta': {
         process.stdout.write(chunk.text);

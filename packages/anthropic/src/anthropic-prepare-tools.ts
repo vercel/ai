@@ -1,10 +1,11 @@
 import {
-  LanguageModelV4CallOptions,
-  SharedV4Warning,
   UnsupportedFunctionalityError,
+  type LanguageModelV4CallOptions,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
-import { AnthropicTool, AnthropicToolChoice } from './anthropic-messages-api';
+import type { AnthropicTool, AnthropicToolChoice } from './anthropic-api';
 import { CacheControlValidator } from './get-cache-control';
+import { advisor_20260301ArgsSchema } from './tool/advisor_20260301';
 import { textEditor_20250728ArgsSchema } from './tool/text-editor_20250728';
 import { webSearch_20260209ArgsSchema } from './tool/web-search_20260209';
 import { webSearch_20250305ArgsSchema } from './tool/web-search_20250305';
@@ -27,6 +28,7 @@ export async function prepareTools({
   cacheControlValidator,
   supportsStructuredOutput,
   supportsStrictTools,
+  defaultEagerInputStreaming = false,
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice: LanguageModelV4CallOptions['toolChoice'] | undefined;
@@ -42,6 +44,12 @@ export async function prepareTools({
    * Whether the model supports strict mode on tool definitions.
    */
   supportsStrictTools: boolean;
+
+  /**
+   * Default for `eager_input_streaming` on function tools that do not set
+   * it explicitly. Driven by the model-level `toolStreaming` option.
+   */
+  defaultEagerInputStreaming?: boolean;
 }): Promise<{
   tools: Array<AnthropicTool> | undefined;
   toolChoice: AnthropicToolChoice | undefined;
@@ -73,8 +81,10 @@ export async function prepareTools({
         const anthropicOptions = tool.providerOptions?.anthropic as
           | AnthropicToolOptions
           | undefined;
-        // eager_input_streaming is only supported on custom (function) tools
-        const eagerInputStreaming = anthropicOptions?.eagerInputStreaming;
+        // eager_input_streaming is only supported on custom (function) tools.
+        // Fall back to the model-level default when the tool doesn't set it.
+        const eagerInputStreaming =
+          anthropicOptions?.eagerInputStreaming ?? defaultEagerInputStreaming;
         const deferLoading = anthropicOptions?.deferLoading;
         const allowedCallers = anthropicOptions?.allowedCallers;
 
@@ -333,6 +343,22 @@ export async function prepareTools({
             anthropicTools.push({
               type: 'tool_search_tool_bm25_20251119',
               name: 'tool_search_tool_bm25',
+            });
+            break;
+          }
+
+          case 'anthropic.advisor_20260301': {
+            betas.add('advisor-tool-2026-03-01');
+            const args = await validateTypes({
+              value: tool.args,
+              schema: advisor_20260301ArgsSchema,
+            });
+            anthropicTools.push({
+              type: 'advisor_20260301',
+              name: 'advisor',
+              model: args.model,
+              ...(args.maxUses !== undefined && { max_uses: args.maxUses }),
+              ...(args.caching !== undefined && { caching: args.caching }),
             });
             break;
           }

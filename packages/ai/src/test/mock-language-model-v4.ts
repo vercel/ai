@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4GenerateResult,
@@ -47,9 +47,9 @@ export class MockLanguageModelV4 implements LanguageModelV4 {
       this.doGenerateCalls.push(options);
 
       if (typeof doGenerate === 'function') {
-        return doGenerate(options);
+        return await doGenerate(options);
       } else if (Array.isArray(doGenerate)) {
-        return doGenerate[this.doGenerateCalls.length];
+        return doGenerate[this.doGenerateCalls.length - 1];
       } else {
         return doGenerate;
       }
@@ -58,9 +58,9 @@ export class MockLanguageModelV4 implements LanguageModelV4 {
       this.doStreamCalls.push(options);
 
       if (typeof doStream === 'function') {
-        return doStream(options);
+        return await doStream(options);
       } else if (Array.isArray(doStream)) {
-        return doStream[this.doStreamCalls.length];
+        return doStream[this.doStreamCalls.length - 1];
       } else {
         return doStream;
       }
@@ -68,7 +68,7 @@ export class MockLanguageModelV4 implements LanguageModelV4 {
     this._supportedUrls =
       typeof supportedUrls === 'function'
         ? supportedUrls
-        : async () => supportedUrls;
+        : async () => await supportedUrls;
   }
 
   get supportedUrls() {

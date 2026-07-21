@@ -36,7 +36,6 @@ Navigate to `http://localhost:3000/mcp-elicitation`
 ## Usage
 
 1. Type a message in the chat input, such as:
-
    - "register me as a new user"
    - "help me sign up for an account"
    - "I'd like to create a new account"
@@ -44,14 +43,12 @@ Navigate to `http://localhost:3000/mcp-elicitation`
 2. The AI will call the `register_user` tool, which triggers an elicitation request.
 
 3. A modal will appear asking you to fill in registration information:
-
    - Username (required)
    - Email (required)
    - Password (required)
    - Newsletter subscription (optional, defaults to false)
 
 4. You can:
-
    - **Submit**: Accept and send the filled form data
    - **Decline**: Reject providing the information
    - **Cancel**: Cancel the entire operation

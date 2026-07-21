@@ -1,13 +1,14 @@
 import {
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4Content,
-  LanguageModelV4FinishReason,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4StreamPart,
-  LanguageModelV4StreamResult,
-  LanguageModelV4Usage,
-  SharedV4Warning,
+  APICallError,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type LanguageModelV4Usage,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -18,22 +19,25 @@ import {
   jsonSchema,
   mapReasoningToProviderEffort,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { convertToOpenResponsesInput } from './convert-to-open-responses-input';
 import {
-  FunctionToolParam,
-  OpenResponsesRequestBody,
-  OpenResponsesResponseBody,
-  OpenResponsesChunk,
   openResponsesErrorSchema,
-  ToolChoiceParam,
+  type FunctionToolParam,
+  type OpenResponsesRequestBody,
+  type OpenResponsesResponseBody,
+  type OpenResponsesChunk,
+  type ToolChoiceParam,
 } from './open-responses-api';
 import { mapOpenResponsesFinishReason } from './map-open-responses-finish-reason';
-import { OpenResponsesConfig } from './open-responses-config';
-import { openResponsesOptionsSchema } from './open-responses-options';
+import type { OpenResponsesConfig } from './open-responses-config';
+import { openResponsesLanguageModelOptions } from './open-responses-language-model-options';
 
 export class OpenResponsesLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
@@ -41,6 +45,20 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
   readonly modelId: string;
 
   private readonly config: OpenResponsesConfig;
+
+  static [WORKFLOW_SERIALIZE](model: OpenResponsesLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: OpenResponsesConfig;
+  }) {
+    return new OpenResponsesLanguageModel(options.modelId, options.config);
+  }
 
   constructor(modelId: string, config: OpenResponsesConfig) {
     this.modelId = modelId;
@@ -135,7 +153,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
     const openResponsesOptions = await parseProviderOptions({
       provider: this.config.providerOptionsName,
       providerOptions,
-      schema: openResponsesOptionsSchema,
+      schema: openResponsesLanguageModelOptions,
     });
 
     const resolvedReasoningEffort = isCustomReasoning(reasoning)
@@ -195,7 +213,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: this.config.url,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: openResponsesErrorSchema,
@@ -211,10 +229,37 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       fetch: this.config.fetch,
     });
 
+    if (response.error) {
+      throw new APICallError({
+        message: response.error.message,
+        url: this.config.url,
+        requestBodyValues: body,
+        statusCode: 400,
+        responseHeaders,
+        responseBody: rawResponse as string,
+        isRetryable: false,
+      });
+    }
+
+    if (response.output == null) {
+      const detail = response.incomplete_details?.reason ?? response.status;
+      throw new APICallError({
+        message: detail
+          ? `Responses API returned no output (${detail})`
+          : 'Responses API returned no output',
+        url: this.config.url,
+        requestBodyValues: body,
+        statusCode: 500,
+        responseHeaders,
+        responseBody: rawResponse as string,
+        isRetryable: false,
+      });
+    }
+
     const content: Array<LanguageModelV4Content> = [];
     let hasToolCalls = false;
 
-    for (const part of response.output!) {
+    for (const part of response.output) {
       switch (part.type) {
         // TODO AI SDK 7 adjust reasoning in the specification to better support the reasoning structure from open responses.
         case 'reasoning': {
@@ -300,7 +345,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: {
         ...body,
         stream: true,
@@ -309,7 +354,6 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
         errorSchema: openResponsesErrorSchema,
         errorToMessage: error => error.error.message,
       }),
-      // TODO consider validation
       successfulResponseHandler: createEventSourceResponseHandler(z.any()),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -363,10 +407,10 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       unified: 'other',
       raw: undefined,
     };
-    const toolCallsByItemId: Record<
+    const toolCallsByItemId = new Map<
       string,
       { toolName?: string; toolCallId?: string; arguments?: string }
-    > = {};
+    >();
 
     return {
       stream: response.pipeThrough(
@@ -398,41 +442,43 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
               chunk.type === 'response.output_item.added' &&
               chunk.item.type === 'function_call'
             ) {
-              toolCallsByItemId[chunk.item.id] = {
+              toolCallsByItemId.set(chunk.item.id, {
                 toolName: chunk.item.name,
                 toolCallId: chunk.item.call_id,
                 arguments: chunk.item.arguments,
-              };
+              });
             } else if (
-              (chunk as { type: string }).type ===
-              'response.function_call_arguments.delta'
+              chunk.type === 'response.function_call_arguments.delta'
             ) {
-              const functionCallChunk = chunk as {
-                item_id: string;
-                delta: string;
-              };
-              const toolCall =
-                toolCallsByItemId[functionCallChunk.item_id] ??
-                (toolCallsByItemId[functionCallChunk.item_id] = {});
+              const functionCallChunk = chunk;
+              const toolCall = toolCallsByItemId.get(functionCallChunk.item_id);
+
+              if (toolCall == null) {
+                toolCallsByItemId.set(functionCallChunk.item_id, {
+                  arguments: functionCallChunk.delta,
+                });
+                return;
+              }
+
               toolCall.arguments =
                 (toolCall.arguments ?? '') + functionCallChunk.delta;
-            } else if (
-              (chunk as { type: string }).type ===
-              'response.function_call_arguments.done'
-            ) {
-              const functionCallChunk = chunk as {
-                item_id: string;
-                arguments: string;
-              };
-              const toolCall =
-                toolCallsByItemId[functionCallChunk.item_id] ??
-                (toolCallsByItemId[functionCallChunk.item_id] = {});
+            } else if (chunk.type === 'response.function_call_arguments.done') {
+              const functionCallChunk = chunk;
+              const toolCall = toolCallsByItemId.get(functionCallChunk.item_id);
+
+              if (toolCall == null) {
+                toolCallsByItemId.set(functionCallChunk.item_id, {
+                  arguments: functionCallChunk.arguments,
+                });
+                return;
+              }
+
               toolCall.arguments = functionCallChunk.arguments;
             } else if (
               chunk.type === 'response.output_item.done' &&
               chunk.item.type === 'function_call'
             ) {
-              const toolCall = toolCallsByItemId[chunk.item.id];
+              const toolCall = toolCallsByItemId.get(chunk.item.id);
               const toolName = toolCall?.toolName ?? chunk.item.name;
               const toolCallId = toolCall?.toolCallId ?? chunk.item.call_id;
               const input = toolCall?.arguments ?? chunk.item.arguments ?? '';
@@ -445,7 +491,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
               });
               hasToolCalls = true;
 
-              delete toolCallsByItemId[chunk.item.id];
+              toolCallsByItemId.delete(chunk.item.id);
             }
 
             // Reasoning events (note: response.reasoning_text.delta is an LM Studio extension, not in official spec)

@@ -2,7 +2,7 @@
 
 import ChatInput from '@/components/chat-input';
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, UIMessage, type FinishReason } from 'ai';
+import { DefaultChatTransport, type FinishReason, type UIMessage } from 'ai';
 import { useState } from 'react';
 
 type MyMessage = UIMessage<

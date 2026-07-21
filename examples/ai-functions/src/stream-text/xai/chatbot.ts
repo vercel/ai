@@ -1,5 +1,5 @@
 import { xai } from '@ai-sdk/xai';
-import { isStepCount, ModelMessage, streamText, tool } from 'ai';
+import { isStepCount, streamText, tool, type ModelMessage } from 'ai';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';
 import { run } from '../../lib/run';
@@ -18,7 +18,7 @@ run(async () => {
     messages.push({ role: 'user', content: userInput });
 
     const result = streamText({
-      model: xai('grok-3-beta'),
+      model: xai('grok-4.5'),
       tools: {
         weather: tool({
           description: 'Get the weather in a location',

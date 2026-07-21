@@ -3,7 +3,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig([
   {
     entry: ['src/index.ts'],
-    format: ['cjs', 'esm'],
+    format: ['esm'],
     dts: true,
     sourcemap: true,
     define: {
@@ -16,7 +16,7 @@ export default defineConfig([
   },
   {
     entry: ['src/edge/index.ts'],
-    format: ['cjs', 'esm'],
+    format: ['esm'],
     dts: true,
     sourcemap: true,
     define: {
@@ -29,7 +29,7 @@ export default defineConfig([
   },
   {
     entry: ['src/anthropic/index.ts'],
-    format: ['cjs', 'esm'],
+    format: ['esm'],
     dts: true,
     sourcemap: true,
     define: {
@@ -42,7 +42,7 @@ export default defineConfig([
   },
   {
     entry: ['src/anthropic/edge/index.ts'],
-    format: ['cjs', 'esm'],
+    format: ['esm'],
     dts: true,
     sourcemap: true,
     define: {
@@ -55,7 +55,7 @@ export default defineConfig([
   },
   {
     entry: ['src/maas/index.ts'],
-    format: ['cjs', 'esm'],
+    format: ['esm'],
     dts: true,
     sourcemap: true,
     define: {
@@ -68,7 +68,7 @@ export default defineConfig([
   },
   {
     entry: ['src/maas/edge/index.ts'],
-    format: ['cjs', 'esm'],
+    format: ['esm'],
     dts: true,
     sourcemap: true,
     define: {
@@ -78,5 +78,31 @@ export default defineConfig([
       ),
     },
     outDir: 'dist/maas/edge',
+  },
+  {
+    entry: ['src/xai/index.ts'],
+    format: ['esm'],
+    dts: true,
+    sourcemap: true,
+    define: {
+      __PACKAGE_VERSION__: JSON.stringify(
+        (await import('./package.json', { with: { type: 'json' } })).default
+          .version,
+      ),
+    },
+    outDir: 'dist/xai',
+  },
+  {
+    entry: ['src/xai/edge/index.ts'],
+    format: ['esm'],
+    dts: true,
+    sourcemap: true,
+    define: {
+      __PACKAGE_VERSION__: JSON.stringify(
+        (await import('./package.json', { with: { type: 'json' } })).default
+          .version,
+      ),
+    },
+    outDir: 'dist/xai/edge',
   },
 ]);

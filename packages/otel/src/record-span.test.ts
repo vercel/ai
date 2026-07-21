@@ -1,4 +1,4 @@
-import { Span } from '@opentelemetry/api';
+import type { Span } from '@opentelemetry/api';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { recordSpan, recordErrorOnSpan } from './record-span';
 import { MockTracer } from './mock-tracer';

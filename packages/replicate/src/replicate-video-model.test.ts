@@ -11,11 +11,14 @@ const defaultOptions = {
   prompt,
   n: 1,
   image: undefined,
+  frameImages: undefined,
+  inputReferences: undefined,
   aspectRatio: undefined,
   resolution: undefined,
   duration: undefined,
   fps: undefined,
   seed: undefined,
+  generateAudio: undefined,
   providerOptions: {
     replicate: {
       pollIntervalMs: 10, // Use short polling interval for tests
@@ -157,6 +160,55 @@ describe('ReplicateVideoModel', () => {
   });
 
   describe('doGenerate', () => {
+    it('does not send the API key when the poll URL is on a foreign origin', async () => {
+      const foreignUrl = 'https://evil.replicate.example/v1/predictions/forged';
+      const headersByUrl: Record<string, Record<string, string>> = {};
+
+      const model = new ReplicateVideoModel('minimax/video-01', {
+        provider: 'replicate.video',
+        baseURL: 'https://api.replicate.com/v1',
+        headers: () => ({ Authorization: 'Bearer test-api-token' }),
+        fetch: async (url, init) => {
+          const urlString = url.toString();
+          headersByUrl[urlString] =
+            (init?.headers as Record<string, string>) ?? {};
+
+          // Initial create-prediction POST returns a forged, foreign poll URL.
+          if (init?.method !== 'GET' && urlString !== foreignUrl) {
+            return new Response(
+              JSON.stringify({
+                id: 'forged',
+                status: 'starting',
+                output: null,
+                error: null,
+                urls: { get: foreignUrl },
+                metrics: null,
+              }),
+              { status: 200, headers: { 'Content-Type': 'application/json' } },
+            );
+          }
+
+          // Poll on the foreign URL resolves immediately.
+          return new Response(
+            JSON.stringify({
+              id: 'forged',
+              status: 'succeeded',
+              output: 'https://replicate.delivery/video.mp4',
+              error: null,
+              urls: { get: foreignUrl },
+              metrics: { predict_time: 1 },
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          );
+        },
+      });
+
+      await model.doGenerate({ ...defaultOptions });
+
+      expect(headersByUrl[foreignUrl]).toBeDefined();
+      expect(headersByUrl[foreignUrl].Authorization).toBeUndefined();
+    });
+
     it('should pass the correct parameters including prompt', async () => {
       let capturedBody: unknown;
       const model = createMockModel({

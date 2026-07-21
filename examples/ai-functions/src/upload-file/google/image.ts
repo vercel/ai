@@ -26,8 +26,8 @@ run(async () => {
             text: 'Describe what you see in this image.',
           },
           {
-            type: 'image',
-            image: providerReference,
+            type: 'file',
+            data: providerReference,
             mediaType: String(
               providerMetadata?.google?.mimeType || 'image/png',
             ),

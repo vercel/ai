@@ -2,7 +2,7 @@ import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
 } from '@ai-sdk/provider-utils/test';
-import { UIMessageChunk } from './ui-message-chunks';
+import type { UIMessageChunk } from './ui-message-chunks';
 import { readUIMessageStream } from './read-ui-message-stream';
 import { describe, it, expect } from 'vitest';
 

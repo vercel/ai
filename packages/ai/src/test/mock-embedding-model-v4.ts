@@ -1,4 +1,4 @@
-import { EmbeddingModelV4 } from '@ai-sdk/provider';
+import type { EmbeddingModelV4 } from '@ai-sdk/provider';
 import { notImplemented } from './not-implemented';
 
 export class MockEmbeddingModelV4 implements EmbeddingModelV4 {
@@ -39,7 +39,7 @@ export class MockEmbeddingModelV4 implements EmbeddingModelV4 {
       if (typeof doEmbed === 'function') {
         return doEmbed(options);
       } else if (Array.isArray(doEmbed)) {
-        return doEmbed[this.doEmbedCalls.length];
+        return doEmbed[this.doEmbedCalls.length - 1];
       } else {
         return doEmbed;
       }

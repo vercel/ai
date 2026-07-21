@@ -1,4 +1,4 @@
-import { JSONSchema7 } from '@ai-sdk/provider';
+import type { JSONSchema7 } from '@ai-sdk/provider';
 import { describe, expect, it } from 'vitest';
 import { addAdditionalPropertiesToJsonSchema } from './add-additional-properties-to-json-schema';
 

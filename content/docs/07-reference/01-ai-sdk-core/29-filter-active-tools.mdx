@@ -7,7 +7,7 @@ description: Filter a tool set to the currently active tools (API Reference)
 
 <Note type="warning">`filterActiveTools` is an experimental feature.</Note>
 
-`filterActiveTools` filters a tool set to only the tool names listed in `activeTools`.
+`filterActiveTools` filters a tool set to only the string tool names listed in `activeTools`.
 If `activeTools` is `undefined`, it returns the original tool set.
 If `tools` is `undefined`, it returns `undefined`.
 
@@ -56,7 +56,7 @@ const filteredTools = filterActiveTools({
     },
     {
       name: 'activeTools',
-      type: 'readonly (keyof TOOLS)[] | undefined',
+      type: 'ActiveTools<TOOLS>',
       description:
         'The names of the tools that should remain active. When omitted, all tools are returned.',
     },
@@ -69,3 +69,15 @@ The filtered tool set, or `undefined` when `tools` is `undefined`.
 
 When `activeTools` is provided as a literal array such as `["weather"] as const`,
 TypeScript narrows the return type to only that subset of tools.
+
+## Types
+
+### `ActiveTools`
+
+```ts
+type ActiveTools<TOOLS extends ToolSet> =
+  | ReadonlyArray<keyof TOOLS & string>
+  | undefined;
+```
+
+`ActiveTools` only accepts string keys from the tool set because tool names are strings at runtime.

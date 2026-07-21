@@ -135,7 +135,10 @@ describe('ProdiaLanguageModel', () => {
               {
                 type: 'file',
                 mediaType: 'image/png',
-                data: new Uint8Array([1, 2, 3]),
+                data: {
+                  type: 'data' as const,
+                  data: new Uint8Array([1, 2, 3]),
+                },
               },
               { type: 'text', text: 'Describe this image' },
             ],
@@ -149,6 +152,81 @@ describe('ProdiaLanguageModel', () => {
       expect(server.calls[0].requestHeaders['content-type']).toContain(
         'multipart/form-data',
       );
+    });
+
+    it('routes top-level-only "image" mediaType into multipart input with detected full MIME', async () => {
+      const PNG_BYTES = new Uint8Array([
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+      ]);
+
+      let capturedFormData: FormData | undefined;
+      const model = createBasicModel({
+        fetch: async (url, init) => {
+          if (init?.body instanceof FormData) {
+            capturedFormData = init.body;
+          }
+          return globalThis.fetch(url, init);
+        },
+      });
+
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image',
+                data: { type: 'data' as const, data: PNG_BYTES },
+              },
+              { type: 'text', text: 'Describe this image' },
+            ],
+          },
+        ],
+        providerOptions: {},
+      });
+
+      expect(capturedFormData).toBeDefined();
+      const inputBlob = capturedFormData!.get('input') as Blob;
+      expect(inputBlob).toBeInstanceOf(Blob);
+      expect(inputBlob.type).toBe('image/png');
+    });
+
+    it('top-level-only "image" mediaType with undetectable bytes keeps default content-type', async () => {
+      let capturedFormData: FormData | undefined;
+      const model = createBasicModel({
+        fetch: async (url, init) => {
+          if (init?.body instanceof FormData) {
+            capturedFormData = init.body;
+          }
+          return globalThis.fetch(url, init);
+        },
+      });
+
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image',
+                data: {
+                  type: 'data' as const,
+                  data: new Uint8Array([0x00, 0x01, 0x02]),
+                },
+              },
+              { type: 'text', text: 'Describe this image' },
+            ],
+          },
+        ],
+        providerOptions: {},
+      });
+
+      expect(capturedFormData).toBeDefined();
+      const inputBlob = capturedFormData!.get('input') as Blob;
+      expect(inputBlob).toBeInstanceOf(Blob);
+      expect(inputBlob.type).toBe('image/png');
     });
 
     it('includes system message in prompt', async () => {
@@ -237,11 +315,14 @@ describe('ProdiaLanguageModel', () => {
       expect(fileParts[0].type).toBe('file');
       if (fileParts[0].type === 'file') {
         expect(fileParts[0].mediaType).toBe('image/png');
-        expect(
-          Buffer.from(
-            fileParts[0].data as Uint8Array<ArrayBufferLike>,
-          ).toString(),
-        ).toBe('test-image-bytes');
+        expect(fileParts[0].data.type).toBe('data');
+        if (fileParts[0].data.type === 'data') {
+          expect(
+            Buffer.from(
+              fileParts[0].data.data as Uint8Array<ArrayBufferLike>,
+            ).toString(),
+          ).toBe('test-image-bytes');
+        }
       }
     });
 

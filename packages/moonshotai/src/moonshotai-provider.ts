@@ -1,18 +1,18 @@
-import { ProviderErrorStructure } from '@ai-sdk/openai-compatible';
+import type { ProviderErrorStructure } from '@ai-sdk/openai-compatible';
 import {
-  LanguageModelV4,
   NoSuchModelError,
-  ProviderV4,
+  type LanguageModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { MoonshotAIChatLanguageModel } from './moonshotai-chat-language-model';
-import { MoonshotAIChatModelId } from './moonshotai-chat-options';
+import type { MoonshotAIChatModelId } from './moonshotai-chat-options';
 import { VERSION } from './version';
 
 export type MoonshotAIErrorData = z.infer<typeof moonshotaiErrorSchema>;
@@ -69,6 +69,13 @@ export interface MoonshotAIProvider extends ProviderV4 {
 
 const defaultBaseURL = 'https://api.moonshot.ai/v1';
 
+export function getModelStructuredOutputSupport(
+  modelId: MoonshotAIChatModelId,
+): boolean {
+  if (modelId.startsWith('kimi-k')) return true;
+  return false;
+}
+
 export function createMoonshotAI(
   options: MoonshotAIProviderSettings = {},
 ): MoonshotAIProvider {
@@ -105,6 +112,7 @@ export function createMoonshotAI(
       ...getCommonModelConfig('chat'),
       includeUsage: true,
       errorStructure: moonshotaiErrorStructure,
+      supportsStructuredOutputs: getModelStructuredOutputSupport(modelId),
       transformRequestBody: (args: Record<string, any>) => {
         const thinking = args.thinking as
           | { type?: string; budgetTokens?: number }
@@ -112,6 +120,22 @@ export function createMoonshotAI(
         const reasoningHistory = args.reasoningHistory as string | undefined;
 
         const { thinking: _, reasoningHistory: __, ...rest } = args;
+
+        const schema = rest.response_format?.json_schema?.schema;
+        if (schema != null) {
+          // kimi-k2.5 produces nonsensical output when the top-level `$schema`
+          // keyword injected by the AI SDK is present, even though it otherwise
+          // supports structured outputs. Strip it from the schema sent to
+          // Moonshot; the full original schema is still used for result validation.
+          const { $schema: _$schema, ...schemaWithoutDollarSchema } = schema;
+          rest.response_format = {
+            ...rest.response_format,
+            json_schema: {
+              ...rest.response_format.json_schema,
+              schema: schemaWithoutDollarSchema,
+            },
+          };
+        }
 
         return {
           ...rest,

@@ -7,19 +7,23 @@ import {
   OpenAISpeechModel,
   OpenAITranscriptionModel,
 } from '@ai-sdk/openai/internal';
+import { DeepSeekChatLanguageModel } from '@ai-sdk/deepseek/internal';
 import {
-  EmbeddingModelV4,
-  LanguageModelV4,
-  ProviderV4,
-  ImageModelV4,
-  SpeechModelV4,
-  TranscriptionModelV4,
+  InvalidArgumentError,
+  type EmbeddingModelV4,
+  type LanguageModelV4,
+  type ProviderV4,
+  type ImageModelV4,
+  type SpeechModelV4,
+  type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   loadSetting,
+  normalizeHeaders,
+  withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { azureOpenaiTools } from './azure-openai-tools';
 import { VERSION } from './version';
@@ -36,6 +40,11 @@ export interface AzureOpenAIProvider extends ProviderV4 {
    * Creates an Azure OpenAI chat model for text generation.
    */
   chat(deploymentId: string): LanguageModelV4;
+
+  /**
+   * Creates an Azure-hosted DeepSeek chat model for text generation.
+   */
+  deepseek(deploymentId: string): LanguageModelV4;
 
   /**
    * Creates an Azure OpenAI responses API model for text generation.
@@ -105,7 +114,8 @@ export interface AzureOpenAIProviderSettings {
    * Use a different URL prefix for API calls, e.g. to use proxy servers. Either this or `resourceName` can be used.
    * When a baseURL is provided, the resourceName is ignored.
    *
-   * With a baseURL, the resolved URL is `{baseURL}/v1{path}`.
+   * With an Azure OpenAI baseURL, the resolved URL is `{baseURL}/v1{path}`.
+   * With a non-Azure custom gateway baseURL, the resolved URL is `{baseURL}{path}`.
    */
   baseURL?: string;
 
@@ -113,6 +123,13 @@ export interface AzureOpenAIProviderSettings {
    * API key for authenticating requests.
    */
   apiKey?: string;
+
+  /**
+   * A function that returns an access token for Microsoft Entra
+   * (formerly known as Azure Active Directory), which will be invoked
+   * on every request.
+   */
+  tokenProvider?: (() => Promise<string>) | undefined;
 
   /**
    * Custom headers to include in the requests.
@@ -138,23 +155,62 @@ export interface AzureOpenAIProviderSettings {
   useDeploymentBasedUrls?: boolean;
 }
 
+function isAzureOpenAIBaseURL(baseURL: string | undefined) {
+  return (
+    baseURL == null || new URL(baseURL).hostname.endsWith('.openai.azure.com')
+  );
+}
+
 /**
  * Create an Azure OpenAI provider instance.
  */
 export function createAzure(
   options: AzureOpenAIProviderSettings = {},
 ): AzureOpenAIProvider {
+  const tokenProvider = options.tokenProvider;
+
+  if (options.apiKey && tokenProvider) {
+    throw new InvalidArgumentError({
+      argument: 'apiKey/tokenProvider',
+      message:
+        'Both apiKey and tokenProvider were provided. Please use only one authentication method.',
+    });
+  }
+
   const getHeaders = () => {
-    const baseHeaders = {
-      'api-key': loadApiKey({
-        apiKey: options.apiKey,
-        environmentVariableName: 'AZURE_API_KEY',
-        description: 'Azure OpenAI',
-      }),
-      ...options.headers,
-    };
-    return withUserAgentSuffix(baseHeaders, `ai-sdk/azure/${VERSION}`);
+    const authHeaders = tokenProvider
+      ? {}
+      : {
+          'api-key': loadApiKey({
+            apiKey: options.apiKey,
+            environmentVariableName: 'AZURE_API_KEY',
+            description: 'Azure OpenAI',
+          }),
+        };
+
+    return withUserAgentSuffix(
+      {
+        ...authHeaders,
+        ...options.headers,
+      },
+      `ai-sdk/azure/${VERSION}`,
+    );
   };
+
+  const fetch: FetchFunction | undefined = tokenProvider
+    ? async (input, init) => {
+        const headers = normalizeHeaders(init?.headers);
+
+        if (headers.authorization == null) {
+          headers.authorization = `Bearer ${await tokenProvider()}`;
+        }
+
+        return (options.fetch ?? globalThis.fetch)(input, {
+          ...init,
+          headers,
+        });
+      }
+    : options.fetch;
 
   const getResourceName = () =>
     loadSetting({
@@ -165,21 +221,29 @@ export function createAzure(
     });
 
   const apiVersion = options.apiVersion ?? 'v1';
+  const useAzureOpenAIEndpoint = isAzureOpenAIBaseURL(options.baseURL);
 
   const url = ({ path, modelId }: { path: string; modelId: string }) => {
-    const baseUrlPrefix =
-      options.baseURL ?? `https://${getResourceName()}.openai.azure.com/openai`;
+    const baseUrlPrefix = withoutTrailingSlash(
+      options.baseURL ?? `https://${getResourceName()}.openai.azure.com/openai`,
+    );
 
     let fullUrl: URL;
     if (options.useDeploymentBasedUrls) {
       // Use deployment-based format for compatibility with certain Azure OpenAI models
       fullUrl = new URL(`${baseUrlPrefix}/deployments/${modelId}${path}`);
+    } else if (!useAzureOpenAIEndpoint) {
+      // Custom gateways can own Azure routing and versioning themselves.
+      fullUrl = new URL(`${baseUrlPrefix}${path}`);
     } else {
       // Use v1 API format - no deployment ID in URL
       fullUrl = new URL(`${baseUrlPrefix}/v1${path}`);
     }
 
-    fullUrl.searchParams.set('api-version', apiVersion);
+    if (useAzureOpenAIEndpoint || options.useDeploymentBasedUrls) {
+      fullUrl.searchParams.set('api-version', apiVersion);
+    }
+
     return fullUrl.toString();
   };
 
@@ -188,7 +252,18 @@ export function createAzure(
       provider: 'azure.chat',
       url,
       headers: getHeaders,
-      fetch: options.fetch,
+      fetch,
+    });
+
+  const createDeepSeekModel = (deploymentName: string) =>
+    new DeepSeekChatLanguageModel(deploymentName, {
+      provider: 'azure.deepseek',
+      url,
+      headers: getHeaders,
+      fetch,
+      supportsThinking: false,
+      // json_object with thinking enabled makes Azure return the JSON in reasoning_content with empty content
+      supportsStructuredOutputs: true,
     });
 
   const createCompletionModel = (modelId: string) =>
@@ -196,7 +271,7 @@ export function createAzure(
       provider: 'azure.completion',
       url,
       headers: getHeaders,
-      fetch: options.fetch,
+      fetch,
     });
 
   const createEmbeddingModel = (modelId: string) =>
@@ -204,7 +279,7 @@ export function createAzure(
       provider: 'azure.embeddings',
       headers: getHeaders,
       url,
-      fetch: options.fetch,
+      fetch,
     });
 
   const createResponsesModel = (modelId: string) =>
@@ -212,7 +287,7 @@ export function createAzure(
       provider: 'azure.responses',
       url,
       headers: getHeaders,
-      fetch: options.fetch,
+      fetch,
       // Soft-deprecated. TODO: remove in v8
       fileIdPrefixes: ['assistant-'],
     });
@@ -222,7 +297,7 @@ export function createAzure(
       provider: 'azure.image',
       url,
       headers: getHeaders,
-      fetch: options.fetch,
+      fetch,
     });
 
   const createTranscriptionModel = (modelId: string) =>
@@ -230,7 +305,7 @@ export function createAzure(
       provider: 'azure.transcription',
       url,
       headers: getHeaders,
-      fetch: options.fetch,
+      fetch,
     });
 
   const createSpeechModel = (modelId: string) =>
@@ -238,7 +313,7 @@ export function createAzure(
       provider: 'azure.speech',
       url,
       headers: getHeaders,
-      fetch: options.fetch,
+      fetch,
     });
 
   const provider = function (deploymentId: string) {
@@ -254,6 +329,7 @@ export function createAzure(
   provider.specificationVersion = 'v4' as const;
   provider.languageModel = createResponsesModel;
   provider.chat = createChatModel;
+  provider.deepseek = createDeepSeekModel;
   provider.completion = createCompletionModel;
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;

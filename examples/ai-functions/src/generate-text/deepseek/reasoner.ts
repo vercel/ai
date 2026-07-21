@@ -1,11 +1,11 @@
-import { deepseek, DeepSeekChatOptions } from '@ai-sdk/deepseek';
+import { deepSeek, DeepSeekLanguageModelChatOptions } from '@ai-sdk/deepseek';
 import { generateText } from 'ai';
 import { print } from '../../lib/print';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: deepseek('deepseek-reasoner'),
+    model: deepSeek('deepseek-reasoner'),
     prompt: 'How many "r"s are in the word "strawberry"?',
   });
 

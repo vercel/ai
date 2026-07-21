@@ -1,6 +1,6 @@
 import { delay } from '@ai-sdk/provider-utils';
 import { createStreamableUI } from './create-streamable-ui';
-import { describe, it, expect } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // This is a workaround to render the Flight response in a test environment.
 async function flightRender(node: React.ReactNode, byChunk?: boolean) {
@@ -195,49 +195,60 @@ describe('rsc - createStreamableUI()', () => {
     `);
   });
 
-  it('should support streaming .append() result before .done()', async () => {
-    const ui = createStreamableUI(<div>1</div>);
-    ui.append(<div>2</div>);
-    ui.append(<div>3</div>);
+  describe('streaming append result checks', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
 
-    const currentResolved = (ui.value as React.ReactElement).props.children
-      .props.n;
-    const tryResolve1 = await Promise.race([currentResolved, delay()]);
-    expect(tryResolve1).toBeDefined();
-    const tryResolve2 = await Promise.race([tryResolve1.next, delay()]);
-    expect(tryResolve2).toBeDefined();
-    expect(getFinalValueFromResolved(tryResolve2.value)).toMatchInlineSnapshot(`
-      <div>
-        3
-      </div>
-    `);
+    afterEach(() => {
+      vi.useRealTimers();
+    });
 
-    ui.append(<div>4</div>);
-    ui.done();
+    it('should support streaming .append() result before .done()', async () => {
+      const ui = createStreamableUI(<div>1</div>);
+      ui.append(<div>2</div>);
+      ui.append(<div>3</div>);
 
-    const final = getFinalValueFromResolved(
-      await simulateFlightServerRender(ui.value),
-    );
-    expect(final).toMatchInlineSnapshot(`
-      <React.Fragment>
+      const currentResolved = (ui.value as React.ReactElement).props.children
+        .props.n;
+      const tryResolve1 = await Promise.race([currentResolved, delay()]);
+      expect(tryResolve1).toBeDefined();
+      const tryResolve2 = await Promise.race([tryResolve1.next, delay()]);
+      expect(tryResolve2).toBeDefined();
+      expect(getFinalValueFromResolved(tryResolve2.value))
+        .toMatchInlineSnapshot(`
+        <div>
+          3
+        </div>
+      `);
+
+      ui.append(<div>4</div>);
+      ui.done();
+
+      const final = getFinalValueFromResolved(
+        await simulateFlightServerRender(ui.value),
+      );
+      expect(final).toMatchInlineSnapshot(`
         <React.Fragment>
           <React.Fragment>
+            <React.Fragment>
+              <div>
+                1
+              </div>
+              <div>
+                2
+              </div>
+            </React.Fragment>
             <div>
-              1
-            </div>
-            <div>
-              2
+              3
             </div>
           </React.Fragment>
           <div>
-            3
+            4
           </div>
         </React.Fragment>
-        <div>
-          4
-        </div>
-      </React.Fragment>
-    `);
+      `);
+    });
   });
 
   it('should support updating the appended ui', async () => {

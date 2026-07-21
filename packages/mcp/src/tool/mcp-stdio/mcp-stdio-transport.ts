@@ -1,7 +1,7 @@
 import type { ChildProcess, IOType } from 'node:child_process';
-import { Stream } from 'node:stream';
-import { JSONRPCMessage, JSONRPCMessageSchema } from '../json-rpc-message';
-import { MCPTransport } from '../mcp-transport';
+import type { Stream } from 'node:stream';
+import { parseJSONRPCMessage, type JSONRPCMessage } from '../json-rpc-message';
+import type { MCPTransport } from '../mcp-transport';
 import { MCPClientError } from '../../error/mcp-client-error';
 import { createChildProcess } from './create-child-process';
 
@@ -68,7 +68,7 @@ export class StdioMCPTransport implements MCPTransport {
 
         this.process.stdout?.on('data', chunk => {
           this.readBuffer.append(chunk);
-          this.processReadBuffer();
+          void this.processReadBuffer();
         });
 
         this.process.stdout?.on('error', error => {
@@ -81,14 +81,15 @@ export class StdioMCPTransport implements MCPTransport {
     });
   }
 
-  private processReadBuffer() {
+  private async processReadBuffer() {
     while (true) {
-      try {
-        const message = this.readBuffer.readMessage();
-        if (message === null) {
-          break;
-        }
+      const line = this.readBuffer.readLine();
+      if (line === null) {
+        break;
+      }
 
+      try {
+        const message = await deserializeMessage(line);
         this.onmessage?.(message);
       } catch (error) {
         this.onerror?.(error as Error);
@@ -127,7 +128,7 @@ class ReadBuffer {
     this.buffer = this.buffer ? Buffer.concat([this.buffer, chunk]) : chunk;
   }
 
-  readMessage(): JSONRPCMessage | null {
+  readLine(): string | null {
     if (!this.buffer) return null;
 
     const index = this.buffer.indexOf('\n');
@@ -137,7 +138,7 @@ class ReadBuffer {
 
     const line = this.buffer.toString('utf8', 0, index);
     this.buffer = this.buffer.subarray(index + 1);
-    return deserializeMessage(line);
+    return line;
   }
 
   clear(): void {
@@ -149,6 +150,8 @@ function serializeMessage(message: JSONRPCMessage): string {
   return JSON.stringify(message) + '\n';
 }
 
-export function deserializeMessage(line: string): JSONRPCMessage {
-  return JSONRPCMessageSchema.parse(JSON.parse(line));
+export async function deserializeMessage(
+  line: string,
+): Promise<JSONRPCMessage> {
+  return parseJSONRPCMessage(line);
 }

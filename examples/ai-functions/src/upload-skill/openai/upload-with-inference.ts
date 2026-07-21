@@ -17,7 +17,7 @@ run(async () => {
     files: [
       {
         path: 'island-rescue/SKILL.md',
-        content: readFileSync('data/island-rescue/SKILL.md'),
+        data: readFileSync('data/island-rescue/SKILL.md'),
       },
     ],
   });
@@ -35,7 +35,7 @@ run(async () => {
     await new Promise(resolve => setTimeout(resolve, 15000));
 
     const result = await generateText({
-      model: openai.responses('gpt-5.2'),
+      model: openai.responses('gpt-5.6'),
       tools: {
         shell: openai.tools.shell({
           environment: {

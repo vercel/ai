@@ -17,7 +17,7 @@ run(async () => {
   console.log('Provider metadata:', providerMetadata);
 
   const result = streamText({
-    model: xai.responses('grok-4'),
+    model: xai.responses('grok-4.5'),
     messages: [
       {
         role: 'user',
@@ -27,8 +27,9 @@ run(async () => {
             text: 'Describe what you see in this image.',
           },
           {
-            type: 'image',
-            image: providerReference,
+            type: 'file',
+            mediaType: 'image',
+            data: providerReference,
           },
         ],
       },

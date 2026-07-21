@@ -9,11 +9,14 @@ const defaultOptions = {
   prompt,
   n: 1,
   image: undefined,
+  frameImages: undefined,
+  inputReferences: undefined,
   aspectRatio: undefined,
   resolution: undefined,
   duration: undefined,
   fps: undefined,
   seed: undefined,
+  generateAudio: undefined,
   providerOptions: {},
 } as const;
 
@@ -476,6 +479,51 @@ describe('ByteDanceVideoModel', () => {
       });
     });
 
+    it('should map the top-level generateAudio option', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        generateAudio: true,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'seedance-1-0-pro-250528',
+        content: [
+          {
+            type: 'text',
+            text: prompt,
+          },
+        ],
+        generate_audio: true,
+      });
+    });
+
+    it('should let the top-level generateAudio override the legacy provider option', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        generateAudio: false,
+        providerOptions: {
+          bytedance: {
+            generateAudio: true,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'seedance-1-0-pro-250528',
+        content: [
+          {
+            type: 'text',
+            text: prompt,
+          },
+        ],
+        generate_audio: false,
+      });
+    });
+
     it('should pass cameraFixed as camera_fixed', async () => {
       const model = createBasicModel();
 
@@ -601,6 +649,7 @@ describe('ByteDanceVideoModel', () => {
         {
           type: 'image_url',
           image_url: { url: 'https://example.com/first-frame.png' },
+          role: 'first_frame',
         },
         {
           type: 'image_url',
@@ -608,6 +657,379 @@ describe('ByteDanceVideoModel', () => {
           role: 'last_frame',
         },
       ]);
+    });
+
+    it('should add last frame image from frameImages last_frame with role', async () => {
+      const model = createBasicModel({
+        modelId: 'seedance-1-5-pro-251215',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        image: {
+          type: 'url',
+          url: 'https://example.com/first-frame.png',
+        },
+        frameImages: [
+          {
+            image: { type: 'url', url: 'https://example.com/last-frame.png' },
+            frameType: 'last_frame',
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/first-frame.png' },
+          role: 'first_frame',
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/last-frame.png' },
+          role: 'last_frame',
+        },
+      ]);
+    });
+
+    it('should prefer frameImages last_frame over providerOptions.bytedance.lastFrameImage', async () => {
+      const model = createBasicModel({
+        modelId: 'seedance-1-5-pro-251215',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        image: {
+          type: 'url',
+          url: 'https://example.com/first-frame.png',
+        },
+        frameImages: [
+          {
+            image: { type: 'url', url: 'https://example.com/new-last.png' },
+            frameType: 'last_frame',
+          },
+        ],
+        providerOptions: {
+          bytedance: {
+            lastFrameImage: 'https://example.com/legacy-last.png',
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toContainEqual({
+        type: 'image_url',
+        image_url: { url: 'https://example.com/new-last.png' },
+        role: 'last_frame',
+      });
+    });
+
+    it('should use frameImages first_frame as the starting image', async () => {
+      const model = createBasicModel({
+        modelId: 'seedance-1-5-pro-251215',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        frameImages: [
+          {
+            image: { type: 'url', url: 'https://example.com/first-frame.png' },
+            frameType: 'first_frame',
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/first-frame.png' },
+        },
+      ]);
+    });
+
+    it('should prefer frameImages first_frame over the legacy image option', async () => {
+      const model = createBasicModel({
+        modelId: 'seedance-1-5-pro-251215',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        image: {
+          type: 'url',
+          url: 'https://example.com/legacy-image.png',
+        },
+        frameImages: [
+          {
+            image: { type: 'url', url: 'https://example.com/first-frame.png' },
+            frameType: 'first_frame',
+          },
+          {
+            image: { type: 'url', url: 'https://example.com/last-frame.png' },
+            frameType: 'last_frame',
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/first-frame.png' },
+          role: 'first_frame',
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/last-frame.png' },
+          role: 'last_frame',
+        },
+      ]);
+    });
+
+    it('should send only last_frame when only last_frame is provided without a legacy image', async () => {
+      const model = createBasicModel({
+        modelId: 'seedance-1-5-pro-251215',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        image: undefined,
+        frameImages: [
+          {
+            image: { type: 'url', url: 'https://example.com/last-frame.png' },
+            frameType: 'last_frame',
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/last-frame.png' },
+          role: 'last_frame',
+        },
+      ]);
+    });
+
+    it('should add reference images from inputReferences with role', async () => {
+      const model = createBasicModel({
+        modelId: 'seedance-1-0-lite-i2v-250428',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          {
+            type: 'url',
+            url: 'https://example.com/ref1.png',
+            mediaType: 'image/png',
+          },
+          {
+            type: 'url',
+            url: 'https://example.com/ref2.png',
+            mediaType: 'image/png',
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/ref1.png' },
+          role: 'reference_image',
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/ref2.png' },
+          role: 'reference_image',
+        },
+      ]);
+    });
+
+    it('should add a reference video from inputReferences with video media type', async () => {
+      const model = createBasicModel({
+        modelId: 'dreamina-seedance-2-0-260128',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          {
+            type: 'url',
+            url: 'https://example.com/a.mp4',
+            mediaType: 'video/mp4',
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'video_url',
+          video_url: { url: 'https://example.com/a.mp4' },
+          role: 'reference_video',
+        },
+      ]);
+    });
+
+    it('should add a reference image from inputReferences with image media type', async () => {
+      const model = createBasicModel({
+        modelId: 'dreamina-seedance-2-0-260128',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          {
+            type: 'url',
+            url: 'https://example.com/a.png',
+            mediaType: 'image/png',
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/a.png' },
+          role: 'reference_image',
+        },
+      ]);
+    });
+
+    it('should route a mix of video and image inputReferences by media type', async () => {
+      const model = createBasicModel({
+        modelId: 'dreamina-seedance-2-0-260128',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          {
+            type: 'url',
+            url: 'https://example.com/a.mp4',
+            mediaType: 'video/mp4',
+          },
+          {
+            type: 'url',
+            url: 'https://example.com/b.png',
+            mediaType: 'image/png',
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'video_url',
+          video_url: { url: 'https://example.com/a.mp4' },
+          role: 'reference_video',
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/b.png' },
+          role: 'reference_image',
+        },
+      ]);
+    });
+
+    it('should warn when a URL inputReference has no mediaType and treat it as an image reference', async () => {
+      const model = createBasicModel({
+        modelId: 'dreamina-seedance-2-0-260128',
+      });
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [{ type: 'url', url: 'https://example.com/a.mp4' }],
+      });
+
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'inputReferences',
+        details:
+          'ByteDance requires an explicit mediaType to route URL references as ' +
+          'video or image. Pass { data: url, mediaType: "video/mp4" } for video ' +
+          'references. The reference was treated as an image.',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/a.mp4' },
+          role: 'reference_image',
+        },
+      ]);
+    });
+
+    it('should prefer inputReferences over providerOptions.bytedance.referenceImages', async () => {
+      const model = createBasicModel({
+        modelId: 'seedance-1-0-lite-i2v-250428',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          { type: 'url', url: 'https://example.com/new-ref.png' },
+        ],
+        providerOptions: {
+          bytedance: {
+            referenceImages: ['https://example.com/legacy-ref.png'],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toContainEqual({
+        type: 'image_url',
+        image_url: { url: 'https://example.com/new-ref.png' },
+        role: 'reference_image',
+      });
+      expect(requestBody.content).not.toContainEqual({
+        type: 'image_url',
+        image_url: { url: 'https://example.com/legacy-ref.png' },
+        role: 'reference_image',
+      });
     });
 
     it('should add reference images with role', async () => {
@@ -648,6 +1070,174 @@ describe('ByteDanceVideoModel', () => {
           type: 'image_url',
           image_url: { url: 'https://example.com/ref3.png' },
           role: 'reference_image',
+        },
+      ]);
+    });
+
+    it('should add reference videos with role', async () => {
+      const model = createBasicModel({
+        modelId: 'dreamina-seedance-2-0-260128',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          bytedance: {
+            referenceVideos: [
+              'https://example.com/ref1.mp4',
+              'https://example.com/ref2.mp4',
+            ],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'video_url',
+          video_url: { url: 'https://example.com/ref1.mp4' },
+          role: 'reference_video',
+        },
+        {
+          type: 'video_url',
+          video_url: { url: 'https://example.com/ref2.mp4' },
+          role: 'reference_video',
+        },
+      ]);
+    });
+
+    it('should add reference audio with role', async () => {
+      const model = createBasicModel({
+        modelId: 'dreamina-seedance-2-0-260128',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          bytedance: {
+            referenceAudio: ['https://example.com/audio.mp3'],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'audio_url',
+          audio_url: { url: 'https://example.com/audio.mp3' },
+          role: 'reference_audio',
+        },
+      ]);
+    });
+
+    it('should add multiple reference audios', async () => {
+      const model = createBasicModel({
+        modelId: 'dreamina-seedance-2-0-260128',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          bytedance: {
+            referenceAudio: [
+              'https://example.com/audio1.mp3',
+              'https://example.com/audio2.mp3',
+              'https://example.com/audio3.mp3',
+            ],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'audio_url',
+          audio_url: { url: 'https://example.com/audio1.mp3' },
+          role: 'reference_audio',
+        },
+        {
+          type: 'audio_url',
+          audio_url: { url: 'https://example.com/audio2.mp3' },
+          role: 'reference_audio',
+        },
+        {
+          type: 'audio_url',
+          audio_url: { url: 'https://example.com/audio3.mp3' },
+          role: 'reference_audio',
+        },
+      ]);
+    });
+
+    it('should support data URI for reference audio', async () => {
+      const model = createBasicModel({
+        modelId: 'dreamina-seedance-2-0-260128',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          bytedance: {
+            referenceAudio: ['data:audio/mp3;base64,SGVsbG8='],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'audio_url',
+          audio_url: { url: 'data:audio/mp3;base64,SGVsbG8=' },
+          role: 'reference_audio',
+        },
+      ]);
+    });
+
+    it('should support reference videos and audio together', async () => {
+      const model = createBasicModel({
+        modelId: 'dreamina-seedance-2-0-260128',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          bytedance: {
+            referenceVideos: ['https://example.com/ref.mp4'],
+            referenceAudio: ['https://example.com/audio.mp3'],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'video_url',
+          video_url: { url: 'https://example.com/ref.mp4' },
+          role: 'reference_video',
+        },
+        {
+          type: 'audio_url',
+          audio_url: { url: 'https://example.com/audio.mp3' },
+          role: 'reference_audio',
         },
       ]);
     });

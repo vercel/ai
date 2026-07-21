@@ -14,5 +14,5 @@ export type {
   BlackForestLabsImageModelOptions,
   /** @deprecated Use `BlackForestLabsImageModelOptions` instead. */
   BlackForestLabsImageModelOptions as BlackForestLabsImageProviderOptions,
-} from './black-forest-labs-image-model';
+} from './black-forest-labs-image-model-options';
 export { VERSION } from './version';

@@ -1,4 +1,4 @@
-import { GeneratedFile } from 'ai';
+import type { GeneratedFile } from 'ai';
 import fs from 'node:fs';
 import path from 'node:path';
 

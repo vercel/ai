@@ -1,4 +1,7 @@
-import { perplexity } from '@ai-sdk/perplexity';
+import {
+  perplexity,
+  type PerplexityLanguageModelOptions,
+} from '@ai-sdk/perplexity';
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
@@ -10,7 +13,7 @@ run(async () => {
     providerOptions: {
       perplexity: {
         search_recency_filter: 'week',
-      },
+      } satisfies PerplexityLanguageModelOptions,
     },
     output: Output.array({
       element: z.object({
@@ -24,5 +27,5 @@ run(async () => {
   console.log();
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
-  console.log('Metadata:', result.providerMetadata);
+  console.log('Metadata:', result.finalStep.providerMetadata);
 });

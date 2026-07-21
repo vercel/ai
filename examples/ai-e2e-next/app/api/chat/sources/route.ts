@@ -1,12 +1,13 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import {
   convertToModelMessages,
-  InferUITool,
+  createUIMessageStreamResponse,
   streamText,
-  UIDataTypes,
-  UIMessage,
+  toUIMessageStream,
+  type InferUITool,
+  type UIDataTypes,
+  type UIMessage,
 } from 'ai';
-
 export type SourcesChatMessage = UIMessage<
   never,
   UIDataTypes,
@@ -28,7 +29,10 @@ export async function POST(req: Request) {
     messages: await convertToModelMessages(messages),
   });
 
-  return result.toUIMessageStreamResponse({
-    sendSources: true,
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      sendSources: true,
+    }),
   });
 }

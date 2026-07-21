@@ -36,9 +36,9 @@ const imageAnalysisTool = tool({
       type: 'content',
       value: [
         {
-          type: 'image-data',
+          type: 'file',
           mediaType: 'image/png',
-          data: output.base64Image!,
+          data: { type: 'data', data: output.base64Image! },
         },
       ],
     };

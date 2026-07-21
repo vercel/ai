@@ -1,6 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
-
+import { ToolLoopAgent, type InferAgentUIMessage } from 'ai';
 import { z } from 'zod';
 
 export const exampleMetadataSchema = z.object({

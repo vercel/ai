@@ -1,10 +1,10 @@
-import { huggingface } from '@ai-sdk/huggingface';
+import { huggingFace } from '@ai-sdk/huggingface';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: huggingface('Qwen/Qwen2.5-VL-32B-Instruct'),
+    model: huggingFace('Qwen/Qwen2.5-VL-32B-Instruct'),
     messages: [
       {
         role: 'user',
@@ -14,9 +14,9 @@ run(async () => {
             text: 'Analyze this image and describe what you see in detail.',
           },
           {
-            type: 'image',
-            image:
-              'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
+            type: 'file',
+            mediaType: 'image',
+            data: 'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
           },
         ],
       },

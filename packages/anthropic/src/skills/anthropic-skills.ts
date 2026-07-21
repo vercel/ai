@@ -1,13 +1,13 @@
-import { SkillsV4, SharedV4Warning } from '@ai-sdk/provider';
+import type { SkillsV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  convertBase64ToUint8Array,
+  convertInlineFileDataToUint8Array,
   createJsonResponseHandler,
-  FetchFunction,
   getFromApi,
   postFormDataToApi,
-  Resolvable,
   resolve,
+  type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from '../anthropic-error';
 import {
@@ -48,6 +48,7 @@ export class AnthropicSkills implements SkillsV4 {
   }): Promise<{ name?: string; description?: string }> {
     const { value: versionResponse } = await getFromApi({
       url: `${this.config.baseURL}/skills/${skillId}/versions/${version}`,
+      validateUrl: false,
       headers,
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -64,9 +65,9 @@ export class AnthropicSkills implements SkillsV4 {
     };
   }
 
-  async upload(
-    params: Parameters<SkillsV4['upload']>[0],
-  ): Promise<Awaited<ReturnType<SkillsV4['upload']>>> {
+  async uploadSkill(
+    params: Parameters<SkillsV4['uploadSkill']>[0],
+  ): Promise<Awaited<ReturnType<SkillsV4['uploadSkill']>>> {
     const warnings: SharedV4Warning[] = [];
 
     const formData = new FormData();
@@ -76,11 +77,7 @@ export class AnthropicSkills implements SkillsV4 {
     }
 
     for (const file of params.files) {
-      const content =
-        typeof file.content === 'string'
-          ? convertBase64ToUint8Array(file.content)
-          : file.content;
-
+      const content = convertInlineFileDataToUint8Array(file.data);
       formData.append('files[]', new Blob([content]), file.path);
     }
 

@@ -1,5 +1,5 @@
-import { LanguageModelV4ToolChoice } from '@ai-sdk/provider';
-import { ToolChoice } from '../types/language-model';
+import type { LanguageModelV4ToolChoice } from '@ai-sdk/provider';
+import type { ToolChoice } from '../types/language-model';
 
 export function prepareToolChoice({
   toolChoice,

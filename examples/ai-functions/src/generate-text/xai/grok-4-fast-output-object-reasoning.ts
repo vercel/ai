@@ -13,7 +13,7 @@ run(async () => {
         occupation: z.string().optional(),
       }),
     }),
-    system: 'identify the person information from the following text',
+    instructions: 'identify the person information from the following text',
     messages: [
       {
         role: 'user',

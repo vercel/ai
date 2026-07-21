@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { z } from 'zod/v3';
 import { parseUnionDef } from './union';
 import { getRefs } from '../refs';
-import { JSONSchema7 } from '@ai-sdk/provider';
+import type { JSONSchema7 } from '@ai-sdk/provider';
 
 describe('union', () => {
   it('Should be possible to get a simple type array from a union of only unvalidated primitives', () => {

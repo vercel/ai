@@ -1,5 +1,12 @@
 import { openai } from '@ai-sdk/openai';
-import { readUIMessageStream, isStepCount, streamText, Tool, tool } from 'ai';
+import {
+  readUIMessageStream,
+  isStepCount,
+  streamText,
+  toUIMessageStream,
+  tool,
+  type Tool,
+} from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -34,7 +41,7 @@ run(async () => {
   });
 
   for await (const uiMessage of readUIMessageStream({
-    stream: result.toUIMessageStream(),
+    stream: toUIMessageStream({ stream: result.stream }),
   })) {
     console.clear();
     console.log(JSON.stringify(uiMessage, null, 2));

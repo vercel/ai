@@ -2,13 +2,16 @@ import type {
   Experimental_VideoModelV4,
   Experimental_VideoModelV4CallOptions,
   Experimental_VideoModelV4File,
+  Experimental_VideoModelV4FrameImage,
+  Experimental_VideoModelV4FrameType,
   SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
-  type DataContent,
-  type ProviderOptions,
   withUserAgentSuffix,
+  type DataContent,
+  detectMediaType,
+  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { NoVideoGeneratedError } from '../error/no-video-generated-error';
 import {
@@ -20,11 +23,6 @@ import { resolveVideoModel } from '../model/resolve-model';
 import type { VideoModel } from '../types/video-model';
 import type { VideoModelResponseMetadata } from '../types/video-model-response-metadata';
 import type { Warning } from '../types/warning';
-import {
-  detectMediaType,
-  imageMediaTypeSignatures,
-  videoMediaTypeSignatures,
-} from '../util/detect-media-type';
 import { createDownload } from '../util/download/create-download';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
@@ -49,6 +47,9 @@ export type GenerateVideoPrompt =
  * @param duration - Duration of the video in seconds.
  * @param fps - Frames per second for the video.
  * @param seed - Seed for the video generation.
+ * @param frameImages - Role-tagged image inputs for image-to-video and first-last-frame generation.
+ * @param inputReferences - Reference image or video inputs for reference-to-video generation.
+ * @param generateAudio - Whether the model should generate audio alongside the video.
  * @param providerOptions - Additional provider-specific options that are passed through to the provider
  * as body parameters.
  * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
@@ -69,6 +70,9 @@ export async function experimental_generateVideo({
   duration,
   fps,
   seed,
+  frameImages,
+  inputReferences,
+  generateAudio,
   providerOptions,
   maxRetries: maxRetriesArg,
   abortSignal,
@@ -121,6 +125,48 @@ export async function experimental_generateVideo({
   seed?: number;
 
   /**
+   * Role-tagged image inputs for image-to-video and first-last-frame generation.
+   */
+  frameImages?: Array<{
+    /**
+     * The image for this frame.
+     */
+    image: DataContent;
+
+    /**
+     * Which frame this image represents.
+     */
+    frameType: Experimental_VideoModelV4FrameType;
+  }>;
+
+  /**
+   * Reference inputs for reference-to-video generation.
+   *
+   * Each entry may be a plain image/video ({@link DataContent}), or an object
+   * form that carries an explicit `mediaType`.
+   */
+  inputReferences?: Array<
+    | DataContent
+    | {
+        /**
+         * The reference image or video.
+         */
+        data: DataContent;
+
+        /**
+         * The media type of the reference (e.g. 'image/png',
+         * 'video/mp4').
+         */
+        mediaType?: string;
+      }
+  >;
+
+  /**
+   * Whether the model should generate audio alongside the video.
+   */
+  generateAudio?: boolean;
+
+  /**
    * Additional provider-specific options that are passed through to the provider
    * as body parameters.
    */
@@ -169,6 +215,58 @@ export async function experimental_generateVideo({
 
   const { prompt, image } = normalizePrompt(promptArg);
 
+  const normalizedFrameImages:
+    | Array<Experimental_VideoModelV4FrameImage>
+    | undefined = frameImages?.flatMap(frame => {
+    const normalizedImage = normalizeImageData(frame.image);
+    return normalizedImage != null
+      ? [{ image: normalizedImage, frameType: frame.frameType }]
+      : [];
+  });
+
+  const normalizedInputReferences:
+    | Array<Experimental_VideoModelV4File>
+    | undefined = inputReferences?.flatMap(reference => {
+    const normalized = normalizeReferenceData(reference);
+    return normalized != null ? [normalized] : [];
+  });
+
+  const effectiveInputReferences =
+    normalizedFrameImages != null && normalizedFrameImages.length > 0
+      ? undefined
+      : normalizedInputReferences;
+
+  const warnings: Array<Warning> = [];
+
+  if (
+    normalizedFrameImages != null &&
+    normalizedFrameImages.length > 0 &&
+    normalizedInputReferences != null &&
+    normalizedInputReferences.length > 0
+  ) {
+    warnings.push({
+      type: 'other',
+      message:
+        'inputReferences were ignored because frameImages were provided; ' +
+        'frameImages and inputReferences cannot be combined.',
+    });
+  }
+
+  const firstFrameImage = normalizedFrameImages?.find(
+    frame => frame.frameType === 'first_frame',
+  )?.image;
+
+  if (image != null && firstFrameImage != null) {
+    warnings.push({
+      type: 'other',
+      message:
+        'prompt.image was ignored because a first_frame frameImage was provided; ' +
+        'the first_frame frameImage takes precedence as the start image.',
+    });
+  }
+
+  const resolvedImage = firstFrameImage ?? image;
+
   const maxVideosPerCallWithDefault =
     maxVideosPerCall ?? (await invokeModelMaxVideosPerCall(model)) ?? 1;
 
@@ -180,28 +278,31 @@ export async function experimental_generateVideo({
   });
 
   const results = await Promise.all(
-    callVideoCounts.map(async callVideoCount =>
-      retry(() =>
-        model.doGenerate({
-          prompt,
-          n: callVideoCount,
-          aspectRatio,
-          resolution,
-          duration,
-          fps,
-          seed,
-          image,
-          providerOptions: providerOptions ?? {},
-          headers: headersWithUserAgent,
-          abortSignal,
-        } satisfies Experimental_VideoModelV4CallOptions),
-      ),
+    callVideoCounts.map(
+      async callVideoCount =>
+        await retry(() =>
+          model.doGenerate({
+            prompt,
+            n: callVideoCount,
+            aspectRatio,
+            resolution,
+            duration,
+            fps,
+            seed,
+            image: resolvedImage,
+            frameImages: normalizedFrameImages,
+            inputReferences: effectiveInputReferences,
+            generateAudio,
+            providerOptions: providerOptions ?? {},
+            headers: headersWithUserAgent,
+            abortSignal,
+          } satisfies Experimental_VideoModelV4CallOptions),
+        ),
     ),
   );
 
   // collect result videos, warnings, and response metadata
   const videos: Array<GeneratedFile> = [];
-  const warnings: Array<Warning> = [];
   const responses: Array<VideoModelResponseMetadata> = [];
   const providerMetadata: SharedV4ProviderMetadata = {};
 
@@ -223,7 +324,7 @@ export async function experimental_generateVideo({
             (isUsableMediaType(downloadedMediaType) && downloadedMediaType) ||
             detectMediaType({
               data,
-              signatures: videoMediaTypeSignatures,
+              topLevelType: 'video',
             }) ||
             'video/mp4';
 
@@ -251,7 +352,7 @@ export async function experimental_generateVideo({
             videoData.mediaType ||
             detectMediaType({
               data: videoData.data,
-              signatures: videoMediaTypeSignatures,
+              topLevelType: 'video',
             }) ||
             'video/mp4';
 
@@ -337,59 +438,111 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
     };
   }
 
-  let image: Experimental_VideoModelV4File | undefined;
+  return {
+    prompt: promptArg.text,
+    image:
+      promptArg.image != null ? normalizeImageData(promptArg.image) : undefined,
+  };
+}
 
-  if (promptArg.image != null) {
-    const dataContent = promptArg.image;
+function detectFileMediaType(
+  data: Uint8Array,
+  restrictToImages: boolean,
+): string {
+  const detected = restrictToImages
+    ? detectMediaType({ data, topLevelType: 'image' })
+    : detectMediaType({ data });
+  return detected ?? 'image/png';
+}
 
-    if (typeof dataContent === 'string') {
-      if (
-        dataContent.startsWith('http://') ||
-        dataContent.startsWith('https://')
-      ) {
-        image = {
-          type: 'url',
-          url: dataContent,
-        };
-      } else if (dataContent.startsWith('data:')) {
-        const { mediaType, base64Content } = splitDataUrl(dataContent);
-        image = {
-          type: 'file',
-          mediaType: mediaType ?? 'image/png',
-          data: convertBase64ToUint8Array(base64Content ?? ''),
-        };
-      } else {
-        const bytes = convertBase64ToUint8Array(dataContent);
-        const mediaType =
-          detectMediaType({
-            data: bytes,
-            signatures: imageMediaTypeSignatures,
-          }) ?? 'image/png';
-
-        image = {
-          type: 'file',
-          mediaType,
-          data: bytes,
-        };
-      }
-    } else if (dataContent instanceof Uint8Array) {
-      const mediaType =
-        detectMediaType({
-          data: dataContent,
-          signatures: imageMediaTypeSignatures,
-        }) ?? 'image/png';
-
-      image = {
-        type: 'file',
-        mediaType,
-        data: dataContent,
+/**
+ * Normalizes a {@link DataContent} image into a {@link Experimental_VideoModelV4File}.
+ * Accepts a URL string, a data URL, a base64 string, or binary image data.
+ */
+function normalizeImageData(
+  dataContent: DataContent,
+  { restrictToImages = true }: { restrictToImages?: boolean } = {},
+): Experimental_VideoModelV4File | undefined {
+  if (typeof dataContent === 'string') {
+    if (
+      dataContent.startsWith('http://') ||
+      dataContent.startsWith('https://')
+    ) {
+      return {
+        type: 'url',
+        url: dataContent,
       };
     }
+
+    if (dataContent.startsWith('data:')) {
+      const { mediaType, base64Content } = splitDataUrl(dataContent);
+      const data = convertBase64ToUint8Array(base64Content ?? '');
+      return {
+        type: 'file',
+        mediaType: mediaType ?? detectFileMediaType(data, restrictToImages),
+        data,
+      };
+    }
+
+    const bytes = convertBase64ToUint8Array(dataContent);
+    return {
+      type: 'file',
+      mediaType: detectFileMediaType(bytes, restrictToImages),
+      data: bytes,
+    };
+  }
+
+  if (dataContent instanceof Uint8Array || dataContent instanceof ArrayBuffer) {
+    const bytes =
+      dataContent instanceof Uint8Array
+        ? dataContent
+        : new Uint8Array(dataContent);
+    return {
+      type: 'file',
+      mediaType: detectFileMediaType(bytes, restrictToImages),
+      data: bytes,
+    };
+  }
+
+  return undefined;
+}
+
+/**
+ * Normalizes a reference input into a {@link Experimental_VideoModelV4File},
+ * accepting either a plain {@link DataContent} or the object form that carries
+ * an explicit `mediaType`.
+ */
+function normalizeReferenceData(
+  reference:
+    | DataContent
+    | {
+        data: DataContent;
+        mediaType?: string;
+      },
+): Experimental_VideoModelV4File | undefined {
+  const isObjectForm =
+    typeof reference === 'object' &&
+    reference != null &&
+    !(reference instanceof Uint8Array) &&
+    !(reference instanceof ArrayBuffer) &&
+    'data' in reference;
+
+  if (!isObjectForm) {
+    return normalizeImageData(reference as DataContent, {
+      restrictToImages: false,
+    });
+  }
+
+  const normalized = normalizeImageData(reference.data, {
+    restrictToImages: false,
+  });
+  if (normalized == null) {
+    return normalized;
   }
 
   return {
-    prompt: promptArg.text,
-    image,
+    ...normalized,
+    ...(reference.mediaType != null ? { mediaType: reference.mediaType } : {}),
   };
 }
 

@@ -1,6 +1,6 @@
 import type { ProviderV2, ProviderV3, ProviderV4 } from '@ai-sdk/provider';
-import { ImageModelMiddleware } from '../types/image-model-middleware';
-import { LanguageModelMiddleware } from '../types/language-model-middleware';
+import type { ImageModelMiddleware } from '../types/image-model-middleware';
+import type { LanguageModelMiddleware } from '../types/language-model-middleware';
 import { wrapImageModel } from './wrap-image-model';
 import { wrapLanguageModel } from './wrap-language-model';
 import { asProviderV4 } from '../model/as-provider-v4';

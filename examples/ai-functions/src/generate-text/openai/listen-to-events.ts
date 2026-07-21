@@ -20,29 +20,32 @@ async function main() {
       }),
     },
     stopWhen: isStepCount(3),
-    experimental_onStart: event => {
+    onStart: event => {
       console.log('\n--- onStart ---');
       console.log('Provider:', event.provider);
       console.log('Model:', event.modelId);
       console.log('Temperature:', event.temperature);
     },
-    experimental_onStepStart: event => {
+    onStepStart: event => {
       console.log('\n--- onStepStart ---');
-      console.log('Step:', event.stepNumber);
+      console.log('Step:', event.steps.length);
       console.log('Message count:', event.messages.length);
     },
-    experimental_onToolCallStart: event => {
-      console.log('\n--- onToolCallStart ---');
+    onToolExecutionStart: event => {
+      console.log('\n--- onToolExecutionStart ---');
       console.log('Tool:', event.toolCall.toolName);
       console.log('Input:', JSON.stringify(event.toolCall.input));
     },
-    experimental_onToolCallFinish: event => {
-      console.log('\n--- onToolCallFinish ---');
+    onToolExecutionEnd: event => {
+      console.log('\n--- onToolExecutionEnd ---');
       console.log('Tool:', event.toolCall.toolName);
-      console.log('Duration:', event.durationMs, 'ms');
-      console.log('Success:', event.success);
-      if (event.success) {
-        console.log('Output:', event.output);
+      console.log('Duration:', event.toolExecutionMs, 'ms');
+      const success = event.toolOutput.type === 'tool-result';
+      console.log('Success:', success);
+      if (event.toolOutput.type === 'tool-result') {
+        console.log('Output:', event.toolOutput.output);
+      } else {
+        console.log('Error:', event.toolOutput.error);
       }
     },
     onStepFinish: event => {
@@ -52,11 +55,11 @@ async function main() {
       console.log('Input tokens:', event.usage.inputTokens);
       console.log('Output tokens:', event.usage.outputTokens);
     },
-    onFinish: event => {
-      console.log('\n--- onFinish ---');
+    onEnd: event => {
+      console.log('\n--- onEnd ---');
       console.log('Total steps:', event.steps.length);
-      console.log('Total input tokens:', event.totalUsage.inputTokens);
-      console.log('Total output tokens:', event.totalUsage.outputTokens);
+      console.log('Total input tokens:', event.usage.inputTokens);
+      console.log('Total output tokens:', event.usage.outputTokens);
       console.log('Final text:', event.text);
     },
   });

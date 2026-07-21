@@ -1,5 +1,5 @@
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
-import { UIToolInvocation, tool } from 'ai';
+import { tool, type UIToolInvocation } from 'ai';
 import { z } from 'zod';
 
 export const fetchPdfTool = tool({
@@ -22,7 +22,7 @@ export const fetchPdfTool = tool({
   },
   toModelOutput: ({ output: { mediaType, base64 } }) => ({
     type: 'content',
-    value: [{ type: 'file-data', data: base64, mediaType }],
+    value: [{ type: 'file', mediaType, data: { type: 'data', data: base64 } }],
   }),
 });
 

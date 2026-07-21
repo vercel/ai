@@ -1,20 +1,22 @@
-import {
+import type {
   FilesV4,
   FilesV4UploadFileCallOptions,
   FilesV4UploadFileResult,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  convertBase64ToUint8Array,
+  convertInlineFileDataToUint8Array,
   createJsonResponseHandler,
-  FetchFunction,
   parseProviderOptions,
   postFormDataToApi,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { xaiFailedResponseHandler } from '../xai-error';
 import { xaiFilesResponseSchema } from './xai-files-api';
-import { xaiFilesOptionsSchema, XaiFilesOptions } from './xai-files-options';
-
+import {
+  xaiFilesOptionsSchema,
+  type XaiFilesOptions,
+} from './xai-files-options';
 interface XaiFilesConfig {
   provider: string;
   baseURL: string | undefined;
@@ -43,8 +45,7 @@ export class XaiFiles implements FilesV4 {
       schema: xaiFilesOptionsSchema,
     })) as XaiFilesOptions | undefined;
 
-    const fileBytes =
-      data instanceof Uint8Array ? data : convertBase64ToUint8Array(data);
+    const fileBytes = convertInlineFileDataToUint8Array(data);
 
     const blob = new Blob([fileBytes], {
       type: mediaType,

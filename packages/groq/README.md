@@ -76,7 +76,7 @@ const result = streamText({
   toolChoice: 'required',
 });
 
-for await (const delta of result.fullStream) {
+for await (const delta of result.stream) {
   if (delta.type === 'text-delta') {
     process.stdout.write(delta.text);
   }

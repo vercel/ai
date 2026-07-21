@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { Sandbox } from '@vercel/sandbox';
-import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
+import { ToolLoopAgent, type InferAgentUIMessage } from 'ai';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -9,13 +9,13 @@ const skillMd = readFileSync(
   join(process.cwd(), 'data', 'island-rescue', 'SKILL.md'),
 );
 
-let globalSandboxId: string | null = null;
+let globalSandboxName: string | null = null;
 async function getSandbox(): Promise<Sandbox> {
-  if (globalSandboxId) {
-    return await Sandbox.get({ sandboxId: globalSandboxId });
+  if (globalSandboxName) {
+    return await Sandbox.get({ name: globalSandboxName });
   }
   const sandbox = await Sandbox.create();
-  globalSandboxId = sandbox.sandboxId;
+  globalSandboxName = sandbox.name;
 
   await sandbox.runCommand({ cmd: 'mkdir', args: ['-p', skillPath] });
   await sandbox.writeFiles([
@@ -75,7 +75,7 @@ async function executeShellCommand({
 }
 
 export const openaiShellSkillsAgent = new ToolLoopAgent({
-  model: openai.responses('gpt-5.4'),
+  model: openai.responses('gpt-5.6'),
   instructions:
     'You have access to a shell tool that can execute commands on the local filesystem. ' +
     'You also have access to skills installed locally. ' +

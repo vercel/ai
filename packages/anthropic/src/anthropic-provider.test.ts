@@ -1,6 +1,9 @@
 /* eslint-disable turbo/no-undeclared-env-vars */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import {
+  InvalidArgumentError,
+  type LanguageModelV4Prompt,
+} from '@ai-sdk/provider';
 import { createAnthropic } from './anthropic-provider';
 
 vi.mock('./version', () => ({
@@ -83,6 +86,41 @@ describe('createAnthropic', () => {
       expect(requestUrl).toBe('https://proxy.anthropic.example/v1/messages');
     });
 
+    it('normalizes a bare Anthropic API URL from ANTHROPIC_BASE_URL', async () => {
+      process.env.ANTHROPIC_BASE_URL = 'https://api.anthropic.com/';
+
+      const fetchMock = createFetchMock();
+      const provider = createAnthropic({
+        apiKey: 'test-api-key',
+        fetch: fetchMock,
+      });
+
+      await provider('claude-3-haiku-20240307').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [requestUrl] = fetchMock.mock.calls[0]!;
+      expect(requestUrl).toBe('https://api.anthropic.com/v1/messages');
+    });
+
+    it('normalizes a bare Anthropic API URL from the baseURL option', async () => {
+      const fetchMock = createFetchMock();
+      const provider = createAnthropic({
+        apiKey: 'test-api-key',
+        baseURL: 'https://api.anthropic.com/',
+        fetch: fetchMock,
+      });
+
+      await provider('claude-3-haiku-20240307').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [requestUrl] = fetchMock.mock.calls[0]!;
+      expect(requestUrl).toBe('https://api.anthropic.com/v1/messages');
+    });
+
     it('prefers the baseURL option over ANTHROPIC_BASE_URL', async () => {
       process.env.ANTHROPIC_BASE_URL = 'https://env.anthropic.example/v1';
 
@@ -100,6 +138,24 @@ describe('createAnthropic', () => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
       const [requestUrl] = fetchMock.mock.calls[0]!;
       expect(requestUrl).toBe('https://option.anthropic.example/v1/messages');
+    });
+
+    it('rejects an empty baseURL option during provider creation', () => {
+      try {
+        createAnthropic({
+          apiKey: 'test-api-key',
+          baseURL: '',
+        });
+      } catch (error) {
+        expect(InvalidArgumentError.isInstance(error)).toBe(true);
+        expect(error).toMatchObject({
+          argument: 'baseURL',
+          message: 'baseURL must be a non-empty string.',
+        });
+        return;
+      }
+
+      throw new Error('Expected createAnthropic to reject an empty base URL.');
     });
   });
 });

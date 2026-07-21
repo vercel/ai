@@ -1,40 +1,54 @@
 import {
-  FilesV4,
   InvalidArgumentError,
-  LanguageModelV4,
   NoSuchModelError,
-  ProviderV4,
-  SkillsV4,
+  type FilesV4,
+  type LanguageModelV4,
+  type ProviderV4,
+  type SkillsV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   generateId,
   loadApiKey,
   loadOptionalSetting,
+  validateBaseURL,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { AnthropicFiles } from './anthropic-files';
-import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-model';
-import { AnthropicMessagesModelId } from './anthropic-messages-options';
+import { AnthropicLanguageModel } from './anthropic-language-model';
+import type { AnthropicModelId } from './anthropic-language-model-options';
 import { anthropicTools } from './anthropic-tools';
 import { AnthropicSkills } from './skills/anthropic-skills';
 import { VERSION } from './version';
+
+const ANTHROPIC_API_URL = 'https://api.anthropic.com';
+const ANTHROPIC_API_VERSIONED_URL = `${ANTHROPIC_API_URL}/v1`;
+
+function normalizeBaseURL(baseURL: string | undefined): string | undefined {
+  const baseURLWithoutTrailingSlash = withoutTrailingSlash(
+    validateBaseURL(baseURL),
+  );
+
+  return baseURLWithoutTrailingSlash === ANTHROPIC_API_URL
+    ? ANTHROPIC_API_VERSIONED_URL
+    : baseURLWithoutTrailingSlash;
+}
 
 export interface AnthropicProvider extends ProviderV4 {
   /**
    * Creates a model for text generation.
    */
-  (modelId: AnthropicMessagesModelId): LanguageModelV4;
+  (modelId: AnthropicModelId): LanguageModelV4;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: AnthropicMessagesModelId): LanguageModelV4;
+  languageModel(modelId: AnthropicModelId): LanguageModelV4;
 
-  chat(modelId: AnthropicMessagesModelId): LanguageModelV4;
+  chat(modelId: AnthropicModelId): LanguageModelV4;
 
-  messages(modelId: AnthropicMessagesModelId): LanguageModelV4;
+  messages(modelId: AnthropicModelId): LanguageModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -102,12 +116,12 @@ export function createAnthropic(
   options: AnthropicProviderSettings = {},
 ): AnthropicProvider {
   const baseURL =
-    withoutTrailingSlash(
+    normalizeBaseURL(
       loadOptionalSetting({
         settingValue: options.baseURL,
         environmentVariableName: 'ANTHROPIC_BASE_URL',
       }),
-    ) ?? 'https://api.anthropic.com/v1';
+    ) ?? ANTHROPIC_API_VERSIONED_URL;
 
   const providerName = options.name ?? 'anthropic.messages';
 
@@ -141,8 +155,8 @@ export function createAnthropic(
     );
   };
 
-  const createChatModel = (modelId: AnthropicMessagesModelId) =>
-    new AnthropicMessagesLanguageModel(modelId, {
+  const createChatModel = (modelId: AnthropicModelId) =>
+    new AnthropicLanguageModel(modelId, {
       provider: providerName,
       baseURL,
       headers: getHeaders,
@@ -162,7 +176,7 @@ export function createAnthropic(
       fetch: options.fetch,
     });
 
-  const provider = function (modelId: AnthropicMessagesModelId) {
+  const provider = function (modelId: AnthropicModelId) {
     if (new.target) {
       throw new Error(
         'The Anthropic model function cannot be called with the new keyword.',

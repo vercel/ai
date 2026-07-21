@@ -1,5 +1,8 @@
-import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
-import { ModelMessage, ToolLoopAgent, InferAgentUIMessage } from 'ai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
+import { ToolLoopAgent, type ModelMessage, type InferAgentUIMessage } from 'ai';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -87,7 +90,7 @@ const preloadedMessages: ModelMessage[] = [
         Docker is the foundation for containerization:
 
         1. **Dockerfile** - Defines how to build your application image:
-          - Base image selection (e.g., node:18-alpine)
+          - Base image selection (e.g., node:22-alpine)
           - Working directory setup
           - Dependency installation
           - Source code copying
@@ -224,7 +227,7 @@ const preloadedMessages: ModelMessage[] = [
 ];
 
 export const openaiCompactionAgent = new ToolLoopAgent({
-  model: openai.responses('gpt-5.2'),
+  model: openai.responses('gpt-5.6'),
   providerOptions: {
     openai: {
       store: false,

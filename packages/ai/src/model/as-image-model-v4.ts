@@ -1,4 +1,8 @@
-import { ImageModelV2, ImageModelV3, ImageModelV4 } from '@ai-sdk/provider';
+import type {
+  ImageModelV2,
+  ImageModelV3,
+  ImageModelV4,
+} from '@ai-sdk/provider';
 import { asImageModelV3 } from './as-image-model-v3';
 
 export function asImageModelV4(

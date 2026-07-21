@@ -1,4 +1,4 @@
-import { LanguageModelMiddleware } from 'ai';
+import type { LanguageModelMiddleware } from 'ai';
 
 const cache = new Map<string, any>();
 

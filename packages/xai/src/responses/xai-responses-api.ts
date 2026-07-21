@@ -26,8 +26,13 @@ export type XaiResponsesSystemMessage = {
 
 export type XaiResponsesUserMessageContentPart =
   | { type: 'input_text'; text: string }
-  | { type: 'input_image'; image_url: string }
-  | { type: 'input_file'; file_id: string };
+  | {
+      type: 'input_image';
+      image_url: string;
+      detail?: 'low' | 'high' | 'auto';
+    }
+  | { type: 'input_file'; file_id: string }
+  | { type: 'input_file'; file_url: string };
 
 export type XaiResponsesUserMessage = {
   role: 'user';
@@ -43,7 +48,18 @@ export type XaiResponsesAssistantMessage = {
 export type XaiResponsesFunctionCallOutput = {
   type: 'function_call_output';
   call_id: string;
-  output: string;
+  output:
+    | string
+    | Array<
+        | {
+            type: 'input_text';
+            text: string;
+          }
+        | {
+            type: 'input_image';
+            image_url: string;
+          }
+      >;
 };
 
 export type XaiResponsesReasoning = {
@@ -78,6 +94,7 @@ export type XaiResponsesTool =
       type: 'web_search';
       allowed_domains?: string[];
       excluded_domains?: string[];
+      enable_image_search?: boolean;
       enable_image_understanding?: boolean;
     }
   | {
@@ -248,6 +265,7 @@ export const xaiResponsesUsageSchema = z.object({
     .optional(),
   num_sources_used: z.number().optional(),
   num_server_side_tools_used: z.number().optional(),
+  cost_in_usd_ticks: z.number().nullish(),
 });
 
 export const xaiResponsesResponseSchema = z.object({
@@ -521,6 +539,32 @@ export const xaiResponsesChunkSchema = z.union([
     item_id: z.string(),
     output_index: z.number(),
     output: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('response.incomplete'),
+    response: z.object({
+      incomplete_details: z.object({ reason: z.string() }).nullish(),
+      usage: xaiResponsesUsageSchema.nullish(),
+    }),
+  }),
+  z.object({
+    type: z.literal('response.failed'),
+    response: z.object({
+      error: z
+        .object({
+          code: z.string().nullish(),
+          message: z.string(),
+        })
+        .nullish(),
+      incomplete_details: z.object({ reason: z.string() }).nullish(),
+      usage: xaiResponsesUsageSchema.nullish(),
+    }),
+  }),
+  z.object({
+    type: z.literal('error'),
+    code: z.string().nullish(),
+    message: z.string(),
+    param: z.string().nullish(),
   }),
   z.object({
     type: z.literal('response.done'),

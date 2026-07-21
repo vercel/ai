@@ -37,7 +37,7 @@ function prepareResponse({
 }
 
 describe('OpenAISkills', () => {
-  describe('upload', () => {
+  describe('uploadSkill', () => {
     it('should send files as multipart form data', async () => {
       prepareResponse({
         url: 'https://api.openai.com/v1/skills',
@@ -45,8 +45,13 @@ describe('OpenAISkills', () => {
       });
 
       const skills = provider.skills();
-      await skills.upload({
-        files: [{ path: 'index.ts', content: testFileContentBase64 }],
+      await skills.uploadSkill({
+        files: [
+          {
+            path: 'index.ts',
+            data: { type: 'data', data: testFileContentBase64 },
+          },
+        ],
       });
 
       const body = await server.calls[0].requestBodyMultipart;
@@ -61,8 +66,13 @@ describe('OpenAISkills', () => {
       });
 
       const skills = provider.skills();
-      await skills.upload({
-        files: [{ path: 'index.ts', content: testFileContentBase64 }],
+      await skills.uploadSkill({
+        files: [
+          {
+            path: 'index.ts',
+            data: { type: 'data', data: testFileContentBase64 },
+          },
+        ],
       });
 
       expect(server.calls[0].requestHeaders).toMatchObject({
@@ -77,8 +87,13 @@ describe('OpenAISkills', () => {
       });
 
       const skills = provider.skills();
-      const result = await skills.upload({
-        files: [{ path: 'index.ts', content: testFileContentBase64 }],
+      const result = await skills.uploadSkill({
+        files: [
+          {
+            path: 'index.ts',
+            data: { type: 'data', data: testFileContentBase64 },
+          },
+        ],
       });
 
       expect(result.providerReference).toEqual({
@@ -102,8 +117,13 @@ describe('OpenAISkills', () => {
       });
 
       const skills = provider.skills();
-      const result = await skills.upload({
-        files: [{ path: 'index.ts', content: testFileContentBase64 }],
+      const result = await skills.uploadSkill({
+        files: [
+          {
+            path: 'index.ts',
+            data: { type: 'data', data: testFileContentBase64 },
+          },
+        ],
         displayTitle: 'My Skill',
       });
 
@@ -124,8 +144,13 @@ describe('OpenAISkills', () => {
       });
 
       const skills = provider.skills();
-      const result = await skills.upload({
-        files: [{ path: 'index.ts', content: testFileContentBase64 }],
+      const result = await skills.uploadSkill({
+        files: [
+          {
+            path: 'index.ts',
+            data: { type: 'data', data: testFileContentBase64 },
+          },
+        ],
       });
 
       expect(result.warnings).toMatchInlineSnapshot(`[]`);
@@ -138,11 +163,14 @@ describe('OpenAISkills', () => {
       });
 
       const skills = provider.skills();
-      const result = await skills.upload({
+      const result = await skills.uploadSkill({
         files: [
           {
             path: 'data.bin',
-            content: new Uint8Array([0x48, 0x65, 0x6c, 0x6c, 0x6f]),
+            data: {
+              type: 'data',
+              data: new Uint8Array([0x48, 0x65, 0x6c, 0x6c, 0x6f]),
+            },
           },
         ],
       });

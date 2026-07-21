@@ -1,19 +1,21 @@
 import {
-  LanguageModelV4CallOptions,
-  SharedV4Warning,
   UnsupportedFunctionalityError,
+  type LanguageModelV4CallOptions,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
-import { GoogleGenerativeAIModelId } from './google-generative-ai-options';
+import type { GoogleModelId } from './google-language-model-options';
 
 export function prepareTools({
   tools,
   toolChoice,
   modelId,
+  isVertexProvider = false,
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice?: LanguageModelV4CallOptions['toolChoice'];
-  modelId: GoogleGenerativeAIModelId;
+  modelId: GoogleModelId;
+  isVertexProvider?: boolean;
 }): {
   tools:
     | Array<
@@ -33,6 +35,7 @@ export function prepareTools({
         functionCallingConfig?: {
           mode: 'AUTO' | 'NONE' | 'ANY' | 'VALIDATED';
           allowedFunctionNames?: string[];
+          streamFunctionCallArguments?: boolean;
         };
         includeServerSideToolInvocations?: boolean;
       };
@@ -48,7 +51,7 @@ export function prepareTools({
       'gemini-flash-latest',
       'gemini-flash-lite-latest',
       'gemini-pro-latest',
-    ] as const satisfies GoogleGenerativeAIModelId[]
+    ] as const satisfies GoogleModelId[]
   ).some(id => id === modelId);
   const isGemini2orNewer =
     modelId.includes('gemini-2') ||
@@ -201,10 +204,12 @@ export function prepareTools({
           mode: 'VALIDATED' | 'ANY' | 'NONE';
           allowedFunctionNames?: string[];
         };
-        includeServerSideToolInvocations: true;
+        includeServerSideToolInvocations?: true;
       } = {
         functionCallingConfig: { mode: 'VALIDATED' },
-        includeServerSideToolInvocations: true,
+        ...(!isVertexProvider && {
+          includeServerSideToolInvocations: true,
+        }),
       };
 
       if (toolChoice != null) {

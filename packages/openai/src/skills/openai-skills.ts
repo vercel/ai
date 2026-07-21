@@ -1,10 +1,10 @@
-import { SkillsV4, SharedV4Warning } from '@ai-sdk/provider';
+import type { SkillsV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  convertBase64ToUint8Array,
+  convertInlineFileDataToUint8Array,
   createJsonResponseHandler,
-  FetchFunction,
   postFormDataToApi,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { openaiSkillResponseSchema } from './openai-skills-api';
@@ -25,9 +25,9 @@ export class OpenAISkills implements SkillsV4 {
 
   constructor(private readonly config: OpenAISkillsConfig) {}
 
-  async upload(
-    params: Parameters<SkillsV4['upload']>[0],
-  ): Promise<Awaited<ReturnType<SkillsV4['upload']>>> {
+  async uploadSkill(
+    params: Parameters<SkillsV4['uploadSkill']>[0],
+  ): Promise<Awaited<ReturnType<SkillsV4['uploadSkill']>>> {
     const warnings: SharedV4Warning[] = [];
 
     if (params.displayTitle != null) {
@@ -40,11 +40,7 @@ export class OpenAISkills implements SkillsV4 {
     const formData = new FormData();
 
     for (const file of params.files) {
-      const content =
-        typeof file.content === 'string'
-          ? convertBase64ToUint8Array(file.content)
-          : file.content;
-
+      const content = convertInlineFileDataToUint8Array(file.data);
       formData.append('files[]', new Blob([content]), file.path);
     }
 

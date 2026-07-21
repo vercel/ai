@@ -1,6 +1,6 @@
 'use client';
 
-import { AnthropicWebFetch20260209Message } from '@/agent/anthropic/web-fetch-20260209-agent';
+import type { AnthropicWebFetch20260209Message } from '@/agent/anthropic/web-fetch-20260209-agent';
 import { Response } from '@/components/ai-elements/response';
 import ChatInput from '@/components/chat-input';
 import SourcesView from '@/components/sources-view';

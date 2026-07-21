@@ -1,4 +1,7 @@
-import { perplexity } from '@ai-sdk/perplexity';
+import {
+  perplexity,
+  type PerplexityLanguageModelOptions,
+} from '@ai-sdk/perplexity';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
@@ -10,7 +13,7 @@ run(async () => {
     providerOptions: {
       perplexity: {
         return_images: true,
-      },
+      } satisfies PerplexityLanguageModelOptions,
     },
   });
 
@@ -23,6 +26,6 @@ run(async () => {
   console.log('Finish reason:', await result.finishReason);
   console.log(
     'Metadata:',
-    JSON.stringify(await result.providerMetadata, null, 2),
+    JSON.stringify((await result.finalStep).providerMetadata, null, 2),
   );
 });

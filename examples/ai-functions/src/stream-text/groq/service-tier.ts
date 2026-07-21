@@ -1,4 +1,4 @@
-import { groq, type GroqLanguageModelOptions } from '@ai-sdk/groq';
+import { groq, type GroqLanguageModelChatOptions } from '@ai-sdk/groq';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
@@ -9,7 +9,7 @@ run(async () => {
     providerOptions: {
       groq: {
         serviceTier: 'flex',
-      } satisfies GroqLanguageModelOptions,
+      } satisfies GroqLanguageModelChatOptions,
     },
   });
 

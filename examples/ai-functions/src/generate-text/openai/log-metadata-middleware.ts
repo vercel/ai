@@ -1,5 +1,9 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, LanguageModelMiddleware, wrapLanguageModel } from 'ai';
+import {
+  generateText,
+  wrapLanguageModel,
+  type LanguageModelMiddleware,
+} from 'ai';
 import { run } from '../../lib/run';
 
 const logProviderMetadataMiddleware: LanguageModelMiddleware = {

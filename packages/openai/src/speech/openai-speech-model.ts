@@ -1,18 +1,20 @@
-import { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
-import { OpenAIConfig } from '../openai-config';
+import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
-import { OpenAISpeechAPITypes } from './openai-speech-api';
+import type { OpenAISpeechAPITypes } from './openai-speech-api';
 import {
   openaiSpeechModelOptionsSchema,
-  OpenAISpeechModelId,
-} from './openai-speech-options';
-
+  type OpenAISpeechModelId,
+} from './openai-speech-model-options';
 interface OpenAISpeechModelConfig extends OpenAIConfig {
   _internal?: {
     currentDate?: () => Date;
@@ -21,6 +23,20 @@ interface OpenAISpeechModelConfig extends OpenAIConfig {
 
 export class OpenAISpeechModel implements SpeechModelV4 {
   readonly specificationVersion = 'v4';
+
+  static [WORKFLOW_SERIALIZE](model: OpenAISpeechModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: OpenAISpeechModelId;
+    config: OpenAISpeechModelConfig;
+  }) {
+    return new OpenAISpeechModel(options.modelId, options.config);
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -112,7 +128,7 @@ export class OpenAISpeechModel implements SpeechModelV4 {
         path: '/audio/speech',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: requestBody,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createBinaryResponseHandler(),

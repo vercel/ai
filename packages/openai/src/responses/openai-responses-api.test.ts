@@ -1,6 +1,6 @@
-import { InferSchema } from '@ai-sdk/provider-utils';
+import type { InferSchema } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
-import {
+import type {
   openaiResponsesChunkSchema,
   openaiResponsesResponseSchema,
 } from './openai-responses-api';

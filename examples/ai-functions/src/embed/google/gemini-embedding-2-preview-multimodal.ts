@@ -25,6 +25,7 @@ run(async () => {
     },
   });
 
+  console.log('embedding length:', embedding.length);
   console.log(embedding);
   console.log(usage);
   console.log(warnings);

@@ -1,24 +1,36 @@
-import { FetchFunction } from '@ai-sdk/provider-utils';
+import type { FetchFunction } from '@ai-sdk/provider-utils';
+import * as providerUtils from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BlackForestLabsImageModel } from './black-forest-labs-image-model';
+import type { BlackForestLabsImageModelId } from './black-forest-labs-image-settings';
+
+vi.mock('@ai-sdk/provider-utils', async importOriginal => {
+  const actual = await importOriginal<typeof providerUtils>();
+  return {
+    ...actual,
+    parseProviderOptions: vi.fn(actual.parseProviderOptions),
+  };
+});
 
 const prompt = 'A cute baby sea otter';
 
 function createBasicModel({
+  modelId = 'test-model',
   headers,
   fetch,
   currentDate,
   pollIntervalMillis,
   pollTimeoutMillis,
 }: {
+  modelId?: BlackForestLabsImageModelId;
   headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
   currentDate?: () => Date;
   pollIntervalMillis?: number;
   pollTimeoutMillis?: number;
 } = {}) {
-  return new BlackForestLabsImageModel('test-model', {
+  return new BlackForestLabsImageModel(modelId, {
     provider: 'black-forest-labs.image',
     baseURL: 'https://api.example.com/v1',
     headers: headers ?? (() => ({ 'x-key': 'test-key' })),
@@ -34,6 +46,15 @@ function createBasicModel({
 describe('BlackForestLabsImageModel', () => {
   const server = createTestServer({
     'https://api.example.com/v1/test-model': {
+      response: {
+        type: 'json-value',
+        body: {
+          id: 'req-123',
+          polling_url: 'https://api.example.com/poll',
+        },
+      },
+    },
+    'https://api.example.com/v1/flux-pro-1.0-fill': {
       response: {
         type: 'json-value',
         body: {
@@ -59,9 +80,62 @@ describe('BlackForestLabsImageModel', () => {
         body: Buffer.from('test-binary-content'),
       },
     },
+    'https://cdn.evil.example/image.png': {
+      response: {
+        type: 'binary',
+        body: Buffer.from('test-binary-content'),
+      },
+    },
+    'https://api.bfl.ai/v1/test-model': {
+      response: {
+        type: 'json-value',
+        body: {
+          id: 'req-123',
+          polling_url: 'https://api.us1.bfl.ai/v1/get_result',
+        },
+      },
+    },
+    'https://api.us1.bfl.ai/v1/get_result': {
+      response: {
+        type: 'json-value',
+        body: {
+          status: 'Ready',
+          result: {
+            sample: 'https://delivery-us1.bfl.ai/image.png',
+          },
+        },
+      },
+    },
+    'https://delivery-us1.bfl.ai/image.png': {
+      response: {
+        type: 'binary',
+        body: Buffer.from('test-binary-content'),
+      },
+    },
+  });
+
+  beforeEach(() => {
+    vi.mocked(providerUtils.parseProviderOptions).mockClear();
   });
 
   describe('doGenerate', () => {
+    it('parses provider options only once', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: '1:1',
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(providerUtils.parseProviderOptions).toHaveBeenCalledTimes(1);
+    });
+
     it('passes the correct parameters including aspect ratio and providerOptions', async () => {
       const model = createBasicModel();
 
@@ -85,6 +159,65 @@ describe('BlackForestLabsImageModel', () => {
         prompt,
         aspect_ratio: '16:9',
         prompt_upsampling: true,
+      });
+    });
+
+    it('uses image field for flux-pro-1.0-fill input images', async () => {
+      const model = createBasicModel({ modelId: 'flux-pro-1.0-fill' });
+
+      await model.doGenerate({
+        prompt,
+        files: [
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: Buffer.from('test-image'),
+          },
+        ],
+        mask: {
+          type: 'file',
+          mediaType: 'image/png',
+          data: Buffer.from('test-mask'),
+        },
+        n: 1,
+        size: undefined,
+        aspectRatio: '1:1',
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        prompt,
+        aspect_ratio: '1:1',
+        image: Buffer.from('test-image').toString('base64'),
+        mask: Buffer.from('test-mask').toString('base64'),
+      });
+    });
+
+    it('uses input_image field for non-fill input images', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        prompt,
+        files: [
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: Buffer.from('test-image'),
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: '1:1',
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        prompt,
+        aspect_ratio: '1:1',
+        input_image: Buffer.from('test-image').toString('base64'),
       });
     });
 
@@ -233,6 +366,59 @@ describe('BlackForestLabsImageModel', () => {
       expect(server.calls[2].requestUrl).toBe(
         'https://api.example.com/image.png',
       );
+    });
+
+    it('does not send the API key when the result URL is on a foreign origin', async () => {
+      server.urls['https://api.example.com/poll'].response = {
+        type: 'json-value',
+        body: {
+          status: 'Ready',
+          result: { sample: 'https://cdn.evil.example/image.png' },
+        },
+      };
+
+      const model = createBasicModel();
+      await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const downloadCall = server.calls.find(
+        call => call.requestUrl === 'https://cdn.evil.example/image.png',
+      );
+      expect(downloadCall).toBeDefined();
+      expect(downloadCall!.requestHeaders['x-key']).toBeUndefined();
+    });
+
+    it('sends the API key when the polling URL is on a sibling bfl.ai cluster host', async () => {
+      const model = new BlackForestLabsImageModel('test-model', {
+        provider: 'black-forest-labs.image',
+        baseURL: 'https://api.bfl.ai/v1',
+        headers: () => ({ 'x-key': 'test-key' }),
+      });
+
+      await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const pollCall = server.calls.find(call =>
+        call.requestUrl.startsWith('https://api.us1.bfl.ai/v1/get_result'),
+      );
+      expect(pollCall).toBeDefined();
+      expect(pollCall!.requestHeaders['x-key']).toBe('test-key');
     });
 
     it('merges provider and request headers for submit call', async () => {

@@ -1,10 +1,10 @@
-import { huggingface } from '@ai-sdk/huggingface';
+import { huggingFace } from '@ai-sdk/huggingface';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: huggingface.responses('deepseek-ai/DeepSeek-V3-0324'),
+    model: huggingFace.responses('deepseek-ai/DeepSeek-V3-0324'),
     prompt:
       'What are the latest developments in artificial intelligence research? Include sources.',
   });

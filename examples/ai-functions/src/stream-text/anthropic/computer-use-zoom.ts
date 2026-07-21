@@ -18,7 +18,8 @@ run(async () => {
             case 'screenshot': {
               // multipart result:
               return {
-                type: 'image',
+                type: 'file',
+                mediaType: 'image',
                 data: fs
                   .readFileSync('./data/screenshot-editor.png')
                   .toString('base64'),
@@ -27,7 +28,8 @@ run(async () => {
             case 'zoom': {
               console.log('Zooming into region:', region);
               return {
-                type: 'image',
+                type: 'file',
+                mediaType: 'image',
                 data: fs
                   .readFileSync('./data/screenshot-editor.png')
                   .toString('base64'),
@@ -49,9 +51,9 @@ run(async () => {
               typeof output === 'string'
                 ? { type: 'text', text: output }
                 : {
-                    type: 'image-data',
-                    data: output.data,
+                    type: 'file',
                     mediaType: 'image/png',
+                    data: { type: 'data', data: output.data },
                   },
             ],
           };
@@ -63,7 +65,7 @@ run(async () => {
     stopWhen: isStepCount(5),
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'text-delta':
         process.stdout.write(part.text);

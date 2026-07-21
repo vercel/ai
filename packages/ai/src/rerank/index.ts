@@ -1,8 +1,8 @@
 export { rerank } from './rerank';
 export type { RerankResult } from './rerank-result';
 export type {
-  RerankOnStartEvent,
-  RerankOnFinishEvent,
   RerankStartEvent,
-  RerankFinishEvent,
+  RerankEndEvent,
+  RerankingModelCallStartEvent,
+  RerankingModelCallEndEvent,
 } from './rerank-events';

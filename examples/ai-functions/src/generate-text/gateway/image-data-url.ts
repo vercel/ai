@@ -9,15 +9,16 @@ run(async () => {
   const dataUrl = `data:image/png;base64,${base64Data}`;
 
   const result = await generateText({
-    model: 'xai/grok-3',
+    model: 'xai/grok-4.5',
     messages: [
       {
         role: 'user',
         content: [
           { type: 'text', text: 'Describe the image in detail.' },
           {
-            type: 'image',
-            image: dataUrl,
+            type: 'file',
+            mediaType: 'image',
+            data: dataUrl,
           },
         ],
       },

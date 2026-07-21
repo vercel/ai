@@ -28,9 +28,9 @@ import { parseTupleDef } from './parsers/tuple';
 import { parseUndefinedDef } from './parsers/undefined';
 import { parseUnionDef } from './parsers/union';
 import { parseUnknownDef } from './parsers/unknown';
-import { Refs } from './refs';
+import type { Refs } from './refs';
 import { parseReadonlyDef } from './parsers/readonly';
-import { JsonSchema7Type } from './parse-types';
+import type { JsonSchema7Type } from './parse-types';
 
 export type InnerDefGetter = () => any;
 

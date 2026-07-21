@@ -1,5 +1,8 @@
-import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
-import { InferAgentUIMessage, tool, ToolLoopAgent } from 'ai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
+import { tool, ToolLoopAgent, type InferAgentUIMessage } from 'ai';
 import { z } from 'zod';
 
 const weatherTool = tool({
@@ -58,7 +61,7 @@ const sendEmailTool = tool({
 });
 
 export const openaiToolSearchClientAgent = new ToolLoopAgent({
-  model: openai.responses('gpt-5.4'),
+  model: openai.responses('gpt-5.6'),
   instructions:
     'You are a helpful assistant with access to weather, file search, and email tools.',
   tools: {

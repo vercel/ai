@@ -1,11 +1,20 @@
-import { EmbeddingModelV4 } from '@ai-sdk/provider';
+import type { EmbeddingModelV4 } from '@ai-sdk/provider';
 import assert from 'node:assert';
-import { beforeEach, describe, expect, it, vi, vitest } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  vitest,
+} from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
+import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
-import { Embedding, EmbeddingModelUsage, Warning } from '../types';
+import type { Embedding, EmbeddingModelUsage, Warning } from '../types';
 import { embed } from './embed';
-import type { EmbedOnStartEvent, EmbedOnFinishEvent } from './embed-events';
+import type { EmbedStartEvent, EmbedEndEvent } from './embed-events';
 
 const dummyEmbedding = [0.1, 0.2, 0.3];
 const testValue = 'sunny day at the beach';
@@ -156,6 +165,18 @@ describe('options.providerOptions', () => {
 });
 
 describe('result.warnings', () => {
+  let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
+
+  beforeEach(() => {
+    logWarningsSpy = vitest
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logWarningsSpy.mockRestore();
+  });
+
   it('should include warnings in the result', async () => {
     const expectedWarnings: Warning[] = [
       {
@@ -181,13 +202,33 @@ describe('result.warnings', () => {
 
     expect(result.warnings).toStrictEqual(expectedWarnings);
   });
+
+  it('should default missing v2 provider warnings to an empty array', async () => {
+    const result = await embed({
+      model: new MockEmbeddingModelV2<string>({
+        doEmbed: async () => ({
+          embeddings: [dummyEmbedding],
+          usage: { tokens: 1 },
+        }),
+      }),
+      value: testValue,
+    });
+
+    expect(result.warnings).toStrictEqual([]);
+  });
 });
 
 describe('logWarnings', () => {
   let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
 
   beforeEach(() => {
-    logWarningsSpy = vitest.spyOn(logWarningsModule, 'logWarnings');
+    logWarningsSpy = vitest
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logWarningsSpy.mockRestore();
   });
 
   it('should call logWarnings with the correct warnings', async () => {
@@ -222,23 +263,22 @@ describe('logWarnings', () => {
   });
 });
 
-describe('options.experimental_onStart', () => {
+describe('options.onStart', () => {
   it('should send correct event information', async () => {
-    let startEvent!: EmbedOnStartEvent;
+    let startEvent!: EmbedStartEvent;
 
     await embed({
       model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
-      experimental_telemetry: {
+      telemetry: {
         functionId: 'test-function',
-        metadata: { customKey: 'customValue' },
       },
       _internal: {
         generateCallId: () => 'test-call-id',
       },
-      experimental_onStart: async event => {
+      onStart: async event => {
         startEvent = event;
       },
     });
@@ -247,7 +287,32 @@ describe('options.experimental_onStart', () => {
   });
 
   it('should include telemetry fields', async () => {
-    let startEvent!: EmbedOnStartEvent;
+    let startEvent!: EmbedStartEvent;
+
+    await embed({
+      model: new MockEmbeddingModelV4({
+        doEmbed: mockEmbed([testValue], [dummyEmbedding]),
+      }),
+      value: testValue,
+      telemetry: {
+        isEnabled: true,
+        recordInputs: false,
+        recordOutputs: true,
+        functionId: 'embed-fn',
+      },
+      onStart: async event => {
+        startEvent = event;
+      },
+    });
+
+    expect(startEvent).not.toHaveProperty('isEnabled');
+    expect(startEvent).not.toHaveProperty('recordInputs');
+    expect(startEvent).not.toHaveProperty('recordOutputs');
+    expect(startEvent).not.toHaveProperty('functionId');
+  });
+
+  it('should accept deprecated experimental_telemetry as an alias for telemetry', async () => {
+    let startEvent!: EmbedStartEvent;
 
     await embed({
       model: new MockEmbeddingModelV4({
@@ -258,30 +323,28 @@ describe('options.experimental_onStart', () => {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: true,
-        functionId: 'embed-fn',
-        metadata: { key: 'val' },
+        functionId: 'embed-fn-deprecated',
       },
-      experimental_onStart: async event => {
+      onStart: async event => {
         startEvent = event;
       },
     });
 
-    expect(startEvent.isEnabled).toBe(true);
-    expect(startEvent.recordInputs).toBe(false);
-    expect(startEvent.recordOutputs).toBe(true);
-    expect(startEvent.functionId).toBe('embed-fn');
-    expect(startEvent.metadata).toEqual({ key: 'val' });
+    expect(startEvent).not.toHaveProperty('isEnabled');
+    expect(startEvent).not.toHaveProperty('recordInputs');
+    expect(startEvent).not.toHaveProperty('recordOutputs');
+    expect(startEvent).not.toHaveProperty('functionId');
   });
 
   it('should include model information', async () => {
-    let startEvent!: EmbedOnStartEvent;
+    let startEvent!: EmbedStartEvent;
 
     await embed({
       model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
-      experimental_onStart: async event => {
+      onStart: async event => {
         startEvent = event;
       },
     });
@@ -302,7 +365,7 @@ describe('options.experimental_onStart', () => {
         },
       }),
       value: testValue,
-      experimental_onStart: async () => {
+      onStart: async () => {
         callOrder.push('onStart');
       },
     });
@@ -316,7 +379,7 @@ describe('options.experimental_onStart', () => {
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
-      experimental_onStart: async () => {
+      onStart: async () => {
         throw new Error('callback error');
       },
     });
@@ -325,7 +388,7 @@ describe('options.experimental_onStart', () => {
   });
 
   it('should include providerOptions and headers', async () => {
-    let startEvent!: EmbedOnStartEvent;
+    let startEvent!: EmbedStartEvent;
 
     await embed({
       model: new MockEmbeddingModelV4({
@@ -334,7 +397,7 @@ describe('options.experimental_onStart', () => {
       value: testValue,
       headers: { 'x-custom': 'header-value' },
       providerOptions: { myProvider: { key: 'value' } },
-      experimental_onStart: async event => {
+      onStart: async event => {
         startEvent = event;
       },
     });
@@ -349,68 +412,79 @@ describe('options.experimental_onStart', () => {
   });
 });
 
-describe('options.experimental_onFinish', () => {
+describe('options.onEnd', () => {
+  let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
+
+  beforeEach(() => {
+    logWarningsSpy = vitest
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logWarningsSpy.mockRestore();
+  });
+
   it('should send correct event information', async () => {
-    let finishEvent!: EmbedOnFinishEvent;
+    let endEvent!: EmbedEndEvent;
 
     await embed({
       model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed([testValue], [dummyEmbedding], { tokens: 10 }),
       }),
       value: testValue,
-      experimental_telemetry: {
+      telemetry: {
         functionId: 'test-function',
-        metadata: { customKey: 'customValue' },
       },
       _internal: {
         generateCallId: () => 'test-call-id',
       },
-      experimental_onFinish: async event => {
-        finishEvent = event;
+      onEnd: async event => {
+        endEvent = event;
       },
     });
 
-    expect(finishEvent).toMatchSnapshot();
+    expect(endEvent).toMatchSnapshot();
   });
 
   it('should include embedding and usage in event', async () => {
-    let finishEvent!: EmbedOnFinishEvent;
+    let endEvent!: EmbedEndEvent;
 
     await embed({
       model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed([testValue], [dummyEmbedding], { tokens: 15 }),
       }),
       value: testValue,
-      experimental_onFinish: async event => {
-        finishEvent = event;
+      onEnd: async event => {
+        endEvent = event;
       },
     });
 
-    expect(finishEvent.embedding).toEqual(dummyEmbedding);
-    expect(finishEvent.usage).toEqual({ tokens: 15 });
-    expect(finishEvent.value).toBe(testValue);
+    expect(endEvent.embedding).toEqual(dummyEmbedding);
+    expect(endEvent.usage).toEqual({ tokens: 15 });
+    expect(endEvent.value).toBe(testValue);
   });
 
   it('should include model information', async () => {
-    let finishEvent!: EmbedOnFinishEvent;
+    let endEvent!: EmbedEndEvent;
 
     await embed({
       model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
-      experimental_onFinish: async event => {
-        finishEvent = event;
+      onEnd: async event => {
+        endEvent = event;
       },
     });
 
-    expect(finishEvent.provider).toBe('mock-provider');
-    expect(finishEvent.modelId).toBe('mock-model-id');
-    expect(finishEvent.operationId).toBe('ai.embed');
+    expect(endEvent.provider).toBe('mock-provider');
+    expect(endEvent.modelId).toBe('mock-model-id');
+    expect(endEvent.operationId).toBe('ai.embed');
   });
 
   it('should include warnings and providerMetadata', async () => {
-    let finishEvent!: EmbedOnFinishEvent;
+    let endEvent!: EmbedEndEvent;
     const expectedWarnings: Warning[] = [
       { type: 'other', message: 'test warning' },
     ];
@@ -430,17 +504,17 @@ describe('options.experimental_onFinish', () => {
         ),
       }),
       value: testValue,
-      experimental_onFinish: async event => {
-        finishEvent = event;
+      onEnd: async event => {
+        endEvent = event;
       },
     });
 
-    expect(finishEvent.providerMetadata).toEqual(providerMetadata);
-    expect(finishEvent.warnings).toEqual(expectedWarnings);
+    expect(endEvent.providerMetadata).toEqual(providerMetadata);
+    expect(endEvent.warnings).toEqual(expectedWarnings);
   });
 
   it('should include response data', async () => {
-    let finishEvent!: EmbedOnFinishEvent;
+    let endEvent!: EmbedEndEvent;
 
     await embed({
       model: new MockEmbeddingModelV4({
@@ -450,12 +524,12 @@ describe('options.experimental_onFinish', () => {
         }),
       }),
       value: testValue,
-      experimental_onFinish: async event => {
-        finishEvent = event;
+      onEnd: async event => {
+        endEvent = event;
       },
     });
 
-    expect(finishEvent.response).toEqual({
+    expect(endEvent.response).toEqual({
       headers: { 'x-resp': 'val' },
       body: { result: 'ok' },
     });
@@ -472,12 +546,12 @@ describe('options.experimental_onFinish', () => {
         },
       }),
       value: testValue,
-      experimental_onFinish: async () => {
-        callOrder.push('onFinish');
+      onEnd: async () => {
+        callOrder.push('onEnd');
       },
     });
 
-    expect(callOrder).toEqual(['doEmbed', 'onFinish']);
+    expect(callOrder).toEqual(['doEmbed', 'onEnd']);
   });
 
   it('should not break embedding when callback throws', async () => {
@@ -486,7 +560,7 @@ describe('options.experimental_onFinish', () => {
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
-      experimental_onFinish: async () => {
+      onEnd: async () => {
         throw new Error('callback error');
       },
     });
@@ -495,10 +569,10 @@ describe('options.experimental_onFinish', () => {
   });
 });
 
-describe('options.experimental_onStart and experimental_onFinish together', () => {
+describe('options.onStart and onEnd together', () => {
   it('should have consistent callId across both events', async () => {
-    let startEvent!: EmbedOnStartEvent;
-    let finishEvent!: EmbedOnFinishEvent;
+    let startEvent!: EmbedStartEvent;
+    let endEvent!: EmbedEndEvent;
 
     await embed({
       model: new MockEmbeddingModelV4({
@@ -508,20 +582,20 @@ describe('options.experimental_onStart and experimental_onFinish together', () =
       _internal: {
         generateCallId: () => 'consistent-call-id',
       },
-      experimental_onStart: async event => {
+      onStart: async event => {
         startEvent = event;
       },
-      experimental_onFinish: async event => {
-        finishEvent = event;
+      onEnd: async event => {
+        endEvent = event;
       },
     });
 
     expect(startEvent.callId).toBe('consistent-call-id');
-    expect(finishEvent.callId).toBe('consistent-call-id');
-    expect(startEvent.callId).toBe(finishEvent.callId);
+    expect(endEvent.callId).toBe('consistent-call-id');
+    expect(startEvent.callId).toBe(endEvent.callId);
   });
 
-  it('should call onStart before doEmbed and onFinish after', async () => {
+  it('should call onStart before doEmbed and onEnd after', async () => {
     const callOrder: string[] = [];
 
     await embed({
@@ -532,35 +606,35 @@ describe('options.experimental_onStart and experimental_onFinish together', () =
         },
       }),
       value: testValue,
-      experimental_onStart: async () => {
+      onStart: async () => {
         callOrder.push('onStart');
       },
-      experimental_onFinish: async () => {
-        callOrder.push('onFinish');
+      onEnd: async () => {
+        callOrder.push('onEnd');
       },
     });
 
-    expect(callOrder).toEqual(['onStart', 'doEmbed', 'onFinish']);
+    expect(callOrder).toEqual(['onStart', 'doEmbed', 'onEnd']);
   });
 
-  it('should still call onFinish when onStart throws', async () => {
-    let finishCalled = false;
+  it('should still call onEnd when onStart throws', async () => {
+    let endCalled = false;
 
     const result = await embed({
       model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
-      experimental_onStart: async () => {
+      onStart: async () => {
         throw new Error('start error');
       },
-      experimental_onFinish: async () => {
-        finishCalled = true;
+      onEnd: async () => {
+        endCalled = true;
       },
     });
 
     assert.deepStrictEqual(result.embedding, dummyEmbedding);
-    expect(finishCalled).toBe(true);
+    expect(endCalled).toBe(true);
   });
 });
 

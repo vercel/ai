@@ -14,7 +14,9 @@ run(async () => {
         serverDescription: 'A web-search API for AI agents',
       }),
     },
-    includeRawChunks: true,
+    include: {
+      rawChunks: true,
+    },
   });
 
   console.log('\n=== Basic Text Generation ===');

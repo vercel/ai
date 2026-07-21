@@ -5,9 +5,11 @@ import {
 import {
   consumeStream,
   convertToModelMessages,
-  ModelMessage,
+  createUIMessageStreamResponse,
   streamText,
-  UIMessage,
+  toUIMessageStream,
+  type ModelMessage,
+  type UIMessage,
 } from 'ai';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -98,7 +100,7 @@ const preloadedMessages: ModelMessage[] = [
         Docker is the foundation for containerization:
 
         1. **Dockerfile** - Defines how to build your application image:
-          - Base image selection (e.g., node:18-alpine)
+          - Base image selection (e.g., node:22-alpine)
           - Working directory setup
           - Dependency installation
           - Source code copying
@@ -274,12 +276,15 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse({
-    onFinish: async ({ isAborted }) => {
-      if (isAborted) {
-        console.log('Aborted');
-      }
-    },
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      onFinish: async ({ isAborted }) => {
+        if (isAborted) {
+          console.log('Aborted');
+        }
+      },
+    }),
     consumeSseStream: consumeStream,
   });
 }

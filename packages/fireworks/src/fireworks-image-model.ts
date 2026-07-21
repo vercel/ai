@@ -1,4 +1,4 @@
-import { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
@@ -6,15 +6,20 @@ import {
   createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
   delay,
-  FetchFunction,
   getFromApi,
+  parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import {
   asyncPollResponseSchema,
   asyncSubmitResponseSchema,
 } from './fireworks-image-api';
-import { FireworksImageModelId } from './fireworks-image-options';
+import { fireworksImageModelOptionsSchema } from './fireworks-image-model-options';
+import type { FireworksImageModelId } from './fireworks-image-options';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;
 const DEFAULT_POLL_TIMEOUT_MILLIS = 120000; // 2 minutes for image generation
@@ -91,7 +96,7 @@ function getPollUrlForModel(
 interface FireworksImageModelConfig {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string>;
+  headers?: () => Record<string, string>;
   fetch?: FetchFunction;
   /**
    * Poll interval in milliseconds between status checks for async models.
@@ -114,6 +119,20 @@ export class FireworksImageModel implements ImageModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: FireworksImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: FireworksImageModelId;
+    config: FireworksImageModelConfig;
+  }) {
+    return new FireworksImageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -185,7 +204,13 @@ export class FireworksImageModel implements ImageModelV4 {
 
     const splitSize = size?.split('x');
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const combinedHeaders = combineHeaders(this.config.headers(), headers);
+    const combinedHeaders = combineHeaders(this.config.headers?.(), headers);
+    const fireworksOptions =
+      (await parseProviderOptions({
+        provider: 'fireworks',
+        providerOptions,
+        schema: fireworksImageModelOptionsSchema,
+      })) ?? {};
 
     const body = {
       prompt,
@@ -194,7 +219,7 @@ export class FireworksImageModel implements ImageModelV4 {
       samples: n,
       ...(inputImage && { input_image: inputImage }),
       ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
-      ...(providerOptions.fireworks ?? {}),
+      ...fireworksOptions,
     };
 
     // Handle async models that require polling (e.g., flux-kontext-*)
@@ -269,9 +294,16 @@ export class FireworksImageModel implements ImageModelV4 {
       abortSignal,
     });
 
-    // Download the image from the URL
+    // Download the image from the URL. The URL comes from the provider
+    // response and typically points at a CDN, so only send credentials when it
+    // stays on the provider's own origin (never leak the API key to a CDN or an
+    // attacker-named host).
     const { value: imageBytes, responseHeaders } = await getFromApi({
       url: imageUrl,
+      // imageUrl comes from the provider response body.
+      validateUrl: true,
+      credentialedOrigin: this.config.baseURL,
+      trustedOrigin: this.config.baseURL,
       headers,
       abortSignal,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),

@@ -1,6 +1,6 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { smoothStream } from './smooth-stream';
-import { TextStreamPart } from './stream-text-result';
+import type { TextStreamPart } from './stream-text-result';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it } from 'vitest';
 

@@ -1,9 +1,9 @@
-import { JSONObject } from '@ai-sdk/provider';
+import type { JSONObject } from '@ai-sdk/provider';
 import {
-  createProviderToolFactoryWithOutputSchema,
-  FlexibleSchema,
+  createProviderDefinedToolFactoryWithOutputSchema,
   lazySchema,
   zodSchema,
+  type FlexibleSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
@@ -36,7 +36,7 @@ export const toolSearchOutputSchema: FlexibleSchema<{
   ),
 ) as FlexibleSchema<{ tools: Array<JSONObject> }>;
 
-const toolSearchToolFactory = createProviderToolFactoryWithOutputSchema<
+const toolSearchToolFactory = createProviderDefinedToolFactoryWithOutputSchema<
   {
     /**
      * The arguments from the tool_search_call.

@@ -1,4 +1,4 @@
-import { type ProdiaLanguageModelOptions, prodia } from '@ai-sdk/prodia';
+import { prodia, type ProdiaLanguageModelOptions } from '@ai-sdk/prodia';
 import { generateText } from 'ai';
 import { presentImages } from '../../lib/present-image';
 import { run } from '../../lib/run';
@@ -11,9 +11,9 @@ run(async () => {
         role: 'user',
         content: [
           {
-            type: 'image',
-            image:
-              'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/comic-cat.png',
+            type: 'file',
+            mediaType: 'image',
+            data: 'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/comic-cat.png',
           },
           {
             type: 'text',

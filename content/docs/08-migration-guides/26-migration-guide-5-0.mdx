@@ -1174,7 +1174,7 @@ const result = await generateText({
   stopWhen: isStepCount(5), // Stop at step 5 if tools were called
 });
 
-// Server-side - stop when specific tool is called
+// Server-side - stop when a specific tool is called
 const result = await generateText({
   model: __MODEL__,
   messages,
@@ -1189,8 +1189,11 @@ const result = await generateText({
 // Note: Only applies when the last step has tool results
 stopWhen: isStepCount(5);
 
-// Stop when specific tool is called
+// Stop when a specific tool is called
 stopWhen: hasToolCall('finalizeTask');
+
+// Stop when either tool is called
+stopWhen: hasToolCall('submitOrder', 'finalizeTask');
 
 // Multiple conditions (stops if ANY condition is met)
 stopWhen: [

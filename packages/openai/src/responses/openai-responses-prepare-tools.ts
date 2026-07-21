@@ -1,13 +1,14 @@
 import {
-  LanguageModelV4CallOptions,
-  SharedV4ProviderReference,
-  SharedV4Warning,
   UnsupportedFunctionalityError,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4FunctionTool,
+  type SharedV4ProviderReference,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   resolveProviderReference,
-  ToolNameMapping,
   validateTypes,
+  type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
 import { fileSearchArgsSchema } from '../tool/file-search';
@@ -18,16 +19,32 @@ import { shellArgsSchema } from '../tool/shell';
 import { toolSearchArgsSchema } from '../tool/tool-search';
 import { webSearchArgsSchema } from '../tool/web-search';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
-import { OpenAIResponsesTool } from './openai-responses-api';
+import type {
+  OpenAIResponsesFunctionTool,
+  OpenAIResponsesTool,
+} from './openai-responses-api';
+
+type OpenAIToolOptions = {
+  deferLoading?: boolean;
+  namespace?: {
+    name: string;
+    description: string;
+  };
+};
 
 export async function prepareResponsesTools({
   tools,
   toolChoice,
+  allowedTools,
   toolNameMapping,
   customProviderToolNames,
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice: LanguageModelV4CallOptions['toolChoice'] | undefined;
+  allowedTools?: {
+    toolNames: string[];
+    mode?: 'auto' | 'required';
+  };
   toolNameMapping?: ToolNameMapping;
   customProviderToolNames?: Set<string>;
 }): Promise<{
@@ -44,7 +61,13 @@ export async function prepareResponsesTools({
     | { type: 'code_interpreter' }
     | { type: 'mcp' }
     | { type: 'image_generation' }
-    | { type: 'apply_patch' };
+    | { type: 'apply_patch' }
+    | { type: 'computer' }
+    | {
+        type: 'allowed_tools';
+        mode: 'auto' | 'required';
+        tools: Array<{ type: 'function'; name: string }>;
+      };
   toolWarnings: SharedV4Warning[];
 }> {
   // when the tools array is empty, change it to undefined to prevent errors:
@@ -57,6 +80,10 @@ export async function prepareResponsesTools({
   }
 
   const openaiTools: Array<OpenAIResponsesTool> = [];
+  const namespaceTools = new Map<
+    string,
+    Extract<OpenAIResponsesTool, { type: 'namespace' }>
+  >();
   const resolvedCustomProviderToolNames =
     customProviderToolNames ?? new Set<string>();
 
@@ -64,18 +91,36 @@ export async function prepareResponsesTools({
     switch (tool.type) {
       case 'function': {
         const openaiOptions = tool.providerOptions?.openai as
-          | { deferLoading?: boolean }
+          | OpenAIToolOptions
           | undefined;
-        const deferLoading = openaiOptions?.deferLoading;
-
-        openaiTools.push({
-          type: 'function',
-          name: tool.name,
-          description: tool.description,
-          parameters: tool.inputSchema,
-          ...(tool.strict != null ? { strict: tool.strict } : {}),
-          ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
+        const openaiFunctionTool = prepareFunctionTool({
+          tool,
+          options: openaiOptions,
         });
+        const namespace = openaiOptions?.namespace;
+
+        if (namespace == null) {
+          openaiTools.push(openaiFunctionTool);
+        } else {
+          let namespaceTool = namespaceTools.get(namespace.name);
+
+          if (namespaceTool == null) {
+            namespaceTool = {
+              type: 'namespace',
+              name: namespace.name,
+              description: namespace.description,
+              tools: [],
+            };
+            namespaceTools.set(namespace.name, namespaceTool);
+            openaiTools.push(namespaceTool);
+          } else if (namespaceTool.description !== namespace.description) {
+            throw new UnsupportedFunctionalityError({
+              functionality: `conflicting descriptions for OpenAI tool namespace "${namespace.name}"`,
+            });
+          }
+
+          namespaceTool.tools.push(openaiFunctionTool);
+        }
         break;
       }
       case 'provider': {
@@ -124,6 +169,12 @@ export async function prepareResponsesTools({
           case 'openai.apply_patch': {
             openaiTools.push({
               type: 'apply_patch',
+            });
+            break;
+          }
+          case 'openai.computer': {
+            openaiTools.push({
+              type: 'computer',
             });
             break;
           }
@@ -290,6 +341,21 @@ export async function prepareResponsesTools({
     }
   }
 
+  if (allowedTools != null) {
+    return {
+      tools: openaiTools,
+      toolChoice: {
+        type: 'allowed_tools',
+        mode: allowedTools.mode ?? 'auto',
+        tools: allowedTools.toolNames.map(name => ({
+          type: 'function',
+          name: toolNameMapping?.toProviderToolName(name) ?? name,
+        })),
+      },
+      toolWarnings,
+    };
+  }
+
   if (toolChoice == null) {
     return { tools: openaiTools, toolChoice: undefined, toolWarnings };
   }
@@ -315,7 +381,8 @@ export async function prepareResponsesTools({
           resolvedToolName === 'web_search_preview' ||
           resolvedToolName === 'web_search' ||
           resolvedToolName === 'mcp' ||
-          resolvedToolName === 'apply_patch'
+          resolvedToolName === 'apply_patch' ||
+          resolvedToolName === 'computer'
             ? { type: resolvedToolName }
             : resolvedCustomProviderToolNames.has(resolvedToolName)
               ? { type: 'custom', name: resolvedToolName }
@@ -330,6 +397,25 @@ export async function prepareResponsesTools({
       });
     }
   }
+}
+
+function prepareFunctionTool({
+  tool,
+  options,
+}: {
+  tool: LanguageModelV4FunctionTool;
+  options: OpenAIToolOptions | undefined;
+}): OpenAIResponsesFunctionTool {
+  const deferLoading = options?.deferLoading;
+
+  return {
+    type: 'function',
+    name: tool.name,
+    description: tool.description,
+    parameters: tool.inputSchema,
+    ...(tool.strict != null ? { strict: tool.strict } : {}),
+    ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
+  };
 }
 
 function mapShellEnvironment(environment: {

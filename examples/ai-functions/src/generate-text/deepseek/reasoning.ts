@@ -1,10 +1,10 @@
-import { deepseek } from '@ai-sdk/deepseek';
+import { deepSeek } from '@ai-sdk/deepseek';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: deepseek('deepseek-reasoner'),
+    model: deepSeek('deepseek-reasoner'),
     reasoning: 'medium',
     prompt: 'How many "r"s are in the word "strawberry"?',
   });

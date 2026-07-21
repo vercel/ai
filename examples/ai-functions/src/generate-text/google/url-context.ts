@@ -11,7 +11,7 @@ run(async () => {
         content: [
           {
             type: 'text',
-            text: `Based on this context: https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai, tell me how to use Gemini with AI SDK`,
+            text: `Based on this context: https://ai-sdk.dev/providers/ai-sdk-providers/google, tell me how to use Gemini with AI SDK`,
           },
         ],
       },
@@ -27,5 +27,5 @@ run(async () => {
   console.log(result.sources);
   console.log();
   console.log('PROVIDER METADATA');
-  console.log(result.providerMetadata?.google);
+  console.log(result.finalStep.providerMetadata?.google);
 });

@@ -5,10 +5,11 @@ import {
   createUIMessageStream,
   convertToModelMessages,
   isStepCount,
+  toUIMessageStream,
 } from 'ai';
 import { processToolCalls } from './utils';
 import { tools } from './tools';
-import { HumanInTheLoopUIMessage } from './types';
+import type { HumanInTheLoopUIMessage } from './types';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -47,7 +48,10 @@ export async function POST(req: Request) {
       });
 
       writer.merge(
-        result.toUIMessageStream({ originalMessages: processedMessages }),
+        toUIMessageStream({
+          stream: result.stream,
+          originalMessages: processedMessages,
+        }),
       );
     },
     onStepFinish: ({ messages, responseMessage }) => {

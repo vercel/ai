@@ -1,14 +1,14 @@
 import {
   openai,
-  OpenAILanguageModelResponsesOptions,
-  OpenaiResponsesReasoningProviderMetadata,
+  type OpenAILanguageModelResponsesOptions,
+  type OpenaiResponsesReasoningProviderMetadata,
 } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: openai('gpt-5'),
+    model: openai('gpt-5.6'),
     prompt: 'How many "r"s are in the word "strawberry"?',
     reasoning: 'low',
     providerOptions: {

@@ -2,12 +2,10 @@ import type {
   Experimental_VideoModelV4,
   SharedV4Warning,
 } from '@ai-sdk/provider';
-import type { InferSchema } from '@ai-sdk/provider-utils';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
-  lazySchema,
+  downloadBlob,
   parseJSON,
   parseProviderOptions,
   postFormDataToApi,
@@ -15,15 +13,15 @@ import {
   resolve,
   zodSchema,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
-import type { ProdiaModelConfig } from './prodia-api';
 import {
   buildProdiaProviderMetadata,
   parseMultipart,
   prodiaFailedResponseHandler,
   prodiaJobResultSchema,
+  type ProdiaJobResult,
+  type ProdiaModelConfig,
 } from './prodia-api';
-import type { ProdiaJobResult } from './prodia-api';
+import { prodiaVideoModelOptionsSchema } from './prodia-video-model-options';
 import type { ProdiaVideoModelId } from './prodia-video-model-settings';
 
 export class ProdiaVideoModel implements Experimental_VideoModelV4 {
@@ -84,7 +82,7 @@ export class ProdiaVideoModel implements Experimental_VideoModelV4 {
       // img2vid: multipart form-data request
       const imageData = await resolveVideoFileData(
         options.image,
-        this.config.fetch,
+        options.abortSignal,
       );
       const formData = new FormData();
       formData.append(
@@ -160,21 +158,6 @@ export class ProdiaVideoModel implements Experimental_VideoModelV4 {
     };
   }
 }
-
-export const prodiaVideoModelOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z.object({
-      /**
-       * Video resolution (e.g. "480p", "720p").
-       */
-      resolution: z.string().optional(),
-    }),
-  ),
-);
-
-export type ProdiaVideoModelOptions = InferSchema<
-  typeof prodiaVideoModelOptionsSchema
->;
 
 interface VideoMultipartResult {
   jobResult: ProdiaJobResult;
@@ -253,7 +236,7 @@ async function resolveVideoFileData(
   file: NonNullable<
     Parameters<Experimental_VideoModelV4['doGenerate']>[0]['image']
   >,
-  fetchFunction?: FetchFunction,
+  abortSignal?: AbortSignal,
 ): Promise<{ bytes: Uint8Array; mediaType: string }> {
   if (file.type === 'file') {
     const data =
@@ -262,11 +245,12 @@ async function resolveVideoFileData(
         : file.data;
     return { bytes: data, mediaType: file.mediaType };
   }
-  // URL type - fetch the data
-  const response = await (fetchFunction ?? globalThis.fetch)(file.url);
-  const arrayBuffer = await response.arrayBuffer();
-  const mediaType =
-    response.headers.get('content-type') ?? 'application/octet-stream';
+  // URL type - download via downloadBlob so the user-supplied URL is routed
+  // through the SSRF guard (validateDownloadUrl) instead of being fetched
+  // directly, preventing requests to private/internal addresses.
+  const blob = await downloadBlob(file.url, { abortSignal });
+  const arrayBuffer = await blob.arrayBuffer();
+  const mediaType = blob.type || 'application/octet-stream';
   return { bytes: new Uint8Array(arrayBuffer), mediaType };
 }
 

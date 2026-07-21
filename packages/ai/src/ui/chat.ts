@@ -1,26 +1,23 @@
 import {
-  FlexibleSchema,
   generateId as generateIdFunc,
-  IdGenerator,
-  InferSchema,
+  type FlexibleSchema,
+  type IdGenerator,
+  type InferSchema,
 } from '@ai-sdk/provider-utils';
-import { FinishReason } from '../types/language-model';
-import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
+import type { FinishReason } from '../types/language-model';
+import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
 import { SerialJobExecutor } from '../util/serial-job-executor';
-import { ChatTransport } from './chat-transport';
+import type { ChatTransport } from './chat-transport';
 import { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
 import { DefaultChatTransport } from './default-chat-transport';
 import {
   createStreamingUIMessageState,
   processUIMessageStream,
-  StreamingUIMessageState,
+  type StreamingUIMessageState,
 } from './process-ui-message-stream';
 import {
-  InferUIMessageToolCall,
   isToolUIPart,
-  UIMessagePart,
-  UITools,
   type DataUIPart,
   type FileUIPart,
   type InferUIMessageData,
@@ -28,8 +25,10 @@ import {
   type InferUIMessageTools,
   type UIDataTypes,
   type UIMessage,
+  type InferUIMessageToolCall,
+  type UIMessagePart,
+  type UITools,
 } from './ui-messages';
-
 export type CreateUIMessage<UI_MESSAGE extends UIMessage> = Omit<
   UI_MESSAGE,
   'id' | 'role'
@@ -209,8 +208,8 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
    * Optional callback function that is invoked when a tool call is received.
    * Intended for automatic client-side tool execution.
    *
-   * You can optionally return a result for the tool call,
-   * either synchronously or asynchronously.
+   * To add the tool output, call `addToolOutput` without awaiting it inside
+   * this callback. The callback's return value is not used.
    */
   onToolCall?: ChatOnToolCallCallback<UI_MESSAGE>;
 
@@ -494,7 +493,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           ? {
               ...part,
               state: 'approval-responded',
-              approval: { id, approved, reason },
+              approval: { ...part.approval, id, approved, reason },
             }
           : part;
 
@@ -651,9 +650,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     let isAbort = false;
     let isDisconnect = false;
     let isError = false;
+    let activeResponse: ActiveResponse<UI_MESSAGE> | undefined;
 
     try {
-      const activeResponse = {
+      const response = {
         state: createStreamingUIMessageState({
           lastMessage: this.state.snapshot(lastMessage),
           messageId: this.generateId(),
@@ -661,11 +661,13 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         abortController: new AbortController(),
       } as ActiveResponse<UI_MESSAGE>;
 
-      activeResponse.abortController.signal.addEventListener('abort', () => {
+      activeResponse = response;
+
+      response.abortController.signal.addEventListener('abort', () => {
         isAbort = true;
       });
 
-      this.activeResponse = activeResponse;
+      this.activeResponse = response;
 
       let stream: ReadableStream<UIMessageChunk>;
 
@@ -675,7 +677,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         stream = await this.transport.sendMessages({
           chatId: this.id,
           messages: this.state.messages,
-          abortSignal: activeResponse.abortController.signal,
+          abortSignal: response.abortController.signal,
           metadata,
           headers,
           body,
@@ -693,21 +695,21 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         // serialize the job execution to avoid race conditions:
         this.jobExecutor.run(() =>
           job({
-            state: activeResponse.state,
+            state: response.state,
             write: () => {
               // streaming is set on first write (before it should be "submitted")
               this.setStatus({ status: 'streaming' });
 
               const replaceLastMessage =
-                activeResponse.state.message.id === this.lastMessage?.id;
+                response.state.message.id === this.lastMessage?.id;
 
               if (replaceLastMessage) {
                 this.state.replaceMessage(
                   this.state.messages.length - 1,
-                  activeResponse.state.message,
+                  response.state.message,
                 );
               } else {
-                this.state.pushMessage(activeResponse.state.message);
+                this.state.pushMessage(response.state.message);
               }
             },
           }),
@@ -757,19 +759,23 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       this.setStatus({ status: 'error', error: err as Error });
     } finally {
       try {
-        this.onFinish?.({
-          message: this.activeResponse!.state.message,
-          messages: this.state.messages,
-          isAbort,
-          isDisconnect,
-          isError,
-          finishReason: this.activeResponse?.state.finishReason,
-        });
+        if (activeResponse) {
+          this.onFinish?.({
+            message: activeResponse.state.message,
+            messages: this.state.messages,
+            isAbort,
+            isDisconnect,
+            isError,
+            finishReason: activeResponse.state.finishReason,
+          });
+        }
       } catch (err) {
         console.error(err);
       }
 
-      this.activeResponse = undefined;
+      if (this.activeResponse === activeResponse) {
+        this.activeResponse = undefined;
+      }
     }
 
     // automatically send the message if the sendAutomaticallyWhen function returns true

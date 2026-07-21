@@ -1,4 +1,4 @@
-import { SharedV4ProviderMetadata } from '../../shared';
+import type { SharedV4ProviderMetadata } from '../../shared';
 
 /**
  * An image file that can be used for image editing or variation generation.

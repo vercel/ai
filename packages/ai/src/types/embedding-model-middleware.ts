@@ -1,4 +1,4 @@
-import { EmbeddingModelV4Middleware } from '@ai-sdk/provider';
+import type { EmbeddingModelV4Middleware } from '@ai-sdk/provider';
 
 /**
  * Middleware for embedding models.

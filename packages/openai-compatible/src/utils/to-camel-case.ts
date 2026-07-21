@@ -1,4 +1,4 @@
-import { SharedV4Warning } from '@ai-sdk/provider';
+import type { SharedV4Warning } from '@ai-sdk/provider';
 
 export function toCamelCase(str: string): string {
   return str.replace(/[_-]([a-z])/g, g => g[1].toUpperCase());

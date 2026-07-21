@@ -25,6 +25,10 @@ import type {
   BlackForestLabsImageProviderOptions,
 } from '@ai-sdk/black-forest-labs';
 import type {
+  ByteDanceVideoModelOptions,
+  ByteDanceVideoProviderOptions,
+} from '@ai-sdk/bytedance';
+import type {
   CohereChatModelOptions,
   CohereLanguageModelOptions,
   CohereRerankingModelOptions,
@@ -63,6 +67,14 @@ import type {
   GoogleImageModelOptions,
   GoogleLanguageModelOptions,
   GoogleVideoModelOptions,
+  GoogleProvider,
+  GoogleGenerativeAIProvider,
+  GoogleProviderSettings,
+  GoogleGenerativeAIProviderSettings,
+  GoogleProviderMetadata,
+  GoogleGenerativeAIProviderMetadata,
+  GoogleVideoModelId,
+  GoogleGenerativeAIVideoModelId,
 } from '@ai-sdk/google';
 import type {
   GoogleVertexImageModelOptions,
@@ -166,6 +178,12 @@ describe('deprecated provider options type aliases', () => {
     });
   });
 
+  describe('@ai-sdk/bytedance', () => {
+    it('ByteDanceVideoProviderOptions equals ByteDanceVideoModelOptions', () => {
+      expectTypeOf<ByteDanceVideoProviderOptions>().toEqualTypeOf<ByteDanceVideoModelOptions>();
+    });
+  });
+
   describe('@ai-sdk/cohere', () => {
     it('CohereChatModelOptions equals CohereLanguageModelOptions', () => {
       expectTypeOf<CohereChatModelOptions>().toEqualTypeOf<CohereLanguageModelOptions>();
@@ -223,6 +241,18 @@ describe('deprecated provider options type aliases', () => {
     });
     it('GoogleGenerativeAIVideoProviderOptions equals GoogleVideoModelOptions', () => {
       expectTypeOf<GoogleGenerativeAIVideoProviderOptions>().toEqualTypeOf<GoogleVideoModelOptions>();
+    });
+    it('GoogleGenerativeAIProvider equals GoogleProvider', () => {
+      expectTypeOf<GoogleGenerativeAIProvider>().toEqualTypeOf<GoogleProvider>();
+    });
+    it('GoogleGenerativeAIProviderSettings equals GoogleProviderSettings', () => {
+      expectTypeOf<GoogleGenerativeAIProviderSettings>().toEqualTypeOf<GoogleProviderSettings>();
+    });
+    it('GoogleGenerativeAIProviderMetadata equals GoogleProviderMetadata', () => {
+      expectTypeOf<GoogleGenerativeAIProviderMetadata>().toEqualTypeOf<GoogleProviderMetadata>();
+    });
+    it('GoogleGenerativeAIVideoModelId equals GoogleVideoModelId', () => {
+      expectTypeOf<GoogleGenerativeAIVideoModelId>().toEqualTypeOf<GoogleVideoModelId>();
     });
   });
 

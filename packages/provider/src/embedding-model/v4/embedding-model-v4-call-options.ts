@@ -1,4 +1,4 @@
-import { SharedV4Headers, SharedV4ProviderOptions } from '../../shared';
+import type { SharedV4Headers, SharedV4ProviderOptions } from '../../shared';
 
 export type EmbeddingModelV4CallOptions = {
   /**

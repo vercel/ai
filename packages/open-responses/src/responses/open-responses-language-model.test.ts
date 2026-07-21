@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV4GenerateResult,
   LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
@@ -45,6 +45,53 @@ describe('OpenResponsesLanguageModel', () => {
       };
       return;
     }
+
+    it('should throw a descriptive error when the response has no output', async () => {
+      server.urls[URL].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_no_output',
+          created_at: 1741257730,
+          model: 'gemma-7b-it',
+          status: 'incomplete',
+          incomplete_details: { reason: 'content_filter' },
+          // no `output` field
+          usage: {
+            input_tokens: 10,
+            output_tokens: 0,
+          },
+        },
+      };
+
+      await expect(
+        createModel().doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toThrow('Responses API returned no output (content_filter)');
+    });
+
+    it('should surface response.error message before the no-output fallback', async () => {
+      server.urls[URL].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_error',
+          created_at: 1741257730,
+          model: 'gemma-7b-it',
+          status: 'failed',
+          error: {
+            code: 'server_error',
+            message: 'The upstream provider failed to generate a response.',
+          },
+          // no `output` field
+          usage: {
+            input_tokens: 10,
+            output_tokens: 0,
+          },
+        },
+      };
+
+      await expect(
+        createModel().doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toThrow('The upstream provider failed to generate a response.');
+    });
 
     describe('basic generation', () => {
       let result: LanguageModelV4GenerateResult;
@@ -539,6 +586,106 @@ describe('OpenResponsesLanguageModel', () => {
         expect(await server.calls[0].requestBodyJson).toMatchSnapshot();
       });
     });
+
+    describe('pdf input file', () => {
+      function getPdfPrompt(): LanguageModelV4Prompt {
+        return [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'What text does this PDF contain? Reply with just the text content, nothing else.',
+              },
+              {
+                type: 'file',
+                data: {
+                  type: 'url',
+                  url: new globalThis.URL(
+                    'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+                  ),
+                },
+                mediaType: 'application/pdf',
+              },
+            ],
+          },
+        ];
+      }
+
+      let result: LanguageModelV4GenerateResult;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-pdf-input-file.1');
+
+        result = await createModel('gpt-4.1-nano').doGenerate({
+          prompt: getPdfPrompt(),
+        });
+      });
+
+      it('should send input_file in request body', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "What text does this PDF contain? Reply with just the text content, nothing else.",
+                    "type": "input_text",
+                  },
+                  {
+                    "file_url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+                    "type": "input_file",
+                  },
+                ],
+                "role": "user",
+                "type": "message",
+              },
+            ],
+            "model": "gpt-4.1-nano",
+          }
+        `);
+      });
+
+      it('should produce correct content', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "Dummy PDF file",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should extract usage correctly', async () => {
+        expect(result.usage).toMatchInlineSnapshot(`
+          {
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 44,
+              "total": 44,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 4,
+              "total": 4,
+            },
+            "raw": {
+              "input_tokens": 44,
+              "input_tokens_details": {
+                "cached_tokens": 0,
+              },
+              "output_tokens": 4,
+              "output_tokens_details": {
+                "reasoning_tokens": 0,
+              },
+              "total_tokens": 48,
+            },
+          }
+        `);
+      });
+    });
   });
 
   describe('doStream', () => {
@@ -584,6 +731,159 @@ describe('OpenResponsesLanguageModel', () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
+      });
+    });
+
+    it('should not pollute Object.prototype from tool call item ids', async () => {
+      const originalArgumentsDescriptor = Object.getOwnPropertyDescriptor(
+        Object.prototype,
+        'arguments',
+      );
+
+      try {
+        server.urls[URL].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: ${JSON.stringify({
+              type: 'response.function_call_arguments.done',
+              item_id: '__proto__',
+              output_index: 0,
+              arguments: 'polluted',
+              sequence_number: 0,
+            })}\n\n`,
+            `data: ${JSON.stringify({
+              type: 'response.completed',
+              response: {
+                incomplete_details: null,
+                status: 'completed',
+                usage: {
+                  input_tokens: 0,
+                  input_tokens_details: { cached_tokens: 0 },
+                  output_tokens: 0,
+                  output_tokens_details: { reasoning_tokens: 0 },
+                  total_tokens: 0,
+                },
+              },
+              sequence_number: 1,
+            })}\n\n`,
+            'data: [DONE]\n\n',
+          ],
+        };
+
+        const result = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        await convertReadableStreamToArray(result.stream);
+
+        expect(
+          Object.getOwnPropertyDescriptor(Object.prototype, 'arguments'),
+        ).toStrictEqual(originalArgumentsDescriptor);
+      } finally {
+        if (originalArgumentsDescriptor == null) {
+          delete (Object.prototype as { arguments?: unknown }).arguments;
+        } else {
+          Reflect.defineProperty(
+            Object.prototype,
+            'arguments',
+            originalArgumentsDescriptor,
+          );
+        }
+      }
+    });
+
+    describe('pdf input file', () => {
+      it('should stream content from pdf input', async () => {
+        prepareChunksFixtureResponse('openai-pdf-input-file.1');
+
+        const result = await createModel('gpt-4.1-nano').doStream({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'What text does this PDF contain?',
+                },
+                {
+                  type: 'file',
+                  data: {
+                    type: 'url',
+                    url: new globalThis.URL(
+                      'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+                    ),
+                  },
+                  mediaType: 'application/pdf',
+                },
+              ],
+            },
+          ],
+        });
+
+        expect(await convertReadableStreamToArray(result.stream))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "stream-start",
+              "warnings": [],
+            },
+            {
+              "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
+              "type": "text-start",
+            },
+            {
+              "delta": "Dummy",
+              "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
+              "type": "text-delta",
+            },
+            {
+              "delta": " PDF",
+              "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
+              "type": "text-delta",
+            },
+            {
+              "delta": " file",
+              "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
+              "type": "text-delta",
+            },
+            {
+              "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
+              "type": "text-end",
+            },
+            {
+              "finishReason": {
+                "raw": undefined,
+                "unified": "stop",
+              },
+              "providerMetadata": undefined,
+              "type": "finish",
+              "usage": {
+                "inputTokens": {
+                  "cacheRead": 0,
+                  "cacheWrite": undefined,
+                  "noCache": 44,
+                  "total": 44,
+                },
+                "outputTokens": {
+                  "reasoning": 0,
+                  "text": 4,
+                  "total": 4,
+                },
+                "raw": {
+                  "input_tokens": 44,
+                  "input_tokens_details": {
+                    "cached_tokens": 0,
+                  },
+                  "output_tokens": 4,
+                  "output_tokens_details": {
+                    "reasoning_tokens": 0,
+                  },
+                  "total_tokens": 48,
+                },
+              },
+            },
+          ]
+        `);
       });
     });
   });

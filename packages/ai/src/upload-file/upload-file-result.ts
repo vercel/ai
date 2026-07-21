@@ -1,6 +1,6 @@
-import { ProviderMetadata } from '../types/provider-metadata';
-import { ProviderReference } from '../types/provider-reference';
-import { Warning } from '../types/warning';
+import type { ProviderMetadata } from '../types/provider-metadata';
+import type { ProviderReference } from '../types/provider-reference';
+import type { Warning } from '../types/warning';
 
 export interface UploadFileResult {
   readonly providerReference: ProviderReference;

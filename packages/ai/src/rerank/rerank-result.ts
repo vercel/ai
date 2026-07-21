@@ -1,4 +1,4 @@
-import { ProviderMetadata } from '../types/provider-metadata';
+import type { ProviderMetadata } from '../types/provider-metadata';
 
 /**
  * The result of a `rerank` call.

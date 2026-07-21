@@ -1,9 +1,9 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import {
   generateText,
-  ModelMessage,
   isStepCount,
-  ToolApprovalResponse,
+  type ModelMessage,
+  type ToolApprovalResponse,
 } from 'ai';
 import * as readline from 'node:readline/promises';
 import { run } from '../../lib/run';
@@ -42,7 +42,7 @@ run(async () => {
 
     const result = await generateText({
       model: openai.responses('gpt-5-mini'),
-      system:
+      instructions:
         'You are a helpful assistant that can shorten links. ' +
         'Use the MCP tools available to you to shorten links when needed. ' +
         'When a tool execution is not approved by the user, do not retry it. ' +
@@ -97,6 +97,6 @@ run(async () => {
       }
     }
 
-    messages.push(...result.response.messages);
+    messages.push(...result.responseMessages);
   }
 });

@@ -2,7 +2,7 @@ import {
   anthropic,
   type AnthropicLanguageModelOptions,
 } from '@ai-sdk/anthropic';
-import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
+import { ToolLoopAgent, type InferAgentUIMessage } from 'ai';
 import { z } from 'zod';
 
 export const anthropicCodeExecutionAgent = new ToolLoopAgent({

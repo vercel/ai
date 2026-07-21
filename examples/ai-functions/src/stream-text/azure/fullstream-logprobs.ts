@@ -1,5 +1,5 @@
-import { azure, AzureResponsesProviderMetadata } from '@ai-sdk/azure';
-import { type OpenAILanguageModelChatOptions } from '@ai-sdk/openai';
+import { azure, type AzureResponsesProviderMetadata } from '@ai-sdk/azure';
+import type { OpenAILanguageModelChatOptions } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
@@ -14,7 +14,7 @@ run(async () => {
     },
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'text-delta': {
         console.log('Text:', part.text);

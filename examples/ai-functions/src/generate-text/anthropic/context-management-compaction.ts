@@ -59,7 +59,7 @@ run(async () => {
 
   console.log('Text:', result.text);
 
-  const metadata = result.providerMetadata?.anthropic;
+  const metadata = result.finalStep.providerMetadata?.anthropic;
   if (metadata?.iterations) {
     console.log('\nIterations:');
     for (const iteration of metadata.iterations as Array<{

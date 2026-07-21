@@ -38,7 +38,7 @@ run(async () => {
     containerId: string;
     fileId: string;
   }[] = [];
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     if (part.type === 'text-end') {
       const providerMetadata = part.providerMetadata as
         | AzureResponsesTextProviderMetadata

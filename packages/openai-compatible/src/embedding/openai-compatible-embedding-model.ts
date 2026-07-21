@@ -1,24 +1,27 @@
 import {
-  EmbeddingModelV4,
-  SharedV4Warning,
   TooManyEmbeddingValuesForCallError,
+  type EmbeddingModelV4,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  OpenAICompatibleEmbeddingModelId,
   openaiCompatibleEmbeddingModelOptions,
-} from './openai-compatible-embedding-options';
+  type OpenAICompatibleEmbeddingModelId,
+} from './openai-compatible-embedding-model-options';
 import {
   defaultOpenAICompatibleErrorStructure,
-  ProviderErrorStructure,
+  type ProviderErrorStructure,
 } from '../openai-compatible-error';
 import { warnIfDeprecatedProviderOptionsKey } from '../utils/to-camel-case';
 
@@ -35,7 +38,7 @@ type OpenAICompatibleEmbeddingConfig = {
 
   provider: string;
   url: (options: { modelId: string; path: string }) => string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
   errorStructure?: ProviderErrorStructure<any>;
 };
@@ -56,6 +59,20 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV4 {
 
   get supportsParallelCalls(): boolean {
     return this.config.supportsParallelCalls ?? true;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: OpenAICompatibleEmbeddingModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: OpenAICompatibleEmbeddingConfig;
+  }) {
+    return new OpenAICompatibleEmbeddingModel(options.modelId, options.config);
   }
 
   constructor(
@@ -134,7 +151,7 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV4 {
         path: '/embeddings',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers?.(), headers),
       body: {
         model: this.modelId,
         input: values,

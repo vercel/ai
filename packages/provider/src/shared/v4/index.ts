@@ -1,3 +1,4 @@
+export * from './shared-v4-file-data';
 export * from './shared-v4-headers';
 export * from './shared-v4-provider-metadata';
 export * from './shared-v4-provider-options';

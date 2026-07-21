@@ -1,12 +1,12 @@
-import { vertex } from '@ai-sdk/google-vertex';
+import { googleVertex } from '@ai-sdk/google-vertex';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: vertex('gemini-2.5-flash'),
+    model: googleVertex('gemini-2.5-flash'),
     tools: {
-      google_search: vertex.tools.googleSearch({}),
+      google_search: googleVertex.tools.googleSearch({}),
     },
     prompt:
       'List the top 5 San Francisco news from the past week.' +
@@ -17,7 +17,7 @@ run(async () => {
     process.stdout.write(textPart);
   }
 
-  console.log((await result.providerMetadata)?.google);
+  console.log((await result.finalStep).providerMetadata?.google);
   console.log();
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);

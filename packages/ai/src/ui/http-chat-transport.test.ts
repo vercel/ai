@@ -1,10 +1,10 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
+import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import {
   HttpChatTransport,
-  HttpChatTransportInitOptions,
+  type HttpChatTransportInitOptions,
 } from './http-chat-transport';
-import { UIMessage } from './ui-messages';
+import type { UIMessage } from './ui-messages';
 import { describe, it, expect } from 'vitest';
 
 class MockHttpChatTransport extends HttpChatTransport<UIMessage> {

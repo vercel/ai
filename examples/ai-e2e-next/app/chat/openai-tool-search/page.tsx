@@ -1,6 +1,6 @@
 'use client';
 
-import { OpenAIToolSearchMessage } from '@/agent/openai/tool-search-agent';
+import type { OpenAIToolSearchMessage } from '@/agent/openai/tool-search-agent';
 import { Response } from '@/components/ai-elements/response';
 import ChatInput from '@/components/chat-input';
 import OpenAIToolSearchView from '@/components/tool/openai-tool-search-view';

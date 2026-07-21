@@ -1,7 +1,7 @@
 import {
   openai,
-  OpenaiResponsesProviderMetadata,
-  OpenAILanguageModelResponsesOptions,
+  type OpenaiResponsesProviderMetadata,
+  type OpenAILanguageModelResponsesOptions,
 } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
@@ -12,7 +12,7 @@ run(async () => {
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  const providerMetadata = result1.providerMetadata as
+  const providerMetadata = result1.finalStep.providerMetadata as
     | OpenaiResponsesProviderMetadata
     | undefined;
   if (!providerMetadata) return;

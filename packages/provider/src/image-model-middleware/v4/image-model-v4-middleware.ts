@@ -1,5 +1,5 @@
-import { ImageModelV4 } from '../../image-model/v4/image-model-v4';
-import { ImageModelV4CallOptions } from '../../image-model/v4/image-model-v4-call-options';
+import type { ImageModelV4 } from '../../image-model/v4/image-model-v4';
+import type { ImageModelV4CallOptions } from '../../image-model/v4/image-model-v4-call-options';
 
 /**
  * Middleware for ImageModelV4.

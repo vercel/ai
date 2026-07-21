@@ -5,10 +5,7 @@ import { webFetch_20260209OutputSchema } from './tool/web-fetch-20260209';
 import { webFetch_20250910OutputSchema } from './tool/web-fetch-20250910';
 import { webSearch_20260209OutputSchema } from './tool/web-search_20260209';
 import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
-import {
-  anthropicMessagesChunkSchema,
-  anthropicMessagesResponseSchema,
-} from './anthropic-messages-api';
+import { anthropicChunkSchema, anthropicResponseSchema } from './anthropic-api';
 
 describe('prepareTools', () => {
   it('should return undefined tools and tool_choice when tools are null', async () => {
@@ -933,6 +930,83 @@ describe('prepareTools', () => {
         }
       `);
     });
+
+    it('should correctly prepare advisor_20260301 with only the required model', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'anthropic.advisor_20260301',
+            name: 'advisor',
+            args: {
+              model: 'claude-opus-4-7',
+            },
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+        supportsStrictTools: true,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {
+            "advisor-tool-2026-03-01",
+          },
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "model": "claude-opus-4-7",
+              "name": "advisor",
+              "type": "advisor_20260301",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should correctly prepare advisor_20260301 with all optional args', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'anthropic.advisor_20260301',
+            name: 'advisor',
+            args: {
+              model: 'claude-opus-4-7',
+              maxUses: 5,
+              caching: { type: 'ephemeral', ttl: '1h' },
+            },
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+        supportsStrictTools: true,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {
+            "advisor-tool-2026-03-01",
+          },
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "caching": {
+                "ttl": "1h",
+                "type": "ephemeral",
+              },
+              "max_uses": 5,
+              "model": "claude-opus-4-7",
+              "name": "advisor",
+              "type": "advisor_20260301",
+            },
+          ],
+        }
+      `);
+    });
   });
 
   describe('deferLoading for function tools', () => {
@@ -1543,7 +1617,7 @@ describe('webSearch_20260209OutputSchema', () => {
   });
 });
 
-describe('anthropicMessagesResponseSchema - web_fetch_tool_result', () => {
+describe('anthropicResponseSchema - web_fetch_tool_result', () => {
   it('should accept PDF response with base64 source', async () => {
     const pdfResponse = {
       type: 'message',
@@ -1576,7 +1650,7 @@ describe('anthropicMessagesResponseSchema - web_fetch_tool_result', () => {
       },
     };
 
-    const schema = anthropicMessagesResponseSchema();
+    const schema = anthropicResponseSchema();
     const result = await schema.validate!(pdfResponse);
 
     expect(result.success).toBe(true);
@@ -1614,14 +1688,14 @@ describe('anthropicMessagesResponseSchema - web_fetch_tool_result', () => {
       },
     };
 
-    const schema = anthropicMessagesResponseSchema();
+    const schema = anthropicResponseSchema();
     const result = await schema.validate!(textResponse);
 
     expect(result.success).toBe(true);
   });
 });
 
-describe('anthropicMessagesChunkSchema - web_fetch_tool_result', () => {
+describe('anthropicChunkSchema - web_fetch_tool_result', () => {
   it('should accept base64 PDF source in streaming response', async () => {
     const pdfChunk = {
       type: 'content_block_start',
@@ -1646,7 +1720,7 @@ describe('anthropicMessagesChunkSchema - web_fetch_tool_result', () => {
       },
     };
 
-    const schema = anthropicMessagesChunkSchema();
+    const schema = anthropicChunkSchema();
     const result = await schema.validate!(pdfChunk);
 
     expect(result.success).toBe(true);
@@ -1676,7 +1750,7 @@ describe('anthropicMessagesChunkSchema - web_fetch_tool_result', () => {
       },
     };
 
-    const schema = anthropicMessagesChunkSchema();
+    const schema = anthropicChunkSchema();
     const result = await schema.validate!(pdfChunk);
 
     expect(result.success).toBe(true);

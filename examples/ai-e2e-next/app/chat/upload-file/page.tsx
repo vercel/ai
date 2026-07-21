@@ -2,7 +2,7 @@
 
 import ChatInput from '@/components/chat-input';
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, FileUIPart, generateId } from 'ai';
+import { DefaultChatTransport, generateId, type FileUIPart } from 'ai';
 import { useRef, useState } from 'react';
 
 const MODELS = [
@@ -16,7 +16,7 @@ const MODELS = [
     provider: 'google',
     label: 'Gemini 3.1 Pro Preview (Google)',
   },
-  { id: 'gpt-5.4', provider: 'openai', label: 'GPT-5.4 (OpenAI)' },
+  { id: 'gpt-5.6', provider: 'openai', label: 'GPT-5.6 (OpenAI)' },
   {
     id: 'grok-4.20-0309-reasoning',
     provider: 'xai',

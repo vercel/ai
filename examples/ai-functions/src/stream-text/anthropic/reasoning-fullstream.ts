@@ -6,9 +6,9 @@ import {
   extractReasoningMiddleware,
   isStepCount,
   streamText,
-  ToolCallPart,
-  ToolResultPart,
   wrapLanguageModel,
+  type ToolCallPart,
+  type ToolResultPart,
 } from 'ai';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';
@@ -40,7 +40,7 @@ run(async () => {
   const toolCalls: ToolCallPart[] = [];
   const toolResponses: ToolResultPart[] = [];
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'reasoning-delta': {
         if (!enteredReasoning) {

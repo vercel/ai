@@ -1,5 +1,5 @@
-import { ImageModelV3 } from '../../image-model/v3/image-model-v3';
-import { ImageModelV3CallOptions } from '../../image-model/v3/image-model-v3-call-options';
+import type { ImageModelV3 } from '../../image-model/v3/image-model-v3';
+import type { ImageModelV3CallOptions } from '../../image-model/v3/image-model-v3-call-options';
 
 /**
  * Middleware for ImageModelV3.

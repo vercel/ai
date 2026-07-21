@@ -1,4 +1,4 @@
-import { SharedV4ProviderMetadata } from '@ai-sdk/provider';
+import type { SharedV4ProviderMetadata } from '@ai-sdk/provider';
 import { z } from 'zod/v4';
 import { jsonValueSchema } from './json-value';
 

@@ -1,4 +1,4 @@
-import { SharedV3Headers, SharedV3ProviderOptions } from '../../shared';
+import type { SharedV3Headers, SharedV3ProviderOptions } from '../../shared';
 
 export type EmbeddingModelV3CallOptions = {
   /**

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
-  createVertexMaas,
-  vertexMaas,
+  createGoogleVertexMaas,
+  googleVertexMaas,
 } from './google-vertex-maas-provider-edge';
 import { generateAuthToken } from '../../edge/google-vertex-auth-edge';
 
@@ -10,7 +10,7 @@ vi.mock('../../edge/google-vertex-auth-edge', () => ({
 }));
 
 vi.mock('../google-vertex-maas-provider', () => ({
-  createVertexMaas: vi.fn(options => {
+  createGoogleVertexMaas: vi.fn(options => {
     const provider: any = vi.fn();
     provider.fetch = options.fetch;
     provider.headers = options.headers;
@@ -31,12 +31,12 @@ describe('google-vertex-maas-provider-edge', () => {
   });
 
   it('should create provider with auth wrapper', async () => {
-    const provider = createVertexMaas({
+    const provider = createGoogleVertexMaas({
       project: 'test-project',
     });
 
     expect(provider).toBeDefined();
-    const { createVertexMaas: baseCreateVertexMaas } = vi.mocked(
+    const { createGoogleVertexMaas: baseCreateVertexMaas } = vi.mocked(
       await import('../google-vertex-maas-provider'),
     );
     expect(baseCreateVertexMaas).toHaveBeenCalledWith(
@@ -53,7 +53,7 @@ describe('google-vertex-maas-provider-edge', () => {
     const mockFetch = vi.fn().mockResolvedValue(new Response('{}'));
     global.fetch = mockFetch;
 
-    const provider = createVertexMaas({
+    const provider = createGoogleVertexMaas({
       project: 'test-project',
     });
 
@@ -85,7 +85,7 @@ describe('google-vertex-maas-provider-edge', () => {
       clientEmail: 'test@example.com',
       privateKey: 'test-key',
     };
-    const provider = createVertexMaas({
+    const provider = createGoogleVertexMaas({
       project: 'test-project',
       googleCredentials,
     });
@@ -102,7 +102,7 @@ describe('google-vertex-maas-provider-edge', () => {
     global.fetch = mockFetch;
 
     const customHeaders = { 'X-Custom': 'header-value' };
-    const provider = createVertexMaas({
+    const provider = createGoogleVertexMaas({
       project: 'test-project',
       headers: customHeaders,
     });
@@ -125,7 +125,7 @@ describe('google-vertex-maas-provider-edge', () => {
     vi.mocked(generateAuthToken).mockResolvedValue('mock-auth-token');
     const customFetch = vi.fn().mockResolvedValue(new Response('{}'));
 
-    const provider = createVertexMaas({
+    const provider = createGoogleVertexMaas({
       project: 'test-project',
       fetch: customFetch,
     });
@@ -149,7 +149,7 @@ describe('google-vertex-maas-provider-edge', () => {
     global.fetch = mockFetch;
 
     const asyncHeaders = Promise.resolve({ 'X-Async': 'async-value' });
-    const provider = createVertexMaas({
+    const provider = createGoogleVertexMaas({
       project: 'test-project',
       headers: asyncHeaders,
     });
@@ -173,7 +173,7 @@ describe('google-vertex-maas-provider-edge', () => {
     const mockFetch = vi.fn().mockResolvedValue(new Response('{}'));
     global.fetch = mockFetch;
 
-    const provider = createVertexMaas({
+    const provider = createGoogleVertexMaas({
       project: 'test-project',
     });
 
@@ -197,18 +197,18 @@ describe('google-vertex-maas-provider-edge', () => {
     );
   });
 
-  it('should export default vertexMaas instance', () => {
-    expect(vertexMaas).toBeDefined();
-    expect(typeof vertexMaas).toBe('function');
+  it('should export default googleVertexMaas instance', () => {
+    expect(googleVertexMaas).toBeDefined();
+    expect(typeof googleVertexMaas).toBe('function');
   });
 
   it('should set headers to undefined in base provider call', async () => {
-    createVertexMaas({
+    createGoogleVertexMaas({
       project: 'test-project',
       headers: { 'X-Custom': 'value' },
     });
 
-    const { createVertexMaas: baseCreateVertexMaas } = vi.mocked(
+    const { createGoogleVertexMaas: baseCreateVertexMaas } = vi.mocked(
       await import('../google-vertex-maas-provider'),
     );
     expect(baseCreateVertexMaas).toHaveBeenCalledWith(

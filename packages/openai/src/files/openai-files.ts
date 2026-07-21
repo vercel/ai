@@ -1,23 +1,22 @@
-import {
+import type {
   FilesV4,
   FilesV4UploadFileCallOptions,
   FilesV4UploadFileResult,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  convertBase64ToUint8Array,
+  convertInlineFileDataToUint8Array,
   createJsonResponseHandler,
-  FetchFunction,
   parseProviderOptions,
   postFormDataToApi,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { openaiFilesResponseSchema } from './openai-files-api';
 import {
   openaiFilesOptionsSchema,
-  OpenAIFilesOptions,
+  type OpenAIFilesOptions,
 } from './openai-files-options';
-
 interface OpenAIFilesConfig {
   provider: string;
   baseURL: string;
@@ -46,8 +45,7 @@ export class OpenAIFiles implements FilesV4 {
       schema: openaiFilesOptionsSchema,
     })) as OpenAIFilesOptions | undefined;
 
-    const fileBytes =
-      data instanceof Uint8Array ? data : convertBase64ToUint8Array(data);
+    const fileBytes = convertInlineFileDataToUint8Array(data);
 
     const blob = new Blob([fileBytes], {
       type: mediaType,

@@ -42,7 +42,9 @@ export class GatewayRerankingModel implements RerankingModelV4 {
   }: Parameters<RerankingModelV4['doRerank']>[0]): Promise<
     Awaited<ReturnType<RerankingModelV4['doRerank']>>
   > {
-    const resolvedHeaders = await resolve(this.config.headers());
+    const resolvedHeaders = this.config.headers
+      ? await resolve(this.config.headers)
+      : undefined;
     try {
       const {
         responseHeaders,
@@ -78,10 +80,13 @@ export class GatewayRerankingModel implements RerankingModelV4 {
         providerMetadata:
           responseBody.providerMetadata as unknown as SharedV4ProviderMetadata,
         response: { headers: responseHeaders, body: rawValue },
-        warnings: [],
+        warnings: responseBody.warnings ?? [],
       };
     } catch (error) {
-      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
+      throw await asGatewayError(
+        error,
+        await parseAuthMethod(resolvedHeaders ?? {}),
+      );
     }
   }
 
@@ -97,6 +102,28 @@ export class GatewayRerankingModel implements RerankingModelV4 {
   }
 }
 
+const gatewayRerankingWarningSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('unsupported'),
+    feature: z.string(),
+    details: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('compatibility'),
+    feature: z.string(),
+    details: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('deprecated'),
+    setting: z.string(),
+    message: z.string(),
+  }),
+  z.object({
+    type: z.literal('other'),
+    message: z.string(),
+  }),
+]);
+
 const gatewayRerankingResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
@@ -106,6 +133,7 @@ const gatewayRerankingResponseSchema = lazySchema(() =>
           relevanceScore: z.number(),
         }),
       ),
+      warnings: z.array(gatewayRerankingWarningSchema).optional(),
       providerMetadata: z
         .record(z.string(), z.record(z.string(), z.unknown()))
         .optional(),

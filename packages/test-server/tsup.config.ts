@@ -3,7 +3,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig([
   {
     entry: ['src/index.ts'],
-    format: ['cjs', 'esm'],
+    format: ['esm'],
     dts: true,
     sourcemap: true,
     target: 'es2018',
@@ -11,7 +11,7 @@ export default defineConfig([
   },
   {
     entry: ['src/with-vitest.ts'],
-    format: ['cjs', 'esm'],
+    format: ['esm'],
     dts: true,
     sourcemap: true,
     target: 'es2020',

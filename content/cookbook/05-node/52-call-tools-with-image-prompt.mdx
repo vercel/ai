@@ -20,8 +20,9 @@ const result = await generateText({
       content: [
         { type: 'text', text: 'can you log this meal for me?' },
         {
-          type: 'image',
-          image: new URL(
+          type: 'file',
+          mediaType: 'image',
+          data: new URL(
             'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Cheeseburger_%2817237580619%29.jpg/640px-Cheeseburger_%2817237580619%29.jpg',
           ),
         },

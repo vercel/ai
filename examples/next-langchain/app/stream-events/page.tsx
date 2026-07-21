@@ -4,7 +4,7 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useMemo } from 'react';
 import { ChatContainer } from '../../components/chat-container';
-import { type CustomDataMessage } from '../types';
+import type { CustomDataMessage } from '../types';
 
 export default function StreamEventsChat() {
   const transport = useMemo(

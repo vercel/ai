@@ -1,20 +1,25 @@
-import {
+import type {
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
   SharedV4Warning,
 } from '@ai-sdk/provider';
-import { DeepSeekChatPrompt } from './deepseek-chat-api-types';
+import type { DeepSeekChatPrompt } from './deepseek-chat-api-types';
 
 export function convertToDeepSeekChatMessages({
   prompt,
   responseFormat,
+  modelId,
+  supportsStructuredOutputs = false,
 }: {
   prompt: LanguageModelV4Prompt;
   responseFormat: LanguageModelV4CallOptions['responseFormat'];
+  modelId: string;
+  supportsStructuredOutputs?: boolean;
 }): {
   messages: DeepSeekChatPrompt;
   warnings: Array<SharedV4Warning>;
 } {
+  const isDeepSeekV4 = modelId.includes('deepseek-v4');
   const messages: DeepSeekChatPrompt = [];
   const warnings: Array<SharedV4Warning> = [];
 
@@ -25,7 +30,7 @@ export function convertToDeepSeekChatMessages({
         role: 'system',
         content: 'Return JSON.',
       });
-    } else {
+    } else if (!supportsStructuredOutputs) {
       messages.push({
         role: 'system',
         content:
@@ -96,7 +101,8 @@ export function convertToDeepSeekChatMessages({
               break;
             }
             case 'reasoning': {
-              if (index <= lastUserMessageIndex) {
+              // R1 must not receive prior reasoning; V4 requires it.
+              if (index <= lastUserMessageIndex && !isDeepSeekV4) {
                 break;
               }
 
@@ -121,10 +127,12 @@ export function convertToDeepSeekChatMessages({
           }
         }
 
+        // V4 demands the field on every assistant turn — back-fill an empty
+        // string when the source message had no reasoning part at all.
         messages.push({
           role: 'assistant',
           content: text,
-          reasoning_content: reasoning,
+          reasoning_content: reasoning ?? (isDeepSeekV4 ? '' : undefined),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
 
@@ -145,7 +153,7 @@ export function convertToDeepSeekChatMessages({
               contentValue = output.value;
               break;
             case 'execution-denied':
-              contentValue = output.reason ?? 'Tool execution denied.';
+              contentValue = output.reason ?? 'Tool call execution denied.';
               break;
             case 'content':
             case 'json':
