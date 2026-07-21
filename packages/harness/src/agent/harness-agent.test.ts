@@ -555,6 +555,51 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
+  test('settles an aborted turn with an abort part and releases the session for the next turn', async () => {
+    let promptTurnCount = 0;
+    const abortController = new AbortController();
+    abortController.abort();
+    const { harness } = mockHarness({
+      onPromptTurn: () => {
+        promptTurnCount += 1;
+      },
+      script: () =>
+        promptTurnCount === 1
+          ? [
+              {
+                type: 'error',
+                error: 'AbortError: This operation was aborted',
+              },
+            ]
+          : finishEvents(),
+    });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession();
+
+    const aborted = await agent.stream({
+      session,
+      prompt: 'abort',
+      abortSignal: abortController.signal,
+    });
+
+    const types: string[] = [];
+    for await (const part of aborted.fullStream) {
+      types.push(part.type);
+    }
+
+    // The user stop surfaces as an `abort` part, not an `error` part …
+    expect(types).toContain('abort');
+    expect(types).not.toContain('error');
+    // … and the turn-settlement lifecycle ran: the session returns to idle
+    // and accepts the next turn.
+    expect(session.hasUnfinishedTurn()).toBe(false);
+    await expect(
+      agent.generate({ session, prompt: 'recover' }),
+    ).resolves.toBeDefined();
+
+    await session.destroy();
+  });
+
   test('continueStream() continues an in-flight turn and streams translated parts', async () => {
     const { harness, doContinueTurn, prompts } = mockHarness({
       script: () => [],

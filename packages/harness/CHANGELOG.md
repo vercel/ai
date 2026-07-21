@@ -1,5 +1,12 @@
 # @ai-sdk/harness
 
+## 1.0.39
+
+### Patch Changes
+
+- 86a84c9: fix(harness): settle a turn aborted by the caller's abortSignal with an `abort` stream part instead of an AbortError `error` part, matching `streamText`'s abort contract
+  - ai@7.0.34
+
 ## 1.0.38
 
 ### Patch Changes

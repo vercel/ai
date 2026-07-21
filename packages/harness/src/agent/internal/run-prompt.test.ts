@@ -4,7 +4,7 @@ import {
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { hasToolCall, isStepCount, type TextStreamPart } from 'ai';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { z } from 'zod/v4';
 import type {
   HarnessV1,
@@ -857,5 +857,110 @@ describe('runPrompt host tool generator results', () => {
     expect(results).toHaveLength(1);
     expect(results[0].preliminary).toBe(true);
     expect(results[0].output).toEqual({ path: 'src/foo.ts' });
+  });
+});
+
+describe('runPrompt abort semantics', () => {
+  const abortedRun = (
+    script: HarnessV1StreamPart[],
+    options?: { onTurnFailed?: () => void },
+  ) => {
+    const controller = new AbortController();
+    controller.abort();
+    return runPrompt({
+      harness,
+      session: fakeSession(script),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {} as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: controller.signal,
+      onTurnFailed: options?.onTurnFailed,
+    });
+  };
+
+  test('settles with an abort part instead of an error part when the abort signal has fired', async () => {
+    const { result, done } = abortedRun([
+      { type: 'text-start', id: 't1' },
+      { type: 'text-delta', id: 't1', delta: 'partial ' },
+      { type: 'error', error: 'AbortError: This operation was aborted' },
+    ]);
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(parts.filter(p => p.type === 'error')).toHaveLength(0);
+    const last = parts[parts.length - 1]!;
+    expect(last.type).toBe('abort');
+    expect((last as { reason?: string }).reason).toContain('aborted');
+    // Awaiting consumers still settle (rejected with the underlying error).
+    await expect(result.finishReason).rejects.toBeDefined();
+  });
+
+  test('keeps a real error part when the abort signal has not fired', async () => {
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([{ type: 'error', error: 'boom' }]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {} as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(parts.filter(p => p.type === 'abort')).toHaveLength(0);
+    expect(parts[parts.length - 1]!.type).toBe('error');
+    await expect(result.finishReason).rejects.toBeDefined();
+  });
+
+  test('notifies onTurnFailed when an aborted turn settles, so session turn tracking returns to idle', async () => {
+    const onTurnFailed = vi.fn();
+    const { result, done } = abortedRun(
+      [{ type: 'error', error: 'AbortError: This operation was aborted' }],
+      { onTurnFailed },
+    );
+
+    await result.consumeStream();
+    await done;
+
+    expect(onTurnFailed).toHaveBeenCalledTimes(1);
+  });
+
+  test('toUIMessageStream emits an abort chunk, skips onError, and reports isAborted to onEnd for an aborted turn', async () => {
+    const { result, done } = abortedRun([
+      { type: 'error', error: 'AbortError: This operation was aborted' },
+    ]);
+
+    const onErrorCalls: unknown[] = [];
+    const onEndCalls: { isAborted: boolean }[] = [];
+    const chunkTypes: string[] = [];
+    for await (const chunk of result.toUIMessageStream({
+      onError: error => {
+        onErrorCalls.push(error);
+        return 'error';
+      },
+      onEnd: ({ isAborted }) => {
+        onEndCalls.push({ isAborted });
+      },
+    })) {
+      chunkTypes.push((chunk as { type: string }).type);
+    }
+    await done;
+
+    expect(onErrorCalls).toHaveLength(0);
+    expect(chunkTypes).toContain('abort');
+    expect(chunkTypes).not.toContain('error');
+    expect(onEndCalls).toEqual([{ isAborted: true }]);
   });
 });
