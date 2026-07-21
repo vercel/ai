@@ -100,12 +100,42 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
     new TransformStream<UIMessageChunk, InferUIMessageChunk<UI_MESSAGE>>({
       async transform(chunk, controller) {
         await runUpdateMessageJob(async ({ state, write }) => {
-          function getToolInvocation(toolCallId: string) {
-            const toolInvocations = state.message.parts.filter(isToolUIPart);
+          function getCurrentStepParts() {
+            const parts = state.message.parts;
+            let currentStepStartIndex = parts.length - 1;
 
-            const toolInvocation = toolInvocations.find(
+            while (
+              currentStepStartIndex >= 0 &&
+              parts[currentStepStartIndex].type !== 'step-start'
+            ) {
+              currentStepStartIndex--;
+            }
+
+            return parts.slice(currentStepStartIndex + 1);
+          }
+
+          function getCurrentStepToolInvocations() {
+            return getCurrentStepParts().filter(isToolUIPart);
+          }
+
+          function getToolInvocation(toolCallId: string) {
+            const toolInvocations = getCurrentStepToolInvocations();
+
+            let toolInvocation = toolInvocations.find(
               invocation => invocation.toolCallId === toolCallId,
             );
+
+            if (toolInvocation == null) {
+              const parts = state.message.parts;
+
+              for (let i = parts.length - 1; i >= 0; i--) {
+                const part = parts[i];
+                if (isToolUIPart(part) && part.toolCallId === toolCallId) {
+                  toolInvocation = part;
+                  break;
+                }
+              }
+            }
 
             if (toolInvocation == null) {
               throw new Error(
@@ -117,13 +147,28 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
           }
 
           function getDynamicToolInvocation(toolCallId: string) {
-            const toolInvocations = state.message.parts.filter(
+            const toolInvocations = getCurrentStepParts().filter(
               part => part.type === 'dynamic-tool',
             ) as DynamicToolUIPart[];
 
-            const toolInvocation = toolInvocations.find(
+            let toolInvocation = toolInvocations.find(
               invocation => invocation.toolCallId === toolCallId,
             );
+
+            if (toolInvocation == null) {
+              const parts = state.message.parts;
+
+              for (let i = parts.length - 1; i >= 0; i--) {
+                const part = parts[i];
+                if (
+                  part.type === 'dynamic-tool' &&
+                  part.toolCallId === toolCallId
+                ) {
+                  toolInvocation = part;
+                  break;
+                }
+              }
+            }
 
             if (toolInvocation == null) {
               throw new Error(
@@ -167,11 +212,14 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerMetadata?: ProviderMetadata;
                 }
             ),
+            existingPart?: ToolUIPart<InferUIMessageTools<UI_MESSAGE>>,
           ) {
-            const part = state.message.parts.find(
-              part =>
-                isToolUIPart(part) && part.toolCallId === options.toolCallId,
-            ) as ToolUIPart<InferUIMessageTools<UI_MESSAGE>> | undefined;
+            const part =
+              existingPart ??
+              (getCurrentStepParts().find(
+                part =>
+                  isToolUIPart(part) && part.toolCallId === options.toolCallId,
+              ) as ToolUIPart<InferUIMessageTools<UI_MESSAGE>> | undefined);
 
             const anyOptions = options as any;
             const anyPart = part as any;
@@ -240,12 +288,15 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerMetadata?: ProviderMetadata;
                 }
             ),
+            existingPart?: DynamicToolUIPart,
           ) {
-            const part = state.message.parts.find(
-              part =>
-                part.type === 'dynamic-tool' &&
-                part.toolCallId === options.toolCallId,
-            ) as DynamicToolUIPart | undefined;
+            const part =
+              existingPart ??
+              (getCurrentStepParts().find(
+                part =>
+                  part.type === 'dynamic-tool' &&
+                  part.toolCallId === options.toolCallId,
+              ) as DynamicToolUIPart | undefined);
 
             const anyOptions = options as any;
             const anyPart = part as any;
@@ -411,7 +462,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'tool-input-start': {
-              const toolInvocations = state.message.parts.filter(isToolUIPart);
+              const toolInvocations =
+                getCurrentStepParts().filter(isToolUIPart);
 
               // add the partial tool call to the map
               state.partialToolCalls[chunk.toolCallId] = {
@@ -541,26 +593,32 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   chunk.toolCallId,
                 );
 
-                updateDynamicToolPart({
-                  toolCallId: chunk.toolCallId,
-                  toolName: toolInvocation.toolName,
-                  state: 'output-available',
-                  input: (toolInvocation as any).input,
-                  output: chunk.output,
-                  preliminary: chunk.preliminary,
-                });
+                updateDynamicToolPart(
+                  {
+                    toolCallId: chunk.toolCallId,
+                    toolName: toolInvocation.toolName,
+                    state: 'output-available',
+                    input: (toolInvocation as any).input,
+                    output: chunk.output,
+                    preliminary: chunk.preliminary,
+                  },
+                  toolInvocation,
+                );
               } else {
                 const toolInvocation = getToolInvocation(chunk.toolCallId);
 
-                updateToolPart({
-                  toolCallId: chunk.toolCallId,
-                  toolName: getToolName(toolInvocation),
-                  state: 'output-available',
-                  input: (toolInvocation as any).input,
-                  output: chunk.output,
-                  providerExecuted: chunk.providerExecuted,
-                  preliminary: chunk.preliminary,
-                });
+                updateToolPart(
+                  {
+                    toolCallId: chunk.toolCallId,
+                    toolName: getToolName(toolInvocation),
+                    state: 'output-available',
+                    input: (toolInvocation as any).input,
+                    output: chunk.output,
+                    providerExecuted: chunk.providerExecuted,
+                    preliminary: chunk.preliminary,
+                  },
+                  toolInvocation as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>,
+                );
               }
 
               write();
@@ -573,26 +631,32 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   chunk.toolCallId,
                 );
 
-                updateDynamicToolPart({
-                  toolCallId: chunk.toolCallId,
-                  toolName: toolInvocation.toolName,
-                  state: 'output-error',
-                  input: (toolInvocation as any).input,
-                  errorText: chunk.errorText,
-                  providerExecuted: chunk.providerExecuted,
-                });
+                updateDynamicToolPart(
+                  {
+                    toolCallId: chunk.toolCallId,
+                    toolName: toolInvocation.toolName,
+                    state: 'output-error',
+                    input: (toolInvocation as any).input,
+                    errorText: chunk.errorText,
+                    providerExecuted: chunk.providerExecuted,
+                  },
+                  toolInvocation,
+                );
               } else {
                 const toolInvocation = getToolInvocation(chunk.toolCallId);
 
-                updateToolPart({
-                  toolCallId: chunk.toolCallId,
-                  toolName: getToolName(toolInvocation),
-                  state: 'output-error',
-                  input: (toolInvocation as any).input,
-                  rawInput: (toolInvocation as any).rawInput,
-                  errorText: chunk.errorText,
-                  providerExecuted: chunk.providerExecuted,
-                });
+                updateToolPart(
+                  {
+                    toolCallId: chunk.toolCallId,
+                    toolName: getToolName(toolInvocation),
+                    state: 'output-error',
+                    input: (toolInvocation as any).input,
+                    rawInput: (toolInvocation as any).rawInput,
+                    errorText: chunk.errorText,
+                    providerExecuted: chunk.providerExecuted,
+                  },
+                  toolInvocation as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>,
+                );
               }
 
               write();

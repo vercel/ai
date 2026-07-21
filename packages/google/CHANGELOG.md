@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.83
+
+### Patch Changes
+
+- e5f1c62: fix(provider/google): associate multiple code execution results with their tool call
+
 ## 2.0.82
 
 ### Patch Changes
