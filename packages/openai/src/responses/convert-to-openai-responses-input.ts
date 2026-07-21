@@ -586,7 +586,17 @@ export async function convertToOpenAIResponsesInput({
                     part.providerOptions?.[providerOptionsName] as
                       | { itemId?: string }
                       | undefined
-                  )?.itemId ?? part.toolCallId;
+                  )?.itemId ??
+                  ((
+                    part as {
+                      providerMetadata?: {
+                        [providerOptionsName]?: { itemId?: string };
+                      };
+                    }
+                  ).providerMetadata?.[providerOptionsName]?.itemId as
+                    | string
+                    | undefined) ??
+                  part.toolCallId;
 
                 if (store) {
                   input.push({ type: 'item_reference', id: itemId });

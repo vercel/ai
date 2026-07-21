@@ -3461,11 +3461,15 @@ describe('convertToOpenAIResponsesInput', () => {
                   call_id: null,
                 }),
                 providerExecuted: true,
-                providerOptions: {
-                  openai: {
-                    itemId: 'tsc_hosted_123',
+                // Cast: `providerMetadata` isn't on `LanguageModelV4ToolCallPart`,
+                // but the read side writes it onto runtime tool-call parts.
+                ...({
+                  providerMetadata: {
+                    openai: {
+                      itemId: 'tsc_hosted_123',
+                    },
                   },
-                },
+                } as object),
               },
               {
                 type: 'tool-result',
@@ -3482,11 +3486,15 @@ describe('convertToOpenAIResponsesInput', () => {
                     ],
                   },
                 },
-                providerOptions: {
-                  openai: {
-                    itemId: 'tso_hosted_456',
+                // Cast: `providerMetadata` isn't on `LanguageModelV4ToolResultPart`,
+                // but the read side writes it onto runtime tool-result parts.
+                ...({
+                  providerMetadata: {
+                    openai: {
+                      itemId: 'tso_hosted_456',
+                    },
                   },
-                },
+                } as object),
               },
             ],
           },
