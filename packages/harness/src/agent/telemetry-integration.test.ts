@@ -173,6 +173,8 @@ describe('HarnessAgent telemetry integration', () => {
     // messages): the streamed text and the tool-call, captured non-lossily.
     const lmEnd = events.onLanguageModelCallEnd as {
       content: unknown[];
+      finishReason: unknown;
+      usage: unknown;
       performance: unknown;
     };
     expect(lmEnd.content).toEqual([
@@ -189,9 +191,24 @@ describe('HarnessAgent telemetry integration', () => {
       timeToFirstOutputMs: undefined,
       timeBetweenOutputChunksMs: undefined,
     });
+    expect(lmEnd.finishReason).toBe('stop');
+    expect(lmEnd.usage).toEqual({
+      inputTokens: 5,
+      inputTokenDetails: {
+        noCacheTokens: 5,
+        cacheReadTokens: undefined,
+        cacheWriteTokens: undefined,
+      },
+      outputTokens: 2,
+      outputTokenDetails: { textTokens: 2, reasoningTokens: undefined },
+      totalTokens: 7,
+      raw: undefined,
+    });
 
     const end = events.onEnd as {
       text: string;
+      finishReason: unknown;
+      usage: unknown;
       finalStep: { reasoning: unknown[]; providerMetadata: unknown };
       toolCalls: unknown[];
       files: unknown[];
@@ -210,6 +227,8 @@ describe('HarnessAgent telemetry integration', () => {
       },
     ]);
     expect(end.files).toEqual([]);
+    expect(end.finishReason).toBe('stop');
+    expect(end.usage).toEqual(lmEnd.usage);
     // The input prompt is on the operation start (gen_ai input messages).
     const start = events.onStart as { messages: unknown[] };
     expect(start.messages).toEqual([{ role: 'user', content: 'go' }]);
