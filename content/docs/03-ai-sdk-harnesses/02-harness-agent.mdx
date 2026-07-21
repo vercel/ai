@@ -100,6 +100,10 @@ or a message-array `prompt`, `HarnessAgent` takes the latest user message as the
 fresh input for the turn. It does not replay the full prior conversation into
 the harness.
 
+A trailing tool message is handled differently: tool approval responses and
+client-provided tool results continue the unfinished harness turn that produced
+the corresponding request or tool call.
+
 This is different from model calls, where the application usually sends the full
 message history. In chat routes, persist and resume the harness session instead
 of relying on message replay.
@@ -116,6 +120,8 @@ End every session explicitly:
   the turn is unfinished, the resume state includes the continuation state.
 - `session.suspendTurn()` is for advanced active-turn continuation across a
   process boundary.
+- `session.hasUnfinishedTurn()` reports whether the current turn must be
+  continued or suspended before the session accepts a new prompt.
 
 Use `destroy()` for one-off scripts and tests. Use `detach()` or `stop()` for
 HTTP routes that need multi-turn continuity.
@@ -165,8 +171,10 @@ For advanced workflows that must hand off an active turn across a process
 boundary, suspend the turn and persist the continuation state:
 
 ```ts
-const continuationState = await session.suspendTurn();
-await persistContinuationState({ chatId, continuationState });
+if (session.hasUnfinishedTurn()) {
+  const continuationState = await session.suspendTurn();
+  await persistContinuationState({ chatId, continuationState });
+}
 ```
 
 When you only have raw continuation state from `suspendTurn()`, resume with

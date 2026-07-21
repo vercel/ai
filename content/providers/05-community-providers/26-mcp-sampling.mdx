@@ -365,7 +365,7 @@ server.setRequestHandler(CallToolRequestSchema, async request => {
       tools: {
         getWeather: {
           description: 'Get the weather for a location',
-          parameters: z.object({
+          inputSchema: z.object({
             city: z.string().describe('The city name'),
           }),
           execute: async ({ city }) => {
