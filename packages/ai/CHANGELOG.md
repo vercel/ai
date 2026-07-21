@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.232
+
+### Patch Changes
+
+- 7644a61: Preserve provider options when combining consecutive tool messages.
+
 ## 6.0.231
 
 ### Patch Changes
