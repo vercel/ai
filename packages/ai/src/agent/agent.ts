@@ -70,7 +70,8 @@ export type AgentCallParameters<
     abortSignal?: AbortSignal;
 
     /**
-     * Timeout in milliseconds. Can be specified as a number or as an object with `totalMs`.
+     * Timeout in milliseconds. Can be specified as a number or as an object
+     * with total, per-step, first-content, inter-content, and tool timeouts.
      */
     timeout?: TimeoutConfiguration<TOOLS>;
 

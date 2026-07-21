@@ -246,7 +246,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             },
             {
               name: 'timeout',
-              type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number } | undefined',
+              type: 'number | { totalMs?: number; stepMs?: number; firstChunkMs?: number; chunkMs?: number } | undefined',
               description: 'Timeout configuration for the generation.',
             },
             {
@@ -360,7 +360,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             },
             {
               name: 'timeout',
-              type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number } | undefined',
+              type: 'number | { totalMs?: number; stepMs?: number; firstChunkMs?: number; chunkMs?: number } | undefined',
               description: 'Timeout configuration for the generation.',
             },
             {
@@ -712,10 +712,10 @@ const result = await agent.generate({
     },
     {
       name: 'timeout',
-      type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number }',
+      type: 'number | { totalMs?: number; stepMs?: number; firstChunkMs?: number; chunkMs?: number }',
       isOptional: true,
       description:
-        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, and/or chunkMs properties. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, firstChunkMs, and/or chunkMs properties. firstChunkMs limits the wait for the first content-bearing output in each model-call step. chunkMs limits gaps between later content-bearing output chunks. Can be used alongside abortSignal.',
     },
     {
       name: 'experimental_sandbox',
@@ -828,10 +828,10 @@ for await (const chunk of stream.textStream) {
     },
     {
       name: 'timeout',
-      type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number }',
+      type: 'number | { totalMs?: number; stepMs?: number; firstChunkMs?: number; chunkMs?: number }',
       isOptional: true,
       description:
-        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, and/or chunkMs properties. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, firstChunkMs, and/or chunkMs properties. firstChunkMs limits the wait for the first content-bearing output in each model-call step. chunkMs limits gaps between later content-bearing output chunks. Can be used alongside abortSignal.',
     },
     {
       name: 'experimental_sandbox',
