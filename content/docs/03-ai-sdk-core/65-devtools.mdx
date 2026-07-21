@@ -101,7 +101,22 @@ DevTools captures the following information from your AI SDK calls:
 - **Input parameters and prompts**: View the complete input sent to your LLM
 - **Output content and tool calls**: Inspect generated text and tool invocations
 - **Token usage and timing**: Monitor resource consumption and performance
-- **Raw provider data**: Access complete request and response payloads
+- **Raw provider data**: Access provider request and response payloads when body retention is enabled
+
+Telemetry is enabled automatically, but AI SDK 7 excludes raw request and response bodies from step results by default. To make them available to DevTools for `generateText`, enable body retention on the call:
+
+```ts highlight="4-7"
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'Hello!',
+  include: {
+    requestBody: true,
+    responseBody: true,
+  },
+});
+```
+
+`ToolLoopAgent` accepts the same `include` setting in its constructor. For `streamText` and `ToolLoopAgent.stream()`, only the request body can be retained; use `include: { requestBody: true }`.
 
 ### Runs and steps
 
@@ -129,6 +144,6 @@ DevTools stores all AI interactions locally in plain text files, including:
 - User prompts and messages
 - LLM responses
 - Tool call arguments and results
-- API request and response data
+- API request and response data when body retention is enabled
 
 **Only use DevTools in local development environments.** Do not enable DevTools in production or when handling sensitive data.
