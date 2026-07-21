@@ -7,6 +7,7 @@ settings:
 overrides:
   tinyexec: 1.0.2
   oxlint: 1.56.0
+  tar: 7.5.19
 
 importers:
 
@@ -21647,8 +21648,8 @@ packages:
   tar-stream@3.2.0:
     resolution: {integrity: sha512-ojzvCvVaNp6aOTFmG7jaRD0meowIAuPc3cMMhSgKiVWws1GyHbGd/xvnyuRKcKlMpt3qvxx6r0hreCNITP9hIg==}
 
-  tar@7.5.15:
-    resolution: {integrity: sha512-dzGK0boVlC4W5QFuQN1EFSl3bIDYsk7Tj40U6eIBnK2k/8ml7TZ5agbI5j5+qnoVcAA+rNtBml8SEiLxZpNqRQ==}
+  tar@7.5.19:
+    resolution: {integrity: sha512-4LeEWl96twnS2Q7Bz4MGqgazLqO+hJN63GZxXoIqh1T3VweYD997gbU1ItNsQafqqXTXd5WFyFdReLtwvRBNiw==}
     engines: {node: '>=18'}
 
   teex@1.0.1:
@@ -26764,7 +26765,7 @@ snapshots:
 
   '@floating-ui/react-dom@2.1.8(react-dom@19.2.6(react@19.2.6))(react@19.2.6)':
     dependencies:
-      '@floating-ui/dom': 1.7.6
+      '@floating-ui/dom': 1.8.0
       react: 19.2.6
       react-dom: 19.2.6(react@19.2.6)
 
@@ -28216,7 +28217,7 @@ snapshots:
       open: 10.2.0
       package-manager-detector: 1.6.0
       stacktrace-parser: 0.1.11
-      tar: 7.5.15
+      tar: 7.5.19
       winston: 3.19.0
       winston-console-format: 1.0.8
       yaml: 2.9.0
@@ -28436,7 +28437,7 @@ snapshots:
       node-fetch: 2.7.0(encoding@0.1.13)
       nopt: 8.1.0
       semver: 7.8.5
-      tar: 7.5.15
+      tar: 7.5.19
     transitivePeerDependencies:
       - encoding
       - supports-color
@@ -31670,7 +31671,7 @@ snapshots:
 
   '@radix-ui/react-popper@1.3.2(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)':
     dependencies:
-      '@floating-ui/react-dom': 2.1.8(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      '@floating-ui/react-dom': 2.1.9(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       '@radix-ui/react-arrow': 1.1.11(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       '@radix-ui/react-compose-refs': 1.1.3(@types/react@18.3.28)(react@19.2.6)
       '@radix-ui/react-context': 1.1.4(@types/react@18.3.28)(react@19.2.6)
@@ -42307,7 +42308,7 @@ snapshots:
       nopt: 9.0.0
       proc-log: 6.1.0
       semver: 7.8.5
-      tar: 7.5.15
+      tar: 7.5.19
       tinyglobby: 0.2.17
       undici: 6.27.0
       which: 6.0.1
@@ -42989,7 +42990,7 @@ snapshots:
       promise-retry: 2.0.1
       sigstore: 4.1.0
       ssri: 13.0.1
-      tar: 7.5.15
+      tar: 7.5.19
     transitivePeerDependencies:
       - supports-color
 
@@ -45614,7 +45615,7 @@ snapshots:
       - bare-buffer
       - react-native-b4a
 
-  tar@7.5.15:
+  tar@7.5.19:
     dependencies:
       '@isaacs/fs-minipass': 4.0.1
       chownr: 3.0.0
