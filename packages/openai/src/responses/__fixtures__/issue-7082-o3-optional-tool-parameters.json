@@ -1,0 +1,130 @@
+{
+  "id": "resp_08c7eac45286fefb006a5f41b9009881a39f24f2b7f3b2f31c",
+  "object": "response",
+  "created_at": 1784627643,
+  "status": "completed",
+  "background": false,
+  "billing": {
+    "payer": "developer"
+  },
+  "completed_at": 1784627645,
+  "error": null,
+  "frequency_penalty": 0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": 200,
+  "max_tool_calls": null,
+  "model": "o3-2025-04-16",
+  "moderation": null,
+  "output": [
+    {
+      "id": "rs_08c7eac45286fefb006a5f41bc7b8881a3a8cc432451e96393",
+      "type": "reasoning",
+      "content": [],
+      "encrypted_content": "[redacted]",
+      "summary": []
+    },
+    {
+      "id": "fc_08c7eac45286fefb006a5f41bceb6081a3a366f3ae718bea5e",
+      "type": "function_call",
+      "status": "completed",
+      "arguments": "{\"query\":\"machine learning\",\"limit\":10,\"offset\":0,\"year\":0}",
+      "call_id": "call_2mhz5FtwkZnzXQkTOMtYZpZH",
+      "name": "semantic_scholar_search"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": "in_memory",
+  "reasoning": {
+    "context": "current_turn",
+    "effort": "medium",
+    "mode": "standard",
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": true,
+  "temperature": 1,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": "medium"
+  },
+  "tool_choice": {
+    "type": "function",
+    "name": "semantic_scholar_search"
+  },
+  "tool_usage": {
+    "image_gen": {
+      "input_tokens": 0,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "output_tokens": 0,
+      "output_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "total_tokens": 0
+    },
+    "web_search": {
+      "num_requests": 0
+    }
+  },
+  "tools": [
+    {
+      "type": "function",
+      "description": "Search academic papers using Semantic Scholar API.",
+      "name": "semantic_scholar_search",
+      "output_schema": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "The text to search for. Convert the question to a sensible search query."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of results to return. Min 5, max 100."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "The pagination offset."
+          },
+          "year": {
+            "type": "integer",
+            "description": "The publication year, formatted as YYYY."
+          }
+        },
+        "required": ["query", "limit", "offset", "year"],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "strict": true
+    }
+  ],
+  "top_logprobs": 0,
+  "top_p": 1,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 114,
+    "input_tokens_details": {
+      "cache_write_tokens": 0,
+      "cached_tokens": 0
+    },
+    "output_tokens": 88,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "total_tokens": 202
+  },
+  "user": null,
+  "metadata": {}
+}
