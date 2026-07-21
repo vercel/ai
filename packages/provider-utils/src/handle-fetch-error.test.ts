@@ -38,6 +38,31 @@ describe('handleFetchError', () => {
         'Cannot connect to API: ECONNREFUSED',
       );
     });
+
+    it('should handle an Undici socket error after receiving response headers', () => {
+      const socketError = Object.assign(new Error('other side closed'), {
+        code: 'UND_ERR_SOCKET',
+      });
+      const terminatedError = new TypeError('terminated');
+      (terminatedError as any).cause = socketError;
+      const apiCallError = new APICallError({
+        message: 'Failed to process successful response',
+        cause: terminatedError,
+        url: testUrl,
+        requestBodyValues: testRequestBodyValues,
+        statusCode: 200,
+      });
+
+      const result = handleFetchError({
+        error: apiCallError,
+        url: testUrl,
+        requestBodyValues: testRequestBodyValues,
+      });
+
+      expect(APICallError.isInstance(result)).toBe(true);
+      expect((result as APICallError).isRetryable).toBe(true);
+      expect((result as APICallError).cause).toBe(terminatedError);
+    });
   });
 
   describe('browser fetch errors', () => {
