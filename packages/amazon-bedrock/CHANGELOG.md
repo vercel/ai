@@ -1,5 +1,18 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.26
+
+### Patch Changes
+
+- b72fc7c: fix(amazon-bedrock): sanitize unsupported JSON Schema constraints in native Anthropic structured output
+- Updated dependencies [02ffdcb]
+- Updated dependencies [b72fc7c]
+- Updated dependencies [76cb673]
+- Updated dependencies [9218ebe]
+  - @ai-sdk/provider-utils@5.0.12
+  - @ai-sdk/anthropic@4.0.17
+  - @ai-sdk/openai@4.0.17
+
 ## 5.0.25
 
 ### Patch Changes

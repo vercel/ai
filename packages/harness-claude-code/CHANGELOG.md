@@ -1,5 +1,15 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.39
+
+### Patch Changes
+
+- f5cdb2d: chore(harness): update primary SDK dependencies
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+  - @ai-sdk/harness@1.0.38
+
 ## 1.0.38
 
 ### Patch Changes
