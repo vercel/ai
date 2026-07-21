@@ -1,0 +1,124 @@
+---
+title: experimental_generateArtifact
+description: API Reference for experimental_generateArtifact.
+---
+
+# `experimental_generateArtifact()`
+
+<Note>
+  Artifact generation is an experimental feature. The API may change in future
+  versions.
+</Note>
+
+Generates one or more downloadable files using an artifact model. Artifact
+models can accept text and file inputs, enabling workflows such as text-to-3D,
+image-to-3D, multiview-to-3D, and mesh retopology.
+
+```ts
+import { fal } from '@ai-sdk/fal';
+import { experimental_generateArtifact as generateArtifact } from 'ai';
+
+const { artifact, artifacts } = await generateArtifact({
+  model: fal.artifact('tripo3d/h3.1/text-to-3d'),
+  prompt: 'A small house with a red roof and white walls',
+});
+```
+
+## Import
+
+<Snippet
+  text={`import { experimental_generateArtifact } from "ai"`}
+  prompt={false}
+/>
+
+## Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'model',
+      type: 'ArtifactModelV4 | string',
+      description: 'The artifact model to use.',
+    },
+    {
+      name: 'prompt',
+      type: 'string',
+      isOptional: true,
+      description: 'An optional text prompt for the generation.',
+    },
+    {
+      name: 'inputs',
+      type: 'Array<DataContent | GenerateArtifactInput>',
+      isOptional: true,
+      description:
+        'Optional image, reference, or existing-artifact inputs. An object input can specify data, mediaType, filename, role, and providerOptions.',
+    },
+    {
+      name: 'providerOptions',
+      type: 'ProviderOptions',
+      isOptional: true,
+      description: 'Additional provider-specific options.',
+    },
+    {
+      name: 'maxRetries',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of whole model-call retries. Default: 0, to avoid duplicating accepted billable jobs.',
+    },
+    {
+      name: 'abortSignal',
+      type: 'AbortSignal',
+      isOptional: true,
+      description: 'An optional abort signal to stop waiting for the result.',
+    },
+    {
+      name: 'headers',
+      type: 'Record<string, string>',
+      isOptional: true,
+      description: 'Additional HTTP headers for the request.',
+    },
+    {
+      name: 'download',
+      type: '(options: { url: URL; abortSignal?: AbortSignal }) => Promise<{ data: Uint8Array; mediaType?: string }>',
+      isOptional: true,
+      description:
+        'Custom URL download function. Use createDownload() to enforce an application-specific file-size limit.',
+    },
+  ]}
+/>
+
+## Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: 'artifact',
+      type: 'GeneratedArtifact',
+      description: 'The first generated artifact.',
+    },
+    {
+      name: 'artifacts',
+      type: 'Array<GeneratedArtifact>',
+      description: 'All generated artifacts.',
+    },
+    {
+      name: 'warnings',
+      type: 'Array<Warning>',
+      description: 'Warnings reported by the provider.',
+    },
+    {
+      name: 'responses',
+      type: 'Array<ArtifactModelResponseMetadata>',
+      description: 'Provider response metadata for the model call.',
+    },
+    {
+      name: 'providerMetadata',
+      type: 'ArtifactModelProviderMetadata',
+      description: 'Provider-specific result metadata.',
+    },
+  ]}
+/>
+
+`GeneratedArtifact` provides `base64`, `uint8Array`, `mediaType`, and optional
+`filename` and `role` properties.

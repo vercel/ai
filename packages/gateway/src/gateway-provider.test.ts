@@ -9,6 +9,7 @@ import { GatewaySpendReport } from './gateway-spend-report';
 import { GatewayGenerationInfoFetcher } from './gateway-generation-info';
 import { NoSuchModelError } from '@ai-sdk/provider';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
+import { GatewayArtifactModel } from './gateway-artifact-model';
 import { GatewayImageModel } from './gateway-image-model';
 import { GatewayVideoModel } from './gateway-video-model';
 import { GatewayRerankingModel } from './gateway-reranking-model';
@@ -427,6 +428,20 @@ describe('GatewayProvider', () => {
 
       const model = provider.embeddingModel('openai/text-embedding-3-small');
       expect(model).toBeInstanceOf(GatewayEmbeddingModel);
+    });
+
+    it('should create GatewayArtifactModel for both artifact factories', () => {
+      const provider = createGateway({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+      });
+
+      expect(provider.artifact('fal/tripo3d/h3.1/text-to-3d')).toBeInstanceOf(
+        GatewayArtifactModel,
+      );
+      expect(
+        provider.artifactModel('fal/tripo3d/h3.1/text-to-3d'),
+      ).toBeInstanceOf(GatewayArtifactModel);
     });
 
     it('should create GatewayImageModel for imageModel', () => {
@@ -882,6 +897,13 @@ describe('GatewayProvider', () => {
       const config = getGatewayImageModelInternalConfig(model);
       expect(config.provider).toBe('gateway');
       expect(config.baseURL).toBe('https://ai-gateway.vercel.sh/v4/ai');
+    });
+
+    it('should expose artifactModel on the default provider', () => {
+      expect(typeof gateway.artifactModel).toBe('function');
+      expect(
+        gateway.artifactModel('fal/tripo3d/h3.1/text-to-3d'),
+      ).toBeInstanceOf(GatewayArtifactModel);
     });
 
     it('should expose videoModel on the default provider and construct model', () => {

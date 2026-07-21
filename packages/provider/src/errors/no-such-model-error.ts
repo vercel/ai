@@ -15,6 +15,7 @@ export class NoSuchModelError extends AISDKError {
     | 'transcriptionModel'
     | 'speechModel'
     | 'rerankingModel'
+    | 'artifactModel'
     | 'videoModel';
 
   constructor({
@@ -32,6 +33,7 @@ export class NoSuchModelError extends AISDKError {
       | 'transcriptionModel'
       | 'speechModel'
       | 'rerankingModel'
+      | 'artifactModel'
       | 'videoModel';
     message?: string;
   }) {

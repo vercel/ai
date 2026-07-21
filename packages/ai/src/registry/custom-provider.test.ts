@@ -7,6 +7,7 @@ import {
   type SkillsV4,
 } from '@ai-sdk/provider';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
+import { MockArtifactModelV4 } from '../test/mock-artifact-model-v4';
 import { MockImageModelV2 } from '../test/mock-image-model-v2';
 import { MockImageModelV3 } from '../test/mock-image-model-v3';
 import { MockImageModelV4 } from '../test/mock-image-model-v4';
@@ -48,6 +49,7 @@ const mockFallbackProvider = {
   transcriptionModel: vi.fn(),
   speechModel: vi.fn(),
   rerankingModel: vi.fn(),
+  artifactModel: vi.fn(),
   videoModel: vi.fn(),
 };
 
@@ -124,6 +126,7 @@ describe('string model ids', () => {
   const transcriptionModel = new MockTranscriptionModelV4();
   const speechModel = new MockSpeechModelV4();
   const rerankingModel = new MockRerankingModelV4();
+  const artifactModel = new MockArtifactModelV4();
   const videoModel = new MockVideoModelV4();
 
   beforeEach(() => {
@@ -134,6 +137,7 @@ describe('string model ids', () => {
       transcriptionModels: { transcription: transcriptionModel },
       speechModels: { speech: speechModel },
       rerankingModels: { reranking: rerankingModel },
+      artifactModels: { artifact: artifactModel },
       videoModels: { video: videoModel },
     });
   });
@@ -150,6 +154,7 @@ describe('string model ids', () => {
       transcriptionModels: { alias: 'transcription' },
       speechModels: { alias: 'speech' },
       rerankingModels: { alias: 'reranking' },
+      artifactModels: { alias: 'artifact' },
       videoModels: { alias: 'video' },
     });
 
@@ -159,6 +164,7 @@ describe('string model ids', () => {
     expect(provider.transcriptionModel('alias')).toBe(transcriptionModel);
     expect(provider.speechModel('alias')).toBe(speechModel);
     expect(provider.rerankingModel('alias')).toBe(rerankingModel);
+    expect(provider.artifactModel('alias')).toBe(artifactModel);
     expect(provider.videoModel('alias')).toBe(videoModel);
   });
 });
@@ -377,6 +383,37 @@ describe('rerankingModel', () => {
     const provider = customProvider({});
 
     expect(() => provider.rerankingModel('test-model')).toThrow(
+      NoSuchModelError,
+    );
+  });
+});
+
+describe('artifactModel', () => {
+  const mockArtifactModel = new MockArtifactModelV4();
+
+  it('should return the artifact model if it exists', () => {
+    const provider = customProvider({
+      artifactModels: { 'test-model': mockArtifactModel },
+    });
+
+    expect(provider.artifactModel('test-model')).toBe(mockArtifactModel);
+  });
+
+  it('should use a duck-typed fallback provider if the model is not found', () => {
+    const fallbackProvider = {
+      ...mockFallbackProvider,
+      artifactModel: vi.fn().mockReturnValue(mockArtifactModel),
+    };
+    const provider = customProvider({ fallbackProvider });
+
+    expect(provider.artifactModel('test-model')).toBe(mockArtifactModel);
+    expect(fallbackProvider.artifactModel).toHaveBeenCalledWith('test-model');
+  });
+
+  it('should throw NoSuchModelError if model not found and no fallback', () => {
+    const provider = customProvider({});
+
+    expect(() => provider.artifactModel('test-model')).toThrow(
       NoSuchModelError,
     );
   });

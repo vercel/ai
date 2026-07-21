@@ -1,3 +1,4 @@
+export * from './artifact-model/index';
 export * from './embedding-model/index';
 export * from './errors/index';
 export * from './files/index';

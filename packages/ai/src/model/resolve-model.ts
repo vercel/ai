@@ -1,5 +1,6 @@
 import { gateway } from '@ai-sdk/gateway';
 import type {
+  Experimental_ArtifactModelV4,
   EmbeddingModelV4,
   Experimental_VideoModelV4,
   ImageModelV4,
@@ -10,6 +11,7 @@ import type {
   TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import { UnsupportedModelVersionError } from '../error';
+import type { ArtifactModel } from '../types/artifact-model';
 import type { EmbeddingModel } from '../types/embedding-model';
 import type { LanguageModel } from '../types/language-model';
 import type { SpeechModel } from '../types/speech-model';
@@ -25,6 +27,38 @@ import { asProviderV4 } from './as-provider-v4';
 import type { ImageModel } from '../types/image-model';
 import type { RerankingModel } from '../types/reranking-model';
 import type { VideoModel } from '../types/video-model';
+
+export function resolveArtifactModel(
+  model: ArtifactModel,
+): Experimental_ArtifactModelV4 {
+  if (typeof model === 'string') {
+    // Use the raw global provider because artifactModel is experimental and is
+    // not part of the stable ProviderV4 interface.
+    const provider = globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway;
+    // @ts-expect-error - artifactModel support is experimental
+    const artifactModel = provider.artifactModel;
+
+    if (!artifactModel) {
+      throw new Error(
+        'The default provider does not support artifact models. ' +
+          'Please use an Experimental_ArtifactModelV4 object from a provider.',
+      );
+    }
+
+    return artifactModel(model);
+  }
+
+  if (model.specificationVersion !== 'v4') {
+    const unsupportedModel: any = model;
+    throw new UnsupportedModelVersionError({
+      version: unsupportedModel.specificationVersion,
+      provider: unsupportedModel.provider,
+      modelId: unsupportedModel.modelId,
+    });
+  }
+
+  return model;
+}
 
 export function resolveLanguageModel(model: LanguageModel): LanguageModelV4 {
   if (typeof model === 'string') {

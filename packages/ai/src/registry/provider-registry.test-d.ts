@@ -1,5 +1,6 @@
 import type {
   EmbeddingModelV4,
+  Experimental_ArtifactModelV4,
   Experimental_VideoModelV4,
   FilesV4,
   ImageModelV4,
@@ -20,6 +21,7 @@ import {
 } from './provider-registry';
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
+import { MockArtifactModelV4 } from '../test/mock-artifact-model-v4';
 import { MockImageModelV3 } from '../test/mock-image-model-v3';
 import { MockImageModelV4 } from '../test/mock-image-model-v4';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
@@ -129,6 +131,19 @@ type RegistryVideoModelIdentifier<
     : never;
 }[keyof registeredProviders];
 
+type RegistryArtifactModelIdentifier<
+  registeredProviders extends Record<string, RegistryProvider>,
+  separator extends string = ':',
+> = {
+  [providerKey in keyof registeredProviders]: providerKey extends string
+    ? registeredProviders[providerKey] extends {
+        artifactModel: (...args: infer args) => unknown;
+      }
+      ? `${providerKey & string}${separator}${ExtractLiteralUnion<args[0]>}`
+      : never
+    : never;
+}[keyof registeredProviders];
+
 describe('createProviderRegistry autocomplete / literal identifiers', () => {
   const languageModel = new MockLanguageModelV4();
   const embeddingModel = new MockEmbeddingModelV4();
@@ -136,6 +151,7 @@ describe('createProviderRegistry autocomplete / literal identifiers', () => {
   const transcriptionModel = new MockTranscriptionModelV4();
   const speechModel = new MockSpeechModelV4();
   const rerankingModel = new MockRerankingModelV4();
+  const artifactModel = new MockArtifactModelV4();
   const videoModel = new MockVideoModelV4();
 
   const anthropicCustomProvider = customProvider({
@@ -160,6 +176,9 @@ describe('createProviderRegistry autocomplete / literal identifiers', () => {
     rerankingModels: {
       rerank: rerankingModel,
     },
+    artifactModels: {
+      sculpture: artifactModel,
+    },
     videoModels: {
       video: videoModel,
     },
@@ -175,6 +194,9 @@ describe('createProviderRegistry autocomplete / literal identifiers', () => {
     },
     imageModels: {
       dalle: imageModel,
+    },
+    artifactModels: {
+      mesh: artifactModel,
     },
     videoModels: {
       sora: videoModel,
@@ -236,6 +258,10 @@ describe('createProviderRegistry autocomplete / literal identifiers', () => {
 
     type ExpectedRerankingModelIdentifiers = 'anthropic:rerank';
 
+    type ExpectedArtifactModelIdentifiers =
+      | 'openai:mesh'
+      | 'anthropic:sculpture';
+
     type ExpectedVideoModelIdentifiers = 'openai:sora' | 'anthropic:video';
 
     expectTypeOf<
@@ -253,6 +279,9 @@ describe('createProviderRegistry autocomplete / literal identifiers', () => {
     expectTypeOf<
       RegistryRerankingModelIdentifier<typeof registeredProviders>
     >().toEqualTypeOf<ExpectedRerankingModelIdentifiers>();
+    expectTypeOf<
+      RegistryArtifactModelIdentifier<typeof registeredProviders>
+    >().toEqualTypeOf<ExpectedArtifactModelIdentifiers>();
     expectTypeOf<
       RegistryVideoModelIdentifier<typeof registeredProviders>
     >().toEqualTypeOf<ExpectedVideoModelIdentifiers>();
@@ -272,6 +301,9 @@ describe('createProviderRegistry autocomplete / literal identifiers', () => {
     expectTypeOf(
       registry.rerankingModel('anthropic:rerank'),
     ).toEqualTypeOf<RerankingModelV4>();
+    expectTypeOf(
+      registry.artifactModel('openai:mesh'),
+    ).toEqualTypeOf<Experimental_ArtifactModelV4>();
     expectTypeOf(
       registry.videoModel('openai:sora'),
     ).toEqualTypeOf<Experimental_VideoModelV4>();
@@ -299,6 +331,9 @@ describe('createProviderRegistry autocomplete / literal identifiers', () => {
     expectTypeOf(
       registryWithCustomSeparator.languageModel('anthropic > haiku'),
     ).toEqualTypeOf<LanguageModelV4>();
+    expectTypeOf(
+      registryWithCustomSeparator.artifactModel('openai > mesh'),
+    ).toEqualTypeOf<Experimental_ArtifactModelV4>();
 
     expectTypeOf(registryWithCustomSeparator).toEqualTypeOf<
       ProviderRegistryProvider<typeof registeredProviders, ' > '>
@@ -443,6 +478,7 @@ describe('createProviderRegistry negative typing', () => {
   const transcriptionModel = new MockTranscriptionModelV4();
   const speechModel = new MockSpeechModelV4();
   const rerankingModel = new MockRerankingModelV4();
+  const artifactModel = new MockArtifactModelV4();
 
   const anthropicOnlyRegisteredProviders = {
     anthropic: customProvider({
@@ -452,6 +488,7 @@ describe('createProviderRegistry negative typing', () => {
       transcriptionModels: { 'whisper-1': transcriptionModel },
       speechModels: { tts1: speechModel },
       rerankingModels: { rerank: rerankingModel },
+      artifactModels: { sculpture: artifactModel },
     }),
   };
 
@@ -472,6 +509,7 @@ describe('createProviderRegistry negative typing', () => {
     registryAnthropicOnly.transcriptionModel('anthropic:whisper-1');
     registryAnthropicOnly.speechModel('anthropic:tts1');
     registryAnthropicOnly.rerankingModel('anthropic:rerank');
+    registryAnthropicOnly.artifactModel('anthropic:sculpture');
 
     // @ts-expect-error provider key must exist in the registry
     registryAnthropicOnly.embeddingModel('unknown:small');
@@ -483,6 +521,8 @@ describe('createProviderRegistry negative typing', () => {
     registryAnthropicOnly.speechModel('unknown:tts1');
     // @ts-expect-error provider key must exist in the registry
     registryAnthropicOnly.rerankingModel('unknown:rerank');
+    // @ts-expect-error provider key must exist in the registry
+    registryAnthropicOnly.artifactModel('unknown:sculpture');
   });
 
   it('rejects the default colon separator when the registry uses a custom separator', () => {

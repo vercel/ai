@@ -1,6 +1,7 @@
 import type { LanguageModelV4 } from '@ai-sdk/provider';
 
 export const KNOWN_MODEL_TYPES = [
+  'artifact',
   'embedding',
   'image',
   'language',
@@ -52,6 +53,10 @@ export interface GatewayLanguageModelEntry {
      * Only present for providers/models that support prompt caching.
      */
     cacheCreationInputTokens?: string;
+    /**
+     * Flat cost per generated artifact request in USD.
+     */
+    artifact?: string;
   } | null;
 
   /**

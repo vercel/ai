@@ -191,6 +191,45 @@ Fal's platform offers several advanced capabilities:
 
 For more details about Fal's capabilities and features, visit the [Fal AI documentation](https://fal.ai/docs).
 
+## Artifact Models
+
+Fal artifact models create downloadable files. The initial integration focuses
+on 3D generation and uses the `.artifact()` factory together with
+[`experimental_generateArtifact`](/docs/reference/ai-sdk-core/generate-artifact).
+
+```ts
+import { fal } from '@ai-sdk/fal';
+import { experimental_generateArtifact as generateArtifact } from 'ai';
+
+const { artifact } = await generateArtifact({
+  model: fal.artifact('tripo3d/h3.1/text-to-3d'),
+  prompt: 'A low-poly sailboat',
+  providerOptions: {
+    fal: {
+      texture: true,
+      pbr: true,
+    },
+  },
+});
+
+console.log(artifact.filename, artifact.mediaType);
+```
+
+Supported operation shapes include:
+
+| Model ID                                | Inputs                     |
+| --------------------------------------- | -------------------------- |
+| `tripo3d/h3.1/text-to-3d`               | Text prompt                |
+| `tripo3d/h3.1/image-to-3d`              | One image                  |
+| `tripo3d/h3.1/multiview-to-3d`          | Two to four ordered images |
+| `fal-ai/meshy/v5/remesh`                | One existing 3D model      |
+| `fal-ai/hunyuan-3d/v3.1/smart-topology` | One existing 3D model      |
+
+Fal returns long-running artifact requests through its queue API. Poll interval,
+poll timeout, mesh quality, topology, texture, and endpoint-specific controls can
+be supplied in `providerOptions.fal`. The provider continues polling an accepted
+job without resubmitting it.
+
 ## Transcription Models
 
 You can create models that call the [Fal transcription API](https://docs.fal.ai/guides/convert-speech-to-text)

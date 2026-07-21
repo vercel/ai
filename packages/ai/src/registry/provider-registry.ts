@@ -1,5 +1,6 @@
 import {
   type EmbeddingModelV4,
+  type Experimental_ArtifactModelV4,
   type Experimental_VideoModelV3,
   type Experimental_VideoModelV4,
   type FilesV4,
@@ -21,11 +22,18 @@ import type { ImageModelMiddleware, LanguageModelMiddleware } from '../types';
 import type { ExtractLiteralUnion } from '../util/extract-literal-union';
 import { NoSuchProviderError } from './no-such-provider-error';
 
+type ProviderWithOptionalArtifactModel = {
+  artifactModel?: (modelId: string) => Experimental_ArtifactModelV4;
+};
+
 type ProviderWithOptionalVideoModel = {
   videoModel?: (
     modelId: string,
   ) => Experimental_VideoModelV3 | Experimental_VideoModelV4;
 };
+
+type ProviderWithOptionalExperimentalModels =
+  ProviderWithOptionalArtifactModel & ProviderWithOptionalVideoModel;
 
 type RegistryModelType =
   | 'languageModel'
@@ -34,7 +42,14 @@ type RegistryModelType =
   | 'transcriptionModel'
   | 'speechModel'
   | 'rerankingModel'
+  | 'artifactModel'
   | 'videoModel';
+
+type ProviderArtifactModelIdentifier<PROVIDER> = PROVIDER extends {
+  artifactModel: (...args: infer ARGS) => unknown;
+}
+  ? ExtractLiteralUnion<ARGS[0]>
+  : never;
 
 type ProviderVideoModelIdentifier<PROVIDER> = PROVIDER extends {
   videoModel: (...args: infer ARGS) => unknown;
@@ -51,7 +66,9 @@ export interface ProviderRegistryProvider<
 > {
   languageModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
-      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['languageModel']>>[0]>}`
+      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<
+          Parameters<NonNullable<PROVIDERS[KEY]['languageModel']>>[0]
+        >}`
       : never,
   ): LanguageModelV4;
   languageModel<KEY extends keyof PROVIDERS>(
@@ -60,7 +77,9 @@ export interface ProviderRegistryProvider<
 
   embeddingModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
-      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['embeddingModel']>>[0]>}`
+      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<
+          Parameters<NonNullable<PROVIDERS[KEY]['embeddingModel']>>[0]
+        >}`
       : never,
   ): EmbeddingModelV4;
   embeddingModel<KEY extends keyof PROVIDERS>(
@@ -69,7 +88,9 @@ export interface ProviderRegistryProvider<
 
   imageModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
-      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['imageModel']>>[0]>}`
+      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<
+          Parameters<NonNullable<PROVIDERS[KEY]['imageModel']>>[0]
+        >}`
       : never,
   ): ImageModelV4;
   imageModel<KEY extends keyof PROVIDERS>(
@@ -78,7 +99,9 @@ export interface ProviderRegistryProvider<
 
   transcriptionModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
-      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['transcriptionModel']>>[0]>}`
+      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<
+          Parameters<NonNullable<PROVIDERS[KEY]['transcriptionModel']>>[0]
+        >}`
       : never,
   ): TranscriptionModelV4;
   transcriptionModel<KEY extends keyof PROVIDERS>(
@@ -87,7 +110,9 @@ export interface ProviderRegistryProvider<
 
   speechModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
-      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['speechModel']>>[0]>}`
+      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<
+          Parameters<NonNullable<PROVIDERS[KEY]['speechModel']>>[0]
+        >}`
       : never,
   ): SpeechModelV4;
   speechModel<KEY extends keyof PROVIDERS>(
@@ -96,16 +121,31 @@ export interface ProviderRegistryProvider<
 
   rerankingModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
-      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['rerankingModel']>>[0]>}`
+      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<
+          Parameters<NonNullable<PROVIDERS[KEY]['rerankingModel']>>[0]
+        >}`
       : never,
   ): RerankingModelV4;
   rerankingModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
   ): RerankingModelV4;
 
+  artifactModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string
+      ? `${KEY & string}${SEPARATOR}${ProviderArtifactModelIdentifier<
+          PROVIDERS[KEY]
+        >}`
+      : never,
+  ): Experimental_ArtifactModelV4;
+  artifactModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
+  ): Experimental_ArtifactModelV4;
+
   videoModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
-      ? `${KEY & string}${SEPARATOR}${ProviderVideoModelIdentifier<PROVIDERS[KEY]>}`
+      ? `${KEY & string}${SEPARATOR}${ProviderVideoModelIdentifier<
+          PROVIDERS[KEY]
+        >}`
       : never,
   ): Experimental_VideoModelV4;
   videoModel<KEY extends keyof PROVIDERS>(
@@ -177,7 +217,7 @@ class DefaultProviderRegistry<
   SEPARATOR extends string,
 > implements ProviderRegistryProvider<PROVIDERS, SEPARATOR> {
   private providers: Partial<
-    Record<keyof PROVIDERS, ProviderV4 & ProviderWithOptionalVideoModel>
+    Record<keyof PROVIDERS, ProviderV4 & ProviderWithOptionalExperimentalModels>
   > = {};
   private separator: SEPARATOR;
   private languageModelMiddleware?:
@@ -209,24 +249,36 @@ class DefaultProviderRegistry<
     provider: PROVIDERS[K];
   }): void {
     const providerV4 = asProviderV4(provider);
+    const artifactModel = (
+      provider as ProviderWithOptionalArtifactModel
+    ).artifactModel?.bind(provider);
     const videoModel = (
       provider as ProviderWithOptionalVideoModel
     ).videoModel?.bind(provider);
 
     this.providers[id] =
-      videoModel == null
+      artifactModel == null && videoModel == null
         ? providerV4
         : Object.assign(Object.create(Object.getPrototypeOf(providerV4)), {
             ...providerV4,
-            videoModel: (modelId: string) =>
-              asVideoModelV4(videoModel(modelId)),
+            ...(artifactModel == null
+              ? {}
+              : {
+                  artifactModel: (modelId: string) => artifactModel(modelId),
+                }),
+            ...(videoModel == null
+              ? {}
+              : {
+                  videoModel: (modelId: string) =>
+                    asVideoModelV4(videoModel(modelId)),
+                }),
           });
   }
 
   private getProvider(
     id: string,
     modelType: RegistryModelType,
-  ): ProviderV4 & ProviderWithOptionalVideoModel {
+  ): ProviderV4 & ProviderWithOptionalExperimentalModels {
     const provider = this.providers[id as keyof PROVIDERS];
 
     if (provider == null) {
@@ -362,6 +414,21 @@ class DefaultProviderRegistry<
 
     if (model == null) {
       throw new NoSuchModelError({ modelId: id, modelType: 'rerankingModel' });
+    }
+
+    return model;
+  }
+
+  artifactModel<KEY extends keyof PROVIDERS>(
+    id: `${KEY & string}${SEPARATOR}${string}`,
+  ): Experimental_ArtifactModelV4 {
+    const [providerId, modelId] = this.splitId(id, 'artifactModel');
+    const provider = this.getProvider(providerId, 'artifactModel');
+
+    const model = provider.artifactModel?.(modelId);
+
+    if (model == null) {
+      throw new NoSuchModelError({ modelId: id, modelType: 'artifactModel' });
     }
 
     return model;

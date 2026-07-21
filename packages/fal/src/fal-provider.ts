@@ -1,5 +1,6 @@
 import {
   NoSuchModelError,
+  type Experimental_ArtifactModelV4,
   type Experimental_VideoModelV4,
   type ImageModelV4,
   type ProviderV4,
@@ -11,6 +12,8 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
+import { FalArtifactModel } from './fal-artifact-model';
+import type { FalArtifactModelId } from './fal-artifact-settings';
 import { FalImageModel } from './fal-image-model';
 import type { FalImageModelId } from './fal-image-settings';
 import type { FalTranscriptionModelId } from './fal-transcription-options';
@@ -47,6 +50,16 @@ export interface FalProviderSettings {
 }
 
 export interface FalProvider extends ProviderV4 {
+  /**
+   * Creates a model for artifact generation.
+   */
+  artifact(modelId: FalArtifactModelId): Experimental_ArtifactModelV4;
+
+  /**
+   * Creates a model for artifact generation.
+   */
+  artifactModel(modelId: FalArtifactModelId): Experimental_ArtifactModelV4;
+
   /**
    * Creates a model for image generation.
    */
@@ -150,6 +163,14 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
       fetch: options.fetch,
     });
 
+  const createArtifactModel = (modelId: FalArtifactModelId) =>
+    new FalArtifactModel(modelId, {
+      provider: 'fal.artifact',
+      url: ({ path }) => path,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const createSpeechModel = (modelId: FalSpeechModelId) =>
     new FalSpeechModel(modelId, {
       provider: `fal.speech`,
@@ -183,6 +204,8 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
 
   return {
     specificationVersion: 'v4' as const,
+    artifact: createArtifactModel,
+    artifactModel: createArtifactModel,
     imageModel: createImageModel,
     image: createImageModel,
     languageModel: (modelId: string) => {

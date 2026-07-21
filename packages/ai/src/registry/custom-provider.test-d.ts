@@ -1,5 +1,6 @@
 import type {
   EmbeddingModelV4,
+  Experimental_ArtifactModelV4,
   Experimental_VideoModelV4,
   FilesV4,
   ImageModelV4,
@@ -12,6 +13,7 @@ import type {
 } from '@ai-sdk/provider';
 import { describe, expectTypeOf, it } from 'vitest';
 import { customProvider } from './custom-provider';
+import { MockArtifactModelV4 } from '../test/mock-artifact-model-v4';
 import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
@@ -47,6 +49,7 @@ describe('customProvider autocomplete / literal model identifiers', () => {
   const transcriptionModel = new MockTranscriptionModelV4();
   const speechModel = new MockSpeechModelV4();
   const rerankingModel = new MockRerankingModelV4();
+  const artifactModel = new MockArtifactModelV4();
   const videoModel = new MockVideoModelV4();
 
   const provider = customProvider({
@@ -70,6 +73,9 @@ describe('customProvider autocomplete / literal model identifiers', () => {
     },
     rerankingModels: {
       rerank: rerankingModel,
+    },
+    artifactModels: {
+      'preview-artifact': artifactModel,
     },
     videoModels: {
       'preview-video': videoModel,
@@ -113,6 +119,9 @@ describe('customProvider autocomplete / literal model identifiers', () => {
     type InferredRerankingIdentifier = Parameters<
       (typeof provider)['rerankingModel']
     >[0];
+    type InferredArtifactIdentifier = Parameters<
+      (typeof provider)['artifactModel']
+    >[0];
     type InferredVideoIdentifier = Parameters<
       (typeof provider)['videoModel']
     >[0];
@@ -124,6 +133,7 @@ describe('customProvider autocomplete / literal model identifiers', () => {
     expectTypeOf<InferredTranscriptionIdentifier>().toEqualTypeOf<'whisper-1'>();
     expectTypeOf<InferredSpeechIdentifier>().toEqualTypeOf<'tts1'>();
     expectTypeOf<InferredRerankingIdentifier>().toEqualTypeOf<'rerank'>();
+    expectTypeOf<InferredArtifactIdentifier>().toEqualTypeOf<'preview-artifact'>();
     expectTypeOf<InferredVideoIdentifier>().toEqualTypeOf<'preview-video'>();
 
     expectTypeOf(
@@ -137,6 +147,9 @@ describe('customProvider autocomplete / literal model identifiers', () => {
     expectTypeOf(
       provider.rerankingModel('rerank'),
     ).toEqualTypeOf<RerankingModelV4>();
+    expectTypeOf(
+      provider.artifactModel('preview-artifact'),
+    ).toEqualTypeOf<Experimental_ArtifactModelV4>();
     expectTypeOf(
       provider.videoModel('preview-video'),
     ).toEqualTypeOf<Experimental_VideoModelV4>();
@@ -267,6 +280,9 @@ describe('customProvider with string model ids', () => {
       rerankingModels: {
         reranking: 'reranking-model-id',
       },
+      artifactModels: {
+        artifact: 'artifact-model-id',
+      },
       videoModels: {
         video: 'video-model-id',
       },
@@ -286,6 +302,9 @@ describe('customProvider with string model ids', () => {
     expectTypeOf(
       provider.rerankingModel('reranking'),
     ).toEqualTypeOf<RerankingModelV4>();
+    expectTypeOf(
+      provider.artifactModel('artifact'),
+    ).toEqualTypeOf<Experimental_ArtifactModelV4>();
     expectTypeOf(
       provider.videoModel('video'),
     ).toEqualTypeOf<Experimental_VideoModelV4>();
@@ -512,5 +531,20 @@ describe('customProvider with fallback provider typing', () => {
     expectTypeOf(
       providerWithV3Fallback.languageModel('fallback-language'),
     ).toEqualTypeOf<LanguageModelV4>();
+  });
+
+  it('preserves a duck-typed experimental artifact model accessor', () => {
+    const artifactModel = new MockArtifactModelV4();
+    const fallbackWithArtifactModel = Object.assign(new MockProviderV4(), {
+      artifactModel: (_modelId: string) => artifactModel,
+    });
+
+    const provider = customProvider({
+      fallbackProvider: fallbackWithArtifactModel,
+    });
+
+    expectTypeOf(
+      provider.artifactModel('fallback-artifact'),
+    ).toEqualTypeOf<Experimental_ArtifactModelV4>();
   });
 });

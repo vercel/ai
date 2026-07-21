@@ -1225,6 +1225,30 @@ const { text } = await generateText({
 
 This works with any provider supported by AI Gateway. Each provider has its own set of options - see the individual [provider documentation pages](/providers/ai-sdk-providers) for details on provider-specific options.
 
+### Artifact Models
+
+Artifact generation is experimental and currently uses the AI SDK v7 Gateway
+protocol. Once an artifact model is enabled in your Gateway catalog, use
+`.artifact()` to call it. For example, a catalog entry for Fal's text-to-3D
+endpoint can be called as follows:
+
+```ts
+import { createGateway } from '@ai-sdk/gateway';
+import { experimental_generateArtifact as generateArtifact } from 'ai';
+
+const gateway = createGateway();
+const { artifact } = await generateArtifact({
+  model: gateway.artifact('fal/tripo3d/h3.1/text-to-3d'),
+  prompt: 'A low-poly wooden airship',
+});
+
+console.log(artifact.filename, artifact.mediaType);
+```
+
+The Gateway transport preserves multiple artifact URLs or payloads together
+with their media types, filenames, and roles. Long-running requests use an SSE
+heartbeat while the provider's accepted job is polled.
+
 ### Available Providers
 
 AI Gateway supports routing to 20+ providers.

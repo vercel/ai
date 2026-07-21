@@ -127,6 +127,34 @@ describe('GatewayFetchMetadata', () => {
       }
     });
 
+    it('should preserve flat artifact pricing', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: {
+          models: [
+            {
+              ...mockModelEntry,
+              modelType: 'artifact',
+              pricing: {
+                input: '0',
+                output: '0',
+                artifact: '0.2',
+              },
+            },
+          ],
+        },
+      };
+
+      const metadata = createBasicMetadataFetcher();
+      const result = await metadata.getAvailableModels();
+
+      expect(result.models[0].pricing).toEqual({
+        input: '0',
+        output: '0',
+        artifact: '0.2',
+      });
+    });
+
     it('should handle models without pricing information', async () => {
       server.urls['https://api.example.com/*'].response = {
         type: 'json-value',
@@ -224,6 +252,7 @@ describe('GatewayFetchMetadata', () => {
 
     it('should preserve all known modelType values', async () => {
       const knownTypes = [
+        'artifact',
         'embedding',
         'image',
         'language',

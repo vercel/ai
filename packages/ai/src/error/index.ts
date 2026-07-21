@@ -22,6 +22,7 @@ export { InvalidToolApprovalSignatureError } from './invalid-tool-approval-signa
 export { InvalidToolInputError } from './invalid-tool-input-error';
 export { ToolCallNotFoundForApprovalError } from './tool-call-not-found-for-approval-error';
 export { MissingToolResultsError } from './missing-tool-result-error';
+export { NoArtifactGeneratedError } from './no-artifact-generated-error';
 export { NoImageGeneratedError } from './no-image-generated-error';
 export { NoObjectGeneratedError } from './no-object-generated-error';
 export { NoOutputGeneratedError } from './no-output-generated-error';

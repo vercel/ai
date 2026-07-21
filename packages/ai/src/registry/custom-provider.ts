@@ -1,5 +1,6 @@
 import {
   type EmbeddingModelV4,
+  type Experimental_ArtifactModelV4,
   type Experimental_VideoModelV4,
   type FilesV4,
   type ImageModelV4,
@@ -15,6 +16,7 @@ import {
 } from '@ai-sdk/provider';
 import { asProviderV4 } from '../model/as-provider-v4';
 import {
+  resolveArtifactModel,
   resolveEmbeddingModel,
   resolveImageModel,
   resolveLanguageModel,
@@ -23,6 +25,7 @@ import {
   resolveTranscriptionModel,
   resolveVideoModel,
 } from '../model/resolve-model';
+import type { ArtifactModel } from '../types/artifact-model';
 import type { EmbeddingModel } from '../types/embedding-model';
 import type { ImageModel } from '../types/image-model';
 import type { LanguageModel } from '../types/language-model';
@@ -31,8 +34,12 @@ import type { SpeechModel } from '../types/speech-model';
 import type { TranscriptionModel } from '../types/transcription-model';
 import type { VideoModel } from '../types/video-model';
 
+type ProviderWithOptionalArtifactModel = {
+  artifactModel?: (modelId: string) => Experimental_ArtifactModelV4;
+};
+
 /**
- * Creates a custom provider with specified language models, text embedding models, image models, transcription models, speech models, file APIs, skill APIs, and an optional fallback provider.
+ * Creates a custom provider with specified language models, text embedding models, image models, transcription models, speech models, artifact models, file APIs, skill APIs, and an optional fallback provider.
  *
  * @param {Object} options - The options for creating the custom provider.
  * @param {Record<string, LanguageModel>} [options.languageModels] - A record of language models, where keys are model IDs and values are language model instances.
@@ -41,11 +48,12 @@ import type { VideoModel } from '../types/video-model';
  * @param {Record<string, TranscriptionModel>} [options.transcriptionModels] - A record of transcription models, where keys are model IDs and values are transcription model instances.
  * @param {Record<string, SpeechModel>} [options.speechModels] - A record of speech models, where keys are model IDs and values are speech model instances.
  * @param {Record<string, RerankingModel>} [options.rerankingModels] - A record of reranking models, where keys are model IDs and values are reranking model instances.
+ * @param {Record<string, ArtifactModel>} [options.artifactModels] - A record of artifact models, where keys are model IDs and values are artifact model instances.
  * @param {Record<string, VideoModel>} [options.videoModels] - A record of video models, where keys are model IDs and values are video model instances.
  * @param {FilesV4} [options.files] - A files interface for uploading files.
  * @param {SkillsV4} [options.skills] - A skills interface for uploading skills.
  * @param {ProviderV2 | ProviderV3 | ProviderV4} [options.fallbackProvider] - An optional fallback provider to use when a requested model is not found in the custom provider.
- * @returns {ProviderV4} A ProviderV4 object with languageModel, embeddingModel, imageModel, transcriptionModel, speechModel, rerankingModel, and videoModel methods.
+ * @returns {ProviderV4} A ProviderV4 object with languageModel, embeddingModel, imageModel, transcriptionModel, speechModel, rerankingModel, artifactModel, and videoModel methods.
  *
  * @throws {NoSuchModelError} Throws when a requested model is not found and no fallback provider is available.
  */
@@ -56,6 +64,7 @@ export function customProvider<
   TRANSCRIPTION_MODELS extends Record<string, TranscriptionModel>,
   SPEECH_MODELS extends Record<string, SpeechModel>,
   RERANKING_MODELS extends Record<string, RerankingModel>,
+  ARTIFACT_MODELS extends Record<string, ArtifactModel>,
   VIDEO_MODELS extends Record<string, VideoModel>,
   FILES extends FilesV4 | undefined = undefined,
   SKILLS extends SkillsV4 | undefined = undefined,
@@ -67,6 +76,7 @@ export function customProvider<
   transcriptionModels,
   speechModels,
   rerankingModels,
+  artifactModels,
   videoModels,
   files,
   skills,
@@ -78,6 +88,7 @@ export function customProvider<
   transcriptionModels?: TRANSCRIPTION_MODELS;
   speechModels?: SPEECH_MODELS;
   rerankingModels?: RERANKING_MODELS;
+  artifactModels?: ARTIFACT_MODELS;
   videoModels?: VIDEO_MODELS;
   files?: FILES;
   skills?: SKILLS;
@@ -91,6 +102,9 @@ export function customProvider<
   ): TranscriptionModelV4;
   rerankingModel(modelId: ExtractModelId<RERANKING_MODELS>): RerankingModelV4;
   speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV4;
+  artifactModel(
+    modelId: ExtractModelId<ARTIFACT_MODELS>,
+  ): Experimental_ArtifactModelV4;
   videoModel(modelId: ExtractModelId<VIDEO_MODELS>): Experimental_VideoModelV4;
 } & (FILES extends FilesV4
     ? { files(): FilesV4 }
@@ -104,6 +118,9 @@ export function customProvider<
       : { skills?(): SkillsV4 }) {
   const fallbackProvider =
     fallbackProviderArg == null ? undefined : asProviderV4(fallbackProviderArg);
+  const fallbackArtifactModel = (
+    fallbackProviderArg as ProviderWithOptionalArtifactModel | undefined
+  )?.artifactModel?.bind(fallbackProviderArg);
 
   const baseProvider: ProviderV4 & {
     languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV4;
@@ -114,6 +131,9 @@ export function customProvider<
     ): TranscriptionModelV4;
     rerankingModel(modelId: ExtractModelId<RERANKING_MODELS>): RerankingModelV4;
     speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV4;
+    artifactModel(
+      modelId: ExtractModelId<ARTIFACT_MODELS>,
+    ): Experimental_ArtifactModelV4;
     videoModel(
       modelId: ExtractModelId<VIDEO_MODELS>,
     ): Experimental_VideoModelV4;
@@ -202,6 +222,19 @@ export function customProvider<
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'rerankingModel' });
+    },
+    artifactModel(
+      modelId: ExtractModelId<ARTIFACT_MODELS>,
+    ): Experimental_ArtifactModelV4 {
+      if (artifactModels != null && modelId in artifactModels) {
+        return resolveArtifactModel(artifactModels[modelId]);
+      }
+
+      if (fallbackArtifactModel) {
+        return fallbackArtifactModel(modelId);
+      }
+
+      throw new NoSuchModelError({ modelId, modelType: 'artifactModel' });
     },
     videoModel(
       modelId: ExtractModelId<VIDEO_MODELS>,

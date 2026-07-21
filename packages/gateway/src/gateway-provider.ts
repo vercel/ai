@@ -31,6 +31,7 @@ import {
   type GatewayGenerationInfo,
 } from './gateway-generation-info';
 import { GatewayLanguageModel } from './gateway-language-model';
+import { GatewayArtifactModel } from './gateway-artifact-model';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
 import { GatewayVideoModel } from './gateway-video-model';
@@ -42,6 +43,7 @@ import {
 } from './gateway-transcription-model';
 import { GatewayRealtimeModel } from './gateway-realtime-model';
 import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
+import type { GatewayArtifactModelId } from './gateway-artifact-model-settings';
 import type { GatewayImageModelId } from './gateway-image-model-settings';
 import type { GatewayRerankingModelId } from './gateway-reranking-model-settings';
 import type { GatewaySpeechModelId } from './gateway-speech-model-settings';
@@ -59,6 +61,7 @@ import type {
   SpeechModelV4,
   TranscriptionModelV4,
   Experimental_VideoModelV4,
+  Experimental_ArtifactModelV4,
   Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
   Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   ProviderV4,
@@ -77,6 +80,16 @@ export interface GatewayProvider extends ProviderV4 {
    * Creates a model for text generation.
    */
   languageModel(modelId: GatewayModelId): LanguageModelV4;
+
+  /**
+   * Creates a model for generating file artifacts such as 3D assets.
+   */
+  artifact(modelId: GatewayArtifactModelId): Experimental_ArtifactModelV4;
+
+  /**
+   * Creates a model for generating file artifacts such as 3D assets.
+   */
+  artifactModel(modelId: GatewayArtifactModelId): Experimental_ArtifactModelV4;
 
   /**
    * Returns available providers and models for use with the remote provider.
@@ -425,6 +438,16 @@ export function createGateway(
     });
   };
 
+  const createArtifactModel = (modelId: GatewayArtifactModelId) => {
+    return new GatewayArtifactModel(modelId, {
+      provider: 'gateway',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      o11yHeaders: createO11yHeaders(),
+    });
+  };
+
   const getAvailableModels = async () => {
     const now = options._internal?.currentDate?.().getTime() ?? Date.now();
     if (!pendingMetadata || now - lastFetchTime > cacheRefreshMillis) {
@@ -507,6 +530,8 @@ export function createGateway(
   };
 
   provider.specificationVersion = 'v4' as const;
+  provider.artifact = createArtifactModel;
+  provider.artifactModel = createArtifactModel;
   provider.getAvailableModels = getAvailableModels;
   provider.getCredits = getCredits;
   provider.getSpendReport = getSpendReport;

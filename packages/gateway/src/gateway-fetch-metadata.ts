@@ -94,13 +94,21 @@ const gatewayAvailableModelsResponseSchema = lazySchema(() =>
               .object({
                 input: z.string(),
                 output: z.string(),
+                artifact: z.string().nullish(),
                 input_cache_read: z.string().nullish(),
                 input_cache_write: z.string().nullish(),
               })
               .transform(
-                ({ input, output, input_cache_read, input_cache_write }) => ({
+                ({
                   input,
                   output,
+                  artifact,
+                  input_cache_read,
+                  input_cache_write,
+                }) => ({
+                  input,
+                  output,
+                  ...(artifact ? { artifact } : {}),
                   ...(input_cache_read
                     ? { cachedInputTokens: input_cache_read }
                     : {}),

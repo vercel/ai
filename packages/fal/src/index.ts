@@ -1,5 +1,11 @@
 export type { FalProvider, FalProviderSettings } from './fal-provider';
 export { createFal, fal } from './fal-provider';
+export {
+  FalArtifactJobError,
+  FalArtifactSubmissionError,
+} from './fal-artifact-job-error';
+export type { FalArtifactModelOptions } from './fal-artifact-model-options';
+export type { FalArtifactModelId } from './fal-artifact-settings';
 export type {
   FalImageModelOptions,
   /** @deprecated Use `FalImageModelOptions` instead. */

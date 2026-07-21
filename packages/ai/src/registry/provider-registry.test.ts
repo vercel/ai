@@ -4,6 +4,7 @@ import {
   type SkillsV4,
 } from '@ai-sdk/provider';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
+import { MockArtifactModelV4 } from '../test/mock-artifact-model-v4';
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
@@ -596,6 +597,103 @@ describe('rerankingModel', () => {
     );
 
     expect(modelRegistry.rerankingModel('provider|model')).toEqual(model);
+  });
+});
+
+describe('artifactModel', () => {
+  it('should return a V4 artifact model from a duck-typed provider', () => {
+    const model = new MockArtifactModelV4();
+
+    const modelRegistry = createProviderRegistry({
+      provider: {
+        specificationVersion: 'v4',
+        languageModel: () => null as any,
+        embeddingModel: () => null as any,
+        imageModel: () => null as any,
+        artifactModel: (id: string) => {
+          expect(id).toEqual('model');
+          return model;
+        },
+      },
+    });
+
+    expect(modelRegistry.artifactModel('provider:model')).toEqual(model);
+  });
+
+  it('should preserve artifact and video accessors on the same provider', () => {
+    const artifactModel = new MockArtifactModelV4();
+    const videoModel = new MockVideoModelV4();
+
+    const modelRegistry = createProviderRegistry({
+      provider: {
+        specificationVersion: 'v4',
+        languageModel: () => null as any,
+        embeddingModel: () => null as any,
+        imageModel: () => null as any,
+        artifactModel: () => artifactModel,
+        videoModel: () => videoModel,
+      },
+    });
+
+    expect(modelRegistry.artifactModel('provider:artifact')).toBe(
+      artifactModel,
+    );
+    expect(modelRegistry.videoModel('provider:video')).toBe(videoModel);
+  });
+
+  it('should throw NoSuchProviderError if provider does not exist', () => {
+    const registry = createProviderRegistry({});
+
+    // @ts-expect-error - should not accept arbitrary strings
+    expect(() => registry.artifactModel('provider:model')).toThrowError(
+      NoSuchProviderError,
+    );
+  });
+
+  it('should throw NoSuchModelError if provider does not return a model', () => {
+    const registry = createProviderRegistry({
+      provider: {
+        specificationVersion: 'v4',
+        languageModel: () => null as any,
+        embeddingModel: () => null as any,
+        imageModel: () => null as any,
+      },
+    });
+
+    expect(() => registry.artifactModel('provider:model')).toThrowError(
+      NoSuchModelError,
+    );
+  });
+
+  it("should throw NoSuchModelError if model id doesn't contain a colon", () => {
+    const registry = createProviderRegistry({});
+
+    // @ts-expect-error - should not accept arbitrary strings
+    expect(() => registry.artifactModel('model')).toThrowError(
+      NoSuchModelError,
+    );
+  });
+
+  it('should support custom separator', () => {
+    const model = new MockArtifactModelV4();
+
+    const modelRegistry = createProviderRegistry(
+      {
+        provider: {
+          specificationVersion: 'v4',
+          languageModel: () => null as any,
+          embeddingModel: () => null as any,
+          imageModel: () => null as any,
+          artifactModel: (id: string) => {
+            expect(id).toEqual('model');
+            return model;
+          },
+        },
+      },
+      { separator: '|' },
+    );
+
+    expect(modelRegistry.artifactModel('provider|model')).toEqual(model);
   });
 });
 

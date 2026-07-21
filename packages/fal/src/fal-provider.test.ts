@@ -1,10 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createFal } from './fal-provider';
+import { FalArtifactModel } from './fal-artifact-model';
 import { FalImageModel } from './fal-image-model';
 import { FalVideoModel } from './fal-video-model';
 
 vi.mock('./fal-image-model', () => ({
   FalImageModel: vi.fn(),
+}));
+
+vi.mock('./fal-artifact-model', () => ({
+  FalArtifactModel: vi.fn(),
 }));
 
 vi.mock('./fal-video-model', () => ({
@@ -14,6 +19,42 @@ vi.mock('./fal-video-model', () => ({
 describe('createFal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe('artifact', () => {
+    it('should construct an artifact model with the exact Fal model ID', () => {
+      const provider = createFal();
+      const modelId = 'tripo3d/h3.1/text-to-3d';
+
+      const model = provider.artifact(modelId);
+
+      expect(model).toBeInstanceOf(FalArtifactModel);
+      expect(FalArtifactModel).toHaveBeenCalledWith(
+        modelId,
+        expect.objectContaining({
+          provider: 'fal.artifact',
+        }),
+      );
+    });
+
+    it('should expose artifactModel as an equivalent factory', () => {
+      const provider = createFal({
+        apiKey: 'custom-api-key',
+        fetch: vi.fn(),
+      });
+      const modelId = 'fal-ai/meshy/v5/remesh';
+
+      provider.artifactModel(modelId);
+
+      expect(FalArtifactModel).toHaveBeenCalledWith(
+        modelId,
+        expect.objectContaining({
+          headers: expect.any(Function),
+          fetch: expect.any(Function),
+          provider: 'fal.artifact',
+        }),
+      );
+    });
   });
 
   describe('image', () => {

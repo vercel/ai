@@ -1,0 +1,124 @@
+---
+title: Artifact Generation
+description: Learn how to generate downloadable artifacts such as 3D models with the AI SDK.
+---
+
+# Artifact Generation
+
+<Note>
+  Artifact generation is an experimental feature. The API may change in future
+  versions.
+</Note>
+
+The AI SDK provides the
+[`experimental_generateArtifact`](/docs/reference/ai-sdk-core/generate-artifact)
+function for models that generate files. The first supported use case is 3D
+generation through Fal, including text-to-3D, image-to-3D, multiview-to-3D, and
+mesh-to-mesh operations.
+
+```ts
+import { fal } from '@ai-sdk/fal';
+import { experimental_generateArtifact as generateArtifact } from 'ai';
+import { writeFile } from 'node:fs/promises';
+
+const { artifact } = await generateArtifact({
+  model: fal.artifact('tripo3d/h3.1/text-to-3d'),
+  prompt: 'A low-poly red fox standing on a stone plinth',
+});
+
+await writeFile('fox.glb', artifact.uint8Array);
+```
+
+Generated artifacts expose lazy `base64` and `uint8Array` representations, as
+well as the provider's media type, filename, and semantic role when available.
+Treat provider-supplied filenames as untrusted metadata; sanitize them before
+using them as local paths.
+
+## File Inputs
+
+Use `inputs` for image-conditioned, multiview, and existing-asset workflows.
+Each input can be a URL, base64 string, or binary data. Include a media type for
+binary data and when a URL does not make the file type clear.
+
+```ts
+const { artifact } = await generateArtifact({
+  model: fal.artifact('tripo3d/h3.1/image-to-3d'),
+  inputs: [
+    {
+      data: 'https://example.com/chair.png',
+      mediaType: 'image/png',
+    },
+  ],
+});
+```
+
+Multiple inputs are passed in order, which supports multiview endpoints:
+
+```ts
+const { artifact } = await generateArtifact({
+  model: fal.artifact('tripo3d/h3.1/multiview-to-3d'),
+  inputs: [
+    { data: 'https://example.com/front.png', mediaType: 'image/png' },
+    { data: 'https://example.com/left.png', mediaType: 'image/png' },
+    { data: 'https://example.com/back.png', mediaType: 'image/png' },
+    { data: 'https://example.com/right.png', mediaType: 'image/png' },
+  ],
+});
+```
+
+The same input shape can carry an existing model for remeshing or retopology:
+
+```ts
+const { artifact } = await generateArtifact({
+  model: fal.artifact('fal-ai/meshy/v5/remesh'),
+  inputs: [
+    {
+      data: 'https://example.com/source.glb',
+      mediaType: 'model/gltf-binary',
+      filename: 'source.glb',
+      role: 'model',
+    },
+  ],
+});
+```
+
+## Multiple Outputs
+
+Providers can return several related files or format variants. `artifact` is
+the first result and `artifacts` contains every result after URL downloads.
+Providers may deduplicate equivalent outputs; the Fal adapter deduplicates
+files that repeat the same URL.
+
+```ts
+const { artifact, artifacts } = await generateArtifact({
+  model: fal.artifact('tripo3d/h3.1/text-to-3d'),
+  prompt: 'A ceramic teapot',
+});
+
+console.log(artifact.mediaType);
+console.log(artifacts.map(file => file.filename));
+```
+
+## Provider Options
+
+Model-specific controls are passed through `providerOptions`. Fal options use
+camelCase keys and are converted to the endpoint's snake-case request fields.
+
+```ts
+const result = await generateArtifact({
+  model: fal.artifact('tripo3d/h3.1/text-to-3d'),
+  prompt: 'A game-ready treasure chest',
+  providerOptions: {
+    fal: {
+      faceLimit: 20_000,
+      texture: true,
+      pbr: true,
+      geometryQuality: 'detailed',
+    },
+  },
+});
+```
+
+Artifact generation defaults to zero whole-call retries because many providers
+create a billable asynchronous job as soon as a request is accepted. Providers
+may safely retry polling the already-created job without submitting a duplicate.
