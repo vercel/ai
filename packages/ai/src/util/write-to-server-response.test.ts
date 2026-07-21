@@ -32,16 +32,6 @@ describe('writeToServerResponse', () => {
     expect(mockResponse.ended).toBe(true);
   });
 
-<<<<<<< HEAD
-  it('should respect backpressure and wait for drain event', async () => {
-    const mockResponse = createBackpressureMockResponse();
-    let drainEventCount = 0;
-    let readyToEnqueue: ((value: unknown) => void) | null = null;
-
-    // Track drain events
-    mockResponse.on('drain', () => {
-      drainEventCount++;
-=======
   it('should reject when reading the stream fails', async () => {
     const mockResponse = createMockServerResponse();
     const error = new Error('stream read failed');
@@ -61,10 +51,14 @@ describe('writeToServerResponse', () => {
     expect(mockResponse.ended).toBe(true);
   });
 
-  describe('backpressure handling', () => {
-    beforeEach(() => {
-      vi.useFakeTimers();
->>>>>>> 7f6650b0ea (fix: server-response piping errors bypass caller catches (#17648))
+  it('should respect backpressure and wait for drain event', async () => {
+    const mockResponse = createBackpressureMockResponse();
+    let drainEventCount = 0;
+    let readyToEnqueue: ((value: unknown) => void) | null = null;
+
+    // Track drain events
+    mockResponse.on('drain', () => {
+      drainEventCount++;
     });
 
     // Create stream that provides chunks on-demand (async)
