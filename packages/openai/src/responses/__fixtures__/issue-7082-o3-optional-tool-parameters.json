@@ -1,0 +1,132 @@
+{
+  "id": "resp_0895dc792e938f60006a5f4529ee1081a0b5a67da472db790f",
+  "object": "response",
+  "created_at": 1784628521,
+  "status": "completed",
+  "background": false,
+  "billing": {
+    "payer": "developer"
+  },
+  "completed_at": 1784628523,
+  "error": null,
+  "frequency_penalty": 0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": 1000,
+  "max_tool_calls": null,
+  "model": "o3-2025-04-16",
+  "moderation": null,
+  "output": [
+    {
+      "id": "rs_0895dc792e938f60006a5f452a7ee481a0b093e9723ada4e68",
+      "type": "reasoning",
+      "content": [],
+      "encrypted_content": "gAAAAABqX0UrJ9GrP9frBP-xn8lwYZ49nUTByi1_rWTj0iOgjyqA0D04Psz4trnLehtTAMTcBB85589LQWqWbr6_Sc9LaMm0ZCFmjc6Jkj6bi1RxjzVzZrRgD3lB121FmfFirxdh7KKLJq4sAjhPV3BI8zzrcbkHAspNMj1vVsqwxvBvr6U0PL3KchiyuUov3nEP40lDbc4wee2zENWGAq5rASP8LwnbQ5fnKhrsivJUKxchNNlkEkaQoK_oK8QnD5_yhTKa0Il9xBB5pNePcuCJLMjuLsr5p7OL4lMTJ1Q-dRebEeiSHMOr77ZGtW7h4cxhG5_6ECXKx8qRhR4nU2tg6De4d8fERsK1R6D8oRoip_Jd8eFM3wlIAx7vKq3WCwL0Ies2radhfp3d0wvrNHzaqkqLFTquH4YAFQk_bV5iIEt5mxx1-BlZR3go6i5cUN9CgPEUCZuje1yU9v-Z7yxTMVLiEnEy53XKKD-U2EkM3MZ5CbrixrJgzOqmRxZa0xpmUi0E3VxZJVcP2rC5XStzexT0YJQKCfYG5ZLHF4IkT9XvtQzrnnfgfHDTTr4ujzHNHGZAEdh1mhWXWBWnE_Ty-yMYgwIokPEoVbV2j-hVJxa05V4bPWYJihcxvwRRrP0DvrDG3dVEHmMEp1V_xaXgt9-bfi_AM2UDXyUzGRiUAOJnXxgX06qmjbET8WIXq5ntB1AMaP4y5P7A8jzASlWqf5XbfevlnlxEZOQmUFpCtX34wCbzTN_sA92MraLFF6AM3ULmVAYa9Vr7mEg-0MyJyOyNAVipv3m1TG1uAU-llXswJpwALiruTtIfG4ppmu4Ni3gh12fkrTydbxAwDN7xDan-eK5yzhb_DOzmwpIy5rwPmrQA48xc_cYMPNnyRxCIgiBcpLMU9gazf1hESrt-wupCbylF7Bgk8S0QkX28wHKpu4g61qcEOjqBFIihS5r7qgodMTmU2xLpNNKC_KJXSLbCQOqkcLZIE52laBj9QEJbvSkSHxwghOYkyTa0RAvm0S2iwovHvLXOexUdItznUYe8DIk4MfGds7-jHuRL-UX6HO8ip_4OlXjzBK2hW9S5Q5r3E1AcuYaBwUocHxCFeCEJJyDQGKzBUkkmWjjCvI2QNFxralbtHdBrkzS70ZbkjklOND-pFpFcMF-zkn04EPYi9raK2DHTogunde4MwtH2m9RFGhvIbpQlDgcrTUXMYouna3MdF5LCRnYuzv5yP9ytZR40ZrYOD1VEegpWamyQdIj4K7gcsxV_z7W-XueY01mfbtmgUAhbj18ajh4IoS0LENFezWjucNmgh5wDSGJ6vOiDGVoyuNxPgplni3gxPt5EuYeIjr66lDt98FI7spGmK_bgGRbMyDVFfmxzpU1x3xiZhQQ=",
+      "summary": []
+    },
+    {
+      "id": "fc_0895dc792e938f60006a5f452b6ae081a09491832f50a63901",
+      "type": "function_call",
+      "status": "completed",
+      "arguments": "{\"query\":\"machine learning\",\"limit\":10}",
+      "call_id": "call_sllqlMEFqHePsbF1dDko4Pdq",
+      "name": "semantic_scholar_search"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": "in_memory",
+  "reasoning": {
+    "context": "current_turn",
+    "effort": "medium",
+    "mode": "standard",
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": true,
+  "temperature": 1,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": "medium"
+  },
+  "tool_choice": {
+    "type": "function",
+    "name": "semantic_scholar_search"
+  },
+  "tool_usage": {
+    "image_gen": {
+      "input_tokens": 0,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "output_tokens": 0,
+      "output_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "total_tokens": 0
+    },
+    "web_search": {
+      "num_requests": 0
+    }
+  },
+  "tools": [
+    {
+      "type": "function",
+      "description": "Search academic papers using Semantic Scholar API.",
+      "name": "semantic_scholar_search",
+      "output_schema": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "The text to search for. Convert the question to a sensible search query."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of results to return. Min 5, max 100."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "The pagination offset."
+          },
+          "year": {
+            "type": "integer",
+            "description": "Restrict results to this publication year."
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "strict": false
+    }
+  ],
+  "top_logprobs": 0,
+  "top_p": 1,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 114,
+    "input_tokens_details": {
+      "cache_write_tokens": 0,
+      "cached_tokens": 0
+    },
+    "output_tokens": 99,
+    "output_tokens_details": {
+      "reasoning_tokens": 64
+    },
+    "total_tokens": 213
+  },
+  "user": null,
+  "metadata": {}
+}
