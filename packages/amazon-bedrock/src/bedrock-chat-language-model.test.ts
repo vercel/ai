@@ -198,6 +198,61 @@ const opusAnthropicModel = new BedrockChatLanguageModel(opusAnthropicModelId, {
 
 let mockOptions: { success: boolean; errorValue?: any } = { success: true };
 
+const foundationModelArn =
+  'arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-lite-v1:0';
+const encodedFoundationModelArn = encodeURIComponent(foundationModelArn);
+const malformedFoundationModelArn = encodedFoundationModelArn
+  .replace(/%3A/g, ':')
+  .replace(/%2F/g, '/');
+
+function createFoundationModelArnFetch({
+  operation,
+}: {
+  operation: 'converse' | 'converse-stream';
+}) {
+  const successfulFixture =
+    operation === 'converse'
+      ? 'issue-17523-foundation-model-arn.json'
+      : 'issue-17523-foundation-model-arn.chunks.txt';
+  const unknownOperationFixture =
+    operation === 'converse'
+      ? 'issue-17523-unknown-operation.json'
+      : 'issue-17523-unknown-operation.chunks.txt';
+
+  return vi.fn(async (input: RequestInfo | URL) => {
+    const url =
+      typeof input === 'string'
+        ? input
+        : input instanceof URL
+          ? input.href
+          : input.url;
+    const encodedUrl = `${baseUrl}/model/${encodedFoundationModelArn}/${operation}`;
+    const malformedUrl = `${baseUrl}/model/${malformedFoundationModelArn}/${operation}`;
+
+    if (url !== encodedUrl && url !== malformedUrl) {
+      throw new Error(`Unexpected URL: ${url}`);
+    }
+
+    return new Response(
+      fs.readFileSync(
+        `src/__fixtures__/${
+          url === encodedUrl ? successfulFixture : unknownOperationFixture
+        }`,
+        'utf8',
+      ),
+      {
+        status: 200,
+        headers: {
+          'content-type':
+            operation === 'converse'
+              ? 'application/json'
+              : 'application/vnd.amazon.eventstream',
+        },
+      },
+    );
+  });
+}
+
 describe('doGenerate request metadata', () => {
   it('should return the request body', async () => {
     prepareJsonFixtureResponse('bedrock-text');
@@ -233,47 +288,27 @@ describe('doGenerate request metadata', () => {
 });
 
 describe('request URL', () => {
-  it('should preserve application inference profile ARN delimiters', async () => {
-    const inferenceProfileArn =
-      'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/abc123xyz';
-    const fetch = vi.fn(async () => {
-      return new Response(
-        JSON.stringify({
-          output: {
-            message: {
-              role: 'assistant',
-              content: [{ text: 'hello' }],
-            },
-          },
-          stopReason: 'end_turn',
-          usage: {
-            inputTokens: 1,
-            outputTokens: 1,
-            totalTokens: 2,
-          },
-        }),
-        {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        },
-      );
+  it('should generate text with a foundation model ARN', async () => {
+    const fetch = createFoundationModelArnFetch({ operation: 'converse' });
+    const foundationModel = new BedrockChatLanguageModel(foundationModelArn, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      fetch,
+      generateId: () => 'test-id',
     });
-    const inferenceProfileModel = new BedrockChatLanguageModel(
-      inferenceProfileArn,
-      {
-        baseUrl: () => baseUrl,
-        headers: {},
-        fetch,
-        generateId: () => 'test-id',
-      },
-    );
 
-    await inferenceProfileModel.doGenerate({
+    const result = await foundationModel.doGenerate({
       prompt: TEST_PROMPT,
     });
 
+    expect(result.content).toEqual([
+      expect.objectContaining({
+        type: 'text',
+        text: expect.stringMatching(/\S/),
+      }),
+    ]);
     expect(fetch).toHaveBeenCalledWith(
-      `${baseUrl}/model/${inferenceProfileArn}/converse`,
+      `${baseUrl}/model/${encodedFoundationModelArn}/converse`,
       expect.any(Object),
     );
   });
@@ -329,6 +364,41 @@ describe('doStream', () => {
   ) {
     mockOptions = { ...mockOptions, ...options };
   }
+
+  it('should stream text with a foundation model ARN', async () => {
+    const fetch = createFoundationModelArnFetch({
+      operation: 'converse-stream',
+    });
+    const foundationModel = new BedrockChatLanguageModel(foundationModelArn, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      fetch,
+      generateId: () => 'test-id',
+    });
+
+    const { stream } = await foundationModel.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+    const chunks = await convertReadableStreamToArray(stream);
+    const text = chunks
+      .filter(chunk => chunk.type === 'text-delta')
+      .map(chunk => chunk.delta)
+      .join('');
+    const finish = chunks.find(chunk => chunk.type === 'finish');
+
+    expect(text).toMatch(/\S/);
+    expect(finish).toMatchObject({
+      finishReason: {
+        unified: 'stop',
+        raw: 'end_turn',
+      },
+    });
+    expect(fetch).toHaveBeenCalledWith(
+      `${baseUrl}/model/${encodedFoundationModelArn}/converse-stream`,
+      expect.any(Object),
+    );
+  });
 
   describe('text', () => {
     beforeEach(() => {

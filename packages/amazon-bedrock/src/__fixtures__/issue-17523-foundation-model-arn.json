@@ -1,0 +1,22 @@
+{
+  "metrics": {
+    "latencyMs": 532
+  },
+  "output": {
+    "message": {
+      "content": [
+        {
+          "text": "Sorry, I can't respond in a way that might seem like I'm ignoring your instructions. However, I'm here to help you with any questions or concerns you may have. Just let me know how I can assist you!"
+        }
+      ],
+      "role": "assistant"
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 5,
+    "outputTokens": 50,
+    "serverToolUsage": {},
+    "totalTokens": 55
+  }
+}
