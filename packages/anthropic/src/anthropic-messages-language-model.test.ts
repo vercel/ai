@@ -949,6 +949,48 @@ describe('AnthropicMessagesLanguageModel', () => {
       expect(finishReason).toStrictEqual('tool-calls');
     });
 
+    it('should preserve quoted strings in tool input from a live fixture', async () => {
+      prepareJsonFixtureResponse('issue-11719-quoted-tool-input');
+
+      const { content, finishReason } = await provider(
+        'claude-sonnet-4-5',
+      ).doGenerate({
+        tools: [
+          {
+            type: 'function',
+            name: 'website_update',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                tasks: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      description: { type: 'string' },
+                      type: { enum: ['feature', 'bug'] },
+                      passes: { type: 'boolean' },
+                    },
+                    required: ['description', 'type', 'passes'],
+                  },
+                },
+              },
+              required: ['tasks'],
+            },
+          },
+        ],
+        prompt: TEST_PROMPT,
+      });
+
+      const toolCall = content.find(part => part.type === 'tool-call');
+
+      expect(toolCall).toBeDefined();
+      expect(JSON.parse(toolCall!.input).tasks[0].description).toContain(
+        '"What should I do next after this run?"',
+      );
+      expect(finishReason).toStrictEqual('tool-calls');
+    });
+
     it('should extract usage', async () => {
       prepareJsonResponse({
         usage: { input_tokens: 20, output_tokens: 5 },
