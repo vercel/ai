@@ -2018,6 +2018,9 @@ By default the generated audio is returned as a playable WAV file (`result.audio
 `audio/wav`). Set `outputFormat: 'pcm'` to receive the raw signed 16-bit little-endian mono PCM
 bytes instead; the sample rate is reported in `result.providerMetadata.google.sampleRate`.
 
+Set `language` to a supported BCP-47 language code, such as `en-US`. The provider forwards it as
+`speechConfig.languageCode`. When omitted, Gemini detects the language from the input text.
+
 Gemini honors natural-language style direction. The `instructions` argument is prepended to the
 spoken text, so `instructions: 'Say cheerfully'` with `text: 'Hello'` speaks `Say cheerfully: Hello`.
 
@@ -2053,9 +2056,8 @@ const result = await generateSpeech({
 ```
 
 <Note>
-  Gemini TTS models do not support the `speed` or `language` options; passing
-  them adds a warning to `result.warnings`. Language is detected automatically
-  from the input text.
+  Gemini TTS models do not support the `speed` option; passing it adds a warning
+  to `result.warnings`.
 </Note>
 
 ### Model Capabilities
