@@ -3487,7 +3487,10 @@ describe('doGenerate', () => {
           "type": "text",
         },
         {
-          "data": "audiodata",
+          "data": {
+            "data": "audiodata",
+            "type": "data",
+          },
           "mediaType": "audio/wav",
           "providerMetadata": undefined,
           "type": "file",
