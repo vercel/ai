@@ -356,6 +356,19 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           }
         : undefined;
 
+    if (
+      jsonResponseTool != null &&
+      anthropicOptions?.disableParallelToolUse === false
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.anthropic.disableParallelToolUse',
+        details:
+          '`disableParallelToolUse: false` is ignored when using the JSON response tool. ' +
+          'Parallel tool use is disabled to ensure a single coherent JSON tool call.',
+      });
+    }
+
     const contextManagement = anthropicOptions?.contextManagement;
 
     // Create a shared cache control validator to track breakpoints across tools and messages
