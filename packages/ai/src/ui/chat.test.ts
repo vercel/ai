@@ -1441,6 +1441,93 @@ describe('Chat', () => {
     `);
   });
 
+  it('should assign the provided id to the replacement message', async () => {
+    server.urls['http://localhost:3000/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        formatChunk({ type: 'start' }),
+        formatChunk({ type: 'start-step' }),
+        formatChunk({ type: 'text-start', id: 'text-1' }),
+        formatChunk({ type: 'text-delta', id: 'text-1', delta: 'ok' }),
+        formatChunk({ type: 'text-end', id: 'text-1' }),
+        formatChunk({ type: 'finish-step' }),
+        formatChunk({ type: 'finish' }),
+      ],
+    };
+
+    const finishPromise = createResolvablePromise<void>();
+
+    const chat = new TestChat({
+      id: '123',
+      generateId: mockId({ prefix: 'newid' }),
+      transport: new DefaultChatTransport({
+        api: 'http://localhost:3000/api/chat',
+      }),
+      onFinish: () => finishPromise.resolve(),
+      messages: [
+        { id: 'id-0', role: 'user', parts: [{ text: 'Hi!', type: 'text' }] },
+        {
+          id: 'id-1',
+          role: 'assistant',
+          parts: [{ text: 'How can I help you?', type: 'text', state: 'done' }],
+        },
+      ],
+    });
+
+    chat.sendMessage({
+      id: 'id-0-v2',
+      text: 'Hello, world!',
+      messageId: 'id-0',
+    });
+
+    await finishPromise.promise;
+
+    expect(chat.messages[0].id).toBe('id-0-v2');
+    expect((await server.calls[0].requestBodyJson).messages[0].id).toBe(
+      'id-0-v2',
+    );
+  });
+
+  it('should keep the messageId when no id is provided (default replacement)', async () => {
+    server.urls['http://localhost:3000/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        formatChunk({ type: 'start' }),
+        formatChunk({ type: 'start-step' }),
+        formatChunk({ type: 'text-start', id: 'text-1' }),
+        formatChunk({ type: 'text-delta', id: 'text-1', delta: 'ok' }),
+        formatChunk({ type: 'text-end', id: 'text-1' }),
+        formatChunk({ type: 'finish-step' }),
+        formatChunk({ type: 'finish' }),
+      ],
+    };
+
+    const finishPromise = createResolvablePromise<void>();
+
+    const chat = new TestChat({
+      id: '123',
+      generateId: mockId({ prefix: 'newid' }),
+      transport: new DefaultChatTransport({
+        api: 'http://localhost:3000/api/chat',
+      }),
+      onFinish: () => finishPromise.resolve(),
+      messages: [
+        { id: 'id-0', role: 'user', parts: [{ text: 'Hi!', type: 'text' }] },
+        {
+          id: 'id-1',
+          role: 'assistant',
+          parts: [{ text: 'How can I help you?', type: 'text', state: 'done' }],
+        },
+      ],
+    });
+
+    chat.sendMessage({ text: 'Hello, world!', messageId: 'id-0' });
+
+    await finishPromise.promise;
+
+    expect(chat.messages[0].id).toBe('id-0');
+  });
+
   it('should handle error parts', async () => {
     server.urls['http://localhost:3000/api/chat'].response = {
       type: 'stream-chunks',
