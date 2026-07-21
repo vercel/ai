@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 17588,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-17588-anthropic-unknown-model-max-tokens.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-17588-anthropic-unknown-model-max-tokens.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue #17588 reproduced: unknown Anthropic model silently received max_tokens=4096"
+  }
+}
