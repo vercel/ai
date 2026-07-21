@@ -4721,9 +4721,11 @@ describe('doGenerate', () => {
         type: 'json_schema',
         schema: {
           type: 'object',
+          additionalProperties: false,
           properties: {
             recipe: {
               type: 'object',
+              additionalProperties: false,
               properties: {
                 name: { type: 'string' },
                 ingredients: { type: 'array', items: { type: 'string' } },
@@ -4780,6 +4782,7 @@ describe('doGenerate', () => {
         type: 'json_schema',
         schema: {
           type: 'object',
+          additionalProperties: false,
           properties: {
             name: { type: 'string' },
           },
@@ -4896,6 +4899,7 @@ describe('doGenerate', () => {
       {
         "format": {
           "schema": {
+            "additionalProperties": false,
             "properties": {
               "name": {
                 "type": "string",
@@ -4908,6 +4912,63 @@ describe('doGenerate', () => {
           },
           "type": "json_schema",
         },
+      }
+    `);
+  });
+
+  it('should sanitize unsupported JSON schema keywords for native structured output', async () => {
+    server.urls[newerAnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            content: [{ text: '{"labels":["Spring","Summer","Autumn"]}' }],
+            role: 'assistant',
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'end_turn',
+      },
+    };
+
+    await newerAnthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            labels: {
+              type: 'array',
+              maxItems: 3,
+              items: { type: 'string' },
+            },
+          },
+          required: ['labels'],
+          additionalProperties: false,
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.additionalModelRequestFields.output_config.format.schema)
+      .toMatchInlineSnapshot(`
+      {
+        "additionalProperties": false,
+        "properties": {
+          "labels": {
+            "description": "max items: 3.",
+            "items": {
+              "type": "string",
+            },
+            "type": "array",
+          },
+        },
+        "required": [
+          "labels",
+        ],
+        "type": "object",
       }
     `);
   });
