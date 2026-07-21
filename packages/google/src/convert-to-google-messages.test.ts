@@ -1737,6 +1737,116 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
     expect(onWarning.mock.calls[0][0].message).toContain('`weather`');
   });
 
+  it('does NOT inject the sentinel or warn for unsigned parallel calls after a signed call', () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_paris',
+              toolName: 'get_weather',
+              input: { city: 'Paris' },
+              providerOptions: {
+                vertex: { thoughtSignature: 'parallel_batch_signature' },
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_tokyo',
+              toolName: 'get_weather',
+              input: { city: 'Tokyo' },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_new_york',
+              toolName: 'get_weather',
+              input: { city: 'New York' },
+            },
+          ],
+        },
+      ],
+      {
+        isGemini3Model: true,
+        providerOptionsNames: ['googleVertex', 'vertex'],
+        onWarning,
+      },
+    );
+
+    expect(result.contents[0].parts).toStrictEqual([
+      {
+        functionCall: {
+          id: 'tc_paris',
+          name: 'get_weather',
+          args: { city: 'Paris' },
+        },
+        thoughtSignature: 'parallel_batch_signature',
+      },
+      {
+        functionCall: {
+          id: 'tc_tokyo',
+          name: 'get_weather',
+          args: { city: 'Tokyo' },
+        },
+        thoughtSignature: undefined,
+      },
+      {
+        functionCall: {
+          id: 'tc_new_york',
+          name: 'get_weather',
+          args: { city: 'New York' },
+        },
+        thoughtSignature: undefined,
+      },
+    ]);
+    expect(onWarning).not.toHaveBeenCalled();
+  });
+
+  it('injects the sentinel when a non-tool part separates an unsigned call from a signed call', () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_signed',
+              toolName: 'weather',
+              input: { location: 'SF' },
+              providerOptions: {
+                google: { thoughtSignature: 'signed_batch' },
+              },
+            },
+            {
+              type: 'text',
+              text: 'Starting another tool-call batch.',
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_unsigned',
+              toolName: 'weather',
+              input: { location: 'NYC' },
+            },
+          ],
+        },
+      ],
+      { isGemini3Model: true, onWarning },
+    );
+
+    expect(result.contents[0].parts[2]).toMatchObject({
+      functionCall: {
+        id: 'tc_unsigned',
+        name: 'weather',
+        args: { location: 'NYC' },
+      },
+      thoughtSignature: SKIP_THOUGHT_SIGNATURE_VALIDATOR,
+    });
+    expect(onWarning).toHaveBeenCalledTimes(1);
+  });
+
   it('does NOT inject the sentinel for non-Gemini-3 models', () => {
     const onWarning = vi.fn();
     const result = convertToGoogleMessages(promptWithToolCallMissingSignature, {
