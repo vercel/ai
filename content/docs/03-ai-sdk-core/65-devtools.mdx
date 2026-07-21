@@ -101,7 +101,26 @@ DevTools captures the following information from your AI SDK calls:
 - **Input parameters and prompts**: View the complete input sent to your LLM
 - **Output content and tool calls**: Inspect generated text and tool invocations
 - **Token usage and timing**: Monitor resource consumption and performance
-- **Raw provider data**: Access complete request and response payloads
+- **Raw provider data**: Access complete request and response payloads (opt-in, see below)
+
+### Raw request and response bodies
+
+Since AI SDK 7, `generateText` and `streamText` exclude request bodies from step results by default, and `generateText` also excludes response bodies. As a result, raw request and response payloads do not appear in DevTools unless you opt in with the `include` option:
+
+```ts
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'Hello!',
+  include: {
+    requestBody: true,
+    responseBody: true,
+  },
+});
+```
+
+For `streamText`, only `requestBody` is available. See the [AI SDK 7 migration guide](/docs/migration-guides/migration-guide-7-0#request-and-response-bodies-are-excluded-by-default) for details.
 
 ### Runs and steps
 
