@@ -133,10 +133,10 @@ describe('transcribe', () => {
       0x41,
       0x20, // "M4A "
     ]);
-    let capturedArgs!: Parameters<TranscriptionModelV4['doGenerate']>[0];
+    let capturedArgs!: Parameters<TranscriptionModelV2['doGenerate']>[0];
 
     await transcribe({
-      model: new MockTranscriptionModelV4({
+      model: new MockTranscriptionModelV2({
         doGenerate: async args => {
           capturedArgs = args;
           return createMockResponse({
