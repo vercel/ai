@@ -1,9 +1,9 @@
 import {
-  AuthStorage,
   createAgentSession,
   DefaultResourceLoader,
   defineTool,
   ModelRegistry,
+  ModelRuntime,
   SessionManager,
   SettingsManager,
   type AgentSession,
@@ -30,7 +30,11 @@ import {
   type HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
 import { resolveSandboxHomeDir } from '@ai-sdk/harness/utils';
-import { resolvePiEnv, type PiAuthOptions } from './pi-auth';
+import {
+  registerPiProviders,
+  resolvePiEnv,
+  type PiAuthOptions,
+} from './pi-auth';
 import { getPiTerminalError, parseNativeEvent } from './pi-events';
 import { createPiModelResolver } from './pi-model-resolver';
 import { createPiPathMapper } from './pi-paths';
@@ -43,6 +47,7 @@ import {
 } from './pi-resume-state';
 import {
   createPiTranslatorState,
+  finishPiApprovalStep,
   translatePiEvent,
   type PiTranslatorState,
 } from './pi-translate';
@@ -195,11 +200,19 @@ export interface CreatePiSessionInput {
   readonly sessionWorkDir: string;
   readonly skills: ReadonlyArray<HarnessV1Skill>;
   readonly settings: PiSessionSettings;
+  readonly clientApp: string;
   readonly isResume: boolean;
   readonly permissionMode?: HarnessV1PermissionMode;
   readonly builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
   readonly resumeSessionFileName?: string;
   readonly abortSignal?: AbortSignal;
+  /**
+   * Directory holding Pi's global agent config (auth.json, models.json,
+   * settings.json). When omitted, a per-session temp dir is used (the
+   * harness cannot reuse existing CLI logins). Pass the user's agent dir
+   * (e.g. `~/.pi/agent/`) to reuse their CLI auth and model settings.
+   */
+  readonly agentDir?: string;
 }
 
 interface PendingToolResult {
@@ -318,24 +331,39 @@ export async function createPiSession(
   });
 
   // Pi auth + model registry are global to this Pi session. These live on the
-  // real host filesystem (`hostAgentDir`), never in the sandbox/workspace.
-  const authStorage = AuthStorage.create(path.join(hostAgentDir, 'auth.json'));
-  const modelRegistry = ModelRegistry.create(
-    authStorage,
-    path.join(hostAgentDir, 'models.json'),
-  );
-  const settingsManager = SettingsManager.inMemory();
+  // real host filesystem, never in the sandbox/workspace.
+  // When `agentDir` is provided, use it instead so the harness can reuse
+  // existing CLI logins and model/settings config.
+  const agentDir = input.agentDir ?? hostAgentDir;
+  const modelRuntime = await ModelRuntime.create({
+    authPath: path.join(agentDir, 'auth.json'),
+    modelsPath: path.join(agentDir, 'models.json'),
+    allowModelNetwork: false,
+  });
+  const modelRegistry = new ModelRegistry(modelRuntime);
+  const settingsManager =
+    input.agentDir != null
+      ? SettingsManager.create(hostWorkDir, agentDir)
+      : SettingsManager.inMemory();
 
   // Run-scoped env (for the model resolver's gateway fallback heuristic).
   const resolverEnv = resolvePiEnv({
     options: input.settings.auth,
     env: process.env,
-    registries: {
-      authStorage,
-      modelRegistry,
-    },
   });
-  const resolveModel = createPiModelResolver(modelRegistry, resolverEnv);
+  await registerPiProviders({
+    options: input.settings.auth,
+    resolvedEnv: resolverEnv,
+    registries: {
+      modelRegistry,
+      modelRuntime,
+    },
+    clientApp: input.clientApp,
+  });
+  const resolveModel = createPiModelResolver({
+    modelRegistry,
+    env: resolverEnv,
+  });
   // Resolve once: deterministic given the configured model. This is the Pi
   // `Model` object handed to `createAgentSession`.
   const resolvedModel = resolveModel(input.settings.model);
@@ -505,6 +533,14 @@ export async function createPiSession(
       approvalId: args.toolCallId,
       toolCallId: args.toolCallId,
     });
+    if (translatorState) {
+      for (const part of finishPiApprovalStep(
+        translatorState,
+        args.toolCallId,
+      )) {
+        currentEmit?.(part);
+      }
+    }
     return new Promise(resolve => {
       pendingToolApprovals.set(args.toolCallId, { resolve });
     });
@@ -568,8 +604,7 @@ export async function createPiSession(
     const { session } = await createAgentSession({
       cwd: sessionWorkDir,
       agentDir: hostAgentDir,
-      authStorage,
-      modelRegistry,
+      modelRuntime,
       sessionManager,
       settingsManager,
       resourceLoader,
@@ -704,10 +739,6 @@ export async function createPiSession(
             reasoning: undefined,
           },
         };
-        // `finish-step` populates the step's finishReason + usage (the
-        // agent's result builder reads this); `finish` marks the turn end
-        // with totalUsage.
-        currentEmit?.({ type: 'finish-step', finishReason, usage });
         currentEmit?.({
           type: 'finish',
           finishReason,

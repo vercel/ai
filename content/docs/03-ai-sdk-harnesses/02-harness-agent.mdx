@@ -13,34 +13,7 @@ results while a preconfigured harness powers these results.
 
 Install the core harness package, a harness adapter, and a sandbox provider:
 
-<div className="my-4">
-  <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-    <Tab>
-      <Snippet
-        text="pnpm add @ai-sdk/harness @ai-sdk/harness-claude-code @ai-sdk/sandbox-vercel"
-        dark
-      />
-    </Tab>
-    <Tab>
-      <Snippet
-        text="npm install @ai-sdk/harness @ai-sdk/harness-claude-code @ai-sdk/sandbox-vercel"
-        dark
-      />
-    </Tab>
-    <Tab>
-      <Snippet
-        text="yarn add @ai-sdk/harness @ai-sdk/harness-claude-code @ai-sdk/sandbox-vercel"
-        dark
-      />
-    </Tab>
-    <Tab>
-      <Snippet
-        text="bun add @ai-sdk/harness @ai-sdk/harness-claude-code @ai-sdk/sandbox-vercel"
-        dark
-      />
-    </Tab>
-  </Tabs>
-</div>
+<InstallPackages packages="@ai-sdk/harness @ai-sdk/harness-claude-code @ai-sdk/sandbox-vercel" />
 
 Bridge-backed harnesses such as Claude Code and Codex require a real network sandbox
 that can expose a port, such as `@ai-sdk/sandbox-vercel` or `@ai-sdk/sandbox-sprites`.
@@ -128,6 +101,10 @@ or a message-array `prompt`, `HarnessAgent` takes the latest user message as the
 fresh input for the turn. It does not replay the full prior conversation into
 the harness.
 
+A trailing tool message is handled differently: tool approval responses and
+client-provided tool results continue the unfinished harness turn that produced
+the corresponding request or tool call.
+
 This is different from model calls, where the application usually sends the full
 message history. In chat routes, persist and resume the harness session instead
 of relying on message replay.
@@ -144,6 +121,8 @@ End every session explicitly:
   the turn is unfinished, the resume state includes the continuation state.
 - `session.suspendTurn()` is for advanced active-turn continuation across a
   process boundary.
+- `session.hasUnfinishedTurn()` reports whether the current turn must be
+  continued or suspended before the session accepts a new prompt.
 
 Use `destroy()` for one-off scripts and tests. Use `detach()` or `stop()` for
 HTTP routes that need multi-turn continuity.
@@ -193,8 +172,10 @@ For advanced workflows that must hand off an active turn across a process
 boundary, suspend the turn and persist the continuation state:
 
 ```ts
-const continuationState = await session.suspendTurn();
-await persistContinuationState({ chatId, continuationState });
+if (session.hasUnfinishedTurn()) {
+  const continuationState = await session.suspendTurn();
+  await persistContinuationState({ chatId, continuationState });
+}
 ```
 
 When you only have raw continuation state from `suspendTurn()`, resume with
