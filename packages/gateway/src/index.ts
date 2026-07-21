@@ -1,5 +1,8 @@
 export type { GatewayModelId } from './gateway-language-model-settings';
-export type { GatewayArtifactModelId } from './gateway-artifact-model-settings';
+export type {
+  GatewayArtifactModelId,
+  GatewayArtifactModelOptions,
+} from './gateway-artifact-model-options';
 export {
   GATEWAY_AUTH_SUBPROTOCOL_PREFIX,
   GATEWAY_REALTIME_SUBPROTOCOL,

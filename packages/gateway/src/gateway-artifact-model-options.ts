@@ -1,3 +1,8 @@
+import type { GatewayProviderOptions } from './gateway-provider-options';
+
+/** Gateway routing options supported by artifact model calls. */
+export type GatewayArtifactModelOptions = GatewayProviderOptions;
+
 export type GatewayArtifactModelId =
   | 'fal/tripo3d/h3.1/text-to-3d'
   | 'fal/tripo3d/h3.1/image-to-3d'

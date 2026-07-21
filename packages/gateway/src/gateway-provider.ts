@@ -43,7 +43,7 @@ import {
 } from './gateway-transcription-model';
 import { GatewayRealtimeModel } from './gateway-realtime-model';
 import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
-import type { GatewayArtifactModelId } from './gateway-artifact-model-settings';
+import type { GatewayArtifactModelId } from './gateway-artifact-model-options';
 import type { GatewayImageModelId } from './gateway-image-model-settings';
 import type { GatewayRerankingModelId } from './gateway-reranking-model-settings';
 import type { GatewaySpeechModelId } from './gateway-speech-model-settings';

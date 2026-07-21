@@ -1,7 +1,7 @@
 import {
   AISDKError,
   APICallError,
-  type Experimental_ArtifactModelV4,
+  type Experimental_ArtifactModelV4 as ArtifactModelV4,
   type Experimental_ArtifactModelV4ArtifactData,
   type Experimental_ArtifactModelV4File,
   type SharedV4Warning,
@@ -35,7 +35,7 @@ interface FalArtifactModelConfig extends FalConfig {
   };
 }
 
-export class FalArtifactModel implements Experimental_ArtifactModelV4 {
+export class FalArtifactModel implements ArtifactModelV4 {
   readonly specificationVersion = 'v4' as const;
 
   constructor(
@@ -48,8 +48,8 @@ export class FalArtifactModel implements Experimental_ArtifactModelV4 {
   }
 
   async doGenerate(
-    options: Parameters<Experimental_ArtifactModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_ArtifactModelV4['doGenerate']>>> {
+    options: Parameters<ArtifactModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<ArtifactModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
     const falOptions = (await parseProviderOptions({

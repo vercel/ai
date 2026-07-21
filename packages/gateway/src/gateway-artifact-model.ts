@@ -1,6 +1,6 @@
 import {
   APICallError,
-  type Experimental_ArtifactModelV4,
+  type Experimental_ArtifactModelV4 as ArtifactModelV4,
   type Experimental_ArtifactModelV4ArtifactData,
   type Experimental_ArtifactModelV4CallOptions,
   type Experimental_ArtifactModelV4File,
@@ -22,7 +22,7 @@ import type { GatewayConfig } from './gateway-config';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 
-export class GatewayArtifactModel implements Experimental_ArtifactModelV4 {
+export class GatewayArtifactModel implements ArtifactModelV4 {
   readonly specificationVersion = 'v4' as const;
 
   constructor(
