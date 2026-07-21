@@ -1,8 +1,17 @@
 import type { FetchFunction } from '@ai-sdk/provider-utils';
+import * as providerUtils from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BlackForestLabsImageModel } from './black-forest-labs-image-model';
 import type { BlackForestLabsImageModelId } from './black-forest-labs-image-settings';
+
+vi.mock('@ai-sdk/provider-utils', async importOriginal => {
+  const actual = await importOriginal<typeof providerUtils>();
+  return {
+    ...actual,
+    parseProviderOptions: vi.fn(actual.parseProviderOptions),
+  };
+});
 
 const prompt = 'A cute baby sea otter';
 
@@ -105,7 +114,28 @@ describe('BlackForestLabsImageModel', () => {
     },
   });
 
+  beforeEach(() => {
+    vi.mocked(providerUtils.parseProviderOptions).mockClear();
+  });
+
   describe('doGenerate', () => {
+    it('parses provider options only once', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: '1:1',
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(providerUtils.parseProviderOptions).toHaveBeenCalledTimes(1);
+    });
+
     it('passes the correct parameters including aspect ratio and providerOptions', async () => {
       const model = createBasicModel();
 

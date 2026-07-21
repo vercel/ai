@@ -1,5 +1,5 @@
 import { tool, type FlexibleSchema, type Tool } from '@ai-sdk/provider-utils';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 /**
  * Cross-harness vocabulary of common built-in tool names with their baseline

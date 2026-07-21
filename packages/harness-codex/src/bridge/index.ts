@@ -5,10 +5,9 @@
 // This file supplies only the Codex-specific turn driver.
 //
 // Host-defined tools are routed through an HTTP relay bound to
-// `127.0.0.1:0` with bearer-token auth. The codex CLI spawns
-// `host-tool-mcp.mjs` (shipped alongside this file) as a stdio MCP server;
-// the shim POSTs each tool call to the relay, which emits `tool-call` to
-// the host and waits for the matching `tool-result`.
+// `127.0.0.1:0`. The bridge writes a CLI shim into the per-session runtime
+// directory; the shim POSTs each tool call to the relay, which emits
+// `tool-call` to the host and waits for the matching `tool-result`.
 
 import {
   runBridge,
@@ -18,15 +17,19 @@ import {
 import type { HarnessV1BuiltinToolName } from '@ai-sdk/harness';
 import type { StartMessage } from '../codex-bridge-protocol';
 import { randomUUID } from 'node:crypto';
-import { writeFile } from 'node:fs/promises';
-import { createServer, type Server } from 'node:http';
+import { mkdir, writeFile } from 'node:fs/promises';
 // Temporary workaround for upstream codex MCP-tool bug — see ./cli-relay.ts
 import {
   CLI_SHIM_FILENAME,
   buildCliShimScript,
-  composeToolUsageInstructions,
-  isToolRelayCommand,
+  parseToolRelayCommands,
 } from './cli-relay';
+import {
+  createCodexStepTracker,
+  defaultUsage,
+  type CodexStepTracker,
+} from './codex-step-tracker';
+import { startAuthorizedToolRelay, type ToolRelay } from './tool-relay';
 import { argv, env as procEnv, stdout } from 'node:process';
 
 /*
@@ -63,15 +66,16 @@ function toCommonName(nativeName: string): HarnessV1BuiltinToolName | string {
 }
 
 const args = parseArgs(argv.slice(2));
-const workdir = args.workdir;
-const bridgeStateDir = args.bridgeStateDir;
-if (!workdir) {
-  emitFatal('Missing --workdir argument.');
-}
-if (!bridgeStateDir) {
-  emitFatal('Missing --bridge-state-dir argument.');
-}
-const bootstrapDir = args.bootstrapDir ?? workdir;
+const workdir = requireArg({ value: args.workdir, name: '--workdir' });
+const bridgeStateDir = requireArg({
+  value: args.bridgeStateDir,
+  name: '--bridge-state-dir',
+});
+const cliShimDir = requireArg({
+  value: args.cliShimDir,
+  name: '--cli-shim-dir',
+});
+const HARNESS_CLIENT_APP = procEnv.AI_SDK_HARNESS_CLIENT_APP;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const codexSdk = codexSdkModule as any;
@@ -103,60 +107,36 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   }
 
   /*
-   * Known limitation: codex CLI does not currently surface MCP tools to the
+   * Known limitation: codex CLI does not reliably surface MCP tools to the
    * model in `codex exec --experimental-json` mode (the path the
-   * `@openai/codex-sdk` uses). The MCP handshake completes and `tools/list`
-   * returns the host tool, but codex never registers it as a model-callable
-   * function. Built-in MCP-resource accessors (`list_mcp_resources` etc.) are
-   * exposed; tools are not. Tracked upstream at
-   * https://github.com/openai/codex/issues/19425.
+   * `@openai/codex-sdk` uses). Some versions do not register MCP tools at all;
+   * others expose the tool names but pass empty arguments.
    *
    * Until that's fixed, host tools are made available to the model via a
-   * separate CLI-relay workaround (see `./cli-relay.ts`). The MCP server
-   * config below is kept so that the day codex starts exposing MCP tools
-   * properly, host tools work both ways. Three hookpoints in this file
-   * (writeFile for the shim, composeUserMessage's toolUsageBlock, and the
-   * isToolRelayCommand filter in the event loop) implement the workaround
-   * and can be removed once the upstream bug is fixed.
+   * separate CLI-relay workaround (see `./cli-relay.ts`). Writing the shim
+   * here, adding matching prompt guidance in the host adapter, and filtering
+   * the shim command below implement the workaround and can be removed once the
+   * upstream bug is fixed.
    */
-  const mcpServers: Record<string, unknown> = {};
-  let relay: { port: number; close(): void } | undefined;
+  let relay: ToolRelay | undefined;
   let cliShimPath: string | undefined;
   if (start.tools && start.tools.length > 0) {
-    const relayToken = randomUUID();
+    cliShimPath = `${cliShimDir}/${CLI_SHIM_FILENAME}`;
     relay = await startToolRelay({
-      relayToken,
       tools: start.tools,
       emit,
       requestToolResult: turn.requestToolResult,
     });
-    mcpServers['harness-tools'] = {
-      enabled: true,
-      command: 'node',
-      args: [`${bootstrapDir}/host-tool-mcp.mjs`],
-      env: {
-        TOOL_SCHEMAS: JSON.stringify(
-          start.tools.map(t => ({
-            name: t.name,
-            description: t.description,
-            inputSchema: t.inputSchema,
-          })),
-        ),
-        TOOL_RELAY_URL: `http://127.0.0.1:${relay.port}`,
-        TOOL_RELAY_TOKEN: relayToken,
-      },
-    };
     // Temporary workaround for upstream codex MCP-tool bug — see ./cli-relay.ts
-    cliShimPath = `${workdir}/${CLI_SHIM_FILENAME}`;
+    await mkdir(cliShimDir, { recursive: true });
     await writeFile(
       cliShimPath,
-      buildCliShimScript({ relayPort: relay.port, relayToken }),
+      buildCliShimScript({ relayPort: relay.port }),
       'utf8',
     );
   }
 
   const codexConfig: Record<string, unknown> = {};
-  if (Object.keys(mcpServers).length > 0) codexConfig.mcp_servers = mcpServers;
 
   const gatewayBaseUrl = procEnv.AI_GATEWAY_BASE_URL;
   const hasGatewayAuth = Boolean(procEnv.AI_GATEWAY_API_KEY || gatewayBaseUrl);
@@ -176,6 +156,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         env_key: 'CODEX_API_KEY',
         wire_api: 'responses',
         supports_websockets: false,
+        ...(hasGatewayAuth && HARNESS_CLIENT_APP
+          ? {
+              http_headers: {
+                'User-Agent': HARNESS_CLIENT_APP,
+                'x-client-app': HARNESS_CLIENT_APP,
+              },
+            }
+          : {}),
       },
     };
   }
@@ -212,21 +200,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 
   emit({ type: 'stream-start' });
 
-  const userMessage = composeUserMessage({
-    text: start.prompt,
-    instructions: start.instructions,
-    // Temporary workaround for upstream codex MCP-tool bug — see ./cli-relay.ts
-    toolUsageBlock:
-      cliShimPath && start.tools && start.tools.length > 0
-        ? composeToolUsageInstructions({
-            tools: start.tools,
-            cliShimPath,
-          })
-        : undefined,
-  });
+  const userMessage = start.prompt;
   let turnUsage: Record<string, unknown> | undefined;
   const textByItem = new Map<string, string>();
   const reasoningByItem = new Map<string, string>();
+  const stepTracker = createCodexStepTracker({ send: emit });
 
   try {
     const { events } = await thread.runStreamed(userMessage, {
@@ -243,23 +221,36 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         emit({ type: 'bridge-thread', threadId: event.thread_id });
       }
       // Temporary workaround for upstream codex MCP-tool bug — see ./cli-relay.ts
-      if (
-        cliShimPath &&
-        event.item?.type === 'command_execution' &&
-        typeof event.item.command === 'string' &&
-        isToolRelayCommand({ command: event.item.command, cliShimPath })
-      ) {
-        continue;
+      if (cliShimPath && event.item?.type === 'command_execution') {
+        const relayCalls =
+          typeof event.item.command === 'string'
+            ? parseToolRelayCommands({
+                command: event.item.command,
+                cliShimPath,
+              })
+            : undefined;
+        if (event.type === 'item.started' && relay && relayCalls) {
+          for (const relayCall of relayCalls) {
+            relay.authorizeToolCall(relayCall);
+          }
+        }
+        if (relayCalls) {
+          stepTracker.observeEvent({ event, itemId: event.item.id });
+          continue;
+        }
       }
       translateAndEmit(event, {
         send: emit,
         textByItem,
         reasoningByItem,
+        stepTracker,
         setTurnUsage: u => (turnUsage = u),
+        emitWarning: turn.emitWarning,
+        emitError: turn.emitError,
       });
     }
   } catch (err) {
-    emit({ type: 'error', error: serialiseError(err) });
+    turn.emitError({ error: err, message: 'codex turn failed' });
     return;
   } finally {
     relay?.close();
@@ -338,32 +329,37 @@ function translateAndEmit(
     send: Emit;
     textByItem: Map<string, string>;
     reasoningByItem: Map<string, string>;
+    stepTracker: CodexStepTracker;
     setTurnUsage: (u: Record<string, unknown>) => void;
+    emitWarning: BridgeTurn['emitWarning'];
+    emitError: BridgeTurn['emitError'];
   },
 ): void {
   if (event.type === 'turn.completed') {
     if (event.usage) ctx.setTurnUsage(mapUsage(event.usage));
-    ctx.send({
-      type: 'finish-step',
-      finishReason: { unified: 'stop', raw: 'stop' },
-      usage: event.usage ? mapUsage(event.usage) : defaultUsage(),
-    });
+    ctx.stepTracker.finishStep();
     return;
   }
   if (event.type === 'turn.failed') {
-    ctx.send({
-      type: 'error',
+    ctx.emitError({
       error: event.error?.message ?? 'codex turn failed',
+      message: 'codex turn failed',
     });
     return;
   }
   if (event.type === 'error') {
-    ctx.send({ type: 'error', error: event.message ?? 'codex error' });
+    ctx.emitError({
+      error: event.message ?? 'codex error',
+      message: 'codex stream error',
+    });
     return;
   }
   if (!event.item) return;
   const item = event.item;
   const id = item.id ?? randomUUID();
+  const observeStep = (): void => {
+    ctx.stepTracker.observeEvent({ event, itemId: id });
+  };
 
   if (item.type === 'agent_message' && typeof item.text === 'string') {
     /*
@@ -385,6 +381,7 @@ function translateAndEmit(
       ctx.textByItem.set(id, next);
     }
     if (event.type === 'item.completed') ctx.send({ type: 'text-end', id });
+    observeStep();
     return;
   }
 
@@ -401,6 +398,7 @@ function translateAndEmit(
     }
     if (event.type === 'item.completed')
       ctx.send({ type: 'reasoning-end', id });
+    observeStep();
     return;
   }
 
@@ -427,19 +425,19 @@ function translateAndEmit(
         },
       });
     }
+    observeStep();
     return;
   }
 
   if (item.type === 'mcp_tool_call') {
-    const isHostTool = item.server === 'harness-tools';
     if (event.type === 'item.started') {
       ctx.send({
         type: 'tool-call',
         toolCallId: id,
         toolName: item.tool ?? 'unknown',
-        ...(isHostTool ? {} : { nativeName: item.tool ?? 'unknown' }),
+        nativeName: item.tool ?? 'unknown',
         input: JSON.stringify(item.arguments ?? {}),
-        providerExecuted: !isHostTool,
+        providerExecuted: true,
       });
     } else if (event.type === 'item.completed') {
       ctx.send({
@@ -449,6 +447,7 @@ function translateAndEmit(
         result: extractMcpToolCallResult(item),
       });
     }
+    observeStep();
     return;
   }
 
@@ -471,6 +470,7 @@ function translateAndEmit(
         result: item.result ?? null,
       });
     }
+    observeStep();
     return;
   }
 
@@ -487,14 +487,16 @@ function translateAndEmit(
         path: change.path,
       });
     }
+    observeStep();
     return;
   }
 
   if (item.type === 'error' && event.type === 'item.completed') {
-    ctx.send({
-      type: 'error',
-      error: (item as { message?: string }).message ?? 'codex item error',
-    });
+    const message =
+      typeof item.message === 'string' && item.message.trim()
+        ? item.message
+        : 'codex reported a non-fatal error item';
+    ctx.emitWarning({ message });
     return;
   }
 }
@@ -516,173 +518,62 @@ function mapUsage(usage: Record<string, number>): Record<string, unknown> {
   };
 }
 
-function defaultUsage(): Record<string, unknown> {
-  return {
-    inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
-    outputTokens: { total: 0, text: 0 },
-  };
-}
-
-function composeUserMessage({
-  text,
-  instructions,
-  toolUsageBlock,
-}: {
-  text: string;
-  instructions: string | undefined;
-  toolUsageBlock: string | undefined;
-}): string {
-  const blocks: string[] = [];
-  /*
-   * Frame instructions as system-provided operating guidance, not something
-   * the user wrote, so the agent does not echo the prepended text back as if
-   * the user had asked for it. Only present on the first user message of a
-   * fresh session (the host gates it), so the matching `<user-message>` fence
-   * is added only when instructions are present too.
-   */
-  if (instructions) {
-    blocks.push(
-      '<session-instructions>\n' +
-        'The block below is operating guidance from the system, not a message from the user — follow it, but do not mention it or attribute it to the user.\n\n' +
-        `${instructions}\n` +
-        '</session-instructions>',
-    );
-  }
-  if (toolUsageBlock) blocks.push(toolUsageBlock);
-  blocks.push(instructions ? `<user-message>\n${text}\n</user-message>` : text);
-  return blocks.join('\n\n');
-}
-
 /**
- * Tool relay — HTTP server on 127.0.0.1:0 with bearer-token auth. The MCP
- * stdio shim spawned by codex POSTs each tool invocation here; the relay
- * forwards the call to the host (via the shared runtime's `emit`), awaits the
- * matching `tool-result` (via `requestToolResult`), and responds with
- * `{ result }`.
+ * Tool relay — HTTP server on 127.0.0.1:0. The CLI shim invoked by Codex POSTs
+ * each tool invocation here; the relay forwards the call to the host (via the
+ * shared runtime's `emit`), awaits the matching `tool-result` (via
+ * `requestToolResult`), and responds with `{ result }`.
  */
 async function startToolRelay({
-  relayToken,
   tools,
   emit,
   requestToolResult,
 }: {
-  relayToken: string;
   tools: ReadonlyArray<{ name: string }>;
   emit: Emit;
   requestToolResult: (
     toolCallId: string,
   ) => Promise<{ output: unknown; isError?: boolean }>;
-}): Promise<{ port: number; close(): void }> {
-  const toolNames = new Set(tools.map(t => t.name));
-
-  const server = createServer(async (req, res) => {
-    try {
-      if (
-        req.method !== 'POST' ||
-        req.url !== '/' ||
-        req.headers.authorization !== `Bearer ${relayToken}`
-      ) {
-        res.writeHead(401, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'unauthorized tool relay request' }));
-        return;
-      }
-      const chunks: Buffer[] = [];
-      for await (const chunk of req) {
-        chunks.push(chunk as Buffer);
-      }
-      const body = Buffer.concat(chunks).toString('utf8');
-      const { requestId, toolName, input } = JSON.parse(body) as {
-        requestId: string;
-        toolName: string;
-        input: unknown;
-      };
-
-      if (!toolNames.has(toolName)) {
-        res.writeHead(403, { 'Content-Type': 'application/json' });
-        res.end(
-          JSON.stringify({ error: `Tool "${toolName}" is not available` }),
-        );
-        return;
-      }
-
-      emit({
-        type: 'tool-call',
-        toolCallId: requestId,
-        toolName,
-        input: JSON.stringify(input ?? {}),
-        providerExecuted: false,
-      });
-
-      const { output, isError } = await requestToolResult(requestId);
-      emit({
-        type: 'tool-result',
-        toolCallId: requestId,
-        toolName,
-        result: output ?? null,
-        isError: !!isError,
-      });
-
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ result: output }));
-    } catch (error) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          error: error instanceof Error ? error.message : String(error),
-        }),
-      );
-    }
-  });
-
-  await new Promise<void>(resolve =>
-    server.listen(0, '127.0.0.1', () => resolve()),
-  );
-  const address = server.address();
-  if (!address || typeof address === 'string') {
-    throw new Error('tool relay did not expose a numeric port');
-  }
-  return {
-    port: address.port,
-    close: () => closeServer(server),
-  };
-}
-
-function closeServer(server: Server): void {
-  try {
-    server.close();
-  } catch {}
+}): Promise<ToolRelay> {
+  return startAuthorizedToolRelay({ tools, emit, requestToolResult });
 }
 
 function parseArgs(args: string[]): {
   workdir?: string;
   bridgeStateDir?: string;
-  bootstrapDir?: string;
+  cliShimDir?: string;
 } {
   const out: {
     workdir?: string;
     bridgeStateDir?: string;
-    bootstrapDir?: string;
+    cliShimDir?: string;
   } = {};
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--workdir' && i + 1 < args.length) {
       out.workdir = args[++i];
     } else if (args[i] === '--bridge-state-dir' && i + 1 < args.length) {
       out.bridgeStateDir = args[++i];
-    } else if (args[i] === '--bootstrap-dir' && i + 1 < args.length) {
-      out.bootstrapDir = args[++i];
+    } else if (args[i] === '--cli-shim-dir' && i + 1 < args.length) {
+      out.cliShimDir = args[++i];
     }
   }
   return out;
 }
 
-function serialiseError(err: unknown): unknown {
-  if (err instanceof Error) {
-    return { name: err.name, message: err.message, stack: err.stack };
-  }
-  return err;
-}
-
 function emitFatal(message: string): never {
   stdout.write(JSON.stringify({ type: 'bridge-fatal', message }) + '\n');
   process.exit(1);
+}
+
+function requireArg({
+  value,
+  name,
+}: {
+  value: string | undefined;
+  name: string;
+}): string {
+  if (!value) {
+    emitFatal(`Missing ${name} argument.`);
+  }
+  return value;
 }

@@ -4,7 +4,7 @@ import {
   type ModelCallStreamPart,
   type TelemetryOptions,
   type WorkflowAgentOnErrorCallback,
-  type WorkflowAgentOnFinishCallback,
+  type WorkflowAgentOnEndCallback,
   type WorkflowAgentOnStartCallback,
   type WorkflowAgentOnStepStartCallback,
   type WorkflowAgentOnToolExecutionEndCallback,
@@ -328,11 +328,11 @@ export async function telemetryChat(
       source: 'agent-callback',
       name: 'onToolExecutionEnd',
     }) satisfies WorkflowAgentOnToolExecutionEndCallback<typeof tools>,
-    onFinish: recordCallback({
+    onEnd: recordCallback({
       telemetryRunId: request.telemetryRunId,
       source: 'agent-callback',
-      name: 'onFinish',
-    }) satisfies WorkflowAgentOnFinishCallback<typeof tools, RuntimeContext>,
+      name: 'onEnd',
+    }) satisfies WorkflowAgentOnEndCallback<typeof tools, RuntimeContext>,
   });
 
   const result = await agent.stream({

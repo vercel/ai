@@ -73,6 +73,20 @@ export const harnessV1BridgePermissionModeSchema = z.enum([
   'allow-all',
 ]);
 
+export const harnessV1BridgeBuiltinToolFilteringSchema = z.discriminatedUnion(
+  'mode',
+  [
+    z.object({
+      mode: z.literal('allow'),
+      toolNames: z.array(z.string()),
+    }),
+    z.object({
+      mode: z.literal('deny'),
+      toolNames: z.array(z.string()),
+    }),
+  ],
+);
+
 /**
  * Common fields of the inbound `start` message. Each adapter extends this with
  * its runtime-specific configuration (e.g. `thinking`/`continue` for Claude
@@ -90,6 +104,7 @@ export const harnessV1BridgeStartBaseSchema = z.object({
   model: z.string().optional(),
   debug: harnessV1DebugConfigSchema.optional(),
   permissionMode: harnessV1BridgePermissionModeSchema.optional(),
+  builtinToolFiltering: harnessV1BridgeBuiltinToolFilteringSchema.optional(),
 });
 
 // --- Transport / control frames (outbound, not consumer events) ---
@@ -123,6 +138,17 @@ export const harnessV1BridgeDetachSchema = z.object({
 export const harnessV1BridgeThreadSchema = z.object({
   type: z.literal('bridge-thread'),
   threadId: z.string(),
+});
+
+/**
+ * Acknowledgement for an inbound `interrupt` command. The host waits for this
+ * before freezing its replay cursor so the adapter-specific interrupt has
+ * actually reached the underlying runtime.
+ */
+export const harnessV1BridgeInterruptedSchema = z.object({
+  type: z.literal('bridge-interrupted'),
+  ok: z.boolean(),
+  error: z.unknown().optional(),
 });
 
 // --- Diagnostics frames (outbound, not consumer events) ---
@@ -185,6 +211,7 @@ export const harnessV1BridgeOutboundMessageSchema = z.discriminatedUnion(
     harnessV1BridgeHelloSchema,
     harnessV1BridgeDetachSchema,
     harnessV1BridgeThreadSchema,
+    harnessV1BridgeInterruptedSchema,
     harnessV1BridgeSandboxLogSchema,
     harnessV1BridgeDebugEventSchema,
   ],
@@ -262,6 +289,10 @@ export const harnessV1BridgeAbortInboundSchema = z.object({
   type: z.literal('abort'),
 });
 
+export const harnessV1BridgeInterruptInboundSchema = z.object({
+  type: z.literal('interrupt'),
+});
+
 export const harnessV1BridgeShutdownInboundSchema = z.object({
   type: z.literal('shutdown'),
 });
@@ -293,6 +324,7 @@ export const harnessV1BridgeInboundCommandSchemas = [
   harnessV1BridgeToolApprovalResponseInboundSchema,
   harnessV1BridgeUserMessageInboundSchema,
   harnessV1BridgeAbortInboundSchema,
+  harnessV1BridgeInterruptInboundSchema,
   harnessV1BridgeShutdownInboundSchema,
   harnessV1BridgeResumeInboundSchema,
   harnessV1BridgeDetachInboundSchema,

@@ -17,7 +17,6 @@ export const outboundMessageSchema = harnessV1BridgeOutboundMessageSchema;
 export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
 
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
-  instructions: z.string().optional(),
   reasoningEffort: z.enum(['low', 'medium', 'high']).optional(),
   webSearch: z.boolean().optional(),
   // Resume signal. When supplied, the bridge calls

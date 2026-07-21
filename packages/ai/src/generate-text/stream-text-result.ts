@@ -11,7 +11,7 @@ import type { Source } from '../types/language-model';
 import type { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import type { LanguageModelUsage } from '../types/usage';
 import type { InferUIMessageChunk } from '../ui-message-stream/ui-message-chunks';
-import type { UIMessageStreamOnFinishCallback } from '../ui-message-stream/ui-message-stream-on-finish-callback';
+import type { UIMessageStreamOnEndCallback } from '../ui-message-stream/ui-message-stream-on-end-callback';
 import type { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
 import type { InferUIMessageMetadata, UIMessage } from '../ui/ui-messages';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
@@ -57,10 +57,15 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
    */
   generateMessageId?: IdGenerator;
 
-  onFinish?: UIMessageStreamOnFinishCallback<UI_MESSAGE>;
+  onEnd?: UIMessageStreamOnEndCallback<UI_MESSAGE>;
 
   /**
-   * Extracts message metadata that will be send to the client.
+   * @deprecated Use `onEnd` instead.
+   */
+  onFinish?: UIMessageStreamOnEndCallback<UI_MESSAGE>;
+
+  /**
+   * Extracts message metadata that will be sent to the client.
    *
    * Called on `start` and `finish` events.
    */
@@ -376,7 +381,7 @@ export interface StreamTextResult<
   pipeUIMessageStreamToResponse<UI_MESSAGE extends UIMessage>(
     response: ServerResponse,
     options?: UIMessageStreamResponseInit & UIMessageStreamOptions<UI_MESSAGE>,
-  ): void;
+  ): Promise<void>;
 
   /**
    * Writes text delta output to a Node.js response-like object.
@@ -390,7 +395,10 @@ export interface StreamTextResult<
    *   `pipeTextStreamToResponse` helpers from `'ai'` with `result.stream`
    *   instead. This method will be removed in the next major release.
    */
-  pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit): void;
+  pipeTextStreamToResponse(
+    response: ServerResponse,
+    init?: ResponseInit,
+  ): Promise<void>;
 
   /**
    * Converts the result to a streamed response object with a stream data part stream.

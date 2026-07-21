@@ -16,7 +16,7 @@ export const BOOTSTRAP_SCHEMA_VERSION = 1;
  * Used by sandbox providers as part of the persistent sandbox name so
  * recipe changes automatically invalidate snapshots.
  */
-export async function hashBootstrap(
+export async function hashHarnessBootstrap(
   recipe: HarnessV1Bootstrap,
 ): Promise<string> {
   const encoder = new TextEncoder();

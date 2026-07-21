@@ -65,7 +65,7 @@ When `runCommand` is called, the agent returns a `tool-approval-request` instead
 
 Use a per-tool approval function when the decision depends on the parsed tool input. The function receives the typed input plus `toolCallId`, `messages`, `toolContext`, and `runtimeContext`.
 
-```ts highlight="22-25"
+```ts highlight="17-24"
 import { ToolLoopAgent, tool } from 'ai';
 __PROVIDER_IMPORT__;
 import { z } from 'zod';
@@ -99,7 +99,7 @@ In this example, non-admin users are denied automatically, large payments requir
 
 Pass a function directly as `toolApproval` when approval depends on the full tool call, shared state across tools, or the complete tool set. This is called a `GenericToolApprovalFunction`.
 
-```ts highlight="17-28"
+```ts highlight="13-16,18-20,22-23"
 const agent = new ToolLoopAgent({
   model: __MODEL__,
   tools: {
@@ -138,7 +138,7 @@ The generic function receives:
 
 Because `toolApproval` is an agent setting, you can also return it from `prepareCall`. This is useful when approval policy depends on call options, tenant policy, or user permissions.
 
-```ts highlight="8-10,11-18"
+```ts highlight="7-17"
 import { ToolLoopAgent, tool } from 'ai';
 __PROVIDER_IMPORT__;
 import { z } from 'zod';
@@ -175,7 +175,7 @@ Manual approval requires two calls:
 4. Add a `tool-approval-response` to the messages.
 5. Call the agent again with the updated messages.
 
-```ts highlight="11-18,21-28"
+```ts highlight="5-6,10-18,21-24,26"
 import { type ModelMessage, type ToolApprovalResponse } from 'ai';
 
 const messages: ModelMessage[] = [{ role: 'user', content: 'Delete temp.txt' }];
@@ -216,7 +216,7 @@ If approved, the tool runs on the second call. If denied, the model receives the
 
 When streaming an agent to a chat UI, approval requests appear as tool parts with `state: 'approval-requested'`. Respond with `addToolApprovalResponse`.
 
-```tsx highlight="6,14-28"
+```tsx highlight="7-9,17-40"
 'use client';
 
 import { useChat } from '@ai-sdk/react';
@@ -280,7 +280,7 @@ If your tools perform sensitive operations (modifying data, spending money, call
 
 When you provide a secret, the server HMAC-signs each approval request at issuance and verifies the signature when the approval is replayed. A forged or tampered approval is rejected before the tool executes.
 
-```ts highlight="6"
+```ts highlight="5"
 const result = await streamText({
   model: __MODEL__,
   tools: { deleteFile, runQuery },

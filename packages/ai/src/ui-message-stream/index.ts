@@ -14,6 +14,7 @@ export {
   type UIMessageChunk,
 } from './ui-message-chunks';
 export { UI_MESSAGE_STREAM_HEADERS } from './ui-message-stream-headers';
+export type { UIMessageStreamOnEndCallback } from './ui-message-stream-on-end-callback';
 export type { UIMessageStreamOnFinishCallback } from './ui-message-stream-on-finish-callback';
 export type { UIMessageStreamOnStepEndCallback } from './ui-message-stream-on-step-end-callback';
 export type { UIMessageStreamOnStepFinishCallback } from './ui-message-stream-on-step-finish-callback';

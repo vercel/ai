@@ -102,6 +102,29 @@ describe('ToolLoopAgent', () => {
       `);
     });
 
+    it('should tag the user-agent with the agent identifier', async () => {
+      const agent = new ToolLoopAgent({ model: mockModel });
+
+      await agent.generate({ prompt: 'Hello, world!' });
+
+      expect(doGenerateOptions?.headers?.['user-agent']).toContain(
+        'ai-sdk-agent/tool-loop',
+      );
+    });
+
+    it('should preserve a caller-provided user-agent', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        headers: { 'user-agent': 'my-app/1.0' },
+      });
+
+      await agent.generate({ prompt: 'Hello, world!' });
+
+      const ua = doGenerateOptions?.headers?.['user-agent'] ?? '';
+      expect(ua).toContain('my-app/1.0');
+      expect(ua).toContain('ai-sdk-agent/tool-loop');
+    });
+
     it('should forward toolOrder to generateText', async () => {
       const agent = new ToolLoopAgent({
         model: mockModel,
