@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 4.0.18
+
+### Patch Changes
+
+- 97de198: Warn when an unknown model uses the default 4096 max output token limit.
+
 ## 4.0.17
 
 ### Patch Changes
