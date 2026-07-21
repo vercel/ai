@@ -1,5 +1,14 @@
 # @ai-sdk/harness-pi
 
+## 1.0.37
+
+### Patch Changes
+
+- 81c3aa5: feat(harness-pi): add `agentDir` option to `createPi` for reusing CLI config
+- Updated dependencies [b460541]
+- Updated dependencies [079591e]
+  - @ai-sdk/harness@1.0.37
+
 ## 1.0.36
 
 ### Patch Changes

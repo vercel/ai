@@ -3956,13 +3956,13 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'onEnd',
-              type: '(options: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage; isAborted: boolean; }) => void',
+              type: '(options: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage; isAborted: boolean; outcome: UIMessageStreamOutcome; }) => void',
               isOptional: true,
-              description: 'Callback function called when the stream ends. Provides the updated list of UI messages, whether the response is a continuation, the response message, and whether the stream was aborted.',
+              description: 'Callback function called when the stream ends. Provides the updated list of UI messages, whether the response is a continuation, the response message, whether the stream was aborted, and the operation-level outcome.',
             },
             {
               name: 'onFinish',
-              type: '(options: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage; isAborted: boolean; }) => void',
+              type: '(options: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage; isAborted: boolean; outcome: UIMessageStreamOutcome; }) => void',
               isOptional: true,
               description: 'Deprecated alias for `onEnd`.',
             },

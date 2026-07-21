@@ -1,6 +1,6 @@
 import type {
-  AuthStorage,
   ModelRegistry,
+  ModelRuntime,
 } from '@earendil-works/pi-coding-agent';
 import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
 import { VERSION } from './version';
@@ -56,14 +56,24 @@ function createGatewayProviderConfig({
   };
 }
 
-function register(
-  registries: { authStorage: AuthStorage; modelRegistry: ModelRegistry },
-  provider: string,
-  apiKey: string,
-  config: ProviderConfigInput,
-): void {
-  registries.authStorage.setRuntimeApiKey(provider, apiKey);
+type PiRegistries = {
+  modelRegistry: ModelRegistry;
+  modelRuntime: ModelRuntime;
+};
+
+async function register({
+  registries,
+  provider,
+  apiKey,
+  config,
+}: {
+  registries: PiRegistries;
+  provider: string;
+  apiKey: string;
+  config: ProviderConfigInput;
+}): Promise<void> {
   registries.modelRegistry.registerProvider(provider, config);
+  await registries.modelRuntime.setRuntimeApiKey(provider, apiKey);
 }
 
 function hasConfiguredValue(value: unknown): boolean {
@@ -76,21 +86,13 @@ function hasConfiguredValue(value: unknown): boolean {
 export function resolvePiEnv({
   options,
   env,
-  registries,
-  clientApp = HARNESS_CLIENT_APP,
 }: {
   options: PiAuthOptions | undefined;
   env: NodeJS.ProcessEnv;
-  registries: { authStorage: AuthStorage; modelRegistry: ModelRegistry };
-  clientApp?: string;
 }): Record<string, string> {
   const customEnvConfigured = hasConfiguredValue(options?.customEnv);
   if (customEnvConfigured) {
-    return applyCustomEnv({
-      customEnv: options!.customEnv ?? {},
-      registries,
-      clientApp,
-    });
+    return resolveCustomEnv({ customEnv: options!.customEnv ?? {} });
   }
 
   const gatewayConfigured = hasConfiguredValue(options?.gateway);
@@ -99,16 +101,6 @@ export function resolvePiEnv({
     const apiKey = options!.gateway?.apiKey ?? gatewayAuthFromEnv.apiKey;
     const baseUrl = options!.gateway?.baseUrl ?? gatewayAuthFromEnv.baseUrl;
     if (apiKey) {
-      register(
-        registries,
-        'vercel-ai-gateway',
-        apiKey,
-        createGatewayProviderConfig({
-          apiKey,
-          baseUrl,
-          clientApp,
-        }),
-      );
       return { AI_GATEWAY_API_KEY: apiKey, AI_GATEWAY_BASE_URL: baseUrl };
     }
     return {};
@@ -116,16 +108,6 @@ export function resolvePiEnv({
 
   // Ambient gateway fallback.
   if (gatewayAuthFromEnv.apiKey) {
-    register(
-      registries,
-      'vercel-ai-gateway',
-      gatewayAuthFromEnv.apiKey,
-      createGatewayProviderConfig({
-        apiKey: gatewayAuthFromEnv.apiKey,
-        baseUrl: gatewayAuthFromEnv.baseUrl,
-        clientApp,
-      }),
-    );
     return {
       AI_GATEWAY_API_KEY: gatewayAuthFromEnv.apiKey,
       AI_GATEWAY_BASE_URL: gatewayAuthFromEnv.baseUrl,
@@ -135,55 +117,108 @@ export function resolvePiEnv({
   return {};
 }
 
-function applyCustomEnv({
+export async function registerPiProviders({
+  options,
+  resolvedEnv,
+  registries,
+  clientApp = HARNESS_CLIENT_APP,
+}: {
+  options: PiAuthOptions | undefined;
+  resolvedEnv: Record<string, string>;
+  registries: PiRegistries;
+  clientApp?: string;
+}): Promise<void> {
+  if (hasConfiguredValue(options?.customEnv)) {
+    await registerCustomProviders({
+      customEnv: options!.customEnv ?? {},
+      registries,
+      clientApp,
+    });
+    return;
+  }
+
+  const apiKey = resolvedEnv.AI_GATEWAY_API_KEY;
+  const baseUrl = resolvedEnv.AI_GATEWAY_BASE_URL;
+  if (!apiKey || !baseUrl) return;
+
+  await register({
+    registries,
+    provider: 'vercel-ai-gateway',
+    apiKey,
+    config: createGatewayProviderConfig({ apiKey, baseUrl, clientApp }),
+  });
+}
+
+function resolveCustomEnv({
+  customEnv,
+}: {
+  customEnv: Record<string, string>;
+}): Record<string, string> {
+  const apiKey = customEnv.AI_GATEWAY_API_KEY;
+  if (!apiKey) return {};
+
+  return {
+    AI_GATEWAY_API_KEY: apiKey,
+    AI_GATEWAY_BASE_URL:
+      customEnv.AI_GATEWAY_BASE_URL ?? DEFAULT_GATEWAY_BASE_URL,
+  };
+}
+
+async function registerCustomProviders({
   customEnv,
   registries,
   clientApp,
 }: {
   customEnv: Record<string, string>;
-  registries: { authStorage: AuthStorage; modelRegistry: ModelRegistry };
+  registries: PiRegistries;
   clientApp: string;
-}): Record<string, string> {
-  const out: Record<string, string> = {};
-
+}): Promise<void> {
   const gatewayKey = customEnv.AI_GATEWAY_API_KEY;
   if (gatewayKey) {
     const baseUrl = customEnv.AI_GATEWAY_BASE_URL ?? DEFAULT_GATEWAY_BASE_URL;
-    register(
+    await register({
       registries,
-      'vercel-ai-gateway',
-      gatewayKey,
-      createGatewayProviderConfig({
+      provider: 'vercel-ai-gateway',
+      apiKey: gatewayKey,
+      config: createGatewayProviderConfig({
         apiKey: gatewayKey,
         baseUrl,
         clientApp,
       }),
-    );
-    out.AI_GATEWAY_API_KEY = gatewayKey;
-    out.AI_GATEWAY_BASE_URL = baseUrl;
+    });
   }
 
   if (customEnv.OPENAI_API_KEY) {
     const baseUrl = customEnv.OPENAI_BASE_URL ?? DEFAULT_OPENAI_BASE_URL;
-    register(registries, 'openai', customEnv.OPENAI_API_KEY, {
+    await register({
+      registries,
+      provider: 'openai',
       apiKey: customEnv.OPENAI_API_KEY,
-      baseUrl,
-      authHeader: true,
+      config: {
+        apiKey: customEnv.OPENAI_API_KEY,
+        baseUrl,
+        authHeader: true,
+      },
     });
   }
 
   if (customEnv.ANTHROPIC_API_KEY) {
     const baseUrl = customEnv.ANTHROPIC_BASE_URL ?? DEFAULT_ANTHROPIC_BASE_URL;
-    register(registries, 'anthropic', customEnv.ANTHROPIC_API_KEY, {
+    await register({
+      registries,
+      provider: 'anthropic',
       apiKey: customEnv.ANTHROPIC_API_KEY,
-      baseUrl,
-      ...(customEnv.ANTHROPIC_AUTH_TOKEN
-        ? {
-            headers: {
-              authorization: `Bearer ${customEnv.ANTHROPIC_AUTH_TOKEN}`,
-            },
-          }
-        : {}),
+      config: {
+        apiKey: customEnv.ANTHROPIC_API_KEY,
+        baseUrl,
+        ...(customEnv.ANTHROPIC_AUTH_TOKEN
+          ? {
+              headers: {
+                authorization: `Bearer ${customEnv.ANTHROPIC_AUTH_TOKEN}`,
+              },
+            }
+          : {}),
+      },
     });
   }
 
@@ -204,12 +239,15 @@ function applyCustomEnv({
     if (!baseUrl) {
       continue;
     }
-    register(registries, provider, apiKey, {
+    await register({
+      registries,
+      provider,
       apiKey,
-      baseUrl,
-      authHeader: true,
+      config: {
+        apiKey,
+        baseUrl,
+        authHeader: true,
+      },
     });
   }
-
-  return out;
 }

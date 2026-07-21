@@ -4,6 +4,7 @@ import {
   type HarnessV1,
   type HarnessV1BuiltinToolFiltering,
   type HarnessV1PendingToolApproval,
+  type HarnessV1PendingToolResult,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
   type HarnessV1Session,
@@ -26,8 +27,15 @@ import type {
   LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 import { parseToolCall } from 'ai/internal';
-import type { ContentPart, TelemetryOptions, TextStreamPart } from 'ai';
+import type {
+  ContentPart,
+  ProviderMetadata,
+  StepResult,
+  TelemetryOptions,
+  TextStreamPart,
+} from 'ai';
 import type { HarnessAgentToolApprovalContinuation } from '../harness-agent-tool-approval-continuation';
+import type { HarnessAgentToolResultContinuation } from '../harness-agent-tool-result-continuation';
 import type { HarnessAgentToolApprovalConfiguration } from '../harness-agent-settings';
 import { HarnessStreamTextResult } from './harness-stream-text-result';
 import { translateStreamPart } from './translate-stream-part';
@@ -74,12 +82,19 @@ export function runPrompt<
   telemetry?: TelemetryOptions | undefined;
   toolApproval?: HarnessAgentToolApprovalConfiguration | undefined;
   pendingToolApprovals?: readonly HarnessV1PendingToolApproval[];
+  pendingToolResults?: readonly HarnessV1PendingToolResult[];
   toolApprovalContinuations?:
     | readonly HarnessAgentToolApprovalContinuation[]
     | undefined;
+  toolResultContinuations?:
+    | readonly HarnessAgentToolResultContinuation[]
+    | undefined;
   onPendingToolApproval?: (approval: HarnessV1PendingToolApproval) => void;
   onToolApprovalSettled?: (approvalId: string) => void;
+  onPendingToolResult?: (pendingResult: HarnessV1PendingToolResult) => void;
+  onToolResultSettled?: (toolCallId: string) => void;
   onTurnFinished?: () => void;
+  onTurnFailed?: () => void;
 }): {
   result: HarnessStreamTextResult<TOOLS, RUNTIME_CONTEXT>;
   done: Promise<void>;
@@ -93,8 +108,11 @@ export function runPrompt<
     sessionId: input.session.sessionId,
   });
   const pendingToolApprovals = input.pendingToolApprovals ?? [];
+  const pendingToolResults = input.pendingToolResults ?? [];
   const onPendingToolApproval = input.onPendingToolApproval ?? (() => {});
   const onToolApprovalSettled = input.onToolApprovalSettled ?? (() => {});
+  const onPendingToolResult = input.onPendingToolResult ?? (() => {});
+  const onToolResultSettled = input.onToolResultSettled ?? (() => {});
   const activeTools = input.activeTools ?? input.tools;
 
   const telemetry = createTurnTelemetry({
@@ -141,6 +159,7 @@ export function runPrompt<
         context: 'failed to start harness turn',
         error: err,
       });
+      input.onTurnFailed?.();
       result.fail(err);
       return;
     }
@@ -164,7 +183,20 @@ export function runPrompt<
         continuation,
       ]),
     );
-    const settledApprovalToolCallIds = new Set<string>();
+    const pendingResultsByToolCallId = new Map(
+      pendingToolResults.map(pendingResult => [
+        pendingResult.toolCallId,
+        pendingResult,
+      ]),
+    );
+    const continuationsByToolCallId = new Map(
+      (input.toolResultContinuations ?? []).map(continuation => [
+        continuation.toolCallId,
+        continuation,
+      ]),
+    );
+    const settledHostToolCallIds = new Set<string>();
+    let closingResumedStep = false;
     let finalFinish:
       | Extract<HarnessV1StreamPart, { type: 'finish' }>
       | undefined;
@@ -203,19 +235,35 @@ export function runPrompt<
       unified: 'tool-calls',
       raw: undefined,
     };
-    const finishForToolApprovalPause = async (): Promise<void> => {
+    const completeStep = (input: {
+      finishReason: LanguageModelV4FinishReason;
+      usage: LanguageModelV4Usage;
+      providerMetadata: ProviderMetadata | undefined;
+    }): StepResult<TOOLS, RUNTIME_CONTEXT> => {
       telemetry.stepFinish({
-        finishReason: toolCallsFinishReason,
-        usage: zeroUsage,
+        finishReason: input.finishReason,
+        usage: input.usage,
+        providerMetadata: input.providerMetadata,
         content: buildStepContent(),
       });
       resetStepContent();
-      result.finishStep({
-        finishReason: toolCallsFinishReason,
-        usage: zeroUsage,
-        providerMetadata: undefined,
+      return result.finishStep({
+        finishReason: input.finishReason,
+        usage: input.usage,
+        providerMetadata: input.providerMetadata,
         warnings: [],
       });
+    };
+    const finishForHostInputPause = async (options: {
+      completeCurrentStep: boolean;
+    }): Promise<void> => {
+      if (options.completeCurrentStep) {
+        completeStep({
+          finishReason: toolCallsFinishReason,
+          usage: zeroUsage,
+          providerMetadata: undefined,
+        });
+      }
       telemetry.end({
         finishReason: toolCallsFinishReason,
         usage: zeroUsage,
@@ -258,7 +306,7 @@ export function runPrompt<
       approval: HarnessV1PendingToolApproval,
       continuation: HarnessAgentToolApprovalContinuation,
     ): void => {
-      result.enqueue({
+      result.enqueueContinuation({
         type: 'tool-approval-response',
         approvalId: approval.approvalId,
         toolCall: continuation.toolCall,
@@ -271,15 +319,42 @@ export function runPrompt<
           : {}),
       } as TextStreamPart<TOOLS>);
     };
+    const recordPendingToolResult = (options: {
+      toolCall: Extract<HarnessV1StreamPart, { type: 'tool-call' }>;
+    }): HarnessV1PendingToolResult => {
+      const pendingResult =
+        pendingResultsByToolCallId.get(options.toolCall.toolCallId) ??
+        ({
+          toolCallId: options.toolCall.toolCallId,
+          toolName: options.toolCall.toolName,
+          input: options.toolCall.input,
+        } satisfies HarnessV1PendingToolResult);
+      pendingResultsByToolCallId.set(pendingResult.toolCallId, pendingResult);
+      onPendingToolResult(pendingResult);
+      return pendingResult;
+    };
+    const processPendingToolResultContinuation = async (
+      pendingResult: HarnessV1PendingToolResult,
+      continuation: HarnessAgentToolResultContinuation,
+    ): Promise<void> => {
+      onToolResultSettled(pendingResult.toolCallId);
+      pendingResultsByToolCallId.delete(pendingResult.toolCallId);
+      settledHostToolCallIds.add(pendingResult.toolCallId);
+      await control.submitToolResult({
+        toolCallId: pendingResult.toolCallId,
+        output: continuation.output,
+        isError: continuation.isError,
+      });
+    };
     const processPendingApprovalContinuation = async (
       approval: HarnessV1PendingToolApproval,
       continuation: HarnessAgentToolApprovalContinuation,
-    ): Promise<void> => {
+    ): Promise<'continued' | 'awaiting-tool-result'> => {
       enqueueApprovalResponse(approval, continuation);
       onToolApprovalSettled(approval.approvalId);
       pendingApprovalsByApprovalId.delete(approval.approvalId);
       pendingApprovalsByToolCallId.delete(approval.toolCallId);
-      settledApprovalToolCallIds.add(approval.toolCallId);
+      settledHostToolCallIds.add(approval.toolCallId);
 
       if (approval.kind === 'builtin') {
         if (control.submitToolApproval == null) {
@@ -292,7 +367,7 @@ export function runPrompt<
           approved: continuation.approvalResponse.approved,
           reason: continuation.approvalResponse.reason,
         });
-        return;
+        return 'continued';
       }
 
       if (!continuation.approvalResponse.approved) {
@@ -303,7 +378,7 @@ export function runPrompt<
             reason: continuation.approvalResponse.reason,
           },
         });
-        return;
+        return 'continued';
       }
 
       const rawToolCall =
@@ -315,7 +390,7 @@ export function runPrompt<
           input: approval.input,
         } satisfies Extract<HarnessV1StreamPart, { type: 'tool-call' }>);
 
-      const outcome = await maybeExecuteHostTool({
+      const execution = await maybeExecuteHostTool({
         event: rawToolCall,
         tools: activeTools,
         sandboxSession: input.sandboxSession,
@@ -344,14 +419,37 @@ export function runPrompt<
           } as TextStreamPart<TOOLS>);
         },
       });
-      telemetry.toolEnd(rawToolCall.toolCallId, outcome);
+      if (!execution.executed) {
+        recordPendingToolResult({ toolCall: rawToolCall });
+        await finishForHostInputPause({ completeCurrentStep: false });
+        return 'awaiting-tool-result';
+      }
+      telemetry.toolEnd(rawToolCall.toolCallId, execution.outcome);
+      return 'continued';
     };
 
     try {
       for (const approval of pendingToolApprovals) {
         const continuation = continuationsByApprovalId.get(approval.approvalId);
         if (continuation != null) {
-          await processPendingApprovalContinuation(approval, continuation);
+          const outcome = await processPendingApprovalContinuation(
+            approval,
+            continuation,
+          );
+          if (outcome === 'awaiting-tool-result') return;
+          closingResumedStep = true;
+        }
+      }
+      for (const pendingResult of pendingToolResults) {
+        const continuation = continuationsByToolCallId.get(
+          pendingResult.toolCallId,
+        );
+        if (continuation != null) {
+          await processPendingToolResultContinuation(
+            pendingResult,
+            continuation,
+          );
+          closingResumedStep = true;
         }
       }
 
@@ -383,12 +481,20 @@ export function runPrompt<
          * against the sandbox root, so the strip is display-only.
          */
         const displayValue = stripWorkDir(value, input.sessionWorkDir);
-        const settledApprovalToolCallReplay =
-          displayValue.type === 'tool-call' &&
-          !displayValue.providerExecuted &&
-          settledApprovalToolCallIds.has(displayValue.toolCallId);
+        const settledHostInputReplay =
+          (displayValue.type === 'tool-call' ||
+            displayValue.type === 'tool-result' ||
+            displayValue.type === 'tool-approval-request') &&
+          settledHostToolCallIds.has(displayValue.toolCallId);
 
-        if (settledApprovalToolCallReplay) {
+        if (settledHostInputReplay) {
+          continue;
+        }
+
+        if (displayValue.type === 'finish-step' && closingResumedStep) {
+          closingResumedStep = false;
+          resetStepContent();
+          result.discardCurrentStepContent();
           continue;
         }
 
@@ -510,10 +616,12 @@ export function runPrompt<
             pendingApproval.approvalId,
           );
           if (continuation != null) {
-            await processPendingApprovalContinuation(
+            const outcome = await processPendingApprovalContinuation(
               pendingApproval,
               continuation,
             );
+            if (outcome === 'awaiting-tool-result') return;
+            closingResumedStep = true;
             continue;
           }
 
@@ -522,24 +630,16 @@ export function runPrompt<
             approvalId: pendingApproval.approvalId,
             toolCall,
           });
-          await finishForToolApprovalPause();
+          await finishForHostInputPause({ completeCurrentStep: true });
           return;
         }
 
         // Drive step boundaries.
         if (value.type === 'finish-step') {
-          telemetry.stepFinish({
+          completeStep({
             finishReason: value.finishReason,
             usage: value.usage,
             providerMetadata: value.harnessMetadata,
-            content: buildStepContent(),
-          });
-          resetStepContent();
-          result.finishStep({
-            finishReason: value.finishReason,
-            usage: value.usage,
-            providerMetadata: value.harnessMetadata,
-            warnings: [],
           });
         }
 
@@ -631,10 +731,12 @@ export function runPrompt<
               pendingApproval.approvalId,
             );
             if (continuation != null) {
-              await processPendingApprovalContinuation(
+              const outcome = await processPendingApprovalContinuation(
                 pendingApproval,
                 continuation,
               );
+              if (outcome === 'awaiting-tool-result') return;
+              closingResumedStep = true;
               continue;
             }
             const pendingParsedToolCall = toolCallsByToolCallId.get(
@@ -650,10 +752,10 @@ export function runPrompt<
               approvalId: pendingApproval.approvalId,
               toolCall: pendingParsedToolCall,
             });
-            await finishForToolApprovalPause();
+            await finishForHostInputPause({ completeCurrentStep: true });
             return;
           }
-          const outcome = await maybeExecuteHostTool({
+          const execution = await maybeExecuteHostTool({
             event: toolCall,
             tools: activeTools,
             sandboxSession: input.sandboxSession,
@@ -690,7 +792,12 @@ export function runPrompt<
               } as TextStreamPart<TOOLS>);
             },
           });
-          telemetry.toolEnd(toolCall.toolCallId, outcome);
+          if (!execution.executed) {
+            recordPendingToolResult({ toolCall });
+            await finishForHostInputPause({ completeCurrentStep: true });
+            return;
+          }
+          telemetry.toolEnd(toolCall.toolCallId, execution.outcome);
         }
 
         if (value.type === 'error') {
@@ -701,11 +808,16 @@ export function runPrompt<
             context: 'harness stream error',
             error: value.error,
           });
+          input.onTurnFailed?.();
           result.fail(value.error);
           return;
         }
       }
-      input.onTurnFinished?.();
+      if (finalFinish != null) {
+        input.onTurnFinished?.();
+      } else {
+        input.onTurnFailed?.();
+      }
       await result.finish(
         finalFinish
           ? {
@@ -723,6 +835,7 @@ export function runPrompt<
         context: 'harness turn failed',
         error: err,
       });
+      input.onTurnFailed?.();
       result.fail(err);
     } finally {
       reader.releaseLock();
@@ -741,6 +854,10 @@ export function runPrompt<
 type HostToolOutcome =
   | { ok: true; output: unknown }
   | { ok: false; error: unknown };
+
+type HostToolExecution =
+  | { executed: false }
+  | { executed: true; outcome: HostToolOutcome };
 
 function asToolCallTextStreamPart<TOOLS extends ToolSet>(input: {
   part: TextStreamPart<TOOLS>;
@@ -782,10 +899,10 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
    * stream. Never called for a plain (non-generator) `execute`.
    */
   onPreliminaryResult: (output: unknown) => void;
-}): Promise<HostToolOutcome> {
+}): Promise<HostToolExecution> {
   const tool = input.tools[input.event.toolName];
 
-  if (!isExecutableTool(tool)) return { ok: true, output: undefined };
+  if (!isExecutableTool(tool)) return { executed: false };
 
   const parsed = await safeParseJSON({ text: input.event.input });
   const args = parsed.success ? parsed.value : input.event.input;
@@ -825,14 +942,14 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
       toolCallId: input.event.toolCallId,
       output,
     });
-    return { ok: true, output };
+    return { executed: true, outcome: { ok: true, output } };
   } catch (err) {
     await input.control.submitToolResult({
       toolCallId: input.event.toolCallId,
       output: { error: String(err) },
       isError: true,
     });
-    return { ok: false, error: err };
+    return { executed: true, outcome: { ok: false, error: err } };
   }
 }
 

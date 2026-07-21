@@ -1,5 +1,16 @@
 # ai
 
+## 7.0.32
+
+### Patch Changes
+
+- 6cd7c74: fix: correct the `onToolCall` callback result documentation
+- e35bcae: Allow UI message chunks to include fields added by newer server versions.
+- a4eb3f3: Propagate abort reasons when generation is cancelled during tool execution.
+- Updated dependencies [cefa3b1]
+- Updated dependencies [8fbb89c]
+  - @ai-sdk/gateway@4.0.24
+
 ## 7.0.31
 
 ### Patch Changes

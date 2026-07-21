@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/harness-claude-code",
-  "version": "1.0.37",
+  "version": "1.0.38",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -44,7 +44,7 @@
     "zod": "^3.25.76 || ^4.1.8"
   },
   "devDependencies": {
-    "@anthropic-ai/claude-agent-sdk": "0.3.177",
+    "@anthropic-ai/claude-agent-sdk": "0.3.213",
     "@modelcontextprotocol/sdk": "1.29.0",
     "@types/node": "22.19.19",
     "@types/ws": "^8.5.13",

@@ -1,6 +1,7 @@
 import type { UIMessage } from '../ui';
 import type { ErrorHandler } from '../util/error-handler';
 import type { InferUIMessageChunk } from './ui-message-chunks';
+import type { UIMessageStreamOutcome } from './ui-message-stream-outcome';
 
 export interface UIMessageStreamWriter<
   UI_MESSAGE extends UIMessage = UIMessage,
@@ -14,6 +15,14 @@ export interface UIMessageStreamWriter<
    * Merges the contents of another stream to this stream.
    */
   merge(stream: ReadableStream<InferUIMessageChunk<UI_MESSAGE>>): void;
+
+  /**
+   * Declares the operation-level outcome of the composed stream.
+   *
+   * The first terminal outcome is retained. Declaring an outcome does not
+   * write a chunk or close the stream.
+   */
+  setOutcome(outcome: UIMessageStreamOutcome): void;
 
   /**
    * Error handler that is used by the data stream writer.
