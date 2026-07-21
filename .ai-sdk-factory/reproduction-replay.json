@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 17197,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-17197-bedrock-max-items.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-17197-bedrock-max-items.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "output_config.format.schema: For 'array' type, property 'maxItems' is not supported"
+  }
+}
