@@ -30,7 +30,11 @@
     {
       "name": "package-must-follow-general-code-requirements",
       "description": "Every package directory must contain a specific minimum set of files.",
-      "paths": ["packages/*/src/**/*.ts", "!packages/codemod"],
+      "paths": [
+        "packages/*/src/**/*.ts",
+        "!packages/codemod",
+        "!packages/*/src/**/node_modules/**"
+      ],
       "must": [
         {
           "use": "aisdk/package-must-import-zod-from-v4"

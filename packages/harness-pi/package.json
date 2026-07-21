@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/harness-pi",
-  "version": "1.0.36",
+  "version": "1.0.37",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -37,7 +37,7 @@
   "dependencies": {
     "@ai-sdk/harness": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "@earendil-works/pi-coding-agent": "^0.79.0",
+    "@earendil-works/pi-coding-agent": "^0.80.10",
     "typebox": "^1.1.38"
   },
   "peerDependencies": {
