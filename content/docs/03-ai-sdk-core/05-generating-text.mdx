@@ -547,8 +547,13 @@ for await (const part of result.stream) {
 You can use the `experimental_transform` option to transform the stream.
 This is useful for e.g. filtering, changing, or smoothing the text stream.
 
-The transformations are applied before the callbacks are invoked and the promises are resolved.
-If you e.g. have a transformation that changes all text to uppercase, the `onEnd` callback will receive the transformed text.
+The transformations are applied before stream output callbacks such as
+`onChunk` and `onEnd` are invoked and before result promises are resolved. If
+you e.g. have a transformation that changes all text to uppercase, the `onEnd`
+callback will receive the transformed text. Tool lifecycle callbacks such as
+`onInputStart`, `onInputDelta`, and `onInputAvailable`, as well as tool
+execution, are driven by the normalized provider stream before transformations
+are applied.
 
 #### Smoothing streams
 

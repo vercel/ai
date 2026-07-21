@@ -54,6 +54,7 @@ import {
 } from '../types/usage';
 import type { StepResult } from './step-result';
 import { isLoopFinished, isStepCount } from './stop-condition';
+import { smoothStream } from './smooth-stream';
 import { streamText } from './stream-text';
 import type { StreamTextResult, TextStreamPart } from './stream-text-result';
 import type {
@@ -464,6 +465,135 @@ const modelWithReasoningFiles = new MockLanguageModelV4({
 
 describe('streamText', () => {
   let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
+
+  it('should retain provider chunking for tool input callbacks while smoothing output callbacks', async () => {
+    const input = '{"value":"test"}';
+    const callbackDeltas: string[] = [];
+    const outputDeltas: string[] = [];
+    const lifecycle: string[] = [];
+
+    const result = streamText({
+      model: createTestModel({
+        stream: convertArrayToReadableStream([
+          { type: 'tool-input-start', id: 'call-1', toolName: 'tool1' },
+          { type: 'tool-input-delta', id: 'call-1', delta: input },
+          { type: 'tool-input-end', id: 'call-1' },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'tool1',
+            input,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+            usage: testUsage,
+          },
+        ]),
+      }),
+      tools: {
+        tool1: tool({
+          inputSchema: z.object({ value: z.string() }),
+          onInputStart: () => {
+            lifecycle.push('onInputStart');
+          },
+          onInputDelta: ({ inputTextDelta }) => {
+            callbackDeltas.push(inputTextDelta);
+            lifecycle.push('onInputDelta');
+          },
+          onInputAvailable: () => {
+            lifecycle.push('onInputAvailable');
+          },
+          execute: async () => {
+            lifecycle.push('execute');
+            return 'result';
+          },
+        }),
+      },
+      prompt: 'test-input',
+      experimental_transform: smoothStream({
+        delayInMs: null,
+        toolInputSmoothing: {},
+      }),
+      onChunk: ({ chunk }) => {
+        if (chunk.type === 'tool-input-delta') {
+          outputDeltas.push(chunk.delta);
+          lifecycle.push(`onChunk:${chunk.delta}`);
+        }
+      },
+    });
+
+    await result.consumeStream();
+
+    expect(callbackDeltas).toEqual([input]);
+    expect(outputDeltas).toEqual([...input]);
+    expect(lifecycle.slice(0, 2)).toEqual(['onInputStart', 'onInputDelta']);
+
+    const lastOutputDeltaIndex = lifecycle.lastIndexOf(
+      `onChunk:${[...input].at(-1)}`,
+    );
+    const inputAvailableIndex = lifecycle.indexOf('onInputAvailable');
+    const executeIndex = lifecycle.indexOf('execute');
+
+    expect(inputAvailableIndex).toBeGreaterThan(
+      lifecycle.indexOf('onInputDelta'),
+    );
+    expect(executeIndex).toBeGreaterThan(inputAvailableIndex);
+    expect(inputAvailableIndex).toBeLessThan(lastOutputDeltaIndex);
+    expect(executeIndex).toBeLessThan(lastOutputDeltaIndex);
+  });
+
+  it('should expose smoothed tool input deltas to the UI message stream', async () => {
+    const input = '{"value":"test"}';
+    const result = streamText({
+      model: createTestModel({
+        stream: convertArrayToReadableStream([
+          { type: 'tool-input-start', id: 'call-1', toolName: 'tool1' },
+          { type: 'tool-input-delta', id: 'call-1', delta: input },
+          { type: 'tool-input-end', id: 'call-1' },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'tool1',
+            input,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+            usage: testUsage,
+          },
+        ]),
+      }),
+      tools: {
+        tool1: tool({
+          inputSchema: z.object({ value: z.string() }),
+        }),
+      },
+      prompt: 'test-input',
+      experimental_transform: smoothStream({
+        delayInMs: null,
+        toolInputSmoothing: {},
+      }),
+    });
+
+    const chunks = await convertReadableStreamToArray(
+      result.toUIMessageStream(),
+    );
+
+    expect(chunks.filter(chunk => chunk.type === 'tool-input-delta')).toEqual(
+      [...input].map(inputTextDelta => ({
+        type: 'tool-input-delta',
+        toolCallId: 'call-1',
+        inputTextDelta,
+      })),
+    );
+    expect(chunks).toContainEqual({
+      type: 'tool-input-available',
+      toolCallId: 'call-1',
+      toolName: 'tool1',
+      input: { value: 'test' },
+    });
+  });
 
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });

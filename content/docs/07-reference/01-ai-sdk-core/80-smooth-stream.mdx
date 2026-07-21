@@ -101,9 +101,13 @@ preserved.
 <Note>
   Smoothing can only subdivide tool input deltas after the provider sends them.
   It cannot make a provider start streaming tool input earlier. Delaying many
-  small chunks also delays tool input callbacks, completed tool calls, tool
-  execution, and stream completion. Adjust `delayInMs` or the tool input
-  chunking strategy for large inputs.
+  small chunks delays downstream `fullStream`, `onChunk`, UI message stream
+  events, and stream completion. Tool `onInputStart`, `onInputDelta`,
+  `onInputAvailable`, and execution run before stream transformations. In
+  particular, `onInputDelta` retains the provider's original chunking rather
+  than receiving smoothed chunks, and completed tool calls or execution can
+  occur while smoothed output events are still being delivered. Adjust
+  `delayInMs` or the tool input chunking strategy for large inputs.
 </Note>
 
 <Note>
