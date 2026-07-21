@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.117
+
+### Patch Changes
+
+- b05bffb: feat(google): add `gemini-3.6-flash` and `gemini-3.5-flash-lite` models
+
 ## 2.0.116
 
 ### Patch Changes
