@@ -544,7 +544,20 @@ describe('detectMediaType', () => {
 
   describe('MP4', () => {
     it('should detect MP4 from bytes', () => {
-      const mp4Bytes = new Uint8Array([0x66, 0x74, 0x79, 0x70]);
+      const mp4Bytes = new Uint8Array([
+        0x00,
+        0x00,
+        0x00,
+        0x1c, // box size
+        0x66,
+        0x74,
+        0x79,
+        0x70, // "ftyp"
+        0x4d,
+        0x34,
+        0x41,
+        0x20, // "M4A "
+      ]);
       expect(
         detectMediaType({
           data: mp4Bytes,
@@ -554,11 +567,29 @@ describe('detectMediaType', () => {
     });
 
     it('should detect MP4 from base64', () => {
-      const mp4Base64 = 'ZnR5cA'; // Base64 string starting with MP4 signature
+      const mp4Bytes = new Uint8Array([
+        0x00,
+        0x00,
+        0x00,
+        0x1c, // box size
+        0x66,
+        0x74,
+        0x79,
+        0x70, // "ftyp"
+        0x4d,
+        0x34,
+        0x41,
+        0x20, // "M4A "
+      ]);
       expect(
         detectMediaType({
+<<<<<<< HEAD:packages/ai/src/util/detect-media-type.test.ts
           data: mp4Base64,
           signatures: audioMediaTypeSignatures,
+=======
+          data: convertUint8ArrayToBase64(mp4Bytes),
+          topLevelType: 'audio',
+>>>>>>> 76cb673a17 (fix: detect M4A/MP4 audio correctly during transcription (#17378)):packages/provider-utils/src/detect-media-type.test.ts
         }),
       ).toBe('audio/mp4');
     });
