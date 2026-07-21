@@ -11,7 +11,10 @@ const CODEX_ENV_KEYS = [
 const state = vi.hoisted(() => ({
   codexOptions: [] as CodexOptions[],
   originalArgv: [] as string[],
-  originalEnv: {} as Record<(typeof CODEX_ENV_KEYS)[number], string | undefined>,
+  originalEnv: {} as Record<
+    (typeof CODEX_ENV_KEYS)[number],
+    string | undefined
+  >,
 }));
 
 vi.mock('@openai/codex-sdk', () => ({

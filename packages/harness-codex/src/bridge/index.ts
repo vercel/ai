@@ -30,7 +30,6 @@ import {
   type CodexStepTracker,
 } from './codex-step-tracker';
 import { startAuthorizedToolRelay, type ToolRelay } from './tool-relay';
-import type { ToolRelayCall } from './tool-relay-auth';
 import { argv, env as procEnv, stdout } from 'node:process';
 
 /*
