@@ -8,5 +8,6 @@ import { createGrokBuild } from './grok-build-harness';
 export const grokBuild = createGrokBuild();
 
 export { createGrokBuild } from './grok-build-harness';
+export { VERSION } from './version';
 export type { GrokBuildHarnessSettings } from './grok-build-harness';
 export type { GrokBuildAuthOptions } from './grok-build-auth';
