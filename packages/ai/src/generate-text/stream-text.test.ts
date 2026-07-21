@@ -43,6 +43,7 @@ import {
 import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
 import { Output, type LanguageModelCallEndEvent, type Telemetry } from '..';
+import { MissingToolResultsError } from '../error/missing-tool-result-error';
 import * as logWarningsModule from '../logger/log-warnings';
 import type { Instructions } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
@@ -27059,6 +27060,67 @@ describe('streamText', () => {
           ]
         `);
       });
+    });
+
+    it('should reject a user message after a tool approval response', async () => {
+      const executeFunction = vi.fn().mockReturnValue('result1');
+      const doStream = vi.fn(async () => {
+        throw new Error('model should not be called');
+      });
+      const onError = vi.fn();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({ doStream }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: executeFunction,
+          }),
+        },
+        toolApproval: {
+          tool1: 'user-approval',
+        },
+        onError,
+        messages: [
+          { role: 'user', content: 'test-input' },
+          {
+            role: 'assistant',
+            content: [
+              {
+                input: { value: 'value' },
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                type: 'tool-call',
+              },
+              {
+                approvalId: 'id-1',
+                toolCallId: 'call-1',
+                type: 'tool-approval-request',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                approvalId: 'id-1',
+                type: 'tool-approval-response',
+                approved: true,
+              },
+            ],
+          },
+          { role: 'user', content: 'additional context' },
+        ],
+      });
+
+      await result.consumeStream();
+
+      expect(onError).toHaveBeenCalledOnce();
+      const error = onError.mock.calls[0][0].error;
+      expect(MissingToolResultsError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({ toolCallIds: ['call-1'] });
+      expect(executeFunction).not.toHaveBeenCalled();
+      expect(doStream).not.toHaveBeenCalled();
     });
 
     describe('when a call from a single tool that needs approval is approved', () => {
