@@ -4,8 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@xai-official/grok": "0.2.51",
-    "ws": "8.21.0",
-    "zod": "3.25.76"
+    "@xai-official/grok": "0.2.105",
+    "ws": "8.21.0"
   }
 }
