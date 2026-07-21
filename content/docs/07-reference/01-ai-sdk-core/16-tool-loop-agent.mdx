@@ -247,7 +247,8 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             {
               name: 'timeout',
               type: 'number | { totalMs?: number; stepMs?: number; firstChunkMs?: number; chunkMs?: number } | undefined',
-              description: 'Timeout configuration for the generation.',
+              description:
+                'Timeout configuration for the generation. firstChunkMs and chunkMs are only enforced by stream().',
             },
             {
               name: 'headers',
@@ -361,7 +362,8 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             {
               name: 'timeout',
               type: 'number | { totalMs?: number; stepMs?: number; firstChunkMs?: number; chunkMs?: number } | undefined',
-              description: 'Timeout configuration for the generation.',
+              description:
+                'Timeout configuration for the generation. firstChunkMs and chunkMs are only enforced by stream().',
             },
             {
               name: 'headers',
@@ -715,7 +717,7 @@ const result = await agent.generate({
       type: 'number | { totalMs?: number; stepMs?: number; firstChunkMs?: number; chunkMs?: number }',
       isOptional: true,
       description:
-        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, firstChunkMs, and/or chunkMs properties. firstChunkMs limits the wait for the first content-bearing output in each model-call step. chunkMs limits gaps between later content-bearing output chunks. Can be used alongside abortSignal.',
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, firstChunkMs, and/or chunkMs properties. firstChunkMs and chunkMs have no effect on generate(); they are streaming-only and are enforced by stream(). Can be used alongside abortSignal.',
     },
     {
       name: 'experimental_sandbox',
