@@ -8,6 +8,7 @@ const VARIANTS = [
   { slug: 'weather-only', label: 'Weather Only' },
   { slug: 'weather-approval', label: 'Weather Approval' },
   { slug: 'workflow', label: 'Workflow' },
+  { slug: 'workflow-stepped', label: 'Workflow (Stepped)' },
 ] as const;
 
 const HARNESSES = [
@@ -22,6 +23,7 @@ const HARNESSES = [
       'weather-only',
       'weather-approval',
       'workflow',
+      'workflow-stepped',
     ],
   },
   {
@@ -34,6 +36,7 @@ const HARNESSES = [
       'weather',
       'weather-approval',
       'workflow',
+      'workflow-stepped',
     ],
   },
   {
@@ -47,6 +50,7 @@ const HARNESSES = [
       'weather-only',
       'weather-approval',
       'workflow',
+      'workflow-stepped',
     ],
   },
   {
@@ -60,6 +64,7 @@ const HARNESSES = [
       'weather-only',
       'weather-approval',
       'workflow',
+      'workflow-stepped',
     ],
   },
   {
@@ -73,6 +78,7 @@ const HARNESSES = [
       'weather-only',
       'weather-approval',
       'workflow',
+      'workflow-stepped',
     ],
   },
 ] as const;
