@@ -958,6 +958,10 @@ class DefaultStreamTextResult<
 
   private readonly addStream: (
     stream: ReadableStream<TextStreamPart<TOOLS>>,
+    callbacks?: {
+      onError?: (error: unknown) => void;
+      onCancel?: () => void;
+    },
   ) => void;
 
   private readonly closeStream: () => void;
@@ -1862,11 +1866,16 @@ class DefaultStreamTextResult<
           clearChunkTimeout();
         }
 
+        function cleanupStepTimeouts() {
+          abortSignal?.removeEventListener('abort', cleanupStepTimeouts);
+          clearStepTimeouts();
+        }
+
         // The step's stream is registered lazily and consumed long after this
         // function returns, so its timers must stay armed past setup. When the
         // merged abort signal fires, drop all step-scoped timers so none
         // outlives the step.
-        abortSignal?.addEventListener('abort', clearStepTimeouts, {
+        abortSignal?.addEventListener('abort', cleanupStepTimeouts, {
           once: true,
         });
 
@@ -2287,11 +2296,7 @@ class DefaultStreamTextResult<
                       }),
                     });
 
-                    abortSignal?.removeEventListener(
-                      'abort',
-                      clearStepTimeouts,
-                    );
-                    clearStepTimeouts();
+                    cleanupStepTimeouts();
                     self.closeStream();
                     return;
                   }
@@ -2372,8 +2377,7 @@ class DefaultStreamTextResult<
                   }
 
                   // Clear this step's timeouts before the next step is started.
-                  abortSignal?.removeEventListener('abort', clearStepTimeouts);
-                  clearStepTimeouts();
+                  cleanupStepTimeouts();
 
                   if (
                     // Continue if:
@@ -2418,12 +2422,15 @@ class DefaultStreamTextResult<
                 },
               }),
             ),
+            {
+              onError: cleanupStepTimeouts,
+              onCancel: cleanupStepTimeouts,
+            },
           );
         } catch (error) {
           // Setup failed before the stream was registered, so neither the
           // stream's flush nor an abort will clear the timers — clear them here.
-          abortSignal?.removeEventListener('abort', clearStepTimeouts);
-          clearStepTimeouts();
+          cleanupStepTimeouts();
           throw error;
         }
       }

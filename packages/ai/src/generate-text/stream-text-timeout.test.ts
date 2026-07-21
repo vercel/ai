@@ -286,6 +286,83 @@ describe('streamText first chunk timeout', () => {
 
     await consumePromise;
   });
+
+  it('should clear firstChunkMs when the provider stream errors', async () => {
+    let receivedAbortSignal: AbortSignal | undefined;
+    const providerError = new Error('simulated provider stream error');
+
+    const result = streamText({
+      model: new MockLanguageModelV4({
+        doStream: async ({ abortSignal }) => {
+          receivedAbortSignal = abortSignal;
+
+          return {
+            stream: new ReadableStream({
+              start(controller) {
+                controller.error(providerError);
+              },
+            }),
+          };
+        },
+      }),
+      prompt: 'test-input',
+      timeout: { firstChunkMs: 50 },
+    });
+
+    const textPromise = result.text;
+
+    await result.consumeStream();
+    await expect(textPromise).rejects.toThrow(providerError);
+
+    expect(receivedAbortSignal?.aborted).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(100);
+
+    expect(receivedAbortSignal?.aborted).toBe(false);
+  });
+
+  it('should clear firstChunkMs when the registered step stream is cancelled', async () => {
+    let receivedAbortSignal: AbortSignal | undefined;
+
+    const result = streamText({
+      model: new MockLanguageModelV4({
+        doStream: async ({ abortSignal }) => {
+          receivedAbortSignal = abortSignal;
+
+          return {
+            stream: new ReadableStream({
+              start(controller) {
+                controller.enqueue({ type: 'stream-start', warnings: [] });
+                controller.enqueue({
+                  type: 'response-metadata',
+                  id: 'response-1',
+                });
+              },
+            }),
+          };
+        },
+      }),
+      prompt: 'test-input',
+      timeout: { firstChunkMs: 50 },
+      experimental_transform: ({ stopStream }) =>
+        new TransformStream({
+          transform(chunk, controller) {
+            if (chunk.type === 'start-step') {
+              stopStream();
+            }
+            controller.enqueue(chunk);
+          },
+        }),
+    });
+
+    await result.consumeStream();
+
+    expect(receivedAbortSignal?.aborted).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(100);
+
+    expect(receivedAbortSignal?.aborted).toBe(false);
+  });
 });
 
 describe('streamText chunk timeout', () => {
