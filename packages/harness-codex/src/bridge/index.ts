@@ -541,13 +541,11 @@ async function startToolRelay({
 function parseArgs(args: string[]): {
   workdir?: string;
   bridgeStateDir?: string;
-  bootstrapDir?: string;
   cliShimDir?: string;
 } {
   const out: {
     workdir?: string;
     bridgeStateDir?: string;
-    bootstrapDir?: string;
     cliShimDir?: string;
   } = {};
   for (let i = 0; i < args.length; i++) {
@@ -555,8 +553,6 @@ function parseArgs(args: string[]): {
       out.workdir = args[++i];
     } else if (args[i] === '--bridge-state-dir' && i + 1 < args.length) {
       out.bridgeStateDir = args[++i];
-    } else if (args[i] === '--bootstrap-dir' && i + 1 < args.length) {
-      out.bootstrapDir = args[++i];
     } else if (args[i] === '--cli-shim-dir' && i + 1 < args.length) {
       out.cliShimDir = args[++i];
     }
