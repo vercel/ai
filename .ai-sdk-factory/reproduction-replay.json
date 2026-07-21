@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 16182,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/amazon-bedrock-mistral-duplicate-tool-call-ids.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/amazon-bedrock-mistral-duplicate-tool-call-ids.ts",
+    "packages/amazon-bedrock/src/__fixtures__/amazon-bedrock-mistral-duplicate-tool-call-ids-error.json",
+    "packages/amazon-bedrock/src/amazon-bedrock-mistral-duplicate-tool-call-ids.reproduction.test.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_16182_REPRODUCED: Bedrock rejected duplicate normalized toolUseId tooluseAc."
+  }
+}
