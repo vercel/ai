@@ -103,6 +103,14 @@ const finishEvents: HarnessV1StreamPart[] = [
   },
 ];
 
+const resumableFinishStep: HarnessV1StreamPart = {
+  ...(finishEvents[0]! as Extract<
+    HarnessV1StreamPart,
+    { type: 'finish-step' }
+  >),
+  finishReason: { unified: 'tool-calls', raw: 'tool_use' },
+};
+
 describe('runPrompt workDir stripping', () => {
   test('strips the workDir for consumers but executes host tools with the absolute path', async () => {
     const executedArgs: unknown[] = [];
@@ -243,7 +251,7 @@ describe('runPrompt step accounting', () => {
       harness,
       session: fakeSession([
         { type: 'text-delta', id: 't1', delta: 'first' },
-        finishEvents[0]!,
+        resumableFinishStep,
         { type: 'text-delta', id: 't2', delta: 'second' },
         ...finishEvents,
       ]),
@@ -400,6 +408,153 @@ describe('runPrompt step accounting', () => {
     await expect(result.steps).resolves.toEqual([]);
     await expect(result.text).resolves.toBe('');
   });
+
+  test('evaluates stop conditions only after real finish-step events', async () => {
+    const stepCounts: number[] = [];
+    let stopBoundaryCount = 0;
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'text-delta', id: 't1', delta: 'first' },
+        resumableFinishStep,
+        { type: 'text-delta', id: 't2', delta: 'second' },
+        resumableFinishStep,
+        { type: 'text-delta', id: 't3', delta: 'third' },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      stopConditions: [
+        async ({ steps }) => {
+          stepCounts.push(steps.length);
+          return steps.length === 2;
+        },
+      ],
+      onStopConditionMet: async () => {
+        stopBoundaryCount += 1;
+      },
+    });
+
+    await done;
+    await result.consumeStream();
+
+    expect(stepCounts).toEqual([1, 2]);
+    expect(stopBoundaryCount).toBe(1);
+    expect((await result.steps).map(step => step.text)).toEqual([
+      'first',
+      'second',
+    ]);
+  });
+
+  test('lets a terminal text-only step emit finish even when stopWhen matches its step count', async () => {
+    let predicateCount = 0;
+    let stopBoundaryCount = 0;
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'text-delta', id: 't1', delta: 'done' },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      stopConditions: [
+        ({ steps }) => {
+          predicateCount += 1;
+          return steps.length === 1;
+        },
+      ],
+      onStopConditionMet: async () => {
+        stopBoundaryCount += 1;
+      },
+    });
+    const partTypes: string[] = [];
+
+    for await (const part of result.fullStream) partTypes.push(part.type);
+    await done;
+
+    expect(predicateCount).toBe(0);
+    expect(stopBoundaryCount).toBe(0);
+    expect(partTypes.slice(-2)).toEqual(['finish-step', 'finish']);
+    await expect(result.finishReason).resolves.toBe('stop');
+    await expect(result.text).resolves.toBe('done');
+  });
+
+  test('fails when the stream closes after a terminal finish-step without finish', async () => {
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'text-delta', id: 't1', delta: 'done' },
+        finishEvents[0]!,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+    const parts: TextStreamPart<ToolSet>[] = [];
+
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(parts).toContainEqual({
+      type: 'error',
+      error: expect.objectContaining({
+        message: expect.stringContaining(
+          'ended its stream after a terminal finish-step without emitting finish',
+        ),
+      }),
+    });
+    await expect(result.steps).rejects.toThrow(/without emitting finish/);
+  });
+
+  test('fails when another event follows a terminal finish-step', async () => {
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'text-delta', id: 't1', delta: 'done' },
+        finishEvents[0]!,
+        { type: 'text-delta', id: 't2', delta: 'unexpected' },
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+    const parts: TextStreamPart<ToolSet>[] = [];
+
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(parts).toContainEqual({
+      type: 'error',
+      error: expect.objectContaining({
+        message: expect.stringContaining(
+          "emitted 'text-delta' after a terminal finish-step; expected finish",
+        ),
+      }),
+    });
+    await expect(result.steps).rejects.toThrow(/expected finish/);
+  });
 });
 
 type SubmittedResult = {
@@ -421,6 +576,8 @@ describe('runPrompt host tool generator results', () => {
   test('pauses custom tool execution when approval is required', async () => {
     const submitted: SubmittedResult[] = [];
     const pending: unknown[] = [];
+    let stopConditionCalls = 0;
+    let stopBoundaryCalls = 0;
     const weather = tool({
       description: 'Get weather',
       inputSchema: z.object({ city: z.string() }),
@@ -449,6 +606,15 @@ describe('runPrompt host tool generator results', () => {
       runtimeContext: {} as never,
       abortSignal: undefined,
       toolApproval: { weather: 'user-approval' },
+      stopConditions: [
+        () => {
+          stopConditionCalls += 1;
+          return true;
+        },
+      ],
+      onStopConditionMet: async () => {
+        stopBoundaryCalls += 1;
+      },
       onPendingToolApproval: approval => pending.push(approval),
     });
 
@@ -481,6 +647,8 @@ describe('runPrompt host tool generator results', () => {
       'tool-call',
       'tool-approval-request',
     ]);
+    expect(stopConditionCalls).toBe(0);
+    expect(stopBoundaryCalls).toBe(0);
   });
 
   test('denies custom tools configured with denied approval status', async () => {

@@ -10,6 +10,7 @@ const outboundSchema = z.discriminatedUnion('type', [
     delta: z.string(),
   }),
   z.object({ type: z.literal('finish') }),
+  z.object({ type: z.literal('finish-step') }),
   z.object({
     type: z.literal('bridge-interrupted'),
     ok: z.boolean(),
@@ -175,6 +176,41 @@ describe('SandboxChannel', () => {
       JSON.stringify({ type: 'interrupt' }),
     ]);
 
+    connector.current().deliver({ type: 'bridge-interrupted', ok: true });
+    await expect(interrupted).resolves.toBeUndefined();
+  });
+
+  it('does not interrupt the native runtime at a completed step boundary', async () => {
+    const connector = makeConnector();
+    const channel = makeChannel(connector);
+    await channel.open();
+    channel.on('finish-step', () => {});
+
+    connector.current().deliver({ type: 'finish-step' }, 1);
+    await flush();
+
+    await expect(channel.interrupt()).resolves.toBeUndefined();
+    expect(connector.current().sent).toEqual([]);
+    await expect(channel.suspend()).resolves.toBe(1);
+  });
+
+  it('interrupts normally after the next step has started', async () => {
+    const connector = makeConnector();
+    const channel = makeChannel(connector);
+    await channel.open();
+    channel.on('finish-step', () => {});
+    channel.on('text-delta', () => {});
+
+    connector.current().deliver({ type: 'finish-step' }, 1);
+    connector
+      .current()
+      .deliver({ type: 'text-delta', id: 'a', delta: 'next' }, 2);
+    await flush();
+
+    const interrupted = channel.interrupt();
+    expect(connector.current().sent).toEqual([
+      JSON.stringify({ type: 'interrupt' }),
+    ]);
     connector.current().deliver({ type: 'bridge-interrupted', ok: true });
     await expect(interrupted).resolves.toBeUndefined();
   });

@@ -136,6 +136,13 @@ export class SandboxChannel<
    * replayed to the next process on `resume`.
    */
   private suspended = false;
+  /*
+   * A finish-step frame marks a native-safe suspension point until another
+   * consumer event arrives. Suspending at that point must only freeze the
+   * replay cursor; interrupting the runtime would turn a completed tool step
+   * into an aborted turn and prevent the next step from being replayed.
+   */
+  private atCompletedStepBoundary = false;
   /** Channel is fully torn down; `send` throws and `onClose` has fired. */
   private terminal = false;
   private _lastSeenEventId = 0;
@@ -251,6 +258,9 @@ export class SandboxChannel<
   }
 
   interrupt(options?: { timeoutMs?: number }): Promise<void> {
+    if (this.atCompletedStepBoundary && !this.terminal) {
+      return Promise.resolve();
+    }
     const timeoutMs = options?.timeoutMs ?? 5000;
     return new Promise<void>((resolve, reject) => {
       let settled = false;
@@ -486,6 +496,9 @@ export class SandboxChannel<
         message as Extract<TOut, { type: 'sandbox-log' | 'debug-event' }>,
       );
       return;
+    }
+    if (!message.type.startsWith('bridge-')) {
+      this.atCompletedStepBoundary = message.type === 'finish-step';
     }
     if (message.type === 'error') {
       this.onBridgeError?.(message as Extract<TOut, { type: 'error' }>);

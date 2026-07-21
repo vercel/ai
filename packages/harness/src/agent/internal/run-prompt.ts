@@ -31,6 +31,7 @@ import type {
   ContentPart,
   ProviderMetadata,
   StepResult,
+  StopCondition,
   TelemetryOptions,
   TextStreamPart,
 } from 'ai';
@@ -80,6 +81,7 @@ export function runPrompt<
   runtimeContext: RUNTIME_CONTEXT;
   abortSignal: AbortSignal | undefined;
   telemetry?: TelemetryOptions | undefined;
+  stopConditions?: ReadonlyArray<StopCondition<TOOLS, RUNTIME_CONTEXT>>;
   toolApproval?: HarnessAgentToolApprovalConfiguration | undefined;
   pendingToolApprovals?: readonly HarnessV1PendingToolApproval[];
   pendingToolResults?: readonly HarnessV1PendingToolResult[];
@@ -95,6 +97,7 @@ export function runPrompt<
   onToolResultSettled?: (toolCallId: string) => void;
   onTurnFinished?: () => void;
   onTurnFailed?: () => void;
+  onStopConditionMet?: () => Promise<void>;
 }): {
   result: HarnessStreamTextResult<TOOLS, RUNTIME_CONTEXT>;
   done: Promise<void>;
@@ -197,9 +200,11 @@ export function runPrompt<
     );
     const settledHostToolCallIds = new Set<string>();
     let closingResumedStep = false;
+    let expectingTurnFinish = false;
     let finalFinish:
       | Extract<HarnessV1StreamPart, { type: 'finish' }>
       | undefined;
+    const completedSteps: Array<StepResult<TOOLS, RUNTIME_CONTEXT>> = [];
 
     // Accumulate the model's output content per step so telemetry can record
     // `gen_ai.output.messages` and reporters can log what was actually said.
@@ -247,12 +252,14 @@ export function runPrompt<
         content: buildStepContent(),
       });
       resetStepContent();
-      return result.finishStep({
+      const step = result.finishStep({
         finishReason: input.finishReason,
         usage: input.usage,
         providerMetadata: input.providerMetadata,
         warnings: [],
       });
+      completedSteps.push(step);
+      return step;
     };
     const finishForHostInputPause = async (options: {
       completeCurrentStep: boolean;
@@ -455,8 +462,24 @@ export function runPrompt<
 
       while (true) {
         const { value, done } = await reader.read();
-        if (done) break;
+        if (done) {
+          if (expectingTurnFinish) {
+            throw new Error(
+              `Harness '${input.harness.harnessId}' ended its stream after a terminal finish-step without emitting finish.`,
+            );
+          }
+          break;
+        }
         if (value == null) continue;
+
+        if (expectingTurnFinish) {
+          if (value.type !== 'finish') {
+            throw new Error(
+              `Harness '${input.harness.harnessId}' emitted '${value.type}' after a terminal finish-step; expected finish.`,
+            );
+          }
+          expectingTurnFinish = false;
+        }
 
         // Begin the operation span on stream-start, using the runtime-resolved
         // model the adapter reports (falling back to the session's model).
@@ -636,11 +659,35 @@ export function runPrompt<
 
         // Drive step boundaries.
         if (value.type === 'finish-step') {
-          completeStep({
+          const completedStep = completeStep({
             finishReason: value.finishReason,
             usage: value.usage,
             providerMetadata: value.harnessMetadata,
           });
+          const stepMayContinue =
+            completedStep.toolCalls.length > 0 ||
+            value.finishReason.unified === 'tool-calls';
+          if (!stepMayContinue) {
+            expectingTurnFinish = true;
+          } else if (
+            input.stopConditions != null &&
+            input.stopConditions.length > 0 &&
+            (
+              await Promise.all(
+                input.stopConditions.map(condition =>
+                  condition({ steps: completedSteps }),
+                ),
+              )
+            ).some(Boolean)
+          ) {
+            await input.onStopConditionMet?.();
+            telemetry.end({
+              finishReason: value.finishReason,
+              usage: value.usage,
+            });
+            await result.finish();
+            return;
+          }
         }
 
         if (value.type === 'finish') {
