@@ -583,13 +583,8 @@ describe('detectMediaType', () => {
       ]);
       expect(
         detectMediaType({
-<<<<<<< HEAD:packages/ai/src/util/detect-media-type.test.ts
-          data: mp4Base64,
-          signatures: audioMediaTypeSignatures,
-=======
           data: convertUint8ArrayToBase64(mp4Bytes),
-          topLevelType: 'audio',
->>>>>>> 76cb673a17 (fix: detect M4A/MP4 audio correctly during transcription (#17378)):packages/provider-utils/src/detect-media-type.test.ts
+          signatures: audioMediaTypeSignatures,
         }),
       ).toBe('audio/mp4');
     });

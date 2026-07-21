@@ -1,5 +1,4 @@
 ---
-'@ai-sdk/provider-utils': patch
 'ai': patch
 ---
 
