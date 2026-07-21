@@ -275,21 +275,13 @@ describe('request URL', () => {
             totalTokens: 2,
           },
         },
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.test.ts
-      );
-    });
-    const inferenceProfileModel = new BedrockChatLanguageModel(
-      inferenceProfileArn,
-      {
-=======
       },
     ]
       .map(chunk => JSON.stringify(chunk))
       .join('\n');
 
     function createInferenceProfileModel() {
-      return new AmazonBedrockChatLanguageModel(inferenceProfileArn, {
->>>>>>> ce56626a76 (fix: Amazon Bedrock Converse requests fail for ARN model IDs containing slashes (#17525)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.test.ts
+      return new BedrockChatLanguageModel(inferenceProfileArn, {
         baseUrl: () => baseUrl,
         headers: {},
         fetch: async input => {
