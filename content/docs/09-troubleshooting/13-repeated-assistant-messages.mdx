@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     tools: {
       weather: {
         description: 'Get the weather for a location',
-        parameters: z.object({
+        inputSchema: z.object({
           location: z.string(),
         }),
         execute: async ({ location }) => {
@@ -54,7 +54,7 @@ export async function POST(req: Request) {
     tools: {
       weather: {
         description: 'Get the weather for a location',
-        parameters: z.object({
+        inputSchema: z.object({
           location: z.string(),
         }),
         execute: async ({ location }) => {
