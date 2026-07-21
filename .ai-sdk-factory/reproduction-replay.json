@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 7034,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-7034.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-7034.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_7034_REPRODUCED: User messages cannot contain reasoning content"
+  }
+}
