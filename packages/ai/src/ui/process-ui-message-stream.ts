@@ -126,11 +126,6 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             );
 
             if (toolInvocation == null) {
-<<<<<<< HEAD
-              throw new Error(
-                'tool-output-error must be preceded by a tool-input-available',
-              );
-=======
               const parts = state.message.parts;
 
               for (let i = parts.length - 1; i >= 0; i--) {
@@ -143,25 +138,37 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             if (toolInvocation == null) {
-              throw new UIMessageStreamError({
-                chunkType: 'tool-invocation',
-                chunkId: toolCallId,
-                message: `No tool invocation found for tool call ID "${toolCallId}".`,
-              });
->>>>>>> e808fa5ec2 (fix: preserve tool parts when tool call IDs repeat across steps (#17586))
+              throw new Error(
+                'tool-output-error must be preceded by a tool-input-available',
+              );
             }
 
             return toolInvocation;
           }
 
           function getDynamicToolInvocation(toolCallId: string) {
-            const toolInvocations = state.message.parts.filter(
+            const toolInvocations = getCurrentStepParts().filter(
               part => part.type === 'dynamic-tool',
             ) as DynamicToolUIPart[];
 
-            const toolInvocation = toolInvocations.find(
+            let toolInvocation = toolInvocations.find(
               invocation => invocation.toolCallId === toolCallId,
             );
+
+            if (toolInvocation == null) {
+              const parts = state.message.parts;
+
+              for (let i = parts.length - 1; i >= 0; i--) {
+                const part = parts[i];
+                if (
+                  part.type === 'dynamic-tool' &&
+                  part.toolCallId === toolCallId
+                ) {
+                  toolInvocation = part;
+                  break;
+                }
+              }
+            }
 
             if (toolInvocation == null) {
               throw new Error(
@@ -207,20 +214,12 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             ),
             existingPart?: ToolUIPart<InferUIMessageTools<UI_MESSAGE>>,
           ) {
-<<<<<<< HEAD
-            const part = state.message.parts.find(
-              part =>
-                isToolUIPart(part) && part.toolCallId === options.toolCallId,
-            ) as ToolUIPart<InferUIMessageTools<UI_MESSAGE>> | undefined;
-=======
             const part =
               existingPart ??
               (getCurrentStepParts().find(
                 part =>
-                  isStaticToolUIPart(part) &&
-                  part.toolCallId === options.toolCallId,
+                  isToolUIPart(part) && part.toolCallId === options.toolCallId,
               ) as ToolUIPart<InferUIMessageTools<UI_MESSAGE>> | undefined);
->>>>>>> e808fa5ec2 (fix: preserve tool parts when tool call IDs repeat across steps (#17586))
 
             const anyOptions = options as any;
             const anyPart = part as any;
@@ -463,12 +462,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'tool-input-start': {
-<<<<<<< HEAD
-              const toolInvocations = state.message.parts.filter(isToolUIPart);
-=======
               const toolInvocations =
-                getCurrentStepParts().filter(isStaticToolUIPart);
->>>>>>> e808fa5ec2 (fix: preserve tool parts when tool call IDs repeat across steps (#17586))
+                getCurrentStepParts().filter(isToolUIPart);
 
               // add the partial tool call to the map
               state.partialToolCalls[chunk.toolCallId] = {
@@ -565,22 +560,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'tool-input-error': {
-<<<<<<< HEAD
               if (chunk.dynamic) {
-=======
-              // When a part already exists for this toolCallId (e.g. from
-              // tool-input-start), honour its type so we update in place
-              // instead of creating a duplicate with a mismatched type.
-              const existingPart = getCurrentStepParts()
-                .filter(isToolUIPart)
-                .find(p => p.toolCallId === chunk.toolCallId);
-              const isDynamic =
-                existingPart != null
-                  ? existingPart.type === 'dynamic-tool'
-                  : !!chunk.dynamic;
-
-              if (isDynamic) {
->>>>>>> e808fa5ec2 (fix: preserve tool parts when tool call IDs repeat across steps (#17586))
                 updateDynamicToolPart({
                   toolCallId: chunk.toolCallId,
                   toolName: chunk.toolName,
@@ -613,29 +593,6 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   chunk.toolCallId,
                 );
 
-<<<<<<< HEAD
-                updateDynamicToolPart({
-                  toolCallId: chunk.toolCallId,
-                  toolName: toolInvocation.toolName,
-                  state: 'output-available',
-                  input: (toolInvocation as any).input,
-                  output: chunk.output,
-                  preliminary: chunk.preliminary,
-                });
-              } else {
-                const toolInvocation = getToolInvocation(chunk.toolCallId);
-
-                updateToolPart({
-                  toolCallId: chunk.toolCallId,
-                  toolName: getToolName(toolInvocation),
-                  state: 'output-available',
-                  input: (toolInvocation as any).input,
-                  output: chunk.output,
-                  providerExecuted: chunk.providerExecuted,
-                  preliminary: chunk.preliminary,
-                });
-=======
-              if (toolInvocation.type === 'dynamic-tool') {
                 updateDynamicToolPart(
                   {
                     toolCallId: chunk.toolCallId,
@@ -644,30 +601,24 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     input: (toolInvocation as any).input,
                     output: chunk.output,
                     preliminary: chunk.preliminary,
-                    providerExecuted: chunk.providerExecuted,
-                    providerMetadata: chunk.providerMetadata,
-                    title: toolInvocation.title,
-                    toolMetadata: toolInvocation.toolMetadata,
                   },
                   toolInvocation,
                 );
               } else {
+                const toolInvocation = getToolInvocation(chunk.toolCallId);
+
                 updateToolPart(
                   {
                     toolCallId: chunk.toolCallId,
-                    toolName: getStaticToolName(toolInvocation),
+                    toolName: getToolName(toolInvocation),
                     state: 'output-available',
                     input: (toolInvocation as any).input,
                     output: chunk.output,
                     providerExecuted: chunk.providerExecuted,
                     preliminary: chunk.preliminary,
-                    providerMetadata: chunk.providerMetadata,
-                    title: toolInvocation.title,
-                    toolMetadata: toolInvocation.toolMetadata,
                   },
                   toolInvocation as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>,
                 );
->>>>>>> e808fa5ec2 (fix: preserve tool parts when tool call IDs repeat across steps (#17586))
               }
 
               write();
@@ -680,29 +631,6 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   chunk.toolCallId,
                 );
 
-<<<<<<< HEAD
-                updateDynamicToolPart({
-                  toolCallId: chunk.toolCallId,
-                  toolName: toolInvocation.toolName,
-                  state: 'output-error',
-                  input: (toolInvocation as any).input,
-                  errorText: chunk.errorText,
-                  providerExecuted: chunk.providerExecuted,
-                });
-              } else {
-                const toolInvocation = getToolInvocation(chunk.toolCallId);
-
-                updateToolPart({
-                  toolCallId: chunk.toolCallId,
-                  toolName: getToolName(toolInvocation),
-                  state: 'output-error',
-                  input: (toolInvocation as any).input,
-                  rawInput: (toolInvocation as any).rawInput,
-                  errorText: chunk.errorText,
-                  providerExecuted: chunk.providerExecuted,
-                });
-=======
-              if (toolInvocation.type === 'dynamic-tool') {
                 updateDynamicToolPart(
                   {
                     toolCallId: chunk.toolCallId,
@@ -711,29 +639,24 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     input: (toolInvocation as any).input,
                     errorText: chunk.errorText,
                     providerExecuted: chunk.providerExecuted,
-                    providerMetadata: chunk.providerMetadata,
-                    title: toolInvocation.title,
-                    toolMetadata: toolInvocation.toolMetadata,
                   },
                   toolInvocation,
                 );
               } else {
+                const toolInvocation = getToolInvocation(chunk.toolCallId);
+
                 updateToolPart(
                   {
                     toolCallId: chunk.toolCallId,
-                    toolName: getStaticToolName(toolInvocation),
+                    toolName: getToolName(toolInvocation),
                     state: 'output-error',
                     input: (toolInvocation as any).input,
                     rawInput: (toolInvocation as any).rawInput,
                     errorText: chunk.errorText,
                     providerExecuted: chunk.providerExecuted,
-                    providerMetadata: chunk.providerMetadata,
-                    title: toolInvocation.title,
-                    toolMetadata: toolInvocation.toolMetadata,
                   },
                   toolInvocation as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>,
                 );
->>>>>>> e808fa5ec2 (fix: preserve tool parts when tool call IDs repeat across steps (#17586))
               }
 
               write();
