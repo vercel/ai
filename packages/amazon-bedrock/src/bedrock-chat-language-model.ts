@@ -24,6 +24,13 @@ import {
   type ParseResult,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
+=======
+import {
+  getModelCapabilities,
+  sanitizeJsonSchema,
+} from '@ai-sdk/anthropic/internal';
+>>>>>>> b72fc7ce0a (fix: prevent Bedrock native structured output from forwarding unsupported JSON Schema constraints (#17558)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
 import { z } from 'zod/v4';
 import {
   BEDROCK_STOP_REASONS,
@@ -316,7 +323,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
           ...bedrockOptions.additionalModelRequestFields?.output_config,
           format: {
             type: 'json_schema',
-            schema: responseFormat!.schema,
+            schema: sanitizeJsonSchema(responseFormat!.schema!),
           },
         },
       };
