@@ -301,6 +301,17 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       isKnownModel,
     } = getModelCapabilities(this.modelId);
 
+    if (!isKnownModel && maxOutputTokens == null) {
+      warnings.push({
+        type: 'compatibility',
+        feature: 'maxOutputTokens',
+        details:
+          `The model "${this.modelId}" is unknown. ` +
+          `The max output tokens have been limited to ${maxOutputTokensForModel}. ` +
+          `Set maxOutputTokens explicitly to override this limit.`,
+      });
+    }
+
     if (rejectsSamplingParameters) {
       if (temperature != null) {
         warnings.push({
@@ -355,6 +366,19 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             inputSchema: responseFormat.schema,
           }
         : undefined;
+
+    if (
+      jsonResponseTool != null &&
+      anthropicOptions?.disableParallelToolUse === false
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.anthropic.disableParallelToolUse',
+        details:
+          '`disableParallelToolUse: false` is ignored when using the JSON response tool. ' +
+          'Parallel tool use is disabled to ensure a single coherent JSON tool call.',
+      });
+    }
 
     const contextManagement = anthropicOptions?.contextManagement;
 
