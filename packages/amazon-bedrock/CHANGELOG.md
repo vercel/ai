@@ -1,5 +1,42 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.138
+
+### Patch Changes
+
+- db8cff6: fix(amazon-bedrock): sanitize unsupported JSON Schema constraints in native Anthropic structured output
+- 3c68a20: fix(amazon-bedrock): encode slashes in ARN model IDs for Converse requests
+- Updated dependencies [db8cff6]
+- Updated dependencies [94d0f86]
+  - @ai-sdk/anthropic@3.0.99
+
+## 4.0.137
+
+### Patch Changes
+
+- e5e532e: fix(bedrock): support application inference profile ARNs
+- Updated dependencies [19093fd]
+- Updated dependencies [10366a2]
+  - @ai-sdk/provider-utils@4.0.40
+  - @ai-sdk/anthropic@3.0.98
+  - @ai-sdk/openai@3.0.86
+
+## 4.0.136
+
+### Patch Changes
+
+- 29513b0: Return Bedrock Converse request bodies from language model generation and streaming calls.
+
+## 4.0.135
+
+### Patch Changes
+
+- 7c05582: Avoid unreliable synthetic response tools when structured output is combined with tools on Bedrock Claude Opus 4.7 and 4.8.
+- Updated dependencies [06fb54c]
+  - @ai-sdk/provider-utils@4.0.39
+  - @ai-sdk/anthropic@3.0.97
+  - @ai-sdk/openai@3.0.85
+
 ## 4.0.134
 
 ### Patch Changes

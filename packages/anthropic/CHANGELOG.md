@@ -1,5 +1,27 @@
 # @ai-sdk/anthropic
 
+## 3.0.99
+
+### Patch Changes
+
+- db8cff6: fix(amazon-bedrock): sanitize unsupported JSON Schema constraints in native Anthropic structured output
+- 94d0f86: fix(provider/anthropic): warn when parallel tool use is requested with JSON tool structured output
+
+## 3.0.98
+
+### Patch Changes
+
+- 10366a2: fix(provider/anthropic): preserve web search citations when replaying assistant messages
+- Updated dependencies [19093fd]
+  - @ai-sdk/provider-utils@4.0.40
+
+## 3.0.97
+
+### Patch Changes
+
+- Updated dependencies [06fb54c]
+  - @ai-sdk/provider-utils@4.0.39
+
 ## 3.0.96
 
 ### Patch Changes

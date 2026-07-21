@@ -1,5 +1,31 @@
 # @ai-sdk/azure
 
+## 3.0.91
+
+### Patch Changes
+
+- Updated dependencies [19093fd]
+  - @ai-sdk/provider-utils@4.0.40
+  - @ai-sdk/deepseek@2.0.50
+  - @ai-sdk/openai@3.0.86
+
+## 3.0.90
+
+### Patch Changes
+
+- 55be323: fix: Azure DeepSeek structured output returns JSON in reasoning with empty text
+- Updated dependencies [55be323]
+  - @ai-sdk/deepseek@2.0.49
+
+## 3.0.89
+
+### Patch Changes
+
+- Updated dependencies [06fb54c]
+  - @ai-sdk/provider-utils@4.0.39
+  - @ai-sdk/deepseek@2.0.48
+  - @ai-sdk/openai@3.0.85
+
 ## 3.0.88
 
 ### Patch Changes

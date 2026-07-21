@@ -24,6 +24,7 @@ import {
   type ParseResult,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
+import { sanitizeJsonSchema } from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
 import {
   BEDROCK_STOP_REASONS,
@@ -316,7 +317,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
           ...bedrockOptions.additionalModelRequestFields?.output_config,
           format: {
             type: 'json_schema',
-            schema: responseFormat!.schema,
+            schema: sanitizeJsonSchema(responseFormat!.schema!),
           },
         },
       };
@@ -615,6 +616,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
         headers: responseHeaders,
       },
       warnings,
+      request: { body: args },
       ...(providerMetadata && { providerMetadata }),
     };
   }
@@ -1034,14 +1036,13 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
           },
         }),
       ),
-      // TODO request?
+      request: { body: args },
       response: { headers: responseHeaders },
     };
   }
 
   private getUrl(modelId: string) {
-    const encodedModelId = encodeURIComponent(modelId);
-    return `${this.config.baseUrl()}/model/${encodedModelId}`;
+    return `${this.config.baseUrl()}/model/${encodeURIComponent(modelId)}`;
   }
 }
 

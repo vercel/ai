@@ -14,7 +14,7 @@ import type { UIMessage } from './ui-messages';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { DefaultChatTransport } from './default-chat-transport';
 import { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { delay } from '@ai-sdk/provider-utils';
 import { lastAssistantMessageIsCompleteWithApprovalResponses } from './last-assistant-message-is-complete-with-approval-responses';
 
@@ -1462,6 +1462,81 @@ describe('Chat', () => {
 
     expect(chat.error).toMatchInlineSnapshot(`[Error: test-error]`);
     expect(chat.status).toBe('error');
+  });
+
+  it('should not throw to console when an overlapped request clears activeResponse before resume-stream finishes', async () => {
+    let resumeController!: ReadableStreamDefaultController<UIMessageChunk>;
+    const resumeStream = new ReadableStream<UIMessageChunk>({
+      start(controller) {
+        resumeController = controller;
+        controller.enqueue({ type: 'start' });
+        controller.enqueue({ type: 'start-step' });
+        controller.enqueue({ type: 'text-start', id: 'text-1' });
+        controller.enqueue({
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'resumed',
+        });
+      },
+    });
+
+    const submitStream = new ReadableStream<UIMessageChunk>({
+      start(controller) {
+        controller.enqueue({ type: 'start' });
+        controller.enqueue({ type: 'start-step' });
+        controller.enqueue({ type: 'text-start', id: 'text-1' });
+        controller.enqueue({
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'submitted',
+        });
+        controller.enqueue({ type: 'text-end', id: 'text-1' });
+        controller.enqueue({ type: 'finish-step' });
+        controller.enqueue({ type: 'finish', finishReason: 'stop' });
+        controller.close();
+      },
+    });
+
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+
+    const chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => submitStream,
+        reconnectToStream: async () => resumeStream,
+      },
+      onFinish: () => {},
+    });
+
+    let resumeSettled = false;
+    const resumePromise = chat.resumeStream().finally(() => {
+      resumeSettled = true;
+    });
+
+    while ((chat.messages[0]?.parts[1] as any)?.text !== 'resumed') {
+      await delay();
+    }
+
+    expect(resumeSettled).toBe(false);
+
+    await chat.sendMessage({ text: 'Hello, world!' });
+
+    expect((chat as any).activeResponse).toBeUndefined();
+
+    resumeController.enqueue({ type: 'text-end', id: 'text-1' });
+    resumeController.enqueue({ type: 'finish-step' });
+    resumeController.enqueue({ type: 'finish', finishReason: 'stop' });
+    resumeController.close();
+    await resumePromise;
+
+    try {
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
   });
 
   describe('sendAutomaticallyWhen', () => {

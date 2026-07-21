@@ -1,5 +1,41 @@
 # @ai-sdk/xai
 
+## 3.0.111
+
+### Patch Changes
+
+- 05ce9c0: fix(provider/xai): preserve images in Responses API tool results
+
+## 3.0.110
+
+### Patch Changes
+
+- 09ecf7b: fix(xai): handle empty HTTP 202 responses while polling videos
+- Updated dependencies [19093fd]
+  - @ai-sdk/provider-utils@4.0.40
+  - @ai-sdk/openai-compatible@2.0.62
+
+## 3.0.109
+
+### Patch Changes
+
+- b0db900: feat(provider/xai): support end-user identifiers for video generation and editing
+
+## 3.0.108
+
+### Patch Changes
+
+- Updated dependencies [94fda5c]
+  - @ai-sdk/openai-compatible@2.0.61
+
+## 3.0.107
+
+### Patch Changes
+
+- Updated dependencies [06fb54c]
+  - @ai-sdk/provider-utils@4.0.39
+  - @ai-sdk/openai-compatible@2.0.60
+
 ## 3.0.106
 
 ### Patch Changes

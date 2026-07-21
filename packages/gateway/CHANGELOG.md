@@ -1,5 +1,45 @@
 # @ai-sdk/gateway
 
+## 3.0.155
+
+### Patch Changes
+
+- a09f944: feat(google): add `gemini-3.6-flash` and `gemini-3.5-flash-lite` models
+
+## 3.0.154
+
+### Patch Changes
+
+- 2dd1aab: chore(provider/gateway): remove `hipaaCompliant` provider option
+- e567091: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.153
+
+### Patch Changes
+
+- Updated dependencies [19093fd]
+  - @ai-sdk/provider-utils@4.0.40
+
+## 3.0.152
+
+### Patch Changes
+
+- 49a3098: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.151
+
+### Patch Changes
+
+- 5e624ac: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.150
+
+### Patch Changes
+
+- bc46977: Backport: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [06fb54c]
+  - @ai-sdk/provider-utils@4.0.39
+
 ## 3.0.149
 
 ### Patch Changes

@@ -199,6 +199,35 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       ? undefined
       : googleOptions?.serviceTier;
 
+    // personGeneration, prominentPeople and imageOutputOptions are only
+    // supported by the Vertex AI API, the Gemini API rejects them.
+    let imageConfig = googleOptions?.imageConfig;
+    if (imageConfig != null && !isVertexProvider) {
+      const {
+        personGeneration,
+        prominentPeople,
+        imageOutputOptions,
+        ...geminiApiImageConfig
+      } = imageConfig;
+      const droppedImageConfigFields = Object.entries({
+        personGeneration,
+        prominentPeople,
+        imageOutputOptions,
+      })
+        .filter(([, value]) => value != null)
+        .map(([key]) => `'imageConfig.${key}'`);
+      if (droppedImageConfigFields.length > 0) {
+        warnings.push({
+          type: 'other',
+          message:
+            `${droppedImageConfigFields.join(', ')} ` +
+            `${droppedImageConfigFields.length === 1 ? 'is a Vertex AI option and is' : 'are Vertex AI options and are'} ` +
+            `ignored with the current Google provider (${this.config.provider}).`,
+        });
+        imageConfig = geminiApiImageConfig;
+      }
+    }
+
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
     const isGemini3Model = /^gemini-3[.-]/.test(this.modelId);
     const supportsFunctionResponseParts = isGemini3Model;
@@ -293,9 +322,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           ...(googleOptions?.mediaResolution && {
             mediaResolution: googleOptions.mediaResolution,
           }),
-          ...(googleOptions?.imageConfig && {
-            imageConfig: googleOptions.imageConfig,
-          }),
+          ...(imageConfig && { imageConfig }),
         },
         contents,
         systemInstruction: isGemmaModel ? undefined : systemInstruction,
@@ -348,7 +375,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
     const usageMetadata = response.usageMetadata;
 
-    // Associates a code execution result with its preceding call.
+    // Associates code execution results with their preceding call.
     let lastCodeExecutionToolCallId: string | undefined;
     // Associates a server-side tool response with its preceding call (tool combination).
     let lastServerToolCallId: string | undefined;
@@ -369,7 +396,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       } else if ('codeExecutionResult' in part && part.codeExecutionResult) {
         content.push({
           type: 'tool-result',
-          // Assumes a result directly follows its corresponding call part.
+          // Results correspond to the most recent executable code part.
           toolCallId: lastCodeExecutionToolCallId!,
           toolName: 'code_execution',
           result: {
@@ -377,8 +404,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
             output: part.codeExecutionResult.output ?? '',
           },
         });
-        // Clear the ID after use to avoid accidental reuse.
-        lastCodeExecutionToolCallId = undefined;
       } else if ('text' in part && part.text != null) {
         const thoughtSignatureMetadata = part.thoughtSignature
           ? {
@@ -523,7 +548,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       },
       request: { body: args },
       response: {
-        // TODO timestamp, model id, id
+        // TODO timestamp, model id
+        id: response.responseId ?? undefined,
         headers: responseHeaders,
         body: rawResponse,
       },
@@ -565,6 +591,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
+    let hasEmittedResponseMetadata = false;
 
     // Track active blocks to group consecutive parts of same type
     let currentTextBlockId: string | null = null;
@@ -573,7 +600,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
     // Track emitted sources to prevent duplicates
     const emittedSourceUrls = new Set<string>();
-    // Associates a code execution result with its preceding call.
+    // Associates code execution results with their preceding call.
     let lastCodeExecutionToolCallId: string | undefined;
     // Associates a server-side tool response with its preceding call (tool combination).
     let lastServerToolCallId: string | undefined;
@@ -643,6 +670,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
             const value = chunk.value;
 
+            if (!hasEmittedResponseMetadata && value.responseId != null) {
+              hasEmittedResponseMetadata = true;
+              controller.enqueue({
+                type: 'response-metadata',
+                id: value.responseId,
+              });
+            }
+
             const usageMetadata = value.usageMetadata;
 
             if (usageMetadata != null) {
@@ -701,7 +736,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                   'codeExecutionResult' in part &&
                   part.codeExecutionResult
                 ) {
-                  // Assumes a result directly follows its corresponding call part.
+                  // Results correspond to the most recent executable code part.
                   const toolCallId = lastCodeExecutionToolCallId;
 
                   if (toolCallId) {
@@ -714,8 +749,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                         output: part.codeExecutionResult.output ?? '',
                       },
                     });
-                    // Clear the ID after use.
-                    lastCodeExecutionToolCallId = undefined;
                   }
                 } else if ('text' in part && part.text != null) {
                   const thoughtSignatureMetadata = part.thoughtSignature
@@ -1429,6 +1462,7 @@ export const getUrlContextMetadataSchema = () =>
 const responseSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      responseId: z.string().nullish(),
       candidates: z.array(
         z.object({
           content: getContentSchema().nullish().or(z.object({}).strict()),
@@ -1482,6 +1516,7 @@ export type UsageMetadataSchema = NonNullable<
 const chunkSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      responseId: z.string().nullish(),
       candidates: z
         .array(
           z.object({

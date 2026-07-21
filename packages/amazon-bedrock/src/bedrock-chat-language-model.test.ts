@@ -198,6 +198,194 @@ const opusAnthropicModel = new BedrockChatLanguageModel(opusAnthropicModelId, {
 
 let mockOptions: { success: boolean; errorValue?: any } = { success: true };
 
+describe('doGenerate request metadata', () => {
+  it('should return the request body', async () => {
+    prepareJsonFixtureResponse('bedrock-text');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.request?.body).toMatchInlineSnapshot(`
+      {
+        "additionalModelRequestFields": undefined,
+        "additionalModelResponseFieldPaths": [
+          "/delta/stop_sequence",
+        ],
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "system": [
+          {
+            "text": "System Prompt",
+          },
+        ],
+      }
+    `);
+  });
+});
+
+describe('request URL', () => {
+  describe('ARN model IDs containing a slash', () => {
+    const inferenceProfileArn =
+      'arn:aws:bedrock:eu-west-1:474668406012:inference-profile/eu.amazon.nova-lite-v1:0';
+    const encodedInferenceProfileArn = encodeURIComponent(inferenceProfileArn);
+    const unknownOperationResponse = JSON.stringify({
+      Output: {
+        __type: 'com.amazon.coral.service#UnknownOperationException',
+      },
+      Version: '1.0',
+    });
+    const converseResponse = JSON.stringify({
+      output: {
+        message: {
+          role: 'assistant',
+          content: [{ text: 'Hello!' }],
+        },
+      },
+      stopReason: 'end_turn',
+      usage: {
+        inputTokens: 1,
+        outputTokens: 1,
+        totalTokens: 2,
+      },
+    });
+    const converseStreamResponse = [
+      { messageStart: { role: 'assistant' } },
+      {
+        contentBlockDelta: {
+          contentBlockIndex: 0,
+          delta: { text: 'Hello!' },
+        },
+      },
+      { contentBlockStop: { contentBlockIndex: 0 } },
+      { messageStop: { stopReason: 'end_turn' } },
+      {
+        metadata: {
+          usage: {
+            inputTokens: 1,
+            outputTokens: 1,
+            totalTokens: 2,
+          },
+        },
+      },
+    ]
+      .map(chunk => JSON.stringify(chunk))
+      .join('\n');
+
+    function createInferenceProfileModel() {
+      return new BedrockChatLanguageModel(inferenceProfileArn, {
+        baseUrl: () => baseUrl,
+        headers: {},
+        fetch: async input => {
+          const url = input.toString();
+          const isEncodedRoute = url.includes(encodedInferenceProfileArn);
+
+          return new Response(
+            isEncodedRoute
+              ? url.endsWith('/converse-stream')
+                ? converseStreamResponse
+                : converseResponse
+              : unknownOperationResponse,
+            {
+              status: 200,
+              headers: {
+                'content-type':
+                  isEncodedRoute && url.endsWith('/converse-stream')
+                    ? 'application/vnd.amazon.eventstream'
+                    : 'application/json',
+              },
+            },
+          );
+        },
+        generateId: () => 'test-id',
+      });
+    }
+
+    it('should generate text through the encoded Converse route', async () => {
+      const result = await createInferenceProfileModel().doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "Hello!",
+            "type": "text",
+          },
+        ]
+      `);
+    });
+
+    it('should stream text through the encoded Converse route', async () => {
+      const { stream } = await createInferenceProfileModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": undefined,
+            "modelId": "arn:aws:bedrock:eu-west-1:474668406012:inference-profile/eu.amazon.nova-lite-v1:0",
+            "timestamp": undefined,
+            "type": "response-metadata",
+          },
+          {
+            "id": "0",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello!",
+            "id": "0",
+            "type": "text-delta",
+          },
+          {
+            "id": "0",
+            "type": "text-end",
+          },
+          {
+            "finishReason": {
+              "raw": "end_turn",
+              "unified": "stop",
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "noCache": 1,
+                "total": 1,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": 1,
+                "total": 1,
+              },
+              "raw": {
+                "inputTokens": 1,
+                "outputTokens": 1,
+                "totalTokens": 2,
+              },
+            },
+          },
+        ]
+      `);
+    });
+  });
+});
+
 describe('doStream', () => {
   beforeEach(() => {
     mockOptions = { success: true, errorValue: undefined };
@@ -280,6 +468,37 @@ describe('doStream', () => {
           "connection": "keep-alive",
           "content-type": "text/event-stream",
           "test-header": "test-value",
+        }
+      `);
+    });
+
+    it('should return the request body', async () => {
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(result.request?.body).toMatchInlineSnapshot(`
+        {
+          "additionalModelRequestFields": undefined,
+          "additionalModelResponseFieldPaths": [
+            "/delta/stop_sequence",
+          ],
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": [
+            {
+              "text": "System Prompt",
+            },
+          ],
         }
       `);
     });
@@ -4502,9 +4721,11 @@ describe('doGenerate', () => {
         type: 'json_schema',
         schema: {
           type: 'object',
+          additionalProperties: false,
           properties: {
             recipe: {
               type: 'object',
+              additionalProperties: false,
               properties: {
                 name: { type: 'string' },
                 ingredients: { type: 'array', items: { type: 'string' } },
@@ -4561,6 +4782,7 @@ describe('doGenerate', () => {
         type: 'json_schema',
         schema: {
           type: 'object',
+          additionalProperties: false,
           properties: {
             name: { type: 'string' },
           },
@@ -4677,6 +4899,7 @@ describe('doGenerate', () => {
       {
         "format": {
           "schema": {
+            "additionalProperties": false,
             "properties": {
               "name": {
                 "type": "string",
@@ -4689,6 +4912,63 @@ describe('doGenerate', () => {
           },
           "type": "json_schema",
         },
+      }
+    `);
+  });
+
+  it('should sanitize unsupported JSON schema keywords for native structured output', async () => {
+    server.urls[newerAnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            content: [{ text: '{"labels":["Spring","Summer","Autumn"]}' }],
+            role: 'assistant',
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'end_turn',
+      },
+    };
+
+    await newerAnthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            labels: {
+              type: 'array',
+              maxItems: 3,
+              items: { type: 'string' },
+            },
+          },
+          required: ['labels'],
+          additionalProperties: false,
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.additionalModelRequestFields.output_config.format.schema)
+      .toMatchInlineSnapshot(`
+      {
+        "additionalProperties": false,
+        "properties": {
+          "labels": {
+            "description": "max items: 3.",
+            "items": {
+              "type": "string",
+            },
+            "type": "array",
+          },
+        },
+        "required": [
+          "labels",
+        ],
+        "type": "object",
       }
     `);
   });

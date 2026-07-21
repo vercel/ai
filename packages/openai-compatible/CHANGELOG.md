@@ -1,5 +1,25 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.62
+
+### Patch Changes
+
+- Updated dependencies [19093fd]
+  - @ai-sdk/provider-utils@4.0.40
+
+## 2.0.61
+
+### Patch Changes
+
+- 94fda5c: Preserve structured error data from chat completion SSE streams.
+
+## 2.0.60
+
+### Patch Changes
+
+- Updated dependencies [06fb54c]
+  - @ai-sdk/provider-utils@4.0.39
+
 ## 2.0.59
 
 ### Patch Changes

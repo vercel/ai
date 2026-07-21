@@ -1,5 +1,71 @@
 # ai
 
+## 6.0.233
+
+### Patch Changes
+
+- fe410e7: fix: detect MP4 audio from its ftyp box during transcription
+- af7188c: fix(ai): preserve tool parts when tool call IDs repeat across steps
+- Updated dependencies [a09f944]
+  - @ai-sdk/gateway@3.0.155
+
+## 6.0.232
+
+### Patch Changes
+
+- 7644a61: Preserve provider options when combining consecutive tool messages.
+
+## 6.0.231
+
+### Patch Changes
+
+- 926f5a0: Allow UI message chunks to include fields added by newer server versions.
+- 4c5a22f: Propagate abort reasons when generation is cancelled during tool execution.
+- 842a383: Prevent tools excluded by `activeTools` from being parsed or executed.
+- Updated dependencies [2dd1aab]
+- Updated dependencies [e567091]
+  - @ai-sdk/gateway@3.0.154
+
+## 6.0.230
+
+### Patch Changes
+
+- 19093fd: fix(ai): call `onInputStart` before `onInputAvailable` during non-streaming tool calls
+- Updated dependencies [19093fd]
+  - @ai-sdk/provider-utils@4.0.40
+  - @ai-sdk/gateway@3.0.153
+
+## 6.0.229
+
+### Patch Changes
+
+- Updated dependencies [49a3098]
+  - @ai-sdk/gateway@3.0.152
+
+## 6.0.228
+
+### Patch Changes
+
+- Updated dependencies [5e624ac]
+  - @ai-sdk/gateway@3.0.151
+
+## 6.0.227
+
+### Patch Changes
+
+- 6ace546: Fix chat `onFinish` handling when overlapping requests clear the active response before a resume stream finishes.
+
+## 6.0.226
+
+### Patch Changes
+
+- 94219a2: Allow validating assistant UI messages with empty parts so persisted errored responses remain loadable.
+- b1be847: Prevent pending tool executions from enqueueing results after a model stream error closes the result stream.
+- Updated dependencies [06fb54c]
+- Updated dependencies [bc46977]
+  - @ai-sdk/provider-utils@4.0.39
+  - @ai-sdk/gateway@3.0.150
+
 ## 6.0.225
 
 ### Patch Changes

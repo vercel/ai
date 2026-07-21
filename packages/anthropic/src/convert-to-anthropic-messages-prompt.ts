@@ -23,6 +23,7 @@ import {
   type AnthropicToolResultContent,
   type AnthropicUserMessage,
   type AnthropicWebFetchToolResultContent,
+  type Citation,
 } from './anthropic-messages-api';
 import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
 import { CacheControlValidator } from './get-cache-control';
@@ -507,7 +508,7 @@ export async function convertToAnthropicMessagesPrompt({
               case 'text': {
                 // Check if this is a compaction block (via providerMetadata)
                 const textMetadata = part.providerOptions?.anthropic as
-                  | { type?: string }
+                  | { type?: string; citations?: Citation[] }
                   | undefined;
 
                 if (textMetadata?.type === 'compaction') {
@@ -526,7 +527,9 @@ export async function convertToAnthropicMessagesPrompt({
                       isLastBlock && isLastMessage && isLastContentPart
                         ? part.text.trim()
                         : part.text,
-
+                    ...(textMetadata?.citations != null && {
+                      citations: textMetadata.citations,
+                    }),
                     cache_control: cacheControl,
                   });
                 }

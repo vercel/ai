@@ -67,6 +67,7 @@ import type { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
 import { extractReasoningContent } from './extract-reasoning-content';
 import { extractTextContent } from './extract-text-content';
+import { filterActiveTools } from './filter-active-tools';
 import type { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
 import { isApprovalNeeded } from './is-approval-needed';
@@ -684,6 +685,10 @@ export async function generateText<
         >();
 
         do {
+          if (steps.length > 0) {
+            mergedAbortSignal?.throwIfAborted();
+          }
+
           // Set up step timeout if configured
           const stepTimeoutId = setAbortTimeout({
             abortController: stepAbortController,
@@ -724,6 +729,10 @@ export async function generateText<
 
             const stepActiveTools =
               prepareStepResult?.activeTools ?? activeTools;
+            const stepToolSet = filterActiveTools({
+              tools,
+              activeTools: stepActiveTools,
+            });
 
             const { toolChoice: stepToolChoice, tools: stepTools } =
               await prepareToolsAndToolChoice({
@@ -916,7 +925,7 @@ export async function generateText<
                 .map(toolCall =>
                   parseToolCall({
                     toolCall,
-                    tools,
+                    tools: stepToolSet,
                     repairToolCall,
                     system,
                     messages: stepInputMessages,
@@ -934,7 +943,7 @@ export async function generateText<
                 continue; // ignore invalid tool calls
               }
 
-              const tool = tools?.[toolCall.toolName];
+              const tool = stepToolSet?.[toolCall.toolName];
 
               if (tool == null) {
                 // ignore tool calls for tools that are not available,
@@ -942,7 +951,16 @@ export async function generateText<
                 continue;
               }
 
-              if (tool?.onInputAvailable != null) {
+              if (tool.onInputStart != null) {
+                await tool.onInputStart({
+                  toolCallId: toolCall.toolCallId,
+                  messages: stepInputMessages,
+                  abortSignal: mergedAbortSignal,
+                  experimental_context,
+                });
+              }
+
+              if (tool.onInputAvailable != null) {
                 await tool.onInputAvailable({
                   input: toolCall.input,
                   toolCallId: toolCall.toolCallId,
@@ -1002,7 +1020,7 @@ export async function generateText<
               toolCall => !toolCall.providerExecuted,
             );
 
-            if (tools != null) {
+            if (stepToolSet != null) {
               clientToolOutputs.push(
                 ...(await executeTools({
                   toolCalls: clientToolCalls.filter(
@@ -1010,7 +1028,7 @@ export async function generateText<
                       !toolCall.invalid &&
                       toolApprovalRequests[toolCall.toolCallId] == null,
                   ),
-                  tools,
+                  tools: stepToolSet,
                   tracer,
                   telemetry,
                   messages: stepInputMessages,
@@ -1038,7 +1056,7 @@ export async function generateText<
             // the client tool's result is sent back.
             for (const toolCall of stepToolCalls) {
               if (!toolCall.providerExecuted) continue;
-              const tool = tools?.[toolCall.toolName];
+              const tool = stepToolSet?.[toolCall.toolName];
               if (tool?.type === 'provider' && tool.supportsDeferredResults) {
                 // Check if this tool call already has a result in the current response
                 const hasResultInResponse = currentModelResponse.content.some(
@@ -1067,14 +1085,14 @@ export async function generateText<
               toolCalls: stepToolCalls,
               toolOutputs: clientToolOutputs,
               toolApprovalRequests: Object.values(toolApprovalRequests),
-              tools,
+              tools: stepToolSet,
             });
 
             // append to messages for potential next step:
             responseMessages.push(
               ...(await toResponseMessages({
                 content: stepContent,
-                tools,
+                tools: stepToolSet,
               })),
             );
 

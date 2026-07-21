@@ -1,5 +1,17 @@
 # @ai-sdk/provider-utils
 
+## 4.0.40
+
+### Patch Changes
+
+- 19093fd: fix(ai): call `onInputStart` before `onInputAvailable` during non-streaming tool calls
+
+## 4.0.39
+
+### Patch Changes
+
+- 06fb54c: Accept callable Standard Schema validators that do not provide JSON Schema conversion.
+
 ## 4.0.38
 
 ### Patch Changes

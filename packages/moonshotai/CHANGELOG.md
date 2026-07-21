@@ -1,5 +1,34 @@
 # @ai-sdk/moonshotai
 
+## 2.0.39
+
+### Patch Changes
+
+- Updated dependencies [19093fd]
+  - @ai-sdk/provider-utils@4.0.40
+  - @ai-sdk/openai-compatible@2.0.62
+
+## 2.0.38
+
+### Patch Changes
+
+- 103056e: feat: add kimi-k3 model and `reasoningEffort` provider option
+
+## 2.0.37
+
+### Patch Changes
+
+- Updated dependencies [94fda5c]
+  - @ai-sdk/openai-compatible@2.0.61
+
+## 2.0.36
+
+### Patch Changes
+
+- Updated dependencies [06fb54c]
+  - @ai-sdk/provider-utils@4.0.39
+  - @ai-sdk/openai-compatible@2.0.60
+
 ## 2.0.35
 
 ### Patch Changes

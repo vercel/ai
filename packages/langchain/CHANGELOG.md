@@ -1,5 +1,64 @@
 # @ai-sdk/langchain
 
+## 2.0.241
+
+### Patch Changes
+
+- Updated dependencies [fe410e7]
+- Updated dependencies [af7188c]
+  - ai@6.0.233
+
+## 2.0.240
+
+### Patch Changes
+
+- Updated dependencies [7644a61]
+  - ai@6.0.232
+
+## 2.0.239
+
+### Patch Changes
+
+- Updated dependencies [926f5a0]
+- Updated dependencies [4c5a22f]
+- Updated dependencies [842a383]
+  - ai@6.0.231
+
+## 2.0.238
+
+### Patch Changes
+
+- c184a23: fix(langchain): close LangGraph reasoning before starting text
+- Updated dependencies [19093fd]
+  - ai@6.0.230
+
+## 2.0.237
+
+### Patch Changes
+
+- ai@6.0.229
+
+## 2.0.236
+
+### Patch Changes
+
+- ai@6.0.228
+
+## 2.0.235
+
+### Patch Changes
+
+- Updated dependencies [6ace546]
+  - ai@6.0.227
+
+## 2.0.234
+
+### Patch Changes
+
+- Updated dependencies [94219a2]
+- Updated dependencies [b1be847]
+  - ai@6.0.226
+
 ## 2.0.233
 
 ### Patch Changes

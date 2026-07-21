@@ -6,6 +6,7 @@ settings:
 
 overrides:
   tinyexec: 1.0.2
+  tar: 7.5.19
 
 importers:
 
@@ -66,58 +67,58 @@ importers:
   examples/ai-e2e-next:
     dependencies:
       '@ai-sdk/amazon-bedrock':
-        specifier: 4.0.134
+        specifier: 4.0.138
         version: link:../../packages/amazon-bedrock
       '@ai-sdk/anthropic':
-        specifier: 3.0.96
+        specifier: 3.0.99
         version: link:../../packages/anthropic
       '@ai-sdk/azure':
-        specifier: 3.0.88
+        specifier: 3.0.91
         version: link:../../packages/azure
       '@ai-sdk/cohere':
-        specifier: 3.0.47
+        specifier: 3.0.49
         version: link:../../packages/cohere
       '@ai-sdk/deepseek':
-        specifier: 2.0.47
+        specifier: 2.0.50
         version: link:../../packages/deepseek
       '@ai-sdk/fireworks':
-        specifier: 2.0.67
+        specifier: 2.0.70
         version: link:../../packages/fireworks
       '@ai-sdk/google':
-        specifier: 3.0.91
+        specifier: 3.0.98
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 4.0.159
+        specifier: 4.0.167
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
-        specifier: 3.0.51
+        specifier: 3.0.53
         version: link:../../packages/groq
       '@ai-sdk/mcp':
-        specifier: 1.0.61
+        specifier: 1.0.64
         version: link:../../packages/mcp
       '@ai-sdk/mistral':
-        specifier: 3.0.48
+        specifier: 3.0.51
         version: link:../../packages/mistral
       '@ai-sdk/openai':
-        specifier: 3.0.84
+        specifier: 3.0.86
         version: link:../../packages/openai
       '@ai-sdk/perplexity':
-        specifier: 3.0.45
+        specifier: 3.0.47
         version: link:../../packages/perplexity
       '@ai-sdk/provider-utils':
-        specifier: 4.0.38
+        specifier: 4.0.40
         version: link:../../packages/provider-utils
       '@ai-sdk/react':
-        specifier: 3.0.227
+        specifier: 3.0.235
         version: link:../../packages/react
       '@ai-sdk/rsc':
-        specifier: 2.0.225
+        specifier: 2.0.233
         version: link:../../packages/rsc
       '@ai-sdk/valibot':
-        specifier: 2.0.39
+        specifier: 2.0.41
         version: link:../../packages/valibot
       '@ai-sdk/xai':
-        specifier: 3.0.106
+        specifier: 3.0.111
         version: link:../../packages/xai
       '@modelcontextprotocol/sdk':
         specifier: ^1.26.0
@@ -138,7 +139,7 @@ importers:
         specifier: ^0.0.21
         version: 0.0.21
       ai:
-        specifier: 6.0.225
+        specifier: 6.0.233
         version: link:../../packages/ai
       class-variance-authority:
         specifier: ^0.7.1
@@ -410,10 +411,10 @@ importers:
   examples/angular:
     dependencies:
       '@ai-sdk/angular':
-        specifier: 2.0.226
+        specifier: 2.0.234
         version: link:../../packages/angular
       '@ai-sdk/openai':
-        specifier: 3.0.84
+        specifier: 3.0.86
         version: link:../../packages/openai
       '@angular/common':
         specifier: ^20.3.2
@@ -437,7 +438,7 @@ importers:
         specifier: ^20.3.2
         version: 20.3.17(@angular/common@20.3.17(@angular/core@20.3.17(@angular/compiler@20.3.17)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.17(@angular/compiler@20.3.17)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.17(@angular/common@20.3.17(@angular/core@20.3.17(@angular/compiler@20.3.17)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.17(@angular/compiler@20.3.17)(rxjs@7.8.2)(zone.js@0.15.1)))(rxjs@7.8.2)
       ai:
-        specifier: 6.0.225
+        specifier: 6.0.233
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -480,10 +481,10 @@ importers:
   examples/express:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.84
+        specifier: 3.0.86
         version: link:../../packages/openai
       ai:
-        specifier: 6.0.225
+        specifier: 6.0.233
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -508,10 +509,10 @@ importers:
   examples/fastify:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.84
+        specifier: 3.0.86
         version: link:../../packages/openai
       ai:
-        specifier: 6.0.225
+        specifier: 6.0.233
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -533,13 +534,13 @@ importers:
   examples/hono:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.84
+        specifier: 3.0.86
         version: link:../../packages/openai
       '@hono/node-server':
         specifier: 1.13.7
         version: 1.13.7(hono@4.6.9)
       ai:
-        specifier: 6.0.225
+        specifier: 6.0.233
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -561,13 +562,13 @@ importers:
   examples/mcp:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.84
+        specifier: 3.0.86
         version: link:../../packages/openai
       '@modelcontextprotocol/sdk':
         specifier: ^1.26.0
         version: 1.27.1(@cfworker/json-schema@4.1.1)(zod@3.25.76)
       ai:
-        specifier: 6.0.225
+        specifier: 6.0.233
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -598,7 +599,7 @@ importers:
   examples/nest:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.84
+        specifier: 3.0.86
         version: link:../../packages/openai
       '@nestjs/common':
         specifier: ^10.4.15
@@ -610,7 +611,7 @@ importers:
         specifier: ^10.4.9
         version: 10.4.22(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.22)
       ai:
-        specifier: 6.0.225
+        specifier: 6.0.233
         version: link:../../packages/ai
       reflect-metadata:
         specifier: ^0.2.0
@@ -668,13 +669,13 @@ importers:
   examples/next:
     dependencies:
       '@ai-sdk/react':
-        specifier: 3.0.227
+        specifier: 3.0.235
         version: link:../../packages/react
       '@vercel/blob':
         specifier: ^0.26.0
         version: 0.26.0
       ai:
-        specifier: 6.0.225
+        specifier: 6.0.233
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
@@ -723,16 +724,16 @@ importers:
   examples/next-agent:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.84
+        specifier: 3.0.86
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 3.0.227
+        specifier: 3.0.235
         version: link:../../packages/react
       '@vercel/blob':
         specifier: ^0.26.0
         version: 0.26.0
       ai:
-        specifier: 6.0.225
+        specifier: 6.0.233
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
@@ -778,10 +779,10 @@ importers:
   examples/next-fastapi:
     dependencies:
       '@ai-sdk/react':
-        specifier: 3.0.227
+        specifier: 3.0.235
         version: link:../../packages/react
       ai:
-        specifier: 6.0.225
+        specifier: 6.0.233
         version: link:../../packages/ai
       geist:
         specifier: ^1.3.1
@@ -824,10 +825,10 @@ importers:
   examples/next-google-vertex:
     dependencies:
       '@ai-sdk/google-vertex':
-        specifier: 4.0.159
+        specifier: 4.0.167
         version: link:../../packages/google-vertex
       ai:
-        specifier: 6.0.225
+        specifier: 6.0.233
         version: link:../../packages/ai
       geist:
         specifier: ^1.3.1
@@ -864,10 +865,10 @@ importers:
   examples/next-langchain:
     dependencies:
       '@ai-sdk/langchain':
-        specifier: 2.0.233
+        specifier: 2.0.241
         version: link:../../packages/langchain
       '@ai-sdk/react':
-        specifier: 3.0.227
+        specifier: 3.0.235
         version: link:../../packages/react
       '@langchain/core':
         specifier: ^1.1.5
@@ -882,7 +883,7 @@ importers:
         specifier: ^1.2.0
         version: 1.2.11(@langchain/core@1.1.29(@opentelemetry/api@1.9.0)(@opentelemetry/exporter-trace-otlp-proto@0.211.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.1(@opentelemetry/api@1.9.0))(openai@6.25.0(ws@8.18.0)(zod@3.25.76)))(ws@8.18.0)
       ai:
-        specifier: 6.0.225
+        specifier: 6.0.233
         version: link:../../packages/ai
       langchain:
         specifier: ^1.2.0
@@ -931,16 +932,16 @@ importers:
   examples/next-openai-kasada-bot-protection:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.84
+        specifier: 3.0.86
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 3.0.227
+        specifier: 3.0.235
         version: link:../../packages/react
       '@vercel/functions':
         specifier: ^3.1.0
         version: 3.4.3(@aws-sdk/credential-provider-web-identity@3.662.0(@aws-sdk/client-sts@3.662.0))
       ai:
-        specifier: 6.0.225
+        specifier: 6.0.233
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
@@ -980,13 +981,13 @@ importers:
   examples/next-openai-pages:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.84
+        specifier: 3.0.86
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 3.0.227
+        specifier: 3.0.235
         version: link:../../packages/react
       ai:
-        specifier: 6.0.225
+        specifier: 6.0.233
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
@@ -1026,10 +1027,10 @@ importers:
   examples/next-openai-telemetry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.84
+        specifier: 3.0.86
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 3.0.227
+        specifier: 3.0.235
         version: link:../../packages/react
       '@opentelemetry/api-logs':
         specifier: 0.55.0
@@ -1044,7 +1045,7 @@ importers:
         specifier: 1.10.0
         version: 1.10.0(@opentelemetry/api-logs@0.55.0)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/resources@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-logs@0.55.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.1(@opentelemetry/api@1.9.0))
       ai:
-        specifier: 6.0.225
+        specifier: 6.0.233
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
@@ -1084,10 +1085,10 @@ importers:
   examples/next-openai-telemetry-sentry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.84
+        specifier: 3.0.86
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 3.0.227
+        specifier: 3.0.235
         version: link:../../packages/react
       '@opentelemetry/api-logs':
         specifier: 0.55.0
@@ -1108,7 +1109,7 @@ importers:
         specifier: 1.10.0
         version: 1.10.0(@opentelemetry/api-logs@0.55.0)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/resources@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-logs@0.55.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@2.5.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.1(@opentelemetry/api@1.9.0))
       ai:
-        specifier: 6.0.225
+        specifier: 6.0.233
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
@@ -1148,10 +1149,10 @@ importers:
   examples/next-openai-upstash-rate-limits:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.84
+        specifier: 3.0.86
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 3.0.227
+        specifier: 3.0.235
         version: link:../../packages/react
       '@upstash/ratelimit':
         specifier: ^0.4.3
@@ -1160,7 +1161,7 @@ importers:
         specifier: ^0.2.2
         version: 0.2.4
       ai:
-        specifier: 6.0.225
+        specifier: 6.0.233
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
@@ -1200,10 +1201,10 @@ importers:
   examples/node-http-server:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.84
+        specifier: 3.0.86
         version: link:../../packages/openai
       ai:
-        specifier: 6.0.225
+        specifier: 6.0.233
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -1225,13 +1226,13 @@ importers:
   examples/nuxt-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.84
+        specifier: 3.0.86
         version: link:../../packages/openai
       '@ai-sdk/vue':
-        specifier: 3.0.225
+        specifier: 3.0.233
         version: link:../../packages/vue
       ai:
-        specifier: 6.0.225
+        specifier: 6.0.233
         version: link:../../packages/ai
       zod:
         specifier: 3.25.76
@@ -1280,13 +1281,13 @@ importers:
   examples/sveltekit-openai:
     devDependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.84
+        specifier: 3.0.86
         version: link:../../packages/openai
       '@ai-sdk/provider-utils':
-        specifier: 4.0.38
+        specifier: 4.0.40
         version: link:../../packages/provider-utils
       '@ai-sdk/svelte':
-        specifier: 4.0.225
+        specifier: 4.0.233
         version: link:../../packages/svelte
       '@sveltejs/adapter-vercel':
         specifier: ^6.3.3
@@ -1301,7 +1302,7 @@ importers:
         specifier: 22.19.19
         version: 22.19.19
       ai:
-        specifier: 6.0.225
+        specifier: 6.0.233
         version: link:../../packages/ai
       autoprefixer:
         specifier: ^10.4.20
@@ -12016,10 +12017,6 @@ packages:
     resolution: {integrity: sha512-TQMmc3w+5AxjpL8iIiwebF73dRDF4fBIieAqGn9RGCWaEVwQ6Fb2cGe31Yns0RRIzii5goJ1Y7xbMwo1TxMplw==}
     engines: {node: '>= 20.19.0'}
 
-  chownr@2.0.0:
-    resolution: {integrity: sha512-bIomtDF5KGpdogkLd9VspvFzk9KfpyyGlS8YFVZl7TGPBHL5snIOnxeshwVgPteQ9b4Eydl+pVbIyE1DcvCWgQ==}
-    engines: {node: '>=10'}
-
   chownr@3.0.0:
     resolution: {integrity: sha512-+IxzY9BZOQd/XuYPRmrvEVjF/nqj5kgT4kEq7VofrDoM1MxoRjEWkrCC3EtLi59TVawxTAn+orJwFQcrqEN1+g==}
     engines: {node: '>=18'}
@@ -13733,10 +13730,6 @@ packages:
   fs-extra@9.1.0:
     resolution: {integrity: sha512-hcg3ZmepS30/7BSFqRvoo3DOMQu7IjqxO5nCDt+zM9XWjb33Wg7ziNT+Qvqbuc3+gWpzO02JubVyk2G4Zvo1OQ==}
     engines: {node: '>=10'}
-
-  fs-minipass@2.1.0:
-    resolution: {integrity: sha512-V/JgOLFCS+R6Vcq0slCuaeWEdNC3ouDlJMNIsacH2VtALiu9mV4LPrHc5cDl8k5aw6J8jwgWWpiTo5RYhmIzvg==}
-    engines: {node: '>= 8'}
 
   fs-minipass@3.0.3:
     resolution: {integrity: sha512-XUBA9XClHbnJWSfBzjkm6RvPsyg3sryZt06BEQoXcF7EK/xpGaQYJgQKDJSUH5SGZ76Y7pFx1QBnXz09rU5Fbw==}
@@ -15965,10 +15958,6 @@ packages:
     resolution: {integrity: sha512-DxiNidxSEK+tHG6zOIklvNOwm3hvCrbUrdtzY74U6HKTJxvIDfOUL5W5P2Ghd3DTkhhKPYGqeNUIh5qcM4YBfw==}
     engines: {node: '>=8'}
 
-  minipass@5.0.0:
-    resolution: {integrity: sha512-3FnjYuehv9k6ovOEbyOswadCDPX1piCfhV8ncmYtHOjuPwylVWsghTLo7rabjC3Rx5xD4HDx8Wm1xnMF7S5qFQ==}
-    engines: {node: '>=8'}
-
   minipass@7.1.2:
     resolution: {integrity: sha512-qOOzS1cBTWYF4BH8fVePDBOO9iptMnGUEZwNc/cMWnTV2nVLZ7VoNWEPHkYczZA0pdoA7dl6e7FL659nX9S2aw==}
     engines: {node: '>=16 || 14 >=14.17'}
@@ -15976,14 +15965,6 @@ packages:
   minipass@7.1.3:
     resolution: {integrity: sha512-tEBHqDnIoM/1rXME1zgka9g6Q2lcoCkxHLuc7ODJ5BxbP5d4c2Z5cGgtXAku59200Cx7diuHTOYfSBD8n6mm8A==}
     engines: {node: '>=16 || 14 >=14.17'}
-
-  minizlib@2.1.2:
-    resolution: {integrity: sha512-bAxsR8BVfj60DWXHE3u30oHzfl4G7khkSuPW+qvpd7jFRHm7dLxOjUk1EHACJ/hxLY8phGJ0YhYHZo7jil7Qdg==}
-    engines: {node: '>= 8'}
-
-  minizlib@3.0.1:
-    resolution: {integrity: sha512-umcy022ILvb5/3Djuu8LWeqUa8D68JaBzlttKeMWen48SjabqS3iY5w/vzeMzMUNhLDifyhbOwKDSznB1vvrwg==}
-    engines: {node: '>= 18'}
 
   minizlib@3.1.0:
     resolution: {integrity: sha512-KZxYo1BUkWD2TVFLr0MQoM8vUUigWD3LlD83a/75BqC+4qE0Hb1Vo5v1FgcfaNXvfXzr+5EhQ6ing/CaBijTlw==}
@@ -15994,16 +15975,6 @@ packages:
 
   mkdirp@0.5.6:
     resolution: {integrity: sha512-FP+p8RB8OWpF3YZBCrP5gtADmtXApB5AMLn+vdyA+PyxCjrCs00mjyUozssO33cwDeT3wNGdLxJ5M//YqtHAJw==}
-    hasBin: true
-
-  mkdirp@1.0.4:
-    resolution: {integrity: sha512-vVqVZQyf3WLx2Shd0qJ9xuvqgAyKPLAiqITEtqW0oIUjzo3PePDd6fW9iFz30ef7Ysp/oiWqbhszeGWW2T6Gzw==}
-    engines: {node: '>=10'}
-    hasBin: true
-
-  mkdirp@3.0.1:
-    resolution: {integrity: sha512-+NsyUUAZDmo6YVHzL/stxSu3t9YS1iljliy3BSDrXJ/dkn1KYdmtZODGGjLcc9XLgVVpH4KshHB8XmZgMhaBXg==}
-    engines: {node: '>=10'}
     hasBin: true
 
   mlly@1.7.2:
@@ -18628,18 +18599,8 @@ packages:
   tar-stream@3.1.7:
     resolution: {integrity: sha512-qJj60CXt7IU1Ffyc3NJMjh6EkuCFej46zUqJ4J7pqYlThyd9bO0XBTmcOIhSzZJVWfsLks0+nle/j538YAW9RQ==}
 
-  tar@6.2.1:
-    resolution: {integrity: sha512-DZ4yORTwrbTj/7MZYq2w+/ZFdI6OZ/f9SFHR+71gIVUZhOQPHzVCLpvRnPgyaMpfWxxk/4ONva3GQSyNIKRv6A==}
-    engines: {node: '>=10'}
-    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
-
-  tar@7.4.3:
-    resolution: {integrity: sha512-5S7Va8hKfV7W5U6g3aYxXmlPoZVAwUMy9AOKyF2fVuZa2UD3qZjg578OrLRt8PcNN1PleVaL/5/yYATNL0ICUw==}
-    engines: {node: '>=18'}
-    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
-
-  tar@7.5.9:
-    resolution: {integrity: sha512-BTLcK0xsDh2+PUe9F6c2TlRp4zOOBMTkoQHQIWSIzI0R7KG46uEwq4OPk2W7bZcprBMsuaeFsqwYr7pjh6CuHg==}
+  tar@7.5.19:
+    resolution: {integrity: sha512-4LeEWl96twnS2Q7Bz4MGqgazLqO+hJN63GZxXoIqh1T3VweYD997gbU1ItNsQafqqXTXd5WFyFdReLtwvRBNiw==}
     engines: {node: '>=18'}
 
   term-img@6.0.0:
@@ -25299,7 +25260,7 @@ snapshots:
       open: 10.2.0
       package-manager-detector: 1.4.0
       stacktrace-parser: 0.1.10
-      tar: 7.4.3
+      tar: 7.5.19
       winston: 3.19.0
       winston-console-format: 1.0.8
       yaml: 2.7.0
@@ -25459,7 +25420,7 @@ snapshots:
       npmlog: 5.0.1
       rimraf: 3.0.2
       semver: 7.6.3
-      tar: 6.2.1
+      tar: 7.5.19
     transitivePeerDependencies:
       - encoding
       - supports-color
@@ -25472,7 +25433,7 @@ snapshots:
       node-fetch: 2.7.0(encoding@0.1.13)
       nopt: 8.1.0
       semver: 7.7.4
-      tar: 7.5.9
+      tar: 7.5.19
     transitivePeerDependencies:
       - encoding
       - supports-color
@@ -31239,8 +31200,6 @@ snapshots:
     dependencies:
       readdirp: 5.0.0
 
-  chownr@2.0.0: {}
-
   chownr@3.0.0: {}
 
   chrome-trace-event@1.0.4: {}
@@ -33302,10 +33261,6 @@ snapshots:
       jsonfile: 6.1.0
       universalify: 2.0.1
 
-  fs-minipass@2.1.0:
-    dependencies:
-      minipass: 3.3.6
-
   fs-minipass@3.0.3:
     dependencies:
       minipass: 7.1.3
@@ -33453,7 +33408,7 @@ snapshots:
       nypm: 0.3.12
       ohash: 1.1.4
       pathe: 1.1.2
-      tar: 6.2.1
+      tar: 7.5.19
 
   git-config-path@2.0.0: {}
 
@@ -36363,21 +36318,9 @@ snapshots:
     dependencies:
       yallist: 4.0.0
 
-  minipass@5.0.0: {}
-
   minipass@7.1.2: {}
 
   minipass@7.1.3: {}
-
-  minizlib@2.1.2:
-    dependencies:
-      minipass: 3.3.6
-      yallist: 4.0.0
-
-  minizlib@3.0.1:
-    dependencies:
-      minipass: 7.1.2
-      rimraf: 5.0.10
 
   minizlib@3.1.0:
     dependencies:
@@ -36388,10 +36331,6 @@ snapshots:
   mkdirp@0.5.6:
     dependencies:
       minimist: 1.2.8
-
-  mkdirp@1.0.4: {}
-
-  mkdirp@3.0.1: {}
 
   mlly@1.7.2:
     dependencies:
@@ -36849,7 +36788,7 @@ snapshots:
       nopt: 9.0.0
       proc-log: 6.1.0
       semver: 7.7.2
-      tar: 7.5.9
+      tar: 7.5.19
       tinyglobby: 0.2.15
       which: 6.0.1
     transitivePeerDependencies:
@@ -37427,7 +37366,7 @@ snapshots:
       promise-retry: 2.0.1
       sigstore: 4.1.0
       ssri: 13.0.1
-      tar: 7.5.9
+      tar: 7.5.19
     transitivePeerDependencies:
       - supports-color
 
@@ -39893,25 +39832,7 @@ snapshots:
       fast-fifo: 1.3.2
       streamx: 2.15.4
 
-  tar@6.2.1:
-    dependencies:
-      chownr: 2.0.0
-      fs-minipass: 2.1.0
-      minipass: 5.0.0
-      minizlib: 2.1.2
-      mkdirp: 1.0.4
-      yallist: 4.0.0
-
-  tar@7.4.3:
-    dependencies:
-      '@isaacs/fs-minipass': 4.0.1
-      chownr: 3.0.0
-      minipass: 7.1.2
-      minizlib: 3.0.1
-      mkdirp: 3.0.1
-      yallist: 5.0.0
-
-  tar@7.5.9:
+  tar@7.5.19:
     dependencies:
       '@isaacs/fs-minipass': 4.0.1
       chownr: 3.0.0

@@ -5,14 +5,17 @@ import {
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
+  cancelResponseBody,
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
   delay,
+  extractResponseHeaders,
   type FetchFunction,
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
+  type ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
@@ -363,6 +366,10 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
       });
     }
 
+    if (!isExtension && xaiOptions?.user !== undefined) {
+      body.user = xaiOptions.user;
+    }
+
     if (xaiOptions != null) {
       for (const [key, value] of Object.entries(xaiOptions)) {
         if (
@@ -373,6 +380,7 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
             'resolution',
             'videoUrl',
             'referenceImageUrls',
+            'user',
           ].includes(key)
         ) {
           body[key] = value;
@@ -433,9 +441,7 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
         await getFromApi({
           url: `${baseURL}/videos/${requestId}`,
           headers: combineHeaders(this.config.headers(), options.headers),
-          successfulResponseHandler: createJsonResponseHandler(
-            xaiVideoStatusResponseSchema,
-          ),
+          successfulResponseHandler: xaiVideoStatusResponseHandler,
           failedResponseHandler: xaiFailedResponseHandler,
           abortSignal: options.abortSignal,
           fetch: this.config.fetch,
@@ -541,3 +547,23 @@ const xaiVideoStatusResponseSchema = z.object({
     })
     .nullish(),
 });
+
+const xaiVideoStatusJsonResponseHandler = createJsonResponseHandler(
+  xaiVideoStatusResponseSchema,
+);
+
+const xaiVideoStatusResponseHandler: ResponseHandler<
+  z.infer<typeof xaiVideoStatusResponseSchema>
+> = async options => {
+  if (options.response.status === 202) {
+    const responseHeaders = extractResponseHeaders(options.response);
+    await cancelResponseBody(options.response);
+
+    return {
+      responseHeaders,
+      value: { status: 'pending' },
+    };
+  }
+
+  return xaiVideoStatusJsonResponseHandler(options);
+};

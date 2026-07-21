@@ -279,6 +279,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       isKnownModel,
     } = getModelCapabilities(this.modelId);
 
+    if (!isKnownModel && maxOutputTokens == null) {
+      warnings.push({
+        type: 'compatibility',
+        feature: 'maxOutputTokens',
+        details:
+          `The model "${this.modelId}" is unknown. ` +
+          `The max output tokens have been limited to ${maxOutputTokensForModel}. ` +
+          `Set maxOutputTokens explicitly to override this limit.`,
+      });
+    }
+
     if (rejectsSamplingParameters) {
       if (temperature != null) {
         warnings.push({
@@ -333,6 +344,19 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             inputSchema: responseFormat.schema,
           }
         : undefined;
+
+    if (
+      jsonResponseTool != null &&
+      anthropicOptions?.disableParallelToolUse === false
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.anthropic.disableParallelToolUse',
+        details:
+          '`disableParallelToolUse: false` is ignored when using the JSON response tool. ' +
+          'Parallel tool use is disabled to ensure a single coherent JSON tool call.',
+      });
+    }
 
     const contextManagement = anthropicOptions?.contextManagement;
 
@@ -873,7 +897,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       switch (part.type) {
         case 'text': {
           if (!usesJsonResponseTool) {
-            content.push({ type: 'text', text: part.text });
+            const webSearchCitations = part.citations?.filter(
+              citation => citation.type === 'web_search_result_location',
+            );
+
+            content.push({
+              type: 'text',
+              text: part.text,
+              ...(webSearchCitations != null &&
+                webSearchCitations.length > 0 && {
+                  providerMetadata: {
+                    anthropic: {
+                      citations: webSearchCitations,
+                    },
+                  },
+                }),
+            });
 
             // Process citations if present
             if (part.citations) {
@@ -1456,7 +1495,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             toolId?: string;
           };
         }
-      | { type: 'text' | 'reasoning' }
+      | { type: 'text'; citations: Citation[] }
+      | { type: 'reasoning' }
     > = {};
     const mcpToolCalls: Record<string, LanguageModelV3ToolCall> = {};
     const serverToolCalls: Record<string, string> = {}; // tool_use_id -> provider tool name
@@ -1538,7 +1578,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     return;
                   }
 
-                  contentBlocks[value.index] = { type: 'text' };
+                  contentBlocks[value.index] = {
+                    type: 'text',
+                    citations: [],
+                  };
                   controller.enqueue({
                     type: 'text-start',
                     id: String(value.index),
@@ -1570,7 +1613,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 }
 
                 case 'compaction': {
-                  contentBlocks[value.index] = { type: 'text' };
+                  contentBlocks[value.index] = {
+                    type: 'text',
+                    citations: [],
+                  };
                   controller.enqueue({
                     type: 'text-start',
                     id: String(value.index),
@@ -1590,7 +1636,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   if (isJsonResponseTool) {
                     isJsonResponseFromTool = true;
 
-                    contentBlocks[value.index] = { type: 'text' };
+                    contentBlocks[value.index] = {
+                      type: 'text',
+                      citations: [],
+                    };
 
                     controller.enqueue({
                       type: 'text-start',
@@ -2049,6 +2098,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     controller.enqueue({
                       type: 'text-end',
                       id: String(value.index),
+                      ...(contentBlock.citations.length > 0 && {
+                        providerMetadata: {
+                          anthropic: {
+                            citations: contentBlock.citations,
+                          },
+                        },
+                      }),
                     });
                     break;
                   }
@@ -2239,6 +2295,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
                 case 'citations_delta': {
                   const citation = value.delta.citation;
+                  const contentBlock = contentBlocks[value.index];
+
+                  if (
+                    contentBlock?.type === 'text' &&
+                    citation.type === 'web_search_result_location'
+                  ) {
+                    contentBlock.citations.push(citation);
+                  }
+
                   const source = createCitationSource(
                     citation,
                     citationDocuments,
