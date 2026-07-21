@@ -553,7 +553,8 @@ If you e.g. have a transformation that changes all text to uppercase, the `onEnd
 #### Smoothing streams
 
 The AI SDK Core provides a [`smoothStream` function](/docs/reference/ai-sdk-core/smooth-stream) that
-can be used to smooth out text and reasoning streaming.
+can be used to smooth out text and reasoning streaming. You can separately opt
+in to smoothing streamed tool inputs with `toolInputSmoothing`.
 
 ```tsx highlight="6"
 import { smoothStream, streamText } from 'ai';
@@ -562,6 +563,17 @@ const result = streamText({
   model,
   prompt,
   experimental_transform: smoothStream(),
+});
+```
+
+```tsx highlight="6-8"
+const result = streamText({
+  model,
+  prompt,
+  tools,
+  experimental_transform: smoothStream({
+    toolInputSmoothing: {},
+  }),
 });
 ```
 

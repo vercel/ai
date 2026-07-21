@@ -1,6 +1,6 @@
 ---
 title: smoothStream
-description: Stream transformer for smoothing text and reasoning output
+description: Stream transformer for smoothing text, reasoning, and tool input output
 ---
 
 # `smoothStream()`
@@ -8,7 +8,8 @@ description: Stream transformer for smoothing text and reasoning output
 `smoothStream` is a utility function that creates a TransformStream
 for the `streamText` `transform` option
 to smooth out text and reasoning streaming by buffering and releasing complete chunks with configurable delays.
-This creates a more natural reading experience when streaming text and reasoning responses.
+It can also opt in to smoothing streamed tool inputs.
+This creates a more natural experience when displaying streaming model output.
 
 ```ts highlight={"6-9"}
 import { smoothStream, streamText } from 'ai';
@@ -47,8 +48,69 @@ const result = streamText({
       description:
         'Controls how text and reasoning content is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, an Intl.Segmenter for locale-aware word segmentation (recommended for CJK languages), or provide a custom callback or RegExp pattern for custom chunking.',
     },
+    {
+      name: 'toolInputSmoothing',
+      type: '{ chunking?: "character" | RegExp | ChunkDetector; include?: ReadonlyArray<string>; exclude?: ReadonlyArray<string> }',
+      isOptional: true,
+      description:
+        'Opts in to smoothing tool input deltas. Tool inputs are streamed character by character by default. Use include to smooth only selected tools and exclude to opt selected tools out. exclude takes precedence over include.',
+    },
   ]}
 />
+
+### Smoothing tool inputs
+
+Tool input smoothing is disabled by default. Enable it with
+`toolInputSmoothing`. The default `character` chunking emits one Unicode code
+point at a time and works with partial JSON that is not valid until the tool
+call is complete.
+
+```ts highlight={"10-13"}
+import { smoothStream, streamText } from 'ai';
+
+const result = streamText({
+  model,
+  prompt: 'Check the weather in London.',
+  tools: {
+    weather,
+    uploadFile,
+  },
+  experimental_transform: smoothStream({
+    toolInputSmoothing: {
+      exclude: ['uploadFile'],
+    },
+  }),
+});
+```
+
+Use a regular expression or custom chunk detector when character-by-character
+streaming is too fine-grained:
+
+```ts
+smoothStream({
+  toolInputSmoothing: {
+    chunking: /[:,}\]]/,
+  },
+});
+```
+
+The emitted `tool-input-delta` strings always concatenate to the original
+provider input. `tool-input-start` and `tool-input-end` lifecycle events are
+preserved.
+
+<Note>
+  Smoothing can only subdivide tool input deltas after the provider sends them.
+  It cannot make a provider start streaming tool input earlier. Delaying many
+  small chunks also delays tool input callbacks, completed tool calls, tool
+  execution, and stream completion. Adjust `delayInMs` or the tool input
+  chunking strategy for large inputs.
+</Note>
+
+<Note>
+  Partial tool input is untrusted and may be invalid JSON. Enabling smoothing
+  can expose it to rendering, logging, and callbacks in more events before the
+  complete tool input is validated.
+</Note>
 
 #### Word chunking caveats with non-latin languages
 
@@ -139,7 +201,7 @@ smoothStream({
 
 Returns a `TransformStream` that:
 
-- Buffers incoming text and reasoning chunks
+- Buffers incoming text, reasoning, and enabled tool input chunks
 - Releases content when the chunking pattern is encountered
 - Adds configurable delays between chunks for smooth output
-- Passes through non-text/reasoning chunks (like tool calls, step-finish events) immediately
+- Passes through other chunks (like tool calls and step-finish events) immediately
