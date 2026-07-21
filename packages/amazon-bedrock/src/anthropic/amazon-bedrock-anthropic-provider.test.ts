@@ -25,7 +25,9 @@ vi.mock('@ai-sdk/provider-utils', async () => {
       if (settingName === 'secretAccessKey') return 'mock-secret-key';
       return settingValue;
     }),
-    withoutTrailingSlash: vi.fn().mockImplementation(url => url),
+    withoutTrailingSlash: vi
+      .fn()
+      .mockImplementation(url => url?.replace(/\/$/, '')),
     withUserAgentSuffix: vi.fn().mockImplementation((headers, suffix) => ({
       ...headers,
       'user-agent': suffix,
@@ -141,6 +143,22 @@ describe('amazon-bedrock-anthropic-provider', () => {
       expect.anything(),
       expect.objectContaining({
         baseURL: customBaseURL,
+      }),
+    );
+  });
+
+  it('resolves the Bedrock Runtime endpoint for an AWS ISO region', () => {
+    const provider = createAmazonBedrockAnthropic({
+      region: 'us-iso-east-1',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    provider('test-model-id');
+
+    expect(AnthropicLanguageModel).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        baseURL: 'https://bedrock-runtime.us-iso-east-1.c2s.ic.gov',
       }),
     );
   });

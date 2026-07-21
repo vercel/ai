@@ -11,6 +11,7 @@ import {
   createApiKeyFetchFunction,
   createSigV4FetchFunction,
 } from './amazon-bedrock-sigv4-fetch';
+import { AmazonBedrockRerankingModel } from './reranking/amazon-bedrock-reranking-model';
 
 // Add type assertions for the mocked classes
 const AmazonBedrockChatLanguageModelMock =
@@ -18,6 +19,8 @@ const AmazonBedrockChatLanguageModelMock =
 const AmazonBedrockEmbeddingModelMock =
   AmazonBedrockEmbeddingModel as unknown as Mock;
 const AmazonBedrockImageModelMock = AmazonBedrockImageModel as unknown as Mock;
+const AmazonBedrockRerankingModelMock =
+  AmazonBedrockRerankingModel as unknown as Mock;
 
 vi.mock('./amazon-bedrock-chat-language-model', () => ({
   AmazonBedrockChatLanguageModel: vi.fn(),
@@ -29,6 +32,10 @@ vi.mock('./amazon-bedrock-embedding-model', () => ({
 
 vi.mock('./amazon-bedrock-image-model', () => ({
   AmazonBedrockImageModel: vi.fn(),
+}));
+
+vi.mock('./reranking/amazon-bedrock-reranking-model', () => ({
+  AmazonBedrockRerankingModel: vi.fn(),
 }));
 
 vi.mock('./amazon-bedrock-sigv4-fetch', () => ({
@@ -55,7 +62,7 @@ vi.mock('@ai-sdk/provider-utils', async importOriginal => {
     loadOptionalSetting: vi
       .fn()
       .mockImplementation(({ settingValue }) => settingValue),
-    withoutTrailingSlash: vi.fn(url => url),
+    withoutTrailingSlash: vi.fn(url => url?.replace(/\/$/, '')),
     generateId: vi.fn().mockReturnValue('mock-id'),
     createJsonErrorResponseHandler: vi.fn(),
     createJsonResponseHandler: vi.fn(),
@@ -121,16 +128,61 @@ describe('AmazonBedrockProvider', () => {
       expect(constructorCall[1].baseUrl()).toBe('https://custom.url');
     });
 
-    it('should resolve the Bedrock Runtime endpoint for an AWS ISO region', () => {
-      const provider = createAmazonBedrock({
-        region: 'us-iso-east-1',
-      });
+    it.each([
+      ['cn-north-1', 'amazonaws.com.cn'],
+      ['us-iso-east-1', 'c2s.ic.gov'],
+      ['us-isob-east-1', 'sc2s.sgov.gov'],
+    ])('resolves the Bedrock Runtime endpoint for %s', (region, dnsSuffix) => {
+      const provider = createAmazonBedrock({ region });
 
       provider('anthropic.claude-v2');
 
       const constructorCall = AmazonBedrockChatLanguageModelMock.mock.calls[0];
       expect(constructorCall[1].baseUrl()).toBe(
-        'https://bedrock-runtime.us-iso-east-1.c2s.ic.gov',
+        `https://bedrock-runtime.${region}.${dnsSuffix}`,
+      );
+    });
+
+    it('uses the service-specific Bedrock Runtime endpoint override', () => {
+      mockLoadOptionalSetting.mockImplementation(
+        ({ settingValue, environmentVariableName }) =>
+          environmentVariableName === 'AWS_ENDPOINT_URL_BEDROCK_RUNTIME'
+            ? 'https://runtime.example.com/'
+            : settingValue,
+      );
+
+      const provider = createAmazonBedrock({
+        region: 'us-east-1',
+      });
+
+      provider('anthropic.claude-v2');
+
+      const constructorCall = AmazonBedrockChatLanguageModelMock.mock.calls[0];
+      expect(constructorCall[1].baseUrl()).toBe('https://runtime.example.com');
+    });
+
+    it('uses a separate service-specific endpoint for Bedrock Agent Runtime', () => {
+      mockLoadOptionalSetting.mockImplementation(
+        ({ settingValue, environmentVariableName }) => {
+          if (environmentVariableName === 'AWS_ENDPOINT_URL_BEDROCK_RUNTIME') {
+            return 'https://runtime.example.com';
+          }
+          if (
+            environmentVariableName === 'AWS_ENDPOINT_URL_BEDROCK_AGENT_RUNTIME'
+          ) {
+            return 'https://agent-runtime.example.com';
+          }
+          return settingValue;
+        },
+      );
+
+      const provider = createAmazonBedrock({ region: 'us-east-1' });
+
+      provider.reranking('amazon.rerank-v1:0');
+
+      const constructorCall = AmazonBedrockRerankingModelMock.mock.calls[0];
+      expect(constructorCall[1].baseUrl()).toBe(
+        'https://agent-runtime.example.com',
       );
     });
 
