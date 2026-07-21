@@ -130,7 +130,7 @@ const providerMetadataEntrySchema = z.object({}).catchall(z.unknown());
 const gatewayArtifactDataSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('url'),
-    url: z.string(),
+    url: z.url(),
     mediaType: z.string(),
     filename: z.string().optional(),
     role: z.string().optional(),

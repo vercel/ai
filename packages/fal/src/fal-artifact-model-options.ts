@@ -13,6 +13,12 @@ export const falArtifactModelOptionsSchema = lazySchema(() =>
 
       /** Maximum time to wait for the accepted Fal job to complete. */
       pollTimeoutMs: z.number().positive().nullish(),
+
+      /**
+       * Input format for Hunyuan smart-topology requests. Inferred from the
+       * input filename, URL, or media type when possible.
+       */
+      inputFileType: z.enum(['glb', 'obj']).nullish(),
     }),
   ),
 );

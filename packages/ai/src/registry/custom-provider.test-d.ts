@@ -179,6 +179,47 @@ describe('customProvider autocomplete / literal model identifiers', () => {
   });
 });
 
+describe('customProvider explicit generic compatibility', () => {
+  it('preserves the historical video model generic position', () => {
+    const provider = customProvider<
+      { language: LanguageModelV4 },
+      { embedding: EmbeddingModelV4 },
+      { image: ImageModelV4 },
+      { transcription: TranscriptionModelV4 },
+      { speech: SpeechModelV4 },
+      { reranking: RerankingModelV4 },
+      { video: Experimental_VideoModelV4 }
+    >({
+      languageModels: { language: new MockLanguageModelV4() },
+      embeddingModels: { embedding: new MockEmbeddingModelV4() },
+      imageModels: { image: new MockImageModelV4() },
+      transcriptionModels: {
+        transcription: new MockTranscriptionModelV4(),
+      },
+      speechModels: { speech: new MockSpeechModelV4() },
+      rerankingModels: { reranking: new MockRerankingModelV4() },
+      videoModels: { video: new MockVideoModelV4() },
+    });
+
+    expectTypeOf(
+      provider.videoModel('video'),
+    ).toEqualTypeOf<Experimental_VideoModelV4>();
+  });
+
+  it('infers artifact model identifiers from the new trailing generic', () => {
+    const provider = customProvider({
+      artifactModels: { artifact: new MockArtifactModelV4() },
+    });
+
+    type ArtifactIdentifier = Parameters<(typeof provider)['artifactModel']>[0];
+
+    expectTypeOf<ArtifactIdentifier>().toEqualTypeOf<'artifact'>();
+    expectTypeOf(
+      provider.artifactModel('artifact'),
+    ).toEqualTypeOf<Experimental_ArtifactModelV4>();
+  });
+});
+
 describe('customProvider with older model versions', () => {
   it('accepts v2 and v3 models while returning v4 models', () => {
     const provider = customProvider({

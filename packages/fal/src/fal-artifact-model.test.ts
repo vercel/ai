@@ -16,6 +16,18 @@ const modelFile = {
   file_size: 1024,
 };
 
+const imageInput = (name: string) => ({
+  type: 'url' as const,
+  url: `https://example.com/${name}.png`,
+  mediaType: 'image/png',
+});
+
+const artifactInput = (name: string) => ({
+  type: 'url' as const,
+  url: `https://example.com/${name}.glb`,
+  mediaType: 'model/gltf-binary',
+});
+
 function createModel({
   modelId = 'tripo3d/h3.1/text-to-3d',
   headers,
@@ -255,8 +267,341 @@ describe('FalArtifactModel', () => {
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       input_file_url: 'https://example.com/source.glb',
+      input_file_type: 'glb',
     });
   });
+
+  it('accepts an inferred 3D file type for remeshing', async () => {
+    await createModel({ modelId: 'fal-ai/meshy/v5/remesh' }).doGenerate({
+      ...defaultOptions,
+      inputs: [
+        {
+          type: 'file',
+          data: new Uint8Array([1, 2, 3]),
+          mediaType: 'application/x-fbx',
+          filename: 'source.fbx',
+        },
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model_url: 'data:application/x-fbx;base64,AQID',
+    });
+  });
+
+  it.each([
+    {
+      name: 'GLB from a filename',
+      input: {
+        type: 'url' as const,
+        url: 'https://example.com/download/model',
+        filename: 'source.glb',
+        mediaType: 'application/octet-stream',
+      },
+      expectedInputFileType: 'glb',
+    },
+    {
+      name: 'OBJ from its media type',
+      input: {
+        type: 'url' as const,
+        url: 'https://example.com/download/model',
+        mediaType: 'model/obj',
+      },
+      expectedInputFileType: 'obj',
+    },
+    {
+      name: 'OBJ from a filename with a generic text media type',
+      input: {
+        type: 'url' as const,
+        url: 'https://example.com/download/model',
+        filename: 'source.obj',
+        mediaType: 'text/plain',
+      },
+      expectedInputFileType: 'obj',
+    },
+  ])(
+    'infers smart-topology $name',
+    async ({ input, expectedInputFileType }) => {
+      await createModel({
+        modelId: 'fal-ai/hunyuan-3d/v3.1/smart-topology',
+      }).doGenerate({
+        ...defaultOptions,
+        inputs: [input],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        input_file_url: 'https://example.com/download/model',
+        input_file_type: expectedInputFileType,
+      });
+    },
+  );
+
+  it('uses an explicit smart-topology input type for an opaque URL', async () => {
+    await createModel({
+      modelId: 'fal-ai/hunyuan-3d/v3.1/smart-topology',
+    }).doGenerate({
+      ...defaultOptions,
+      inputs: [{ type: 'url', url: 'https://example.com/download/model' }],
+      providerOptions: { fal: { inputFileType: 'obj' } },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      input_file_url: 'https://example.com/download/model',
+      input_file_type: 'obj',
+    });
+  });
+
+  it.each([
+    {
+      name: 'an unsupported FBX input',
+      input: {
+        type: 'url' as const,
+        url: 'https://example.com/source.fbx?download=1',
+        mediaType: 'application/x-fbx',
+      },
+      providerOptions: undefined,
+      argument: 'inputs',
+    },
+    {
+      name: 'an ambiguous opaque input',
+      input: {
+        type: 'url' as const,
+        url: 'https://example.com/download/model',
+      },
+      providerOptions: undefined,
+      argument: 'providerOptions.fal.inputFileType',
+    },
+    {
+      name: 'an explicit type that conflicts with the input',
+      input: {
+        type: 'url' as const,
+        url: 'https://example.com/source.glb',
+        mediaType: 'model/gltf-binary',
+      },
+      providerOptions: { fal: { inputFileType: 'obj' as const } },
+      argument: 'providerOptions.fal.inputFileType',
+    },
+    {
+      name: 'conflicting filename and media type metadata',
+      input: {
+        type: 'url' as const,
+        url: 'https://example.com/download/model',
+        filename: 'source.glb',
+        mediaType: 'model/obj',
+      },
+      providerOptions: undefined,
+      argument: 'inputs',
+    },
+  ])(
+    'rejects smart-topology with $name before dispatch',
+    async ({ input, providerOptions, argument }) => {
+      let fetchCalls = 0;
+      const model = createModel({
+        modelId: 'fal-ai/hunyuan-3d/v3.1/smart-topology',
+        fetch: async () => {
+          fetchCalls++;
+          return Response.json({});
+        },
+      });
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          inputs: [input],
+          ...(providerOptions != null ? { providerOptions } : {}),
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        argument,
+      });
+      expect(fetchCalls).toBe(0);
+    },
+  );
+
+  it('can pass a generated opaque artifact into remeshing', async () => {
+    server.urls[
+      'https://queue.fal.run/tripo3d/h3.1/text-to-3d/requests/text-request'
+    ].response = {
+      type: 'json-value',
+      body: {
+        model_mesh: {
+          url: 'https://fal.media/files/model.fbx',
+          content_type: 'application/octet-stream',
+          file_name: 'model.fbx',
+        },
+      },
+    };
+
+    const generated = await createModel().doGenerate({
+      ...defaultOptions,
+      prompt: 'A chair',
+    });
+    const generatedArtifact = generated.artifacts[0];
+
+    expect(generatedArtifact.type).toBe('url');
+    if (generatedArtifact.type !== 'url') {
+      throw new Error('Expected a URL artifact');
+    }
+
+    await createModel({ modelId: 'fal-ai/meshy/v5/remesh' }).doGenerate({
+      ...defaultOptions,
+      inputs: [generatedArtifact],
+    });
+
+    const remeshSubmission = server.calls.find(
+      call =>
+        call.requestMethod === 'POST' &&
+        call.requestUrl === 'https://queue.fal.run/fal-ai/meshy/v5/remesh',
+    );
+    expect(await remeshSubmission?.requestBodyJson).toStrictEqual({
+      model_url: 'https://fal.media/files/model.fbx',
+    });
+  });
+
+  it.each([
+    {
+      name: 'text-to-3D without a prompt',
+      modelId: 'tripo3d/h3.1/text-to-3d',
+      prompt: undefined,
+      inputs: undefined,
+      argument: 'prompt',
+    },
+    {
+      name: 'text-to-3D with a file input',
+      modelId: 'tripo3d/h3.1/text-to-3d',
+      prompt: 'A chair',
+      inputs: [imageInput('front')],
+      argument: 'inputs',
+    },
+    {
+      name: 'image-to-3D without an input',
+      modelId: 'tripo3d/h3.1/image-to-3d',
+      prompt: undefined,
+      inputs: undefined,
+      argument: 'inputs',
+    },
+    {
+      name: 'image-to-3D with multiple inputs',
+      modelId: 'tripo3d/h3.1/image-to-3d',
+      prompt: undefined,
+      inputs: [imageInput('front'), imageInput('back')],
+      argument: 'inputs',
+    },
+    {
+      name: 'image-to-3D with a prompt',
+      modelId: 'tripo3d/h3.1/image-to-3d',
+      prompt: 'A chair',
+      inputs: [imageInput('front')],
+      argument: 'prompt',
+    },
+    {
+      name: 'image-to-3D with a model input',
+      modelId: 'tripo3d/h3.1/image-to-3d',
+      prompt: undefined,
+      inputs: [artifactInput('source')],
+      argument: 'inputs',
+    },
+    {
+      name: 'multiview-to-3D with one input',
+      modelId: 'tripo3d/h3.1/multiview-to-3d',
+      prompt: undefined,
+      inputs: [imageInput('front')],
+      argument: 'inputs',
+    },
+    {
+      name: 'multiview-to-3D with five inputs',
+      modelId: 'tripo3d/h3.1/multiview-to-3d',
+      prompt: undefined,
+      inputs: [
+        imageInput('front'),
+        imageInput('back'),
+        imageInput('left'),
+        imageInput('right'),
+        imageInput('top'),
+      ],
+      argument: 'inputs',
+    },
+    {
+      name: 'multiview-to-3D with a model input',
+      modelId: 'tripo3d/h3.1/multiview-to-3d',
+      prompt: undefined,
+      inputs: [imageInput('front'), artifactInput('source')],
+      argument: 'inputs',
+    },
+    {
+      name: 'remesh without an input',
+      modelId: 'fal-ai/meshy/v5/remesh',
+      prompt: undefined,
+      inputs: undefined,
+      argument: 'inputs',
+    },
+    {
+      name: 'remesh with multiple inputs',
+      modelId: 'fal-ai/meshy/v5/remesh',
+      prompt: undefined,
+      inputs: [artifactInput('first'), artifactInput('second')],
+      argument: 'inputs',
+    },
+    {
+      name: 'remesh with an image input',
+      modelId: 'fal-ai/meshy/v5/remesh',
+      prompt: undefined,
+      inputs: [imageInput('source')],
+      argument: 'inputs',
+    },
+    {
+      name: 'smart-topology without an input',
+      modelId: 'fal-ai/hunyuan-3d/v3.1/smart-topology',
+      prompt: undefined,
+      inputs: undefined,
+      argument: 'inputs',
+    },
+    {
+      name: 'smart-topology with multiple inputs',
+      modelId: 'fal-ai/hunyuan-3d/v3.1/smart-topology',
+      prompt: undefined,
+      inputs: [artifactInput('first'), artifactInput('second')],
+      argument: 'inputs',
+    },
+    {
+      name: 'smart-topology with an image input',
+      modelId: 'fal-ai/hunyuan-3d/v3.1/smart-topology',
+      prompt: undefined,
+      inputs: [imageInput('source')],
+      argument: 'inputs',
+    },
+    {
+      name: 'smart-topology with a prompt',
+      modelId: 'fal-ai/hunyuan-3d/v3.1/smart-topology',
+      prompt: 'Retopologize this model',
+      inputs: [artifactInput('source')],
+      argument: 'prompt',
+    },
+  ])(
+    'rejects $name before dispatch',
+    async ({ modelId, prompt, inputs, argument }) => {
+      let fetchCalls = 0;
+      const model = createModel({
+        modelId,
+        fetch: async () => {
+          fetchCalls++;
+          return Response.json({});
+        },
+      });
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          prompt,
+          inputs,
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        argument,
+      });
+      expect(fetchCalls).toBe(0);
+    },
+  );
 
   it('polls through explicit progress responses until completion', async () => {
     let pollCount = 0;
@@ -404,13 +749,34 @@ describe('FalArtifactModel', () => {
     });
   });
 
+  it('rejects a malformed artifact URL after the job is accepted', async () => {
+    server.urls[
+      'https://queue.fal.run/tripo3d/h3.1/text-to-3d/requests/text-request'
+    ].response = {
+      type: 'json-value',
+      body: {
+        model_mesh: {
+          ...modelFile,
+          url: 'not-an-absolute-url',
+        },
+      },
+    };
+
+    await expect(
+      createModel().doGenerate({ ...defaultOptions, prompt: 'A chair' }),
+    ).rejects.toMatchObject({
+      jobAccepted: true,
+      requestId: 'text-request',
+    });
+  });
+
   it('supports model_glb response shapes', async () => {
     const remesh = await createModel({
       modelId: 'fal-ai/meshy/v5/remesh',
-    }).doGenerate(defaultOptions);
+    }).doGenerate({ ...defaultOptions, inputs: [artifactInput('source')] });
     const topology = await createModel({
       modelId: 'fal-ai/hunyuan-3d/v3.1/smart-topology',
-    }).doGenerate(defaultOptions);
+    }).doGenerate({ ...defaultOptions, inputs: [artifactInput('source')] });
 
     expect(remesh.artifacts).toHaveLength(1);
     expect(remesh.artifacts[0]).toMatchObject({ role: 'model_glb' });

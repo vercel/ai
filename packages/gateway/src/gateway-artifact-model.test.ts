@@ -264,6 +264,36 @@ describe('GatewayArtifactModel', () => {
     ).rejects.toThrow();
   });
 
+  it.each(['SSE', 'JSON'])(
+    'rejects a malformed artifact URL from %s',
+    async format => {
+      const artifacts = [
+        {
+          type: 'url',
+          url: 'not-an-absolute-url',
+          mediaType: 'model/gltf-binary',
+        },
+      ];
+
+      server.urls['https://api.test.com/artifact-model'].response =
+        format === 'SSE'
+          ? {
+              type: 'stream-chunks',
+              chunks: [
+                `data: ${JSON.stringify({ type: 'result', artifacts })}\n\n`,
+              ],
+            }
+          : {
+              type: 'json-value',
+              body: { artifacts },
+            };
+
+      await expect(
+        createTestModel().doGenerate(defaultOptions),
+      ).rejects.toThrow();
+    },
+  );
+
   it('throws on an empty SSE stream', async () => {
     server.urls['https://api.test.com/artifact-model'].response = {
       type: 'stream-chunks',

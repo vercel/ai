@@ -263,6 +263,127 @@ describe('experimental_generateArtifact', () => {
     });
   });
 
+  it('downloads URL artifacts sequentially and preserves their order', async () => {
+    let activeDownloads = 0;
+    let maxActiveDownloads = 0;
+
+    const download = vi.fn(async ({ url }: { url: URL }) => {
+      activeDownloads++;
+      maxActiveDownloads = Math.max(maxActiveDownloads, activeDownloads);
+      await Promise.resolve();
+      activeDownloads--;
+
+      return {
+        data: new Uint8Array([Number(url.pathname.at(-5))]),
+        mediaType: 'model/gltf-binary',
+      };
+    });
+
+    const result = await experimental_generateArtifact({
+      model: new MockArtifactModelV4({
+        doGenerate: async () =>
+          createMockResponse({
+            artifacts: [1, 2, 3].map(index => ({
+              type: 'url' as const,
+              url: `https://example.com/model-${index}.glb`,
+              mediaType: 'model/gltf-binary',
+            })),
+          }),
+      }),
+      prompt: 'a chair',
+      download,
+    });
+
+    expect(maxActiveDownloads).toBe(1);
+    expect(download.mock.calls.map(([{ url }]) => url.pathname)).toStrictEqual([
+      '/model-1.glb',
+      '/model-2.glb',
+      '/model-3.glb',
+    ]);
+    expect(result.artifacts.map(artifact => artifact.uint8Array[0])).toEqual([
+      1, 2, 3,
+    ]);
+  });
+
+  const mediaTypeCases: Array<{
+    name: string;
+    providerMediaType: string;
+    downloadedMediaType: string | undefined;
+    filename: string | undefined;
+    url: string;
+    data: Uint8Array;
+    expectedMediaType: string;
+  }> = [
+    {
+      name: 'prefers a specific provider media type',
+      providerMediaType: 'model/gltf-binary',
+      downloadedMediaType: 'model/obj',
+      filename: 'model.stl',
+      url: 'https://example.com/download',
+      data: new Uint8Array([0x89, 0x50, 0x4e, 0x47]),
+      expectedMediaType: 'model/gltf-binary',
+    },
+    {
+      name: 'uses the downloaded media type when the provider type is generic',
+      providerMediaType: 'application/octet-stream',
+      downloadedMediaType: 'model/obj',
+      filename: 'model.glb',
+      url: 'https://example.com/download',
+      data: new Uint8Array([0x89, 0x50, 0x4e, 0x47]),
+      expectedMediaType: 'model/obj',
+    },
+    {
+      name: 'infers the media type from the filename when explicit types are generic',
+      providerMediaType: 'application/octet-stream',
+      downloadedMediaType: 'application/octet-stream',
+      filename: 'MODEL.GLB',
+      url: 'https://example.com/download',
+      data: new Uint8Array([0x89, 0x50, 0x4e, 0x47]),
+      expectedMediaType: 'model/gltf-binary',
+    },
+    {
+      name: 'infers the media type from content when no filename type is available',
+      providerMediaType: 'application/octet-stream',
+      downloadedMediaType: undefined,
+      filename: undefined,
+      url: 'https://example.com/download',
+      data: new Uint8Array([0x89, 0x50, 0x4e, 0x47]),
+      expectedMediaType: 'image/png',
+    },
+  ];
+
+  it.each(mediaTypeCases)(
+    '$name',
+    async ({
+      providerMediaType,
+      downloadedMediaType,
+      filename,
+      url,
+      data,
+      expectedMediaType,
+    }) => {
+      const result = await experimental_generateArtifact({
+        model: new MockArtifactModelV4({
+          doGenerate: async () =>
+            createMockResponse({
+              artifacts: [
+                {
+                  type: 'url',
+                  url,
+                  mediaType: providerMediaType,
+                  ...(filename != null ? { filename } : {}),
+                },
+              ],
+            }),
+        }),
+        prompt: 'a chair',
+        download: async () => ({ data, mediaType: downloadedMediaType }),
+      });
+
+      expect(result.artifact.mediaType).toBe(expectedMediaType);
+    },
+  );
+
   it('throws NoArtifactGeneratedError with response metadata', async () => {
     const promise = experimental_generateArtifact({
       model: new MockArtifactModelV4({

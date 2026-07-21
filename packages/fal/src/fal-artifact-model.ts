@@ -4,6 +4,7 @@ import {
   type Experimental_ArtifactModelV4 as ArtifactModelV4,
   type Experimental_ArtifactModelV4ArtifactData,
   type Experimental_ArtifactModelV4File,
+  InvalidArgumentError,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -58,10 +59,18 @@ export class FalArtifactModel implements ArtifactModelV4 {
       schema: falArtifactModelOptionsSchema,
     })) as FalArtifactModelOptions | undefined;
 
+    const smartTopologyInputFileType = validateKnownModelCall({
+      modelId: this.modelId,
+      prompt: options.prompt,
+      inputs: options.inputs,
+      falOptions,
+    });
+
     const body = this.getRequestBody({
       prompt: options.prompt,
       inputs: options.inputs,
       falOptions,
+      smartTopologyInputFileType,
     });
     const submitUrl = this.config.url({
       path: `https://queue.fal.run/${this.modelId}`,
@@ -196,10 +205,12 @@ export class FalArtifactModel implements ArtifactModelV4 {
     prompt,
     inputs,
     falOptions,
+    smartTopologyInputFileType,
   }: {
     prompt: string | undefined;
     inputs: Experimental_ArtifactModelV4File[] | undefined;
     falOptions: FalArtifactModelOptions | undefined;
+    smartTopologyInputFileType: SmartTopologyInputFileType | undefined;
   }): Record<string, unknown> {
     const body: Record<string, unknown> = {};
     const inputUrls = inputs?.map(toFalFileUrl) ?? [];
@@ -246,6 +257,12 @@ export class FalArtifactModel implements ArtifactModelV4 {
           body[toSnakeCase(key)] = value;
         }
       }
+    }
+
+    // Do not rely on Fal's default of GLB. An inferred or explicitly declared
+    // type is validated against the actual input before any request is sent.
+    if (smartTopologyInputFileType != null) {
+      body.input_file_type = smartTopologyInputFileType;
     }
 
     return body;
@@ -364,7 +381,7 @@ const falArtifactStatusResponseSchema = z.object({
 });
 
 const falFileSchema = z.object({
-  url: z.string(),
+  url: z.url(),
   content_type: z.string().nullish(),
   file_name: z.string().nullish(),
   file_size: z.number().nullish(),
@@ -446,4 +463,350 @@ function toFileMetadata(file: FalFile): Record<string, string | number> {
 
 function toSnakeCase(value: string): string {
   return value.replace(/[A-Z]/g, character => `_${character.toLowerCase()}`);
+}
+
+function validateKnownModelCall({
+  modelId,
+  prompt,
+  inputs,
+  falOptions,
+}: {
+  modelId: FalArtifactModelId;
+  prompt: string | undefined;
+  inputs: Experimental_ArtifactModelV4File[] | undefined;
+  falOptions: FalArtifactModelOptions | undefined;
+}): SmartTopologyInputFileType | undefined {
+  const inputCount = inputs?.length ?? 0;
+  const hasPrompt = prompt != null && prompt.trim().length > 0;
+
+  if (modelId.endsWith('/text-to-3d')) {
+    if (!hasPrompt) {
+      throw new InvalidArgumentError({
+        argument: 'prompt',
+        message: `Fal artifact model "${modelId}" requires a non-empty prompt.`,
+      });
+    }
+
+    if (inputCount > 0) {
+      throw new InvalidArgumentError({
+        argument: 'inputs',
+        message: `Fal artifact model "${modelId}" does not accept file inputs.`,
+      });
+    }
+
+    return;
+  }
+
+  if (modelId.endsWith('/image-to-3d')) {
+    validateNoPrompt({ modelId, hasPrompt });
+    validateInputCount({ modelId, inputCount, minimum: 1, maximum: 1 });
+    validateInputMediaTypes({ modelId, inputs, expectedTopLevelType: 'image' });
+    return;
+  }
+
+  if (modelId.endsWith('/multiview-to-3d')) {
+    validateNoPrompt({ modelId, hasPrompt });
+    validateInputCount({ modelId, inputCount, minimum: 2, maximum: 4 });
+    validateInputMediaTypes({ modelId, inputs, expectedTopLevelType: 'image' });
+    return;
+  }
+
+  if (modelId.endsWith('/remesh')) {
+    validateNoPrompt({ modelId, hasPrompt });
+    validateInputCount({ modelId, inputCount, minimum: 1, maximum: 1 });
+    validateInputMediaTypes({ modelId, inputs, expectedTopLevelType: 'model' });
+    return;
+  }
+
+  if (modelId.endsWith('/smart-topology')) {
+    validateNoPrompt({ modelId, hasPrompt });
+    validateInputCount({ modelId, inputCount, minimum: 1, maximum: 1 });
+
+    return resolveSmartTopologyInputFileType({
+      modelId,
+      input: inputs?.[0],
+      falOptions,
+    });
+  }
+}
+
+function validateNoPrompt({
+  modelId,
+  hasPrompt,
+}: {
+  modelId: FalArtifactModelId;
+  hasPrompt: boolean;
+}): void {
+  if (hasPrompt) {
+    throw new InvalidArgumentError({
+      argument: 'prompt',
+      message: `Fal artifact model "${modelId}" does not accept a text prompt.`,
+    });
+  }
+}
+
+function validateInputCount({
+  modelId,
+  inputCount,
+  minimum,
+  maximum,
+}: {
+  modelId: FalArtifactModelId;
+  inputCount: number;
+  minimum: number;
+  maximum: number;
+}): void {
+  if (inputCount < minimum || inputCount > maximum) {
+    const expected =
+      minimum === maximum
+        ? `exactly ${minimum}`
+        : `between ${minimum} and ${maximum}`;
+
+    throw new InvalidArgumentError({
+      argument: 'inputs',
+      message: `Fal artifact model "${modelId}" requires ${expected} file input${maximum === 1 ? '' : 's'}; received ${inputCount}.`,
+    });
+  }
+}
+
+function validateInputMediaTypes({
+  modelId,
+  inputs,
+  expectedTopLevelType,
+}: {
+  modelId: FalArtifactModelId;
+  inputs: Experimental_ArtifactModelV4File[] | undefined;
+  expectedTopLevelType: 'image' | 'model';
+}): void {
+  const invalidInput = inputs?.find(input => {
+    if (input.mediaType == null) {
+      return false;
+    }
+
+    const mediaType = input.mediaType.toLowerCase().split(';', 1)[0].trim();
+
+    if (expectedTopLevelType === 'image') {
+      return !mediaType.startsWith('image/');
+    }
+
+    return !(
+      mediaType.startsWith('model/') ||
+      mediaType === 'application/octet-stream' ||
+      (has3DFileExtension(input) &&
+        !/^(audio|image|text|video)\//.test(mediaType))
+    );
+  });
+
+  if (invalidInput != null) {
+    throw new InvalidArgumentError({
+      argument: 'inputs',
+      message: `Fal artifact model "${modelId}" requires ${expectedTopLevelType} file inputs, but received media type "${invalidInput.mediaType}".`,
+    });
+  }
+}
+
+function has3DFileExtension(file: Experimental_ArtifactModelV4File): boolean {
+  const paths = [file.filename, file.type === 'url' ? file.url : undefined];
+
+  return paths.some(path =>
+    ['.fbx', '.glb', '.gltf', '.obj', '.stl', '.usdz'].some(extension =>
+      path?.toLowerCase().split(/[?#]/, 1)[0].endsWith(extension),
+    ),
+  );
+}
+
+type SmartTopologyInputFileType = 'glb' | 'obj';
+
+type SmartTopologyFormatEvidence =
+  | { type: 'supported'; format: SmartTopologyInputFileType }
+  | { type: 'unsupported'; format: string };
+
+function resolveSmartTopologyInputFileType({
+  modelId,
+  input,
+  falOptions,
+}: {
+  modelId: FalArtifactModelId;
+  input: Experimental_ArtifactModelV4File | undefined;
+  falOptions: FalArtifactModelOptions | undefined;
+}): SmartTopologyInputFileType {
+  // The input count is validated before this helper is called.
+  if (input == null) {
+    throw new InvalidArgumentError({
+      argument: 'inputs',
+      message: `Fal artifact model "${modelId}" requires a GLB or OBJ input.`,
+    });
+  }
+
+  const explicitInputFileType = getExplicitSmartTopologyInputFileType({
+    modelId,
+    falOptions,
+  });
+  const evidence = collectSmartTopologyFormatEvidence(input);
+  const unsupportedEvidence = evidence.find(
+    item => item.type === 'unsupported',
+  );
+
+  if (unsupportedEvidence != null) {
+    throw new InvalidArgumentError({
+      argument: 'inputs',
+      message: `Fal artifact model "${modelId}" only accepts GLB or OBJ inputs, but the input indicates "${unsupportedEvidence.format}".`,
+    });
+  }
+
+  const inferredFormats = new Set(
+    evidence
+      .filter(
+        (
+          item,
+        ): item is Extract<
+          SmartTopologyFormatEvidence,
+          { type: 'supported' }
+        > => item.type === 'supported',
+      )
+      .map(item => item.format),
+  );
+
+  if (inferredFormats.size > 1) {
+    throw new InvalidArgumentError({
+      argument: 'inputs',
+      message: `Fal artifact model "${modelId}" received conflicting GLB and OBJ input metadata.`,
+    });
+  }
+
+  const inferredInputFileType = inferredFormats.values().next().value;
+
+  if (
+    explicitInputFileType != null &&
+    inferredInputFileType != null &&
+    explicitInputFileType !== inferredInputFileType
+  ) {
+    throw new InvalidArgumentError({
+      argument: 'providerOptions.fal.inputFileType',
+      message: `Fal artifact model "${modelId}" received inputFileType "${explicitInputFileType}" for an input identified as "${inferredInputFileType}".`,
+    });
+  }
+
+  if (explicitInputFileType != null) {
+    return explicitInputFileType;
+  }
+
+  if (inferredInputFileType != null) {
+    return inferredInputFileType;
+  }
+
+  throw new InvalidArgumentError({
+    argument: 'providerOptions.fal.inputFileType',
+    message: `Fal artifact model "${modelId}" could not determine whether the input is GLB or OBJ. Set providerOptions.fal.inputFileType explicitly.`,
+  });
+}
+
+function getExplicitSmartTopologyInputFileType({
+  modelId,
+  falOptions,
+}: {
+  modelId: FalArtifactModelId;
+  falOptions: FalArtifactModelOptions | undefined;
+}): SmartTopologyInputFileType | undefined {
+  const camelCaseValue = falOptions?.inputFileType;
+  const snakeCaseValue = falOptions?.input_file_type;
+
+  if (
+    snakeCaseValue != null &&
+    snakeCaseValue !== 'glb' &&
+    snakeCaseValue !== 'obj'
+  ) {
+    throw new InvalidArgumentError({
+      argument: 'providerOptions.fal.input_file_type',
+      message: `Fal artifact model "${modelId}" only supports input_file_type values "glb" and "obj".`,
+    });
+  }
+
+  if (
+    camelCaseValue != null &&
+    snakeCaseValue != null &&
+    camelCaseValue !== snakeCaseValue
+  ) {
+    throw new InvalidArgumentError({
+      argument: 'providerOptions.fal.inputFileType',
+      message: `Fal artifact model "${modelId}" received conflicting inputFileType and input_file_type options.`,
+    });
+  }
+
+  if (camelCaseValue != null) {
+    return camelCaseValue;
+  }
+
+  return snakeCaseValue === 'glb' || snakeCaseValue === 'obj'
+    ? snakeCaseValue
+    : undefined;
+}
+
+function collectSmartTopologyFormatEvidence(
+  input: Experimental_ArtifactModelV4File,
+): SmartTopologyFormatEvidence[] {
+  const evidence: SmartTopologyFormatEvidence[] = [];
+  const mediaTypeEvidence = getSmartTopologyMediaTypeEvidence(input.mediaType);
+
+  if (mediaTypeEvidence != null) {
+    evidence.push(mediaTypeEvidence);
+  }
+
+  const paths = [input.filename, input.type === 'url' ? input.url : undefined];
+  for (const path of paths) {
+    const pathEvidence = getSmartTopologyPathEvidence(path);
+    if (pathEvidence != null) {
+      evidence.push(pathEvidence);
+    }
+  }
+
+  return evidence;
+}
+
+function getSmartTopologyMediaTypeEvidence(
+  mediaType: string | undefined,
+): SmartTopologyFormatEvidence | undefined {
+  const normalizedMediaType = mediaType?.toLowerCase().split(';', 1)[0].trim();
+
+  if (normalizedMediaType === 'model/gltf-binary') {
+    return { type: 'supported', format: 'glb' };
+  }
+
+  if (normalizedMediaType === 'model/obj') {
+    return { type: 'supported', format: 'obj' };
+  }
+
+  if (
+    normalizedMediaType != null &&
+    normalizedMediaType !== 'application/octet-stream' &&
+    (normalizedMediaType.startsWith('model/') ||
+      /^(audio|image|video)\//.test(normalizedMediaType) ||
+      normalizedMediaType === 'application/x-fbx')
+  ) {
+    return { type: 'unsupported', format: normalizedMediaType };
+  }
+
+  return undefined;
+}
+
+function getSmartTopologyPathEvidence(
+  path: string | undefined,
+): SmartTopologyFormatEvidence | undefined {
+  const normalizedPath = path?.toLowerCase().split(/[?#]/, 1)[0];
+
+  if (normalizedPath?.endsWith('.glb')) {
+    return { type: 'supported', format: 'glb' };
+  }
+
+  if (normalizedPath?.endsWith('.obj')) {
+    return { type: 'supported', format: 'obj' };
+  }
+
+  const unsupportedExtension = ['.fbx', '.gltf', '.stl', '.usdz'].find(
+    extension => normalizedPath?.endsWith(extension),
+  );
+
+  return unsupportedExtension == null
+    ? undefined
+    : { type: 'unsupported', format: unsupportedExtension.slice(1) };
 }

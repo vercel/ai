@@ -5,6 +5,7 @@ import type {
 } from '@ai-sdk/provider';
 import {
   detectMediaType,
+  isFullMediaType,
   withUserAgentSuffix,
   type DataContent,
   type ProviderOptions,
@@ -151,34 +152,51 @@ export async function experimental_generateArtifact({
     throw new NoArtifactGeneratedError({ responses });
   }
 
-  const artifacts: Array<GeneratedArtifact> = await Promise.all(
-    result.artifacts.map(async artifactData => {
-      switch (artifactData.type) {
-        case 'url': {
-          const { data } = await downloadFn({
-            url: new URL(artifactData.url),
-            abortSignal,
-          });
+  const artifacts: Array<GeneratedArtifact> = [];
 
-          return new DefaultGeneratedArtifact({
+  for (const artifactData of result.artifacts) {
+    switch (artifactData.type) {
+      case 'url': {
+        const url = new URL(artifactData.url);
+        const { data, mediaType: downloadedMediaType } = await downloadFn({
+          url,
+          abortSignal,
+        });
+
+        const mediaType =
+          (isSpecificMediaType(artifactData.mediaType) &&
+            artifactData.mediaType) ||
+          (isSpecificMediaType(downloadedMediaType) && downloadedMediaType) ||
+          inferArtifactMediaTypeFromFilename(
+            artifactData.filename ?? url.pathname,
+          ) ||
+          detectMediaType({ data }) ||
+          'application/octet-stream';
+
+        artifacts.push(
+          new DefaultGeneratedArtifact({
             data,
-            mediaType: artifactData.mediaType,
+            mediaType,
             filename: artifactData.filename,
             role: artifactData.role,
-          });
-        }
+          }),
+        );
+        break;
+      }
 
-        case 'base64':
-        case 'binary':
-          return new DefaultGeneratedArtifact({
+      case 'base64':
+      case 'binary':
+        artifacts.push(
+          new DefaultGeneratedArtifact({
             data: artifactData.data,
             mediaType: artifactData.mediaType,
             filename: artifactData.filename,
             role: artifactData.role,
-          });
-      }
-    }),
-  );
+          }),
+        );
+        break;
+    }
+  }
 
   if (result.warnings.length > 0) {
     logWarnings({
@@ -269,4 +287,40 @@ function isInputWithMetadata(
     !(input instanceof ArrayBuffer) &&
     'data' in input
   );
+}
+
+const ARTIFACT_EXTENSION_TO_MEDIA_TYPE: Record<string, string> = {
+  glb: 'model/gltf-binary',
+  gltf: 'model/gltf+json',
+  mtl: 'model/mtl',
+  obj: 'model/obj',
+  stl: 'model/stl',
+  usdz: 'model/vnd.usdz+zip',
+};
+
+function isSpecificMediaType(
+  mediaType: string | undefined,
+): mediaType is string {
+  if (mediaType == null) {
+    return false;
+  }
+
+  const normalizedMediaType = mediaType.split(';', 1)[0].trim().toLowerCase();
+
+  return (
+    normalizedMediaType !== 'application/octet-stream' &&
+    isFullMediaType(normalizedMediaType)
+  );
+}
+
+function inferArtifactMediaTypeFromFilename(
+  filename: string,
+): string | undefined {
+  const filenameWithoutQuery = filename.split(/[?#]/, 1)[0];
+  const extension = filenameWithoutQuery.split('.').pop()?.toLowerCase();
+
+  return extension != null &&
+    Object.hasOwn(ARTIFACT_EXTENSION_TO_MEDIA_TYPE, extension)
+    ? ARTIFACT_EXTENSION_TO_MEDIA_TYPE[extension]
+    : undefined;
 }

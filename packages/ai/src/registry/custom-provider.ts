@@ -64,11 +64,14 @@ export function customProvider<
   TRANSCRIPTION_MODELS extends Record<string, TranscriptionModel>,
   SPEECH_MODELS extends Record<string, SpeechModel>,
   RERANKING_MODELS extends Record<string, RerankingModel>,
-  ARTIFACT_MODELS extends Record<string, ArtifactModel>,
   VIDEO_MODELS extends Record<string, VideoModel>,
   FILES extends FilesV4 | undefined = undefined,
   SKILLS extends SkillsV4 | undefined = undefined,
   FALLBACK extends ProviderV2 | ProviderV3 | ProviderV4 | undefined = undefined,
+  ARTIFACT_MODELS extends Record<string, ArtifactModel> = Record<
+    string,
+    ArtifactModel
+  >,
 >({
   languageModels,
   embeddingModels,

@@ -223,12 +223,16 @@ Supported operation shapes include:
 | `tripo3d/h3.1/image-to-3d`              | One image                  |
 | `tripo3d/h3.1/multiview-to-3d`          | Two to four ordered images |
 | `fal-ai/meshy/v5/remesh`                | One existing 3D model      |
-| `fal-ai/hunyuan-3d/v3.1/smart-topology` | One existing 3D model      |
+| `fal-ai/hunyuan-3d/v3.1/smart-topology` | One GLB or OBJ model       |
 
 Fal returns long-running artifact requests through its queue API. Poll interval,
 poll timeout, mesh quality, topology, texture, and endpoint-specific controls can
 be supplied in `providerOptions.fal`. The provider continues polling an accepted
 job without resubmitting it.
+
+For smart topology, the provider infers `inputFileType` from GLB/OBJ filenames,
+URLs, and media types. Set `providerOptions.fal.inputFileType` to `glb` or `obj`
+when the input URL and metadata do not identify the format.
 
 ## Transcription Models
 
