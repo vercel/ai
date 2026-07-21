@@ -969,7 +969,6 @@ describe('convertToLanguageModelPrompt', () => {
     it('should preserve provider options at tool message boundaries when combining consecutive tool messages', async () => {
       const result = await convertToLanguageModelPrompt({
         prompt: {
-          instructions: undefined,
           messages: [
             {
               role: 'assistant',
