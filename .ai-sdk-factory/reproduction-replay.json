@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 17556,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-17556-tar-cve.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-17556-tar-cve.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "CVE-2026-59873 reproduced: pnpm-lock.yaml resolves vulnerable tar versions 6.2.1, 7.4.3, 7.5.9; expected tar@7.5.19 or later."
+  }
+}
