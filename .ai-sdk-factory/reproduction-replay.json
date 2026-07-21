@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 16298,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-16298-gemini3-parallel-tool-calls.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-16298-gemini3-parallel-tool-calls.ts",
+    "packages/google/src/__fixtures__/issue-16298-gemini3-parallel-tool-calls.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue #16298 reproduced: valid parallel Gemini 3 tool calls triggered the skip_thought_signature_validator warning."
+  }
+}
