@@ -1,0 +1,3 @@
+{
+  "message": "The model returned the following errors: output_config.format.schema: For 'array' type, property 'maxItems' is not supported"
+}
