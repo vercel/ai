@@ -491,45 +491,59 @@ describe('runPrompt step accounting', () => {
     await expect(result.text).resolves.toBe('done');
   });
 
-  test('fails when the stream closes after a terminal finish-step without finish', async () => {
+  test('stops before a next-step tool call when the completed step has no tool calls', async () => {
+    const weather = tool({
+      description: 'Get weather',
+      inputSchema: z.object({ city: z.string() }),
+    });
+    let stopBoundaryCount = 0;
     const { result, done } = runPrompt({
       harness,
       session: fakeSession([
-        { type: 'text-delta', id: 't1', delta: 'done' },
+        { type: 'text-delta', id: 't1', delta: 'first' },
         finishEvents[0]!,
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'Lima' }),
+          providerExecuted: true,
+        },
       ]),
       prompt: 'go',
       instructions: undefined,
-      tools: {},
+      tools: { weather },
       toolSpecs: [],
       sandboxSession,
       sessionWorkDir: WORK_DIR,
       runtimeContext: {} as never,
       abortSignal: undefined,
+      stopConditions: [({ steps }) => steps.length === 1],
+      onStopConditionMet: async () => {
+        stopBoundaryCount += 1;
+      },
     });
     const parts: TextStreamPart<ToolSet>[] = [];
 
     for await (const part of result.fullStream) parts.push(part);
     await done;
 
-    expect(parts).toContainEqual({
-      type: 'error',
-      error: expect.objectContaining({
-        message: expect.stringContaining(
-          'ended its stream after a terminal finish-step without emitting finish',
-        ),
-      }),
-    });
-    await expect(result.steps).rejects.toThrow(/without emitting finish/);
+    expect(stopBoundaryCount).toBe(1);
+    expect(parts.some(part => part.type === 'tool-call')).toBe(false);
+    expect((await result.steps).map(step => step.text)).toEqual(['first']);
   });
 
-  test('fails when another event follows a terminal finish-step', async () => {
+  test('processes a lookahead event exactly once when stop conditions do not match', async () => {
+    const stepCounts: number[] = [];
     const { result, done } = runPrompt({
       harness,
       session: fakeSession([
-        { type: 'text-delta', id: 't1', delta: 'done' },
+        { type: 'text-delta', id: 't1', delta: 'first' },
         finishEvents[0]!,
-        { type: 'text-delta', id: 't2', delta: 'unexpected' },
+        { type: 'text-start', id: 't2' },
+        { type: 'text-delta', id: 't2', delta: 'second' },
+        { type: 'text-end', id: 't2' },
+        ...finishEvents,
       ]),
       prompt: 'go',
       instructions: undefined,
@@ -539,21 +553,28 @@ describe('runPrompt step accounting', () => {
       sessionWorkDir: WORK_DIR,
       runtimeContext: {} as never,
       abortSignal: undefined,
+      stopConditions: [
+        ({ steps }) => {
+          stepCounts.push(steps.length);
+          return false;
+        },
+      ],
     });
     const parts: TextStreamPart<ToolSet>[] = [];
 
     for await (const part of result.fullStream) parts.push(part);
     await done;
 
-    expect(parts).toContainEqual({
-      type: 'error',
-      error: expect.objectContaining({
-        message: expect.stringContaining(
-          "emitted 'text-delta' after a terminal finish-step; expected finish",
-        ),
-      }),
-    });
-    await expect(result.steps).rejects.toThrow(/expected finish/);
+    expect(stepCounts).toEqual([1]);
+    expect(
+      parts.filter(
+        part => part.type === 'text-delta' && part.text === 'second',
+      ),
+    ).toHaveLength(1);
+    expect((await result.steps).map(step => step.text)).toEqual([
+      'first',
+      'second',
+    ]);
   });
 });
 

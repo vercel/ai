@@ -405,13 +405,15 @@ describe('HarnessAgent', () => {
 
   test('stream() and continued turns apply stopWhen independently', async () => {
     let continuationCount = 0;
+    const continuingTurn = (): HarnessV1StreamPart[] => [
+      finishEvents()[0]!,
+      { type: 'text-delta', id: 'next-step', delta: 'next' },
+    ];
     const { harness, doSuspendTurn } = mockHarness({
-      script: () => [finishEvents()[0]!, finishEvents()[1]!],
+      script: continuingTurn,
       continueScript: () => {
         continuationCount += 1;
-        return continuationCount <= 2
-          ? [finishEvents()[0]!, finishEvents()[1]!]
-          : [finishEvents()[1]!];
+        return continuationCount <= 2 ? continuingTurn() : [finishEvents()[1]!];
       },
     });
     const agent = new HarnessAgent({

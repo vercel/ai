@@ -44,6 +44,7 @@ import { stripWorkDir } from './strip-work-dir';
 import { createTurnTelemetry, type TurnContentPart } from './turn-telemetry';
 import { resolveCustomToolApproval } from './permission-mode';
 import { logBridgeError } from '../../utils/bridge-diagnostics';
+import { pinSandboxChannelEventCheckpoint } from '../../utils/sandbox-channel';
 
 /**
  * Drive one prompt turn end-to-end:
@@ -200,11 +201,21 @@ export function runPrompt<
     );
     const settledHostToolCallIds = new Set<string>();
     let closingResumedStep = false;
-    let expectingTurnFinish = false;
+    let pendingStopBoundary:
+      | {
+          finishReason: LanguageModelV4FinishReason;
+          usage: LanguageModelV4Usage;
+          releaseCheckpoint: (() => void) | undefined;
+        }
+      | undefined;
     let finalFinish:
       | Extract<HarnessV1StreamPart, { type: 'finish' }>
       | undefined;
     const completedSteps: Array<StepResult<TOOLS, RUNTIME_CONTEXT>> = [];
+    const releasePendingStopBoundary = (): void => {
+      pendingStopBoundary?.releaseCheckpoint?.();
+      pendingStopBoundary = undefined;
+    };
 
     // Accumulate the model's output content per step so telemetry can record
     // `gen_ai.output.messages` and reporters can log what was actually said.
@@ -463,22 +474,32 @@ export function runPrompt<
       while (true) {
         const { value, done } = await reader.read();
         if (done) {
-          if (expectingTurnFinish) {
-            throw new Error(
-              `Harness '${input.harness.harnessId}' ended its stream after a terminal finish-step without emitting finish.`,
-            );
-          }
+          releasePendingStopBoundary();
           break;
         }
         if (value == null) continue;
 
-        if (expectingTurnFinish) {
-          if (value.type !== 'finish') {
-            throw new Error(
-              `Harness '${input.harness.harnessId}' emitted '${value.type}' after a terminal finish-step; expected finish.`,
-            );
+        if (pendingStopBoundary != null) {
+          if (value.type === 'finish') {
+            releasePendingStopBoundary();
+          } else if (
+            (
+              await Promise.all(
+                input.stopConditions!.map(condition =>
+                  condition({ steps: completedSteps }),
+                ),
+              )
+            ).some(Boolean)
+          ) {
+            await input.onStopConditionMet?.();
+            const { finishReason, usage } = pendingStopBoundary;
+            releasePendingStopBoundary();
+            telemetry.end({ finishReason, usage });
+            await result.finish();
+            return;
+          } else {
+            releasePendingStopBoundary();
           }
-          expectingTurnFinish = false;
         }
 
         // Begin the operation span on stream-start, using the runtime-resolved
@@ -659,34 +680,17 @@ export function runPrompt<
 
         // Drive step boundaries.
         if (value.type === 'finish-step') {
-          const completedStep = completeStep({
+          completeStep({
             finishReason: value.finishReason,
             usage: value.usage,
             providerMetadata: value.harnessMetadata,
           });
-          const stepMayContinue =
-            completedStep.toolCalls.length > 0 ||
-            value.finishReason.unified === 'tool-calls';
-          if (!stepMayContinue) {
-            expectingTurnFinish = true;
-          } else if (
-            input.stopConditions != null &&
-            input.stopConditions.length > 0 &&
-            (
-              await Promise.all(
-                input.stopConditions.map(condition =>
-                  condition({ steps: completedSteps }),
-                ),
-              )
-            ).some(Boolean)
-          ) {
-            await input.onStopConditionMet?.();
-            telemetry.end({
+          if (input.stopConditions != null && input.stopConditions.length > 0) {
+            pendingStopBoundary = {
               finishReason: value.finishReason,
               usage: value.usage,
-            });
-            await result.finish();
-            return;
+              releaseCheckpoint: pinSandboxChannelEventCheckpoint(value),
+            };
           }
         }
 
@@ -885,6 +889,7 @@ export function runPrompt<
       input.onTurnFailed?.();
       result.fail(err);
     } finally {
+      releasePendingStopBoundary();
       reader.releaseLock();
     }
   })();
