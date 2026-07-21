@@ -32,6 +32,7 @@ describe('writeToServerResponse', () => {
     expect(mockResponse.ended).toBe(true);
   });
 
+<<<<<<< HEAD
   it('should respect backpressure and wait for drain event', async () => {
     const mockResponse = createBackpressureMockResponse();
     let drainEventCount = 0;
@@ -40,6 +41,30 @@ describe('writeToServerResponse', () => {
     // Track drain events
     mockResponse.on('drain', () => {
       drainEventCount++;
+=======
+  it('should reject when reading the stream fails', async () => {
+    const mockResponse = createMockServerResponse();
+    const error = new Error('stream read failed');
+    const stream = new ReadableStream<Uint8Array>({
+      pull() {
+        throw error;
+      },
+    });
+
+    await expect(
+      writeToServerResponse({
+        response: mockResponse,
+        stream,
+      }),
+    ).rejects.toBe(error);
+
+    expect(mockResponse.ended).toBe(true);
+  });
+
+  describe('backpressure handling', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+>>>>>>> 7f6650b0ea (fix: server-response piping errors bypass caller catches (#17648))
     });
 
     // Create stream that provides chunks on-demand (async)

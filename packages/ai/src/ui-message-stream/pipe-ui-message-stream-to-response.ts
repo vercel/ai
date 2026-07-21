@@ -6,6 +6,21 @@ import { UI_MESSAGE_STREAM_HEADERS } from './ui-message-stream-headers';
 import type { UIMessageChunk } from './ui-message-chunks';
 import type { UIMessageStreamResponseInit } from './ui-message-stream-response-init';
 
+<<<<<<< HEAD
+=======
+/**
+ * Pipes a UI message stream to a Node.js ServerResponse object.
+ * The stream is transformed to Server-Sent Events (SSE) format.
+ *
+ * @param options.response - The Node.js ServerResponse object to write to.
+ * @param options.status - The HTTP status code for the response.
+ * @param options.statusText - The HTTP status text for the response.
+ * @param options.headers - Additional HTTP headers to include in the response.
+ * @param options.stream - The UI message chunk stream to send.
+ * @param options.consumeSseStream - Optional callback to consume a copy of the SSE stream independently.
+ * @returns A promise that resolves when the stream has been written.
+ */
+>>>>>>> 7f6650b0ea (fix: server-response piping errors bypass caller catches (#17648))
 export function pipeUIMessageStreamToResponse({
   response,
   status,
@@ -16,7 +31,7 @@ export function pipeUIMessageStreamToResponse({
 }: {
   response: ServerResponse;
   stream: ReadableStream<UIMessageChunk>;
-} & UIMessageStreamResponseInit): void {
+} & UIMessageStreamResponseInit): Promise<void> {
   let sseStream = stream.pipeThrough(new JsonToSseTransformStream());
 
   // when the consumeSseStream is provided, we need to tee the stream
@@ -28,7 +43,7 @@ export function pipeUIMessageStreamToResponse({
     consumeSseStream({ stream: stream2 }); // no await (do not block the response)
   }
 
-  writeToServerResponse({
+  return writeToServerResponse({
     response,
     status,
     statusText,
