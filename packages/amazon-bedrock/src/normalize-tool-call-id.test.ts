@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { isMistralModel, normalizeToolCallId } from './normalize-tool-call-id';
 
 describe('isMistralModel', () => {
@@ -33,40 +33,57 @@ describe('normalizeToolCallId', () => {
     expect(normalizeToolCallId(originalId, false)).toBe(originalId);
   });
 
-  it('should extract first 9 alphanumeric characters for Mistral models', () => {
-    // Bedrock format: tooluse_bpe71yCfRu2b5i-nKGDr5g
-    // After removing non-alphanumeric: toolusebpe71yCfRu2b5inKGDr5g
-    // First 9 chars: toolusebp
-    expect(normalizeToolCallId('tooluse_bpe71yCfRu2b5i-nKGDr5g', true)).toBe(
-      'toolusebp',
-    );
+  it('should hash incompatible IDs deterministically for Mistral models', () => {
+    const toolCallId = 'tooluse_bpe71yCfRu2b5i-nKGDr5g';
+
+    expect([
+      normalizeToolCallId(toolCallId, true),
+      normalizeToolCallId(toolCallId, true),
+    ]).toMatchInlineSnapshot(`
+      [
+        "8eHypBDcw",
+        "8eHypBDcw",
+      ]
+    `);
   });
 
-  it('should handle IDs with various special characters', () => {
-    expect(normalizeToolCallId('tool-use_123ABC456', true)).toBe('tooluse12');
-    expect(normalizeToolCallId('___abc123DEF___', true)).toBe('abc123DEF');
+  it('should produce 9 alphanumeric characters for incompatible IDs', () => {
+    const normalizedIds = [
+      normalizeToolCallId('tool-use_123ABC456', true),
+      normalizeToolCallId('___abc123DEF___', true),
+      normalizeToolCallId('abc', true),
+      normalizeToolCallId('12345', true),
+      normalizeToolCallId('___---___', true),
+    ];
+
+    expect(normalizedIds).toMatchInlineSnapshot(`
+      [
+        "hvVDqPNyj",
+        "TnzPqldGU",
+        "GRuIyUwcV",
+        "PceAgWDYe",
+        "5C589HVqG",
+      ]
+    `);
+    for (const normalizedId of normalizedIds) {
+      expect(normalizedId).toMatch(/^[a-zA-Z0-9]{9}$/);
+    }
   });
 
-  it('should handle IDs that are already alphanumeric', () => {
+  it('should preserve IDs that are already valid Mistral tool call IDs', () => {
     expect(normalizeToolCallId('abcdefghi', true)).toBe('abcdefghi');
     expect(normalizeToolCallId('abc123XYZ', true)).toBe('abc123XYZ');
   });
 
-  it('should handle short IDs', () => {
-    expect(normalizeToolCallId('abc', true)).toBe('abc');
-    expect(normalizeToolCallId('12345', true)).toBe('12345');
-  });
-
-  it('should handle IDs with only special characters', () => {
-    expect(normalizeToolCallId('___---___', true)).toBe('');
-  });
-
-  it('should produce valid Mistral tool call IDs (9 alphanumeric chars)', () => {
-    const normalizedId = normalizeToolCallId(
-      'tooluse_bpe71yCfRu2b5i-nKGDr5g',
-      true,
-    );
-    // Verify the ID matches Mistral's requirements: ^[a-zA-Z0-9]{1,9}$
-    expect(normalizedId).toMatch(/^[a-zA-Z0-9]{1,9}$/);
+  it('should keep distinct Bedrock IDs distinct when their prefixes match', () => {
+    expect([
+      normalizeToolCallId('tooluse_Ac1Xq9ZklmNoPq', true),
+      normalizeToolCallId('tooluse_Ac2Yt7WrstUvWx', true),
+    ]).toMatchInlineSnapshot(`
+      [
+        "7rDVWRig0",
+        "bNZvZKNBZ",
+      ]
+    `);
   });
 });
