@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.88
+
+### Patch Changes
+
+- 30c69e6: fix(provider/anthropic): warn when parallel tool use is requested with JSON tool structured output
+
 ## 2.0.87
 
 ### Patch Changes
