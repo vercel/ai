@@ -47,6 +47,7 @@
     "publint": "0.2.12",
     "react": "19.0.0-rc-cc1ec60d0d-20240607",
     "react-dom": "19.0.0-rc-cc1ec60d0d-20240607",
+    "semver": "^7.8.5",
     "turbo": "2.9.14",
     "typescript": "5.8.3",
     "ultracite": "7.3.2",
