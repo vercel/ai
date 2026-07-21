@@ -7,6 +7,7 @@ import type { UIMessage } from '../ui/ui-messages';
 import { getResponseUIMessageId } from './get-response-ui-message-id';
 import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
 import type { InferUIMessageChunk } from './ui-message-chunks';
+import type { UIMessageStreamOutcome } from './ui-message-stream-outcome';
 import { toUIMessageChunk } from './to-ui-message-chunk';
 
 /**
@@ -37,6 +38,19 @@ export function toUIMessageStream<
 } & UIMessageStreamOptions<UI_MESSAGE>): ReadableStream<
   InferUIMessageChunk<UI_MESSAGE>
 > {
+  let outcome: UIMessageStreamOutcome = { status: 'unknown' };
+
+  const setOutcome = (newOutcome: UIMessageStreamOutcome) => {
+    if (
+      outcome.status !== 'completed' &&
+      outcome.status !== 'aborted' &&
+      newOutcome.status !== 'unknown' &&
+      (outcome.status === 'unknown' || newOutcome.status !== 'failed')
+    ) {
+      outcome = newOutcome;
+    }
+  };
+
   const responseMessageId =
     generateMessageId != null
       ? getResponseUIMessageId({
@@ -48,6 +62,14 @@ export function toUIMessageStream<
   const uiMessageChunkStream = stream.pipeThrough(
     new TransformStream({
       transform: async (part, controller) => {
+        if (part.type === 'finish') {
+          setOutcome({ status: 'completed' });
+        } else if (part.type === 'abort') {
+          setOutcome({ status: 'aborted' });
+        } else if (part.type === 'error') {
+          setOutcome({ status: 'failed', error: part.error });
+        }
+
         const messageMetadataValue = messageMetadata?.({ part });
 
         const uiMessageChunk = toUIMessageChunk(part, {
@@ -87,5 +109,6 @@ export function toUIMessageStream<
     originalMessages,
     onEnd: onEnd ?? onFinish,
     onError,
+    getOutcome: () => outcome,
   });
 }

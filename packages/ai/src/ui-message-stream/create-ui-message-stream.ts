@@ -6,6 +6,7 @@ import type { UIMessage } from '../ui/ui-messages';
 import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
 import type { InferUIMessageChunk } from './ui-message-chunks';
 import type { UIMessageStreamOnEndCallback } from './ui-message-stream-on-end-callback';
+import type { UIMessageStreamOutcome } from './ui-message-stream-outcome';
 import type { UIMessageStreamOnStepEndCallback } from './ui-message-stream-on-step-end-callback';
 import type { UIMessageStreamOnStepFinishCallback } from './ui-message-stream-on-step-finish-callback';
 import type { UIMessageStreamWriter } from './ui-message-stream-writer';
@@ -72,6 +73,7 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   >;
 
   const ongoingStreamPromises: Promise<void>[] = [];
+  let outcome: UIMessageStreamOutcome = { status: 'unknown' };
 
   const stream = new ReadableStream({
     start(controllerArg) {
@@ -84,6 +86,12 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
       controller.enqueue(data);
     } catch {
       // suppress errors when the stream has been closed
+    }
+  }
+
+  function setOutcome(newOutcome: UIMessageStreamOutcome) {
+    if (outcome.status === 'unknown' && newOutcome.status !== 'unknown') {
+      outcome = newOutcome;
     }
   }
 
@@ -103,6 +111,7 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
                 safeEnqueue(value);
               }
             })().catch(error => {
+              setOutcome({ status: 'failed', error });
               safeEnqueue({
                 type: 'error',
                 errorText: onError(error),
@@ -110,6 +119,7 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
             }),
           );
         },
+        setOutcome,
         onError,
       },
     });
@@ -117,6 +127,7 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
     if (result) {
       ongoingStreamPromises.push(
         result.catch(error => {
+          setOutcome({ status: 'failed', error });
           safeEnqueue({
             type: 'error',
             errorText: onError(error),
@@ -125,6 +136,7 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
       );
     }
   } catch (error) {
+    setOutcome({ status: 'failed', error });
     safeEnqueue({
       type: 'error',
       errorText: onError(error),
@@ -157,5 +169,6 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
     onStepEnd: onStepEnd ?? onStepFinish,
     onEnd: onEnd ?? onFinish,
     onError,
+    getOutcome: () => outcome,
   });
 }
