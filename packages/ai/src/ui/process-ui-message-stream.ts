@@ -12,6 +12,7 @@ import {
 import { createIdMap } from '../util/create-id-map';
 import type { ErrorHandler } from '../util/error-handler';
 import { mergeObjects } from '../util/merge-objects';
+import { now } from '../util/now';
 import { parsePartialJson } from '../util/parse-partial-json';
 import {
   appendToTextAccumulator,
@@ -426,7 +427,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               state.activeTextParts[chunk.id] = textPart;
               state.message.parts.push(textPart);
               write();
-              lastTextUpdateTimes.set(textPart, performance.now());
+              lastTextUpdateTimes.set(textPart, now());
               break;
             }
 
@@ -447,18 +448,18 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               });
               textPart.providerMetadata =
                 chunk.providerMetadata ?? textPart.providerMetadata;
-              const now = performance.now();
+              const currentTime = now();
               // Materializing the full cumulative string on every delta is
               // quadratic for long streams. Preserve per-delta updates for
               // normal responses, then cap long-stream updates at 60 fps.
               if (
                 getTextAccumulatorLength(textPart) <
                   LONG_TEXT_STREAM_THRESHOLD ||
-                now - (lastTextUpdateTimes.get(textPart) ?? 0) >=
+                currentTime - (lastTextUpdateTimes.get(textPart) ?? 0) >=
                   LONG_TEXT_STREAM_UPDATE_INTERVAL_MS
               ) {
                 write();
-                lastTextUpdateTimes.set(textPart, performance.now());
+                lastTextUpdateTimes.set(textPart, now());
               }
               break;
             }
@@ -493,7 +494,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               state.activeReasoningParts[chunk.id] = reasoningPart;
               state.message.parts.push(reasoningPart);
               write();
-              lastTextUpdateTimes.set(reasoningPart, performance.now());
+              lastTextUpdateTimes.set(reasoningPart, now());
               break;
             }
 
@@ -514,15 +515,15 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               });
               reasoningPart.providerMetadata =
                 chunk.providerMetadata ?? reasoningPart.providerMetadata;
-              const now = performance.now();
+              const currentTime = now();
               if (
                 getTextAccumulatorLength(reasoningPart) <
                   LONG_TEXT_STREAM_THRESHOLD ||
-                now - (lastTextUpdateTimes.get(reasoningPart) ?? 0) >=
+                currentTime - (lastTextUpdateTimes.get(reasoningPart) ?? 0) >=
                   LONG_TEXT_STREAM_UPDATE_INTERVAL_MS
               ) {
                 write();
-                lastTextUpdateTimes.set(reasoningPart, performance.now());
+                lastTextUpdateTimes.set(reasoningPart, now());
               }
               break;
             }

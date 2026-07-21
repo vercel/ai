@@ -267,6 +267,55 @@ describe('processUIMessageStream', () => {
     `);
   });
 
+  it('processes text and reasoning without the Performance API', async () => {
+    vi.stubGlobal('performance', undefined);
+
+    const stream = createUIMessageStream([
+      { type: 'text-start', id: 'text-1' },
+      { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+      { type: 'text-end', id: 'text-1' },
+      { type: 'reasoning-start', id: 'reasoning-1' },
+      { type: 'reasoning-delta', id: 'reasoning-1', delta: 'Thinking' },
+      { type: 'reasoning-end', id: 'reasoning-1' },
+    ]);
+
+    state = createStreamingUIMessageState({
+      messageId: 'msg-123',
+      lastMessage: undefined,
+    });
+
+    try {
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+
+    expect(state.message.parts).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": undefined,
+          "state": "done",
+          "text": "Hello",
+          "type": "text",
+        },
+        {
+          "providerMetadata": undefined,
+          "state": "done",
+          "text": "Thinking",
+          "type": "reasoning",
+        },
+      ]
+    `);
+  });
+
   describe('errors', () => {
     let errors: Array<unknown>;
 
