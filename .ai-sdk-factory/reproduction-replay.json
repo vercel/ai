@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 17347,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-17347-duplicate-tool-call-id.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-17347-duplicate-tool-call-id.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #17347 REPRODUCED: expected 2 tool parts across 2 steps, received 1."
+  }
+}
