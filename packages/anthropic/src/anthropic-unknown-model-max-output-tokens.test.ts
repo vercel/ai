@@ -1,9 +1,9 @@
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createAnthropic } from './anthropic-provider';
 
-const TEST_PROMPT: LanguageModelV4Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
