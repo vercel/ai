@@ -166,30 +166,53 @@ const videoMediaTypeSignatures = [
   },
 ] as const;
 
-const stripID3 = (data: Uint8Array | string) => {
-  const bytes =
-    typeof data === 'string' ? convertBase64ToUint8Array(data) : data;
+const DEFAULT_SNIFF_BYTES = 18;
+
+// Longest signature prefix in the tables above (e.g. image/avif = 12 bytes).
+const MAX_SIGNATURE_BYTES = 12;
+
+// Largest ID3v2 tag (10-byte header + body) skipped to reach the audio frame.
+// Covers typical tags including embedded cover art while keeping the decode
+// bounded and O(1) in the attachment size. Exported for boundary tests.
+export const MAX_ID3_TAG_BYTES = 128 * 1024;
+
+// Total prefix decoded when an ID3 tag is present: the tag plus room for the
+// trailing signature, so a tag right at the size limit stays detectable.
+const ID3_SCAN_BYTES = MAX_ID3_TAG_BYTES + MAX_SIGNATURE_BYTES;
+
+// Decode/view exactly the first `maxBytes` bytes from the front of the input.
+// The base64 and raw-byte paths yield the same length, so detection does not
+// depend on the input's representation.
+function decodePrefix(data: Uint8Array | string, maxBytes: number): Uint8Array {
+  if (typeof data !== 'string') {
+    return data.length > maxBytes ? data.subarray(0, maxBytes) : data;
+  }
+  // base64: 4 chars -> 3 bytes. Decode whole 4-char groups, then trim the 0-2
+  // extra bytes so the result matches the raw-byte path exactly.
+  const maxChars = Math.ceil(maxBytes / 3) * 4;
+  const bytes = convertBase64ToUint8Array(
+    data.substring(0, Math.min(data.length, maxChars)),
+  );
+  return bytes.length > maxBytes ? bytes.subarray(0, maxBytes) : bytes;
+}
+
+function hasID3(bytes: Uint8Array): boolean {
+  return (
+    bytes.length > 10 &&
+    bytes[0] === 0x49 && // 'I'
+    bytes[1] === 0x44 && // 'D'
+    bytes[2] === 0x33 // '3'
+  );
+}
+
+const stripID3 = (bytes: Uint8Array): Uint8Array => {
   const id3Size =
     ((bytes[6] & 0x7f) << 21) |
     ((bytes[7] & 0x7f) << 14) |
     ((bytes[8] & 0x7f) << 7) |
     (bytes[9] & 0x7f);
-
-  // The raw MP3 starts here
-  return bytes.slice(id3Size + 10);
+  return bytes.subarray(id3Size + 10);
 };
-
-function stripID3TagsIfPresent(data: Uint8Array | string): Uint8Array | string {
-  const hasId3 =
-    (typeof data === 'string' && data.startsWith('SUQz')) ||
-    (typeof data !== 'string' &&
-      data.length > 10 &&
-      data[0] === 0x49 && // 'I'
-      data[1] === 0x44 && // 'D'
-      data[2] === 0x33); // '3'
-
-  return hasId3 ? stripID3(data) : data;
-}
 
 type MediaTypeSignatures = ReadonlyArray<{
   readonly mediaType: string;
@@ -203,15 +226,13 @@ function detectMediaTypeBySignatures<T extends MediaTypeSignatures>({
   data: Uint8Array | string;
   signatures: T;
 }): T[number]['mediaType'] | undefined {
-  const processedData = stripID3TagsIfPresent(data);
+  let bytes = decodePrefix(data, DEFAULT_SNIFF_BYTES);
 
-  // Convert the first ~18 bytes (24 base64 chars) for consistent detection logic:
-  const bytes =
-    typeof processedData === 'string'
-      ? convertBase64ToUint8Array(
-          processedData.substring(0, Math.min(processedData.length, 24)),
-        )
-      : processedData;
+  // ID3v2-tagged MP3s carry the audio frame after the tag; scan a bounded
+  // prefix past it rather than decoding the whole input.
+  if (hasID3(bytes)) {
+    bytes = stripID3(decodePrefix(data, ID3_SCAN_BYTES));
+  }
 
   for (const signature of signatures) {
     if (

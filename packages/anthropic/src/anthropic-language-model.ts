@@ -356,6 +356,19 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           }
         : undefined;
 
+    if (
+      jsonResponseTool != null &&
+      anthropicOptions?.disableParallelToolUse === false
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.anthropic.disableParallelToolUse',
+        details:
+          '`disableParallelToolUse: false` is ignored when using the JSON response tool. ' +
+          'Parallel tool use is disabled to ensure a single coherent JSON tool call.',
+      });
+    }
+
     const contextManagement = anthropicOptions?.contextManagement;
 
     // Create a shared cache control validator to track breakpoints across tools and messages
@@ -927,7 +940,22 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       switch (part.type) {
         case 'text': {
           if (!usesJsonResponseTool) {
-            content.push({ type: 'text', text: part.text });
+            const webSearchCitations = part.citations?.filter(
+              citation => citation.type === 'web_search_result_location',
+            );
+
+            content.push({
+              type: 'text',
+              text: part.text,
+              ...(webSearchCitations != null &&
+                webSearchCitations.length > 0 && {
+                  providerMetadata: {
+                    anthropic: {
+                      citations: webSearchCitations,
+                    },
+                  },
+                }),
+            });
 
             // Process citations if present
             if (part.citations) {
@@ -1509,7 +1537,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             toolId?: string;
           };
         }
-      | { type: 'text' | 'reasoning' }
+      | { type: 'text'; citations: Citation[] }
+      | { type: 'reasoning' }
     > = {};
     const mcpToolCalls: Record<string, LanguageModelV4ToolCall> = {};
     const serverToolCalls: Record<string, string> = {}; // tool_use_id -> provider tool name
@@ -1590,7 +1619,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                     return;
                   }
 
-                  contentBlocks[value.index] = { type: 'text' };
+                  contentBlocks[value.index] = {
+                    type: 'text',
+                    citations: [],
+                  };
                   controller.enqueue({
                     type: 'text-start',
                     id: String(value.index),
@@ -1622,7 +1654,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 }
 
                 case 'compaction': {
-                  contentBlocks[value.index] = { type: 'text' };
+                  contentBlocks[value.index] = {
+                    type: 'text',
+                    citations: [],
+                  };
                   controller.enqueue({
                     type: 'text-start',
                     id: String(value.index),
@@ -1642,7 +1677,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                   if (isJsonResponseTool) {
                     isJsonResponseFromTool = true;
 
-                    contentBlocks[value.index] = { type: 'text' };
+                    contentBlocks[value.index] = {
+                      type: 'text',
+                      citations: [],
+                    };
 
                     controller.enqueue({
                       type: 'text-start',
@@ -2101,6 +2139,13 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                     controller.enqueue({
                       type: 'text-end',
                       id: String(value.index),
+                      ...(contentBlock.citations.length > 0 && {
+                        providerMetadata: {
+                          anthropic: {
+                            citations: contentBlock.citations,
+                          },
+                        },
+                      }),
                     });
                     break;
                   }
@@ -2291,6 +2336,15 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
                 case 'citations_delta': {
                   const citation = value.delta.citation;
+                  const contentBlock = contentBlocks[value.index];
+
+                  if (
+                    contentBlock?.type === 'text' &&
+                    citation.type === 'web_search_result_location'
+                  ) {
+                    contentBlock.citations.push(citation);
+                  }
+
                   const source = createCitationSource(
                     citation,
                     citationDocuments,
