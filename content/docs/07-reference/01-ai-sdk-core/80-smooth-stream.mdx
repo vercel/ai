@@ -38,7 +38,7 @@ const result = streamText({
       type: 'number | null',
       isOptional: true,
       description:
-        'The delay in milliseconds between outputting each chunk. Defaults to 10ms. Set to `null` to disable delays.',
+        'The delay in milliseconds between outputting each chunk. Defaults to 10ms. Set to `null` to disable delays. The delay is skipped while the document is hidden (e.g. browser background tabs), where timer throttling would otherwise stall the stream.',
     },
     {
       name: 'chunking',

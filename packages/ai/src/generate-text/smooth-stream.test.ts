@@ -2,7 +2,7 @@ import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { smoothStream } from './smooth-stream';
 import type { TextStreamPart } from './stream-text-result';
 import type { ToolSet } from '@ai-sdk/provider-utils';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('smoothStream', () => {
   let events: any[] = [];
@@ -2088,6 +2088,129 @@ describe('smoothStream', () => {
           {
             "id": "1",
             "text": "。",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('hidden document', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('should skip delays while the document is hidden', async () => {
+      vi.stubGlobal('document', { visibilityState: 'hidden' });
+
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        {
+          text: 'Hello, World! This is an example text.',
+          type: 'text-delta',
+          id: '1',
+        },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          "delay null",
+          {
+            "id": "1",
+            "text": "Hello, ",
+            "type": "text-delta",
+          },
+          "delay null",
+          {
+            "id": "1",
+            "text": "World! ",
+            "type": "text-delta",
+          },
+          "delay null",
+          {
+            "id": "1",
+            "text": "This ",
+            "type": "text-delta",
+          },
+          "delay null",
+          {
+            "id": "1",
+            "text": "is ",
+            "type": "text-delta",
+          },
+          "delay null",
+          {
+            "id": "1",
+            "text": "an ",
+            "type": "text-delta",
+          },
+          "delay null",
+          {
+            "id": "1",
+            "text": "example ",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "text": "text.",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+        ]
+      `);
+    });
+
+    it('should apply delays while the document is visible', async () => {
+      vi.stubGlobal('document', { visibilityState: 'visible' });
+
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { text: 'Hello, ', type: 'text-delta', id: '1' },
+        { text: 'world!', type: 'text-delta', id: '1' },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "Hello, ",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "text": "world!",
             "type": "text-delta",
           },
           {
