@@ -17,7 +17,10 @@ export type {
   RealtimeFactoryGetTokenOptions as Experimental_RealtimeFactoryGetTokenOptions,
   RealtimeFactoryGetTokenResult as Experimental_RealtimeFactoryGetTokenResult,
   RealtimeModel as Experimental_RealtimeModel,
+  RealtimeServerConnection as Experimental_RealtimeServerConnection,
   RealtimeServerEvent as Experimental_RealtimeServerEvent,
   RealtimeSessionConfig as Experimental_RealtimeSessionConfig,
+  RealtimeSessionIntent as Experimental_RealtimeSessionIntent,
   RealtimeToolDefinition as Experimental_RealtimeToolDefinition,
+  RealtimeUsage as Experimental_RealtimeUsage,
 } from '../types/realtime-model';

@@ -43,4 +43,55 @@ describe('OpenAIRealtimeModel', () => {
       });
     });
   });
+
+  describe('getServerConnection', () => {
+    const model = new OpenAIRealtimeModel('gpt-realtime', {
+      provider: 'openai.realtime',
+      baseURL: 'https://api.openai.com/v1',
+      headers: () => ({
+        authorization: 'Bearer test-key',
+        'OpenAI-Beta': 'realtime=v1',
+        'x-undefined': undefined,
+      }),
+    });
+
+    it('builds the conversation URL and forwards defined headers', () => {
+      // Undefined header values are dropped.
+      expect(model.getServerConnection()).toMatchInlineSnapshot(`
+        {
+          "headers": {
+            "OpenAI-Beta": "realtime=v1",
+            "authorization": "Bearer test-key",
+          },
+          "url": "wss://api.openai.com/v1/realtime?model=gpt-realtime",
+        }
+      `);
+    });
+
+    it('builds the transcription URL (model goes in session.update)', () => {
+      expect(
+        model.getServerConnection({ intent: 'transcription' }).url,
+      ).toMatchInlineSnapshot(
+        `"wss://api.openai.com/v1/realtime?intent=transcription"`,
+      );
+    });
+
+    it('rejects translation until the normalized codec supports it', () => {
+      expect(() =>
+        model.getServerConnection({ intent: 'translation' }),
+      ).toThrow(/translation sessions are not supported/);
+    });
+
+    it('uses ws:// for an http base URL (local/proxy)', () => {
+      const localModel = new OpenAIRealtimeModel('gpt-realtime', {
+        provider: 'openai.realtime',
+        baseURL: 'http://localhost:8787/v1',
+        headers: () => ({ authorization: 'Bearer test-key' }),
+      });
+
+      expect(localModel.getServerConnection().url).toMatchInlineSnapshot(
+        `"ws://localhost:8787/v1/realtime?model=gpt-realtime"`,
+      );
+    });
+  });
 });

@@ -222,6 +222,40 @@ describe('GoogleRealtimeModel', () => {
     });
   });
 
+  describe('getServerConnection', () => {
+    it('connects to the unconstrained Bidi endpoint with the API key header', () => {
+      const model = new GoogleRealtimeModel('gemini-2.0-flash-live-001', {
+        provider: 'google.realtime',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: () => ({
+          'x-goog-api-key': 'test-key',
+          'x-undefined': undefined,
+        }),
+      });
+
+      expect(model.getServerConnection()).toMatchInlineSnapshot(`
+        {
+          "headers": {
+            "x-goog-api-key": "test-key",
+          },
+          "url": "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent",
+        }
+      `);
+    });
+
+    it('rejects unsupported endpoint intents', () => {
+      const model = new GoogleRealtimeModel('gemini-2.0-flash-live-001', {
+        provider: 'google.realtime',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: () => ({ 'x-goog-api-key': 'test-key' }),
+      });
+
+      expect(() =>
+        model.getServerConnection({ intent: 'transcription' }),
+      ).toThrow("does not support the 'transcription' session intent");
+    });
+  });
+
   describe('getWebSocketConfig', () => {
     it('returns URL with access_token query param', () => {
       const model = new GoogleRealtimeModel('gemini-2.0-flash-live-001', {

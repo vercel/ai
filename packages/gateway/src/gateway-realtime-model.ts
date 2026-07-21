@@ -3,9 +3,12 @@ import type {
   Experimental_RealtimeModelV4ClientEvent as RealtimeModelV4ClientEvent,
   Experimental_RealtimeModelV4ClientSecretOptions as RealtimeModelV4ClientSecretOptions,
   Experimental_RealtimeModelV4ClientSecretResult as RealtimeModelV4ClientSecretResult,
+  Experimental_RealtimeModelV4ServerConnection as RealtimeModelV4ServerConnection,
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
+  Experimental_RealtimeModelV4SessionIntent as RealtimeModelV4SessionIntent,
 } from '@ai-sdk/provider';
+import { VERCEL_AI_GATEWAY_TEAM_HEADER } from './gateway-headers';
 import { getGatewayRealtimeProtocols } from './gateway-realtime-auth';
 
 export type GatewayRealtimeModelConfig = {
@@ -81,6 +84,27 @@ export class GatewayRealtimeModel implements RealtimeModelV4 {
       protocols: getGatewayRealtimeProtocols(options.token, {
         teamIdOrSlug: this.config.teamIdOrSlug,
       }),
+    };
+  }
+
+  async getServerConnection(options?: {
+    intent?: RealtimeModelV4SessionIntent;
+  }): Promise<RealtimeModelV4ServerConnection> {
+    if (options?.intent != null && options.intent !== 'conversation') {
+      throw new Error(
+        `AI Gateway realtime does not support the '${options.intent}' session intent on the normalized realtime route.`,
+      );
+    }
+
+    const { token } = await this.config.getAuthToken();
+    return {
+      url: toGatewayRealtimeUrl(this.config.baseURL, this.modelId),
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(this.config.teamIdOrSlug != null
+          ? { [VERCEL_AI_GATEWAY_TEAM_HEADER]: this.config.teamIdOrSlug }
+          : {}),
+      },
     };
   }
 

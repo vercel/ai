@@ -1,3 +1,5 @@
+import type { RealtimeModelV4Usage } from './realtime-model-v4-usage';
+
 /**
  * Normalized events emitted by the realtime model (model → browser).
  * Each provider maps its native event format to this discriminated union.
@@ -47,6 +49,7 @@ export type RealtimeModelV4ServerEvent =
       type: 'input-transcription-completed';
       itemId: string;
       transcript: string;
+      usage?: RealtimeModelV4Usage;
       raw: unknown;
     }
 
@@ -60,6 +63,7 @@ export type RealtimeModelV4ServerEvent =
       type: 'response-done';
       responseId: string;
       status: string;
+      usage?: RealtimeModelV4Usage;
       raw: unknown;
     }
 

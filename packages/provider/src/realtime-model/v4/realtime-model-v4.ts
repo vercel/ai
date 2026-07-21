@@ -3,6 +3,10 @@ import type {
   RealtimeModelV4ClientSecretResult,
 } from './realtime-model-v4-client-secret';
 import type { RealtimeModelV4ClientEvent } from './realtime-model-v4-client-event';
+import type {
+  RealtimeModelV4ServerConnection,
+  RealtimeModelV4SessionIntent,
+} from './realtime-model-v4-server-connection';
 import type { RealtimeModelV4ServerEvent } from './realtime-model-v4-server-event';
 import type { RealtimeModelV4SessionConfig } from './realtime-model-v4-session-config';
 
@@ -64,19 +68,43 @@ export type RealtimeModelV4 = {
   ): RealtimeModelV4ServerEvent | RealtimeModelV4ServerEvent[];
 
   /**
-   * Browser-side: Serializes a normalized client event into the
-   * provider's native JSON format for sending over the WebSocket.
+   * Browser-side: Serializes a normalized client event into the provider's
+   * native WebSocket format. Server-side callers should pass the same `intent`
+   * used for `getServerConnection`.
    */
   serializeClientEvent(
     event: RealtimeModelV4ClientEvent,
+    options?: { intent?: RealtimeModelV4SessionIntent },
   ): unknown | PromiseLike<unknown>;
 
   /**
-   * Browser-side: Builds the provider-specific session configuration
-   * payload from a normalized session config. Used to construct the
-   * session.update event sent after WebSocket connection.
+   * Browser-side: Builds the provider-specific session configuration payload.
+   * Server-side callers should pass the same `intent` used for
+   * `getServerConnection`.
    */
-  buildSessionConfig(config: RealtimeModelV4SessionConfig): unknown;
+  buildSessionConfig(
+    config: RealtimeModelV4SessionConfig,
+    options?: { intent?: RealtimeModelV4SessionIntent },
+  ): unknown;
+
+  /**
+   * Server-side: Returns the upstream WebSocket URL and auth headers for a
+   * server-initiated connection — e.g. a proxy or gateway that holds the
+   * long-lived provider credential and owns the socket itself.
+   *
+   * Unlike `getWebSocketConfig` (browser-side, authenticates with a short-lived
+   * token carried in a subprotocol), this uses the provider credential the
+   * model was constructed with (header auth) and selects supported provider
+   * endpoint variants via `intent` (e.g. transcription / translation).
+   *
+   * May return a promise for providers whose server connection requires a
+   * round-trip (e.g. minting an ephemeral connection token).
+   */
+  getServerConnection?(options?: {
+    intent?: RealtimeModelV4SessionIntent;
+  }):
+    | RealtimeModelV4ServerConnection
+    | PromiseLike<RealtimeModelV4ServerConnection>;
 
   /**
    * Browser-side: Returns a message to auto-send back over the WebSocket
