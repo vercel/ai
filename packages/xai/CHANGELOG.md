@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.111
+
+### Patch Changes
+
+- 05ce9c0: fix(provider/xai): preserve images in Responses API tool results
+
 ## 3.0.110
 
 ### Patch Changes

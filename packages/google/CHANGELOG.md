@@ -1,5 +1,17 @@
 # @ai-sdk/google
 
+## 3.0.97
+
+### Patch Changes
+
+- a6cb3c1: fix(provider/google): surface Gemini `responseId` as `response-metadata` (stream) and `response.id` (generate)
+
+## 3.0.96
+
+### Patch Changes
+
+- 0d51472: fix(provider/google): associate multiple code execution results with their tool call
+
 ## 3.0.95
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.138
+
+### Patch Changes
+
+- db8cff6: fix(amazon-bedrock): sanitize unsupported JSON Schema constraints in native Anthropic structured output
+- 3c68a20: fix(amazon-bedrock): encode slashes in ARN model IDs for Converse requests
+- Updated dependencies [db8cff6]
+- Updated dependencies [94d0f86]
+  - @ai-sdk/anthropic@3.0.99
+
 ## 4.0.137
 
 ### Patch Changes
