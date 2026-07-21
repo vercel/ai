@@ -112,7 +112,16 @@ export const audioMediaTypeSignatures = [
   },
   {
     mediaType: 'audio/mp4' as const,
-    bytesPrefix: [0x66, 0x74, 0x79, 0x70],
+    bytesPrefix: [
+      0x00,
+      0x00,
+      0x00,
+      null,
+      0x66,
+      0x74,
+      0x79,
+      0x70, // ftyp
+    ],
   },
   {
     mediaType: 'audio/webm',
