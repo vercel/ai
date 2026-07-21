@@ -16,6 +16,7 @@ import type { UIMessageStreamResponseInit } from './ui-message-stream-response-i
  * @param options.headers - Additional HTTP headers to include in the response.
  * @param options.stream - The UI message chunk stream to send.
  * @param options.consumeSseStream - Optional callback to consume a copy of the SSE stream independently.
+ * @returns A promise that resolves when the stream has been written.
  */
 export function pipeUIMessageStreamToResponse({
   response,
@@ -27,7 +28,7 @@ export function pipeUIMessageStreamToResponse({
 }: {
   response: ServerResponse;
   stream: ReadableStream<UIMessageChunk>;
-} & UIMessageStreamResponseInit): void {
+} & UIMessageStreamResponseInit): Promise<void> {
   let sseStream = stream.pipeThrough(new JsonToSseTransformStream());
 
   // when the consumeSseStream is provided, we need to tee the stream
@@ -39,7 +40,7 @@ export function pipeUIMessageStreamToResponse({
     consumeSseStream({ stream: stream2 }); // no await (do not block the response)
   }
 
-  writeToServerResponse({
+  return writeToServerResponse({
     response,
     status,
     statusText,

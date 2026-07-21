@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/workflow",
-  "version": "1.0.33",
+  "version": "1.0.34",
   "type": "module",
   "description": "WorkflowAgent for building AI agents with AI SDK",
   "license": "Apache-2.0",
