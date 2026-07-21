@@ -219,6 +219,56 @@ describe('HarnessAgent telemetry integration', () => {
     expect([...callIds][0]).toBeTruthy();
   });
 
+  test('uses final-step text and reasoning on the telemetry end event', async () => {
+    const harness = scriptedHarness([
+      { type: 'stream-start' },
+      { type: 'text-start', id: 't1' },
+      { type: 'text-delta', id: 't1', delta: 'draft' },
+      { type: 'text-end', id: 't1' },
+      { type: 'reasoning-start', id: 'r1' },
+      { type: 'reasoning-delta', id: 'r1', delta: 'first thought' },
+      { type: 'reasoning-end', id: 'r1' },
+      {
+        type: 'finish-step',
+        finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+        usage,
+      },
+      { type: 'text-start', id: 't2' },
+      { type: 'text-delta', id: 't2', delta: 'final' },
+      { type: 'text-end', id: 't2' },
+      { type: 'reasoning-start', id: 'r2' },
+      { type: 'reasoning-delta', id: 'r2', delta: 'final thought' },
+      { type: 'reasoning-end', id: 'r2' },
+      {
+        type: 'finish-step',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        usage,
+      },
+      {
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        totalUsage: usage,
+      },
+    ]);
+
+    const { integration, events } = recordingIntegration();
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      telemetry: { integrations: [integration] },
+    });
+    const session = await agent.createSession();
+    await agent.generate({ session, prompt: 'go' });
+    await session.destroy();
+
+    const end = events.onEnd as {
+      text: string;
+      finalStep: { reasoning: unknown[] };
+    };
+    expect(end.text).toBe('final');
+    expect(end.finalStep.reasoning).toEqual([{ text: 'final thought' }]);
+  });
+
   test('fires no telemetry when settings.telemetry is unset', async () => {
     const harness = scriptedHarness([
       { type: 'stream-start' },

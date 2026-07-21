@@ -111,15 +111,15 @@ export function createTurnTelemetry(opts: {
   let stepOpen = false;
   let stepNumber = 0;
   let ended = false;
-  let outputText = '';
-  let outputReasoning: Array<{ text: string }> = [];
+  let finalStepText = '';
+  let finalStepReasoning: Array<{ text: string }> = [];
+  let finalStepProviderMetadata: unknown;
   let outputToolCalls: Array<{
     type: 'tool-call';
     toolCallId: string;
     toolName: string;
     input: unknown;
   }> = [];
-  let finalStepProviderMetadata: unknown;
   /** Tool calls started in the current turn and not yet ended. */
   const openTools = new Map<
     string,
@@ -218,11 +218,14 @@ export function createTurnTelemetry(opts: {
   };
 
   const recordOutputContent = (content: TurnContentPart[]): void => {
+    finalStepText = '';
+    finalStepReasoning = [];
+
     for (const part of content) {
       if (part.type === 'text') {
-        outputText += part.text;
+        finalStepText += part.text;
       } else if (part.type === 'reasoning') {
-        outputReasoning.push({ text: part.text });
+        finalStepReasoning.push({ text: part.text });
       } else if (part.type === 'tool-call') {
         outputToolCalls.push(part);
       }
@@ -364,9 +367,9 @@ export function createTurnTelemetry(opts: {
           usage: info.usage,
           totalUsage: info.usage,
           content: [],
-          text: outputText,
+          text: finalStepText,
           finalStep: {
-            reasoning: outputReasoning,
+            reasoning: finalStepReasoning,
             providerMetadata: finalStepProviderMetadata,
           },
           toolCalls: outputToolCalls,
