@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 17507,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-17507-tool-message-provider-options.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-17507-tool-message-provider-options.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #17507: consecutive tool messages lost providerOptions from the second message."
+  }
+}
