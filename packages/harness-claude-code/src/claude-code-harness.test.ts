@@ -583,6 +583,23 @@ describe('createClaudeCode adapter', () => {
       expect(wsMock.sockets[0].terminated).toBe(true);
     });
 
+    it('uses the remaining startup deadline for bridge-hello after open', async () => {
+      let now = 1_000;
+      vi.spyOn(Date, 'now').mockImplementation(() => now);
+      wsMock.scripts.push(socket => {
+        queueMicrotask(() => {
+          now = 1_015;
+          socket.emit('open');
+          now = 1_020;
+        });
+      });
+
+      await expect(startWithFakeBridgeSocket(20)).rejects.toThrow(
+        'claude-code bridge did not send bridge-hello within 5ms',
+      );
+      expect(wsMock.sockets[0].terminated).toBe(true);
+    });
+
     it('rejects when the socket closes before bridge-hello arrives', async () => {
       wsMock.scripts.push(socket => {
         queueMicrotask(() => {

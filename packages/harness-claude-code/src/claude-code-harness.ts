@@ -802,11 +802,11 @@ async function readBridgeAsset(name: string): Promise<string> {
 function openWebSocketAndWaitForBridgeHello({
   url,
   openTimeoutMs,
-  helloTimeoutMs,
+  getHelloTimeoutMs,
 }: {
   url: string;
   openTimeoutMs: number;
-  helloTimeoutMs: number;
+  getHelloTimeoutMs: () => number;
 }): Promise<WebSocket> {
   return new Promise<WebSocket>((resolve, reject) => {
     const ws = new WebSocket(url);
@@ -842,6 +842,7 @@ function openWebSocketAndWaitForBridgeHello({
     };
     const startHelloTimer = () => {
       if (helloTimer) return;
+      const helloTimeoutMs = getHelloTimeoutMs();
       helloTimer = setTimeout(
         () =>
           settle(
@@ -917,7 +918,8 @@ async function openBridgeWebSocket({
       return await openWebSocketAndWaitForBridgeHello({
         url: wsUrl,
         openTimeoutMs: Math.min(10_000, remaining),
-        helloTimeoutMs: Math.min(5_000, Math.max(1, deadline - Date.now())),
+        getHelloTimeoutMs: () =>
+          Math.min(5_000, Math.max(1, deadline - Date.now())),
       });
     } catch (err) {
       lastError = err;
