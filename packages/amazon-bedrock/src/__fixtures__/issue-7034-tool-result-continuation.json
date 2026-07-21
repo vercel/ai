@@ -1,0 +1,22 @@
+{
+  "metrics": {
+    "latencyMs": 599
+  },
+  "output": {
+    "message": {
+      "content": [
+        {
+          "text": "The password you requested, \"blah\", is not long enough. Password policies typically require passwords to be at least 8 characters long. Please try again with a longer password."
+        }
+      ],
+      "role": "assistant"
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 500,
+    "outputTokens": 41,
+    "serverToolUsage": {},
+    "totalTokens": 541
+  }
+}
