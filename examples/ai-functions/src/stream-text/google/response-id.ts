@@ -21,11 +21,11 @@ run(async () => {
   const result = streamText({
     model: google('gemini-2.5-flash'),
     prompt: 'Reply with only the word: ok',
-    include: { rawChunks: true },
+    includeRawChunks: true,
   });
 
   const rawResponseIds = new Set<string>();
-  for await (const chunk of result.stream) {
+  for await (const chunk of result.fullStream) {
     if (chunk.type === 'raw') {
       const raw = chunk.rawValue as { responseId?: string };
       if (raw?.responseId) rawResponseIds.add(raw.responseId);
