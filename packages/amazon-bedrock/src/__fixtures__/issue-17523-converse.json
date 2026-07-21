@@ -1,0 +1,21 @@
+{
+  "metrics": {
+    "latencyMs": 352
+  },
+  "output": {
+    "message": {
+      "content": [
+        {
+          "text": "Hello! How can I assist you today? If"
+        }
+      ],
+      "role": "assistant"
+    }
+  },
+  "stopReason": "max_tokens",
+  "usage": {
+    "inputTokens": 2,
+    "outputTokens": 10,
+    "totalTokens": 12
+  }
+}
