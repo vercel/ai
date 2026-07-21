@@ -871,6 +871,206 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  describe('tool call IDs reused across steps', () => {
+    it('should preserve static tool parts from each step', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'call-1',
+          toolName: 'recordStep',
+          input: { step: 1 },
+          providerMetadata: { testProvider: { itemId: 'item-1' } },
+        },
+        {
+          type: 'tool-output-available',
+          toolCallId: 'call-1',
+          output: { recorded: 1 },
+        },
+        { type: 'finish-step' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'call-1',
+          toolName: 'recordStep',
+          input: { step: 2 },
+          providerMetadata: { testProvider: { itemId: 'item-2' } },
+        },
+        {
+          type: 'tool-output-available',
+          toolCallId: 'call-1',
+          output: { recorded: 2 },
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state.message.parts).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "step-start",
+          },
+          {
+            "callProviderMetadata": {
+              "testProvider": {
+                "itemId": "item-1",
+              },
+            },
+            "errorText": undefined,
+            "input": {
+              "step": 1,
+            },
+            "output": {
+              "recorded": 1,
+            },
+            "preliminary": undefined,
+            "providerExecuted": undefined,
+            "rawInput": undefined,
+            "state": "output-available",
+            "title": undefined,
+            "toolCallId": "call-1",
+            "type": "tool-recordStep",
+          },
+          {
+            "type": "step-start",
+          },
+          {
+            "callProviderMetadata": {
+              "testProvider": {
+                "itemId": "item-2",
+              },
+            },
+            "errorText": undefined,
+            "input": {
+              "step": 2,
+            },
+            "output": {
+              "recorded": 2,
+            },
+            "preliminary": undefined,
+            "providerExecuted": undefined,
+            "rawInput": undefined,
+            "state": "output-available",
+            "title": undefined,
+            "toolCallId": "call-1",
+            "type": "tool-recordStep",
+          },
+        ]
+      `);
+    });
+
+    it('should preserve dynamic tool parts from each step', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'call-1',
+          toolName: 'recordStep',
+          input: { step: 1 },
+          dynamic: true,
+        },
+        {
+          type: 'tool-output-available',
+          toolCallId: 'call-1',
+          output: { recorded: 1 },
+        },
+        { type: 'finish-step' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'call-1',
+          toolName: 'recordStep',
+          input: { step: 2 },
+          dynamic: true,
+        },
+        {
+          type: 'tool-output-available',
+          toolCallId: 'call-1',
+          output: { recorded: 2 },
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state.message.parts).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "step-start",
+          },
+          {
+            "errorText": undefined,
+            "input": {
+              "step": 1,
+            },
+            "output": {
+              "recorded": 1,
+            },
+            "preliminary": undefined,
+            "providerExecuted": undefined,
+            "rawInput": undefined,
+            "state": "output-available",
+            "title": undefined,
+            "toolCallId": "call-1",
+            "toolName": "recordStep",
+            "type": "dynamic-tool",
+          },
+          {
+            "type": "step-start",
+          },
+          {
+            "errorText": undefined,
+            "input": {
+              "step": 2,
+            },
+            "output": {
+              "recorded": 2,
+            },
+            "preliminary": undefined,
+            "providerExecuted": undefined,
+            "rawInput": undefined,
+            "state": "output-available",
+            "title": undefined,
+            "toolCallId": "call-1",
+            "toolName": "recordStep",
+            "type": "dynamic-tool",
+          },
+        ]
+      `);
+    });
+  });
+
   describe('server-side tool roundtrip with existing assistant message', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([

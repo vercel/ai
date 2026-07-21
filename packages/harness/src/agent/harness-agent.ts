@@ -39,6 +39,10 @@ import {
   collectHarnessAgentToolApprovalContinuations,
   type HarnessAgentToolApprovalContinuation,
 } from './harness-agent-tool-approval-continuation';
+import {
+  collectHarnessAgentToolResultContinuations,
+  type HarnessAgentToolResultContinuation,
+} from './harness-agent-tool-result-continuation';
 import { applyBootstrapRecipe } from './internal/bootstrap-recipe';
 import {
   acquireBridgePort,
@@ -348,13 +352,17 @@ export class HarnessAgent<
         sessionWorkDir,
         toolApproval: this.settings.toolApproval,
         pendingToolApprovals: effectiveContinueFrom?.pendingToolApprovals,
+        pendingToolResults: effectiveContinueFrom?.pendingToolResults,
         turnState:
           effectiveContinueFrom == null
             ? 'idle'
             : effectiveContinueFrom.pendingToolApprovals != null &&
                 effectiveContinueFrom.pendingToolApprovals.length > 0
               ? 'awaiting-approval'
-              : 'suspended',
+              : effectiveContinueFrom.pendingToolResults != null &&
+                  effectiveContinueFrom.pendingToolResults.length > 0
+                ? 'awaiting-tool-result'
+                : 'suspended',
       });
     } catch (error) {
       await cleanupAfterStartFailure({
@@ -426,6 +434,7 @@ export class HarnessAgent<
   async continueGenerate(options: {
     session: HarnessAgentSession;
     toolApprovalContinuations?: readonly HarnessAgentToolApprovalContinuation[];
+    toolResultContinuations?: readonly HarnessAgentToolResultContinuation[];
     abortSignal?: AbortSignal;
   }): Promise<
     GenerateTextResult<
@@ -441,6 +450,7 @@ export class HarnessAgent<
       turnInput: {
         mode: 'continue',
         toolApprovalContinuations: options.toolApprovalContinuations ?? [],
+        toolResultContinuations: options.toolResultContinuations ?? [],
       },
       runtimeContext,
       abortSignal: options.abortSignal,
@@ -460,6 +470,7 @@ export class HarnessAgent<
   async continueStream(options: {
     session: HarnessAgentSession;
     toolApprovalContinuations?: readonly HarnessAgentToolApprovalContinuation[];
+    toolResultContinuations?: readonly HarnessAgentToolResultContinuation[];
     abortSignal?: AbortSignal;
   }): Promise<
     StreamTextResult<
@@ -475,6 +486,7 @@ export class HarnessAgent<
       turnInput: {
         mode: 'continue',
         toolApprovalContinuations: options.toolApprovalContinuations ?? [],
+        toolResultContinuations: options.toolResultContinuations ?? [],
       },
       runtimeContext,
       abortSignal: options.abortSignal,
@@ -491,6 +503,7 @@ export class HarnessAgent<
       | {
           mode: 'continue';
           toolApprovalContinuations: readonly HarnessAgentToolApprovalContinuation[];
+          toolResultContinuations: readonly HarnessAgentToolResultContinuation[];
         };
     runtimeContext: RUNTIME_CONTEXT;
     abortSignal: AbortSignal | undefined;
@@ -516,6 +529,7 @@ export class HarnessAgent<
         abortSignal: input.abortSignal,
         telemetry: this.settings.telemetry,
         toolApprovalContinuations: input.turnInput.toolApprovalContinuations,
+        toolResultContinuations: input.turnInput.toolResultContinuations,
       });
     }
 
@@ -579,6 +593,7 @@ export class HarnessAgent<
     | {
         mode: 'continue';
         toolApprovalContinuations: readonly HarnessAgentToolApprovalContinuation[];
+        toolResultContinuations: readonly HarnessAgentToolResultContinuation[];
       } {
     if (typeof options.prompt === 'string') {
       return { mode: 'prompt', prompt: options.prompt };
@@ -589,10 +604,16 @@ export class HarnessAgent<
     if (Array.isArray(messages)) {
       const toolApprovalContinuations =
         collectHarnessAgentToolApprovalContinuations({ messages });
-      if (toolApprovalContinuations.length > 0) {
+      const toolResultContinuations =
+        collectHarnessAgentToolResultContinuations({ messages });
+      if (
+        toolApprovalContinuations.length > 0 ||
+        toolResultContinuations.length > 0
+      ) {
         return {
           mode: 'continue',
           toolApprovalContinuations,
+          toolResultContinuations,
         };
       }
       for (let i = messages.length - 1; i >= 0; i--) {

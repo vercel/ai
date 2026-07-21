@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.13
+
+### Patch Changes
+
+- 8b52503: feat(openai-compatible): add an extensible `providerOptions` type for image model requests and stop forcing `response_format`
+
 ## 3.0.12
 
 ### Patch Changes

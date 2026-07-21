@@ -1,5 +1,16 @@
 # @ai-sdk/harness
 
+## 1.0.37
+
+### Patch Changes
+
+- b460541: fix(harness): properly support client-side / host-side tools and handle unfinished turn semantics
+- 079591e: fix (harness): emit the message-level `start` part on HarnessAgent streams so `toUIMessageStream` persistence mode can inject the response message id
+- Updated dependencies [6cd7c74]
+- Updated dependencies [e35bcae]
+- Updated dependencies [a4eb3f3]
+  - ai@7.0.32
+
 ## 1.0.36
 
 ### Patch Changes

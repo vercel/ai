@@ -104,12 +104,34 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
     new TransformStream<UIMessageChunk, InferUIMessageChunk<UI_MESSAGE>>({
       async transform(chunk, controller) {
         await runUpdateMessageJob(async ({ state, write }) => {
-          function getToolInvocation(toolCallId: string) {
-            const toolInvocations = state.message.parts.filter(isToolUIPart);
+          function getCurrentStepParts() {
+            const parts = state.message.parts;
 
-            const toolInvocation = toolInvocations.find(
+            for (let i = parts.length - 1; i >= 0; i--) {
+              if (parts[i].type === 'step-start') {
+                return parts.slice(i + 1);
+              }
+            }
+
+            return parts;
+          }
+
+          function getToolInvocation(toolCallId: string) {
+            const toolInvocations = getCurrentStepParts().filter(isToolUIPart);
+
+            let toolInvocation = toolInvocations.find(
               invocation => invocation.toolCallId === toolCallId,
             );
+
+            if (toolInvocation == null) {
+              for (let i = state.message.parts.length - 1; i >= 0; i--) {
+                const part = state.message.parts[i];
+                if (isToolUIPart(part) && part.toolCallId === toolCallId) {
+                  toolInvocation = part;
+                  break;
+                }
+              }
+            }
 
             if (toolInvocation == null) {
               throw new UIMessageStreamError({
@@ -147,6 +169,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               providerExecuted?: boolean;
               title?: string;
               toolMetadata?: JSONObject;
+              part?: ToolUIPart;
             } & (
               | {
                   state: 'input-streaming';
@@ -178,11 +201,13 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 }
             ),
           ) {
-            const part = state.message.parts.find(
-              part =>
-                isStaticToolUIPart(part) &&
-                part.toolCallId === options.toolCallId,
-            ) as ToolUIPart<InferUIMessageTools<UI_MESSAGE>> | undefined;
+            const part =
+              options.part ??
+              (getCurrentStepParts().find(
+                part =>
+                  isStaticToolUIPart(part) &&
+                  part.toolCallId === options.toolCallId,
+              ) as ToolUIPart<InferUIMessageTools<UI_MESSAGE>> | undefined);
 
             const anyOptions = options as any;
             const anyPart = part as any;
@@ -259,6 +284,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               providerExecuted?: boolean;
               title?: string;
               toolMetadata?: JSONObject;
+              part?: DynamicToolUIPart;
             } & (
               | {
                   state: 'input-streaming';
@@ -285,11 +311,13 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 }
             ),
           ) {
-            const part = state.message.parts.find(
-              part =>
-                part.type === 'dynamic-tool' &&
-                part.toolCallId === options.toolCallId,
-            ) as DynamicToolUIPart | undefined;
+            const part =
+              options.part ??
+              (getCurrentStepParts().find(
+                part =>
+                  part.type === 'dynamic-tool' &&
+                  part.toolCallId === options.toolCallId,
+              ) as DynamicToolUIPart | undefined);
 
             const anyOptions = options as any;
             const anyPart = part as any;
@@ -665,7 +693,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               // When a part already exists for this toolCallId (e.g. from
               // tool-input-start), honour its type so we update in place
               // instead of creating a duplicate with a mismatched type.
-              const existingPart = state.message.parts
+              const existingPart = getCurrentStepParts()
                 .filter(isToolUIPart)
                 .find(p => p.toolCallId === chunk.toolCallId);
               const isDynamic =
@@ -757,6 +785,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
               if (toolInvocation.type === 'dynamic-tool') {
                 updateDynamicToolPart({
+                  part: toolInvocation,
                   toolCallId: chunk.toolCallId,
                   toolName: toolInvocation.toolName,
                   state: 'output-available',
@@ -770,6 +799,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 });
               } else {
                 updateToolPart({
+                  part: toolInvocation,
                   toolCallId: chunk.toolCallId,
                   toolName: getStaticToolName(toolInvocation),
                   state: 'output-available',
@@ -792,6 +822,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
               if (toolInvocation.type === 'dynamic-tool') {
                 updateDynamicToolPart({
+                  part: toolInvocation,
                   toolCallId: chunk.toolCallId,
                   toolName: toolInvocation.toolName,
                   state: 'output-error',
@@ -804,6 +835,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 });
               } else {
                 updateToolPart({
+                  part: toolInvocation,
                   toolCallId: chunk.toolCallId,
                   toolName: getStaticToolName(toolInvocation),
                   state: 'output-error',

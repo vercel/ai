@@ -1,5 +1,15 @@
 # @ai-sdk/workflow
 
+## 1.0.32
+
+### Patch Changes
+
+- a50b88a: fix(workflow): preserve assistant text in tool-call conversation messages
+- Updated dependencies [6cd7c74]
+- Updated dependencies [e35bcae]
+- Updated dependencies [a4eb3f3]
+  - ai@7.0.32
+
 ## 1.0.31
 
 ### Patch Changes

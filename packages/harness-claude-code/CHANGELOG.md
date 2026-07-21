@@ -1,5 +1,15 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.38
+
+### Patch Changes
+
+- 6c3e639: fix(harness-claude-code): classify the Skill tool as readonly so `allow-reads` permission mode no longer requires approval for skill activations
+- 0534507: fix(harness-claude-code): preserve nested user tool JSON schemas when exposing tools through the MCP bridge
+- Updated dependencies [b460541]
+- Updated dependencies [079591e]
+  - @ai-sdk/harness@1.0.37
+
 ## 1.0.37
 
 ### Patch Changes

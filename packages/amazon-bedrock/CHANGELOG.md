@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.25
+
+### Patch Changes
+
+- ce56626: fix(amazon-bedrock): encode slashes in ARN model IDs for Converse requests
+
 ## 5.0.24
 
 ### Patch Changes
