@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 11943,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-11943-langchain-image-content-block.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-11943-langchain-image-content-block.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #11943: image inputs emit OpenAI-specific image_url blocks instead of LangChain canonical image ContentBlocks"
+  }
+}
