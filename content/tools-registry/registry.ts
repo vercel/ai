@@ -584,4 +584,34 @@ console.log(result.text);`,
     websiteUrl: 'https://nitrosend.com',
     npmUrl: 'https://www.npmjs.com/package/@nitrosend/ai-sdk',
   },
+  {
+    slug: 'unirate',
+    name: 'UniRate',
+    description:
+      'Currency exchange, conversion, currency listing, and VAT-rate tools backed by the UniRate API (593+ fiat, crypto, and commodity instruments, with a free tier). Lets a model fetch live exchange rates, convert amounts between currencies, list supported currencies, and look up country VAT rates.',
+    packageName: '@unirate/ai-sdk',
+    tags: ['currency', 'exchange-rates', 'forex', 'vat', 'fintech'],
+    apiKeyEnvName: 'UNIRATE_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @unirate/ai-sdk',
+      npm: 'npm install @unirate/ai-sdk',
+      yarn: 'yarn add @unirate/ai-sdk',
+      bun: 'bun add @unirate/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createUniRateTools } from '@unirate/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: "Convert 250 USD to JPY, then tell me Germany's VAT rate.",
+  tools: createUniRateTools({ apiKey: process.env.UNIRATE_API_KEY }),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/UniRate-API/ai-sdk-unirate#readme',
+    apiKeyUrl: 'https://unirateapi.com',
+    websiteUrl: 'https://unirateapi.com',
+    npmUrl: 'https://www.npmjs.com/package/@unirate/ai-sdk',
+  },
 ];
