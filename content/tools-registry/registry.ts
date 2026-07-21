@@ -584,4 +584,36 @@ console.log(result.text);`,
     websiteUrl: 'https://nitrosend.com',
     npmUrl: 'https://www.npmjs.com/package/@nitrosend/ai-sdk',
   },
+  {
+    slug: 'haunt',
+    name: 'Haunt',
+    description:
+      'Web extraction for AI agents. Extract structured JSON or clean markdown from any public web page with a plain-language prompt, no selectors. Unreadable pages return an honest error_code (access_denied, login_required, not_found) instead of invented content, so agents can branch on failure. Failed reads are not charged.',
+    packageName: '@hauntapi/ai-sdk-tools',
+    tags: ['scraping', 'extraction', 'web', 'agents'],
+    apiKeyEnvName: 'HAUNT_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @hauntapi/ai-sdk-tools',
+      npm: 'npm install @hauntapi/ai-sdk-tools',
+      yarn: 'yarn add @hauntapi/ai-sdk-tools',
+      bun: 'bun add @hauntapi/ai-sdk-tools',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { hauntExtract } from '@hauntapi/ai-sdk-tools';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4.5',
+  prompt: 'What is the current top story on Hacker News?',
+  tools: {
+    extract: hauntExtract(),
+  },
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://hauntapi.com/docs',
+    apiKeyUrl: 'https://hauntapi.com/#signup',
+    websiteUrl: 'https://hauntapi.com',
+    npmUrl: 'https://www.npmjs.com/package/@hauntapi/ai-sdk-tools',
+  },
 ];
