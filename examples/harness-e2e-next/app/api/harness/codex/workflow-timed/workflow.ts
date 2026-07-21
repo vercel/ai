@@ -7,7 +7,7 @@ import {
   finalizeHarnessWorkflow,
   type HarnessWorkflowInput,
 } from '@ai-sdk/workflow-harness';
-import { runOpenCodeSlice } from './run-slice-step';
+import { runCodexSlice } from './run-slice-step';
 
 /*
  * The durable `'use workflow'` function lives in its own module — NOT in
@@ -18,7 +18,7 @@ import { runOpenCodeSlice } from './run-slice-step';
  * `ai`-free module keeps the DevKit bundle clean. See the claude-code workflow
  * module for the full rationale.
  */
-export async function openCodeCodingWorkflow(
+export async function codexTimedWorkflow(
   input: Pick<HarnessWorkflowInput, 'prompt' | 'sessionId'>,
 ) {
   'use workflow';
@@ -26,7 +26,7 @@ export async function openCodeCodingWorkflow(
   const resumeFrom = await loadResumeStep(input.sessionId);
   let state = createHarnessWorkflowState({ ...input, resumeFrom });
   while (state.status === 'running' || state.status === 'timed_out') {
-    state = await runOpenCodeSlice(state);
+    state = await runCodexSlice(state);
   }
   await persistResumeStep(state.sessionId, state.resumeFrom);
   return finalizeHarnessWorkflow(state);

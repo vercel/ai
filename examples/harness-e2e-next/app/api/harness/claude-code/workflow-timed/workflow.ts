@@ -26,7 +26,7 @@ import { runClaudeCodeSlice } from './run-slice-step';
  * long, and persist the refreshed handle for the next message. All Node-heavy
  * work lives in the step modules (`run-slice-step.ts`, `workflow-resume-steps.ts`).
  */
-export async function claudeCodeCodingWorkflow(
+export async function claudeCodeTimedWorkflow(
   input: Pick<HarnessWorkflowInput, 'prompt' | 'sessionId'>,
 ) {
   'use workflow';

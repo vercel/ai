@@ -6,10 +6,10 @@ import {
   type UIMessageChunk,
 } from 'ai';
 import { start } from 'workflow/api';
-import { openCodeCodingWorkflow } from './workflow';
+import { piTimedWorkflow } from './workflow';
 
 /*
- * Durable, multi-turn OpenCode chat via the Vercel Workflow DevKit. The
+ * Durable, multi-turn Pi chat via the Vercel Workflow DevKit. The
  * `'use workflow'` orchestration lives in `./workflow` (kept `ai`-free so the
  * DevKit's generated step/flow routes don't pull in `@ai-sdk/gateway`); this
  * file is the plain POST handler.
@@ -28,9 +28,7 @@ export async function POST(request: Request) {
     return new Response('No user message to run', { status: 400 });
   }
 
-  const run = await start(openCodeCodingWorkflow, [
-    { prompt, sessionId: body.id },
-  ]);
+  const run = await start(piTimedWorkflow, [{ prompt, sessionId: body.id }]);
 
   return createUIMessageStreamResponse({
     stream: run.readable as ReadableStream<UIMessageChunk>,

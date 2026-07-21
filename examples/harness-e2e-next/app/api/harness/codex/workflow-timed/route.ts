@@ -6,9 +6,14 @@ import {
   type UIMessageChunk,
 } from 'ai';
 import { start } from 'workflow/api';
-import { deepAgentsCodingWorkflow } from './workflow';
+import { codexTimedWorkflow } from './workflow';
 
-// Durable multi-turn DeepAgents chat via the Workflow DevKit; the `'use workflow'` orchestration lives in `./workflow` (kept `ai`-free) and this is the plain POST handler.
+/*
+ * Durable, multi-turn Codex chat via the Vercel Workflow DevKit. The
+ * `'use workflow'` orchestration lives in `./workflow` (kept `ai`-free so the
+ * DevKit's generated step/flow routes don't pull in `@ai-sdk/gateway`); this
+ * file is the plain POST handler.
+ */
 export async function POST(request: Request) {
   const body: {
     id?: string;
@@ -23,10 +28,7 @@ export async function POST(request: Request) {
     return new Response('No user message to run', { status: 400 });
   }
 
-  // The chat id is the stable harness session id; the session owns history, so we send only the newest user message.
-  const run = await start(deepAgentsCodingWorkflow, [
-    { prompt, sessionId: body.id },
-  ]);
+  const run = await start(codexTimedWorkflow, [{ prompt, sessionId: body.id }]);
 
   return createUIMessageStreamResponse({
     stream: run.readable as ReadableStream<UIMessageChunk>,

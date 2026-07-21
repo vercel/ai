@@ -2,17 +2,17 @@ import ChatIdProvider from '@/components/chat-id-provider';
 import CodexHarnessChat from '@/components/codex-harness-chat';
 
 export const metadata = {
-  title: 'Codex — Workflow',
+  title: 'Codex — Workflow (Timed)',
 };
 
-const STORAGE_KEY = 'harness-codex-workflow-chat-id';
+const STORAGE_KEY = 'harness-codex-workflow-timed-chat-id';
 
-export default function HarnessCodexWorkflowPage() {
+export default function HarnessCodexWorkflowTimedPage() {
   return (
     <ChatIdProvider storageKey={STORAGE_KEY}>
       <CodexHarnessChat
-        apiRoute="/api/harness/codex/workflow"
-        exampleLabel="Workflow"
+        apiRoute="/api/harness/codex/workflow-timed"
+        exampleLabel="Workflow (Timed)"
       />
     </ChatIdProvider>
   );

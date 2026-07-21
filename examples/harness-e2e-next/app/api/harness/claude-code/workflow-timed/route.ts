@@ -6,7 +6,7 @@ import {
   type UIMessageChunk,
 } from 'ai';
 import { start } from 'workflow/api';
-import { claudeCodeCodingWorkflow } from './workflow';
+import { claudeCodeTimedWorkflow } from './workflow';
 
 /*
  * Durable, multi-turn Claude Code chat via the Vercel Workflow DevKit. The
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   // The chat id is the stable harness session id across turns; the workflow
   // loads/persists its resume handle by that id. The harness session owns
   // history, so we send only the newest user message (`prompt`).
-  const run = await start(claudeCodeCodingWorkflow, [
+  const run = await start(claudeCodeTimedWorkflow, [
     { prompt, sessionId: body.id },
   ]);
 

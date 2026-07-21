@@ -10,7 +10,7 @@ import {
 import { runDeepAgentsSlice } from './run-slice-step';
 
 // The `'use workflow'` function lives in its own `ai`-free module (not `route.ts`) so the DevKit's generated step/flow bundle doesn't pull in `@ai-sdk/gateway`/`@vercel/oidc` and crash. See the claude-code workflow module for the full rationale.
-export async function deepAgentsCodingWorkflow(
+export async function deepAgentsTimedWorkflow(
   input: Pick<HarnessWorkflowInput, 'prompt' | 'sessionId'>,
 ) {
   'use workflow';

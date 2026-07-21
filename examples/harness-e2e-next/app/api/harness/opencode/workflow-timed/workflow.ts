@@ -7,7 +7,7 @@ import {
   finalizeHarnessWorkflow,
   type HarnessWorkflowInput,
 } from '@ai-sdk/workflow-harness';
-import { runPiSlice } from './run-slice-step';
+import { runOpenCodeSlice } from './run-slice-step';
 
 /*
  * The durable `'use workflow'` function lives in its own module — NOT in
@@ -17,11 +17,8 @@ import { runPiSlice } from './run-slice-step';
  * resolve, crashing the step route on load). Keeping the directive in an
  * `ai`-free module keeps the DevKit bundle clean. See the claude-code workflow
  * module for the full rationale.
- *
- * Pi runs the model on the host, so its cross-turn / cross-slice continuation is
- * rerun-from-journal rather than a lossless attach.
  */
-export async function piCodingWorkflow(
+export async function openCodeTimedWorkflow(
   input: Pick<HarnessWorkflowInput, 'prompt' | 'sessionId'>,
 ) {
   'use workflow';
@@ -29,7 +26,7 @@ export async function piCodingWorkflow(
   const resumeFrom = await loadResumeStep(input.sessionId);
   let state = createHarnessWorkflowState({ ...input, resumeFrom });
   while (state.status === 'running' || state.status === 'timed_out') {
-    state = await runPiSlice(state);
+    state = await runOpenCodeSlice(state);
   }
   await persistResumeStep(state.sessionId, state.resumeFrom);
   return finalizeHarnessWorkflow(state);
