@@ -1,3 +1,0 @@
-{
-  "message": "1 validation error detected: Value at 'messages.2.member.content.1.member.toolUse.name' failed to satisfy constraint: Member must satisfy regular expression pattern: [a-zA-Z0-9_-]+"
-}
