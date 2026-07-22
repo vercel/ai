@@ -2,7 +2,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createTogetherAI } from '../togetherai-provider';
-import { TogetherAIRerankingModelOptions } from './togetherai-reranking-options';
+import type { TogetherAIRerankingModelOptions } from './togetherai-reranking-model-options';
 
 const provider = createTogetherAI({ apiKey: 'test-api-key' });
 const model = provider.rerankingModel('Salesforce/Llama-Rank-v1');

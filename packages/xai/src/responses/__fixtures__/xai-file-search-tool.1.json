@@ -2,7 +2,7 @@
   "created_at": 1762189566,
   "id": "resp_file_search_123",
   "max_output_tokens": null,
-  "model": "grok-4-fast",
+  "model": "grok-4-fast-non-reasoning",
   "object": "response",
   "output": [
     {

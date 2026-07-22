@@ -22,7 +22,7 @@ See https://github.com/vercel/ai/pull/8136/files for a complete example of addin
 
 The AI SDK uses a layered provider architecture following the adapter pattern:
 
-1. **Specifications** (`@ai-sdk/provider`): Defines interfaces like `LanguageModelV3`, `EmbeddingModelV3`, etc.
+1. **Specifications** (`@ai-sdk/provider`): Defines interfaces like `LanguageModelV4`, `EmbeddingModelV4`, etc.
 2. **Utilities** (`@ai-sdk/provider-utils`): Shared code for implementing providers
 3. **Providers** (`@ai-sdk/<provider>`): Concrete implementations for each AI service
 4. **Core** (`ai`): High-level functions like `generateText`, `streamText`, `generateObject`
@@ -60,23 +60,27 @@ Set up your `package.json` with:
 
 - `"name": "@ai-sdk/<provider>"`
 - `"version": "0.0.0"` (initial version, will be updated by changeset)
+- `"type": "module"`
 - `"license": "Apache-2.0"`
 - `"sideEffects": false`
 - Dependencies on `@ai-sdk/provider` and `@ai-sdk/provider-utils` (use `workspace:*`)
 - Dev dependencies: `@ai-sdk/test-server`, `@types/node`, `@vercel/ai-tsconfig`, `tsup`, `typescript`, `zod`
-- `"engines": { "node": ">=18" }`
+- `"engines": { "node": ">=22" }`
 - Peer dependency on `zod` (both v3 and v4): `"zod": "^3.25.76 || ^4.1.8"`
 
-Example exports configuration:
+Example package entry point configuration:
 
 ```json
 {
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     }
   }
 }
@@ -182,9 +186,9 @@ export const providerName = new ProviderInstance();
 
 Each model type (language, embedding, image, etc.) should implement the appropriate interface from `@ai-sdk/provider`:
 
-- `LanguageModelV3` for text generation models
-- `EmbeddingModelV3` for embedding models
-- `ImageModelV1` for image generation models
+- `LanguageModelV4` for text generation models
+- `EmbeddingModelV4` for embedding models
+- `ImageModelV4` for image generation models
 - etc.
 
 **Schema guidelines**:

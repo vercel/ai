@@ -17,9 +17,10 @@ such as creating visual content, animations, or generating videos from images.
 
 ```ts
 import { experimental_generateVideo as generateVideo } from 'ai';
+__PROVIDER_IMPORT__;
 
 const { videos } = await generateVideo({
-  model: fal.video('luma-dream-machine/ray-2'),
+  model: __VIDEO_MODEL__,
   prompt: 'A cat walking on a treadmill',
   aspectRatio: '16:9',
 });
@@ -42,7 +43,7 @@ console.log(videos);
   content={[
     {
       name: 'model',
-      type: 'VideoModelV3',
+      type: 'VideoModelV4',
       description: 'The video model to use.',
     },
     {
@@ -108,6 +109,26 @@ console.log(videos);
       type: 'number',
       isOptional: true,
       description: 'Seed for the video generation.',
+    },
+    {
+      name: 'frameImages',
+      type: 'Array<{ image: DataContent; frameType: "first_frame" | "last_frame" }>',
+      isOptional: true,
+      description: 'Role-tagged image inputs for first-last-frame generation.',
+    },
+    {
+      name: 'inputReferences',
+      type: 'Array<DataContent | { data: DataContent; mediaType?: string }>',
+      isOptional: true,
+      description:
+        'Reference image or video inputs for reference-to-video generation. Use the object form with an explicit mediaType for URL-based video references. Providers route each reference by its media type and warn when a reference kind is unsupported.',
+    },
+    {
+      name: 'generateAudio',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Whether the model should generate audio alongside the video.',
     },
     {
       name: 'providerOptions',

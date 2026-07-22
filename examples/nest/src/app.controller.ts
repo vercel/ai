@@ -4,8 +4,9 @@ import {
   createUIMessageStream,
   streamText,
   pipeUIMessageStreamToResponse,
+  toUIMessageStream,
 } from 'ai';
-import { Response } from 'express';
+import type { Response } from 'express';
 
 @Controller()
 export class AppController {
@@ -16,7 +17,10 @@ export class AppController {
       prompt: 'Invent a new holiday and describe its traditions.',
     });
 
-    result.pipeUIMessageStreamToResponse(res);
+    pipeUIMessageStreamToResponse({
+      response: res,
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
   }
 
   @Post('/stream-data')
@@ -38,9 +42,10 @@ export class AppController {
           prompt: 'Invent a new holiday and describe its traditions.',
         });
         writer.merge(
-          result.toUIMessageStream({
+          toUIMessageStream({
+            stream: result.stream,
             sendStart: false,
-            onError: (error) => {
+            onError: error => {
               // Error messages are masked by default for security reasons.
               // If you want to expose the error message to the client, you can do so here:
               return error instanceof Error ? error.message : String(error);

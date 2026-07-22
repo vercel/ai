@@ -2,6 +2,8 @@
 
 The **[Moonshot AI provider](https://ai-sdk.dev/providers/ai-sdk-providers/moonshotai)** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for the [Moonshot AI](https://platform.moonshot.cn) platform, including the Kimi model series.
 
+> **Deploying to Vercel?** With Vercel's AI Gateway you can access Moonshot AI (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+
 ## Setup
 
 The Moonshot AI provider is available in the `@ai-sdk/moonshotai` module. You can install it with
@@ -33,7 +35,7 @@ import { moonshotai } from '@ai-sdk/moonshotai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: moonshotai('kimi-k2.5'),
+  model: moonshotai('kimi-k3'),
   prompt: 'Write a JavaScript function that sorts a list:',
 });
 ```

@@ -1,6 +1,6 @@
-import { JSONObject } from '@ai-sdk/provider';
-import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
-import { Warning } from '../types/warning';
+import type { JSONObject } from '@ai-sdk/provider';
+import type { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
+import type { Warning } from '../types/warning';
 
 /**
  * The result of a `transcribe` call.

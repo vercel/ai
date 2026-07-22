@@ -1,9 +1,12 @@
 import { applyPatch } from './tool/apply-patch';
 import { codeInterpreter } from './tool/code-interpreter';
+import { computer } from './tool/computer';
+import { customTool } from './tool/custom';
 import { fileSearch } from './tool/file-search';
 import { imageGeneration } from './tool/image-generation';
 import { localShell } from './tool/local-shell';
 import { shell } from './tool/shell';
+import { toolSearch } from './tool/tool-search';
 import { webSearch } from './tool/web-search';
 import { webSearchPreview } from './tool/web-search-preview';
 import { mcp } from './tool/mcp';
@@ -19,6 +22,16 @@ export const openaiTools = {
   applyPatch,
 
   /**
+   * Custom tools let callers constrain model output to a grammar (regex or
+   * Lark syntax). The model returns a `custom_tool_call` output item whose
+   * `input` field is a string matching the specified grammar.
+   *
+   * @param description - An optional description of the tool.
+   * @param format - The output format constraint (grammar type, syntax, and definition).
+   */
+  customTool,
+
+  /**
    * The Code Interpreter tool allows models to write and run Python code in a
    * sandboxed environment to solve complex problems in domains like data analysis,
    * coding, and math.
@@ -26,6 +39,16 @@ export const openaiTools = {
    * @param container - The container to use for the code interpreter.
    */
   codeInterpreter,
+
+  /**
+   * The computer tool allows models to operate a browser or desktop through
+   * batched UI actions. Your application executes the actions and returns an
+   * updated screenshot.
+   *
+   * WARNING: Run computer use in an isolated environment, treat on-screen
+   * content as untrusted, and require confirmation for consequential actions.
+   */
+  computer,
 
   /**
    * File search is a tool available in the Responses API. It enables models to
@@ -61,7 +84,7 @@ export const openaiTools = {
    * Local shell is a tool that allows agents to run shell commands locally
    * on a machine you or the user provides.
    *
-   * Supported models: `gpt-5-codex` and `codex-mini-latest`
+   * Supported models: `gpt-5-codex`
    */
   localShell,
 
@@ -111,4 +134,15 @@ export const openaiTools = {
    * @param serverUrl - URL for the MCP server.
    */
   mcp,
+
+  /**
+   * Tool search allows the model to dynamically search for and load deferred
+   * tools into the model's context as needed. This helps reduce overall token
+   * usage, cost, and latency by only loading tools when the model needs them.
+   *
+   * To use tool search, mark functions or namespaces with `defer_loading: true`
+   * in the tools array. The model will use tool search to load these tools
+   * when it determines they are needed.
+   */
+  toolSearch,
 };

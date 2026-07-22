@@ -1,4 +1,4 @@
-import { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-metadata';
+import type { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-metadata';
 
 /**
  * Result of a tool call that has been executed by the provider.

@@ -101,7 +101,6 @@ We will use the callback function to listen to state changes and save the conver
 'use server';
 
 import { getAIState, getMutableAIState, streamUI } from '@ai-sdk/rsc';
-import { openai } from '@ai-sdk/openai';
 import { ReactNode } from 'react';
 import { z } from 'zod';
 import { generateId } from 'ai';
@@ -126,7 +125,7 @@ export async function continueConversation(
   const history = getMutableAIState();
 
   const result = await streamUI({
-    model: openai('gpt-3.5-turbo'),
+    model: 'openai/gpt-5.4',
     messages: [...history.get(), { role: 'user', content: input }],
     text: ({ content, done }) => {
       if (done) {

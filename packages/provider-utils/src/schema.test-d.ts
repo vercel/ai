@@ -1,5 +1,5 @@
 import { describe, expectTypeOf, it } from 'vitest';
-import { InferSchema, StandardSchema } from './schema';
+import type { InferSchema, StandardSchema } from './schema';
 
 describe('InferSchema type', () => {
   it('should work with StandardSchema', () => {

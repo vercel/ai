@@ -1,6 +1,6 @@
 import { createMCPClient, ElicitationRequestSchema } from '@ai-sdk/mcp';
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import 'dotenv/config';
@@ -151,7 +151,7 @@ async function main() {
     const { text: response } = await generateText({
       model: openai('gpt-4o-mini'),
       tools,
-      stopWhen: stepCountIs(10),
+      stopWhen: isStepCount(10),
       onStepFinish: async ({ toolResults }) => {
         if (toolResults.length > 0) {
           console.log('TOOL RESULTS:', JSON.stringify(toolResults, null, 2));

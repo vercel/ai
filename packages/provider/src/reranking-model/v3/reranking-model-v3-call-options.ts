@@ -1,5 +1,5 @@
-import { JSONObject } from '../../json-value';
-import { SharedV3Headers, SharedV3ProviderOptions } from '../../shared/v3';
+import type { JSONObject } from '../../json-value';
+import type { SharedV3Headers, SharedV3ProviderOptions } from '../../shared/v3';
 
 export type RerankingModelV3CallOptions = {
   /**

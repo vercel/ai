@@ -1,5 +1,5 @@
 import { createTransformer } from '../lib/create-transformer';
-import {
+import type {
   ImportSpecifier,
   ImportDefaultSpecifier,
   ImportNamespaceSpecifier,
@@ -14,9 +14,6 @@ export default createTransformer((fileInfo, api, options, context) => {
     CompletionTokenUsage: 'LanguageModelUsage',
     EmbeddingTokenUsage: 'EmbeddingModelUsage',
   };
-
-  // Set to keep track of already imported new names to avoid duplicates
-  const importedNewNames = new Set<string>();
 
   // Replace imports at ImportDeclaration level
   root

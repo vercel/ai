@@ -1,13 +1,21 @@
-import { delay, DelayedPromise } from '@ai-sdk/provider-utils';
+import { DelayedPromise } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
-import { describe, expect, it } from 'vitest';
-import { UIMessage } from '../ui/ui-messages';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { UIMessage } from '../ui/ui-messages';
 import { consumeStream } from '../util/consume-stream';
 import { createUIMessageStream } from './create-ui-message-stream';
-import { UIMessageChunk } from './ui-message-chunks';
-import { UIMessageStreamWriter } from './ui-message-stream-writer';
+import type { UIMessageChunk } from './ui-message-chunks';
+import type { UIMessageStreamWriter } from './ui-message-stream-writer';
 
 describe('createUIMessageStream', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('should send data stream part and close the stream', async () => {
     const stream = createUIMessageStream({
       execute: ({ writer }) => {
@@ -352,7 +360,7 @@ describe('createUIMessageStream', () => {
     // close controller1
     controller1!.close();
 
-    await delay(); // relinquish control
+    await vi.advanceTimersByTimeAsync(0); // relinquish control
 
     // it should still be able to write to controller2
     controller2!.enqueue({ type: 'text-delta', id: '2', delta: '2a' });
@@ -430,6 +438,41 @@ describe('createUIMessageStream', () => {
         },
       ]
     `);
+  });
+
+  it('should handle onEnd without original messages', async () => {
+    const recordedOptions: any[] = [];
+
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.write({ type: 'text-start', id: '1' });
+        writer.write({ type: 'text-delta', id: '1', delta: '1a' });
+        writer.write({ type: 'text-end', id: '1' });
+      },
+      onEnd: options => {
+        recordedOptions.push(options);
+      },
+      generateId: () => 'response-message-id',
+    });
+
+    await consumeStream({ stream });
+
+    expect(recordedOptions).toHaveLength(1);
+    expect(recordedOptions[0]).toMatchObject({
+      isAborted: false,
+      isContinuation: false,
+      responseMessage: {
+        id: 'response-message-id',
+        role: 'assistant',
+        parts: [
+          {
+            state: 'done',
+            text: '1a',
+            type: 'text',
+          },
+        ],
+      },
+    });
   });
 
   it('should handle onFinish with messages', async () => {

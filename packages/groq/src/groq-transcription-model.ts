@@ -1,4 +1,4 @@
-import { TranscriptionModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import type { TranscriptionModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -6,15 +6,18 @@ import {
   mediaTypeToExtension,
   parseProviderOptions,
   postFormDataToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { GroqConfig } from './groq-config';
+import type { GroqConfig } from './groq-config';
 import { groqFailedResponseHandler } from './groq-error';
 import {
-  GroqTranscriptionModelId,
   groqTranscriptionModelOptions,
-} from './groq-transcription-options';
-import { GroqTranscriptionAPITypes } from './groq-api-types';
+  type GroqTranscriptionModelId,
+} from './groq-transcription-model-options';
+import type { GroqTranscriptionAPITypes } from './groq-api-types';
 
 interface GroqTranscriptionModelConfig extends GroqConfig {
   _internal?: {
@@ -22,11 +25,25 @@ interface GroqTranscriptionModelConfig extends GroqConfig {
   };
 }
 
-export class GroqTranscriptionModel implements TranscriptionModelV3 {
-  readonly specificationVersion = 'v3';
+export class GroqTranscriptionModel implements TranscriptionModelV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: GroqTranscriptionModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: GroqTranscriptionModelId;
+    config: GroqTranscriptionModelConfig;
+  }) {
+    return new GroqTranscriptionModel(options.modelId, options.config);
   }
 
   constructor(
@@ -38,8 +55,8 @@ export class GroqTranscriptionModel implements TranscriptionModelV3 {
     audio,
     mediaType,
     providerOptions,
-  }: Parameters<TranscriptionModelV3['doGenerate']>[0]) {
-    const warnings: SharedV3Warning[] = [];
+  }: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const groqOptions = await parseProviderOptions({
@@ -101,8 +118,8 @@ export class GroqTranscriptionModel implements TranscriptionModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV3['doGenerate']>>> {
+    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { formData, warnings } = await this.getArgs(options);
 
@@ -115,7 +132,7 @@ export class GroqTranscriptionModel implements TranscriptionModelV3 {
         path: '/audio/transcriptions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       formData,
       failedResponseHandler: groqFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

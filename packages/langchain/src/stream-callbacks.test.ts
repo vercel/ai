@@ -1,6 +1,6 @@
 import {
   createCallbacksTransformer,
-  StreamCallbacks,
+  type StreamCallbacks,
 } from './stream-callbacks';
 import { describe, it, expect, vi } from 'vitest';
 

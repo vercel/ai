@@ -1,4 +1,4 @@
-import { ProviderV2, ProviderV3 } from '@ai-sdk/provider';
+import type { ProviderV2, ProviderV3 } from '@ai-sdk/provider';
 import { asEmbeddingModelV3 } from './as-embedding-model-v3';
 import { asImageModelV3 } from './as-image-model-v3';
 import { asLanguageModelV3 } from './as-language-model-v3';

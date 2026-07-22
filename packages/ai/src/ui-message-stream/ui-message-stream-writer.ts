@@ -1,6 +1,6 @@
-import { UIMessage } from '../ui';
-import { ErrorHandler } from '../util/error-handler';
-import { InferUIMessageChunk } from './ui-message-chunks';
+import type { UIMessage } from '../ui';
+import type { ErrorHandler } from '../util/error-handler';
+import type { InferUIMessageChunk } from './ui-message-chunks';
 
 export interface UIMessageStreamWriter<
   UI_MESSAGE extends UIMessage = UIMessage,

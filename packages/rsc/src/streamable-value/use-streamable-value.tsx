@@ -1,6 +1,6 @@
 import { startTransition, useLayoutEffect, useState } from 'react';
 import { readStreamableValue } from './read-streamable-value';
-import { StreamableValue } from './streamable-value';
+import type { StreamableValue } from './streamable-value';
 import { isStreamableValue } from './is-streamable-value';
 
 function checkStreamableValue(value: unknown): value is StreamableValue {

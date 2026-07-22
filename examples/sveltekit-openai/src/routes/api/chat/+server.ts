@@ -1,6 +1,12 @@
 import { env } from '$env/dynamic/private';
 import { createOpenAI } from '@ai-sdk/openai';
-import { convertToModelMessages, streamText, stepCountIs } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  isStepCount,
+  toUIMessageStream,
+} from 'ai';
 import { z } from 'zod';
 
 const openai = createOpenAI({
@@ -13,7 +19,7 @@ export const POST = async ({ request }: { request: Request }) => {
   const result = streamText({
     model: openai('gpt-4o'),
     messages: convertToModelMessages(messages),
-    stopWhen: stepCountIs(5), // multi-steps for server-side tools
+    stopWhen: isStepCount(5), // multi-steps for server-side tools
     tools: {
       // server-side tool with execute function:
       getWeatherInformation: {
@@ -48,5 +54,7 @@ export const POST = async ({ request }: { request: Request }) => {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 };

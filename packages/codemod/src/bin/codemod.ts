@@ -3,9 +3,16 @@
 import debug from 'debug';
 import { Command } from 'commander';
 import { transform } from '../lib/transform';
-import { upgrade, upgradeV4, upgradeV5, upgradeV6 } from '../lib/upgrade';
-import { TransformOptions } from '../lib/transform-options';
+import {
+  upgrade,
+  upgradeV4,
+  upgradeV5,
+  upgradeV6,
+  upgradeV7,
+} from '../lib/upgrade';
+import type { TransformOptions } from '../lib/transform-options';
 
+// eslint-disable-next-line no-unused-vars
 const log = debug('codemod');
 const error = debug('codemod:error');
 debug.enable('codemod:*');
@@ -80,6 +87,17 @@ addTransformOptions(
     upgradeV6(options);
   } catch (err: any) {
     error(`Error applying v6 codemods: ${err}`);
+    process.exit(1);
+  }
+});
+
+addTransformOptions(
+  program.command('v7').description('Apply v7 codemods (v6 → v7 migration)'),
+).action((options: TransformOptions) => {
+  try {
+    upgradeV7(options);
+  } catch (err: any) {
+    error(`Error applying v7 codemods: ${err}`);
     process.exit(1);
   }
 });

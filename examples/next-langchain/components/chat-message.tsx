@@ -9,7 +9,7 @@ import {
 } from 'ai';
 import { Reasoning, Text, File, ToolInvocation } from './message-parts';
 import { DataProgress, DataStatus, DataFileStatus } from './data-parts';
-import { type CustomDataMessage } from '../app/types';
+import type { CustomDataMessage } from '../app/types';
 
 interface ChatMessageProps {
   message: CustomDataMessage;

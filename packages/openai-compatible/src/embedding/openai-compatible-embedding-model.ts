@@ -1,25 +1,29 @@
 import {
-  EmbeddingModelV3,
-  SharedV3Warning,
   TooManyEmbeddingValuesForCallError,
+  type EmbeddingModelV4,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  OpenAICompatibleEmbeddingModelId,
   openaiCompatibleEmbeddingModelOptions,
-} from './openai-compatible-embedding-options';
+  type OpenAICompatibleEmbeddingModelId,
+} from './openai-compatible-embedding-model-options';
 import {
   defaultOpenAICompatibleErrorStructure,
-  ProviderErrorStructure,
+  type ProviderErrorStructure,
 } from '../openai-compatible-error';
+import { warnIfDeprecatedProviderOptionsKey } from '../utils/to-camel-case';
 
 type OpenAICompatibleEmbeddingConfig = {
   /**
@@ -34,13 +38,13 @@ type OpenAICompatibleEmbeddingConfig = {
 
   provider: string;
   url: (options: { modelId: string; path: string }) => string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
   errorStructure?: ProviderErrorStructure<any>;
 };
 
-export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV3 {
-  readonly specificationVersion = 'v3';
+export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV4 {
+  readonly specificationVersion = 'v4';
   readonly modelId: OpenAICompatibleEmbeddingModelId;
 
   private readonly config: OpenAICompatibleEmbeddingConfig;
@@ -55,6 +59,20 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV3 {
 
   get supportsParallelCalls(): boolean {
     return this.config.supportsParallelCalls ?? true;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: OpenAICompatibleEmbeddingModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: OpenAICompatibleEmbeddingConfig;
+  }) {
+    return new OpenAICompatibleEmbeddingModel(options.modelId, options.config);
   }
 
   constructor(
@@ -74,10 +92,10 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV3 {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV3['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>
+  }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
   > {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options - check for deprecated 'openai-compatible' key
     const deprecatedOptions = await parseProviderOptions({
@@ -88,10 +106,18 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV3 {
 
     if (deprecatedOptions != null) {
       warnings.push({
-        type: 'other',
-        message: `The 'openai-compatible' key in providerOptions is deprecated. Use 'openaiCompatible' instead.`,
+        type: 'deprecated',
+        setting: "providerOptions key 'openai-compatible'",
+        message: "Use 'openaiCompatible' instead.",
       });
     }
+
+    // Warn when the raw (non-camelCase) provider name is used
+    warnIfDeprecatedProviderOptionsKey({
+      rawName: this.providerOptionsName,
+      providerOptions,
+      warnings,
+    });
 
     const compatibleOptions = Object.assign(
       deprecatedOptions ?? {},
@@ -125,7 +151,7 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV3 {
         path: '/embeddings',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers?.(), headers),
       body: {
         model: this.modelId,
         input: values,

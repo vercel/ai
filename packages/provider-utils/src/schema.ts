@@ -1,6 +1,9 @@
-import { JSONSchema7, TypeValidationError } from '@ai-sdk/provider';
-import { StandardSchemaV1, StandardJSONSchemaV1 } from '@standard-schema/spec';
-import * as z3 from 'zod/v3';
+import { TypeValidationError, type JSONSchema7 } from '@ai-sdk/provider';
+import type {
+  StandardSchemaV1,
+  StandardJSONSchemaV1,
+} from '@standard-schema/spec';
+import type * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
 import { addAdditionalPropertiesToJsonSchema } from './add-additional-properties-to-json-schema';
 import { zod3ToJsonSchema } from './to-json-schema/zod3-to-json-schema';
@@ -66,7 +69,13 @@ export type ZodSchema<SCHEMA = any> =
   | z3.Schema<SCHEMA, z3.ZodTypeDef, any>
   | z4.core.$ZodType<SCHEMA, any>;
 
-export type StandardSchema<SCHEMA = any> = StandardSchemaV1<unknown, SCHEMA> &
+export type StandardSchema<SCHEMA = any> = StandardSchemaV1<unknown, SCHEMA> & {
+  readonly '~standard': StandardSchemaV1.Props<unknown, SCHEMA> & {
+    readonly jsonSchema?: StandardJSONSchemaV1.Converter;
+  };
+};
+
+type StandardSchemaWithJsonSchema<SCHEMA = any> = StandardSchema<SCHEMA> &
   StandardJSONSchemaV1<unknown, SCHEMA>;
 
 export type FlexibleSchema<SCHEMA = any> =
@@ -133,7 +142,11 @@ export function asSchema<OBJECT>(
   schema: FlexibleSchema<OBJECT> | undefined,
 ): Schema<OBJECT> {
   return schema == null
-    ? jsonSchema({ properties: {}, additionalProperties: false })
+    ? jsonSchema({
+        type: 'object',
+        properties: {},
+        additionalProperties: false,
+      })
     : isSchema(schema)
       ? schema
       : '~standard' in schema
@@ -147,12 +160,19 @@ function standardSchema<OBJECT>(
   standardSchema: StandardSchema<OBJECT>,
 ): Schema<OBJECT> {
   return jsonSchema(
-    () =>
-      addAdditionalPropertiesToJsonSchema(
+    () => {
+      if (!hasStandardJsonSchema(standardSchema)) {
+        throw new Error(
+          `Standard schema vendor '${standardSchema['~standard'].vendor}' does not support JSON Schema conversion.`,
+        );
+      }
+
+      return addAdditionalPropertiesToJsonSchema(
         standardSchema['~standard'].jsonSchema.input({
           target: 'draft-07',
         }) as JSONSchema7,
-      ),
+      );
+    },
     {
       validate: async value => {
         const result = await standardSchema['~standard'].validate(value);
@@ -168,6 +188,12 @@ function standardSchema<OBJECT>(
       },
     },
   );
+}
+
+function hasStandardJsonSchema<OBJECT>(
+  schema: StandardSchema<OBJECT>,
+): schema is StandardSchemaWithJsonSchema<OBJECT> {
+  return schema['~standard'].jsonSchema != null;
 }
 
 export function zod3Schema<OBJECT>(

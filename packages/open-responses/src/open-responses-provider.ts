@@ -1,19 +1,18 @@
 import {
-  LanguageModelV3,
   NoSuchModelError,
-  ProviderV3,
+  type LanguageModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   generateId,
-  loadApiKey,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { OpenResponsesLanguageModel } from './responses/open-responses-language-model';
 import { VERSION } from './version';
 
-export interface OpenResponsesProvider extends ProviderV3 {
-  (modelId: string): LanguageModelV3;
+export interface OpenResponsesProvider extends ProviderV4 {
+  (modelId: string): LanguageModelV4;
 }
 
 export interface OpenResponsesProviderSettings {
@@ -65,6 +64,7 @@ export function createOpenResponses(
   const createResponsesModel = (modelId: string) => {
     return new OpenResponsesLanguageModel(modelId, {
       provider: `${providerName}.responses`,
+      providerOptionsName: providerName,
       headers: getHeaders,
       url: options.url,
       fetch: options.fetch,
@@ -86,7 +86,7 @@ export function createOpenResponses(
     return createLanguageModel(modelId);
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createLanguageModel;
 
   provider.embeddingModel = (modelId: string) => {

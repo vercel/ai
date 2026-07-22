@@ -12,7 +12,10 @@ Implementations of the `Agent` interface—such as `ToolLoopAgent`—fulfill the
 ## Interface Definition
 
 ```ts
-import { ModelMessage } from '@ai-sdk/provider-utils';
+import {
+  ModelMessage,
+  Experimental_SandboxSession,
+} from '@ai-sdk/provider-utils';
 import { ToolSet } from '../generate-text/tool-set';
 import { Output } from '../generate-text/output';
 import { GenerateTextResult } from '../generate-text/generate-text-result';
@@ -66,29 +69,45 @@ export type AgentCallParameters<CALL_OPTIONS, TOOLS extends ToolSet = {}> = ([
      */
     timeout?: number | { totalMs?: number };
     /**
+     * Experimental sandbox environment that is passed through to tool execution.
+     */
+    experimental_sandbox?: Experimental_SandboxSession;
+    /**
      * Callback that is called when the agent operation begins, before any LLM calls.
      */
-    experimental_onStart?: ToolLoopAgentOnStartCallback<TOOLS>;
+    onStart?: GenerateTextOnStartCallback<TOOLS>;
     /**
      * Callback that is called when a step (LLM call) begins, before the provider is called.
      */
-    experimental_onStepStart?: ToolLoopAgentOnStepStartCallback<TOOLS>;
+    onStepStart?: GenerateTextOnStepStartCallback<TOOLS>;
     /**
      * Callback that is called before each tool execution begins.
      */
-    experimental_onToolCallStart?: ToolLoopAgentOnToolCallStartCallback<TOOLS>;
+    onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
     /**
      * Callback that is called after each tool execution completes.
      */
-    experimental_onToolCallFinish?: ToolLoopAgentOnToolCallFinishCallback<TOOLS>;
+    onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
     /**
-     * Callback that is called when each step (LLM call) is finished, including intermediate steps.
+     * Callback that is called when each step (LLM call) ends, including intermediate steps.
      */
-    onStepFinish?: ToolLoopAgentOnStepFinishCallback<TOOLS>;
+    onStepEnd?: GenerateTextOnStepEndCallback<TOOLS>;
+    /**
+     * Callback that is called when each step (LLM call) ends, including intermediate steps.
+     *
+     * @deprecated Use `onStepEnd` instead.
+     */
+    onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS>;
     /**
      * Callback that is called when all steps are finished and the response is complete.
      */
-    onFinish?: ToolLoopAgentOnFinishCallback<TOOLS>;
+    onEnd?: GenerateTextOnEndCallback<TOOLS>;
+    /**
+     * Callback that is called when all steps are finished and the response is complete.
+     *
+     * @deprecated Use `onEnd` instead.
+     */
+    onFinish?: GenerateTextOnEndCallback<TOOLS>;
   };
 
 /**
@@ -162,12 +181,15 @@ Both `generate()` and `stream()` accept an `AgentCallParameters<CALL_OPTIONS, TO
 - `options` (optional): Additional call options when `CALL_OPTIONS` is not `never`
 - `abortSignal` (optional): An `AbortSignal` to cancel the operation
 - `timeout` (optional): A timeout in milliseconds. Can be specified as a number or as an object with a `totalMs` property. The call will be aborted if it takes longer than the specified timeout. Can be used alongside `abortSignal`.
-- `experimental_onStart` (optional): Callback invoked when the agent operation begins, before any LLM calls. Experimental.
-- `experimental_onStepStart` (optional): Callback invoked when a step (LLM call) begins, before the provider is called. Experimental.
-- `experimental_onToolCallStart` (optional): Callback invoked right before a tool's execute function runs. Experimental.
-- `experimental_onToolCallFinish` (optional): Callback invoked right after a tool's execute function completes or errors. Experimental.
-- `onStepFinish` (optional): A callback invoked after each agent step (LLM/tool call) completes. Useful for tracking token usage or logging.
-- `onFinish` (optional): A callback invoked when all steps are finished and the response is complete.
+- `experimental_sandbox` (optional): An experimental sandbox environment forwarded to tool execution.
+- `onStart` (optional): Callback invoked when the agent operation begins, before any LLM calls.
+- `onStepStart` (optional): Callback invoked when a step (LLM call) begins, before the provider is called.
+- `onToolExecutionStart` (optional): Callback invoked right before a tool's execute function runs.
+- `onToolExecutionEnd` (optional): Callback invoked right after a tool's execute function completes or errors.
+- `onStepEnd` (optional): A callback invoked after each agent step (LLM/tool call) completes. Useful for tracking token usage, per-step performance, or logging.
+- `onStepFinish` (optional): Deprecated alias for `onStepEnd`.
+- `onEnd` (optional): A callback invoked when all steps are finished and the response is complete.
+- `onFinish` (optional): Deprecated alias for `onEnd`.
 
 ## Example: Custom Agent Implementation
 

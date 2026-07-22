@@ -1,41 +1,66 @@
 import {
   InvalidArgumentError,
-  LanguageModelV3,
   NoSuchModelError,
-  ProviderV3,
+  type FilesV4,
+  type LanguageModelV4,
+  type ProviderV4,
+  type SkillsV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   generateId,
   loadApiKey,
   loadOptionalSetting,
+  validateBaseURL,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { VERSION } from './version';
-import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-model';
-import { AnthropicMessagesModelId } from './anthropic-messages-options';
+import { AnthropicFiles } from './anthropic-files';
+import { AnthropicLanguageModel } from './anthropic-language-model';
+import type { AnthropicModelId } from './anthropic-language-model-options';
 import { anthropicTools } from './anthropic-tools';
+import { AnthropicSkills } from './skills/anthropic-skills';
+import { VERSION } from './version';
 
-export interface AnthropicProvider extends ProviderV3 {
+const ANTHROPIC_API_URL = 'https://api.anthropic.com';
+const ANTHROPIC_API_VERSIONED_URL = `${ANTHROPIC_API_URL}/v1`;
+
+function normalizeBaseURL(baseURL: string | undefined): string | undefined {
+  const baseURLWithoutTrailingSlash = withoutTrailingSlash(
+    validateBaseURL(baseURL),
+  );
+
+  return baseURLWithoutTrailingSlash === ANTHROPIC_API_URL
+    ? ANTHROPIC_API_VERSIONED_URL
+    : baseURLWithoutTrailingSlash;
+}
+
+export interface AnthropicProvider extends ProviderV4 {
   /**
    * Creates a model for text generation.
    */
-  (modelId: AnthropicMessagesModelId): LanguageModelV3;
+  (modelId: AnthropicModelId): LanguageModelV4;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: AnthropicMessagesModelId): LanguageModelV3;
+  languageModel(modelId: AnthropicModelId): LanguageModelV4;
 
-  chat(modelId: AnthropicMessagesModelId): LanguageModelV3;
+  chat(modelId: AnthropicModelId): LanguageModelV4;
 
-  messages(modelId: AnthropicMessagesModelId): LanguageModelV3;
+  messages(modelId: AnthropicModelId): LanguageModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(modelId: string): never;
+
+  files(): FilesV4;
+
+  /**
+   * Returns a SkillsV4 interface for uploading skills to Anthropic.
+   */
+  skills(): SkillsV4;
 
   /**
    * Anthropic-specific computer use tool.
@@ -91,12 +116,12 @@ export function createAnthropic(
   options: AnthropicProviderSettings = {},
 ): AnthropicProvider {
   const baseURL =
-    withoutTrailingSlash(
+    normalizeBaseURL(
       loadOptionalSetting({
         settingValue: options.baseURL,
         environmentVariableName: 'ANTHROPIC_BASE_URL',
       }),
-    ) ?? 'https://api.anthropic.com/v1';
+    ) ?? ANTHROPIC_API_VERSIONED_URL;
 
   const providerName = options.name ?? 'anthropic.messages';
 
@@ -130,8 +155,8 @@ export function createAnthropic(
     );
   };
 
-  const createChatModel = (modelId: AnthropicMessagesModelId) =>
-    new AnthropicMessagesLanguageModel(modelId, {
+  const createChatModel = (modelId: AnthropicModelId) =>
+    new AnthropicLanguageModel(modelId, {
       provider: providerName,
       baseURL,
       headers: getHeaders,
@@ -143,7 +168,15 @@ export function createAnthropic(
       }),
     });
 
-  const provider = function (modelId: AnthropicMessagesModelId) {
+  const createSkills = () =>
+    new AnthropicSkills({
+      provider: `${providerName.replace('.messages', '')}.skills`,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const provider = function (modelId: AnthropicModelId) {
     if (new.target) {
       throw new Error(
         'The Anthropic model function cannot be called with the new keyword.',
@@ -153,7 +186,7 @@ export function createAnthropic(
     return createChatModel(modelId);
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.messages = createChatModel;
@@ -165,6 +198,16 @@ export function createAnthropic(
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
+
+  provider.files = () =>
+    new AnthropicFiles({
+      provider: providerName,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  provider.skills = createSkills;
 
   provider.tools = anthropicTools;
 

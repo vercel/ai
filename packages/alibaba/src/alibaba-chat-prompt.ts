@@ -26,7 +26,11 @@ export interface AlibabaChatUserMessage {
 
 export type AlibabaChatUserMessageContent =
   | { type: 'text'; text: string; cache_control?: AlibabaCacheControl }
-  | { type: 'image_url'; image_url: { url: string } };
+  | {
+      type: 'image_url';
+      image_url: { url: string };
+      cache_control?: AlibabaCacheControl;
+    };
 
 export interface AlibabaChatAssistantMessage {
   role: 'assistant';

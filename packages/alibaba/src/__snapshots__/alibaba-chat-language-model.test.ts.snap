@@ -98,7 +98,7 @@ So final answer: 3.",
     "unified": "stop",
   },
   "request": {
-    "body": "{"model":"qwen-plus","messages":[{"role":"user","content":"Hello"}]}",
+    "body": "{"model":"qwen-plus","messages":[{"role":"user","content":[{"type":"text","text":"Hello"}]}]}",
   },
   "response": {
     "body": {
@@ -302,7 +302,7 @@ Obsidiana is a quiet, reflective holiday that offers a profound antidote to mode
     "unified": "stop",
   },
   "request": {
-    "body": "{"model":"qwen-plus","messages":[{"role":"user","content":"Hello"}]}",
+    "body": "{"model":"qwen-plus","messages":[{"role":"user","content":[{"type":"text","text":"Hello"}]}]}",
   },
   "response": {
     "body": {
@@ -420,7 +420,7 @@ exports[`doGenerate > tool call > should extract tool call content 1`] = `
     "unified": "tool-calls",
   },
   "request": {
-    "body": "{"model":"qwen-plus","messages":[{"role":"user","content":"Hello"}]}",
+    "body": "{"model":"qwen-plus","messages":[{"role":"user","content":[{"type":"text","text":"Hello"}]}]}",
   },
   "response": {
     "body": {
@@ -2963,6 +2963,11 @@ exports[`doStream > tool call > should stream tool call 1`] = `
   },
   {
     "delta": ""}",
+    "id": "call_eee11723464a4b9eb8cee71d",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "",
     "id": "call_eee11723464a4b9eb8cee71d",
     "type": "tool-input-delta",
   },

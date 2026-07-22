@@ -1,16 +1,16 @@
 import {
-  LanguageModelV3,
   NoSuchModelError,
-  ProviderV3,
+  type LanguageModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { HuggingFaceResponsesLanguageModel } from './responses/huggingface-responses-language-model';
-import { HuggingFaceResponsesModelId } from './responses/huggingface-responses-settings';
+import type { HuggingFaceResponsesModelId } from './responses/huggingface-responses-settings';
 
 export interface HuggingFaceProviderSettings {
   /**
@@ -34,21 +34,21 @@ export interface HuggingFaceProviderSettings {
   generateId?: () => string;
 }
 
-export interface HuggingFaceProvider extends ProviderV3 {
+export interface HuggingFaceProvider extends ProviderV4 {
   /**
    * Creates a Hugging Face responses model for text generation.
    */
-  (modelId: HuggingFaceResponsesModelId): LanguageModelV3;
+  (modelId: HuggingFaceResponsesModelId): LanguageModelV4;
 
   /**
    * Creates a Hugging Face responses model for text generation.
    */
-  languageModel(modelId: HuggingFaceResponsesModelId): LanguageModelV3;
+  languageModel(modelId: HuggingFaceResponsesModelId): LanguageModelV4;
 
   /**
    * Creates a Hugging Face responses model for text generation.
    */
-  responses(modelId: HuggingFaceResponsesModelId): LanguageModelV3;
+  responses(modelId: HuggingFaceResponsesModelId): LanguageModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -87,7 +87,7 @@ export function createHuggingFace(
   const provider = (modelId: HuggingFaceResponsesModelId) =>
     createResponsesModel(modelId);
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createResponsesModel;
   provider.responses = createResponsesModel;
 
@@ -116,4 +116,4 @@ export function createHuggingFace(
 /**
  * Default Hugging Face provider instance.
  */
-export const huggingface = createHuggingFace();
+export const huggingFace = createHuggingFace();

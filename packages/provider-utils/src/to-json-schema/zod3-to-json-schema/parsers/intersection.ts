@@ -1,8 +1,8 @@
-import { ZodIntersectionDef } from 'zod/v3';
+import type { ZodIntersectionDef } from 'zod/v3';
 import { parseDef } from '../parse-def';
-import { JsonSchema7Type } from '../parse-types';
-import { Refs } from '../refs';
-import { JsonSchema7StringType } from './string';
+import type { JsonSchema7Type } from '../parse-types';
+import type { Refs } from '../refs';
+import type { JsonSchema7StringType } from './string';
 
 export type JsonSchema7AllOfType = {
   allOf: JsonSchema7Type[];
@@ -42,7 +42,7 @@ export function parseIntersectionDef(
         'additionalProperties' in schema &&
         schema.additionalProperties === false
       ) {
-        const { additionalProperties, ...rest } = schema;
+        const { additionalProperties: _additionalProperties, ...rest } = schema;
         nestedSchema = rest;
       }
       mergedAllOf.push(nestedSchema);

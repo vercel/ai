@@ -58,14 +58,14 @@ describe('data protocol stream', () => {
     await chat.sendMessage({
       parts: [{ text: 'hi', type: 'text' }],
     });
-    expect(chat.messages.at(0)).toStrictEqual(
+    expect(chat.messages[0]).toEqual(
       expect.objectContaining({
         role: 'user',
         parts: [{ text: 'hi', type: 'text' }],
       }),
     );
 
-    expect(chat.messages.at(1)).toStrictEqual(
+    expect(chat.messages[1]).toEqual(
       expect.objectContaining({
         role: 'assistant',
         parts: [{ type: 'text', text: 'Hello, world.', state: 'done' }],
@@ -331,7 +331,7 @@ describe('text stream', () => {
     controller.write('He');
 
     await vi.waitFor(() =>
-      expect(chat.messages.at(1)).toStrictEqual(
+      expect(chat.messages[1]).toEqual(
         expect.objectContaining({
           id: expect.any(String),
           role: 'assistant',
@@ -343,14 +343,14 @@ describe('text stream', () => {
         }),
       ),
     );
-    const id = chat.messages.at(1)?.id;
+    const id = chat.messages[1]?.id;
 
     controller.write('llo');
     controller.close();
     await appendOperation;
 
     expect(id).toBeDefined();
-    expect(chat.messages.at(1)).toStrictEqual(
+    expect(chat.messages[1]).toEqual(
       expect.objectContaining({
         id,
         role: 'assistant',
@@ -471,7 +471,7 @@ describe('onToolCall', () => {
     const appendOperation = chat.sendMessage({ text: 'hi' });
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+      expect(chat.messages[1]?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'input-available',
           errorText: undefined,
@@ -490,7 +490,7 @@ describe('onToolCall', () => {
     resolve();
     await appendOperation;
 
-    expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+    expect(chat.messages[1]?.parts.filter(isToolUIPart)).toStrictEqual([
       {
         state: 'output-available',
         errorText: undefined,
@@ -542,7 +542,7 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+      expect(chat.messages[1]?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'input-streaming',
           errorText: undefined,
@@ -567,7 +567,7 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+      expect(chat.messages[1]?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'input-streaming',
           errorText: undefined,
@@ -592,7 +592,7 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+      expect(chat.messages[1]?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'input-streaming',
           errorText: undefined,
@@ -618,7 +618,7 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+      expect(chat.messages[1]?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'input-available',
           errorText: undefined,
@@ -644,7 +644,7 @@ describe('tool invocations', () => {
     controller.close();
     await appendOperation;
 
-    expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+    expect(chat.messages[1]?.parts.filter(isToolUIPart)).toStrictEqual([
       {
         state: 'output-available',
         errorText: undefined,
@@ -679,7 +679,7 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+      expect(chat.messages[1]?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'input-available',
           errorText: undefined,
@@ -706,7 +706,7 @@ describe('tool invocations', () => {
 
     await appendOperation;
 
-    expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+    expect(chat.messages[1]?.parts.filter(isToolUIPart)).toStrictEqual([
       {
         state: 'output-available',
         errorText: undefined,
@@ -740,7 +740,7 @@ describe('tool invocations', () => {
     });
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+      expect(chat.messages[1]?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'input-available',
           errorText: undefined,
@@ -763,7 +763,7 @@ describe('tool invocations', () => {
     });
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+      expect(chat.messages[1]?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'output-available',
           errorText: undefined,
@@ -817,7 +817,7 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+      expect(chat.messages[1]?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'input-available',
           errorText: undefined,
@@ -842,7 +842,7 @@ describe('tool invocations', () => {
 
     // UI should show the tool result
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+      expect(chat.messages[1]?.parts.filter(isToolUIPart)).toStrictEqual([
         {
           state: 'output-available',
           errorText: undefined,
@@ -1458,13 +1458,13 @@ describe('reload', () => {
       parts: [{ text: 'hi', type: 'text' }],
     });
 
-    expect(chat.messages.at(0)).toStrictEqual(
+    expect(chat.messages[0]).toEqual(
       expect.objectContaining({
         role: 'user',
       }),
     );
 
-    expect(chat.messages.at(1)).toStrictEqual(
+    expect(chat.messages[1]).toEqual(
       expect.objectContaining({
         role: 'assistant',
         parts: [{ text: 'first response', type: 'text', state: 'done' }],
@@ -1502,7 +1502,7 @@ describe('reload', () => {
       'header-key': 'header-value',
     });
 
-    expect(chat.messages.at(1)).toStrictEqual(
+    expect(chat.messages[1]).toEqual(
       expect.objectContaining({
         role: 'assistant',
         parts: [{ text: 'second response', type: 'text', state: 'done' }],
@@ -1532,7 +1532,7 @@ describe('test sending additional fields during message submission', () => {
       parts: [{ text: 'hi', type: 'text' }],
     });
 
-    expect(chat.messages.at(0)).toStrictEqual(
+    expect(chat.messages[0]).toEqual(
       expect.objectContaining({
         role: 'user',
       }),

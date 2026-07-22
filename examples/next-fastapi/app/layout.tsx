@@ -3,7 +3,7 @@ import { LogoNext, LogoPython } from './icons';
 import Link from 'next/link';
 import { GeistSans } from 'geist/font/sans';
 
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'AI SDK and FastAPI Examples',

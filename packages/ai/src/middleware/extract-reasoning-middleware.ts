@@ -1,8 +1,9 @@
 import type {
-  LanguageModelV3Content,
-  LanguageModelV3StreamPart,
+  LanguageModelV4Content,
+  LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
-import { LanguageModelMiddleware } from '../types/language-model-middleware';
+import type { LanguageModelMiddleware } from '../types/language-model-middleware';
+import { createIdMap } from '../util/create-id-map';
 import { getPotentialStartIndex } from '../util/get-potential-start-index';
 
 /**
@@ -26,11 +27,11 @@ export function extractReasoningMiddleware({
   const closingTag = `<\/${tagName}>`;
 
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     wrapGenerate: async ({ doGenerate }) => {
       const { content, ...rest } = await doGenerate();
 
-      const transformedContent: LanguageModelV3Content[] = [];
+      const transformedContent: LanguageModelV4Content[] = [];
       for (const part of content) {
         if (part.type !== 'text') {
           transformedContent.push(part);
@@ -92,15 +93,15 @@ export function extractReasoningMiddleware({
           idCounter: number;
           textId: string;
         }
-      > = {};
+      > = createIdMap();
 
-      let delayedTextStart: LanguageModelV3StreamPart | undefined;
+      let delayedTextStart: LanguageModelV4StreamPart | undefined;
 
       return {
         stream: stream.pipeThrough(
           new TransformStream<
-            LanguageModelV3StreamPart,
-            LanguageModelV3StreamPart
+            LanguageModelV4StreamPart,
+            LanguageModelV4StreamPart
           >({
             transform: (chunk, controller) => {
               // do not send `text-start` before `reasoning-start`

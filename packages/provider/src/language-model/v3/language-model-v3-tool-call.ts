@@ -1,4 +1,4 @@
-import { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
+import type { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
 
 /**
  * Tool calls that the model has generated.

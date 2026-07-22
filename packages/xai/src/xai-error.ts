@@ -1,8 +1,7 @@
 import { createJsonErrorResponseHandler } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-// Add error schema and structure
-export const xaiErrorDataSchema = z.object({
+const chatCompletionsErrorSchema = z.object({
   error: z.object({
     message: z.string(),
     type: z.string().nullish(),
@@ -11,9 +10,20 @@ export const xaiErrorDataSchema = z.object({
   }),
 });
 
+const responsesErrorSchema = z.object({
+  code: z.string(),
+  error: z.string(),
+});
+
+export const xaiErrorDataSchema = z.union([
+  chatCompletionsErrorSchema,
+  responsesErrorSchema,
+]);
+
 export type XaiErrorData = z.infer<typeof xaiErrorDataSchema>;
 
 export const xaiFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: xaiErrorDataSchema,
-  errorToMessage: data => data.error.message,
+  errorToMessage: data =>
+    'code' in data ? `${data.code}: ${data.error}` : data.error.message,
 });

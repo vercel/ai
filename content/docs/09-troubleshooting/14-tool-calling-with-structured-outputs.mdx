@@ -40,9 +40,9 @@ const result = await generateText({
     },
   },
   // Add at least 1 to your intended step count to account for structured output
-  stopWhen: stepCountIs(3), // Now accounts for: tool call + tool result + structured output
+  stopWhen: isStepCount(3), // Now accounts for: tool call + tool result + structured output
   prompt: 'Analyze the data and provide a summary',
 });
 ```
 
-For more information about using structured outputs with `generateText` and `streamText` see [Generating Structured Data](/docs/ai-sdk-core/generating-structured-data#structured-outputs-with-generatetext-and-streamtext).
+For more information about using structured outputs with `generateText` and `streamText` see [Generating Structured Data](/docs/ai-sdk-core/generating-structured-data#generating-structured-outputs).

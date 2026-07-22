@@ -35,9 +35,11 @@ export const generateImageTool = tool({
 ```typescript filename='app/api/chat/route.ts'
 import {
   convertToModelMessages,
+  createUIMessageStreamResponse,
   type InferUITools,
-  stepCountIs,
+  isStepCount,
   streamText,
+  toUIMessageStream,
   type UIMessage,
 } from 'ai';
 
@@ -55,11 +57,13 @@ export async function POST(request: Request) {
   const result = streamText({
     model: 'openai/gpt-4o',
     messages: await convertToModelMessages(messages),
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     tools,
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 

@@ -1,12 +1,12 @@
-import type {
-  Experimental_VideoModelV3,
-  Experimental_VideoModelV3CallOptions,
-  Experimental_VideoModelV3File,
-  Experimental_VideoModelV3VideoData,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
+import {
+  APICallError,
+  type Experimental_VideoModelV4,
+  type Experimental_VideoModelV4CallOptions,
+  type Experimental_VideoModelV4File,
+  type Experimental_VideoModelV4VideoData,
+  type SharedV4ProviderMetadata,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
-import { APICallError } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertUint8ArrayToBase64,
@@ -21,8 +21,8 @@ import type { GatewayConfig } from './gateway-config';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 
-export class GatewayVideoModel implements Experimental_VideoModelV3 {
-  readonly specificationVersion = 'v3' as const;
+export class GatewayVideoModel implements Experimental_VideoModelV4 {
+  readonly specificationVersion = 'v4' as const;
   // Set a very large number to prevent client-side splitting of requests
   readonly maxVideosPerCall = Number.MAX_SAFE_INTEGER;
 
@@ -46,21 +46,26 @@ export class GatewayVideoModel implements Experimental_VideoModelV3 {
     duration,
     fps,
     seed,
+    generateAudio,
     image,
+    frameImages,
+    inputReferences,
     providerOptions,
     headers,
     abortSignal,
-  }: Experimental_VideoModelV3CallOptions): Promise<{
-    videos: Array<Experimental_VideoModelV3VideoData>;
-    warnings: Array<SharedV3Warning>;
-    providerMetadata?: SharedV3ProviderMetadata;
+  }: Experimental_VideoModelV4CallOptions): Promise<{
+    videos: Array<Experimental_VideoModelV4VideoData>;
+    warnings: Array<SharedV4Warning>;
+    providerMetadata?: SharedV4ProviderMetadata;
     response: {
       timestamp: Date;
       modelId: string;
       headers: Record<string, string> | undefined;
     };
   }> {
-    const resolvedHeaders = await resolve(this.config.headers());
+    const resolvedHeaders = this.config.headers
+      ? await resolve(this.config.headers)
+      : undefined;
     try {
       const { responseHeaders, value: responseBody } = await postJsonToApi({
         url: this.getUrl(),
@@ -79,8 +84,20 @@ export class GatewayVideoModel implements Experimental_VideoModelV3 {
           ...(duration && { duration }),
           ...(fps && { fps }),
           ...(seed && { seed }),
+          ...(generateAudio !== undefined && { generateAudio }),
           ...(providerOptions && { providerOptions }),
           ...(image && { image: maybeEncodeVideoFile(image) }),
+          ...(frameImages && {
+            frameImages: frameImages.map(frame => ({
+              ...frame,
+              image: maybeEncodeVideoFile(frame.image),
+            })),
+          }),
+          ...(inputReferences && {
+            inputReferences: inputReferences.map(reference =>
+              maybeEncodeVideoFile(reference),
+            ),
+          }),
         },
         successfulResponseHandler: async ({
           response,
@@ -170,7 +187,7 @@ export class GatewayVideoModel implements Experimental_VideoModelV3 {
         videos: responseBody.videos,
         warnings: responseBody.warnings ?? [],
         providerMetadata:
-          responseBody.providerMetadata as SharedV3ProviderMetadata,
+          responseBody.providerMetadata as SharedV4ProviderMetadata,
         response: {
           timestamp: new Date(),
           modelId: this.modelId,
@@ -178,7 +195,10 @@ export class GatewayVideoModel implements Experimental_VideoModelV3 {
         },
       };
     } catch (error) {
-      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
+      throw await asGatewayError(
+        error,
+        await parseAuthMethod(resolvedHeaders ?? {}),
+      );
     }
   }
 
@@ -188,13 +208,13 @@ export class GatewayVideoModel implements Experimental_VideoModelV3 {
 
   private getModelConfigHeaders() {
     return {
-      'ai-video-model-specification-version': '3',
+      'ai-video-model-specification-version': '4',
       'ai-model-id': this.modelId,
     };
   }
 }
 
-function maybeEncodeVideoFile(file: Experimental_VideoModelV3File) {
+function maybeEncodeVideoFile(file: Experimental_VideoModelV4File) {
   if (file.type === 'file' && file.data instanceof Uint8Array) {
     return {
       ...file,
@@ -233,6 +253,11 @@ const gatewayVideoWarningSchema = z.discriminatedUnion('type', [
     type: z.literal('compatibility'),
     feature: z.string(),
     details: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('deprecated'),
+    setting: z.string(),
+    message: z.string(),
   }),
   z.object({
     type: z.literal('other'),

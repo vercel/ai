@@ -1,4 +1,4 @@
-import { createProviderToolFactoryWithOutputSchema } from '@ai-sdk/provider-utils';
+import { createProviderExecutedToolFactory } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 const codeExecutionOutputSchema = z.object({
@@ -6,7 +6,7 @@ const codeExecutionOutputSchema = z.object({
   error: z.string().optional().describe('any error that occurred'),
 });
 
-const codeExecutionToolFactory = createProviderToolFactoryWithOutputSchema({
+const codeExecutionToolFactory = createProviderExecutedToolFactory({
   id: 'xai.code_execution',
   inputSchema: z.object({}).describe('no input parameters'),
   outputSchema: codeExecutionOutputSchema,

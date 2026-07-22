@@ -1,68 +1,102 @@
 import {
-  type Experimental_VideoModelV3,
-  ImageModelV3,
-  LanguageModelV3,
+  type Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
+  type Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
+  type Experimental_VideoModelV4,
+  type FilesV4,
+  type ImageModelV4,
+  type LanguageModelV4,
   NoSuchModelError,
-  ProviderV3,
+  type ProviderV4,
+  type SpeechModelV4,
+  type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
-import { XaiChatModelId } from './xai-chat-options';
+import type { XaiChatModelId } from './xai-chat-language-model-options';
 import { XaiImageModel } from './xai-image-model';
-import { XaiImageModelId } from './xai-image-settings';
+import type { XaiImageModelId } from './xai-image-settings';
 import { XaiResponsesLanguageModel } from './responses/xai-responses-language-model';
-import { XaiResponsesModelId } from './responses/xai-responses-options';
+import type { XaiResponsesModelId } from './responses/xai-responses-language-model-options';
+import { XaiRealtimeModel } from './realtime/xai-realtime-model';
 import { xaiTools } from './tool';
 import { VERSION } from './version';
+import { XaiFiles } from './files/xai-files';
 import { XaiVideoModel } from './xai-video-model';
-import { XaiVideoModelId } from './xai-video-settings';
+import type { XaiVideoModelId } from './xai-video-settings';
+import { XaiSpeechModel } from './xai-speech-model';
+import { XaiTranscriptionModel } from './xai-transcription-model';
 
-export interface XaiProvider extends ProviderV3 {
-  /**
-   * Creates an Xai chat model for text generation.
-   */
-  (modelId: XaiChatModelId): LanguageModelV3;
+export interface XaiProvider extends ProviderV4 {
+  (modelId: XaiResponsesModelId): LanguageModelV4;
 
   /**
    * Creates an Xai language model for text generation.
    */
-  languageModel(modelId: XaiChatModelId): LanguageModelV3;
+  languageModel(modelId: XaiResponsesModelId): LanguageModelV4;
 
   /**
    * Creates an Xai chat model for text generation.
    */
-  chat: (modelId: XaiChatModelId) => LanguageModelV3;
+  chat: (modelId: XaiChatModelId) => LanguageModelV4;
 
   /**
-   * Creates an Xai responses model for agentic tool calling.
+   * Creates an Xai responses model for text generation.
    */
-  responses: (modelId: XaiResponsesModelId) => LanguageModelV3;
-
-  /**
-   * Creates an Xai image model for image generation.
-   */
-  image(modelId: XaiImageModelId): ImageModelV3;
+  responses: (modelId: XaiResponsesModelId) => LanguageModelV4;
 
   /**
    * Creates an Xai image model for image generation.
    */
-  imageModel(modelId: XaiImageModelId): ImageModelV3;
+  image(modelId: XaiImageModelId): ImageModelV4;
+
+  /**
+   * Creates an Xai image model for image generation.
+   */
+  imageModel(modelId: XaiImageModelId): ImageModelV4;
 
   /**
    * Creates an Xai video model for video generation.
    */
-  video(modelId: XaiVideoModelId): Experimental_VideoModelV3;
+  video(modelId: XaiVideoModelId): Experimental_VideoModelV4;
 
   /**
    * Creates an Xai video model for video generation.
    */
-  videoModel(modelId: XaiVideoModelId): Experimental_VideoModelV3;
+  videoModel(modelId: XaiVideoModelId): Experimental_VideoModelV4;
+
+  experimental_realtime: RealtimeFactoryV4;
+
+  /**
+   * Creates an xAI model for speech generation (text-to-speech).
+   */
+  speech(): SpeechModelV4;
+
+  /**
+   * Creates an xAI model for speech generation (text-to-speech).
+   */
+  speechModel(): SpeechModelV4;
+
+  /**
+   * Creates an xAI model for speech-to-text transcription.
+   */
+  transcription(): TranscriptionModelV4;
+
+  /**
+   * Creates an xAI model for speech-to-text transcription.
+   */
+  transcriptionModel(): TranscriptionModelV4;
+
+  /**
+   * Returns the xAI files interface for uploading files.
+   */
+  files(): FilesV4;
 
   /**
    * Server-side agentic tools for use with the responses API.
@@ -96,6 +130,12 @@ export interface XaiProviderSettings {
    * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /**
+   * Custom WebSocket implementation. Required in runtimes whose native
+   * WebSocket constructor does not support headers for xAI streaming STT.
+   */
+  webSocket?: WebSocketConstructor;
 }
 
 export function createXai(options: XaiProviderSettings = {}): XaiProvider {
@@ -153,11 +193,66 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     });
   };
 
-  const provider = (modelId: XaiChatModelId) =>
-    createChatLanguageModel(modelId);
+  const createRealtimeModel = (modelId: string) => {
+    return new XaiRealtimeModel(modelId, {
+      provider: 'xai.realtime',
+      baseURL: baseURL ?? 'https://api.x.ai/v1',
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+  };
 
-  provider.specificationVersion = 'v3' as const;
-  provider.languageModel = createChatLanguageModel;
+  const createSpeechModel = () => {
+    return new XaiSpeechModel('', {
+      provider: 'xai.speech',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+  };
+
+  const createTranscriptionModel = () => {
+    return new XaiTranscriptionModel('', {
+      provider: 'xai.transcription',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      webSocket: options.webSocket,
+    });
+  };
+
+  const experimentalRealtimeFactory = Object.assign(
+    (modelId: string) => createRealtimeModel(modelId),
+    {
+      getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
+        const model = createRealtimeModel(tokenOptions.model);
+        const secret = await model.doCreateClientSecret({
+          sessionConfig: tokenOptions.sessionConfig,
+          expiresAfterSeconds: tokenOptions.expiresAfterSeconds,
+        });
+
+        return {
+          token: secret.token,
+          url: secret.url,
+          expiresAt: secret.expiresAt,
+        };
+      },
+    },
+  ) as RealtimeFactoryV4;
+
+  const createFiles = () =>
+    new XaiFiles({
+      provider: 'xai.files',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const provider = (modelId: XaiResponsesModelId) =>
+    createResponsesLanguageModel(modelId);
+
+  provider.specificationVersion = 'v4' as const;
+  provider.languageModel = createResponsesLanguageModel;
   provider.chat = createChatLanguageModel;
   provider.responses = createResponsesLanguageModel;
   provider.embeddingModel = (modelId: string) => {
@@ -168,6 +263,12 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   provider.image = createImageModel;
   provider.videoModel = createVideoModel;
   provider.video = createVideoModel;
+  provider.experimental_realtime = experimentalRealtimeFactory;
+  provider.speechModel = createSpeechModel;
+  provider.speech = createSpeechModel;
+  provider.transcriptionModel = createTranscriptionModel;
+  provider.transcription = createTranscriptionModel;
+  provider.files = createFiles;
   provider.tools = xaiTools;
 
   return provider;

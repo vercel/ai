@@ -1,4 +1,6 @@
+import { cancelResponseBody } from './cancel-response-body';
 import { DownloadError } from './download-error';
+import { fetchWithValidatedRedirects } from './fetch-with-validated-redirects';
 import {
   readResponseWithSizeLimit,
   DEFAULT_MAX_DOWNLOAD_SIZE,
@@ -20,11 +22,15 @@ export async function downloadBlob(
   options?: { maxBytes?: number; abortSignal?: AbortSignal },
 ): Promise<Blob> {
   try {
-    const response = await fetch(url, {
-      signal: options?.abortSignal,
+    const response = await fetchWithValidatedRedirects({
+      url,
+      abortSignal: options?.abortSignal,
     });
 
     if (!response.ok) {
+      // Release the connection before rejecting so an error status from an
+      // attacker-controlled origin cannot leak open sockets.
+      await cancelResponseBody(response);
       throw new DownloadError({
         url,
         statusCode: response.status,

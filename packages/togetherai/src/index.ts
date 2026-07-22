@@ -3,7 +3,7 @@ export type {
   TogetherAIRerankingModelOptions,
   /** @deprecated Use `TogetherAIRerankingModelOptions` instead. */
   TogetherAIRerankingModelOptions as TogetherAIRerankingOptions,
-} from './reranking/togetherai-reranking-options';
+} from './reranking/togetherai-reranking-model-options';
 export { createTogetherAI, togetherai } from './togetherai-provider';
 export type {
   TogetherAIProvider,
@@ -13,5 +13,5 @@ export type {
   TogetherAIImageModelOptions,
   /** @deprecated Use `TogetherAIImageModelOptions` instead. */
   TogetherAIImageModelOptions as TogetherAIImageProviderOptions,
-} from './togetherai-image-model';
+} from './togetherai-image-model-options';
 export { VERSION } from './version';

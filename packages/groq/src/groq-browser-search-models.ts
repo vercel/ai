@@ -1,4 +1,4 @@
-import { GroqChatModelId } from './groq-chat-options';
+import type { GroqChatModelId } from './groq-chat-language-model-options';
 
 /**
  * Models that support browser search functionality.

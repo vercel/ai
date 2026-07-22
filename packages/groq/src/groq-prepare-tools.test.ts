@@ -147,6 +147,144 @@ describe('prepareTools', () => {
     });
   });
 
+  describe('strict mode for function tools', () => {
+    it('should pass through strict mode when strict is true', () => {
+      const result = prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: true,
+          },
+        ],
+        modelId: 'gemma2-9b-it',
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'function',
+          function: {
+            name: 'testFunction',
+            description: 'A test function',
+            parameters: { type: 'object', properties: {} },
+            strict: true,
+          },
+        },
+      ]);
+    });
+
+    it('should pass through strict mode when strict is false', () => {
+      const result = prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: false,
+          },
+        ],
+        modelId: 'gemma2-9b-it',
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'function',
+          function: {
+            name: 'testFunction',
+            description: 'A test function',
+            parameters: { type: 'object', properties: {} },
+            strict: false,
+          },
+        },
+      ]);
+    });
+
+    it('should not include strict when strict is undefined', () => {
+      const result = prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        modelId: 'gemma2-9b-it',
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'function',
+          function: {
+            name: 'testFunction',
+            description: 'A test function',
+            parameters: { type: 'object', properties: {} },
+          },
+        },
+      ]);
+    });
+
+    it('should pass through strict mode for multiple tools with different strict settings', () => {
+      const result = prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'strictTool',
+            description: 'A strict tool',
+            inputSchema: { type: 'object', properties: {} },
+            strict: true,
+          },
+          {
+            type: 'function',
+            name: 'nonStrictTool',
+            description: 'A non-strict tool',
+            inputSchema: { type: 'object', properties: {} },
+            strict: false,
+          },
+          {
+            type: 'function',
+            name: 'defaultTool',
+            description: 'A tool without strict setting',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        modelId: 'gemma2-9b-it',
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'function',
+          function: {
+            name: 'strictTool',
+            description: 'A strict tool',
+            parameters: { type: 'object', properties: {} },
+            strict: true,
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'nonStrictTool',
+            description: 'A non-strict tool',
+            parameters: { type: 'object', properties: {} },
+            strict: false,
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'defaultTool',
+            description: 'A tool without strict setting',
+            parameters: { type: 'object', properties: {} },
+          },
+        },
+      ]);
+    });
+  });
+
   describe('browser search tool', () => {
     it('should handle browser search tool with supported model', () => {
       const result = prepareTools({

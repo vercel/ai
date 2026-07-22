@@ -71,7 +71,12 @@ export default function Chat() {
 On the backend, create a route handler that uses `streamText` and returns a `UIMessageStreamResponse`. The tool has an `execute` function that runs automatically when the model calls it.
 
 ```ts filename="app/api/chat/route.ts"
-import { streamText, tool } from 'ai';
+import {
+  streamText,
+  tool,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
+} from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
@@ -95,7 +100,9 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -109,8 +116,13 @@ To add a HITL step, you add an approval gate between the tool call and the tool 
 
 Add `needsApproval: true` to the tool definition. The tool keeps its `execute` function, but the SDK pauses execution until the user approves.
 
-```ts filename="app/api/chat/route.ts" highlight="14"
-import { streamText, tool } from 'ai';
+```ts filename="app/api/chat/route.ts" highlight="20"
+import {
+  streamText,
+  tool,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
+} from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
@@ -135,7 +147,9 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -276,8 +290,13 @@ const { messages, addToolApprovalResponse } = useChat({
 
 You can make approval conditional based on the tool's input by providing an async function to `needsApproval`:
 
-```ts filename="app/api/chat/route.ts" highlight="15"
-import { streamText, tool } from 'ai';
+```ts filename="app/api/chat/route.ts" highlight="23"
+import {
+  streamText,
+  tool,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
+} from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
@@ -302,7 +321,9 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -327,6 +348,6 @@ const result = streamText({
 
 ## Full Example
 
-To see this code in action, check out the [`next-openai` example](https://github.com/vercel/ai/tree/main/examples/next-openai) in the AI SDK repository. Navigate to the `/test-tool-approval` page and associated route handler.
+To see tool approval in action, check out the [`/chat/tool-approval` page](https://github.com/vercel/ai/blob/main/examples/ai-e2e-next/app/chat/tool-approval/page.tsx) and its [route handler](https://github.com/vercel/ai/blob/main/examples/ai-e2e-next/app/api/chat/tool-approval/route.ts) in the `ai-e2e-next` example.
 
 For more details on tool execution approval, see the [Tool Execution Approval](/docs/ai-sdk-core/tools-and-tool-calling#tool-execution-approval) and [Chatbot Tool Usage](/docs/ai-sdk-ui/chatbot-tool-usage#tool-execution-approval) documentation.

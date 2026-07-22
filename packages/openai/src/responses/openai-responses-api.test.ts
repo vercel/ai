@@ -1,6 +1,6 @@
-import { InferSchema } from '@ai-sdk/provider-utils';
+import type { InferSchema } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
-import {
+import type {
   openaiResponsesChunkSchema,
   openaiResponsesResponseSchema,
 } from './openai-responses-api';
@@ -68,6 +68,26 @@ describe('openaiResponses schema alignment', () => {
     >['results'];
 
     expectTypeOf<ChunkFileSearchResults>().toEqualTypeOf<ResponseFileSearchResults>();
+  });
+
+  it('aligns message phase between added chunk, done chunk, and response schemas', () => {
+    type AddedChunkPhase = Extract<
+      Extract<Chunk, { type: 'response.output_item.added' }>['item'],
+      { type: 'message' }
+    >['phase'];
+
+    type DoneChunkPhase = Extract<
+      Extract<Chunk, { type: 'response.output_item.done' }>['item'],
+      { type: 'message' }
+    >['phase'];
+
+    type ResponsePhase = Extract<
+      NonNullable<Response['output']>[number],
+      { type: 'message' }
+    >['phase'];
+
+    expectTypeOf<AddedChunkPhase>().toEqualTypeOf<DoneChunkPhase>();
+    expectTypeOf<DoneChunkPhase>().toEqualTypeOf<ResponsePhase>();
   });
 
   it('aligns output_text logprobs', () => {

@@ -1,5 +1,5 @@
-import { ZodStringDef } from 'zod/v3';
-import { Refs } from '../refs';
+import type { ZodStringDef } from 'zod/v3';
+import type { Refs } from '../refs';
 
 let emojiRegex: RegExp | undefined = undefined;
 

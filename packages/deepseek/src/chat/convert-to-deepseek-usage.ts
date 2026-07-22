@@ -1,4 +1,4 @@
-import { LanguageModelV3Usage } from '@ai-sdk/provider';
+import type { LanguageModelV4Usage } from '@ai-sdk/provider';
 
 export function convertDeepSeekUsage(
   usage:
@@ -15,7 +15,7 @@ export function convertDeepSeekUsage(
       }
     | undefined
     | null,
-): LanguageModelV3Usage {
+): LanguageModelV4Usage {
   if (usage == null) {
     return {
       inputTokens: {

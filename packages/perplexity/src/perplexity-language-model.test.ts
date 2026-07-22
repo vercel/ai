@@ -1,4 +1,7 @@
-import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import {
+  InvalidArgumentError,
+  type LanguageModelV4Prompt,
+} from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
   mockId,
@@ -8,7 +11,7 @@ import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { PerplexityLanguageModel } from './perplexity-language-model';
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -119,6 +122,63 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should pass through unknown perplexity provider options', async () => {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
+      type: 'json-value',
+      body: {
+        id: 'test-id',
+        created: 1680000000,
+        model: modelId,
+        choices: [
+          {
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 },
+      },
+    };
+
+    await perplexityModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        perplexity: {
+          future_option: {
+            enabled: true,
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "future_option": {
+          "enabled": true,
+        },
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "sonar",
+      }
+    `);
+  });
+
+  it('should reject invalid perplexity provider options', async () => {
+    await expect(
+      perplexityModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          perplexity: {
+            search_recency_filter: 'decade',
+          },
+        },
+      }),
+    ).rejects.toThrow(InvalidArgumentError);
+  });
+
   it('should pass headers', async () => {
     prepareJsonFixtureResponse('perplexity-text');
 
@@ -216,7 +276,7 @@ describe('doGenerate', () => {
   it('should handle PDF files with base64 encoding', async () => {
     prepareJsonFixtureResponse('perplexity-text');
 
-    const prompt: LanguageModelV3Prompt = [
+    const prompt: LanguageModelV4Prompt = [
       {
         role: 'user',
         content: [
@@ -224,7 +284,7 @@ describe('doGenerate', () => {
           {
             type: 'file',
             mediaType: 'application/pdf',
-            data: 'mock-pdf-data',
+            data: { type: 'data' as const, data: 'mock-pdf-data' },
             filename: 'test.pdf',
           },
         ],
@@ -256,7 +316,7 @@ describe('doGenerate', () => {
   it('should handle PDF files with URLs', async () => {
     prepareJsonFixtureResponse('perplexity-text');
 
-    const prompt: LanguageModelV3Prompt = [
+    const prompt: LanguageModelV4Prompt = [
       {
         role: 'user',
         content: [
@@ -264,7 +324,10 @@ describe('doGenerate', () => {
           {
             type: 'file',
             mediaType: 'application/pdf',
-            data: new URL('https://example.com/test.pdf'),
+            data: {
+              type: 'url' as const,
+              url: new URL('https://example.com/test.pdf'),
+            },
             filename: 'test.pdf',
           },
         ],
@@ -326,6 +389,7 @@ describe('doGenerate', () => {
     expect(result.providerMetadata).toMatchInlineSnapshot(`
       {
         "perplexity": {
+          "cost": null,
           "images": [
             {
               "height": 100,
@@ -399,6 +463,7 @@ describe('doGenerate', () => {
     expect(result.providerMetadata).toMatchInlineSnapshot(`
       {
         "perplexity": {
+          "cost": null,
           "images": null,
           "usage": {
             "citationTokens": 30,
@@ -407,6 +472,26 @@ describe('doGenerate', () => {
         },
       }
     `);
+  });
+
+  describe('warnings', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('perplexity-text');
+    });
+
+    it('should warn about unsupported reasoning', async () => {
+      const result = await perplexityModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'reasoning',
+        }),
+      );
+    });
   });
 });
 
@@ -577,6 +662,7 @@ describe('doStream', () => {
     expect(finish?.providerMetadata).toMatchInlineSnapshot(`
       {
         "perplexity": {
+          "cost": null,
           "images": [
             {
               "height": 100,
@@ -666,6 +752,7 @@ describe('doStream', () => {
     expect(finish?.providerMetadata).toMatchInlineSnapshot(`
       {
         "perplexity": {
+          "cost": null,
           "images": null,
           "usage": {
             "citationTokens": 30,
@@ -729,7 +816,7 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "id": "id-67",
+          "id": "id-73",
           "sourceType": "url",
           "type": "source",
           "url": "https://example.com",
@@ -762,23 +849,9 @@ describe('doStream', () => {
           "type": "raw",
         },
         {
-          "error": [AI_TypeValidationError: Type validation failed: Value: {"id":"ppl-456","object":"chat.completion.chunk","created":1234567890,"model":"sonar","choices":[{"index":0,"delta":{"content":" world"},"finish_reason":null}]}.
-      Error message: [
-        {
-          "code": "invalid_value",
-          "values": [
-            "assistant"
-          ],
-          "path": [
-            "choices",
-            0,
-            "delta",
-            "role"
-          ],
-          "message": "Invalid input: expected \\"assistant\\""
-        }
-      ]],
-          "type": "error",
+          "delta": " world",
+          "id": "0",
+          "type": "text-delta",
         },
         {
           "rawValue": {
@@ -804,50 +877,21 @@ describe('doStream', () => {
           "type": "raw",
         },
         {
-          "error": [AI_TypeValidationError: Type validation failed: Value: {"id":"ppl-789","object":"chat.completion.chunk","created":1234567890,"model":"sonar","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15,"citation_tokens":2,"num_search_queries":1}}.
-      Error message: [
-        {
-          "code": "invalid_value",
-          "values": [
-            "assistant"
-          ],
-          "path": [
-            "choices",
-            0,
-            "delta",
-            "role"
-          ],
-          "message": "Invalid input: expected \\"assistant\\""
-        },
-        {
-          "expected": "string",
-          "code": "invalid_type",
-          "path": [
-            "choices",
-            0,
-            "delta",
-            "content"
-          ],
-          "message": "Invalid input: expected string, received undefined"
-        }
-      ]],
-          "type": "error",
-        },
-        {
           "id": "0",
           "type": "text-end",
         },
         {
           "finishReason": {
-            "raw": undefined,
-            "unified": "other",
+            "raw": "stop",
+            "unified": "stop",
           },
           "providerMetadata": {
             "perplexity": {
+              "cost": null,
               "images": null,
               "usage": {
-                "citationTokens": null,
-                "numSearchQueries": null,
+                "citationTokens": 2,
+                "numSearchQueries": 1,
               },
             },
           },
@@ -856,15 +900,21 @@ describe('doStream', () => {
             "inputTokens": {
               "cacheRead": undefined,
               "cacheWrite": undefined,
-              "noCache": undefined,
-              "total": undefined,
+              "noCache": 10,
+              "total": 10,
             },
             "outputTokens": {
-              "reasoning": undefined,
-              "text": undefined,
-              "total": undefined,
+              "reasoning": 0,
+              "text": 5,
+              "total": 5,
             },
-            "raw": undefined,
+            "raw": {
+              "citation_tokens": 2,
+              "completion_tokens": 5,
+              "num_search_queries": 1,
+              "prompt_tokens": 10,
+              "total_tokens": 15,
+            },
           },
         },
       ]

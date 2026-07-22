@@ -1,4 +1,4 @@
-import { TranscriptionModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import type { TranscriptionModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -6,29 +6,16 @@ import {
   mediaTypeToExtension,
   parseProviderOptions,
   postFormDataToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { ElevenLabsConfig } from './elevenlabs-config';
+import type { ElevenLabsConfig } from './elevenlabs-config';
 import { elevenlabsFailedResponseHandler } from './elevenlabs-error';
-import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
-import { ElevenLabsTranscriptionAPITypes } from './elevenlabs-api-types';
-
-// https://elevenlabs.io/docs/api-reference/speech-to-text/convert
-const elevenLabsTranscriptionModelOptionsSchema = z.object({
-  languageCode: z.string().nullish(),
-  tagAudioEvents: z.boolean().nullish().default(true),
-  numSpeakers: z.number().int().min(1).max(32).nullish(),
-  timestampsGranularity: z
-    .enum(['none', 'word', 'character'])
-    .nullish()
-    .default('word'),
-  diarize: z.boolean().nullish().default(false),
-  fileFormat: z.enum(['pcm_s16le_16', 'other']).nullish().default('other'),
-});
-
-export type ElevenLabsTranscriptionModelOptions = z.infer<
-  typeof elevenLabsTranscriptionModelOptionsSchema
->;
+import { elevenLabsTranscriptionModelOptionsSchema } from './elevenlabs-transcription-model-options';
+import type { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
+import type { ElevenLabsTranscriptionAPITypes } from './elevenlabs-api-types';
 
 interface ElevenLabsTranscriptionModelConfig extends ElevenLabsConfig {
   _internal?: {
@@ -36,11 +23,25 @@ interface ElevenLabsTranscriptionModelConfig extends ElevenLabsConfig {
   };
 }
 
-export class ElevenLabsTranscriptionModel implements TranscriptionModelV3 {
-  readonly specificationVersion = 'v3';
+export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: ElevenLabsTranscriptionModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: ElevenLabsTranscriptionModelId;
+    config: ElevenLabsTranscriptionModelConfig;
+  }) {
+    return new ElevenLabsTranscriptionModel(options.modelId, options.config);
   }
 
   constructor(
@@ -52,8 +53,8 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV3 {
     audio,
     mediaType,
     providerOptions,
-  }: Parameters<TranscriptionModelV3['doGenerate']>[0]) {
-    const warnings: SharedV3Warning[] = [];
+  }: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const elevenlabsOptions = await parseProviderOptions({
@@ -111,8 +112,8 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV3['doGenerate']>>> {
+    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { formData, warnings } = await this.getArgs(options);
 
@@ -125,7 +126,7 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV3 {
         path: '/v1/speech-to-text',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       formData,
       failedResponseHandler: elevenlabsFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

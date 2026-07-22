@@ -1,5 +1,5 @@
 import { convertOpenAICompatibleChatUsage } from '@ai-sdk/openai-compatible/internal';
-import type { LanguageModelV3Usage } from '@ai-sdk/provider';
+import type { LanguageModelV4Usage } from '@ai-sdk/provider';
 
 export type AlibabaUsage = {
   prompt_tokens?: number | null;
@@ -16,7 +16,7 @@ export type AlibabaUsage = {
 
 export function convertAlibabaUsage(
   usage: AlibabaUsage | undefined | null,
-): LanguageModelV3Usage {
+): LanguageModelV4Usage {
   const baseUsage = convertOpenAICompatibleChatUsage(usage);
 
   const cacheWriteTokens =

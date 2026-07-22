@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [svelte()],
 
   test: {
-    workspace: [
+    projects: [
       {
         extends: './vite.config.ts',
         plugins: [svelteTesting()],

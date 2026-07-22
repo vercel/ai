@@ -1,4 +1,4 @@
-import { FetchFunction } from '@ai-sdk/provider-utils';
+import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { FalImageModel } from './fal-image-model';
@@ -398,7 +398,7 @@ describe('FalImageModel', () => {
 
       expect(model.provider).toBe('fal.image');
       expect(model.modelId).toBe('fal-ai/qwen-image');
-      expect(model.specificationVersion).toBe('v3');
+      expect(model.specificationVersion).toBe('v4');
       expect(model.maxImagesPerCall).toBe(1);
     });
   });

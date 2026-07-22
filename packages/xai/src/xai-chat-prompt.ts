@@ -18,7 +18,11 @@ export interface XaiUserMessage {
 
 export type XaiUserMessageContent =
   | { type: 'text'; text: string }
-  | { type: 'image_url'; image_url: { url: string } };
+  | {
+      type: 'image_url';
+      image_url: { url: string; detail?: 'low' | 'high' | 'auto' };
+    }
+  | { type: 'file'; file: { file_id: string } };
 
 export interface XaiAssistantMessage {
   role: 'assistant';

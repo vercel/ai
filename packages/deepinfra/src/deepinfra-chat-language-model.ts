@@ -1,19 +1,37 @@
-import {
-  LanguageModelV3CallOptions,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamResult,
+import type {
+  LanguageModelV4CallOptions,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamResult,
 } from '@ai-sdk/provider';
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
-import { FetchFunction } from '@ai-sdk/provider-utils';
-
+import {
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type FetchFunction,
+} from '@ai-sdk/provider-utils';
 type DeepInfraChatConfig = {
   provider: string;
   url: (options: { path: string; modelId?: string }) => string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
 };
 
 export class DeepInfraChatLanguageModel extends OpenAICompatibleChatLanguageModel {
+  static [WORKFLOW_SERIALIZE](model: DeepInfraChatLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: DeepInfraChatConfig;
+  }) {
+    return new DeepInfraChatLanguageModel(options.modelId, options.config);
+  }
+
   constructor(modelId: string, config: DeepInfraChatConfig) {
     super(modelId, config);
   }
@@ -67,8 +85,8 @@ export class DeepInfraChatLanguageModel extends OpenAICompatibleChatLanguageMode
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const result = await super.doGenerate(options);
 
     // Fix usage if needed
@@ -107,8 +125,8 @@ export class DeepInfraChatLanguageModel extends OpenAICompatibleChatLanguageMode
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const result = await super.doStream(options);
 
     // Wrap the stream to fix usage in the final chunk

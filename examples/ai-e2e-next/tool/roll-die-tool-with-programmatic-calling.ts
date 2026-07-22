@@ -8,7 +8,7 @@ export const rollDieToolWithProgrammaticCalling = tool({
   }),
   providerOptions: {
     anthropic: {
-      allowedCallers: ['code_execution_20250825'],
+      allowedCallers: ['code_execution_20260120'],
     },
   },
   execute: async ({ player }) => {

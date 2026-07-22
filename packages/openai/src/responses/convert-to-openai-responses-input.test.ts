@@ -1,4 +1,4 @@
-import { ToolNameMapping } from '../../../provider-utils/src/create-tool-name-mapping';
+import type { ToolNameMapping } from '../../../provider-utils/src/create-tool-name-mapping';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { describe, it, expect } from 'vitest';
 
@@ -31,6 +31,37 @@ describe('convertToOpenAIResponsesInput', () => {
       });
 
       expect(result.input).toEqual([{ role: 'developer', content: 'Hello' }]);
+    });
+
+    it('should add a prompt cache breakpoint to a system message', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'system',
+            content: 'Hello',
+            providerOptions: {
+              openai: { promptCacheBreakpoint: { mode: 'explicit' } },
+            },
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'developer',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'developer',
+          content: [
+            {
+              type: 'input_text',
+              text: 'Hello',
+              prompt_cache_breakpoint: { mode: 'explicit' },
+            },
+          ],
+        },
+      ]);
     });
 
     it('should remove system messages', async () => {
@@ -66,6 +97,70 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
+    it('should add prompt cache breakpoints to supported content blocks', async () => {
+      const promptCacheBreakpoint = { mode: 'explicit' } as const;
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Hello',
+                providerOptions: { openai: { promptCacheBreakpoint } },
+              },
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: {
+                  type: 'url',
+                  url: new URL('https://example.com/image.png'),
+                },
+                providerOptions: { openai: { promptCacheBreakpoint } },
+              },
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data: {
+                  type: 'reference',
+                  reference: { openai: 'file-pdf-123' },
+                },
+                providerOptions: { openai: { promptCacheBreakpoint } },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_text',
+              text: 'Hello',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+            {
+              type: 'input_image',
+              image_url: 'https://example.com/image.png',
+              detail: undefined,
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+            {
+              type: 'input_file',
+              file_id: 'file-pdf-123',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should convert messages with image parts using URL', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
@@ -76,7 +171,10 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'image/*',
-                data: new URL('https://example.com/image.jpg'),
+                data: {
+                  type: 'url' as const,
+                  url: new URL('https://example.com/image.jpg'),
+                },
               },
             ],
           },
@@ -110,7 +208,10 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'image/png',
-                data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                data: {
+                  type: 'data' as const,
+                  data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                },
               },
             ],
           },
@@ -143,7 +244,10 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'image/png',
-                data: new Uint8Array([0, 1, 2, 3]),
+                data: {
+                  type: 'data' as const,
+                  data: new Uint8Array([0, 1, 2, 3]),
+                },
               },
             ],
           },
@@ -167,7 +271,7 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
-    it('should convert messages with image parts using file_id', async () => {
+    it('should convert messages with image parts using file_id (deprecated)', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
@@ -176,7 +280,7 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'image/png',
-                data: 'file-12345',
+                data: { type: 'data' as const, data: 'file-12345' },
               },
             ],
           },
@@ -201,7 +305,7 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
-    it('should use default mime type for binary images', async () => {
+    it('should convert messages with image parts using provider reference', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
@@ -209,8 +313,11 @@ describe('convertToOpenAIResponsesInput', () => {
             content: [
               {
                 type: 'file',
-                mediaType: 'image/*',
-                data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                mediaType: 'image/png',
+                data: {
+                  type: 'reference' as const,
+                  reference: { openai: 'file-12345' },
+                },
               },
             ],
           },
@@ -227,11 +334,105 @@ describe('convertToOpenAIResponsesInput', () => {
           content: [
             {
               type: 'input_image',
-              image_url: 'data:image/jpeg;base64,AAECAw==',
+              file_id: 'file-12345',
             },
           ],
         },
       ]);
+    });
+
+    it('detects mime type from bytes when wildcard image/*', async () => {
+      const pngBase64 = Buffer.from([
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+      ]).toString('base64');
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/*',
+                data: { type: 'data' as const, data: pngBase64 },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_image',
+              image_url: `data:image/png;base64,${pngBase64}`,
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('throws when wildcard image/* bytes cannot be detected', async () => {
+      await expect(
+        convertToOpenAIResponsesInput({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'image/*',
+                  data: {
+                    type: 'data' as const,
+                    data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                  },
+                },
+              ],
+            },
+          ],
+          toolNameMapping: testToolNameMapping,
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: true,
+        }),
+      ).rejects.toThrow(/media type "image\/\*"/);
+    });
+
+    it('passes through URL for top-level-only image (provider accepts URL)', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image',
+                data: {
+                  type: 'url' as const,
+                  url: new URL('https://example.com/x.png'),
+                },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+      const firstItem = result.input[0]!;
+      expect(
+        'content' in firstItem ? (firstItem.content as unknown[])[0] : null,
+      ).toEqual({
+        type: 'input_image',
+        image_url: 'https://example.com/x.png',
+        detail: undefined,
+      });
     });
 
     it('should add image detail when specified through extension', async () => {
@@ -243,7 +444,10 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'image/png',
-                data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                data: {
+                  type: 'data' as const,
+                  data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                },
                 providerOptions: {
                   openai: {
                     imageDetail: 'low',
@@ -282,7 +486,10 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'image/png',
-                data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                data: {
+                  type: 'data' as const,
+                  data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                },
                 providerOptions: {
                   azure: {
                     imageDetail: 'low',
@@ -323,7 +530,7 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: base64Data,
+                data: { type: 'data' as const, data: base64Data },
                 filename: 'document.pdf',
               },
             ],
@@ -349,7 +556,7 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
-    it('should convert messages with PDF file parts using file_id', async () => {
+    it('should convert messages with PDF file parts using file_id (deprecated)', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
@@ -358,7 +565,7 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: 'file-pdf-12345',
+                data: { type: 'data' as const, data: 'file-pdf-12345' },
               },
             ],
           },
@@ -367,6 +574,42 @@ describe('convertToOpenAIResponsesInput', () => {
         systemMessageMode: 'system',
         providerOptionsName: 'openai',
         fileIdPrefixes: ['file-'],
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_file',
+              file_id: 'file-pdf-12345',
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should convert messages with PDF file parts using provider reference', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data: {
+                  type: 'reference' as const,
+                  reference: { openai: 'file-pdf-12345' },
+                },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -394,7 +637,7 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: base64Data,
+                data: { type: 'data' as const, data: base64Data },
               },
             ],
           },
@@ -431,7 +674,7 @@ describe('convertToOpenAIResponsesInput', () => {
                 {
                   type: 'file',
                   mediaType: 'text/plain',
-                  data: base64Data,
+                  data: { type: 'data' as const, data: base64Data },
                 },
               ],
             },
@@ -444,6 +687,44 @@ describe('convertToOpenAIResponsesInput', () => {
       ).rejects.toThrow('file part media type text/plain');
     });
 
+    it('should pass through unsupported file types when enabled', async () => {
+      const base64Data = 'bmFtZSxyb2xlCkFkYSxlbmdpbmVlcgo=';
+
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'text/csv',
+                data: { type: 'data' as const, data: base64Data },
+                filename: 'names.csv',
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        passThroughUnsupportedFiles: true,
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_file',
+              filename: 'names.csv',
+              file_data: `data:text/csv;base64,${base64Data}`,
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should convert PDF file parts with URL to input_file with file_url', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
@@ -453,7 +734,10 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: new URL('https://example.com/document.pdf'),
+                data: {
+                  type: 'url' as const,
+                  url: new URL('https://example.com/document.pdf'),
+                },
               },
             ],
           },
@@ -477,8 +761,8 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
-    describe('Azure OpenAI file ID support', () => {
-      it('should convert image parts with assistant- prefix', async () => {
+    describe('provider reference support', () => {
+      it('should resolve provider reference for a different providerOptionsName', async () => {
         const result = await convertToOpenAIResponsesInput({
           toolNameMapping: testToolNameMapping,
           prompt: [
@@ -488,7 +772,204 @@ describe('convertToOpenAIResponsesInput', () => {
                 {
                   type: 'file',
                   mediaType: 'image/png',
-                  data: 'assistant-img-abc123',
+                  data: {
+                    type: 'reference' as const,
+                    reference: { azure: 'assistant-img-abc123' },
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          providerOptionsName: 'azure',
+          store: true,
+        });
+
+        expect(result.input).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'input_image',
+                file_id: 'assistant-img-abc123',
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should resolve provider reference for PDF parts', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'application/pdf',
+                  data: {
+                    type: 'reference' as const,
+                    reference: { openai: 'file-pdf-abc123' },
+                  },
+                },
+              ],
+            },
+          ],
+          toolNameMapping: testToolNameMapping,
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: true,
+        });
+
+        expect(result.input).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'input_file',
+                file_id: 'file-pdf-abc123',
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should handle multiple provider references in one message', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  data: {
+                    type: 'reference' as const,
+                    reference: {
+                      openai: 'file-img-abc123',
+                      anthropic: 'img-xyz',
+                    },
+                  },
+                },
+                {
+                  type: 'file',
+                  mediaType: 'application/pdf',
+                  data: {
+                    type: 'reference' as const,
+                    reference: { openai: 'file-pdf-xyz789', google: 'doc-123' },
+                  },
+                },
+              ],
+            },
+          ],
+          toolNameMapping: testToolNameMapping,
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: true,
+        });
+
+        expect(result.input).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'input_image',
+                file_id: 'file-img-abc123',
+              },
+              {
+                type: 'input_file',
+                file_id: 'file-pdf-xyz789',
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should throw when provider is not in the reference', async () => {
+        await expect(
+          convertToOpenAIResponsesInput({
+            prompt: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'file',
+                    mediaType: 'image/png',
+                    data: {
+                      type: 'reference' as const,
+                      reference: { anthropic: 'file-xyz' },
+                    },
+                  },
+                ],
+              },
+            ],
+            toolNameMapping: testToolNameMapping,
+            systemMessageMode: 'system',
+            providerOptionsName: 'openai',
+            store: true,
+          }),
+        ).rejects.toThrow(
+          "No provider reference found for provider 'openai'. Available providers: anthropic",
+        );
+      });
+
+      it('should treat plain strings as base64 data', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  data: { type: 'data' as const, data: 'file-12345' },
+                },
+                {
+                  type: 'file',
+                  mediaType: 'application/pdf',
+                  data: { type: 'data' as const, data: 'assistant-abc123' },
+                  filename: 'test.pdf',
+                },
+              ],
+            },
+          ],
+          toolNameMapping: testToolNameMapping,
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: true,
+        });
+
+        expect(result.input).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'input_image',
+                image_url: 'data:image/png;base64,file-12345',
+              },
+              {
+                type: 'input_file',
+                filename: 'test.pdf',
+                file_data: 'data:application/pdf;base64,assistant-abc123',
+              },
+            ],
+          },
+        ]);
+      });
+    });
+
+    describe('deprecated fileIdPrefixes support', () => {
+      it('should convert image parts with custom prefix', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  data: { type: 'data' as const, data: 'assistant-img-abc123' },
                 },
               ],
             },
@@ -512,7 +993,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ]);
       });
 
-      it('should convert PDF parts with assistant- prefix', async () => {
+      it('should convert PDF parts with custom prefix', async () => {
         const result = await convertToOpenAIResponsesInput({
           prompt: [
             {
@@ -521,7 +1002,7 @@ describe('convertToOpenAIResponsesInput', () => {
                 {
                   type: 'file',
                   mediaType: 'application/pdf',
-                  data: 'assistant-pdf-abc123',
+                  data: { type: 'data' as const, data: 'assistant-pdf-abc123' },
                 },
               ],
             },
@@ -555,12 +1036,12 @@ describe('convertToOpenAIResponsesInput', () => {
                 {
                   type: 'file',
                   mediaType: 'image/png',
-                  data: 'assistant-img-abc123',
+                  data: { type: 'data' as const, data: 'assistant-img-abc123' },
                 },
                 {
                   type: 'file',
                   mediaType: 'application/pdf',
-                  data: 'file-pdf-xyz789',
+                  data: { type: 'data' as const, data: 'file-pdf-xyz789' },
                 },
               ],
             },
@@ -588,9 +1069,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ]);
       });
-    });
 
-    describe('fileIdPrefixes undefined behavior', () => {
       it('should treat all file data as base64 when fileIdPrefixes is undefined', async () => {
         const result = await convertToOpenAIResponsesInput({
           prompt: [
@@ -600,12 +1079,12 @@ describe('convertToOpenAIResponsesInput', () => {
                 {
                   type: 'file',
                   mediaType: 'image/png',
-                  data: 'file-12345', // Looks like file ID but should be treated as base64
+                  data: { type: 'data' as const, data: 'file-12345' },
                 },
                 {
                   type: 'file',
                   mediaType: 'application/pdf',
-                  data: 'assistant-abc123', // Looks like file ID but should be treated as base64
+                  data: { type: 'data' as const, data: 'assistant-abc123' },
                   filename: 'test.pdf',
                 },
               ],
@@ -614,7 +1093,6 @@ describe('convertToOpenAIResponsesInput', () => {
           toolNameMapping: testToolNameMapping,
           systemMessageMode: 'system',
           providerOptionsName: 'openai',
-          // fileIdPrefixes intentionally omitted
           store: true,
         });
 
@@ -645,7 +1123,7 @@ describe('convertToOpenAIResponsesInput', () => {
                 {
                   type: 'file',
                   mediaType: 'image/png',
-                  data: 'file-12345',
+                  data: { type: 'data' as const, data: 'file-12345' },
                 },
               ],
             },
@@ -653,7 +1131,7 @@ describe('convertToOpenAIResponsesInput', () => {
           toolNameMapping: testToolNameMapping,
           systemMessageMode: 'system',
           providerOptionsName: 'openai',
-          fileIdPrefixes: [], // Empty array should disable file ID detection
+          fileIdPrefixes: [],
           store: true,
         });
 
@@ -688,6 +1166,111 @@ describe('convertToOpenAIResponsesInput', () => {
         {
           role: 'assistant',
           content: [{ type: 'output_text', text: 'Hello' }],
+        },
+      ]);
+    });
+
+    it('should include phase from providerOptions on assistant text messages', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'I will search for that',
+                providerOptions: {
+                  openai: {
+                    itemId: 'msg_001',
+                    phase: 'commentary',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'assistant',
+          content: [{ type: 'output_text', text: 'I will search for that' }],
+          id: 'msg_001',
+          phase: 'commentary',
+        },
+      ]);
+    });
+
+    it('should include final_answer phase from providerOptions on assistant text messages', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'The capital of France is Paris.',
+                providerOptions: {
+                  openai: {
+                    itemId: 'msg_002',
+                    phase: 'final_answer',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            { type: 'output_text', text: 'The capital of France is Paris.' },
+          ],
+          id: 'msg_002',
+          phase: 'final_answer',
+        },
+      ]);
+    });
+
+    it('should not include phase when not set in providerOptions', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Hello',
+                providerOptions: {
+                  openai: {
+                    itemId: 'msg_003',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'assistant',
+          content: [{ type: 'output_text', text: 'Hello' }],
+          id: 'msg_003',
         },
       ]);
     });
@@ -733,7 +1316,40 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
-    it('should convert messages with tool call parts that have ids', async () => {
+    it('should default missing tool call input to an empty object', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                input: undefined,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "arguments": "{}",
+            "call_id": "call_123",
+            "name": "search",
+            "type": "function_call",
+          },
+        ]
+      `);
+    });
+
+    it('should convert text parts with ids to item_reference but not client-executed tool calls', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
         prompt: [
@@ -775,8 +1391,10 @@ describe('convertToOpenAIResponsesInput', () => {
             "type": "item_reference",
           },
           {
-            "id": "id_456",
-            "type": "item_reference",
+            "arguments": "{"query":"weather in San Francisco"}",
+            "call_id": "call_123",
+            "name": "search",
+            "type": "function_call",
           },
         ]
       `);
@@ -825,6 +1443,236 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
+    // A client-executed function_call_output can only reference its call by
+    // call_id (call_...). The model-assigned item id (fc_...) cannot be used
+    // to pair them, so the function_call must be sent in full without the item
+    // id and without an item_reference. Otherwise the API rejects follow-up
+    // requests with "No tool call found for function call output with call_id",
+    // most visibly with parallel tool calls across multiple steps.
+    it('should send client-executed tool calls as function_call items without item id (store: false)', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_a',
+                toolName: 'search',
+                input: { query: 'first' },
+                providerOptions: { openai: { itemId: 'fc_a' } },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call_b',
+                toolName: 'search',
+                input: { query: 'second' },
+                providerOptions: { openai: { itemId: 'fc_b' } },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_a',
+                toolName: 'search',
+                output: { type: 'json', value: { results: [] } },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call_b',
+                toolName: 'search',
+                output: { type: 'json', value: { results: ['x'] } },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call',
+          call_id: 'call_a',
+          name: 'search',
+          arguments: JSON.stringify({ query: 'first' }),
+        },
+        {
+          type: 'function_call',
+          call_id: 'call_b',
+          name: 'search',
+          arguments: JSON.stringify({ query: 'second' }),
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_a',
+          output: JSON.stringify({ results: [] }),
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_b',
+          output: JSON.stringify({ results: ['x'] }),
+        },
+      ]);
+    });
+
+    it('should not use item_reference for client-executed tool calls (store: true)', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_a',
+                toolName: 'search',
+                input: { query: 'first' },
+                providerOptions: { openai: { itemId: 'fc_a' } },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call_b',
+                toolName: 'search',
+                input: { query: 'second' },
+                providerOptions: { openai: { itemId: 'fc_b' } },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_a',
+                toolName: 'search',
+                output: { type: 'json', value: { results: [] } },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call_b',
+                toolName: 'search',
+                output: { type: 'json', value: { results: ['x'] } },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call',
+          call_id: 'call_a',
+          name: 'search',
+          arguments: JSON.stringify({ query: 'first' }),
+        },
+        {
+          type: 'function_call',
+          call_id: 'call_b',
+          name: 'search',
+          arguments: JSON.stringify({ query: 'second' }),
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_a',
+          output: JSON.stringify({ results: [] }),
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_b',
+          output: JSON.stringify({ results: ['x'] }),
+        },
+      ]);
+    });
+
+    it('should round-trip namespace on tool call parts dispatched by tool_search', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'get_weather',
+                input: { location: 'Tokyo' },
+                // Cast: `providerMetadata` isn't on `LanguageModelV4ToolCallPart`,
+                // but the read side writes it onto runtime tool-call parts.
+                ...({
+                  providerMetadata: {
+                    openai: {
+                      itemId: 'fc_abc',
+                      namespace: 'weather_tools',
+                    },
+                  },
+                } as object),
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call',
+          call_id: 'call_123',
+          name: 'get_weather',
+          arguments: JSON.stringify({ location: 'Tokyo' }),
+          namespace: 'weather_tools',
+        },
+      ]);
+    });
+
+    it('should round-trip namespace from providerOptions on tool call parts', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'get_weather',
+                input: { location: 'Tokyo' },
+                providerOptions: {
+                  openai: {
+                    itemId: 'fc_abc',
+                    namespace: 'weather_tools',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call',
+          call_id: 'call_123',
+          name: 'get_weather',
+          arguments: JSON.stringify({ location: 'Tokyo' }),
+          namespace: 'weather_tools',
+        },
+      ]);
+    });
+
     describe('reasoning messages (store: false)', () => {
       describe('single summary part', () => {
         it('should convert single reasoning part with text', async () => {
@@ -840,6 +1688,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_001',
+                        reasoningEncryptedContent: 'encrypted_content_001',
                       },
                     },
                   },
@@ -855,7 +1704,7 @@ describe('convertToOpenAIResponsesInput', () => {
             {
               type: 'reasoning',
               id: 'reasoning_001',
-              encrypted_content: undefined,
+              encrypted_content: 'encrypted_content_001',
               summary: [
                 {
                   type: 'summary_text',
@@ -923,7 +1772,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_001',
-                        reasoningEncryptedContent: null,
+                        reasoningEncryptedContent: 'encrypted_content_001',
                       },
                     },
                   },
@@ -939,7 +1788,7 @@ describe('convertToOpenAIResponsesInput', () => {
             {
               type: 'reasoning',
               id: 'reasoning_001',
-              encrypted_content: null,
+              encrypted_content: 'encrypted_content_001',
               summary: [
                 {
                   type: 'summary_text',
@@ -967,6 +1816,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_001',
+                        reasoningEncryptedContent: 'encrypted_content_001',
                       },
                     },
                   },
@@ -982,7 +1832,7 @@ describe('convertToOpenAIResponsesInput', () => {
             {
               type: 'reasoning',
               id: 'reasoning_001',
-              encrypted_content: undefined,
+              encrypted_content: 'encrypted_content_001',
               summary: [],
             },
           ]);
@@ -1049,6 +1899,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_001',
+                        reasoningEncryptedContent: 'encrypted_content_001',
                       },
                     },
                   },
@@ -1064,7 +1915,7 @@ describe('convertToOpenAIResponsesInput', () => {
             {
               type: 'reasoning',
               id: 'reasoning_001',
-              encrypted_content: undefined,
+              encrypted_content: 'encrypted_content_001',
               summary: [
                 {
                   type: 'summary_text',
@@ -1077,7 +1928,7 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.warnings).toMatchInlineSnapshot(`
             [
               {
-                "message": "Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: {"type":"reasoning","text":"","providerOptions":{"openai":{"itemId":"reasoning_001"}}}.",
+                "message": "Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: {"type":"reasoning","text":"","providerOptions":{"openai":{"itemId":"reasoning_001","reasoningEncryptedContent":"encrypted_content_001"}}}.",
                 "type": "other",
               },
             ]
@@ -1144,6 +1995,51 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.warnings).toHaveLength(0);
         });
 
+        it('should drop reasoning parts without encrypted content when store is false', async () => {
+          const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
+            prompt: [
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'reasoning',
+                    text: 'First reasoning step',
+                    providerOptions: {
+                      openai: {
+                        itemId: 'reasoning_001',
+                      },
+                    },
+                  },
+                  {
+                    type: 'reasoning',
+                    text: 'Second reasoning step',
+                    providerOptions: {
+                      openai: {
+                        itemId: 'reasoning_001',
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+            systemMessageMode: 'system',
+            providerOptionsName: 'openai',
+            store: false,
+          });
+
+          expect(result.input).toMatchInlineSnapshot(`[]`);
+
+          expect(result.warnings).toMatchInlineSnapshot(`
+            [
+              {
+                "message": "Reasoning parts without encrypted content are not supported when store is false. Skipping reasoning parts.",
+                "type": "other",
+              },
+            ]
+          `);
+        });
+
         it('should create separate messages for different reasoning IDs', async () => {
           const result = await convertToOpenAIResponsesInput({
             toolNameMapping: testToolNameMapping,
@@ -1157,6 +2053,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_001',
+                        reasoningEncryptedContent: 'encrypted_content_001',
                       },
                     },
                   },
@@ -1166,6 +2063,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_002',
+                        reasoningEncryptedContent: 'encrypted_content_002',
                       },
                     },
                   },
@@ -1181,7 +2079,7 @@ describe('convertToOpenAIResponsesInput', () => {
             {
               type: 'reasoning',
               id: 'reasoning_001',
-              encrypted_content: undefined,
+              encrypted_content: 'encrypted_content_001',
               summary: [
                 {
                   type: 'summary_text',
@@ -1192,7 +2090,7 @@ describe('convertToOpenAIResponsesInput', () => {
             {
               type: 'reasoning',
               id: 'reasoning_002',
-              encrypted_content: undefined,
+              encrypted_content: 'encrypted_content_002',
               summary: [
                 {
                   type: 'summary_text',
@@ -1342,6 +2240,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_001',
+                        reasoningEncryptedContent: 'encrypted_content_001',
                       },
                     },
                   },
@@ -1361,6 +2260,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_002',
+                        reasoningEncryptedContent: 'encrypted_content_002',
                       },
                     },
                   },
@@ -1373,50 +2273,74 @@ describe('convertToOpenAIResponsesInput', () => {
             store: false,
           });
 
-          expect(result.input).toEqual([
-            {
-              role: 'user',
-              content: [{ type: 'input_text', text: 'First user question' }],
-            },
-            {
-              type: 'reasoning',
-              id: 'reasoning_001',
-              encrypted_content: undefined,
-              summary: [
-                {
-                  type: 'summary_text',
-                  text: 'First reasoning step (message 1)',
-                },
-                {
-                  type: 'summary_text',
-                  text: 'Second reasoning step (message 1)',
-                },
-              ],
-            },
-            {
-              role: 'assistant',
-              content: [{ type: 'output_text', text: 'First response' }],
-            },
-            {
-              role: 'user',
-              content: [{ type: 'input_text', text: 'Second user question' }],
-            },
-            {
-              type: 'reasoning',
-              id: 'reasoning_002',
-              encrypted_content: undefined,
-              summary: [
-                {
-                  type: 'summary_text',
-                  text: 'First reasoning step (message 2)',
-                },
-              ],
-            },
-            {
-              role: 'assistant',
-              content: [{ type: 'output_text', text: 'Second response' }],
-            },
-          ]);
+          expect(result.input).toMatchInlineSnapshot(`
+            [
+              {
+                "content": [
+                  {
+                    "text": "First user question",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+              {
+                "encrypted_content": "encrypted_content_001",
+                "id": "reasoning_001",
+                "summary": [
+                  {
+                    "text": "First reasoning step (message 1)",
+                    "type": "summary_text",
+                  },
+                  {
+                    "text": "Second reasoning step (message 1)",
+                    "type": "summary_text",
+                  },
+                ],
+                "type": "reasoning",
+              },
+              {
+                "content": [
+                  {
+                    "text": "First response",
+                    "type": "output_text",
+                  },
+                ],
+                "id": undefined,
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "text": "Second user question",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+              {
+                "encrypted_content": "encrypted_content_002",
+                "id": "reasoning_002",
+                "summary": [
+                  {
+                    "text": "First reasoning step (message 2)",
+                    "type": "summary_text",
+                  },
+                ],
+                "type": "reasoning",
+              },
+              {
+                "content": [
+                  {
+                    "text": "Second response",
+                    "type": "output_text",
+                  },
+                ],
+                "id": undefined,
+                "role": "assistant",
+              },
+            ]
+          `);
 
           expect(result.warnings).toHaveLength(0);
         });
@@ -1695,6 +2619,84 @@ describe('convertToOpenAIResponsesInput', () => {
             ]
           `);
         });
+
+        it('should include reasoning without id when itemId is absent but encrypted_content is present', async () => {
+          const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
+            prompt: [
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'reasoning',
+                    text: 'Thinking through the problem',
+                    providerOptions: {
+                      openai: {
+                        // itemId intentionally omitted — user stripped it to avoid
+                        // "Item with id ... not found" errors from the API
+                        reasoningEncryptedContent: 'encrypted_reasoning_blob',
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+            systemMessageMode: 'system',
+            providerOptionsName: 'openai',
+            store: false,
+          });
+
+          expect(result.input).toEqual([
+            {
+              type: 'reasoning',
+              encrypted_content: 'encrypted_reasoning_blob',
+              summary: [
+                {
+                  type: 'summary_text',
+                  text: 'Thinking through the problem',
+                },
+              ],
+            },
+          ]);
+
+          expect(result.warnings).toHaveLength(0);
+        });
+
+        it('should still warn when itemId is absent and encrypted_content is also absent', async () => {
+          const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
+            prompt: [
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'reasoning',
+                    text: 'Some reasoning text',
+                    providerOptions: {
+                      openai: {
+                        // neither itemId nor reasoningEncryptedContent present
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+            systemMessageMode: 'system',
+            providerOptionsName: 'openai',
+            store: false,
+          });
+
+          expect(result.input).toHaveLength(0);
+
+          expect(result.warnings).toMatchInlineSnapshot(`
+            [
+              {
+                "message": "Non-OpenAI reasoning parts are not supported. Skipping reasoning part: {"type":"reasoning","text":"Some reasoning text","providerOptions":{"openai":{}}}.",
+                "type": "other",
+              },
+            ]
+          `);
+        });
       });
     });
   });
@@ -1770,6 +2772,39 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+    it('should convert execution-denied tool result to function_call_output', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_denied_123',
+                toolName: 'search',
+                output: {
+                  type: 'execution-denied',
+                  reason: 'User denied the tool execution',
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_denied_123',
+          output: 'User denied the tool execution',
+        },
+      ]);
+    });
+
     it('should convert single tool result part with multipart that contains text', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
@@ -1830,9 +2865,9 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'image-data',
+                      type: 'file',
                       mediaType: 'image/png',
-                      data: 'base64_data',
+                      data: { type: 'data', data: 'base64_data' },
                     },
                   ],
                 },
@@ -1851,7 +2886,111 @@ describe('convertToOpenAIResponsesInput', () => {
             "call_id": "call_123",
             "output": [
               {
+                "detail": undefined,
                 "image_url": "data:image/png;base64,base64_data",
+                "type": "input_image",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should forward openai.imageDetail providerOptions on tool-result image (data)', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'view_image',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      mediaType: 'image/png',
+                      data: { type: 'data', data: 'base64_data' },
+                      providerOptions: {
+                        openai: { imageDetail: 'original' },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "detail": "original",
+                "image_url": "data:image/png;base64,base64_data",
+                "type": "input_image",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should forward openai.imageDetail providerOptions on tool-result image (url)', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'view_image',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      mediaType: 'image/png',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/x.png'),
+                      },
+                      providerOptions: {
+                        openai: { imageDetail: 'high' },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "detail": "high",
+                "image_url": "https://example.com/x.png",
                 "type": "input_image",
               },
             ],
@@ -1876,8 +3015,12 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'image-url',
-                      url: 'https://example.com/screenshot.png',
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/screenshot.png'),
+                      },
+                      mediaType: 'image/png',
                     },
                   ],
                 },
@@ -1896,6 +3039,7 @@ describe('convertToOpenAIResponsesInput', () => {
             "call_id": "call_123",
             "output": [
               {
+                "detail": undefined,
                 "image_url": "https://example.com/screenshot.png",
                 "type": "input_image",
               },
@@ -1922,9 +3066,9 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'file-data',
+                      type: 'file',
                       mediaType: 'application/pdf',
-                      data: base64Data,
+                      data: { type: 'data', data: base64Data },
                       filename: 'document.pdf',
                     },
                   ],
@@ -1955,6 +3099,114 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+    it('should convert single tool result part with multipart that contains file-url', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/document.pdf'),
+                      },
+                      mediaType: 'application/pdf',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "file_url": "https://example.com/document.pdf",
+                "type": "input_file",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should convert single tool result part with multipart with mixed content including file-url', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'text',
+                      text: 'Here is the file you asked for:',
+                    },
+                    {
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/test.pdf'),
+                      },
+                      mediaType: 'application/pdf',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "text": "Here is the file you asked for:",
+                "type": "input_text",
+              },
+              {
+                "file_url": "https://example.com/test.pdf",
+                "type": "input_file",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+      expect(result.warnings).toEqual([]);
+    });
+
     it('should convert single tool result part with multipart with mixed content (text, image, file)', async () => {
       const base64Data = 'AQIDBAU=';
       const result = await convertToOpenAIResponsesInput({
@@ -1975,14 +3227,14 @@ describe('convertToOpenAIResponsesInput', () => {
                       text: 'The weather in San Francisco is 72°F',
                     },
                     {
-                      type: 'image-data',
+                      type: 'file',
                       mediaType: 'image/png',
-                      data: 'base64_data',
+                      data: { type: 'data', data: 'base64_data' },
                     },
                     {
-                      type: 'file-data',
+                      type: 'file',
                       mediaType: 'application/pdf',
-                      data: base64Data,
+                      data: { type: 'data', data: base64Data },
                     },
                   ],
                 },
@@ -2005,6 +3257,7 @@ describe('convertToOpenAIResponsesInput', () => {
                 "type": "input_text",
               },
               {
+                "detail": undefined,
                 "image_url": "data:image/png;base64,base64_data",
                 "type": "input_image",
               },
@@ -2111,6 +3364,286 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+    it('should reconstruct hosted tool search call and output with store: false', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'tsc_hosted_123',
+                toolName: 'tool_search',
+                input: JSON.stringify({
+                  arguments: { paths: ['get_weather'] },
+                  call_id: null,
+                }),
+                providerExecuted: true,
+                providerOptions: {
+                  openai: {
+                    itemId: 'tsc_hosted_123',
+                  },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'tsc_hosted_123',
+                toolName: 'tool_search',
+                output: {
+                  type: 'json',
+                  value: {
+                    tools: [
+                      {
+                        type: 'function',
+                        name: 'get_weather',
+                        defer_loading: true,
+                      },
+                    ],
+                  },
+                },
+                providerOptions: {
+                  openai: {
+                    itemId: 'tso_hosted_456',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result).toEqual({
+        input: [
+          {
+            type: 'tool_search_call',
+            id: 'tsc_hosted_123',
+            execution: 'server',
+            call_id: null,
+            status: 'completed',
+            arguments: { paths: ['get_weather'] },
+          },
+          {
+            type: 'tool_search_output',
+            id: 'tso_hosted_456',
+            execution: 'server',
+            call_id: null,
+            status: 'completed',
+            tools: [
+              {
+                type: 'function',
+                name: 'get_weather',
+                defer_loading: true,
+              },
+            ],
+          },
+        ],
+        warnings: [],
+      });
+    });
+
+    it('should use distinct item references for hosted tool search call and output with store: true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'tsc_hosted_123',
+                toolName: 'tool_search',
+                input: JSON.stringify({
+                  arguments: { paths: ['get_weather'] },
+                  call_id: null,
+                }),
+                providerExecuted: true,
+                providerOptions: {
+                  openai: {
+                    itemId: 'tsc_hosted_123',
+                  },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'tsc_hosted_123',
+                toolName: 'tool_search',
+                output: {
+                  type: 'json',
+                  value: {
+                    tools: [
+                      {
+                        type: 'function',
+                        name: 'get_weather',
+                      },
+                    ],
+                  },
+                },
+                providerOptions: {
+                  openai: {
+                    itemId: 'tso_hosted_456',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result).toEqual({
+        input: [
+          {
+            type: 'item_reference',
+            id: 'tsc_hosted_123',
+          },
+          {
+            type: 'item_reference',
+            id: 'tso_hosted_456',
+          },
+        ],
+        warnings: [],
+      });
+    });
+
+    it('should serialize client tool search output with call_id from tool role', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_abc123',
+                toolName: 'tool_search',
+                input: JSON.stringify({
+                  arguments: { goal: 'Find weather tools' },
+                  call_id: 'call_abc123',
+                }),
+                providerOptions: {
+                  openai: {
+                    itemId: 'tsc_client_1',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_abc123',
+                toolName: 'tool_search',
+                output: {
+                  type: 'json',
+                  value: {
+                    tools: [
+                      {
+                        type: 'function',
+                        name: 'get_weather',
+                        description: 'Get weather',
+                        defer_loading: true,
+                        parameters: {
+                          type: 'object',
+                          properties: {
+                            location: { type: 'string' },
+                          },
+                          required: ['location'],
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result).toEqual({
+        input: [
+          {
+            type: 'tool_search_call',
+            id: 'tsc_client_1',
+            execution: 'client',
+            call_id: 'call_abc123',
+            status: 'completed',
+            arguments: { goal: 'Find weather tools' },
+          },
+          {
+            type: 'tool_search_output',
+            execution: 'client',
+            call_id: 'call_abc123',
+            status: 'completed',
+            tools: [
+              {
+                type: 'function',
+                name: 'get_weather',
+                description: 'Get weather',
+                defer_loading: true,
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    location: { type: 'string' },
+                  },
+                  required: ['location'],
+                },
+              },
+            ],
+          },
+        ],
+        warnings: [],
+      });
+    });
+
+    it('should use call_id (not item id) for client tool search call serialization', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_xyz789',
+                toolName: 'tool_search',
+                input: JSON.stringify({
+                  arguments: { goal: 'Find tools' },
+                  call_id: 'call_xyz789',
+                }),
+                providerOptions: {
+                  openai: {
+                    itemId: 'tsc_item_id',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      const toolSearchCall = result.input.find(
+        (item: any) => item.type === 'tool_search_call',
+      ) as any;
+
+      expect(toolSearchCall.call_id).toBe('call_xyz789');
+      expect(toolSearchCall.id).toBe('tsc_item_id');
+      expect(toolSearchCall.execution).toBe('client');
+    });
+
     it('should exclude provider-executed tool calls and results from prompt with store: false', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
@@ -2195,6 +3728,127 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
         }
       `);
+    });
+
+    it('should skip provider-executed execution-denied tool results in assistant messages', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'I need approval before running that tool.',
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_denied_123',
+                toolName: 'web_search',
+                output: {
+                  type: 'execution-denied',
+                  reason: 'User denied the tool execution',
+                },
+              },
+              {
+                type: 'text',
+                text: 'The tool was not run.',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result).toEqual({
+        input: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'I need approval before running that tool.',
+              },
+            ],
+            id: undefined,
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'The tool was not run.',
+              },
+            ],
+            id: undefined,
+          },
+        ],
+        warnings: [],
+      });
+    });
+
+    it('should skip json-wrapped execution-denied tool results in assistant messages', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'I need approval before running that tool.',
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_denied_json_123',
+                toolName: 'web_search',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'execution-denied',
+                    reason: 'User denied the tool execution',
+                  },
+                },
+              },
+              {
+                type: 'text',
+                text: 'The tool was not run.',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result).toEqual({
+        input: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'I need approval before running that tool.',
+              },
+            ],
+            id: undefined,
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'The tool was not run.',
+              },
+            ],
+            id: undefined,
+          },
+        ],
+        warnings: [],
+      });
     });
 
     describe('local shell', () => {
@@ -2664,7 +4318,6 @@ describe('convertToOpenAIResponsesInput', () => {
             {
               "arguments": "{"a":1,"b":2}",
               "call_id": "call-1",
-              "id": undefined,
               "name": "calculator",
               "type": "function_call",
             },
@@ -3215,6 +4868,692 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             "role": "user",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('hasPreviousResponseId', () => {
+    it('should keep text item references and skip function call item references when hasPreviousResponseId is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Hi there!',
+                providerOptions: { openai: { itemId: 'msg_existing_123' } },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'getWeather',
+                input: { location: 'San Francisco' },
+                providerOptions: {
+                  openai: { itemId: 'fc_existing_456' },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'getWeather',
+                output: { type: 'json', value: { temp: 72 } },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasPreviousResponseId: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "msg_existing_123",
+            "type": "item_reference",
+          },
+          {
+            "call_id": "call_123",
+            "output": "{"temp":72}",
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should skip reasoning parts with item IDs when hasPreviousResponseId is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'Let me think...',
+                providerOptions: {
+                  openai: { itemId: 'rs_existing_789' },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasPreviousResponseId: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('compaction', () => {
+    it('should convert compaction to item_reference when store is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'custom',
+                kind: 'openai.compaction',
+                providerOptions: {
+                  openai: {
+                    type: 'compaction',
+                    itemId: 'cmp_123',
+                    encryptedContent: 'encrypted_data_here',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "cmp_123",
+            "type": "item_reference",
+          },
+        ]
+      `);
+    });
+
+    it('should convert compaction to full compaction item when store is false', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'custom',
+                kind: 'openai.compaction',
+                providerOptions: {
+                  openai: {
+                    type: 'compaction',
+                    itemId: 'cmp_456',
+                    encryptedContent: 'encrypted_compaction_state',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "encrypted_content": "encrypted_compaction_state",
+            "id": "cmp_456",
+            "type": "compaction",
+          },
+        ]
+      `);
+    });
+
+    it('should skip compaction when hasConversation is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'custom',
+                kind: 'openai.compaction',
+                providerOptions: {
+                  openai: {
+                    type: 'compaction',
+                    itemId: 'cmp_789',
+                    encryptedContent: 'encrypted_data',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasConversation: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+
+    it('should handle compaction alongside regular text content', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Here is my response.',
+                providerOptions: {
+                  openai: {
+                    itemId: 'msg_001',
+                  },
+                },
+              },
+              {
+                type: 'custom',
+                kind: 'openai.compaction',
+                providerOptions: {
+                  openai: {
+                    type: 'compaction',
+                    itemId: 'cmp_001',
+                    encryptedContent: 'encrypted_state',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Here is my response.",
+                "type": "output_text",
+              },
+            ],
+            "id": "msg_001",
+            "role": "assistant",
+          },
+          {
+            "encrypted_content": "encrypted_state",
+            "id": "cmp_001",
+            "type": "compaction",
+          },
+        ]
+      `);
+    });
+
+    it('should handle compaction with store: true alongside other content', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Response text',
+                providerOptions: {
+                  openai: {
+                    itemId: 'msg_002',
+                  },
+                },
+              },
+              {
+                type: 'custom',
+                kind: 'openai.compaction',
+                providerOptions: {
+                  openai: {
+                    type: 'compaction',
+                    itemId: 'cmp_002',
+                    encryptedContent: 'encrypted_data',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "msg_002",
+            "type": "item_reference",
+          },
+          {
+            "id": "cmp_002",
+            "type": "item_reference",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('custom tool calls', () => {
+    const customProviderToolNames = new Set(['write_sql']);
+
+    it('should convert custom tool call to custom_tool_call input item', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_custom_001',
+                toolName: 'write_sql',
+                input: 'SELECT * FROM users WHERE age > 25',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_custom_001",
+            "id": undefined,
+            "input": "SELECT * FROM users WHERE age > 25",
+            "name": "write_sql",
+            "type": "custom_tool_call",
+          },
+        ]
+      `);
+    });
+
+    it('should JSON.stringify non-string custom tool call input', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_custom_002',
+                toolName: 'write_sql',
+                input: { query: 'test' },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_custom_002",
+            "id": undefined,
+            "input": "{"query":"test"}",
+            "name": "write_sql",
+            "type": "custom_tool_call",
+          },
+        ]
+      `);
+    });
+
+    it('should convert custom tool call with itemId to item_reference when store: true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_custom_003',
+                toolName: 'write_sql',
+                input: 'SELECT 1',
+                providerOptions: {
+                  openai: {
+                    itemId: 'ct_ref_123',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "ct_ref_123",
+            "type": "item_reference",
+          },
+        ]
+      `);
+    });
+
+    it('should convert custom tool result to custom_tool_call_output with text value', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_custom_001',
+                toolName: 'write_sql',
+                output: {
+                  type: 'text',
+                  value: 'Query executed successfully. 42 rows returned.',
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_custom_001",
+            "output": "Query executed successfully. 42 rows returned.",
+            "type": "custom_tool_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert custom tool result to custom_tool_call_output with json value', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_custom_002',
+                toolName: 'write_sql',
+                output: {
+                  type: 'json',
+                  value: { rows: 42, status: 'ok' },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_custom_002",
+            "output": "{"rows":42,"status":"ok"}",
+            "type": "custom_tool_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert execution-denied custom tool result to custom_tool_call_output', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_custom_denied_001',
+                toolName: 'write_sql',
+                output: {
+                  type: 'execution-denied',
+                  reason: 'User denied the tool execution',
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'custom_tool_call_output',
+          call_id: 'call_custom_denied_001',
+          output: 'User denied the tool execution',
+        },
+      ]);
+    });
+
+    it('should convert custom tool result content output', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_custom_005',
+                toolName: 'write_sql',
+                output: {
+                  type: 'content',
+                  value: [{ type: 'text', text: 'hello' }],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_custom_005",
+            "output": [
+              {
+                "text": "hello",
+                "type": "input_text",
+              },
+            ],
+            "type": "custom_tool_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert custom tool result content output with file-url', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_custom_006',
+                toolName: 'write_sql',
+                output: {
+                  type: 'content',
+                  value: [
+                    { type: 'text', text: 'Here is the file:' },
+                    {
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/test.pdf'),
+                      },
+                      mediaType: 'application/pdf',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_custom_006",
+            "output": [
+              {
+                "text": "Here is the file:",
+                "type": "input_text",
+              },
+              {
+                "file_url": "https://example.com/test.pdf",
+                "type": "input_file",
+              },
+            ],
+            "type": "custom_tool_call_output",
+          },
+        ]
+      `);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should not emit custom_tool_call when customProviderToolNames is not provided', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_custom_001',
+                toolName: 'write_sql',
+                input: 'SELECT 1',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "arguments": ""SELECT 1"",
+            "call_id": "call_custom_001",
+            "name": "write_sql",
+            "type": "function_call",
           },
         ]
       `);

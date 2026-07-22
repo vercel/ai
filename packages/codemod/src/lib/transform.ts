@@ -2,7 +2,7 @@ import { execSync } from 'child_process';
 import debug from 'debug';
 import fs from 'fs';
 import path from 'path';
-import { TransformOptions } from './transform-options';
+import type { TransformOptions } from './transform-options';
 
 const log = debug('codemod:transform');
 const error = debug('codemod:transform:error');

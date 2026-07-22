@@ -1,46 +1,27 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV3,
-  type SharedV3Warning,
+  type Experimental_VideoModelV4,
+  type Experimental_VideoModelV4File,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
   delay,
-  type FetchFunction,
-  lazySchema,
   parseProviderOptions,
   postJsonToApi,
-  type Resolvable,
   resolve,
-  zodSchema,
+  type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
+import {
+  googleVertexVideoModelOptionsSchema,
+  type GoogleVertexVideoModelOptions,
+} from './google-vertex-video-model-options';
 import type { GoogleVertexVideoModelId } from './google-vertex-video-settings';
-
-export type GoogleVertexVideoModelOptions = {
-  // Polling configuration
-  pollIntervalMs?: number | null;
-  pollTimeoutMs?: number | null;
-
-  // Video generation options
-  personGeneration?: 'dont_allow' | 'allow_adult' | 'allow_all' | null;
-  negativePrompt?: string | null;
-  generateAudio?: boolean | null;
-
-  // Output configuration
-  gcsOutputDirectory?: string | null;
-
-  // Reference images (for style/asset reference)
-  referenceImages?: Array<{
-    bytesBase64Encoded?: string;
-    gcsUri?: string;
-  }> | null;
-
-  [key: string]: unknown; // For passthrough
-};
 
 interface GoogleVertexVideoModelConfig {
   provider: string;
@@ -53,8 +34,80 @@ interface GoogleVertexVideoModelConfig {
   };
 }
 
-export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
-  readonly specificationVersion = 'v3';
+function getFirstFrameImage(
+  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+): Experimental_VideoModelV4File | undefined {
+  return options.frameImages?.find(frame => frame.frameType === 'first_frame')
+    ?.image;
+}
+
+function resolveStartImage(
+  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+): Experimental_VideoModelV4File | undefined {
+  return getFirstFrameImage(options) ?? options.image;
+}
+
+function getLastFrameImage(
+  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+): Experimental_VideoModelV4File | undefined {
+  return options.frameImages?.find(frame => frame.frameType === 'last_frame')
+    ?.image;
+}
+
+function getInputReferences(
+  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+): Array<Experimental_VideoModelV4File> | undefined {
+  if (options.frameImages != null && options.frameImages.length > 0) {
+    return undefined;
+  }
+
+  return options.inputReferences != null && options.inputReferences.length > 0
+    ? options.inputReferences
+    : undefined;
+}
+
+function convertFileToVertexImage(
+  file: Experimental_VideoModelV4File,
+  warnings: SharedV4Warning[],
+): Record<string, unknown> | undefined {
+  if (file.type === 'url') {
+    if (file.url.startsWith('gs://')) {
+      return {
+        gcsUri: file.url,
+        mimeType: 'image/png',
+      };
+    }
+
+    warnings.push({
+      type: 'unsupported',
+      feature: 'URL-based image input',
+      details:
+        'Vertex AI video models require base64-encoded images or GCS URIs. URL will be ignored.',
+    });
+    return undefined;
+  }
+
+  const base64Data =
+    typeof file.data === 'string'
+      ? file.data
+      : convertUint8ArrayToBase64(file.data);
+
+  return {
+    bytesBase64Encoded: base64Data,
+    mimeType: file.mediaType || 'image/png',
+  };
+}
+
+function convertInputReferenceImage(
+  file: Experimental_VideoModelV4File,
+  warnings: SharedV4Warning[],
+): Record<string, unknown> | undefined {
+  const image = convertFileToVertexImage(file, warnings);
+  return image != null ? { image, referenceType: 'asset' } : undefined;
+}
+
+export class GoogleVertexVideoModel implements Experimental_VideoModelV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
@@ -71,16 +124,21 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
   ) {}
 
   async doGenerate(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV3['doGenerate']>>> {
+    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
 
-    const vertexOptions = (await parseProviderOptions({
-      provider: 'vertex',
+    const googleVertexOptions = ((await parseProviderOptions({
+      provider: 'googleVertex',
       providerOptions: options.providerOptions,
       schema: googleVertexVideoModelOptionsSchema,
-    })) as GoogleVertexVideoModelOptions | undefined;
+    })) ??
+      (await parseProviderOptions({
+        provider: 'vertex',
+        providerOptions: options.providerOptions,
+        schema: googleVertexVideoModelOptionsSchema,
+      }))) as GoogleVertexVideoModelOptions | undefined;
 
     const instances: Array<Record<string, unknown>> = [{}];
     const instance = instances[0];
@@ -89,29 +147,30 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
       instance.prompt = options.prompt;
     }
 
-    if (options.image != null) {
-      if (options.image.type === 'url') {
-        warnings.push({
-          type: 'unsupported',
-          feature: 'URL-based image input',
-          details:
-            'Vertex AI video models require base64-encoded images or GCS URIs. URL will be ignored.',
-        });
-      } else {
-        const base64Data =
-          typeof options.image.data === 'string'
-            ? options.image.data
-            : convertUint8ArrayToBase64(options.image.data);
-
-        instance.image = {
-          bytesBase64Encoded: base64Data,
-          mimeType: options.image.mediaType,
-        };
+    const startImage = resolveStartImage(options);
+    if (startImage != null) {
+      const image = convertFileToVertexImage(startImage, warnings);
+      if (image != null) {
+        instance.image = image;
       }
     }
 
-    if (vertexOptions?.referenceImages != null) {
-      instance.referenceImages = vertexOptions.referenceImages;
+    const lastFrameImage = getLastFrameImage(options);
+    if (lastFrameImage != null) {
+      const lastFrame = convertFileToVertexImage(lastFrameImage, warnings);
+      if (lastFrame != null) {
+        instance.lastFrame = lastFrame;
+      }
+    }
+
+    const inputReferences = getInputReferences(options);
+    if (inputReferences != null) {
+      instance.referenceImages = inputReferences.flatMap(reference => {
+        const converted = convertInputReferenceImage(reference, warnings);
+        return converted != null ? [converted] : [];
+      });
+    } else if (googleVertexOptions?.referenceImages != null) {
+      instance.referenceImages = googleVertexOptions.referenceImages;
     }
 
     const parameters: Record<string, unknown> = {
@@ -140,8 +199,14 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
       parameters.seed = options.seed;
     }
 
-    if (vertexOptions != null) {
-      const opts = vertexOptions;
+    const generateAudio =
+      options.generateAudio ?? googleVertexOptions?.generateAudio;
+    if (generateAudio != null) {
+      parameters.generateAudio = generateAudio;
+    }
+
+    if (googleVertexOptions != null) {
+      const opts = googleVertexOptions;
 
       if (
         opts.personGeneration !== undefined &&
@@ -151,9 +216,6 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
       }
       if (opts.negativePrompt !== undefined && opts.negativePrompt !== null) {
         parameters.negativePrompt = opts.negativePrompt;
-      }
-      if (opts.generateAudio !== undefined && opts.generateAudio !== null) {
-        parameters.generateAudio = opts.generateAudio;
       }
       if (
         opts.gcsOutputDirectory !== undefined &&
@@ -190,7 +252,7 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
         parameters,
       },
       successfulResponseHandler: createJsonResponseHandler(
-        vertexOperationSchema,
+        googleVertexOperationSchema,
       ),
       failedResponseHandler: googleVertexFailedResponseHandler,
       abortSignal: options.abortSignal,
@@ -205,8 +267,8 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
       });
     }
 
-    const pollIntervalMs = vertexOptions?.pollIntervalMs ?? 10000; // 10 seconds
-    const pollTimeoutMs = vertexOptions?.pollTimeoutMs ?? 600000; // 10 minutes
+    const pollIntervalMs = googleVertexOptions?.pollIntervalMs ?? 10000; // 10 seconds
+    const pollTimeoutMs = googleVertexOptions?.pollTimeoutMs ?? 600000; // 10 minutes
 
     const startTime = Date.now();
     let finalOperation = operation;
@@ -240,7 +302,7 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
             operationName,
           },
           successfulResponseHandler: createJsonResponseHandler(
-            vertexOperationSchema,
+            googleVertexOperationSchema,
           ),
           failedResponseHandler: googleVertexFailedResponseHandler,
           abortSignal: options.abortSignal,
@@ -314,16 +376,20 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
         modelId: this.modelId,
         headers: responseHeaders,
       },
-      providerMetadata: {
-        'google-vertex': {
-          videos: videoMetadata,
-        },
-      },
+      providerMetadata: (() => {
+        const payload = { videos: videoMetadata };
+        return {
+          googleVertex: payload,
+          // Legacy keys preserved for backward compatibility.
+          'google-vertex': payload,
+          vertex: payload,
+        };
+      })(),
     };
   }
 }
 
-const vertexOperationSchema = z.object({
+const googleVertexOperationSchema = z.object({
   name: z.string().nullish(),
   done: z.boolean().nullish(),
   error: z
@@ -348,28 +414,3 @@ const vertexOperationSchema = z.object({
     })
     .nullish(),
 });
-
-const googleVertexVideoModelOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z
-      .object({
-        pollIntervalMs: z.number().positive().nullish(),
-        pollTimeoutMs: z.number().positive().nullish(),
-        personGeneration: z
-          .enum(['dont_allow', 'allow_adult', 'allow_all'])
-          .nullish(),
-        negativePrompt: z.string().nullish(),
-        generateAudio: z.boolean().nullish(),
-        gcsOutputDirectory: z.string().nullish(),
-        referenceImages: z
-          .array(
-            z.object({
-              bytesBase64Encoded: z.string().nullish(),
-              gcsUri: z.string().nullish(),
-            }),
-          )
-          .nullish(),
-      })
-      .passthrough(),
-  ),
-);

@@ -1,6 +1,6 @@
 import { toBaseMessages, toUIMessageStream } from '@ai-sdk/langchain';
 import { ChatOpenAI } from '@langchain/openai';
-import { createUIMessageStreamResponse, UIMessage } from 'ai';
+import { createUIMessageStreamResponse, type UIMessage } from 'ai';
 import { NextResponse } from 'next/server';
 
 export const maxDuration = 30;
@@ -9,7 +9,7 @@ export const maxDuration = 30;
  * this configuration streams reasoning summaries before the final response (thus triggering the error)
  */
 const model = new ChatOpenAI({
-  model: 'gpt-5',
+  model: 'gpt-5.6',
   useResponsesApi: true,
   reasoning: { effort: 'medium', summary: 'concise' },
 });

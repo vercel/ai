@@ -1,18 +1,26 @@
-import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import {
+  createIdGenerator,
+  withUserAgentSuffix,
+  type ProviderOptions,
+} from '@ai-sdk/provider-utils';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveEmbeddingModel } from '../model/resolve-model';
-import { assembleOperationName } from '../telemetry/assemble-operation-name';
-import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
-import { getTracer } from '../telemetry/get-tracer';
-import { recordSpan } from '../telemetry/record-span';
-import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { Embedding, EmbeddingModel, ProviderMetadata } from '../types';
-import { Warning } from '../types/warning';
+import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
+import type { TelemetryOptions } from '../telemetry/telemetry-options';
+import type { Embedding, EmbeddingModel, ProviderMetadata } from '../types';
+import type { Warning } from '../types/warning';
+import type { Callback } from '../util/callback';
+import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { splitArray } from '../util/split-array';
-import { EmbedManyResult } from './embed-many-result';
+import type { EmbedEndEvent, EmbedStartEvent } from './embed-events';
+import type { EmbedManyResult } from './embed-many-result';
 import { VERSION } from '../version';
+
+const originalGenerateCallId = createIdGenerator({
+  prefix: 'call',
+  size: 24,
+});
 
 /**
  * Embed several values using an embedding model. The type of the value is defined
@@ -30,7 +38,7 @@ import { VERSION } from '../version';
  *
  * @param maxParallelCalls - Maximum number of concurrent requests. Default: Infinity.
  *
- * @param experimental_telemetry - Optional telemetry configuration (experimental).
+ * @param telemetry - Optional telemetry configuration.
  *
  * @param providerOptions - Additional provider-specific options. They are passed through
  * to the provider from the AI SDK and enable provider-specific
@@ -46,7 +54,13 @@ export async function embedMany({
   abortSignal,
   headers,
   providerOptions,
-  experimental_telemetry: telemetry,
+  experimental_telemetry,
+  telemetry = experimental_telemetry,
+  onStart,
+  experimental_onStart,
+  onEnd,
+  experimental_onEnd,
+  _internal: { generateCallId = originalGenerateCallId } = {},
 }: {
   /**
    * The embedding model to use.
@@ -77,9 +91,16 @@ export async function embedMany({
   headers?: Record<string, string>;
 
   /**
-   * Optional telemetry configuration (experimental).
+   * Optional telemetry configuration.
    */
-  experimental_telemetry?: TelemetrySettings;
+  telemetry?: TelemetryOptions;
+
+  /**
+   * Optional telemetry configuration.
+   *
+   * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
+   */
+  experimental_telemetry?: TelemetryOptions;
 
   /**
    * Additional provider-specific options. They are passed through
@@ -94,6 +115,41 @@ export async function embedMany({
    * @default Infinity
    */
   maxParallelCalls?: number;
+
+  /**
+   * Callback that is called when the embedMany operation begins,
+   * before the embedding model is called.
+   */
+  onStart?: Callback<EmbedStartEvent>;
+
+  /**
+   * Callback that is called when the embedMany operation begins,
+   * before the embedding model is called.
+   *
+   * @deprecated Use `onStart` instead.
+   */
+  experimental_onStart?: Callback<EmbedStartEvent>;
+
+  /**
+   * Callback that is called when the embedMany operation completes,
+   * after all embedding model calls return.
+   */
+  onEnd?: Callback<EmbedEndEvent>;
+
+  /**
+   * Callback that is called when the embedMany operation completes,
+   * after all embedding model calls return.
+   *
+   * @deprecated Use `onEnd` instead.
+   */
+  experimental_onEnd?: Callback<EmbedEndEvent>;
+
+  /**
+   * Internal. For test use only. May change without notice.
+   */
+  _internal?: {
+    generateCallId?: () => string;
+  };
 }): Promise<EmbedManyResult> {
   const model = resolveEmbeddingModel(modelArg);
 
@@ -101,113 +157,225 @@ export async function embedMany({
     maxRetries: maxRetriesArg,
     abortSignal,
   });
+  const resolvedOnStart = onStart ?? experimental_onStart;
+  const resolvedOnEnd = onEnd ?? experimental_onEnd;
 
   const headersWithUserAgent = withUserAgentSuffix(
     headers ?? {},
     `ai/${VERSION}`,
   );
 
-  const baseTelemetryAttributes = getBaseTelemetryAttributes({
-    model,
+  const callId = generateCallId();
+
+  const telemetryDispatcher = createTelemetryDispatcher({
     telemetry,
-    headers: headersWithUserAgent,
-    settings: { maxRetries },
   });
 
-  const tracer = getTracer(telemetry);
+  const runInTracingChannelSpan =
+    telemetryDispatcher.runInTracingChannelSpan ??
+    (async <T>({ execute }: { execute: () => PromiseLike<T> }) =>
+      await execute());
 
-  return recordSpan({
-    name: 'ai.embedMany',
-    attributes: selectTelemetryAttributes({
-      telemetry,
-      attributes: {
-        ...assembleOperationName({ operationId: 'ai.embedMany', telemetry }),
-        ...baseTelemetryAttributes,
-        // specific settings that only make sense on the outer level:
-        'ai.values': {
-          input: () => values.map(value => JSON.stringify(value)),
-        },
-      },
-    }),
-    tracer,
-    fn: async span => {
-      const [maxEmbeddingsPerCall, supportsParallelCalls] = await Promise.all([
-        model.maxEmbeddingsPerCall,
-        model.supportsParallelCalls,
-      ]);
+  const startEvent = {
+    callId,
+    operationId: 'ai.embedMany',
+    provider: model.provider,
+    modelId: model.modelId,
+    value: values,
+    maxRetries,
+    headers: headersWithUserAgent,
+    providerOptions,
+  };
 
-      // the model has not specified limits on
-      // how many embeddings can be generated in a single call
-      if (maxEmbeddingsPerCall == null || maxEmbeddingsPerCall === Infinity) {
-        const { embeddings, usage, warnings, response, providerMetadata } =
-          await retry(() => {
-            // nested spans to align with the embedMany telemetry data:
-            return recordSpan({
-              name: 'ai.embedMany.doEmbed',
-              attributes: selectTelemetryAttributes({
-                telemetry,
-                attributes: {
-                  ...assembleOperationName({
-                    operationId: 'ai.embedMany.doEmbed',
-                    telemetry,
-                  }),
-                  ...baseTelemetryAttributes,
-                  // specific settings that only make sense on the outer level:
-                  'ai.values': {
-                    input: () => values.map(value => JSON.stringify(value)),
-                  },
-                },
-              }),
-              tracer,
-              fn: async doEmbedSpan => {
-                const modelResponse = await model.doEmbed({
+  return await runInTracingChannelSpan({
+    type: 'embedMany',
+    event: startEvent,
+    execute: async () => {
+      await notify({
+        event: startEvent,
+        callbacks: [resolvedOnStart, telemetryDispatcher.onStart],
+      });
+
+      try {
+        const [maxEmbeddingsPerCall, supportsParallelCalls] = await Promise.all(
+          [model.maxEmbeddingsPerCall, model.supportsParallelCalls],
+        );
+
+        if (maxEmbeddingsPerCall == null || maxEmbeddingsPerCall === Infinity) {
+          const { embeddings, usage, warnings, response, providerMetadata } =
+            await retry(async () => {
+              const embedCallId = generateCallId();
+
+              await notify({
+                event: {
+                  callId,
+                  embedCallId,
+                  operationId: 'ai.embedMany.doEmbed',
+                  provider: model.provider,
+                  modelId: model.modelId,
                   values,
+                },
+                callbacks: [telemetryDispatcher.onEmbedStart],
+              });
+
+              const modelResponse = await model.doEmbed({
+                values,
+                abortSignal,
+                headers: headersWithUserAgent,
+                providerOptions,
+              });
+
+              const embeddings = modelResponse.embeddings;
+              const usage = modelResponse.usage ?? { tokens: NaN };
+
+              await notify({
+                event: {
+                  callId,
+                  embedCallId,
+                  operationId: 'ai.embedMany.doEmbed',
+                  provider: model.provider,
+                  modelId: model.modelId,
+                  values,
+                  embeddings,
+                  usage,
+                },
+                callbacks: [telemetryDispatcher.onEmbedEnd],
+              });
+
+              return {
+                embeddings,
+                usage,
+                warnings: modelResponse.warnings ?? [],
+                providerMetadata: modelResponse.providerMetadata,
+                response: modelResponse.response,
+              };
+            });
+
+          logWarnings({
+            warnings,
+            provider: model.provider,
+            model: model.modelId,
+          });
+
+          await notify({
+            event: {
+              callId,
+              operationId: 'ai.embedMany',
+              provider: model.provider,
+              modelId: model.modelId,
+              value: values,
+              embedding: embeddings,
+              usage,
+              warnings,
+              providerMetadata,
+              response: [response],
+            },
+            callbacks: [resolvedOnEnd, telemetryDispatcher.onEnd],
+          });
+
+          return new DefaultEmbedManyResult({
+            values,
+            embeddings,
+            usage,
+            warnings,
+            providerMetadata,
+            responses: [response],
+          });
+        }
+
+        const valueChunks = splitArray(values, maxEmbeddingsPerCall);
+
+        const embeddings: Array<Embedding> = [];
+        const warnings: Array<Warning> = [];
+        const responses: Array<
+          | {
+              headers?: Record<string, string>;
+              body?: unknown;
+            }
+          | undefined
+        > = [];
+        let tokens = 0;
+        let providerMetadata: ProviderMetadata | undefined;
+
+        const parallelChunks = splitArray(
+          valueChunks,
+          supportsParallelCalls ? maxParallelCalls : 1,
+        );
+
+        for (const parallelChunk of parallelChunks) {
+          const results = await Promise.all(
+            parallelChunk.map(chunk => {
+              return retry(async () => {
+                const embedCallId = generateCallId();
+
+                await notify({
+                  event: {
+                    callId,
+                    embedCallId,
+                    operationId: 'ai.embedMany.doEmbed',
+                    provider: model.provider,
+                    modelId: model.modelId,
+                    values: chunk,
+                  },
+                  callbacks: [telemetryDispatcher.onEmbedStart],
+                });
+
+                const modelResponse = await model.doEmbed({
+                  values: chunk,
                   abortSignal,
                   headers: headersWithUserAgent,
                   providerOptions,
                 });
 
-                const embeddings = modelResponse.embeddings;
+                const chunkEmbeddings = modelResponse.embeddings;
                 const usage = modelResponse.usage ?? { tokens: NaN };
 
-                doEmbedSpan.setAttributes(
-                  await selectTelemetryAttributes({
-                    telemetry,
-                    attributes: {
-                      'ai.embeddings': {
-                        output: () =>
-                          embeddings.map(embedding =>
-                            JSON.stringify(embedding),
-                          ),
-                      },
-                      'ai.usage.tokens': usage.tokens,
-                    },
-                  }),
-                );
+                await notify({
+                  event: {
+                    callId,
+                    embedCallId,
+                    operationId: 'ai.embedMany.doEmbed',
+                    provider: model.provider,
+                    modelId: model.modelId,
+                    values: chunk,
+                    embeddings: chunkEmbeddings,
+                    usage,
+                  },
+                  callbacks: [telemetryDispatcher.onEmbedEnd],
+                });
 
                 return {
-                  embeddings,
+                  embeddings: chunkEmbeddings,
                   usage,
-                  warnings: modelResponse.warnings,
+                  warnings: modelResponse.warnings ?? [],
                   providerMetadata: modelResponse.providerMetadata,
                   response: modelResponse.response,
                 };
-              },
-            });
-          });
+              });
+            }),
+          );
 
-        span.setAttributes(
-          await selectTelemetryAttributes({
-            telemetry,
-            attributes: {
-              'ai.embeddings': {
-                output: () =>
-                  embeddings.map(embedding => JSON.stringify(embedding)),
-              },
-              'ai.usage.tokens': usage.tokens,
-            },
-          }),
-        );
+          for (const result of results) {
+            embeddings.push(...result.embeddings);
+            warnings.push(...result.warnings);
+            responses.push(result.response);
+            tokens += result.usage.tokens;
+            if (result.providerMetadata) {
+              if (!providerMetadata) {
+                providerMetadata = { ...result.providerMetadata };
+              } else {
+                for (const [providerName, metadata] of Object.entries(
+                  result.providerMetadata,
+                )) {
+                  providerMetadata[providerName] = {
+                    ...(providerMetadata[providerName] ?? {}),
+                    ...metadata,
+                  };
+                }
+              }
+            }
+          }
+        }
 
         logWarnings({
           warnings,
@@ -215,147 +383,34 @@ export async function embedMany({
           model: model.modelId,
         });
 
+        await notify({
+          event: {
+            callId,
+            operationId: 'ai.embedMany',
+            provider: model.provider,
+            modelId: model.modelId,
+            value: values,
+            embedding: embeddings,
+            usage: { tokens },
+            warnings,
+            providerMetadata,
+            response: responses,
+          },
+          callbacks: [resolvedOnEnd, telemetryDispatcher.onEnd],
+        });
+
         return new DefaultEmbedManyResult({
           values,
           embeddings,
-          usage,
+          usage: { tokens },
           warnings,
-          providerMetadata,
-          responses: [response],
+          providerMetadata: providerMetadata,
+          responses,
         });
+      } catch (error) {
+        await telemetryDispatcher.onError?.({ callId, error });
+        throw error;
       }
-
-      // split the values into chunks that are small enough for the model:
-      const valueChunks = splitArray(values, maxEmbeddingsPerCall);
-
-      // serially embed the chunks:
-      const embeddings: Array<Embedding> = [];
-      const warnings: Array<Warning> = [];
-      const responses: Array<
-        | {
-            headers?: Record<string, string>;
-            body?: unknown;
-          }
-        | undefined
-      > = [];
-      let tokens = 0;
-      let providerMetadata: ProviderMetadata | undefined;
-
-      const parallelChunks = splitArray(
-        valueChunks,
-        supportsParallelCalls ? maxParallelCalls : 1,
-      );
-
-      for (const parallelChunk of parallelChunks) {
-        const results = await Promise.all(
-          parallelChunk.map(chunk => {
-            return retry(() => {
-              // nested spans to align with the embedMany telemetry data:
-              return recordSpan({
-                name: 'ai.embedMany.doEmbed',
-                attributes: selectTelemetryAttributes({
-                  telemetry,
-                  attributes: {
-                    ...assembleOperationName({
-                      operationId: 'ai.embedMany.doEmbed',
-                      telemetry,
-                    }),
-                    ...baseTelemetryAttributes,
-                    // specific settings that only make sense on the outer level:
-                    'ai.values': {
-                      input: () => chunk.map(value => JSON.stringify(value)),
-                    },
-                  },
-                }),
-                tracer,
-                fn: async doEmbedSpan => {
-                  const modelResponse = await model.doEmbed({
-                    values: chunk,
-                    abortSignal,
-                    headers: headersWithUserAgent,
-                    providerOptions,
-                  });
-
-                  const embeddings = modelResponse.embeddings;
-                  const usage = modelResponse.usage ?? { tokens: NaN };
-
-                  doEmbedSpan.setAttributes(
-                    await selectTelemetryAttributes({
-                      telemetry,
-                      attributes: {
-                        'ai.embeddings': {
-                          output: () =>
-                            embeddings.map(embedding =>
-                              JSON.stringify(embedding),
-                            ),
-                        },
-                        'ai.usage.tokens': usage.tokens,
-                      },
-                    }),
-                  );
-
-                  return {
-                    embeddings,
-                    usage,
-                    warnings: modelResponse.warnings,
-                    providerMetadata: modelResponse.providerMetadata,
-                    response: modelResponse.response,
-                  };
-                },
-              });
-            });
-          }),
-        );
-
-        for (const result of results) {
-          embeddings.push(...result.embeddings);
-          warnings.push(...result.warnings);
-          responses.push(result.response);
-          tokens += result.usage.tokens;
-          if (result.providerMetadata) {
-            if (!providerMetadata) {
-              providerMetadata = { ...result.providerMetadata };
-            } else {
-              for (const [providerName, metadata] of Object.entries(
-                result.providerMetadata,
-              )) {
-                providerMetadata[providerName] = {
-                  ...(providerMetadata[providerName] ?? {}),
-                  ...metadata,
-                };
-              }
-            }
-          }
-        }
-      }
-
-      span.setAttributes(
-        await selectTelemetryAttributes({
-          telemetry,
-          attributes: {
-            'ai.embeddings': {
-              output: () =>
-                embeddings.map(embedding => JSON.stringify(embedding)),
-            },
-            'ai.usage.tokens': tokens,
-          },
-        }),
-      );
-
-      logWarnings({
-        warnings,
-        provider: model.provider,
-        model: model.modelId,
-      });
-
-      return new DefaultEmbedManyResult({
-        values,
-        embeddings,
-        usage: { tokens },
-        warnings,
-        providerMetadata: providerMetadata,
-        responses,
-      });
     },
   });
 }

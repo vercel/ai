@@ -1,5 +1,1309 @@
 # @ai-sdk/gateway
 
+## 4.0.27
+
+### Patch Changes
+
+- 2112ff1: chore(provider/gateway): update gateway model settings files
+
+## 4.0.26
+
+### Patch Changes
+
+- 7c16f21: feat(google): add `gemini-3.6-flash` and `gemini-3.5-flash-lite` models
+
+## 4.0.25
+
+### Patch Changes
+
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+
+## 4.0.24
+
+### Patch Changes
+
+- cefa3b1: chore(provider/gateway): remove `hipaaCompliant` provider option
+- 8fbb89c: chore(provider/gateway): update gateway model settings files
+
+## 4.0.23
+
+### Patch Changes
+
+- Updated dependencies [cd06458]
+  - @ai-sdk/provider-utils@5.0.11
+
+## 4.0.22
+
+### Patch Changes
+
+- 341616a: feat: add kimi-k3 model and `reasoningEffort` provider option
+- 70fc45c: chore(provider/gateway): update gateway model settings files
+
+## 4.0.21
+
+### Patch Changes
+
+- 7069785: chore(provider/gateway): update gateway model settings files
+- 4bf9ac2: feat (provider/gateway): add `gateway.experimental_transcription.getToken` for minting transcription-bound client secrets
+
+## 4.0.20
+
+### Patch Changes
+
+- 4d096f6: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [31c7be8]
+  - @ai-sdk/provider-utils@5.0.10
+
+## 4.0.19
+
+### Patch Changes
+
+- 4be62c1: fix(provider-utils): validate provider-response URLs in `getFromApi`
+
+  `getFromApi` now has a `validateUrl` flag. It is optional so existing callers keep compiling (omitting it behaves like `false`, i.e. no validation), but all AI SDK provider packages set it explicitly at every call site so each one makes a visible trust decision. When `true`, the URL is routed through `fetchWithValidatedRedirects` — the same guard used by `downloadBlob` — which rejects private/loopback/link-local targets, re-validates every redirect hop, strips proxy/metadata/cookie request headers, and drops all caller headers except the user-agent on cross-origin redirects (custom API-key headers must not follow a redirect off-origin any more than `Authorization` may); blocked URLs throw `DownloadError`. It is enabled at the image/video/audio download and polling call sites where the URL comes from a provider response body; URLs built from developer-configured endpoints pass `validateUrl: false` and are unaffected.
+
+  A new optional `credentialedOrigin` withholds caller headers unless the URL is same-origin with it, so the API key is not sent to a response-supplied host on a different origin.
+
+  A new optional `trustedOrigin` exempts URLs (and redirect hops) that are same-origin with the developer-configured provider endpoint from target validation, so self-hosted and localhost deployments whose response URLs point back at the configured host keep working; all other hops are still validated.
+
+  Also closes range gaps in `validateDownloadUrl` (IPv4 `224.0.0.0/4` multicast and the TEST-NET documentation ranges `192.0.2.0/24`, `198.51.100.0/24`, `203.0.113.0/24`; IPv6 documentation ranges `2001:db8::/32` and `3fff::/20`), and follows only the fetch-spec redirect status codes (301/302/303/307/308) — a `Location` header on any other status is not followed. This guard performs string/literal checks only and does not resolve DNS; hostnames that resolve to private addresses and DNS rebinding remain out of scope and must be constrained at the network layer (or by injecting a Node `fetch` that pins the resolved IP at connect time) for server deployments handling untrusted URLs. See `contributing/secure-url-handling.md`.
+
+- f8e82fd: Add experimental streaming transcription support to the gateway provider (`GatewayTranscriptionModel.doStream`), speaking the shared transcription-stream WebSocket envelope from `@ai-sdk/provider-utils`. `experimental_streamTranscribe` now works with gateway string model IDs, e.g. `experimental_streamTranscribe({ model: 'openai/gpt-realtime-whisper', ... })`.
+- Updated dependencies [4be62c1]
+- Updated dependencies [7805e4a]
+- Updated dependencies [cd12954]
+  - @ai-sdk/provider-utils@5.0.9
+
+## 4.0.18
+
+### Patch Changes
+
+- Updated dependencies [e193290]
+  - @ai-sdk/provider-utils@5.0.8
+
+## 4.0.17
+
+### Patch Changes
+
+- 867f80a: chore(provider/gateway): update gateway model settings files
+
+## 4.0.16
+
+### Patch Changes
+
+- 308a519: chore: enforce consistent imports from `zod/v4` instead of `zod`
+- 7fe53d2: chore(provider/gateway): update gateway model settings files
+
+## 4.0.15
+
+### Patch Changes
+
+- e12411e: chore(provider/gateway): update gateway model settings files
+- 5d894a7: feat(gateway): expose ruleId on GatewayForbiddenError so callers can identify which routing rule denied a request
+- fdb6d5d: feat(provider/openai,provider/gateway): add gpt-5.6 model ids
+- d25a084: feat (provider/xai): add grok-4.5 model id
+- Updated dependencies [0f93c57]
+  - @ai-sdk/provider@4.0.3
+  - @ai-sdk/provider-utils@5.0.7
+
+## 4.0.14
+
+### Patch Changes
+
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+
+## 4.0.13
+
+### Patch Changes
+
+- cad8227: chore(provider/gateway): update gateway model settings files
+
+## 4.0.12
+
+### Patch Changes
+
+- 0c3c7e4: feat(alibaba): support wan2.7 text-to-video and reference-to-video models with the new protocol (`input.media`, `resolution` + `ratio`)
+- c8d2726: chore(provider/gateway): update gateway model settings files
+
+## 4.0.11
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - @ai-sdk/provider@4.0.2
+  - @ai-sdk/provider-utils@5.0.5
+
+## 4.0.10
+
+### Patch Changes
+
+- 31abef7: chore(provider/gateway): update gateway model settings files
+
+## 4.0.9
+
+### Patch Changes
+
+- c6f5e62: Prevent prototype pollution when synchronously parsing provider JSON inputs and expose `secureJsonParse` from provider-utils.
+- Updated dependencies [c6f5e62]
+  - @ai-sdk/provider-utils@5.0.4
+
+## 4.0.8
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - @ai-sdk/provider-utils@5.0.3
+
+## 4.0.7
+
+### Patch Changes
+
+- 2edc641: chore(provider/gateway): update gateway model settings files
+- c18018c: feat (provider/anthropic): add `claude-sonnet-5` model id
+
+## 4.0.6
+
+### Patch Changes
+
+- 0274f34: feat (video): add first-class `frameImages` and `inputReferences` call options for video generation
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - @ai-sdk/provider-utils@5.0.2
+
+## 4.0.5
+
+### Patch Changes
+
+- 7e3c99e: chore(provider/gateway): update gateway model settings files
+
+## 4.0.4
+
+### Patch Changes
+
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+
+## 4.0.3
+
+### Patch Changes
+
+- 728eaa0: feat(provider/gateway): add `has` provider option to restrict routing to models with given capabilities (e.g. `implicit-caching`)
+
+## 4.0.2
+
+### Patch Changes
+
+- 9dce0a7: Add realtime models to Gateway metadata and generated model settings support.
+
+## 4.0.1
+
+### Patch Changes
+
+- b2791b3: chore(provider/gateway): update gateway model settings files
+- 330f6e2: Clarify `parallel_search` `source_policy` field descriptions so the model emits
+  values the Parallel API accepts: `include_domains`/`exclude_domains` must be plain
+  hosts (no scheme/path/port), and `after_date` must be an ISO 8601 calendar date
+  formatted `YYYY-MM-DD`.
+
+## 4.0.0
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+- 8359612: Start v7 pre-release
+- 04e9009: chore: make provider implementations code patterns more consistent, including renaming certain exported symbols
+
+  For all externally exported symbols that were renamed, the old names continue to work via deprecated aliases.
+
+### Patch Changes
+
+- bba5250: chore(provider/gateway): update gateway model settings files
+- 94c6edc: Add `qwen3.7-max` model ID to Alibaba and AI Gateway.
+- 980f777: chore(provider/gateway): update gateway model settings files
+- 11746ca: chore(provider/gateway): update gateway model settings files
+- fb0c233: chore(provider/gateway): update gateway model settings files
+- e02f041: feat(provider/anthropic): add support for `claude-opus-4-8`
+- 6b0a40d: feat (provider/gateway): add sort options
+- 435895b: feat (provider/gateway): add get-generation support
+- 38ca8dc: fix(gateway): enable retry support for gateway errors
+- 7185ba2: bump `@vercel/oidc` dependency to 3.2.0
+- 4d6ab9a: chore(provider/gateway): update gateway model settings files
+- 7afaece: feat(provider/openai): add GPT-5.4 model support
+- 7943a4b: chore(provider/gateway): update gateway model settings files
+- aa5a583: chore(provider/xai): remove obsolete Grok 2 models now that they are shut down in their API
+- a403276: chore(provider/gateway): update gateway model settings files
+- 70a9aae: feat (provider/gateway): add disallowPromptTraining gateway provider option
+- 8c17bf8: fix(gateway): surface provider warnings in embedding and reranking responses
+- 8b7af75: chore(provider/gateway): update gateway model settings files
+- 8e990ff: feat (provider/gateway): add Exa search tool support
+- ba2e254: fix (provider/gateway): add 'reranking' to modelType validation schema and type so getAvailableModels() accepts reranking models from the gateway API
+- 5f380c0: chore(provider/gateway): update gateway model settings files
+- 4552cbf: chore(provider/gateway): update gateway model settings files
+- bf837fe: feat(provider/gateway): add speech and transcription model support
+- ca2cf45: fix(provider/gateway): map `forbidden` error responses to GatewayForbiddenError instead of GatewayInternalServerError
+- 15eb253: feat(gateway): mint short-lived client secrets for experimental realtime
+
+  `gateway.experimental_realtime.getToken()` now mints a single-use, short-lived
+  client secret (`vcst_`) via the Gateway's `POST /v1/realtime/client-secrets`
+  endpoint instead of returning the long-lived Gateway credential. The customer's
+  server calls `getToken()` and hands the returned token to the browser, which
+  opens the realtime WebSocket with it through the existing
+  `ai-gateway-auth.<token>` subprotocol — the API key / OIDC token never reaches
+  the client. `expiresAfterSeconds` is forwarded to the mint endpoint and the
+  returned `expiresAt` is surfaced on the result.
+
+  The server-environment guard moves from realtime model construction to minting:
+  the browser can now build the realtime event codec it needs to drive the
+  transport, while minting (which requires the Gateway credential) stays
+  server-side.
+
+- a3bb04a: feat(gateway): add experimental realtime model support
+
+  Adds `gateway.experimental_realtime()` for bidirectional audio/text realtime
+  sessions routed through the AI Gateway. Like every other Gateway modality, the
+  client speaks the normalized AI SDK realtime protocol and the Gateway
+  translates to/from the upstream provider server-side, so `GatewayRealtimeModel`
+  is a thin identity codec. Gateway realtime is server-side only for v0 and throws
+  if used in a browser because it returns the resolved Gateway auth token rather
+  than a minted ephemeral client secret. Because the browser `WebSocket` API
+  cannot set request headers, the Gateway auth token is carried via the
+  `Sec-WebSocket-Protocol` subprotocol (the same workaround used for OpenAI) and
+  the model id rides the `?ai-model-id=` query — the WS transport of the
+  `ai-model-id` header used by the HTTP routes. The model id is passed through
+  verbatim; the Gateway owns resolution. Provider options (including BYOK) flow
+  through the normalized `session.update`, exactly as they ride the request body
+  on the non-realtime routes.
+
+  The versioned subprotocol auth contract is centralized so the client and the
+  Gateway server share one definition: `getGatewayRealtimeProtocols` (client
+  encode) and `getGatewayRealtimeAuthToken` (server decode), plus the
+  `GATEWAY_REALTIME_SUBPROTOCOL` / `GATEWAY_AUTH_SUBPROTOCOL_PREFIX` constants.
+
+  `GatewayProviderOptions` documents the stable client-facing option fields while
+  remaining open to service-owned options. Runtime validation lives in the Gateway
+  service so the server can evolve without requiring an SDK release for every new
+  option.
+
+- d4d4a5e: Add `serviceTier: 'flex' | 'priority'` to `GatewayProviderOptions`.
+- 8b811d8: feat(provider/gateway): add optional Vercel team scoping for Gateway authentication. The existing `apiKey` option can be used with AI Gateway API keys, Vercel personal access tokens, and Vercel app access tokens.
+- ead9144: chore(provider/gateway): update gateway model settings files
+- 712873e: chore(provider/gateway): update gateway model settings files
+- d5b8263: chore(provider/gateway): update gateway model settings files
+- 71b0e7d: feat (provider/gateway): add hipaaCompliant gateway provider option
+- 987d9e4: chore(provider/gateway): update gateway model settings files
+- eb024b6: chore(provider/gateway): update gateway model settings files
+- e7e8f42: chore(provider/gateway): update gateway model settings files
+- 77cc1af: chore(provider/gateway): update gateway model settings files
+- d30466c: feat (provider/gateway): add spend reporting support
+- 72889f8: chore(provider/gateway): update gateway model settings files
+- 9f0e36c: trigger release for all packages after provenance setup
+- 2095655: chore(provider/gateway): update gateway model settings files
+- e046ea3: chore(provider/gateway): update gateway model settings files
+- 4adc485: chore(provider/gateway): update gateway model settings files
+- f32d84a: chore(provider/gateway): update gateway model settings files
+- 82288b0: feat(provider/google): add `gemini-embedding-2-preview` and fix multimodal embedding support with `embedMany`
+- 03dc15c: chore(provider/gateway): update gateway model settings files
+- 5df9b6f: feat (provider/gateway): make model list resilient to unknown model types
+- 0457e45: chore(provider/gateway): update gateway model settings files
+- 0694029: chore(provider/gateway): update gateway model settings files
+- 8e53eb7: chore(provider/gateway): update gateway model settings files
+- 1464561: chore(provider/gateway): update gateway model settings files
+- c949e25: chore(provider/gateway): update gateway model settings files
+- 558777f: fix(gateway): accept deprecated warnings in image, speech, transcription, and video responses
+- d1f0d2b: feat (provider/gateway): add quotaEntityId gateway provider option
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- 939171f: feat (provider/gateway): add reranking model support with `rerankingModel()` and `reranking()` methods
+- 294cbe7: chore(provider/gateway): update gateway model settings files
+- bdbd322: fix (packages/gateway): clarify sort docs
+- 0c4c275: trigger initial canary release
+- a3261db: chore(provider/gateway): update gateway model settings files
+- 8f53ccf: chore(provider/gateway): update gateway model settings files
+- 4f91b5d: chore(provider/xai): update Grok 4.20 model IDs to their non-beta versions
+- f16c103: chore(provider/gateway): update gateway model settings files
+- 67c4011: fix(gateway): encode inline v4 file part bytes as { type: 'data' } instead of a data: URL
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- 546cefe: feat(provider/google): add `gemini-3.5-flash`
+- 24bb123: fix(gateway): base64-encode inline Uint8Array data on reasoning-file and tool-result file parts
+- b8396f0: trigger initial beta release
+- 6b4d325: feat(provider/anthropic): add support for `claude-fable-5` and the `fallbacks` API parameter
+- c44fcc8: feat(gateway): add GatewayFailedDependencyError (424)
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- 165b97a: chore(provider/gateway): update gateway model settings files
+- baa5f20: chore(provider/gateway): update gateway model settings files
+- 4ec78cd: chore(provider/gateway): rename GatewayLanguageModelOptions back to GatewayProviderOptions
+- 9876183: chore(provider/gateway): update gateway model settings files
+- 0416e3e: feat (video): add first-class `generateAudio` call option
+- 97e480a: chore(provider/gateway): update gateway model settings files
+- b3976a2: Add workflow serialization support to all provider models.
+
+  **`@ai-sdk/provider-utils`:** New `serializeModel()` helper that extracts only serializable properties from a model instance, filtering out functions and objects containing functions. Third-party provider authors can use this to add workflow support to their own models.
+
+  **All providers:** `headers` is now optional in provider config types. This is non-breaking — existing code that passes `headers` continues to work. Custom provider implementations that construct model configs manually can now omit `headers`, which is useful when models are deserialized from a workflow step boundary where auth is provided separately.
+
+  All provider model classes now include `WORKFLOW_SERIALIZE` and `WORKFLOW_DESERIALIZE` static methods, enabling them to cross workflow step boundaries without serialization errors.
+
+- efec111: chore(provider/gateway): update gateway model settings files
+- accaca0: chore(provider/gateway): update gateway model settings files
+- cdcdec2: chore(provider/gateway): update gateway model settings files
+- 0d8f107: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+- f9acbc0: feat(provider/openai): add gpt-image-2 model support
+- be09425: chore(provider/gateway): update gateway model settings files
+- 7ceff62: chore(provider/gateway): update gateway model settings files
+- 83877a1: chore(provider/gateway): update gateway model settings files
+- 1d6fb7f: chore(provider/gateway): update gateway model settings files
+- 032c4a5: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.114
+
+### Patch Changes
+
+- 77cc1af: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.113
+
+### Patch Changes
+
+- eb024b6: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.112
+
+### Patch Changes
+
+- a403276: chore(provider/gateway): update gateway model settings files
+- 0416e3e: feat (video): add first-class `generateAudio` call option
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
+## 4.0.0-beta.111
+
+### Patch Changes
+
+- 8e990ff: feat (provider/gateway): add Exa search tool support
+
+## 4.0.0-beta.110
+
+### Patch Changes
+
+- 987d9e4: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.109
+
+### Patch Changes
+
+- 15eb253: feat(gateway): mint short-lived client secrets for experimental realtime
+
+  `gateway.experimental_realtime.getToken()` now mints a single-use, short-lived
+  client secret (`vcst_`) via the Gateway's `POST /v1/realtime/client-secrets`
+  endpoint instead of returning the long-lived Gateway credential. The customer's
+  server calls `getToken()` and hands the returned token to the browser, which
+  opens the realtime WebSocket with it through the existing
+  `ai-gateway-auth.<token>` subprotocol — the API key / OIDC token never reaches
+  the client. `expiresAfterSeconds` is forwarded to the mint endpoint and the
+  returned `expiresAt` is surfaced on the result.
+
+  The server-environment guard moves from realtime model construction to minting:
+  the browser can now build the realtime event codec it needs to drive the
+  transport, while minting (which requires the Gateway credential) stays
+  server-side.
+
+## 4.0.0-beta.108
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+
+## 4.0.0-canary.107
+
+### Patch Changes
+
+- d5b8263: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.106
+
+### Patch Changes
+
+- ca2cf45: fix(provider/gateway): map `forbidden` error responses to GatewayForbiddenError instead of GatewayInternalServerError
+
+## 4.0.0-canary.105
+
+### Patch Changes
+
+- efec111: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.104
+
+### Patch Changes
+
+- 8c17bf8: fix(gateway): surface provider warnings in embedding and reranking responses
+- 558777f: fix(gateway): accept deprecated warnings in image, speech, transcription, and video responses
+- Updated dependencies [aeda373]
+- Updated dependencies [375fdd7]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+
+## 4.0.0-canary.103
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+
+## 4.0.0-canary.102
+
+### Patch Changes
+
+- a3bb04a: feat(gateway): add experimental realtime model support
+
+  Adds `gateway.experimental_realtime()` for bidirectional audio/text realtime
+  sessions routed through the AI Gateway. Like every other Gateway modality, the
+  client speaks the normalized AI SDK realtime protocol and the Gateway
+  translates to/from the upstream provider server-side, so `GatewayRealtimeModel`
+  is a thin identity codec. Gateway realtime is server-side only for v0 and throws
+  if used in a browser because it returns the resolved Gateway auth token rather
+  than a minted ephemeral client secret. Because the browser `WebSocket` API
+  cannot set request headers, the Gateway auth token is carried via the
+  `Sec-WebSocket-Protocol` subprotocol (the same workaround used for OpenAI) and
+  the model id rides the `?ai-model-id=` query — the WS transport of the
+  `ai-model-id` header used by the HTTP routes. The model id is passed through
+  verbatim; the Gateway owns resolution. Provider options (including BYOK) flow
+  through the normalized `session.update`, exactly as they ride the request body
+  on the non-realtime routes.
+
+  The versioned subprotocol auth contract is centralized so the client and the
+  Gateway server share one definition: `getGatewayRealtimeProtocols` (client
+  encode) and `getGatewayRealtimeAuthToken` (server decode), plus the
+  `GATEWAY_REALTIME_SUBPROTOCOL` / `GATEWAY_AUTH_SUBPROTOCOL_PREFIX` constants.
+
+  `GatewayProviderOptions` documents the stable client-facing option fields while
+  remaining open to service-owned options. Runtime validation lives in the Gateway
+  service so the server can evolve without requiring an SDK release for every new
+  option.
+
+## 4.0.0-canary.101
+
+### Patch Changes
+
+- 6b4d325: feat(provider/anthropic): add support for `claude-fable-5` and the `fallbacks` API parameter
+
+## 4.0.0-canary.100
+
+### Patch Changes
+
+- 24bb123: fix(gateway): base64-encode inline Uint8Array data on reasoning-file and tool-result file parts
+- c44fcc8: feat(gateway): add GatewayFailedDependencyError (424)
+- 97e480a: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.99
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+  - @ai-sdk/provider-utils@5.0.0-canary.46
+
+## 4.0.0-canary.98
+
+### Patch Changes
+
+- 9876183: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.97
+
+### Patch Changes
+
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+
+## 4.0.0-canary.96
+
+### Patch Changes
+
+- 83877a1: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.95
+
+### Patch Changes
+
+- a3261db: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.94
+
+### Patch Changes
+
+- 712873e: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.93
+
+### Patch Changes
+
+- e02f041: feat(provider/anthropic): add support for `claude-opus-4-8`
+
+## 4.0.0-canary.92
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+
+## 4.0.0-canary.91
+
+### Patch Changes
+
+- d4d4a5e: Add `serviceTier: 'flex' | 'priority'` to `GatewayProviderOptions`.
+
+## 4.0.0-canary.90
+
+### Patch Changes
+
+- 8b811d8: feat(provider/gateway): add optional Vercel team scoping for Gateway authentication. The existing `apiKey` option can be used with AI Gateway API keys, Vercel personal access tokens, and Vercel app access tokens.
+
+## 4.0.0-canary.89
+
+### Patch Changes
+
+- bba5250: chore(provider/gateway): update gateway model settings files
+- 94c6edc: Add `qwen3.7-max` model ID to Alibaba and AI Gateway.
+
+## 4.0.0-canary.88
+
+### Patch Changes
+
+- accaca0: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.87
+
+### Patch Changes
+
+- bf837fe: feat(provider/gateway): add speech and transcription model support
+
+## 4.0.0-canary.86
+
+### Patch Changes
+
+- 546cefe: feat(provider/google): add `gemini-3.5-flash`
+
+## 4.0.0-canary.85
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 4.0.0-canary.84
+
+### Patch Changes
+
+- 032c4a5: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+
+## 4.0.0-canary.83
+
+### Patch Changes
+
+- 1d6fb7f: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.82
+
+### Patch Changes
+
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+
+## 4.0.0-canary.81
+
+### Patch Changes
+
+- 67c4011: fix(gateway): encode inline v4 file part bytes as { type: 'data' } instead of a data: URL
+
+## 4.0.0-canary.80
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+
+## 4.0.0-canary.79
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+
+## 4.0.0-canary.78
+
+### Patch Changes
+
+- 38ca8dc: fix(gateway): enable retry support for gateway errors
+- 8b7af75: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.77
+
+### Patch Changes
+
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
+## 4.0.0-canary.76
+
+### Patch Changes
+
+- 5f380c0: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.75
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+
+## 4.0.0-canary.74
+
+### Patch Changes
+
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+
+## 4.0.0-canary.73
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+
+## 4.0.0-canary.72
+
+### Patch Changes
+
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
+## 4.0.0-canary.71
+
+### Patch Changes
+
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+
+## 4.0.0-canary.70
+
+### Patch Changes
+
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - @ai-sdk/provider@4.0.0-canary.16
+
+## 4.0.0-canary.69
+
+### Patch Changes
+
+- 8e53eb7: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-canary.68
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - @ai-sdk/provider-utils@5.0.0-canary.31
+  - @ai-sdk/provider@4.0.0-canary.15
+
+## 4.0.0-beta.67
+
+### Patch Changes
+
+- e7e8f42: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.66
+
+### Major Changes
+
+- 04e9009: chore: make provider implementations code patterns more consistent, including renaming certain exported symbols
+
+  For all externally exported symbols that were renamed, the old names continue to work via deprecated aliases.
+
+### Patch Changes
+
+- be09425: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [08d2129]
+  - @ai-sdk/provider-utils@5.0.0-beta.30
+
+## 4.0.0-beta.65
+
+### Patch Changes
+
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+- Updated dependencies [b6783da]
+  - @ai-sdk/provider-utils@5.0.0-beta.29
+  - @ai-sdk/provider@4.0.0-beta.14
+
+## 4.0.0-beta.64
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- Updated dependencies [9f0e36c]
+  - @ai-sdk/provider@4.0.0-beta.13
+  - @ai-sdk/provider-utils@5.0.0-beta.28
+
+## 4.0.0-beta.63
+
+### Patch Changes
+
+- baa5f20: chore(provider/gateway): update gateway model settings files
+- f9acbc0: feat(provider/openai): add gpt-image-2 model support
+- Updated dependencies [785fe16]
+- Updated dependencies [67df0a0]
+- Updated dependencies [befb78c]
+- Updated dependencies [0458559]
+- Updated dependencies [5852c0a]
+- Updated dependencies [fc92055]
+  - @ai-sdk/provider-utils@5.0.0-beta.27
+
+## 4.0.0-beta.62
+
+### Patch Changes
+
+- Updated dependencies [2e98477]
+  - @ai-sdk/provider-utils@5.0.0-beta.26
+
+## 4.0.0-beta.61
+
+### Patch Changes
+
+- Updated dependencies [eea8d98]
+  - @ai-sdk/provider-utils@5.0.0-beta.25
+
+## 4.0.0-beta.60
+
+### Patch Changes
+
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+
+## 4.0.0-beta.59
+
+### Patch Changes
+
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+
+## 4.0.0-beta.58
+
+### Patch Changes
+
+- 03dc15c: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.57
+
+### Patch Changes
+
+- Updated dependencies [083947b]
+  - @ai-sdk/provider-utils@5.0.0-beta.22
+
+## 4.0.0-beta.56
+
+### Patch Changes
+
+- 0d8f107: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+
+## 4.0.0-beta.55
+
+### Patch Changes
+
+- Updated dependencies [add1126]
+  - @ai-sdk/provider-utils@5.0.0-beta.21
+
+## 4.0.0-beta.54
+
+### Patch Changes
+
+- 5df9b6f: feat (provider/gateway): make model list resilient to unknown model types
+
+## 4.0.0-beta.53
+
+### Patch Changes
+
+- 0457e45: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.52
+
+### Patch Changes
+
+- ba2e254: fix (provider/gateway): add 'reranking' to modelType validation schema and type so getAvailableModels() accepts reranking models from the gateway API
+
+## 4.0.0-beta.51
+
+### Patch Changes
+
+- cdcdec2: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.50
+
+### Patch Changes
+
+- b3976a2: Add workflow serialization support to all provider models.
+
+  **`@ai-sdk/provider-utils`:** New `serializeModel()` helper that extracts only serializable properties from a model instance, filtering out functions and objects containing functions. Third-party provider authors can use this to add workflow support to their own models.
+
+  **All providers:** `headers` is now optional in provider config types. This is non-breaking — existing code that passes `headers` continues to work. Custom provider implementations that construct model configs manually can now omit `headers`, which is useful when models are deserialized from a workflow step boundary where auth is provided separately.
+
+  All provider model classes now include `WORKFLOW_SERIALIZE` and `WORKFLOW_DESERIALIZE` static methods, enabling them to cross workflow step boundaries without serialization errors.
+
+- Updated dependencies [b3976a2]
+- Updated dependencies [ff5eba1]
+  - @ai-sdk/provider-utils@5.0.0-beta.20
+  - @ai-sdk/provider@4.0.0-beta.12
+
+## 4.0.0-beta.49
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - @ai-sdk/provider@4.0.0-beta.11
+  - @ai-sdk/provider-utils@5.0.0-beta.19
+
+## 4.0.0-beta.48
+
+### Patch Changes
+
+- bdbd322: fix (packages/gateway): clarify sort docs
+- 8f53ccf: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.47
+
+### Patch Changes
+
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- Updated dependencies [90e2d8a]
+  - @ai-sdk/provider-utils@5.0.0-beta.18
+
+## 4.0.0-beta.46
+
+### Patch Changes
+
+- 6b0a40d: feat (provider/gateway): add sort options
+
+## 4.0.0-beta.45
+
+### Patch Changes
+
+- Updated dependencies [3ae1786]
+  - @ai-sdk/provider-utils@5.0.0-beta.17
+
+## 4.0.0-beta.44
+
+### Patch Changes
+
+- 7943a4b: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.43
+
+### Patch Changes
+
+- Updated dependencies [176466a]
+  - @ai-sdk/provider@4.0.0-beta.10
+  - @ai-sdk/provider-utils@5.0.0-beta.16
+
+## 4.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [e311194]
+  - @ai-sdk/provider@4.0.0-beta.9
+  - @ai-sdk/provider-utils@5.0.0-beta.15
+
+## 4.0.0-beta.41
+
+### Patch Changes
+
+- 1464561: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.40
+
+### Patch Changes
+
+- 939171f: feat (provider/gateway): add reranking model support with `rerankingModel()` and `reranking()` methods
+
+## 4.0.0-beta.39
+
+### Patch Changes
+
+- 0694029: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [34bd95d]
+- Updated dependencies [008271d]
+  - @ai-sdk/provider@4.0.0-beta.8
+  - @ai-sdk/provider-utils@5.0.0-beta.14
+
+## 4.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [b0c2869]
+- Updated dependencies [7e26e81]
+  - @ai-sdk/provider-utils@5.0.0-beta.13
+
+## 4.0.0-beta.36
+
+### Patch Changes
+
+- fb0c233: chore(provider/gateway): update gateway model settings files
+- d1f0d2b: feat (provider/gateway): add quotaEntityId gateway provider option
+
+## 4.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [46d1149]
+  - @ai-sdk/provider-utils@5.0.0-beta.12
+
+## 4.0.0-beta.34
+
+### Patch Changes
+
+- 71b0e7d: feat (provider/gateway): add hipaaCompliant gateway provider option
+
+## 4.0.0-beta.33
+
+### Patch Changes
+
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider-utils@5.0.0-beta.11
+  - @ai-sdk/provider@4.0.0-beta.7
+
+## 4.0.0-beta.32
+
+### Patch Changes
+
+- 11746ca: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - @ai-sdk/provider@4.0.0-beta.6
+
+## 4.0.0-beta.30
+
+### Patch Changes
+
+- 4552cbf: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [2e17091]
+  - @ai-sdk/provider-utils@5.0.0-beta.9
+
+## 4.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [986c6fd]
+- Updated dependencies [493295c]
+  - @ai-sdk/provider-utils@5.0.0-beta.8
+
+## 4.0.0-beta.27
+
+### Patch Changes
+
+- 70a9aae: feat (provider/gateway): add disallowPromptTraining gateway provider option
+
+## 4.0.0-beta.26
+
+### Patch Changes
+
+- 294cbe7: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.25
+
+### Patch Changes
+
+- 435895b: feat (provider/gateway): add get-generation support
+
+## 4.0.0-beta.24
+
+### Patch Changes
+
+- d30466c: feat (provider/gateway): add spend reporting support
+
+## 4.0.0-beta.23
+
+### Patch Changes
+
+- 4ec78cd: chore(provider/gateway): rename GatewayLanguageModelOptions back to GatewayProviderOptions
+
+## 4.0.0-beta.22
+
+### Patch Changes
+
+- 7ceff62: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - @ai-sdk/provider@4.0.0-beta.5
+
+## 4.0.0-beta.20
+
+### Patch Changes
+
+- 4f91b5d: chore(provider/xai): update Grok 4.20 model IDs to their non-beta versions
+
+## 4.0.0-beta.19
+
+### Patch Changes
+
+- 72889f8: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.18
+
+### Patch Changes
+
+- 165b97a: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [3887c70]
+  - @ai-sdk/provider-utils@5.0.0-beta.6
+  - @ai-sdk/provider@4.0.0-beta.4
+
+## 4.0.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [776b617]
+  - @ai-sdk/provider-utils@5.0.0-beta.5
+  - @ai-sdk/provider@4.0.0-beta.3
+
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [61753c3]
+  - @ai-sdk/provider-utils@5.0.0-beta.4
+
+## 4.0.0-beta.14
+
+### Patch Changes
+
+- ead9144: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.13
+
+### Patch Changes
+
+- 2095655: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.12
+
+### Patch Changes
+
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+
+## 4.0.0-beta.11
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
+## 4.0.0-beta.10
+
+### Patch Changes
+
+- 4d6ab9a: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.9
+
+### Patch Changes
+
+- 980f777: chore(provider/gateway): update gateway model settings files
+- 7185ba2: bump `@vercel/oidc` dependency to 3.2.0
+
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- 4adc485: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- e046ea3: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.6
+
+### Patch Changes
+
+- 82288b0: feat(provider/google): add `gemini-embedding-2-preview` and fix multimodal embedding support with `embedMany`
+
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- aa5a583: chore(provider/xai): remove obsolete Grok 2 models now that they are shut down in their API
+
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- f32d84a: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- c949e25: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [531251e]
+  - @ai-sdk/provider-utils@5.0.0-beta.1
+
+## 4.0.0-beta.1
+
+### Patch Changes
+
+- 7afaece: feat(provider/openai): add GPT-5.4 model support
+- f16c103: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/provider@4.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
+## 3.0.66
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+  - @ai-sdk/provider-utils@4.0.19
+
+## 3.0.65
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+
+## 3.0.64
+
+### Patch Changes
+
+- db3d4ca: chore(provider/gateway): update gateway model settings files
+
+## 3.0.63
+
+### Patch Changes
+
+- 1b01ec1: feat(gateway): add providerTimeouts to provider options
+- 8df8e11: chore(provider/gateway): update gateway model settings files
+
+## 3.0.62
+
+### Patch Changes
+
+- 10bec50: feat(provider/google): add `gemini-3.1-flash-lite-preview`
+
+## 3.0.61
+
+### Patch Changes
+
+- Updated dependencies [08336f1]
+  - @ai-sdk/provider-utils@4.0.17
+
+## 3.0.60
+
+### Patch Changes
+
+- 29e9f4d: chore(provider/gateway): update gateway model settings files
+
+## 3.0.59
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+
+## 3.0.58
+
+### Patch Changes
+
+- 1330f2f: chore(provider/gateway): update gateway model settings files
+
+## 3.0.57
+
+### Patch Changes
+
+- ba63bc2: chore(provider/gateway): update gateway model settings files
+
+## 3.0.56
+
+### Patch Changes
+
+- 45f0a7f: feat(provider/google): add support for gemini-3.1-flash-image-preview
+
+## 3.0.55
+
+### Patch Changes
+
+- e8172b6: feat (provider/gateway): pass through project id when available for o11y
+
+## 3.0.54
+
+### Patch Changes
+
+- 0c9395b: feat(provider/openai): add `gpt-5.3-codex`
+
 ## 3.0.53
 
 ### Patch Changes
@@ -374,13 +1678,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - aaf5ebf: feat(provider/gateway): Add new Qwen models to Gateway model string autocomplete
@@ -662,13 +1966,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]

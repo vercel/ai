@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactory,
+  createProviderDefinedToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -20,7 +20,7 @@ const textEditor_20250429InputSchema = lazySchema(() =>
   ),
 );
 
-export const textEditor_20250429 = createProviderToolFactory<
+export const textEditor_20250429 = createProviderDefinedToolFactory<
   {
     /**
      * The commands to run. Allowed options are: `view`, `create`, `str_replace`, `insert`.

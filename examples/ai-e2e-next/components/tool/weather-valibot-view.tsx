@@ -1,4 +1,4 @@
-import { WeatherUIToolValibotInvocation } from '@/tool/weather-tool-valibot';
+import type { WeatherUIToolValibotInvocation } from '@/tool/weather-tool-valibot';
 
 export default function WeatherValibotView({
   invocation,
