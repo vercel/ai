@@ -45,6 +45,20 @@ import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 import { sanitizeJsonSchema } from './sanitize-json-schema';
 
+function getJsonResponseToolName(
+  tools: Parameters<LanguageModelV2['doGenerate']>[0]['tools'],
+): string {
+  const toolNames = new Set(tools?.map(tool => tool.name));
+  let name = 'json';
+  let suffix = 1;
+
+  while (toolNames.has(name)) {
+    name = `json_${suffix++}`;
+  }
+
+  return name;
+}
+
 function createCitationSource(
   citation: Citation,
   citationDocuments: Array<{
@@ -258,13 +272,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       structureOutputMode === 'outputFormat' ||
       (structureOutputMode === 'auto' && supportsStructuredOutput);
 
+    const jsonResponseToolName = getJsonResponseToolName(tools);
     const jsonResponseTool: LanguageModelV2FunctionTool | undefined =
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
       !useStructuredOutput
         ? {
             type: 'function',
-            name: 'json',
+            name: jsonResponseToolName,
             description: 'Respond with a JSON object.',
             inputSchema: responseFormat.schema,
           }
@@ -604,7 +619,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         ...userSuppliedBetas,
         ...(anthropicOptions?.anthropicBeta ?? []),
       ]),
-      usesJsonResponseTool: jsonResponseTool != null,
+      jsonResponseToolName:
+        jsonResponseTool != null ? jsonResponseToolName : undefined,
     };
   }
 
@@ -700,7 +716,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args, warnings, betas, usesJsonResponseTool } = await this.getArgs({
+    const { args, warnings, betas, jsonResponseToolName } = await this.getArgs({
       ...options,
       userSuppliedBetas: await this.getBetasFromHeaders(options.headers),
     });
@@ -733,7 +749,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         case 'text': {
           // when a json response tool is used, the tool call is returned as text,
           // so we ignore the text content:
-          if (!usesJsonResponseTool) {
+          if (jsonResponseToolName == null) {
             const webSearchCitations = part.citations?.filter(
               citation => citation.type === 'web_search_result_location',
             );
@@ -805,8 +821,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           break;
         }
         case 'tool_use': {
-          const isJsonResponseTool =
-            usesJsonResponseTool && part.name === 'json';
+          const isJsonResponseTool = part.name === jsonResponseToolName;
 
           if (isJsonResponseTool) {
             isJsonResponseFromTool = true;
@@ -1137,7 +1152,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { args, warnings, betas, usesJsonResponseTool } = await this.getArgs({
+    const { args, warnings, betas, jsonResponseToolName } = await this.getArgs({
       ...options,
       userSuppliedBetas: await this.getBetasFromHeaders(options.headers),
     });
@@ -1306,7 +1321,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
                 case 'tool_use': {
                   const isJsonResponseTool =
-                    usesJsonResponseTool && value.content_block.name === 'json';
+                    value.content_block.name === jsonResponseToolName;
 
                   if (isJsonResponseTool) {
                     isJsonResponseFromTool = true;
@@ -1561,7 +1576,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
                   case 'tool-call': {
                     const isJsonResponseTool =
-                      usesJsonResponseTool && contentBlock.toolName === 'json';
+                      contentBlock.toolName === jsonResponseToolName;
 
                     if (isJsonResponseTool) {
                       break;
@@ -1605,7 +1620,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 case 'text_delta': {
                   // when a json response tool is used, the tool call is returned as text,
                   // so we ignore the text content:
-                  if (usesJsonResponseTool) {
+                  if (jsonResponseToolName != null) {
                     return;
                   }
 
