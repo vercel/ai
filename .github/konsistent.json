@@ -99,6 +99,18 @@
         },
         {
           "use": "aisdk/provider-model-file-must-export-model-class",
+          "excludeFiles": ["${providerId}-video-model.ts"]
+        },
+        {
+          "use": "aisdk/provider-model-file-with-subtype-must-export-model-class",
+          "excludeFiles": [
+            "packages/deepinfra/src/deepinfra-chat-language-model.ts",
+            "packages/moonshotai/src/moonshotai-chat-language-model.ts"
+          ]
+        },
+        "aisdk/provider-video-model-file-must-export-model-class",
+        {
+          "use": "aisdk/provider-model-file-must-have-matching-model-options-file",
           "excludeFiles": [
             "${providerId}-video-model.ts",
             "packages/gateway/src/gateway-embedding-model.ts",
@@ -111,14 +123,14 @@
           ]
         },
         {
-          "use": "aisdk/provider-model-file-with-subtype-must-export-model-class",
+          "use": "aisdk/provider-model-file-with-subtype-must-have-matching-model-options-file",
           "excludeFiles": [
             "packages/deepinfra/src/deepinfra-chat-language-model.ts",
             "packages/moonshotai/src/moonshotai-chat-language-model.ts"
           ]
         },
         {
-          "use": "aisdk/provider-video-model-file-must-export-model-class",
+          "use": "aisdk/provider-video-model-file-must-have-matching-model-options-file",
           "excludeFiles": ["packages/gateway/src/gateway-video-model.ts"]
         },
         "aisdk/provider-language-model-file-must-import-workflow-serialization",

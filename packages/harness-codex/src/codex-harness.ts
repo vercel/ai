@@ -177,11 +177,10 @@ export function createCodex(
     lifecycleStateSchema: codexResumeStateSchema,
     getBootstrap: async () => {
       if (cachedBootstrap != null) return cachedBootstrap;
-      const [pkg, lock, bridge, hostToolMcp] = await Promise.all([
+      const [pkg, lock, bridge] = await Promise.all([
         readBridgeAsset('package.json'),
         readBridgeAsset('pnpm-lock.yaml'),
         readBridgeAsset('index.mjs'),
-        readBridgeAsset('host-tool-mcp.mjs'),
       ]);
       cachedBootstrap = {
         harnessId: 'codex',
@@ -190,10 +189,6 @@ export function createCodex(
           { path: `${BOOTSTRAP_DIR}/package.json`, content: pkg },
           { path: `${BOOTSTRAP_DIR}/pnpm-lock.yaml`, content: lock },
           { path: `${BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
-          {
-            path: `${BOOTSTRAP_DIR}/host-tool-mcp.mjs`,
-            content: hostToolMcp,
-          },
         ],
         commands: [
           { command: `mkdir -p ${BOOTSTRAP_DIR}` },
@@ -378,7 +373,7 @@ export function createCodex(
       });
 
       const proc = await session.spawn({
-        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(BOOTSTRAP_DIR)} --cli-shim-dir ${shellQuote(cliShimDir)}`,
+        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --cli-shim-dir ${shellQuote(cliShimDir)}`,
         env,
         abortSignal: startOpts.abortSignal,
       });

@@ -21,10 +21,11 @@ import {
   type Experimental_SandboxSession as SandboxSession,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
-import type {
-  LanguageModelV4FinishReason,
-  LanguageModelV4ToolCall,
-  LanguageModelV4Usage,
+import {
+  getErrorMessage,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4ToolCall,
+  type LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 import { parseToolCall } from 'ai/internal';
 import type {
@@ -124,6 +125,29 @@ export function runPrompt<
     runtimeContext: input.runtimeContext,
   });
 
+  /*
+   * Settle a failed turn. When the caller's own `abortSignal` has fired, the
+   * failure is a user-initiated stop, not an error: surface it as an `abort`
+   * stream part — matching `streamText`'s abort contract — so
+   * `toUIMessageStream` consumers observe an `abort` chunk and
+   * `isAborted: true` instead of a spurious `onError`. Every other failure
+   * stays a real `error` part. Both outcomes notify `onTurnFailed` so the
+   * session's turn tracking returns to idle and the session stays usable.
+   */
+  const settleFailure = (err: unknown) => {
+    input.onTurnFailed?.();
+    if (input.abortSignal?.aborted) {
+      result.abort({
+        error: err,
+        ...(input.abortSignal.reason !== undefined
+          ? { reason: getErrorMessage(input.abortSignal.reason) }
+          : {}),
+      });
+      return;
+    }
+    result.fail(err);
+  };
+
   const done = (async () => {
     let bridge: Awaited<ReturnType<typeof toHarnessStream>>;
     try {
@@ -159,8 +183,7 @@ export function runPrompt<
         context: 'failed to start harness turn',
         error: err,
       });
-      input.onTurnFailed?.();
-      result.fail(err);
+      settleFailure(err);
       return;
     }
 
@@ -531,6 +554,28 @@ export function runPrompt<
           }
         }
 
+        /*
+         * Settle failures before the translate-and-forward step below: the
+         * translated `error` part must not reach the consumer stream, or the
+         * turn surfaces BOTH a forwarded `error` part and the settle-owned
+         * terminal part (an `abort` part for user stops via `settleFailure`,
+         * or a second `error` part from `fail`).
+         */
+        if (value.type === 'error' && displayValue.type === 'error') {
+          // Telemetry and stderr diagnostics keep the raw error (absolute
+          // paths help debugging); the consumer-facing settle uses the
+          // workDir-stripped one, like every other forwarded part.
+          telemetry.error(value.error);
+          logBridgeError({
+            harnessId: input.harness.harnessId,
+            sessionId: input.session.sessionId,
+            context: 'harness stream error',
+            error: value.error,
+          });
+          settleFailure(displayValue.error);
+          return;
+        }
+
         // Forward to consumer as soon as possible.
         for (const part of translateStreamPart<TOOLS>(displayValue)) {
           result.enqueue(part);
@@ -799,19 +844,6 @@ export function runPrompt<
           }
           telemetry.toolEnd(toolCall.toolCallId, execution.outcome);
         }
-
-        if (value.type === 'error') {
-          telemetry.error(value.error);
-          logBridgeError({
-            harnessId: input.harness.harnessId,
-            sessionId: input.session.sessionId,
-            context: 'harness stream error',
-            error: value.error,
-          });
-          input.onTurnFailed?.();
-          result.fail(value.error);
-          return;
-        }
       }
       if (finalFinish != null) {
         input.onTurnFinished?.();
@@ -835,8 +867,7 @@ export function runPrompt<
         context: 'harness turn failed',
         error: err,
       });
-      input.onTurnFailed?.();
-      result.fail(err);
+      settleFailure(err);
     } finally {
       reader.releaseLock();
     }

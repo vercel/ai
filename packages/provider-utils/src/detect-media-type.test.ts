@@ -594,7 +594,20 @@ describe('detectMediaType signature matching', () => {
 
   describe('MP4', () => {
     it('should detect MP4 from bytes', () => {
-      const mp4Bytes = new Uint8Array([0x66, 0x74, 0x79, 0x70]);
+      const mp4Bytes = new Uint8Array([
+        0x00,
+        0x00,
+        0x00,
+        0x1c, // box size
+        0x66,
+        0x74,
+        0x79,
+        0x70, // "ftyp"
+        0x4d,
+        0x34,
+        0x41,
+        0x20, // "M4A "
+      ]);
       expect(
         detectMediaType({
           data: mp4Bytes,
@@ -604,10 +617,23 @@ describe('detectMediaType signature matching', () => {
     });
 
     it('should detect MP4 from base64', () => {
-      const mp4Base64 = 'ZnR5cA'; // Base64 string starting with MP4 signature
+      const mp4Bytes = new Uint8Array([
+        0x00,
+        0x00,
+        0x00,
+        0x1c, // box size
+        0x66,
+        0x74,
+        0x79,
+        0x70, // "ftyp"
+        0x4d,
+        0x34,
+        0x41,
+        0x20, // "M4A "
+      ]);
       expect(
         detectMediaType({
-          data: mp4Base64,
+          data: convertUint8ArrayToBase64(mp4Bytes),
           topLevelType: 'audio',
         }),
       ).toBe('audio/mp4');

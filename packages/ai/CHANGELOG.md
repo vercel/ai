@@ -1,5 +1,24 @@
 # ai
 
+## 7.0.34
+
+### Patch Changes
+
+- Updated dependencies [7c16f21]
+  - @ai-sdk/gateway@4.0.26
+
+## 7.0.33
+
+### Patch Changes
+
+- 76cb673: fix: detect MP4 audio from its ftyp box during transcription
+- e808fa5: fix(ai): preserve tool parts when tool call IDs repeat across steps
+- 33647d7: Preserve provider options when combining consecutive tool messages.
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+  - @ai-sdk/gateway@4.0.25
+
 ## 7.0.32
 
 ### Patch Changes

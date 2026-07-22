@@ -1,5 +1,23 @@
 # @ai-sdk/harness-codex
 
+## 1.0.41
+
+### Patch Changes
+
+- b2f553b: fix(harness-codex): route Codex host tools through the CLI relay only instead of registering them as MCP tools
+- Updated dependencies [86a84c9]
+  - @ai-sdk/harness@1.0.39
+
+## 1.0.40
+
+### Patch Changes
+
+- f5cdb2d: chore(harness): update primary SDK dependencies
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+  - @ai-sdk/harness@1.0.38
+
 ## 1.0.39
 
 ### Patch Changes

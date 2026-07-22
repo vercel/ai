@@ -5,8 +5,6 @@
   "type": "module",
   "dependencies": {
     "@openai/codex-sdk": "0.144.5",
-    "@modelcontextprotocol/sdk": "1.29.0",
-    "ws": "8.21.0",
-    "zod": "3.25.76"
+    "ws": "8.21.0"
   }
 }
