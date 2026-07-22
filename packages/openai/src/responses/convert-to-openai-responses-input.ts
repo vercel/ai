@@ -581,12 +581,16 @@ export async function convertToOpenAIResponsesInput({
               );
 
               if (resolvedResultToolName === 'tool_search') {
-                const itemId =
+                const itemId = (part.providerOptions?.[providerOptionsName]
+                  ?.itemId ??
                   (
-                    part.providerOptions?.[providerOptionsName] as
-                      | { itemId?: string }
-                      | undefined
-                  )?.itemId ?? part.toolCallId;
+                    part as {
+                      providerMetadata?: {
+                        [providerOptionsName]?: { itemId?: string };
+                      };
+                    }
+                  ).providerMetadata?.[providerOptionsName]?.itemId ??
+                  part.toolCallId) as string;
 
                 if (store) {
                   input.push({ type: 'item_reference', id: itemId });
