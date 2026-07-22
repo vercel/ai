@@ -377,13 +377,6 @@ export function convertToGoogleGenerativeAIMessages(
                     providerOpts?.serverToolType != null
                       ? String(providerOpts.serverToolType)
                       : undefined;
-<<<<<<< HEAD:packages/google/src/convert-to-google-generative-ai-messages.ts
-
-                  // For Gemini 3, every replayed functionCall part must carry a
-                  // thoughtSignature or the API returns HTTP 400. If the upstream
-                  // serialization layer dropped the signature, inject the
-                  // documented sentinel so the request still succeeds.
-=======
                   const isServerToolCall =
                     serverToolCallId != null && serverToolType != null;
                   const shouldSkipMissingSignatureMitigation =
@@ -394,7 +387,6 @@ export function convertToGoogleGenerativeAIMessages(
                     !isServerToolCall &&
                     thoughtSignature == null &&
                     modelResponseHasSignedFunctionCall;
->>>>>>> 5e5453ccf9 (fix: prevent warnings and skip-validator injection for valid Gemini 3 parallel function calls (#17649)):packages/google/src/convert-to-google-messages.ts
                   const effectiveThoughtSignature =
                     thoughtSignature ??
                     (isGemini3Model && !shouldSkipMissingSignatureMitigation

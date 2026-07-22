@@ -1346,7 +1346,7 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
 
   it('does NOT inject the sentinel or warn for unsigned parallel calls after a signed call', () => {
     const onWarning = vi.fn();
-    const result = convertToGoogleMessages(
+    const result = convertToGoogleGenerativeAIMessages(
       [
         {
           role: 'assistant',
@@ -1377,7 +1377,7 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
       ],
       {
         isGemini3Model: true,
-        providerOptionsNames: ['googleVertex', 'vertex'],
+        providerOptionsName: 'googleVertex',
         onWarning,
       },
     );
@@ -1413,7 +1413,7 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
 
   it('does NOT inject the sentinel when other response parts separate parallel function calls', () => {
     const onWarning = vi.fn();
-    const result = convertToGoogleMessages(
+    const result = convertToGoogleGenerativeAIMessages(
       [
         {
           role: 'assistant',
@@ -1456,7 +1456,7 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
 
   it('does NOT inject the sentinel when server tool parts separate parallel function calls', () => {
     const onWarning = vi.fn();
-    const result = convertToGoogleMessages(
+    const result = convertToGoogleGenerativeAIMessages(
       [
         {
           role: 'assistant',
@@ -1521,7 +1521,7 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
 
   it('injects the sentinel when a signed server tool call precedes an unsigned function call', () => {
     const onWarning = vi.fn();
-    const result = convertToGoogleMessages(
+    const result = convertToGoogleGenerativeAIMessages(
       [
         {
           role: 'assistant',
