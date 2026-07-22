@@ -9775,4 +9775,185 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
   });
+
+  describe('programmatic tool calling', () => {
+    it('should map program items and nested function caller metadata', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_programmatic',
+          created_at: 1,
+          error: null,
+          incomplete_details: null,
+          model: 'gpt-5.6',
+          output: [
+            {
+              type: 'program',
+              id: 'program_item_1',
+              call_id: 'program_call_1',
+              code: 'const value = await tools.get_inventory({ sku: "A" });',
+              fingerprint: 'fingerprint_1',
+            },
+            {
+              type: 'function_call',
+              id: 'function_item_1',
+              call_id: 'function_call_1',
+              name: 'get_inventory',
+              arguments: '{"sku":"A"}',
+              caller: {
+                type: 'program',
+                caller_id: 'program_call_1',
+              },
+            },
+            {
+              type: 'program_output',
+              id: 'program_output_item_1',
+              call_id: 'program_call_1',
+              result: '{"availableUnits":42}',
+              status: 'completed',
+            },
+          ],
+          usage: {
+            input_tokens: 10,
+            input_tokens_details: { cached_tokens: 0 },
+            output_tokens: 20,
+            output_tokens_details: { reasoning_tokens: 0 },
+          },
+        },
+      };
+
+      const result = await createModel('gpt-5.6').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.programmatic_tool_calling',
+            name: 'program',
+            args: {},
+          },
+          {
+            type: 'function',
+            name: 'get_inventory',
+            inputSchema: {
+              type: 'object',
+              properties: { sku: { type: 'string' } },
+              required: ['sku'],
+            },
+          },
+        ],
+      });
+
+      expect(result.content).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'program_call_1',
+          toolName: 'program',
+          input:
+            '{"code":"const value = await tools.get_inventory({ sku: \\"A\\" });","fingerprint":"fingerprint_1"}',
+          providerExecuted: true,
+          providerMetadata: {
+            openai: { itemId: 'program_item_1' },
+          },
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'function_call_1',
+          toolName: 'get_inventory',
+          input: '{"sku":"A"}',
+          providerMetadata: {
+            openai: {
+              itemId: 'function_item_1',
+              caller: {
+                type: 'program',
+                callerId: 'program_call_1',
+              },
+            },
+          },
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'program_call_1',
+          toolName: 'program',
+          result: {
+            result: '{"availableUnits":42}',
+            status: 'completed',
+          },
+          providerMetadata: {
+            openai: { itemId: 'program_output_item_1' },
+          },
+        },
+      ]);
+    });
+
+    it('should stream program items and nested function caller metadata', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          'data: {"type":"response.output_item.added","output_index":0,"item":{"type":"program","id":"program_item_1","call_id":"program_call_1","code":"const value = await tools.get_inventory({ sku: \\"A\\" });","fingerprint":"fingerprint_1"}}\n\n',
+          'data: {"type":"response.output_item.done","output_index":0,"item":{"type":"program","id":"program_item_1","call_id":"program_call_1","code":"const value = await tools.get_inventory({ sku: \\"A\\" });","fingerprint":"fingerprint_1"}}\n\n',
+          'data: {"type":"response.output_item.added","output_index":1,"item":{"type":"function_call","id":"function_item_1","call_id":"function_call_1","name":"get_inventory","arguments":"{\\"sku\\":\\"A\\"}","caller":{"type":"program","caller_id":"program_call_1"}}}\n\n',
+          'data: {"type":"response.output_item.done","output_index":1,"item":{"type":"function_call","id":"function_item_1","call_id":"function_call_1","name":"get_inventory","arguments":"{\\"sku\\":\\"A\\"}","status":"in_progress","caller":{"type":"program","caller_id":"program_call_1"}}}\n\n',
+          'data: {"type":"response.output_item.added","output_index":2,"item":{"type":"program_output","id":"program_output_item_1","call_id":"program_call_1","result":"{\\"availableUnits\\":42}","status":"completed"}}\n\n',
+          'data: {"type":"response.output_item.done","output_index":2,"item":{"type":"program_output","id":"program_output_item_1","call_id":"program_call_1","result":"{\\"availableUnits\\":42}","status":"completed"}}\n\n',
+          'data: {"type":"response.completed","response":{"incomplete_details":null,"usage":{"input_tokens":10,"input_tokens_details":{"cached_tokens":0},"output_tokens":20,"output_tokens_details":{"reasoning_tokens":0}},"reasoning":null,"service_tier":"default"}}\n\n',
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await createModel('gpt-5.6').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.programmatic_tool_calling',
+            name: 'program',
+            args: {},
+          },
+          {
+            type: 'function',
+            name: 'get_inventory',
+            inputSchema: {
+              type: 'object',
+              properties: { sku: { type: 'string' } },
+              required: ['sku'],
+            },
+          },
+        ],
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'tool-call',
+            toolCallId: 'program_call_1',
+            toolName: 'program',
+            providerExecuted: true,
+          }),
+          expect.objectContaining({
+            type: 'tool-call',
+            toolCallId: 'function_call_1',
+            providerMetadata: {
+              openai: {
+                itemId: 'function_item_1',
+                caller: {
+                  type: 'program',
+                  callerId: 'program_call_1',
+                },
+              },
+            },
+          }),
+          expect.objectContaining({
+            type: 'tool-result',
+            toolCallId: 'program_call_1',
+            result: {
+              result: '{"availableUnits":42}',
+              status: 'completed',
+            },
+          }),
+        ]),
+      );
+    });
+  });
 });
