@@ -468,7 +468,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           tools: [
             {
               type: 'function',
-              name: 'get-weather',
+              name: 'weather',
               description: 'Get the weather in a location',
               inputSchema: {
                 type: 'object',
@@ -515,10 +515,26 @@ describe('AnthropicMessagesLanguageModel', () => {
             "model": "claude-3-haiku-20240307",
             "tool_choice": {
               "disable_parallel_tool_use": true,
-              "name": "json",
-              "type": "tool",
+              "type": "any",
             },
             "tools": [
+              {
+                "description": "Get the weather in a location",
+                "input_schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "location": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "location",
+                  ],
+                  "type": "object",
+                },
+                "name": "weather",
+              },
               {
                 "description": "Respond with a JSON object.",
                 "input_schema": {
@@ -549,61 +565,22 @@ describe('AnthropicMessagesLanguageModel', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
-              "text": "{"location":"San Francisco"}",
-              "type": "text",
+              "input": "{"location":"San Francisco"}",
+              "toolCallId": "toolu_01PQjhxo3eirCdKNvCJrKc8f",
+              "toolName": "weather",
+              "type": "tool-call",
             },
           ]
         `);
       });
 
       it('should send tool-calls finish reason', async () => {
-        expect(result.finishReason).toBe('stop');
-      });
-    });
-
-    it('issue #10372: should preserve a Sonnet 4.5 tool call when a JSON response format is configured', async () => {
-      prepareJsonFixtureResponse('anthropic-issue-10372-tool-call');
-
-      const result = await provider('claude-sonnet-4-5-20250929').doGenerate({
-        prompt: TEST_PROMPT,
-        tools: [
-          {
-            type: 'function',
-            name: 'getWeather',
-            description: 'Get the current weather for a location.',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                location: { type: 'string' },
-              },
-              required: ['location'],
-              additionalProperties: false,
-            },
-          },
-        ],
-        responseFormat: {
-          type: 'json',
-          schema: {
-            type: 'object',
-            properties: {
-              weather: { type: 'string' },
-            },
-            required: ['weather'],
-            additionalProperties: false,
-          },
-        },
+        expect(result.finishReason).toBe('tool-calls');
       });
 
-      expect.soft(result.content).toEqual([
-        {
-          type: 'tool-call',
-          toolCallId: 'toolu_01MhUGx2K4rTe9D6nZxtGURs',
-          toolName: 'getWeather',
-          input: '{"location":"Tokyo"}',
-        },
-      ]);
-      expect.soft(result.finishReason).toBe('tool-calls');
-      expect(result.warnings).toEqual([]);
+      it('should not warn that tools are unsupported', () => {
+        expect(result.warnings).toEqual([]);
+      });
     });
 
     describe('json schema response format with output format (supported model)', () => {

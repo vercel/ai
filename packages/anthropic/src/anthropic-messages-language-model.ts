@@ -197,14 +197,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
             'JSON response format requires a schema. ' +
             'The response format is ignored.',
         });
-      } else if (tools != null) {
-        warnings.push({
-          type: 'unsupported-setting',
-          setting: 'tools',
-          details:
-            'JSON response format does not support tools. ' +
-            'The provided tools are ignored.',
-        });
       }
     }
 
@@ -580,8 +572,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     } = await prepareTools(
       jsonResponseTool != null
         ? {
-            tools: [jsonResponseTool],
-            toolChoice: { type: 'tool', toolName: jsonResponseTool.name },
+            tools: [...(tools ?? []), jsonResponseTool],
+            toolChoice:
+              tools != null && tools.length > 0
+                ? { type: 'required' }
+                : { type: 'tool', toolName: jsonResponseTool.name },
             disableParallelToolUse: true,
             cacheControlValidator,
           }
@@ -730,6 +725,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     });
 
     const content: Array<LanguageModelV2Content> = [];
+    let isJsonResponseFromTool = false;
 
     // map response content to content array
     for (const part of response.content) {
@@ -809,20 +805,25 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           break;
         }
         case 'tool_use': {
-          content.push(
+          const isJsonResponseTool =
+            usesJsonResponseTool && part.name === 'json';
+
+          if (isJsonResponseTool) {
+            isJsonResponseFromTool = true;
+
             // when a json response tool is used, the tool call becomes the text:
-            usesJsonResponseTool
-              ? {
-                  type: 'text',
-                  text: JSON.stringify(part.input),
-                }
-              : {
-                  type: 'tool-call',
-                  toolCallId: part.id,
-                  toolName: part.name,
-                  input: JSON.stringify(part.input),
-                },
-          );
+            content.push({
+              type: 'text',
+              text: JSON.stringify(part.input),
+            });
+          } else {
+            content.push({
+              type: 'tool-call',
+              toolCallId: part.id,
+              toolName: part.name,
+              input: JSON.stringify(part.input),
+            });
+          }
 
           break;
         }
@@ -1029,7 +1030,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       content,
       finishReason: mapAnthropicStopReason({
         finishReason: response.stop_reason,
-        isJsonResponseFromTool: usesJsonResponseTool,
+        isJsonResponseFromTool,
       }),
       usage: {
         inputTokens,
@@ -1194,6 +1195,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     let contextManagement:
       | AnthropicMessageMetadata['contextManagement']
       | null = null;
+    let isJsonResponseFromTool = false;
 
     let blockType:
       | 'text'
@@ -1303,25 +1305,36 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 }
 
                 case 'tool_use': {
-                  contentBlocks[value.index] = usesJsonResponseTool
-                    ? { type: 'text', citations: [] }
-                    : {
-                        type: 'tool-call',
-                        toolCallId: value.content_block.id,
-                        toolName: value.content_block.name,
-                        input: '',
-                        firstDelta: true,
-                      };
+                  const isJsonResponseTool =
+                    usesJsonResponseTool && value.content_block.name === 'json';
 
-                  controller.enqueue(
-                    usesJsonResponseTool
-                      ? { type: 'text-start', id: String(value.index) }
-                      : {
-                          type: 'tool-input-start',
-                          id: value.content_block.id,
-                          toolName: value.content_block.name,
-                        },
-                  );
+                  if (isJsonResponseTool) {
+                    isJsonResponseFromTool = true;
+
+                    contentBlocks[value.index] = {
+                      type: 'text',
+                      citations: [],
+                    };
+
+                    controller.enqueue({
+                      type: 'text-start',
+                      id: String(value.index),
+                    });
+                  } else {
+                    contentBlocks[value.index] = {
+                      type: 'tool-call',
+                      toolCallId: value.content_block.id,
+                      toolName: value.content_block.name,
+                      input: '',
+                      firstDelta: true,
+                    };
+
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: value.content_block.id,
+                      toolName: value.content_block.name,
+                    });
+                  }
                   return;
                 }
 
@@ -1546,33 +1559,36 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                     break;
                   }
 
-                  case 'tool-call':
-                    // when a json response tool is used, the tool call is returned as text,
-                    // so we ignore the tool call content:
-                    if (!usesJsonResponseTool) {
-                      controller.enqueue({
-                        type: 'tool-input-end',
-                        id: contentBlock.toolCallId,
-                      });
+                  case 'tool-call': {
+                    const isJsonResponseTool =
+                      usesJsonResponseTool && contentBlock.toolName === 'json';
 
-                      // map tool names for the code execution 20250825 tool:
-                      const toolName =
-                        contentBlock.toolName ===
-                          'text_editor_code_execution' ||
-                        contentBlock.toolName === 'bash_code_execution'
-                          ? 'code_execution'
-                          : contentBlock.toolName;
-
-                      controller.enqueue({
-                        type: 'tool-call',
-                        toolCallId: contentBlock.toolCallId,
-                        toolName,
-                        input:
-                          contentBlock.input === '' ? '{}' : contentBlock.input,
-                        providerExecuted: contentBlock.providerExecuted,
-                      });
+                    if (isJsonResponseTool) {
+                      break;
                     }
+
+                    controller.enqueue({
+                      type: 'tool-input-end',
+                      id: contentBlock.toolCallId,
+                    });
+
+                    // map tool names for the code execution 20250825 tool:
+                    const toolName =
+                      contentBlock.toolName === 'text_editor_code_execution' ||
+                      contentBlock.toolName === 'bash_code_execution'
+                        ? 'code_execution'
+                        : contentBlock.toolName;
+
+                    controller.enqueue({
+                      type: 'tool-call',
+                      toolCallId: contentBlock.toolCallId,
+                      toolName,
+                      input:
+                        contentBlock.input === '' ? '{}' : contentBlock.input,
+                      providerExecuted: contentBlock.providerExecuted,
+                    });
                     break;
+                  }
                 }
 
                 delete contentBlocks[value.index];
@@ -1652,7 +1668,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                     return;
                   }
 
-                  if (usesJsonResponseTool) {
+                  if (isJsonResponseFromTool) {
                     if (contentBlock?.type !== 'text') {
                       return;
                     }
@@ -1794,7 +1810,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
               finishReason = mapAnthropicStopReason({
                 finishReason: value.delta.stop_reason,
-                isJsonResponseFromTool: usesJsonResponseTool,
+                isJsonResponseFromTool,
               });
 
               stopDetails = mapAnthropicStopDetails(value.delta.stop_details);
