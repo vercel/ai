@@ -1,5 +1,12 @@
 # @ai-sdk/anthropic
 
+## 2.0.89
+
+### Patch Changes
+
+- 1b0e540: Use native structured output on supported Bedrock Anthropic models when thinking is enabled instead of forcing a JSON tool call.
+- 5bb3ae4: Warn when an unknown model uses the default 4096 max output token limit.
+
 ## 2.0.88
 
 ### Patch Changes

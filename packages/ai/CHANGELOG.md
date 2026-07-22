@@ -1,5 +1,17 @@
 # ai
 
+## 5.0.219
+
+### Patch Changes
+
+- 649bd0f: fix(ai): bound media-type sniffing decode for ID3-prefixed input
+
+  Media-type detection stripped ID3 tags before the ~18-byte prefix cap, decoding the entire base64 attachment (plus a full-size copy) whenever the data began with `ID3`/`SUQz`. This turned the intended O(1) sniff into an O(N) decode of the whole attachment. Detection now decodes at most a bounded prefix and skips the ID3 tag within that bound, keeping cost O(1) in input size on both image and audio paths.
+
+- 965545b: Return response piping promises so callers can catch stream read and write errors.
+- Updated dependencies [fb4c0d7]
+  - @ai-sdk/gateway@2.0.118
+
 ## 5.0.218
 
 ### Patch Changes
