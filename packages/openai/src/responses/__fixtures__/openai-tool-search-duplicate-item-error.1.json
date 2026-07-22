@@ -1,0 +1,8 @@
+{
+  "error": {
+    "message": "Duplicate item found with id tsc_077457e674332594006a606a565ac081a090a3f60cd0d63c21. Remove duplicate items from your input and try again.",
+    "type": "invalid_request_error",
+    "param": "input",
+    "code": null
+  }
+}
