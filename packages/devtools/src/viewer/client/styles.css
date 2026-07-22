@@ -23,7 +23,7 @@
   --destructive-foreground: oklch(0.637 0.237 25.331);
   --border: oklch(0.269 0 0);
   --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
+  --ring: oklch(0.6 0 0);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -37,7 +37,7 @@
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --sidebar-ring: oklch(0.6 0 0);
   --info: #60a5fa;
   --success: #4ade80;
   --warning: #fbbf24;
@@ -81,7 +81,7 @@
   --sidebar-border: #8a8a8a;
   --sidebar-ring: #737373;
   --info: #1d4ed8;
-  --success: #15803d;
+  --success: #166534;
   --warning: #92400e;
   --tool: #7e22ce;
   --agent: #0e7490;
@@ -144,7 +144,7 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring;
   }
   body {
     @apply bg-background text-foreground;
