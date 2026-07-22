@@ -1,4 +1,5 @@
 ---
+'@ai-sdk/anthropic': patch
 '@ai-sdk/amazon-bedrock': patch
 ---
 
