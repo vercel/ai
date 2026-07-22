@@ -188,4 +188,39 @@ describe('standardizePrompt', () => {
       });
     }).rejects.toThrow(InvalidPromptError);
   });
+
+  it('should allow undefined object properties in JSON tool outputs', async () => {
+    const messages = [
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'listTasks',
+            output: {
+              type: 'json',
+              value: [
+                {
+                  id: '1',
+                  startedAt: '2025-10-26T17:59:40.065Z',
+                },
+                {
+                  id: '2',
+                  startedAt: undefined,
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ];
+
+    await expect(
+      standardizePrompt({ messages: messages as any }),
+    ).resolves.toEqual({
+      messages,
+      system: undefined,
+    });
+  });
 });
