@@ -53,7 +53,15 @@ function pushCachePoint(
   }
 }
 
+<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.ts
 function getBedrockImageSource({
+=======
+function sanitizeToolName(toolName: string): string {
+  return toolName.replace(/[^a-zA-Z0-9_-]/g, '') || '_';
+}
+
+function getAmazonBedrockImageSource({
+>>>>>>> 8fcb72c347 (fix: prevent invalid hallucinated tool names from crashing Bedrock conversation replay (#17769)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.ts
   data,
   functionality,
 }: {
@@ -410,8 +418,13 @@ export async function convertToBedrockChatMessages(
                 bedrockContent.push({
                   toolUse: {
                     toolUseId: normalizeToolCallId(part.toolCallId, isMistral),
+<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.ts
                     name: part.toolName,
                     input: part.input as JSONObject,
+=======
+                    name: sanitizeToolName(part.toolName),
+                    input: toBedrockToolInput(part.input),
+>>>>>>> 8fcb72c347 (fix: prevent invalid hallucinated tool names from crashing Bedrock conversation replay (#17769)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.ts
                   },
                 });
                 break;
