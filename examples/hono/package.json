@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "@ai-sdk/openai": "workspace:*",
-    "@hono/node-server": "1.19.13",
+    "@hono/node-server": "2.0.10",
     "ai": "workspace:*",
     "dotenv": "16.4.5",
     "hono": "4.12.25"
