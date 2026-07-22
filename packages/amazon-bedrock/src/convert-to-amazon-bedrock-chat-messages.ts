@@ -60,6 +60,10 @@ function pushCachePoint(
   }
 }
 
+function sanitizeToolName(toolName: string): string {
+  return toolName.replace(/[^a-zA-Z0-9_-]/g, '') || '_';
+}
+
 function getAmazonBedrockImageSource({
   data,
   functionality,
@@ -478,7 +482,7 @@ export async function convertToAmazonBedrockChatMessages(
                 amazonBedrockContent.push({
                   toolUse: {
                     toolUseId: normalizeToolCallId(part.toolCallId, isMistral),
-                    name: part.toolName,
+                    name: sanitizeToolName(part.toolName),
                     input: toBedrockToolInput(part.input),
                   },
                 });
