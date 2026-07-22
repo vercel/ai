@@ -62,7 +62,7 @@ import { deepSeek } from '@ai-sdk/deepseek';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: deepSeek('deepseek-chat'),
+  model: deepSeek('deepseek-v4-flash'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -70,9 +70,9 @@ const { text } = await generateText({
 You can also use the `.chat()` or `.languageModel()` factory methods:
 
 ```ts
-const model = deepSeek.chat('deepseek-chat');
+const model = deepSeek.chat('deepseek-v4-flash');
 // or
-const model = deepSeek.languageModel('deepseek-chat');
+const model = deepSeek.languageModel('deepseek-v4-flash');
 ```
 
 DeepSeek language models can be used in the `streamText` function
@@ -82,12 +82,15 @@ The following optional provider options are available for DeepSeek models:
 
 - `thinking` _object_
 
-  Optional. Controls thinking mode (chain-of-thought reasoning). You can enable thinking mode either by using the `deepseek-reasoner` model or by setting this option.
-  - `type`: `'adaptive' | 'enabled' | 'disabled'` - Enable, disable, or let the model decide (`adaptive`) when to think. See [DeepSeek's thinking mode docs](https://api-docs.deepseek.com/guides/thinking_mode).
+  Optional. Controls thinking mode (chain-of-thought reasoning). DeepSeek V4
+  models use thinking mode by default.
+  - `type`: `'adaptive' | 'enabled' | 'disabled'` - Enable or disable thinking.
+    DeepSeek's official V4 API supports `enabled` and `disabled`; `adaptive` is
+    available for compatible endpoints. See [DeepSeek's thinking mode docs](https://api-docs.deepseek.com/guides/thinking_mode).
 
 - `reasoningEffort` _'low' | 'medium' | 'high' | 'xhigh' | 'max'_
 
-  Optional. Controls thinking strength for DeepSeek V4 reasoning models. Per
+  Optional. Controls thinking strength for DeepSeek V4 models. Per
   DeepSeek's docs, `low` and `medium` are mapped to `high`, and `xhigh` is
   mapped to `max` server-side for compatibility with other providers. When
   using the top-level `reasoning` setting, `minimal` is sent as `low`, and
@@ -102,7 +105,7 @@ import {
 import { generateText } from 'ai';
 
 const { text, reasoning } = await generateText({
-  model: deepSeek('deepseek-chat'),
+  model: deepSeek('deepseek-v4-pro'),
   prompt: 'How many "r"s are in the word "strawberry"?',
   providerOptions: {
     deepseek: {
@@ -115,14 +118,15 @@ const { text, reasoning } = await generateText({
 
 ### Reasoning
 
-DeepSeek has reasoning support for the `deepseek-reasoner` model. The reasoning is exposed through streaming:
+Both `deepseek-v4-flash` and `deepseek-v4-pro` support thinking and non-thinking
+modes. The reasoning is exposed through streaming:
 
 ```ts
 import { deepSeek } from '@ai-sdk/deepseek';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: deepSeek('deepseek-reasoner'),
+  model: deepSeek('deepseek-v4-pro'),
   prompt: 'How many "r"s are in the word "strawberry"?',
 });
 
@@ -140,21 +144,133 @@ for await (const part of result.stream) {
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
 on how to integrate reasoning into your chatbot.
 
+#### Thinking Mode Behavior
+
+DeepSeek V4 uses thinking mode by default. The default reasoning effort is
+`high` for regular requests, while DeepSeek may automatically use `max` for
+some complex agent requests. Set `thinking.type` to `disabled` when you do not
+want reasoning.
+
+<Note>
+  In thinking mode, DeepSeek ignores `temperature`, `topP`, `presencePenalty`,
+  and `frequencyPenalty`. Supplying these settings does not produce an API
+  error, but they have no effect on the response.
+</Note>
+
+DeepSeek returns reasoning separately from final text. The AI SDK exposes it as
+reasoning parts and serializes those parts back to DeepSeek as
+`reasoning_content` in subsequent requests. When a thinking-mode response
+contains a tool call, retain the complete assistant response, including its
+reasoning parts, in the conversation history. DeepSeek requires that reasoning
+content in all subsequent requests and returns a `400` error if it is missing.
+
+When a response does not contain a tool call, reasoning from previous turns is
+not required and DeepSeek ignores it if it is included. See [DeepSeek's
+thinking mode guide](https://api-docs.deepseek.com/guides/thinking_mode) for
+details.
+
+### Multi-turn Conversations
+
+DeepSeek's Chat Completions API is stateless. Send the complete conversation
+history with each request. Use `responseMessages` to retain the assistant and
+tool messages produced by the AI SDK, including reasoning content required by
+thinking-mode tool calls:
+
+```ts
+import { deepSeek } from '@ai-sdk/deepseek';
+import { generateText, type ModelMessage } from 'ai';
+
+const messages: ModelMessage[] = [
+  { role: 'user', content: 'What is the highest mountain in the world?' },
+];
+
+const result = await generateText({
+  model: deepSeek('deepseek-v4-pro'),
+  messages,
+});
+
+messages.push(...result.responseMessages);
+messages.push({ role: 'user', content: 'What is the second highest?' });
+```
+
+See [DeepSeek's multi-round conversation
+guide](https://api-docs.deepseek.com/guides/multi_round_chat) for details.
+
+### JSON Output
+
+DeepSeek V4 supports JSON output. When you use an AI SDK `Output` schema, the
+provider requests JSON mode and adds the schema instructions to the prompt:
+
+```ts
+import { deepSeek } from '@ai-sdk/deepseek';
+import { generateText, Output } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: deepSeek('deepseek-v4-pro'),
+  output: Output.object({
+    schema: z.object({
+      question: z.string(),
+      answer: z.string(),
+    }),
+  }),
+  prompt: 'Which is the highest mountain in the world? Mount Everest.',
+});
+
+console.log(result.output);
+```
+
+Set `maxOutputTokens` high enough to prevent truncated JSON. DeepSeek notes that
+JSON mode can occasionally return empty content; adjusting the prompt can help
+when this occurs. See [DeepSeek's JSON output
+guide](https://api-docs.deepseek.com/guides/json_mode) for details.
+
+### Tool Calls
+
+DeepSeek V4 supports tool calls in both thinking and non-thinking modes. In
+thinking mode, retain `responseMessages` across every tool-call step so the
+provider can return the required `reasoning_content` to DeepSeek.
+
+DeepSeek also offers strict tool-call schemas as a Beta feature. To use it,
+configure the Beta base URL and set `strict: true` on every tool:
+
+```ts
+import { createDeepSeek } from '@ai-sdk/deepseek';
+
+const deepSeek = createDeepSeek({
+  baseURL: 'https://api.deepseek.com/beta',
+});
+```
+
+Strict mode supports a subset of JSON Schema and rejects unsupported schemas.
+Every object property must be required and every object must set
+`additionalProperties` to `false`. See [DeepSeek's tool call
+guide](https://api-docs.deepseek.com/guides/tool_calls) for the supported schema
+types and constraints.
+
 ### Cache Token Usage
 
-DeepSeek provides context caching on disk technology that can significantly reduce token costs for repeated content. You can access the cache hit/miss metrics through the `providerMetadata` property in the response:
+DeepSeek's disk-based context caching is enabled automatically for all users.
+Requests with prefixes that fully match a persisted cache unit can reuse its
+tokens. Cache construction is asynchronous and best-effort, so a reusable
+prefix does not guarantee a cache hit.
+
+You can access cache usage through the standard `usage` property or DeepSeek's
+provider metadata:
 
 ```ts
 import { deepSeek } from '@ai-sdk/deepseek';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: deepSeek('deepseek-chat'),
+  model: deepSeek('deepseek-v4-flash'),
   prompt: 'Your prompt here',
 });
 
 console.log(result.providerMetadata);
 // Example output: { deepseek: { promptCacheHitTokens: 1856, promptCacheMissTokens: 5 } }
+
+console.log(result.usage.inputTokens.cacheRead);
 ```
 
 The metrics include:
@@ -162,17 +278,40 @@ The metrics include:
 - `promptCacheHitTokens`: Number of input tokens that were cached
 - `promptCacheMissTokens`: Number of input tokens that were not cached
 
+DeepSeek usually clears unused cache entries within a few hours to a few days.
+The cache only reuses input prefixes; output is still generated normally.
+
 <Note>
   For more details about DeepSeek's caching system, see the [DeepSeek caching
   documentation](https://api-docs.deepseek.com/guides/kv_cache#checking-cache-hit-status).
 </Note>
 
+### Beta Completion APIs
+
+DeepSeek also documents Chat Prefix Completion and Fill-in-the-Middle (FIM)
+Completion as Beta APIs. These APIs require the Beta base URL and request fields
+or endpoints that `@ai-sdk/deepseek` does not currently expose. Use DeepSeek's
+native API client if you need [Chat Prefix
+Completion](https://api-docs.deepseek.com/guides/chat_prefix_completion) or
+[FIM Completion](https://api-docs.deepseek.com/guides/fim_completion).
+
 ## Model Capabilities
 
 | Model               | Text Generation | Object Generation | Image Input | Tool Usage | Tool Streaming |
 | ------------------- | --------------- | ----------------- | ----------- | ---------- | -------------- |
-| `deepseek-chat`     | <Check />       | <Check />         | <Cross />   | <Check />  | <Check />      |
-| `deepseek-reasoner` | <Check />       | <Check />         | <Cross />   | <Check />  | <Check />      |
+| `deepseek-v4-flash` | <Check />       | <Check />         | <Cross />   | <Check />  | <Check />      |
+| `deepseek-v4-pro`   | <Check />       | <Check />         | <Cross />   | <Check />  | <Check />      |
+
+Both DeepSeek V4 models have a 1M-token context window, support up to 384K output
+tokens, and use thinking mode by default. Set `thinking.type` to `disabled` to
+use non-thinking mode.
+
+<Note>
+  The legacy `deepseek-chat` and `deepseek-reasoner` model names currently map
+  to the non-thinking and thinking modes of `deepseek-v4-flash`, respectively.
+  DeepSeek will retire both aliases on 2026-07-24 at 15:59 UTC. Migrate to
+  `deepseek-v4-flash` or `deepseek-v4-pro` before then.
+</Note>
 
 <Note>
   Please see the [DeepSeek
