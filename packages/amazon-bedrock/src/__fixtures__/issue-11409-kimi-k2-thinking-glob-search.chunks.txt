@@ -1,0 +1,18 @@
+{"messageStart":{"role":"assistant"}}
+{"contentBlockDelta":{"contentBlockIndex":0,"delta":{"text":""}}}
+{"contentBlockStop":{"contentBlockIndex":0}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"reasoningContent":{"text":" The user wants me to:\n1. First call `glob_search` with pattern \"**/*cursor*"}}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"reasoningContent":{"text":"\"\n2. Then (after getting results) call `read_file` for \"src/cursor-config"}}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"reasoningContent":{"text":".ts\"\n3. After read_file returns, answer with exactly: \"FOUND ISSUE_11409"}}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"reasoningContent":{"text":"_CONTENT\"\n\nLet me start with step 1."}}}}
+{"contentBlockStop":{"contentBlockIndex":1}}
+{"contentBlockDelta":{"contentBlockIndex":2,"delta":{"text":""}}}
+{"contentBlockStop":{"contentBlockIndex":2}}
+{"contentBlockStart":{"contentBlockIndex":3,"start":{"toolUse":{"name":"glob_search","toolUseId":"functions.glob_search:0"}}}}
+{"contentBlockDelta":{"contentBlockIndex":3,"delta":{"toolUse":{"input":"{\"pattern"}}}}
+{"contentBlockDelta":{"contentBlockIndex":3,"delta":{"toolUse":{"input":"\": \"**/*cursor*\"}"}}}}
+{"contentBlockStop":{"contentBlockIndex":3}}
+{"contentBlockDelta":{"contentBlockIndex":4,"delta":{"text":""}}}
+{"contentBlockStop":{"contentBlockIndex":4}}
+{"messageStop":{"stopReason":"tool_use"}}
+{"metadata":{"metrics":{"latencyMs":1151},"usage":{"inputTokens":208,"outputTokens":91,"serverToolUsage":{},"totalTokens":299}}}

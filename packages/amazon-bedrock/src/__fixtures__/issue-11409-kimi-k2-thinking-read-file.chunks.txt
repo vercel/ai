@@ -1,0 +1,15 @@
+{"messageStart":{"role":"assistant"}}
+{"contentBlockDelta":{"contentBlockIndex":0,"delta":{"text":""}}}
+{"contentBlockDelta":{"contentBlockIndex":0,"delta":{"text":" <think> The user wants me to:\n1. First call glob_search with pattern \"**/*cursor*\"\n2"}}}
+{"contentBlockDelta":{"contentBlockIndex":0,"delta":{"text":". After that returns files, call read_file for src/cursor-config.ts\n3. After read"}}}
+{"contentBlockDelta":{"contentBlockIndex":0,"delta":{"text":"_file returns, answer with exactly: FOUND ISSUE_11409_CONTENT\n\nI've completed the glob_search"}}}
+{"contentBlockDelta":{"contentBlockIndex":0,"delta":{"text":" and found two files:\n- src/cursor-config.ts\n- .cursor/rules.md\n\nNow I"}}}
+{"contentBlockDelta":{"contentBlockIndex":0,"delta":{"text":" need to call read_file for src/cursor-config.ts. </think>"}}}
+{"contentBlockStop":{"contentBlockIndex":0}}
+{"contentBlockStart":{"contentBlockIndex":1,"start":{"toolUse":{"name":"read_file","toolUseId":"functions.read_file:1"}}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"toolUse":{"input":"{\"target_file\": \"src/cursor-config.ts\"}"}}}}
+{"contentBlockStop":{"contentBlockIndex":1}}
+{"contentBlockDelta":{"contentBlockIndex":2,"delta":{"text":""}}}
+{"contentBlockStop":{"contentBlockIndex":2}}
+{"messageStop":{"stopReason":"tool_use"}}
+{"metadata":{"metrics":{"latencyMs":1430},"usage":{"inputTokens":260,"outputTokens":116,"serverToolUsage":{},"totalTokens":376}}}
