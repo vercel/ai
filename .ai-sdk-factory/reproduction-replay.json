@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 15792,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/amazon-bedrock-s3-image-url.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/amazon-bedrock-s3-image-url.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_15792_REPRODUCED: Amazon Bedrock rejected an s3:// image before inference: URL scheme must be http, https, or data, got s3:"
+  }
+}

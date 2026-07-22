@@ -1,0 +1,25 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "text": "Describe this image."
+        },
+        {
+          "image": {
+            "format": "png",
+            "source": {
+              "s3Location": {
+                "uri": "s3://amzn-s3-demo-bucket/myImage.png"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "additionalModelResponseFieldPaths": [
+    "/delta/stop_sequence"
+  ]
+}
