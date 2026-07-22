@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 17709,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-17709-id3-media-sniffing.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-17709-id3-media-sniffing.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #17709 REPRODUCED: ID3-prefixed media sniffing processed attachment-sized data"
+  }
+}
