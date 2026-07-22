@@ -101,7 +101,28 @@ const server = createTestServer({
   [novaGenerateUrl]: {},
 });
 
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.test.ts
 function prepareJsonFixtureResponse(filename: string) {
+=======
+describe('supportedUrls', () => {
+  it('should support S3 URLs for image parts', () => {
+    const model = new AmazonBedrockChatLanguageModel(modelId, {
+      baseUrl: () => baseUrl,
+      generateId: () => 'test-id',
+      fetch: fakeFetchWithAuth,
+    });
+
+    expect(model.supportedUrls).toEqual({
+      'image/*': [/^s3:\/\//],
+    });
+  });
+});
+
+function prepareJsonFixtureResponse(
+  filename: string,
+  { headers }: { headers?: Record<string, string> } = {},
+) {
+>>>>>>> 1f92bdb2c3 (fix: Amazon Bedrock S3 image URLs are rejected instead of passed through to inference (#17681)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.test.ts
   server.urls[generateUrl].response = {
     type: 'json-value',
     body: JSON.parse(
