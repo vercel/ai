@@ -250,6 +250,108 @@ describe('runPrompt usage', () => {
   });
 });
 
+describe('runPrompt telemetry lifecycle', () => {
+  test('does not settle until async end callbacks complete in order', async () => {
+    const events: string[] = [];
+    let resolveLanguageModelEnd!: () => void;
+    let resolveStepEnd!: () => void;
+    let resolveEnd!: () => void;
+    const languageModelEnd = new Promise<void>(resolve => {
+      resolveLanguageModelEnd = resolve;
+    });
+    const stepEnd = new Promise<void>(resolve => {
+      resolveStepEnd = resolve;
+    });
+    const end = new Promise<void>(resolve => {
+      resolveEnd = resolve;
+    });
+    const integration = {
+      async onLanguageModelCallEnd() {
+        events.push('language-model-end:start');
+        await languageModelEnd;
+        events.push('language-model-end:done');
+      },
+      async onStepEnd() {
+        events.push('step-end:start');
+        await stepEnd;
+        events.push('step-end:done');
+      },
+      async onEnd() {
+        events.push('end:start');
+        await end;
+        events.push('end:done');
+      },
+    } satisfies Telemetry;
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'stream-start' },
+        { type: 'text-delta', id: 'text-1', delta: 'done' },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {} as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      telemetry: { integrations: [integration] },
+    });
+
+    let settled = false;
+    void done.finally(() => {
+      settled = true;
+    });
+    const consumeStream = (async () => {
+      for await (const _part of result.fullStream) {
+        // Drain the stream while lifecycle callbacks are gated.
+      }
+    })();
+
+    await vi.waitFor(() => {
+      expect(events).toEqual(['language-model-end:start']);
+    });
+    expect(settled).toBe(false);
+
+    resolveLanguageModelEnd();
+    await vi.waitFor(() => {
+      expect(events).toEqual([
+        'language-model-end:start',
+        'language-model-end:done',
+        'step-end:start',
+      ]);
+    });
+    expect(settled).toBe(false);
+
+    resolveStepEnd();
+    await vi.waitFor(() => {
+      expect(events).toEqual([
+        'language-model-end:start',
+        'language-model-end:done',
+        'step-end:start',
+        'step-end:done',
+        'end:start',
+      ]);
+    });
+    expect(settled).toBe(false);
+
+    resolveEnd();
+    await Promise.all([done, consumeStream]);
+    expect(settled).toBe(true);
+    expect(events).toEqual([
+      'language-model-end:start',
+      'language-model-end:done',
+      'step-end:start',
+      'step-end:done',
+      'end:start',
+      'end:done',
+    ]);
+  });
+});
+
 describe('runPrompt step accounting', () => {
   test('records one step per finish-step without counting terminal finish', async () => {
     const { result, done } = runPrompt({

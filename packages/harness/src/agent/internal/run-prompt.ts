@@ -184,7 +184,7 @@ export function runPrompt<
               },
       });
     } catch (err) {
-      telemetry.error(err);
+      await telemetry.error(err);
       logBridgeError({
         harnessId: input.harness.harnessId,
         sessionId: input.session.sessionId,
@@ -278,12 +278,12 @@ export function runPrompt<
       unified: 'tool-calls',
       raw: undefined,
     };
-    const completeStep = (input: {
+    const completeStep = async (input: {
       finishReason: LanguageModelV4FinishReason;
       usage: LanguageModelV4Usage;
       providerMetadata: ProviderMetadata | undefined;
-    }): StepResult<TOOLS, RUNTIME_CONTEXT> => {
-      telemetry.stepFinish({
+    }): Promise<StepResult<TOOLS, RUNTIME_CONTEXT>> => {
+      await telemetry.stepFinish({
         finishReason: input.finishReason,
         usage: input.usage,
         providerMetadata: input.providerMetadata,
@@ -303,13 +303,13 @@ export function runPrompt<
       completeCurrentStep: boolean;
     }): Promise<void> => {
       if (options.completeCurrentStep) {
-        completeStep({
+        await completeStep({
           finishReason: toolCallsFinishReason,
           usage: zeroUsage,
           providerMetadata: undefined,
         });
       }
-      telemetry.end({
+      await telemetry.end({
         finishReason: toolCallsFinishReason,
         usage: zeroUsage,
       });
@@ -435,7 +435,7 @@ export function runPrompt<
           input: approval.input,
         } satisfies Extract<HarnessV1StreamPart, { type: 'tool-call' }>);
 
-      telemetry.start(input.session.modelId);
+      await telemetry.start(input.session.modelId);
       await telemetry.toolStart({
         toolCallId: rawToolCall.toolCallId,
         toolName: rawToolCall.toolName,
@@ -476,7 +476,7 @@ export function runPrompt<
         await finishForHostInputPause({ completeCurrentStep: false });
         return 'awaiting-tool-result';
       }
-      telemetry.toolEnd(rawToolCall.toolCallId, execution.outcome);
+      await telemetry.toolEnd(rawToolCall.toolCallId, execution.outcome);
       return 'continued';
     };
 
@@ -539,7 +539,7 @@ export function runPrompt<
         // Begin the operation span on stream-start, using the runtime-resolved
         // model the adapter reports (falling back to the session's model).
         if (value.type === 'stream-start') {
-          telemetry.start(value.modelId ?? input.session.modelId);
+          await telemetry.start(value.modelId ?? input.session.modelId);
         }
 
         // Open a step span lazily before the first content of each step.
@@ -549,7 +549,7 @@ export function runPrompt<
           value.type !== 'finish' &&
           value.type !== 'error'
         ) {
-          telemetry.ensureStepOpen();
+          await telemetry.ensureStepOpen();
         }
 
         /*
@@ -620,7 +620,7 @@ export function runPrompt<
           // Telemetry and stderr diagnostics keep the raw error (absolute
           // paths help debugging); the consumer-facing settle uses the
           // workDir-stripped one, like every other forwarded part.
-          telemetry.error(value.error);
+          await telemetry.error(value.error);
           logBridgeError({
             harnessId: input.harness.harnessId,
             sessionId: input.session.sessionId,
@@ -673,7 +673,7 @@ export function runPrompt<
 
         // Telemetry: close a tool span when its provider-executed result lands.
         if (value.type === 'tool-result') {
-          telemetry.toolEnd(
+          await telemetry.toolEnd(
             value.toolCallId,
             value.isError
               ? { ok: false, error: value.result }
@@ -736,7 +736,7 @@ export function runPrompt<
 
         // Drive step boundaries.
         if (value.type === 'finish-step') {
-          completeStep({
+          await completeStep({
             finishReason: value.finishReason,
             usage: value.usage,
             providerMetadata: value.harnessMetadata,
@@ -752,7 +752,7 @@ export function runPrompt<
 
         if (value.type === 'finish') {
           finalFinish = value;
-          telemetry.end({
+          await telemetry.end({
             finishReason: value.finishReason,
             usage: value.totalUsage,
           });
@@ -778,7 +778,7 @@ export function runPrompt<
               toolCallId: toolCall.toolCallId,
               output,
             });
-            telemetry.toolEnd(toolCall.toolCallId, { ok: true, output });
+            await telemetry.toolEnd(toolCall.toolCallId, { ok: true, output });
             continue;
           }
           const customToolApprovalDecision = resolveCustomToolApproval({
@@ -807,7 +807,7 @@ export function runPrompt<
               toolCallId: toolCall.toolCallId,
               output,
             });
-            telemetry.toolEnd(toolCall.toolCallId, { ok: true, output });
+            await telemetry.toolEnd(toolCall.toolCallId, { ok: true, output });
             continue;
           }
           const pendingApproval =
@@ -905,7 +905,7 @@ export function runPrompt<
             await finishForHostInputPause({ completeCurrentStep: true });
             return;
           }
-          telemetry.toolEnd(toolCall.toolCallId, execution.outcome);
+          await telemetry.toolEnd(toolCall.toolCallId, execution.outcome);
         }
       }
       if (finalFinish != null) {
@@ -923,7 +923,7 @@ export function runPrompt<
           : undefined,
       );
     } catch (err) {
-      telemetry.error(err);
+      await telemetry.error(err);
       logBridgeError({
         harnessId: input.harness.harnessId,
         sessionId: input.session.sessionId,
