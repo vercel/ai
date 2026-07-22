@@ -213,10 +213,10 @@ const opusAnthropicModel = new AmazonBedrockChatLanguageModel(
   },
 );
 
-describe('issue 11035 reproduction', () => {
+describe('application inference profile reasoning', () => {
   it('returns reasoning for an Anthropic application inference profile ARN when budgetTokens is configured', async () => {
     const applicationProfileArn =
-      'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/issue11035';
+      'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/custom-profile';
     let requestBody:
       | {
           additionalModelRequestFields?: {
@@ -224,7 +224,7 @@ describe('issue 11035 reproduction', () => {
           };
         }
       | undefined;
-    const issueModel = new AmazonBedrockChatLanguageModel(
+    const applicationProfileModel = new AmazonBedrockChatLanguageModel(
       applicationProfileArn,
       {
         baseUrl: () => baseUrl,
@@ -232,13 +232,34 @@ describe('issue 11035 reproduction', () => {
         generateId: () => 'test-id',
         fetch: async (_input, init) => {
           requestBody = JSON.parse(String(init?.body));
-          const fixture =
-            requestBody?.additionalModelRequestFields?.thinking == null
-              ? 'amazon-bedrock-issue-11035-without-thinking.json'
-              : 'amazon-bedrock-issue-11035-with-thinking.json';
-
           return new Response(
-            fs.readFileSync(`src/__fixtures__/${fixture}`, 'utf8'),
+            JSON.stringify({
+              output: {
+                message: {
+                  role: 'assistant',
+                  content:
+                    requestBody?.additionalModelRequestFields?.thinking == null
+                      ? [{ text: 'OK' }]
+                      : [
+                          {
+                            reasoningContent: {
+                              reasoningText: {
+                                text: 'The response should be OK.',
+                                signature: 'test-signature',
+                              },
+                            },
+                          },
+                          { text: 'OK' },
+                        ],
+                },
+              },
+              stopReason: 'end_turn',
+              usage: {
+                inputTokens: 1,
+                outputTokens: 1,
+                totalTokens: 2,
+              },
+            }),
             {
               status: 200,
               headers: { 'content-type': 'application/json' },
@@ -248,7 +269,7 @@ describe('issue 11035 reproduction', () => {
       },
     );
 
-    const result = await issueModel.doGenerate({
+    const result = await applicationProfileModel.doGenerate({
       prompt: TEST_PROMPT,
       maxOutputTokens: 1100,
       providerOptions: {
@@ -261,14 +282,27 @@ describe('issue 11035 reproduction', () => {
       },
     });
 
-    expect(
-      result.content.some(part => part.type === 'reasoning'),
-      'Expected Anthropic reasoning output for the application inference profile ARN.',
-    ).toBe(true);
+    expect(result.content).toContainEqual(
+      expect.objectContaining({
+        type: 'reasoning',
+        text: 'The response should be OK.',
+        providerMetadata: expect.objectContaining({
+          amazonBedrock: {
+            signature: 'test-signature',
+          },
+        }),
+      }),
+    );
     expect(requestBody?.additionalModelRequestFields?.thinking).toEqual({
       type: 'enabled',
       budget_tokens: 1024,
     });
+    expect(result.warnings).not.toContainEqual(
+      expect.objectContaining({
+        type: 'unsupported',
+        feature: 'budgetTokens',
+      }),
+    );
   });
 });
 
