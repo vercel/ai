@@ -195,6 +195,7 @@ describe('createCodex adapter', () => {
     expect(spawnEnvs.at(0)?.AI_SDK_HARNESS_CLIENT_APP).toBe(
       'ai-sdk/harness-codex/0.0.0-test',
     );
+    expect(session.modelId).toBe('gpt-5.6-sol');
     await session.doDestroy();
   });
 
