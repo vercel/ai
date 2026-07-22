@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "issueId": 17709,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-17709-id3-media-sniffing.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-17709-id3-media-sniffing.ts",
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/tsconfig.json",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_17709_REPRODUCED: ID3 media sniffing exceeded the fixed 128 KiB scan bound and performed attachment-sized work"
+  }
+}
