@@ -71,6 +71,41 @@ describe('user messages', () => {
     ]);
   });
 
+  it('should convert image parts with S3 URLs', async () => {
+    const { messages } = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Describe the image' },
+          {
+            type: 'file',
+            data: new URL('s3://my-test-bucket/path/to/image.png'),
+            mediaType: 'image/png',
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          { text: 'Describe the image' },
+          {
+            image: {
+              format: 'png',
+              source: {
+                s3Location: {
+                  uri: 's3://my-test-bucket/path/to/image.png',
+                },
+              },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should convert messages with document parts', async () => {
     const fileData = new Uint8Array([0, 1, 2, 3]);
 

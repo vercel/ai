@@ -99,10 +99,26 @@ export async function convertToBedrockChatMessages(
 
                   case 'file': {
                     if (part.data instanceof URL) {
-                      // The AI SDK automatically downloads files for user file parts with URLs
-                      throw new UnsupportedFunctionalityError({
-                        functionality: 'File URL data',
+                      if (
+                        part.data.protocol !== 's3:' ||
+                        !part.mediaType.startsWith('image/')
+                      ) {
+                        throw new UnsupportedFunctionalityError({
+                          functionality: 'File URL data',
+                        });
+                      }
+
+                      bedrockContent.push({
+                        image: {
+                          format: getBedrockImageFormat(part.mediaType),
+                          source: {
+                            s3Location: {
+                              uri: part.data.toString(),
+                            },
+                          },
+                        },
                       });
+                      break;
                     }
 
                     if (part.mediaType.startsWith('image/')) {

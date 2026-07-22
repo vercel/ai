@@ -369,7 +369,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
   }
 
   readonly supportedUrls: Record<string, RegExp[]> = {
-    // no supported urls for bedrock
+    'image/*': [/^s3:\/\//],
   };
 
   private async getHeaders({

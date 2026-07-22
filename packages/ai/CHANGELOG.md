@@ -1,5 +1,14 @@
 # ai
 
+## 5.0.218
+
+### Patch Changes
+
+- a322c62: fix: detect MP4 audio from its ftyp box during transcription
+- cf778a9: fix(ai): preserve tool parts when tool call IDs repeat across steps
+- Updated dependencies [b05bffb]
+  - @ai-sdk/gateway@2.0.117
+
 ## 5.0.217
 
 ### Patch Changes

@@ -221,6 +221,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       isKnownModel,
     } = getModelCapabilities(this.modelId);
 
+    if (!isKnownModel && maxOutputTokens == null) {
+      warnings.push({
+        type: 'other',
+        message:
+          `The model "${this.modelId}" is unknown. ` +
+          `The max output tokens have been limited to ${maxOutputTokensForModel}. ` +
+          `Set maxOutputTokens explicitly to override this limit.`,
+      });
+    }
+
     if (rejectsSamplingParameters) {
       if (temperature != null) {
         warnings.push({

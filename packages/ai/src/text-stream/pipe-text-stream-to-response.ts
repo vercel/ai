@@ -11,8 +11,8 @@ export function pipeTextStreamToResponse({
 }: {
   response: ServerResponse;
   textStream: ReadableStream<string>;
-} & ResponseInit): void {
-  writeToServerResponse({
+} & ResponseInit): Promise<void> {
+  return writeToServerResponse({
     response,
     status,
     statusText,

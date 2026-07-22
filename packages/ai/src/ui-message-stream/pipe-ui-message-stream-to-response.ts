@@ -16,7 +16,7 @@ export function pipeUIMessageStreamToResponse({
 }: {
   response: ServerResponse;
   stream: ReadableStream<UIMessageChunk>;
-} & UIMessageStreamResponseInit): void {
+} & UIMessageStreamResponseInit): Promise<void> {
   let sseStream = stream.pipeThrough(new JsonToSseTransformStream());
 
   // when the consumeSseStream is provided, we need to tee the stream
@@ -28,7 +28,7 @@ export function pipeUIMessageStreamToResponse({
     consumeSseStream({ stream: stream2 }); // no await (do not block the response)
   }
 
-  writeToServerResponse({
+  return writeToServerResponse({
     response,
     status,
     statusText,

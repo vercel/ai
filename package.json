@@ -68,7 +68,8 @@
       "esbuild"
     ],
     "overrides": {
-      "tinyexec": "1.0.2"
+      "tinyexec": "1.0.2",
+      "tar": "7.5.19"
     }
   }
 }
