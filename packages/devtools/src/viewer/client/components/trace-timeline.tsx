@@ -211,7 +211,7 @@ export function TraceTimeline({
                 {ticks.map((tick, i) => (
                   <span
                     key={i}
-                    className="absolute text-[9px] font-mono text-muted-foreground/60 -translate-x-1/2"
+                    className="absolute text-[9px] font-mono text-muted-foreground -translate-x-1/2"
                     style={{
                       left: `${(tick.ms / totalDurationMs) * 100}%`,
                       top: 5,
@@ -263,7 +263,7 @@ export function TraceTimeline({
                       {formatDuration(span.durationMs || null)}
                     </span>
                     {span.tokens && (
-                      <span className="text-[9px] font-mono text-muted-foreground/60 shrink-0">
+                      <span className="text-[9px] font-mono text-muted-foreground shrink-0">
                         {span.tokens.input}→{span.tokens.output}
                       </span>
                     )}
@@ -331,7 +331,7 @@ export function TraceTimeline({
                               </span>
                             )}
                           </div>
-                          <div className="text-muted-foreground/60 pt-0.5">
+                          <div className="text-muted-foreground pt-0.5">
                             Click to {isSelected ? 'deselect' : 'view details'}
                           </div>
                         </div>

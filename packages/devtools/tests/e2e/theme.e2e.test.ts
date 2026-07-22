@@ -23,11 +23,98 @@ const runs = [
   },
 ];
 
+const selectedRun = {
+  run: {
+    id: 'generate-run',
+    started_at: '2026-07-22T08:00:00.000Z',
+    isInProgress: false,
+    function_id: 'generateText',
+  },
+  steps: [
+    {
+      id: 'generate-step',
+      run_id: 'generate-run',
+      step_number: 1,
+      type: 'generate',
+      model_id: 'openai/gpt-4.1',
+      provider: 'gateway',
+      started_at: '2026-07-22T08:00:00.000Z',
+      duration_ms: 1200,
+      input: JSON.stringify({
+        prompt: [
+          {
+            role: 'user',
+            content: 'Inspect representative selected-run content.',
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolName: 'lookupWeather',
+                toolCallId: 'weather-call',
+                input: { city: 'Portland' },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'lookupWeather',
+                toolCallId: 'weather-call',
+                output: { temperature: 72 },
+              },
+            ],
+          },
+        ],
+      }),
+      output: JSON.stringify({
+        content: [
+          {
+            type: 'tool-call',
+            toolName: 'lookupWeather',
+            toolCallId: 'weather-call',
+            input: { city: 'Portland' },
+          },
+          {
+            type: 'tool-result',
+            toolName: 'lookupWeather',
+            toolCallId: 'weather-call',
+            output: { temperature: 72 },
+          },
+          {
+            type: 'text',
+            text: 'Representative timeline response.',
+          },
+        ],
+      }),
+      usage: JSON.stringify({
+        inputTokens: 42,
+        outputTokens: 17,
+      }),
+      error: 'Representative provider error.',
+      raw_request: null,
+      raw_response: null,
+      raw_chunks: null,
+      provider_options: null,
+    },
+  ],
+  childRuns: [],
+};
+
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/runs', route =>
     route.fulfill({
       contentType: 'application/json',
       body: JSON.stringify(runs),
+    }),
+  );
+  await page.route('**/api/runs/generate-run', route =>
+    route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify(selectedRun),
     }),
   );
   await page.route('**/api/events', route =>
@@ -69,6 +156,55 @@ test('theme status text and keyboard focus meet contrast targets', async ({
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 });
 
+test('selected-run content and timeline metadata meet contrast targets', async ({
+  page,
+}) => {
+  await page
+    .getByRole('button', {
+      name: /Generate a concise status update/,
+    })
+    .click();
+
+  const selectedRunMessage = page
+    .getByText('Inspect representative selected-run content.', {
+      exact: true,
+    })
+    .first();
+  await expect(selectedRunMessage).toBeVisible();
+
+  await page
+    .locator('main')
+    .getByRole('button', {
+      name: /Inspect representative selecte/,
+    })
+    .click();
+
+  const toolCall = page.getByText('lookupWeather({ city: "Portland" })', {
+    exact: true,
+  });
+  const toolResult = page.getByText('lookupWeather(…) => { temperature: 72 }', {
+    exact: true,
+  });
+  const error = page.getByText('Representative provider error.', {
+    exact: true,
+  });
+
+  await assertTextContrast([selectedRunMessage, toolCall, toolResult, error]);
+
+  await page.getByRole('button', { name: 'Timeline' }).click();
+
+  const timeLabel = page.getByText('240ms', { exact: true });
+  const tokenCount = page.getByText('42→17', { exact: true });
+  await assertTextContrast([timeLabel, tokenCount]);
+
+  await page.getByRole('button', { name: 'Use light theme' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await assertTextContrast([timeLabel, tokenCount]);
+
+  await page.getByRole('button', { name: 'Timeline' }).click();
+  await assertTextContrast([selectedRunMessage, toolCall, toolResult, error]);
+});
+
 async function assertThemeContrast({
   page,
   theme,
@@ -94,6 +230,13 @@ async function assertThemeContrast({
   await expect(themeToggle).toBeFocused();
   await page.waitForTimeout(300);
   expect(await focusRingContrastRatio(themeToggle)).toBeGreaterThanOrEqual(3);
+}
+
+async function assertTextContrast(locators: Locator[]) {
+  for (const locator of locators) {
+    await expect(locator).toBeVisible();
+    expect(await textContrastRatio(locator)).toBeGreaterThanOrEqual(4.5);
+  }
 }
 
 async function textContrastRatio(locator: Locator): Promise<number> {
