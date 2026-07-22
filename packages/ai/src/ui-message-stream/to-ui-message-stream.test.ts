@@ -74,7 +74,7 @@ describe('toUIMessageStream', () => {
       { type: 'text-delta', id: 't1', delta: ', world!' },
       { type: 'text-end', id: 't1' },
       { type: 'finish-step' },
-      { type: 'finish', finishReason: 'stop' },
+      { type: 'finish' },
     ]);
   });
 
@@ -122,7 +122,7 @@ describe('toUIMessageStream', () => {
     ]);
   });
 
-  it('produces finish chunks accepted by older strict schemas when sendFinishReason is false', async () => {
+  it('produces finish chunks accepted by older strict schemas by default', async () => {
     const parts: TextStreamPart<{}>[] = [
       {
         type: 'finish',
@@ -136,7 +136,6 @@ describe('toUIMessageStream', () => {
       toUIMessageStream({
         stream: convertArrayToReadableStream(parts),
         tools: undefined,
-        sendFinishReason: false,
       }),
     );
 
@@ -147,7 +146,26 @@ describe('toUIMessageStream', () => {
     ).toBe(true);
   });
 
-  it('preserves the finish reason for onEnd when omitting it from the stream', async () => {
+  it('includes the finish reason when sendFinishReason is true', async () => {
+    const chunks = await convertReadableStreamToArray(
+      toUIMessageStream({
+        stream: convertArrayToReadableStream([
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            rawFinishReason: 'stop',
+            totalUsage: testUsage,
+          },
+        ]),
+        tools: undefined,
+        sendFinishReason: true,
+      }),
+    );
+
+    expect(chunks).toEqual([{ type: 'finish', finishReason: 'stop' }]);
+  });
+
+  it('preserves the finish reason for onEnd when omitting it from the stream by default', async () => {
     const onEnd = vi.fn();
 
     await convertReadableStreamToArray(
@@ -161,7 +179,6 @@ describe('toUIMessageStream', () => {
           },
         ]),
         tools: undefined,
-        sendFinishReason: false,
         onEnd,
       }),
     );
@@ -241,7 +258,6 @@ describe('toUIMessageStream', () => {
       },
       {
         type: 'finish',
-        finishReason: 'stop',
         messageMetadata: { partType: 'finish' },
       },
     ]);

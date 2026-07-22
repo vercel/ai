@@ -2964,7 +2964,7 @@ describe('streamText', () => {
           "data: {"type":"finish-step"}
 
         ",
-          "data: {"type":"finish","finishReason":"stop"}
+          "data: {"type":"finish"}
 
         ",
           "data: [DONE]
@@ -3036,7 +3036,7 @@ describe('streamText', () => {
           "data: {"type":"finish-step"}
 
         ",
-          "data: {"type":"finish","finishReason":"stop"}
+          "data: {"type":"finish"}
 
         ",
           "data: [DONE]
@@ -3253,7 +3253,7 @@ describe('streamText', () => {
           "data: {"type":"finish-step"}
 
         ",
-          "data: {"type":"finish","finishReason":"stop"}
+          "data: {"type":"finish"}
 
         ",
           "data: [DONE]
@@ -3313,7 +3313,7 @@ describe('streamText', () => {
           "data: {"type":"finish-step"}
 
         ",
-          "data: {"type":"finish","finishReason":"stop"}
+          "data: {"type":"finish"}
 
         ",
           "data: [DONE]
@@ -3371,7 +3371,7 @@ describe('streamText', () => {
           "data: {"type":"finish-step"}
 
         ",
-          "data: {"type":"finish","finishReason":"stop"}
+          "data: {"type":"finish"}
 
         ",
           "data: [DONE]
@@ -3515,7 +3515,6 @@ describe('streamText', () => {
               "type": "finish-step",
             },
             {
-              "finishReason": "stop",
               "type": "finish",
             },
           ]
@@ -3691,7 +3690,6 @@ describe('streamText', () => {
               "type": "finish-step",
             },
             {
-              "finishReason": "stop",
               "type": "finish",
             },
           ]
@@ -3833,7 +3831,6 @@ describe('streamText', () => {
               "type": "message-metadata",
             },
             {
-              "finishReason": "stop",
               "messageMetadata": {
                 "key8": "value8",
               },
@@ -3973,7 +3970,6 @@ describe('streamText', () => {
               "type": "finish-step",
             },
             {
-              "finishReason": "stop",
               "type": "finish",
             },
           ]
@@ -4026,7 +4022,6 @@ describe('streamText', () => {
               "type": "finish-step",
             },
             {
-              "finishReason": "stop",
               "type": "finish",
             },
           ]
@@ -4202,7 +4197,6 @@ describe('streamText', () => {
               "type": "finish-step",
             },
             {
-              "finishReason": "stop",
               "type": "finish",
             },
           ]
@@ -4265,7 +4259,6 @@ describe('streamText', () => {
               "type": "finish-step",
             },
             {
-              "finishReason": "stop",
               "type": "finish",
             },
           ]
@@ -4330,7 +4323,6 @@ describe('streamText', () => {
               "type": "finish-step",
             },
             {
-              "finishReason": "stop",
               "type": "finish",
             },
           ]
@@ -4380,7 +4372,6 @@ describe('streamText', () => {
               "type": "finish-step",
             },
             {
-              "finishReason": "stop",
               "type": "finish",
             },
           ]
@@ -4431,7 +4422,6 @@ describe('streamText', () => {
               "type": "finish-step",
             },
             {
-              "finishReason": "stop",
               "type": "finish",
             },
           ]
@@ -4517,7 +4507,6 @@ describe('streamText', () => {
               "type": "finish-step",
             },
             {
-              "finishReason": "stop",
               "type": "finish",
             },
           ]
@@ -4571,7 +4560,6 @@ describe('streamText', () => {
               "type": "finish-step",
             },
             {
-              "finishReason": "stop",
               "type": "finish",
             },
           ]
@@ -4973,7 +4961,7 @@ describe('streamText', () => {
             "data: {"type":"finish-step"}
 
           ",
-            "data: {"type":"finish","finishReason":"stop"}
+            "data: {"type":"finish"}
 
           ",
             "data: [DONE]
@@ -5041,7 +5029,7 @@ describe('streamText', () => {
             "data: {"type":"finish-step"}
 
           ",
-            "data: {"type":"finish","finishReason":"stop"}
+            "data: {"type":"finish"}
 
           ",
             "data: [DONE]
@@ -5401,7 +5389,6 @@ describe('streamText', () => {
               "type": "finish-step",
             },
             {
-              "finishReason": "stop",
               "type": "finish",
             },
           ],
@@ -12962,7 +12949,6 @@ describe('streamText', () => {
                 "type": "finish-step",
               },
               {
-                "finishReason": "stop",
                 "type": "finish",
               },
             ]
@@ -15080,7 +15066,6 @@ describe('streamText', () => {
                 "type": "finish-step",
               },
               {
-                "finishReason": "stop",
                 "type": "finish",
               },
             ]
@@ -15917,7 +15902,6 @@ describe('streamText', () => {
                 "type": "finish-step",
               },
               {
-                "finishReason": "stop",
                 "type": "finish",
               },
             ]
@@ -16453,7 +16437,6 @@ describe('streamText', () => {
                 "type": "finish-step",
               },
               {
-                "finishReason": "tool-calls",
                 "type": "finish",
               },
             ]
@@ -17920,7 +17903,6 @@ describe('streamText', () => {
               "type": "finish-step",
             },
             {
-              "finishReason": "stop",
               "type": "finish",
             },
           ]
@@ -23140,7 +23122,6 @@ describe('streamText', () => {
                 "type": "finish-step",
               },
               {
-                "finishReason": "stop",
                 "type": "finish",
               },
             ]
@@ -23383,7 +23364,6 @@ describe('streamText', () => {
                 "type": "finish-step",
               },
               {
-                "finishReason": "stop",
                 "type": "finish",
               },
             ]
@@ -23820,7 +23800,6 @@ describe('streamText', () => {
                 "type": "finish-step",
               },
               {
-                "finishReason": "stop",
                 "type": "finish",
               },
             ]
@@ -26057,7 +26036,6 @@ describe('streamText', () => {
                 "type": "finish-step",
               },
               {
-                "finishReason": "tool-calls",
                 "type": "finish",
               },
             ]
@@ -26385,7 +26363,6 @@ describe('streamText', () => {
                 "type": "finish-step",
               },
               {
-                "finishReason": "stop",
                 "type": "finish",
               },
             ]
@@ -26664,7 +26641,6 @@ describe('streamText', () => {
                 "type": "finish-step",
               },
               {
-                "finishReason": "stop",
                 "type": "finish",
               },
             ]
@@ -26898,7 +26874,6 @@ describe('streamText', () => {
                 "type": "finish-step",
               },
               {
-                "finishReason": "tool-calls",
                 "type": "finish",
               },
             ]
@@ -27483,7 +27458,6 @@ describe('streamText', () => {
                 "type": "finish-step",
               },
               {
-                "finishReason": "stop",
                 "type": "finish",
               },
             ]
@@ -27950,7 +27924,6 @@ describe('streamText', () => {
                 "type": "finish-step",
               },
               {
-                "finishReason": "stop",
                 "type": "finish",
               },
             ]
@@ -28253,7 +28226,6 @@ describe('streamText', () => {
                 "type": "finish-step",
               },
               {
-                "finishReason": "stop",
                 "type": "finish",
               },
             ]
@@ -28546,7 +28518,6 @@ describe('streamText', () => {
                   "type": "finish-step",
                 },
                 {
-                  "finishReason": "tool-calls",
                   "type": "finish",
                 },
               ]

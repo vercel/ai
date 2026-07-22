@@ -39,7 +39,7 @@ export function toUIMessageChunk<
     sendSources = false,
     sendStart = true,
     sendFinish = true,
-    sendFinishReason = true,
+    sendFinishReason = false,
     onError = () => 'An error occurred.', // prevent leaking server error details to the client by default
     messageMetadata,
     responseMessageId,

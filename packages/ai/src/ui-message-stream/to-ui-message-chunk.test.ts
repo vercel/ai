@@ -264,7 +264,6 @@ describe('toUIMessageChunk', () => {
       ),
     ).toEqual({
       type: 'finish',
-      finishReason: 'stop',
       messageMetadata: { model: 'test-model' },
     });
 
@@ -291,11 +290,12 @@ describe('toUIMessageChunk', () => {
         },
         {
           messageMetadata: { model: 'test-model' },
-          sendFinishReason: false,
+          sendFinishReason: true,
         },
       ),
     ).toEqual({
       type: 'finish',
+      finishReason: 'stop',
       messageMetadata: { model: 'test-model' },
     });
 

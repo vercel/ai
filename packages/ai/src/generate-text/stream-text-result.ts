@@ -95,9 +95,9 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
 
   /**
    * Send the finish reason in the finish event to the client.
-   * Set to false when supporting older clients whose strict stream schema
-   * does not accept the finishReason field.
-   * Default to true.
+   * Defaults to false for compatibility with older clients whose strict
+   * stream schema does not accept the finishReason field.
+   * Set to true when the client supports finish reasons.
    */
   sendFinishReason?: boolean;
 
