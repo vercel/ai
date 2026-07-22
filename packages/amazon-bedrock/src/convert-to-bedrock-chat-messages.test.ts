@@ -609,6 +609,74 @@ describe('assistant messages', () => {
     });
   });
 
+  it('should omit unsigned reasoning while preserving tool calls in multi-turn tool use', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'What is the weather?' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'I should call the weather tool.',
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'getWeather',
+            input: { city: 'San Francisco' },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'getWeather',
+            output: { type: 'text', value: 'Sunny, 72F' },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'What is the weather?' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              toolUse: {
+                toolUseId: 'call-1',
+                name: 'getWeather',
+                input: { city: 'San Francisco' },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              toolResult: {
+                toolUseId: 'call-1',
+                content: [{ text: 'Sunny, 72F' }],
+              },
+            },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
   it('should trim trailing whitespace from reasoning content when it is the last part', async () => {
     const result = await convertToBedrockChatMessages([
       {
