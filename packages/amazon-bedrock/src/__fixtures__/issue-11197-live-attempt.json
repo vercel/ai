@@ -1,0 +1,8 @@
+{
+  "region": "us-iso-east-1",
+  "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+  "selectedRequestUrl": "https://bedrock-runtime.us-iso-east-1.amazonaws.com/model/anthropic.claude-3-haiku-20240307-v1%3A0/converse",
+  "expectedOrigin": "https://bedrock-runtime.us-iso-east-1.c2s.ic.gov",
+  "outcome": "AI_APICallError: Cannot connect to API: Request was cancelled.",
+  "networkBlocker": "The sandbox proxy cancelled the request after the provider selected the request URL."
+}
