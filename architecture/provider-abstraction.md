@@ -32,12 +32,12 @@ If you're unable to find any of the functions mentioned below in the codebase, t
 Language models are used for text generation and structured generation workflows from prompt or message input.
 
 - **AI functions**
-  - `generateText` - [`packages/ai/src/generate-text/generate-text.ts`](packages/ai/src/generate-text/generate-text.ts) - Generates a complete text result from a language model in a single call.
-  - `streamText` - [`packages/ai/src/generate-text/stream-text.ts`](packages/ai/src/generate-text/stream-text.ts) - Streams language model output incrementally as it is produced.
+  - `generateText` - [`packages/ai/src/generate-text/generate-text.ts`](../packages/ai/src/generate-text/generate-text.ts) - Generates a complete text result from a language model in a single call.
+  - `streamText` - [`packages/ai/src/generate-text/stream-text.ts`](../packages/ai/src/generate-text/stream-text.ts) - Streams language model output incrementally as it is produced.
 - **Model specification**
-  - `LanguageModelV4` - [`packages/provider/src/language-model/v4/language-model-v4.ts`](packages/provider/src/language-model/v4/language-model-v4.ts)
+  - `LanguageModelV4` - [`packages/provider/src/language-model/v4/language-model-v4.ts`](../packages/provider/src/language-model/v4/language-model-v4.ts)
 - **Provider implementations (examples)**
-  - [`OpenAIChatLanguageModel`](packages/openai/src/chat/openai-chat-language-model.ts), [`AnthropicLanguageModel`](packages/anthropic/src/anthropic-language-model.ts)
+  - [`OpenAIChatLanguageModel`](../packages/openai/src/chat/openai-chat-language-model.ts), [`AnthropicLanguageModel`](../packages/anthropic/src/anthropic-language-model.ts)
 
 ```mermaid
 classDiagram
@@ -55,7 +55,7 @@ classDiagram
 
 #### Handling the `reasoning` Parameter
 
-The `reasoning` field on [`LanguageModelV4CallOptions`](packages/provider/src/language-model/v4/language-model-v4-call-options.ts) controls how much reasoning a model performs before responding. Possible values: `'provider-default'`, `'none'`, `'minimal'`, `'low'`, `'medium'`, `'high'`, `'xhigh'`.
+The `reasoning` field on [`LanguageModelV4CallOptions`](../packages/provider/src/language-model/v4/language-model-v4-call-options.ts) controls how much reasoning a model performs before responding. Possible values: `'provider-default'`, `'none'`, `'minimal'`, `'low'`, `'medium'`, `'high'`, `'xhigh'`.
 
 Use `isCustomReasoning(reasoning)` from `@ai-sdk/provider-utils` to check whether the caller supplied a custom value (anything other than `undefined` or `'provider-default'`). If it returns `false`, no action is needed. If `true`:
 
@@ -71,12 +71,12 @@ Providers that do **not** support reasoning configuration at the API level shoul
 Embedding models are used to convert text into numeric vectors for similarity and retrieval use cases.
 
 - **AI functions**
-  - `embed` - [`packages/ai/src/embed/embed.ts`](packages/ai/src/embed/embed.ts) - Creates a single embedding vector for one text value.
-  - `embedMany` - [`packages/ai/src/embed/embed-many.ts`](packages/ai/src/embed/embed-many.ts) - Creates embedding vectors for multiple text values, batching calls when needed.
+  - `embed` - [`packages/ai/src/embed/embed.ts`](../packages/ai/src/embed/embed.ts) - Creates a single embedding vector for one text value.
+  - `embedMany` - [`packages/ai/src/embed/embed-many.ts`](../packages/ai/src/embed/embed-many.ts) - Creates embedding vectors for multiple text values, batching calls when needed.
 - **Model specification**
-  - `EmbeddingModelV4` - [`packages/provider/src/embedding-model/v4/embedding-model-v4.ts`](packages/provider/src/embedding-model/v4/embedding-model-v4.ts)
+  - `EmbeddingModelV4` - [`packages/provider/src/embedding-model/v4/embedding-model-v4.ts`](../packages/provider/src/embedding-model/v4/embedding-model-v4.ts)
 - **Provider implementations (examples)**
-  - [`OpenAIEmbeddingModel`](packages/openai/src/embedding/openai-embedding-model.ts), [`MistralEmbeddingModel`](packages/mistral/src/mistral-embedding-model.ts)
+  - [`OpenAIEmbeddingModel`](../packages/openai/src/embedding/openai-embedding-model.ts), [`MistralEmbeddingModel`](../packages/mistral/src/mistral-embedding-model.ts)
 
 ```mermaid
 classDiagram
@@ -97,11 +97,11 @@ classDiagram
 Image models are used to generate image outputs from text prompts.
 
 - **AI functions**
-  - `generateImage` - [`packages/ai/src/generate-image/generate-image.ts`](packages/ai/src/generate-image/generate-image.ts) - Generates one or more images from prompt input.
+  - `generateImage` - [`packages/ai/src/generate-image/generate-image.ts`](../packages/ai/src/generate-image/generate-image.ts) - Generates one or more images from prompt input.
 - **Model specification**
-  - `ImageModelV4` - [`packages/provider/src/image-model/v4/image-model-v4.ts`](packages/provider/src/image-model/v4/image-model-v4.ts)
+  - `ImageModelV4` - [`packages/provider/src/image-model/v4/image-model-v4.ts`](../packages/provider/src/image-model/v4/image-model-v4.ts)
 - **Provider implementations (examples)**
-  - [`OpenAIImageModel`](packages/openai/src/image/openai-image-model.ts), [`GoogleImageModel`](packages/google/src/google-image-model.ts)
+  - [`OpenAIImageModel`](../packages/openai/src/image/openai-image-model.ts), [`GoogleImageModel`](../packages/google/src/google-image-model.ts)
 
 ```mermaid
 classDiagram
@@ -120,11 +120,11 @@ classDiagram
 Reranking models are used to reorder candidate documents by relevance to a query.
 
 - **AI functions**
-  - `rerank` - [`packages/ai/src/rerank/rerank.ts`](packages/ai/src/rerank/rerank.ts) - Reorders documents and returns a relevance-ranked result set for a query.
+  - `rerank` - [`packages/ai/src/rerank/rerank.ts`](../packages/ai/src/rerank/rerank.ts) - Reorders documents and returns a relevance-ranked result set for a query.
 - **Model specification**
-  - `RerankingModelV4` - [`packages/provider/src/reranking-model/v4/reranking-model-v4.ts`](packages/provider/src/reranking-model/v4/reranking-model-v4.ts)
+  - `RerankingModelV4` - [`packages/provider/src/reranking-model/v4/reranking-model-v4.ts`](../packages/provider/src/reranking-model/v4/reranking-model-v4.ts)
 - **Provider implementations (examples)**
-  - [`CohereRerankingModel`](packages/cohere/src/reranking/cohere-reranking-model.ts), [`BedrockRerankingModel`](packages/amazon-bedrock/src/reranking/bedrock-reranking-model.ts)
+  - [`CohereRerankingModel`](../packages/cohere/src/reranking/cohere-reranking-model.ts), [`BedrockRerankingModel`](../packages/amazon-bedrock/src/reranking/amazon-bedrock-reranking-model.ts)
 
 ```mermaid
 classDiagram
@@ -143,11 +143,11 @@ classDiagram
 Transcription models are used to convert audio input into text transcripts.
 
 - **AI functions**
-  - `transcribe` - [`packages/ai/src/transcribe/transcribe.ts`](packages/ai/src/transcribe/transcribe.ts) - Transcribes audio into text with segment and metadata support.
+  - `transcribe` - [`packages/ai/src/transcribe/transcribe.ts`](../packages/ai/src/transcribe/transcribe.ts) - Transcribes audio into text with segment and metadata support.
 - **Model specification**
-  - `TranscriptionModelV4` - [`packages/provider/src/transcription-model/v4/transcription-model-v4.ts`](packages/provider/src/transcription-model/v4/transcription-model-v4.ts)
+  - `TranscriptionModelV4` - [`packages/provider/src/transcription-model/v4/transcription-model-v4.ts`](../packages/provider/src/transcription-model/v4/transcription-model-v4.ts)
 - **Provider implementations (examples)**
-  - [`OpenAITranscriptionModel`](packages/openai/src/transcription/openai-transcription-model.ts), [`DeepgramTranscriptionModel`](packages/deepgram/src/deepgram-transcription-model.ts)
+  - [`OpenAITranscriptionModel`](../packages/openai/src/transcription/openai-transcription-model.ts), [`DeepgramTranscriptionModel`](../packages/deepgram/src/deepgram-transcription-model.ts)
 
 ```mermaid
 classDiagram
@@ -166,11 +166,11 @@ classDiagram
 Speech models are used to synthesize audio from text input.
 
 - **AI functions**
-  - `generateSpeech` - [`packages/ai/src/generate-speech/generate-speech.ts`](packages/ai/src/generate-speech/generate-speech.ts) - Generates speech audio from text input.
+  - `generateSpeech` - [`packages/ai/src/generate-speech/generate-speech.ts`](../packages/ai/src/generate-speech/generate-speech.ts) - Generates speech audio from text input.
 - **Model specification**
-  - `SpeechModelV4` - [`packages/provider/src/speech-model/v4/speech-model-v4.ts`](packages/provider/src/speech-model/v4/speech-model-v4.ts)
+  - `SpeechModelV4` - [`packages/provider/src/speech-model/v4/speech-model-v4.ts`](../packages/provider/src/speech-model/v4/speech-model-v4.ts)
 - **Provider implementations (examples)**
-  - [`OpenAISpeechModel`](packages/openai/src/speech/openai-speech-model.ts), [`ElevenLabsSpeechModel`](packages/elevenlabs/src/elevenlabs-speech-model.ts)
+  - [`OpenAISpeechModel`](../packages/openai/src/speech/openai-speech-model.ts), [`ElevenLabsSpeechModel`](../packages/elevenlabs/src/elevenlabs-speech-model.ts)
 
 ```mermaid
 classDiagram
@@ -189,11 +189,11 @@ classDiagram
 Video models are used to generate video outputs from prompts.
 
 - **AI functions**
-  - `generateVideo` - [`packages/ai/src/generate-video/generate-video.ts`](packages/ai/src/generate-video/generate-video.ts) - Generates one or more videos from prompt input.
+  - `generateVideo` - [`packages/ai/src/generate-video/generate-video.ts`](../packages/ai/src/generate-video/generate-video.ts) - Generates one or more videos from prompt input.
 - **Model specification**
-  - `VideoModelV4` - [`packages/provider/src/video-model/v4/video-model-v4.ts`](packages/provider/src/video-model/v4/video-model-v4.ts)
+  - `VideoModelV4` - [`packages/provider/src/video-model/v4/video-model-v4.ts`](../packages/provider/src/video-model/v4/video-model-v4.ts)
 - **Provider implementations (examples)**
-  - [`FalVideoModel`](packages/fal/src/fal-video-model.ts), [`ReplicateVideoModel`](packages/replicate/src/replicate-video-model.ts)
+  - [`FalVideoModel`](../packages/fal/src/fal-video-model.ts), [`ReplicateVideoModel`](../packages/replicate/src/replicate-video-model.ts)
 
 ```mermaid
 classDiagram
