@@ -1,0 +1,4 @@
+data: {"candidates":[{"content":{"parts":[{"inlineData":{"mimeType":"image/jpeg","data":"AA=="},"thoughtSignature":"live-image-thought-signature"}],"role":"model"},"index":0}],"usageMetadata":{"promptTokenCount":8,"candidatesTokenCount":1219,"totalTokenCount":1471,"promptTokensDetails":[{"modality":"TEXT","tokenCount":8}],"candidatesTokensDetails":[{"modality":"IMAGE","tokenCount":1120}],"thoughtsTokenCount":244,"serviceTier":"standard"},"modelVersion":"gemini-3-pro-image-preview","responseId":"live-response-id"}
+
+data: {"candidates":[{"content":{"parts":[{"text":""}],"role":"model"},"finishReason":"STOP","index":0}],"usageMetadata":{"promptTokenCount":8,"candidatesTokenCount":1219,"totalTokenCount":1394,"promptTokensDetails":[{"modality":"TEXT","tokenCount":8}],"candidatesTokensDetails":[{"modality":"IMAGE","tokenCount":1120}],"thoughtsTokenCount":167,"serviceTier":"standard"},"modelVersion":"gemini-3-pro-image-preview","responseId":"live-response-id"}
+
