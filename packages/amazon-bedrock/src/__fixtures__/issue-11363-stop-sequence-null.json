@@ -1,0 +1,36 @@
+{
+  "additionalModelResponseFields": {
+    "stop_sequence": null
+  },
+  "metrics": {
+    "latencyMs": 2066
+  },
+  "output": {
+    "message": {
+      "content": [
+        {
+          "toolUse": {
+            "input": {
+              "city": "Seattle"
+            },
+            "name": "weather",
+            "toolUseId": "tooluse_93FMnHYRGfM9Sz0BGGvFc4",
+            "type": "tool_use"
+          }
+        }
+      ],
+      "role": "assistant"
+    }
+  },
+  "stopReason": "tool_use",
+  "usage": {
+    "cacheReadInputTokenCount": 0,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokenCount": 0,
+    "cacheWriteInputTokens": 0,
+    "inputTokens": 677,
+    "outputTokens": 36,
+    "serverToolUsage": {},
+    "totalTokens": 713
+  }
+}
