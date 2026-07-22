@@ -10920,6 +10920,20 @@ describe('getModelCapabilities', () => {
     expect(caps.supportsAdaptiveThinking).toBe(true);
   });
 
+  it('should return correct capabilities for claude-opus-5', () => {
+    expect(getModelCapabilities('claude-opus-5')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabledAboveHighEffort": true,
+        "supportsAdaptiveThinking": true,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": true,
+      }
+    `);
+  });
+
   it('should return current-generation capabilities for an unknown Claude model', () => {
     expect(getModelCapabilities('claude-future-9')).toMatchInlineSnapshot(`
       {
