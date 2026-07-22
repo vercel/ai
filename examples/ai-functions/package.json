@@ -1,0 +1,11 @@
+{
+  "name": "@example/ai-functions",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "@ai-sdk/anthropic": "workspace:*",
+    "ai": "workspace:*",
+    "tsx": "4.19.2",
+    "zod": "3.25.76"
+  }
+}

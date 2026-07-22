@@ -561,6 +561,51 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
+    it('issue #10372: should preserve a Sonnet 4.5 tool call when a JSON response format is configured', async () => {
+      prepareJsonFixtureResponse('anthropic-issue-10372-tool-call');
+
+      const result = await provider('claude-sonnet-4-5-20250929').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'getWeather',
+            description: 'Get the current weather for a location.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                location: { type: 'string' },
+              },
+              required: ['location'],
+              additionalProperties: false,
+            },
+          },
+        ],
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              weather: { type: 'string' },
+            },
+            required: ['weather'],
+            additionalProperties: false,
+          },
+        },
+      });
+
+      expect.soft(result.content).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'toolu_01MhUGx2K4rTe9D6nZxtGURs',
+          toolName: 'getWeather',
+          input: '{"location":"Tokyo"}',
+        },
+      ]);
+      expect.soft(result.finishReason).toBe('tool-calls');
+      expect(result.warnings).toEqual([]);
+    });
+
     describe('json schema response format with output format (supported model)', () => {
       let result: Awaited<ReturnType<typeof model.doGenerate>>;
 
