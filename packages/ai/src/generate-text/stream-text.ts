@@ -976,7 +976,7 @@ class DefaultStreamTextResult<
 
   private readonly hasTransforms: boolean;
 
-  private readonly outputWaiters = new Map<string, DelayedPromise<void>>();
+  private readonly toolCallOutputWaiters: DelayedPromise<void>[] = [];
 
   constructor({
     model,
@@ -2100,8 +2100,8 @@ class DefaultStreamTextResult<
             runInTracingChannelSpan: runInTracingChannelSpanInStep,
             ...(transforms.length > 0
               ? {
-                  createOutputAvailablePromise: (outputId: string) =>
-                    self.createOutputAvailablePromise(outputId),
+                  createToolCallOutputAvailablePromise: () =>
+                    self.createToolCallOutputAvailablePromise(),
                 }
               : {}),
           });
@@ -2621,27 +2621,24 @@ class DefaultStreamTextResult<
         transform(chunk, controller) {
           controller.enqueue(chunk);
 
-          // Signal when all transformed deltas for this output part have
-          // reached the active result stream.
-          if (
-            chunk.part.type === 'text-end' ||
-            chunk.part.type === 'reasoning-end'
-          ) {
-            self.markOutputAvailable(`${chunk.part.type}:${chunk.part.id}`);
+          // A transform must emit any preceding buffered output before it can
+          // emit the tool call. Signal when that boundary reaches the active
+          // result stream, independent of transformed output ids.
+          if (chunk.part.type === 'tool-call') {
+            self.markToolCallOutputAvailable();
           }
         },
       }),
     );
   }
 
-  private markOutputAvailable(outputId: string) {
-    this.outputWaiters.get(outputId)?.resolve();
-    this.outputWaiters.delete(outputId);
+  private markToolCallOutputAvailable() {
+    this.toolCallOutputWaiters.shift()?.resolve();
   }
 
-  private createOutputAvailablePromise(outputId: string) {
+  private createToolCallOutputAvailablePromise() {
     const waiter = new DelayedPromise<void>();
-    this.outputWaiters.set(outputId, waiter);
+    this.toolCallOutputWaiters.push(waiter);
     return waiter.promise;
   }
 

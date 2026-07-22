@@ -51,7 +51,7 @@ export function executeToolsFromStream<
   onToolExecutionEnd,
   executeToolInTelemetryContext,
   runInTracingChannelSpan,
-  createOutputAvailablePromise,
+  createToolCallOutputAvailablePromise,
 }: {
   stream: ReadableStream<LanguageModelStreamPart<TOOLS>>;
   tools: TOOLS | undefined;
@@ -71,13 +71,12 @@ export function executeToolsFromStream<
   runInTracingChannelSpan?: NonNullable<
     TelemetryDispatcher['runInTracingChannelSpan']
   >;
-  createOutputAvailablePromise?: (outputId: string) => Promise<void>;
+  createToolCallOutputAvailablePromise?: () => Promise<void>;
 }): ReadableStream<ExecuteToolsStreamPart<TOOLS>> {
   const toolCallsToExecute: Array<{
     toolCall: TypedToolCall<TOOLS>;
     outputAvailable: Promise<void> | undefined;
   }> = [];
-  let precedingOutputAvailable: Promise<void> | undefined;
 
   // forward stream
   return stream.pipeThrough(
@@ -91,11 +90,10 @@ export function executeToolsFromStream<
           ExecuteToolsStreamPart<TOOLS>
         >,
       ) {
-        if (chunk.type === 'text-end' || chunk.type === 'reasoning-end') {
-          precedingOutputAvailable = createOutputAvailablePromise?.(
-            `${chunk.type}:${chunk.id}`,
-          );
-        }
+        const toolCallOutputAvailable =
+          chunk.type === 'tool-call'
+            ? createToolCallOutputAvailablePromise?.()
+            : undefined;
 
         // immediately forward all chunks
         controller.enqueue(chunk);
@@ -133,7 +131,7 @@ export function executeToolsFromStream<
               if (tool.execute != null && chunk.providerExecuted !== true) {
                 toolCallsToExecute.push({
                   toolCall: chunk,
-                  outputAvailable: precedingOutputAvailable,
+                  outputAvailable: toolCallOutputAvailable,
                 });
               }
 
@@ -207,7 +205,7 @@ export function executeToolsFromStream<
             if (tool.execute != null && chunk.providerExecuted !== true) {
               toolCallsToExecute.push({
                 toolCall: chunk,
-                outputAvailable: precedingOutputAvailable,
+                outputAvailable: toolCallOutputAvailable,
               });
             }
 
