@@ -235,3 +235,20 @@ describe('onToolCall', () => {
     });
   });
 });
+
+describe('messageMetadataSchema', () => {
+  it('accepts nullish metadata for messages with branded ids', () => {
+    const metadataSchema = z.object({ source: z.string() }).nullish();
+
+    type BrandedMessageId = string & {
+      readonly __brand: 'message-id';
+    };
+    type BrandedMessage = UIMessage<z.infer<typeof metadataSchema>> & {
+      id: BrandedMessageId;
+    };
+
+    expectTypeOf(metadataSchema).toMatchTypeOf<
+      NonNullable<ChatInit<BrandedMessage>['messageMetadataSchema']>
+    >();
+  });
+});
