@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "issueId": 10372,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-10372.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-10372.ts",
+    "packages/anthropic/src/anthropic-messages-language-model.test.ts",
+    "packages/anthropic/src/__fixtures__/anthropic-issue-10372-tool-call.json",
+    "packages/anthropic/src/__fixtures__/anthropic-issue-10372-output.json",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_10372_REPRODUCED: getWeather was ignored when tools and experimental_output were combined."
+  }
+}
