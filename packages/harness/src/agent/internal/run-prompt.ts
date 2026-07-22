@@ -32,6 +32,7 @@ import type {
   ContentPart,
   ProviderMetadata,
   StepResult,
+  StopCondition,
   TelemetryOptions,
   TextStreamPart,
 } from 'ai';
@@ -44,6 +45,7 @@ import { stripWorkDir } from './strip-work-dir';
 import { createTurnTelemetry, type TurnContentPart } from './turn-telemetry';
 import { resolveCustomToolApproval } from './permission-mode';
 import { logBridgeError } from '../../utils/bridge-diagnostics';
+import { pinSandboxChannelEventCheckpoint } from '../../utils/sandbox-channel';
 
 /**
  * Drive one prompt turn end-to-end:
@@ -81,6 +83,7 @@ export function runPrompt<
   runtimeContext: RUNTIME_CONTEXT;
   abortSignal: AbortSignal | undefined;
   telemetry?: TelemetryOptions | undefined;
+  stopConditions?: ReadonlyArray<StopCondition<TOOLS, RUNTIME_CONTEXT>>;
   toolApproval?: HarnessAgentToolApprovalConfiguration | undefined;
   pendingToolApprovals?: readonly HarnessV1PendingToolApproval[];
   pendingToolResults?: readonly HarnessV1PendingToolResult[];
@@ -96,6 +99,7 @@ export function runPrompt<
   onToolResultSettled?: (toolCallId: string) => void;
   onTurnFinished?: () => void;
   onTurnFailed?: () => void;
+  onStopConditionMet?: () => Promise<void>;
 }): {
   result: HarnessStreamTextResult<TOOLS, RUNTIME_CONTEXT>;
   done: Promise<void>;
@@ -220,9 +224,21 @@ export function runPrompt<
     );
     const settledHostToolCallIds = new Set<string>();
     let closingResumedStep = false;
+    let pendingStopBoundary:
+      | {
+          finishReason: LanguageModelV4FinishReason;
+          usage: LanguageModelV4Usage;
+          releaseCheckpoint: (() => void) | undefined;
+        }
+      | undefined;
     let finalFinish:
       | Extract<HarnessV1StreamPart, { type: 'finish' }>
       | undefined;
+    const completedSteps: Array<StepResult<TOOLS, RUNTIME_CONTEXT>> = [];
+    const releasePendingStopBoundary = (): void => {
+      pendingStopBoundary?.releaseCheckpoint?.();
+      pendingStopBoundary = undefined;
+    };
 
     // Accumulate the model's output content per step so telemetry can record
     // `gen_ai.output.messages` and reporters can log what was actually said.
@@ -270,12 +286,14 @@ export function runPrompt<
         content: buildStepContent(),
       });
       resetStepContent();
-      return result.finishStep({
+      const step = result.finishStep({
         finishReason: input.finishReason,
         usage: input.usage,
         providerMetadata: input.providerMetadata,
         warnings: [],
       });
+      completedSteps.push(step);
+      return step;
     };
     const finishForHostInputPause = async (options: {
       completeCurrentStep: boolean;
@@ -478,8 +496,34 @@ export function runPrompt<
 
       while (true) {
         const { value, done } = await reader.read();
-        if (done) break;
+        if (done) {
+          releasePendingStopBoundary();
+          break;
+        }
         if (value == null) continue;
+
+        if (pendingStopBoundary != null) {
+          if (value.type === 'finish') {
+            releasePendingStopBoundary();
+          } else if (
+            (
+              await Promise.all(
+                input.stopConditions!.map(condition =>
+                  condition({ steps: completedSteps }),
+                ),
+              )
+            ).some(Boolean)
+          ) {
+            await input.onStopConditionMet?.();
+            const { finishReason, usage } = pendingStopBoundary;
+            releasePendingStopBoundary();
+            telemetry.end({ finishReason, usage });
+            await result.finish();
+            return;
+          } else {
+            releasePendingStopBoundary();
+          }
+        }
 
         // Begin the operation span on stream-start, using the runtime-resolved
         // model the adapter reports (falling back to the session's model).
@@ -686,6 +730,13 @@ export function runPrompt<
             usage: value.usage,
             providerMetadata: value.harnessMetadata,
           });
+          if (input.stopConditions != null && input.stopConditions.length > 0) {
+            pendingStopBoundary = {
+              finishReason: value.finishReason,
+              usage: value.usage,
+              releaseCheckpoint: pinSandboxChannelEventCheckpoint(value),
+            };
+          }
         }
 
         if (value.type === 'finish') {
@@ -869,6 +920,7 @@ export function runPrompt<
       });
       settleFailure(err);
     } finally {
+      releasePendingStopBoundary();
       reader.releaseLock();
     }
   })();

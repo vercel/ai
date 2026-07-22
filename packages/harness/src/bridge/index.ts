@@ -234,6 +234,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
   let currentBoundPort = 0;
   let currentTurnState: BridgeState = 'init';
   let activeSocket: WebSocket | undefined;
+  let activeSocketReadyForLiveEvents = false;
   let isFirstTurn = true;
   let turnAbort: AbortController | undefined;
   let currentUserMessages: string[] | undefined;
@@ -389,7 +390,10 @@ export async function runBridge<TStart extends { type: 'start' }>(
     eventLog.push({ seq, line });
     diskBuffer += `${line}\n`;
     scheduleEventFlush();
-    if (activeSocket?.readyState === WS_OPEN) {
+    if (
+      activeSocketReadyForLiveEvents &&
+      activeSocket?.readyState === WS_OPEN
+    ) {
       try {
         activeSocket.send(line);
       } catch {
@@ -522,6 +526,8 @@ export async function runBridge<TStart extends { type: 'start' }>(
   ): Promise<void> => {
     switch (msg.type) {
       case 'start': {
+        if (activeSocket !== ws) return;
+        activeSocketReadyForLiveEvents = true;
         const firstTurn = isFirstTurn;
         isFirstTurn = false;
         eventLog = []; // clear previous turn; keep seqCounter monotonic
@@ -643,7 +649,9 @@ export async function runBridge<TStart extends { type: 'start' }>(
         }
         return;
       case 'resume':
+        if (activeSocket !== ws) return;
         replay(ws, msg.lastSeenEventId);
+        activeSocketReadyForLiveEvents = true;
         return;
       case 'shutdown':
         currentTurnState = 'done';
@@ -721,6 +729,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
     // (the host reconnecting after a drop). The previous socket's close is a
     // no-op below because it is no longer `activeSocket`.
     activeSocket = ws;
+    activeSocketReadyForLiveEvents = false;
 
     // Announce liveness the instant we accept. Some sandbox runtimes complete
     // the host-side WS handshake before the connection is forwarded here; the
@@ -754,6 +763,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
       // log for replay when the host reconnects.
       if (activeSocket === ws) {
         activeSocket = undefined;
+        activeSocketReadyForLiveEvents = false;
       }
     });
 
