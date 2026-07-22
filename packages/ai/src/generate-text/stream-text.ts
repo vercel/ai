@@ -95,7 +95,7 @@ import {
   type ActiveToolSubset,
 } from './filter-active-tools';
 import type {
-  GenerateTextOnEndCallback,
+  GenerateTextEndEvent,
   GenerateTextOnStartCallback,
   GenerateTextOnStepEndCallback,
   GenerateTextOnStepFinishCallback,
@@ -268,6 +268,20 @@ export type StreamTextOnErrorCallback = Callback<{
 export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
   chunk: TextStreamPart<TOOLS>;
 }) => PromiseLike<void> | void;
+
+type StreamTextOnEndCallback<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context,
+  OUTPUT extends Output,
+> = Callback<
+  GenerateTextEndEvent<TOOLS, RUNTIME_CONTEXT> & {
+    /**
+     * The parsed output when an output setting was provided and parsing
+     * succeeded.
+     */
+    readonly output?: InferCompleteOutput<OUTPUT>;
+  }
+>;
 
 /**
  * Callback that is set using the `onAbort` option.
@@ -577,7 +591,11 @@ export function streamText<
      *
      * The usage is the combined usage of all steps.
      */
-    onEnd?: GenerateTextOnEndCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
+    onEnd?: StreamTextOnEndCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>,
+      NoInfer<OUTPUT>
+    >;
 
     /**
      * Callback that is called when the LLM response and all request tool executions
@@ -587,9 +605,10 @@ export function streamText<
      *
      * @deprecated Use `onEnd` instead.
      */
-    onFinish?: GenerateTextOnEndCallback<
+    onFinish?: StreamTextOnEndCallback<
       NoInfer<TOOLS>,
-      NoInfer<RUNTIME_CONTEXT>
+      NoInfer<RUNTIME_CONTEXT>,
+      NoInfer<OUTPUT>
     >;
 
     onAbort?: StreamTextOnAbortCallback<
@@ -1075,7 +1094,11 @@ class DefaultStreamTextResult<
     onError: StreamTextOnErrorCallback;
     onEnd:
       | undefined
-      | GenerateTextOnEndCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
+      | StreamTextOnEndCallback<
+          NoInfer<TOOLS>,
+          NoInfer<RUNTIME_CONTEXT>,
+          NoInfer<OUTPUT>
+        >;
     onAbort:
       | undefined
       | StreamTextOnAbortCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
@@ -1427,6 +1450,20 @@ class DefaultStreamTextResult<
             step => step.dynamicToolResults,
           );
           const warnings = recordedSteps.flatMap(step => step.warnings ?? []);
+          const onEndWithOutput =
+            onEnd == null
+              ? undefined
+              : async (event: GenerateTextEndEvent<TOOLS, RUNTIME_CONTEXT>) => {
+                  const parsedOutput =
+                    output == null
+                      ? undefined
+                      : await self.output.catch(() => undefined);
+
+                  await onEnd({
+                    ...event,
+                    ...(output != null ? { output: parsedOutput } : {}),
+                  });
+                };
 
           await notify({
             event: {
@@ -1462,7 +1499,7 @@ class DefaultStreamTextResult<
               steps: recordedSteps,
               finalStep,
             },
-            callbacks: [onEnd, telemetryDispatcher.onEnd],
+            callbacks: [onEndWithOutput, telemetryDispatcher.onEnd],
           });
         } catch (error) {
           controller.error(error);

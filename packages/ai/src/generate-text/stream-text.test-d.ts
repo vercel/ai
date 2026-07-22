@@ -86,6 +86,21 @@ describe('streamText types', () => {
         },
       });
     });
+
+    it('should infer structured output', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        output: Output.object({
+          schema: z.object({ value: z.string() }),
+        }),
+        onFinish: event => {
+          expectTypeOf(event.output).toEqualTypeOf<
+            { value: string } | undefined
+          >();
+        },
+      });
+    });
   });
 
   describe('toUIMessageStream options', () => {
