@@ -116,6 +116,34 @@ describe('OpenCode event helpers', () => {
     `);
   });
 
+  it('emits stream-start without a model when assistant metadata omits it', () => {
+    const state = createTranslationState();
+    const emitted: Record<string, unknown>[] = [];
+
+    emitOpenCodeStreamStart({
+      info: { role: 'assistant' },
+      state,
+      emit: message => emitted.push(message),
+    });
+    emitOpenCodeStreamStart({
+      info: {
+        role: 'assistant',
+        providerID: 'anthropic',
+        modelID: 'claude-sonnet-4-6',
+      },
+      state,
+      emit: message => emitted.push(message),
+    });
+
+    expect(emitted).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+        },
+      ]
+    `);
+  });
+
   it('emits only the final text that has not already streamed', () => {
     const emitted: Record<string, unknown>[] = [];
 

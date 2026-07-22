@@ -55,10 +55,11 @@ export function emitOpenCodeStreamStart({
   if (info.role !== 'assistant' && info.type !== 'assistant') return;
   const providerID = stringValue(info.providerID);
   const modelID = stringValue(info.modelID);
-  if (!providerID || !modelID) return;
+  const modelId =
+    providerID && modelID ? `${providerID}/${modelID}` : undefined;
 
   state.streamStarted = true;
-  emit({ type: 'stream-start', modelId: `${providerID}/${modelID}` });
+  emit({ type: 'stream-start', ...(modelId ? { modelId } : {}) });
 }
 
 export function unwrapOpenCodeEvent(
