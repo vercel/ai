@@ -1719,6 +1719,17 @@ class DefaultStreamTextResult<
                 abortSignal,
                 timeout,
                 experimental_sandbox: sandbox,
+                // Thread the approval decision into the tool execution so
+                // `execute` can act on data attached to the approval (the
+                // denial path already delivers its reason via
+                // `execution-denied`).
+                approval: {
+                  approvalId: toolApproval.approvalResponse.approvalId,
+                  approved: true,
+                  ...(toolApproval.approvalResponse.reason !== undefined
+                    ? { reason: toolApproval.approvalResponse.reason }
+                    : {}),
+                },
                 toolsContext,
                 onToolExecutionStart: filterNullable(
                   onToolExecutionStart,

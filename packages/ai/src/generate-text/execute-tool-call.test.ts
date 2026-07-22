@@ -118,6 +118,61 @@ describe('executeToolCall', () => {
       expect(receivedSandbox).toBe(sandbox);
     });
 
+    it('should pass the approval decision to tool execution', async () => {
+      let receivedApproval: unknown;
+
+      await executeToolCall({
+        toolCall: createToolCall(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }, { approval }) => {
+              receivedApproval = approval;
+              return `${value}-result`;
+            },
+          }),
+        },
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        approval: {
+          approvalId: 'approval-1',
+          approved: true,
+          reason: '{"answers":{"q1":"blue"}}',
+        },
+        toolsContext: {},
+      });
+
+      expect(receivedApproval).toEqual({
+        approvalId: 'approval-1',
+        approved: true,
+        reason: '{"answers":{"q1":"blue"}}',
+      });
+    });
+
+    it('should omit the approval option when none is provided', async () => {
+      let approvalPresent: boolean | undefined;
+
+      await executeToolCall({
+        toolCall: createToolCall(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }, options) => {
+              approvalPresent = 'approval' in options;
+              return `${value}-result`;
+            },
+          }),
+        },
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        toolsContext: {},
+      });
+
+      expect(approvalPresent).toBe(false);
+    });
+
     it('should preserve providerMetadata from toolCall', async () => {
       const result = await executeToolCall({
         toolCall: createToolCall({

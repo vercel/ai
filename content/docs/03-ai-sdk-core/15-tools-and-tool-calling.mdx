@@ -314,6 +314,23 @@ messages.push({ role: 'tool', content: approvals });
 
 Then call `generateText` or `streamText` again with the updated messages. If approved, the tool executes. If denied, the model receives the denial and can respond accordingly.
 
+When an approved tool executes, the approval decision is available to the
+tool's `execute` function as `options.approval` (`{ approvalId, approved,
+reason }`), so a tool can act on context the approver attached to the decision
+— for example a corrected value or structured data collected in the approval
+UI. Denials never execute; their `reason` reaches the model through the
+`execution-denied` tool result instead.
+
+```ts
+const runCommand = tool({
+  inputSchema: z.object({ command: z.string() }),
+  execute: async ({ command }, { approval }) => {
+    // approval?.reason carries context the approver attached to the decision
+    return await run(command, { note: approval?.reason });
+  },
+});
+```
+
 When the tool should execute without any approval metadata in the output, use
 `'not-applicable'`, return `undefined` from an approval function, or omit `toolApproval`. Use `'approved'`, `'denied'`, or
 their object forms only when you want the result to include an automatic

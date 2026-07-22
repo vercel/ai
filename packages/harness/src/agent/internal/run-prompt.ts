@@ -19,6 +19,7 @@ import {
   safeParseJSON,
   type Context,
   type Experimental_SandboxSession as SandboxSession,
+  type ToolExecutionApproval,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
@@ -419,6 +420,17 @@ export function runPrompt<
         sandboxSession: input.sandboxSession,
         abortSignal: input.abortSignal,
         control,
+        // Thread the approval decision into the tool execution so `execute`
+        // sees the full decision payload — including the `reason` the client
+        // attached to the approval — instead of only its original input (the
+        // denial path already delivers its reason via `execution-denied`).
+        approval: {
+          approvalId: approval.approvalId,
+          approved: true,
+          ...(continuation.approvalResponse.reason !== undefined
+            ? { reason: continuation.approvalResponse.reason }
+            : {}),
+        },
         onPreliminaryResult: preliminaryOutput => {
           const stripped = stripWorkDir(
             {
@@ -925,6 +937,12 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
   abortSignal: AbortSignal | undefined;
   control: HarnessV1PromptControl;
   /**
+   * The approval decision that authorized this execution, when the tool call
+   * resumed from a tool-approval pause. Forwarded to the tool's `execute` as
+   * `options.approval`.
+   */
+  approval?: ToolExecutionApproval;
+  /**
    * Called for each value a generator `execute` `yield`s before its last. The
    * caller surfaces these as preliminary `tool-result` parts on the consumer
    * stream. Never called for a plain (non-generator) `execute`.
@@ -959,6 +977,7 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
         abortSignal: input.abortSignal,
         context: undefined as never,
         experimental_sandbox: input.sandboxSession,
+        ...(input.approval !== undefined ? { approval: input.approval } : {}),
       },
     });
     for await (const part of stream) {

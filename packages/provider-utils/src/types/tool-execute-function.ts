@@ -3,6 +3,34 @@ import type { ModelMessage } from './model-message';
 import type { SandboxSession } from './sandbox';
 
 /**
+ * The approval decision that authorized a tool execution.
+ *
+ * Present on `ToolExecutionOptions.approval` when the tool call went through
+ * a tool-approval flow (an explicit user approval or an automatic approval
+ * from the tool-approval configuration). Only approved tool calls execute,
+ * so `approved` is always `true`; denials never reach `execute` — their
+ * reason travels to the model via the `execution-denied` tool result
+ * instead.
+ */
+export interface ToolExecutionApproval {
+  /**
+   * ID of the tool approval that authorized this execution.
+   */
+  approvalId: string;
+
+  /**
+   * Always `true`: only approved tool calls are executed.
+   */
+  approved: true;
+
+  /**
+   * Optional reason attached to the approval decision, e.g. data the user
+   * provided alongside the approval.
+   */
+  reason?: string;
+}
+
+/**
  * Additional options that are sent into each tool execution.
  */
 export interface ToolExecutionOptions<
@@ -41,6 +69,15 @@ export interface ToolExecutionOptions<
    * The sandbox environment that the tool is operating in.
    */
   experimental_sandbox?: SandboxSession;
+
+  /**
+   * The approval decision that authorized this execution, when the tool call
+   * went through a tool-approval flow. Carries the decision's full payload —
+   * `approvalId`, `approved`, and the optional `reason` (e.g. user-provided
+   * data attached to the approval) — so tools can act on it. Undefined when
+   * the tool executed without an approval flow.
+   */
+  approval?: ToolExecutionApproval;
 }
 
 /**

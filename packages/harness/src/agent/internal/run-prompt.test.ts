@@ -625,6 +625,71 @@ describe('runPrompt host tool generator results', () => {
     await expect(result.steps).resolves.toEqual([]);
   });
 
+  test('threads the approval decision (with reason) into the continued tool execution', async () => {
+    const receivedApprovals: unknown[] = [];
+    const weather = tool({
+      description: 'Get weather',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async (args: { city: string }, { approval }) => {
+        receivedApprovals.push(approval);
+        return { city: args.city, temperature: 72 };
+      },
+    });
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([]),
+      mode: 'continue',
+      instructions: undefined,
+      tools: { weather } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      pendingToolApprovals: [
+        {
+          approvalId: 'approval-1',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'SF' }),
+          kind: 'custom',
+          providerExecuted: false,
+        },
+      ],
+      toolApprovalContinuations: [
+        {
+          approvalResponse: {
+            type: 'tool-approval-response',
+            approvalId: 'approval-1',
+            approved: true,
+            reason: '{"correctedCity":"San Francisco"}',
+          },
+          toolCall: {
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'weather',
+            input: { city: 'SF' },
+            providerExecuted: false,
+          },
+        },
+      ],
+    });
+
+    for await (const _part of result.fullStream) {
+      // drain
+    }
+    await done;
+
+    expect(receivedApprovals).toEqual([
+      {
+        approvalId: 'approval-1',
+        approved: true,
+        reason: '{"correctedCity":"San Francisco"}',
+      },
+    ]);
+  });
+
   test('does not reuse a consumed approval for replayed custom tool calls', async () => {
     const submitted: SubmittedResult[] = [];
     const pending: unknown[] = [];

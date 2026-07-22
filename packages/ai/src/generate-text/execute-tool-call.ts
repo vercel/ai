@@ -6,6 +6,7 @@ import {
   type InferToolInput,
   type InferToolSetContext,
   type ModelMessage,
+  type ToolExecutionApproval,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
@@ -49,6 +50,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   abortSignal,
   timeout,
   experimental_sandbox: sandbox,
+  approval,
   onPreliminaryToolResult,
   onToolExecutionStart,
   onToolExecutionEnd,
@@ -63,6 +65,12 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   toolsContext: InferToolSetContext<TOOLS>;
   timeout?: TimeoutConfiguration<TOOLS>;
   experimental_sandbox?: SandboxSession;
+  /**
+   * The approval decision that authorized this execution, when the tool call
+   * went through a tool-approval flow. Forwarded to the tool's `execute` as
+   * `options.approval`.
+   */
+  approval?: ToolExecutionApproval;
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
   onToolExecutionStart?: Arrayable<OnToolExecutionStartCallback<TOOLS>>;
   onToolExecutionEnd?: Arrayable<OnToolExecutionEndCallback<TOOLS>>;
@@ -139,6 +147,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
                   abortSignal: toolAbortSignal,
                   context,
                   experimental_sandbox: sandbox,
+                  ...(approval !== undefined ? { approval } : {}),
                 },
               });
 

@@ -27175,6 +27175,18 @@ describe('streamText', () => {
         );
       });
 
+      it('should pass the approval decision to the tool execution', async () => {
+        expect(executeFunction).toHaveBeenCalledWith(
+          { value: 'value' },
+          expect.objectContaining({
+            approval: {
+              approvalId: 'id-1',
+              approved: true,
+            },
+          }),
+        );
+      });
+
       it('should call the model with a prompt that includes the tool result', async () => {
         expect(prompts).toMatchInlineSnapshot(`
           [

@@ -5,6 +5,7 @@ import type {
   InferToolSetContext,
   ModelMessage,
   Experimental_SandboxSession as SandboxSession,
+  ToolExecutionApproval,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { TimeoutConfiguration } from '../prompt/request-options';
@@ -72,6 +73,10 @@ export function executeToolsFromStream<
   >;
 }): ReadableStream<ExecuteToolsStreamPart<TOOLS>> {
   const toolCallsToExecute: Array<TypedToolCall<TOOLS>> = [];
+  // Approval decisions for automatically approved tool calls, keyed by
+  // toolCallId so the decision (including its reason) travels into the
+  // tool execution. A Map keeps client/model-supplied ids prototype-safe.
+  const approvalsByToolCallId = new Map<string, ToolExecutionApproval>();
 
   // forward stream
   return stream.pipeThrough(
@@ -182,6 +187,13 @@ export function executeToolsFromStream<
                   reason: toolApprovalStatus.reason,
                   providerExecuted: chunk.providerExecuted,
                 });
+                approvalsByToolCallId.set(chunk.toolCallId, {
+                  approvalId,
+                  approved: true,
+                  ...(toolApprovalStatus.reason !== undefined
+                    ? { reason: toolApprovalStatus.reason }
+                    : {}),
+                });
 
                 break; // continue with tool execution
               }
@@ -211,6 +223,7 @@ export function executeToolsFromStream<
                     abortSignal,
                     timeout,
                     experimental_sandbox: sandbox,
+                    approval: approvalsByToolCallId.get(toolCall.toolCallId),
                     toolsContext,
                     onToolExecutionStart,
                     onToolExecutionEnd,

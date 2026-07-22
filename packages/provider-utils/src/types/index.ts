@@ -50,6 +50,7 @@ export type { ToolApprovalResponse } from './tool-approval-response';
 export type { ToolCall } from './tool-call';
 export type {
   ToolExecuteFunction,
+  ToolExecutionApproval,
   ToolExecutionOptions,
 } from './tool-execute-function';
 export type { ToolContent, ToolModelMessage } from './tool-model-message';
