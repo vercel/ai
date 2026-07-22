@@ -9777,183 +9777,190 @@ describe('OpenAIResponsesLanguageModel', () => {
   });
 
   describe('programmatic tool calling', () => {
-    it('should map program items and nested function caller metadata', async () => {
-      server.urls['https://api.openai.com/v1/responses'].response = {
-        type: 'json-value',
-        body: {
-          id: 'resp_programmatic',
-          created_at: 1,
-          error: null,
-          incomplete_details: null,
-          model: 'gpt-5.6',
-          output: [
-            {
-              type: 'program',
-              id: 'program_item_1',
-              call_id: 'program_call_1',
-              code: 'const value = await tools.get_inventory({ sku: "A" });',
-              fingerprint: 'fingerprint_1',
-            },
-            {
-              type: 'function_call',
-              id: 'function_item_1',
-              call_id: 'function_call_1',
-              name: 'get_inventory',
-              arguments: '{"sku":"A"}',
-              caller: {
-                type: 'program',
-                caller_id: 'program_call_1',
+    const tools: Array<
+      LanguageModelV4FunctionTool | LanguageModelV4ProviderTool
+    > = [
+      {
+        type: 'provider',
+        id: 'openai.programmatic_tool_calling',
+        name: 'program',
+        args: {},
+      },
+      {
+        type: 'function',
+        name: 'getInventory',
+        inputSchema: {
+          type: 'object',
+          properties: { sku: { type: 'string' } },
+          required: ['sku'],
+        },
+      },
+      {
+        type: 'function',
+        name: 'getDemand',
+        inputSchema: {
+          type: 'object',
+          properties: { sku: { type: 'string' } },
+          required: ['sku'],
+        },
+      },
+    ];
+
+    it('should map programmatic tool calling across generate steps from real fixtures', async () => {
+      const content: LanguageModelV4Content[] = [];
+
+      for (const step of [1, 2, 3]) {
+        prepareJsonFixtureResponse(`programmatic-tool-calling.${step}`);
+        const result = await createModel('gpt-5.6').doGenerate({
+          prompt: TEST_PROMPT,
+          tools,
+        });
+        content.push(...result.content);
+      }
+
+      expect(content).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'tool-call',
+            toolCallId: 'call_O2IvSLQcJ0bwIvJZ2ovGV69M',
+            toolName: 'program',
+            providerExecuted: true,
+            providerMetadata: {
+              openai: {
+                itemId: 'cm_0742d30c1d273351016a6145f1d2d0819faa3ecfc950fceec4',
               },
             },
-            {
-              type: 'program_output',
-              id: 'program_output_item_1',
-              call_id: 'program_call_1',
-              result: '{"availableUnits":42}',
+          }),
+          {
+            type: 'tool-call',
+            toolCallId: 'call_rj6LW6NEyodD5YVKeoexoLNz',
+            toolName: 'getInventory',
+            input: '{"sku":"sku_123"}',
+            providerMetadata: {
+              openai: {
+                itemId: 'fc_0742d30c1d273351016a6145f1dac0819fb0053980ae918c16',
+                caller: {
+                  type: 'program',
+                  callerId: 'call_O2IvSLQcJ0bwIvJZ2ovGV69M',
+                },
+              },
+            },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call_IYnPSr6i8TyBPs1H9U539pUP',
+            toolName: 'getDemand',
+            input: '{"sku":"sku_123"}',
+            providerMetadata: {
+              openai: {
+                itemId: 'fc_0742d30c1d273351016a6145f446e8819f9a2bd24df7057cd8',
+                caller: {
+                  type: 'program',
+                  callerId: 'call_O2IvSLQcJ0bwIvJZ2ovGV69M',
+                },
+              },
+            },
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call_O2IvSLQcJ0bwIvJZ2ovGV69M',
+            toolName: 'program',
+            result: {
+              result:
+                '{"sku":"sku_123","availableUnits":42,"requestedUnits":31,"sufficient":true}',
               status: 'completed',
             },
-          ],
-          usage: {
-            input_tokens: 10,
-            input_tokens_details: { cached_tokens: 0 },
-            output_tokens: 20,
-            output_tokens_details: { reasoning_tokens: 0 },
-          },
-        },
-      };
-
-      const result = await createModel('gpt-5.6').doGenerate({
-        prompt: TEST_PROMPT,
-        tools: [
-          {
-            type: 'provider',
-            id: 'openai.programmatic_tool_calling',
-            name: 'program',
-            args: {},
-          },
-          {
-            type: 'function',
-            name: 'get_inventory',
-            inputSchema: {
-              type: 'object',
-              properties: { sku: { type: 'string' } },
-              required: ['sku'],
-            },
-          },
-        ],
-      });
-
-      expect(result.content).toEqual([
-        {
-          type: 'tool-call',
-          toolCallId: 'program_call_1',
-          toolName: 'program',
-          input:
-            '{"code":"const value = await tools.get_inventory({ sku: \\"A\\" });","fingerprint":"fingerprint_1"}',
-          providerExecuted: true,
-          providerMetadata: {
-            openai: { itemId: 'program_item_1' },
-          },
-        },
-        {
-          type: 'tool-call',
-          toolCallId: 'function_call_1',
-          toolName: 'get_inventory',
-          input: '{"sku":"A"}',
-          providerMetadata: {
-            openai: {
-              itemId: 'function_item_1',
-              caller: {
-                type: 'program',
-                callerId: 'program_call_1',
+            providerMetadata: {
+              openai: {
+                itemId:
+                  'cmo_0742d30c1d273351016a6145f6ba7c819f93fcba5b06569347',
               },
             },
           },
-        },
-        {
-          type: 'tool-result',
-          toolCallId: 'program_call_1',
-          toolName: 'program',
-          result: {
-            result: '{"availableUnits":42}',
-            status: 'completed',
-          },
-          providerMetadata: {
-            openai: { itemId: 'program_output_item_1' },
-          },
-        },
-      ]);
+        ]),
+      );
+      expect(
+        content.some(
+          part =>
+            part.type === 'text' &&
+            part.text.includes('Inventory is sufficient for `sku_123`'),
+        ),
+      ).toBe(true);
     });
 
-    it('should stream program items and nested function caller metadata', async () => {
-      server.urls['https://api.openai.com/v1/responses'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          'data: {"type":"response.output_item.added","output_index":0,"item":{"type":"program","id":"program_item_1","call_id":"program_call_1","code":"const value = await tools.get_inventory({ sku: \\"A\\" });","fingerprint":"fingerprint_1"}}\n\n',
-          'data: {"type":"response.output_item.done","output_index":0,"item":{"type":"program","id":"program_item_1","call_id":"program_call_1","code":"const value = await tools.get_inventory({ sku: \\"A\\" });","fingerprint":"fingerprint_1"}}\n\n',
-          'data: {"type":"response.output_item.added","output_index":1,"item":{"type":"function_call","id":"function_item_1","call_id":"function_call_1","name":"get_inventory","arguments":"{\\"sku\\":\\"A\\"}","caller":{"type":"program","caller_id":"program_call_1"}}}\n\n',
-          'data: {"type":"response.output_item.done","output_index":1,"item":{"type":"function_call","id":"function_item_1","call_id":"function_call_1","name":"get_inventory","arguments":"{\\"sku\\":\\"A\\"}","status":"in_progress","caller":{"type":"program","caller_id":"program_call_1"}}}\n\n',
-          'data: {"type":"response.output_item.added","output_index":2,"item":{"type":"program_output","id":"program_output_item_1","call_id":"program_call_1","result":"{\\"availableUnits\\":42}","status":"completed"}}\n\n',
-          'data: {"type":"response.output_item.done","output_index":2,"item":{"type":"program_output","id":"program_output_item_1","call_id":"program_call_1","result":"{\\"availableUnits\\":42}","status":"completed"}}\n\n',
-          'data: {"type":"response.completed","response":{"incomplete_details":null,"usage":{"input_tokens":10,"input_tokens_details":{"cached_tokens":0},"output_tokens":20,"output_tokens_details":{"reasoning_tokens":0}},"reasoning":null,"service_tier":"default"}}\n\n',
-          'data: [DONE]\n\n',
-        ],
-      };
+    it('should stream programmatic tool calling across steps from real fixtures', async () => {
+      const parts: LanguageModelV4StreamPart[] = [];
 
-      const { stream } = await createModel('gpt-5.6').doStream({
-        prompt: TEST_PROMPT,
-        tools: [
-          {
-            type: 'provider',
-            id: 'openai.programmatic_tool_calling',
-            name: 'program',
-            args: {},
-          },
-          {
-            type: 'function',
-            name: 'get_inventory',
-            inputSchema: {
-              type: 'object',
-              properties: { sku: { type: 'string' } },
-              required: ['sku'],
-            },
-          },
-        ],
-      });
-
-      const parts = await convertReadableStreamToArray(stream);
+      for (const step of [1, 2, 3]) {
+        prepareChunksFixtureResponse(`programmatic-tool-calling.${step}`);
+        const { stream } = await createModel('gpt-5.6').doStream({
+          prompt: TEST_PROMPT,
+          tools,
+        });
+        parts.push(...(await convertReadableStreamToArray(stream)));
+      }
 
       expect(parts).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             type: 'tool-call',
-            toolCallId: 'program_call_1',
+            toolCallId: 'call_voPdoCqf8APY4DMpam3bdmxq',
             toolName: 'program',
             providerExecuted: true,
           }),
           expect.objectContaining({
             type: 'tool-call',
-            toolCallId: 'function_call_1',
+            toolCallId: 'call_VgDSZztLociNcutQZWkC2fmL',
+            toolName: 'getInventory',
             providerMetadata: {
               openai: {
-                itemId: 'function_item_1',
+                itemId: 'fc_0bac52ec5f239d30016a61460099bc8192a9ebe7381b9efd87',
                 caller: {
                   type: 'program',
-                  callerId: 'program_call_1',
+                  callerId: 'call_voPdoCqf8APY4DMpam3bdmxq',
+                },
+              },
+            },
+          }),
+          expect.objectContaining({
+            type: 'tool-call',
+            toolCallId: 'call_8GZvm5Bs4q0YSJIFH8hZeIcp',
+            toolName: 'getDemand',
+            providerMetadata: {
+              openai: {
+                itemId: 'fc_0bac52ec5f239d30016a6146031b5081928dcd2cd4ed0747ff',
+                caller: {
+                  type: 'program',
+                  callerId: 'call_voPdoCqf8APY4DMpam3bdmxq',
                 },
               },
             },
           }),
           expect.objectContaining({
             type: 'tool-result',
-            toolCallId: 'program_call_1',
+            toolCallId: 'call_voPdoCqf8APY4DMpam3bdmxq',
+            toolName: 'program',
             result: {
-              result: '{"availableUnits":42}',
+              result:
+                '{"inventory":{"availableUnits":42,"sku":"sku_123"},"demand":{"requestedUnits":31,"sku":"sku_123"}}',
               status: 'completed',
             },
           }),
         ]),
       );
+      expect(
+        parts
+          .filter(
+            (
+              part,
+            ): part is Extract<
+              LanguageModelV4StreamPart,
+              { type: 'text-delta' }
+            > => part.type === 'text-delta',
+          )
+          .map(part => part.delta)
+          .join(''),
+      ).toContain('Inventory is sufficient for `sku_123`');
     });
   });
 });

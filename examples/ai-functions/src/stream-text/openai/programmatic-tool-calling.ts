@@ -1,5 +1,5 @@
 import { openai, type OpenAIToolOptions } from '@ai-sdk/openai';
-import { generateText, isStepCount, tool } from 'ai';
+import { isStepCount, streamText, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -24,7 +24,9 @@ const demandOutputSchema: NonNullable<OpenAIToolOptions['outputSchema']> = {
 };
 
 run(async () => {
-  const result = await generateText({
+  let stepIndex = 0;
+
+  const result = streamText({
     model: openai('gpt-5.6'),
     stopWhen: isStepCount(10),
     prompt:
@@ -60,11 +62,28 @@ run(async () => {
       },
     },
     include: {
-      responseBody: true,
+      rawChunks: true,
+    },
+    onStepFinish: async ({ request, response }) => {
+      stepIndex++;
+      console.log(`\n${'='.repeat(60)}`);
+      console.log(`STEP ${stepIndex}`);
+      console.log(`${'='.repeat(60)}`);
     },
   });
 
-  console.log(JSON.stringify(result.content, null, 2));
+  console.log('\nStreaming:');
+  for await (const part of result.stream) {
+    console.log(JSON.stringify(part, null, 2));
+  }
+
+  const [text, steps] = await Promise.all([result.text, result.steps]);
+
+  console.log(`\n\n${'='.repeat(60)}`);
+  console.log('FINAL RESULT');
+  console.log(`${'='.repeat(60)}`);
+  console.log('Text:', text);
+  console.log('Steps:', steps.length);
 
   return result;
 });
