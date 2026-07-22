@@ -1,0 +1,34 @@
+{
+  "metrics": {
+    "latencyMs": 12753
+  },
+  "output": {
+    "message": {
+      "content": [
+        {
+          "reasoningContent": {
+            "reasoningText": {
+              "signature": "EuABCmUIEBABGAIqQAVpBHRYEMT8naJAL/360s5kWHr27f/UWj5X1RkWbf3RHsFdZTOIvjxIQJhgbPzwISVtaCeINcL46fcSWuZdhYwyD2NsYXVkZS1vcHVzLTQtNjgAQgh0aGlua2luZxIMYCxrksRoEXd3zDOuGgyMim1M3IhlCQj2ZrwiMArtok6RP7DmSAGmR3YudbM6Fkqrr1JJXwWIiZs61ppxGjyJ7LmPVI2NXJ2KM6tLzCopZAnv7L1MI52HpwENtapa03Cj/0Tq07YjMwgdmCYrKkeQHPK/OtSE1GUYAQ==",
+              "text": "<thinking>\nSimple enough."
+            }
+          }
+        },
+        {
+          "text": "{\"answer\":\"ok\"}"
+        }
+      ],
+      "role": "assistant"
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "cacheReadInputTokenCount": 0,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokenCount": 0,
+    "cacheWriteInputTokens": 0,
+    "inputTokens": 209,
+    "outputTokens": 36,
+    "serverToolUsage": {},
+    "totalTokens": 245
+  }
+}
