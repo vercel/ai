@@ -528,7 +528,7 @@ export function runPrompt<
             await input.onStopConditionMet?.();
             const { finishReason, usage } = pendingStopBoundary;
             releasePendingStopBoundary();
-            telemetry.end({ finishReason, usage });
+            await telemetry.end({ finishReason, usage });
             await result.finish();
             return;
           } else {

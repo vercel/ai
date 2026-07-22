@@ -288,7 +288,8 @@ describe('runPrompt telemetry lifecycle', () => {
       session: fakeSession([
         { type: 'stream-start' },
         { type: 'text-delta', id: 'text-1', delta: 'done' },
-        ...finishEvents,
+        finishEvents[0]!,
+        { type: 'text-delta', id: 'text-2', delta: 'ignored' },
       ]),
       prompt: 'go',
       instructions: undefined,
@@ -298,6 +299,7 @@ describe('runPrompt telemetry lifecycle', () => {
       sessionWorkDir: WORK_DIR,
       runtimeContext: {} as never,
       abortSignal: undefined,
+      stopConditions: [({ steps }) => steps.length === 1],
       telemetry: { integrations: [integration] },
     });
 
