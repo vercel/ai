@@ -133,8 +133,20 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       });
     }
 
+    const isAnthropicModel = this.modelId.includes('anthropic');
+    const isThinkingRequested =
+      bedrockOptions.reasoningConfig?.type === 'enabled' ||
+      bedrockOptions.reasoningConfig?.type === 'adaptive';
+    const useNativeStructuredOutput =
+      isAnthropicModel &&
+      isThinkingRequested &&
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null;
+
     const jsonResponseTool: LanguageModelV2FunctionTool | undefined =
-      responseFormat?.type === 'json' && responseFormat.schema != null
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      !useNativeStructuredOutput
         ? {
             type: 'function',
             name: 'json',
@@ -173,10 +185,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       };
     }
 
-    const isAnthropicModel = this.modelId.includes('anthropic');
     const thinkingType = bedrockOptions.reasoningConfig?.type;
-    const isThinkingRequested =
-      thinkingType === 'enabled' || thinkingType === 'adaptive';
     const thinkingBudget =
       thinkingType === 'enabled'
         ? bedrockOptions.reasoningConfig?.budgetTokens
@@ -253,7 +262,21 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       bedrockOptions.additionalModelRequestFields = {
         ...bedrockOptions.additionalModelRequestFields,
         output_config: {
+          ...bedrockOptions.additionalModelRequestFields?.output_config,
           effort: maxReasoningEffort,
+        },
+      };
+    }
+
+    if (useNativeStructuredOutput) {
+      bedrockOptions.additionalModelRequestFields = {
+        ...bedrockOptions.additionalModelRequestFields,
+        output_config: {
+          ...bedrockOptions.additionalModelRequestFields?.output_config,
+          format: {
+            type: 'json_schema',
+            schema: responseFormat.schema,
+          },
         },
       };
     }

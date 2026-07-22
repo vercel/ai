@@ -3239,6 +3239,67 @@ describe('doGenerate', () => {
     expect(requestBody).not.toHaveProperty('reasoningConfig');
   });
 
+  it('should use native structured output when thinking is enabled for Anthropic models', async () => {
+    prepareJsonResponse({
+      content: [{ type: 'text', text: '{"answer":"ok"}' }],
+      stopReason: 'end_turn',
+    });
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            answer: { type: 'string' },
+          },
+          required: ['answer'],
+          additionalProperties: false,
+          $schema: 'http://json-schema.org/draft-07/schema#',
+        },
+      },
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            budgetTokens: 1024,
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeUndefined();
+    expect(requestBody.additionalModelRequestFields).toEqual({
+      thinking: {
+        type: 'enabled',
+        budget_tokens: 1024,
+      },
+      output_config: {
+        format: {
+          type: 'json_schema',
+          schema: {
+            type: 'object',
+            properties: {
+              answer: { type: 'string' },
+            },
+            required: ['answer'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      },
+    });
+    expect(result.content).toEqual([
+      {
+        type: 'text',
+        text: '{"answer":"ok"}',
+      },
+    ]);
+  });
+
   it('merges user additionalModelRequestFields with derived thinking (generate)', async () => {
     prepareJsonResponse({});
 
