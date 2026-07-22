@@ -313,6 +313,8 @@ export function convertToGoogleGenerativeAIMessages(
       case 'assistant': {
         systemMessagesAllowed = false;
 
+        let modelResponseHasSignedFunctionCall = false;
+
         contents.push({
           role: 'model',
           parts: content
@@ -375,18 +377,27 @@ export function convertToGoogleGenerativeAIMessages(
                     providerOpts?.serverToolType != null
                       ? String(providerOpts.serverToolType)
                       : undefined;
-
-                  // For Gemini 3, every replayed functionCall part must carry a
-                  // thoughtSignature or the API returns HTTP 400. If the upstream
-                  // serialization layer dropped the signature, inject the
-                  // documented sentinel so the request still succeeds.
+                  const isServerToolCall =
+                    serverToolCallId != null && serverToolType != null;
+                  const shouldSkipMissingSignatureMitigation =
+                    // Gemini 3 returns a single signature for a parallel
+                    // function-call response on the first standard function
+                    // call. Subsequent standard function calls in the same
+                    // model response legitimately have no signature.
+                    !isServerToolCall &&
+                    thoughtSignature == null &&
+                    modelResponseHasSignedFunctionCall;
                   const effectiveThoughtSignature =
                     thoughtSignature ??
-                    (isGemini3Model
+                    (isGemini3Model && !shouldSkipMissingSignatureMitigation
                       ? injectSkipSignature(part.toolName)
                       : undefined);
 
-                  if (serverToolCallId && serverToolType) {
+                  if (!isServerToolCall && thoughtSignature != null) {
+                    modelResponseHasSignedFunctionCall = true;
+                  }
+
+                  if (isServerToolCall) {
                     return {
                       toolCall: {
                         toolType: serverToolType,
