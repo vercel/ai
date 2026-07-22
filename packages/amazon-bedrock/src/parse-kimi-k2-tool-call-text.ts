@@ -1,3 +1,5 @@
+import type { LanguageModelV2FunctionTool } from '@ai-sdk/provider';
+
 type ParsedToolCall = {
   toolCallId: string;
   toolName: string;
@@ -18,13 +20,14 @@ const xmlParameterPattern =
 
 export function parseKimiK2ToolCallText({
   text,
-  toolNames,
+  tools,
   generateId,
 }: {
   text: string;
-  toolNames: Set<string>;
+  tools: LanguageModelV2FunctionTool[];
   generateId: () => string;
 }): ParsedKimiK2ToolCallText | undefined {
+  const toolNames = new Set(tools.map(tool => tool.name));
   const matches: Array<{
     index: number;
     length: number;
@@ -89,6 +92,13 @@ export function parseKimiK2ToolCallText({
   }
 
   if (matches.length === 0) {
+    const bareToolCall = parseBareToolCall({ text, tools, generateId });
+    if (bareToolCall != null) {
+      matches.push(bareToolCall);
+    }
+  }
+
+  if (matches.length === 0) {
     return undefined;
   }
 
@@ -137,10 +147,97 @@ export function isDuplicateKimiK2ToolCallText({
   return toolCalls.some(toolCall => {
     const parsedInput = parseJson(toolCall.input);
     return (
-      parsedInput !== undefined &&
-      JSON.stringify(parsedInput) === JSON.stringify(parsedText)
+      parsedInput !== undefined && areJsonValuesEqual(parsedInput, parsedText)
     );
   });
+}
+
+export function isSameKimiK2ToolCall(
+  left: ParsedToolCall,
+  right: ParsedToolCall,
+) {
+  if (left.toolName !== right.toolName) {
+    return false;
+  }
+
+  const leftInput = parseJson(left.input);
+  const rightInput = parseJson(right.input);
+
+  return (
+    leftInput !== undefined &&
+    rightInput !== undefined &&
+    areJsonValuesEqual(leftInput, rightInput)
+  );
+}
+
+function parseBareToolCall({
+  text,
+  tools,
+  generateId,
+}: {
+  text: string;
+  tools: LanguageModelV2FunctionTool[];
+  generateId: () => string;
+}):
+  | {
+      index: number;
+      length: number;
+      toolCall: ParsedToolCall;
+    }
+  | undefined {
+  const match =
+    /(?:<\|tool_calls_section_begin\|>\s*)?(\{[\s\S]*\})\s*<\|tool_calls_section_end\|>\s*$/.exec(
+      text,
+    );
+  if (match == null) {
+    return undefined;
+  }
+
+  const input = parseJson(match[1]);
+  if (!isRecord(input)) {
+    return undefined;
+  }
+
+  const matchingTools = tools.filter(tool =>
+    matchesToolInputShape(input, tool.inputSchema),
+  );
+  if (matchingTools.length !== 1) {
+    return undefined;
+  }
+
+  return {
+    index: match.index,
+    length: match[0].length,
+    toolCall: {
+      toolCallId: generateId(),
+      toolName: matchingTools[0].name,
+      input: JSON.stringify(input),
+    },
+  };
+}
+
+function matchesToolInputShape(
+  input: Record<string, unknown>,
+  schema: LanguageModelV2FunctionTool['inputSchema'],
+) {
+  if (
+    schema.type != null &&
+    schema.type !== 'object' &&
+    !(Array.isArray(schema.type) && schema.type.includes('object'))
+  ) {
+    return false;
+  }
+
+  if (schema.properties == null) {
+    return false;
+  }
+
+  const inputKeys = Object.keys(input);
+  if (inputKeys.some(key => schema.properties?.[key] == null)) {
+    return false;
+  }
+
+  return (schema.required ?? []).every(key => key in input);
 }
 
 function extractThinkingText(text: string): {
@@ -180,4 +277,39 @@ function parseJson(value: string): unknown | undefined {
   } catch {
     return undefined;
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function areJsonValuesEqual(left: unknown, right: unknown): boolean {
+  if (left === right) {
+    return true;
+  }
+
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return (
+      Array.isArray(left) &&
+      Array.isArray(right) &&
+      left.length === right.length &&
+      left.every((value, index) => areJsonValuesEqual(value, right[index]))
+    );
+  }
+
+  if (!isRecord(left) || !isRecord(right)) {
+    return false;
+  }
+
+  const leftKeys = Object.keys(left).sort();
+  const rightKeys = Object.keys(right).sort();
+
+  return (
+    leftKeys.length === rightKeys.length &&
+    leftKeys.every(
+      (key, index) =>
+        key === rightKeys[index] &&
+        areJsonValuesEqual(left[key], right[rightKeys[index]]),
+    )
+  );
 }

@@ -39,6 +39,7 @@ import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages
 import { mapBedrockFinishReason } from './map-bedrock-finish-reason';
 import {
   isDuplicateKimiK2ToolCallText,
+  isSameKimiK2ToolCall,
   parseKimiK2ToolCallText,
 } from './parse-kimi-k2-tool-call-text';
 
@@ -48,6 +49,111 @@ type BedrockChatConfig = {
   fetch?: FetchFunction;
   generateId: () => string;
 };
+
+const kimiK2ToolCallPrefixes = [
+  '<think>',
+  '<|tool_calls_section_begin|>',
+  '<|tool_call_begin|>',
+  '<function=',
+];
+
+function processKimiK2TextDelta({
+  pendingText,
+  delta,
+  isToolCallCandidate,
+  hasStreamedNonWhitespace,
+}: {
+  pendingText: string;
+  delta: string;
+  isToolCallCandidate: boolean;
+  hasStreamedNonWhitespace: boolean;
+}): {
+  streamableText: string;
+  pendingText: string;
+  isToolCallCandidate: boolean;
+} {
+  const text = pendingText + delta;
+
+  if (isToolCallCandidate) {
+    return {
+      streamableText: '',
+      pendingText: text,
+      isToolCallCandidate: true,
+    };
+  }
+
+  const firstNonWhitespaceIndex = text.search(/\S/);
+  if (
+    !hasStreamedNonWhitespace &&
+    firstNonWhitespaceIndex !== -1 &&
+    text[firstNonWhitespaceIndex] === '{'
+  ) {
+    return {
+      streamableText: '',
+      pendingText: text,
+      isToolCallCandidate: true,
+    };
+  }
+
+  const toolCallPrefixIndex = kimiK2ToolCallPrefixes.reduce(
+    (earliestIndex, prefix) => {
+      const index = text.indexOf(prefix);
+      return index !== -1 && (earliestIndex === -1 || index < earliestIndex)
+        ? index
+        : earliestIndex;
+    },
+    -1,
+  );
+
+  if (toolCallPrefixIndex !== -1) {
+    const candidateIndex =
+      !hasStreamedNonWhitespace &&
+      text.slice(0, toolCallPrefixIndex).trim() === ''
+        ? 0
+        : toolCallPrefixIndex;
+
+    return {
+      streamableText: text.slice(0, candidateIndex),
+      pendingText: text.slice(candidateIndex),
+      isToolCallCandidate: true,
+    };
+  }
+
+  if (firstNonWhitespaceIndex === -1 && !hasStreamedNonWhitespace) {
+    return {
+      streamableText: '',
+      pendingText: text,
+      isToolCallCandidate: false,
+    };
+  }
+
+  let partialPrefixIndex = -1;
+  for (let index = text.length - 1; index >= 0; index--) {
+    const suffix = text.slice(index);
+    if (kimiK2ToolCallPrefixes.some(prefix => prefix.startsWith(suffix))) {
+      partialPrefixIndex = index;
+    }
+  }
+
+  if (partialPrefixIndex === -1) {
+    return {
+      streamableText: text,
+      pendingText: '',
+      isToolCallCandidate: false,
+    };
+  }
+
+  const pendingIndex =
+    !hasStreamedNonWhitespace && text.slice(0, partialPrefixIndex).trim() === ''
+      ? 0
+      : partialPrefixIndex;
+
+  return {
+    streamableText: text.slice(0, pendingIndex),
+    pendingText: text.slice(pendingIndex),
+    isToolCallCandidate: false,
+  };
+}
 
 export class BedrockChatLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
@@ -551,17 +657,15 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     let stopSequence: string | null = null;
     let hasParsedKimiK2ToolCall = false;
 
-    const functionToolNames = new Set(
+    const functionTools =
       options.tools
         ?.filter(
           (tool): tool is LanguageModelV2FunctionTool =>
             tool.type === 'function',
         )
-        .map(tool => tool.name) ?? [],
-    );
+        .map(tool => tool) ?? [];
     const shouldParseKimiK2ToolCalls =
-      this.modelId === 'moonshot.kimi-k2-thinking' &&
-      functionToolNames.size > 0;
+      this.modelId === 'moonshot.kimi-k2-thinking' && functionTools.length > 0;
     const generateId = this.config.generateId;
     const completedToolCalls: Array<{
       toolCallId: string;
@@ -578,8 +682,20 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
           jsonText: string;
           isJsonResponseTool?: boolean;
         }
-      | { type: 'text'; text?: string }
-      | { type: 'reasoning' }
+      | {
+          type: 'text';
+          text?: string;
+          isKimiToolCallCandidate?: boolean;
+          textStarted?: boolean;
+          hasStreamedNonWhitespace?: boolean;
+        }
+      | {
+          type: 'reasoning';
+          text?: string;
+          isKimiToolCallCandidate?: boolean;
+          reasoningStarted?: boolean;
+          hasStreamedNonWhitespace?: boolean;
+        }
     > = {};
 
     return {
@@ -596,6 +712,146 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
             function enqueueError(bedrockError: Record<string, any>) {
               finishReason = 'error';
               controller.enqueue({ type: 'error', error: bedrockError });
+            }
+
+            function enqueueTextDelta({
+              contentBlock,
+              blockId,
+              delta,
+            }: {
+              contentBlock: Extract<
+                (typeof contentBlocks)[number],
+                { type: 'text' }
+              >;
+              blockId: string;
+              delta: string;
+            }) {
+              if (delta === '') {
+                return;
+              }
+
+              if (!contentBlock.textStarted) {
+                controller.enqueue({
+                  type: 'text-start',
+                  id: blockId,
+                });
+                contentBlock.textStarted = true;
+              }
+
+              controller.enqueue({
+                type: 'text-delta',
+                id: blockId,
+                delta,
+              });
+              contentBlock.hasStreamedNonWhitespace ||= delta.trim() !== '';
+            }
+
+            function endText({
+              contentBlock,
+              blockId,
+            }: {
+              contentBlock: Extract<
+                (typeof contentBlocks)[number],
+                { type: 'text' }
+              >;
+              blockId: string;
+            }) {
+              if (!contentBlock.textStarted) {
+                return;
+              }
+
+              controller.enqueue({
+                type: 'text-end',
+                id: blockId,
+              });
+              contentBlock.textStarted = false;
+            }
+
+            function enqueueReasoningDelta({
+              contentBlock,
+              blockId,
+              delta,
+            }: {
+              contentBlock: Extract<
+                (typeof contentBlocks)[number],
+                { type: 'reasoning' }
+              >;
+              blockId: string;
+              delta: string;
+            }) {
+              if (delta === '') {
+                return;
+              }
+
+              if (!contentBlock.reasoningStarted) {
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: blockId,
+                });
+                contentBlock.reasoningStarted = true;
+              }
+
+              controller.enqueue({
+                type: 'reasoning-delta',
+                id: blockId,
+                delta,
+              });
+              contentBlock.hasStreamedNonWhitespace ||= delta.trim() !== '';
+            }
+
+            function endReasoning({
+              contentBlock,
+              blockId,
+            }: {
+              contentBlock: Extract<
+                (typeof contentBlocks)[number],
+                { type: 'reasoning' }
+              >;
+              blockId: string;
+            }) {
+              if (!contentBlock.reasoningStarted) {
+                return;
+              }
+
+              controller.enqueue({
+                type: 'reasoning-end',
+                id: blockId,
+              });
+              contentBlock.reasoningStarted = false;
+            }
+
+            function enqueueRecoveredToolCalls(
+              toolCalls: Array<{
+                toolCallId: string;
+                toolName: string;
+                input: string;
+              }>,
+            ) {
+              for (const toolCall of toolCalls) {
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  id: toolCall.toolCallId,
+                  toolName: toolCall.toolName,
+                });
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: toolCall.toolCallId,
+                  delta: toolCall.input,
+                });
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: toolCall.toolCallId,
+                });
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: toolCall.toolCallId,
+                  toolName: toolCall.toolName,
+                  input: toolCall.input,
+                });
+                completedToolCalls.push(toolCall);
+              }
+
+              hasParsedKimiK2ToolCall ||= toolCalls.length > 0;
             }
 
             // Emit raw chunk if requested (before anything else)
@@ -685,7 +941,12 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
               const blockIndex = value.contentBlockStart.contentBlockIndex;
               contentBlocks[blockIndex] = {
                 type: 'text',
-                ...(shouldParseKimiK2ToolCalls && { text: '' }),
+                ...(shouldParseKimiK2ToolCalls && {
+                  text: '',
+                  isKimiToolCallCandidate: false,
+                  textStarted: false,
+                  hasStreamedNonWhitespace: false,
+                }),
               };
 
               if (!shouldParseKimiK2ToolCalls) {
@@ -706,7 +967,12 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
               if (contentBlocks[blockIndex] == null) {
                 contentBlocks[blockIndex] = {
                   type: 'text',
-                  ...(shouldParseKimiK2ToolCalls && { text: '' }),
+                  ...(shouldParseKimiK2ToolCalls && {
+                    text: '',
+                    isKimiToolCallCandidate: false,
+                    textStarted: false,
+                    hasStreamedNonWhitespace: false,
+                  }),
                 };
 
                 if (!shouldParseKimiK2ToolCalls) {
@@ -719,7 +985,23 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
 
               const contentBlock = contentBlocks[blockIndex];
               if (contentBlock.type === 'text' && contentBlock.text != null) {
-                contentBlock.text += value.contentBlockDelta.delta.text;
+                const result = processKimiK2TextDelta({
+                  pendingText: contentBlock.text,
+                  delta: value.contentBlockDelta.delta.text,
+                  isToolCallCandidate:
+                    contentBlock.isKimiToolCallCandidate ?? false,
+                  hasStreamedNonWhitespace:
+                    contentBlock.hasStreamedNonWhitespace ?? false,
+                });
+
+                contentBlock.text = result.pendingText;
+                contentBlock.isKimiToolCallCandidate =
+                  result.isToolCallCandidate;
+                enqueueTextDelta({
+                  contentBlock,
+                  blockId: String(blockIndex),
+                  delta: result.streamableText,
+                });
               } else {
                 controller.enqueue({
                   type: 'text-delta',
@@ -735,10 +1017,64 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
 
               if (contentBlock != null) {
                 if (contentBlock.type === 'reasoning') {
-                  controller.enqueue({
-                    type: 'reasoning-end',
-                    id: String(blockIndex),
-                  });
+                  if (contentBlock.text == null) {
+                    endReasoning({
+                      contentBlock,
+                      blockId: String(blockIndex),
+                    });
+                  } else {
+                    const parsedToolCallText =
+                      contentBlock.isKimiToolCallCandidate
+                        ? parseKimiK2ToolCallText({
+                            text: contentBlock.text,
+                            tools: functionTools,
+                            generateId,
+                          })
+                        : undefined;
+
+                    if (parsedToolCallText != null) {
+                      const newToolCalls = parsedToolCallText.toolCalls.filter(
+                        parsedToolCall =>
+                          !completedToolCalls.some(completedToolCall =>
+                            isSameKimiK2ToolCall(
+                              completedToolCall,
+                              parsedToolCall,
+                            ),
+                          ),
+                      );
+
+                      const recoveredReasoningText = [
+                        parsedToolCallText.reasoningText,
+                        parsedToolCallText.text,
+                      ]
+                        .filter(
+                          (text): text is string =>
+                            text != null && text.trim() !== '',
+                        )
+                        .join('');
+
+                      enqueueReasoningDelta({
+                        contentBlock,
+                        blockId: String(blockIndex),
+                        delta: recoveredReasoningText,
+                      });
+                      endReasoning({
+                        contentBlock,
+                        blockId: String(blockIndex),
+                      });
+                      enqueueRecoveredToolCalls(newToolCalls);
+                    } else {
+                      enqueueReasoningDelta({
+                        contentBlock,
+                        blockId: String(blockIndex),
+                        delta: contentBlock.text,
+                      });
+                      endReasoning({
+                        contentBlock,
+                        blockId: String(blockIndex),
+                      });
+                    }
+                  }
                 } else if (contentBlock.type === 'text') {
                   if (contentBlock.text == null) {
                     controller.enqueue({
@@ -746,22 +1082,30 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                       id: String(blockIndex),
                     });
                   } else {
-                    const parsedToolCallText = parseKimiK2ToolCallText({
-                      text: contentBlock.text,
-                      toolNames: functionToolNames,
-                      generateId,
-                    });
+                    const parsedToolCallText =
+                      contentBlock.isKimiToolCallCandidate
+                        ? parseKimiK2ToolCallText({
+                            text: contentBlock.text,
+                            tools: functionTools,
+                            generateId,
+                          })
+                        : undefined;
 
                     if (parsedToolCallText != null) {
                       const newToolCalls = parsedToolCallText.toolCalls.filter(
                         parsedToolCall =>
-                          !completedToolCalls.some(
-                            completedToolCall =>
-                              completedToolCall.toolName ===
-                                parsedToolCall.toolName &&
-                              completedToolCall.input === parsedToolCall.input,
+                          !completedToolCalls.some(completedToolCall =>
+                            isSameKimiK2ToolCall(
+                              completedToolCall,
+                              parsedToolCall,
+                            ),
                           ),
                       );
+
+                      endText({
+                        contentBlock,
+                        blockId: String(blockIndex),
+                      });
 
                       if (parsedToolCallText.reasoningText != null) {
                         const reasoningId = `${blockIndex}:reasoning`;
@@ -781,65 +1125,38 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                       }
 
                       if (parsedToolCallText.text.trim() !== '') {
-                        controller.enqueue({
-                          type: 'text-start',
-                          id: String(blockIndex),
-                        });
-                        controller.enqueue({
-                          type: 'text-delta',
-                          id: String(blockIndex),
+                        const recoveredTextId = `${blockIndex}:recovered`;
+                        enqueueTextDelta({
+                          contentBlock,
+                          blockId: recoveredTextId,
                           delta: parsedToolCallText.text,
                         });
-                        controller.enqueue({
-                          type: 'text-end',
-                          id: String(blockIndex),
+                        endText({
+                          contentBlock,
+                          blockId: recoveredTextId,
                         });
                       }
 
-                      for (const toolCall of newToolCalls) {
-                        controller.enqueue({
-                          type: 'tool-input-start',
-                          id: toolCall.toolCallId,
-                          toolName: toolCall.toolName,
-                        });
-                        controller.enqueue({
-                          type: 'tool-input-delta',
-                          id: toolCall.toolCallId,
-                          delta: toolCall.input,
-                        });
-                        controller.enqueue({
-                          type: 'tool-input-end',
-                          id: toolCall.toolCallId,
-                        });
-                        controller.enqueue({
-                          type: 'tool-call',
-                          toolCallId: toolCall.toolCallId,
-                          toolName: toolCall.toolName,
-                          input: toolCall.input,
-                        });
-                        completedToolCalls.push(toolCall);
-                      }
-
-                      hasParsedKimiK2ToolCall ||= newToolCalls.length > 0;
+                      enqueueRecoveredToolCalls(newToolCalls);
                     } else if (
                       !isDuplicateKimiK2ToolCallText({
                         text: contentBlock.text,
                         toolCalls: completedToolCalls,
-                      }) &&
-                      contentBlock.text !== ''
+                      })
                     ) {
-                      controller.enqueue({
-                        type: 'text-start',
-                        id: String(blockIndex),
-                      });
-                      controller.enqueue({
-                        type: 'text-delta',
-                        id: String(blockIndex),
+                      enqueueTextDelta({
+                        contentBlock,
+                        blockId: String(blockIndex),
                         delta: contentBlock.text,
                       });
-                      controller.enqueue({
-                        type: 'text-end',
-                        id: String(blockIndex),
+                      endText({
+                        contentBlock,
+                        blockId: String(blockIndex),
+                      });
+                    } else {
+                      endText({
+                        contentBlock,
+                        blockId: String(blockIndex),
                       });
                     }
                   }
@@ -900,28 +1217,63 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
 
               if ('text' in reasoningContent && reasoningContent.text) {
                 if (contentBlocks[blockIndex] == null) {
-                  contentBlocks[blockIndex] = { type: 'reasoning' };
-                  controller.enqueue({
-                    type: 'reasoning-start',
-                    id: String(blockIndex),
-                  });
+                  contentBlocks[blockIndex] = {
+                    type: 'reasoning',
+                    ...(shouldParseKimiK2ToolCalls && {
+                      text: '',
+                      isKimiToolCallCandidate: false,
+                      reasoningStarted: false,
+                      hasStreamedNonWhitespace: false,
+                    }),
+                  };
                 }
 
-                controller.enqueue({
-                  type: 'reasoning-delta',
-                  id: String(blockIndex),
-                  delta: reasoningContent.text,
-                });
+                const contentBlock = contentBlocks[blockIndex];
+                if (
+                  contentBlock.type === 'reasoning' &&
+                  contentBlock.text != null
+                ) {
+                  const result = processKimiK2TextDelta({
+                    pendingText: contentBlock.text,
+                    delta: reasoningContent.text,
+                    isToolCallCandidate:
+                      contentBlock.isKimiToolCallCandidate ?? false,
+                    hasStreamedNonWhitespace:
+                      contentBlock.hasStreamedNonWhitespace ?? false,
+                  });
+
+                  contentBlock.text = result.pendingText;
+                  contentBlock.isKimiToolCallCandidate =
+                    result.isToolCallCandidate;
+                  enqueueReasoningDelta({
+                    contentBlock,
+                    blockId: String(blockIndex),
+                    delta: result.streamableText,
+                  });
+                } else if (contentBlock.type === 'reasoning') {
+                  enqueueReasoningDelta({
+                    contentBlock,
+                    blockId: String(blockIndex),
+                    delta: reasoningContent.text,
+                  });
+                }
               } else if (
                 'signature' in reasoningContent &&
                 reasoningContent.signature
               ) {
                 if (contentBlocks[blockIndex] == null) {
                   contentBlocks[blockIndex] = { type: 'reasoning' };
+                }
+                const contentBlock = contentBlocks[blockIndex];
+                if (
+                  contentBlock.type === 'reasoning' &&
+                  !contentBlock.reasoningStarted
+                ) {
                   controller.enqueue({
                     type: 'reasoning-start',
                     id: String(blockIndex),
                   });
+                  contentBlock.reasoningStarted = true;
                 }
                 controller.enqueue({
                   type: 'reasoning-delta',
@@ -936,10 +1288,17 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
               } else if ('data' in reasoningContent && reasoningContent.data) {
                 if (contentBlocks[blockIndex] == null) {
                   contentBlocks[blockIndex] = { type: 'reasoning' };
+                }
+                const contentBlock = contentBlocks[blockIndex];
+                if (
+                  contentBlock.type === 'reasoning' &&
+                  !contentBlock.reasoningStarted
+                ) {
                   controller.enqueue({
                     type: 'reasoning-start',
                     id: String(blockIndex),
                   });
+                  contentBlock.reasoningStarted = true;
                 }
                 controller.enqueue({
                   type: 'reasoning-delta',

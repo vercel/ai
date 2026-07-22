@@ -509,27 +509,22 @@ describe('doStream', () => {
     });
   });
 
-  it('should suppress Kimi K2 Thinking text that duplicates a structured tool call', async () => {
+  it('should recover Kimi K2 Thinking bare JSON tool calls emitted as text', async () => {
     setupMockEventStreamHandler();
     server.urls[kimiK2ThinkingStreamUrl].response = {
       type: 'stream-chunks',
       chunks: [
         JSON.stringify({
-          contentBlockStart: {
+          contentBlockDelta: {
             contentBlockIndex: 0,
-            start: {
-              toolUse: {
-                toolUseId: 'functions.read_file:0',
-                name: 'read_file',
-              },
-            },
+            delta: { text: '{"target_file": ' },
           },
         }) + '\n',
         JSON.stringify({
           contentBlockDelta: {
             contentBlockIndex: 0,
             delta: {
-              toolUse: { input: '{"target_file":"FILE1"}' },
+              text: '"FILE1"}  <|tool_calls_section_end|>',
             },
           },
         }) + '\n',
@@ -537,24 +532,90 @@ describe('doStream', () => {
           contentBlockStop: { contentBlockIndex: 0 },
         }) + '\n',
         JSON.stringify({
-          contentBlockDelta: {
-            contentBlockIndex: 1,
-            delta: { text: '{"target_file": ' },
-          },
+          messageStop: { stopReason: 'end_turn' },
         }) + '\n',
+      ],
+    };
+
+    const { stream } = await kimiK2ThinkingModel.doStream({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'function',
+          name: 'glob_search',
+          inputSchema: {
+            type: 'object',
+            properties: { pattern: { type: 'string' } },
+            required: ['pattern'],
+            additionalProperties: false,
+          },
+        },
+        {
+          type: 'function',
+          name: 'read_file',
+          inputSchema: {
+            type: 'object',
+            properties: { target_file: { type: 'string' } },
+            required: ['target_file'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(parts).toContainEqual({
+      type: 'tool-call',
+      toolCallId: 'generated-tool-call-id',
+      toolName: 'read_file',
+      input: '{"target_file":"FILE1"}',
+    });
+    expect(parts).toContainEqual({
+      type: 'finish',
+      finishReason: 'tool-calls',
+      usage: {
+        inputTokens: undefined,
+        outputTokens: undefined,
+        totalTokens: undefined,
+      },
+    });
+    expect(parts.filter(part => part.type === 'text-delta')).toEqual([]);
+  });
+
+  it('should recover Kimi K2 Thinking native marker tool calls emitted as text', async () => {
+    setupMockEventStreamHandler();
+    server.urls[kimiK2ThinkingStreamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
         JSON.stringify({
           contentBlockDelta: {
-            contentBlockIndex: 1,
+            contentBlockIndex: 0,
             delta: {
-              text: '"FILE1"} <|tool_calls_section_end|>',
+              text: '<|tool_calls_section_begin|><|tool_call_begin|>functions.read_file:0',
             },
           },
         }) + '\n',
         JSON.stringify({
-          contentBlockStop: { contentBlockIndex: 1 },
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: {
+              text: '<|tool_call_argument_begin|>{"target_file":"FILE1"}<|tool_call_end|>',
+            },
+          },
         }) + '\n',
         JSON.stringify({
-          messageStop: { stopReason: 'tool_use' },
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: '<|tool_calls_section_end|>' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStop: { contentBlockIndex: 0 },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: { stopReason: 'end_turn' },
         }) + '\n',
       ],
     };
@@ -578,12 +639,289 @@ describe('doStream', () => {
 
     const parts = await convertReadableStreamToArray(stream);
 
+    expect(parts).toContainEqual({
+      type: 'tool-call',
+      toolCallId: 'functions.read_file:0',
+      toolName: 'read_file',
+      input: '{"target_file":"FILE1"}',
+    });
+    expect(parts.filter(part => part.type === 'text-delta')).toEqual([]);
+  });
+
+  it('should incrementally stream ordinary Kimi K2 Thinking text when tools are available', async () => {
+    setupMockEventStreamHandler();
+    server.urls[kimiK2ThinkingStreamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockStart: {
+            contentBlockIndex: 0,
+            start: {},
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Hello' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: ', world!' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStop: { contentBlockIndex: 0 },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: { stopReason: 'end_turn' },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await kimiK2ThinkingModel.doStream({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'function',
+          name: 'read_file',
+          inputSchema: {
+            type: 'object',
+            properties: { target_file: { type: 'string' } },
+            required: ['target_file'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(parts.filter(part => part.type === 'text-delta')).toEqual([
+      {
+        type: 'text-delta',
+        id: '0',
+        delta: 'Hello',
+      },
+      {
+        type: 'text-delta',
+        id: '0',
+        delta: ', world!',
+      },
+    ]);
+  });
+
+  it('should recover Kimi K2 Thinking tool calls emitted in reasoning content', async () => {
+    setupMockEventStreamHandler();
+    server.urls[kimiK2ThinkingStreamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: {
+              reasoningContent: {
+                text: ' I\'ll call the tool now. <|tool_calls_section_begin|> <|tool_call_begin|> functions.read_file:0 <|tool_call_argument_begin|> {"target_file":"FILE1"} <|tool_call_end|> <|tool_calls_section_end|>',
+              },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStop: { contentBlockIndex: 0 },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: { stopReason: 'end_turn' },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await kimiK2ThinkingModel.doStream({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'function',
+          name: 'read_file',
+          inputSchema: {
+            type: 'object',
+            properties: { target_file: { type: 'string' } },
+            required: ['target_file'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(parts).toContainEqual({
+      type: 'reasoning-delta',
+      id: '0',
+      delta: " I'll call the tool now. ",
+    });
+    expect(parts).toContainEqual({
+      type: 'tool-call',
+      toolCallId: 'functions.read_file:0',
+      toolName: 'read_file',
+      input: '{"target_file":"FILE1"}',
+    });
+    expect(parts).toContainEqual({
+      type: 'finish',
+      finishReason: 'tool-calls',
+      usage: {
+        inputTokens: undefined,
+        outputTokens: undefined,
+        totalTokens: undefined,
+      },
+    });
+    expect(parts.filter(part => part.type === 'text-delta')).toEqual([]);
+  });
+
+  it('should incrementally stream ordinary Kimi K2 Thinking reasoning when tools are available', async () => {
+    setupMockEventStreamHandler();
+    server.urls[kimiK2ThinkingStreamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: {
+              reasoningContent: { text: 'I should answer' },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: {
+              reasoningContent: { text: ' without a tool.' },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStop: { contentBlockIndex: 0 },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: { stopReason: 'end_turn' },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await kimiK2ThinkingModel.doStream({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'function',
+          name: 'read_file',
+          inputSchema: {
+            type: 'object',
+            properties: { target_file: { type: 'string' } },
+            required: ['target_file'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(parts.filter(part => part.type === 'reasoning-delta')).toEqual([
+      {
+        type: 'reasoning-delta',
+        id: '0',
+        delta: 'I should answer',
+      },
+      {
+        type: 'reasoning-delta',
+        id: '0',
+        delta: ' without a tool.',
+      },
+    ]);
+  });
+
+  it('should suppress Kimi K2 Thinking text that duplicates a structured tool call', async () => {
+    setupMockEventStreamHandler();
+    server.urls[kimiK2ThinkingStreamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockStart: {
+            contentBlockIndex: 0,
+            start: {
+              toolUse: {
+                toolUseId: 'functions.read_file:0',
+                name: 'read_file',
+              },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: {
+              toolUse: {
+                input: '{"target_file":"FILE1","line_number":1}',
+              },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStop: { contentBlockIndex: 0 },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 1,
+            delta: { text: '{"line_number":1,' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 1,
+            delta: {
+              text: '"target_file":"FILE1"} <|tool_calls_section_end|>',
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStop: { contentBlockIndex: 1 },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: { stopReason: 'tool_use' },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await kimiK2ThinkingModel.doStream({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'function',
+          name: 'read_file',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              target_file: { type: 'string' },
+              line_number: { type: 'number' },
+            },
+            required: ['target_file', 'line_number'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+
     expect(parts.filter(part => part.type === 'tool-call')).toEqual([
       {
         type: 'tool-call',
         toolCallId: 'functions.read_file:0',
         toolName: 'read_file',
-        input: '{"target_file":"FILE1"}',
+        input: '{"target_file":"FILE1","line_number":1}',
       },
     ]);
     expect(parts.filter(part => part.type === 'text-delta')).toEqual([]);
