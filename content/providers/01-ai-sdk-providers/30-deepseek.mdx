@@ -270,7 +270,7 @@ const result = await generateText({
 console.log(result.providerMetadata);
 // Example output: { deepseek: { promptCacheHitTokens: 1856, promptCacheMissTokens: 5 } }
 
-console.log(result.usage.inputTokens.cacheRead);
+console.log(result.usage.inputTokenDetails.cacheReadTokens);
 ```
 
 The metrics include:
