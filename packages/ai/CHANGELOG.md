@@ -1,5 +1,14 @@
 # ai
 
+## 7.0.35
+
+### Patch Changes
+
+- 7f6650b: Return response piping promises so callers can catch stream read and write errors.
+- 106ea59: feat(ai): add per-step first content timeout for streaming generations
+- Updated dependencies [2112ff1]
+  - @ai-sdk/gateway@4.0.27
+
 ## 7.0.34
 
 ### Patch Changes
