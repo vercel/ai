@@ -1,0 +1,29 @@
+{
+  "additionalModelResponseFields": {
+    "stop_sequence": null
+  },
+  "metrics": {
+    "latencyMs": 1278
+  },
+  "output": {
+    "message": {
+      "content": [
+        {
+          "text": "Hello! How can I help you today?"
+        }
+      ],
+      "role": "assistant"
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "cacheReadInputTokenCount": 0,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokenCount": 0,
+    "cacheWriteInputTokens": 0,
+    "inputTokens": 10,
+    "outputTokens": 12,
+    "serverToolUsage": {},
+    "totalTokens": 22
+  }
+}

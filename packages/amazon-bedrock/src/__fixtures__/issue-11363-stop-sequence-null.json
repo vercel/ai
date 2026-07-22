@@ -1,0 +1,36 @@
+{
+  "additionalModelResponseFields": {
+    "stop_sequence": null
+  },
+  "metrics": {
+    "latencyMs": 2025
+  },
+  "output": {
+    "message": {
+      "content": [
+        {
+          "toolUse": {
+            "input": {
+              "query": "SELECT Id FROM Account"
+            },
+            "name": "querySalesforce",
+            "toolUseId": "tooluse_j6gIgqF8PljNKBylAe15oP",
+            "type": "tool_use"
+          }
+        }
+      ],
+      "role": "assistant"
+    }
+  },
+  "stopReason": "tool_use",
+  "usage": {
+    "cacheReadInputTokenCount": 0,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokenCount": 0,
+    "cacheWriteInputTokens": 0,
+    "inputTokens": 674,
+    "outputTokens": 36,
+    "serverToolUsage": {},
+    "totalTokens": 710
+  }
+}
