@@ -7,6 +7,7 @@ export type OpenCodeEvent = {
 type Emit = (msg: Record<string, unknown>) => void;
 
 export type TranslationState = {
+  streamStarted: boolean;
   textDeltas: Map<string, string>;
   reasoningDeltas: Map<string, string>;
   toolInputs: Map<string, string>;
@@ -24,6 +25,7 @@ export type TranslationState = {
 
 export function createTranslationState(): TranslationState {
   return {
+    streamStarted: false,
     textDeltas: new Map(),
     reasoningDeltas: new Map(),
     toolInputs: new Map(),
@@ -38,6 +40,25 @@ export function createTranslationState(): TranslationState {
     legacyReasoningPartIds: new Set(),
     legacyStepFinishPartIds: new Set(),
   };
+}
+
+export function emitOpenCodeStreamStart({
+  info,
+  state,
+  emit,
+}: {
+  info: unknown;
+  state: TranslationState;
+  emit: Emit;
+}): void {
+  if (state.streamStarted || !isRecord(info)) return;
+  if (info.role !== 'assistant' && info.type !== 'assistant') return;
+  const providerID = stringValue(info.providerID);
+  const modelID = stringValue(info.modelID);
+  if (!providerID || !modelID) return;
+
+  state.streamStarted = true;
+  emit({ type: 'stream-start', modelId: `${providerID}/${modelID}` });
 }
 
 export function unwrapOpenCodeEvent(
