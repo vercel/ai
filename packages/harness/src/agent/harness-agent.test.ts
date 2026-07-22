@@ -13,7 +13,7 @@ import type {
   HarnessV1ToolSpec,
 } from '../v1';
 import { tool } from '@ai-sdk/provider-utils';
-import { NoSuchToolError } from 'ai';
+import { isStepCount, NoSuchToolError } from 'ai';
 import { describe, expect, test, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { HarnessAgent } from './harness-agent';
@@ -341,6 +341,153 @@ describe('HarnessAgent', () => {
     expect(agent.id).toBe('a1');
     expect(agent.harnessId).toBe('mock');
     expect(agent.tools).toEqual({});
+  });
+
+  test('does not limit steps when stopWhen is omitted', async () => {
+    const step = finishEvents()[0]!;
+    const { harness, doSuspendTurn } = mockHarness({
+      script: () => [
+        ...Array.from({ length: 21 }, () => step),
+        finishEvents()[1]!,
+      ],
+    });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+    });
+    const session = await agent.createSession();
+
+    const result = await agent.generate({ session, prompt: 'keep going' });
+
+    expect(result.steps).toHaveLength(21);
+    expect(session.hasUnfinishedTurn()).toBe(false);
+    expect(doSuspendTurn).not.toHaveBeenCalled();
+    await session.destroy();
+  });
+
+  test('generate() stops after a configured step and reuses its captured suspension state', async () => {
+    const predicateStepCounts: number[] = [];
+    const { harness, doSuspendTurn } = mockHarness({
+      script: () => [
+        finishEvents()[0]!,
+        finishEvents()[0]!,
+        finishEvents()[1]!,
+      ],
+    });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      stopWhen: [
+        ({ steps }) => {
+          predicateStepCounts.push(steps.length);
+          return false;
+        },
+        async ({ steps }) => steps.length === 1,
+      ],
+    });
+    const session = await agent.createSession();
+
+    const result = await agent.generate({ session, prompt: 'one step' });
+
+    expect(result.steps).toHaveLength(1);
+    expect(predicateStepCounts).toEqual([1]);
+    expect(session.hasUnfinishedTurn()).toBe(true);
+    expect(doSuspendTurn).toHaveBeenCalledTimes(1);
+
+    await expect(session.suspendTurn()).resolves.toEqual({
+      type: 'continue-turn',
+      harnessId: 'mock',
+      specificationVersion: 'harness-v1',
+      data: {},
+    });
+    expect(doSuspendTurn).toHaveBeenCalledTimes(1);
+  });
+
+  test('stream() and continued turns apply stopWhen independently', async () => {
+    let continuationCount = 0;
+    const continuingTurn = (): HarnessV1StreamPart[] => [
+      finishEvents()[0]!,
+      { type: 'text-delta', id: 'next-step', delta: 'next' },
+    ];
+    const { harness, doSuspendTurn } = mockHarness({
+      script: continuingTurn,
+      continueScript: () => {
+        continuationCount += 1;
+        return continuationCount <= 2 ? continuingTurn() : [finishEvents()[1]!];
+      },
+    });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      stopWhen: isStepCount(1),
+    });
+
+    let session = await agent.createSession();
+    const first = await agent.stream({ session, prompt: 'one step at a time' });
+    await first.consumeStream();
+    await expect(first.steps).resolves.toHaveLength(1);
+    let continueFrom = await session.suspendTurn();
+
+    session = await agent.createSession({
+      sessionId: session.sessionId,
+      continueFrom,
+    });
+    const second = await agent.continueStream({ session });
+    await second.consumeStream();
+    await expect(second.steps).resolves.toHaveLength(1);
+    continueFrom = await session.suspendTurn();
+
+    session = await agent.createSession({
+      sessionId: session.sessionId,
+      continueFrom,
+    });
+    const third = await agent.continueGenerate({ session });
+    expect(third.steps).toHaveLength(1);
+    continueFrom = await session.suspendTurn();
+
+    session = await agent.createSession({
+      sessionId: session.sessionId,
+      continueFrom,
+    });
+    const terminal = await agent.continueGenerate({ session });
+
+    expect(terminal.steps).toHaveLength(0);
+    expect(session.hasUnfinishedTurn()).toBe(false);
+    expect(doSuspendTurn).toHaveBeenCalledTimes(3);
+    await session.destroy();
+  });
+
+  test('stopWhen lets a terminal text-only step finish the turn naturally', async () => {
+    const { harness, doSuspendTurn } = mockHarness({
+      script: () => [
+        { type: 'text-delta', id: 't1', delta: 'done' },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          usage: zeroUsage(),
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          totalUsage: zeroUsage(),
+        },
+      ],
+    });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      stopWhen: isStepCount(1),
+    });
+    const session = await agent.createSession();
+
+    const result = await agent.generate({ session, prompt: 'finish' });
+
+    expect(result.text).toBe('done');
+    expect(result.steps).toHaveLength(1);
+    expect(result.finishReason).toBe('stop');
+    expect(session.hasUnfinishedTurn()).toBe(false);
+    expect(doSuspendTurn).not.toHaveBeenCalled();
+    await session.destroy();
   });
 
   test('generate() returns text + steps for a simple text-only turn', async () => {

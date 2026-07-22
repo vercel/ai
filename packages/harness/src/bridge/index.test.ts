@@ -113,9 +113,13 @@ describe('runBridge', () => {
     expect(events.map(e => e.seq)).toEqual([1, 2, 3]);
   });
 
-  it('replaces the active connection (single-flight) and replays past the cursor on resume', async () => {
+  it('withholds live events from a replacement connection until replay completes', async () => {
     let release!: () => void;
     const gate = new Promise<void>(r => (release = r));
+    let resolveTurnFinished!: () => void;
+    const turnFinished = new Promise<void>(resolve => {
+      resolveTurnFinished = resolve;
+    });
     const handle = await startBridge(async (_start, turn) => {
       turn.emit({ type: 'text-delta', delta: 'one' }); // seq 1
       turn.emit({ type: 'text-delta', delta: 'two' }); // seq 2
@@ -124,6 +128,7 @@ describe('runBridge', () => {
       // aborted by the disconnect.
       turn.emit({ type: 'text-delta', delta: 'three' }); // seq 3
       turn.emit({ type: 'finish' }); // seq 4
+      resolveTurnFinished();
     });
 
     const a = await connect(handle.port);
@@ -135,15 +140,24 @@ describe('runBridge', () => {
     a.close();
     const b = await connect(handle.port);
     await b.waitFor(f => f.type === 'bridge-hello');
-    b.send({ type: 'resume', lastSeenEventId: 2 });
 
     // Let the turn finish; B must receive only seq > 2 (no replay of 1/2).
     release();
-    await b.waitFor(f => f.type === 'finish');
+    await turnFinished;
 
-    const deltas = b.frames.filter(f => f.type === 'text-delta');
-    expect(deltas.map(d => d.delta)).toEqual(['three']);
-    expect(b.frames.filter(f => f.type === 'finish')).toHaveLength(1);
+    b.send({ type: 'resume', lastSeenEventId: 2 });
+    b.send({ type: 'interrupt' });
+    await b.waitFor(f => f.type === 'bridge-interrupted');
+
+    const events = b.frames.filter(f => typeof f.seq === 'number');
+    expect(events).toEqual([
+      expect.objectContaining({
+        type: 'text-delta',
+        delta: 'three',
+        seq: 3,
+      }),
+      expect.objectContaining({ type: 'finish', seq: 4 }),
+    ]);
   });
 
   it('routes a host tool result back to the awaiting requestToolResult', async () => {

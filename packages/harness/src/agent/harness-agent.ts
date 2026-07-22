@@ -6,6 +6,7 @@ import type {
   HarnessV1SandboxProvider,
 } from '../v1';
 import {
+  asArray,
   asSchema,
   generateId,
   type Context,
@@ -19,6 +20,7 @@ import type {
   GenerateTextResult,
   ReasoningFileOutput,
   ReasoningOutput,
+  StopCondition,
   StreamTextResult,
 } from 'ai';
 import type {
@@ -133,7 +135,14 @@ export class HarnessAgent<
    */
   readonly tools: HarnessAllTools<THarness, TUserTools>;
 
-  private readonly settings: HarnessAgentSettings<THarness, TUserTools>;
+  private readonly settings: HarnessAgentSettings<
+    THarness,
+    TUserTools,
+    RUNTIME_CONTEXT
+  >;
+  private readonly stopConditions: Array<
+    StopCondition<HarnessAllTools<THarness, TUserTools>, RUNTIME_CONTEXT>
+  >;
   private readonly sandboxConfig: HarnessAgentSandboxConfig;
   private readonly activeUserTools: TUserTools;
   private readonly builtinToolFiltering:
@@ -141,10 +150,14 @@ export class HarnessAgent<
     | undefined;
   private readonly permissionMode: HarnessAgentPermissionMode;
 
-  constructor(settings: HarnessAgentSettings<THarness, TUserTools>) {
+  constructor(
+    settings: HarnessAgentSettings<THarness, TUserTools, RUNTIME_CONTEXT>,
+  ) {
     const sandboxConfig = resolveSandboxConfig(settings);
     validateSandboxBootstrapSettings(sandboxConfig);
     this.settings = settings;
+    this.stopConditions =
+      settings.stopWhen == null ? [] : asArray(settings.stopWhen);
     this.sandboxConfig = sandboxConfig;
     this.id = settings.id;
     const userTools = settings.tools ?? ({} as TUserTools);
@@ -528,6 +541,7 @@ export class HarnessAgent<
         runtimeContext: input.runtimeContext,
         abortSignal: input.abortSignal,
         telemetry: this.settings.telemetry,
+        stopConditions: this.stopConditions,
         toolApprovalContinuations: input.turnInput.toolApprovalContinuations,
         toolResultContinuations: input.turnInput.toolResultContinuations,
       });
@@ -546,6 +560,7 @@ export class HarnessAgent<
       runtimeContext: input.runtimeContext,
       abortSignal: input.abortSignal,
       telemetry: this.settings.telemetry,
+      stopConditions: this.stopConditions,
     });
   }
 

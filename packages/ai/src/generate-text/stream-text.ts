@@ -34,6 +34,7 @@ import { prepareTools } from '../prompt/prepare-tools';
 import type { Prompt } from '../prompt/prompt';
 import {
   getChunkTimeoutMs,
+  getFirstChunkTimeoutMs,
   getStepTimeoutMs,
   getTotalTimeoutMs,
   type RequestOptions,
@@ -157,28 +158,29 @@ const originalGenerateCallId = createIdGenerator({
   size: 24,
 });
 
-// chunk types that count as model output; used to distinguish empty
-// incomplete streams from incomplete streams with partial results.
-// exhaustive so that new chunk types must be classified explicitly:
+// Chunk types that contain semantic model output. This classification is used
+// for first-content and inter-content timeouts as well as to distinguish empty
+// incomplete streams from incomplete streams with partial results. It is
+// exhaustive so that new chunk types must be classified explicitly.
 const isOutputChunkType = {
   file: true,
-  custom: true,
-  source: true,
-  'text-start': true,
-  'text-end': true,
+  custom: false,
+  source: false,
+  'text-start': false,
+  'text-end': false,
   'text-delta': true,
-  'reasoning-start': true,
-  'reasoning-end': true,
+  'reasoning-start': false,
+  'reasoning-end': false,
   'reasoning-delta': true,
   'reasoning-file': true,
-  'tool-input-start': true,
-  'tool-input-end': true,
+  'tool-input-start': false,
+  'tool-input-end': false,
   'tool-input-delta': true,
-  'tool-approval-request': true,
-  'tool-approval-response': true,
+  'tool-approval-request': false,
+  'tool-approval-response': false,
   'tool-call': true,
-  'tool-result': true,
-  'tool-error': true,
+  'tool-result': false,
+  'tool-error': false,
   'tool-execution-end': false,
   'model-call-start': false,
   'model-call-response-metadata': false,
@@ -186,6 +188,26 @@ const isOutputChunkType = {
   error: false,
   raw: false,
 } as const satisfies Record<ExecuteToolsStreamPart['type'], boolean>;
+
+function isOutputChunk(chunk: ExecuteToolsStreamPart): boolean {
+  if (!isOutputChunkType[chunk.type]) {
+    return false;
+  }
+
+  switch (chunk.type) {
+    case 'text-delta':
+    case 'reasoning-delta':
+      return chunk.text.length > 0;
+    case 'tool-input-delta':
+      return chunk.delta.length > 0;
+    case 'file':
+    case 'reasoning-file':
+    case 'tool-call':
+      return true;
+    default:
+      return false;
+  }
+}
 
 export type StreamTextInclude = {
   /**
@@ -716,9 +738,12 @@ export function streamText<
   }): StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
+  const firstChunkTimeoutMs = getFirstChunkTimeoutMs(timeout);
   const chunkTimeoutMs = getChunkTimeoutMs(timeout);
   const stepAbortController =
     stepTimeoutMs != null ? new AbortController() : undefined;
+  const firstChunkAbortController =
+    firstChunkTimeoutMs != null ? new AbortController() : undefined;
   const chunkAbortController =
     chunkTimeoutMs != null ? new AbortController() : undefined;
   const resolvedOnStart = onStart ?? experimental_onStart;
@@ -742,10 +767,13 @@ export function streamText<
       abortSignal,
       totalTimeoutMs,
       stepAbortController?.signal,
+      firstChunkAbortController?.signal,
       chunkAbortController?.signal,
     ),
     stepTimeoutMs,
     stepAbortController,
+    firstChunkTimeoutMs,
+    firstChunkAbortController,
     chunkTimeoutMs,
     chunkAbortController,
     instructions,
@@ -930,6 +958,10 @@ class DefaultStreamTextResult<
 
   private readonly addStream: (
     stream: ReadableStream<TextStreamPart<TOOLS>>,
+    callbacks?: {
+      onError?: (error: unknown) => void;
+      onCancel?: () => void;
+    },
   ) => void;
 
   private readonly closeStream: () => void;
@@ -951,6 +983,8 @@ class DefaultStreamTextResult<
     abortSignal,
     stepTimeoutMs,
     stepAbortController,
+    firstChunkTimeoutMs,
+    firstChunkAbortController,
     chunkTimeoutMs,
     chunkAbortController,
     instructions,
@@ -1000,6 +1034,8 @@ class DefaultStreamTextResult<
     abortSignal: AbortSignal | undefined;
     stepTimeoutMs: number | undefined;
     stepAbortController: AbortController | undefined;
+    firstChunkTimeoutMs: number | undefined;
+    firstChunkAbortController: AbortController | undefined;
     chunkTimeoutMs: number | undefined;
     chunkAbortController: AbortController | undefined;
     toolsContext: InferToolSetContext<TOOLS>;
@@ -1771,7 +1807,32 @@ class DefaultStreamTextResult<
           timeoutMs: stepTimeoutMs,
         });
 
-        // Set up chunk timeout tracking (will be reset on each chunk)
+        // The first-content timeout is armed when the provider response stream
+        // starts and is cleared by the first semantic output chunk.
+        let firstChunkTimeoutId: ReturnType<typeof setTimeout> | undefined =
+          undefined;
+
+        function startFirstChunkTimeout() {
+          if (abortSignal?.aborted) {
+            return;
+          }
+
+          firstChunkTimeoutId = setAbortTimeout({
+            abortController: firstChunkAbortController,
+            label: 'First chunk',
+            timeoutMs: firstChunkTimeoutMs,
+          });
+        }
+
+        function clearFirstChunkTimeout() {
+          if (firstChunkTimeoutId != null) {
+            clearTimeout(firstChunkTimeoutId);
+            firstChunkTimeoutId = undefined;
+          }
+        }
+
+        // Chunk timeout tracking starts after semantic output begins and is
+        // reset only by subsequent semantic output chunks.
         let chunkTimeoutId: ReturnType<typeof setTimeout> | undefined =
           undefined;
 
@@ -1799,12 +1860,24 @@ class DefaultStreamTextResult<
           }
         }
 
+        function clearStepTimeouts() {
+          clearStepTimeout();
+          clearFirstChunkTimeout();
+          clearChunkTimeout();
+        }
+
+        function cleanupStepTimeouts() {
+          abortSignal?.removeEventListener('abort', cleanupStepTimeouts);
+          clearStepTimeouts();
+        }
+
         // The step's stream is registered lazily and consumed long after this
-        // function returns, so the step timer must stay armed past setup. When
-        // the merged abort signal fires (any step/chunk/total timeout or caller
-        // abort), drop both step-scoped timers so neither outlives the step.
-        abortSignal?.addEventListener('abort', clearStepTimeout);
-        abortSignal?.addEventListener('abort', clearChunkTimeout);
+        // function returns, so its timers must stay armed past setup. When the
+        // merged abort signal fires, drop all step-scoped timers so none
+        // outlives the step.
+        abortSignal?.addEventListener('abort', cleanupStepTimeouts, {
+          once: true,
+        });
 
         try {
           stepFinish = new DelayedPromise<void>();
@@ -1967,6 +2040,8 @@ class DefaultStreamTextResult<
             ),
           );
 
+          startFirstChunkTimeout();
+
           const streamAfterToolCallbackInvocation =
             invokeToolCallbacksFromStream({
               stream: languageModelStream,
@@ -2076,8 +2151,6 @@ class DefaultStreamTextResult<
                 TextStreamPart<TOOLS>
               >({
                 async transform(chunk, controller): Promise<void> {
-                  resetChunkTimeout();
-
                   if (chunk.type === 'model-call-start') {
                     warnings = chunk.warnings;
                     return; // stream start chunks are sent immediately and do not count as first chunk
@@ -2096,8 +2169,14 @@ class DefaultStreamTextResult<
 
                   const chunkType = chunk.type;
 
-                  if (isOutputChunkType[chunkType]) {
+                  if (isOutputChunk(chunk)) {
+                    if (!hasReceivedOutputChunk) {
+                      // Clear before forwarding the first output so a timeout
+                      // cannot race with already-visible generated content.
+                      clearFirstChunkTimeout();
+                    }
                     hasReceivedOutputChunk = true;
+                    resetChunkTimeout();
                   }
 
                   switch (chunkType) {
@@ -2217,8 +2296,7 @@ class DefaultStreamTextResult<
                       }),
                     });
 
-                    clearStepTimeout();
-                    clearChunkTimeout();
+                    cleanupStepTimeouts();
                     self.closeStream();
                     return;
                   }
@@ -2298,9 +2376,8 @@ class DefaultStreamTextResult<
                     }
                   }
 
-                  // Clear the step and chunk timeouts before the next step is started
-                  clearStepTimeout();
-                  clearChunkTimeout();
+                  // Clear this step's timeouts before the next step is started.
+                  cleanupStepTimeouts();
 
                   if (
                     // Continue if:
@@ -2345,12 +2422,15 @@ class DefaultStreamTextResult<
                 },
               }),
             ),
+            {
+              onError: cleanupStepTimeouts,
+              onCancel: cleanupStepTimeouts,
+            },
           );
         } catch (error) {
           // Setup failed before the stream was registered, so neither the
           // stream's flush nor an abort will clear the timers — clear them here.
-          clearStepTimeout();
-          clearChunkTimeout();
+          cleanupStepTimeouts();
           throw error;
         }
       }
