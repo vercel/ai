@@ -5561,6 +5561,48 @@ describe('convertToOpenAIResponsesInput', () => {
   });
 
   describe('programmatic tool calling', () => {
+    it('should preserve the program output item reference from provider metadata', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'program_call_1',
+                toolName: 'program',
+                output: {
+                  type: 'json',
+                  value: {
+                    result: '{"availableUnits":42}',
+                    status: 'completed',
+                  },
+                },
+                ...({
+                  providerMetadata: {
+                    openai: { itemId: 'program_output_item_1' },
+                  },
+                } as object),
+              },
+            ],
+          },
+        ],
+        toolNameMapping: {
+          toProviderToolName: name =>
+            name === 'program' ? 'programmatic_tool_calling' : name,
+          toCustomToolName: name =>
+            name === 'programmatic_tool_calling' ? 'program' : name,
+        },
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        { type: 'item_reference', id: 'program_output_item_1' },
+      ]);
+    });
+
     it('should replay program items and preserve nested function caller linkage', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [

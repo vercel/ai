@@ -662,7 +662,15 @@ export async function convertToOpenAIResponsesInput({
 
               if (resolvedResultToolName === 'programmatic_tool_calling') {
                 const itemId = (part.providerOptions?.[providerOptionsName]
-                  ?.itemId ?? part.toolCallId) as string;
+                  ?.itemId ??
+                  (
+                    part as {
+                      providerMetadata?: {
+                        [providerOptionsName]?: { itemId?: string };
+                      };
+                    }
+                  ).providerMetadata?.[providerOptionsName]?.itemId ??
+                  part.toolCallId) as string;
 
                 if (store) {
                   input.push({ type: 'item_reference', id: itemId });
