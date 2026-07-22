@@ -187,6 +187,40 @@ describe('TensorlakeSandboxSession', () => {
         expect.any(Uint8Array),
       );
     });
+
+    it('creates empty files via truncate, not writeFile', async () => {
+      // Tensorlake's `writeFile` POSTs the body with no `Content-Length`
+      // header; an empty body triggers `411 Length Required`. Empty writes
+      // must go through the shell instead. The harness bootstrap writes an
+      // empty marker file on every session, so this path must work.
+      const { sandbox, spies } = makeMockSandbox();
+
+      await new TensorlakeSandboxSession(sandbox).writeBinaryFile({
+        path: '/home/tl-user/marker.ok',
+        content: new Uint8Array(0),
+      });
+
+      expect(spies.run).toHaveBeenCalledWith('truncate', {
+        args: ['-s', '0', '/home/tl-user/marker.ok'],
+      });
+      expect(spies.writeFile).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('writeTextFile', () => {
+    it('creates empty files via truncate, not writeFile', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+
+      await new TensorlakeSandboxSession(sandbox).writeTextFile({
+        path: '/home/tl-user/marker.ok',
+        content: '',
+      });
+
+      expect(spies.run).toHaveBeenCalledWith('truncate', {
+        args: ['-s', '0', '/home/tl-user/marker.ok'],
+      });
+      expect(spies.writeFile).not.toHaveBeenCalled();
+    });
   });
 
   describe('spawn', () => {

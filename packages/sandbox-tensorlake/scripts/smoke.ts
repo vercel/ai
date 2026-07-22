@@ -51,6 +51,23 @@ async function main() {
       throw new Error(`file round-trip mismatch: got ${JSON.stringify(text)}`);
     }
 
+    step('writeTextFile with empty content (marker-file case)');
+    // Empty writes must not hit Tensorlake's `writeFile` (its empty POST body
+    // has no Content-Length and returns 411). The harness bootstrap writes an
+    // empty marker file on every session, so this must succeed.
+    await restricted.writeTextFile({
+      path: `${WORKDIR}/marker.ok`,
+      content: '',
+    });
+    const marker = await restricted.readFile({ path: `${WORKDIR}/marker.ok` });
+    const markerText = marker ? await new Response(marker).text() : '<null>';
+    console.log(`empty file read back: ${JSON.stringify(markerText)}`);
+    if (markerText !== '') {
+      throw new Error(
+        `empty file round-trip mismatch: got ${JSON.stringify(markerText)}`,
+      );
+    }
+
     step('run() a command');
     const run = await restricted.run({
       command: 'echo stdout-line && echo stderr-line 1>&2 && exit 7',

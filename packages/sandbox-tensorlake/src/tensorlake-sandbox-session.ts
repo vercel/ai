@@ -185,6 +185,15 @@ export class TensorlakeSandboxSession implements Experimental_SandboxSession {
       // explicitly so writes to nested paths succeed.
       await this.sandbox.run('mkdir', { args: ['-p', parent] });
     }
+    if (content.byteLength === 0) {
+      // Tensorlake's `writeFile` POSTs the body without a `Content-Length`
+      // header; an empty body makes the API reject the request with
+      // `411 Length Required`. Create (or truncate to) the empty file via the
+      // shell instead. The harness bootstrap writes an empty marker file on
+      // every session, so this path must work.
+      await this.sandbox.run('truncate', { args: ['-s', '0', path] });
+      return;
+    }
     await this.sandbox.writeFile(path, content);
   }
 
