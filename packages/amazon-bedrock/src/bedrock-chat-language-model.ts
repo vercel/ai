@@ -10,6 +10,7 @@ import type {
   SharedV2ProviderMetadata,
   LanguageModelV2FunctionTool,
 } from '@ai-sdk/provider';
+import { sanitizeJsonSchema } from '@ai-sdk/anthropic/internal';
 import {
   type FetchFunction,
   type ParseResult,
@@ -133,8 +134,21 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       });
     }
 
+    const isAnthropicModel = this.modelId.includes('anthropic');
+    const isThinkingRequested =
+      bedrockOptions.reasoningConfig?.type === 'enabled' ||
+      bedrockOptions.reasoningConfig?.type === 'adaptive';
+    const useNativeStructuredOutput =
+      isAnthropicModel &&
+      supportsNativeStructuredOutput(this.modelId) &&
+      isThinkingRequested &&
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null;
+
     const jsonResponseTool: LanguageModelV2FunctionTool | undefined =
-      responseFormat?.type === 'json' && responseFormat.schema != null
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      !useNativeStructuredOutput
         ? {
             type: 'function',
             name: 'json',
@@ -173,10 +187,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       };
     }
 
-    const isAnthropicModel = this.modelId.includes('anthropic');
     const thinkingType = bedrockOptions.reasoningConfig?.type;
-    const isThinkingRequested =
-      thinkingType === 'enabled' || thinkingType === 'adaptive';
     const thinkingBudget =
       thinkingType === 'enabled'
         ? bedrockOptions.reasoningConfig?.budgetTokens
@@ -254,6 +265,23 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
         ...bedrockOptions.additionalModelRequestFields,
         output_config: {
           effort: maxReasoningEffort,
+        },
+      };
+    }
+
+    if (
+      useNativeStructuredOutput &&
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null
+    ) {
+      bedrockOptions.additionalModelRequestFields = {
+        ...bedrockOptions.additionalModelRequestFields,
+        output_config: {
+          ...bedrockOptions.additionalModelRequestFields?.output_config,
+          format: {
+            type: 'json_schema',
+            schema: sanitizeJsonSchema(responseFormat.schema),
+          },
         },
       };
     }
@@ -896,6 +924,15 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     const encodedModelId = encodeURIComponent(modelId);
     return `${this.config.baseUrl()}/model/${encodedModelId}`;
   }
+}
+
+function supportsNativeStructuredOutput(modelId: string): boolean {
+  return (
+    modelId.includes('anthropic.claude-sonnet-4-5') ||
+    modelId.includes('anthropic.claude-haiku-4-5') ||
+    modelId.includes('anthropic.claude-opus-4-5') ||
+    modelId.includes('anthropic.claude-opus-4-6')
+  );
 }
 
 const BedrockStopReasonSchema = z.union([

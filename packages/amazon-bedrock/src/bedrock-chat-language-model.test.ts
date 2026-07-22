@@ -73,6 +73,10 @@ const fakeFetchWithAuth = injectFetchHeaders({ 'x-amz-auth': 'test-auth' });
 
 const modelId = 'anthropic.claude-3-haiku-20240307-v1:0';
 const anthropicModelId = 'anthropic.claude-3-5-sonnet-20240620-v1:0'; // Define at top level
+const structuredOutputModelId = 'anthropic.claude-opus-4-5-20251101-v1:0';
+const adaptiveStructuredOutputModelId = 'anthropic.claude-opus-4-6-v1';
+const unsupportedStructuredOutputModelId =
+  'anthropic.claude-sonnet-4-20250514-v1:0';
 const baseUrl = 'https://bedrock-runtime.us-east-1.amazonaws.com';
 
 const streamUrl = `${baseUrl}/model/${encodeURIComponent(
@@ -81,6 +85,15 @@ const streamUrl = `${baseUrl}/model/${encodeURIComponent(
 const generateUrl = `${baseUrl}/model/${encodeURIComponent(modelId)}/converse`;
 const anthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   anthropicModelId,
+)}/converse`;
+const structuredOutputGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  structuredOutputModelId,
+)}/converse`;
+const adaptiveStructuredOutputGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  adaptiveStructuredOutputModelId,
+)}/converse`;
+const unsupportedStructuredOutputGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  unsupportedStructuredOutputModelId,
 )}/converse`;
 
 const novaModelId = 'us.amazon.nova-2-lite-v1:0';
@@ -98,6 +111,9 @@ const server = createTestServer({
   },
   // Configure the server for the Anthropic model from the start
   [anthropicGenerateUrl]: {},
+  [structuredOutputGenerateUrl]: {},
+  [adaptiveStructuredOutputGenerateUrl]: {},
+  [unsupportedStructuredOutputGenerateUrl]: {},
   [novaGenerateUrl]: {},
 });
 
@@ -166,6 +182,36 @@ const novaModel = new BedrockChatLanguageModel(novaModelId, {
   fetch: fakeFetchWithAuth,
   generateId: () => 'test-id',
 });
+
+const structuredOutputModel = new BedrockChatLanguageModel(
+  structuredOutputModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
+const adaptiveStructuredOutputModel = new BedrockChatLanguageModel(
+  adaptiveStructuredOutputModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
+const unsupportedStructuredOutputModel = new BedrockChatLanguageModel(
+  unsupportedStructuredOutputModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
 
 let mockOptions: { success: boolean; errorValue?: any } = { success: true };
 
@@ -3237,6 +3283,219 @@ describe('doGenerate', () => {
 
     // Should NOT contain reasoningConfig at the top level
     expect(requestBody).not.toHaveProperty('reasoningConfig');
+  });
+
+  it('uses sanitized native structured output with thinking on a supported Anthropic model', async () => {
+    server.urls[structuredOutputGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            content: [{ text: '{"answer":"ok","score":1}' }],
+            role: 'assistant',
+          },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    const result = await structuredOutputModel.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            answer: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 20,
+            },
+            score: {
+              type: 'number',
+              minimum: 0,
+              maximum: 10,
+            },
+          },
+          required: ['answer', 'score'],
+          additionalProperties: false,
+          $schema: 'http://json-schema.org/draft-07/schema#',
+        },
+      },
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            budgetTokens: 1024,
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls.at(-1)!.requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeUndefined();
+    expect(requestBody.additionalModelRequestFields).toEqual({
+      thinking: {
+        type: 'enabled',
+        budget_tokens: 1024,
+      },
+      output_config: {
+        format: {
+          type: 'json_schema',
+          schema: {
+            type: 'object',
+            properties: {
+              answer: {
+                type: 'string',
+                description: 'min length: 1; max length: 20.',
+              },
+              score: {
+                type: 'number',
+                description: 'minimum: 0; maximum: 10.',
+              },
+            },
+            required: ['answer', 'score'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      },
+    });
+    expect(result.content).toEqual([
+      {
+        type: 'text',
+        text: '{"answer":"ok","score":1}',
+      },
+    ]);
+  });
+
+  it('uses native structured output with adaptive thinking on a supported Anthropic model', async () => {
+    server.urls[adaptiveStructuredOutputGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            content: [{ text: '{"answer":"ok"}' }],
+            role: 'assistant',
+          },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    await adaptiveStructuredOutputModel.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            answer: { type: 'string' },
+          },
+          required: ['answer'],
+          additionalProperties: false,
+        },
+      },
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'adaptive',
+            display: 'summarized',
+            maxReasoningEffort: 'medium',
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls.at(-1)!.requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeUndefined();
+    expect(requestBody.additionalModelRequestFields).toEqual({
+      thinking: {
+        type: 'adaptive',
+        display: 'summarized',
+      },
+      output_config: {
+        effort: 'medium',
+        format: {
+          type: 'json_schema',
+          schema: {
+            type: 'object',
+            properties: {
+              answer: { type: 'string' },
+            },
+            required: ['answer'],
+            additionalProperties: false,
+          },
+        },
+      },
+    });
+  });
+
+  it('does not send native structured output to an unsupported Anthropic model', async () => {
+    server.urls[unsupportedStructuredOutputGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'json-response',
+                  name: 'json',
+                  input: { answer: 'ok' },
+                },
+              },
+            ],
+            role: 'assistant',
+          },
+        },
+        stopReason: 'tool_use',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    await unsupportedStructuredOutputModel.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            answer: { type: 'string' },
+          },
+          required: ['answer'],
+          additionalProperties: false,
+        },
+      },
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            budgetTokens: 1024,
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls.at(-1)!.requestBodyJson;
+
+    expect(requestBody.additionalModelRequestFields).not.toHaveProperty(
+      'output_config',
+    );
+    expect(requestBody.toolConfig).toMatchObject({
+      toolChoice: { any: {} },
+      tools: [
+        {
+          toolSpec: {
+            name: 'json',
+          },
+        },
+      ],
+    });
   });
 
   it('merges user additionalModelRequestFields with derived thinking (generate)', async () => {
