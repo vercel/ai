@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 10202,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/bedrock-invalid-tool-name.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/bedrock-invalid-tool-name.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_10202_REPRODUCED: Bedrock rejected $READFILE before repairToolCall was invoked"
+  }
+}
