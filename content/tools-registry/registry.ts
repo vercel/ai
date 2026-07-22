@@ -584,4 +584,36 @@ console.log(result.text);`,
     websiteUrl: 'https://nitrosend.com',
     npmUrl: 'https://www.npmjs.com/package/@nitrosend/ai-sdk',
   },
+  {
+    slug: 'serpdive',
+    name: 'SERPdive',
+    description:
+      'SERPdive is a real-time web search API built for AI agents. Each result carries the extracted, answer-ready content of the page — not a link or snippet — so agents can quote and cite facts straight from the response. On a public, replayable 1,000-question benchmark it wins 60.7% of decided quality duels against the leading comparable search API while returning 20.2% fewer tokens at the same speed. Localization is automatic: a query in any language searches the web in that language.',
+    packageName: '@serpdive/ai-sdk',
+    tags: ['search', 'web', 'extraction'],
+    apiKeyEnvName: 'SERPDIVE_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @serpdive/ai-sdk',
+      npm: 'npm install @serpdive/ai-sdk',
+      yarn: 'yarn add @serpdive/ai-sdk',
+      bun: 'bun add @serpdive/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { serpdiveSearch } from '@serpdive/ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5',
+  prompt: 'What changed in the latest Next.js release?',
+  tools: {
+    webSearch: serpdiveSearch(),
+  },
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://serpdive.com/docs',
+    apiKeyUrl: 'https://serpdive.com/dashboard/keys',
+    websiteUrl: 'https://serpdive.com',
+    npmUrl: 'https://www.npmjs.com/package/@serpdive/ai-sdk',
+  },
 ];
