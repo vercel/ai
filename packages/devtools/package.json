@@ -32,7 +32,9 @@
     "build": "pnpm build:client && pnpm build:server",
     "build:client": "vite build",
     "build:server": "tsup --tsconfig tsconfig.build.json",
-    "test": "vitest --config vitest.node.config.js --run",
+    "test": "pnpm test:unit",
+    "test:e2e": "pnpm build:client && playwright test",
+    "test:unit": "vitest --config vitest.node.config.js --run",
     "test:watch": "vitest --config vitest.node.config.js",
     "prepublishOnly": "pnpm build"
   },
