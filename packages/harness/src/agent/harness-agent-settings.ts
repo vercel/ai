@@ -9,14 +9,66 @@ import type {
   HarnessAgentSkill,
 } from './harness-agent-types';
 import type {
+  Arrayable,
+  Context,
   Experimental_SandboxSession as SandboxSession,
   ToolSet,
 } from '@ai-sdk/provider-utils';
-import type { TelemetryOptions, ToolApprovalStatus } from 'ai';
+import type {
+  ActiveTools,
+  StopCondition,
+  TelemetryOptions,
+  ToolApprovalStatus,
+} from 'ai';
+import type { HarnessAllTools } from './harness-agent-tool-types';
 
 export type HarnessAgentToolApprovalConfiguration = Readonly<
   Record<string, ToolApprovalStatus>
 >;
+
+export type HarnessAgentSandboxConfig = {
+  /**
+   * Optional fixed working directory for all sessions, relative to the
+   * sandbox's default working directory. When omitted, sessions keep the
+   * existing `<harnessId>-<sessionId>` work directory.
+   */
+  readonly workDir?: string;
+
+  /**
+   * Caller-controlled identity for `onBootstrap`. Change this whenever the
+   * bootstrap side effects should invalidate the reusable sandbox snapshot.
+   */
+  readonly bootstrapHash?: string;
+
+  /**
+   * Called during sandbox template creation after the harness adapter's own
+   * bootstrap has run and before snapshot-capable providers publish a snapshot.
+   *
+   * `bootstrapHash` must be provided with this callback.
+   */
+  readonly onBootstrap?: (opts: {
+    readonly session: SandboxSession;
+    readonly workDir: string;
+    readonly abortSignal?: AbortSignal;
+  }) => Promise<void>;
+
+  /**
+   * Called after each sandbox session is acquired and the session work
+   * directory exists, before the harness adapter starts. Runs for fresh and
+   * resumed sessions.
+   *
+   * Use this to write per-session config, install lightweight tools, activate
+   * licenses, or prepare files in `sessionWorkDir`. Keep it idempotent if the
+   * agent may resume sessions.
+   */
+  readonly onSession?: (opts: {
+    readonly session: SandboxSession;
+    readonly sessionWorkDir: string;
+    readonly abortSignal?: AbortSignal;
+  }) => Promise<void>;
+};
+
+type HarnessTools<TOOLS extends ToolSet> = ActiveTools<NoInfer<TOOLS>>;
 
 /**
  * Construction-time settings for a `HarnessAgent`.
@@ -25,9 +77,28 @@ export type HarnessAgentToolApprovalConfiguration = Readonly<
  * `AgentCallParameters` / `AgentStreamParameters` passed to `generate` /
  * `stream` and are not duplicated here.
  */
+type HarnessAgentToolFilteringSettings<TOOLS extends ToolSet> =
+  | {
+      /**
+       * Limits the tools that are available for the harness to call without
+       * changing the tool call and result types in the result.
+       */
+      readonly activeTools?: HarnessTools<TOOLS>;
+      readonly inactiveTools?: never;
+    }
+  | {
+      readonly activeTools?: never;
+      /**
+       * Excludes tools from the set that is available for the harness to call
+       * without changing the tool call and result types in the result.
+       */
+      readonly inactiveTools?: HarnessTools<TOOLS>;
+    };
+
 export type HarnessAgentSettings<
   THarness extends HarnessAgentAdapter<any> = HarnessAgentAdapter,
   TUserTools extends ToolSet = {},
+  RUNTIME_CONTEXT extends Context = Context,
 > = {
   /**
    * The harness adapter driving the underlying agent runtime. Its
@@ -68,6 +139,22 @@ export type HarnessAgentSettings<
   readonly instructions?: string;
 
   /**
+   * Conditions that stop the current result after a completed harness tool
+   * step that can continue into another model step. The underlying turn remains
+   * unfinished and can be suspended and continued.
+   *
+   * A terminal text-only step finishes naturally and is not stopped early.
+   *
+   * When omitted, the harness runs until the turn naturally finishes or pauses.
+   */
+  readonly stopWhen?: Arrayable<
+    StopCondition<
+      NoInfer<HarnessAllTools<THarness, TUserTools>>,
+      RUNTIME_CONTEXT
+    >
+  >;
+
+  /**
    * Built-in tool permission mode. Defaults to `'allow-all'`, preserving the
    * existing bypass-permissions behavior unless users opt in.
    */
@@ -92,19 +179,12 @@ export type HarnessAgentSettings<
   readonly sandbox: HarnessV1SandboxProvider;
 
   /**
-   * Called after each sandbox session is acquired and the session work
-   * directory exists, before the harness adapter starts. Runs for fresh and
-   * resumed sessions.
-   *
-   * Use this to write per-session config, install lightweight tools, activate
-   * licenses, or prepare files in `sessionWorkDir`. Keep it idempotent if the
-   * agent may resume sessions.
+   * Sandbox working-directory and lifecycle hook configuration.
    */
-  readonly onSandboxSession?: (opts: {
-    readonly session: SandboxSession;
-    readonly sessionWorkDir: string;
-    readonly abortSignal?: AbortSignal;
-  }) => Promise<void>;
+  readonly sandboxConfig?: HarnessAgentSandboxConfig;
+
+  /** @deprecated Use `sandboxConfig.onSession` instead. */
+  readonly onSandboxSession?: HarnessAgentSandboxConfig['onSession'];
 
   /**
    * Telemetry configuration. The harness drives AI SDK's pluggable
@@ -128,4 +208,4 @@ export type HarnessAgentSettings<
    * stderr default — wire this to capture diagnostics in code.
    */
   readonly onLog?: (event: HarnessDiagnostic) => void;
-};
+} & HarnessAgentToolFilteringSettings<HarnessAllTools<THarness, TUserTools>>;

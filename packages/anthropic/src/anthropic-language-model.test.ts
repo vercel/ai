@@ -15,7 +15,7 @@ import { asSchema } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import type { AnthropicLanguageModelOptions } from './anthropic-language-model-options';
 import { getModelCapabilities } from './anthropic-language-model';
 import { anthropic, createAnthropic } from './anthropic-provider';
@@ -221,6 +221,51 @@ describe('AnthropicLanguageModel', () => {
       });
     });
 
+    describe('reasoning (thinking disabled)', () => {
+      it('should forward thinking { type: "disabled" } to the API instead of stripping it', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-5').doGenerate({
+          prompt: TEST_PROMPT,
+          maxOutputTokens: 100,
+          providerOptions: {
+            anthropic: {
+              thinking: { type: 'disabled' },
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.thinking).toEqual({ type: 'disabled' });
+        // disabled thinking must not reserve a thinking budget in max_tokens
+        expect(requestBody.max_tokens).toBe(100);
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('should not strip temperature / topP / topK when thinking is disabled', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          maxOutputTokens: 100,
+          temperature: 0.5,
+          topK: 0.1,
+          providerOptions: {
+            anthropic: {
+              thinking: { type: 'disabled' },
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.thinking).toEqual({ type: 'disabled' });
+        // unlike enabled thinking, disabled thinking keeps sampling params
+        expect(requestBody.temperature).toBe(0.5);
+        expect(requestBody.top_k).toBe(0.1);
+        expect(result.warnings).toEqual([]);
+      });
+    });
+
     describe('top-level reasoning (newer models with adaptive thinking)', () => {
       it('should not set thinking config when reasoning is "provider-default"', async () => {
         prepareJsonFixtureResponse('anthropic-text');
@@ -245,7 +290,7 @@ describe('AnthropicLanguageModel', () => {
         });
 
         const requestBody = await server.calls[0].requestBodyJson;
-        expect(requestBody.thinking).toBeUndefined();
+        expect(requestBody.thinking).toEqual({ type: 'disabled' });
         expect(requestBody.output_config).toBeUndefined();
         expect(result.warnings).toEqual([]);
       });
@@ -396,7 +441,7 @@ describe('AnthropicLanguageModel', () => {
         });
 
         const requestBody = await server.calls[0].requestBodyJson;
-        expect(requestBody.thinking).toBeUndefined();
+        expect(requestBody.thinking).toEqual({ type: 'disabled' });
         expect(result.warnings).toEqual([]);
       });
 
@@ -536,7 +581,7 @@ describe('AnthropicLanguageModel', () => {
         });
 
         const requestBody = await server.calls[0].requestBodyJson;
-        expect(requestBody.thinking).toBeUndefined();
+        expect(requestBody.thinking).toEqual({ type: 'disabled' });
         expect(requestBody.output_config).toBeUndefined();
       });
 
@@ -678,6 +723,7 @@ describe('AnthropicLanguageModel', () => {
           providerOptions: {
             anthropic: {
               structuredOutputMode: 'jsonTool',
+              disableParallelToolUse: false,
             } satisfies AnthropicLanguageModelOptions,
           },
           responseFormat: {
@@ -736,6 +782,18 @@ describe('AnthropicLanguageModel', () => {
             ],
           }
         `);
+      });
+
+      it('should warn when parallel tool use is requested', () => {
+        expect(result.warnings).toEqual([
+          {
+            type: 'unsupported',
+            feature: 'providerOptions.anthropic.disableParallelToolUse',
+            details:
+              '`disableParallelToolUse: false` is ignored when using the JSON response tool. ' +
+              'Parallel tool use is disabled to ensure a single coherent JSON tool call.',
+          },
+        ]);
       });
 
       it('should return the json response', async () => {
@@ -9011,6 +9069,47 @@ describe('AnthropicLanguageModel', () => {
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
       });
+
+      it('should preserve the text editor discriminator for streamed skill tool calls', async () => {
+        prepareChunksFixtureResponse(
+          'anthropic-code-execution-20250825.pptx-skill',
+        );
+
+        const result = await model.doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+          providerOptions: {
+            anthropic: {
+              container: {
+                skills: [{ type: 'anthropic', skillId: 'pptx' }],
+              },
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        const parts = await convertReadableStreamToArray(result.stream);
+        const skillReadToolCall = parts.find(
+          part =>
+            part.type === 'tool-call' &&
+            part.toolName === 'code_execution' &&
+            part.input.includes('/skills/pptx/SKILL.md'),
+        );
+
+        expect(skillReadToolCall).toMatchObject({
+          type: 'tool-call',
+          toolName: 'code_execution',
+          input:
+            '{"type": "text_editor_code_execution","command": "view", "path": "/skills/pptx/SKILL.md"}',
+          providerExecuted: true,
+        });
+      });
     });
 
     describe('function tool', () => {
@@ -10631,6 +10730,19 @@ describe('getModelCapabilities', () => {
 
   it('should return correct capabilities for claude-opus-4-7', () => {
     expect(getModelCapabilities('claude-opus-4-7')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "supportsAdaptiveThinking": true,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": true,
+      }
+    `);
+  });
+
+  it('should return correct capabilities for claude-sonnet-5', () => {
+    expect(getModelCapabilities('claude-sonnet-5')).toMatchInlineSnapshot(`
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,

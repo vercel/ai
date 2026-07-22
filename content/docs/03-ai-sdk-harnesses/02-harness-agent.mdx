@@ -7,40 +7,13 @@ description: Create and run AI SDK HarnessAgent sessions.
 
 `HarnessAgent` is an AI SDK `Agent` implementation backed by a harness adapter.
 It gives you `generate()` and `stream()` methods that return AI SDK-compatible
-results while an preconfigured harness powers these results.
+results while a preconfigured harness powers these results.
 
 ## Installation
 
 Install the core harness package, a harness adapter, and a sandbox provider:
 
-<div className="my-4">
-  <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-    <Tab>
-      <Snippet
-        text="pnpm add @ai-sdk/harness@beta @ai-sdk/harness-claude-code@beta @ai-sdk/sandbox-vercel@beta"
-        dark
-      />
-    </Tab>
-    <Tab>
-      <Snippet
-        text="npm install @ai-sdk/harness@beta @ai-sdk/harness-claude-code@beta @ai-sdk/sandbox-vercel@beta"
-        dark
-      />
-    </Tab>
-    <Tab>
-      <Snippet
-        text="yarn add @ai-sdk/harness@beta @ai-sdk/harness-claude-code@beta @ai-sdk/sandbox-vercel@beta"
-        dark
-      />
-    </Tab>
-    <Tab>
-      <Snippet
-        text="bun add @ai-sdk/harness@beta @ai-sdk/harness-claude-code@beta @ai-sdk/sandbox-vercel@beta"
-        dark
-      />
-    </Tab>
-  </Tabs>
-</div>
+<InstallPackages packages="@ai-sdk/harness @ai-sdk/harness-claude-code @ai-sdk/sandbox-vercel" />
 
 Bridge-backed harnesses such as Claude Code and Codex require using real network sandbox
 like `@ai-sdk/sandbox-vercel` or
@@ -129,6 +102,10 @@ or a message-array `prompt`, `HarnessAgent` takes the latest user message as the
 fresh input for the turn. It does not replay the full prior conversation into
 the harness.
 
+A trailing tool message is handled differently: tool approval responses and
+client-provided tool results continue the unfinished harness turn that produced
+the corresponding request or tool call.
+
 This is different from model calls, where the application usually sends the full
 message history. In chat routes, persist and resume the harness session instead
 of relying on message replay.
@@ -145,6 +122,8 @@ End every session explicitly:
   the turn is unfinished, the resume state includes the continuation state.
 - `session.suspendTurn()` is for advanced active-turn continuation across a
   process boundary.
+- `session.hasUnfinishedTurn()` reports whether the current turn must be
+  continued or suspended before the session accepts a new prompt.
 
 Use `destroy()` for one-off scripts and tests. Use `detach()` or `stop()` for
 HTTP routes that need multi-turn continuity.
@@ -194,8 +173,10 @@ For advanced workflows that must hand off an active turn across a process
 boundary, suspend the turn and persist the continuation state:
 
 ```ts
-const continuationState = await session.suspendTurn();
-await persistContinuationState({ chatId, continuationState });
+if (session.hasUnfinishedTurn()) {
+  const continuationState = await session.suspendTurn();
+  await persistContinuationState({ chatId, continuationState });
+}
 ```
 
 When you only have raw continuation state from `suspendTurn()`, resume with
@@ -213,10 +194,59 @@ const result = await agent.continueStream({ session });
 Use `continueStream()` for incremental output, or `continueGenerate()` to drain
 the continued turn and return a `GenerateTextResult`.
 
+## Stop After a Harness Step
+
+Use `stopWhen` to opt into semantic step boundaries. Predicates run after real
+harness tool steps that can continue into another model step, and receive the
+completed steps from the current invocation. When a predicate matches, the
+returned result finishes while the underlying turn remains unfinished. A
+terminal text-only step instead consumes the turn's `finish` event and finishes
+naturally.
+
+```ts
+import { isStepCount } from 'ai';
+
+const steppedAgent = new HarnessAgent({
+  harness: claudeCode,
+  sandbox: createVercelSandbox({
+    runtime: 'node24',
+    ports: [4000],
+  }),
+  stopWhen: isStepCount(1),
+});
+
+const session = await steppedAgent.createSession();
+const result = await steppedAgent.generate({
+  session,
+  prompt: 'Create a short TODO.md for this repository.',
+});
+
+if (session.hasUnfinishedTurn()) {
+  const continueFrom = await session.suspendTurn();
+  await persistContinuationState({ chatId, continuationState: continueFrom });
+}
+```
+
+`stopWhen` has no default. When omitted, `HarnessAgent` continues running until
+the turn naturally finishes or pauses for host input, preserving the behavior
+of agents without step control. Pass one predicate or an array; matching any
+predicate finishes the current result slice. Resume a stopped turn with
+`createSession({ continueFrom })` and `continueStream()` or
+`continueGenerate()`.
+
 ## Prepare the Sandbox
 
-Use `onSandboxSession` to prepare files, install lightweight utilities, or write
-configuration before the harness starts:
+Use `sandboxConfig` to prepare the sandbox before the harness starts.
+
+`sandboxConfig.onBootstrap` runs during sandbox template creation, after the
+harness adapter's own bootstrap and before snapshot-capable providers publish a
+snapshot. Use it for expensive setup that should be reused by future sessions.
+When you provide `onBootstrap`, also provide `bootstrapHash`; change the hash
+whenever the bootstrap output should invalidate the reusable snapshot.
+
+`sandboxConfig.onSession` runs after each sandbox session is acquired and its
+working directory exists, including resumed sessions. Use it for per-session
+files or lightweight configuration.
 
 ```ts
 const agent = new HarnessAgent({
@@ -225,17 +255,109 @@ const agent = new HarnessAgent({
     runtime: 'node24',
     ports: [4000],
   }),
-  onSandboxSession: async ({ session, sessionWorkDir, abortSignal }) => {
-    await session.writeTextFile({
-      path: `${sessionWorkDir}/README.md`,
-      content: 'Session notes for the harness.',
-      abortSignal,
-    });
+  sandboxConfig: {
+    workDir: 'repo',
+    bootstrapHash: 'ripgrep-v1',
+    onBootstrap: async ({ session, abortSignal }) => {
+      const result = await session.run({
+        command:
+          'command -v rg >/dev/null || (apt-get update && apt-get install -y ripgrep)',
+        abortSignal,
+      });
+      if (result.exitCode !== 0) {
+        throw new Error(`Failed to install ripgrep: ${result.stderr}`);
+      }
+    },
+    onSession: async ({ session, sessionWorkDir, abortSignal }) => {
+      await session.writeTextFile({
+        path: `${sessionWorkDir}/README.md`,
+        content: 'Session notes for the harness.',
+        abortSignal,
+      });
+    },
   },
 });
 ```
 
-This hook runs for fresh and resumed sessions. Keep it idempotent.
+`workDir` is optional. When provided, it must be relative to the sandbox's
+default working directory and is used as the session working directory. When
+omitted, regular sessions use the default `<harnessId>-<sessionId>` directory,
+while `onBootstrap` receives the sandbox's default working directory.
+
+## Prepare Reusable Sandboxes
+
+Use `prepareHarnessSandboxTemplate()` when you want the sandbox provider to
+create or refresh its reusable template for one harness ahead of time:
+
+```ts
+import { prepareHarnessSandboxTemplate } from '@ai-sdk/harness/agent';
+
+await prepareHarnessSandboxTemplate({
+  harness: claudeCode,
+  sandboxProvider: createVercelSandbox({
+    runtime: 'node24',
+    ports: [4000],
+  }),
+  sandboxConfig: {
+    bootstrapHash: 'ripgrep-v1',
+    onBootstrap: async ({ session, abortSignal }) => {
+      await session.run({
+        command:
+          'command -v rg >/dev/null || (apt-get update && apt-get install -y ripgrep)',
+        abortSignal,
+      });
+    },
+  },
+});
+```
+
+Use `prepareSandboxForHarness()` when you own the native sandbox lifecycle and
+want to snapshot the prepared sandbox yourself. It applies the selected harness
+bootstrap recipes and `sandboxConfig.onBootstrap`, then returns preparation
+metadata. It does not stop or snapshot the sandbox.
+
+```ts
+import { HarnessAgent, prepareSandboxForHarness } from '@ai-sdk/harness/agent';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { Sandbox } from '@vercel/sandbox';
+
+const nativeSandbox = await Sandbox.create({
+  runtime: 'node24',
+  ports: [4000],
+});
+const sandboxProvider = createVercelSandbox({ sandbox: nativeSandbox });
+const session = await sandboxProvider.createSession();
+
+const preparation = await prepareSandboxForHarness({
+  session: session.restricted(),
+  harnesses: [claudeCode, codex],
+  sandboxConfig,
+});
+
+const { snapshot } = await nativeSandbox.stop();
+if (snapshot == null) {
+  throw new Error('Prepared sandbox did not create a snapshot.');
+}
+
+const sandboxFromSnapshot = await Sandbox.create({
+  source: {
+    type: 'snapshot',
+    snapshotId: snapshot.id,
+  },
+  ports: [4000],
+});
+
+const agent = new HarnessAgent({
+  harness: claudeCode,
+  sandbox: createVercelSandbox({
+    sandbox: sandboxFromSnapshot,
+    bridgePorts: [4000],
+  }),
+  sandboxConfig,
+});
+
+console.log(preparation.identity);
+```
 
 ## Settings
 
@@ -245,11 +367,17 @@ This hook runs for fresh and resumed sessions. Keep it idempotent.
 - `sandbox`: a `HarnessV1SandboxProvider`.
 - `id`: optional stable agent identifier.
 - `instructions`: instructions applied once to a fresh session.
+- `stopWhen`: condition(s) for finishing a result slice after a completed
+  harness tool step that can continue into another model step.
 - `tools`: AI SDK tools executed by the host when the harness calls them.
+- `activeTools`: allowlist of built-in and host-executed tools the harness can
+  call.
+- `inactiveTools`: denylist of built-in and host-executed tools the harness
+  cannot call.
 - `skills`: instruction bundles surfaced by the adapter.
 - `permissionMode`: built-in tool permission mode.
 - `toolApproval`: approval status map for host-executed tools.
-- `onSandboxSession`: sandbox preparation hook.
+- `sandboxConfig`: sandbox working-directory and lifecycle hook configuration.
 - `telemetry`, `debug`, and `onLog`: observability and diagnostics.
 
 Adapter-specific settings belong on the adapter factory, for example
@@ -261,4 +389,6 @@ Adapter-specific settings belong on the adapter factory, for example
 - [Skills](/docs/ai-sdk-harnesses/skills) for reusable instruction bundles.
 - [Harness adapters](/docs/ai-sdk-harnesses/harness-adapters) for adapter-specific
   settings.
+- [Workflow utilities](/docs/ai-sdk-harnesses/workflow-utilities) for durable
+  long-running turns.
 - [UI](/docs/ai-sdk-harnesses/ui) for `useChat` integration.

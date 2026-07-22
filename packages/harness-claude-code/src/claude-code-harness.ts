@@ -1,6 +1,5 @@
 import { randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   commonTool,
@@ -8,9 +7,10 @@ import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1,
   type HarnessV1Bootstrap,
-  type HarnessV1DebugConfig,
+  type HarnessV1BuiltinToolFiltering,
   type HarnessV1BuiltinTool,
   type HarnessV1ContinueTurnState,
+  type HarnessV1DebugConfig,
   type HarnessV1PermissionMode,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
@@ -22,9 +22,16 @@ import {
 } from '@ai-sdk/harness';
 import {
   classifyDiskLog,
+  createBridgeErrorHandler,
+  createBridgeStartupError,
+  drainBridgeProcessStream,
+  forwardBridgeProcessStream,
   markBridgeStarting,
+  resolveSandboxHomeDir,
   SandboxChannel,
+  shellQuote,
   waitForBridgeReady,
+  writeSkills as writeHarnessSkills,
 } from '@ai-sdk/harness/utils';
 import {
   tool,
@@ -32,7 +39,7 @@ import {
   type Experimental_SandboxProcess,
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import {
   resolveClaudeCodeEnv,
   type ClaudeCodeAuthOptions,
@@ -42,9 +49,16 @@ import {
   type InboundMessage,
   type OutboundMessage,
 } from './claude-code-bridge-protocol';
+import type { ClaudeCodeThinkingConfig } from './claude-code-thinking';
+import { VERSION } from './version';
 
 type ClaudeCodeChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 type ClaudeCodeRespawnStrategy = 'replay' | 'rerun';
+
+/**
+ * Value to use in User-Agent and `x-client-app` headers.
+ */
+const CLAUDE_CODE_CLIENT_APP = `ai-sdk/harness-claude-code/${VERSION}`;
 
 export type ClaudeCodeHarnessSettings = {
   readonly auth?: ClaudeCodeAuthOptions;
@@ -59,10 +73,10 @@ export type ClaudeCodeHarnessSettings = {
    */
   readonly maxTurns?: number;
   /**
-   * Controls extended-thinking behavior. `'off'` disables thinking,
-   * `'on'` forces it on, `'adaptive'` lets the runtime decide.
+   * Controls extended-thinking behavior and whether reasoning is summarized or
+   * omitted. Defaults to `{ type: 'adaptive', display: 'summarized' }`.
    */
-  readonly thinking?: 'off' | 'on' | 'adaptive';
+  readonly thinking?: ClaudeCodeThinkingConfig;
   /**
    * Override the port the bridge binds inside the sandbox. By default the
    * adapter uses the first port the sandbox declares via `sandbox.ports`.
@@ -231,7 +245,7 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       subject: z.string(),
       description: z.string(),
       activeForm: z.string().optional(),
-      metadata: z.record(z.unknown()).optional(),
+      metadata: z.record(z.string(), z.unknown()).optional(),
     }),
   }),
   TaskGet: tool({
@@ -254,7 +268,7 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       addBlocks: z.array(z.string()).optional(),
       addBlockedBy: z.array(z.string()).optional(),
       owner: z.string().optional(),
-      metadata: z.record(z.unknown()).optional(),
+      metadata: z.record(z.string(), z.unknown()).optional(),
     }),
   }),
   TaskList: tool({
@@ -276,6 +290,15 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       timeout: z.number(),
     }),
   }),
+  Monitor: tool({
+    description: 'Run and monitor a shell command',
+    inputSchema: z.object({
+      command: z.string(),
+      description: z.string().optional(),
+      timeout_ms: z.number().optional(),
+      persistent: z.boolean().optional(),
+    }),
+  }),
   ListMcpResources: tool({
     description: 'List resources available from MCP servers',
     inputSchema: z.object({ server: z.string().optional() }),
@@ -286,18 +309,16 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
   }),
   ExitPlanMode: tool({
     description: 'Exit plan mode with optional permission approvals',
-    inputSchema: z
-      .object({
-        allowedPrompts: z
-          .array(
-            z.object({
-              tool: z.literal('Bash'),
-              prompt: z.string(),
-            }),
-          )
-          .optional(),
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      allowedPrompts: z
+        .array(
+          z.object({
+            tool: z.literal('Bash'),
+            prompt: z.string(),
+          }),
+        )
+        .optional(),
+    }),
   }),
   EnterWorktree: tool({
     description: 'Create or enter an isolated git worktree',
@@ -333,9 +354,10 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
         )
         .min(1)
         .max(4),
-      answers: z.record(z.string()).optional(),
+      answers: z.record(z.string(), z.string()).optional(),
       annotations: z
         .record(
+          z.string(),
           z.object({
             preview: z.string().optional(),
             notes: z.string().optional(),
@@ -345,11 +367,22 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       metadata: z.object({ source: z.string().optional() }).optional(),
     }),
   }),
-  Skill: tool({
-    description: 'Activate a skill by name',
+  Skill: {
+    ...tool({
+      description: 'Activate a skill by name',
+      inputSchema: z.object({
+        skill: z.string(),
+        args: z.string().optional(),
+      }),
+    }),
+    toolUseKind: 'readonly',
+  },
+  ToolSearch: tool({
+    description:
+      'Search deferred MCP / catalog tools so the model can load them on demand',
     inputSchema: z.object({
-      skill: z.string(),
-      args: z.string().optional(),
+      query: z.string(),
+      max_results: z.number().optional(),
     }),
   }),
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
@@ -373,7 +406,7 @@ const BOOTSTRAP_DIR = '/tmp/harness/claude-code';
  * future process uses them to reopen a socket to the still-running bridge
  * (`attach`) instead of re-spawning it. Absent on a `doStop()` payload.
  */
-const bridgeCoordsSchema = z.object({
+const claudeCodeBridgeCoordsSchema = z.object({
   port: z.number(),
   token: z.string(),
   lastSeenEventId: z.number(),
@@ -387,24 +420,29 @@ const bridgeCoordsSchema = z.object({
  * sandbox via `provider.resumeSession({ sessionId })`, and the Claude SDK's
  * `{ continue: true }` flag rehydrates the thread from the workdir. A
  * `doDetach()` payload additionally carries `bridge` coordinates for
- * cross-process `attach`. `.passthrough()` keeps both shapes valid.
+ * cross-process `attach`. A loose object keeps both shapes valid.
  */
-const claudeCodeResumeStateSchema = z
-  .object({ bridge: bridgeCoordsSchema.optional() })
-  .passthrough();
+const claudeCodeResumeStateSchema = z.looseObject({
+  bridge: claudeCodeBridgeCoordsSchema.optional(),
+});
 
-type ClaudeCodeBridgeCoords = z.infer<typeof bridgeCoordsSchema>;
+type ClaudeCodeBridgeCoords = z.infer<typeof claudeCodeBridgeCoordsSchema>;
 
 export function createClaudeCode(
   settings: ClaudeCodeHarnessSettings = {},
 ): HarnessV1<typeof CLAUDE_CODE_BUILTIN_TOOLS> {
   let cachedBootstrap: HarnessV1Bootstrap | undefined;
+  const thinking = settings.thinking ?? {
+    type: 'adaptive',
+    display: 'summarized',
+  };
 
   return {
     specificationVersion: 'harness-v1',
     harnessId: 'claude-code',
     builtinTools: CLAUDE_CODE_BUILTIN_TOOLS,
     supportsBuiltinToolApprovals: true,
+    supportsBuiltinToolFiltering: true,
     lifecycleStateSchema: claudeCodeResumeStateSchema,
     getBootstrap: async () => {
       if (cachedBootstrap != null) return cachedBootstrap;
@@ -462,6 +500,10 @@ export function createClaudeCode(
               }),
             )
         : undefined;
+      const onBridgeError = createBridgeErrorHandler({
+        harnessId: 'claude-code',
+        sessionId: startOpts.sessionId,
+      });
 
       // Builds the `connect` thunk a `SandboxChannel` re-invokes on every
       // (re)connect: open the socket, then wait for `bridge-hello` so the
@@ -490,6 +532,7 @@ export function createClaudeCode(
             outboundSchema: outboundMessageSchema,
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
+            onBridgeError,
           });
           await attachChannel.open(isContinue ? { resume: true } : undefined);
           return createSession({
@@ -501,7 +544,7 @@ export function createClaudeCode(
             proc: undefined,
             model: settings.model,
             maxTurns: settings.maxTurns,
-            thinking: settings.thinking,
+            thinking,
             isResume: true,
             continueOnFirstPrompt: false,
             rerunContinue: false,
@@ -510,6 +553,7 @@ export function createClaudeCode(
             sandboxId,
             debug: startOpts.observability?.debug,
             permissionMode: startOpts.permissionMode,
+            builtinToolFiltering: startOpts.builtinToolFiltering,
             skills: startOpts.skills ?? [],
           });
         } catch {
@@ -552,6 +596,13 @@ export function createClaudeCode(
       const token = randomBytes(32).toString('hex');
       const env = {
         ...resolveClaudeCodeEnv(settings.auth),
+        /*
+         * The Claude Agent SDK does not expose arbitrary model-request
+         * headers. It reads this environment variable and sends the value as
+         * `x-client-app`, while also appending `client-app/<value>` to
+         * `User-Agent`, so this is the attribution path for AI Gateway.
+         */
+        CLAUDE_AGENT_SDK_CLIENT_APP: CLAUDE_CODE_CLIENT_APP,
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
         ...(sandboxHomeDir ? { HOME: sandboxHomeDir } : {}),
@@ -568,7 +619,7 @@ export function createClaudeCode(
        */
       if (respawnStrategy === undefined) {
         await session.run({
-          command: `mkdir -p ${workDir} ${bridgeStateDir}`,
+          command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
           abortSignal: startOpts.abortSignal,
         });
 
@@ -576,7 +627,7 @@ export function createClaudeCode(
           if (!sandboxHomeDir) {
             throw new Error('Unable to resolve sandbox HOME directory.');
           }
-          await writeSkills({
+          await writeClaudeCodeSkills({
             sandbox: session,
             homeDir: sandboxHomeDir,
             skills: startOpts.skills,
@@ -593,20 +644,16 @@ export function createClaudeCode(
       });
 
       const proc = await session.spawn({
-        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${workDir} --bridge-state-dir ${bridgeStateDir}`,
+        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
 
       const bridgeStartupStderr: string[] = [];
-      /*
-       * Bridge stderr is the only diagnostic channel for sandbox-side crashes
-       * and startup failures. Start forwarding before `bridge-ready`, otherwise
-       * module-resolution, auth, and syntax errors can be lost behind the
-       * generic startup failure below.
-       */
-      const bridgeStartupStderrDone = forwardBridgeStderr({
+      const bridgeStartupStderrDone = forwardBridgeProcessStream({
         stream: proc.stderr,
+        streamName: 'stderr',
+        source: 'claude-code',
         collectTail: bridgeStartupStderr,
       });
       void bridgeStartupStderrDone;
@@ -634,7 +681,7 @@ export function createClaudeCode(
             stderrDone: bridgeStartupStderrDone,
           }),
       });
-      void drainRest(proc.stdout);
+      void drainBridgeProcessStream(proc.stdout);
 
       const wsUrl =
         (await sandboxSession.getPortUrl({
@@ -646,6 +693,7 @@ export function createClaudeCode(
         connect: buildConnect(wsUrl),
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
+        onBridgeError,
         // In replay mode the respawned bridge reloaded the finished turn from
         // disk; seed the cursor and resume so it streams the tail (incl.
         // `finish`) rather than starting empty.
@@ -663,7 +711,7 @@ export function createClaudeCode(
         proc,
         model: settings.model,
         maxTurns: settings.maxTurns,
-        thinking: settings.thinking,
+        thinking,
         isResume: respawnStrategy !== undefined,
         continueOnFirstPrompt: respawnStrategy !== undefined,
         rerunContinue: respawnStrategy === 'rerun',
@@ -672,6 +720,7 @@ export function createClaudeCode(
         sandboxId,
         debug: startOpts.observability?.debug,
         permissionMode: startOpts.permissionMode,
+        builtinToolFiltering: startOpts.builtinToolFiltering,
         skills: startOpts.skills ?? [],
       });
     },
@@ -699,7 +748,7 @@ function resolveBridgePort(
  * be in place before the bridge is spawned without mutating the session
  * workdir. Each file uses the YAML-frontmatter shape the CLI expects.
  */
-async function writeSkills({
+async function writeClaudeCodeSkills({
   sandbox,
   homeDir,
   skills,
@@ -710,89 +759,17 @@ async function writeSkills({
   skills: ReadonlyArray<HarnessV1Skill>;
   abortSignal?: AbortSignal;
 }): Promise<void> {
-  for (const skill of skills) {
-    safeClaudeSkillName(skill.name);
-    for (const file of skill.files ?? []) {
-      safeClaudeSkillFilePath({
-        skillName: skill.name,
-        filePath: file.path,
-      });
-    }
-  }
-
-  await sandbox.run({
-    command: `mkdir -p ${shellQuote(homeDir)}/.claude/skills`,
+  await writeHarnessSkills({
+    sandbox,
+    rootDir: `${homeDir}/.claude/skills`,
+    skills,
     abortSignal,
-  });
-  for (const skill of skills) {
-    const name = safeClaudeSkillName(skill.name);
-    const skillDir = `${homeDir}/.claude/skills/${name}`;
-    const path = `${skillDir}/SKILL.md`;
-    const content = `---\nname: ${skill.name}\ndescription: ${skill.description}\n---\n\n${skill.content}\n`;
-    await sandbox.writeTextFile({ path, content, abortSignal });
-    for (const file of skill.files ?? []) {
-      const filePath = safeClaudeSkillFilePath({
-        skillName: skill.name,
-        filePath: file.path,
-      });
-      await sandbox.writeTextFile({
-        path: `${skillDir}/${filePath}`,
-        content: file.content,
-        abortSignal,
-      });
-    }
-  }
-}
-
-async function resolveSandboxHomeDir({
-  sandbox,
-  abortSignal,
-}: {
-  sandbox: Experimental_SandboxSession;
-  abortSignal?: AbortSignal;
-}): Promise<string> {
-  const result = await sandbox.run({
-    command: 'printf "%s" "$HOME"',
-    abortSignal,
-  });
-  const homeDir = result.stdout.trim();
-  if (result.exitCode !== 0 || !homeDir || !path.posix.isAbsolute(homeDir)) {
-    throw new Error(
-      `Unable to resolve sandbox HOME directory: ${result.stderr || result.stdout}`,
-    );
-  }
-  return homeDir;
-}
-
-function safeClaudeSkillName(name: string): string {
-  if (!/^[A-Za-z0-9._-]+$/.test(name) || name === '.' || name === '..') {
-    throw new Error(`Invalid Claude Code skill name: ${name}`);
-  }
-  return name;
-}
-
-function safeClaudeSkillFilePath({
-  skillName,
-  filePath,
-}: {
-  skillName: string;
-  filePath: string;
-}): string {
-  const normalized = path.posix.normalize(filePath);
-  if (
-    normalized === '.' ||
-    normalized.startsWith('../') ||
-    path.posix.isAbsolute(normalized)
-  ) {
-    throw new Error(
+    invalidSkillNameMessage: ({ name }) =>
+      `Invalid Claude Code skill name: ${name}`,
+    invalidSkillFilePathMessage: ({ skillName, filePath }) =>
       `Invalid Claude Code skill file path for ${skillName}: ${filePath}`,
-    );
-  }
-  return normalized;
-}
-
-function shellQuote(value: string): string {
-  return `'${value.replace(/'/g, `'\\''`)}'`;
+    trailingNewline: true,
+  });
 }
 
 async function readBridgeAsset(name: string): Promise<string> {
@@ -811,126 +788,6 @@ async function readBridgeAsset(name: string): Promise<string> {
     }
   }
   throw lastErr ?? new Error(`bridge asset not found: ${name}`);
-}
-
-async function createBridgeStartupError({
-  message,
-  proc,
-  stdoutTail,
-  stderrTail,
-  stderrDone,
-}: {
-  message: string;
-  proc: Experimental_SandboxProcess;
-  stdoutTail: string[];
-  stderrTail: string[];
-  stderrDone: Promise<void>;
-}): Promise<Error> {
-  await Promise.race([
-    stderrDone,
-    new Promise<void>(resolve => setTimeout(resolve, 250)),
-  ]).catch(() => {});
-
-  let exitStatus = '';
-  try {
-    const result = (await Promise.race([
-      proc.wait(),
-      new Promise<undefined>(resolve => setTimeout(resolve, 250)),
-    ])) as { exitCode?: number } | undefined;
-    if (result?.exitCode !== undefined) {
-      exitStatus = ` Exit code: ${result.exitCode}.`;
-    }
-  } catch {}
-
-  const details: string[] = [];
-  if (stdoutTail.length > 0) {
-    details.push(`stdout:\n${stdoutTail.join('\n')}`);
-  }
-  if (stderrTail.length > 0) {
-    details.push(`stderr:\n${stderrTail.join('\n')}`);
-  }
-
-  return new Error(
-    `${message}${exitStatus}${
-      details.length > 0 ? `\n\n${details.join('\n\n')}` : ''
-    }`,
-  );
-}
-
-function lineDecoder() {
-  let buffer = '';
-  return {
-    push(chunk: string): string[] {
-      buffer += chunk;
-      const lines: string[] = [];
-      let nl: number;
-      while ((nl = buffer.indexOf('\n')) !== -1) {
-        const raw = buffer.slice(0, nl);
-        buffer = buffer.slice(nl + 1);
-        const line = raw.replace(/\r$/, '').trim();
-        if (line.length > 0) lines.push(line);
-      }
-      return lines;
-    },
-    flush(): string[] {
-      const line = buffer.replace(/\r$/, '').trim();
-      buffer = '';
-      return line.length > 0 ? [line] : [];
-    },
-  };
-}
-
-async function forwardBridgeStderr({
-  stream,
-  collectTail,
-}: {
-  stream: ReadableStream<Uint8Array>;
-  collectTail?: string[];
-}): Promise<void> {
-  try {
-    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
-    const decoder = lineDecoder();
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) {
-        for (const line of decoder.flush()) {
-          const trimmed = line.trim();
-          if (!trimmed) continue;
-          if (collectTail) {
-            collectTail.push(trimmed);
-            if (collectTail.length > 20) collectTail.shift();
-          }
-          // eslint-disable-next-line no-console
-          console.log(`[bridge stderr] ${trimmed}`);
-        }
-        return;
-      }
-      if (value) {
-        for (const line of decoder.push(value)) {
-          const trimmed = line.trim();
-          if (!trimmed) continue;
-          if (collectTail) {
-            collectTail.push(trimmed);
-            if (collectTail.length > 20) collectTail.shift();
-          }
-          // eslint-disable-next-line no-console
-          console.log(`[bridge stderr] ${trimmed}`);
-        }
-      }
-    }
-  } catch {
-    // Reader errors are non-fatal — best-effort diagnostic only.
-  }
-}
-
-async function drainRest(stream: ReadableStream<Uint8Array>): Promise<void> {
-  try {
-    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
-    while (true) {
-      const { done } = await reader.read();
-      if (done) return;
-    }
-  } catch {}
 }
 
 /**
@@ -1105,6 +962,7 @@ function createSession({
   sandboxId,
   debug,
   permissionMode,
+  builtinToolFiltering,
   skills,
 }: {
   sessionId: string;
@@ -1113,7 +971,7 @@ function createSession({
   proc: Experimental_SandboxProcess | undefined;
   model: string | undefined;
   maxTurns: number | undefined;
-  thinking: 'off' | 'on' | 'adaptive' | undefined;
+  thinking: ClaudeCodeThinkingConfig;
   isResume: boolean;
   continueOnFirstPrompt: boolean;
   rerunContinue: boolean;
@@ -1122,6 +980,7 @@ function createSession({
   sandboxId: string;
   debug: HarnessV1DebugConfig | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
+  builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
   skills: ReadonlyArray<HarnessV1Skill>;
 }): HarnessV1Session {
   let stopped = false;
@@ -1307,6 +1166,7 @@ function createSession({
           ? { skills: skills.map(skill => skill.name) }
           : {}),
         ...(permissionMode ? { permissionMode } : {}),
+        ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
         ...(debug ? { debug } : {}),
         ...(pendingResumeFlag ? { continue: true } : {}),
       };
@@ -1358,6 +1218,7 @@ function createSession({
             ? { skills: skills.map(skill => skill.name) }
             : {}),
           ...(permissionMode ? { permissionMode } : {}),
+          ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
           ...(debug ? { debug } : {}),
           continue: true,
         });
@@ -1517,14 +1378,16 @@ function createSession({
       }
       stopped = true;
       /*
-       * Gracefully freeze the active turn at a precise cursor. `channel.suspend`
-       * stops processing inbound frames (the cursor stops advancing exactly at
-       * the last delivered event), drains what was already dispatched, then
-       * closes the host socket with reason `'suspended'` — which `wireTurn`'s
-       * `onClose` treats as a clean turn end. The bridge keeps the turn running
-       * and accumulates events past the cursor for the next slice to replay. The
+       * First ask the runtime to interrupt the active model turn, then freeze
+       * the host at a precise cursor. `channel.suspend` stops processing
+       * inbound frames (the cursor stops advancing exactly at the last
+       * delivered event), drains what was already dispatched, then closes the
+       * host socket with reason `'suspended'` — which `wireTurn`'s `onClose`
+       * treats as a clean turn end. The bridge keeps the turn running and
+       * accumulates events past the cursor for the next slice to replay. The
        * sandbox process is deliberately left alive (no `shutdown`/`detach`).
        */
+      await channel.interrupt();
       const lastSeenEventId = await channel.suspend();
       const payload: HarnessV1ContinueTurnState = {
         type: 'continue-turn',

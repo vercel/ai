@@ -280,41 +280,52 @@ export function createAmazonBedrockAnthropic(
             : undefined;
 
         const requiredBetas = new Set<string>(betas);
-        const transformedTools = tools?.map((tool: Record<string, unknown>) => {
-          const toolType = tool.type as string | undefined;
-
-          if (toolType && toolType in BEDROCK_TOOL_VERSION_MAP) {
-            const newType =
-              BEDROCK_TOOL_VERSION_MAP[
-                toolType as keyof typeof BEDROCK_TOOL_VERSION_MAP
-              ];
-            if (newType in BEDROCK_TOOL_BETA_MAP) {
-              requiredBetas.add(BEDROCK_TOOL_BETA_MAP[newType]);
+        const transformedTools = tools?.map(
+          (rawTool: Record<string, unknown>) => {
+            // Bedrock rejects the per-tool eager_input_streaming field even when
+            // the fine-grained-tool-streaming beta is declared, but the beta alone
+            // enables the same behavior, so translate the field into the beta
+            const { eager_input_streaming: eagerInputStreaming, ...tool } =
+              rawTool;
+            if (eagerInputStreaming === true) {
+              requiredBetas.add('fine-grained-tool-streaming-2025-05-14');
             }
-            const newName =
-              newType in BEDROCK_TOOL_NAME_MAP
-                ? BEDROCK_TOOL_NAME_MAP[newType]
-                : tool.name;
-            return {
-              ...tool,
-              type: newType,
-              name: newName,
-            };
-          }
 
-          if (toolType && toolType in BEDROCK_TOOL_BETA_MAP) {
-            requiredBetas.add(BEDROCK_TOOL_BETA_MAP[toolType]);
-          }
+            const toolType = tool.type as string | undefined;
 
-          if (toolType && toolType in BEDROCK_TOOL_NAME_MAP) {
-            return {
-              ...tool,
-              name: BEDROCK_TOOL_NAME_MAP[toolType],
-            };
-          }
+            if (toolType && toolType in BEDROCK_TOOL_VERSION_MAP) {
+              const newType =
+                BEDROCK_TOOL_VERSION_MAP[
+                  toolType as keyof typeof BEDROCK_TOOL_VERSION_MAP
+                ];
+              if (newType in BEDROCK_TOOL_BETA_MAP) {
+                requiredBetas.add(BEDROCK_TOOL_BETA_MAP[newType]);
+              }
+              const newName =
+                newType in BEDROCK_TOOL_NAME_MAP
+                  ? BEDROCK_TOOL_NAME_MAP[newType]
+                  : tool.name;
+              return {
+                ...tool,
+                type: newType,
+                name: newName,
+              };
+            }
 
-          return tool;
-        });
+            if (toolType && toolType in BEDROCK_TOOL_BETA_MAP) {
+              requiredBetas.add(BEDROCK_TOOL_BETA_MAP[toolType]);
+            }
+
+            if (toolType && toolType in BEDROCK_TOOL_NAME_MAP) {
+              return {
+                ...tool,
+                name: BEDROCK_TOOL_NAME_MAP[toolType],
+              };
+            }
+
+            return tool;
+          },
+        );
 
         return {
           ...rest,
@@ -332,11 +343,12 @@ export function createAmazonBedrockAnthropic(
       // Bedrock Anthropic doesn't support URL sources, force download and base64 conversion
       supportedUrls: () => ({}),
       // native structured output via output_config.format is supported on Bedrock
-      // Bedrock rejects `output_config.format` for `claude-opus-4-7`, `claude-opus-4-8`, and `claude-fable-5`
+      // Bedrock rejects `output_config.format` for `claude-opus-4-7`, `claude-opus-4-8`, `claude-fable-5`, and `claude-sonnet-5`
       supportsNativeStructuredOutput:
         !modelId.includes('claude-opus-4-7') &&
         !modelId.includes('claude-opus-4-8') &&
-        !modelId.includes('claude-fable-5'),
+        !modelId.includes('claude-fable-5') &&
+        !modelId.includes('claude-sonnet-5'),
     });
 
   const provider = function (modelId: AmazonBedrockAnthropicModelId) {

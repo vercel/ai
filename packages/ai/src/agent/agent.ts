@@ -70,7 +70,10 @@ export type AgentCallParameters<
     abortSignal?: AbortSignal;
 
     /**
-     * Timeout in milliseconds. Can be specified as a number or as an object with `totalMs`.
+     * Timeout in milliseconds. Can be specified as a number or as an object
+     * with total, per-step, first-content, inter-content, and tool timeouts.
+     * First-content and inter-content timeouts are only enforced by streaming
+     * calls.
      */
     timeout?: TimeoutConfiguration<TOOLS>;
 
@@ -107,9 +110,23 @@ export type AgentCallParameters<
     onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
 
     /**
+     * Callback that is called before each tool execution begins.
+     *
+     * @deprecated Use `onToolExecutionStart` instead.
+     */
+    experimental_onToolCallStart?: OnToolExecutionStartCallback<TOOLS>;
+
+    /**
      * Callback that is called after each tool execution completes.
      */
     onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
+
+    /**
+     * Callback that is called after each tool execution completes.
+     *
+     * @deprecated Use `onToolExecutionEnd` instead.
+     */
+    experimental_onToolCallFinish?: OnToolExecutionEndCallback<TOOLS>;
 
     /**
      * Callback that is called when each step (LLM call) ends, including intermediate steps.

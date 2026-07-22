@@ -1,10 +1,12 @@
 import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
 import type {
   HarnessV1Bootstrap,
+  HarnessV1BuiltinToolFiltering,
   HarnessV1NetworkSandboxSession,
   HarnessV1SandboxProvider,
 } from '../v1';
 import {
+  asArray,
   asSchema,
   generateId,
   type Context,
@@ -18,9 +20,14 @@ import type {
   GenerateTextResult,
   ReasoningFileOutput,
   ReasoningOutput,
+  StopCondition,
   StreamTextResult,
 } from 'ai';
-import type { HarnessAgentSettings } from './harness-agent-settings';
+import type {
+  HarnessAgentSandboxConfig,
+  HarnessAgentSettings,
+} from './harness-agent-settings';
+import type { HarnessAllTools } from './harness-agent-tool-types';
 import { HarnessAgentSession } from './harness-agent-session';
 import type {
   HarnessAgentAdapter,
@@ -35,31 +42,30 @@ import {
   type HarnessAgentToolApprovalContinuation,
 } from './harness-agent-tool-approval-continuation';
 import {
-  applyBootstrapRecipe,
-  hashBootstrap,
-} from './internal/bootstrap-recipe';
+  collectHarnessAgentToolResultContinuations,
+  type HarnessAgentToolResultContinuation,
+} from './harness-agent-tool-result-continuation';
+import { applyBootstrapRecipe } from './internal/bootstrap-recipe';
 import {
   acquireBridgePort,
   releaseBridgePort,
 } from './internal/bridge-port-registry';
+import {
+  createSandboxBootstrapPlan,
+  ensureSandboxDirectory,
+  resolveSessionWorkDir,
+  validateSandboxBootstrapSettings,
+  type SandboxBootstrapPlan,
+} from './internal/sandbox-bootstrap';
 import { buildObservability } from './internal/resolve-observability';
 import { validateLifecycleStateData } from './internal/lifecycle-state-validation';
 import {
   permissionModeNeedsBuiltinSupport,
   resolvePermissionMode,
 } from './internal/permission-mode';
+import { resolveHarnessAgentToolFiltering } from './internal/tool-filtering';
 
-/** Extract the builtin tool set type from a harness adapter parameter. */
-type BuiltinToolsOf<H> = H extends HarnessAgentAdapter<infer T> ? T : never;
-
-/**
- * Type-level merge of a harness's builtin tools with user-defined tools.
- * User tools override builtins on key collision.
- */
-export type HarnessAllTools<
-  THarness extends HarnessAgentAdapter<any>,
-  TUserTools extends ToolSet,
-> = Omit<BuiltinToolsOf<THarness>, keyof TUserTools> & TUserTools;
+export type { HarnessAllTools } from './harness-agent-tool-types';
 
 /**
  * Required `session` extension on every `HarnessAgent.generate` /
@@ -129,17 +135,48 @@ export class HarnessAgent<
    */
   readonly tools: HarnessAllTools<THarness, TUserTools>;
 
-  private readonly settings: HarnessAgentSettings<THarness, TUserTools>;
-  private readonly userTools: TUserTools;
+  private readonly settings: HarnessAgentSettings<
+    THarness,
+    TUserTools,
+    RUNTIME_CONTEXT
+  >;
+  private readonly stopConditions: Array<
+    StopCondition<HarnessAllTools<THarness, TUserTools>, RUNTIME_CONTEXT>
+  >;
+  private readonly sandboxConfig: HarnessAgentSandboxConfig;
+  private readonly activeUserTools: TUserTools;
+  private readonly builtinToolFiltering:
+    | HarnessV1BuiltinToolFiltering
+    | undefined;
   private readonly permissionMode: HarnessAgentPermissionMode;
 
-  constructor(settings: HarnessAgentSettings<THarness, TUserTools>) {
+  constructor(
+    settings: HarnessAgentSettings<THarness, TUserTools, RUNTIME_CONTEXT>,
+  ) {
+    const sandboxConfig = resolveSandboxConfig(settings);
+    validateSandboxBootstrapSettings(sandboxConfig);
     this.settings = settings;
+    this.stopConditions =
+      settings.stopWhen == null ? [] : asArray(settings.stopWhen);
+    this.sandboxConfig = sandboxConfig;
     this.id = settings.id;
-    this.userTools = settings.tools ?? ({} as TUserTools);
+    const userTools = settings.tools ?? ({} as TUserTools);
     this.permissionMode = resolvePermissionMode({
       permissionMode: settings.permissionMode,
     });
+    const tools = {
+      ...settings.harness.builtinTools,
+      ...userTools,
+    } as HarnessAllTools<THarness, TUserTools>;
+    const toolFiltering = resolveHarnessAgentToolFiltering({
+      harness: settings.harness,
+      userTools,
+      allTools: tools,
+      activeTools: settings.activeTools,
+      inactiveTools: settings.inactiveTools,
+    });
+    this.activeUserTools = toolFiltering.activeUserTools;
+    this.builtinToolFiltering = toolFiltering.builtinToolFiltering;
     if (
       Object.keys(settings.harness.builtinTools).length > 0 &&
       permissionModeNeedsBuiltinSupport({
@@ -152,10 +189,7 @@ export class HarnessAgent<
         harnessId: settings.harness.harnessId,
       });
     }
-    this.tools = {
-      ...settings.harness.builtinTools,
-      ...this.userTools,
-    } as HarnessAllTools<THarness, TUserTools>;
+    this.tools = tools;
   }
 
   /** Identifier of the harness backing this agent. */
@@ -230,19 +264,25 @@ export class HarnessAgent<
       validatedResumeFrom != null || effectiveContinueFrom != null;
 
     let recipe: HarnessV1Bootstrap | undefined;
-    let identity: string | undefined;
-
     if (harness.getBootstrap != null) {
       recipe = await harness.getBootstrap({ abortSignal });
-      identity = await hashBootstrap(recipe);
     }
 
+    // Defines the hashes based on both harness bootstrap recipe and
+    // consumer-defined onBootstrap callback.
+    const sandboxBootstrapPlan = await createSandboxBootstrapPlan({
+      recipe,
+      settings: this.sandboxConfig,
+    });
+
+    // Acquires the concrete sandbox session, either by starting fresh and then
+    // creating a post-bootstrap snapshot, or by reusing a previously created
+    // snapshot based on the bootstrap-based hashes.
     const acquiredSandboxSession = await this._acquireSandbox({
       sandboxProvider,
       sessionId,
       isResume: isResumedSession,
-      recipe,
-      identity,
+      bootstrapPlan: sandboxBootstrapPlan,
       abortSignal,
     });
 
@@ -253,27 +293,37 @@ export class HarnessAgent<
     });
     const sandboxSession = leased.sandboxSession;
     const leasedBridgePort = leased.port;
-    const sessionWorkDir = `${sandboxSession.defaultWorkingDirectory}/${harness.harnessId}-${sessionId}`;
+    const sessionWorkDir = resolveSessionWorkDir({
+      defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+      harnessId: harness.harnessId,
+      sessionId,
+      workDir: sandboxBootstrapPlan.workDir,
+    });
 
     try {
-      /*
-       * Adapter bootstrap is one-time work for fresh sessions. The consumer
-       * hook runs for every acquired sandbox session after the work dir exists.
-       */
-      if (!isResumedSession && recipe != null && identity != null) {
+      // In case the sandbox session was created with a custom sandbox, or in
+      // case the sandbox provider doesn't respect `onFirstCreate`, we still
+      // have to ensure the harness bootstrap recipe has run. In the common
+      // scenario, this will be a cheap no-op based on just a marker check.
+      if (
+        !isResumedSession &&
+        sandboxBootstrapPlan.recipe != null &&
+        sandboxBootstrapPlan.recipeIdentity != null
+      ) {
         await applyBootstrapRecipe(
           sandboxSession.restricted(),
-          recipe,
-          identity,
+          sandboxBootstrapPlan.recipe,
+          sandboxBootstrapPlan.recipeIdentity,
           { abortSignal },
         );
       }
-      await sandboxSession.run({
-        command: `mkdir -p ${sessionWorkDir}`,
+      await ensureSandboxDirectory({
+        session: sandboxSession,
+        workDir: sessionWorkDir,
         abortSignal,
       });
-      if (this.settings.onSandboxSession != null) {
-        await this.settings.onSandboxSession({
+      if (this.sandboxConfig.onSession != null) {
+        await this.sandboxConfig.onSession({
           session: sandboxSession.restricted(),
           sessionWorkDir,
           abortSignal,
@@ -296,6 +346,7 @@ export class HarnessAgent<
         resumeFrom: validatedResumeFrom,
         continueFrom: effectiveContinueFrom,
         permissionMode: this.permissionMode,
+        builtinToolFiltering: this.builtinToolFiltering,
         abortSignal,
         observability: buildObservability({ settings: this.settings }),
       };
@@ -314,13 +365,17 @@ export class HarnessAgent<
         sessionWorkDir,
         toolApproval: this.settings.toolApproval,
         pendingToolApprovals: effectiveContinueFrom?.pendingToolApprovals,
+        pendingToolResults: effectiveContinueFrom?.pendingToolResults,
         turnState:
           effectiveContinueFrom == null
             ? 'idle'
             : effectiveContinueFrom.pendingToolApprovals != null &&
                 effectiveContinueFrom.pendingToolApprovals.length > 0
               ? 'awaiting-approval'
-              : 'suspended',
+              : effectiveContinueFrom.pendingToolResults != null &&
+                  effectiveContinueFrom.pendingToolResults.length > 0
+                ? 'awaiting-tool-result'
+                : 'suspended',
       });
     } catch (error) {
       await cleanupAfterStartFailure({
@@ -392,6 +447,7 @@ export class HarnessAgent<
   async continueGenerate(options: {
     session: HarnessAgentSession;
     toolApprovalContinuations?: readonly HarnessAgentToolApprovalContinuation[];
+    toolResultContinuations?: readonly HarnessAgentToolResultContinuation[];
     abortSignal?: AbortSignal;
   }): Promise<
     GenerateTextResult<
@@ -407,6 +463,7 @@ export class HarnessAgent<
       turnInput: {
         mode: 'continue',
         toolApprovalContinuations: options.toolApprovalContinuations ?? [],
+        toolResultContinuations: options.toolResultContinuations ?? [],
       },
       runtimeContext,
       abortSignal: options.abortSignal,
@@ -426,6 +483,7 @@ export class HarnessAgent<
   async continueStream(options: {
     session: HarnessAgentSession;
     toolApprovalContinuations?: readonly HarnessAgentToolApprovalContinuation[];
+    toolResultContinuations?: readonly HarnessAgentToolResultContinuation[];
     abortSignal?: AbortSignal;
   }): Promise<
     StreamTextResult<
@@ -441,6 +499,7 @@ export class HarnessAgent<
       turnInput: {
         mode: 'continue',
         toolApprovalContinuations: options.toolApprovalContinuations ?? [],
+        toolResultContinuations: options.toolResultContinuations ?? [],
       },
       runtimeContext,
       abortSignal: options.abortSignal,
@@ -457,6 +516,7 @@ export class HarnessAgent<
       | {
           mode: 'continue';
           toolApprovalContinuations: readonly HarnessAgentToolApprovalContinuation[];
+          toolResultContinuations: readonly HarnessAgentToolResultContinuation[];
         };
     runtimeContext: RUNTIME_CONTEXT;
     abortSignal: AbortSignal | undefined;
@@ -475,11 +535,15 @@ export class HarnessAgent<
       >({
         instructions: this.settings.instructions,
         tools: this.tools,
+        activeTools: this.activeUserTools,
         toolSpecs: this._toToolSpecs(),
+        builtinToolFiltering: this.builtinToolFiltering,
         runtimeContext: input.runtimeContext,
         abortSignal: input.abortSignal,
         telemetry: this.settings.telemetry,
+        stopConditions: this.stopConditions,
         toolApprovalContinuations: input.turnInput.toolApprovalContinuations,
+        toolResultContinuations: input.turnInput.toolResultContinuations,
       });
     }
 
@@ -490,10 +554,13 @@ export class HarnessAgent<
       prompt: input.turnInput.prompt,
       instructions: this.settings.instructions,
       tools: this.tools,
+      activeTools: this.activeUserTools,
       toolSpecs: this._toToolSpecs(),
+      builtinToolFiltering: this.builtinToolFiltering,
       runtimeContext: input.runtimeContext,
       abortSignal: input.abortSignal,
       telemetry: this.settings.telemetry,
+      stopConditions: this.stopConditions,
     });
   }
 
@@ -501,8 +568,7 @@ export class HarnessAgent<
     sandboxProvider: HarnessV1SandboxProvider;
     sessionId: string;
     isResume: boolean;
-    recipe: HarnessV1Bootstrap | undefined;
-    identity: string | undefined;
+    bootstrapPlan: SandboxBootstrapPlan;
     abortSignal: AbortSignal | undefined;
   }): Promise<HarnessV1NetworkSandboxSession> {
     const { sandboxProvider } = input;
@@ -521,17 +587,8 @@ export class HarnessAgent<
     return sandboxProvider.createSession({
       sessionId: input.sessionId,
       abortSignal: input.abortSignal,
-      identity: input.identity,
-      onFirstCreate:
-        input.recipe != null && input.identity != null
-          ? (session, opts) =>
-              applyBootstrapRecipe(
-                session,
-                input.recipe!,
-                input.identity!,
-                opts,
-              )
-          : undefined,
+      identity: input.bootstrapPlan.identity,
+      onFirstCreate: input.bootstrapPlan.onFirstCreate,
     });
   }
 
@@ -551,6 +608,7 @@ export class HarnessAgent<
     | {
         mode: 'continue';
         toolApprovalContinuations: readonly HarnessAgentToolApprovalContinuation[];
+        toolResultContinuations: readonly HarnessAgentToolResultContinuation[];
       } {
     if (typeof options.prompt === 'string') {
       return { mode: 'prompt', prompt: options.prompt };
@@ -561,10 +619,16 @@ export class HarnessAgent<
     if (Array.isArray(messages)) {
       const toolApprovalContinuations =
         collectHarnessAgentToolApprovalContinuations({ messages });
-      if (toolApprovalContinuations.length > 0) {
+      const toolResultContinuations =
+        collectHarnessAgentToolResultContinuations({ messages });
+      if (
+        toolApprovalContinuations.length > 0 ||
+        toolResultContinuations.length > 0
+      ) {
         return {
           mode: 'continue',
           toolApprovalContinuations,
+          toolResultContinuations,
         };
       }
       for (let i = messages.length - 1; i >= 0; i--) {
@@ -587,7 +651,7 @@ export class HarnessAgent<
   private _toToolSpecs(): HarnessAgentToolSpec[] {
     const specs: HarnessAgentToolSpec[] = [];
     for (const [name, tool] of Object.entries(
-      this.userTools as Record<string, unknown>,
+      this.activeUserTools as Record<string, unknown>,
     )) {
       const t = tool as {
         description?: string;
@@ -754,6 +818,24 @@ class HarnessGenerateTextResult<
   get providerMetadata() {
     return this.finalStep.providerMetadata;
   }
+}
+
+function resolveSandboxConfig(
+  settings: Pick<HarnessAgentSettings, 'sandboxConfig' | 'onSandboxSession'>,
+): HarnessAgentSandboxConfig {
+  if (settings.onSandboxSession != null) {
+    console.warn(
+      'HarnessAgent: `onSandboxSession` is deprecated. Use `sandboxConfig.onSession` instead.',
+    );
+  }
+
+  return {
+    ...settings.sandboxConfig,
+    ...(settings.sandboxConfig?.onSession == null &&
+    settings.onSandboxSession != null
+      ? { onSession: settings.onSandboxSession }
+      : {}),
+  };
 }
 
 /*

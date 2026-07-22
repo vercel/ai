@@ -1,5 +1,291 @@
 # @ai-sdk/tui
 
+## 1.0.35
+
+### Patch Changes
+
+- ai@7.0.34
+
+## 1.0.34
+
+### Patch Changes
+
+- Updated dependencies [76cb673]
+- Updated dependencies [e808fa5]
+- Updated dependencies [33647d7]
+  - ai@7.0.33
+
+## 1.0.33
+
+### Patch Changes
+
+- Updated dependencies [6cd7c74]
+- Updated dependencies [e35bcae]
+- Updated dependencies [a4eb3f3]
+  - ai@7.0.32
+
+## 1.0.32
+
+### Patch Changes
+
+- Updated dependencies [70f18c3]
+- Updated dependencies [cd06458]
+  - ai@7.0.31
+
+## 1.0.31
+
+### Patch Changes
+
+- ai@7.0.30
+
+## 1.0.30
+
+### Patch Changes
+
+- ai@7.0.29
+
+## 1.0.29
+
+### Patch Changes
+
+- 6175a94: Allow `runAgentTUI` to communicate with remote agents through a `ChatTransport`.
+
+## 1.0.28
+
+### Patch Changes
+
+- Updated dependencies [0bc8d4f]
+  - ai@7.0.28
+
+## 1.0.27
+
+### Patch Changes
+
+- Updated dependencies [ac01b79]
+- Updated dependencies [2696562]
+  - ai@7.0.27
+
+## 1.0.26
+
+### Patch Changes
+
+- Updated dependencies [27d294d]
+  - ai@7.0.26
+
+## 1.0.25
+
+### Patch Changes
+
+- Updated dependencies [7805e4a]
+- Updated dependencies [f8e82fd]
+  - ai@7.0.25
+
+## 1.0.24
+
+### Patch Changes
+
+- Updated dependencies [e193290]
+  - ai@7.0.24
+
+## 1.0.23
+
+### Patch Changes
+
+- Updated dependencies [930f949]
+  - ai@7.0.23
+
+## 1.0.22
+
+### Patch Changes
+
+- Updated dependencies [8f89c25]
+  - ai@7.0.22
+
+## 1.0.21
+
+### Patch Changes
+
+- 308a519: chore: enforce consistent imports from `zod/v4` instead of `zod`
+- Updated dependencies [308a519]
+  - ai@7.0.21
+
+## 1.0.20
+
+### Patch Changes
+
+- Updated dependencies [b9ac19f]
+- Updated dependencies [a4186d6]
+  - ai@7.0.20
+
+## 1.0.19
+
+### Patch Changes
+
+- Updated dependencies [be7f05a]
+- Updated dependencies [ee55a07]
+- Updated dependencies [aad737d]
+- Updated dependencies [0f93c57]
+  - ai@7.0.19
+
+## 1.0.18
+
+### Patch Changes
+
+- ai@7.0.18
+
+## 1.0.17
+
+### Patch Changes
+
+- ai@7.0.17
+
+## 1.0.16
+
+### Patch Changes
+
+- Updated dependencies [a8f9b6d]
+  - ai@7.0.16
+
+## 1.0.15
+
+### Patch Changes
+
+- ai@7.0.15
+
+## 1.0.14
+
+### Patch Changes
+
+- Updated dependencies [5c5c0f5]
+  - ai@7.0.14
+
+## 1.0.13
+
+### Patch Changes
+
+- ai@7.0.13
+
+## 1.0.12
+
+### Patch Changes
+
+- Updated dependencies [ecfeb6f]
+- Updated dependencies [a193137]
+  - ai@7.0.12
+
+## 1.0.11
+
+### Patch Changes
+
+- Updated dependencies [0a87626]
+  - ai@7.0.11
+
+## 1.0.10
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - ai@7.0.10
+
+## 1.0.9
+
+### Patch Changes
+
+- ai@7.0.9
+
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [0274f34]
+  - ai@7.0.8
+
+## 1.0.7
+
+### Patch Changes
+
+- Updated dependencies [d598481]
+  - ai@7.0.7
+
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies [989402d]
+  - ai@7.0.6
+
+## 1.0.5
+
+### Patch Changes
+
+- Updated dependencies [a2750db]
+  - ai@7.0.5
+
+## 1.0.4
+
+### Patch Changes
+
+- ai@7.0.4
+
+## 1.0.3
+
+### Patch Changes
+
+- ai@7.0.3
+
+## 1.0.2
+
+### Patch Changes
+
+- ai@7.0.2
+
+## 1.0.1
+
+### Patch Changes
+
+- ai@7.0.1
+
+## 1.0.0
+
+### Patch Changes
+
+- e757741: feat: agent tui
+- b8396f0: trigger initial beta release
+- e150ad7: Allow `runAgentTUI` to accept any AI SDK `Agent` generic combination.
+- b06e092: Add a `sandbox` option to `runAgentTUI` and forward it to every agent stream call for tool execution.
+
+## 1.0.0-beta.23
+
+### Patch Changes
+
+- ai@7.0.0-beta.187
+
+## 1.0.0-beta.22
+
+### Patch Changes
+
+- ai@7.0.0-beta.186
+
+## 1.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [75763b0]
+  - ai@7.0.0-beta.185
+
+## 1.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - ai@7.0.0-beta.184
+
+## 1.0.0-beta.19
+
+### Patch Changes
+
+- ai@7.0.0-beta.183
+
 ## 1.0.0-beta.18
 
 ### Patch Changes

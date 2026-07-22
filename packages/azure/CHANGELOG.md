@@ -1,5 +1,208 @@
 # @ai-sdk/azure
 
+## 4.0.18
+
+### Patch Changes
+
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+  - @ai-sdk/deepseek@3.0.13
+  - @ai-sdk/openai@4.0.17
+
+## 4.0.17
+
+### Patch Changes
+
+- Updated dependencies [cd06458]
+- Updated dependencies [75f86f4]
+  - @ai-sdk/provider-utils@5.0.11
+  - @ai-sdk/openai@4.0.16
+  - @ai-sdk/deepseek@3.0.12
+
+## 4.0.16
+
+### Patch Changes
+
+- Updated dependencies [0063c2d]
+  - @ai-sdk/openai@4.0.15
+
+## 4.0.15
+
+### Patch Changes
+
+- 49ae04d: fix: Azure DeepSeek structured output returns JSON in reasoning with empty text
+- Updated dependencies [49ae04d]
+  - @ai-sdk/deepseek@3.0.11
+
+## 4.0.14
+
+### Patch Changes
+
+- Updated dependencies [31c7be8]
+  - @ai-sdk/provider-utils@5.0.10
+  - @ai-sdk/deepseek@3.0.10
+  - @ai-sdk/openai@4.0.14
+
+## 4.0.13
+
+### Patch Changes
+
+- Updated dependencies [4be62c1]
+- Updated dependencies [7805e4a]
+- Updated dependencies [7805e4a]
+- Updated dependencies [cd12954]
+  - @ai-sdk/provider-utils@5.0.9
+  - @ai-sdk/openai@4.0.13
+  - @ai-sdk/deepseek@3.0.9
+
+## 4.0.12
+
+### Patch Changes
+
+- Updated dependencies [e193290]
+- Updated dependencies [e193290]
+- Updated dependencies [e193290]
+  - @ai-sdk/provider-utils@5.0.8
+  - @ai-sdk/openai@4.0.12
+  - @ai-sdk/deepseek@3.0.8
+
+## 4.0.11
+
+### Patch Changes
+
+- Updated dependencies [b2b1bb9]
+  - @ai-sdk/openai@4.0.11
+
+## 4.0.10
+
+### Patch Changes
+
+- Updated dependencies [fdb6d5d]
+- Updated dependencies [0f93c57]
+  - @ai-sdk/openai@4.0.10
+  - @ai-sdk/provider@4.0.3
+  - @ai-sdk/deepseek@3.0.7
+  - @ai-sdk/provider-utils@5.0.7
+
+## 4.0.9
+
+### Patch Changes
+
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+  - @ai-sdk/openai@4.0.9
+  - @ai-sdk/deepseek@3.0.6
+
+## 4.0.8
+
+### Patch Changes
+
+- Updated dependencies [b51ed36]
+  - @ai-sdk/openai@4.0.8
+
+## 4.0.7
+
+### Patch Changes
+
+- 2f10cdf: fix(azure): use custom base urls if provided
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - @ai-sdk/provider@4.0.2
+  - @ai-sdk/provider-utils@5.0.5
+  - @ai-sdk/deepseek@3.0.5
+  - @ai-sdk/openai@4.0.7
+
+## 4.0.6
+
+### Patch Changes
+
+- Updated dependencies [c6f5e62]
+  - @ai-sdk/provider-utils@5.0.4
+  - @ai-sdk/deepseek@3.0.4
+  - @ai-sdk/openai@4.0.6
+
+## 4.0.5
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - @ai-sdk/provider-utils@5.0.3
+  - @ai-sdk/deepseek@3.0.3
+  - @ai-sdk/openai@4.0.5
+
+## 4.0.4
+
+### Patch Changes
+
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - @ai-sdk/deepseek@3.0.2
+  - @ai-sdk/openai@4.0.4
+  - @ai-sdk/provider-utils@5.0.2
+
+## 4.0.3
+
+### Patch Changes
+
+- Updated dependencies [1ead90c]
+  - @ai-sdk/openai@4.0.3
+
+## 4.0.2
+
+### Patch Changes
+
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+  - @ai-sdk/deepseek@3.0.1
+  - @ai-sdk/openai@4.0.2
+
+## 4.0.1
+
+### Patch Changes
+
+- Updated dependencies [9507724]
+  - @ai-sdk/openai@4.0.1
+
+## 4.0.0
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- 9f4dca0: Add Microsoft Entra ID token provider authentication for Azure OpenAI.
+- 38fc777: Add AI Gateway hint to provider READMEs
+- 83f9d04: feat(openai): upgrade v3 specs to v4
+- b23b042: feat(azure): add deepseek model support to azure
+- e776fc7: feat(provider/azure):web search tool in the Azure OpenAI Responses API.
+- 9f0e36c: trigger release for all packages after provenance setup
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- 0c4c275: trigger initial canary release
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- b8396f0: trigger initial beta release
+
+## 4.0.0-beta.79
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - @ai-sdk/deepseek@3.0.0-beta.56
+  - @ai-sdk/openai@4.0.0-beta.77
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
+## 4.0.0-beta.78
+
+### Patch Changes
+
+- Updated dependencies [2c4767d]
+  - @ai-sdk/openai@4.0.0-beta.76
+
 ## 4.0.0-beta.77
 
 ### Patch Changes

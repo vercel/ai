@@ -459,6 +459,9 @@ For `generateText` and `streamText`, the integration records 3 types of spans:
   - `gen_ai.usage.output_tokens`: output tokens used in this step
   - `gen_ai.usage.cache_read.input_tokens`: cached input tokens read
   - `gen_ai.usage.cache_creation.input_tokens`: cached input tokens created
+  - `gen_ai.client.operation.duration`: provider call duration, in seconds
+  - `gen_ai.client.operation.time_to_first_chunk`: time to the first streamed output chunk, in seconds (streaming calls only)
+  - `gen_ai.client.operation.time_per_output_chunk`: average time between streamed output chunks, in seconds (streaming calls with multiple output chunks only)
   - `gen_ai.output.messages`: the output in [GenAI SemConv message format](#genai-message-format) (when `recordOutputs` is enabled)
 
 - **`execute_tool {toolName}`** (tool span, `INTERNAL`): one span per tool execution, nested under the step span. See [GenAI tool call spans](#genai-tool-call-spans) for details.
@@ -545,6 +548,7 @@ Tool call spans (`execute_tool {toolName}`) are nested under the step span and c
 - `gen_ai.tool.call.id`: the tool call ID
 - `gen_ai.tool.type`: `"function"`
 - `gen_ai.tool.call.arguments`: the input arguments (stringified JSON, when `recordInputs` is enabled)
+- `gen_ai.execute_tool.duration`: the tool execution duration, in seconds
 - `gen_ai.tool.call.result`: the output result (stringified JSON, when `recordOutputs` is enabled). Only set when the tool call succeeds.
 
 ### Custom OpenTelemetry span attributes

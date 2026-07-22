@@ -5,7 +5,10 @@ const VARIANTS = [
   { slug: 'basic-with-stop', label: 'Basic (with stop)' },
   { slug: 'ai-sdk-coding', label: 'AI SDK Coding' },
   { slug: 'weather', label: 'Weather' },
+  { slug: 'weather-only', label: 'Weather Only' },
   { slug: 'weather-approval', label: 'Weather Approval' },
+  { slug: 'workflow-timed', label: 'Workflow (Timed)' },
+  { slug: 'workflow-stepped', label: 'Workflow (Stepped)' },
 ] as const;
 
 const HARNESSES = [
@@ -17,7 +20,10 @@ const HARNESSES = [
       'basic-with-stop',
       'ai-sdk-coding',
       'weather',
+      'weather-only',
       'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
     ],
   },
   {
@@ -29,6 +35,36 @@ const HARNESSES = [
       'ai-sdk-coding',
       'weather',
       'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+  {
+    slug: 'deepagents',
+    label: 'Deep Agents',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+  {
+    slug: 'opencode',
+    label: 'OpenCode',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
     ],
   },
   {
@@ -39,7 +75,10 @@ const HARNESSES = [
       'basic-with-stop',
       'ai-sdk-coding',
       'weather',
+      'weather-only',
       'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
     ],
   },
 ] as const;

@@ -23,7 +23,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { googleFailedResponseHandler } from '../google-error';
 import { buildGoogleInteractionsStreamTransform } from './build-google-interactions-stream-transform';
-import { convertGoogleInteractionsUsage } from './convert-google-interactions-usage';
+import {
+  convertGoogleInteractionsUsage,
+  getGoogleInteractionsOutputTokensByModality,
+} from './convert-google-interactions-usage';
 import { convertToGoogleInteractionsInput } from './convert-to-google-interactions-input';
 import {
   googleInteractionsEventSchema,
@@ -75,7 +78,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
 
   /**
    * Optional agent name. When provided, the request body sends `agent:` instead
-   * of `model:` and rejects `tools` / `generation_config` (warned, not thrown).
+   * of `model:` and rejects `generation_config` (warned, not thrown).
    */
   readonly agent: string | undefined;
 
@@ -155,13 +158,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     let toolsForBody: Array<GoogleInteractionsTool> | undefined;
     let toolChoiceForBody: GoogleInteractionsToolChoice | undefined;
 
-    if (hasTools && isAgent) {
-      warnings.push({
-        type: 'other',
-        message:
-          'google.interactions: tools are not supported when an agent is set; tools will be omitted from the request body.',
-      });
-    } else if (hasTools) {
+    if (hasTools) {
       const prepared = prepareGoogleInteractionsTools({
         tools: options.tools,
         toolChoice: options.toolChoice,
@@ -546,10 +543,15 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
      * `response.id` is omitted when `store: false` (fully stateless mode), so
      * `interactionId` is only surfaced when the API actually returned one.
      */
+    const outputTokensByModality = getGoogleInteractionsOutputTokensByModality(
+      response.usage,
+    );
+
     const providerMetadata: SharedV4ProviderMetadata = {
       google: {
         ...(interactionId != null ? { interactionId } : {}),
         ...(serviceTier != null ? { serviceTier } : {}),
+        ...(outputTokensByModality != null ? { outputTokensByModality } : {}),
       },
     };
 

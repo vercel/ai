@@ -1,4 +1,7 @@
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import {
+  InvalidArgumentError,
+  type LanguageModelV4Prompt,
+} from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
   mockId,
@@ -117,6 +120,63 @@ describe('doGenerate', () => {
         "search_recency_filter": "month",
       }
     `);
+  });
+
+  it('should pass through unknown perplexity provider options', async () => {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
+      type: 'json-value',
+      body: {
+        id: 'test-id',
+        created: 1680000000,
+        model: modelId,
+        choices: [
+          {
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 },
+      },
+    };
+
+    await perplexityModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        perplexity: {
+          future_option: {
+            enabled: true,
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "future_option": {
+          "enabled": true,
+        },
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "sonar",
+      }
+    `);
+  });
+
+  it('should reject invalid perplexity provider options', async () => {
+    await expect(
+      perplexityModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          perplexity: {
+            search_recency_filter: 'decade',
+          },
+        },
+      }),
+    ).rejects.toThrow(InvalidArgumentError);
   });
 
   it('should pass headers', async () => {
@@ -789,23 +849,9 @@ describe('doStream', () => {
           "type": "raw",
         },
         {
-          "error": [AI_TypeValidationError: Type validation failed: Value: {"id":"ppl-456","object":"chat.completion.chunk","created":1234567890,"model":"sonar","choices":[{"index":0,"delta":{"content":" world"},"finish_reason":null}]}.
-      Error message: [
-        {
-          "code": "invalid_value",
-          "values": [
-            "assistant"
-          ],
-          "path": [
-            "choices",
-            0,
-            "delta",
-            "role"
-          ],
-          "message": "Invalid input: expected \\"assistant\\""
-        }
-      ]],
-          "type": "error",
+          "delta": " world",
+          "id": "0",
+          "type": "text-delta",
         },
         {
           "rawValue": {
@@ -831,51 +877,21 @@ describe('doStream', () => {
           "type": "raw",
         },
         {
-          "error": [AI_TypeValidationError: Type validation failed: Value: {"id":"ppl-789","object":"chat.completion.chunk","created":1234567890,"model":"sonar","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15,"citation_tokens":2,"num_search_queries":1}}.
-      Error message: [
-        {
-          "code": "invalid_value",
-          "values": [
-            "assistant"
-          ],
-          "path": [
-            "choices",
-            0,
-            "delta",
-            "role"
-          ],
-          "message": "Invalid input: expected \\"assistant\\""
-        },
-        {
-          "expected": "string",
-          "code": "invalid_type",
-          "path": [
-            "choices",
-            0,
-            "delta",
-            "content"
-          ],
-          "message": "Invalid input: expected string, received undefined"
-        }
-      ]],
-          "type": "error",
-        },
-        {
           "id": "0",
           "type": "text-end",
         },
         {
           "finishReason": {
-            "raw": undefined,
-            "unified": "other",
+            "raw": "stop",
+            "unified": "stop",
           },
           "providerMetadata": {
             "perplexity": {
               "cost": null,
               "images": null,
               "usage": {
-                "citationTokens": null,
-                "numSearchQueries": null,
+                "citationTokens": 2,
+                "numSearchQueries": 1,
               },
             },
           },
@@ -884,15 +900,21 @@ describe('doStream', () => {
             "inputTokens": {
               "cacheRead": undefined,
               "cacheWrite": undefined,
-              "noCache": undefined,
-              "total": undefined,
+              "noCache": 10,
+              "total": 10,
             },
             "outputTokens": {
-              "reasoning": undefined,
-              "text": undefined,
-              "total": undefined,
+              "reasoning": 0,
+              "text": 5,
+              "total": 5,
             },
-            "raw": undefined,
+            "raw": {
+              "citation_tokens": 2,
+              "completion_tokens": 5,
+              "num_search_queries": 1,
+              "prompt_tokens": 10,
+              "total_tokens": 15,
+            },
           },
         },
       ]

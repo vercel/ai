@@ -656,6 +656,7 @@ describe('OpenTelemetry', () => {
           },
           "name": "chat gpt-4",
           "runtimeAttributes": {
+            "gen_ai.client.operation.duration": 1,
             "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
             "gen_ai.response.finish_reasons": [
               "stop",
@@ -664,6 +665,64 @@ describe('OpenTelemetry', () => {
             "gen_ai.usage.input_tokens": 10,
             "gen_ai.usage.output_tokens": 20,
           },
+        }
+      `);
+    });
+
+    it('omits malformed finish reason arrays on the chat span', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({ finishReason: undefined }),
+      );
+
+      expect(
+        'gen_ai.response.finish_reasons' in tracer.spans[2].attributes,
+      ).toBe(false);
+    });
+
+    it('sets GenAI client performance attributes on the chat span', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({
+          performance: {
+            responseTimeMs: 1234,
+            effectiveOutputTokensPerSecond: 20,
+            outputTokensPerSecond: 25,
+            inputTokensPerSecond: 10,
+            effectiveTotalTokensPerSecond: 30,
+            timeToFirstOutputMs: 345,
+            timeBetweenOutputChunksMs: {
+              min: 10,
+              p10: 20,
+              median: 50,
+              avg: 67,
+              p90: 90,
+              max: 100,
+            },
+          },
+        }),
+      );
+
+      expect({
+        duration:
+          tracer.spans[2].attributes['gen_ai.client.operation.duration'],
+        timeToFirstChunk:
+          tracer.spans[2].attributes[
+            'gen_ai.client.operation.time_to_first_chunk'
+          ],
+        timePerOutputChunk:
+          tracer.spans[2].attributes[
+            'gen_ai.client.operation.time_per_output_chunk'
+          ],
+      }).toMatchInlineSnapshot(`
+        {
+          "duration": 1.234,
+          "timePerOutputChunk": 0.067,
+          "timeToFirstChunk": 0.345,
         }
       `);
     });
@@ -844,6 +903,16 @@ describe('OpenTelemetry', () => {
       expect(mock.mock.calls[2][2]).toBe(mock.mock.calls[3][2]);
     });
 
+    it('parents execute_tool under the root span before a step starts', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+
+      const mock = tracer.startSpan as ReturnType<typeof vi.fn>;
+      const toolParentContext = mock.mock.calls[1][2];
+
+      expect(trace.getSpan(toolParentContext)).toBe(tracer.spans[0]);
+    });
+
     it('sets gen_ai.tool.call.result on success', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
@@ -863,10 +932,25 @@ describe('OpenTelemetry', () => {
           },
           "name": "execute_tool myTool",
           "runtimeAttributes": {
+            "gen_ai.execute_tool.duration": 0.042,
             "gen_ai.tool.call.result": "{"result":"ok"}",
           },
         }
       `);
+    });
+
+    it('sets GenAI execute_tool duration on the tool span', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+      integration.onToolExecutionEnd!(
+        makeToolCallFinishEvent(true, { toolExecutionMs: 123 }),
+      );
+
+      expect(tracer.spans[3].attributes['gen_ai.execute_tool.duration']).toBe(
+        0.123,
+      );
     });
 
     it('records error on tool failure', () => {
@@ -1312,6 +1396,7 @@ describe('OpenTelemetry', () => {
               "ai.usage.inputTokenDetails.noCacheTokens": 7,
               "ai.usage.outputTokenDetails.reasoningTokens": 5,
               "ai.usage.outputTokenDetails.textTokens": 15,
+              "gen_ai.client.operation.duration": 1,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
               "gen_ai.response.finish_reasons": [
                 "stop",
@@ -1334,6 +1419,7 @@ describe('OpenTelemetry', () => {
             },
             "name": "execute_tool myTool",
             "runtimeAttributes": {
+              "gen_ai.execute_tool.duration": 0.042,
               "gen_ai.tool.call.result": "{"result":"ok"}",
             },
           },
@@ -1412,6 +1498,7 @@ describe('OpenTelemetry', () => {
             },
             "name": "chat gpt-4",
             "runtimeAttributes": {
+              "gen_ai.client.operation.duration": 1,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
               "gen_ai.response.finish_reasons": [
                 "stop",
@@ -1432,6 +1519,7 @@ describe('OpenTelemetry', () => {
             },
             "name": "execute_tool myTool",
             "runtimeAttributes": {
+              "gen_ai.execute_tool.duration": 0.042,
               "gen_ai.tool.call.result": "{"result":"ok"}",
             },
           },
@@ -1493,6 +1581,7 @@ describe('OpenTelemetry', () => {
             },
             "name": "execute_tool myTool",
             "runtimeAttributes": {
+              "gen_ai.execute_tool.duration": 0.042,
               "gen_ai.tool.call.result": "{"result":"ok"}",
             },
           },
@@ -1761,6 +1850,7 @@ describe('OpenTelemetry', () => {
             },
             "name": "chat gpt-4",
             "runtimeAttributes": {
+              "gen_ai.client.operation.duration": 1,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
               "gen_ai.response.finish_reasons": [
                 "stop",
@@ -1849,6 +1939,7 @@ describe('OpenTelemetry', () => {
             },
             "name": "chat gpt-4",
             "runtimeAttributes": {
+              "gen_ai.client.operation.duration": 1,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"tool_call"}]",
               "gen_ai.response.finish_reasons": [
                 "tool-calls",
@@ -1869,6 +1960,7 @@ describe('OpenTelemetry', () => {
             },
             "name": "execute_tool myTool",
             "runtimeAttributes": {
+              "gen_ai.execute_tool.duration": 0.042,
               "gen_ai.tool.call.result": "{"result":"ok"}",
             },
           },
@@ -1891,6 +1983,7 @@ describe('OpenTelemetry', () => {
             },
             "name": "chat gpt-4",
             "runtimeAttributes": {
+              "gen_ai.client.operation.duration": 1,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
               "gen_ai.response.finish_reasons": [
                 "stop",

@@ -3,9 +3,9 @@ import {
   type Experimental_SandboxSession,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
-import type { TextStreamPart } from 'ai';
-import { describe, expect, test } from 'vitest';
-import { z } from 'zod';
+import { hasToolCall, isStepCount, type TextStreamPart } from 'ai';
+import { describe, expect, test, vi } from 'vitest';
+import { z } from 'zod/v4';
 import type {
   HarnessV1,
   HarnessV1PromptControl,
@@ -103,6 +103,14 @@ const finishEvents: HarnessV1StreamPart[] = [
   },
 ];
 
+const resumableFinishStep: HarnessV1StreamPart = {
+  ...(finishEvents[0]! as Extract<
+    HarnessV1StreamPart,
+    { type: 'finish-step' }
+  >),
+  finishReason: { unified: 'tool-calls', raw: 'tool_use' },
+};
+
 describe('runPrompt workDir stripping', () => {
   test('strips the workDir for consumers but executes host tools with the absolute path', async () => {
     const executedArgs: unknown[] = [];
@@ -166,6 +174,410 @@ describe('runPrompt workDir stripping', () => {
   });
 });
 
+describe('runPrompt usage', () => {
+  test('uses final total usage when it differs from received step usage', async () => {
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: 'stop' },
+          usage: {
+            inputTokens: {
+              total: 2,
+              noCache: 2,
+              cacheRead: 0,
+              cacheWrite: 0,
+            },
+            outputTokens: {
+              total: 5,
+              text: 5,
+              reasoning: 0,
+            },
+          },
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'stop' },
+          totalUsage: {
+            inputTokens: {
+              total: 10,
+              noCache: 4,
+              cacheRead: 6,
+              cacheWrite: 0,
+            },
+            outputTokens: {
+              total: 40,
+              text: 30,
+              reasoning: 10,
+            },
+          },
+        },
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    await done;
+    await result.consumeStream();
+
+    await expect(result.usage).resolves.toEqual({
+      inputTokens: 10,
+      inputTokenDetails: {
+        noCacheTokens: 4,
+        cacheReadTokens: 6,
+        cacheWriteTokens: 0,
+      },
+      outputTokens: 40,
+      outputTokenDetails: {
+        textTokens: 30,
+        reasoningTokens: 10,
+      },
+      totalTokens: 50,
+      raw: undefined,
+    });
+  });
+});
+
+describe('runPrompt step accounting', () => {
+  test('records one step per finish-step without counting terminal finish', async () => {
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'text-delta', id: 't1', delta: 'first' },
+        resumableFinishStep,
+        { type: 'text-delta', id: 't2', delta: 'second' },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    await done;
+    await result.consumeStream();
+
+    const steps = await result.steps;
+    expect(steps).toHaveLength(2);
+    expect(steps.map(step => step.stepNumber)).toEqual([0, 1]);
+    expect(steps.map(step => step.text)).toEqual(['first', 'second']);
+    expect(await isStepCount(2)({ steps })).toBe(true);
+  });
+
+  test('keeps tool calls and results in one predicate-compatible step', async () => {
+    const weather = tool({
+      description: 'Get weather',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async () => ({ temperature: 72 }),
+    });
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'SF' }),
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          result: { temperature: 72 },
+        },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { weather } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    await done;
+    await result.consumeStream();
+
+    const steps = await result.steps;
+    expect(steps).toHaveLength(1);
+    expect(steps[0]!.content.map(part => part.type)).toEqual([
+      'tool-call',
+      'tool-result',
+    ]);
+    expect(steps[0]!.toolCalls).toHaveLength(1);
+    expect(steps[0]!.toolResults).toHaveLength(1);
+    expect(await hasToolCall('weather')({ steps })).toBe(true);
+  });
+
+  test('does not expose provider-executed tool calls as pending client results', async () => {
+    const pending: unknown[] = [];
+    const weather = tool({
+      description: 'Get weather',
+      inputSchema: z.object({ city: z.string() }),
+    });
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'SF' }),
+          providerExecuted: true,
+        },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { weather } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      onPendingToolResult: pendingResult => pending.push(pendingResult),
+    });
+
+    await done;
+    await result.consumeStream();
+
+    expect(pending).toEqual([]);
+    await expect(result.steps).resolves.toHaveLength(1);
+  });
+
+  test('fails when terminal finish receives unclosed step content', async () => {
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'text-delta', id: 't1', delta: 'unclosed' },
+        finishEvents[1]!,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(parts).toContainEqual({
+      type: 'error',
+      error: expect.objectContaining({
+        message: expect.stringContaining('unclosed step content'),
+      }),
+    });
+    await expect(result.steps).rejects.toThrow(/unclosed step content/);
+  });
+
+  test('allows an empty terminal turn without recording a step', async () => {
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([finishEvents[1]!]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    await done;
+    await result.consumeStream();
+
+    await expect(result.steps).resolves.toEqual([]);
+    await expect(result.text).resolves.toBe('');
+  });
+
+  test('evaluates stop conditions only after real finish-step events', async () => {
+    const stepCounts: number[] = [];
+    let stopBoundaryCount = 0;
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'text-delta', id: 't1', delta: 'first' },
+        resumableFinishStep,
+        { type: 'text-delta', id: 't2', delta: 'second' },
+        resumableFinishStep,
+        { type: 'text-delta', id: 't3', delta: 'third' },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      stopConditions: [
+        async ({ steps }) => {
+          stepCounts.push(steps.length);
+          return steps.length === 2;
+        },
+      ],
+      onStopConditionMet: async () => {
+        stopBoundaryCount += 1;
+      },
+    });
+
+    await done;
+    await result.consumeStream();
+
+    expect(stepCounts).toEqual([1, 2]);
+    expect(stopBoundaryCount).toBe(1);
+    expect((await result.steps).map(step => step.text)).toEqual([
+      'first',
+      'second',
+    ]);
+  });
+
+  test('lets a terminal text-only step emit finish even when stopWhen matches its step count', async () => {
+    let predicateCount = 0;
+    let stopBoundaryCount = 0;
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'text-delta', id: 't1', delta: 'done' },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      stopConditions: [
+        ({ steps }) => {
+          predicateCount += 1;
+          return steps.length === 1;
+        },
+      ],
+      onStopConditionMet: async () => {
+        stopBoundaryCount += 1;
+      },
+    });
+    const partTypes: string[] = [];
+
+    for await (const part of result.fullStream) partTypes.push(part.type);
+    await done;
+
+    expect(predicateCount).toBe(0);
+    expect(stopBoundaryCount).toBe(0);
+    expect(partTypes.slice(-2)).toEqual(['finish-step', 'finish']);
+    await expect(result.finishReason).resolves.toBe('stop');
+    await expect(result.text).resolves.toBe('done');
+  });
+
+  test('stops before a next-step tool call when the completed step has no tool calls', async () => {
+    const weather = tool({
+      description: 'Get weather',
+      inputSchema: z.object({ city: z.string() }),
+    });
+    let stopBoundaryCount = 0;
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'text-delta', id: 't1', delta: 'first' },
+        finishEvents[0]!,
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'Lima' }),
+          providerExecuted: true,
+        },
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { weather },
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      stopConditions: [({ steps }) => steps.length === 1],
+      onStopConditionMet: async () => {
+        stopBoundaryCount += 1;
+      },
+    });
+    const parts: TextStreamPart<ToolSet>[] = [];
+
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(stopBoundaryCount).toBe(1);
+    expect(parts.some(part => part.type === 'tool-call')).toBe(false);
+    expect((await result.steps).map(step => step.text)).toEqual(['first']);
+  });
+
+  test('processes a lookahead event exactly once when stop conditions do not match', async () => {
+    const stepCounts: number[] = [];
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'text-delta', id: 't1', delta: 'first' },
+        finishEvents[0]!,
+        { type: 'text-start', id: 't2' },
+        { type: 'text-delta', id: 't2', delta: 'second' },
+        { type: 'text-end', id: 't2' },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      stopConditions: [
+        ({ steps }) => {
+          stepCounts.push(steps.length);
+          return false;
+        },
+      ],
+    });
+    const parts: TextStreamPart<ToolSet>[] = [];
+
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(stepCounts).toEqual([1]);
+    expect(
+      parts.filter(
+        part => part.type === 'text-delta' && part.text === 'second',
+      ),
+    ).toHaveLength(1);
+    expect((await result.steps).map(step => step.text)).toEqual([
+      'first',
+      'second',
+    ]);
+  });
+});
+
 type SubmittedResult = {
   toolCallId: string;
   output: unknown;
@@ -185,6 +597,8 @@ describe('runPrompt host tool generator results', () => {
   test('pauses custom tool execution when approval is required', async () => {
     const submitted: SubmittedResult[] = [];
     const pending: unknown[] = [];
+    let stopConditionCalls = 0;
+    let stopBoundaryCalls = 0;
     const weather = tool({
       description: 'Get weather',
       inputSchema: z.object({ city: z.string() }),
@@ -213,6 +627,15 @@ describe('runPrompt host tool generator results', () => {
       runtimeContext: {} as never,
       abortSignal: undefined,
       toolApproval: { weather: 'user-approval' },
+      stopConditions: [
+        () => {
+          stopConditionCalls += 1;
+          return true;
+        },
+      ],
+      onStopConditionMet: async () => {
+        stopBoundaryCalls += 1;
+      },
       onPendingToolApproval: approval => pending.push(approval),
     });
 
@@ -238,6 +661,15 @@ describe('runPrompt host tool generator results', () => {
     ) as Extract<TextStreamPart<ToolSet>, { type: 'tool-approval-request' }>;
     expect(approvalRequest.toolCall.toolName).toBe('weather');
     expect(approvalRequest.toolCall.input).toEqual({ city: 'SF' });
+    const steps = await result.steps;
+    expect(steps).toHaveLength(1);
+    expect(steps[0]!.finishReason).toBe('tool-calls');
+    expect(steps[0]!.content.map(part => part.type)).toEqual([
+      'tool-call',
+      'tool-approval-request',
+    ]);
+    expect(stopConditionCalls).toBe(0);
+    expect(stopBoundaryCalls).toBe(0);
   });
 
   test('denies custom tools configured with denied approval status', async () => {
@@ -258,6 +690,7 @@ describe('runPrompt host tool generator results', () => {
             toolName: 'weather',
             input: JSON.stringify({ city: 'SF' }),
           },
+          ...finishEvents,
         ],
         input => submitted.push(input),
       ),
@@ -301,6 +734,13 @@ describe('runPrompt host tool generator results', () => {
         providerExecuted: false,
       }),
     );
+    const steps = await result.steps;
+    expect(steps).toHaveLength(1);
+    expect(steps[0]!.content.map(part => part.type)).toEqual([
+      'tool-call',
+      'tool-approval-request',
+      'tool-approval-response',
+    ]);
   });
 
   test('executes an approved pending custom tool continuation', async () => {
@@ -370,6 +810,8 @@ describe('runPrompt host tool generator results', () => {
         approved: true,
       }),
     );
+    expect(parts.map(part => part.type)).not.toContain('error');
+    await expect(result.steps).resolves.toEqual([]);
   });
 
   test('does not reuse a consumed approval for replayed custom tool calls', async () => {
@@ -604,5 +1046,110 @@ describe('runPrompt host tool generator results', () => {
     expect(results).toHaveLength(1);
     expect(results[0].preliminary).toBe(true);
     expect(results[0].output).toEqual({ path: 'src/foo.ts' });
+  });
+});
+
+describe('runPrompt abort semantics', () => {
+  const abortedRun = (
+    script: HarnessV1StreamPart[],
+    options?: { onTurnFailed?: () => void },
+  ) => {
+    const controller = new AbortController();
+    controller.abort();
+    return runPrompt({
+      harness,
+      session: fakeSession(script),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {} as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: controller.signal,
+      onTurnFailed: options?.onTurnFailed,
+    });
+  };
+
+  test('settles with an abort part instead of an error part when the abort signal has fired', async () => {
+    const { result, done } = abortedRun([
+      { type: 'text-start', id: 't1' },
+      { type: 'text-delta', id: 't1', delta: 'partial ' },
+      { type: 'error', error: 'AbortError: This operation was aborted' },
+    ]);
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(parts.filter(p => p.type === 'error')).toHaveLength(0);
+    const last = parts[parts.length - 1]!;
+    expect(last.type).toBe('abort');
+    expect((last as { reason?: string }).reason).toContain('aborted');
+    // Awaiting consumers still settle (rejected with the underlying error).
+    await expect(result.finishReason).rejects.toBeDefined();
+  });
+
+  test('keeps a real error part when the abort signal has not fired', async () => {
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([{ type: 'error', error: 'boom' }]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {} as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(parts.filter(p => p.type === 'abort')).toHaveLength(0);
+    expect(parts[parts.length - 1]!.type).toBe('error');
+    await expect(result.finishReason).rejects.toBeDefined();
+  });
+
+  test('notifies onTurnFailed when an aborted turn settles, so session turn tracking returns to idle', async () => {
+    const onTurnFailed = vi.fn();
+    const { result, done } = abortedRun(
+      [{ type: 'error', error: 'AbortError: This operation was aborted' }],
+      { onTurnFailed },
+    );
+
+    await result.consumeStream();
+    await done;
+
+    expect(onTurnFailed).toHaveBeenCalledTimes(1);
+  });
+
+  test('toUIMessageStream emits an abort chunk, skips onError, and reports isAborted to onEnd for an aborted turn', async () => {
+    const { result, done } = abortedRun([
+      { type: 'error', error: 'AbortError: This operation was aborted' },
+    ]);
+
+    const onErrorCalls: unknown[] = [];
+    const onEndCalls: { isAborted: boolean }[] = [];
+    const chunkTypes: string[] = [];
+    for await (const chunk of result.toUIMessageStream({
+      onError: error => {
+        onErrorCalls.push(error);
+        return 'error';
+      },
+      onEnd: ({ isAborted }) => {
+        onEndCalls.push({ isAborted });
+      },
+    })) {
+      chunkTypes.push((chunk as { type: string }).type);
+    }
+    await done;
+
+    expect(onErrorCalls).toHaveLength(0);
+    expect(chunkTypes).toContain('abort');
+    expect(chunkTypes).not.toContain('error');
+    expect(onEndCalls).toEqual([{ isAborted: true }]);
   });
 });

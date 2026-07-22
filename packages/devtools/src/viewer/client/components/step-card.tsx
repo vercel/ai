@@ -82,7 +82,7 @@ export function StepCard({
   return (
     <Collapsible open={isExpanded} onOpenChange={() => toggleStep(step.id)}>
       <Card
-        className={`overflow-hidden py-0 gap-0 ${isActiveStep ? 'ring-2 ring-blue-500/50 ring-offset-1 ring-offset-background' : ''}`}
+        className={`overflow-hidden py-0 gap-0 ${isActiveStep ? 'ring-2 ring-info/50 ring-offset-1 ring-offset-background' : ''}`}
       >
         <CollapsibleTrigger asChild>
           <button
@@ -164,7 +164,7 @@ export function StepCard({
 
             <div className="flex items-center gap-4">
               {isActiveStep ? (
-                <span className="text-[11px] text-blue-400 font-medium flex items-center gap-1.5">
+                <span className="text-[11px] text-info font-medium flex items-center gap-1.5">
                   <Loader2 className="size-3 animate-spin" />
                   streaming
                 </span>
@@ -292,7 +292,7 @@ export function StepDetailContent({
           ) : output ? (
             <OutputDisplay output={output} toolResults={toolResults} />
           ) : isActiveStep ? (
-            <div className="flex items-center gap-2 text-sm text-blue-400">
+            <div className="flex items-center gap-2 text-sm text-info">
               <Loader2 className="size-4 animate-spin" />
               <span>Waiting for response...</span>
             </div>
@@ -410,20 +410,18 @@ function NestedRunCard({
   const modelId = firstStep?.model_id;
 
   return (
-    <div className="rounded-md border border-cyan-500/30 overflow-hidden">
+    <div className="rounded-md border border-agent/30 overflow-hidden">
       <button
-        className="w-full flex items-center gap-2 px-3 py-2 bg-cyan-500/10 hover:bg-cyan-500/15 transition-colors"
+        className="w-full flex items-center gap-2 px-3 py-2 bg-agent/10 hover:bg-agent/15 transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
         <ChevronRight
-          className={`size-3 text-cyan-400 transition-transform shrink-0 ${
+          className={`size-3 text-agent transition-transform shrink-0 ${
             expanded ? 'rotate-90' : ''
           }`}
         />
-        <Brain className="size-3 text-cyan-400 shrink-0" />
-        <span className="text-xs font-medium text-cyan-400 truncate">
-          {label}
-        </span>
+        <Brain className="size-3 text-agent shrink-0" />
+        <span className="text-xs font-medium text-agent truncate">{label}</span>
         <span className="ml-auto flex items-center gap-3 shrink-0">
           {modelId && (
             <span className="text-[10px] font-mono text-muted-foreground">
@@ -438,13 +436,13 @@ function NestedRunCard({
             {formatDuration(totalDuration)}
           </span>
           {childRun.run.isInProgress && (
-            <Loader2 className="size-3 text-blue-400 animate-spin" />
+            <Loader2 className="size-3 text-info animate-spin" />
           )}
         </span>
       </button>
 
       {expanded && (
-        <div className="border-t border-cyan-500/20 bg-background/50 p-3 flex flex-col gap-2">
+        <div className="border-t border-agent/20 bg-background/50 p-3 flex flex-col gap-2">
           {childRun.steps.map((step, index) => {
             const nestedChildRuns = (childRun.childRuns ?? []).filter(
               cr => cr.run.parent_step_id === step.id,

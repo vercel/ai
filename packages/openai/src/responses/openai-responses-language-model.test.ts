@@ -241,6 +241,34 @@ describe('OpenAIResponsesLanguageModel', () => {
   }
 
   describe('doGenerate', () => {
+    it('should throw a descriptive error when the response has no output', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_no_output',
+          object: 'response',
+          created_at: 1741257730,
+          status: 'incomplete',
+          error: null,
+          incomplete_details: { reason: 'content_filter' },
+          model: 'gpt-4o-2024-07-18',
+          // no `output` field — some OpenAI-compatible upstreams return this
+          usage: {
+            input_tokens: 10,
+            input_tokens_details: { cached_tokens: 0 },
+            output_tokens: 0,
+            output_tokens_details: { reasoning_tokens: 0 },
+            total_tokens: 10,
+          },
+          metadata: {},
+        },
+      };
+
+      await expect(
+        createModel('gpt-4o').doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toThrow('Responses API returned no output (content_filter)');
+    });
+
     describe('basic text response', () => {
       beforeEach(() => {
         server.urls['https://api.openai.com/v1/responses'].response = {
@@ -276,6 +304,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             reasoning: {
               effort: null,
               summary: null,
+              context: 'current_turn',
             },
             store: true,
             temperature: 1,
@@ -292,6 +321,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               input_tokens: 345,
               input_tokens_details: {
                 cached_tokens: 234,
+                cache_write_tokens: 45,
               },
               output_tokens: 538,
               output_tokens_details: {
@@ -334,8 +364,8 @@ describe('OpenAIResponsesLanguageModel', () => {
           {
             "inputTokens": {
               "cacheRead": 234,
-              "cacheWrite": undefined,
-              "noCache": 111,
+              "cacheWrite": 45,
+              "noCache": 66,
               "total": 345,
             },
             "outputTokens": {
@@ -346,6 +376,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             "raw": {
               "input_tokens": 345,
               "input_tokens_details": {
+                "cache_write_tokens": 45,
                 "cached_tokens": 234,
               },
               "output_tokens": 538,
@@ -357,6 +388,77 @@ describe('OpenAIResponsesLanguageModel', () => {
         `);
       });
 
+      it('should preserve orchestration usage fields in raw', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_67c97c0203188190a025beb4a75242bc',
+            object: 'response',
+            created_at: 1741257730,
+            status: 'completed',
+            error: null,
+            incomplete_details: null,
+            input: [],
+            instructions: null,
+            max_output_tokens: null,
+            model: 'gpt-4o-2024-07-18',
+            output: [
+              {
+                id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
+                type: 'message',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  { type: 'output_text', text: 'answer text', annotations: [] },
+                ],
+              },
+            ],
+            parallel_tool_calls: true,
+            previous_response_id: null,
+            reasoning: { effort: null, summary: null },
+            store: true,
+            temperature: 1,
+            text: { format: { type: 'text' } },
+            tool_choice: 'auto',
+            tools: [],
+            top_p: 1,
+            truncation: 'disabled',
+            usage: {
+              input_tokens: 120,
+              input_tokens_details: {
+                cached_tokens: 0,
+                orchestration_input_tokens: 40,
+                orchestration_input_cached_tokens: 10,
+              },
+              output_tokens: 80,
+              output_tokens_details: {
+                reasoning_tokens: 0,
+                orchestration_output_tokens: 25,
+              },
+              total_tokens: 265,
+            },
+            user: null,
+            metadata: {},
+          },
+        };
+
+        const result = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        // Sakana-style orchestration usage rides through on `usage.raw` so
+        // downstream consumers (e.g. the AI Gateway) can bill it.
+        expect(result.usage.raw).toMatchObject({
+          input_tokens_details: {
+            orchestration_input_tokens: 40,
+            orchestration_input_cached_tokens: 10,
+          },
+          output_tokens_details: {
+            orchestration_output_tokens: 25,
+          },
+        });
+      });
+
       it('should extract response id metadata ', async () => {
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
@@ -364,6 +466,7 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         expect(result.providerMetadata).toStrictEqual({
           openai: {
+            reasoningContext: 'current_turn',
             responseId: 'resp_67c97c0203188190a025beb4a75242bc',
           },
         });
@@ -1055,6 +1158,100 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send GPT-5.6 reasoning effort, mode, and context', async () => {
+        const { warnings } = await createModel('gpt-5.6').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'max',
+              reasoningMode: 'pro',
+              reasoningContext: 'all_turns',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5.6',
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+          reasoning: {
+            effort: 'max',
+            summary: 'detailed',
+            mode: 'pro',
+            context: 'all_turns',
+          },
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should let GPT-5.6 use its default effort with pro mode', async () => {
+        const { warnings } = await createModel('gpt-5.6').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              reasoningMode: 'pro',
+              reasoningContext: 'auto',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5.6',
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+          reasoning: {
+            mode: 'pro',
+            context: 'auto',
+          },
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should warn about GPT-5.6 reasoning controls on non-reasoning models', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              reasoningMode: 'pro',
+              reasoningContext: 'all_turns',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-4o',
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+        });
+        expect(warnings).toStrictEqual([
+          {
+            type: 'unsupported',
+            feature: 'reasoningMode',
+            details: 'reasoningMode is not supported for non-reasoning models',
+          },
+          {
+            type: 'unsupported',
+            feature: 'reasoningContext',
+            details:
+              'reasoningContext is not supported for non-reasoning models',
+          },
+        ]);
+      });
+
       it.each(nonReasoningModelIds)(
         'should not send and warn about unsupported reasoningEffort and reasoningSummary provider options for %s',
         async modelId => {
@@ -1274,6 +1471,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               include: [
                 'reasoning.encrypted_content',
                 'file_search_call.results',
+                'web_search_call.results',
               ],
             },
           },
@@ -1284,7 +1482,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
           ],
-          include: ['reasoning.encrypted_content', 'file_search_call.results'],
+          include: [
+            'reasoning.encrypted_content',
+            'file_search_call.results',
+            'web_search_call.results',
+          ],
         });
 
         expect(warnings).toStrictEqual([]);
@@ -1426,6 +1628,33 @@ describe('OpenAIResponsesLanguageModel', () => {
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
           ],
           prompt_cache_retention: '24h',
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send promptCacheOptions provider option', async () => {
+        const { warnings } = await createModel('gpt-5.6').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              promptCacheOptions: {
+                mode: 'explicit',
+                ttl: '30m',
+              },
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5.6',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          prompt_cache_options: {
+            mode: 'explicit',
+            ttl: '30m',
+          },
         });
 
         expect(warnings).toStrictEqual([]);
@@ -5567,6 +5796,34 @@ describe('OpenAIResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it('should return helpful error when Chat Completions stream is received', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"choices":[],"created":0,"id":"","model":"","object":"","prompt_filter_results":[{"prompt_index":0,"content_filter_results":{}}]}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await createModel('gpt-4o').doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      const error = events.find(event => event.type === 'error')?.error;
+
+      expect(error).toMatchObject({
+        name: 'AI_APICallError',
+        message:
+          'Received a Chat Completions stream while using the OpenAI Responses API. ' +
+          "The default OpenAI provider model uses the Responses API. If your custom baseURL targets a Chat Completions-compatible endpoint, use openai.chat('model-id') or createOpenAI(...).chat('model-id') instead. " +
+          'You can also use @ai-sdk/openai-compatible for OpenAI-compatible providers.',
+        responseBody:
+          '{"choices":[],"created":0,"id":"","model":"","object":"","prompt_filter_results":[{"prompt_index":0,"content_filter_results":{}}]}',
+      });
+    });
+
     it('should stream text deltas', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
@@ -6106,6 +6363,61 @@ describe('OpenAIResponsesLanguageModel', () => {
         toolCallEvent as Extract<typeof toolCallEvent, { type: 'tool-call' }>
       ).providerMetadata?.openai as Record<string, unknown> | undefined;
       expect(meta?.namespace).toBeUndefined();
+    });
+
+    it('should expose reasoning context and cache writes when streaming', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:${JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_gpt56',
+              created_at: 1783620000,
+              model: 'gpt-5.6',
+            },
+          })}\n\n`,
+          `data:${JSON.stringify({
+            type: 'response.completed',
+            response: {
+              incomplete_details: null,
+              reasoning: { context: 'all_turns' },
+              usage: {
+                input_tokens: 100,
+                input_tokens_details: {
+                  cached_tokens: 40,
+                  cache_write_tokens: 25,
+                },
+                output_tokens: 20,
+                output_tokens_details: { reasoning_tokens: 5 },
+              },
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-5.6').doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      expect(events.at(-1)).toMatchObject({
+        type: 'finish',
+        providerMetadata: {
+          openai: {
+            responseId: 'resp_gpt56',
+            reasoningContext: 'all_turns',
+          },
+        },
+        usage: {
+          inputTokens: {
+            total: 100,
+            noCache: 35,
+            cacheRead: 40,
+            cacheWrite: 25,
+          },
+        },
+      });
     });
 
     it('Should handle service tier', async () => {
