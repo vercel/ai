@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "issueId": 17500,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-17500-ui-stream-on-finish-outcome.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/tsconfig.json",
+    "examples/ai-functions/src/reproduction/issue-17500-ui-stream-on-finish-outcome.ts",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_17500_REPRODUCED: execution and merged-stream failures are indistinguishable from successful EOF in the lifecycle callback and are persisted as completed"
+  }
+}
