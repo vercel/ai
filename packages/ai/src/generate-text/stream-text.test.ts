@@ -29340,6 +29340,56 @@ describe('streamText', () => {
       expect(events).toEqual(['first', 'second']);
     });
   });
+
+  describe('active tools with dynamically loaded tools', () => {
+    it('should validate and execute calls against the full tools map', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async ({ tools }) => {
+            expect(tools?.map(tool => tool.name)).toEqual(['tool1']);
+
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'tool2',
+                  input: '{"value":"test"}',
+                },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          },
+          tool2: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result2`,
+          },
+        },
+        prompt: 'test-input',
+        activeTools: ['tool1'],
+      });
+
+      await expect(result.toolResults).resolves.toMatchObject([
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'tool2',
+          input: { value: 'test' },
+          output: 'test-result2',
+        },
+      ]);
+    });
+  });
 });
 
 async function expectUndefinedUnhandledRejections({

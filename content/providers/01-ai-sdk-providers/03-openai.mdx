@@ -1257,6 +1257,78 @@ In client mode, the flow spans two steps:
 
 For more details, see the [OpenAI Tool Search documentation](https://platform.openai.com/docs/guides/tools-tool-search).
 
+##### Load Tools After a Normal Tool Result
+
+When a normal function tool discovers additional functions, attach
+`providerOptions.openai.additionalTools` to its `tool-result` part. The OpenAI
+Responses adapter keeps the ordinary `function_call_output` and emits an
+`additional_tools` input item immediately after it:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText, tool, type ModelMessage } from 'ai';
+import { z } from 'zod';
+
+const messages: ModelMessage[] = [
+  // Earlier user message and connection_search tool call...
+  {
+    role: 'tool',
+    content: [
+      {
+        type: 'tool-result',
+        toolCallId: 'call_connection_search',
+        toolName: 'connection_search',
+        output: {
+          type: 'json',
+          value: [{ connection: 'linear', tool: 'list_issues' }],
+        },
+        providerOptions: {
+          openai: {
+            additionalTools: [
+              {
+                type: 'function',
+                name: 'linear__list_issues',
+                description: 'List Linear issues',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    team: { type: 'string' },
+                  },
+                  required: ['team'],
+                  additionalProperties: false,
+                },
+                strict: true,
+              },
+            ],
+          },
+        },
+      },
+    ],
+  },
+];
+
+await generateText({
+  model: openai.responses('gpt-5.4'),
+  messages,
+  tools: {
+    connection_search: tool({
+      inputSchema: z.object({ query: z.string() }),
+    }),
+    linear__list_issues: tool({
+      inputSchema: z.object({ team: z.string() }),
+      execute: async ({ team }) => ({ team, issues: [] }),
+    }),
+  },
+  activeTools: ['connection_search'],
+});
+```
+
+Keep the discovered tools in the full `tools` map so the AI SDK can validate
+and execute later calls, while omitting them from `activeTools` prevents them
+from being duplicated in the request-level tools list. Replaying the same
+messages preserves the `additional_tools` item's original position. This works
+with both `generateText` and `streamText`.
+
 #### Custom Tool
 
 The OpenAI Responses API supports

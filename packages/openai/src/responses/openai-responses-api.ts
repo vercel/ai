@@ -92,6 +92,7 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesAssistantMessage
   | OpenAIResponsesFunctionCall
   | OpenAIResponsesFunctionCallOutput
+  | OpenAIResponsesAdditionalTools
   | OpenAIResponsesCustomToolCall
   | OpenAIResponsesCustomToolCallOutput
   | OpenAIResponsesMcpApprovalResponse
@@ -231,6 +232,12 @@ export type OpenAIResponsesFunctionCallOutput = {
             prompt_cache_breakpoint?: { mode: 'explicit' };
           }
       >;
+};
+
+export type OpenAIResponsesAdditionalTools = {
+  type: 'additional_tools';
+  role: 'developer';
+  tools: Array<OpenAIResponsesFunctionTool>;
 };
 
 export type OpenAIResponsesCustomToolCall = {

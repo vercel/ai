@@ -1,3 +1,4 @@
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import type { ToolNameMapping } from '../../../provider-utils/src/create-tool-name-mapping';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { describe, it, expect } from 'vitest';
@@ -5557,6 +5558,140 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ]
       `);
+    });
+
+    it('should emit additional tools immediately after a normal tool result', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_search',
+                toolName: 'connection_search',
+                output: {
+                  type: 'json',
+                  value: {
+                    connection: 'linear',
+                    qualifiedName: 'linear__list_issues',
+                  },
+                },
+                providerOptions: {
+                  openai: {
+                    additionalTools: [
+                      {
+                        type: 'function',
+                        name: 'linear__list_issues',
+                        description: 'List Linear issues',
+                        parameters: { type: 'object' },
+                        strict: true,
+                      },
+                    ],
+                  },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call_other',
+                toolName: 'other_tool',
+                output: {
+                  type: 'text',
+                  value: 'other result',
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_search',
+          output:
+            '{"connection":"linear","qualifiedName":"linear__list_issues"}',
+        },
+        {
+          type: 'additional_tools',
+          role: 'developer',
+          tools: [
+            {
+              type: 'function',
+              name: 'linear__list_issues',
+              description: 'List Linear issues',
+              parameters: { type: 'object' },
+              strict: true,
+            },
+          ],
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_other',
+          output: 'other result',
+        },
+      ]);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should preserve additional tool placement when messages are replayed', async () => {
+      const prompt = [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call_search',
+              toolName: 'connection_search',
+              output: {
+                type: 'json',
+                value: [{ connection: 'linear' }],
+              },
+              providerOptions: {
+                openai: {
+                  additionalTools: [
+                    {
+                      type: 'function',
+                      name: 'linear__list_issues',
+                      parameters: { type: 'object' },
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'Continue.' }],
+        },
+      ] satisfies LanguageModelV4Prompt;
+
+      const firstConversion = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+      const replayedConversion = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(replayedConversion.input).toEqual(firstConversion.input);
+      expect(
+        replayedConversion.input.map(item =>
+          'type' in item ? item.type : undefined,
+        ),
+      ).toEqual(['function_call_output', 'additional_tools', undefined]);
     });
   });
 });

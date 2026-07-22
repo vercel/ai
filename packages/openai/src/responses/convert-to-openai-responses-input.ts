@@ -28,9 +28,11 @@ import {
 } from '../tool/local-shell';
 import { shellInputSchema, shellOutputSchema } from '../tool/shell';
 import type {
+  OpenAIResponsesAdditionalTools,
   OpenAIResponsesCompactionItem,
   OpenAIResponsesCustomToolCallOutput,
   OpenAIResponsesFunctionCallOutput,
+  OpenAIResponsesFunctionTool,
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
 } from './openai-responses-api';
@@ -1168,6 +1170,20 @@ export async function convertToOpenAIResponsesInput({
             call_id: part.toolCallId,
             output: contentValue,
           });
+
+          const toolResultProviderOptions = await parseProviderOptions({
+            provider: providerOptionsName,
+            providerOptions: part.providerOptions,
+            schema: openaiResponsesToolResultProviderOptionsSchema,
+          });
+
+          if (toolResultProviderOptions?.additionalTools != null) {
+            input.push({
+              type: 'additional_tools',
+              role: 'developer',
+              tools: toolResultProviderOptions.additionalTools,
+            } satisfies OpenAIResponsesAdditionalTools);
+          }
         }
 
         break;
@@ -1209,6 +1225,20 @@ export async function convertToOpenAIResponsesInput({
 const openaiResponsesReasoningProviderOptionsSchema = z.object({
   itemId: z.string().nullish(),
   reasoningEncryptedContent: z.string().nullish(),
+});
+
+const openaiResponsesFunctionToolSchema: z.ZodType<OpenAIResponsesFunctionTool> =
+  z.object({
+    type: z.literal('function'),
+    name: z.string(),
+    description: z.string().optional(),
+    parameters: z.record(z.string(), z.unknown()),
+    strict: z.boolean().optional(),
+    defer_loading: z.boolean().optional(),
+  }) as z.ZodType<OpenAIResponsesFunctionTool>;
+
+const openaiResponsesToolResultProviderOptionsSchema = z.object({
+  additionalTools: z.array(openaiResponsesFunctionToolSchema).min(1).optional(),
 });
 
 export type OpenAIResponsesReasoningProviderOptions = z.infer<

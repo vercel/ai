@@ -1975,7 +1975,7 @@ class DefaultStreamTextResult<
             retry(async () =>
               streamLanguageModelCall({
                 model: prepareStepResult?.model ?? model,
-                tools: stepActiveTools,
+                tools,
                 toolOrder: stepToolOrder,
                 toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
                 instructions: stepInstructions,
@@ -2034,6 +2034,7 @@ class DefaultStreamTextResult<
                 },
                 _internal: {
                   now,
+                  preparedTools: { tools: stepTools },
                 },
                 ...callSettings,
               }),

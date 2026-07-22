@@ -220,6 +220,7 @@ export async function streamLanguageModelCall<
     generateId = originalGenerateId,
     generateCallId = originalGenerateCallId,
     now = originalNow,
+    preparedTools,
   } = {},
   onStart,
   onLanguageModelCallStart,
@@ -253,6 +254,9 @@ export async function streamLanguageModelCall<
     generateId?: IdGenerator;
     generateCallId?: IdGenerator;
     now?: () => number;
+    preparedTools?: {
+      tools: Awaited<ReturnType<typeof prepareTools>>;
+    };
   };
   onLanguageModelCallStart?: Arrayable<OnLanguageModelCallStartCallback>;
   onLanguageModelCallEnd?: Arrayable<OnLanguageModelCallEndCallback<TOOLS>>;
@@ -305,12 +309,15 @@ export async function streamLanguageModelCall<
     provider: resolvedModel.provider.split('.')[0],
   });
 
-  const stepTools = await prepareTools({
-    tools,
-    toolOrder,
-    toolsContext,
-    experimental_sandbox: sandbox,
-  });
+  const stepTools =
+    preparedTools == null
+      ? await prepareTools({
+          tools,
+          toolOrder,
+          toolsContext,
+          experimental_sandbox: sandbox,
+        })
+      : preparedTools.tools;
 
   const stepToolChoice = prepareToolChoice({
     toolChoice,
