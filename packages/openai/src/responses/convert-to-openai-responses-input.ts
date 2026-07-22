@@ -75,6 +75,7 @@ export async function convertToOpenAIResponsesInput({
   store,
   hasConversation = false,
   hasPreviousResponseId = false,
+  toolSearchToolName = 'tool_search',
   hasLocalShellTool = false,
   hasShellTool = false,
   hasApplyPatchTool = false,
@@ -91,6 +92,7 @@ export async function convertToOpenAIResponsesInput({
   store: boolean;
   hasConversation?: boolean; // when true, skip assistant messages that already have item IDs
   hasPreviousResponseId?: boolean; // when true, skip reasoning and function-call items that already exist in the previous response chain
+  toolSearchToolName?: string | null;
   hasLocalShellTool?: boolean;
   hasShellTool?: boolean;
   hasApplyPatchTool?: boolean;
@@ -359,7 +361,10 @@ export async function convertToOpenAIResponsesInput({
                 part.toolName,
               );
 
-              if (resolvedToolName === 'tool_search') {
+              if (
+                part.toolName === toolSearchToolName &&
+                resolvedToolName === 'tool_search'
+              ) {
                 if (store && id != null) {
                   input.push({ type: 'item_reference', id });
                   break;
@@ -580,7 +585,10 @@ export async function convertToOpenAIResponsesInput({
                 part.toolName,
               );
 
-              if (resolvedResultToolName === 'tool_search') {
+              if (
+                part.toolName === toolSearchToolName &&
+                resolvedResultToolName === 'tool_search'
+              ) {
                 const itemId =
                   (
                     part.providerOptions?.[providerOptionsName] as
@@ -841,7 +849,11 @@ export async function convertToOpenAIResponsesInput({
             part.toolName,
           );
 
-          if (resolvedToolName === 'tool_search' && output.type === 'json') {
+          if (
+            part.toolName === toolSearchToolName &&
+            resolvedToolName === 'tool_search' &&
+            output.type === 'json'
+          ) {
             const parsedOutput = await validateTypes({
               value: output.value,
               schema: toolSearchOutputSchema,
