@@ -3660,7 +3660,7 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
       tensorlake:
-        specifier: ^0.5.47
+        specifier: ^0.5.85
         version: 0.5.85
     devDependencies:
       '@types/node':

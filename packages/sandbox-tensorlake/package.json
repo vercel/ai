@@ -37,7 +37,7 @@
   "dependencies": {
     "@ai-sdk/harness": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "tensorlake": "^0.5.47"
+    "tensorlake": "^0.5.85"
   },
   "devDependencies": {
     "@types/node": "22.19.19",
