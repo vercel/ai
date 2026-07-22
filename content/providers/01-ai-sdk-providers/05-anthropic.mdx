@@ -1206,6 +1206,61 @@ const result = await generateText({
 
 This sends `tool_reference` blocks to Anthropic, which loads the corresponding deferred tool schemas into Claude's context.
 
+### Mid-Conversation Tool Changes
+
+With `claude-opus-4-8`, you can add or remove tools between turns of a conversation without invalidating the prompt cache. Attach `toolChanges` to a system message that appears mid-conversation (right before an assistant message or at the end of the messages). The required `mid-conversation-tool-changes-2026-07-01` beta header is added automatically.
+
+Tools referenced by a `tool_addition` must be declared in the `tools` option — typically with `deferLoading: true`, so they are not loaded into context until the addition surfaces them. A `tool_removal` removes a previously available tool from the conversation going forward.
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: anthropic('claude-opus-4-8'),
+  // required for system messages inside `messages`:
+  allowSystemInMessages: true,
+  tools: {
+    get_weather: tool({
+      description: 'Get weather',
+      inputSchema: z.object({ city: z.string() }),
+    }),
+    get_forecast: tool({
+      description: 'Get 5-day forecast',
+      inputSchema: z.object({ city: z.string() }),
+      providerOptions: {
+        // declared up front but not loaded until a tool_addition surfaces it
+        anthropic: { deferLoading: true },
+      },
+    }),
+  },
+  messages: [
+    { role: 'user', content: 'What tools do you have for weather in Paris?' },
+    {
+      role: 'system',
+      content: '',
+      providerOptions: {
+        anthropic: {
+          toolChanges: [
+            { type: 'tool_addition', toolName: 'get_forecast' },
+            { type: 'tool_removal', toolName: 'get_weather' },
+          ],
+        },
+      },
+    },
+  ],
+});
+```
+
+To change a tool's definition, remove the old definition at the end of one request, then carry the conversation forward with the updated definition in `tools` on the next request.
+
+<Note>
+  Tool changes are not supported on the initial system message. The AI SDK
+  ignores them there and emits a warning — configure the initial tool set via
+  the `tools` option instead.
+</Note>
+
 ### MCP Connectors
 
 Anthropic supports connecting to [MCP servers](https://docs.claude.com/en/docs/agents-and-tools/mcp-connector) as part of their execution.
