@@ -947,7 +947,7 @@ class DefaultStreamObjectResult<
   }
 
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
-    pipeTextStreamToResponse({
+    return pipeTextStreamToResponse({
       response,
       textStream: this.textStream,
       ...init,
