@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 10202,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/bedrock-invalid-tool-name.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/bedrock-invalid-tool-name.ts",
+    "examples/ai-functions/package.json",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "failed to satisfy constraint: Member must satisfy regular expression pattern: [a-zA-Z0-9_-]+; repairCalled=false"
+  }
+}
