@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.87
+
+### Patch Changes
+
+- 2f11af1: Preserve stored tool search output item IDs from provider metadata.
+
 ## 3.0.86
 
 ### Patch Changes

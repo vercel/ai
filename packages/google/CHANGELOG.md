@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.99
+
+### Patch Changes
+
+- 2886d22: Avoid missing thought-signature warnings and skip-validator injection for valid unsigned Gemini 3 parallel function calls in the same model response.
+
 ## 3.0.98
 
 ### Patch Changes
