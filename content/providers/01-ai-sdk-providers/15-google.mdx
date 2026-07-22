@@ -1079,6 +1079,11 @@ Google realtime models may require provider-specific audio formats, depending
 on the model and modality. See [Realtime](/docs/ai-sdk-core/realtime) for the
 complete setup and tool calling pattern.
 
+Gemini lifecycle signals that do not have provider-neutral equivalents are
+emitted as custom events. Inspect `rawType` for `goAway`,
+`sessionResumptionUpdate`, and `generationComplete` and use the event's `raw`
+payload for provider-specific details.
+
 ### Live Translation
 
 Use `gemini-3.5-live-translate-preview` for low-latency speech-to-speech
