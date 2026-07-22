@@ -227,6 +227,25 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
 
+  examples/ai-functions:
+    dependencies:
+      '@ai-sdk/react':
+        specifier: workspace:*
+        version: link:../../packages/react
+      ai:
+        specifier: workspace:*
+        version: link:../../packages/ai
+    devDependencies:
+      '@types/node':
+        specifier: 20.17.24
+        version: 20.17.24
+      tsx:
+        specifier: 4.19.2
+        version: 4.19.2
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+
   examples/angular:
     dependencies:
       '@ai-sdk/angular':
@@ -27375,7 +27394,7 @@ snapshots:
     dependencies:
       '@sentry/bundler-plugin-core': 5.1.1(encoding@0.1.13)
       uuid: 9.0.1
-      webpack: 5.105.0(esbuild@0.25.9)
+      webpack: 5.105.0
     transitivePeerDependencies:
       - encoding
       - supports-color
@@ -36804,7 +36823,7 @@ snapshots:
       neo-async: 2.6.2
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
-      webpack: 5.105.0(esbuild@0.25.9)
+      webpack: 5.105.0
 
   react@18.3.1:
     dependencies:
