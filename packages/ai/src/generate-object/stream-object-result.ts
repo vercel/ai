@@ -78,7 +78,6 @@ Resolved when the response is finished.
   readonly fullStream: AsyncIterableStream<ObjectStreamPart<PARTIAL>>;
 
   /**
-<<<<<<< HEAD
   Writes text delta output to a Node.js response-like object.
   It sets a `Content-Type` header to `text/plain; charset=utf-8` and
   writes each text delta as a separate chunk.
@@ -86,20 +85,10 @@ Resolved when the response is finished.
   @param response A Node.js response-like object (ServerResponse).
   @param init Optional headers, status code, and status text.
      */
-  pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit): void;
-=======
-   * Writes text delta output to a Node.js response-like object.
-   * It sets a `Content-Type` header to `text/plain; charset=utf-8` and
-   * writes each text delta as a separate chunk.
-   *
-   * @param response A Node.js response-like object (ServerResponse).
-   * @param init Optional headers, status code, and status text.
-   */
   pipeTextStreamToResponse(
     response: ServerResponse,
     init?: ResponseInit,
   ): Promise<void>;
->>>>>>> 7f6650b0ea (fix: server-response piping errors bypass caller catches (#17648))
 
   /**
   Creates a simple text stream response.

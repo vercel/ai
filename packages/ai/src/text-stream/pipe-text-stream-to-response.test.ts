@@ -35,31 +35,6 @@ describe('pipeTextStreamToResponse', () => {
     // Verify written data using decoded chunks
     expect(mockResponse.getDecodedChunks()).toStrictEqual(['test-data']);
   });
-<<<<<<< HEAD
-=======
-
-  it('can pipe a stream created by toTextStream', async () => {
-    const mockResponse = createMockServerResponse();
-
-    pipeTextStreamToResponse({
-      response: mockResponse,
-      stream: toTextStream({
-        stream: convertArrayToReadableStream([
-          { type: 'start' },
-          { type: 'text-delta', id: 't1', text: 'Hello' },
-          { type: 'text-delta', id: 't1', text: ', world!' },
-          { type: 'text-end', id: 't1' },
-        ] satisfies TextStreamPart<{}>[]),
-      }),
-    });
-
-    await mockResponse.waitForEnd();
-
-    expect(mockResponse.getDecodedChunks()).toStrictEqual([
-      'Hello',
-      ', world!',
-    ]);
-  });
 
   it('should reject when reading the stream fails', async () => {
     const mockResponse = createMockServerResponse();
@@ -73,9 +48,8 @@ describe('pipeTextStreamToResponse', () => {
     await expect(
       pipeTextStreamToResponse({
         response: mockResponse,
-        stream,
+        textStream: stream,
       }),
     ).rejects.toBe(error);
   });
->>>>>>> 7f6650b0ea (fix: server-response piping errors bypass caller catches (#17648))
 });

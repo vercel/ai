@@ -306,7 +306,6 @@ Converts the result to a UI message stream.
   ): Promise<void>;
 
   /**
-<<<<<<< HEAD
 Writes text delta output to a Node.js response-like object.
 It sets a `Content-Type` header to `text/plain; charset=utf-8` and
 writes each text delta as a separate chunk.
@@ -314,24 +313,10 @@ writes each text delta as a separate chunk.
 @param response A Node.js response-like object (ServerResponse).
 @param init Optional headers, status code, and status text.
      */
-  pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit): void;
-=======
-   * Writes text delta output to a Node.js response-like object.
-   * It sets a `Content-Type` header to `text/plain; charset=utf-8` and
-   * writes each text delta as a separate chunk.
-   *
-   * @param response A Node.js response-like object (ServerResponse).
-   * @param init Optional headers, status code, and status text.
-   *
-   * @deprecated Use the standalone `toTextStream` and
-   *   `pipeTextStreamToResponse` helpers from `'ai'` with `result.stream`
-   *   instead. This method will be removed in the next major release.
-   */
   pipeTextStreamToResponse(
     response: ServerResponse,
     init?: ResponseInit,
   ): Promise<void>;
->>>>>>> 7f6650b0ea (fix: server-response piping errors bypass caller catches (#17648))
 
   /**
 Converts the result to a streamed response object with a stream data part stream.
