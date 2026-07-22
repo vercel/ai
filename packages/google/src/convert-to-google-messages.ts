@@ -337,16 +337,12 @@ export function convertToGoogleMessages(
       case 'assistant': {
         systemMessagesAllowed = false;
 
-        let currentToolCallBatchHasRealThoughtSignature = false;
+        let modelResponseHasSignedFunctionCall = false;
 
         contents.push({
           role: 'model',
           parts: content
             .map(part => {
-              if (part.type !== 'tool-call') {
-                currentToolCallBatchHasRealThoughtSignature = false;
-              }
-
               const providerOpts = readProviderOpts(part);
               const thoughtSignature =
                 providerOpts?.thoughtSignature != null
@@ -465,22 +461,27 @@ export function convertToGoogleMessages(
                     providerOpts?.serverToolType != null
                       ? String(providerOpts.serverToolType)
                       : undefined;
+                  const isServerToolCall =
+                    serverToolCallId != null && serverToolType != null;
                   const shouldSkipMissingSignatureMitigation =
                     // Gemini 3 returns a single signature for a parallel
-                    // function-call batch on the first call. Subsequent calls
-                    // in the same batch legitimately have no signature.
+                    // function-call response on the first standard function
+                    // call. Subsequent standard function calls in the same
+                    // model response legitimately have no signature.
+                    !isServerToolCall &&
                     thoughtSignature == null &&
-                    currentToolCallBatchHasRealThoughtSignature;
+                    modelResponseHasSignedFunctionCall;
                   const effectiveThoughtSignature =
                     thoughtSignature ??
                     (isGemini3Model && !shouldSkipMissingSignatureMitigation
                       ? injectSkipSignature(part.toolName)
                       : undefined);
 
-                  currentToolCallBatchHasRealThoughtSignature ||=
-                    thoughtSignature != null;
+                  if (!isServerToolCall && thoughtSignature != null) {
+                    modelResponseHasSignedFunctionCall = true;
+                  }
 
-                  if (serverToolCallId && serverToolType) {
+                  if (isServerToolCall) {
                     return {
                       toolCall: {
                         toolType: serverToolType,
