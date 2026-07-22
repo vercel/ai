@@ -114,6 +114,21 @@ const server = createTestServer({
   [opusAnthropicGenerateUrl]: {},
 });
 
+describe('supportedUrls', () => {
+  it('should support S3 URLs for image parts', () => {
+    const model = new BedrockChatLanguageModel(modelId, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      generateId: () => 'test-id',
+      fetch: fakeFetchWithAuth,
+    });
+
+    expect(model.supportedUrls).toEqual({
+      'image/*': [/^s3:\/\//],
+    });
+  });
+});
+
 function prepareJsonFixtureResponse(
   filename: string,
   { headers }: { headers?: Record<string, string> } = {},
