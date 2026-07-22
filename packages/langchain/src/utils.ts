@@ -122,25 +122,46 @@ function getDefaultFilename(
   return `${prefix}.${fileExtension}`;
 }
 
-/**
- * OpenAI-native content block type for images.
- * This format is passed through directly by ChatOpenAI to OpenAI's API.
- */
-type OpenAIImageBlock = {
-  type: 'image_url';
-  image_url: {
-    url: string;
-    detail?: 'auto' | 'low' | 'high';
-  };
-};
+function convertImageToContentBlock(
+  data: string | Uint8Array | URL | ArrayBuffer,
+  mediaType: string = 'image/png',
+): ContentBlock.Multimodal.Image {
+  if (data instanceof URL) {
+    if (data.protocol !== 'data:') {
+      return { type: 'image', url: data.toString() };
+    }
 
-/**
- * Content block type for HumanMessage that supports both text and OpenAI images.
- */
-type HumanMessageContentBlock =
-  | { type: 'text'; text: string }
-  | OpenAIImageBlock
-  | ContentBlock;
+    data = data.toString();
+  }
+
+  if (typeof data === 'string') {
+    if (data.startsWith('http://') || data.startsWith('https://')) {
+      return { type: 'image', url: data };
+    }
+
+    if (data.startsWith('data:')) {
+      const matches = data.match(/^data:([^;]+);base64,(.+)$/);
+      if (matches) {
+        return {
+          type: 'image',
+          data: matches[2],
+          mimeType: matches[1],
+        };
+      }
+
+      return { type: 'image', url: data };
+    }
+
+    return { type: 'image', data, mimeType: mediaType };
+  }
+
+  const bytes = data instanceof ArrayBuffer ? new Uint8Array(data) : data;
+  return {
+    type: 'image',
+    data: btoa(String.fromCharCode(...bytes)),
+    mimeType: mediaType,
+  };
+}
 
 /**
  * Converts UserContent to LangChain HumanMessage
@@ -152,7 +173,7 @@ export function convertUserContent(content: UserContent): HumanMessage {
     return new HumanMessage({ content });
   }
 
-  const contentBlocks: HumanMessageContentBlock[] = [];
+  const contentBlocks: ContentBlock.Standard[] = [];
 
   for (const part of content) {
     if (part.type === 'text') {
@@ -164,64 +185,15 @@ export function convertUserContent(content: UserContent): HumanMessage {
         mediaType?: string;
       };
 
-      /**
-       * Use OpenAI's native image_url format which is passed through directly
-       * handle URL objects
-       */
-      if (imagePart.image instanceof URL) {
-        contentBlocks.push({
-          type: 'image_url',
-          image_url: { url: imagePart.image.toString() },
-        });
-      } else if (typeof imagePart.image === 'string') {
-        /**
-         * Handle string (could be URL or base64)
-         */
-        /**
-         * Check if it's a URL (including data: URLs)
-         */
-        if (
-          imagePart.image.startsWith('http://') ||
-          imagePart.image.startsWith('https://') ||
-          imagePart.image.startsWith('data:')
-        ) {
-          /**
-           * OpenAI accepts both http URLs and data URLs directly
-           */
-          contentBlocks.push({
-            type: 'image_url',
-            image_url: { url: imagePart.image },
-          });
-        } else {
-          /**
-           * Assume base64 encoded data - wrap in data URL
-           */
-          const mimeType = imagePart.mediaType || 'image/png';
-          contentBlocks.push({
-            type: 'image_url',
-            image_url: { url: `data:${mimeType};base64,${imagePart.image}` },
-          });
-        }
-      } else if (
-        /**
-         * Handle Uint8Array or ArrayBuffer (binary data)
-         */
+      if (
+        imagePart.image instanceof URL ||
+        typeof imagePart.image === 'string' ||
         imagePart.image instanceof Uint8Array ||
         imagePart.image instanceof ArrayBuffer
       ) {
-        const bytes =
-          imagePart.image instanceof ArrayBuffer
-            ? new Uint8Array(imagePart.image)
-            : imagePart.image;
-        /**
-         * Convert to base64 data URL
-         */
-        const base64 = btoa(String.fromCharCode(...bytes));
-        const mimeType = imagePart.mediaType || 'image/png';
-        contentBlocks.push({
-          type: 'image_url',
-          image_url: { url: `data:${mimeType};base64,${base64}` },
-        });
+        contentBlocks.push(
+          convertImageToContentBlock(imagePart.image, imagePart.mediaType),
+        );
       }
     } else if (part.type === 'file') {
       const rawFilePart = part as {
@@ -271,58 +243,12 @@ export function convertUserContent(content: UserContent): HumanMessage {
         filename: rawFilePart.filename,
       };
 
-      /**
-       * Check if this is an image file - if so, use OpenAI's image_url format
-       */
       const isImage = filePart.mediaType?.startsWith('image/');
 
       if (isImage) {
-        /**
-         * Handle image files using OpenAI's native image_url format
-         */
-        if (filePart.data instanceof URL) {
-          contentBlocks.push({
-            type: 'image_url',
-            image_url: { url: filePart.data.toString() },
-          });
-        } else if (typeof filePart.data === 'string') {
-          /**
-           * URLs (including data URLs) can be passed directly
-           */
-          if (
-            filePart.data.startsWith('http://') ||
-            filePart.data.startsWith('https://') ||
-            filePart.data.startsWith('data:')
-          ) {
-            contentBlocks.push({
-              type: 'image_url',
-              image_url: { url: filePart.data },
-            });
-          } else {
-            /**
-             * Assume base64 - wrap in data URL
-             */
-            contentBlocks.push({
-              type: 'image_url',
-              image_url: {
-                url: `data:${filePart.mediaType};base64,${filePart.data}`,
-              },
-            });
-          }
-        } else if (
-          filePart.data instanceof Uint8Array ||
-          filePart.data instanceof ArrayBuffer
-        ) {
-          const bytes =
-            filePart.data instanceof ArrayBuffer
-              ? new Uint8Array(filePart.data)
-              : filePart.data;
-          const base64 = btoa(String.fromCharCode(...bytes));
-          contentBlocks.push({
-            type: 'image_url',
-            image_url: { url: `data:${filePart.mediaType};base64,${base64}` },
-          });
-        }
+        contentBlocks.push(
+          convertImageToContentBlock(filePart.data, filePart.mediaType),
+        );
       } else {
         // Handle non-image files using LangChain's ContentBlock format
         const filename =
@@ -402,7 +328,7 @@ export function convertUserContent(content: UserContent): HumanMessage {
     });
   }
 
-  return new HumanMessage({ content: contentBlocks });
+  return new HumanMessage({ contentBlocks });
 }
 
 /**
