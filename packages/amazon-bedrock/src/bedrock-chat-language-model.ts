@@ -37,6 +37,10 @@ import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-
 import { prepareTools } from './bedrock-prepare-tools';
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
 import { mapBedrockFinishReason } from './map-bedrock-finish-reason';
+import {
+  isDuplicateKimiK2ToolCallText,
+  parseKimiK2ToolCallText,
+} from './parse-kimi-k2-tool-call-text';
 
 type BedrockChatConfig = {
   baseUrl: () => string;
@@ -545,6 +549,25 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     let providerMetadata: SharedV2ProviderMetadata | undefined = undefined;
     let isJsonResponseFromTool = false;
     let stopSequence: string | null = null;
+    let hasParsedKimiK2ToolCall = false;
+
+    const functionToolNames = new Set(
+      options.tools
+        ?.filter(
+          (tool): tool is LanguageModelV2FunctionTool =>
+            tool.type === 'function',
+        )
+        .map(tool => tool.name) ?? [],
+    );
+    const shouldParseKimiK2ToolCalls =
+      this.modelId === 'moonshot.kimi-k2-thinking' &&
+      functionToolNames.size > 0;
+    const generateId = this.config.generateId;
+    const completedToolCalls: Array<{
+      toolCallId: string;
+      toolName: string;
+      input: string;
+    }> = [];
 
     const contentBlocks: Record<
       number,
@@ -555,7 +578,8 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
           jsonText: string;
           isJsonResponseTool?: boolean;
         }
-      | { type: 'text' | 'reasoning' }
+      | { type: 'text'; text?: string }
+      | { type: 'reasoning' }
     > = {};
 
     return {
@@ -606,10 +630,12 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
             }
 
             if (value.messageStop) {
-              finishReason = mapBedrockFinishReason(
-                value.messageStop.stopReason as BedrockStopReason,
-                isJsonResponseFromTool,
-              );
+              finishReason = hasParsedKimiK2ToolCall
+                ? 'tool-calls'
+                : mapBedrockFinishReason(
+                    value.messageStop.stopReason as BedrockStopReason,
+                    isJsonResponseFromTool,
+                  );
               stopSequence =
                 value.messageStop.additionalModelResponseFields?.delta
                   ?.stop_sequence ?? null;
@@ -657,11 +683,17 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
               !value.contentBlockStart?.start?.toolUse
             ) {
               const blockIndex = value.contentBlockStart.contentBlockIndex;
-              contentBlocks[blockIndex] = { type: 'text' };
-              controller.enqueue({
-                type: 'text-start',
-                id: String(blockIndex),
-              });
+              contentBlocks[blockIndex] = {
+                type: 'text',
+                ...(shouldParseKimiK2ToolCalls && { text: '' }),
+              };
+
+              if (!shouldParseKimiK2ToolCalls) {
+                controller.enqueue({
+                  type: 'text-start',
+                  id: String(blockIndex),
+                });
+              }
             }
 
             if (
@@ -672,19 +704,29 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
               const blockIndex = value.contentBlockDelta.contentBlockIndex || 0;
 
               if (contentBlocks[blockIndex] == null) {
-                contentBlocks[blockIndex] = { type: 'text' };
+                contentBlocks[blockIndex] = {
+                  type: 'text',
+                  ...(shouldParseKimiK2ToolCalls && { text: '' }),
+                };
 
-                controller.enqueue({
-                  type: 'text-start',
-                  id: String(blockIndex),
-                });
+                if (!shouldParseKimiK2ToolCalls) {
+                  controller.enqueue({
+                    type: 'text-start',
+                    id: String(blockIndex),
+                  });
+                }
               }
 
-              controller.enqueue({
-                type: 'text-delta',
-                id: String(blockIndex),
-                delta: value.contentBlockDelta.delta.text,
-              });
+              const contentBlock = contentBlocks[blockIndex];
+              if (contentBlock.type === 'text' && contentBlock.text != null) {
+                contentBlock.text += value.contentBlockDelta.delta.text;
+              } else {
+                controller.enqueue({
+                  type: 'text-delta',
+                  id: String(blockIndex),
+                  delta: value.contentBlockDelta.delta.text,
+                });
+              }
             }
 
             if (value.contentBlockStop?.contentBlockIndex != null) {
@@ -698,10 +740,109 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                     id: String(blockIndex),
                   });
                 } else if (contentBlock.type === 'text') {
-                  controller.enqueue({
-                    type: 'text-end',
-                    id: String(blockIndex),
-                  });
+                  if (contentBlock.text == null) {
+                    controller.enqueue({
+                      type: 'text-end',
+                      id: String(blockIndex),
+                    });
+                  } else {
+                    const parsedToolCallText = parseKimiK2ToolCallText({
+                      text: contentBlock.text,
+                      toolNames: functionToolNames,
+                      generateId,
+                    });
+
+                    if (parsedToolCallText != null) {
+                      const newToolCalls = parsedToolCallText.toolCalls.filter(
+                        parsedToolCall =>
+                          !completedToolCalls.some(
+                            completedToolCall =>
+                              completedToolCall.toolName ===
+                                parsedToolCall.toolName &&
+                              completedToolCall.input === parsedToolCall.input,
+                          ),
+                      );
+
+                      if (parsedToolCallText.reasoningText != null) {
+                        const reasoningId = `${blockIndex}:reasoning`;
+                        controller.enqueue({
+                          type: 'reasoning-start',
+                          id: reasoningId,
+                        });
+                        controller.enqueue({
+                          type: 'reasoning-delta',
+                          id: reasoningId,
+                          delta: parsedToolCallText.reasoningText,
+                        });
+                        controller.enqueue({
+                          type: 'reasoning-end',
+                          id: reasoningId,
+                        });
+                      }
+
+                      if (parsedToolCallText.text.trim() !== '') {
+                        controller.enqueue({
+                          type: 'text-start',
+                          id: String(blockIndex),
+                        });
+                        controller.enqueue({
+                          type: 'text-delta',
+                          id: String(blockIndex),
+                          delta: parsedToolCallText.text,
+                        });
+                        controller.enqueue({
+                          type: 'text-end',
+                          id: String(blockIndex),
+                        });
+                      }
+
+                      for (const toolCall of newToolCalls) {
+                        controller.enqueue({
+                          type: 'tool-input-start',
+                          id: toolCall.toolCallId,
+                          toolName: toolCall.toolName,
+                        });
+                        controller.enqueue({
+                          type: 'tool-input-delta',
+                          id: toolCall.toolCallId,
+                          delta: toolCall.input,
+                        });
+                        controller.enqueue({
+                          type: 'tool-input-end',
+                          id: toolCall.toolCallId,
+                        });
+                        controller.enqueue({
+                          type: 'tool-call',
+                          toolCallId: toolCall.toolCallId,
+                          toolName: toolCall.toolName,
+                          input: toolCall.input,
+                        });
+                        completedToolCalls.push(toolCall);
+                      }
+
+                      hasParsedKimiK2ToolCall ||= newToolCalls.length > 0;
+                    } else if (
+                      !isDuplicateKimiK2ToolCallText({
+                        text: contentBlock.text,
+                        toolCalls: completedToolCalls,
+                      }) &&
+                      contentBlock.text !== ''
+                    ) {
+                      controller.enqueue({
+                        type: 'text-start',
+                        id: String(blockIndex),
+                      });
+                      controller.enqueue({
+                        type: 'text-delta',
+                        id: String(blockIndex),
+                        delta: contentBlock.text,
+                      });
+                      controller.enqueue({
+                        type: 'text-end',
+                        id: String(blockIndex),
+                      });
+                    }
+                  }
                 } else if (contentBlock.type === 'tool-call') {
                   if (contentBlock.isJsonResponseTool) {
                     isJsonResponseFromTool = true;
@@ -726,6 +867,14 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                     });
                     controller.enqueue({
                       type: 'tool-call',
+                      toolCallId: contentBlock.toolCallId,
+                      toolName: contentBlock.toolName,
+                      input:
+                        contentBlock.jsonText === ''
+                          ? '{}'
+                          : contentBlock.jsonText,
+                    });
+                    completedToolCalls.push({
                       toolCallId: contentBlock.toolCallId,
                       toolName: contentBlock.toolName,
                       input:
@@ -856,6 +1005,10 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
             }
           },
           flush(controller) {
+            if (hasParsedKimiK2ToolCall) {
+              finishReason = 'tool-calls';
+            }
+
             // Update provider metadata with isJsonResponseFromTool and stopSequence if needed
             if (isJsonResponseFromTool || stopSequence != null) {
               if (providerMetadata) {

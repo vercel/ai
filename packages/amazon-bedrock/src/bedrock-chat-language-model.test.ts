@@ -87,6 +87,10 @@ const novaModelId = 'us.amazon.nova-2-lite-v1:0';
 const novaGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   novaModelId,
 )}/converse`;
+const kimiK2ThinkingModelId = 'moonshot.kimi-k2-thinking';
+const kimiK2ThinkingStreamUrl = `${baseUrl}/model/${encodeURIComponent(
+  kimiK2ThinkingModelId,
+)}/converse-stream`;
 
 const server = createTestServer({
   [generateUrl]: {},
@@ -99,6 +103,12 @@ const server = createTestServer({
   // Configure the server for the Anthropic model from the start
   [anthropicGenerateUrl]: {},
   [novaGenerateUrl]: {},
+  [kimiK2ThinkingStreamUrl]: {
+    response: {
+      type: 'stream-chunks',
+      chunks: [],
+    },
+  },
 });
 
 describe('supportedUrls', () => {
@@ -166,6 +176,16 @@ const novaModel = new BedrockChatLanguageModel(novaModelId, {
   fetch: fakeFetchWithAuth,
   generateId: () => 'test-id',
 });
+
+const kimiK2ThinkingModel = new BedrockChatLanguageModel(
+  kimiK2ThinkingModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'generated-tool-call-id',
+  },
+);
 
 let mockOptions: { success: boolean; errorValue?: any } = { success: true };
 
@@ -406,6 +426,167 @@ describe('doStream', () => {
         },
       ]
     `);
+  });
+
+  it('should recover Kimi K2 Thinking tool calls emitted as text', async () => {
+    setupMockEventStreamHandler();
+    server.urls[kimiK2ThinkingStreamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          messageStart: { role: 'assistant' },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: {
+              text: ' <think> I need to read the requested file.',
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: {
+              text: '\n\n<function=read_file>\n<parameter=target_file>FILE1</parameter',
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: '>\n</function>' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStop: { contentBlockIndex: 0 },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: { stopReason: 'end_turn' },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await kimiK2ThinkingModel.doStream({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'function',
+          name: 'read_file',
+          inputSchema: {
+            type: 'object',
+            properties: { target_file: { type: 'string' } },
+            required: ['target_file'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(parts).toContainEqual({
+      type: 'tool-call',
+      toolCallId: 'generated-tool-call-id',
+      toolName: 'read_file',
+      input: '{"target_file":"FILE1"}',
+    });
+    expect(parts).toContainEqual({
+      type: 'finish',
+      finishReason: 'tool-calls',
+      usage: {
+        inputTokens: undefined,
+        outputTokens: undefined,
+        totalTokens: undefined,
+      },
+    });
+    expect(parts.filter(part => part.type === 'text-delta')).toEqual([]);
+    expect(parts).toContainEqual({
+      type: 'reasoning-delta',
+      id: '0:reasoning',
+      delta: 'I need to read the requested file.',
+    });
+  });
+
+  it('should suppress Kimi K2 Thinking text that duplicates a structured tool call', async () => {
+    setupMockEventStreamHandler();
+    server.urls[kimiK2ThinkingStreamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockStart: {
+            contentBlockIndex: 0,
+            start: {
+              toolUse: {
+                toolUseId: 'functions.read_file:0',
+                name: 'read_file',
+              },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: {
+              toolUse: { input: '{"target_file":"FILE1"}' },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStop: { contentBlockIndex: 0 },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 1,
+            delta: { text: '{"target_file": ' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 1,
+            delta: {
+              text: '"FILE1"} <|tool_calls_section_end|>',
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStop: { contentBlockIndex: 1 },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: { stopReason: 'tool_use' },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await kimiK2ThinkingModel.doStream({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'function',
+          name: 'read_file',
+          inputSchema: {
+            type: 'object',
+            properties: { target_file: { type: 'string' } },
+            required: ['target_file'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'functions.read_file:0',
+        toolName: 'read_file',
+        input: '{"target_file":"FILE1"}',
+      },
+    ]);
+    expect(parts.filter(part => part.type === 'text-delta')).toEqual([]);
   });
 
   it('should stream parallel tool calls', async () => {
