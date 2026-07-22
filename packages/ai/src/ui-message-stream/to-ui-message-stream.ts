@@ -3,6 +3,7 @@ import type {
   TextStreamPart,
   UIMessageStreamOptions,
 } from '../generate-text/stream-text-result';
+import type { FinishReason } from '../types/language-model';
 import type { UIMessage } from '../ui/ui-messages';
 import { getResponseUIMessageId } from './get-response-ui-message-id';
 import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
@@ -25,6 +26,7 @@ export function toUIMessageStream<
   sendSources = false,
   sendStart = true,
   sendFinish = true,
+  sendFinishReason = true,
   onError = () => 'An error occurred.', // prevent leaking server error details to the client by default
   messageMetadata,
   originalMessages,
@@ -44,10 +46,15 @@ export function toUIMessageStream<
           responseMessageId: generateMessageId,
         })
       : undefined;
+  let finishReason: FinishReason | undefined;
 
   const uiMessageChunkStream = stream.pipeThrough(
     new TransformStream({
       transform: async (part, controller) => {
+        if (part.type === 'finish') {
+          finishReason = part.finishReason;
+        }
+
         const messageMetadataValue = messageMetadata?.({ part });
 
         const uiMessageChunk = toUIMessageChunk(part, {
@@ -56,6 +63,7 @@ export function toUIMessageStream<
           sendSources,
           sendStart,
           sendFinish,
+          sendFinishReason,
           onError,
           messageMetadata: messageMetadataValue,
           responseMessageId,
@@ -85,7 +93,17 @@ export function toUIMessageStream<
     stream: uiMessageChunkStream,
     messageId: responseMessageId ?? generateMessageId?.(),
     originalMessages,
-    onEnd: onEnd ?? onFinish,
+    onEnd:
+      onEnd == null && onFinish == null
+        ? undefined
+        : options =>
+            (onEnd ?? onFinish)?.({
+              ...options,
+              finishReason:
+                sendFinishReason === false
+                  ? finishReason
+                  : options.finishReason,
+            }),
     onError,
   });
 }

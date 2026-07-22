@@ -16,6 +16,7 @@ export type ToUIMessageChunkOptions<
   sendSources?: boolean;
   sendStart?: boolean;
   sendFinish?: boolean;
+  sendFinishReason?: boolean;
   onError?: (error: unknown) => string;
   messageMetadata?: InferUIMessageMetadata<UI_MESSAGE>;
   responseMessageId?: string;
@@ -38,6 +39,7 @@ export function toUIMessageChunk<
     sendSources = false,
     sendStart = true,
     sendFinish = true,
+    sendFinishReason = true,
     onError = () => 'An error occurred.', // prevent leaking server error details to the client by default
     messageMetadata,
     responseMessageId,
@@ -362,7 +364,7 @@ export function toUIMessageChunk<
 
       return {
         type: 'finish',
-        finishReason: part.finishReason,
+        ...(sendFinishReason ? { finishReason: part.finishReason } : {}),
         ...(messageMetadata != null ? { messageMetadata } : {}),
       } as UIMessageChunk<
         InferUIMessageMetadata<UI_MESSAGE>,

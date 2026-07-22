@@ -289,6 +289,37 @@ describe('toUIMessageChunk', () => {
             },
           },
         },
+        {
+          messageMetadata: { model: 'test-model' },
+          sendFinishReason: false,
+        },
+      ),
+    ).toEqual({
+      type: 'finish',
+      messageMetadata: { model: 'test-model' },
+    });
+
+    expect(
+      toUIMessageChunk(
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          rawFinishReason: 'stop',
+          totalUsage: {
+            inputTokens: 1,
+            outputTokens: 2,
+            totalTokens: 3,
+            inputTokenDetails: {
+              cacheReadTokens: undefined,
+              cacheWriteTokens: undefined,
+              noCacheTokens: undefined,
+            },
+            outputTokenDetails: {
+              reasoningTokens: undefined,
+              textTokens: undefined,
+            },
+          },
+        },
         { sendFinish: false },
       ),
     ).toBeUndefined();

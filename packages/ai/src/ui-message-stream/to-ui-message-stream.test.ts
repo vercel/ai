@@ -3,6 +3,7 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it, vi } from 'vitest';
+import { z } from 'zod/v4';
 import type { TextStreamPart } from '../generate-text/stream-text-result';
 import type { LanguageModelUsage } from '../types/usage';
 import type { UIMessage } from '../ui/ui-messages';
@@ -119,6 +120,55 @@ describe('toUIMessageStream', () => {
       { type: 'text-start', id: 't1' },
       { type: 'text-end', id: 't1' },
     ]);
+  });
+
+  it('produces finish chunks accepted by older strict schemas when sendFinishReason is false', async () => {
+    const parts: TextStreamPart<{}>[] = [
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        rawFinishReason: 'stop',
+        totalUsage: testUsage,
+      },
+    ];
+
+    const chunks = await convertReadableStreamToArray(
+      toUIMessageStream({
+        stream: convertArrayToReadableStream(parts),
+        tools: undefined,
+        sendFinishReason: false,
+      }),
+    );
+
+    expect(chunks).toEqual([{ type: 'finish' }]);
+    expect(
+      z.strictObject({ type: z.literal('finish') }).safeParse(chunks[0])
+        .success,
+    ).toBe(true);
+  });
+
+  it('preserves the finish reason for onEnd when omitting it from the stream', async () => {
+    const onEnd = vi.fn();
+
+    await convertReadableStreamToArray(
+      toUIMessageStream({
+        stream: convertArrayToReadableStream([
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            rawFinishReason: 'stop',
+            totalUsage: testUsage,
+          },
+        ]),
+        tools: undefined,
+        sendFinishReason: false,
+        onEnd,
+      }),
+    );
+
+    expect(onEnd).toHaveBeenCalledWith(
+      expect.objectContaining({ finishReason: 'stop' }),
+    );
   });
 
   it('skips reasoning parts when sendReasoning is false', async () => {

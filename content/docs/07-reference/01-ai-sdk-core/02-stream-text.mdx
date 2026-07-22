@@ -3994,6 +3994,13 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Send the finish event to the client. Defaults to true.',
             },
             {
+              name: 'sendFinishReason',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Send the finish reason in the finish event. Set to false when supporting older clients whose strict stream schema does not accept the finishReason field. Defaults to true.',
+            },
+            {
               name: 'sendStart',
               type: 'boolean',
               isOptional: true,
