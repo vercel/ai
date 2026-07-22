@@ -2914,7 +2914,7 @@ class DefaultStreamTextResult<
       ...init
     }: UIMessageStreamResponseInit & UIMessageStreamOptions<UI_MESSAGE> = {},
   ) {
-    pipeUIMessageStreamToResponse({
+    return pipeUIMessageStreamToResponse({
       response,
       stream: this.toUIMessageStream({
         originalMessages,
@@ -2932,7 +2932,7 @@ class DefaultStreamTextResult<
   }
 
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
-    pipeTextStreamToResponse({
+    return pipeTextStreamToResponse({
       response,
       textStream: this.textStream,
       ...init,
