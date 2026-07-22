@@ -105,7 +105,7 @@ describe('doGenerate', () => {
     model = 'grok-3',
     headers,
   }: {
-    content?: string;
+    content?: string | Array<Record<string, unknown>>;
     reasoning_content?: string;
     reasoning?: string;
     tool_calls?: Array<{
@@ -340,6 +340,49 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  it('should normalize text and thinking content parts', async () => {
+    prepareJsonResponse({
+      content: [
+        {
+          type: 'thinking',
+          thinking: [
+            { type: 'text', text: 'Let me think' },
+            { type: 'text', text: ' this through.' },
+          ],
+        },
+        { type: 'text', text: 'The answer is 391.' },
+      ],
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toEqual([
+      { type: 'reasoning', text: 'Let me think this through.' },
+      { type: 'text', text: 'The answer is 391.' },
+    ]);
+  });
+
+  it('should ignore unknown content parts', async () => {
+    prepareJsonResponse({
+      content: [
+        {
+          type: 'future-part',
+          text: { nested: true },
+          thinking: { nested: true },
+        },
+        { type: 'text', text: 'The answer is 391.' },
+      ],
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toEqual([{ type: 'text', text: 'The answer is 391.' }]);
   });
 
   it('should support partial usage', async () => {
