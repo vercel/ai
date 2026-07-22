@@ -41,7 +41,11 @@ import type { HarnessAgentToolApprovalConfiguration } from '../harness-agent-set
 import { HarnessStreamTextResult } from './harness-stream-text-result';
 import { translateStreamPart } from './translate-stream-part';
 import { stripWorkDir } from './strip-work-dir';
-import { createTurnTelemetry, type TurnContentPart } from './turn-telemetry';
+import {
+  createTurnTelemetry,
+  type TurnContentPart,
+  type TurnTelemetry,
+} from './turn-telemetry';
 import { resolveCustomToolApproval } from './permission-mode';
 import { logBridgeError } from '../../utils/bridge-diagnostics';
 
@@ -413,9 +417,16 @@ export function runPrompt<
           input: approval.input,
         } satisfies Extract<HarnessV1StreamPart, { type: 'tool-call' }>);
 
+      telemetry.start(input.session.modelId);
+      await telemetry.toolStart({
+        toolCallId: rawToolCall.toolCallId,
+        toolName: rawToolCall.toolName,
+        input: rawToolCall.input,
+      });
       const execution = await maybeExecuteHostTool({
         event: rawToolCall,
         tools: activeTools,
+        executeTool: telemetry.executeTool,
         sandboxSession: input.sandboxSession,
         abortSignal: input.abortSignal,
         control,
@@ -609,7 +620,7 @@ export function runPrompt<
             toolName: value.toolName,
             input: value.input,
           });
-          telemetry.toolStart({
+          await telemetry.toolStart({
             toolCallId: value.toolCallId,
             toolName: value.toolName,
             input: value.input,
@@ -803,6 +814,7 @@ export function runPrompt<
           const execution = await maybeExecuteHostTool({
             event: toolCall,
             tools: activeTools,
+            executeTool: telemetry.executeTool,
             sandboxSession: input.sandboxSession,
             abortSignal: input.abortSignal,
             control,
@@ -921,6 +933,7 @@ function hasTool(input: { tools: ToolSet; toolName: string }): boolean {
 async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
   event: { toolCallId: string; toolName: string; input: string };
   tools: TOOLS;
+  executeTool: TurnTelemetry['executeTool'];
   sandboxSession: SandboxSession;
   abortSignal: AbortSignal | undefined;
   control: HarnessV1PromptControl;
@@ -949,25 +962,31 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
      * back to the model — preliminary values are surfaced to the consumer
      * stream alone, matching how the AI SDK treats `onPreliminaryToolResult`.
      */
-    let output: unknown;
-    const stream = executeTool({
-      tool,
-      input: args as never,
-      options: {
-        toolCallId: input.event.toolCallId,
-        messages: [],
-        abortSignal: input.abortSignal,
-        context: undefined as never,
-        experimental_sandbox: input.sandboxSession,
+    const output = await input.executeTool({
+      toolCallId: input.event.toolCallId,
+      execute: async () => {
+        let output: unknown;
+        const stream = executeTool({
+          tool,
+          input: args as never,
+          options: {
+            toolCallId: input.event.toolCallId,
+            messages: [],
+            abortSignal: input.abortSignal,
+            context: undefined as never,
+            experimental_sandbox: input.sandboxSession,
+          },
+        });
+        for await (const part of stream) {
+          if (part.type === 'preliminary') {
+            input.onPreliminaryResult(part.output);
+          } else {
+            output = part.output;
+          }
+        }
+        return output;
       },
     });
-    for await (const part of stream) {
-      if (part.type === 'preliminary') {
-        input.onPreliminaryResult(part.output);
-      } else {
-        output = part.output;
-      }
-    }
 
     await input.control.submitToolResult({
       toolCallId: input.event.toolCallId,
