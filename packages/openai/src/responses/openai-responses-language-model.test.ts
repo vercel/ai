@@ -1048,6 +1048,85 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should replay a regular function named tool_search as a function call', async () => {
+        await createModel('gpt-4o').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Search the synthetic records.' },
+              ],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_123',
+                  toolName: 'tool_search',
+                  input: {
+                    query: 'synthetic query',
+                    limit: 10,
+                  },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_123',
+                  toolName: 'tool_search',
+                  output: {
+                    type: 'json',
+                    value: { tools: [] },
+                  },
+                },
+              ],
+            },
+          ],
+          tools: [
+            {
+              type: 'function',
+              name: 'tool_search',
+              description: 'Search synthetic records',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  query: { type: 'string' },
+                  limit: { type: 'number' },
+                },
+                required: ['query', 'limit'],
+                additionalProperties: false,
+              },
+            },
+          ],
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+
+        expect(requestBody.tools).toMatchObject([
+          {
+            type: 'function',
+            name: 'tool_search',
+          },
+        ]);
+        expect(requestBody.input.slice(1)).toStrictEqual([
+          {
+            type: 'function_call',
+            call_id: 'call_123',
+            name: 'tool_search',
+            arguments: '{"query":"synthetic query","limit":10}',
+          },
+          {
+            type: 'function_call_output',
+            call_id: 'call_123',
+            output: '{"tools":[]}',
+          },
+        ]);
+      });
+
       it('should send metadata provider option', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,

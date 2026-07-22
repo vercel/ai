@@ -55,6 +55,7 @@ it('preserves distinct hosted tool search item references from provider metadata
     systemMessageMode: 'system',
     providerOptionsName: 'openai',
     store: true,
+    toolSearchToolName: 'tool_search',
   });
 
   expect(result.input).toEqual([

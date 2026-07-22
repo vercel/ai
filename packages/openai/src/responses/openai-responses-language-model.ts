@@ -349,6 +349,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         hasShellTool: hasOpenAITool('openai.shell'),
         hasApplyPatchTool: hasOpenAITool('openai.apply_patch'),
         hasComputerTool: hasOpenAITool('openai.computer'),
+        toolSearchToolName: getOpenAIToolName('openai.tool_search'),
         customProviderToolNames:
           customProviderToolNames.size > 0
             ? customProviderToolNames
@@ -369,10 +370,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       }
     }
 
+    function getOpenAIToolName(id: string) {
+      return tools?.find(tool => tool.type === 'provider' && tool.id === id)
+        ?.name;
+    }
+
     function hasOpenAITool(id: string) {
-      return (
-        tools?.find(tool => tool.type === 'provider' && tool.id === id) != null
-      );
+      return getOpenAIToolName(id) != null;
     }
 
     // when logprobs are requested, automatically include them:

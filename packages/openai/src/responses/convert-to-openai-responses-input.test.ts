@@ -1,11 +1,19 @@
-import type { ToolNameMapping } from '../../../provider-utils/src/create-tool-name-mapping';
-import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
+import type { ToolNameMapping } from '@ai-sdk/provider-utils';
 import { describe, it, expect } from 'vitest';
+import { convertToOpenAIResponsesInput as convertToOpenAIResponsesInputBase } from './convert-to-openai-responses-input';
 
 const testToolNameMapping: ToolNameMapping = {
   toProviderToolName: (customToolName: string) => customToolName,
   toCustomToolName: (providerToolName: string) => providerToolName,
 };
+
+const convertToOpenAIResponsesInput = (
+  options: Parameters<typeof convertToOpenAIResponsesInputBase>[0],
+) =>
+  convertToOpenAIResponsesInputBase({
+    toolSearchToolName: 'tool_search',
+    ...options,
+  });
 
 describe('convertToOpenAIResponsesInput', () => {
   describe('system messages', () => {
