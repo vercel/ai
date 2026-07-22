@@ -11,8 +11,8 @@ import { spawn } from 'node:child_process';
 import { argv, env as procEnv, stdout } from 'node:process';
 import { createInterface } from 'node:readline';
 import type { StartMessage } from '../grok-build-bridge-protocol';
-import { createStreamMapState, mapStreamLine } from '../grok-build-stream-map';
 import { prependGrokBuildBinToPath } from './grok-build-path';
+import { createStreamMapState, mapStreamLine } from './grok-build-stream-map';
 
 const DEFAULT_GROK_MODEL = 'grok-build-0.1';
 

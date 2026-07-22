@@ -23,7 +23,7 @@ import {
 } from '@ai-sdk/harness/utils';
 import { type Experimental_SandboxProcess } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import {
   resolveGrokBuildEnv,
   toGrokCliEnv,
@@ -34,8 +34,19 @@ import {
   type InboundMessage,
   type OutboundMessage,
 } from './grok-build-bridge-protocol';
+import { VERSION } from './version';
 
 type GrokBuildChannel = SandboxChannel<OutboundMessage, InboundMessage>;
+
+const GROK_BUILD_CLIENT_APP = `ai-sdk/harness-grok-build/${VERSION}`;
+
+export type GrokBuildHarnessSettings = {
+  readonly model?: string;
+  readonly auth?: GrokBuildAuthOptions;
+  readonly port?: number;
+  /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
+  readonly startupTimeoutMs?: number;
+};
 
 // Native tool name → common name. Placeholder names; reconcile with real CLI output.
 export const NATIVE_TO_COMMON: Readonly<
@@ -57,7 +68,7 @@ export function toCommonName(
 }
 
 // Builtin tools, keyed by common name. Placeholder names/schemas; reconcile with real CLI output.
-export const GROK_BUILD_BUILTIN_TOOLS = {
+const GROK_BUILD_BUILTIN_TOOLS = {
   read: commonTool('read', {
     nativeName: 'Read',
     toolUseKind: 'readonly',
@@ -136,31 +147,21 @@ const BOOTSTRAP_DIR = '/tmp/harness/grok-build';
 const DEFAULT_GROK_MODEL_DIRECT = 'grok-build-0.1';
 const DEFAULT_GROK_MODEL_GATEWAY = 'xai/grok-build-0.1';
 
-export type GrokBuildHarnessSettings = {
-  readonly model?: string;
-  readonly auth?: GrokBuildAuthOptions;
-  readonly port?: number;
-  /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
-  readonly startupTimeoutMs?: number;
-};
+const grokBuildBridgeCoordsSchema = z.object({
+  port: z.number(),
+  token: z.string(),
+  lastSeenEventId: z.number(),
+  sandboxId: z.string().optional(),
+});
 
 // `sessionId` (from the `end` event) feeds `-r/--resume`; `bridge` carries attach coords.
-const lifecycleStateSchema = z.object({
+const grokBuildResumeStateSchema = z.object({
   sessionId: z.string().optional(),
-  bridge: z
-    .object({
-      port: z.number(),
-      token: z.string(),
-      lastSeenEventId: z.number(),
-      sandboxId: z.string().optional(),
-    })
-    .optional(),
+  bridge: grokBuildBridgeCoordsSchema.optional(),
 });
 
 // Live bridge coordinates for cross-process attach (present on detach/suspend payloads).
-type GrokBridgeCoords = NonNullable<
-  z.infer<typeof lifecycleStateSchema>['bridge']
->;
+type GrokBuildBridgeCoords = z.infer<typeof grokBuildBridgeCoordsSchema>;
 
 async function readBridgeAsset(name: string): Promise<string> {
   const candidates = [
@@ -180,6 +181,20 @@ async function readBridgeAsset(name: string): Promise<string> {
   throw lastErr ?? new Error(`bridge asset not found: ${name}`);
 }
 
+function createGrokBuildGatewayConfig({
+  clientApp,
+}: {
+  clientApp: string;
+}): string {
+  /*
+   * Grok Build controls its own `User-Agent` header and ignores attempts to
+   * override it through model `extra_headers`. `x-client-app` is preserved on
+   * the model request and provides the AI Gateway client attribution instead.
+   */
+  const value = JSON.stringify(clientApp);
+  return `[models]\nextra_headers = { "x-client-app" = ${value} }\n`;
+}
+
 export function createGrokBuild(
   settings: GrokBuildHarnessSettings = {},
 ): HarnessV1<typeof GROK_BUILD_BUILTIN_TOOLS> {
@@ -190,7 +205,7 @@ export function createGrokBuild(
     harnessId: 'grok-build',
     builtinTools: GROK_BUILD_BUILTIN_TOOLS,
     supportsBuiltinToolApprovals: false,
-    lifecycleStateSchema,
+    lifecycleStateSchema: grokBuildResumeStateSchema,
     getBootstrap: async () => {
       if (cachedBootstrap != null) return cachedBootstrap;
       const [pkg, lock, bridge] = await Promise.all([
@@ -239,7 +254,7 @@ export function createGrokBuild(
         isResume && typeof lifecycleState?.data === 'object'
           ? (lifecycleState.data as {
               sessionId?: unknown;
-              bridge?: GrokBridgeCoords;
+              bridge?: GrokBuildBridgeCoords;
             })
           : undefined;
       const resumeSessionId =
@@ -252,6 +267,7 @@ export function createGrokBuild(
       const workDir = startOpts.sessionWorkDir;
       const sessionDataDir = `${sandboxSession.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
+      const grokHomeDir = `${sessionDataDir}/grok`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
 
       // Normalize forwarded bridge diagnostics frames and report them.
@@ -268,11 +284,10 @@ export function createGrokBuild(
 
       // Resolve auth → grok CLI env vars + the matching model id (direct vs gateway).
       const resolvedAuth = resolveGrokBuildEnv(settings.auth);
+      const isGateway = resolvedAuth.AI_GATEWAY_API_KEY != null;
       const model =
         settings.model ??
-        (resolvedAuth.AI_GATEWAY_API_KEY != null
-          ? DEFAULT_GROK_MODEL_GATEWAY
-          : DEFAULT_GROK_MODEL_DIRECT);
+        (isGateway ? DEFAULT_GROK_MODEL_GATEWAY : DEFAULT_GROK_MODEL_DIRECT);
 
       // Attach: reopen a socket to the still-running bridge instead of respawning.
       if (coords) {
@@ -308,14 +323,31 @@ export function createGrokBuild(
       const token = randomBytes(32).toString('hex');
       const env = {
         ...grokEnv,
+        ...(isGateway ? { GROK_HOME: grokHomeDir } : {}),
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
       };
 
       await session.run({
-        command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
+        command: `mkdir -p ${[
+          workDir,
+          bridgeStateDir,
+          ...(isGateway ? [grokHomeDir] : []),
+        ]
+          .map(shellQuote)
+          .join(' ')}`,
         abortSignal: startOpts.abortSignal,
       });
+
+      if (isGateway) {
+        await session.writeTextFile({
+          path: `${grokHomeDir}/config.toml`,
+          content: createGrokBuildGatewayConfig({
+            clientApp: GROK_BUILD_CLIENT_APP,
+          }),
+          abortSignal: startOpts.abortSignal,
+        });
+      }
 
       await markBridgeStarting({
         sandbox: session,

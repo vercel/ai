@@ -50,11 +50,7 @@ vi.mock('node:fs/promises', async importOriginal => {
 });
 
 // eslint-disable-next-line import/first
-import {
-  createGrokBuild,
-  GROK_BUILD_BUILTIN_TOOLS,
-  toCommonName,
-} from './grok-build-harness';
+import { createGrokBuild, toCommonName } from './grok-build-harness';
 
 function textStream(text: string): ReadableStream<Uint8Array> {
   return new ReadableStream<Uint8Array>({
@@ -70,9 +66,11 @@ function textStream(text: string): ReadableStream<Uint8Array> {
 function fakeSandbox({
   spawnCalls,
   runs,
+  writes,
 }: {
   spawnCalls: Array<{ command: string; env: Record<string, string> }>;
   runs: string[];
+  writes?: Array<{ path: string; content: string }>;
 }): HarnessV1NetworkSandboxSession {
   const session = {
     run: async ({ command }: { command: string }) => {
@@ -80,7 +78,15 @@ function fakeSandbox({
       return { exitCode: 0, stdout: '', stderr: '' };
     },
     readTextFile: async () => null,
-    writeTextFile: async () => {},
+    writeTextFile: async ({
+      path,
+      content,
+    }: {
+      path: string;
+      content: string;
+    }) => {
+      writes?.push({ path, content });
+    },
     spawn: async ({
       command,
       env,
@@ -112,7 +118,7 @@ function fakeSandbox({
 
 describe('grok-build builtin tools', () => {
   it('exposes common tool names', () => {
-    expect(Object.keys(GROK_BUILD_BUILTIN_TOOLS)).toEqual(
+    expect(Object.keys(createGrokBuild().builtinTools)).toEqual(
       expect.arrayContaining(['read', 'write', 'edit', 'bash']),
     );
   });
@@ -218,16 +224,30 @@ describe('grok-build doStart', () => {
       env: Record<string, string>;
     }> = [];
     const runs: string[] = [];
+    const writes: Array<{ path: string; content: string }> = [];
     const session = await harness.doStart({
       sessionId: 's1',
-      sandboxSession: fakeSandbox({ spawnCalls, runs }),
+      sandboxSession: fakeSandbox({ spawnCalls, runs, writes }),
       sessionWorkDir: '/vercel/sandbox/grok-s1',
       permissionMode: 'allow-all',
     });
 
     expect(spawnCalls[0].env.GROK_CODE_XAI_API_KEY).toBe('gw-key');
     expect(spawnCalls[0].env.GROK_MODELS_BASE_URL).toBe('https://gw/v1');
+    expect(spawnCalls[0].env.GROK_HOME).toBe(
+      '/vercel/sandbox/.agent-runs/s1/grok',
+    );
     expect(spawnCalls[0].env.XAI_API_KEY).toBeUndefined();
+    expect(
+      writes.find(
+        write =>
+          write.path === '/vercel/sandbox/.agent-runs/s1/grok/config.toml',
+      ),
+    ).toEqual({
+      path: '/vercel/sandbox/.agent-runs/s1/grok/config.toml',
+      content:
+        '[models]\nextra_headers = { "x-client-app" = "ai-sdk/harness-grok-build/0.0.0-test" }\n',
+    });
     expect(session.modelId).toBe('xai/grok-build-0.1');
   });
 

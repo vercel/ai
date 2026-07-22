@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { createStreamMapState, mapStreamLine } from './grok-build-stream-map';
 
 const lines = readFileSync(
-  join(__dirname, '__fixtures__/streaming-json-basic.jsonl'),
+  join(__dirname, '../__fixtures__/streaming-json-basic.jsonl'),
   'utf8',
 )
   .split('\n')
