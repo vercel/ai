@@ -1489,7 +1489,7 @@ To use skills, you need to:
 1. Enable the code execution tool
 2. Specify the container with skills in `providerOptions`
 
-```ts highlight="4,9-17,19-23"
+```ts highlight="6-8,10-23"
 import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
@@ -1519,7 +1519,7 @@ const result = await generateText({
 
 You can also use custom skills by specifying `type: 'custom'`:
 
-```ts highlight="9-11"
+```ts highlight="11-15"
 const result = await generateText({
   model: anthropic('claude-sonnet-4-5'),
   tools: {

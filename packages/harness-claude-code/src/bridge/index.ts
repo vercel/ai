@@ -33,8 +33,8 @@ import { argv, stdout } from 'node:process';
  */
 import * as claudeAgentSdk from '@anthropic-ai/claude-agent-sdk';
 import * as mcpServerModule from '@modelcontextprotocol/sdk/server/mcp.js';
-import { z } from 'zod/v4';
 import { toClaudeSkillsOption } from './claude-skills-option';
+import { jsonSchemaToZodShape } from './json-schema-to-zod';
 
 /*
  * Native Claude Code tool name → cross-harness common name. Tools outside this
@@ -86,6 +86,7 @@ const PUBLIC_TO_NATIVE: Readonly<Record<string, string>> = {
   ExitWorktree: 'ExitWorktree',
   AskUserQuestion: 'AskUserQuestion',
   Skill: 'Skill',
+  ToolSearch: 'ToolSearch',
 };
 
 const PUBLIC_TOOL_NAMES = Object.keys(PUBLIC_TO_NATIVE);
@@ -114,8 +115,9 @@ const NATIVE_TOOL_KINDS: Readonly<
   EnterWorktree: 'edit',
   ExitWorktree: 'edit',
   ExitPlanMode: 'edit',
-  Skill: 'edit',
+  Skill: 'readonly',
   AskUserQuestion: 'readonly',
+  ToolSearch: 'readonly',
   Bash: 'bash',
   Monitor: 'bash',
 };
@@ -355,7 +357,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       version: '1.0.0',
     });
     for (const tool of start.tools) {
-      const shape = jsonSchemaToZodShape(tool.inputSchema, z);
+      const shape = jsonSchemaToZodShape(tool.inputSchema);
       server.tool(
         tool.name,
         tool.description ?? '',
@@ -927,48 +929,6 @@ function defaultUsage(): Record<string, unknown> {
     inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
     outputTokens: { total: 0, text: 0 },
   };
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function jsonSchemaToZodShape(
-  schema: unknown,
-  z: any,
-): Record<string, unknown> {
-  if (!schema || typeof schema !== 'object') return {};
-  const s = schema as {
-    properties?: Record<string, { type?: string; description?: string }>;
-    required?: string[];
-  };
-  const shape: Record<string, unknown> = {};
-  const required = new Set(s.required ?? []);
-  for (const [key, val] of Object.entries(s.properties ?? {})) {
-    let z_: unknown;
-    switch (val.type) {
-      case 'string':
-        z_ = z.string();
-        break;
-      case 'number':
-      case 'integer':
-        z_ = z.number();
-        break;
-      case 'boolean':
-        z_ = z.boolean();
-        break;
-      case 'array':
-        z_ = z.array(z.any());
-        break;
-      default:
-        z_ = z.any();
-    }
-    if (val.description)
-      z_ = (z_ as { describe: (s: string) => unknown }).describe(
-        val.description,
-      );
-    shape[key] = required.has(key)
-      ? z_
-      : (z_ as { optional: () => unknown }).optional();
-  }
-  return shape;
 }
 
 function parseArgs(args: string[]): {

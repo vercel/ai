@@ -367,11 +367,22 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       metadata: z.object({ source: z.string().optional() }).optional(),
     }),
   }),
-  Skill: tool({
-    description: 'Activate a skill by name',
+  Skill: {
+    ...tool({
+      description: 'Activate a skill by name',
+      inputSchema: z.object({
+        skill: z.string(),
+        args: z.string().optional(),
+      }),
+    }),
+    toolUseKind: 'readonly',
+  },
+  ToolSearch: tool({
+    description:
+      'Search deferred MCP / catalog tools so the model can load them on demand',
     inputSchema: z.object({
-      skill: z.string(),
-      args: z.string().optional(),
+      query: z.string(),
+      max_results: z.number().optional(),
     }),
   }),
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;

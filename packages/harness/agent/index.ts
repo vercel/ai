@@ -16,6 +16,7 @@ export type {
   HarnessAgentContinueTurnState,
   HarnessAgentLifecycleState,
   HarnessAgentPendingToolApproval,
+  HarnessAgentPendingToolResult,
   HarnessAgentPermissionMode,
   HarnessAgentPrompt,
   HarnessAgentPromptControl,
@@ -31,6 +32,10 @@ export {
   collectHarnessAgentToolApprovalContinuations,
   type HarnessAgentToolApprovalContinuation,
 } from '../src/agent/harness-agent-tool-approval-continuation';
+export {
+  collectHarnessAgentToolResultContinuations,
+  type HarnessAgentToolResultContinuation,
+} from '../src/agent/harness-agent-tool-result-continuation';
 export {
   prepareHarnessSandboxTemplate,
   prewarmHarness,

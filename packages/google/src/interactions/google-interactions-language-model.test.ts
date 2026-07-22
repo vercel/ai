@@ -1461,34 +1461,39 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       expect(body.agent_config).toEqual({ type: 'dynamic' });
     });
 
-    it('emits a warning and drops tools when an agent is set', async () => {
+    it('emits file_search tools when an agent is set', async () => {
       const agentModel = provider.interactions({ agent: AGENT_NAME });
       const result = await agentModel.doGenerate({
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'function',
-            name: 'getWeather',
-            description: 'Get the current weather in a location',
-            inputSchema: {
-              type: 'object',
-              properties: { location: { type: 'string' } },
-              required: ['location'],
+            type: 'provider',
+            id: 'google.file_search',
+            name: 'file_search',
+            args: {
+              fileSearchStoreNames: ['fileSearchStores/x'],
             },
           },
         ],
+        providerOptions: { google: { background: true } },
       });
       const body = (await server.calls[0].requestBodyJson) as Record<
         string,
         unknown
       >;
-      expect(body.tools).toBeUndefined();
+      expect(body.tools).toEqual([
+        {
+          type: 'file_search',
+          file_search_store_names: ['fileSearchStores/x'],
+        },
+      ]);
+      expect(body.background).toBe(true);
       const warning = result.warnings.find(
         w =>
           w.type === 'other' &&
           (w as { message?: string }).message?.includes('tools'),
       );
-      expect(warning).toBeDefined();
+      expect(warning).toBeUndefined();
     });
 
     it('emits a warning and drops generation-config fields (temperature, topP, thinkingLevel) when an agent is set', async () => {

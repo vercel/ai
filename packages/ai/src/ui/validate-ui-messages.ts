@@ -30,12 +30,12 @@ const uiMessagesSchema = lazySchema(() =>
   zodSchema(
     z
       .array(
-        z.object({
-          id: z.string(),
-          role: z.enum(['system', 'user', 'assistant']),
-          metadata: z.unknown().optional(),
-          parts: z
-            .array(
+        z
+          .object({
+            id: z.string(),
+            role: z.enum(['system', 'user', 'assistant']),
+            metadata: z.unknown().optional(),
+            parts: z.array(
               z.union([
                 z.object({
                   type: z.literal('text'),
@@ -343,9 +343,21 @@ const uiMessagesSchema = lazySchema(() =>
                   }),
                 }),
               ]),
-            )
-            .nonempty('Message must contain at least one part'),
-        }),
+            ),
+          })
+          .superRefine((message, context) => {
+            if (message.role !== 'assistant' && message.parts.length === 0) {
+              context.addIssue({
+                origin: 'array',
+                code: 'too_small',
+                minimum: 1,
+                inclusive: true,
+                input: message.parts,
+                path: ['parts'],
+                message: 'Message must contain at least one part',
+              });
+            }
+          }),
       )
       .nonempty('Messages array must not be empty'),
   ),

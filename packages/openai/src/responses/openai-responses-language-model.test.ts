@@ -241,6 +241,34 @@ describe('OpenAIResponsesLanguageModel', () => {
   }
 
   describe('doGenerate', () => {
+    it('should throw a descriptive error when the response has no output', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_no_output',
+          object: 'response',
+          created_at: 1741257730,
+          status: 'incomplete',
+          error: null,
+          incomplete_details: { reason: 'content_filter' },
+          model: 'gpt-4o-2024-07-18',
+          // no `output` field — some OpenAI-compatible upstreams return this
+          usage: {
+            input_tokens: 10,
+            input_tokens_details: { cached_tokens: 0 },
+            output_tokens: 0,
+            output_tokens_details: { reasoning_tokens: 0 },
+            total_tokens: 10,
+          },
+          metadata: {},
+        },
+      };
+
+      await expect(
+        createModel('gpt-4o').doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toThrow('Responses API returned no output (content_filter)');
+    });
+
     describe('basic text response', () => {
       beforeEach(() => {
         server.urls['https://api.openai.com/v1/responses'].response = {

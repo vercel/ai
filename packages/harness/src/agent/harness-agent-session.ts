@@ -1,5 +1,5 @@
 import type { Context, ToolSet } from '@ai-sdk/provider-utils';
-import type { StreamTextResult, TelemetryOptions } from 'ai';
+import type { StopCondition, StreamTextResult, TelemetryOptions } from 'ai';
 import type { HarnessAgentToolApprovalConfiguration } from './harness-agent-settings';
 import type {
   HarnessV1BuiltinToolFiltering,
@@ -11,11 +11,13 @@ import type {
   HarnessAgentAdapterSession,
   HarnessAgentContinueTurnState,
   HarnessAgentPendingToolApproval,
+  HarnessAgentPendingToolResult,
   HarnessAgentPrompt,
   HarnessAgentResumeSessionState,
   HarnessAgentToolSpec,
 } from './harness-agent-types';
 import type { HarnessAgentToolApprovalContinuation } from './harness-agent-tool-approval-continuation';
+import type { HarnessAgentToolResultContinuation } from './harness-agent-tool-result-continuation';
 import { releaseBridgePort } from './internal/bridge-port-registry';
 import { validateLifecycleStateData } from './internal/lifecycle-state-validation';
 import { runPrompt } from './internal/run-prompt';
@@ -34,6 +36,7 @@ type HarnessAgentTurnState =
   | 'idle'
   | 'running'
   | 'awaiting-approval'
+  | 'awaiting-tool-result'
   | 'suspended';
 
 /**
@@ -71,10 +74,17 @@ export class HarnessAgentSession {
     string,
     HarnessAgentPendingToolApproval
   >();
+  private readonly pendingToolResults = new Map<
+    string,
+    HarnessAgentPendingToolResult
+  >();
   private sessionState: HarnessAgentSessionState = 'active';
   private turnState: HarnessAgentTurnState;
   private turnSequence = 0;
   private activeTurnSequence = 0;
+  private suspendedTurnState:
+    | Promise<HarnessAgentContinueTurnState>
+    | undefined;
 
   /**
    * Whether this session was created from `resumeFrom` or `continueFrom`.
@@ -92,6 +102,7 @@ export class HarnessAgentSession {
     sessionWorkDir: string;
     toolApproval: HarnessAgentToolApprovalConfiguration | undefined;
     pendingToolApprovals?: readonly HarnessAgentPendingToolApproval[];
+    pendingToolResults?: readonly HarnessAgentPendingToolResult[];
     turnState?: HarnessAgentTurnState;
   }) {
     this.sessionId = options.sessionId;
@@ -105,9 +116,16 @@ export class HarnessAgentSession {
     for (const approval of options.pendingToolApprovals ?? []) {
       this.pendingToolApprovals.set(approval.approvalId, approval);
     }
+    for (const pendingResult of options.pendingToolResults ?? []) {
+      this.pendingToolResults.set(pendingResult.toolCallId, pendingResult);
+    }
     this.turnState =
       options.turnState ??
-      (this.pendingToolApprovals.size > 0 ? 'awaiting-approval' : 'idle');
+      (this.pendingToolApprovals.size > 0
+        ? 'awaiting-approval'
+        : this.pendingToolResults.size > 0
+          ? 'awaiting-tool-result'
+          : 'idle');
     this.isResume = options.underlyingSession.isResume;
   }
 
@@ -135,6 +153,10 @@ export class HarnessAgentSession {
     return this.sessionWorkDir;
   }
 
+  hasUnfinishedTurn(): boolean {
+    return this.turnState !== 'idle';
+  }
+
   promptTurn<TOOLS extends ToolSet, RUNTIME_CONTEXT extends Context>(options: {
     prompt: HarnessAgentPrompt;
     instructions: string | undefined;
@@ -145,6 +167,7 @@ export class HarnessAgentSession {
     runtimeContext: RUNTIME_CONTEXT;
     abortSignal: AbortSignal | undefined;
     telemetry: TelemetryOptions | undefined;
+    stopConditions: ReadonlyArray<StopCondition<TOOLS, RUNTIME_CONTEXT>>;
   }): HarnessAgentTurnResult<TOOLS, RUNTIME_CONTEXT> {
     const session = this.requireReusableSession();
     this.requirePromptableTurn();
@@ -165,8 +188,10 @@ export class HarnessAgentSession {
         runtimeContext: options.runtimeContext,
         abortSignal: options.abortSignal,
         telemetry: options.telemetry,
+        stopConditions: options.stopConditions,
         toolApproval: this.toolApproval,
         pendingToolApprovals: this.getPendingToolApprovals(),
+        pendingToolResults: this.getPendingToolResults(),
         onPendingToolApproval: approval => {
           this.pendingToolApprovals.set(approval.approvalId, approval);
           this.markAwaitingApprovalIfActive();
@@ -174,11 +199,22 @@ export class HarnessAgentSession {
         onToolApprovalSettled: approvalId => {
           this.pendingToolApprovals.delete(approvalId);
         },
+        onPendingToolResult: pendingResult => {
+          this.pendingToolResults.set(pendingResult.toolCallId, pendingResult);
+          this.markAwaitingToolResultIfActive();
+        },
+        onToolResultSettled: toolCallId => {
+          this.pendingToolResults.delete(toolCallId);
+        },
         onTurnFinished: () => {
           this.finishTrackedTurn({ turnId });
         },
+        onTurnFailed: () => {
+          this.finishTrackedTurn({ turnId });
+        },
+        onStopConditionMet: () =>
+          this.captureStopConditionBoundary({ session, turnId }),
       });
-      this.trackTurnCompletion({ done: turn.done, turnId });
       return turn;
     } catch (error) {
       this.finishTrackedTurn({ turnId });
@@ -198,8 +234,12 @@ export class HarnessAgentSession {
     runtimeContext: RUNTIME_CONTEXT;
     abortSignal: AbortSignal | undefined;
     telemetry: TelemetryOptions | undefined;
+    stopConditions: ReadonlyArray<StopCondition<TOOLS, RUNTIME_CONTEXT>>;
     toolApprovalContinuations?:
       | readonly HarnessAgentToolApprovalContinuation[]
+      | undefined;
+    toolResultContinuations?:
+      | readonly HarnessAgentToolResultContinuation[]
       | undefined;
   }): HarnessAgentTurnResult<TOOLS, RUNTIME_CONTEXT> {
     const session = this.requireReusableSession();
@@ -221,9 +261,12 @@ export class HarnessAgentSession {
         runtimeContext: options.runtimeContext,
         abortSignal: options.abortSignal,
         telemetry: options.telemetry,
+        stopConditions: options.stopConditions,
         toolApproval: this.toolApproval,
         pendingToolApprovals: this.getPendingToolApprovals(),
+        pendingToolResults: this.getPendingToolResults(),
         toolApprovalContinuations: options.toolApprovalContinuations,
+        toolResultContinuations: options.toolResultContinuations,
         onPendingToolApproval: approval => {
           this.pendingToolApprovals.set(approval.approvalId, approval);
           this.markAwaitingApprovalIfActive();
@@ -231,11 +274,22 @@ export class HarnessAgentSession {
         onToolApprovalSettled: approvalId => {
           this.pendingToolApprovals.delete(approvalId);
         },
+        onPendingToolResult: pendingResult => {
+          this.pendingToolResults.set(pendingResult.toolCallId, pendingResult);
+          this.markAwaitingToolResultIfActive();
+        },
+        onToolResultSettled: toolCallId => {
+          this.pendingToolResults.delete(toolCallId);
+        },
         onTurnFinished: () => {
           this.finishTrackedTurn({ turnId });
         },
+        onTurnFailed: () => {
+          this.finishTrackedTurn({ turnId });
+        },
+        onStopConditionMet: () =>
+          this.captureStopConditionBoundary({ session, turnId }),
       });
-      this.trackTurnCompletion({ done: turn.done, turnId });
       return turn;
     } catch (error) {
       this.finishTrackedTurn({ turnId });
@@ -382,11 +436,16 @@ export class HarnessAgentSession {
     return Array.from(this.pendingToolApprovals.values());
   }
 
-  private addPendingToolApprovals(
+  private getPendingToolResults(): readonly HarnessAgentPendingToolResult[] {
+    return Array.from(this.pendingToolResults.values());
+  }
+
+  private addPendingToolState(
     state: HarnessAgentContinueTurnState,
   ): HarnessAgentContinueTurnState {
     const pendingToolApprovals = this.getPendingToolApprovals();
-    if (pendingToolApprovals.length === 0) {
+    const pendingToolResults = this.getPendingToolResults();
+    if (pendingToolApprovals.length === 0 && pendingToolResults.length === 0) {
       return {
         type: state.type,
         harnessId: state.harnessId,
@@ -396,21 +455,39 @@ export class HarnessAgentSession {
     }
     return {
       ...state,
-      pendingToolApprovals,
+      ...(pendingToolApprovals.length > 0 ? { pendingToolApprovals } : {}),
+      ...(pendingToolResults.length > 0 ? { pendingToolResults } : {}),
     };
   }
 
   private async suspendCurrentTurn(options: {
     session: HarnessAgentAdapterSession;
   }): Promise<HarnessAgentContinueTurnState> {
-    const raw = await options.session.doSuspendTurn();
-    const validated = await validateLifecycleStateData({
-      harness: this.harness,
-      state: raw,
-      expectedType: 'continue-turn',
-    });
+    this.suspendedTurnState ??= (async () => {
+      const raw = await options.session.doSuspendTurn();
+      const validated = await validateLifecycleStateData({
+        harness: this.harness,
+        state: raw,
+        expectedType: 'continue-turn',
+      });
+      return this.addPendingToolState(validated);
+    })();
+    const state = await this.suspendedTurnState;
     this.turnState = 'suspended';
-    return this.addPendingToolApprovals(validated);
+    return state;
+  }
+
+  private async captureStopConditionBoundary(options: {
+    session: HarnessAgentAdapterSession;
+    turnId: number;
+  }): Promise<void> {
+    if (
+      this.sessionState !== 'active' ||
+      this.activeTurnSequence !== options.turnId
+    ) {
+      return;
+    }
+    await this.suspendCurrentTurn({ session: options.session });
   }
 
   private toResumeStateWithContinuation(options: {
@@ -441,6 +518,7 @@ export class HarnessAgentSession {
   private requireContinuableTurn(): void {
     if (
       this.turnState === 'awaiting-approval' ||
+      this.turnState === 'awaiting-tool-result' ||
       this.turnState === 'suspended'
     ) {
       return;
@@ -461,29 +539,27 @@ export class HarnessAgentSession {
     }
   }
 
+  private markAwaitingToolResultIfActive(): void {
+    if (this.sessionState === 'active') {
+      this.turnState = 'awaiting-tool-result';
+    }
+  }
+
   private startTrackedTurn(): number {
     const turnId = ++this.turnSequence;
     this.activeTurnSequence = turnId;
+    this.suspendedTurnState = undefined;
     this.turnState = 'running';
     return turnId;
-  }
-
-  private trackTurnCompletion(options: {
-    done: Promise<void>;
-    turnId: number;
-  }): void {
-    void Promise.resolve(options.done)
-      .finally(() => {
-        this.finishTrackedTurn({ turnId: options.turnId });
-      })
-      .catch(() => {});
   }
 
   private finishTrackedTurn(options: { turnId: number }): void {
     if (this.sessionState !== 'active') return;
     if (this.activeTurnSequence !== options.turnId) return;
-    this.turnState =
-      this.pendingToolApprovals.size > 0 ? 'awaiting-approval' : 'idle';
+    this.pendingToolApprovals.clear();
+    this.pendingToolResults.clear();
+    this.suspendedTurnState = undefined;
+    this.turnState = 'idle';
   }
 
   private endLocalHandle(options: {
