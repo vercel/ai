@@ -1,9 +1,9 @@
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createAnthropic } from './anthropic-provider';
 
-const TEST_PROMPT: LanguageModelV4Prompt = [
+const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -41,9 +41,8 @@ describe('unknown model max output tokens', () => {
     });
     expect(warnings).toEqual([
       {
-        type: 'compatibility',
-        feature: 'maxOutputTokens',
-        details:
+        type: 'other',
+        message:
           'The model "future-model" is unknown. The max output tokens have been limited to 4096. Set maxOutputTokens explicitly to override this limit.',
       },
     ]);
