@@ -210,6 +210,7 @@ describe('createClaudeCode adapter', () => {
     expect(harness.builtinTools.read.toolUseKind).toBe('readonly');
     expect(harness.builtinTools.write.toolUseKind).toBe('edit');
     expect(harness.builtinTools.bash.toolUseKind).toBe('bash');
+    expect(harness.builtinTools.Skill.toolUseKind).toBe('readonly');
     // WebFetch has no cross-harness common equivalent — its key is the
     // native name directly, so the entry intentionally omits both
     // `nativeName` and `commonName`.

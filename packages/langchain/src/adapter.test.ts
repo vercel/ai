@@ -1124,8 +1124,8 @@ describe('convertModelMessages', () => {
     expect(result[0].content).toEqual([
       { type: 'text', text: 'What is in this image?' },
       {
-        type: 'image_url',
-        image_url: { url: 'https://example.com/image.jpg' },
+        type: 'image',
+        url: 'https://example.com/image.jpg',
       },
     ]);
   });
@@ -1152,8 +1152,9 @@ describe('convertModelMessages', () => {
     expect(result[0].content).toEqual([
       { type: 'text', text: 'What is in this image?' },
       {
-        type: 'image_url',
-        image_url: { url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAE' },
+        type: 'image',
+        data: 'iVBORw0KGgoAAAANSUhEUgAAAAE',
+        mimeType: 'image/png',
       },
     ]);
   });
@@ -1179,8 +1180,9 @@ describe('convertModelMessages', () => {
     expect(result[0].content).toEqual([
       { type: 'text', text: 'Describe this.' },
       {
-        type: 'image_url',
-        image_url: { url: 'data:image/png;base64,abc123' },
+        type: 'image',
+        data: 'abc123',
+        mimeType: 'image/png',
       },
     ]);
   });
@@ -1272,8 +1274,8 @@ describe('convertModelMessages', () => {
     expect(result[0].content).toEqual([
       { type: 'text', text: 'Compare these:' },
       {
-        type: 'image_url',
-        image_url: { url: 'https://example.com/image1.jpg' },
+        type: 'image',
+        url: 'https://example.com/image1.jpg',
       },
       { type: 'text', text: 'And this document:' },
       {
@@ -1306,13 +1308,13 @@ describe('convertModelMessages', () => {
     expect(result[0].content).toEqual([
       { type: 'text', text: 'What is this?' },
       {
-        type: 'image_url',
-        image_url: { url: 'https://example.com/image.png' },
+        type: 'image',
+        url: 'https://example.com/image.png',
       },
     ]);
   });
 
-  it('should convert image files (file type with image mediaType) using image_url format', () => {
+  it('should convert image files to canonical image blocks', () => {
     const modelMessages: ModelMessage[] = [
       {
         role: 'user',
@@ -1334,8 +1336,8 @@ describe('convertModelMessages', () => {
     expect(result[0].content).toEqual([
       { type: 'text', text: 'Describe this photo.' },
       {
-        type: 'image_url',
-        image_url: { url: 'https://example.com/photo.jpg' },
+        type: 'image',
+        url: 'https://example.com/photo.jpg',
       },
     ]);
   });
@@ -1501,12 +1503,12 @@ describe('toBaseMessages', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0]).toBeInstanceOf(HumanMessage);
-    // Image files are converted to OpenAI's image_url format
     expect(result[0].content).toEqual([
       { type: 'text', text: 'What is in this image?' },
       {
-        type: 'image_url',
-        image_url: { url: 'data:image/png;base64,abc123' },
+        type: 'image',
+        data: 'abc123',
+        mimeType: 'image/png',
       },
     ]);
   });

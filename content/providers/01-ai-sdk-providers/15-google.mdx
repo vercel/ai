@@ -1031,7 +1031,9 @@ The following Zod features are known to not work with Google:
 
 | Model                                 | Image Input | Object Generation | Tool Usage | Tool Streaming | Google Search | URL Context |
 | ------------------------------------- | ----------- | ----------------- | ---------- | -------------- | ------------- | ----------- |
+| `gemini-3.6-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 | `gemini-3.5-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
+| `gemini-3.5-flash-lite`               | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 | `gemini-3.1-pro-preview`              | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 | `gemini-3.1-flash-image-preview`      | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 | `gemini-3.1-flash-lite-preview`       | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
@@ -1076,6 +1078,11 @@ const token = await google.experimental_realtime.getToken({
 Google realtime models may require provider-specific audio formats, depending
 on the model and modality. See [Realtime](/docs/ai-sdk-core/realtime) for the
 complete setup and tool calling pattern.
+
+Gemini lifecycle signals that do not have provider-neutral equivalents are
+emitted as custom events. Inspect `rawType` for `goAway`,
+`sessionResumptionUpdate`, and `generationComplete` and use the event's `raw`
+payload for provider-specific details.
 
 ### Live Translation
 

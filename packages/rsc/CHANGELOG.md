@@ -1,5 +1,31 @@
 # @ai-sdk/rsc
 
+## 3.0.34
+
+### Patch Changes
+
+- ai@7.0.34
+
+## 3.0.33
+
+### Patch Changes
+
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+- Updated dependencies [e808fa5]
+- Updated dependencies [33647d7]
+  - @ai-sdk/provider-utils@5.0.12
+  - ai@7.0.33
+
+## 3.0.32
+
+### Patch Changes
+
+- Updated dependencies [6cd7c74]
+- Updated dependencies [e35bcae]
+- Updated dependencies [a4eb3f3]
+  - ai@7.0.32
+
 ## 3.0.31
 
 ### Patch Changes
