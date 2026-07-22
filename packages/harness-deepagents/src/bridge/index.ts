@@ -45,6 +45,21 @@ function parseArgs(rawArgs: string[]): Record<string, string> {
   return out;
 }
 
+function resolveDeepAgentsModelId({
+  configuredModel,
+  metadata,
+}: {
+  configuredModel: string | undefined;
+  metadata: unknown;
+}): string | undefined {
+  if (metadata && typeof metadata === 'object' && !Array.isArray(metadata)) {
+    const modelId = (metadata as { ls_model_name?: unknown }).ls_model_name;
+    if (typeof modelId === 'string' && modelId.length > 0) return modelId;
+  }
+
+  return configuredModel;
+}
+
 // Always drive the Anthropic client. Through the gateway, models keep their
 // `creator/model` slug (gateway translates); direct Anthropic wants the bare id.
 function buildModel(rawModel: string | undefined) {
@@ -162,12 +177,8 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     });
   }
 
-  emit({
-    type: 'stream-start',
-    ...(start.model ? { modelId: start.model } : {}),
-  });
-
   const hostToolNames = new Set((start.tools ?? []).map(t => t.name));
+  let streamStarted = false;
   let textBlockId: string | undefined;
   let reasoningBlockId: string | undefined;
   let inputTokens = 0;
@@ -265,8 +276,21 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       const nested = ns.includes('|');
 
       if (kind === 'on_chat_model_start') {
-        // A new top-level model call means the previous step's tools have run; close it now.
-        if (!nested) flushStep();
+        if (!nested) {
+          if (!streamStarted) {
+            streamStarted = true;
+            const modelId = resolveDeepAgentsModelId({
+              configuredModel: start.model,
+              metadata: event.metadata,
+            });
+            emit({
+              type: 'stream-start',
+              ...(modelId ? { modelId } : {}),
+            });
+          }
+          // A new top-level model call means the previous step's tools have run; close it now.
+          flushStep();
+        }
       } else if (kind === 'on_chat_model_stream') {
         if (nested) continue;
         const chunk = data.chunk as

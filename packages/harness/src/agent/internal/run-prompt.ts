@@ -1080,6 +1080,7 @@ export async function validateToolCall<TOOLS extends ToolSet>(args: {
     ...(event.providerExecuted !== undefined
       ? { providerExecuted: event.providerExecuted }
       : {}),
+    ...(event.dynamic !== undefined ? { dynamic: event.dynamic } : {}),
     ...(event.providerMetadata !== undefined
       ? { providerMetadata: event.providerMetadata }
       : {}),
