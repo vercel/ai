@@ -1657,5 +1657,165 @@ describe('GatewayLanguageModel', () => {
         gateway: { quotaEntityId: 'entity-123', user: 'user-456' },
       });
     });
+
+    it('should filter gateway.models to only providers in gateway.order', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      const { warnings } = await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            order: ['openai', 'google', 'azure'],
+            models: [
+              'google/gemini-2.5-flash',
+              'openai/gpt-5-mini',
+              'xai/grok-4.1-fast-non-reasoning',
+            ],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: {
+          order: ['openai', 'google', 'azure'],
+          models: ['google/gemini-2.5-flash', 'openai/gpt-5-mini'],
+        },
+      });
+      expect(warnings).toEqual([
+        {
+          type: 'other',
+          message:
+            'Model "xai/grok-4.1-fast-non-reasoning" was removed from gateway.models because its provider is not in the allowed provider list (openai, google, azure).',
+        },
+      ]);
+    });
+
+    it('should filter gateway.models to only providers in gateway.only', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      const { warnings } = await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            only: ['anthropic'],
+            models: [
+              'anthropic/claude-sonnet-4',
+              'openai/gpt-5-mini',
+              'meta/llama-4-scout',
+            ],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: {
+          only: ['anthropic'],
+          models: ['anthropic/claude-sonnet-4'],
+        },
+      });
+      expect(warnings).toHaveLength(2);
+      expect(warnings[0]).toEqual({
+        type: 'other',
+        message:
+          'Model "openai/gpt-5-mini" was removed from gateway.models because its provider is not in the allowed provider list (anthropic).',
+      });
+    });
+
+    it('should not filter gateway.models when no order or only constraint is set', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      const { warnings } = await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            models: [
+              'google/gemini-2.5-flash',
+              'xai/grok-4.1-fast-non-reasoning',
+            ],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: {
+          models: [
+            'google/gemini-2.5-flash',
+            'xai/grok-4.1-fast-non-reasoning',
+          ],
+        },
+      });
+      expect(warnings).toHaveLength(0);
+    });
+
+    it('should keep all gateway.models when all providers are in gateway.order', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      const { warnings } = await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            order: ['openai', 'google'],
+            models: ['google/gemini-2.5-flash', 'openai/gpt-5-mini'],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: {
+          order: ['openai', 'google'],
+          models: ['google/gemini-2.5-flash', 'openai/gpt-5-mini'],
+        },
+      });
+      expect(warnings).toHaveLength(0);
+    });
+
+    it('should filter gateway.models for doStream when order is set', async () => {
+      prepareStreamResponse({
+        content: ['Hello', ' world'],
+      });
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            order: ['openai', 'google'],
+            models: ['openai/gpt-5-mini', 'deepseek/deepseek-v3'],
+          },
+        },
+      });
+
+      const streamParts = await convertReadableStreamToArray(stream);
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: {
+          order: ['openai', 'google'],
+          models: ['openai/gpt-5-mini'],
+        },
+      });
+
+      const streamStartPart = streamParts.find(
+        part => part.type === 'stream-start',
+      );
+      expect(streamStartPart?.warnings).toEqual([
+        {
+          type: 'other',
+          message:
+            'Model "deepseek/deepseek-v3" was removed from gateway.models because its provider is not in the allowed provider list (openai, google).',
+        },
+      ]);
+    });
   });
 });

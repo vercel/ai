@@ -43,10 +43,61 @@ export class GatewayLanguageModel implements LanguageModelV4 {
 
   private async getArgs(options: LanguageModelV4CallOptions) {
     const { abortSignal: _abortSignal, ...optionsWithoutSignal } = options;
+    const warnings: SharedV4Warning[] = [];
+
+    // When gateway.order or gateway.only restrict which providers may be used,
+    // also enforce that restriction on gateway.models so that fallback models
+    // whose provider prefix is not in the allowed set are silently dropped and
+    // surfaced as warnings instead of routing to unexpected providers.
+    const gatewayOptions = optionsWithoutSignal.providerOptions?.['gateway'];
+    if (gatewayOptions) {
+      const order = Array.isArray(gatewayOptions['order'])
+        ? (gatewayOptions['order'] as string[])
+        : undefined;
+      const only = Array.isArray(gatewayOptions['only'])
+        ? (gatewayOptions['only'] as string[])
+        : undefined;
+      const models = Array.isArray(gatewayOptions['models'])
+        ? (gatewayOptions['models'] as string[])
+        : undefined;
+
+      if (models && (order || only)) {
+        const allowedProviders = new Set([...(order ?? []), ...(only ?? [])]);
+        const keptModels: string[] = [];
+        const removedModels: string[] = [];
+
+        for (const modelId of models) {
+          const providerPrefix = modelId.split('/')[0];
+          if (allowedProviders.has(providerPrefix)) {
+            keptModels.push(modelId);
+          } else {
+            removedModels.push(modelId);
+          }
+        }
+
+        if (removedModels.length > 0) {
+          const allowedList = [...allowedProviders].join(', ');
+          for (const modelId of removedModels) {
+            warnings.push({
+              type: 'other',
+              message: `Model "${modelId}" was removed from gateway.models because its provider is not in the allowed provider list (${allowedList}).`,
+            });
+          }
+
+          optionsWithoutSignal.providerOptions = {
+            ...optionsWithoutSignal.providerOptions,
+            gateway: {
+              ...gatewayOptions,
+              models: keptModels,
+            },
+          };
+        }
+      }
+    }
 
     return {
       args: this.maybeEncodeFileParts(optionsWithoutSignal),
-      warnings: [],
+      warnings,
     };
   }
 
