@@ -213,6 +213,65 @@ const opusAnthropicModel = new AmazonBedrockChatLanguageModel(
   },
 );
 
+describe('issue 11035 reproduction', () => {
+  it('returns reasoning for an Anthropic application inference profile ARN when budgetTokens is configured', async () => {
+    const applicationProfileArn =
+      'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/issue11035';
+    let requestBody:
+      | {
+          additionalModelRequestFields?: {
+            thinking?: unknown;
+          };
+        }
+      | undefined;
+    const issueModel = new AmazonBedrockChatLanguageModel(
+      applicationProfileArn,
+      {
+        baseUrl: () => baseUrl,
+        headers: {},
+        generateId: () => 'test-id',
+        fetch: async (_input, init) => {
+          requestBody = JSON.parse(String(init?.body));
+          const fixture =
+            requestBody?.additionalModelRequestFields?.thinking == null
+              ? 'amazon-bedrock-issue-11035-without-thinking.json'
+              : 'amazon-bedrock-issue-11035-with-thinking.json';
+
+          return new Response(
+            fs.readFileSync(`src/__fixtures__/${fixture}`, 'utf8'),
+            {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            },
+          );
+        },
+      },
+    );
+
+    const result = await issueModel.doGenerate({
+      prompt: TEST_PROMPT,
+      maxOutputTokens: 1100,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            budgetTokens: 1024,
+          },
+        },
+      },
+    });
+
+    expect(
+      result.content.some(part => part.type === 'reasoning'),
+      'Expected Anthropic reasoning output for the application inference profile ARN.',
+    ).toBe(true);
+    expect(requestBody?.additionalModelRequestFields?.thinking).toEqual({
+      type: 'enabled',
+      budget_tokens: 1024,
+    });
+  });
+});
+
 let mockOptions: { success: boolean; errorValue?: any } = { success: true };
 
 describe('doGenerate request metadata', () => {
