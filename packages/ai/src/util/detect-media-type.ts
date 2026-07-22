@@ -216,19 +216,6 @@ const stripID3 = (bytes: Uint8Array): Uint8Array => {
   return bytes.subarray(id3Size + 10);
 };
 
-<<<<<<< HEAD:packages/ai/src/util/detect-media-type.ts
-function stripID3TagsIfPresent(data: Uint8Array | string): Uint8Array | string {
-  const hasId3 =
-    (typeof data === 'string' && data.startsWith('SUQz')) ||
-    (typeof data !== 'string' &&
-      data.length > 10 &&
-      data[0] === 0x49 && // 'I'
-      data[1] === 0x44 && // 'D'
-      data[2] === 0x33); // '3'
-
-  return hasId3 ? stripID3(data) : data;
-}
-
 /**
  * Detect the media IANA media type of a file using a list of signatures.
  *
@@ -237,30 +224,16 @@ function stripID3TagsIfPresent(data: Uint8Array | string): Uint8Array | string {
  * @returns The media type of the file.
  */
 export function detectMediaType({
-=======
-type MediaTypeSignatures = ReadonlyArray<{
-  readonly mediaType: string;
-  readonly bytesPrefix: ReadonlyArray<number | null>;
-}>;
-
-function detectMediaTypeBySignatures<T extends MediaTypeSignatures>({
->>>>>>> 02ffdcbadf (fix(provider-utils): bound media-type sniffing decode for ID3-prefixed input (#17386)):packages/provider-utils/src/detect-media-type.ts
   data,
   signatures,
 }: {
   data: Uint8Array | string;
-<<<<<<< HEAD:packages/ai/src/util/detect-media-type.ts
   signatures:
     | typeof audioMediaTypeSignatures
     | typeof imageMediaTypeSignatures
     | typeof videoMediaTypeSignatures;
 }): (typeof signatures)[number]['mediaType'] | undefined {
-  const processedData = stripID3TagsIfPresent(data);
-=======
-  signatures: T;
-}): T[number]['mediaType'] | undefined {
   let bytes = decodePrefix(data, DEFAULT_SNIFF_BYTES);
->>>>>>> 02ffdcbadf (fix(provider-utils): bound media-type sniffing decode for ID3-prefixed input (#17386)):packages/provider-utils/src/detect-media-type.ts
 
   // ID3v2-tagged MP3s carry the audio frame after the tag; scan a bounded
   // prefix past it rather than decoding the whole input.

@@ -2,13 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   audioMediaTypeSignatures,
   detectMediaType,
-<<<<<<< HEAD:packages/ai/src/util/detect-media-type.test.ts
   imageMediaTypeSignatures,
-=======
-  getTopLevelMediaType,
-  isFullMediaType,
   MAX_ID3_TAG_BYTES,
->>>>>>> 02ffdcbadf (fix(provider-utils): bound media-type sniffing decode for ID3-prefixed input (#17386)):packages/provider-utils/src/detect-media-type.test.ts
 } from './detect-media-type';
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 
@@ -426,13 +421,16 @@ describe('detectMediaType', () => {
     // the base64 and raw-byte paths must agree.
     it('detects an ID3-tagged MP3 whose tag is at the scan limit', () => {
       const atLimit = buildID3Mp3(MAX_ID3_TAG_BYTES);
-      expect(detectMediaType({ data: atLimit, topLevelType: 'audio' })).toBe(
-        'audio/mpeg',
-      );
+      expect(
+        detectMediaType({
+          data: atLimit,
+          signatures: audioMediaTypeSignatures,
+        }),
+      ).toBe('audio/mpeg');
       expect(
         detectMediaType({
           data: convertUint8ArrayToBase64(atLimit),
-          topLevelType: 'audio',
+          signatures: audioMediaTypeSignatures,
         }),
       ).toBe('audio/mpeg');
     });
@@ -443,12 +441,15 @@ describe('detectMediaType', () => {
     it('does not detect an ID3-tagged MP3 whose tag exceeds the scan limit', () => {
       const overLimit = buildID3Mp3(MAX_ID3_TAG_BYTES + 1);
       expect(
-        detectMediaType({ data: overLimit, topLevelType: 'audio' }),
+        detectMediaType({
+          data: overLimit,
+          signatures: audioMediaTypeSignatures,
+        }),
       ).toBeUndefined();
       expect(
         detectMediaType({
           data: convertUint8ArrayToBase64(overLimit),
-          topLevelType: 'audio',
+          signatures: audioMediaTypeSignatures,
         }),
       ).toBeUndefined();
     });
