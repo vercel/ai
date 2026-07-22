@@ -41,6 +41,10 @@ async function shouldEnableCitations(
   return bedrockOptions?.citations?.enabled ?? false;
 }
 
+function sanitizeToolName(toolName: string): string {
+  return toolName.replace(/[^a-zA-Z0-9_-]/g, '') || '_';
+}
+
 export async function convertToBedrockChatMessages(
   prompt: LanguageModelV2Prompt,
 ): Promise<{
@@ -310,7 +314,7 @@ export async function convertToBedrockChatMessages(
                 bedrockContent.push({
                   toolUse: {
                     toolUseId: part.toolCallId,
-                    name: part.toolName,
+                    name: sanitizeToolName(part.toolName),
                     input: part.input as JSONObject,
                   },
                 });

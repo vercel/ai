@@ -810,6 +810,63 @@ describe('assistant messages', () => {
       system: [],
     });
   });
+
+  it('should strip invalid characters from tool call names', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: '$READFILE',
+            input: {},
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-2',
+            toolName: 'exchange_delivered_order_items<|channel|>',
+            input: {},
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-3',
+            toolName: '$',
+            input: {},
+          },
+        ],
+      },
+    ]);
+
+    expect(result.messages).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            toolUse: {
+              toolUseId: 'call-1',
+              name: 'READFILE',
+              input: {},
+            },
+          },
+          {
+            toolUse: {
+              toolUseId: 'call-2',
+              name: 'exchange_delivered_order_itemschannel',
+              input: {},
+            },
+          },
+          {
+            toolUse: {
+              toolUseId: 'call-3',
+              name: '_',
+              input: {},
+            },
+          },
+        ],
+      },
+    ]);
+  });
 });
 
 describe('tool messages', () => {
