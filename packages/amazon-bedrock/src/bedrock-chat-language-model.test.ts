@@ -116,8 +116,9 @@ const server = createTestServer({
 
 describe('supportedUrls', () => {
   it('should support S3 URLs for image parts', () => {
-    const model = new AmazonBedrockChatLanguageModel(modelId, {
+    const model = new BedrockChatLanguageModel(modelId, {
       baseUrl: () => baseUrl,
+      headers: {},
       generateId: () => 'test-id',
       fetch: fakeFetchWithAuth,
     });

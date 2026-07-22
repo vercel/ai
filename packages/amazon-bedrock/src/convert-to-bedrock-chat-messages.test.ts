@@ -112,17 +112,14 @@ describe('user messages', () => {
   });
 
   it('should convert image parts with S3 URLs', async () => {
-    const { messages } = await convertToAmazonBedrockChatMessages([
+    const { messages } = await convertToBedrockChatMessages([
       {
         role: 'user',
         content: [
           { type: 'text', text: 'Describe the image' },
           {
             type: 'file',
-            data: {
-              type: 'url' as const,
-              url: new URL('s3://my-test-bucket/path/to/image.png'),
-            },
+            data: new URL('s3://my-test-bucket/path/to/image.png'),
             mediaType: 'image/png',
           },
         ],
@@ -1435,7 +1432,7 @@ describe('tool messages', () => {
   });
 
   it('should convert tool result images with S3 URLs', async () => {
-    const result = await convertToAmazonBedrockChatMessages([
+    const result = await convertToBedrockChatMessages([
       {
         role: 'tool',
         content: [
@@ -1447,12 +1444,8 @@ describe('tool messages', () => {
               type: 'content',
               value: [
                 {
-                  type: 'file',
-                  data: {
-                    type: 'url',
-                    url: new URL('s3://my-test-bucket/path/to/image.png'),
-                  },
-                  mediaType: 'image/png',
+                  type: 'image-url',
+                  url: 's3://my-test-bucket/path/to/image.png',
                 },
               ],
             },

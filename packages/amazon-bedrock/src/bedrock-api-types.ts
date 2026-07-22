@@ -164,13 +164,7 @@ export interface BedrockGuardrailConverseContentBlock {
 
 export interface BedrockImageBlock {
   image: {
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-api-types.ts
     format: BedrockImageFormat;
-    source: {
-      bytes: string;
-    };
-=======
-    format: AmazonBedrockImageFormat;
     source:
       | {
           bytes: string;
@@ -180,7 +174,6 @@ export interface BedrockImageBlock {
             uri: string;
           };
         };
->>>>>>> 1f92bdb2c3 (fix: Amazon Bedrock S3 image URLs are rejected instead of passed through to inference (#17681)):packages/amazon-bedrock/src/amazon-bedrock-api-types.ts
   };
 }
 

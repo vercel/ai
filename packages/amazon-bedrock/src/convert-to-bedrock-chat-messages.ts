@@ -1,17 +1,10 @@
 import {
   UnsupportedFunctionalityError,
   type JSONObject,
-<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.ts
+  type LanguageModelV3FilePart,
   type LanguageModelV3Message,
   type LanguageModelV3Prompt,
   type SharedV3ProviderMetadata,
-=======
-  type LanguageModelV4FilePart,
-  type JSONValue,
-  type LanguageModelV4Message,
-  type LanguageModelV4Prompt,
-  type SharedV4ProviderMetadata,
->>>>>>> 1f92bdb2c3 (fix: Amazon Bedrock S3 image URLs are rejected instead of passed through to inference (#17681)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.ts
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
@@ -21,11 +14,11 @@ import {
 import {
   BEDROCK_DOCUMENT_MIME_TYPES,
   BEDROCK_IMAGE_MIME_TYPES,
-<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.ts
   type BedrockAssistantMessage,
   type BedrockCachePoint,
   type BedrockDocumentFormat,
   type BedrockDocumentMimeType,
+  type BedrockImageBlock,
   type BedrockImageFormat,
   type BedrockImageMimeType,
   type BedrockMessages,
@@ -34,21 +27,6 @@ import {
 } from './bedrock-api-types';
 import { bedrockReasoningMetadataSchema } from './bedrock-reasoning-metadata';
 import { bedrockFilePartProviderOptions } from './bedrock-chat-options';
-=======
-  type AmazonBedrockAssistantMessage,
-  type AmazonBedrockCachePoint,
-  type AmazonBedrockDocumentFormat,
-  type AmazonBedrockDocumentMimeType,
-  type AmazonBedrockImageBlock,
-  type AmazonBedrockImageFormat,
-  type AmazonBedrockImageMimeType,
-  type AmazonBedrockMessages,
-  type AmazonBedrockSystemMessages,
-  type AmazonBedrockUserMessage,
-} from './amazon-bedrock-api-types';
-import { amazonBedrockFilePartProviderOptions } from './amazon-bedrock-chat-language-model-options';
-import { amazonBedrockReasoningMetadataSchema } from './amazon-bedrock-reasoning-metadata';
->>>>>>> 1f92bdb2c3 (fix: Amazon Bedrock S3 image URLs are rejected instead of passed through to inference (#17681)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.ts
 import { normalizeToolCallId } from './normalize-tool-call-id';
 
 function getCachePoint(
@@ -75,26 +53,32 @@ function pushCachePoint(
   }
 }
 
-function getAmazonBedrockImageSource({
+function getBedrockImageSource({
   data,
   functionality,
 }: {
-  data: Extract<LanguageModelV4FilePart['data'], { type: 'data' | 'url' }>;
+  data: LanguageModelV3FilePart['data'];
   functionality: string;
-}): AmazonBedrockImageBlock['image']['source'] {
-  switch (data.type) {
-    case 'data':
-      return { bytes: convertToBase64(data.data) };
-    case 'url':
-      if (data.url.protocol !== 's3:') {
-        throw new UnsupportedFunctionalityError({ functionality });
-      }
-      return {
-        s3Location: {
-          uri: data.url.toString(),
-        },
-      };
+}): BedrockImageBlock['image']['source'] {
+  if (data instanceof URL) {
+    if (data.protocol !== 's3:') {
+      throw new UnsupportedFunctionalityError({ functionality });
+    }
+    return {
+      s3Location: {
+        uri: data.toString(),
+      },
+    };
   }
+
+  return { bytes: convertToBase64(data) };
+}
+
+function getBedrockImageFormatFromUrl(url: URL): BedrockImageFormat {
+  const extension = url.pathname.split('.').pop()?.toLowerCase();
+  return getBedrockImageFormat(
+    `image/${extension === 'jpg' ? 'jpeg' : extension}`,
+  );
 }
 
 async function shouldEnableCitations(
@@ -168,21 +152,23 @@ export async function convertToBedrockChatMessages(
                   }
 
                   case 'file': {
-                    if (part.data instanceof URL) {
-                      // The AI SDK automatically downloads files for user file parts with URLs
-                      throw new UnsupportedFunctionalityError({
-                        functionality: 'File URL data',
-                      });
-                    }
-
                     if (part.mediaType.startsWith('image/')) {
                       bedrockContent.push({
                         image: {
                           format: getBedrockImageFormat(part.mediaType),
-                          source: { bytes: convertToBase64(part.data) },
+                          source: getBedrockImageSource({
+                            data: part.data,
+                            functionality: 'File URL data',
+                          }),
                         },
                       });
                     } else {
+                      if (part.data instanceof URL) {
+                        throw new UnsupportedFunctionalityError({
+                          functionality: 'File URL data',
+                        });
+                      }
+
                       if (!part.mediaType) {
                         throw new UnsupportedFunctionalityError({
                           functionality: 'file without mime type',
@@ -190,48 +176,11 @@ export async function convertToBedrockChatMessages(
                             'File mime type is required in user message part content',
                         });
                       }
-<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.ts
-=======
-                      case 'url': {
-                        if (part.data.url.protocol !== 's3:') {
-                          throw new UnsupportedFunctionalityError({
-                            functionality: 'File URL data',
-                          });
-                        }
-
-                        const fullMediaType = resolveFullMediaType({ part });
-
-                        if (getTopLevelMediaType(fullMediaType) !== 'image') {
-                          throw new UnsupportedFunctionalityError({
-                            functionality: 'File URL data',
-                          });
-                        }
-
-                        amazonBedrockContent.push({
-                          image: {
-                            format: getAmazonBedrockImageFormat(fullMediaType),
-                            source: getAmazonBedrockImageSource({
-                              data: part.data,
-                              functionality: 'File URL data',
-                            }),
-                          },
-                        });
-                        break;
-                      }
-                      case 'text': {
-                        const textMediaType = isFullMediaType(part.mediaType)
-                          ? part.mediaType
-                          : 'text/plain';
-                        const enableCitations = await shouldEnableCitations(
-                          part.providerOptions,
-                        );
->>>>>>> 1f92bdb2c3 (fix: Amazon Bedrock S3 image URLs are rejected instead of passed through to inference (#17681)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.ts
 
                       const enableCitations = await shouldEnableCitations(
                         part.providerOptions,
                       );
 
-<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.ts
                       bedrockContent.push({
                         document: {
                           format: getBedrockDocumentFormat(part.mediaType),
@@ -244,42 +193,6 @@ export async function convertToBedrockChatMessages(
                           }),
                         },
                       });
-=======
-                        if (getTopLevelMediaType(fullMediaType) === 'image') {
-                          amazonBedrockContent.push({
-                            image: {
-                              format:
-                                getAmazonBedrockImageFormat(fullMediaType),
-                              source: getAmazonBedrockImageSource({
-                                data: part.data,
-                                functionality: 'File URL data',
-                              }),
-                            },
-                          });
-                        } else {
-                          const enableCitations = await shouldEnableCitations(
-                            part.providerOptions,
-                          );
-
-                          amazonBedrockContent.push({
-                            document: {
-                              format:
-                                getAmazonBedrockDocumentFormat(fullMediaType),
-                              name: part.filename
-                                ? stripFileExtension(part.filename)
-                                : generateDocumentName(),
-                              source: {
-                                bytes: convertToBase64(part.data.data),
-                              },
-                              ...(enableCitations && {
-                                citations: { enabled: true },
-                              }),
-                            },
-                          });
-                        }
-                        break;
-                      }
->>>>>>> 1f92bdb2c3 (fix: Amazon Bedrock S3 image URLs are rejected instead of passed through to inference (#17681)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.ts
                     }
 
                     break;
@@ -306,7 +219,6 @@ export async function convertToBedrockChatMessages(
                         switch (contentPart.type) {
                           case 'text':
                             return { text: contentPart.text };
-<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.ts
                           case 'image-data': {
                             return {
                               image: {
@@ -319,34 +231,20 @@ export async function convertToBedrockChatMessages(
                               },
                             };
                           }
+                          case 'image-url': {
+                            const url = new URL(contentPart.url);
+                            return {
+                              image: {
+                                format: getBedrockImageFormatFromUrl(url),
+                                source: getBedrockImageSource({
+                                  data: url,
+                                  functionality: `tool result image URL "${contentPart.url}"`,
+                                }),
+                              },
+                            };
+                          }
                           case 'file-data': {
                             if (!contentPart.mediaType.startsWith('image/')) {
-=======
-                          case 'file': {
-                            if (
-                              contentPart.data.type !== 'data' &&
-                              (contentPart.data.type !== 'url' ||
-                                contentPart.data.url.protocol !== 's3:')
-                            ) {
-                              throw new UnsupportedFunctionalityError({
-                                functionality: `tool result file data of type "${contentPart.data.type}"`,
-                              });
-                            }
-
-                            const fullMediaType = resolveFullMediaType({
-                              part: contentPart,
-                            });
-
-                            if (
-                              getTopLevelMediaType(fullMediaType) !== 'image'
-                            ) {
-                              if (contentPart.data.type !== 'data') {
-                                throw new UnsupportedFunctionalityError({
-                                  functionality: `tool result file data of type "${contentPart.data.type}"`,
-                                });
-                              }
-
->>>>>>> 1f92bdb2c3 (fix: Amazon Bedrock S3 image URLs are rejected instead of passed through to inference (#17681)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.ts
                               const enableCitations =
                                 await shouldEnableCitations(
                                   contentPart.providerOptions,
@@ -374,21 +272,12 @@ export async function convertToBedrockChatMessages(
 
                             return {
                               image: {
-<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.ts
                                 format: getBedrockImageFormat(
                                   contentPart.mediaType,
                                 ),
                                 source: {
                                   bytes: convertToBase64(contentPart.data),
                                 },
-=======
-                                format:
-                                  getAmazonBedrockImageFormat(fullMediaType),
-                                source: getAmazonBedrockImageSource({
-                                  data: contentPart.data,
-                                  functionality: `tool result file data of type "${contentPart.data.type}"`,
-                                }),
->>>>>>> 1f92bdb2c3 (fix: Amazon Bedrock S3 image URLs are rejected instead of passed through to inference (#17681)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.ts
                               },
                             };
                           }
