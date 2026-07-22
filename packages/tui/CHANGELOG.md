@@ -1,5 +1,55 @@
 # @ai-sdk/tui
 
+## 1.0.35
+
+### Patch Changes
+
+- ai@7.0.34
+
+## 1.0.34
+
+### Patch Changes
+
+- Updated dependencies [76cb673]
+- Updated dependencies [e808fa5]
+- Updated dependencies [33647d7]
+  - ai@7.0.33
+
+## 1.0.33
+
+### Patch Changes
+
+- Updated dependencies [6cd7c74]
+- Updated dependencies [e35bcae]
+- Updated dependencies [a4eb3f3]
+  - ai@7.0.32
+
+## 1.0.32
+
+### Patch Changes
+
+- Updated dependencies [70f18c3]
+- Updated dependencies [cd06458]
+  - ai@7.0.31
+
+## 1.0.31
+
+### Patch Changes
+
+- ai@7.0.30
+
+## 1.0.30
+
+### Patch Changes
+
+- ai@7.0.29
+
+## 1.0.29
+
+### Patch Changes
+
+- 6175a94: Allow `runAgentTUI` to communicate with remote agents through a `ChatTransport`.
+
 ## 1.0.28
 
 ### Patch Changes

@@ -1,5 +1,70 @@
 # @ai-sdk/react
 
+## 4.0.37
+
+### Patch Changes
+
+- ai@7.0.34
+
+## 4.0.36
+
+### Patch Changes
+
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+- Updated dependencies [e808fa5]
+- Updated dependencies [33647d7]
+  - @ai-sdk/provider-utils@5.0.12
+  - ai@7.0.33
+  - @ai-sdk/mcp@2.0.16
+
+## 4.0.35
+
+### Patch Changes
+
+- Updated dependencies [6cd7c74]
+- Updated dependencies [e35bcae]
+- Updated dependencies [a4eb3f3]
+  - ai@7.0.32
+
+## 4.0.34
+
+### Patch Changes
+
+- Updated dependencies [70f18c3]
+- Updated dependencies [cd06458]
+- Updated dependencies [d84ea43]
+  - ai@7.0.31
+  - @ai-sdk/provider-utils@5.0.11
+  - @ai-sdk/mcp@2.0.15
+
+## 4.0.33
+
+### Patch Changes
+
+- ai@7.0.30
+
+## 4.0.32
+
+### Patch Changes
+
+- ai@7.0.29
+
+## 4.0.31
+
+### Patch Changes
+
+- 48e7e78: Harden MCP Apps handling of server-supplied resource metadata and the host/iframe bridge:
+
+  - Runtime-validate `_meta.ui` and drop malformed or non-string fields.
+  - Gate iframe permissions deny-by-default via a new `sandbox.allowedPermissions` allowlist.
+  - Derive a concrete `postMessage` target origin and validate inbound message origins.
+  - Validate inbound bridge params: limit `resources/read` to `ui://` resources and allow only `https`/`http`/`mailto` in `ui/open-link`.
+  - Add `fingerprintMCPAppResource` / `detectMCPAppResourceDrift` for pinning and comparing app resources.
+
+- Updated dependencies [48e7e78]
+  - @ai-sdk/mcp@2.0.14
+
 ## 4.0.30
 
 ### Patch Changes

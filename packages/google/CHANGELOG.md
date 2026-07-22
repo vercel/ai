@@ -1,5 +1,39 @@
 # @ai-sdk/google
 
+## 4.0.21
+
+### Patch Changes
+
+- 7c16f21: feat(google): add `gemini-3.6-flash` and `gemini-3.5-flash-lite` models
+
+## 4.0.20
+
+### Patch Changes
+
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+
+## 4.0.19
+
+### Patch Changes
+
+- a70b027: fix(provider/google): associate multiple code execution results with their tool call
+- a3ce307: fix(provider/google): surface Gemini `responseId` as `response-metadata` (stream) and `response.id` (generate)
+
+## 4.0.18
+
+### Patch Changes
+
+- Updated dependencies [cd06458]
+  - @ai-sdk/provider-utils@5.0.11
+
+## 4.0.17
+
+### Patch Changes
+
+- 5b4a299: fix(provider/google): forward Vertex-only imageConfig options (personGeneration, prominentPeople, imageOutputOptions)
+
 ## 4.0.16
 
 ### Patch Changes
