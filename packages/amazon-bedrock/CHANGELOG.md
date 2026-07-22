@@ -1,5 +1,17 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.109
+
+### Patch Changes
+
+- 1b0e540: Use native structured output on supported Bedrock Anthropic models when thinking is enabled instead of forcing a JSON tool call.
+- a5065c5: Pass through `s3://` image URLs to Amazon Bedrock Converse as S3 image sources instead of downloading them.
+- 503e809: fix(provider/amazon-bedrock): omit unsigned reasoning from conversation history
+- de443c2: Sanitize invalid characters in replayed tool call names before sending conversation history to Amazon Bedrock.
+- Updated dependencies [1b0e540]
+- Updated dependencies [5bb3ae4]
+  - @ai-sdk/anthropic@2.0.89
+
 ## 3.0.108
 
 ### Patch Changes
