@@ -3,7 +3,12 @@ import {
   type Experimental_SandboxSession,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
-import { hasToolCall, isStepCount, type TextStreamPart } from 'ai';
+import {
+  hasToolCall,
+  isStepCount,
+  type Telemetry,
+  type TextStreamPart,
+} from 'ai';
 import { describe, expect, test, vi } from 'vitest';
 import { z } from 'zod/v4';
 import type {
@@ -746,6 +751,21 @@ describe('runPrompt host tool generator results', () => {
   test('executes an approved pending custom tool continuation', async () => {
     const submitted: SubmittedResult[] = [];
     const settled: string[] = [];
+    const telemetryEvents: string[] = [];
+    const integration = {
+      onToolExecutionStart() {
+        telemetryEvents.push('tool-start');
+      },
+      async executeTool({ execute }) {
+        telemetryEvents.push('wrapper-start');
+        const output = await execute();
+        telemetryEvents.push('wrapper-end');
+        return output;
+      },
+      onToolExecutionEnd() {
+        telemetryEvents.push('tool-end');
+      },
+    } satisfies Telemetry;
     const weather = tool({
       description: 'Get weather',
       inputSchema: z.object({ city: z.string() }),
@@ -793,6 +813,7 @@ describe('runPrompt host tool generator results', () => {
         },
       ],
       onToolApprovalSettled: approvalId => settled.push(approvalId),
+      telemetry: { integrations: [integration] },
     });
 
     const parts: TextStreamPart<ToolSet>[] = [];
@@ -802,6 +823,12 @@ describe('runPrompt host tool generator results', () => {
     expect(settled).toEqual(['approval-1']);
     expect(submitted).toEqual([
       { toolCallId: 'c1', output: { city: 'SF', temperature: 72 } },
+    ]);
+    expect(telemetryEvents).toEqual([
+      'tool-start',
+      'wrapper-start',
+      'wrapper-end',
+      'tool-end',
     ]);
     expect(parts).toContainEqual(
       expect.objectContaining({
@@ -1006,6 +1033,123 @@ describe('runPrompt host tool generator results', () => {
 
     expect(toolResultParts(parts)).toHaveLength(0);
     expect(submitted).toEqual([{ toolCallId: 'c1', output: { echoed: 'hi' } }]);
+  });
+
+  test('executes host tools through telemetry context wrappers', async () => {
+    const events: string[] = [];
+    const callIds: string[] = [];
+    const echo = tool({
+      description: 'Echo the input',
+      inputSchema: z.object({ text: z.string() }),
+      execute: async (args: { text: string }) => {
+        events.push('execute');
+        return { echoed: args.text };
+      },
+    });
+    const integration = {
+      async onToolExecutionStart(event) {
+        await Promise.resolve();
+        callIds.push(event.callId);
+        events.push('tool-start');
+      },
+      async executeTool({ callId, toolCallId, execute }) {
+        callIds.push(callId);
+        expect(toolCallId).toBe('c1');
+        events.push('wrapper-start');
+        const output = await execute();
+        events.push('wrapper-end');
+        return output;
+      },
+    } satisfies Telemetry;
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'echo',
+          input: JSON.stringify({ text: 'hi' }),
+        },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { echo } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      telemetry: { integrations: [integration] },
+    });
+
+    for await (const _part of result.fullStream) {
+      // Drain the stream so the turn and host tool execution complete.
+    }
+    await done;
+
+    expect(events).toEqual([
+      'tool-start',
+      'wrapper-start',
+      'execute',
+      'wrapper-end',
+    ]);
+    expect(new Set(callIds).size).toBe(1);
+  });
+
+  test('reports telemetry wrapper failures as tool errors', async () => {
+    const submitted: SubmittedResult[] = [];
+    const execute = vi.fn();
+    const echo = tool({
+      description: 'Echo the input',
+      inputSchema: z.object({ text: z.string() }),
+      execute,
+    });
+    const integration = {
+      async executeTool() {
+        throw new Error('telemetry wrapper failed');
+      },
+    } satisfies Telemetry;
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession(
+        [
+          {
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'echo',
+            input: JSON.stringify({ text: 'hi' }),
+          },
+          ...finishEvents,
+        ],
+        input => submitted.push(input),
+      ),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { echo } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      telemetry: { integrations: [integration] },
+    });
+
+    for await (const _part of result.fullStream) {
+      // Drain the stream so host tool error handling completes.
+    }
+    await done;
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(submitted).toEqual([
+      {
+        toolCallId: 'c1',
+        output: { error: 'Error: telemetry wrapper failed' },
+        isError: true,
+      },
+    ]);
   });
 
   test('strips the workDir from preliminary results before they reach consumers', async () => {

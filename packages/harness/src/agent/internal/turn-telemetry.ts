@@ -58,7 +58,12 @@ export interface TurnTelemetry {
     toolCallId: string;
     toolName: string;
     input: unknown;
-  }): void;
+  }): void | Promise<void>;
+  /** Execute a host tool through each telemetry integration's context wrapper. */
+  executeTool<T>(input: {
+    toolCallId: string;
+    execute: () => PromiseLike<T>;
+  }): Promise<T>;
   /**
    * A tool execution completed (on its `tool-result` or after host execution).
    * Idempotent per `toolCallId` — the first caller wins, so provider-executed
@@ -78,7 +83,10 @@ const NOOP: TurnTelemetry = {
   start() {},
   ensureStepOpen() {},
   stepFinish() {},
-  toolStart() {},
+  async toolStart() {},
+  async executeTool({ execute }) {
+    return await execute();
+  },
   toolEnd() {},
   end() {},
   error() {},
@@ -258,10 +266,11 @@ export function createTurnTelemetry(opts: {
       stepNumber += 1;
     },
 
-    toolStart(call) {
+    async toolStart(call) {
       ensureStepOpen();
+      if (openTools.has(call.toolCallId)) return;
       openTools.set(call.toolCallId, call);
-      dispatcher.onToolExecutionStart?.(
+      await dispatcher.onToolExecutionStart?.(
         cast<'onToolExecutionStart'>({
           callId,
           messages: [],
@@ -275,6 +284,11 @@ export function createTurnTelemetry(opts: {
           toolContext: undefined,
         }),
       );
+    },
+
+    async executeTool({ toolCallId, execute }) {
+      if (dispatcher.executeTool == null) return await execute();
+      return await dispatcher.executeTool({ callId, toolCallId, execute });
     },
 
     toolEnd(toolCallId, output) {
