@@ -45,9 +45,44 @@ describe('mapStreamLine (grok streaming-json)', () => {
       .join('');
     expect(text).toContain('hello.txt');
   });
-  it('emits a finish for the end event', () => {
-    const f = mapAll().find(p => p.type === 'finish');
-    expect(f).toBeDefined();
+  it('finishes the inferred step before finishing the turn', () => {
+    expect(mapAll().slice(-2)).toEqual([
+      {
+        type: 'finish-step',
+        finishReason: { unified: 'stop', raw: 'EndTurn' },
+        usage: {
+          inputTokens: {
+            total: undefined,
+            noCache: undefined,
+            cacheRead: undefined,
+            cacheWrite: undefined,
+          },
+          outputTokens: {
+            total: undefined,
+            text: undefined,
+            reasoning: undefined,
+          },
+        },
+        harnessMetadata: { 'grok-build': { inferredStep: true } },
+      },
+      {
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'EndTurn' },
+        totalUsage: {
+          inputTokens: {
+            total: undefined,
+            noCache: undefined,
+            cacheRead: undefined,
+            cacheWrite: undefined,
+          },
+          outputTokens: {
+            total: undefined,
+            text: undefined,
+            reasoning: undefined,
+          },
+        },
+      },
+    ]);
   });
   it('never throws on malformed input', () => {
     expect(mapStreamLine('not json', createStreamMapState())).toEqual([]);

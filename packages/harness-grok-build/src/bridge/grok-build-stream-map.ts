@@ -144,12 +144,28 @@ export function mapStreamLine(
       closeTextBlock();
 
       const stopReason = anyMsg['stopReason'] as string | undefined;
+      const finishReason = mapStopReason(stopReason);
+      const usage = unknownUsage();
 
-      parts.push({
-        type: 'finish',
-        finishReason: mapStopReason(stopReason),
-        totalUsage: unknownUsage(),
-      });
+      /*
+       * Grok's streaming-json protocol does not expose model-call or tool
+       * boundaries, even when the agent executes tools internally. Its
+       * terminal `end` event is therefore the only observable boundary for
+       * the CLI invocation, which the adapter reports as one inferred step.
+       */
+      parts.push(
+        {
+          type: 'finish-step',
+          finishReason,
+          usage,
+          harnessMetadata: { 'grok-build': { inferredStep: true } },
+        },
+        {
+          type: 'finish',
+          finishReason,
+          totalUsage: usage,
+        },
+      );
       break;
     }
 
