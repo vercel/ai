@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 11409,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/amazon-bedrock-kimi-k2-thinking-tool-call.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/amazon-bedrock-kimi-k2-thinking-tool-call.ts",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "emitted the intended read_file call as text, did not execute read_file, and ended without FOUND ISSUE_11409_CONTENT"
+  }
+}
