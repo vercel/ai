@@ -426,7 +426,7 @@ export function runPrompt<
       const execution = await maybeExecuteHostTool({
         event: rawToolCall,
         tools: activeTools,
-        executeTool: telemetry.executeTool,
+        wrappedExecuteTool: telemetry.executeTool,
         sandboxSession: input.sandboxSession,
         abortSignal: input.abortSignal,
         control,
@@ -814,7 +814,7 @@ export function runPrompt<
           const execution = await maybeExecuteHostTool({
             event: toolCall,
             tools: activeTools,
-            executeTool: telemetry.executeTool,
+            wrappedExecuteTool: telemetry.executeTool,
             sandboxSession: input.sandboxSession,
             abortSignal: input.abortSignal,
             control,
@@ -933,7 +933,7 @@ function hasTool(input: { tools: ToolSet; toolName: string }): boolean {
 async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
   event: { toolCallId: string; toolName: string; input: string };
   tools: TOOLS;
-  executeTool: TurnTelemetry['executeTool'];
+  wrappedExecuteTool: TurnTelemetry['executeTool'];
   sandboxSession: SandboxSession;
   abortSignal: AbortSignal | undefined;
   control: HarnessV1PromptControl;
@@ -962,7 +962,7 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
      * back to the model — preliminary values are surfaced to the consumer
      * stream alone, matching how the AI SDK treats `onPreliminaryToolResult`.
      */
-    const output = await input.executeTool({
+    const output = await input.wrappedExecuteTool({
       toolCallId: input.event.toolCallId,
       execute: async () => {
         let output: unknown;
