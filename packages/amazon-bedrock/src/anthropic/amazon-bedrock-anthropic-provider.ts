@@ -237,12 +237,13 @@ export function createAmazonBedrockAnthropic(
   const getBaseURL = (): string =>
     resolveAmazonBedrockBaseURL({
       baseURL: options.baseURL,
-      region: loadSetting({
-        settingValue: options.region,
-        settingName: 'region',
-        environmentVariableName: 'AWS_REGION',
-        description: 'AWS region',
-      }),
+      getRegion: () =>
+        loadSetting({
+          settingValue: options.region,
+          settingName: 'region',
+          environmentVariableName: 'AWS_REGION',
+          description: 'AWS region',
+        }),
       service: 'bedrock-runtime',
       serviceEndpointUrlEnvironmentVariableName:
         'AWS_ENDPOINT_URL_BEDROCK_RUNTIME',

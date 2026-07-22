@@ -273,12 +273,13 @@ export function createAmazonBedrock(
   const getAmazonBedrockRuntimeBaseUrl = (): string =>
     resolveAmazonBedrockBaseURL({
       baseURL: options.baseURL,
-      region: loadSetting({
-        settingValue: options.region,
-        settingName: 'region',
-        environmentVariableName: 'AWS_REGION',
-        description: 'AWS region',
-      }),
+      getRegion: () =>
+        loadSetting({
+          settingValue: options.region,
+          settingName: 'region',
+          environmentVariableName: 'AWS_REGION',
+          description: 'AWS region',
+        }),
       service: 'bedrock-runtime',
       serviceEndpointUrlEnvironmentVariableName:
         'AWS_ENDPOINT_URL_BEDROCK_RUNTIME',
@@ -287,12 +288,13 @@ export function createAmazonBedrock(
   const getAmazonBedrockAgentRuntimeBaseUrl = (): string =>
     resolveAmazonBedrockBaseURL({
       baseURL: options.baseURL,
-      region: loadSetting({
-        settingValue: options.region,
-        settingName: 'region',
-        environmentVariableName: 'AWS_REGION',
-        description: 'AWS region',
-      }),
+      getRegion: () =>
+        loadSetting({
+          settingValue: options.region,
+          settingName: 'region',
+          environmentVariableName: 'AWS_REGION',
+          description: 'AWS region',
+        }),
       service: 'bedrock-agent-runtime',
       serviceEndpointUrlEnvironmentVariableName:
         'AWS_ENDPOINT_URL_BEDROCK_AGENT_RUNTIME',
