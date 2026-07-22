@@ -169,6 +169,8 @@ export type GatewayModelId =
   | 'perplexity/sonar'
   | 'perplexity/sonar-pro'
   | 'perplexity/sonar-reasoning-pro'
+  | 'poolside/laguna-s-2.1'
+  | 'poolside/laguna-s-2.1-free'
   | 'sakana/fugu-ultra'
   | 'stepfun/step-3.5-flash'
   | 'stepfun/step-3.7-flash'
