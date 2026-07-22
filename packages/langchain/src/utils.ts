@@ -203,44 +203,6 @@ export function convertUserContent(content: UserContent): HumanMessage {
         filename?: string;
       };
 
-<<<<<<< HEAD
-      /**
-       * Check if this is an image file - if so, use OpenAI's image_url format
-       */
-=======
-      // Normalize tagged data shape into the legacy bare value this code expects.
-      const normalizedData: string | Uint8Array | URL | ArrayBuffer = (() => {
-        const data = rawFilePart.data;
-        if (
-          typeof data === 'object' &&
-          data !== null &&
-          !(data instanceof URL) &&
-          !(data instanceof Uint8Array) &&
-          !(data instanceof ArrayBuffer) &&
-          'type' in data
-        ) {
-          switch (data.type) {
-            case 'data':
-              return data.data;
-            case 'url':
-              return data.url;
-            case 'text':
-              return data.text;
-            default:
-              return '';
-          }
-        }
-        return data as string | Uint8Array | URL | ArrayBuffer;
-      })();
-
-      const filePart = {
-        type: 'file' as const,
-        data: normalizedData,
-        mediaType: rawFilePart.mediaType,
-        filename: rawFilePart.filename,
-      };
-
->>>>>>> 48ec036d31 (fix: LangChain user image conversion returning provider-specific image_url blocks (#17629))
       const isImage = filePart.mediaType?.startsWith('image/');
 
       if (isImage) {
