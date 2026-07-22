@@ -1,14 +1,17 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { createStreamMapState, mapStreamLine } from './grok-build-stream-map';
 
-const lines = readFileSync(
-  join(__dirname, '../__fixtures__/streaming-json-basic.jsonl'),
-  'utf8',
-)
-  .split('\n')
-  .filter(Boolean);
+const lines = [
+  JSON.stringify({ type: 'thought', data: 'Thinking' }),
+  JSON.stringify({ type: 'thought', data: ' through the request.' }),
+  JSON.stringify({ type: 'text', data: 'Created and read hello.txt.' }),
+  JSON.stringify({
+    type: 'end',
+    stopReason: 'EndTurn',
+    sessionId: 'session-id',
+    requestId: 'request-id',
+  }),
+];
 
 const mapAll = () => {
   const s = createStreamMapState();
