@@ -1,5 +1,14 @@
 # @ai-sdk/langchain
 
+## 2.0.242
+
+### Patch Changes
+
+- 533f6c4: Emit canonical LangChain image content blocks when converting user messages.
+- Updated dependencies [1efdef8]
+- Updated dependencies [49414cf]
+  - ai@6.0.234
+
 ## 2.0.241
 
 ### Patch Changes
