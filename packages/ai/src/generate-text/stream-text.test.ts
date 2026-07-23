@@ -53,6 +53,7 @@ import {
   asLanguageModelUsage,
   createNullLanguageModelUsage,
 } from '../types/usage';
+import * as createSessionModule from './create-session';
 import type { StepResult } from './step-result';
 import { isLoopFinished, isStepCount } from './stop-condition';
 import { streamText } from './stream-text';
@@ -3141,6 +3142,37 @@ describe('streamText', () => {
       await vi.waitFor(() => expect(destroyed).toBe(true));
     });
 
+    it('does not call doStream with a destroyed session when already aborted', async () => {
+      const abortController = new AbortController();
+      abortController.abort();
+
+      const session = createSessionModule.createSession();
+      const destroySpy = vi.spyOn(session, 'destroy');
+      const createSessionSpy = vi
+        .spyOn(createSessionModule, 'createSession')
+        .mockReturnValue(session);
+      const doStream = vi.fn(async () => ({
+        stream: createSuccessfulStream(),
+      }));
+
+      try {
+        const result = streamText({
+          model: new MockLanguageModelV4({ doStream }),
+          abortSignal: abortController.signal,
+          prompt: 'test-input',
+          onError: () => {},
+        });
+
+        await result.consumeStream();
+
+        expect(doStream).not.toHaveBeenCalled();
+        expect(destroySpy).toHaveBeenCalled();
+      } finally {
+        createSessionSpy.mockRestore();
+        destroySpy.mockRestore();
+      }
+    });
+
     it('does not destroy when only one public tee branch is canceled', async () => {
       const abortController = new AbortController();
       const providerCalled = new DelayedPromise<void>();
@@ -3206,6 +3238,77 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(destroyed).toBe(true);
+    });
+
+    it('does not call doStream after stopStream destroys the session', async () => {
+      let doStreamCalls = 0;
+      let destroyedSessionSeen = false;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async options => {
+            doStreamCalls++;
+            try {
+              options.experimental_session!.set(
+                `resource-${doStreamCalls}`,
+                'value',
+                {
+                  onDestroy: () => {},
+                },
+              );
+            } catch (error) {
+              destroyedSessionSeen =
+                error instanceof Error &&
+                error.message === 'Session has been destroyed.';
+              throw error;
+            }
+
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'tool-call' as const,
+                  id: 'call-1',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: '{ "value": "test" }',
+                },
+                {
+                  type: 'finish' as const,
+                  finishReason: {
+                    unified: 'tool-calls' as const,
+                    raw: undefined,
+                  },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        experimental_transform: ({ stopStream }) =>
+          new TransformStream({
+            transform(chunk, controller) {
+              controller.enqueue(chunk);
+
+              if (chunk.type === 'tool-call') {
+                stopStream();
+              }
+            },
+          }),
+        prompt: 'test-input',
+        stopWhen: isStepCount(2),
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(destroyedSessionSeen).toBe(false);
+      expect(doStreamCalls).toBe(1);
     });
   });
 
