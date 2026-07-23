@@ -1,12 +1,12 @@
 import type { Experimental_Session as Session } from '@ai-sdk/provider';
 
-type SessionEntry = {
+type SessionItem = {
   value: unknown;
   onDestroy?: () => void | PromiseLike<void>;
 };
 
 class DefaultSession implements Session {
-  private readonly items = new Map<string | symbol, SessionEntry>();
+  private readonly items = new Map<string | symbol, SessionItem>();
   private destroyed = false;
   private destroyPromise: Promise<void> | undefined;
 
