@@ -48,10 +48,6 @@ export function convertJSONSchemaToOpenAPISchema(
   if (required) result.required = required;
   if (format) result.format = format;
 
-  if (constValue !== undefined) {
-    result.enum = [constValue];
-  }
-
   // Handle type
   if (type) {
     if (Array.isArray(type)) {
@@ -73,9 +69,53 @@ export function convertJSONSchemaToOpenAPISchema(
     }
   }
 
-  // Handle enum
-  if (enumValues !== undefined) {
-    result.enum = enumValues;
+  // Handle enum and const (a const is a single-value enum). The Gemini API
+  // only allows enum on string types with string values, so:
+  // - a null value is expressed via `nullable` instead
+  // - string values are sent as enum (inferring `type: 'string'` when the
+  //   type is missing, since Gemini rejects enum without a type)
+  // - non-string values cannot be sent as enum without changing the type
+  //   (which would break validation of the generated output against the
+  //   original schema), so they are moved into the description instead
+  const allEnumValues =
+    enumValues !== undefined
+      ? enumValues
+      : constValue !== undefined
+        ? [constValue]
+        : undefined;
+
+  if (allEnumValues !== undefined) {
+    const nonNullEnumValues = allEnumValues.filter(value => value !== null);
+
+    if (nonNullEnumValues.length < allEnumValues.length) {
+      result.nullable = true;
+    }
+
+    if (nonNullEnumValues.length > 0) {
+      if (nonNullEnumValues.every(value => typeof value === 'string')) {
+        result.enum = nonNullEnumValues;
+        if (result.type == null && result.anyOf == null) {
+          result.type = 'string';
+        }
+      } else {
+        const valuesText = nonNullEnumValues
+          .map(value => JSON.stringify(value))
+          .join(', ');
+        result.description = result.description
+          ? `${result.description} (Possible values: ${valuesText})`
+          : `Possible values: ${valuesText}`;
+
+        if (result.type == null && result.anyOf == null) {
+          if (nonNullEnumValues.every(value => typeof value === 'number')) {
+            result.type = 'number';
+          } else if (
+            nonNullEnumValues.every(value => typeof value === 'boolean')
+          ) {
+            result.type = 'boolean';
+          }
+        }
+      }
+    }
   }
 
   if (properties != null) {
