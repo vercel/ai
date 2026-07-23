@@ -2488,10 +2488,8 @@ class DefaultStreamTextResult<
         error: finalError,
       });
 
-      if (self._initialResponseMessages.isPending()) {
-        self._initialResponseMessages.reject(finalError);
-        markPromiseAsHandled(self._initialResponseMessages.promise);
-      }
+      self._initialResponseMessages.reject(finalError);
+      markPromiseAsHandled(self._initialResponseMessages.promise);
 
       // add an error stream part and close the streams:
       self.addStream(
