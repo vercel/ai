@@ -1,0 +1,90 @@
+---
+title: LocalMode
+description: Learn how to use the LocalMode provider for on-device, in-browser inference.
+---
+
+# LocalMode Provider
+
+[LocalMode](https://localmode.dev) is a community provider that runs models entirely in the browser. Inference happens on-device, so there are no servers, no API keys, and data never leaves the user's machine. The `@localmode/ai-sdk` package lets you use LocalMode models with `generateText`, `streamText`, and `embed`.
+
+LocalMode wraps several browser runtimes (Transformers.js, WebLLM, wllama, LiteRT, MediaPipe, and Chrome Built-in AI) behind one interface, so you can swap between local and cloud models by changing a single line.
+
+## Features
+
+- **On-Device Inference**: Models run in the browser via WebGPU and WebAssembly, with nothing sent to a server
+- **Language Models**: Support for `generateText` and `streamText`
+- **Embeddings**: Generate embeddings with `embed`
+- **Multiple Runtimes**: One interface over Transformers.js, WebLLM, wllama (GGUF), LiteRT, MediaPipe, and Chrome Built-in AI
+
+<Note>
+  LocalMode runs in the browser. LLM inference uses WebLLM, which requires
+  WebGPU; the provider falls back gracefully when WebGPU is unavailable.
+</Note>
+
+## Setup
+
+The LocalMode provider is available in the `@localmode/ai-sdk` module. Install it with `@localmode/core`, the `ai` package, and at least one model backend (for example `@localmode/webllm` for LLMs and `@localmode/transformers` for embeddings):
+
+<InstallPackages packages="@localmode/ai-sdk @localmode/core ai @localmode/webllm @localmode/transformers" />
+
+## Provider Instance
+
+Create a provider instance with `createLocalMode`, registering the models you want to use:
+
+```ts
+import { createLocalMode } from '@localmode/ai-sdk';
+import { webllm } from '@localmode/webllm';
+import { transformers } from '@localmode/transformers';
+
+const localmode = createLocalMode({
+  models: {
+    llama: webllm.languageModel('Llama-3.2-1B-Instruct-q4f16_1-MLC'),
+    embedder: transformers.embedding('Xenova/bge-small-en-v1.5'),
+  },
+});
+```
+
+## Language Models
+
+Use a registered language model with `generateText`:
+
+```ts
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: localmode.languageModel('llama'),
+  prompt: 'Explain quantum computing in simple terms',
+});
+```
+
+Streaming is supported through `streamText`:
+
+```ts
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: localmode.languageModel('llama'),
+  prompt: 'Write a short story about a robot',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+## Embedding Models
+
+Use a registered embedding model with `embed`:
+
+```ts
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: localmode.embeddingModel('embedder'),
+  value: 'Hello world',
+});
+```
+
+## Documentation
+
+Please check out the [LocalMode documentation](https://localmode.dev/docs/ai-sdk) for more information.
