@@ -302,7 +302,26 @@ A classifier block looks like this:
 
 Branch on the finish reason rather than on the presence of `stop_details` — the API may return a refusal with no details at all.
 
-To avoid receiving a classifier block, pass the `fallbacks` option. When the primary model's classifiers block a turn, the API automatically retries it server-side on the next model in the chain and returns that model's answer. The required beta header is added for you.
+To avoid receiving a classifier block, pass the `fallbacks` option. When the primary model's classifiers block a turn, the API automatically retries it server-side on a fallback model and returns that model's answer. The required beta header is added for you.
+
+The recommended configuration is `fallbacks: 'default'`, which lets the API route the retry to Anthropic's recommended fallback model based on the refusal category and removes the need to migrate when a fallback model is deprecated:
+
+```ts highlight="8-10"
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: anthropic('claude-fable-5'),
+  prompt: 'Explain the history of cryptography.',
+  providerOptions: {
+    anthropic: {
+      fallbacks: 'default',
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+```
+
+You can also pin an explicit fallback chain:
 
 ```ts highlight="8-10"
 import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';

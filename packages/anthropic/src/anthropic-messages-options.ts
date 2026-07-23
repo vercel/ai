@@ -195,31 +195,36 @@ export const anthropicProviderOptions = z.object({
   inferenceGeo: z.enum(['us', 'global']).optional(),
 
   /**
-   * Server-side fallback chain.
+   * Server-side fallback configuration.
    *
    * When the primary model's safety classifiers block a turn, the API
-   * automatically retries it on the next model in the chain, server-side. A
-   * `content-filter` finish reason means the entire chain refused.
+   * automatically retries it server-side on a fallback model. A
+   * `content-filter` finish reason means the fallback(s) refused as well.
    *
-   * Each entry is merged into the request as a direct request to that entry's
-   * model, so it must be formatted accordingly: `model` is required, and an
-   * entry may additionally override `max_tokens`, `thinking`, `output_config`,
-   * and `speed` for that attempt only (`speed` additionally requires the speed
-   * beta). The value is passed through to the API as-is.
-   *
-   * The required `server-side-fallback-2026-06-01` beta is added automatically
-   * when this option is set.
+   * - `'default'` (recommended): the API routes the retry to Anthropic's
+   *   recommended fallback model based on the refusal category. Requires the
+   *   `server-side-fallback-2026-07-01` beta, which is added automatically.
+   * - Array form: an explicit fallback chain. Each entry is merged into the
+   *   request as a direct request to that entry's model, so it must be
+   *   formatted accordingly: `model` is required, and an entry may
+   *   additionally override `max_tokens`, `thinking`, `output_config`, and
+   *   `speed` for that attempt only (`speed` additionally requires the speed
+   *   beta). The value is passed through to the API as-is, and the
+   *   `server-side-fallback-2026-06-01` beta is added automatically.
    */
   fallbacks: z
-    .array(
-      z.object({
-        model: z.string(),
-        max_tokens: z.number().int().optional(),
-        thinking: z.record(z.string(), z.unknown()).optional(),
-        output_config: z.record(z.string(), z.unknown()).optional(),
-        speed: z.enum(['fast', 'standard']).optional(),
-      }),
-    )
+    .union([
+      z.literal('default'),
+      z.array(
+        z.object({
+          model: z.string(),
+          max_tokens: z.number().int().optional(),
+          thinking: z.record(z.string(), z.unknown()).optional(),
+          output_config: z.record(z.string(), z.unknown()).optional(),
+          speed: z.enum(['fast', 'standard']).optional(),
+        }),
+      ),
+    ])
     .optional(),
 
   /**

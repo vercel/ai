@@ -389,8 +389,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       ...(anthropicOptions?.inferenceGeo && {
         inference_geo: anthropicOptions.inferenceGeo,
       }),
-      ...(anthropicOptions?.fallbacks &&
-        anthropicOptions.fallbacks.length > 0 && {
+      ...(anthropicOptions?.fallbacks != null &&
+        (anthropicOptions.fallbacks === 'default' ||
+          anthropicOptions.fallbacks.length > 0) && {
           fallbacks: anthropicOptions.fallbacks,
         }),
       ...(anthropicOptions?.cacheControl && {
@@ -572,7 +573,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       betas.add('fast-mode-2026-02-01');
     }
 
-    if (anthropicOptions?.fallbacks && anthropicOptions.fallbacks.length > 0) {
+    if (anthropicOptions?.fallbacks === 'default') {
+      betas.add('server-side-fallback-2026-07-01');
+    } else if (
+      anthropicOptions?.fallbacks &&
+      anthropicOptions.fallbacks.length > 0
+    ) {
       betas.add('server-side-fallback-2026-06-01');
     }
 
