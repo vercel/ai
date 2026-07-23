@@ -84,6 +84,30 @@ const openaiResponsesComputerCallSchema = z.object({
     .nullish(),
 });
 
+const openaiResponsesToolCallerSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('direct') }),
+  z.object({
+    type: z.literal('program'),
+    caller_id: z.string(),
+  }),
+]);
+
+const openaiResponsesProgramSchema = z.object({
+  type: z.literal('program'),
+  id: z.string(),
+  call_id: z.string(),
+  code: z.string(),
+  fingerprint: z.string(),
+});
+
+const openaiResponsesProgramOutputSchema = z.object({
+  type: z.literal('program_output'),
+  id: z.string(),
+  call_id: z.string(),
+  result: z.string(),
+  status: z.enum(['completed', 'incomplete']),
+});
+
 export type OpenAIResponsesInput = Array<OpenAIResponsesInputItem>;
 
 export type OpenAIResponsesInputItem =
@@ -92,6 +116,8 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesAssistantMessage
   | OpenAIResponsesFunctionCall
   | OpenAIResponsesFunctionCallOutput
+  | OpenAIResponsesProgram
+  | OpenAIResponsesProgramOutput
   | OpenAIResponsesCustomToolCall
   | OpenAIResponsesCustomToolCallOutput
   | OpenAIResponsesMcpApprovalResponse
@@ -201,6 +227,7 @@ export type OpenAIResponsesFunctionCall = {
   arguments: string;
   id?: string;
   namespace?: string;
+  caller?: OpenAIResponsesToolCaller;
 };
 
 export type OpenAIResponsesFunctionCallOutput = {
@@ -231,6 +258,27 @@ export type OpenAIResponsesFunctionCallOutput = {
             prompt_cache_breakpoint?: { mode: 'explicit' };
           }
       >;
+  caller?: OpenAIResponsesToolCaller;
+};
+
+export type OpenAIResponsesToolCaller =
+  | { type: 'direct' }
+  | { type: 'program'; caller_id: string };
+
+export type OpenAIResponsesProgram = {
+  type: 'program';
+  id: string;
+  call_id: string;
+  code: string;
+  fingerprint: string;
+};
+
+export type OpenAIResponsesProgramOutput = {
+  type: 'program_output';
+  id: string;
+  call_id: string;
+  result: string;
+  status: 'completed' | 'incomplete';
 };
 
 export type OpenAIResponsesCustomToolCall = {
@@ -428,6 +476,8 @@ export type OpenAIResponsesFunctionTool = {
   parameters: JSONSchema7;
   strict?: boolean;
   defer_loading?: boolean;
+  allowed_callers?: Array<'direct' | 'programmatic'>;
+  output_schema?: JSONSchema7;
 };
 
 export type OpenAIResponsesTool =
@@ -604,6 +654,9 @@ export type OpenAIResponsesTool =
       execution?: 'server' | 'client';
       description?: string;
       parameters?: Record<string, unknown>;
+    }
+  | {
+      type: 'programmatic_tool_calling';
     };
 
 export type OpenAIResponsesReasoning = {
@@ -761,7 +814,10 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             name: z.string(),
             arguments: z.string(),
             namespace: z.string().nullish(),
+            caller: openaiResponsesToolCallerSchema.nullish(),
           }),
+          openaiResponsesProgramSchema,
+          openaiResponsesProgramOutputSchema,
           z.object({
             type: z.literal('web_search_call'),
             id: z.string(),
@@ -905,9 +961,12 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             call_id: z.string(),
             name: z.string(),
             arguments: z.string(),
-            status: z.literal('completed'),
+            status: z.enum(['in_progress', 'completed', 'incomplete']),
             namespace: z.string().nullish(),
+            caller: openaiResponsesToolCallerSchema.nullish(),
           }),
+          openaiResponsesProgramSchema,
+          openaiResponsesProgramOutputSchema,
           z.object({
             type: z.literal('custom_tool_call'),
             id: z.string(),
@@ -1413,7 +1472,10 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               arguments: z.string(),
               id: z.string(),
               namespace: z.string().nullish(),
+              caller: openaiResponsesToolCallerSchema.nullish(),
             }),
+            openaiResponsesProgramSchema,
+            openaiResponsesProgramOutputSchema,
             z.object({
               type: z.literal('custom_tool_call'),
               call_id: z.string(),

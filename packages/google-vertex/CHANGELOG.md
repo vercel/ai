@@ -1,5 +1,21 @@
 # @ai-sdk/google-vertex
 
+## 5.0.27
+
+### Patch Changes
+
+- f126649: feat(provider/google): default unknown Gemini model IDs to the newest supported capabilities
+- Updated dependencies [f126649]
+  - @ai-sdk/google@4.0.23
+
+## 5.0.26
+
+### Patch Changes
+
+- Updated dependencies [66b7151]
+- Updated dependencies [5e5453c]
+  - @ai-sdk/google@4.0.22
+
 ## 5.0.25
 
 ### Patch Changes

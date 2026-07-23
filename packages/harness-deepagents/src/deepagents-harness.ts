@@ -91,7 +91,10 @@ export type DeepAgentsHarnessSettings = {
   readonly port?: number;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
-  /** Max LangGraph super-steps per turn before it errors. Defaults to 100; raise for long multi-step tasks. */
+  /**
+   * Maximum LangGraph super-steps per turn before it errors.
+   * When omitted, the Deep Agents default applies.
+   */
   readonly recursionLimit?: number;
 };
 

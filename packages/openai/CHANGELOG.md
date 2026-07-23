@@ -1,5 +1,17 @@
 # @ai-sdk/openai
 
+## 4.0.19
+
+### Patch Changes
+
+- 34c53c0: Apply reasoning, service tier, and image defaults to recognizable future OpenAI model family versions.
+
+## 4.0.18
+
+### Patch Changes
+
+- bc43dc2: Preserve stored tool search output item IDs from provider metadata.
+
 ## 4.0.17
 
 ### Patch Changes

@@ -1,5 +1,24 @@
 # @ai-sdk/harness
 
+## 1.0.41
+
+### Patch Changes
+
+- a94425b: fix(harness): ensure harness telemetry hooks are awaited before stream processing continues
+- 2de0611: fix(harness): avoid incorrectly marked invalid tool calls due to `dynamic` flag being dropped
+- Updated dependencies [7fa85b2]
+  - ai@7.0.36
+
+## 1.0.40
+
+### Patch Changes
+
+- 59a2306: fix(harness): execute host tools through telemetry context wrappers
+- 5f65e61: feat(harness): add support for `stopWhen` control to `HarnessAgent` (e.g. `isStepCount(1)`)
+- Updated dependencies [7f6650b]
+- Updated dependencies [106ea59]
+  - ai@7.0.35
+
 ## 1.0.39
 
 ### Patch Changes

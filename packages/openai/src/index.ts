@@ -7,6 +7,7 @@ export type {
   /** @deprecated Use `OpenAILanguageModelResponsesOptions` instead. */
   OpenAILanguageModelResponsesOptions as OpenAIResponsesProviderOptions,
 } from './responses/openai-responses-language-model-options';
+export type { OpenAIToolOptions } from './responses/openai-responses-prepare-tools';
 export type {
   OpenAILanguageModelChatOptions,
   /** @deprecated Use `OpenAILanguageModelChatOptions` instead. */

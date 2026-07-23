@@ -566,6 +566,135 @@ describe('AnthropicLanguageModel', () => {
       });
     });
 
+    describe('forward-compatible defaults for unknown Claude models', () => {
+      it('should map xhigh reasoning to adaptive thinking with xhigh effort', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-future-9').doGenerate({
+          prompt: TEST_PROMPT,
+          maxOutputTokens: 100,
+          reasoning: 'xhigh',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.thinking).toEqual({ type: 'adaptive' });
+        expect(requestBody.thinking.budget_tokens).toBeUndefined();
+        expect(requestBody.output_config).toEqual({ effort: 'xhigh' });
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('should strip unsupported sampling parameters with warnings', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-future-9').doGenerate({
+          prompt: TEST_PROMPT,
+          maxOutputTokens: 100,
+          temperature: 0.5,
+          topP: 0.7,
+          topK: 10,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.temperature).toBeUndefined();
+        expect(requestBody.top_p).toBeUndefined();
+        expect(requestBody.top_k).toBeUndefined();
+        expect(result.warnings).toEqual([
+          {
+            type: 'unsupported',
+            feature: 'temperature',
+            details:
+              'temperature is not supported by claude-future-9 and will be ignored',
+          },
+          {
+            type: 'unsupported',
+            feature: 'topK',
+            details:
+              'topK is not supported by claude-future-9 and will be ignored',
+          },
+          {
+            type: 'unsupported',
+            feature: 'topP',
+            details:
+              'topP is not supported by claude-future-9 and will be ignored',
+          },
+        ]);
+      });
+
+      it('should use native structured output without a JSON tool fallback', async () => {
+        prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+        await provider('claude-future-9').doGenerate({
+          prompt: TEST_PROMPT,
+          maxOutputTokens: 100,
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+              required: ['name'],
+              additionalProperties: false,
+            },
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.output_config).toMatchInlineSnapshot(`
+          {
+            "format": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "name",
+                ],
+                "type": "object",
+              },
+              "type": "json_schema",
+            },
+          }
+        `);
+        expect(requestBody.tools).toBeUndefined();
+        expect(requestBody.tool_choice).toBeUndefined();
+      });
+    });
+
+    describe('legacy Claude model defaults', () => {
+      it('should retain sampling parameters and the JSON tool fallback', async () => {
+        prepareJsonFixtureResponse('anthropic-json-tool.1');
+
+        await provider('claude-3-5-sonnet-20241022').doGenerate({
+          prompt: TEST_PROMPT,
+          maxOutputTokens: 100,
+          temperature: 0.5,
+          topK: 10,
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+              required: ['name'],
+              additionalProperties: false,
+            },
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.temperature).toBe(0.5);
+        expect(requestBody.top_k).toBe(10);
+        expect(requestBody.output_config).toBeUndefined();
+        expect(requestBody.tools).toHaveLength(1);
+        expect(requestBody.tools[0].name).toBe('json');
+      });
+    });
+
     describe('top-level reasoning (providerOptions precedence)', () => {
       it('should let anthropic.thinking take precedence over top-level reasoning', async () => {
         prepareJsonFixtureResponse('anthropic-text');
@@ -1200,7 +1329,7 @@ describe('AnthropicLanguageModel', () => {
       it('should pass json schema response format as output_config.format', async () => {
         expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
           {
-            "max_tokens": 4096,
+            "max_tokens": 128000,
             "messages": [
               {
                 "content": [
@@ -10766,6 +10895,81 @@ describe('getModelCapabilities', () => {
     expect(caps.rejectsSamplingParameters).toBe(false);
     expect(caps.supportsXhighEffort).toBe(false);
     expect(caps.supportsAdaptiveThinking).toBe(true);
+  });
+
+  it('should return current-generation capabilities for an unknown Claude model', () => {
+    expect(getModelCapabilities('claude-future-9')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": false,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "supportsAdaptiveThinking": true,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": true,
+      }
+    `);
+  });
+
+  it('should recognize an unknown platform-prefixed Claude model', () => {
+    expect(getModelCapabilities('us.anthropic.claude-future-9-20990101-v1:0'))
+      .toMatchInlineSnapshot(`
+      {
+        "isKnownModel": false,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "supportsAdaptiveThinking": true,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": true,
+      }
+    `);
+  });
+
+  it.each([
+    'anthropic.claude-3-5-sonnet-20241022-v2:0',
+    'us.anthropic.claude-3-7-sonnet-20250219-v1:0',
+    'anthropic.claude-v2:1',
+    'anthropic.claude-instant-v1',
+  ])(
+    'should retain conservative capabilities for legacy Claude model %s',
+    modelId => {
+      expect(getModelCapabilities(modelId)).toMatchInlineSnapshot(`
+        {
+          "isKnownModel": false,
+          "maxOutputTokens": 4096,
+          "rejectsSamplingParameters": false,
+          "supportsAdaptiveThinking": false,
+          "supportsStructuredOutput": false,
+          "supportsXhighEffort": false,
+        }
+      `);
+    },
+  );
+
+  it('should match a known model before the forward-compatible fallback', () => {
+    expect(getModelCapabilities('claude-opus-4-5')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 64000,
+        "rejectsSamplingParameters": false,
+        "supportsAdaptiveThinking": false,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": false,
+      }
+    `);
+  });
+
+  it('should return conservative capabilities for an unknown non-Claude model', () => {
+    expect(getModelCapabilities('third-party-future-model'))
+      .toMatchInlineSnapshot(`
+      {
+        "isKnownModel": false,
+        "maxOutputTokens": 4096,
+        "rejectsSamplingParameters": false,
+        "supportsAdaptiveThinking": false,
+        "supportsStructuredOutput": false,
+        "supportsXhighEffort": false,
+      }
+    `);
   });
 });
 

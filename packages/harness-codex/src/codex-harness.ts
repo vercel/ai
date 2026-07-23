@@ -60,12 +60,12 @@ type WriteSkillsResult = {
  * The model the adapter pins when the consumer configures none. The Codex SDK
  * does not report the model it resolves to at runtime (no model field on any
  * event), and exposes no default-model constant, so we pin the latest
- * codex-specialized model available for the bundled `@openai/codex@0.130.0`
- * (published 2026-05-08): `gpt-5.3-codex` (released 2026-02). Keep this in sync
- * when bumping the codex SDK/binary. Passing it explicitly makes the resolved
- * model deterministic and the telemetry (`gen_ai.request.model`) accurate.
+ * default model resolved by the bundled `@openai/codex@0.144.5`:
+ * `gpt-5.6-sol`. Keep this in sync when bumping the codex SDK/binary. Passing
+ * it explicitly makes the resolved model deterministic and the telemetry
+ * (`gen_ai.request.model`) accurate.
  */
-const DEFAULT_CODEX_MODEL = 'gpt-5.3-codex';
+const DEFAULT_CODEX_MODEL = 'gpt-5.6-sol';
 
 /**
  * Value to use in User-Agent and `x-client-app` headers.
