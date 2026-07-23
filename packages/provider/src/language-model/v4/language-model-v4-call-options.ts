@@ -3,6 +3,7 @@ import type { SharedV4ProviderOptions } from '../../shared/v4/shared-v4-provider
 import type { LanguageModelV4FunctionTool } from './language-model-v4-function-tool';
 import type { LanguageModelV4Prompt } from './language-model-v4-prompt';
 import type { LanguageModelV4ProviderTool } from './language-model-v4-provider-tool';
+import type { Session } from './language-model-v4-session';
 import type { LanguageModelV4ToolChoice } from './language-model-v4-tool-choice';
 
 export type LanguageModelV4CallOptions = {
@@ -109,6 +110,12 @@ export type LanguageModelV4CallOptions = {
    * Abort signal for cancelling the operation.
    */
   abortSignal?: AbortSignal;
+
+  /**
+   * Session state that is shared across language model calls in the same
+   * lifecycle.
+   */
+  experimental_session?: Session;
 
   /**
    * Additional HTTP headers to be sent with the request.
