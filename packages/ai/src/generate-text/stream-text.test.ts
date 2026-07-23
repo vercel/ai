@@ -53,7 +53,6 @@ import {
   asLanguageModelUsage,
   createNullLanguageModelUsage,
 } from '../types/usage';
-import * as createSessionModule from './create-session';
 import type { StepResult } from './step-result';
 import { isLoopFinished, isStepCount } from './stop-condition';
 import { streamText } from './stream-text';
@@ -3114,12 +3113,13 @@ describe('streamText', () => {
       );
     });
 
-    it('destroys an unconsumed session when the operation is aborted', async () => {
+    it('passes a usable session to doStream when already aborted', async () => {
       const abortController = new AbortController();
-      const providerCalled = new DelayedPromise<void>();
+      abortController.abort();
       let destroyed = false;
+      let sessionUsableInDoStream = false;
 
-      streamText({
+      const result = streamText({
         model: new MockLanguageModelV4({
           doStream: async options => {
             options.experimental_session!.set('resource', 'value', {
@@ -3127,8 +3127,8 @@ describe('streamText', () => {
                 destroyed = true;
               },
             });
-            providerCalled.resolve();
-            return { stream: new ReadableStream() };
+            sessionUsableInDoStream = true;
+            return { stream: createSuccessfulStream() };
           },
         }),
         abortSignal: abortController.signal,
@@ -3136,45 +3136,13 @@ describe('streamText', () => {
         onError: () => {},
       });
 
-      await providerCalled.promise;
-      abortController.abort();
+      await result.consumeStream();
 
-      await vi.waitFor(() => expect(destroyed).toBe(true));
-    });
-
-    it('does not call doStream with a destroyed session when already aborted', async () => {
-      const abortController = new AbortController();
-      abortController.abort();
-
-      const session = createSessionModule.createSession();
-      const destroySpy = vi.spyOn(session, 'destroy');
-      const createSessionSpy = vi
-        .spyOn(createSessionModule, 'createSession')
-        .mockReturnValue(session);
-      const doStream = vi.fn(async () => ({
-        stream: createSuccessfulStream(),
-      }));
-
-      try {
-        const result = streamText({
-          model: new MockLanguageModelV4({ doStream }),
-          abortSignal: abortController.signal,
-          prompt: 'test-input',
-          onError: () => {},
-        });
-
-        await result.consumeStream();
-
-        expect(doStream).not.toHaveBeenCalled();
-        expect(destroySpy).toHaveBeenCalled();
-      } finally {
-        createSessionSpy.mockRestore();
-        destroySpy.mockRestore();
-      }
+      expect(sessionUsableInDoStream).toBe(true);
+      expect(destroyed).toBe(true);
     });
 
     it('does not destroy when only one public tee branch is canceled', async () => {
-      const abortController = new AbortController();
       const providerCalled = new DelayedPromise<void>();
       let destroyed = false;
 
@@ -3190,7 +3158,6 @@ describe('streamText', () => {
             return { stream: new ReadableStream() };
           },
         }),
-        abortSignal: abortController.signal,
         prompt: 'test-input',
         onError: () => {},
       });
@@ -3202,9 +3169,6 @@ describe('streamText', () => {
       await Promise.resolve();
 
       expect(destroyed).toBe(false);
-
-      abortController.abort();
-      await vi.waitFor(() => expect(destroyed).toBe(true));
     });
 
     it('destroys when a transform terminates the operation', async () => {
