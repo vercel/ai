@@ -46,6 +46,7 @@ import {
   type GoogleLanguageModelOptions,
   type GoogleModelId,
 } from './google-language-model-options';
+import { getGoogleModelCapabilities } from './google-model-capabilities';
 import type { GoogleProviderMetadata } from './google-prompt';
 import { prepareTools } from './google-prepare-tools';
 import {
@@ -257,15 +258,14 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     }
 
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
-    const isGemini3Model = /^gemini-3[.-]/.test(this.modelId);
-    const supportsFunctionResponseParts = isGemini3Model;
+    const { usesGemini3Features } = getGoogleModelCapabilities(this.modelId);
 
     const { contents, systemInstruction } = convertToGoogleMessages(prompt, {
       isGemmaModel,
-      isGemini3Model,
+      isGemini3Model: usesGemini3Features,
       onWarning: warning => warnings.push(warning),
       providerOptionsNames,
-      supportsFunctionResponseParts,
+      supportsFunctionResponseParts: usesGemini3Features,
     });
 
     const {
@@ -1136,10 +1136,6 @@ export class GoogleLanguageModel implements LanguageModelV4 {
   }
 }
 
-function isGemini3Model(modelId: string): boolean {
-  return /gemini-3[\.\-]/i.test(modelId) || /gemini-3$/i.test(modelId);
-}
-
 function getMaxOutputTokensForGemini25Model(): number {
   return 65536;
 }
@@ -1169,7 +1165,10 @@ function resolveThinkingConfig({
     return undefined;
   }
 
-  if (isGemini3Model(modelId) && !modelId.includes('gemini-3-pro-image')) {
+  if (
+    getGoogleModelCapabilities(modelId).usesGemini3Features &&
+    !modelId.includes('gemini-3-pro-image')
+  ) {
     return resolveGemini3ThinkingConfig({ reasoning, warnings });
   }
 
