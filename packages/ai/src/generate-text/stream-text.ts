@@ -760,12 +760,10 @@ export function streamText<
     onToolExecutionEnd ?? experimental_onToolCallFinish;
   const resolvedOnStepEnd = onStepEnd ?? onStepFinish;
   const session = createSession();
-  const shouldDestroySession = true;
 
   return new DefaultStreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
     model: resolveLanguageModel(model),
     session,
-    shouldDestroySession,
     telemetry,
     headers,
     settings,
@@ -984,7 +982,6 @@ class DefaultStreamTextResult<
   constructor({
     model,
     session,
-    shouldDestroySession,
     telemetry,
     headers,
     settings,
@@ -1037,7 +1034,6 @@ class DefaultStreamTextResult<
   }: {
     model: LanguageModelV4;
     session: Session;
-    shouldDestroySession: boolean;
     telemetry: TelemetryOptions<RUNTIME_CONTEXT, TOOLS> | undefined;
     headers: Record<string, string | undefined> | undefined;
     settings: LanguageModelCallOptions;
@@ -1170,6 +1166,24 @@ class DefaultStreamTextResult<
       }
     > = createIdMap();
     let recordedNoOutputError: NoOutputGeneratedError | undefined;
+
+    // Destroy when no further doStream calls will be made. Returns undefined on
+    // success, or an error (optionally aggregated with `originalError`) on failure.
+    async function destroySession(
+      originalError?: unknown,
+    ): Promise<unknown | undefined> {
+      try {
+        await session.destroy();
+        return undefined;
+      } catch (cleanupError) {
+        return originalError === undefined
+          ? cleanupError
+          : new AggregateError(
+              [originalError, cleanupError],
+              'Streaming failed and session cleanup also failed.',
+            );
+      }
+    }
 
     const eventProcessor = new TransformStream<
       EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
@@ -1390,10 +1404,6 @@ class DefaultStreamTextResult<
 
       async flush(controller) {
         try {
-          if (shouldDestroySession) {
-            await session.destroy();
-          }
-
           // reject when no output was generated or an incomplete model stream
           // ended a continuation step:
           if (recordedSteps.length === 0 || recordedNoOutputError != null) {
@@ -1501,20 +1511,13 @@ class DefaultStreamTextResult<
       async pull(controller) {
         // abort handling:
         async function abort() {
-          if (shouldDestroySession) {
-            try {
-              await session.destroy();
-            } catch (cleanupError) {
-              controller.error(
-                abortSignal?.reason === undefined
-                  ? cleanupError
-                  : new AggregateError(
-                      [abortSignal.reason, cleanupError],
-                      'Streaming failed and session cleanup also failed.',
-                    ),
-              );
-              return;
-            }
+          // No more doStream calls will be made after abort is surfaced.
+          const cleanupError = await destroySession(
+            abortSignal?.reason !== undefined ? abortSignal.reason : undefined,
+          );
+          if (cleanupError != null) {
+            controller.error(cleanupError);
+            return;
           }
 
           await notify({
@@ -1557,20 +1560,7 @@ class DefaultStreamTextResult<
           if (isAbortError(error) && abortSignal?.aborted) {
             await abort();
           } else {
-            let finalError = error;
-
-            if (shouldDestroySession) {
-              try {
-                await session.destroy();
-              } catch (cleanupError) {
-                finalError = new AggregateError(
-                  [error, cleanupError],
-                  'Streaming failed and session cleanup also failed.',
-                );
-              }
-            }
-
-            controller.error(finalError);
+            controller.error(error);
           }
         }
       },
@@ -1600,9 +1590,8 @@ class DefaultStreamTextResult<
         transform({
           tools: tools as TOOLS,
           stopStream() {
-            if (shouldDestroySession) {
-              void markPromiseAsHandled(session.destroy());
-            }
+            // stopStream terminates before the step-loop flush can run.
+            void markPromiseAsHandled(session.destroy());
             stitchableStream.terminate();
             isRunning = false;
           },
@@ -1623,20 +1612,6 @@ class DefaultStreamTextResult<
 
     const self = this;
     const callId = generateCallId();
-
-    function destroySessionOnAbort(): void {
-      if (shouldDestroySession) {
-        void markPromiseAsHandled(session.destroy());
-      }
-    }
-
-    if (abortSignal?.aborted) {
-      destroySessionOnAbort();
-    } else {
-      abortSignal?.addEventListener('abort', destroySessionOnAbort, {
-        once: true,
-      });
-    }
 
     (async () => {
       const initialPrompt = await standardizePrompt({
@@ -2354,19 +2329,11 @@ class DefaultStreamTextResult<
                         'No output generated. The model stream ended without a finish chunk.',
                     });
 
-                    if (shouldDestroySession) {
-                      try {
-                        await session.destroy();
-                      } catch (cleanupError) {
-                        cleanupStepTimeouts();
-                        controller.error(
-                          new AggregateError(
-                            [noOutputError, cleanupError],
-                            'Streaming failed and session cleanup also failed.',
-                          ),
-                        );
-                        return;
-                      }
+                    const cleanupError = await destroySession(noOutputError);
+                    if (cleanupError != null) {
+                      cleanupStepTimeouts();
+                      controller.error(cleanupError);
+                      return;
                     }
 
                     controller.enqueue({
@@ -2480,18 +2447,10 @@ class DefaultStreamTextResult<
                         }),
                       );
                     } catch (error) {
-                      if (shouldDestroySession) {
-                        try {
-                          await session.destroy();
-                        } catch (cleanupError) {
-                          controller.error(
-                            new AggregateError(
-                              [error, cleanupError],
-                              'Streaming failed and session cleanup also failed.',
-                            ),
-                          );
-                          return;
-                        }
+                      const cleanupError = await destroySession(error);
+                      if (cleanupError != null) {
+                        controller.error(cleanupError);
+                        return;
                       }
 
                       controller.enqueue({
@@ -2502,15 +2461,15 @@ class DefaultStreamTextResult<
                       self.closeStream();
                     }
                   } else {
-                    if (shouldDestroySession) {
-                      try {
-                        await session.destroy();
-                      } catch (error) {
-                        self.rejectResultPromises(error);
-                        controller.enqueue({ type: 'error', error });
-                        self.closeStream();
-                        return;
-                      }
+                    const cleanupError = await destroySession();
+                    if (cleanupError != null) {
+                      self.rejectResultPromises(cleanupError);
+                      controller.enqueue({
+                        type: 'error',
+                        error: cleanupError,
+                      });
+                      self.closeStream();
+                      return;
                     }
 
                     controller.enqueue({
@@ -2548,16 +2507,10 @@ class DefaultStreamTextResult<
     })().catch(async error => {
       let finalError = error;
 
-      if (shouldDestroySession) {
-        try {
-          await session.destroy();
-        } catch (cleanupError) {
-          finalError = new AggregateError(
-            [error, cleanupError],
-            'Streaming failed and session cleanup also failed.',
-          );
-          self.rejectResultPromises(finalError);
-        }
+      const cleanupError = await destroySession(error);
+      if (cleanupError != null) {
+        finalError = cleanupError;
+        self.rejectResultPromises(finalError);
       }
 
       await telemetryDispatcher.onError?.({
