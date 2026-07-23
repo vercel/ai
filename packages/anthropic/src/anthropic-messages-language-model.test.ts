@@ -264,6 +264,497 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
+<<<<<<< HEAD:packages/anthropic/src/anthropic-messages-language-model.test.ts
+=======
+    describe('top-level reasoning (newer models with adaptive thinking)', () => {
+      it('should not set thinking config when reasoning is "provider-default"', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'provider-default',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.thinking).toBeUndefined();
+        expect(requestBody.output_config).toBeUndefined();
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('should map reasoning "none" to thinking disabled', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'none',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.thinking).toEqual({ type: 'disabled' });
+        expect(requestBody.output_config).toBeUndefined();
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('should map reasoning "low" to adaptive thinking with effort "low"', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'low',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'adaptive' },
+          output_config: { effort: 'low' },
+        });
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('should map reasoning "medium" to adaptive thinking with effort "medium"', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'medium',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'adaptive' },
+          output_config: { effort: 'medium' },
+        });
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('should map reasoning "high" to adaptive thinking with effort "high"', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'adaptive' },
+          output_config: { effort: 'high' },
+        });
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('should map reasoning "xhigh" to adaptive thinking with effort "max"', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'xhigh',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'adaptive' },
+          output_config: { effort: 'max' },
+        });
+        expect(result.warnings).toContainEqual({
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "xhigh" is not directly supported by this model. mapped to effort "max".',
+        });
+      });
+
+      it('should map reasoning "minimal" to adaptive thinking with effort "low" and emit compatibility warning', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-opus-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'minimal',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'adaptive' },
+          output_config: { effort: 'low' },
+        });
+        expect(result.warnings).toContainEqual({
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "minimal" is not directly supported by this model. mapped to effort "low".',
+        });
+      });
+
+      it('should strip temperature, topP, topK when reasoning enables thinking', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+          temperature: 0.5,
+          topP: 0.7,
+          topK: 10,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.temperature).toBeUndefined();
+        expect(requestBody.top_p).toBeUndefined();
+        expect(requestBody.top_k).toBeUndefined();
+        expect(result.warnings).toContainEqual({
+          type: 'unsupported',
+          feature: 'temperature',
+          details: 'temperature is not supported when thinking is enabled',
+        });
+        expect(result.warnings).toContainEqual({
+          type: 'unsupported',
+          feature: 'topK',
+          details: 'topK is not supported when thinking is enabled',
+        });
+        expect(result.warnings).toContainEqual({
+          type: 'unsupported',
+          feature: 'topP',
+          details: 'topP is not supported when thinking is enabled',
+        });
+      });
+    });
+
+    describe('top-level reasoning (older models with budget-based thinking)', () => {
+      it('should not set thinking config when reasoning is "provider-default"', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'provider-default',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.thinking).toBeUndefined();
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('should map reasoning "none" to thinking disabled', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'none',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.thinking).toEqual({ type: 'disabled' });
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('should map reasoning "minimal" to enabled thinking with ~2% budget', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'minimal',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'enabled', budget_tokens: 1280 },
+        });
+      });
+
+      it('should map reasoning "low" to enabled thinking with ~10% budget', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'low',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'enabled', budget_tokens: 6400 },
+        });
+      });
+
+      it('should map reasoning "medium" to enabled thinking with ~30% budget', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'medium',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'enabled', budget_tokens: 19200 },
+        });
+      });
+
+      it('should map reasoning "high" to enabled thinking with ~60% budget', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'enabled', budget_tokens: 38400 },
+        });
+      });
+
+      it('should map reasoning "xhigh" to enabled thinking with ~90% budget', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'xhigh',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'enabled', budget_tokens: 57600 },
+        });
+      });
+
+      it('should clamp budget to minimum 1024 tokens', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-3-haiku-20240307').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'minimal',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'enabled', budget_tokens: 1024 },
+        });
+      });
+
+      it('should adjust max_tokens to include thinking budget', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'low',
+          maxOutputTokens: 10000,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.max_tokens).toBe(16400);
+        expect(requestBody.thinking.budget_tokens).toBe(6400);
+      });
+
+      it('should strip temperature, topP, topK when reasoning enables thinking', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'medium',
+          temperature: 0.5,
+          topP: 0.7,
+          topK: 10,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.temperature).toBeUndefined();
+        expect(requestBody.top_p).toBeUndefined();
+        expect(requestBody.top_k).toBeUndefined();
+        expect(result.warnings).toContainEqual({
+          type: 'unsupported',
+          feature: 'temperature',
+          details: 'temperature is not supported when thinking is enabled',
+        });
+      });
+    });
+
+    describe('forward-compatible defaults for unknown Claude models', () => {
+      it('should map xhigh reasoning to adaptive thinking with xhigh effort', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-future-9').doGenerate({
+          prompt: TEST_PROMPT,
+          maxOutputTokens: 100,
+          reasoning: 'xhigh',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.thinking).toEqual({ type: 'adaptive' });
+        expect(requestBody.thinking.budget_tokens).toBeUndefined();
+        expect(requestBody.output_config).toEqual({ effort: 'xhigh' });
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('should strip unsupported sampling parameters with warnings', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-future-9').doGenerate({
+          prompt: TEST_PROMPT,
+          maxOutputTokens: 100,
+          temperature: 0.5,
+          topP: 0.7,
+          topK: 10,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.temperature).toBeUndefined();
+        expect(requestBody.top_p).toBeUndefined();
+        expect(requestBody.top_k).toBeUndefined();
+        expect(result.warnings).toEqual([
+          {
+            type: 'unsupported',
+            feature: 'temperature',
+            details:
+              'temperature is not supported by claude-future-9 and will be ignored',
+          },
+          {
+            type: 'unsupported',
+            feature: 'topK',
+            details:
+              'topK is not supported by claude-future-9 and will be ignored',
+          },
+          {
+            type: 'unsupported',
+            feature: 'topP',
+            details:
+              'topP is not supported by claude-future-9 and will be ignored',
+          },
+        ]);
+      });
+
+      it('should use native structured output without a JSON tool fallback', async () => {
+        prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+        await provider('claude-future-9').doGenerate({
+          prompt: TEST_PROMPT,
+          maxOutputTokens: 100,
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+              required: ['name'],
+              additionalProperties: false,
+            },
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.output_config).toMatchInlineSnapshot(`
+          {
+            "format": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "name",
+                ],
+                "type": "object",
+              },
+              "type": "json_schema",
+            },
+          }
+        `);
+        expect(requestBody.tools).toBeUndefined();
+        expect(requestBody.tool_choice).toBeUndefined();
+      });
+    });
+
+    describe('legacy Claude model defaults', () => {
+      it('should retain sampling parameters and the JSON tool fallback', async () => {
+        prepareJsonFixtureResponse('anthropic-json-tool.1');
+
+        await provider('claude-3-5-sonnet-20241022').doGenerate({
+          prompt: TEST_PROMPT,
+          maxOutputTokens: 100,
+          temperature: 0.5,
+          topK: 10,
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+              required: ['name'],
+              additionalProperties: false,
+            },
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.temperature).toBe(0.5);
+        expect(requestBody.top_k).toBe(10);
+        expect(requestBody.output_config).toBeUndefined();
+        expect(requestBody.tools).toHaveLength(1);
+        expect(requestBody.tools[0].name).toBe('json');
+      });
+    });
+
+    describe('top-level reasoning (providerOptions precedence)', () => {
+      it('should let anthropic.thinking take precedence over top-level reasoning', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+          providerOptions: {
+            anthropic: {
+              thinking: { type: 'disabled' },
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.thinking).toEqual({ type: 'disabled' });
+        expect(requestBody.output_config).toBeUndefined();
+      });
+
+      it('should let anthropic.effort take precedence over top-level reasoning', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+          providerOptions: {
+            anthropic: {
+              effort: 'low',
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.thinking).toBeUndefined();
+        expect(requestBody).toMatchObject({
+          output_config: { effort: 'low' },
+        });
+      });
+
+      it('should not apply top-level reasoning when anthropic.thinking is set', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'xhigh',
+          providerOptions: {
+            anthropic: {
+              thinking: { type: 'enabled', budgetTokens: 5000 },
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'enabled', budget_tokens: 5000 },
+        });
+      });
+    });
+
+>>>>>>> 01a596aa46 (fix: incorrect capability defaults for unrecognized Claude model IDs (#17830)):packages/anthropic/src/anthropic-language-model.test.ts
     describe('json schema response format with json tool response (unsupported model)', () => {
       let result: Awaited<ReturnType<typeof model.doGenerate>>;
 
@@ -839,7 +1330,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       it('should pass json schema response format as output_config.format', async () => {
         expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
           {
-            "max_tokens": 4096,
+            "max_tokens": 128000,
             "messages": [
               {
                 "content": [
@@ -9963,6 +10454,152 @@ describe('AnthropicMessagesLanguageModel', () => {
   });
 });
 
+<<<<<<< HEAD:packages/anthropic/src/anthropic-messages-language-model.test.ts
+=======
+describe('getModelCapabilities', () => {
+  it('should return correct capabilities for claude-opus-4-8', () => {
+    expect(getModelCapabilities('claude-opus-4-8')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "supportsAdaptiveThinking": true,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": true,
+      }
+    `);
+  });
+
+  it('should return correct capabilities for claude-fable-5', () => {
+    expect(getModelCapabilities('claude-fable-5')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "supportsAdaptiveThinking": true,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": true,
+      }
+    `);
+  });
+
+  it('should return correct capabilities for claude-opus-4-7', () => {
+    expect(getModelCapabilities('claude-opus-4-7')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "supportsAdaptiveThinking": true,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": true,
+      }
+    `);
+  });
+
+  it('should return correct capabilities for claude-sonnet-5', () => {
+    expect(getModelCapabilities('claude-sonnet-5')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "supportsAdaptiveThinking": true,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": true,
+      }
+    `);
+  });
+
+  it('should return correct capabilities for claude-opus-4-6', () => {
+    const caps = getModelCapabilities('claude-opus-4-6');
+    expect(caps.rejectsSamplingParameters).toBe(false);
+    expect(caps.supportsXhighEffort).toBe(false);
+    expect(caps.supportsAdaptiveThinking).toBe(true);
+  });
+
+  it('should return correct capabilities for claude-sonnet-4-6', () => {
+    const caps = getModelCapabilities('claude-sonnet-4-6');
+    expect(caps.rejectsSamplingParameters).toBe(false);
+    expect(caps.supportsXhighEffort).toBe(false);
+    expect(caps.supportsAdaptiveThinking).toBe(true);
+  });
+
+  it('should return current-generation capabilities for an unknown Claude model', () => {
+    expect(getModelCapabilities('claude-future-9')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": false,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "supportsAdaptiveThinking": true,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": true,
+      }
+    `);
+  });
+
+  it('should recognize an unknown platform-prefixed Claude model', () => {
+    expect(getModelCapabilities('us.anthropic.claude-future-9-20990101-v1:0'))
+      .toMatchInlineSnapshot(`
+      {
+        "isKnownModel": false,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "supportsAdaptiveThinking": true,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": true,
+      }
+    `);
+  });
+
+  it.each([
+    'anthropic.claude-3-5-sonnet-20241022-v2:0',
+    'us.anthropic.claude-3-7-sonnet-20250219-v1:0',
+    'anthropic.claude-v2:1',
+    'anthropic.claude-instant-v1',
+  ])(
+    'should retain conservative capabilities for legacy Claude model %s',
+    modelId => {
+      expect(getModelCapabilities(modelId)).toMatchInlineSnapshot(`
+        {
+          "isKnownModel": false,
+          "maxOutputTokens": 4096,
+          "rejectsSamplingParameters": false,
+          "supportsAdaptiveThinking": false,
+          "supportsStructuredOutput": false,
+          "supportsXhighEffort": false,
+        }
+      `);
+    },
+  );
+
+  it('should match a known model before the forward-compatible fallback', () => {
+    expect(getModelCapabilities('claude-opus-4-5')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 64000,
+        "rejectsSamplingParameters": false,
+        "supportsAdaptiveThinking": false,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": false,
+      }
+    `);
+  });
+
+  it('should return conservative capabilities for an unknown non-Claude model', () => {
+    expect(getModelCapabilities('third-party-future-model'))
+      .toMatchInlineSnapshot(`
+      {
+        "isKnownModel": false,
+        "maxOutputTokens": 4096,
+        "rejectsSamplingParameters": false,
+        "supportsAdaptiveThinking": false,
+        "supportsStructuredOutput": false,
+        "supportsXhighEffort": false,
+      }
+    `);
+  });
+});
+
+>>>>>>> 01a596aa46 (fix: incorrect capability defaults for unrecognized Claude model IDs (#17830)):packages/anthropic/src/anthropic-language-model.test.ts
 describe('claude-opus-4-7 specific behavior', () => {
   const server = createTestServer({
     'https://api.anthropic.com/v1/messages': {},
