@@ -1,5 +1,8 @@
 import type * as AnthropicInternal from '@ai-sdk/anthropic/internal';
-import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import type {
+  LanguageModelV3CallOptions,
+  LanguageModelV3Prompt,
+} from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
@@ -78,6 +81,16 @@ const anthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   anthropicModelId,
 )}/converse`;
 
+const legacyAnthropic37ModelId = 'us.anthropic.claude-3-7-sonnet-20250219-v1:0';
+const legacyAnthropic37GenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  legacyAnthropic37ModelId,
+)}/converse`;
+
+const futureAnthropicModelId = 'us.anthropic.claude-future-9-20990101-v1:0';
+const futureAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  futureAnthropicModelId,
+)}/converse`;
+
 const novaModelId = 'us.amazon.nova-2-lite-v1:0';
 const novaGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   novaModelId,
@@ -108,6 +121,8 @@ const server = createTestServer({
   },
   // Configure the server for the Anthropic model from the start
   [anthropicGenerateUrl]: {},
+  [legacyAnthropic37GenerateUrl]: {},
+  [futureAnthropicGenerateUrl]: {},
   [novaGenerateUrl]: {},
   [openaiGenerateUrl]: {},
   [newerAnthropicGenerateUrl]: {},
@@ -170,6 +185,14 @@ beforeEach(() => {
     type: 'json-value',
     body: {},
   };
+  server.urls[legacyAnthropic37GenerateUrl].response = {
+    type: 'json-value',
+    body: {},
+  };
+  server.urls[futureAnthropicGenerateUrl].response = {
+    type: 'json-value',
+    body: {},
+  };
   mockPrepareAnthropicTools.mockClear();
 });
 
@@ -193,6 +216,33 @@ const openaiModel = new BedrockChatLanguageModel(openaiModelId, {
   fetch: fakeFetchWithAuth,
   generateId: () => 'test-id',
 });
+
+const legacyAnthropic35Model = new BedrockChatLanguageModel(anthropicModelId, {
+  baseUrl: () => baseUrl,
+  headers: {},
+  fetch: fakeFetchWithAuth,
+  generateId: () => 'test-id',
+});
+
+const legacyAnthropic37Model = new BedrockChatLanguageModel(
+  legacyAnthropic37ModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
+const futureAnthropicModel = new BedrockChatLanguageModel(
+  futureAnthropicModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
 
 const newerAnthropicModel = new BedrockChatLanguageModel(
   newerAnthropicModelId,
@@ -4929,6 +4979,79 @@ describe('doGenerate', () => {
         },
       }
     `);
+  });
+
+  describe('forward-compatible Anthropic model capabilities', () => {
+    const simpleResponse = {
+      type: 'json-value' as const,
+      body: {
+        output: {
+          message: {
+            content: [{ text: '{"name":"Test"}' }],
+            role: 'assistant',
+          },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    const responseFormat: NonNullable<
+      LanguageModelV3CallOptions['responseFormat']
+    > = {
+      type: 'json',
+      schema: {
+        type: 'object',
+        properties: { name: { type: 'string' } },
+        required: ['name'],
+        additionalProperties: false,
+      },
+    };
+
+    it('should use native structured output for a platform-prefixed unknown Claude model', async () => {
+      server.urls[futureAnthropicGenerateUrl].response = simpleResponse;
+
+      await futureAnthropicModel.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.toolConfig).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.format?.type,
+      ).toBe('json_schema');
+    });
+
+    it.each([
+      {
+        name: 'Claude 3.5',
+        model: legacyAnthropic35Model,
+        url: anthropicGenerateUrl,
+      },
+      {
+        name: 'Claude 3.7',
+        model: legacyAnthropic37Model,
+        url: legacyAnthropic37GenerateUrl,
+      },
+    ])(
+      'should use the JSON tool fallback for a platform-prefixed $name model',
+      async ({ model: legacyModel, url }) => {
+        server.urls[url].response = simpleResponse;
+
+        await legacyModel.doGenerate({
+          prompt: TEST_PROMPT,
+          responseFormat,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.toolConfig?.tools).toHaveLength(1);
+        expect(requestBody.toolConfig?.tools[0].toolSpec.name).toBe('json');
+        expect(
+          requestBody.additionalModelRequestFields?.output_config,
+        ).toBeUndefined();
+      },
+    );
   });
 
   it('should sanitize unsupported JSON schema keywords for native structured output', async () => {

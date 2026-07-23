@@ -24,7 +24,10 @@ import {
   type ParseResult,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
-import { sanitizeJsonSchema } from '@ai-sdk/anthropic/internal';
+import {
+  getModelCapabilities,
+  sanitizeJsonSchema,
+} from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
 import {
   BEDROCK_STOP_REASONS,
@@ -154,8 +157,8 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       this.modelId.includes('claude-fable-5') ||
       this.modelId.includes('claude-sonnet-5');
 
-    const modelSupportsStructuredOutput =
-      bedrockChatModelSupportsStructuredOutput(this.modelId);
+    const { supportsStructuredOutput: modelSupportsStructuredOutput } =
+      getModelCapabilities(this.modelId);
 
     const useNativeStructuredOutput =
       isAnthropicModel &&
@@ -1044,21 +1047,6 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
   private getUrl(modelId: string) {
     return `${this.config.baseUrl()}/model/${encodeURIComponent(modelId)}`;
   }
-}
-
-function bedrockChatModelSupportsStructuredOutput(modelId: string): boolean {
-  return (
-    modelId.includes('claude-opus-4-8') ||
-    modelId.includes('claude-opus-4-7') ||
-    modelId.includes('claude-fable-5') ||
-    modelId.includes('claude-sonnet-5') ||
-    modelId.includes('claude-sonnet-4-6') ||
-    modelId.includes('claude-opus-4-6') ||
-    modelId.includes('claude-sonnet-4-5') ||
-    modelId.includes('claude-opus-4-5') ||
-    modelId.includes('claude-haiku-4-5') ||
-    modelId.includes('claude-opus-4-1')
-  );
 }
 
 class JsonObjectTextExtractor {
