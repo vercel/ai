@@ -20,7 +20,7 @@ run(async () => {
     },
   });
 
-  console.log('Answered by:', result.finalStep.response.modelId);
+  console.log('Answered by:', result.response.modelId);
   console.log();
   console.log('Text:');
   console.log(result.text);
@@ -28,6 +28,6 @@ run(async () => {
 
   // Per-model attribution lives in the Anthropic-specific usage iterations.
   // A `fallback_message` iteration means a fallback model served the turn.
-  const iterations = result.finalStep.providerMetadata?.anthropic?.iterations;
+  const iterations = result.providerMetadata?.anthropic?.iterations;
   console.log('Usage iterations:', JSON.stringify(iterations, null, 2));
 });

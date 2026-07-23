@@ -59,6 +59,44 @@ export type AnthropicFilePartProviderOptions = z.infer<
   typeof anthropicFilePartProviderOptions
 >;
 
+/**
+ * Anthropic provider options for system messages.
+ */
+export const anthropicSystemMessageProviderOptions = z.object({
+  /**
+   * Mid-conversation tool changes. Adds or removes tools from the
+   * conversation's tool set between turns without invalidating the prompt
+   * cache.
+   *
+   * Only supported on system messages that appear mid-conversation (not the
+   * initial system prompt). A system message carrying tool changes must come
+   * right before an assistant message or at the end of the messages.
+   *
+   * Tools referenced by a `tool_addition` must be declared in the `tools`
+   * option (typically with `deferLoading: true` so they are not loaded until
+   * the addition surfaces them). The required
+   * `mid-conversation-tool-changes-2026-07-01` beta is added automatically.
+   */
+  toolChanges: z
+    .array(
+      z.discriminatedUnion('type', [
+        z.object({
+          type: z.literal('tool_addition'),
+          toolName: z.string(),
+        }),
+        z.object({
+          type: z.literal('tool_removal'),
+          toolName: z.string(),
+        }),
+      ]),
+    )
+    .optional(),
+});
+
+export type AnthropicSystemMessageProviderOptions = z.infer<
+  typeof anthropicSystemMessageProviderOptions
+>;
+
 export const anthropicLanguageModelOptions = z.object({
   /**
    * Whether to send reasoning to the model.

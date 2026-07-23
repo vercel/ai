@@ -10109,6 +10109,67 @@ describe('effort with thinking disabled', () => {
   });
 });
 
+describe('mid-conversation tool changes', () => {
+  const server = createTestServer({
+    'https://api.anthropic.com/v1/messages': {},
+  });
+
+  function prepareJsonFixtureResponse(filename: string) {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+      ),
+    };
+  }
+
+  const provider = createAnthropic({ apiKey: 'test-api-key' });
+
+  it('should send tool change blocks and the beta header', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    await provider('claude-opus-4-8').doGenerate({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Say OK.' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            anthropic: {
+              toolChanges: [{ type: 'tool_removal', toolName: 'get_weather' }],
+            },
+          },
+        },
+      ],
+      tools: [
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: 'Get weather',
+          inputSchema: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+          },
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.messages).toContainEqual({
+      role: 'system',
+      content: [
+        {
+          type: 'tool_removal',
+          tool: { type: 'tool_reference', name: 'get_weather' },
+        },
+      ],
+    });
+    expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+      'mid-conversation-tool-changes-2026-07-01',
+    );
+  });
+});
+
 describe('claude-opus-4-7 specific behavior', () => {
   const server = createTestServer({
     'https://api.anthropic.com/v1/messages': {},
