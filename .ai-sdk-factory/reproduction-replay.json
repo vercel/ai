@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 17804,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-17804-anthropic-forward-compatible-defaults.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-17804-anthropic-forward-compatible-defaults.ts",
+    "packages/anthropic/src/anthropic-forward-compatible-defaults.test.ts",
+    "packages/anthropic/src/__fixtures__/anthropic-forward-compatible-control.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_17804_REPRODUCED: unknown Claude IDs use legacy capability defaults"
+  }
+}
