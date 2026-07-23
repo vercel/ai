@@ -2052,9 +2052,7 @@ function getModelCapabilities(modelId: string): {
     return {
       maxOutputTokens: 4096,
       supportsStructuredOutput: false,
-      supportsAdaptiveThinking: false,
       rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
       isKnownModel: false,
     };
   } else if (modelId.includes('claude-')) {
@@ -2064,9 +2062,7 @@ function getModelCapabilities(modelId: string): {
     return {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,
-      supportsAdaptiveThinking: true,
       rejectsSamplingParameters: true,
-      supportsXhighEffort: true,
       isKnownModel: false,
     };
   } else {

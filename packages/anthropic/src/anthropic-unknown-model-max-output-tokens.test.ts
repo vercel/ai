@@ -16,6 +16,12 @@ describe('unknown model max output tokens', () => {
   const futureClaudeModel = createAnthropic({ apiKey: 'test-api-key' })(
     'claude-future-9',
   );
+  const platformPrefixedFutureClaudeModel = createAnthropic({
+    apiKey: 'test-api-key',
+  })('us.anthropic.claude-future-9-v1:0');
+  const legacyClaudeModel = createAnthropic({ apiKey: 'test-api-key' })(
+    'us.anthropic.claude-3-5-sonnet-20241022-v2:0',
+  );
 
   beforeEach(() => {
     server.urls['https://api.anthropic.com/v1/messages'].response = {
@@ -75,10 +81,45 @@ describe('unknown model max output tokens', () => {
     });
     expect(warnings).toEqual([
       {
-        type: 'compatibility',
-        feature: 'maxOutputTokens',
-        details:
+        type: 'other',
+        message:
           'The model "claude-future-9" is unknown. The max output tokens have been limited to 128000. Set maxOutputTokens explicitly to override this limit.',
+      },
+    ]);
+  });
+
+  it('should recognize an unknown platform-prefixed Claude model', async () => {
+    const { warnings } = await platformPrefixedFutureClaudeModel.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      model: 'us.anthropic.claude-future-9-v1:0',
+      max_tokens: 128000,
+    });
+    expect(warnings).toEqual([
+      {
+        type: 'other',
+        message:
+          'The model "us.anthropic.claude-future-9-v1:0" is unknown. The max output tokens have been limited to 128000. Set maxOutputTokens explicitly to override this limit.',
+      },
+    ]);
+  });
+
+  it('should retain conservative defaults for a platform-prefixed legacy Claude model', async () => {
+    const { warnings } = await legacyClaudeModel.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      model: 'us.anthropic.claude-3-5-sonnet-20241022-v2:0',
+      max_tokens: 4096,
+    });
+    expect(warnings).toEqual([
+      {
+        type: 'other',
+        message:
+          'The model "us.anthropic.claude-3-5-sonnet-20241022-v2:0" is unknown. The max output tokens have been limited to 4096. Set maxOutputTokens explicitly to override this limit.',
       },
     ]);
   });
