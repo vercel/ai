@@ -32,8 +32,15 @@
     "@playwright/test": "^1.61.1",
     "del-cli": "^5.1.0",
     "husky": "^9.1.7",
+<<<<<<< HEAD
     "lint-staged": "15.2.10",
     "next": "15.0.7",
+=======
+    "konsistent": "^1.0.0-beta",
+    "konsistent-provider": "workspace:*",
+    "lint-staged": "^15.5.1",
+    "next": "15.5.21",
+>>>>>>> 1216666d11 (fix: remove vulnerable Next.js 15.5.18 usage from repository tooling and examples (#17841))
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
     "playwright": "^1.61.1",

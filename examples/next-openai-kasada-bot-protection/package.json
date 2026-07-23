@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+<<<<<<< HEAD
     "@ai-sdk/openai": "3.0.87",
     "@ai-sdk/react": "3.0.236",
     "@vercel/functions": "^3.1.0",
@@ -16,6 +17,16 @@
     "react": "^18",
     "react-dom": "^18",
     "sonner": "^1.7.1"
+=======
+    "@ai-sdk/openai": "workspace:*",
+    "@ai-sdk/react": "workspace:*",
+    "@vercel/functions": "^3.6.0",
+    "ai": "workspace:*",
+    "next": "^15.5.21",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "sonner": "^1.7.4"
+>>>>>>> 1216666d11 (fix: remove vulnerable Next.js 15.5.18 usage from repository tooling and examples (#17841))
   },
   "devDependencies": {
     "@types/node": "20.17.24",
