@@ -360,12 +360,16 @@ describe('doGenerate', () => {
   const TEST_URL_GEMINI_1_5_FLASH =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
+  const TEST_URL_GEMINI_99_PRO =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-99-pro-preview:generateContent';
+
   const server = createTestServer({
     [TEST_URL_GEMINI_PRO]: {},
     [TEST_URL_GEMINI_2_0_PRO]: {},
     [TEST_URL_GEMINI_2_0_FLASH_EXP]: {},
     [TEST_URL_GEMINI_1_0_PRO]: {},
     [TEST_URL_GEMINI_1_5_FLASH]: {},
+    [TEST_URL_GEMINI_99_PRO]: {},
   });
 
   const prepareJsonResponse = ({
@@ -392,7 +396,8 @@ describe('doGenerate', () => {
       | typeof TEST_URL_GEMINI_2_0_PRO
       | typeof TEST_URL_GEMINI_2_0_FLASH_EXP
       | typeof TEST_URL_GEMINI_1_0_PRO
-      | typeof TEST_URL_GEMINI_1_5_FLASH;
+      | typeof TEST_URL_GEMINI_1_5_FLASH
+      | typeof TEST_URL_GEMINI_99_PRO;
   }) => {
     server.urls[url].response = {
       type: 'json-value',
@@ -415,6 +420,96 @@ describe('doGenerate', () => {
       },
     };
   };
+
+  it('should use newest request behavior for an unknown future Gemini model', async () => {
+    prepareJsonResponse({
+      content: 'done',
+      url: TEST_URL_GEMINI_99_PRO,
+    });
+
+    const futureModel = provider.chat('gemini-99-pro-preview');
+
+    await futureModel.doGenerate({
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'high',
+          },
+        },
+      },
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Create a weather chart.' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolName: 'createWeatherChart',
+              toolCallId: 'testCallId',
+              input: { location: 'San Francisco' },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'createWeatherChart',
+              toolCallId: 'testCallId',
+              output: {
+                type: 'content',
+                value: [
+                  { type: 'text', text: 'Weather chart' },
+                  {
+                    type: 'media',
+                    data: 'iVBORw0KGgo=',
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.generationConfig.thinkingConfig).toEqual({
+      thinkingLevel: 'high',
+    });
+    expect(requestBody.contents[1].parts[0]).toMatchObject({
+      functionCall: {
+        id: 'testCallId',
+        name: 'createWeatherChart',
+        args: { location: 'San Francisco' },
+      },
+      thoughtSignature: 'skip_thought_signature_validator',
+    });
+    expect(requestBody.contents[2].parts).toEqual([
+      {
+        functionResponse: {
+          id: 'testCallId',
+          name: 'createWeatherChart',
+          response: {
+            name: 'createWeatherChart',
+            content: 'Weather chart',
+          },
+          parts: [
+            {
+              inlineData: {
+                mimeType: 'image/png',
+                data: 'iVBORw0KGgo=',
+              },
+            },
+          ],
+        },
+      },
+    ]);
+  });
 
   it('should extract text response', async () => {
     prepareJsonResponse({ content: 'Hello, World!' });

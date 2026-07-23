@@ -34,6 +34,7 @@ import {
   googleGenerativeAIProviderOptions,
   VertexServiceTierMap,
 } from './google-generative-ai-options';
+import { getGoogleModelCapabilities } from './google-model-capabilities';
 import { prepareTools } from './google-prepare-tools';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
 
@@ -171,11 +172,15 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         : undefined);
 
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
-    const supportsFunctionResponseParts = this.modelId.startsWith('gemini-3');
+    const { usesGemini3Features } = getGoogleModelCapabilities(this.modelId);
 
     const { contents, systemInstruction } = convertToGoogleGenerativeAIMessages(
       prompt,
-      { isGemmaModel, supportsFunctionResponseParts },
+      {
+        isGemmaModel,
+        isGemini3Model: usesGemini3Features,
+        supportsFunctionResponseParts: usesGemini3Features,
+      },
     );
 
     const {
@@ -186,6 +191,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       tools,
       toolChoice,
       modelId: this.modelId,
+      isVertexProvider,
     });
 
     return {
