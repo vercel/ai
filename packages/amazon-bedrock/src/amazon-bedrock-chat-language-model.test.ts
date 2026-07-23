@@ -78,6 +78,11 @@ const anthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   anthropicModelId,
 )}/converse`;
 
+const legacyAnthropic37ModelId = 'us.anthropic.claude-3-7-sonnet-20250219-v1:0';
+const legacyAnthropic37GenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  legacyAnthropic37ModelId,
+)}/converse`;
+
 const novaModelId = 'us.amazon.nova-2-lite-v1:0';
 const novaGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   novaModelId,
@@ -108,6 +113,7 @@ const server = createTestServer({
   },
   // Configure the server for the Anthropic model from the start
   [anthropicGenerateUrl]: {},
+  [legacyAnthropic37GenerateUrl]: {},
   [novaGenerateUrl]: {},
   [openaiGenerateUrl]: {},
   [newerAnthropicGenerateUrl]: {},
@@ -169,6 +175,10 @@ beforeEach(() => {
     type: 'json-value',
     body: {},
   };
+  server.urls[legacyAnthropic37GenerateUrl].response = {
+    type: 'json-value',
+    body: {},
+  };
   mockPrepareAnthropicTools.mockClear();
 });
 
@@ -192,6 +202,26 @@ const openaiModel = new AmazonBedrockChatLanguageModel(openaiModelId, {
   fetch: fakeFetchWithAuth,
   generateId: () => 'test-id',
 });
+
+const legacyAnthropic35Model = new AmazonBedrockChatLanguageModel(
+  anthropicModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
+const legacyAnthropic37Model = new AmazonBedrockChatLanguageModel(
+  legacyAnthropic37ModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
 
 const newerAnthropicModel = new AmazonBedrockChatLanguageModel(
   newerAnthropicModelId,
@@ -6297,6 +6327,63 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  describe('legacy Anthropic model capabilities', () => {
+    const simpleResponse = {
+      type: 'json-value' as const,
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'stop_sequence',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    it('should use budget-based reasoning for a platform-prefixed Claude 3.5 model', async () => {
+      server.urls[anthropicGenerateUrl].response = simpleResponse;
+
+      await legacyAnthropic35Model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+        type: 'enabled',
+        budget_tokens: Math.round(4096 * 0.6),
+      });
+      expect(
+        requestBody.additionalModelRequestFields?.output_config,
+      ).toBeUndefined();
+    });
+
+    it('should use the JSON tool fallback for a platform-prefixed Claude 3.7 model', async () => {
+      server.urls[legacyAnthropic37GenerateUrl].response = simpleResponse;
+
+      await legacyAnthropic37Model.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+            },
+            required: ['name'],
+            additionalProperties: false,
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.toolConfig?.tools).toHaveLength(1);
+      expect(requestBody.toolConfig?.tools[0].toolSpec.name).toBe('json');
+      expect(
+        requestBody.additionalModelRequestFields?.output_config,
+      ).toBeUndefined();
+    });
   });
 
   describe('top-level reasoning parameter', () => {

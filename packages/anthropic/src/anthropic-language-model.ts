@@ -2727,7 +2727,21 @@ export function getModelCapabilities(modelId: string): {
       supportsXhighEffort: false,
       isKnownModel: true,
     };
+  } else if (
+    /claude-(?:instant(?:-|$)|v?2(?=$|[-.:])|3(?=$|[-.]))/.test(modelId)
+  ) {
+    return {
+      maxOutputTokens: 4096,
+      supportsStructuredOutput: false,
+      supportsAdaptiveThinking: false,
+      rejectsSamplingParameters: false,
+      supportsXhighEffort: false,
+      isKnownModel: false,
+    };
   } else if (modelId.includes('claude-')) {
+    // Known and legacy Claude families are handled above, so any remaining
+    // Claude ID is assumed to be newer than the known list. Keep it unknown so
+    // callers still receive the maxOutputTokens compatibility warning.
     return {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,
