@@ -30,7 +30,28 @@ const thinkingSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('disabled') }),
 ]);
 
+/*
+ * Content block schemas for structured prompts that carry inline images
+ * alongside text. These mirror the Claude Agent SDK's streaming-input content
+ * shapes so the bridge can forward them without re-serialisation.
+ */
+const imageSourceSchema = z.object({
+  type: z.literal('base64'),
+  media_type: z.string(),
+  data: z.string(),
+});
+
+export const promptContentBlockSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('text'), text: z.string() }),
+  z.object({ type: z.literal('image'), source: imageSourceSchema }),
+]);
+
+export type PromptContentBlock = z.infer<typeof promptContentBlockSchema>;
+
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
+  // Override the base schema's `prompt: z.string()` to also accept a
+  // structured content array when the prompt contains inline images.
+  prompt: z.union([z.string(), z.array(promptContentBlockSchema)]),
   thinking: thinkingSchema,
   maxTurns: z.number().optional(),
   skills: z.array(z.string()).optional(),

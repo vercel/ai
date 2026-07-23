@@ -61,7 +61,7 @@ describe('outboundMessageSchema', () => {
 });
 
 describe('inboundMessageSchema', () => {
-  it('accepts a start message', () => {
+  it('accepts a start message with a string prompt', () => {
     expect(() =>
       inboundMessageSchema.parse({
         type: 'start',
@@ -75,6 +75,54 @@ describe('inboundMessageSchema', () => {
         builtinToolFiltering: { mode: 'deny', toolNames: ['bash'] },
       }),
     ).not.toThrow();
+  });
+
+  it('accepts a start message with a structured content prompt (text + image)', () => {
+    const parsed = inboundMessageSchema.parse({
+      type: 'start',
+      prompt: [
+        { type: 'text', text: 'What is in this screenshot?' },
+        {
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: 'image/png',
+            data: 'iVBORw0KGgo=',
+          },
+        },
+      ],
+      thinking: { type: 'adaptive' },
+    });
+    expect(parsed.type).toBe('start');
+    if (parsed.type !== 'start') throw new Error('expected start message');
+    expect(Array.isArray(parsed.prompt)).toBe(true);
+    const prompt = parsed.prompt as Array<{ type: string }>;
+    expect(prompt).toHaveLength(2);
+    expect(prompt[0].type).toBe('text');
+    expect(prompt[1].type).toBe('image');
+  });
+
+  it('accepts a start message with a text-only content array prompt', () => {
+    expect(() =>
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: [
+          { type: 'text', text: 'hello' },
+          { type: 'text', text: 'world' },
+        ],
+        thinking: { type: 'adaptive' },
+      }),
+    ).not.toThrow();
+  });
+
+  it('rejects a start message with invalid content block types', () => {
+    expect(() =>
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: [{ type: 'audio', data: 'something' }],
+        thinking: { type: 'adaptive' },
+      }),
+    ).toThrow();
   });
 
   it('rejects legacy string thinking values', () => {
