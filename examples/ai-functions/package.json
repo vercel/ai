@@ -1,0 +1,16 @@
+{
+  "name": "@example/ai-functions",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "@ai-sdk/mcp": "workspace:*",
+    "@ai-sdk/provider": "workspace:*",
+    "@ai-sdk/react": "workspace:*",
+    "ai": "workspace:*",
+    "react": "^19.2.1"
+  },
+  "devDependencies": {
+    "tsx": "4.19.2",
+    "typescript": "5.8.3"
+  }
+}
