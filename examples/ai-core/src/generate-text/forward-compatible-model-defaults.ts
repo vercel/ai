@@ -1,7 +1,7 @@
-import { createGoogle } from '@ai-sdk/google';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText, tool } from 'ai';
 import { z } from 'zod';
-import { run } from '../../lib/run';
+import { run } from '../lib/run';
 
 type GoogleRequestBody = {
   generationConfig?: {
@@ -15,7 +15,7 @@ let requestBody: GoogleRequestBody | undefined;
 
 // Use a synthetic response because gemini-99 is deliberately chosen to remain
 // an unknown future-model fixture as new Gemini generations are released.
-const google = createGoogle({
+const google = createGoogleGenerativeAI({
   apiKey: 'not-used',
   fetch: async (_url, options) => {
     requestBody = (await new Response(
@@ -51,7 +51,13 @@ run(async () => {
   const { text } = await generateText({
     model: google('gemini-99-pro-preview'),
     prompt: 'Research a city and prepare a weather summary.',
-    reasoning: 'high',
+    providerOptions: {
+      google: {
+        thinkingConfig: {
+          thinkingLevel: 'high',
+        },
+      },
+    },
     tools: {
       getWeather: tool({
         description: 'Get the weather for a city.',

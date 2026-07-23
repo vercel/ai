@@ -10,14 +10,22 @@ import type {
 } from './google-generative-ai-prompt';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 
+export const SKIP_THOUGHT_SIGNATURE_VALIDATOR =
+  'skip_thought_signature_validator';
+
 export function convertToGoogleGenerativeAIMessages(
   prompt: LanguageModelV2Prompt,
-  options?: { isGemmaModel?: boolean; supportsFunctionResponseParts?: boolean },
+  options?: {
+    isGemmaModel?: boolean;
+    isGemini3Model?: boolean;
+    supportsFunctionResponseParts?: boolean;
+  },
 ): GoogleGenerativeAIPrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
   const contents: Array<GoogleGenerativeAIContent> = [];
   let systemMessagesAllowed = true;
   const isGemmaModel = options?.isGemmaModel ?? false;
+  const isGemini3Model = options?.isGemini3Model ?? false;
   const supportsFunctionResponseParts =
     options?.supportsFunctionResponseParts ?? true;
 
@@ -79,6 +87,7 @@ export function convertToGoogleGenerativeAIMessages(
 
       case 'assistant': {
         systemMessagesAllowed = false;
+        let modelResponseHasSignedFunctionCall = false;
 
         contents.push({
           role: 'model',
@@ -133,6 +142,16 @@ export function convertToGoogleGenerativeAIMessages(
                 }
 
                 case 'tool-call': {
+                  const effectiveThoughtSignature =
+                    thoughtSignature ??
+                    (isGemini3Model && !modelResponseHasSignedFunctionCall
+                      ? SKIP_THOUGHT_SIGNATURE_VALIDATOR
+                      : undefined);
+
+                  if (thoughtSignature != null) {
+                    modelResponseHasSignedFunctionCall = true;
+                  }
+
                   return {
                     functionCall: {
                       ...(part.toolCallId != null
@@ -141,7 +160,7 @@ export function convertToGoogleGenerativeAIMessages(
                       name: part.toolName,
                       args: part.input,
                     },
-                    thoughtSignature,
+                    thoughtSignature: effectiveThoughtSignature,
                   };
                 }
               }

@@ -4,21 +4,19 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
-<<<<<<< HEAD
 import type { GoogleGenerativeAIModelId } from './google-generative-ai-options';
-=======
-import type { GoogleModelId } from './google-language-model-options';
 import { getGoogleModelCapabilities } from './google-model-capabilities';
->>>>>>> f1266498a2 (feat: use forward-compatible capability defaults for unknown Google Gemini models (#17816))
 
 export function prepareTools({
   tools,
   toolChoice,
   modelId,
+  isVertexProvider = false,
 }: {
   tools: LanguageModelV2CallOptions['tools'];
   toolChoice?: LanguageModelV2CallOptions['toolChoice'];
   modelId: GoogleGenerativeAIModelId;
+  isVertexProvider?: boolean;
 }): {
   tools:
     | Array<
@@ -35,10 +33,11 @@ export function prepareTools({
   toolConfig:
     | undefined
     | {
-        functionCallingConfig: {
+        functionCallingConfig?: {
           mode: 'AUTO' | 'NONE' | 'ANY' | 'VALIDATED';
           allowedFunctionNames?: string[];
         };
+        includeServerSideToolInvocations?: boolean;
       };
   toolWarnings: LanguageModelV2CallWarning[];
 } {
@@ -47,25 +46,8 @@ export function prepareTools({
 
   const toolWarnings: LanguageModelV2CallWarning[] = [];
 
-<<<<<<< HEAD
-  const isLatest = (
-    [
-      'gemini-flash-latest',
-      'gemini-flash-lite-latest',
-      'gemini-pro-latest',
-    ] as const satisfies GoogleGenerativeAIModelId[]
-  ).some(id => id === modelId);
-  const isGemini2orNewer =
-    modelId.includes('gemini-2') ||
-    modelId.includes('gemini-3') ||
-    modelId.includes('nano-banana') ||
-    isLatest;
-  const supportsFileSearch =
-    modelId.includes('gemini-2.5') || modelId.includes('gemini-3');
-=======
   const { supportsGemini2Tools, supportsFileSearch, usesGemini3Features } =
     getGoogleModelCapabilities(modelId);
->>>>>>> f1266498a2 (feat: use forward-compatible capability defaults for unknown Google Gemini models (#17816))
 
   if (tools == null) {
     return { tools: undefined, toolConfig: undefined, toolWarnings };
@@ -77,12 +59,8 @@ export function prepareTools({
     tool => tool.type === 'provider-defined',
   );
 
-<<<<<<< HEAD
-  if (hasFunctionTools && hasProviderDefinedTools) {
+  if (hasFunctionTools && hasProviderDefinedTools && !usesGemini3Features) {
     const functionTools = tools.filter(tool => tool.type === 'function');
-=======
-  if (hasFunctionTools && hasProviderTools && !usesGemini3Features) {
->>>>>>> f1266498a2 (feat: use forward-compatible capability defaults for unknown Google Gemini models (#17816))
     toolWarnings.push({
       type: 'unsupported-tool',
       tool: tools.find(tool => tool.type === 'function')!,
@@ -195,8 +173,6 @@ export function prepareTools({
       }
     });
 
-<<<<<<< HEAD
-=======
     if (hasFunctionTools && usesGemini3Features && googleTools.length > 0) {
       const functionDeclarations: Array<{
         name: string;
@@ -251,8 +227,6 @@ export function prepareTools({
         toolWarnings,
       };
     }
-
->>>>>>> f1266498a2 (feat: use forward-compatible capability defaults for unknown Google Gemini models (#17816))
     return {
       tools: googleTools.length > 0 ? googleTools : undefined,
       toolConfig: undefined,

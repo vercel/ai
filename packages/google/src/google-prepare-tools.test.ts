@@ -196,13 +196,11 @@ it('should correctly prepare file search tool', () => {
   expect(result.toolWarnings).toEqual([]);
 });
 
-<<<<<<< HEAD
-=======
 it('should correctly prepare file search tool for gemini-3 models', () => {
   const result = prepareTools({
     tools: [
       {
-        type: 'provider',
+        type: 'provider-defined',
         id: 'google.file_search',
         name: 'file_search',
         args: {
@@ -240,31 +238,31 @@ it('should use newest tool support for an unknown future Gemini model', () => {
         },
       },
       {
-        type: 'provider',
+        type: 'provider-defined',
         id: 'google.google_search',
         name: 'google_search',
         args: {},
       },
       {
-        type: 'provider',
+        type: 'provider-defined',
         id: 'google.enterprise_web_search',
         name: 'enterprise_web_search',
         args: {},
       },
       {
-        type: 'provider',
+        type: 'provider-defined',
         id: 'google.url_context',
         name: 'url_context',
         args: {},
       },
       {
-        type: 'provider',
+        type: 'provider-defined',
         id: 'google.code_execution',
         name: 'code_execution',
         args: {},
       },
       {
-        type: 'provider',
+        type: 'provider-defined',
         id: 'google.file_search',
         name: 'file_search',
         args: {
@@ -307,7 +305,6 @@ it('should use newest tool support for an unknown future Gemini model', () => {
   });
 });
 
->>>>>>> f1266498a2 (feat: use forward-compatible capability defaults for unknown Google Gemini models (#17816))
 it('should handle tool choice "auto"', () => {
   const result = prepareTools({
     tools: [
