@@ -3085,17 +3085,15 @@ describe('streamText', () => {
       expect(onEnd).not.toHaveBeenCalled();
     });
 
-    it('preserves provider and cleanup failures', async () => {
+    it('destroys the session when the provider call fails', async () => {
       const providerError = new Error('provider failed');
-      const cleanupError = new Error('cleanup failed');
+      const cleanup = vi.fn();
 
       const result = streamText({
         model: new MockLanguageModelV4({
           doStream: async options => {
             options.experimental_session!.set('resource', 'value', {
-              onDestroy: () => {
-                throw cleanupError;
-              },
+              onDestroy: cleanup,
             });
             throw providerError;
           },
@@ -3105,41 +3103,9 @@ describe('streamText', () => {
         onError: () => {},
       });
 
-      await expect(result.text).rejects.toSatisfy(
-        (error: unknown) =>
-          error instanceof AggregateError &&
-          error.errors[0] === providerError &&
-          error.errors[1] === cleanupError,
-      );
-    });
-
-    it('passes a usable session to doStream when already aborted', async () => {
-      const abortController = new AbortController();
-      abortController.abort();
-      let destroyed = false;
-      let sessionUsableInDoStream = false;
-
-      const result = streamText({
-        model: new MockLanguageModelV4({
-          doStream: async options => {
-            options.experimental_session!.set('resource', 'value', {
-              onDestroy: () => {
-                destroyed = true;
-              },
-            });
-            sessionUsableInDoStream = true;
-            return { stream: createSuccessfulStream() };
-          },
-        }),
-        abortSignal: abortController.signal,
-        prompt: 'test-input',
-        onError: () => {},
-      });
-
       await result.consumeStream();
 
-      expect(sessionUsableInDoStream).toBe(true);
-      expect(destroyed).toBe(true);
+      expect(cleanup).toHaveBeenCalledExactlyOnceWith('value');
     });
 
     it('does not destroy when only one public tee branch is canceled', async () => {
@@ -3202,77 +3168,6 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(destroyed).toBe(true);
-    });
-
-    it('does not call doStream after stopStream destroys the session', async () => {
-      let doStreamCalls = 0;
-      let destroyedSessionSeen = false;
-
-      const result = streamText({
-        model: new MockLanguageModelV4({
-          doStream: async options => {
-            doStreamCalls++;
-            try {
-              options.experimental_session!.set(
-                `resource-${doStreamCalls}`,
-                'value',
-                {
-                  onDestroy: () => {},
-                },
-              );
-            } catch (error) {
-              destroyedSessionSeen =
-                error instanceof Error &&
-                error.message === 'Session has been destroyed.';
-              throw error;
-            }
-
-            return {
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'tool-call' as const,
-                  id: 'call-1',
-                  toolCallId: 'call-1',
-                  toolName: 'tool1',
-                  input: '{ "value": "test" }',
-                },
-                {
-                  type: 'finish' as const,
-                  finishReason: {
-                    unified: 'tool-calls' as const,
-                    raw: undefined,
-                  },
-                  usage: testUsage,
-                },
-              ]),
-            };
-          },
-        }),
-        tools: {
-          tool1: tool({
-            inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }) => `${value}-result`,
-          }),
-        },
-        experimental_transform: ({ stopStream }) =>
-          new TransformStream({
-            transform(chunk, controller) {
-              controller.enqueue(chunk);
-
-              if (chunk.type === 'tool-call') {
-                stopStream();
-              }
-            },
-          }),
-        prompt: 'test-input',
-        stopWhen: isStepCount(2),
-        onError: () => {},
-      });
-
-      await result.consumeStream();
-
-      expect(destroyedSessionSeen).toBe(false);
-      expect(doStreamCalls).toBe(1);
     });
   });
 

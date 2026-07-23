@@ -652,6 +652,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
               "doStreamCalls": [
                 {
                   "abortSignal": undefined,
+                  "experimental_session": undefined,
                   "frequencyPenalty": undefined,
                   "headers": {
                     "user-agent": "ai-sdk-agent/workflow",
@@ -826,6 +827,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
               "doStreamCalls": [
                 {
                   "abortSignal": undefined,
+                  "experimental_session": undefined,
                   "frequencyPenalty": undefined,
                   "headers": {
                     "user-agent": "ai-sdk-agent/workflow",
