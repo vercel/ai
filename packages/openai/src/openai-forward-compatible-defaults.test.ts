@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { createOpenAI } from './openai-provider';
 
-const prompt: LanguageModelV4Prompt = [
+const prompt: LanguageModelV3Prompt = [
   { role: 'system', content: 'Follow the instructions.' },
   { role: 'user', content: [{ type: 'text', text: 'Say ok.' }] },
 ];
