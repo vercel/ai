@@ -9,9 +9,15 @@ import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { openaiImageResponseSchema } from './openai-image-api';
 import {
+<<<<<<< HEAD
   type OpenAIImageModelId,
   hasDefaultResponseFormat,
   modelMaxImagesPerCall,
+=======
+  getMaxImagesPerCall,
+  hasDefaultResponseFormat,
+  openaiImageModelEditOptions,
+>>>>>>> 34c53c0ff1 (fix: new OpenAI model versions falling back to incompatible legacy request defaults (#17820))
   openaiImageModelGenerationOptions,
 } from './openai-image-options';
 
@@ -25,7 +31,7 @@ export class OpenAIImageModel implements ImageModelV2 {
   readonly specificationVersion = 'v2';
 
   get maxImagesPerCall(): number {
-    return modelMaxImagesPerCall[this.modelId] ?? 1;
+    return getMaxImagesPerCall(this.modelId);
   }
 
   get provider(): string {

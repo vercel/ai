@@ -24,12 +24,29 @@ export const modelMaxImagesPerCall: Record<OpenAIImageModelId, number> = {
   'gpt-image-2': 10,
 };
 
+<<<<<<< HEAD:packages/openai/src/image/openai-image-options.ts
 export const hasDefaultResponseFormat = new Set([
   'gpt-image-1',
   'gpt-image-1-mini',
   'gpt-image-1.5',
   'gpt-image-2',
 ]);
+=======
+const defaultResponseFormatPrefixes = ['chatgpt-image-', 'gpt-image-'];
+
+export function hasDefaultResponseFormat(modelId: string): boolean {
+  return defaultResponseFormatPrefixes.some(prefix =>
+    modelId.startsWith(prefix),
+  );
+}
+>>>>>>> 34c53c0ff1 (fix: new OpenAI model versions falling back to incompatible legacy request defaults (#17820)):packages/openai/src/image/openai-image-model-options.ts
+
+export function getMaxImagesPerCall(modelId: OpenAIImageModelId): number {
+  return (
+    modelMaxImagesPerCall[modelId] ??
+    (modelId.startsWith('gpt-image-') ? 10 : 1)
+  );
+}
 
 const baseImageModelOptionsObject = z.object({
   /**
