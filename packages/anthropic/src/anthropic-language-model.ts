@@ -339,7 +339,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       }
     }
 
-    const isAnthropicModel = isKnownModel || this.modelId.startsWith('claude-');
+    const isAnthropicModel = isKnownModel || this.modelId.includes('claude-');
 
     const supportsStructuredOutput =
       (this.config.supportsNativeStructuredOutput ?? true) &&
@@ -2726,6 +2726,15 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: false,
       supportsXhighEffort: false,
       isKnownModel: true,
+    };
+  } else if (modelId.includes('claude-')) {
+    return {
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      supportsAdaptiveThinking: true,
+      rejectsSamplingParameters: true,
+      supportsXhighEffort: true,
+      isKnownModel: false,
     };
   } else {
     return {

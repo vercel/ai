@@ -1200,7 +1200,7 @@ describe('AnthropicLanguageModel', () => {
       it('should pass json schema response format as output_config.format', async () => {
         expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
           {
-            "max_tokens": 4096,
+            "max_tokens": 128000,
             "messages": [
               {
                 "content": [
@@ -10766,6 +10766,41 @@ describe('getModelCapabilities', () => {
     expect(caps.rejectsSamplingParameters).toBe(false);
     expect(caps.supportsXhighEffort).toBe(false);
     expect(caps.supportsAdaptiveThinking).toBe(true);
+  });
+
+  it('should return current-generation capabilities for an unknown Claude model', () => {
+    expect(getModelCapabilities('claude-future-9')).toEqual({
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      supportsAdaptiveThinking: true,
+      rejectsSamplingParameters: true,
+      supportsXhighEffort: true,
+      isKnownModel: false,
+    });
+  });
+
+  it('should recognize an unknown platform-prefixed Claude model', () => {
+    expect(
+      getModelCapabilities('us.anthropic.claude-future-9-20990101-v1:0'),
+    ).toEqual({
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      supportsAdaptiveThinking: true,
+      rejectsSamplingParameters: true,
+      supportsXhighEffort: true,
+      isKnownModel: false,
+    });
+  });
+
+  it('should return conservative capabilities for an unknown non-Claude model', () => {
+    expect(getModelCapabilities('third-party-future-model')).toEqual({
+      maxOutputTokens: 4096,
+      supportsStructuredOutput: false,
+      supportsAdaptiveThinking: false,
+      rejectsSamplingParameters: false,
+      supportsXhighEffort: false,
+      isKnownModel: false,
+    });
   });
 });
 
