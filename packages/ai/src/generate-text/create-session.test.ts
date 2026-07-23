@@ -81,61 +81,6 @@ describe('createSession', () => {
     expect(cleanup).not.toHaveBeenCalled();
   });
 
-  it('runs synchronous and asynchronous cleanup sequentially in reverse insertion order', async () => {
-    const events: string[] = [];
-    let continueSecondCleanup: (() => void) | undefined;
-    const secondCleanupGate = new Promise<void>(resolve => {
-      continueSecondCleanup = resolve;
-    });
-    const session = createSession();
-
-    session.set(
-      'first',
-      { id: 1 },
-      {
-        onDestroy: value => {
-          events.push(`first:${value.id}`);
-        },
-      },
-    );
-    session.set(
-      'second',
-      { id: 2 },
-      {
-        onDestroy: async value => {
-          events.push(`second:start:${value.id}`);
-          await secondCleanupGate;
-          events.push(`second:end:${value.id}`);
-        },
-      },
-    );
-    session.set(
-      'third',
-      { id: 3 },
-      {
-        onDestroy: value => {
-          events.push(`third:${value.id}`);
-        },
-      },
-    );
-
-    const destroyPromise = session.destroy();
-
-    await Promise.resolve();
-
-    expect(events).toEqual(['third:3', 'second:start:2']);
-
-    continueSecondCleanup?.();
-    await destroyPromise;
-
-    expect(events).toEqual([
-      'third:3',
-      'second:start:2',
-      'second:end:2',
-      'first:1',
-    ]);
-  });
-
   it('attempts every cleanup and rethrows a sole cleanup error unchanged', async () => {
     const cleanupError = new Error('cleanup failed');
     const events: string[] = [];
@@ -159,10 +104,10 @@ describe('createSession', () => {
     });
 
     await expect(session.destroy()).rejects.toBe(cleanupError);
-    expect(events).toEqual(['third', 'second', 'first']);
+    expect(events).toEqual(['first', 'second', 'third']);
   });
 
-  it('aggregates multiple cleanup errors in cleanup order', async () => {
+  it('aggregates multiple cleanup errors in insertion order', async () => {
     const firstError = new Error('first cleanup failed');
     const secondError = new Error('second cleanup failed');
     const events: string[] = [];
@@ -191,9 +136,9 @@ describe('createSession', () => {
     expect(error).toBeInstanceOf(AggregateError);
     expect(error).toMatchObject({
       message: 'Failed to destroy session.',
-      errors: [secondError, firstError],
+      errors: [firstError, secondError],
     });
-    expect(events).toEqual(['second', 'middle', 'first']);
+    expect(events).toEqual(['first', 'middle', 'second']);
   });
 
   it('invalidates the session before cleanup begins', async () => {

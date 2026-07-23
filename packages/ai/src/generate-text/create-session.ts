@@ -63,16 +63,19 @@ class DefaultSession implements Session {
   private async doDestroy(): Promise<void> {
     this.destroyed = true;
 
-    const items = Array.from(this.items.values()).reverse();
+    const cleanupPromises = Array.from(this.items.values(), async item => {
+      await item.onDestroy?.();
+    });
+
     this.items.clear();
+
+    const results = await Promise.allSettled(cleanupPromises);
 
     const errors: unknown[] = [];
 
-    for (const item of items) {
-      try {
-        await item.onDestroy?.();
-      } catch (error) {
-        errors.push(error);
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        errors.push(result.reason);
       }
     }
 
