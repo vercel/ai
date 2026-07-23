@@ -512,8 +512,8 @@ describe('doGenerate', () => {
   const TEST_URL_GEMINI_3_1_PRO =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent';
 
-  const TEST_URL_GEMINI_4_PRO =
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-4-pro-preview:generateContent';
+  const TEST_URL_GEMINI_99_PRO =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-99-pro-preview:generateContent';
 
   const TEST_URL_GEMINI_2_5_PRO =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent';
@@ -532,7 +532,7 @@ describe('doGenerate', () => {
     [TEST_URL_GEMINI_1_5_FLASH]: {},
     [TEST_URL_GEMINI_3_PRO]: {},
     [TEST_URL_GEMINI_3_1_PRO]: {},
-    [TEST_URL_GEMINI_4_PRO]: {},
+    [TEST_URL_GEMINI_99_PRO]: {},
     [TEST_URL_GEMINI_2_5_PRO]: {},
     [TEST_URL_GEMINI_2_5_FLASH_LITE]: {},
     [TEST_URL_GEMINI_2_5_FLASH]: {},
@@ -688,7 +688,7 @@ describe('doGenerate', () => {
   });
 
   it('should use newest request behavior for an unknown future Gemini model', async () => {
-    server.urls[TEST_URL_GEMINI_4_PRO].response = {
+    server.urls[TEST_URL_GEMINI_99_PRO].response = {
       type: 'json-value',
       body: {
         candidates: [
@@ -704,7 +704,7 @@ describe('doGenerate', () => {
       },
     };
 
-    const model = provider.chat('gemini-4-pro-preview');
+    const model = provider.chat('gemini-99-pro-preview');
 
     await model.doGenerate({
       reasoning: 'high',

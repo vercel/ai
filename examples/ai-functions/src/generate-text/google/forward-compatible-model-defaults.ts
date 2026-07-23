@@ -13,7 +13,8 @@ type GoogleRequestBody = {
 
 let requestBody: GoogleRequestBody | undefined;
 
-// Use a synthetic response because the model ID represents a future model.
+// Use a synthetic response because gemini-99 is deliberately chosen to remain
+// an unknown future-model fixture as new Gemini generations are released.
 const google = createGoogle({
   apiKey: 'not-used',
   fetch: async (_url, options) => {
@@ -48,7 +49,7 @@ const google = createGoogle({
 
 run(async () => {
   const { text } = await generateText({
-    model: google('gemini-4-pro-preview'),
+    model: google('gemini-99-pro-preview'),
     prompt: 'Research a city and prepare a weather summary.',
     reasoning: 'high',
     tools: {

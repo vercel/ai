@@ -60,7 +60,9 @@ describe('getGoogleModelCapabilities', () => {
       },
     },
     {
-      modelId: 'gemini-4-pro-preview',
+      // Use a deliberately distant generation so this remains an unknown
+      // future-model fixture as new Gemini generations are released.
+      modelId: 'gemini-99-pro-preview',
       expected: {
         supportsGemini2Tools: true,
         supportsFileSearch: true,

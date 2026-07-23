@@ -256,7 +256,7 @@ it('should use newest tool support for an unknown future Gemini model', () => {
         },
       },
     ],
-    modelId: 'gemini-4-pro-preview',
+    modelId: 'gemini-99-pro-preview',
   });
 
   expect(result).toEqual({
