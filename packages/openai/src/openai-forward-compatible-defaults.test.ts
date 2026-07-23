@@ -62,7 +62,7 @@ function successfulResponsesResponse(model: string) {
 }
 
 describe('OpenAI forward-compatible model-family defaults', () => {
-  it('uses reasoning-safe Chat Completions request defaults for gpt-6', async () => {
+  it('uses reasoning-safe Chat Completions request defaults for gpt-99', async () => {
     const provider = createOpenAI({
       apiKey: 'test-api-key',
       fetch: async (_input, init) => {
@@ -85,7 +85,7 @@ describe('OpenAI forward-compatible model-family defaults', () => {
     });
 
     await expect(
-      provider.chat('gpt-6').doGenerate({
+      provider.chat('gpt-99').doGenerate({
         prompt,
         maxOutputTokens: 64,
         temperature: 0.2,
@@ -102,7 +102,7 @@ describe('OpenAI forward-compatible model-family defaults', () => {
     ).resolves.toBeDefined();
   });
 
-  it('uses reasoning-safe Responses API request defaults for gpt-6', async () => {
+  it('uses reasoning-safe Responses API request defaults for gpt-99', async () => {
     const provider = createOpenAI({
       apiKey: 'test-api-key',
       fetch: async (_input, init) => {
@@ -119,7 +119,7 @@ describe('OpenAI forward-compatible model-family defaults', () => {
     });
 
     await expect(
-      provider.responses('gpt-6').doGenerate({
+      provider.responses('gpt-99').doGenerate({
         prompt,
         temperature: 0.2,
         topP: 0.8,
@@ -132,7 +132,7 @@ describe('OpenAI forward-compatible model-family defaults', () => {
     ).resolves.toBeDefined();
   });
 
-  it('uses GPT Image family defaults for gpt-image-3', async () => {
+  it('uses GPT Image family defaults for gpt-image-99', async () => {
     const provider = createOpenAI({
       apiKey: 'test-api-key',
       fetch: async (_input, init) => {
@@ -146,7 +146,7 @@ describe('OpenAI forward-compatible model-family defaults', () => {
           : Response.json(imageResponseFormatError, { status: 400 });
       },
     });
-    const model = provider.image('gpt-image-3');
+    const model = provider.image('gpt-image-99');
 
     expect(model.maxImagesPerCall).toBe(10);
     await expect(

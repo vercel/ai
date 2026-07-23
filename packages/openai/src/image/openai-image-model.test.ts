@@ -201,7 +201,7 @@ describe('doGenerate', () => {
     const defaultModel = provider.image('dall-e-2');
     expect(defaultModel.maxImagesPerCall).toBe(10);
 
-    const futureGptImageModel = provider.image('gpt-image-3');
+    const futureGptImageModel = provider.image('gpt-image-99');
     expect(futureGptImageModel.maxImagesPerCall).toBe(10);
 
     const unknownModel = provider.image('unknown-model' as any);
@@ -330,7 +330,7 @@ describe('doGenerate', () => {
   it('should not include response_format for future gpt-image models', async () => {
     prepareJsonFixtureResponse('openai-image');
 
-    const gptImageModel = provider.image('gpt-image-3');
+    const gptImageModel = provider.image('gpt-image-99');
     await gptImageModel.doGenerate({
       prompt,
       files: undefined,
@@ -345,7 +345,7 @@ describe('doGenerate', () => {
     const requestBody =
       await server.calls[server.calls.length - 1].requestBodyJson;
     expect(requestBody).toStrictEqual({
-      model: 'gpt-image-3',
+      model: 'gpt-image-99',
       prompt,
       n: 1,
       size: '1024x1024',
