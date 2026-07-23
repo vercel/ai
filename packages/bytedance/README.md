@@ -170,7 +170,7 @@ object with `ByteDanceVideoModelOptions`.
 | `watermark`       | Whether to add a watermark to the generated video                              |
 | `generateAudio`   | Generate synchronized audio for supported Seedance models                      |
 | `cameraFixed`     | Whether to fix the camera during generation                                    |
-| `returnLastFrame` | Return the last frame of the generated video (useful for chaining)             |
+| `returnLastFrame` | Return the video's last frame as `providerMetadata.bytedance.lastFrameUrl`     |
 | `serviceTier`     | `'default'` for online inference, `'flex'` for offline at 50% price            |
 | `draft`           | Enable draft mode for low-cost 480p preview generation (Seedance 1.5 Pro only) |
 | `lastFrameImage`  | URL of last frame image for first-and-last frame generation                    |
