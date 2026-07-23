@@ -656,7 +656,6 @@ export async function generateText<
     });
 
     const session = createSession();
-    const shouldDestroySession = true;
 
     try {
       const initialMessages = initialPrompt.messages;
@@ -1379,9 +1378,7 @@ export async function generateText<
         !(await isStopConditionMet({ stopConditions, steps }))
       );
 
-      if (shouldDestroySession) {
-        await session.destroy();
-      }
+      await session.destroy();
 
       const lastStep = steps[steps.length - 1];
 
@@ -1477,16 +1474,14 @@ export async function generateText<
     } catch (error) {
       let finalError = error;
 
-      if (shouldDestroySession) {
-        try {
-          await session.destroy();
-        } catch (cleanupError) {
-          if (cleanupError !== error) {
-            finalError = new AggregateError(
-              [error, cleanupError],
-              'Generation failed and session cleanup also failed.',
-            );
-          }
+      try {
+        await session.destroy();
+      } catch (cleanupError) {
+        if (cleanupError !== error) {
+          finalError = new AggregateError(
+            [error, cleanupError],
+            'Generation failed and session cleanup also failed.',
+          );
         }
       }
 
