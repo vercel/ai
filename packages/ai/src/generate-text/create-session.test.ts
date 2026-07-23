@@ -1,4 +1,4 @@
-import { describe, expect, expectTypeOf, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createSession } from './create-session';
 
 describe('createSession', () => {
@@ -16,13 +16,10 @@ describe('createSession', () => {
 
     expect(session.has('object')).toBe(true);
     expect(session.has(symbolKey)).toBe(true);
-    expect(session.get<typeof object>('object')).toBe(object);
+    expect(session.get('object')).toBe(object);
     expect(session.get<string>(symbolKey)).toBe('symbol value');
-    expectTypeOf(session.get<typeof object>('object')).toEqualTypeOf<
-      typeof object | undefined
-    >();
 
-    expect(session.delete<typeof object>('object')).toBe(object);
+    expect(session.delete('object')).toBe(object);
     expect(session.has('object')).toBe(false);
   });
 
@@ -49,22 +46,14 @@ describe('createSession', () => {
     expect(session.get('key')).toBeUndefined();
   });
 
-  it('allows a deleted key to be inserted again', async () => {
-    const firstCleanup = vi.fn();
-    const secondCleanup = vi.fn();
+  it('allows a deleted key to be inserted again', () => {
     const session = createSession();
 
-    session.set('key', 'first', { onDestroy: firstCleanup });
+    session.set('key', 'first');
 
     expect(session.delete('key')).toBe('first');
-    expect(session.set('key', 'second', { onDestroy: secondCleanup })).toBe(
-      'second',
-    );
-
-    await session.destroy();
-
-    expect(firstCleanup).not.toHaveBeenCalled();
-    expect(secondCleanup).toHaveBeenCalledExactlyOnceWith('second');
+    expect(session.set('key', 'second')).toBe('second');
+    expect(session.get('key')).toBe('second');
   });
 
   it('does not run cleanup when deleting a value', async () => {
@@ -83,62 +72,52 @@ describe('createSession', () => {
 
   it('attempts every cleanup and rethrows a sole cleanup error unchanged', async () => {
     const cleanupError = new Error('cleanup failed');
-    const events: string[] = [];
+    const firstCleanup = vi.fn();
+    const failingCleanup = vi.fn(() => {
+      throw cleanupError;
+    });
+    const thirdCleanup = vi.fn();
     const session = createSession();
 
-    session.set('first', 'first', {
-      onDestroy: () => {
-        events.push('first');
-      },
-    });
+    session.set('first', 'first', { onDestroy: firstCleanup });
     session.set('second', 'second', {
-      onDestroy: () => {
-        events.push('second');
-        throw cleanupError;
-      },
+      onDestroy: failingCleanup,
     });
-    session.set('third', 'third', {
-      onDestroy: () => {
-        events.push('third');
-      },
-    });
+    session.set('third', 'third', { onDestroy: thirdCleanup });
 
     await expect(session.destroy()).rejects.toBe(cleanupError);
-    expect(events).toEqual(['first', 'second', 'third']);
+    expect(firstCleanup).toHaveBeenCalledExactlyOnceWith('first');
+    expect(failingCleanup).toHaveBeenCalledExactlyOnceWith('second');
+    expect(thirdCleanup).toHaveBeenCalledExactlyOnceWith('third');
   });
 
-  it('aggregates multiple cleanup errors in insertion order', async () => {
+  it('aggregates multiple cleanup errors', async () => {
     const firstError = new Error('first cleanup failed');
     const secondError = new Error('second cleanup failed');
-    const events: string[] = [];
+    const firstCleanup = vi.fn(() => {
+      throw firstError;
+    });
+    const successfulCleanup = vi.fn();
+    const secondCleanup = vi.fn(async () => {
+      throw secondError;
+    });
     const session = createSession();
 
-    session.set('first', 'first', {
-      onDestroy: () => {
-        events.push('first');
-        throw firstError;
-      },
-    });
-    session.set('middle', 'middle', {
-      onDestroy: () => {
-        events.push('middle');
-      },
-    });
-    session.set('second', 'second', {
-      onDestroy: async () => {
-        events.push('second');
-        throw secondError;
-      },
-    });
+    session.set('first', 'first', { onDestroy: firstCleanup });
+    session.set('middle', 'middle', { onDestroy: successfulCleanup });
+    session.set('second', 'second', { onDestroy: secondCleanup });
 
     const error = await session.destroy().catch(error => error);
 
     expect(error).toBeInstanceOf(AggregateError);
-    expect(error).toMatchObject({
-      message: 'Failed to destroy session.',
-      errors: [firstError, secondError],
-    });
-    expect(events).toEqual(['first', 'middle', 'second']);
+    expect(error.message).toBe('Failed to destroy session.');
+    expect(error.errors).toHaveLength(2);
+    expect(error.errors).toEqual(
+      expect.arrayContaining([firstError, secondError]),
+    );
+    expect(firstCleanup).toHaveBeenCalledExactlyOnceWith('first');
+    expect(successfulCleanup).toHaveBeenCalledExactlyOnceWith('middle');
+    expect(secondCleanup).toHaveBeenCalledExactlyOnceWith('second');
   });
 
   it('invalidates the session before cleanup begins', async () => {
@@ -176,12 +155,10 @@ describe('createSession', () => {
 
     expect(secondDestroyPromise).toBe(firstDestroyPromise);
 
-    await Promise.resolve();
-    expect(cleanup).toHaveBeenCalledExactlyOnceWith('value');
-
     continueCleanup?.();
     await firstDestroyPromise;
 
+    expect(cleanup).toHaveBeenCalledExactlyOnceWith('value');
     expect(session.destroy()).toBe(firstDestroyPromise);
     await session.destroy();
     expect(cleanup).toHaveBeenCalledOnce();

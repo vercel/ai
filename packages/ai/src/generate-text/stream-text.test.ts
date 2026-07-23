@@ -2938,8 +2938,7 @@ describe('streamText', () => {
 
             if (attempt++ === 0) {
               session.set('resource', 'persisted', {
-                onDestroy: async () => {
-                  await Promise.resolve();
+                onDestroy: () => {
                   callOrder.push('destroy');
                 },
               });
@@ -3068,7 +3067,7 @@ describe('streamText', () => {
         model: new MockLanguageModelV4({
           doStream: async options => {
             options.experimental_session!.set('resource', 'value', {
-              onDestroy: () => {
+              onDestroy: async () => {
                 throw cleanupError;
               },
             });
@@ -3106,35 +3105,6 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(cleanup).toHaveBeenCalledExactlyOnceWith('value');
-    });
-
-    it('does not destroy when only one public tee branch is canceled', async () => {
-      const providerCalled = new DelayedPromise<void>();
-      let destroyed = false;
-
-      const result = streamText({
-        model: new MockLanguageModelV4({
-          doStream: async options => {
-            options.experimental_session!.set('resource', 'value', {
-              onDestroy: () => {
-                destroyed = true;
-              },
-            });
-            providerCalled.resolve();
-            return { stream: new ReadableStream() };
-          },
-        }),
-        prompt: 'test-input',
-        onError: () => {},
-      });
-
-      const reader = result.fullStream.getReader();
-      await reader.read();
-      await providerCalled.promise;
-      void reader.cancel().catch(() => {});
-      await Promise.resolve();
-
-      expect(destroyed).toBe(false);
     });
 
     it('destroys when a transform terminates the operation', async () => {

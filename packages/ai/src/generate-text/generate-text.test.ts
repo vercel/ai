@@ -30,7 +30,6 @@ import {
   vitest,
 } from 'vitest';
 import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
-import * as createSessionModule from './create-session';
 import { signToolApproval } from './tool-approval-signature';
 import { z } from 'zod/v4';
 import * as logWarningsModule from '../logger/log-warnings';
@@ -298,10 +297,12 @@ describe('generateText', () => {
   });
 
   describe('session lifecycle', () => {
+    type Session = NonNullable<
+      LanguageModelV4CallOptions['experimental_session']
+    >;
+
     it('should preserve the session across retries and destroy it before onEnd', async () => {
-      const sessions: Array<
-        NonNullable<LanguageModelV4CallOptions['experimental_session']>
-      > = [];
+      const sessions: Session[] = [];
       const events: string[] = [];
       let attempt = 0;
 
@@ -309,12 +310,11 @@ describe('generateText', () => {
         ...defaultSettings(),
         model: new MockLanguageModelV4({
           doGenerate: async options => {
-            const session = options.experimental_session;
-            expect(session).toBeDefined();
-            sessions.push(session!);
+            const session = options.experimental_session!;
+            sessions.push(session);
 
             if (attempt++ === 0) {
-              session!.set('retry-state', 'available', {
+              session.set('retry-state', 'available', {
                 onDestroy: () => {
                   events.push('destroy');
                 },
@@ -329,7 +329,7 @@ describe('generateText', () => {
               });
             }
 
-            expect(session!.get<string>('retry-state')).toBe('available');
+            expect(session.get<string>('retry-state')).toBe('available');
 
             return {
               ...dummyResponseValues,
@@ -352,17 +352,14 @@ describe('generateText', () => {
     });
 
     it('should preserve the session across steps and model changes', async () => {
-      const sessions: Array<
-        NonNullable<LanguageModelV4CallOptions['experimental_session']>
-      > = [];
+      const sessions: Session[] = [];
       const events: string[] = [];
 
       const firstModel = new MockLanguageModelV4({
         doGenerate: async options => {
-          const session = options.experimental_session;
-          expect(session).toBeDefined();
-          sessions.push(session!);
-          session!.set('step-state', 'available', {
+          const session = options.experimental_session!;
+          sessions.push(session);
+          session.set('step-state', 'available', {
             onDestroy: () => {
               events.push('destroy');
             },
@@ -384,10 +381,9 @@ describe('generateText', () => {
       });
       const secondModel = new MockLanguageModelV4({
         doGenerate: async options => {
-          const session = options.experimental_session;
-          expect(session).toBeDefined();
-          sessions.push(session!);
-          expect(session!.get<string>('step-state')).toBe('available');
+          const session = options.experimental_session!;
+          sessions.push(session);
+          expect(session.get<string>('step-state')).toBe('available');
 
           return {
             ...dummyResponseValues,
@@ -419,12 +415,9 @@ describe('generateText', () => {
     });
 
     it('should create distinct sessions for concurrent generations', async () => {
-      const sessions: Array<
-        NonNullable<LanguageModelV4CallOptions['experimental_session']>
-      > = [];
+      const sessions: Session[] = [];
       const model = new MockLanguageModelV4({
         doGenerate: async options => {
-          expect(options.experimental_session).toBeDefined();
           sessions.push(options.experimental_session!);
 
           return {
@@ -477,7 +470,7 @@ describe('generateText', () => {
           model: new MockLanguageModelV4({
             doGenerate: async options => {
               options.experimental_session!.set('resource', 'value', {
-                onDestroy: () => {
+                onDestroy: async () => {
                   throw cleanupError;
                 },
               });
@@ -521,35 +514,51 @@ describe('generateText', () => {
       ]);
     });
 
-    it('should destroy the session when setup for a step fails', async () => {
-      const session = createSessionModule.createSession();
-      const destroySpy = vi.spyOn(session, 'destroy');
-      const createSessionSpy = vi
-        .spyOn(createSessionModule, 'createSession')
-        .mockReturnValue(session);
+    it('should destroy the session when preparing the next step fails', async () => {
       const setupError = new Error('step setup failed');
+      const cleanup = vi.fn();
 
-      try {
-        await expect(
-          generateText({
-            ...defaultSettings(),
-            model: new MockLanguageModelV4({
-              doGenerate: {
+      await expect(
+        generateText({
+          ...defaultSettings(),
+          model: new MockLanguageModelV4({
+            doGenerate: async options => {
+              options.experimental_session!.set('resource', 'value', {
+                onDestroy: cleanup,
+              });
+
+              return {
                 ...dummyResponseValues,
-                content: [{ type: 'text', text: 'Hello, world!' }],
-              },
-            }),
-            prepareStep: () => {
-              throw setupError;
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    input: '{}',
+                  },
+                ],
+              };
             },
           }),
-        ).rejects.toBe(setupError);
+          tools: {
+            tool1: {
+              inputSchema: z.object({}),
+              execute: async () => 'result',
+            },
+          },
+          stopWhen: isStepCount(2),
+          prepareStep: ({ stepNumber }) => {
+            if (stepNumber === 1) {
+              throw setupError;
+            }
 
-        expect(destroySpy).toHaveBeenCalledTimes(1);
-      } finally {
-        createSessionSpy.mockRestore();
-        destroySpy.mockRestore();
-      }
+            return undefined;
+          },
+        }),
+      ).rejects.toBe(setupError);
+
+      expect(cleanup).toHaveBeenCalledExactlyOnceWith('value');
     });
   });
 
