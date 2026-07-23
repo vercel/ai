@@ -1167,23 +1167,6 @@ class DefaultStreamTextResult<
     > = createIdMap();
     let recordedNoOutputError: NoOutputGeneratedError | undefined;
 
-    // Returns undefined on success, or a cleanup / aggregated error on failure.
-    async function destroySession(
-      originalError?: unknown,
-    ): Promise<unknown | undefined> {
-      try {
-        await session.destroy();
-        return undefined;
-      } catch (cleanupError) {
-        return originalError === undefined
-          ? cleanupError
-          : new AggregateError(
-              [originalError, cleanupError],
-              'Streaming failed and session cleanup also failed.',
-            );
-      }
-    }
-
     const eventProcessor = new TransformStream<
       EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
       EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
@@ -1403,8 +1386,9 @@ class DefaultStreamTextResult<
 
       async flush(controller) {
         try {
-          const cleanupError = await destroySession();
-          if (cleanupError != null) {
+          try {
+            await session.destroy();
+          } catch (cleanupError) {
             self.rejectResultPromises(cleanupError);
             await onError({ error: cleanupError });
             controller.error(cleanupError);
@@ -2478,9 +2462,13 @@ class DefaultStreamTextResult<
     })().catch(async error => {
       let finalError = error;
 
-      const cleanupError = await destroySession(error);
-      if (cleanupError != null) {
-        finalError = cleanupError;
+      try {
+        await session.destroy();
+      } catch (cleanupError) {
+        finalError = new AggregateError(
+          [error, cleanupError],
+          'Streaming failed and session cleanup also failed.',
+        );
       }
 
       await telemetryDispatcher.onError?.({
