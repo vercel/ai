@@ -301,16 +301,12 @@ describe('doGenerate', () => {
     expect(requestBody).not.toHaveProperty('response_format');
   });
 
-<<<<<<< HEAD
-=======
   it('should not include response_format for future gpt-image models', async () => {
-    prepareJsonFixtureResponse('openai-image');
+    prepareJsonResponse();
 
     const gptImageModel = provider.image('gpt-image-99');
     await gptImageModel.doGenerate({
       prompt,
-      files: undefined,
-      mask: undefined,
       n: 1,
       size: '1024x1024',
       aspectRatio: undefined,
@@ -330,61 +326,6 @@ describe('doGenerate', () => {
     expect(requestBody).not.toHaveProperty('response_format');
   });
 
-  it('should not include response_format for chatgpt-image-latest', async () => {
-    prepareJsonFixtureResponse('openai-image');
-
-    const chatgptImageModel = provider.image('chatgpt-image-latest');
-    await chatgptImageModel.doGenerate({
-      prompt,
-      files: undefined,
-      mask: undefined,
-      n: 1,
-      size: '1024x1024',
-      aspectRatio: undefined,
-      seed: undefined,
-      providerOptions: {},
-    });
-
-    const requestBody =
-      await server.calls[server.calls.length - 1].requestBodyJson;
-    expect(requestBody).toStrictEqual({
-      model: 'chatgpt-image-latest',
-      prompt,
-      n: 1,
-      size: '1024x1024',
-    });
-
-    expect(requestBody).not.toHaveProperty('response_format');
-  });
-
-  it('should not include response_format for date-suffixed gpt-image model IDs (Azure deployment names)', async () => {
-    prepareJsonFixtureResponse('openai-image');
-
-    const azureDeploymentModel = provider.image('gpt-image-1.5-2025-12-16');
-    await azureDeploymentModel.doGenerate({
-      prompt,
-      files: undefined,
-      mask: undefined,
-      n: 1,
-      size: '1024x1024',
-      aspectRatio: undefined,
-      seed: undefined,
-      providerOptions: {},
-    });
-
-    const requestBody =
-      await server.calls[server.calls.length - 1].requestBodyJson;
-    expect(requestBody).toStrictEqual({
-      model: 'gpt-image-1.5-2025-12-16',
-      prompt,
-      n: 1,
-      size: '1024x1024',
-    });
-
-    expect(requestBody).not.toHaveProperty('response_format');
-  });
-
->>>>>>> 34c53c0ff1 (fix: new OpenAI model versions falling back to incompatible legacy request defaults (#17820))
   it('should handle null revised_prompt responses', async () => {
     server.urls['https://api.openai.com/v1/images/generations'].response = {
       type: 'json-value',

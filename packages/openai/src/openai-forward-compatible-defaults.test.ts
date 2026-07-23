@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import { createOpenAI } from './openai-provider';
 
-const prompt: LanguageModelV4Prompt = [
+const prompt: LanguageModelV2Prompt = [
   { role: 'system', content: 'Follow the instructions.' },
   { role: 'user', content: [{ type: 'text', text: 'Say ok.' }] },
 ];
@@ -152,8 +152,6 @@ describe('OpenAI forward-compatible model-family defaults', () => {
     await expect(
       model.doGenerate({
         prompt: 'A black square.',
-        files: undefined,
-        mask: undefined,
         n: 2,
         size: undefined,
         aspectRatio: undefined,

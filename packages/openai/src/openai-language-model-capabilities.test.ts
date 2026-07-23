@@ -47,13 +47,10 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['o4', true],
       ['o4-mini', true],
       ['o4-mini-2025-04-16', true],
-<<<<<<< HEAD
       ['codex-mini-latest', true],
       ['computer-use-preview', true],
-=======
       ['o99', true],
       ['o99-2099-01-01', true],
->>>>>>> 34c53c0ff1 (fix: new OpenAI model versions falling back to incompatible legacy request defaults (#17820))
       ['gpt-5', true],
       ['gpt-5-2025-08-07', true],
       ['gpt-5-codex', true],
@@ -71,9 +68,6 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['gpt-5.6-luna', true],
       ['gpt-5.6-sol', true],
       ['gpt-5.6-terra', true],
-<<<<<<< HEAD
-      ['new-unknown-model', true],
-=======
       ['gpt-5.99', true],
       ['gpt-99', true],
       ['gpt-99-mini', true],
@@ -82,7 +76,6 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['ft:gpt-99:org:custom:abc123', false],
       ['acme-gpt-99-proxy', false],
       ['custom-model', false],
->>>>>>> 34c53c0ff1 (fix: new OpenAI model versions falling back to incompatible legacy request defaults (#17820))
     ])('%s reasoning model: %s', (modelId, expectedCapabilities) => {
       expect(
         getOpenAILanguageModelCapabilities(modelId).isReasoningModel,

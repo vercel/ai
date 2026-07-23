@@ -32,35 +32,20 @@ export function getOpenAILanguageModelCapabilities(
       !isGptChatModel) ||
     (oSeriesVersion != null && oSeriesVersion >= 3);
 
-<<<<<<< HEAD
-  const isReasoningModel = !(
-    modelId.startsWith('gpt-3') ||
-    modelId.startsWith('gpt-4') ||
-    modelId.startsWith('chatgpt-4o') ||
-    modelId.startsWith('gpt-5-chat')
-  );
-=======
   // Only recognizable OpenAI model families should use the developer role.
   // Fine-tuned, third-party, and custom model IDs keep conservative defaults.
   const isReasoningModel =
     oSeriesVersion != null ||
-    (gptVersion != null && gptVersion.major >= 5 && !isGptChatModel);
->>>>>>> 34c53c0ff1 (fix: new OpenAI model versions falling back to incompatible legacy request defaults (#17820))
+    (gptVersion != null && gptVersion.major >= 5 && !isGptChatModel) ||
+    modelId === 'codex-mini-latest' ||
+    modelId === 'computer-use-preview';
 
   // https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
-  // GPT-5.1, GPT-5.2, and GPT-5.4 support temperature, topP, logProbs when reasoningEffort is none
+  // GPT-5.1 and later model families support temperature, topP, logProbs when reasoningEffort is none.
   const supportsNonReasoningParameters =
-<<<<<<< HEAD
-    modelId.startsWith('gpt-5.1') ||
-    modelId.startsWith('gpt-5.2') ||
-    modelId.startsWith('gpt-5.3') ||
-    modelId.startsWith('gpt-5.4') ||
-    modelId.startsWith('gpt-5.6');
-=======
     gptVersion != null &&
     (gptVersion.major > 5 ||
       (gptVersion.major === 5 && (gptVersion.minor ?? 0) >= 1));
->>>>>>> 34c53c0ff1 (fix: new OpenAI model versions falling back to incompatible legacy request defaults (#17820))
 
   const systemMessageMode = isReasoningModel ? 'developer' : 'system';
 

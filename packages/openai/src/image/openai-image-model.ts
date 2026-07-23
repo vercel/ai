@@ -9,15 +9,9 @@ import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { openaiImageResponseSchema } from './openai-image-api';
 import {
-<<<<<<< HEAD
   type OpenAIImageModelId,
-  hasDefaultResponseFormat,
-  modelMaxImagesPerCall,
-=======
   getMaxImagesPerCall,
   hasDefaultResponseFormat,
-  openaiImageModelEditOptions,
->>>>>>> 34c53c0ff1 (fix: new OpenAI model versions falling back to incompatible legacy request defaults (#17820))
   openaiImageModelGenerationOptions,
 } from './openai-image-options';
 
@@ -97,7 +91,7 @@ export class OpenAIImageModel implements ImageModelV2 {
         output_format: openaiOptions.outputFormat,
         output_compression: openaiOptions.outputCompression,
         user: openaiOptions.user,
-        ...(!hasDefaultResponseFormat.has(this.modelId)
+        ...(!hasDefaultResponseFormat(this.modelId)
           ? { response_format: 'b64_json' }
           : {}),
       },
