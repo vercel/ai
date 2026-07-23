@@ -82,6 +82,114 @@ const dummyResponseValues = {
   warnings: [],
 };
 
+describe('abort signal handling', () => {
+  it('should reject when the abort signal fires during tool execution', async () => {
+    const abortController = new AbortController();
+    const abortError = new DOMException('tool execution aborted', 'AbortError');
+    let modelCallCount = 0;
+
+    const result = generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async () => {
+          modelCallCount++;
+
+          if (modelCallCount === 1) {
+            return {
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: `{ "value": "value" }`,
+                },
+              ],
+            };
+          }
+
+          return {
+            ...dummyResponseValues,
+            content: [],
+            finishReason: { unified: 'other', raw: 'unknown' },
+          };
+        },
+      }),
+      tools: {
+        tool1: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: async (_input, { abortSignal }) => {
+            abortController.abort(abortError);
+            abortSignal?.throwIfAborted();
+          },
+        },
+      },
+      prompt: 'test-input',
+      abortSignal: abortController.signal,
+      stopWhen: isStepCount(10),
+      maxRetries: 0,
+    });
+
+    await expect(result).rejects.toMatchInlineSnapshot(
+      `[AbortError: tool execution aborted]`,
+    );
+    expect(modelCallCount).toBe(1);
+  });
+
+  it('should reject before another model call when a tool completes after cancellation', async () => {
+    const abortController = new AbortController();
+    const abortError = new DOMException('tool execution aborted', 'AbortError');
+    let modelCallCount = 0;
+
+    const result = generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async () => {
+          modelCallCount++;
+
+          if (modelCallCount === 1) {
+            return {
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: `{ "value": "value" }`,
+                },
+              ],
+            };
+          }
+
+          return {
+            ...dummyResponseValues,
+            content: [],
+            finishReason: { unified: 'other', raw: 'unknown' },
+          };
+        },
+      }),
+      tools: {
+        tool1: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: async () => {
+            abortController.abort(abortError);
+            return 'tool result';
+          },
+        },
+      },
+      prompt: 'test-input',
+      abortSignal: abortController.signal,
+      stopWhen: isStepCount(10),
+      maxRetries: 0,
+    });
+
+    await expect(result).rejects.toMatchInlineSnapshot(
+      `[AbortError: tool execution aborted]`,
+    );
+    expect(modelCallCount).toBe(1);
+  });
+});
+
 const modelWithSources = new MockLanguageModelV4({
   doGenerate: {
     ...dummyResponseValues,
@@ -6670,6 +6778,20 @@ describe('generateText', () => {
             "options": {
               "abortSignal": undefined,
               "context": {},
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call-1",
+            },
+            "type": "onInputStart",
+          },
+          {
+            "options": {
+              "abortSignal": undefined,
+              "context": {},
               "input": {
                 "value": "value",
               },
@@ -11136,6 +11258,95 @@ describe('generateText', () => {
           ]
         `);
       });
+    });
+
+    it('should not duplicate an existing execution-denied result', async () => {
+      const prompts: LanguageModelV4Prompt[] = [];
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async ({ prompt }) => {
+            prompts.push(prompt);
+            return {
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'text',
+                  text: 'Hello, world!',
+                },
+              ],
+              finishReason: { unified: 'stop', raw: 'stop' },
+            };
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: vi.fn(),
+          }),
+        },
+        toolApproval: {
+          tool1: 'user-approval',
+        },
+        stopWhen: isStepCount(3),
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
+        },
+        messages: [
+          { role: 'user', content: 'test-input' },
+          {
+            role: 'assistant',
+            content: [
+              {
+                input: {
+                  value: 'value',
+                },
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                type: 'tool-call',
+              },
+              {
+                approvalId: 'id-1',
+                toolCallId: 'call-1',
+                type: 'tool-approval-request',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                approvalId: 'id-1',
+                type: 'tool-approval-response',
+                approved: false,
+                reason: 'User denied the request',
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                output: {
+                  type: 'execution-denied',
+                  reason: 'User denied the request',
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect({
+        promptExecutionDeniedOccurrences:
+          JSON.stringify(prompts).match(/execution-denied/g)?.length ?? 0,
+        responseExecutionDeniedOccurrences:
+          JSON.stringify(result.responseMessages).match(/execution-denied/g)
+            ?.length ?? 0,
+      }).toMatchInlineSnapshot(`
+        {
+          "promptExecutionDeniedOccurrences": 1,
+          "responseExecutionDeniedOccurrences": 0,
+        }
+      `);
     });
 
     describe('when a single tool is automatically rejected', () => {

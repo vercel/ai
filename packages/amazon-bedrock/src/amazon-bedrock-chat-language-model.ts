@@ -30,7 +30,10 @@ import {
   type ParseResult,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
-import { getModelCapabilities } from '@ai-sdk/anthropic/internal';
+import {
+  getModelCapabilities,
+  sanitizeJsonSchema,
+} from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
 import {
   BEDROCK_STOP_REASONS,
@@ -355,7 +358,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
           ...amazonBedrockOptions.additionalModelRequestFields?.output_config,
           format: {
             type: 'json_schema',
-            schema: responseFormat!.schema,
+            schema: sanitizeJsonSchema(responseFormat!.schema!),
           },
         },
       };
@@ -485,7 +488,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
   }
 
   readonly supportedUrls: Record<string, RegExp[]> = {
-    // no supported urls for bedrock
+    'image/*': [/^s3:\/\//],
   };
 
   private async getHeaders({
@@ -1097,8 +1100,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
   }
 
   private getUrl(modelId: string) {
-    const encodedModelId = encodeURIComponent(modelId);
-    return `${this.config.baseUrl()}/model/${encodedModelId}`;
+    return `${this.config.baseUrl()}/model/${encodeURIComponent(modelId)}`;
   }
 }
 

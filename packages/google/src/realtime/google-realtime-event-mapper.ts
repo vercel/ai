@@ -17,6 +17,7 @@ type GoogleRealtimeFunctionCall = {
 };
 
 type GoogleRealtimeServerContent = {
+  generationComplete?: boolean;
   interrupted?: boolean;
   modelTurn?: {
     parts?: Array<{
@@ -37,6 +38,12 @@ type GoogleRealtimeWireEvent = {
   toolCallCancellation?: unknown;
   serverContent?: GoogleRealtimeServerContent;
   inputTranscription?: { text?: string };
+  goAway?: { timeLeft?: string };
+  sessionResumptionUpdate?: {
+    newHandle?: string;
+    resumable?: boolean;
+    lastConsumedClientMessageIndex?: string;
+  };
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -127,6 +134,22 @@ export class GoogleRealtimeEventMapper {
       };
     }
 
+    if (data.goAway != null) {
+      return {
+        type: 'custom',
+        rawType: 'goAway',
+        raw,
+      };
+    }
+
+    if (data.sessionResumptionUpdate != null) {
+      return {
+        type: 'custom',
+        rawType: 'sessionResumptionUpdate',
+        raw,
+      };
+    }
+
     if (data.serverContent != null) {
       return this.parseServerContent(data.serverContent, raw);
     }
@@ -199,6 +222,17 @@ export class GoogleRealtimeEventMapper {
         type: 'input-transcription-completed',
         itemId: `google-input-${this.turnCounter}`,
         transcript: serverContent.inputTranscription.text,
+        raw,
+      });
+    }
+
+    // `generationComplete` means generation has stopped, but playback and the
+    // turn can remain open. Keep it distinct from `response-done`, which is
+    // emitted only when Google sends `turnComplete`.
+    if (serverContent.generationComplete) {
+      events.push({
+        type: 'custom',
+        rawType: 'generationComplete',
         raw,
       });
     }

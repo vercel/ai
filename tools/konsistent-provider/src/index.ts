@@ -139,8 +139,7 @@ export const conventions = defineConventions([
   },
   {
     name: 'provider-model-file-must-export-model-class',
-    description:
-      "Every provider's model file must export a model class and a model options type.",
+    description: "Every provider's model file must export a model class.",
     for: {
       files: [
         '${providerId}-{modelKind:segments(1)}-model.ts',
@@ -160,13 +159,26 @@ export const conventions = defineConventions([
           implement: ['${modelKind.toPascalCase()}ModelV4'],
         },
       ],
+    },
+  },
+  {
+    name: 'provider-model-file-must-have-matching-model-options-file',
+    description:
+      "Every provider's model file must have a matching model options file.",
+    for: {
+      files: [
+        '${providerId}-{modelKind:segments(1)}-model.ts',
+        '*/${providerId}-{modelKind:segments(1)}-model.ts',
+      ],
+    },
+    must: {
       haveFiles: ['${providerId}-${modelKind}-model-options.ts'],
     },
   },
   {
     name: 'provider-model-file-with-subtype-must-export-model-class',
     description:
-      "Every provider's model file with a specific subtype (e.g. chat, responses) must export a model class and a model options type.",
+      "Every provider's model file with a specific subtype (e.g. chat, responses) must export a model class.",
     for: {
       files: [
         '${providerId}-{modelKind:segments(2)}-model.ts',
@@ -186,13 +198,26 @@ export const conventions = defineConventions([
           implement: ['${modelKind.toNthSegmentPascalCase(1)}ModelV4'],
         },
       ],
+    },
+  },
+  {
+    name: 'provider-model-file-with-subtype-must-have-matching-model-options-file',
+    description:
+      "Every provider's model file with a specific subtype (e.g. chat, responses) must have a matching model options file.",
+    for: {
+      files: [
+        '${providerId}-{modelKind:segments(2)}-model.ts',
+        '*/${providerId}-{modelKind:segments(2)}-model.ts',
+      ],
+    },
+    must: {
       haveFiles: ['${providerId}-${modelKind}-model-options.ts'],
     },
   },
   {
     name: 'provider-video-model-file-must-export-model-class',
     description:
-      "Every provider's video model file must export a model class and a model options type (separated only because VideoModelV4 type is experimental).",
+      "Every provider's video model file must export a model class (separated only because VideoModelV4 type is experimental).",
     for: {
       files: ['${providerId}-video-model.ts', '*/${providerId}-video-model.ts'],
     },
@@ -209,6 +234,16 @@ export const conventions = defineConventions([
           implement: ['Experimental_VideoModelV4'],
         },
       ],
+    },
+  },
+  {
+    name: 'provider-video-model-file-must-have-matching-model-options-file',
+    description:
+      "Every provider's video model file must have a matching model options file (separated only because VideoModelV4 type is experimental).",
+    for: {
+      files: ['${providerId}-video-model.ts', '*/${providerId}-video-model.ts'],
+    },
+    must: {
       haveFiles: ['${providerId}-video-model-options.ts'],
     },
   },

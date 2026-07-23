@@ -6,7 +6,8 @@ description: Learn how to use the Cartesia provider for the AI SDK.
 # Cartesia Provider
 
 The [Cartesia](https://cartesia.ai/) provider contains Sonic speech generation,
-Ink-Whisper batch transcription, and Ink 2 realtime transcription support.
+Ink-Whisper batch transcription, and Ink 2 realtime and streaming transcription
+support.
 
 ## Setup
 
@@ -68,6 +69,11 @@ You can use the following optional settings to customize the Cartesia provider i
   Defaults to the global `fetch` function.
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
+
+- **webSocket** _WebSocketConstructor_
+
+  Custom WebSocket implementation for Ink 2 streaming transcription.
+  Defaults to the global `WebSocket` constructor.
 
 ## Speech Models
 
@@ -198,6 +204,57 @@ setup.
 | ------- | ----------------------- | ------------------- |
 | `ink-2` | <Check size={18} />     | <Check size={18} /> |
 
+## Streaming Transcription Models
+
+<Note type="warning">Streaming transcription is an experimental feature.</Note>
+
+Ink 2 is also available through the transcription streaming API. Create the
+model with `.transcription()` and pass it to `experimental_streamTranscribe`:
+
+```ts
+import { cartesia } from '@ai-sdk/cartesia';
+import { experimental_streamTranscribe as streamTranscribe } from 'ai';
+
+const result = streamTranscribe({
+  model: cartesia.transcription('ink-2'),
+  audio, // ReadableStream<Uint8Array | string> containing raw audio chunks
+  inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+  providerOptions: {
+    cartesia: {
+      language: 'en',
+    },
+  },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'transcript-partial') {
+    console.log('partial:', part.text);
+  }
+
+  if (part.type === 'transcript-final') {
+    console.log('final:', part.text);
+  }
+}
+```
+
+The provider creates a short-lived, STT-scoped Cartesia access token before
+opening the WebSocket, so the API key is not included in the WebSocket URL.
+Send audio chunks at approximately their playback rate; Cartesia's realtime
+endpoint is intended for live audio rather than bulk file upload.
+
+Ink 2 supports English audio and uses Cartesia's native turn detection by
+default. To finalize only when the input audio stream ends, pass
+`providerOptions.cartesia.streaming.turnDetection: false`.
+
+See [Transcription](/docs/ai-sdk-core/transcription) for more information about
+streaming transcription.
+
+### Model Capabilities
+
+| Model   | Streaming Transcription | Turn Detection      |
+| ------- | ----------------------- | ------------------- |
+| `ink-2` | <Check size={18} />     | <Check size={18} /> |
+
 ## Batch Transcription Models
 
 You can create models that call the [Cartesia transcription API](https://docs.cartesia.ai/api-reference/stt/transcribe)
@@ -224,7 +281,7 @@ const result = await transcribe({
 
 You can also pass additional provider-specific options using the `providerOptions` argument:
 
-```ts highlight="6"
+```ts highlight="11-15"
 import { transcribe } from 'ai';
 import {
   cartesia,
