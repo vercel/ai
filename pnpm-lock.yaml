@@ -319,6 +319,9 @@ importers:
       '@ai-sdk/quiverai':
         specifier: workspace:*
         version: link:../../packages/quiverai
+      '@ai-sdk/react':
+        specifier: workspace:*
+        version: link:../../packages/react
       '@ai-sdk/replicate':
         specifier: workspace:*
         version: link:../../packages/replicate
