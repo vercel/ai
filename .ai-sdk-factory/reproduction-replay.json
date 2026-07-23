@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 17799,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-17799-openai-forward-compatible-defaults.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-17799-openai-forward-compatible-defaults.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue 17799 reproduced: o5 requested flex tier was stripped; gpt-6 requested priority tier was stripped; gpt-5.7 reasoningEffort none silently stripped supported sampling parameters; gpt-image-3 sent rejected response_format and split two images into two requests"
+  }
+}
