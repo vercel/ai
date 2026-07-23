@@ -1607,6 +1607,7 @@ class DefaultStreamTextResult<
     const callSettings = prepareLanguageModelCallOptions(settings);
 
     const self = this;
+
     const callId = generateCallId();
 
     (async () => {
