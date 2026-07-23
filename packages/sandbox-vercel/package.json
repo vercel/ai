@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/sandbox-vercel",
-  "version": "1.0.41",
+  "version": "1.0.42",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
