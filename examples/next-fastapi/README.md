@@ -2,34 +2,55 @@
 
 These examples show you how to use the [AI SDK](https://ai-sdk.dev/docs) with [Next.js](https://nextjs.org) and [FastAPI](https://fastapi.tiangolo.com).
 
-## How to use
+## Prerequisites
 
-Execute [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app) with [npm](https://docs.npmjs.com/cli/init), [Yarn](https://yarnpkg.com/lang/en/docs/cli/create/), or [pnpm](https://pnpm.io) to bootstrap the example:
+- Node.js 22, 24, or 26
+- pnpm 10 or later
+- [Python 3.8 or later](https://www.python.org/downloads/)
+- macOS, Linux, or Windows Subsystem for Linux (the Python dependencies include `uvloop`, which does not support native Windows)
 
-```bash
-npx create-next-app --example https://github.com/vercel/ai/tree/main/examples/next-fastapi next-fastapi-app
-```
+## Setup
 
-```bash
-yarn create next-app --example https://github.com/vercel/ai/tree/main/examples/next-fastapi next-fastapi-app
-```
+This example depends on local AI SDK workspace packages, so run it from a clone of the AI SDK repository instead of using `create-next-app`.
 
-```bash
-pnpm create next-app --example https://github.com/vercel/ai/tree/main/examples/next-fastapi next-fastapi-app
-```
+1. Clone the repository, or use an existing checkout:
 
-You will also need [Python 3.6+](https://www.python.org/downloads) and [virtualenv](https://virtualenv.pypa.io/en/latest/installation.html) installed to run the FastAPI server.
+   ```bash
+   git clone https://github.com/vercel/ai.git
+   cd ai
+   ```
 
-To run the example locally you need to:
+2. From the repository root, install dependencies and build the workspace packages:
 
-1. Sign up at [OpenAI's Developer Platform](https://platform.openai.com/signup).
-2. Go to [OpenAI's dashboard](https://platform.openai.com/account/api-keys) and create an API KEY.
-3. Set the required environment variables as shown in [the example env file](./.env.local.example) but in a new file called `.env.local`.
-4. `virtualenv venv` to create a python virtual environment.
-5. `source venv/bin/activate` to activate the python virtual environment.
-6. `pip install -r requirements.txt` to install the required python dependencies.
-7. `pnpm install` to install the required dependencies.
-8. `pnpm dev` to launch the development server.
+   ```bash
+   pnpm install
+   pnpm build:packages
+   ```
+
+3. Change to the example directory:
+
+   ```bash
+   cd examples/next-fastapi
+   ```
+
+4. Copy the example environment file and add an [OpenAI API key](https://platform.openai.com/api-keys):
+
+   ```bash
+   cp .env.local.example .env.local
+   ```
+
+5. Create and activate a Python virtual environment:
+
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+
+6. Start the Next.js and FastAPI development servers:
+
+   ```bash
+   pnpm dev
+   ```
 
 ## Learn More
 
