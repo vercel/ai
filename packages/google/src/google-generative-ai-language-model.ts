@@ -39,6 +39,7 @@ import {
   googleLanguageModelOptions,
   type GoogleGenerativeAIModelId,
 } from './google-generative-ai-options';
+import { getGoogleModelCapabilities } from './google-model-capabilities';
 import type {
   GoogleGenerativeAIContentPart,
   GoogleGenerativeAIProviderMetadata,
@@ -229,16 +230,15 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     }
 
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
-    const isGemini3Model = /^gemini-3[.-]/.test(this.modelId);
-    const supportsFunctionResponseParts = isGemini3Model;
+    const { usesGemini3Features } = getGoogleModelCapabilities(this.modelId);
 
     const { contents, systemInstruction } = convertToGoogleGenerativeAIMessages(
       prompt,
       {
         isGemmaModel,
-        isGemini3Model,
+        isGemini3Model: usesGemini3Features,
         providerOptionsName,
-        supportsFunctionResponseParts,
+        supportsFunctionResponseParts: usesGemini3Features,
         onWarning: warning => warnings.push(warning),
       },
     );
