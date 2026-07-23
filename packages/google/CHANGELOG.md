@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.100
+
+### Patch Changes
+
+- dae771a: feat(provider/google): default unknown Gemini model IDs to the newest supported capabilities
+
 ## 3.0.99
 
 ### Patch Changes

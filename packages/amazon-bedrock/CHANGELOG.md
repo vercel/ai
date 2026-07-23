@@ -1,5 +1,15 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.140
+
+### Patch Changes
+
+- 0608dca: fix (provider/anthropic): use current-generation capability defaults for unrecognized Claude model IDs while retaining conservative defaults for legacy Claude and non-Claude models.
+- Updated dependencies [8100830]
+- Updated dependencies [0608dca]
+  - @ai-sdk/openai@3.0.88
+  - @ai-sdk/anthropic@3.0.101
+
 ## 4.0.139
 
 ### Patch Changes
