@@ -1,5 +1,6 @@
 import {
   APICallError,
+  type Experimental_Session as Session,
   type LanguageModelV4,
   type LanguageModelV4CallOptions,
   type LanguageModelV4FunctionTool,
@@ -2908,6 +2909,303 @@ describe('streamText', () => {
 
       expect(await textStreamPromise).toStrictEqual(['hello', ' ', 'world']);
       expect(doStream).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('provider session lifecycle', () => {
+    const createSuccessfulStream = () =>
+      convertArrayToReadableStream<LanguageModelV4StreamPart>([
+        { type: 'text-start', id: '1' },
+        { type: 'text-delta', id: '1', delta: 'hello' },
+        { type: 'text-end', id: '1' },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'stop' },
+          usage: testUsage,
+        },
+      ]);
+
+    it('reuses state across retries and destroys before onEnd', async () => {
+      const sessions: Session[] = [];
+      const callOrder: string[] = [];
+      let attempt = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async options => {
+            const session = options.experimental_session!;
+            sessions.push(session);
+
+            if (attempt++ === 0) {
+              session.set('resource', 'persisted', {
+                onDestroy: async () => {
+                  await Promise.resolve();
+                  callOrder.push('destroy');
+                },
+              });
+
+              throw new APICallError({
+                message: 'Internal Server Error',
+                url: 'https://api.example.com/v1/chat',
+                requestBodyValues: {},
+                statusCode: 500,
+                responseHeaders: { 'retry-after-ms': '1' },
+              });
+            }
+
+            expect(session.get('resource')).toBe('persisted');
+            return { stream: createSuccessfulStream() };
+          },
+        }),
+        prompt: 'test-input',
+        onEnd: () => {
+          callOrder.push('onEnd');
+        },
+        onError: () => {},
+      });
+
+      const consumePromise = result.consumeStream();
+      await vi.advanceTimersByTimeAsync(1);
+      await consumePromise;
+
+      expect(sessions).toHaveLength(2);
+      expect(sessions[1]).toBe(sessions[0]);
+      expect(callOrder).toEqual(['destroy', 'onEnd']);
+    });
+
+    it('reuses the session across steps and model changes', async () => {
+      const sessions: Session[] = [];
+      let destroyCalls = 0;
+
+      const alternateModel = new MockLanguageModelV4({
+        doStream: async options => {
+          const session = options.experimental_session!;
+          sessions.push(session);
+          expect(session.get('step-state')).toBe('persisted');
+          return { stream: createSuccessfulStream() };
+        },
+      });
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async options => {
+            const session = options.experimental_session!;
+            sessions.push(session);
+            session.set('step-state', 'persisted', {
+              onDestroy: () => {
+                destroyCalls++;
+              },
+            });
+
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'tool-call' as const,
+                  id: 'call-1',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: '{ "value": "test" }',
+                },
+                {
+                  type: 'finish' as const,
+                  finishReason: {
+                    unified: 'tool-calls' as const,
+                    raw: undefined,
+                  },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: isStepCount(2),
+        prepareStep: async ({ stepNumber }) =>
+          stepNumber === 1 ? { model: alternateModel } : undefined,
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(sessions).toHaveLength(2);
+      expect(sessions[1]).toBe(sessions[0]);
+      expect(destroyCalls).toBe(1);
+    });
+
+    it('creates distinct sessions for concurrent streams', async () => {
+      const sessions: Session[] = [];
+      const model = new MockLanguageModelV4({
+        doStream: async options => {
+          sessions.push(options.experimental_session!);
+          return { stream: createSuccessfulStream() };
+        },
+      });
+
+      const firstResult = streamText({ model, prompt: 'first' });
+      const secondResult = streamText({ model, prompt: 'second' });
+
+      await Promise.all([
+        firstResult.consumeStream(),
+        secondResult.consumeStream(),
+      ]);
+
+      expect(sessions).toHaveLength(2);
+      expect(sessions[1]).not.toBe(sessions[0]);
+    });
+
+    it('fails the stream when session cleanup fails', async () => {
+      const cleanupError = new Error('cleanup failed');
+      const onError = vi.fn();
+      const onEnd = vi.fn();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async options => {
+            options.experimental_session!.set('resource', 'value', {
+              onDestroy: () => {
+                throw cleanupError;
+              },
+            });
+            return { stream: createSuccessfulStream() };
+          },
+        }),
+        prompt: 'test-input',
+        onError,
+        onEnd,
+      });
+
+      await expect(result.text).rejects.toBe(cleanupError);
+      expect(onError).toHaveBeenCalledWith({ error: cleanupError });
+      expect(onEnd).not.toHaveBeenCalled();
+    });
+
+    it('preserves provider and cleanup failures', async () => {
+      const providerError = new Error('provider failed');
+      const cleanupError = new Error('cleanup failed');
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async options => {
+            options.experimental_session!.set('resource', 'value', {
+              onDestroy: () => {
+                throw cleanupError;
+              },
+            });
+            throw providerError;
+          },
+        }),
+        maxRetries: 0,
+        prompt: 'test-input',
+        onError: () => {},
+      });
+
+      await expect(result.text).rejects.toSatisfy(
+        (error: unknown) =>
+          error instanceof AggregateError &&
+          error.errors[0] === providerError &&
+          error.errors[1] === cleanupError,
+      );
+    });
+
+    it('destroys an unconsumed session when the operation is aborted', async () => {
+      const abortController = new AbortController();
+      const providerCalled = new DelayedPromise<void>();
+      let destroyed = false;
+
+      streamText({
+        model: new MockLanguageModelV4({
+          doStream: async options => {
+            options.experimental_session!.set('resource', 'value', {
+              onDestroy: () => {
+                destroyed = true;
+              },
+            });
+            providerCalled.resolve();
+            return { stream: new ReadableStream() };
+          },
+        }),
+        abortSignal: abortController.signal,
+        prompt: 'test-input',
+        onError: () => {},
+      });
+
+      await providerCalled.promise;
+      abortController.abort();
+
+      await vi.waitFor(() => expect(destroyed).toBe(true));
+    });
+
+    it('does not destroy when only one public tee branch is canceled', async () => {
+      const abortController = new AbortController();
+      const providerCalled = new DelayedPromise<void>();
+      let destroyed = false;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async options => {
+            options.experimental_session!.set('resource', 'value', {
+              onDestroy: () => {
+                destroyed = true;
+              },
+            });
+            providerCalled.resolve();
+            return { stream: new ReadableStream() };
+          },
+        }),
+        abortSignal: abortController.signal,
+        prompt: 'test-input',
+        onError: () => {},
+      });
+
+      const reader = result.fullStream.getReader();
+      await reader.read();
+      await providerCalled.promise;
+      void reader.cancel().catch(() => {});
+      await Promise.resolve();
+
+      expect(destroyed).toBe(false);
+
+      abortController.abort();
+      await vi.waitFor(() => expect(destroyed).toBe(true));
+    });
+
+    it('destroys when a transform terminates the operation', async () => {
+      let destroyed = false;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async options => {
+            options.experimental_session!.set('resource', 'value', {
+              onDestroy: () => {
+                destroyed = true;
+              },
+            });
+            return { stream: createSuccessfulStream() };
+          },
+        }),
+        experimental_transform: ({ stopStream }) =>
+          new TransformStream({
+            transform(chunk, controller) {
+              controller.enqueue(chunk);
+
+              if (chunk.type === 'text-delta') {
+                stopStream();
+              }
+            },
+          }),
+        prompt: 'test-input',
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(destroyed).toBe(true);
     });
   });
 
@@ -13098,10 +13396,16 @@ describe('streamText', () => {
 
       it('should contain all doStream calls', async () => {
         await result.consumeStream();
-        expect(doStreamCalls).toMatchInlineSnapshot(`
+        expect(doStreamCalls).toMatchInlineSnapshot(
+          [
+            { experimental_session: expect.any(Object) },
+            { experimental_session: expect.any(Object) },
+          ],
+          `
           [
             {
               "abortSignal": undefined,
+              "experimental_session": Any<Object>,
               "frequencyPenalty": undefined,
               "headers": undefined,
               "includeRawChunks": false,
@@ -13157,6 +13461,7 @@ describe('streamText', () => {
             },
             {
               "abortSignal": undefined,
+              "experimental_session": Any<Object>,
               "frequencyPenalty": undefined,
               "headers": undefined,
               "includeRawChunks": false,
@@ -13224,7 +13529,8 @@ describe('streamText', () => {
               "topP": undefined,
             },
           ]
-        `);
+        `,
+        );
       });
 
       it('should contain all prepareStep calls', async () => {
@@ -17026,11 +17332,15 @@ describe('streamText', () => {
     it('should abort when step timeout expires', async () => {
       let receivedAbortSignal: AbortSignal | undefined;
       const delayedPromise = new DelayedPromise<void>();
+      const cleanup = vi.fn();
 
       const result = streamText({
         model: new MockLanguageModelV4({
-          doStream: async ({ abortSignal }) => {
+          doStream: async ({ abortSignal, experimental_session }) => {
             receivedAbortSignal = abortSignal;
+            experimental_session!.set('resource', 'value', {
+              onDestroy: cleanup,
+            });
             return {
               stream: new ReadableStream({
                 async start(controller) {
@@ -17076,6 +17386,7 @@ describe('streamText', () => {
       // The abort signal should have been triggered due to step timeout
       expect(receivedAbortSignal?.aborted).toBe(true);
       expect((receivedAbortSignal?.reason as Error)?.name).toBe('TimeoutError');
+      expect(cleanup).toHaveBeenCalledExactlyOnceWith('value');
     });
 
     it('should forward chunkMs as abort signal to model', async () => {
@@ -19932,9 +20243,14 @@ describe('streamText', () => {
 
         await result.consumeStream();
 
-        expect(callOptions).toMatchInlineSnapshot(`
+        expect(callOptions).toMatchInlineSnapshot(
+          {
+            experimental_session: expect.any(Object),
+          },
+          `
           {
             "abortSignal": undefined,
+            "experimental_session": Any<Object>,
             "frequencyPenalty": undefined,
             "headers": undefined,
             "includeRawChunks": false,
@@ -19980,7 +20296,8 @@ describe('streamText', () => {
             "topK": undefined,
             "topP": undefined,
           }
-        `);
+        `,
+        );
       });
 
       it('should send valid partial text fragments', async () => {
@@ -29048,10 +29365,13 @@ describe('streamText', () => {
         ]
       `);
 
-      expect(languageModelCalls).toMatchInlineSnapshot(`
+      expect(languageModelCalls).toMatchInlineSnapshot(
+        [{ experimental_session: expect.any(Object) }],
+        `
         [
           {
             "abortSignal": undefined,
+            "experimental_session": Any<Object>,
             "frequencyPenalty": undefined,
             "headers": undefined,
             "includeRawChunks": false,
@@ -29099,7 +29419,8 @@ describe('streamText', () => {
             "topP": undefined,
           },
         ]
-      `);
+      `,
+      );
 
       expect(await result.text).toBe('response from without-image-url-support');
     });
