@@ -18,6 +18,7 @@ import {
   emitLegacyPartDelta,
   emitLegacyTextPartUpdate,
   emitMissingFinalDelta,
+  emitOpenCodeStreamStart,
   getOpenCodeEventSessionId,
   isStepSettlementEvent,
   type OpenCodeEvent,
@@ -562,6 +563,7 @@ async function runPrompt({
   let sawFinishStep = false;
   let sawBusy = false;
   let terminalError: string | undefined;
+  const state = createTranslationState();
   const initialSessionTokens = await readSessionTokens({
     client,
     sessionId,
@@ -575,6 +577,7 @@ async function runPrompt({
     permissionMode: start.permissionMode,
     builtinToolFiltering: start.builtinToolFiltering,
     turn,
+    state,
     emit: msg => {
       if (msg.type === 'text-delta' || msg.type === 'reasoning-delta') {
         sawContent = true;
@@ -591,6 +594,13 @@ async function runPrompt({
     signal: eventsAbort.signal,
     onSubscribed: () => eventsReady.resolve(undefined),
     onEvent: event => {
+      if (event.type === 'message.updated') {
+        emitOpenCodeStreamStart({
+          info: event.properties?.info,
+          state,
+          emit,
+        });
+      }
       if (event.type === 'session.updated') {
         latestSessionTokens =
           extractSessionTokens(event.properties) ?? latestSessionTokens;
@@ -619,10 +629,6 @@ async function runPrompt({
     eventsReady.resolve(undefined);
     turnSettled.resolve();
   });
-  emit({
-    type: 'stream-start',
-    ...(start.model ? { modelId: start.model } : {}),
-  });
   await eventsReady.promise;
   const prompted = await legacySessionPrompt({
     client,
@@ -641,6 +647,7 @@ async function runPrompt({
     const emittedFallback = await emitContextFallback({
       client,
       sessionId,
+      state,
       emit,
       emitContent: !sawContent,
     }).catch(() => false);
@@ -701,6 +708,7 @@ async function runCompaction({
     permissionMode: start.permissionMode,
     builtinToolFiltering: start.builtinToolFiltering,
     turn,
+    state: createTranslationState(),
     emit: msg => {
       if (msg.type === 'compaction') sawCompaction = true;
       emit(msg);
@@ -764,6 +772,7 @@ async function consumeEvents({
   permissionMode,
   builtinToolFiltering,
   turn,
+  state,
   emit,
   signal,
   onSubscribed,
@@ -774,6 +783,7 @@ async function consumeEvents({
   permissionMode: StartMessage['permissionMode'];
   builtinToolFiltering: StartMessage['builtinToolFiltering'];
   turn: BridgeTurn;
+  state: TranslationState;
   emit: Emit;
   signal: AbortSignal;
   onSubscribed?: () => void;
@@ -782,7 +792,6 @@ async function consumeEvents({
   const stream = await subscribeLegacyEvents({ client, signal });
   onSubscribed?.();
   if (!stream) return;
-  const state = createTranslationState();
   for await (const rawEvent of stream) {
     if (signal.aborted || turn.abortSignal.aborted) break;
     const event = unwrapOpenCodeEvent(rawEvent);
@@ -1509,16 +1518,19 @@ function authorizeHostToolCall({
 async function emitContextFallback({
   client,
   sessionId,
+  state,
   emit,
   emitContent,
 }: {
   client: OpenCodeClient;
   sessionId: string;
+  state: TranslationState;
   emit: Emit;
   emitContent: boolean;
 }): Promise<boolean> {
   const assistant = await latestAssistantSnapshot({ client, sessionId });
   if (!assistant) return false;
+  emitOpenCodeStreamStart({ info: assistant, state, emit });
   if (emitContent && Array.isArray(assistant.contentParts)) {
     for (const part of assistant.contentParts) {
       emitAssistantContentPart(part, emit);
