@@ -1331,6 +1331,25 @@ describe('AnthropicMessagesLanguageModel', () => {
         );
       });
 
+      it('should pass fallbacks "default" through and add the 2026-07-01 beta header', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-fable-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              fallbacks: 'default',
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.fallbacks).toBe('default');
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
+          'server-side-fallback-2026-07-01',
+        );
+      });
+
       it('should not add the beta header when fallbacks is an empty array', async () => {
         prepareJsonFixtureResponse('anthropic-text');
 
