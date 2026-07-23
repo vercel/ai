@@ -2002,7 +2002,15 @@ export function getModelCapabilities(modelId: string): {
   rejectsThinkingDisabledAboveHighEffort: boolean;
   isKnownModel: boolean;
 } {
-  if (
+  if (modelId.includes('claude-opus-5')) {
+    return {
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      rejectsSamplingParameters: true,
+      rejectsThinkingDisabledAboveHighEffort: true,
+      isKnownModel: true,
+    };
+  } else if (
     modelId.includes('claude-opus-4-8') ||
     modelId.includes('claude-opus-4-7') ||
     modelId.includes('claude-fable-5') ||

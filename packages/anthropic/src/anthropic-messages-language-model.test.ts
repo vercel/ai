@@ -6500,6 +6500,24 @@ describe('getModelCapabilities', () => {
     expect(caps.rejectsThinkingDisabledAboveHighEffort).toBe(false);
   });
 
+  it('should return correct capabilities for claude-opus-5', () => {
+    expect(getModelCapabilities('claude-opus-5')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabledAboveHighEffort": true,
+        "supportsStructuredOutput": true,
+      }
+    `);
+  });
+
+  it('should not match claude-opus-5 capabilities for claude-opus-4-5', () => {
+    const caps = getModelCapabilities('claude-opus-4-5');
+    expect(caps.maxOutputTokens).toBe(64000);
+    expect(caps.rejectsThinkingDisabledAboveHighEffort).toBe(false);
+  });
+
   it('should assume current-generation capabilities for unrecognized claude models', () => {
     expect(getModelCapabilities('claude-brand-new-model'))
       .toMatchInlineSnapshot(`
