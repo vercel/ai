@@ -1404,6 +1404,12 @@ class DefaultStreamTextResult<
 
       async flush(controller) {
         try {
+          const cleanupError = await destroySession();
+          if (cleanupError != null) {
+            controller.error(cleanupError);
+            return;
+          }
+
           // reject when no output was generated or an incomplete model stream
           // ended a continuation step:
           if (recordedSteps.length === 0 || recordedNoOutputError != null) {
@@ -1590,8 +1596,6 @@ class DefaultStreamTextResult<
         transform({
           tools: tools as TOOLS,
           stopStream() {
-            // stopStream terminates before the step-loop flush can run.
-            void markPromiseAsHandled(session.destroy());
             stitchableStream.terminate();
             isRunning = false;
           },
