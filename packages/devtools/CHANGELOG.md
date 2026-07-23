@@ -1,5 +1,11 @@
 # @ai-sdk/devtools
 
+## 1.0.7
+
+### Patch Changes
+
+- 1c53b40: feat(devtools): add a persistent light theme to the viewer
+
 ## 1.0.6
 
 ### Patch Changes

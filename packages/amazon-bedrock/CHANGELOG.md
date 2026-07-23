@@ -1,5 +1,47 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.29
+
+### Patch Changes
+
+- Updated dependencies [34c53c0]
+  - @ai-sdk/openai@4.0.19
+
+## 5.0.28
+
+### Patch Changes
+
+- 1f92bdb: Pass through `s3://` image URLs to Amazon Bedrock Converse as S3 image sources instead of downloading them.
+- 8fcb72c: Sanitize invalid characters in replayed tool call names before sending conversation history to Amazon Bedrock.
+- Updated dependencies [bc43dc2]
+  - @ai-sdk/openai@4.0.18
+
+## 5.0.27
+
+### Patch Changes
+
+- Updated dependencies [97de198]
+  - @ai-sdk/anthropic@4.0.18
+
+## 5.0.26
+
+### Patch Changes
+
+- b72fc7c: fix(amazon-bedrock): sanitize unsupported JSON Schema constraints in native Anthropic structured output
+- Updated dependencies [02ffdcb]
+- Updated dependencies [b72fc7c]
+- Updated dependencies [76cb673]
+- Updated dependencies [9218ebe]
+  - @ai-sdk/provider-utils@5.0.12
+  - @ai-sdk/anthropic@4.0.17
+  - @ai-sdk/openai@4.0.17
+
+## 5.0.25
+
+### Patch Changes
+
+- ce56626: fix(amazon-bedrock): encode slashes in ARN model IDs for Converse requests
+
 ## 5.0.24
 
 ### Patch Changes

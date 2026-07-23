@@ -91,6 +91,8 @@ Settings:
   Gateway, use the `creator/model` slug (e.g. `anthropic/claude-sonnet-4-6`,
   `google/gemini-2.5-flash`, `openai/gpt-4.1-mini`).
 - `port`: bridge port override.
+- `recursionLimit`: maximum LangGraph super-steps per turn. When omitted, the
+  Deep Agents default applies.
 - `startupTimeoutMs`: maximum time to wait for the bridge to start.
 
 ## Authentication

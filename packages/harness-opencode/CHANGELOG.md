@@ -1,5 +1,49 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.42
+
+### Patch Changes
+
+- 07c977a: chore(harness): refactor bridge code to break out stream event emission from launcher to make it testable
+- c6e75d5: fix(harness-opencode): fix OpenCode missing model ID in telemetry
+- Updated dependencies [a94425b]
+- Updated dependencies [2de0611]
+  - @ai-sdk/harness@1.0.41
+
+## 1.0.41
+
+### Patch Changes
+
+- Updated dependencies [59a2306]
+- Updated dependencies [5f65e61]
+  - @ai-sdk/harness@1.0.40
+
+## 1.0.40
+
+### Patch Changes
+
+- Updated dependencies [86a84c9]
+  - @ai-sdk/harness@1.0.39
+
+## 1.0.39
+
+### Patch Changes
+
+- f5cdb2d: chore(harness): update primary SDK dependencies
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+  - @ai-sdk/harness@1.0.38
+
+## 1.0.38
+
+### Patch Changes
+
+- ab7f97a: fix(harness-opencode): route OpenCode reasoning deltas to the reasoning part instead of duplicating them as text
+- Updated dependencies [b460541]
+- Updated dependencies [079591e]
+  - @ai-sdk/harness@1.0.37
+
 ## 1.0.37
 
 ### Patch Changes

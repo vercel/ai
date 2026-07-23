@@ -10,6 +10,12 @@ export type HarnessV1PendingToolApproval = {
   readonly nativeName?: string;
 };
 
+export type HarnessV1PendingToolResult = {
+  readonly toolCallId: string;
+  readonly toolName: string;
+  readonly input: string;
+};
+
 type HarnessV1LifecycleStateBase = {
   /**
    * Identifier of the harness that produced this state. Used by adapters to
@@ -58,6 +64,12 @@ export type HarnessV1ContinueTurnState = HarnessV1LifecycleStateBase & {
    * without the harness framework owning storage.
    */
   readonly pendingToolApprovals?: readonly HarnessV1PendingToolApproval[];
+
+  /**
+   * Framework-owned client tool calls that are waiting for a caller-provided
+   * result before the underlying turn can continue.
+   */
+  readonly pendingToolResults?: readonly HarnessV1PendingToolResult[];
 };
 
 export type HarnessV1LifecycleState =

@@ -457,6 +457,68 @@ metadata on tool-call parts. The SDK uses `providerMetadata.openai.namespace` or
 `providerOptions.openai.namespace` to round-trip the namespace back to OpenAI on
 subsequent requests.
 
+#### Programmatic Tool Calling
+
+OpenAI Programmatic Tool Calling lets supported Responses models generate and run
+hosted JavaScript that coordinates client-side function tools. Add the hosted tool
+with `openai.tools.programmaticToolCalling()`, then opt each eligible function into
+programmatic calls with `allowedCallers`.
+
+```ts
+import { openai, type OpenAIToolOptions } from '@ai-sdk/openai';
+import { generateText, isStepCount, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: openai('gpt-5.6'),
+  stopWhen: isStepCount(10),
+  prompt: 'Compare inventory with demand for sku_123.',
+  tools: {
+    program: openai.tools.programmaticToolCalling(),
+    getInventory: tool({
+      description: 'Get available inventory for a SKU.',
+      inputSchema: z.object({ sku: z.string() }),
+      execute: async ({ sku }) => ({ sku, availableUnits: 42 }),
+      providerOptions: {
+        openai: {
+          allowedCallers: ['programmatic'],
+          outputSchema: {
+            type: 'object',
+            properties: {
+              sku: { type: 'string' },
+              availableUnits: { type: 'number' },
+            },
+            required: ['sku', 'availableUnits'],
+            additionalProperties: false,
+          },
+        } satisfies OpenAIToolOptions,
+      },
+    }),
+  },
+});
+```
+
+`allowedCallers` supports:
+
+- `['direct']` (or omitted): only direct model tool calls
+- `['programmatic']`: only calls from hosted JavaScript
+- `['direct', 'programmatic']`: both invocation modes
+
+Use `outputSchema` to describe the JSON value returned by the function. This schema
+is sent to OpenAI as `output_schema` so generated JavaScript can safely use the
+returned fields. It does not replace the tool's AI SDK output validation or execution
+logic.
+
+The provider preserves program code, replay fingerprints, program outputs, and nested
+function caller metadata across the `generateText` and `streamText` tool loops,
+including stateless requests with `store: false`. Programmatic invocation is
+currently supported for AI SDK function tools; other OpenAI tool types remain
+direct-only through this integration.
+
+Treat generated programs and tool arguments as untrusted. Enforce authorization and
+approval inside every tool, avoid programmatic access to side-effecting tools unless
+the operation is idempotent, and set explicit step limits.
+
 #### Web Search Tool
 
 The OpenAI responses API supports web search through the `openai.tools.webSearch` tool.

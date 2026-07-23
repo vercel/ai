@@ -10,6 +10,7 @@ export type CallSettings = LanguageModelCallOptions &
 export {
   getTotalTimeoutMs,
   getStepTimeoutMs,
+  getFirstChunkTimeoutMs,
   getChunkTimeoutMs,
   getToolTimeoutMs,
 } from './request-options';

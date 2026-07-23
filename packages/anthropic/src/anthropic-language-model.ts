@@ -301,6 +301,17 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       isKnownModel,
     } = getModelCapabilities(this.modelId);
 
+    if (!isKnownModel && maxOutputTokens == null) {
+      warnings.push({
+        type: 'compatibility',
+        feature: 'maxOutputTokens',
+        details:
+          `The model "${this.modelId}" is unknown. ` +
+          `The max output tokens have been limited to ${maxOutputTokensForModel}. ` +
+          `Set maxOutputTokens explicitly to override this limit.`,
+      });
+    }
+
     if (rejectsSamplingParameters) {
       if (temperature != null) {
         warnings.push({
@@ -328,7 +339,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       }
     }
 
-    const isAnthropicModel = isKnownModel || this.modelId.startsWith('claude-');
+    const isAnthropicModel = isKnownModel || this.modelId.includes('claude-');
 
     const supportsStructuredOutput =
       (this.config.supportsNativeStructuredOutput ?? true) &&
@@ -355,6 +366,19 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             inputSchema: responseFormat.schema,
           }
         : undefined;
+
+    if (
+      jsonResponseTool != null &&
+      anthropicOptions?.disableParallelToolUse === false
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.anthropic.disableParallelToolUse',
+        details:
+          '`disableParallelToolUse: false` is ignored when using the JSON response tool. ' +
+          'Parallel tool use is disabled to ensure a single coherent JSON tool call.',
+      });
+    }
 
     const contextManagement = anthropicOptions?.contextManagement;
 
@@ -2702,6 +2726,29 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: false,
       supportsXhighEffort: false,
       isKnownModel: true,
+    };
+  } else if (
+    /claude-(?:instant(?:-|$)|v?2(?=$|[-.:])|3(?=$|[-.]))/.test(modelId)
+  ) {
+    return {
+      maxOutputTokens: 4096,
+      supportsStructuredOutput: false,
+      supportsAdaptiveThinking: false,
+      rejectsSamplingParameters: false,
+      supportsXhighEffort: false,
+      isKnownModel: false,
+    };
+  } else if (modelId.includes('claude-')) {
+    // Known and legacy Claude families are handled above, so any remaining
+    // Claude ID is assumed to be newer than the known list. Keep it unknown so
+    // callers still receive the maxOutputTokens compatibility warning.
+    return {
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      supportsAdaptiveThinking: true,
+      rejectsSamplingParameters: true,
+      supportsXhighEffort: true,
+      isKnownModel: false,
     };
   } else {
     return {
