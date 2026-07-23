@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 17799,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-17799-openai-forward-compatible-defaults.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-17799-openai-forward-compatible-defaults.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #17799: forward-compatible OpenAI defaults are not applied to future model IDs."
+  }
+}
