@@ -389,21 +389,21 @@ export function formatResultPreview(result: unknown): string {
 }
 
 export const SPAN_COLORS: Record<SpanKind, string> = {
-  step: 'bg-blue-500',
-  'child-run': 'bg-cyan-500',
-  thinking: 'bg-amber-500',
-  'tool-call': 'bg-purple-500',
-  text: 'bg-emerald-500',
-  error: 'bg-red-500',
+  step: 'bg-info',
+  'child-run': 'bg-agent',
+  thinking: 'bg-warning',
+  'tool-call': 'bg-tool',
+  text: 'bg-success',
+  error: 'bg-danger',
 };
 
 export const SPAN_COLORS_MUTED: Record<SpanKind, string> = {
-  step: 'bg-blue-500/20',
-  'child-run': 'bg-cyan-500/20',
-  thinking: 'bg-amber-500/20',
-  'tool-call': 'bg-purple-500/20',
-  text: 'bg-emerald-500/20',
-  error: 'bg-red-500/20',
+  step: 'bg-info/20',
+  'child-run': 'bg-agent/20',
+  thinking: 'bg-warning/20',
+  'tool-call': 'bg-tool/20',
+  text: 'bg-success/20',
+  error: 'bg-danger/20',
 };
 
 export function buildTraceSpans(

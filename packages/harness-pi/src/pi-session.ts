@@ -1,9 +1,9 @@
 import {
-  AuthStorage,
   createAgentSession,
   DefaultResourceLoader,
   defineTool,
   ModelRegistry,
+  ModelRuntime,
   SessionManager,
   SettingsManager,
   type AgentSession,
@@ -30,7 +30,11 @@ import {
   type HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
 import { resolveSandboxHomeDir } from '@ai-sdk/harness/utils';
-import { resolvePiEnv, type PiAuthOptions } from './pi-auth';
+import {
+  registerPiProviders,
+  resolvePiEnv,
+  type PiAuthOptions,
+} from './pi-auth';
 import { getPiTerminalError, parseNativeEvent } from './pi-events';
 import { createPiModelResolver } from './pi-model-resolver';
 import { createPiPathMapper } from './pi-paths';
@@ -327,15 +331,16 @@ export async function createPiSession(
   });
 
   // Pi auth + model registry are global to this Pi session. These live on the
-  // real host filesystem (`hostAgentDir`), never in the sandbox/workspace.
+  // real host filesystem, never in the sandbox/workspace.
   // When `agentDir` is provided, use it instead so the harness can reuse
   // existing CLI logins and model/settings config.
   const agentDir = input.agentDir ?? hostAgentDir;
-  const authStorage = AuthStorage.create(path.join(agentDir, 'auth.json'));
-  const modelRegistry = ModelRegistry.create(
-    authStorage,
-    path.join(agentDir, 'models.json'),
-  );
+  const modelRuntime = await ModelRuntime.create({
+    authPath: path.join(agentDir, 'auth.json'),
+    modelsPath: path.join(agentDir, 'models.json'),
+    allowModelNetwork: false,
+  });
+  const modelRegistry = new ModelRegistry(modelRuntime);
   const settingsManager =
     input.agentDir != null
       ? SettingsManager.create(hostWorkDir, agentDir)
@@ -345,13 +350,20 @@ export async function createPiSession(
   const resolverEnv = resolvePiEnv({
     options: input.settings.auth,
     env: process.env,
+  });
+  await registerPiProviders({
+    options: input.settings.auth,
+    resolvedEnv: resolverEnv,
     registries: {
-      authStorage,
       modelRegistry,
+      modelRuntime,
     },
     clientApp: input.clientApp,
   });
-  const resolveModel = createPiModelResolver(modelRegistry, resolverEnv);
+  const resolveModel = createPiModelResolver({
+    modelRegistry,
+    env: resolverEnv,
+  });
   // Resolve once: deterministic given the configured model. This is the Pi
   // `Model` object handed to `createAgentSession`.
   const resolvedModel = resolveModel(input.settings.model);
@@ -592,8 +604,7 @@ export async function createPiSession(
     const { session } = await createAgentSession({
       cwd: sessionWorkDir,
       agentDir: hostAgentDir,
-      authStorage,
-      modelRegistry,
+      modelRuntime,
       sessionManager,
       settingsManager,
       resourceLoader,

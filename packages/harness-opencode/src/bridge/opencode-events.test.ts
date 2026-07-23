@@ -4,6 +4,7 @@ import {
   emitLegacyPartDelta,
   emitLegacyTextPartUpdate,
   emitMissingFinalDelta,
+  emitOpenCodeStreamStart,
   getOpenCodeEventSessionId,
   isStepSettlementEvent,
   unwrapOpenCodeEvent,
@@ -70,6 +71,77 @@ describe('OpenCode event helpers', () => {
         },
       }),
     ).toBe('session-1');
+  });
+
+  it('emits the resolved assistant model once', () => {
+    const state = createTranslationState();
+    const emitted: Record<string, unknown>[] = [];
+    const emit = (message: Record<string, unknown>) => emitted.push(message);
+
+    emitOpenCodeStreamStart({
+      info: {
+        role: 'user',
+        providerID: 'anthropic',
+        modelID: 'claude-sonnet-4-6',
+      },
+      state,
+      emit,
+    });
+    emitOpenCodeStreamStart({
+      info: {
+        role: 'assistant',
+        providerID: 'anthropic',
+        modelID: 'claude-sonnet-4-6',
+      },
+      state,
+      emit,
+    });
+    emitOpenCodeStreamStart({
+      info: {
+        role: 'assistant',
+        providerID: 'openai',
+        modelID: 'gpt-5.3-codex',
+      },
+      state,
+      emit,
+    });
+
+    expect(emitted).toMatchInlineSnapshot(`
+      [
+        {
+          "modelId": "anthropic/claude-sonnet-4-6",
+          "type": "stream-start",
+        },
+      ]
+    `);
+  });
+
+  it('emits stream-start without a model when assistant metadata omits it', () => {
+    const state = createTranslationState();
+    const emitted: Record<string, unknown>[] = [];
+
+    emitOpenCodeStreamStart({
+      info: { role: 'assistant' },
+      state,
+      emit: message => emitted.push(message),
+    });
+    emitOpenCodeStreamStart({
+      info: {
+        role: 'assistant',
+        providerID: 'anthropic',
+        modelID: 'claude-sonnet-4-6',
+      },
+      state,
+      emit: message => emitted.push(message),
+    });
+
+    expect(emitted).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+        },
+      ]
+    `);
   });
 
   it('emits only the final text that has not already streamed', () => {

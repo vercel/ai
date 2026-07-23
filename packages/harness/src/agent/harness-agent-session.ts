@@ -1,5 +1,5 @@
 import type { Context, ToolSet } from '@ai-sdk/provider-utils';
-import type { StreamTextResult, TelemetryOptions } from 'ai';
+import type { StopCondition, StreamTextResult, TelemetryOptions } from 'ai';
 import type { HarnessAgentToolApprovalConfiguration } from './harness-agent-settings';
 import type {
   HarnessV1BuiltinToolFiltering,
@@ -82,6 +82,9 @@ export class HarnessAgentSession {
   private turnState: HarnessAgentTurnState;
   private turnSequence = 0;
   private activeTurnSequence = 0;
+  private suspendedTurnState:
+    | Promise<HarnessAgentContinueTurnState>
+    | undefined;
 
   /**
    * Whether this session was created from `resumeFrom` or `continueFrom`.
@@ -164,6 +167,7 @@ export class HarnessAgentSession {
     runtimeContext: RUNTIME_CONTEXT;
     abortSignal: AbortSignal | undefined;
     telemetry: TelemetryOptions | undefined;
+    stopConditions: ReadonlyArray<StopCondition<TOOLS, RUNTIME_CONTEXT>>;
   }): HarnessAgentTurnResult<TOOLS, RUNTIME_CONTEXT> {
     const session = this.requireReusableSession();
     this.requirePromptableTurn();
@@ -184,6 +188,7 @@ export class HarnessAgentSession {
         runtimeContext: options.runtimeContext,
         abortSignal: options.abortSignal,
         telemetry: options.telemetry,
+        stopConditions: options.stopConditions,
         toolApproval: this.toolApproval,
         pendingToolApprovals: this.getPendingToolApprovals(),
         pendingToolResults: this.getPendingToolResults(),
@@ -207,6 +212,8 @@ export class HarnessAgentSession {
         onTurnFailed: () => {
           this.finishTrackedTurn({ turnId });
         },
+        onStopConditionMet: () =>
+          this.captureStopConditionBoundary({ session, turnId }),
       });
       return turn;
     } catch (error) {
@@ -227,6 +234,7 @@ export class HarnessAgentSession {
     runtimeContext: RUNTIME_CONTEXT;
     abortSignal: AbortSignal | undefined;
     telemetry: TelemetryOptions | undefined;
+    stopConditions: ReadonlyArray<StopCondition<TOOLS, RUNTIME_CONTEXT>>;
     toolApprovalContinuations?:
       | readonly HarnessAgentToolApprovalContinuation[]
       | undefined;
@@ -253,6 +261,7 @@ export class HarnessAgentSession {
         runtimeContext: options.runtimeContext,
         abortSignal: options.abortSignal,
         telemetry: options.telemetry,
+        stopConditions: options.stopConditions,
         toolApproval: this.toolApproval,
         pendingToolApprovals: this.getPendingToolApprovals(),
         pendingToolResults: this.getPendingToolResults(),
@@ -278,6 +287,8 @@ export class HarnessAgentSession {
         onTurnFailed: () => {
           this.finishTrackedTurn({ turnId });
         },
+        onStopConditionMet: () =>
+          this.captureStopConditionBoundary({ session, turnId }),
       });
       return turn;
     } catch (error) {
@@ -452,14 +463,31 @@ export class HarnessAgentSession {
   private async suspendCurrentTurn(options: {
     session: HarnessAgentAdapterSession;
   }): Promise<HarnessAgentContinueTurnState> {
-    const raw = await options.session.doSuspendTurn();
-    const validated = await validateLifecycleStateData({
-      harness: this.harness,
-      state: raw,
-      expectedType: 'continue-turn',
-    });
+    this.suspendedTurnState ??= (async () => {
+      const raw = await options.session.doSuspendTurn();
+      const validated = await validateLifecycleStateData({
+        harness: this.harness,
+        state: raw,
+        expectedType: 'continue-turn',
+      });
+      return this.addPendingToolState(validated);
+    })();
+    const state = await this.suspendedTurnState;
     this.turnState = 'suspended';
-    return this.addPendingToolState(validated);
+    return state;
+  }
+
+  private async captureStopConditionBoundary(options: {
+    session: HarnessAgentAdapterSession;
+    turnId: number;
+  }): Promise<void> {
+    if (
+      this.sessionState !== 'active' ||
+      this.activeTurnSequence !== options.turnId
+    ) {
+      return;
+    }
+    await this.suspendCurrentTurn({ session: options.session });
   }
 
   private toResumeStateWithContinuation(options: {
@@ -520,6 +548,7 @@ export class HarnessAgentSession {
   private startTrackedTurn(): number {
     const turnId = ++this.turnSequence;
     this.activeTurnSequence = turnId;
+    this.suspendedTurnState = undefined;
     this.turnState = 'running';
     return turnId;
   }
@@ -529,6 +558,7 @@ export class HarnessAgentSession {
     if (this.activeTurnSequence !== options.turnId) return;
     this.pendingToolApprovals.clear();
     this.pendingToolResults.clear();
+    this.suspendedTurnState = undefined;
     this.turnState = 'idle';
   }
 

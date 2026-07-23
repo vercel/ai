@@ -40,13 +40,14 @@
     "konsistent": "^1.0.0-beta",
     "konsistent-provider": "workspace:*",
     "lint-staged": "^15.5.1",
-    "next": "15.5.18",
+    "next": "15.5.21",
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
     "playwright": "^1.61.1",
     "publint": "0.2.12",
     "react": "19.0.0-rc-cc1ec60d0d-20240607",
     "react-dom": "19.0.0-rc-cc1ec60d0d-20240607",
+    "semver": "^7.8.5",
     "turbo": "2.9.14",
     "typescript": "5.8.3",
     "ultracite": "7.3.2",
@@ -75,7 +76,8 @@
     ],
     "overrides": {
       "tinyexec": "1.0.2",
-      "oxlint": "1.56.0"
+      "oxlint": "1.56.0",
+      "tar": "7.5.19"
     }
   }
 }

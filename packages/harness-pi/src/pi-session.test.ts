@@ -1,9 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  AuthStorage,
   type AgentSession,
   type ToolDefinition,
-  ModelRegistry,
+  ModelRuntime,
   SettingsManager,
 } from '@earendil-works/pi-coding-agent';
 import type {
@@ -24,20 +23,18 @@ const piMock = vi.hoisted(() => {
 
 vi.mock('@earendil-works/pi-coding-agent', () => {
   return {
-    AuthStorage: {
-      create: vi.fn(() => ({
-        setRuntimeApiKey: vi.fn(),
-      })),
-    },
     createAgentSession: piMock.createAgentSession,
     DefaultResourceLoader: class {
       async reload() {}
     },
     defineTool: vi.fn(tool => tool),
-    ModelRegistry: {
-      create: vi.fn(() => ({
-        getAll: vi.fn(() => []),
-        registerProvider: vi.fn(),
+    ModelRegistry: class {
+      getAll = vi.fn(() => []);
+      registerProvider = vi.fn();
+    },
+    ModelRuntime: {
+      create: vi.fn(async () => ({
+        setRuntimeApiKey: vi.fn(async () => {}),
       })),
     },
     SessionManager: {
@@ -182,8 +179,7 @@ describe('createPiSession', () => {
   });
 
   it('uses agentDir for auth, models, and settings when provided', async () => {
-    vi.mocked(AuthStorage.create).mockClear();
-    vi.mocked(ModelRegistry.create).mockClear();
+    vi.mocked(ModelRuntime.create).mockClear();
     vi.mocked(SettingsManager.inMemory).mockClear();
     vi.mocked(SettingsManager.create).mockClear();
 
@@ -199,19 +195,17 @@ describe('createPiSession', () => {
       agentDir: '/custom/.pi/agent',
     });
 
-    expect(AuthStorage.create).toHaveBeenCalledWith(
-      '/custom/.pi/agent/auth.json',
-    );
-    expect(ModelRegistry.create).toHaveBeenCalledWith(
-      expect.anything(),
-      '/custom/.pi/agent/models.json',
-    );
+    expect(ModelRuntime.create).toHaveBeenCalledWith({
+      authPath: '/custom/.pi/agent/auth.json',
+      modelsPath: '/custom/.pi/agent/models.json',
+      allowModelNetwork: false,
+    });
     expect(SettingsManager.create).toHaveBeenCalledTimes(1);
     expect(SettingsManager.inMemory).not.toHaveBeenCalled();
   });
 
   it('falls back to temp dir and inMemory settings when agentDir is omitted', async () => {
-    vi.mocked(AuthStorage.create).mockClear();
+    vi.mocked(ModelRuntime.create).mockClear();
     vi.mocked(SettingsManager.inMemory).mockClear();
     vi.mocked(SettingsManager.create).mockClear();
 

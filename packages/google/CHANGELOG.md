@@ -1,5 +1,32 @@
 # @ai-sdk/google
 
+## 4.0.23
+
+### Patch Changes
+
+- f126649: feat(provider/google): default unknown Gemini model IDs to the newest supported capabilities
+
+## 4.0.22
+
+### Patch Changes
+
+- 66b7151: fix(provider/google): preserve Gemini Live lifecycle events
+- 5e5453c: Avoid missing thought-signature warnings and skip-validator injection for valid unsigned Gemini 3 parallel function calls in the same model response.
+
+## 4.0.21
+
+### Patch Changes
+
+- 7c16f21: feat(google): add `gemini-3.6-flash` and `gemini-3.5-flash-lite` models
+
+## 4.0.20
+
+### Patch Changes
+
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+
 ## 4.0.19
 
 ### Patch Changes

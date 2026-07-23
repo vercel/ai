@@ -2037,4 +2037,92 @@ describe('prepareResponsesTools', () => {
       });
     });
   });
+
+  describe('programmatic tool calling', () => {
+    it('should serialize the hosted tool and function tool options', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.programmatic_tool_calling',
+            name: 'program',
+            args: {},
+          },
+          {
+            type: 'function',
+            name: 'get_inventory',
+            description: 'Get inventory',
+            inputSchema: {
+              type: 'object',
+              properties: { sku: { type: 'string' } },
+              required: ['sku'],
+              additionalProperties: false,
+            },
+            providerOptions: {
+              openai: {
+                allowedCallers: ['programmatic'],
+                outputSchema: {
+                  type: 'object',
+                  properties: {
+                    sku: { type: 'string' },
+                    availableUnits: { type: 'number' },
+                  },
+                  required: ['sku', 'availableUnits'],
+                  additionalProperties: false,
+                },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools).toEqual([
+        { type: 'programmatic_tool_calling' },
+        {
+          type: 'function',
+          name: 'get_inventory',
+          description: 'Get inventory',
+          parameters: {
+            type: 'object',
+            properties: { sku: { type: 'string' } },
+            required: ['sku'],
+            additionalProperties: false,
+          },
+          allowed_callers: ['programmatic'],
+          output_schema: {
+            type: 'object',
+            properties: {
+              sku: { type: 'string' },
+              availableUnits: { type: 'number' },
+            },
+            required: ['sku', 'availableUnits'],
+            additionalProperties: false,
+          },
+        },
+      ]);
+    });
+
+    it('should support forcing the hosted tool', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.programmatic_tool_calling',
+            name: 'program',
+            args: {},
+          },
+        ],
+        toolChoice: { type: 'tool', toolName: 'program' },
+        toolNameMapping: {
+          toProviderToolName: () => 'programmatic_tool_calling',
+          toCustomToolName: () => 'program',
+        },
+      });
+
+      expect(result.toolChoice).toEqual({
+        type: 'programmatic_tool_calling',
+      });
+    });
+  });
 });
