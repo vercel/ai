@@ -44,7 +44,7 @@ class DefaultSession implements Session {
 
   getOrSet<T>(
     key: string | symbol,
-    defaultValue: T,
+    createValue: () => T,
     options?: {
       onDestroy?: (value: T) => void | PromiseLike<void>;
     },
@@ -57,7 +57,7 @@ class DefaultSession implements Session {
       return item.value as T;
     }
 
-    return this.set(key, defaultValue, options);
+    return this.set(key, createValue(), options);
   }
 
   delete<T = unknown>(key: string | symbol): T | undefined {

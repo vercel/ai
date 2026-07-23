@@ -12,7 +12,7 @@ describe('createSession types', () => {
         expectTypeOf(value).toEqualTypeOf<Value>();
       },
     });
-    const getOrSetValue = session.getOrSet('other-key', value, {
+    const getOrSetValue = session.getOrSet('other-key', () => value, {
       onDestroy: value => {
         expectTypeOf(value).toEqualTypeOf<Value>();
       },

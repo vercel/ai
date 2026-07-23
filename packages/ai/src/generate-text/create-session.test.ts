@@ -47,22 +47,26 @@ describe('createSession', () => {
   });
 
   it('returns an existing value from getOrSet', () => {
+    const createValue = vi.fn(() => 'default');
     const session = createSession();
 
     session.set('key', 'existing');
 
-    expect(session.getOrSet('key', 'default')).toBe('existing');
+    expect(session.getOrSet('key', createValue)).toBe('existing');
     expect(session.get('key')).toBe('existing');
+    expect(createValue).not.toHaveBeenCalled();
   });
 
   it('stores and returns a missing value from getOrSet', async () => {
+    const createValue = vi.fn(() => 'default');
     const cleanup = vi.fn();
     const session = createSession();
 
-    expect(session.getOrSet('key', 'default', { onDestroy: cleanup })).toBe(
+    expect(session.getOrSet('key', createValue, { onDestroy: cleanup })).toBe(
       'default',
     );
     expect(session.get('key')).toBe('default');
+    expect(createValue).toHaveBeenCalledOnce();
 
     await session.destroy();
 
@@ -70,12 +74,14 @@ describe('createSession', () => {
   });
 
   it('treats a stored undefined value as existing in getOrSet', () => {
+    const createValue = vi.fn(() => 'default');
     const session = createSession();
 
     session.set('key', undefined);
 
-    expect(session.getOrSet('key', 'default')).toBeUndefined();
+    expect(session.getOrSet('key', createValue)).toBeUndefined();
     expect(session.has('key')).toBe(true);
+    expect(createValue).not.toHaveBeenCalled();
   });
 
   it('allows a deleted key to be inserted again', () => {
@@ -160,7 +166,7 @@ describe('createSession', () => {
       expect(() => session.set('other', 'value')).toThrow(
         'Session has been destroyed.',
       );
-      expect(() => session.getOrSet('other', 'value')).toThrow(
+      expect(() => session.getOrSet('other', () => 'value')).toThrow(
         'Session has been destroyed.',
       );
       expect(() => session.delete('key')).toThrow(

@@ -31,33 +31,31 @@ const sessionProbeMiddleware: LanguageModelMiddleware = {
 
     latestSession = session;
 
-    const resource = session.has(resourceKey)
-      ? session.get<ProbeResource>(resourceKey)!
-      : session.set(
-          resourceKey,
-          {
-            id: nextSessionId++,
-            providerCalls: 0,
+    const resource = session.getOrSet<ProbeResource>(
+      resourceKey,
+      () => ({
+        id: nextSessionId++,
+        providerCalls: 0,
 
-            // This keeps Node alive if Session cleanup never happens.
-            keepAlive: setInterval(() => {}, 10_000),
-          },
-          {
-            onDestroy: async resource => {
-              console.log(
-                `[session ${resource.id}] destroy started after ` +
-                  `${resource.providerCalls} provider calls`,
-              );
+        // This keeps Node alive if Session cleanup never happens.
+        keepAlive: setInterval(() => {}, 10_000),
+      }),
+      {
+        onDestroy: async resource => {
+          console.log(
+            `[session ${resource.id}] destroy started after ` +
+              `${resource.providerCalls} provider calls`,
+          );
 
-              clearInterval(resource.keepAlive);
+          clearInterval(resource.keepAlive);
 
-              // Makes it obvious that Core awaits asynchronous cleanup.
-              await new Promise<void>(resolve => setTimeout(resolve, 500));
+          // Makes it obvious that Core awaits asynchronous cleanup.
+          await new Promise<void>(resolve => setTimeout(resolve, 500));
 
-              console.log(`[session ${resource.id}] destroy finished`);
-            },
-          },
-        );
+          console.log(`[session ${resource.id}] destroy finished`);
+        },
+      },
+    );
 
     resource.providerCalls++;
 

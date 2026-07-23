@@ -31,12 +31,12 @@ export type Session = {
 
   /**
    * Returns the existing value for the key. When the key is not present,
-   * stores and returns the provided default value. The options are only used
-   * when the default value is stored.
+   * creates, stores, and returns a value. The factory and options are only
+   * used when the value is created.
    */
   getOrSet<T>(
     key: string | symbol,
-    defaultValue: T,
+    createValue: () => T,
     options?: {
       onDestroy?: (value: T) => void | PromiseLike<void>;
     },
