@@ -1,6 +1,7 @@
 import {
   getErrorMessage,
   UnsupportedFunctionalityError,
+  type Experimental_Session as Session,
   type LanguageModelV4,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
@@ -85,6 +86,7 @@ import { setAbortTimeout } from '../util/set-abort-timeout';
 import type { ActiveTools } from './active-tools';
 import { collectToolApprovals } from './collect-tool-approvals';
 import type { ContentPart } from './content-part';
+import { createSession } from './create-session';
 import {
   executeToolsFromStream,
   type ExecuteToolsStreamPart,
@@ -757,8 +759,13 @@ export function streamText<
   const resolvedOnToolExecutionEnd =
     onToolExecutionEnd ?? experimental_onToolCallFinish;
   const resolvedOnStepEnd = onStepEnd ?? onStepFinish;
+  const session = createSession();
+  const shouldDestroySession = true;
+
   return new DefaultStreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
     model: resolveLanguageModel(model),
+    session,
+    shouldDestroySession,
     telemetry,
     headers,
     settings,
@@ -976,6 +983,8 @@ class DefaultStreamTextResult<
 
   constructor({
     model,
+    session,
+    shouldDestroySession,
     telemetry,
     headers,
     settings,
@@ -1027,6 +1036,8 @@ class DefaultStreamTextResult<
     include,
   }: {
     model: LanguageModelV4;
+    session: Session;
+    shouldDestroySession: boolean;
     telemetry: TelemetryOptions<RUNTIME_CONTEXT, TOOLS> | undefined;
     headers: Record<string, string | undefined> | undefined;
     settings: LanguageModelCallOptions;
@@ -1379,6 +1390,10 @@ class DefaultStreamTextResult<
 
       async flush(controller) {
         try {
+          if (shouldDestroySession) {
+            await session.destroy();
+          }
+
           // reject when no output was generated or an incomplete model stream
           // ended a continuation step:
           if (recordedSteps.length === 0 || recordedNoOutputError != null) {
@@ -1486,6 +1501,22 @@ class DefaultStreamTextResult<
       async pull(controller) {
         // abort handling:
         async function abort() {
+          if (shouldDestroySession) {
+            try {
+              await session.destroy();
+            } catch (cleanupError) {
+              controller.error(
+                abortSignal?.reason === undefined
+                  ? cleanupError
+                  : new AggregateError(
+                      [abortSignal.reason, cleanupError],
+                      'Streaming failed and session cleanup also failed.',
+                    ),
+              );
+              return;
+            }
+          }
+
           await notify({
             event: {
               callId,
@@ -1526,7 +1557,20 @@ class DefaultStreamTextResult<
           if (isAbortError(error) && abortSignal?.aborted) {
             await abort();
           } else {
-            controller.error(error);
+            let finalError = error;
+
+            if (shouldDestroySession) {
+              try {
+                await session.destroy();
+              } catch (cleanupError) {
+                finalError = new AggregateError(
+                  [error, cleanupError],
+                  'Streaming failed and session cleanup also failed.',
+                );
+              }
+            }
+
+            controller.error(finalError);
           }
         }
       },
@@ -1556,6 +1600,9 @@ class DefaultStreamTextResult<
         transform({
           tools: tools as TOOLS,
           stopStream() {
+            if (shouldDestroySession) {
+              void markPromiseAsHandled(session.destroy());
+            }
             stitchableStream.terminate();
             isRunning = false;
           },
@@ -1575,8 +1622,21 @@ class DefaultStreamTextResult<
     const callSettings = prepareLanguageModelCallOptions(settings);
 
     const self = this;
-
     const callId = generateCallId();
+
+    function destroySessionOnAbort(): void {
+      if (shouldDestroySession) {
+        void markPromiseAsHandled(session.destroy());
+      }
+    }
+
+    if (abortSignal?.aborted) {
+      destroySessionOnAbort();
+    } else {
+      abortSignal?.addEventListener('abort', destroySessionOnAbort, {
+        once: true,
+      });
+    }
 
     (async () => {
       const initialPrompt = await standardizePrompt({
@@ -1975,6 +2035,7 @@ class DefaultStreamTextResult<
             retry(async () =>
               streamLanguageModelCall({
                 model: prepareStepResult?.model ?? model,
+                experimental_session: session,
                 tools: stepActiveTools,
                 toolOrder: stepToolOrder,
                 toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
@@ -2288,12 +2349,29 @@ class DefaultStreamTextResult<
                   // output instead of recording an empty step. incomplete
                   // streams with partial output retain the partial result:
                   if (!hasReceivedTerminalChunk && !hasReceivedOutputChunk) {
+                    const noOutputError = new NoOutputGeneratedError({
+                      message:
+                        'No output generated. The model stream ended without a finish chunk.',
+                    });
+
+                    if (shouldDestroySession) {
+                      try {
+                        await session.destroy();
+                      } catch (cleanupError) {
+                        cleanupStepTimeouts();
+                        controller.error(
+                          new AggregateError(
+                            [noOutputError, cleanupError],
+                            'Streaming failed and session cleanup also failed.',
+                          ),
+                        );
+                        return;
+                      }
+                    }
+
                     controller.enqueue({
                       type: 'error',
-                      error: new NoOutputGeneratedError({
-                        message:
-                          'No output generated. The model stream ended without a finish chunk.',
-                      }),
+                      error: noOutputError,
                     });
 
                     cleanupStepTimeouts();
@@ -2402,6 +2480,20 @@ class DefaultStreamTextResult<
                         }),
                       );
                     } catch (error) {
+                      if (shouldDestroySession) {
+                        try {
+                          await session.destroy();
+                        } catch (cleanupError) {
+                          controller.error(
+                            new AggregateError(
+                              [error, cleanupError],
+                              'Streaming failed and session cleanup also failed.',
+                            ),
+                          );
+                          return;
+                        }
+                      }
+
                       controller.enqueue({
                         type: 'error',
                         error,
@@ -2410,6 +2502,17 @@ class DefaultStreamTextResult<
                       self.closeStream();
                     }
                   } else {
+                    if (shouldDestroySession) {
+                      try {
+                        await session.destroy();
+                      } catch (error) {
+                        self.rejectResultPromises(error);
+                        controller.enqueue({ type: 'error', error });
+                        self.closeStream();
+                        return;
+                      }
+                    }
+
                     controller.enqueue({
                       type: 'finish',
                       finishReason: stepFinishReason,
@@ -2443,15 +2546,35 @@ class DefaultStreamTextResult<
         }),
       );
     })().catch(async error => {
-      await telemetryDispatcher.onError?.({ callId, error });
-      self._initialResponseMessages.reject(error);
-      markPromiseAsHandled(self._initialResponseMessages.promise);
+      let finalError = error;
+
+      if (shouldDestroySession) {
+        try {
+          await session.destroy();
+        } catch (cleanupError) {
+          finalError = new AggregateError(
+            [error, cleanupError],
+            'Streaming failed and session cleanup also failed.',
+          );
+          self.rejectResultPromises(finalError);
+        }
+      }
+
+      await telemetryDispatcher.onError?.({
+        callId,
+        error: finalError,
+      });
+
+      if (self._initialResponseMessages.isPending()) {
+        self._initialResponseMessages.reject(finalError);
+        markPromiseAsHandled(self._initialResponseMessages.promise);
+      }
 
       // add an error stream part and close the streams:
       self.addStream(
         new ReadableStream({
           start(controller) {
-            controller.enqueue({ type: 'error', error });
+            controller.enqueue({ type: 'error', error: finalError });
             controller.close();
           },
         }),
