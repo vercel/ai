@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.115
+
+### Patch Changes
+
+- 11a02d9: Apply reasoning, service tier, and image defaults to recognizable future OpenAI model family versions.
+
 ## 2.0.114
 
 ### Patch Changes
