@@ -1,0 +1,96 @@
+---
+title: GonkaRouter
+description: Learn how to use the GonkaRouter provider for the AI SDK.
+---
+
+# GonkaRouter Provider
+
+[GonkaRouter](https://gonkarouter.io) provides OpenAI-compatible access to
+open-source models (MiniMax, Kimi, and more) running on the decentralized
+[Gonka](https://gonka.ai) network.
+
+The [`@gonkarouter/ai-sdk-provider`](https://www.npmjs.com/package/@gonkarouter/ai-sdk-provider)
+package provides language model support for the AI SDK, built on
+[`@ai-sdk/openai-compatible`](https://www.npmjs.com/package/@ai-sdk/openai-compatible).
+
+## Setup
+
+The GonkaRouter provider is available in the `@gonkarouter/ai-sdk-provider` module.
+You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @gonkarouter/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @gonkarouter/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @gonkarouter/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @gonkarouter/ai-sdk-provider" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `gonkarouter` from `@gonkarouter/ai-sdk-provider`:
+
+```ts
+import { gonkarouter } from '@gonkarouter/ai-sdk-provider';
+```
+
+If you need a customized setup, you can import `createGonkaRouter` and create a
+provider instance with your settings:
+
+```ts
+import { createGonkaRouter } from '@gonkarouter/ai-sdk-provider';
+
+const gonkarouter = createGonkaRouter({
+  apiKey: process.env.GONKAROUTER_API_KEY ?? '',
+  // baseURL: 'https://api.gonkarouter.io/v1', // optional override
+});
+```
+
+You can use the following optional settings to customize the provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls. The default prefix is
+  `https://api.gonkarouter.io/v1`.
+
+- **apiKey** _string_
+
+  API key sent using the `Authorization` header. Defaults to the
+  `GONKAROUTER_API_KEY` environment variable. Get a key at
+  [gonkarouter.io/dashboard](https://gonkarouter.io/dashboard).
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+## Language Models
+
+You can create language models using a provider instance. The first argument is the
+model id, e.g.:
+
+```ts
+import { gonkarouter } from '@gonkarouter/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: gonkarouter('MiniMaxAI/MiniMax-M2.7'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+The authoritative, always-current list of available models is the public catalog at
+[`GET /v1/models`](https://api.gonkarouter.io/v1/models).
+
+Streaming (`streamText`) and tool calling are supported through the OpenAI-compatible base.
+
+## Additional Resources
+
+- [`@gonkarouter/ai-sdk-provider` on npm](https://www.npmjs.com/package/@gonkarouter/ai-sdk-provider)
+- [GonkaRouter](https://gonkarouter.io)
