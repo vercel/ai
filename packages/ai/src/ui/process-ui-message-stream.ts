@@ -630,16 +630,19 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
               partialToolCall.text += chunk.inputTextDelta;
 
-              const { value: partialArgs } = await parsePartialJson(
-                partialToolCall.text,
-              );
+              const { value: partialArgs, state: parseState } =
+                await parsePartialJson(partialToolCall.text);
+              const input =
+                parseState === 'failed-parse'
+                  ? partialToolCall.text
+                  : partialArgs;
 
               if (partialToolCall.dynamic) {
                 updateDynamicToolPart({
                   toolCallId: chunk.toolCallId,
                   toolName: partialToolCall.toolName,
                   state: 'input-streaming',
-                  input: partialArgs,
+                  input,
                   title: partialToolCall.title,
                   toolMetadata: partialToolCall.toolMetadata,
                 });
@@ -648,7 +651,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   toolCallId: chunk.toolCallId,
                   toolName: partialToolCall.toolName,
                   state: 'input-streaming',
-                  input: partialArgs,
+                  input,
                   title: partialToolCall.title,
                   toolMetadata: partialToolCall.toolMetadata,
                 });
