@@ -1,5 +1,5 @@
 ---
-"@ai-sdk/provider": patch
+"@ai-sdk/provider": minor
 "@ai-sdk/gateway": patch
 "ai": patch
 ---
