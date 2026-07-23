@@ -1,3 +1,9 @@
+import { OpenTelemetry } from '@ai-sdk/otel';
+import {
+  BasicTracerProvider,
+  InMemorySpanExporter,
+  SimpleSpanProcessor,
+} from '@opentelemetry/sdk-trace-base';
 import type { Telemetry } from 'ai';
 import { describe, expect, test } from 'vitest';
 import type {
@@ -84,6 +90,24 @@ function makeSandboxProvider(): HarnessV1SandboxProvider {
     providerId: 'mock-sandbox',
     createSession: async () => sandboxSession,
   };
+}
+
+function createSdkTracer() {
+  const exporter = new InMemorySpanExporter();
+  const provider = new BasicTracerProvider({
+    spanProcessors: [new SimpleSpanProcessor(exporter)],
+  });
+
+  return {
+    exporter,
+    tracer: provider.getTracer('harness-test-tracer'),
+  };
+}
+
+function getExportedSpan(exporter: InMemorySpanExporter, name: string) {
+  const span = exporter.getFinishedSpans().find(span => span.name === name);
+  expect(span).toBeDefined();
+  return span!;
 }
 
 /** A telemetry integration that records the lifecycle methods it receives. */
@@ -286,6 +310,113 @@ describe('HarnessAgent telemetry integration', () => {
     };
     expect(end.text).toBe('final');
     expect(end.finalStep.reasoning).toEqual([{ text: 'final thought' }]);
+  });
+
+  test('exports normalized OpenTelemetry spans from HarnessAgent turns', async () => {
+    const harness = scriptedHarness([
+      { type: 'stream-start', modelId: 'otel-model' },
+      { type: 'text-start', id: 't1' },
+      { type: 'text-delta', id: 't1', delta: 'draft' },
+      { type: 'text-end', id: 't1' },
+      {
+        type: 'tool-call',
+        toolCallId: 'c1',
+        toolName: 'bash',
+        input: '{"command":"ls"}',
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'c1',
+        toolName: 'bash',
+        result: { output: 'ok' },
+      },
+      {
+        type: 'finish-step',
+        finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+        usage,
+      },
+      { type: 'text-start', id: 't2' },
+      { type: 'text-delta', id: 't2', delta: 'final' },
+      { type: 'text-end', id: 't2' },
+      {
+        type: 'finish-step',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        usage,
+      },
+      {
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        totalUsage: usage,
+      },
+    ]);
+    const { exporter, tracer } = createSdkTracer();
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      telemetry: {
+        isEnabled: true,
+        recordInputs: true,
+        recordOutputs: true,
+        integrations: [new OpenTelemetry({ tracer })],
+      },
+    });
+
+    const session = await agent.createSession();
+    await agent.generate({ session, prompt: 'go' });
+    await session.destroy();
+
+    const chatSpan = exporter.getFinishedSpans().find(span => {
+      const finishReasons = span.attributes['gen_ai.response.finish_reasons'];
+      return (
+        span.name === 'chat otel-model' &&
+        Array.isArray(finishReasons) &&
+        (finishReasons as unknown[])[0] === 'stop'
+      );
+    });
+    expect(chatSpan).toBeDefined();
+    const rootSpan = getExportedSpan(exporter, 'ai.harness otel-model');
+
+    expect(chatSpan!.attributes).toMatchObject({
+      'gen_ai.input.messages': JSON.stringify([
+        { role: 'user', parts: [{ type: 'text', content: 'go' }] },
+      ]),
+      'gen_ai.response.finish_reasons': ['stop'],
+      'gen_ai.usage.input_tokens': 5,
+      'gen_ai.usage.output_tokens': 2,
+    });
+    expect(chatSpan!.attributes['gen_ai.output.messages']).toBe(
+      JSON.stringify([
+        {
+          role: 'assistant',
+          parts: [{ type: 'text', content: 'final' }],
+          finish_reason: 'stop',
+        },
+      ]),
+    );
+
+    expect(rootSpan.attributes).toMatchObject({
+      'gen_ai.response.finish_reasons': ['stop'],
+      'gen_ai.usage.input_tokens': 5,
+      'gen_ai.usage.output_tokens': 2,
+    });
+    expect(rootSpan.attributes['gen_ai.output.messages']).toBe(
+      JSON.stringify([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'text', content: 'final' },
+            {
+              type: 'tool_call',
+              id: 'c1',
+              name: 'bash',
+              arguments: '{"command":"ls"}',
+            },
+          ],
+          finish_reason: 'stop',
+        },
+      ]),
+    );
   });
 
   test('fires no telemetry when settings.telemetry is unset', async () => {
