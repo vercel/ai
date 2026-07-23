@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.101
+
+### Patch Changes
+
+- 0608dca: fix (provider/anthropic): use current-generation capability defaults for unrecognized Claude model IDs while retaining conservative defaults for legacy Claude and non-Claude models.
+
 ## 3.0.100
 
 ### Patch Changes

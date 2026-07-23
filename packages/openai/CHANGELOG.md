@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.88
+
+### Patch Changes
+
+- 8100830: Apply reasoning, service tier, and image defaults to recognizable future OpenAI model family versions.
+
 ## 3.0.87
 
 ### Patch Changes
