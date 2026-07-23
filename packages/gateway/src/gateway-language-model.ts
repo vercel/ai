@@ -57,10 +57,14 @@ export class GatewayLanguageModel implements LanguageModelV4 {
   }
 
   private async getArgs(options: LanguageModelV4CallOptions) {
-    const { abortSignal: _abortSignal, ...optionsWithoutSignal } = options;
+    const {
+      abortSignal: _abortSignal,
+      experimental_session: _experimentalSession,
+      ...optionsWithoutInternalState
+    } = options;
 
     return {
-      args: this.maybeEncodeFileParts(optionsWithoutSignal),
+      args: this.maybeEncodeFileParts(optionsWithoutInternalState),
       warnings: [],
     };
   }
