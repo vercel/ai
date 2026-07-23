@@ -298,6 +298,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       supportsAdaptiveThinking,
       rejectsSamplingParameters,
       supportsXhighEffort,
+      rejectsThinkingDisabledAboveHighEffort,
       isKnownModel,
     } = getModelCapabilities(this.modelId);
 
@@ -441,6 +442,25 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           anthropicOptions.effort = reasoningConfig.effort;
         }
       }
+    }
+
+    // Newer models only allow disabling thinking at effort levels up to and
+    // including `high`; at `xhigh` and `max` the API returns a 400. Lower
+    // the effort to `high` to preserve the explicit request to run without
+    // thinking.
+    if (
+      rejectsThinkingDisabledAboveHighEffort &&
+      anthropicOptions?.thinking?.type === 'disabled' &&
+      (anthropicOptions.effort === 'xhigh' || anthropicOptions.effort === 'max')
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.anthropic.effort',
+        details:
+          `effort '${anthropicOptions.effort}' is not supported by ${this.modelId} when thinking is disabled. ` +
+          `The effort has been lowered to 'high'.`,
+      });
+      anthropicOptions.effort = 'high';
     }
 
     const thinkingType = anthropicOptions?.thinking?.type;
@@ -2650,6 +2670,7 @@ export function getModelCapabilities(modelId: string): {
   supportsAdaptiveThinking: boolean;
   rejectsSamplingParameters: boolean;
   supportsXhighEffort: boolean;
+  rejectsThinkingDisabledAboveHighEffort: boolean;
   isKnownModel: boolean;
 } {
   if (
@@ -2664,6 +2685,7 @@ export function getModelCapabilities(modelId: string): {
       supportsAdaptiveThinking: true,
       rejectsSamplingParameters: true,
       supportsXhighEffort: true,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
   } else if (
@@ -2676,6 +2698,7 @@ export function getModelCapabilities(modelId: string): {
       supportsAdaptiveThinking: true,
       rejectsSamplingParameters: false,
       supportsXhighEffort: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
   } else if (
@@ -2689,6 +2712,7 @@ export function getModelCapabilities(modelId: string): {
       supportsAdaptiveThinking: false,
       rejectsSamplingParameters: false,
       supportsXhighEffort: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-4-1')) {
@@ -2698,6 +2722,7 @@ export function getModelCapabilities(modelId: string): {
       supportsAdaptiveThinking: false,
       rejectsSamplingParameters: false,
       supportsXhighEffort: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-sonnet-4-')) {
@@ -2707,6 +2732,7 @@ export function getModelCapabilities(modelId: string): {
       supportsAdaptiveThinking: false,
       rejectsSamplingParameters: false,
       supportsXhighEffort: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-4-')) {
@@ -2716,6 +2742,7 @@ export function getModelCapabilities(modelId: string): {
       supportsAdaptiveThinking: false,
       rejectsSamplingParameters: false,
       supportsXhighEffort: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-3-haiku')) {
@@ -2725,6 +2752,7 @@ export function getModelCapabilities(modelId: string): {
       supportsAdaptiveThinking: false,
       rejectsSamplingParameters: false,
       supportsXhighEffort: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
   } else if (
@@ -2736,6 +2764,7 @@ export function getModelCapabilities(modelId: string): {
       supportsAdaptiveThinking: false,
       rejectsSamplingParameters: false,
       supportsXhighEffort: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: false,
     };
   } else if (modelId.includes('claude-')) {
@@ -2748,15 +2777,19 @@ export function getModelCapabilities(modelId: string): {
       supportsAdaptiveThinking: true,
       rejectsSamplingParameters: true,
       supportsXhighEffort: true,
+      rejectsThinkingDisabledAboveHighEffort: true,
       isKnownModel: false,
     };
   } else {
+    // Non-Claude models (e.g. served through Anthropic-compatible APIs)
+    // keep conservative defaults.
     return {
       maxOutputTokens: 4096,
       supportsStructuredOutput: false,
       supportsAdaptiveThinking: false,
       rejectsSamplingParameters: false,
       supportsXhighEffort: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: false,
     };
   }
