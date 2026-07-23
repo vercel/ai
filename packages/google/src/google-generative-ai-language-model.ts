@@ -37,20 +37,13 @@ import { getModelPath } from './get-model-path';
 import { googleFailedResponseHandler } from './google-error';
 import {
   googleLanguageModelOptions,
-<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
   type GoogleGenerativeAIModelId,
 } from './google-generative-ai-options';
+import { getGoogleModelCapabilities } from './google-model-capabilities';
 import type {
   GoogleGenerativeAIContentPart,
   GoogleGenerativeAIProviderMetadata,
 } from './google-generative-ai-prompt';
-=======
-  type GoogleLanguageModelOptions,
-  type GoogleModelId,
-} from './google-language-model-options';
-import { getGoogleModelCapabilities } from './google-model-capabilities';
-import type { GoogleProviderMetadata } from './google-prompt';
->>>>>>> f1266498a2 (feat: use forward-compatible capability defaults for unknown Google Gemini models (#17816)):packages/google/src/google-language-model.ts
 import { prepareTools } from './google-prepare-tools';
 import {
   GoogleJSONAccumulator,
@@ -239,26 +232,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
     const { usesGemini3Features } = getGoogleModelCapabilities(this.modelId);
 
-<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
     const { contents, systemInstruction } = convertToGoogleGenerativeAIMessages(
       prompt,
       {
         isGemmaModel,
-        isGemini3Model,
+        isGemini3Model: usesGemini3Features,
         providerOptionsName,
-        supportsFunctionResponseParts,
+        supportsFunctionResponseParts: usesGemini3Features,
         onWarning: warning => warnings.push(warning),
       },
     );
-=======
-    const { contents, systemInstruction } = convertToGoogleMessages(prompt, {
-      isGemmaModel,
-      isGemini3Model: usesGemini3Features,
-      onWarning: warning => warnings.push(warning),
-      providerOptionsNames,
-      supportsFunctionResponseParts: usesGemini3Features,
-    });
->>>>>>> f1266498a2 (feat: use forward-compatible capability defaults for unknown Google Gemini models (#17816)):packages/google/src/google-language-model.ts
 
     const {
       tools: googleTools,
@@ -1146,7 +1129,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
   }
 }
 
-<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
 function getToolCallsFromParts({
   parts,
   generateId,
@@ -1163,54 +1145,6 @@ function getToolCallsFromParts({
       functionCall: { name: string; args: unknown };
       thoughtSignature?: string | null;
     }
-=======
-function getMaxOutputTokensForGemini25Model(): number {
-  return 65536;
-}
-
-function getMaxThinkingTokensForGemini25Model(modelId: string): number {
-  const id = modelId.toLowerCase();
-  if (id.includes('2.5-pro') || id.includes('gemini-3-pro-image')) {
-    return 32768;
-  }
-  return 24576;
-}
-
-type GoogleThinkingConfig = NonNullable<
-  InferSchema<typeof googleLanguageModelOptions>['thinkingConfig']
->;
-
-function resolveThinkingConfig({
-  reasoning,
-  modelId,
-  warnings,
-}: {
-  reasoning: LanguageModelV4CallOptions['reasoning'];
-  modelId: string;
-  warnings: SharedV4Warning[];
-}): Omit<GoogleThinkingConfig, 'includeThoughts'> | undefined {
-  if (!isCustomReasoning(reasoning)) {
-    return undefined;
-  }
-
-  if (
-    getGoogleModelCapabilities(modelId).usesGemini3Features &&
-    !modelId.includes('gemini-3-pro-image')
-  ) {
-    return resolveGemini3ThinkingConfig({ reasoning, warnings });
-  }
-
-  return resolveGemini25ThinkingConfig({ reasoning, modelId, warnings });
-}
-
-function resolveGemini3ThinkingConfig({
-  reasoning,
-  warnings,
-}: {
-  reasoning: Exclude<
-    LanguageModelV4CallOptions['reasoning'],
-    'provider-default' | undefined
->>>>>>> f1266498a2 (feat: use forward-compatible capability defaults for unknown Google Gemini models (#17816)):packages/google/src/google-language-model.ts
   >;
 
   return functionCallParts == null || functionCallParts.length === 0

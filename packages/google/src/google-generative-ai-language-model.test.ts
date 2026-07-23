@@ -506,24 +506,9 @@ describe('doGenerate', () => {
   const TEST_URL_GEMINI_1_5_FLASH =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
-<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.test.ts
-=======
-  const TEST_URL_GEMINI_3_PRO =
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent';
-
-  const TEST_URL_GEMINI_3_1_PRO =
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent';
-
   const TEST_URL_GEMINI_99_PRO =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-99-pro-preview:generateContent';
 
-  const TEST_URL_GEMINI_2_5_PRO =
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent';
-
-  const TEST_URL_GEMINI_2_5_FLASH =
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
-
->>>>>>> f1266498a2 (feat: use forward-compatible capability defaults for unknown Google Gemini models (#17816)):packages/google/src/google-language-model.test.ts
   const TEST_URL_GEMINI_2_5_FLASH_LITE =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
 
@@ -536,13 +521,7 @@ describe('doGenerate', () => {
     [TEST_URL_GEMINI_2_0_FLASH_EXP]: {},
     [TEST_URL_GEMINI_1_0_PRO]: {},
     [TEST_URL_GEMINI_1_5_FLASH]: {},
-<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.test.ts
-=======
-    [TEST_URL_GEMINI_3_PRO]: {},
-    [TEST_URL_GEMINI_3_1_PRO]: {},
     [TEST_URL_GEMINI_99_PRO]: {},
-    [TEST_URL_GEMINI_2_5_PRO]: {},
->>>>>>> f1266498a2 (feat: use forward-compatible capability defaults for unknown Google Gemini models (#17816)):packages/google/src/google-language-model.test.ts
     [TEST_URL_GEMINI_2_5_FLASH_LITE]: {},
     [TEST_URL_GEMINI_3_PRO]: {},
   });
@@ -717,7 +696,13 @@ describe('doGenerate', () => {
     const model = provider.chat('gemini-99-pro-preview');
 
     await model.doGenerate({
-      reasoning: 'high',
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'high',
+          },
+        },
+      },
       prompt: [
         {
           role: 'user',
@@ -746,8 +731,8 @@ describe('doGenerate', () => {
                 value: [
                   { type: 'text', text: 'Weather chart' },
                   {
-                    type: 'file',
-                    data: { type: 'data', data: 'iVBORw0KGgo=' },
+                    type: 'file-data',
+                    data: 'iVBORw0KGgo=',
                     mediaType: 'image/png',
                   },
                 ],

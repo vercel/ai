@@ -4,12 +4,8 @@ import {
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
-<<<<<<< HEAD
 import type { GoogleGenerativeAIModelId } from './google-generative-ai-options';
-=======
-import type { GoogleModelId } from './google-language-model-options';
 import { getGoogleModelCapabilities } from './google-model-capabilities';
->>>>>>> f1266498a2 (feat: use forward-compatible capability defaults for unknown Google Gemini models (#17816))
 
 export function prepareTools({
   tools,
@@ -51,26 +47,8 @@ export function prepareTools({
 
   const toolWarnings: SharedV3Warning[] = [];
 
-<<<<<<< HEAD
-  const isLatest = (
-    [
-      'gemini-flash-latest',
-      'gemini-flash-lite-latest',
-      'gemini-pro-latest',
-    ] as const satisfies GoogleGenerativeAIModelId[]
-  ).some(id => id === modelId);
-  const isGemini2orNewer =
-    modelId.includes('gemini-2') ||
-    modelId.includes('gemini-3') ||
-    modelId.includes('nano-banana') ||
-    isLatest;
-  const isGemini3orNewer = modelId.includes('gemini-3');
-  const supportsFileSearch =
-    modelId.includes('gemini-2.5') || modelId.includes('gemini-3');
-=======
   const { supportsGemini2Tools, supportsFileSearch, usesGemini3Features } =
     getGoogleModelCapabilities(modelId);
->>>>>>> f1266498a2 (feat: use forward-compatible capability defaults for unknown Google Gemini models (#17816))
 
   if (tools == null) {
     return { tools: undefined, toolConfig: undefined, toolWarnings };

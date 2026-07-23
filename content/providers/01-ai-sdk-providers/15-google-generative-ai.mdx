@@ -105,9 +105,6 @@ Google Generative AI language models can also be used in the `streamText` functi
 and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output)
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
-<<<<<<< HEAD:content/providers/01-ai-sdk-providers/15-google-generative-ai.mdx
-Google Generative AI also supports some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
-=======
 <Note>
   To remain forward-compatible, the provider treats unrecognized `gemini-*`
   model IDs and `-latest` aliases like the newest supported Gemini generation.
@@ -118,8 +115,7 @@ Google Generative AI also supports some model specific settings that are not par
   selected model must still support each feature in the Google API.
 </Note>
 
-Google also supports some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
->>>>>>> f1266498a2 (feat: use forward-compatible capability defaults for unknown Google Gemini models (#17816)):content/providers/01-ai-sdk-providers/15-google.mdx
+Google Generative AI also supports some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
 You can pass them as an options argument:
 
 ```ts
@@ -278,11 +274,7 @@ The following optional provider options are available for Google Generative AI m
 
 ### Thinking
 
-<<<<<<< HEAD:content/providers/01-ai-sdk-providers/15-google-generative-ai.mdx
-The Gemini 2.5 and Gemini 3 series models use an internal "thinking process" that significantly improves their reasoning and multi-step planning abilities, making them highly effective for complex tasks such as coding, advanced mathematics, and data analysis. For more information see [Google Generative AI thinking documentation](https://ai.google.dev/gemini-api/docs/thinking).
-=======
-The Gemini 2.5 and Gemini 3-and-later series models use an internal "thinking process" that significantly improves their reasoning and multi-step planning abilities, making them highly effective for complex tasks such as coding, advanced mathematics, and data analysis. For more information see [Google thinking documentation](https://ai.google.dev/gemini-api/docs/thinking).
->>>>>>> f1266498a2 (feat: use forward-compatible capability defaults for unknown Google Gemini models (#17816)):content/providers/01-ai-sdk-providers/15-google.mdx
+The Gemini 2.5 and Gemini 3-and-later series models use an internal "thinking process" that significantly improves their reasoning and multi-step planning abilities, making them highly effective for complex tasks such as coding, advanced mathematics, and data analysis. For more information see [Google Generative AI thinking documentation](https://ai.google.dev/gemini-api/docs/thinking).
 
 #### Gemini 3 and Later Models
 
