@@ -2598,7 +2598,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
  * @see https://docs.claude.com/en/docs/about-claude/models/overview#model-comparison-table
  * @see https://platform.claude.com/docs/en/build-with-claude/structured-outputs
  */
-function getModelCapabilities(modelId: string): {
+export function getModelCapabilities(modelId: string): {
   maxOutputTokens: number;
   supportsStructuredOutput: boolean;
   rejectsSamplingParameters: boolean;
@@ -2671,9 +2671,7 @@ function getModelCapabilities(modelId: string): {
     return {
       maxOutputTokens: 4096,
       supportsStructuredOutput: false,
-      supportsAdaptiveThinking: false,
       rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
       isKnownModel: false,
     };
   } else if (modelId.includes('claude-')) {
@@ -2683,9 +2681,7 @@ function getModelCapabilities(modelId: string): {
     return {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,
-      supportsAdaptiveThinking: true,
       rejectsSamplingParameters: true,
-      supportsXhighEffort: true,
       isKnownModel: false,
     };
   } else {
