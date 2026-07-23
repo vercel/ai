@@ -298,10 +298,15 @@
           "description": "Every harness bridge index file must declare and use the relevant symbols.",
           "for": { "files": ["bridge/index.ts"] },
           "must": {
+            "haveFiles": ["create-emit-stream-event.ts"],
             "import": [
               {
                 "name": "runBridge",
                 "from": "@ai-sdk/harness/bridge"
+              },
+              {
+                "name": "createEmitStreamEvent",
+                "from": "./create-emit-stream-event"
               }
             ],
             "importTypes": [
@@ -325,6 +330,14 @@
                 "returnValueOfType": "Promise<void>"
               }
             ]
+          }
+        },
+        {
+          "name": "harness-stream-event-emitter-must-export-factory",
+          "description": "Every harness stream event emitter file must export its factory function.",
+          "for": { "files": ["bridge/create-emit-stream-event.ts"] },
+          "must": {
+            "exportFunctions": ["createEmitStreamEvent"]
           }
         },
         {
