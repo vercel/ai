@@ -1,5 +1,15 @@
 # @ai-sdk/harness-codex
 
+## 1.0.43
+
+### Patch Changes
+
+- 07c977a: chore(harness): refactor bridge code to break out stream event emission from launcher to make it testable
+- 560db3a: fix(harness-codex): fix obsolete default Codex model ID
+- Updated dependencies [a94425b]
+- Updated dependencies [2de0611]
+  - @ai-sdk/harness@1.0.41
+
 ## 1.0.42
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @ai-sdk/harness
 
+## 1.0.41
+
+### Patch Changes
+
+- a94425b: fix(harness): ensure harness telemetry hooks are awaited before stream processing continues
+- 2de0611: fix(harness): avoid incorrectly marked invalid tool calls due to `dynamic` flag being dropped
+- Updated dependencies [7fa85b2]
+  - ai@7.0.36
+
 ## 1.0.40
 
 ### Patch Changes

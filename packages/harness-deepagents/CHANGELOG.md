@@ -1,5 +1,16 @@
 # @ai-sdk/harness-deepagents
 
+## 1.0.40
+
+### Patch Changes
+
+- 07c977a: chore(harness): refactor bridge code to break out stream event emission from launcher to make it testable
+- 8c96d41: fix(harness-deepagents): fix Deep Agents missing model ID in telemetry
+- 5c1a6af: fix(harness-deepagents): fix overly limiting override of Deep Agents recursion limit default
+- Updated dependencies [a94425b]
+- Updated dependencies [2de0611]
+  - @ai-sdk/harness@1.0.41
+
 ## 1.0.39
 
 ### Patch Changes

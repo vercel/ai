@@ -1,5 +1,14 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.42
+
+### Patch Changes
+
+- 07c977a: chore(harness): refactor bridge code to break out stream event emission from launcher to make it testable
+- Updated dependencies [a94425b]
+- Updated dependencies [2de0611]
+  - @ai-sdk/harness@1.0.41
+
 ## 1.0.41
 
 ### Patch Changes
