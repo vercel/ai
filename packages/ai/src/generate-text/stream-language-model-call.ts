@@ -1,6 +1,6 @@
 import {
   getErrorMessage,
-  type Experimental_Session as Session,
+  type Experimental_SharedV4Session,
   type LanguageModelV4Prompt,
   type LanguageModelV4StreamPart,
   type SharedV4Headers,
@@ -229,7 +229,7 @@ export async function streamLanguageModelCall<
   ...callSettings
 }: {
   model: LanguageModel;
-  experimental_session?: Session;
+  experimental_session?: Experimental_SharedV4Session;
   tools?: TOOLS;
   toolOrder?: ToolOrder<TOOLS>;
   output?: OUTPUT;

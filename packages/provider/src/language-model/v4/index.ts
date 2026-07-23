@@ -11,7 +11,6 @@ export * from './language-model-v4-provider-tool';
 export * from './language-model-v4-reasoning';
 export * from './language-model-v4-reasoning-file';
 export * from './language-model-v4-response-metadata';
-export type { Session as Experimental_Session } from './language-model-v4-session';
 export * from './language-model-v4-source';
 export * from './language-model-v4-stream-part';
 export * from './language-model-v4-stream-result';

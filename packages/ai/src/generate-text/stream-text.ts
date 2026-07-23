@@ -1,7 +1,7 @@
 import {
   getErrorMessage,
   UnsupportedFunctionalityError,
-  type Experimental_Session as Session,
+  type Experimental_SharedV4Session,
   type LanguageModelV4,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
@@ -1033,7 +1033,7 @@ class DefaultStreamTextResult<
     include,
   }: {
     model: LanguageModelV4;
-    session: Session;
+    session: Experimental_SharedV4Session;
     telemetry: TelemetryOptions<RUNTIME_CONTEXT, TOOLS> | undefined;
     headers: Record<string, string | undefined> | undefined;
     settings: LanguageModelCallOptions;

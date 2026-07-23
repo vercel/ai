@@ -1,11 +1,10 @@
 /**
- * A key-value store for state that is scoped to a single language model
- * lifecycle.
+ * A key-value store for state that is scoped to a single lifecycle.
  *
  * Providers can associate cleanup callbacks with values. The owner of the
  * session is responsible for destroying it when the lifecycle is complete.
  */
-export type Session = {
+export type SharedV4Session = {
   /**
    * Returns whether the session contains a value for the key.
    */

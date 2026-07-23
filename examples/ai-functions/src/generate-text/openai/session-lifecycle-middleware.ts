@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import type { Experimental_Session } from '@ai-sdk/provider';
+import type { Experimental_SharedV4Session } from '@ai-sdk/provider';
 import {
   generateText,
   isStepCount,
@@ -19,7 +19,7 @@ type ProbeResource = {
 };
 
 let nextSessionId = 1;
-let latestSession: Experimental_Session | undefined;
+let latestSession: Experimental_SharedV4Session | undefined;
 
 const sessionProbeMiddleware: LanguageModelMiddleware = {
   transformParams: async ({ type, params }) => {

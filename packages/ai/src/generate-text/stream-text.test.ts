@@ -1,6 +1,6 @@
 import {
   APICallError,
-  type Experimental_Session as Session,
+  type Experimental_SharedV4Session,
   type LanguageModelV4,
   type LanguageModelV4CallOptions,
   type LanguageModelV4FunctionTool,
@@ -2926,7 +2926,7 @@ describe('streamText', () => {
       ]);
 
     it('reuses state across retries and destroys before onEnd', async () => {
-      const sessions: Session[] = [];
+      const sessions: Experimental_SharedV4Session[] = [];
       const callOrder: string[] = [];
       let attempt = 0;
 
@@ -2973,7 +2973,7 @@ describe('streamText', () => {
     });
 
     it('reuses the session across steps and model changes', async () => {
-      const sessions: Session[] = [];
+      const sessions: Experimental_SharedV4Session[] = [];
       let destroyCalls = 0;
 
       const alternateModel = new MockLanguageModelV4({
@@ -3038,7 +3038,7 @@ describe('streamText', () => {
     });
 
     it('creates distinct sessions for concurrent streams', async () => {
-      const sessions: Session[] = [];
+      const sessions: Experimental_SharedV4Session[] = [];
       const model = new MockLanguageModelV4({
         doStream: async options => {
           sessions.push(options.experimental_session!);

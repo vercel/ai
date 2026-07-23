@@ -1,11 +1,11 @@
-import type { Experimental_Session as Session } from '@ai-sdk/provider';
+import type { Experimental_SharedV4Session } from '@ai-sdk/provider';
 
 type SessionItem = {
   value: unknown;
   onDestroy?: () => void | PromiseLike<void>;
 };
 
-class DefaultSession implements Session {
+class DefaultSession implements Experimental_SharedV4Session {
   private readonly items = new Map<string | symbol, SessionItem>();
   private destroyed = false;
   private destroyPromise: Promise<void> | undefined;
@@ -113,6 +113,6 @@ class DefaultSession implements Session {
   }
 }
 
-export function createSession(): Session {
+export function createSession(): Experimental_SharedV4Session {
   return new DefaultSession();
 }
