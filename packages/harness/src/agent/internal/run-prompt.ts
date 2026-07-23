@@ -4,6 +4,7 @@ import {
   type HarnessV1,
   type HarnessV1BuiltinToolFiltering,
   type HarnessV1PendingToolApproval,
+  type HarnessV1PendingToolResult,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
   type HarnessV1Session,
@@ -20,21 +21,35 @@ import {
   type Experimental_SandboxSession as SandboxSession,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
-import type {
-  LanguageModelV4FinishReason,
-  LanguageModelV4ToolCall,
-  LanguageModelV4Usage,
+import {
+  getErrorMessage,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4ToolCall,
+  type LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 import { parseToolCall } from 'ai/internal';
-import type { ContentPart, TelemetryOptions, TextStreamPart } from 'ai';
+import type {
+  ContentPart,
+  ProviderMetadata,
+  StepResult,
+  StopCondition,
+  TelemetryOptions,
+  TextStreamPart,
+} from 'ai';
 import type { HarnessAgentToolApprovalContinuation } from '../harness-agent-tool-approval-continuation';
+import type { HarnessAgentToolResultContinuation } from '../harness-agent-tool-result-continuation';
 import type { HarnessAgentToolApprovalConfiguration } from '../harness-agent-settings';
 import { HarnessStreamTextResult } from './harness-stream-text-result';
 import { translateStreamPart } from './translate-stream-part';
 import { stripWorkDir } from './strip-work-dir';
-import { createTurnTelemetry, type TurnContentPart } from './turn-telemetry';
+import {
+  createTurnTelemetry,
+  type TurnContentPart,
+  type TurnTelemetry,
+} from './turn-telemetry';
 import { resolveCustomToolApproval } from './permission-mode';
 import { logBridgeError } from '../../utils/bridge-diagnostics';
+import { pinSandboxChannelEventCheckpoint } from '../../utils/sandbox-channel';
 
 /**
  * Drive one prompt turn end-to-end:
@@ -72,14 +87,23 @@ export function runPrompt<
   runtimeContext: RUNTIME_CONTEXT;
   abortSignal: AbortSignal | undefined;
   telemetry?: TelemetryOptions | undefined;
+  stopConditions?: ReadonlyArray<StopCondition<TOOLS, RUNTIME_CONTEXT>>;
   toolApproval?: HarnessAgentToolApprovalConfiguration | undefined;
   pendingToolApprovals?: readonly HarnessV1PendingToolApproval[];
+  pendingToolResults?: readonly HarnessV1PendingToolResult[];
   toolApprovalContinuations?:
     | readonly HarnessAgentToolApprovalContinuation[]
     | undefined;
+  toolResultContinuations?:
+    | readonly HarnessAgentToolResultContinuation[]
+    | undefined;
   onPendingToolApproval?: (approval: HarnessV1PendingToolApproval) => void;
   onToolApprovalSettled?: (approvalId: string) => void;
+  onPendingToolResult?: (pendingResult: HarnessV1PendingToolResult) => void;
+  onToolResultSettled?: (toolCallId: string) => void;
   onTurnFinished?: () => void;
+  onTurnFailed?: () => void;
+  onStopConditionMet?: () => Promise<void>;
 }): {
   result: HarnessStreamTextResult<TOOLS, RUNTIME_CONTEXT>;
   done: Promise<void>;
@@ -93,8 +117,11 @@ export function runPrompt<
     sessionId: input.session.sessionId,
   });
   const pendingToolApprovals = input.pendingToolApprovals ?? [];
+  const pendingToolResults = input.pendingToolResults ?? [];
   const onPendingToolApproval = input.onPendingToolApproval ?? (() => {});
   const onToolApprovalSettled = input.onToolApprovalSettled ?? (() => {});
+  const onPendingToolResult = input.onPendingToolResult ?? (() => {});
+  const onToolResultSettled = input.onToolResultSettled ?? (() => {});
   const activeTools = input.activeTools ?? input.tools;
 
   const telemetry = createTurnTelemetry({
@@ -105,6 +132,29 @@ export function runPrompt<
     promptText: input.prompt != null ? promptToText(input.prompt) : '',
     runtimeContext: input.runtimeContext,
   });
+
+  /*
+   * Settle a failed turn. When the caller's own `abortSignal` has fired, the
+   * failure is a user-initiated stop, not an error: surface it as an `abort`
+   * stream part — matching `streamText`'s abort contract — so
+   * `toUIMessageStream` consumers observe an `abort` chunk and
+   * `isAborted: true` instead of a spurious `onError`. Every other failure
+   * stays a real `error` part. Both outcomes notify `onTurnFailed` so the
+   * session's turn tracking returns to idle and the session stays usable.
+   */
+  const settleFailure = (err: unknown) => {
+    input.onTurnFailed?.();
+    if (input.abortSignal?.aborted) {
+      result.abort({
+        error: err,
+        ...(input.abortSignal.reason !== undefined
+          ? { reason: getErrorMessage(input.abortSignal.reason) }
+          : {}),
+      });
+      return;
+    }
+    result.fail(err);
+  };
 
   const done = (async () => {
     let bridge: Awaited<ReturnType<typeof toHarnessStream>>;
@@ -134,14 +184,14 @@ export function runPrompt<
               },
       });
     } catch (err) {
-      telemetry.error(err);
+      await telemetry.error(err);
       logBridgeError({
         harnessId: input.harness.harnessId,
         sessionId: input.session.sessionId,
         context: 'failed to start harness turn',
         error: err,
       });
-      result.fail(err);
+      settleFailure(err);
       return;
     }
 
@@ -164,10 +214,35 @@ export function runPrompt<
         continuation,
       ]),
     );
-    const settledApprovalToolCallIds = new Set<string>();
+    const pendingResultsByToolCallId = new Map(
+      pendingToolResults.map(pendingResult => [
+        pendingResult.toolCallId,
+        pendingResult,
+      ]),
+    );
+    const continuationsByToolCallId = new Map(
+      (input.toolResultContinuations ?? []).map(continuation => [
+        continuation.toolCallId,
+        continuation,
+      ]),
+    );
+    const settledHostToolCallIds = new Set<string>();
+    let closingResumedStep = false;
+    let pendingStopBoundary:
+      | {
+          finishReason: LanguageModelV4FinishReason;
+          usage: LanguageModelV4Usage;
+          releaseCheckpoint: (() => void) | undefined;
+        }
+      | undefined;
     let finalFinish:
       | Extract<HarnessV1StreamPart, { type: 'finish' }>
       | undefined;
+    const completedSteps: Array<StepResult<TOOLS, RUNTIME_CONTEXT>> = [];
+    const releasePendingStopBoundary = (): void => {
+      pendingStopBoundary?.releaseCheckpoint?.();
+      pendingStopBoundary = undefined;
+    };
 
     // Accumulate the model's output content per step so telemetry can record
     // `gen_ai.output.messages` and reporters can log what was actually said.
@@ -203,20 +278,38 @@ export function runPrompt<
       unified: 'tool-calls',
       raw: undefined,
     };
-    const finishForToolApprovalPause = async (): Promise<void> => {
-      telemetry.stepFinish({
-        finishReason: toolCallsFinishReason,
-        usage: zeroUsage,
+    const completeStep = async (input: {
+      finishReason: LanguageModelV4FinishReason;
+      usage: LanguageModelV4Usage;
+      providerMetadata: ProviderMetadata | undefined;
+    }): Promise<StepResult<TOOLS, RUNTIME_CONTEXT>> => {
+      await telemetry.stepFinish({
+        finishReason: input.finishReason,
+        usage: input.usage,
+        providerMetadata: input.providerMetadata,
         content: buildStepContent(),
       });
       resetStepContent();
-      result.finishStep({
-        finishReason: toolCallsFinishReason,
-        usage: zeroUsage,
-        providerMetadata: undefined,
+      const step = result.finishStep({
+        finishReason: input.finishReason,
+        usage: input.usage,
+        providerMetadata: input.providerMetadata,
         warnings: [],
       });
-      telemetry.end({
+      completedSteps.push(step);
+      return step;
+    };
+    const finishForHostInputPause = async (options: {
+      completeCurrentStep: boolean;
+    }): Promise<void> => {
+      if (options.completeCurrentStep) {
+        await completeStep({
+          finishReason: toolCallsFinishReason,
+          usage: zeroUsage,
+          providerMetadata: undefined,
+        });
+      }
+      await telemetry.end({
         finishReason: toolCallsFinishReason,
         usage: zeroUsage,
       });
@@ -258,7 +351,7 @@ export function runPrompt<
       approval: HarnessV1PendingToolApproval,
       continuation: HarnessAgentToolApprovalContinuation,
     ): void => {
-      result.enqueue({
+      result.enqueueContinuation({
         type: 'tool-approval-response',
         approvalId: approval.approvalId,
         toolCall: continuation.toolCall,
@@ -271,15 +364,42 @@ export function runPrompt<
           : {}),
       } as TextStreamPart<TOOLS>);
     };
+    const recordPendingToolResult = (options: {
+      toolCall: Extract<HarnessV1StreamPart, { type: 'tool-call' }>;
+    }): HarnessV1PendingToolResult => {
+      const pendingResult =
+        pendingResultsByToolCallId.get(options.toolCall.toolCallId) ??
+        ({
+          toolCallId: options.toolCall.toolCallId,
+          toolName: options.toolCall.toolName,
+          input: options.toolCall.input,
+        } satisfies HarnessV1PendingToolResult);
+      pendingResultsByToolCallId.set(pendingResult.toolCallId, pendingResult);
+      onPendingToolResult(pendingResult);
+      return pendingResult;
+    };
+    const processPendingToolResultContinuation = async (
+      pendingResult: HarnessV1PendingToolResult,
+      continuation: HarnessAgentToolResultContinuation,
+    ): Promise<void> => {
+      onToolResultSettled(pendingResult.toolCallId);
+      pendingResultsByToolCallId.delete(pendingResult.toolCallId);
+      settledHostToolCallIds.add(pendingResult.toolCallId);
+      await control.submitToolResult({
+        toolCallId: pendingResult.toolCallId,
+        output: continuation.output,
+        isError: continuation.isError,
+      });
+    };
     const processPendingApprovalContinuation = async (
       approval: HarnessV1PendingToolApproval,
       continuation: HarnessAgentToolApprovalContinuation,
-    ): Promise<void> => {
+    ): Promise<'continued' | 'awaiting-tool-result'> => {
       enqueueApprovalResponse(approval, continuation);
       onToolApprovalSettled(approval.approvalId);
       pendingApprovalsByApprovalId.delete(approval.approvalId);
       pendingApprovalsByToolCallId.delete(approval.toolCallId);
-      settledApprovalToolCallIds.add(approval.toolCallId);
+      settledHostToolCallIds.add(approval.toolCallId);
 
       if (approval.kind === 'builtin') {
         if (control.submitToolApproval == null) {
@@ -292,7 +412,7 @@ export function runPrompt<
           approved: continuation.approvalResponse.approved,
           reason: continuation.approvalResponse.reason,
         });
-        return;
+        return 'continued';
       }
 
       if (!continuation.approvalResponse.approved) {
@@ -303,7 +423,7 @@ export function runPrompt<
             reason: continuation.approvalResponse.reason,
           },
         });
-        return;
+        return 'continued';
       }
 
       const rawToolCall =
@@ -315,9 +435,16 @@ export function runPrompt<
           input: approval.input,
         } satisfies Extract<HarnessV1StreamPart, { type: 'tool-call' }>);
 
-      const outcome = await maybeExecuteHostTool({
+      await telemetry.start(input.session.modelId);
+      await telemetry.toolStart({
+        toolCallId: rawToolCall.toolCallId,
+        toolName: rawToolCall.toolName,
+        input: rawToolCall.input,
+      });
+      const execution = await maybeExecuteHostTool({
         event: rawToolCall,
         tools: activeTools,
+        wrappedExecuteTool: telemetry.executeTool,
         sandboxSession: input.sandboxSession,
         abortSignal: input.abortSignal,
         control,
@@ -344,26 +471,75 @@ export function runPrompt<
           } as TextStreamPart<TOOLS>);
         },
       });
-      telemetry.toolEnd(rawToolCall.toolCallId, outcome);
+      if (!execution.executed) {
+        recordPendingToolResult({ toolCall: rawToolCall });
+        await finishForHostInputPause({ completeCurrentStep: false });
+        return 'awaiting-tool-result';
+      }
+      await telemetry.toolEnd(rawToolCall.toolCallId, execution.outcome);
+      return 'continued';
     };
 
     try {
       for (const approval of pendingToolApprovals) {
         const continuation = continuationsByApprovalId.get(approval.approvalId);
         if (continuation != null) {
-          await processPendingApprovalContinuation(approval, continuation);
+          const outcome = await processPendingApprovalContinuation(
+            approval,
+            continuation,
+          );
+          if (outcome === 'awaiting-tool-result') return;
+          closingResumedStep = true;
+        }
+      }
+      for (const pendingResult of pendingToolResults) {
+        const continuation = continuationsByToolCallId.get(
+          pendingResult.toolCallId,
+        );
+        if (continuation != null) {
+          await processPendingToolResultContinuation(
+            pendingResult,
+            continuation,
+          );
+          closingResumedStep = true;
         }
       }
 
       while (true) {
         const { value, done } = await reader.read();
-        if (done) break;
+        if (done) {
+          releasePendingStopBoundary();
+          break;
+        }
         if (value == null) continue;
+
+        if (pendingStopBoundary != null) {
+          if (value.type === 'finish') {
+            releasePendingStopBoundary();
+          } else if (
+            (
+              await Promise.all(
+                input.stopConditions!.map(condition =>
+                  condition({ steps: completedSteps }),
+                ),
+              )
+            ).some(Boolean)
+          ) {
+            await input.onStopConditionMet?.();
+            const { finishReason, usage } = pendingStopBoundary;
+            releasePendingStopBoundary();
+            await telemetry.end({ finishReason, usage });
+            await result.finish();
+            return;
+          } else {
+            releasePendingStopBoundary();
+          }
+        }
 
         // Begin the operation span on stream-start, using the runtime-resolved
         // model the adapter reports (falling back to the session's model).
         if (value.type === 'stream-start') {
-          telemetry.start(value.modelId ?? input.session.modelId);
+          await telemetry.start(value.modelId ?? input.session.modelId);
         }
 
         // Open a step span lazily before the first content of each step.
@@ -373,7 +549,7 @@ export function runPrompt<
           value.type !== 'finish' &&
           value.type !== 'error'
         ) {
-          telemetry.ensureStepOpen();
+          await telemetry.ensureStepOpen();
         }
 
         /*
@@ -383,12 +559,20 @@ export function runPrompt<
          * against the sandbox root, so the strip is display-only.
          */
         const displayValue = stripWorkDir(value, input.sessionWorkDir);
-        const settledApprovalToolCallReplay =
-          displayValue.type === 'tool-call' &&
-          !displayValue.providerExecuted &&
-          settledApprovalToolCallIds.has(displayValue.toolCallId);
+        const settledHostInputReplay =
+          (displayValue.type === 'tool-call' ||
+            displayValue.type === 'tool-result' ||
+            displayValue.type === 'tool-approval-request') &&
+          settledHostToolCallIds.has(displayValue.toolCallId);
 
-        if (settledApprovalToolCallReplay) {
+        if (settledHostInputReplay) {
+          continue;
+        }
+
+        if (displayValue.type === 'finish-step' && closingResumedStep) {
+          closingResumedStep = false;
+          resetStepContent();
+          result.discardCurrentStepContent();
           continue;
         }
 
@@ -425,6 +609,28 @@ export function runPrompt<
           }
         }
 
+        /*
+         * Settle failures before the translate-and-forward step below: the
+         * translated `error` part must not reach the consumer stream, or the
+         * turn surfaces BOTH a forwarded `error` part and the settle-owned
+         * terminal part (an `abort` part for user stops via `settleFailure`,
+         * or a second `error` part from `fail`).
+         */
+        if (value.type === 'error' && displayValue.type === 'error') {
+          // Telemetry and stderr diagnostics keep the raw error (absolute
+          // paths help debugging); the consumer-facing settle uses the
+          // workDir-stripped one, like every other forwarded part.
+          await telemetry.error(value.error);
+          logBridgeError({
+            harnessId: input.harness.harnessId,
+            sessionId: input.session.sessionId,
+            context: 'harness stream error',
+            error: value.error,
+          });
+          settleFailure(displayValue.error);
+          return;
+        }
+
         // Forward to consumer as soon as possible.
         for (const part of translateStreamPart<TOOLS>(displayValue)) {
           result.enqueue(part);
@@ -458,7 +664,7 @@ export function runPrompt<
             toolName: value.toolName,
             input: value.input,
           });
-          telemetry.toolStart({
+          await telemetry.toolStart({
             toolCallId: value.toolCallId,
             toolName: value.toolName,
             input: value.input,
@@ -467,7 +673,7 @@ export function runPrompt<
 
         // Telemetry: close a tool span when its provider-executed result lands.
         if (value.type === 'tool-result') {
-          telemetry.toolEnd(
+          await telemetry.toolEnd(
             value.toolCallId,
             value.isError
               ? { ok: false, error: value.result }
@@ -510,10 +716,12 @@ export function runPrompt<
             pendingApproval.approvalId,
           );
           if (continuation != null) {
-            await processPendingApprovalContinuation(
+            const outcome = await processPendingApprovalContinuation(
               pendingApproval,
               continuation,
             );
+            if (outcome === 'awaiting-tool-result') return;
+            closingResumedStep = true;
             continue;
           }
 
@@ -522,30 +730,29 @@ export function runPrompt<
             approvalId: pendingApproval.approvalId,
             toolCall,
           });
-          await finishForToolApprovalPause();
+          await finishForHostInputPause({ completeCurrentStep: true });
           return;
         }
 
         // Drive step boundaries.
         if (value.type === 'finish-step') {
-          telemetry.stepFinish({
+          await completeStep({
             finishReason: value.finishReason,
             usage: value.usage,
             providerMetadata: value.harnessMetadata,
-            content: buildStepContent(),
           });
-          resetStepContent();
-          result.finishStep({
-            finishReason: value.finishReason,
-            usage: value.usage,
-            providerMetadata: value.harnessMetadata,
-            warnings: [],
-          });
+          if (input.stopConditions != null && input.stopConditions.length > 0) {
+            pendingStopBoundary = {
+              finishReason: value.finishReason,
+              usage: value.usage,
+              releaseCheckpoint: pinSandboxChannelEventCheckpoint(value),
+            };
+          }
         }
 
         if (value.type === 'finish') {
           finalFinish = value;
-          telemetry.end({
+          await telemetry.end({
             finishReason: value.finishReason,
             usage: value.totalUsage,
           });
@@ -571,7 +778,7 @@ export function runPrompt<
               toolCallId: toolCall.toolCallId,
               output,
             });
-            telemetry.toolEnd(toolCall.toolCallId, { ok: true, output });
+            await telemetry.toolEnd(toolCall.toolCallId, { ok: true, output });
             continue;
           }
           const customToolApprovalDecision = resolveCustomToolApproval({
@@ -600,7 +807,7 @@ export function runPrompt<
               toolCallId: toolCall.toolCallId,
               output,
             });
-            telemetry.toolEnd(toolCall.toolCallId, { ok: true, output });
+            await telemetry.toolEnd(toolCall.toolCallId, { ok: true, output });
             continue;
           }
           const pendingApproval =
@@ -631,10 +838,12 @@ export function runPrompt<
               pendingApproval.approvalId,
             );
             if (continuation != null) {
-              await processPendingApprovalContinuation(
+              const outcome = await processPendingApprovalContinuation(
                 pendingApproval,
                 continuation,
               );
+              if (outcome === 'awaiting-tool-result') return;
+              closingResumedStep = true;
               continue;
             }
             const pendingParsedToolCall = toolCallsByToolCallId.get(
@@ -650,12 +859,13 @@ export function runPrompt<
               approvalId: pendingApproval.approvalId,
               toolCall: pendingParsedToolCall,
             });
-            await finishForToolApprovalPause();
+            await finishForHostInputPause({ completeCurrentStep: true });
             return;
           }
-          const outcome = await maybeExecuteHostTool({
+          const execution = await maybeExecuteHostTool({
             event: toolCall,
             tools: activeTools,
+            wrappedExecuteTool: telemetry.executeTool,
             sandboxSession: input.sandboxSession,
             abortSignal: input.abortSignal,
             control,
@@ -690,22 +900,19 @@ export function runPrompt<
               } as TextStreamPart<TOOLS>);
             },
           });
-          telemetry.toolEnd(toolCall.toolCallId, outcome);
-        }
-
-        if (value.type === 'error') {
-          telemetry.error(value.error);
-          logBridgeError({
-            harnessId: input.harness.harnessId,
-            sessionId: input.session.sessionId,
-            context: 'harness stream error',
-            error: value.error,
-          });
-          result.fail(value.error);
-          return;
+          if (!execution.executed) {
+            recordPendingToolResult({ toolCall });
+            await finishForHostInputPause({ completeCurrentStep: true });
+            return;
+          }
+          await telemetry.toolEnd(toolCall.toolCallId, execution.outcome);
         }
       }
-      input.onTurnFinished?.();
+      if (finalFinish != null) {
+        input.onTurnFinished?.();
+      } else {
+        input.onTurnFailed?.();
+      }
       await result.finish(
         finalFinish
           ? {
@@ -716,15 +923,16 @@ export function runPrompt<
           : undefined,
       );
     } catch (err) {
-      telemetry.error(err);
+      await telemetry.error(err);
       logBridgeError({
         harnessId: input.harness.harnessId,
         sessionId: input.session.sessionId,
         context: 'harness turn failed',
         error: err,
       });
-      result.fail(err);
+      settleFailure(err);
     } finally {
+      releasePendingStopBoundary();
       reader.releaseLock();
     }
   })();
@@ -741,6 +949,10 @@ export function runPrompt<
 type HostToolOutcome =
   | { ok: true; output: unknown }
   | { ok: false; error: unknown };
+
+type HostToolExecution =
+  | { executed: false }
+  | { executed: true; outcome: HostToolOutcome };
 
 function asToolCallTextStreamPart<TOOLS extends ToolSet>(input: {
   part: TextStreamPart<TOOLS>;
@@ -773,6 +985,7 @@ function hasTool(input: { tools: ToolSet; toolName: string }): boolean {
 async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
   event: { toolCallId: string; toolName: string; input: string };
   tools: TOOLS;
+  wrappedExecuteTool: TurnTelemetry['executeTool'];
   sandboxSession: SandboxSession;
   abortSignal: AbortSignal | undefined;
   control: HarnessV1PromptControl;
@@ -782,10 +995,10 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
    * stream. Never called for a plain (non-generator) `execute`.
    */
   onPreliminaryResult: (output: unknown) => void;
-}): Promise<HostToolOutcome> {
+}): Promise<HostToolExecution> {
   const tool = input.tools[input.event.toolName];
 
-  if (!isExecutableTool(tool)) return { ok: true, output: undefined };
+  if (!isExecutableTool(tool)) return { executed: false };
 
   const parsed = await safeParseJSON({ text: input.event.input });
   const args = parsed.success ? parsed.value : input.event.input;
@@ -801,38 +1014,44 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
      * back to the model — preliminary values are surfaced to the consumer
      * stream alone, matching how the AI SDK treats `onPreliminaryToolResult`.
      */
-    let output: unknown;
-    const stream = executeTool({
-      tool,
-      input: args as never,
-      options: {
-        toolCallId: input.event.toolCallId,
-        messages: [],
-        abortSignal: input.abortSignal,
-        context: undefined as never,
-        experimental_sandbox: input.sandboxSession,
+    const output = await input.wrappedExecuteTool({
+      toolCallId: input.event.toolCallId,
+      execute: async () => {
+        let output: unknown;
+        const stream = executeTool({
+          tool,
+          input: args as never,
+          options: {
+            toolCallId: input.event.toolCallId,
+            messages: [],
+            abortSignal: input.abortSignal,
+            context: undefined as never,
+            experimental_sandbox: input.sandboxSession,
+          },
+        });
+        for await (const part of stream) {
+          if (part.type === 'preliminary') {
+            input.onPreliminaryResult(part.output);
+          } else {
+            output = part.output;
+          }
+        }
+        return output;
       },
     });
-    for await (const part of stream) {
-      if (part.type === 'preliminary') {
-        input.onPreliminaryResult(part.output);
-      } else {
-        output = part.output;
-      }
-    }
 
     await input.control.submitToolResult({
       toolCallId: input.event.toolCallId,
       output,
     });
-    return { ok: true, output };
+    return { executed: true, outcome: { ok: true, output } };
   } catch (err) {
     await input.control.submitToolResult({
       toolCallId: input.event.toolCallId,
       output: { error: String(err) },
       isError: true,
     });
-    return { ok: false, error: err };
+    return { executed: true, outcome: { ok: false, error: err } };
   }
 }
 
@@ -861,6 +1080,7 @@ export async function validateToolCall<TOOLS extends ToolSet>(args: {
     ...(event.providerExecuted !== undefined
       ? { providerExecuted: event.providerExecuted }
       : {}),
+    ...(event.dynamic !== undefined ? { dynamic: event.dynamic } : {}),
     ...(event.providerMetadata !== undefined
       ? { providerMetadata: event.providerMetadata }
       : {}),

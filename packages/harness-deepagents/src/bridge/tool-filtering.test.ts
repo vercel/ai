@@ -75,7 +75,9 @@ describe('createBuiltinToolFilteringMiddleware', () => {
       'read-1',
       'weather-1',
     ]);
-    if (!result) throw new Error('expected middleware result');
+    if (!result?.messages) {
+      throw new Error('expected middleware result messages');
+    }
     const deniedReadMessage = result.messages[1];
     expect(ToolMessage.isInstance(deniedReadMessage)).toBe(true);
     if (!ToolMessage.isInstance(deniedReadMessage)) {
@@ -102,7 +104,9 @@ describe('createBuiltinToolFilteringMiddleware', () => {
       builtinToolFiltering: { mode: 'allow', toolNames: ['weather'] },
     });
 
-    if (!result) throw new Error('expected middleware result');
+    if (!result?.messages) {
+      throw new Error('expected middleware result messages');
+    }
     expect(result.jumpTo).toBe('model');
     expect(ToolMessage.isInstance(result.messages[1])).toBe(true);
   });
@@ -146,7 +150,9 @@ describe('createBuiltinToolFilteringMiddleware', () => {
           "Tool 'glob' is inactive due to the HarnessAgent tool filtering policy.",
       },
     ]);
-    if (!result) throw new Error('expected middleware result');
+    if (!result?.messages) {
+      throw new Error('expected middleware result messages');
+    }
     expect(result.jumpTo).toBeUndefined();
     const deniedGlobMessage = result.messages[1];
     expect(ToolMessage.isInstance(deniedGlobMessage)).toBe(true);
@@ -210,7 +216,9 @@ describe('createBuiltinToolFilteringMiddleware', () => {
           "Tool 'write_todos' is inactive due to the HarnessAgent tool filtering policy.",
       },
     ]);
-    if (!result) throw new Error('expected middleware result');
+    if (!result?.messages) {
+      throw new Error('expected middleware result messages');
+    }
     expect(result.jumpTo).toBe('model');
     expect(ToolMessage.isInstance(result.messages[1])).toBe(true);
     expect(ToolMessage.isInstance(result.messages[2])).toBe(true);

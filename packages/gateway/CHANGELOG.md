@@ -1,5 +1,46 @@
 # @ai-sdk/gateway
 
+## 4.0.27
+
+### Patch Changes
+
+- 2112ff1: chore(provider/gateway): update gateway model settings files
+
+## 4.0.26
+
+### Patch Changes
+
+- 7c16f21: feat(google): add `gemini-3.6-flash` and `gemini-3.5-flash-lite` models
+
+## 4.0.25
+
+### Patch Changes
+
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+
+## 4.0.24
+
+### Patch Changes
+
+- cefa3b1: chore(provider/gateway): remove `hipaaCompliant` provider option
+- 8fbb89c: chore(provider/gateway): update gateway model settings files
+
+## 4.0.23
+
+### Patch Changes
+
+- Updated dependencies [cd06458]
+  - @ai-sdk/provider-utils@5.0.11
+
+## 4.0.22
+
+### Patch Changes
+
+- 341616a: feat: add kimi-k3 model and `reasoningEffort` provider option
+- 70fc45c: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.21
 
 ### Patch Changes

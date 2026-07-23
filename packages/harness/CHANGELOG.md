@@ -1,5 +1,59 @@
 # @ai-sdk/harness
 
+## 1.0.40
+
+### Patch Changes
+
+- 59a2306: fix(harness): execute host tools through telemetry context wrappers
+- 5f65e61: feat(harness): add support for `stopWhen` control to `HarnessAgent` (e.g. `isStepCount(1)`)
+- Updated dependencies [7f6650b]
+- Updated dependencies [106ea59]
+  - ai@7.0.35
+
+## 1.0.39
+
+### Patch Changes
+
+- 86a84c9: fix(harness): settle a turn aborted by the caller's abortSignal with an `abort` stream part instead of an AbortError `error` part, matching `streamText`'s abort contract
+  - ai@7.0.34
+
+## 1.0.38
+
+### Patch Changes
+
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+- Updated dependencies [e808fa5]
+- Updated dependencies [33647d7]
+  - @ai-sdk/provider-utils@5.0.12
+  - ai@7.0.33
+
+## 1.0.37
+
+### Patch Changes
+
+- b460541: fix(harness): properly support client-side / host-side tools and handle unfinished turn semantics
+- 079591e: fix (harness): emit the message-level `start` part on HarnessAgent streams so `toUIMessageStream` persistence mode can inject the response message id
+- Updated dependencies [6cd7c74]
+- Updated dependencies [e35bcae]
+- Updated dependencies [a4eb3f3]
+  - ai@7.0.32
+
+## 1.0.36
+
+### Patch Changes
+
+- Updated dependencies [70f18c3]
+- Updated dependencies [cd06458]
+  - ai@7.0.31
+  - @ai-sdk/provider-utils@5.0.11
+
+## 1.0.35
+
+### Patch Changes
+
+- ai@7.0.30
+
 ## 1.0.34
 
 ### Patch Changes

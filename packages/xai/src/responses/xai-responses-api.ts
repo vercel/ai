@@ -48,7 +48,18 @@ export type XaiResponsesAssistantMessage = {
 export type XaiResponsesFunctionCallOutput = {
   type: 'function_call_output';
   call_id: string;
-  output: string;
+  output:
+    | string
+    | Array<
+        | {
+            type: 'input_text';
+            text: string;
+          }
+        | {
+            type: 'input_image';
+            image_url: string;
+          }
+      >;
 };
 
 export type XaiResponsesReasoning = {
