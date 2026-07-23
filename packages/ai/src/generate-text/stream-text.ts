@@ -2481,7 +2481,6 @@ class DefaultStreamTextResult<
       const cleanupError = await destroySession(error);
       if (cleanupError != null) {
         finalError = cleanupError;
-        self.rejectResultPromises(finalError);
       }
 
       await telemetryDispatcher.onError?.({
