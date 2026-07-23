@@ -15,6 +15,7 @@ import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import type { AnthropicProviderOptions } from './anthropic-messages-options';
+import { getModelCapabilities } from './anthropic-messages-language-model';
 import { createAnthropic } from './anthropic-provider';
 import type { Citation } from './anthropic-messages-api';
 
@@ -6283,6 +6284,288 @@ describe('AnthropicMessagesLanguageModel', () => {
         ]
       `);
     });
+  });
+});
+
+describe('claude-opus-4-7 specific behavior', () => {
+  const server = createTestServer({
+    'https://api.anthropic.com/v1/messages': {},
+  });
+
+  function prepareJsonFixtureResponse(filename: string) {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+      ),
+    };
+  }
+
+  const provider = createAnthropic({ apiKey: 'test-api-key' });
+  const opusModel = provider('claude-opus-4-7');
+
+  it('should warn and strip temperature when set', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const { warnings } = await opusModel.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      temperature: 0.7,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.temperature).toBeUndefined();
+    expect(warnings).toContainEqual(
+      expect.objectContaining({
+        type: 'unsupported-setting',
+        setting: 'temperature',
+      }),
+    );
+  });
+
+  it('should warn and strip topK when set', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const { warnings } = await opusModel.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      topK: 40,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.top_k).toBeUndefined();
+    expect(warnings).toContainEqual(
+      expect.objectContaining({
+        type: 'unsupported-setting',
+        setting: 'topK',
+      }),
+    );
+  });
+
+  it('should warn and strip topP when set', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const { warnings } = await opusModel.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      topP: 0.9,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.top_p).toBeUndefined();
+    expect(warnings).toContainEqual(
+      expect.objectContaining({
+        type: 'unsupported-setting',
+        setting: 'topP',
+      }),
+    );
+  });
+
+  it('should include task_budget in output_config and add beta header', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    await opusModel.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      providerOptions: {
+        anthropic: {
+          taskBudget: { type: 'tokens', total: 400000 },
+        } satisfies AnthropicProviderOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.output_config?.task_budget).toEqual({
+      type: 'tokens',
+      total: 400000,
+    });
+
+    const betaHeader = server.calls[0].requestHeaders['anthropic-beta'];
+    expect(betaHeader).toContain('task-budgets-2026-03-13');
+  });
+
+  it('should include remaining in task_budget when provided', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    await opusModel.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      providerOptions: {
+        anthropic: {
+          taskBudget: { type: 'tokens', total: 400000, remaining: 215000 },
+        } satisfies AnthropicProviderOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.output_config?.task_budget).toEqual({
+      type: 'tokens',
+      total: 400000,
+      remaining: 215000,
+    });
+  });
+
+  it('should include display in thinking block when set', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    await opusModel.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'adaptive', display: 'summarized' },
+        } satisfies AnthropicProviderOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({
+      type: 'adaptive',
+      display: 'summarized',
+    });
+  });
+});
+
+describe('getModelCapabilities', () => {
+  it('should return correct capabilities for claude-opus-4-8', () => {
+    expect(getModelCapabilities('claude-opus-4-8')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabledAboveHighEffort": false,
+        "supportsStructuredOutput": true,
+      }
+    `);
+  });
+
+  it('should return correct capabilities for claude-fable-5', () => {
+    expect(getModelCapabilities('claude-fable-5')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabledAboveHighEffort": false,
+        "supportsStructuredOutput": true,
+      }
+    `);
+  });
+
+  it('should return correct capabilities for claude-opus-4-7', () => {
+    expect(getModelCapabilities('claude-opus-4-7')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabledAboveHighEffort": false,
+        "supportsStructuredOutput": true,
+      }
+    `);
+  });
+
+  it('should return correct capabilities for claude-sonnet-5', () => {
+    expect(getModelCapabilities('claude-sonnet-5')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabledAboveHighEffort": false,
+        "supportsStructuredOutput": true,
+      }
+    `);
+  });
+
+  it('should return correct capabilities for claude-opus-4-6', () => {
+    const caps = getModelCapabilities('claude-opus-4-6');
+    expect(caps.rejectsSamplingParameters).toBe(false);
+    expect(caps.rejectsThinkingDisabledAboveHighEffort).toBe(false);
+  });
+
+  it('should return correct capabilities for claude-sonnet-4-6', () => {
+    const caps = getModelCapabilities('claude-sonnet-4-6');
+    expect(caps.rejectsSamplingParameters).toBe(false);
+    expect(caps.rejectsThinkingDisabledAboveHighEffort).toBe(false);
+  });
+
+  it('should assume current-generation capabilities for unrecognized claude models', () => {
+    expect(getModelCapabilities('claude-brand-new-model'))
+      .toMatchInlineSnapshot(`
+      {
+        "isKnownModel": false,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabledAboveHighEffort": true,
+        "supportsStructuredOutput": true,
+      }
+    `);
+  });
+
+  it('should keep conservative defaults for unknown non-claude models', () => {
+    expect(getModelCapabilities('future-model')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": false,
+        "maxOutputTokens": 4096,
+        "rejectsSamplingParameters": false,
+        "rejectsThinkingDisabledAboveHighEffort": false,
+        "supportsStructuredOutput": false,
+      }
+    `);
+  });
+});
+
+describe('effort with thinking disabled', () => {
+  const server = createTestServer({
+    'https://api.anthropic.com/v1/messages': {},
+  });
+
+  function prepareJsonFixtureResponse(filename: string) {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+      ),
+    };
+  }
+
+  const provider = createAnthropic({ apiKey: 'test-api-key' });
+  const model = provider('claude-future-9');
+
+  it.each(['xhigh', 'max'] as const)(
+    'should warn and lower effort to high when thinking is disabled with effort %s',
+    async effort => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const { warnings } = await model.doGenerate({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+        maxOutputTokens: 1024,
+        providerOptions: {
+          anthropic: {
+            thinking: { type: 'disabled' },
+            effort,
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.output_config.effort).toBe('high');
+      expect(warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported-setting',
+          setting: 'providerOptions.anthropic.effort',
+        }),
+      );
+    },
+  );
+
+  it('should not lower effort for known models', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    await provider('claude-opus-4-8').doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'disabled' },
+          effort: 'xhigh',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.output_config.effort).toBe('xhigh');
   });
 });
 

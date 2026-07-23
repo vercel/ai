@@ -218,6 +218,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       maxOutputTokens: maxOutputTokensForModel,
       supportsStructuredOutput,
       rejectsSamplingParameters,
+      rejectsThinkingDisabledAboveHighEffort,
       isKnownModel,
     } = getModelCapabilities(this.modelId);
 
@@ -301,6 +302,25 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         warnings,
         cacheControlValidator,
       });
+
+    // Newer models only allow disabling thinking at effort levels up to and
+    // including `high`; at `xhigh` and `max` the API returns a 400. Lower
+    // the effort to `high` to preserve the explicit request to run without
+    // thinking.
+    if (
+      rejectsThinkingDisabledAboveHighEffort &&
+      anthropicOptions?.thinking?.type === 'disabled' &&
+      (anthropicOptions.effort === 'xhigh' || anthropicOptions.effort === 'max')
+    ) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'providerOptions.anthropic.effort',
+        details:
+          `effort '${anthropicOptions.effort}' is not supported by ${this.modelId} when thinking is disabled. ` +
+          `The effort has been lowered to 'high'.`,
+      });
+      anthropicOptions.effort = 'high';
+    }
 
     const thinkingType = anthropicOptions?.thinking?.type;
     const isThinking =
@@ -1969,10 +1989,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
  * @see https://docs.claude.com/en/docs/about-claude/models/overview#model-comparison-table
  * @see https://platform.claude.com/docs/en/build-with-claude/structured-outputs
  */
-function getModelCapabilities(modelId: string): {
+export function getModelCapabilities(modelId: string): {
   maxOutputTokens: number;
   supportsStructuredOutput: boolean;
   rejectsSamplingParameters: boolean;
+  rejectsThinkingDisabledAboveHighEffort: boolean;
   isKnownModel: boolean;
 } {
   if (
@@ -1985,6 +2006,7 @@ function getModelCapabilities(modelId: string): {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,
       rejectsSamplingParameters: true,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
   } else if (
@@ -1995,6 +2017,7 @@ function getModelCapabilities(modelId: string): {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,
       rejectsSamplingParameters: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
   } else if (
@@ -2006,6 +2029,7 @@ function getModelCapabilities(modelId: string): {
       maxOutputTokens: 64000,
       supportsStructuredOutput: true,
       rejectsSamplingParameters: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-4-1')) {
@@ -2013,6 +2037,7 @@ function getModelCapabilities(modelId: string): {
       maxOutputTokens: 32000,
       supportsStructuredOutput: true,
       rejectsSamplingParameters: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
   } else if (
@@ -2023,6 +2048,7 @@ function getModelCapabilities(modelId: string): {
       maxOutputTokens: 64000,
       supportsStructuredOutput: false,
       rejectsSamplingParameters: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-4-')) {
@@ -2030,13 +2056,7 @@ function getModelCapabilities(modelId: string): {
       maxOutputTokens: 32000,
       supportsStructuredOutput: false,
       rejectsSamplingParameters: false,
-      isKnownModel: true,
-    };
-  } else if (modelId.includes('claude-3-5-haiku')) {
-    return {
-      maxOutputTokens: 8192,
-      supportsStructuredOutput: false,
-      rejectsSamplingParameters: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-3-haiku')) {
@@ -2044,6 +2064,7 @@ function getModelCapabilities(modelId: string): {
       maxOutputTokens: 4096,
       supportsStructuredOutput: false,
       rejectsSamplingParameters: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
   } else if (
@@ -2053,6 +2074,7 @@ function getModelCapabilities(modelId: string): {
       maxOutputTokens: 4096,
       supportsStructuredOutput: false,
       rejectsSamplingParameters: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: false,
     };
   } else if (modelId.includes('claude-')) {
@@ -2063,13 +2085,17 @@ function getModelCapabilities(modelId: string): {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,
       rejectsSamplingParameters: true,
+      rejectsThinkingDisabledAboveHighEffort: true,
       isKnownModel: false,
     };
   } else {
+    // Non-Claude models (e.g. served through Anthropic-compatible APIs)
+    // keep conservative defaults.
     return {
       maxOutputTokens: 4096,
       supportsStructuredOutput: false,
       rejectsSamplingParameters: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: false,
     };
   }
