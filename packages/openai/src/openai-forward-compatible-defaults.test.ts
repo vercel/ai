@@ -9,13 +9,13 @@ const prompt: LanguageModelV4Prompt = [
 ];
 
 const chatParameterError = readFixture(
-  './chat/__fixtures__/issue-17799-gpt-5.6-legacy-parameter-error.json',
+  './chat/__fixtures__/reasoning-model-legacy-parameter-error.json',
 );
 const responsesTemperatureError = readFixture(
-  './responses/__fixtures__/issue-17799-gpt-5.6-temperature-error.json',
+  './responses/__fixtures__/reasoning-model-temperature-error.json',
 );
 const imageResponseFormatError = readFixture(
-  './image/__fixtures__/issue-17799-gpt-image-2-response-format-error.json',
+  './image/__fixtures__/gpt-image-response-format-error.json',
 );
 
 function readFixture(path: string): unknown {
@@ -24,7 +24,7 @@ function readFixture(path: string): unknown {
 
 function successfulChatResponse(model: string) {
   return {
-    id: 'chatcmpl_issue_17799',
+    id: 'chatcmpl_test',
     object: 'chat.completion',
     created: 1,
     model,
@@ -45,7 +45,7 @@ function successfulChatResponse(model: string) {
 
 function successfulResponsesResponse(model: string) {
   return {
-    id: 'resp_issue_17799',
+    id: 'resp_test',
     object: 'response',
     created_at: 1,
     status: 'completed',
