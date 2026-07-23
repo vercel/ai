@@ -5,11 +5,7 @@
     "dev": "next"
   },
   "dependencies": {
-<<<<<<< HEAD
-    "next": "15.5.9",
-=======
     "next": "15.5.21",
->>>>>>> 1216666d11 (fix: remove vulnerable Next.js 15.5.18 usage from repository tooling and examples (#17841))
     "react": "rc",
     "react-dom": "rc",
     "ai": "workspace:*"

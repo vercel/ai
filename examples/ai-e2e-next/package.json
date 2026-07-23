@@ -36,15 +36,9 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.545.0",
-<<<<<<< HEAD
-    "next": "^15.5.9",
+    "next": "^15.5.21",
     "react": "^18",
     "react-dom": "^18",
-=======
-    "next": "^15.5.21",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
->>>>>>> 1216666d11 (fix: remove vulnerable Next.js 15.5.18 usage from repository tooling and examples (#17841))
     "react-markdown": "9.0.1",
     "redis": "^4.7.0",
     "resumable-stream": "^2.2.0",
