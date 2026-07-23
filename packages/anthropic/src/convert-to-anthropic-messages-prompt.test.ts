@@ -584,6 +584,76 @@ describe('tool messages', () => {
 });
 
 describe('assistant messages', () => {
+  it('moves client tool_use after a completed provider web search', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_issue8112_custom',
+              toolName: 'research_codebase',
+              input: { question: 'What is the AI SDK?' },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'srvtoolu_issue8112_web',
+              toolName: 'web_search',
+              providerExecuted: true,
+              input: { query: 'Vercel AI SDK official homepage' },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'srvtoolu_issue8112_web',
+              toolName: 'web_search',
+              output: {
+                type: 'json',
+                value: [
+                  {
+                    url: 'https://vercel.com/ai-sdk',
+                    title: 'AI SDK - Vercel',
+                    pageAge: null,
+                    encryptedContent: 'recorded-live-result',
+                    type: 'web_search_result',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'toolu_issue8112_custom',
+              toolName: 'research_codebase',
+              output: {
+                type: 'json',
+                value: { success: true },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings: [],
+    });
+
+    expect(result.prompt.messages[0]).toMatchObject({
+      role: 'assistant',
+      content: [
+        { type: 'server_tool_use', id: 'srvtoolu_issue8112_web' },
+        {
+          type: 'web_search_tool_result',
+          tool_use_id: 'srvtoolu_issue8112_web',
+        },
+        { type: 'tool_use', id: 'toolu_issue8112_custom' },
+      ],
+    });
+  });
+
   it('should preserve citations on assistant text', async () => {
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
