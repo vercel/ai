@@ -426,8 +426,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       abortSignal: abortCtl.signal,
     },
   });
-  turn.onInterrupt(() => q.interrupt());
-
   let turnUsage: Record<string, unknown> | undefined;
   let totalCostUsd: number | undefined;
   let emittedTerminalError = false;

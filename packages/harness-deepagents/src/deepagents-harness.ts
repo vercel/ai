@@ -676,7 +676,6 @@ function createSession({
       }
       stopped = true;
       // Freeze the active turn at the cursor, leaving the bridge running so the next slice replays the tail.
-      await channel.interrupt();
       const lastSeenEventId = await channel.suspend();
       const payload: HarnessV1ContinueTurnState = {
         type: 'continue-turn',

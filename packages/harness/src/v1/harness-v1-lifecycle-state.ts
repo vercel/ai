@@ -53,7 +53,7 @@ export type HarnessV1ResumeSessionState = HarnessV1LifecycleStateBase & {
 /**
  * Opaque payload returned by `doSuspendTurn` and accepted by a future
  * `HarnessV1.doStart({ continueFrom })` to reconnect to the same session before
- * continuing the interrupted turn.
+ * continuing the suspended turn.
  */
 export type HarnessV1ContinueTurnState = HarnessV1LifecycleStateBase & {
   readonly type: 'continue-turn';

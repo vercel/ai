@@ -103,6 +103,11 @@ export function runPrompt<
   onToolResultSettled?: (toolCallId: string) => void;
   onTurnFinished?: () => void;
   onTurnFailed?: () => void;
+  /**
+   * Reports that the adapter stream closed because the host intentionally
+   * suspended the still-running turn at a workflow slice boundary.
+   */
+  isTurnSuspending?: () => boolean;
   onStopConditionMet?: () => Promise<void>;
 }): {
   result: HarnessStreamTextResult<TOOLS, RUNTIME_CONTEXT>;
@@ -910,6 +915,14 @@ export function runPrompt<
       }
       if (finalFinish != null) {
         input.onTurnFinished?.();
+      } else if (input.isTurnSuspending?.()) {
+        /*
+         * A timed slice may stop in the middle of a model step. Its partial
+         * content remains in the bridge replay log for the next slice, but it
+         * cannot form a valid StepResult in this slice because no finish-step
+         * has arrived yet.
+         */
+        result.discardCurrentStepContent();
       } else {
         input.onTurnFailed?.();
       }

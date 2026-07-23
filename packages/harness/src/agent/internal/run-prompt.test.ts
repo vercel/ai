@@ -467,6 +467,71 @@ describe('runPrompt step accounting', () => {
     await expect(result.steps).resolves.toHaveLength(1);
   });
 
+  test('closes a deliberately suspended mid-step stream without failing the turn', async () => {
+    const onTurnFailed = vi.fn();
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'text-start', id: 't1' },
+        { type: 'text-delta', id: 't1', delta: 'partial' },
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      isTurnSuspending: () => true,
+      onTurnFailed,
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(parts.some(part => part.type === 'error')).toBe(false);
+    expect(parts).toContainEqual(
+      expect.objectContaining({ type: 'text-delta', text: 'partial' }),
+    );
+    expect(onTurnFailed).not.toHaveBeenCalled();
+    await expect(result.steps).resolves.toEqual([]);
+  });
+
+  test('fails a mid-step stream that closes without an intentional suspension', async () => {
+    const onTurnFailed = vi.fn();
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'text-start', id: 't1' },
+        { type: 'text-delta', id: 't1', delta: 'partial' },
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      onTurnFailed,
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(parts).toContainEqual({
+      type: 'error',
+      error: expect.objectContaining({
+        message: expect.stringContaining('unclosed step content'),
+      }),
+    });
+    expect(onTurnFailed).toHaveBeenCalledTimes(1);
+    await expect(result.steps).rejects.toThrow(/unclosed step content/);
+  });
+
   test('fails when terminal finish receives unclosed step content', async () => {
     const { result, done } = runPrompt({
       harness,
