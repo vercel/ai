@@ -42,6 +42,24 @@ class DefaultSession implements Session {
     return value;
   }
 
+  getOrSet<T>(
+    key: string | symbol,
+    defaultValue: T,
+    options?: {
+      onDestroy?: (value: T) => void | PromiseLike<void>;
+    },
+  ): T {
+    this.assertNotDestroyed();
+
+    const item = this.items.get(key);
+
+    if (item !== undefined) {
+      return item.value as T;
+    }
+
+    return this.set(key, defaultValue, options);
+  }
+
   delete<T = unknown>(key: string | symbol): T | undefined {
     this.assertNotDestroyed();
 

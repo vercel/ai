@@ -12,8 +12,14 @@ describe('createSession types', () => {
         expectTypeOf(value).toEqualTypeOf<Value>();
       },
     });
+    const getOrSetValue = session.getOrSet('other-key', value, {
+      onDestroy: value => {
+        expectTypeOf(value).toEqualTypeOf<Value>();
+      },
+    });
 
     expectTypeOf(storedValue).toEqualTypeOf<Value>();
+    expectTypeOf(getOrSetValue).toEqualTypeOf<Value>();
     expectTypeOf(session.get<Value>('key')).toEqualTypeOf<Value | undefined>();
     expectTypeOf(session.delete<Value>('key')).toEqualTypeOf<
       Value | undefined

@@ -30,6 +30,19 @@ export type Session = {
   ): T;
 
   /**
+   * Returns the existing value for the key. When the key is not present,
+   * stores and returns the provided default value. The options are only used
+   * when the default value is stored.
+   */
+  getOrSet<T>(
+    key: string | symbol,
+    defaultValue: T,
+    options?: {
+      onDestroy?: (value: T) => void | PromiseLike<void>;
+    },
+  ): T;
+
+  /**
    * Removes and returns the value for the key without running its cleanup
    * callback. The generic type is an unchecked assertion by the caller.
    */
