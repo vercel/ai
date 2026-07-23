@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 17831,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-17831-next-cve.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-17831-next-cve.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "CVE-2026-64641 reproduced: examples/next uses vulnerable next@15.5.12 with an App Router Server Action; expected next@15.5.21 or later."
+  }
+}
