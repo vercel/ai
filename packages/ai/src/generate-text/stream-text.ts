@@ -1167,8 +1167,7 @@ class DefaultStreamTextResult<
     > = createIdMap();
     let recordedNoOutputError: NoOutputGeneratedError | undefined;
 
-    // Destroy when no further doStream calls will be made. Returns undefined on
-    // success, or an error (optionally aggregated with `originalError`) on failure.
+    // Returns undefined on success, or a cleanup / aggregated error on failure.
     async function destroySession(
       originalError?: unknown,
     ): Promise<unknown | undefined> {
@@ -1406,6 +1405,8 @@ class DefaultStreamTextResult<
         try {
           const cleanupError = await destroySession();
           if (cleanupError != null) {
+            self.rejectResultPromises(cleanupError);
+            await onError({ error: cleanupError });
             controller.error(cleanupError);
             return;
           }
@@ -1517,15 +1518,6 @@ class DefaultStreamTextResult<
       async pull(controller) {
         // abort handling:
         async function abort() {
-          // No more doStream calls will be made after abort is surfaced.
-          const cleanupError = await destroySession(
-            abortSignal?.reason !== undefined ? abortSignal.reason : undefined,
-          );
-          if (cleanupError != null) {
-            controller.error(cleanupError);
-            return;
-          }
-
           await notify({
             event: {
               callId,
@@ -2328,21 +2320,12 @@ class DefaultStreamTextResult<
                   // output instead of recording an empty step. incomplete
                   // streams with partial output retain the partial result:
                   if (!hasReceivedTerminalChunk && !hasReceivedOutputChunk) {
-                    const noOutputError = new NoOutputGeneratedError({
-                      message:
-                        'No output generated. The model stream ended without a finish chunk.',
-                    });
-
-                    const cleanupError = await destroySession(noOutputError);
-                    if (cleanupError != null) {
-                      cleanupStepTimeouts();
-                      controller.error(cleanupError);
-                      return;
-                    }
-
                     controller.enqueue({
                       type: 'error',
-                      error: noOutputError,
+                      error: new NoOutputGeneratedError({
+                        message:
+                          'No output generated. The model stream ended without a finish chunk.',
+                      }),
                     });
 
                     cleanupStepTimeouts();
@@ -2451,12 +2434,6 @@ class DefaultStreamTextResult<
                         }),
                       );
                     } catch (error) {
-                      const cleanupError = await destroySession(error);
-                      if (cleanupError != null) {
-                        controller.error(cleanupError);
-                        return;
-                      }
-
                       controller.enqueue({
                         type: 'error',
                         error,
@@ -2465,17 +2442,6 @@ class DefaultStreamTextResult<
                       self.closeStream();
                     }
                   } else {
-                    const cleanupError = await destroySession();
-                    if (cleanupError != null) {
-                      self.rejectResultPromises(cleanupError);
-                      controller.enqueue({
-                        type: 'error',
-                        error: cleanupError,
-                      });
-                      self.closeStream();
-                      return;
-                    }
-
                     controller.enqueue({
                       type: 'finish',
                       finishReason: stepFinishReason,
