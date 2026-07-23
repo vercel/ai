@@ -561,6 +561,16 @@ export function isAIMessageChunk(
    * Actual AIMessageChunk class instance
    */
   if (AIMessageChunk.isInstance(msg)) return true;
+
+  if (
+    msg != null &&
+    typeof msg === 'object' &&
+    typeof (msg as any)._getType === 'function' &&
+    (msg as any)._getType() === 'ai' &&
+    (msg as any).constructor?.name === 'AIMessageChunk'
+  ) {
+    return true;
+  }
   /**
    * Plain object from RemoteGraph API (not a LangChain class instance)
    */
@@ -601,6 +611,15 @@ export function isToolMessageType(
   msg: unknown,
 ): msg is ToolMessage & { type?: string; tool_call_id?: string } {
   if (ToolMessage.isInstance(msg)) return true;
+
+  if (
+    msg != null &&
+    typeof msg === 'object' &&
+    typeof (msg as any)._getType === 'function' &&
+    (msg as any)._getType() === 'tool'
+  ) {
+    return true;
+  }
   /**
    * Plain object from RemoteGraph API (not a LangChain class instance)
    */
