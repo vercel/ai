@@ -74,6 +74,7 @@ function fakeSession(): HarnessAgentSession & {
  * (finished) or blocks until the session is suspended (timed_out). */
 function streamResult(opts: {
   chunks: HarnessWorkflowChunk[];
+  chunksOnSuspend?: HarnessWorkflowChunk[];
   blockAfter?: boolean;
   finishReason?: unknown;
   totalUsage?: unknown;
@@ -90,6 +91,9 @@ function streamResult(opts: {
           }
           close = () => {
             try {
+              for (const chunk of opts.chunksOnSuspend ?? []) {
+                controller.enqueue(chunk);
+              }
               controller.close();
             } catch {
               /* already closed */
@@ -276,6 +280,7 @@ describe('runHarnessAgentSlice', () => {
     const session = fakeSession();
     const { result, closeForSuspend } = streamResult({
       chunks: [{ type: 'start' }, { type: 'text-delta', id: 't', delta: 'a' }],
+      chunksOnSuspend: [{ type: 'finish' }],
       blockAfter: true,
     });
     const suspendingSession = session as unknown as {
@@ -293,7 +298,7 @@ describe('runHarnessAgentSlice', () => {
       continueStream: vi.fn(async () => result),
     };
 
-    const { writable, isClosed } = collectingWritable();
+    const { writable, chunks, isClosed } = collectingWritable();
     const next = await runHarnessAgentSlice({
       agent,
       state: createHarnessWorkflowState({ prompt: 'hi', sessionId: 'ses_1' }),
@@ -304,6 +309,7 @@ describe('runHarnessAgentSlice', () => {
     expect(next.status).toBe('timed_out');
     expect(next.continueFrom).toEqual(continueState('suspended'));
     expect(session.suspendCalls).toBe(1);
+    expect(chunks.map(chunk => chunk.type)).toEqual(['start', 'text-delta']);
     // A suspended slice must NOT destroy the sandbox — the next slice attaches.
     expect(session.destroyCalls).toBe(0);
     // It must also NOT close the output stream — the next slice keeps writing

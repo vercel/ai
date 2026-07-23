@@ -103,6 +103,7 @@ export function runPrompt<
   onToolResultSettled?: (toolCallId: string) => void;
   onTurnFinished?: () => void;
   onTurnFailed?: () => void;
+  isTurnSuspending?: () => boolean;
   onStopConditionMet?: () => Promise<void>;
 }): {
   result: HarnessStreamTextResult<TOOLS, RUNTIME_CONTEXT>;
@@ -140,10 +141,13 @@ export function runPrompt<
    * `toUIMessageStream` consumers observe an `abort` chunk and
    * `isAborted: true` instead of a spurious `onError`. Every other failure
    * stays a real `error` part. Both outcomes notify `onTurnFailed` so the
-   * session's turn tracking returns to idle and the session stays usable.
+   * session's turn tracking returns to idle and the session stays usable,
+   * unless the turn is being suspended for a future continuation.
    */
   const settleFailure = (err: unknown) => {
-    input.onTurnFailed?.();
+    if (!input.isTurnSuspending?.()) {
+      input.onTurnFailed?.();
+    }
     if (input.abortSignal?.aborted) {
       result.abort({
         error: err,
@@ -908,13 +912,18 @@ export function runPrompt<
           await telemetry.toolEnd(toolCall.toolCallId, execution.outcome);
         }
       }
-      if (finalFinish != null) {
-        input.onTurnFinished?.();
+      const isTurnSuspending = input.isTurnSuspending?.() === true;
+      if (isTurnSuspending) {
+        result.discardCurrentStepContent();
       } else {
-        input.onTurnFailed?.();
+        if (finalFinish != null) {
+          input.onTurnFinished?.();
+        } else {
+          input.onTurnFailed?.();
+        }
       }
       await result.finish(
-        finalFinish
+        finalFinish != null && !isTurnSuspending
           ? {
               finishReason: finalFinish.finishReason,
               totalUsage: finalFinish.totalUsage,

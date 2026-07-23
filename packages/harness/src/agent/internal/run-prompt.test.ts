@@ -1297,6 +1297,97 @@ describe('runPrompt host tool generator results', () => {
   });
 });
 
+describe('runPrompt suspension lifecycle', () => {
+  function suspendingRun(options: {
+    script: HarnessV1StreamPart[];
+    abortSignal?: AbortSignal;
+  }) {
+    const onTurnFinished = vi.fn();
+    const onTurnFailed = vi.fn();
+    return {
+      ...runPrompt({
+        harness,
+        session: fakeSession(options.script),
+        prompt: 'go',
+        instructions: undefined,
+        tools: {} as ToolSet,
+        toolSpecs: [],
+        sandboxSession,
+        sessionWorkDir: WORK_DIR,
+        runtimeContext: {} as never,
+        abortSignal: options.abortSignal,
+        onTurnFinished,
+        onTurnFailed,
+        isTurnSuspending: () => true,
+      }),
+      onTurnFinished,
+      onTurnFailed,
+    };
+  }
+
+  test('settles a result with a terminal finish without finishing the suspended turn', async () => {
+    const { result, done, onTurnFinished, onTurnFailed } = suspendingRun({
+      script: [
+        { type: 'text-delta', id: 'text-1', delta: 'partial' },
+        finishEvents[1]!,
+      ],
+    });
+
+    await result.consumeStream();
+    await done;
+
+    await expect(result.finishReason).resolves.toBe('other');
+    expect(onTurnFinished).not.toHaveBeenCalled();
+    expect(onTurnFailed).not.toHaveBeenCalled();
+  });
+
+  test('settles a cleanly closed result without failing the suspended turn', async () => {
+    const { result, done, onTurnFinished, onTurnFailed } = suspendingRun({
+      script: [],
+    });
+
+    await result.consumeStream();
+    await done;
+
+    expect(onTurnFinished).not.toHaveBeenCalled();
+    expect(onTurnFailed).not.toHaveBeenCalled();
+  });
+
+  test('preserves error result semantics without failing the suspended turn', async () => {
+    const { result, done, onTurnFinished, onTurnFailed } = suspendingRun({
+      script: [{ type: 'error', error: 'boom' }],
+    });
+
+    await result.consumeStream();
+    await done;
+
+    await expect(result.finishReason).rejects.toBeDefined();
+    expect(onTurnFinished).not.toHaveBeenCalled();
+    expect(onTurnFailed).not.toHaveBeenCalled();
+  });
+
+  test('preserves abort result semantics without failing the suspended turn', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const { result, done, onTurnFinished, onTurnFailed } = suspendingRun({
+      script: [
+        { type: 'error', error: 'AbortError: This operation was aborted' },
+      ],
+      abortSignal: controller.signal,
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(parts.filter(part => part.type === 'error')).toHaveLength(0);
+    expect(parts[parts.length - 1]!.type).toBe('abort');
+    await expect(result.finishReason).rejects.toBeDefined();
+    expect(onTurnFinished).not.toHaveBeenCalled();
+    expect(onTurnFailed).not.toHaveBeenCalled();
+  });
+});
+
 describe('runPrompt abort semantics', () => {
   const abortedRun = (
     script: HarnessV1StreamPart[],

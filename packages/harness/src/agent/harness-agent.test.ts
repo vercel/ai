@@ -403,6 +403,33 @@ describe('HarnessAgent', () => {
     expect(doSuspendTurn).toHaveBeenCalledTimes(1);
   });
 
+  test('releases the session when capturing a stop condition boundary fails', async () => {
+    const { harness, doSuspendTurn } = mockHarness({
+      script: () => [
+        finishEvents()[0]!,
+        { type: 'text-delta', id: 'next-step', delta: 'next' },
+      ],
+    });
+    doSuspendTurn.mockRejectedValueOnce(
+      new Error('failed to suspend at stop boundary'),
+    );
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      stopWhen: isStepCount(1),
+    });
+    const session = await agent.createSession();
+
+    const failed = await agent.stream({ session, prompt: 'one step' });
+
+    await expect(failed.text).rejects.toThrow(
+      'failed to suspend at stop boundary',
+    );
+    expect(session.hasUnfinishedTurn()).toBe(false);
+
+    await session.destroy();
+  });
+
   test('stream() and continued turns apply stopWhen independently', async () => {
     let continuationCount = 0;
     const continuingTurn = (): HarnessV1StreamPart[] => [
@@ -700,6 +727,58 @@ describe('HarnessAgent', () => {
     ).resolves.toBeDefined();
 
     await session.destroy();
+  });
+
+  test('keeps a turn unfinished when suspension emits a terminal finish', async () => {
+    let activeTurn: HarnessV1PromptTurnOptions | undefined;
+    let resolveTurnDone!: () => void;
+    let resolveSuspension!: () => void;
+    const turnDone = new Promise<void>(resolve => {
+      resolveTurnDone = resolve;
+    });
+    const suspensionBoundary = new Promise<void>(resolve => {
+      resolveSuspension = resolve;
+    });
+    const continueState = {
+      type: 'continue-turn' as const,
+      harnessId: 'mock',
+      specificationVersion: 'harness-v1' as const,
+      data: { cursor: 'suspended' },
+    };
+    const { harness, doSuspendTurn } = mockHarness({
+      script: () => [
+        { type: 'text-delta', id: 'text-1', delta: 'partial response' },
+      ],
+      onPromptTurn: options => {
+        activeTurn = options;
+      },
+      promptDone: () => turnDone,
+    });
+    doSuspendTurn.mockImplementation(async () => {
+      if (activeTurn == null) {
+        throw new Error('Expected an active turn.');
+      }
+      activeTurn.emit(finishEvents()[1]!);
+      resolveTurnDone();
+      await suspensionBoundary;
+      return continueState;
+    });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+    });
+    const session = await agent.createSession();
+    const result = await agent.stream({ session, prompt: 'keep running' });
+
+    const suspension = session.suspendTurn();
+    await result.consumeStream();
+
+    await expect(result.finishReason).resolves.toBe('other');
+    expect(session.hasUnfinishedTurn()).toBe(true);
+
+    resolveSuspension();
+    await expect(suspension).resolves.toEqual(continueState);
+    expect(session.hasUnfinishedTurn()).toBe(true);
   });
 
   test('settles an aborted turn with an abort part and releases the session for the next turn', async () => {

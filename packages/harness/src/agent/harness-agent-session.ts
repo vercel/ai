@@ -212,6 +212,7 @@ export class HarnessAgentSession {
         onTurnFailed: () => {
           this.finishTrackedTurn({ turnId });
         },
+        isTurnSuspending: () => this.isTurnSuspending({ turnId }),
         onStopConditionMet: () =>
           this.captureStopConditionBoundary({ session, turnId }),
       });
@@ -287,6 +288,7 @@ export class HarnessAgentSession {
         onTurnFailed: () => {
           this.finishTrackedTurn({ turnId });
         },
+        isTurnSuspending: () => this.isTurnSuspending({ turnId }),
         onStopConditionMet: () =>
           this.captureStopConditionBoundary({ session, turnId }),
       });
@@ -463,7 +465,7 @@ export class HarnessAgentSession {
   private async suspendCurrentTurn(options: {
     session: HarnessAgentAdapterSession;
   }): Promise<HarnessAgentContinueTurnState> {
-    this.suspendedTurnState ??= (async () => {
+    const suspendedTurnState = (this.suspendedTurnState ??= (async () => {
       const raw = await options.session.doSuspendTurn();
       const validated = await validateLifecycleStateData({
         harness: this.harness,
@@ -471,10 +473,17 @@ export class HarnessAgentSession {
         expectedType: 'continue-turn',
       });
       return this.addPendingToolState(validated);
-    })();
-    const state = await this.suspendedTurnState;
-    this.turnState = 'suspended';
-    return state;
+    })());
+    try {
+      const state = await suspendedTurnState;
+      this.turnState = 'suspended';
+      return state;
+    } catch (error) {
+      if (this.suspendedTurnState === suspendedTurnState) {
+        this.suspendedTurnState = undefined;
+      }
+      throw error;
+    }
   }
 
   private async captureStopConditionBoundary(options: {
@@ -551,6 +560,13 @@ export class HarnessAgentSession {
     this.suspendedTurnState = undefined;
     this.turnState = 'running';
     return turnId;
+  }
+
+  private isTurnSuspending(options: { turnId: number }): boolean {
+    return (
+      this.activeTurnSequence === options.turnId &&
+      this.suspendedTurnState != null
+    );
   }
 
   private finishTrackedTurn(options: { turnId: number }): void {
