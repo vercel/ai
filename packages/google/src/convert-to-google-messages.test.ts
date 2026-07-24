@@ -138,7 +138,6 @@ describe('thought signatures with vertex providerOptionsName', () => {
                   "args": {
                     "location": "London",
                   },
-                  "id": "call1",
                   "name": "getWeather",
                 },
                 "thoughtSignature": "sig3",
@@ -176,7 +175,6 @@ describe('thought signatures with vertex providerOptionsName', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
-        id: 'call1',
         name: 'getWeather',
         args: { location: 'London' },
       },
@@ -207,11 +205,120 @@ describe('thought signatures with vertex providerOptionsName', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
-        id: 'call1',
         name: 'getWeather',
         args: { location: 'London' },
       },
       thoughtSignature: 'vertex_sig',
+    });
+  });
+});
+
+describe('vertex function call ids', () => {
+  it('omits functionCall ids for Vertex requests', () => {
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call1',
+              toolName: 'getWeather',
+              input: { location: 'London' },
+            },
+          ],
+        },
+      ],
+      { providerOptionsNames: ['googleVertex', 'vertex'] },
+    );
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionCall: {
+        name: 'getWeather',
+        args: { location: 'London' },
+      },
+      thoughtSignature: undefined,
+    });
+  });
+
+  it('omits functionResponse ids for Vertex requests', () => {
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call1',
+              toolName: 'getWeather',
+              output: {
+                type: 'json',
+                value: { temperature: 72 },
+              },
+            },
+          ],
+        },
+      ],
+      { providerOptionsNames: ['googleVertex', 'vertex'] },
+    );
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        name: 'getWeather',
+        response: {
+          name: 'getWeather',
+          content: { temperature: 72 },
+        },
+      },
+    });
+  });
+
+  it('keeps functionCall and functionResponse ids for Google requests', () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call1',
+            toolName: 'getWeather',
+            input: { location: 'London' },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call1',
+            toolName: 'getWeather',
+            output: {
+              type: 'json',
+              value: { temperature: 72 },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionCall: {
+        id: 'call1',
+        name: 'getWeather',
+        args: { location: 'London' },
+      },
+      thoughtSignature: undefined,
+    });
+    expect(result.contents[1].parts[0]).toEqual({
+      functionResponse: {
+        id: 'call1',
+        name: 'getWeather',
+        response: {
+          name: 'getWeather',
+          content: { temperature: 72 },
+        },
+      },
     });
   });
 });
