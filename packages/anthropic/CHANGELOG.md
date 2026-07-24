@@ -1,5 +1,13 @@
 # @ai-sdk/anthropic
 
+## 3.0.102
+
+### Patch Changes
+
+- b4c4426: feat (provider/anthropic): support fallbacks 'default' mode, which routes safety classifier refusals to Anthropic's recommended fallback model (adds the server-side-fallback-2026-07-01 beta automatically)
+- b4c4426: feat (provider/anthropic): support mid-conversation tool changes via the toolChanges system message provider option, emitting tool_addition/tool_removal content blocks and the mid-conversation-tool-changes-2026-07-01 beta
+- b4c4426: feat (provider/anthropic): add claude-opus-5 model id with frontier-tier capabilities (128k output tokens, structured output, adaptive thinking, xhigh effort, sampling parameter rejection, thinking-disabled only at effort high or below)
+
 ## 3.0.101
 
 ### Patch Changes
