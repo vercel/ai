@@ -38,8 +38,9 @@ import {
   createClaudeStreamEventState,
   createEmitStreamEvent,
   defaultUsage,
-  emitFinishStep,
+  emitOpenFinishSteps,
   finishApprovalStep,
+  getStepUsage,
   mapUsage,
   type ClaudeMessage,
 } from './create-emit-stream-event';
@@ -196,6 +197,7 @@ function createPermissionOptions(input: {
   finishApprovalStep: (approvalId: string) => void;
   nativeToolCallNames: Map<string, string>;
   approvalRequestedToolUseIds: Set<string>;
+  toolCallParentToolUseIds: Map<string, string | null>;
 }): Record<string, unknown> {
   const permissionMode = input.start.permissionMode ?? 'allow-all';
   const inactiveNativeTools = new Set(input.inactiveNativeTools);
@@ -236,6 +238,8 @@ function createPermissionOptions(input: {
       const approvalId = options.toolUseID;
       input.approvalRequestedToolUseIds.add(approvalId);
       input.nativeToolCallNames.set(approvalId, toolName);
+      const parentToolUseId =
+        input.toolCallParentToolUseIds.get(approvalId) ?? null;
       input.emit({
         type: 'tool-call',
         toolCallId: approvalId,
@@ -243,6 +247,13 @@ function createPermissionOptions(input: {
         nativeName: toolName,
         input: JSON.stringify(toolInput ?? {}),
         providerExecuted: true,
+        ...(parentToolUseId === null
+          ? {}
+          : {
+              providerMetadata: {
+                'claude-code': { parentToolUseId },
+              },
+            }),
       });
       input.emit({
         type: 'tool-approval-request',
@@ -384,6 +395,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     },
     nativeToolCallNames: streamEventState.nativeToolCallNames,
     approvalRequestedToolUseIds: streamEventState.approvalRequestedToolUseIds,
+    toolCallParentToolUseIds: streamEventState.toolCallParentToolUseIds,
   });
 
   const q = claudeSdk.query({
@@ -398,6 +410,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         : {}),
       thinking: start.thinking,
       includePartialMessages: true,
+      forwardSubagentText: start.forwardSubagentText ?? false,
       // The `PostCompact` hook carries the compaction summary, which the
       // `compact_boundary` system message does not. Latch it for the unified
       // `compaction` event; return an empty output so compaction proceeds.
@@ -476,13 +489,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           if (typeof msg.total_cost_usd === 'number') {
             totalCostUsd = (totalCostUsd ?? 0) + msg.total_cost_usd;
           }
-          if (streamEventState.stepOpen) {
-            emitFinishStep({
-              state: streamEventState,
-              emit,
-              usage: harnessUsage ?? streamEventState.pendingStepUsage,
-            });
-          }
+          emitOpenFinishSteps({
+            state: streamEventState,
+            emit,
+            rootUsage: harnessUsage,
+          });
           queryInput.close();
           break;
         } else {
@@ -511,7 +522,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   emit({
     type: 'finish',
     finishReason: { unified: 'stop', raw: 'stop' },
-    totalUsage: turnUsage ?? streamEventState.stepUsage ?? defaultUsage(),
+    totalUsage: turnUsage ?? getStepUsage(streamEventState) ?? defaultUsage(),
     ...(totalCostUsd !== undefined
       ? { harnessMetadata: { 'claude-code': { costUsd: totalCostUsd } } }
       : {}),

@@ -33,6 +33,7 @@ const thinkingSchema = z.discriminatedUnion('type', [
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   thinking: thinkingSchema,
   maxTurns: z.number().optional(),
+  forwardSubagentText: z.boolean().optional(),
   skills: z.array(z.string()).optional(),
   // Resume signal. When true, the bridge passes `{ continue: true }` to the
   // Claude SDK so the in-workdir thread state is rehydrated. The host sets this

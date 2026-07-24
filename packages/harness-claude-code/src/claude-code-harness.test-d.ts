@@ -3,7 +3,11 @@ import type {
   HarnessAgentSettings,
 } from '@ai-sdk/harness/agent';
 import { assertType, describe, expectTypeOf, test } from 'vitest';
-import { claudeCode, createClaudeCode } from './index';
+import {
+  claudeCode,
+  createClaudeCode,
+  type ClaudeCodeHarnessSettings,
+} from './index';
 
 /*
  * Regression guard for the harness Zod compatibility contract: a concrete
@@ -31,5 +35,16 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
     ): THarness => harness;
 
     assertType<typeof claudeCode>(acceptsHarness(claudeCode));
+  });
+
+  test('accepts forwardSubagentText as a public setting', () => {
+    const settings: ClaudeCodeHarnessSettings = {
+      forwardSubagentText: true,
+    };
+
+    expectTypeOf(settings.forwardSubagentText).toEqualTypeOf<
+      boolean | undefined
+    >();
+    assertType<HarnessAgentSettings['harness']>(createClaudeCode(settings));
   });
 });

@@ -5,6 +5,7 @@ type Emit = (message: Record<string, unknown>) => void;
 export type ClaudeMessage = {
   type?: string;
   subtype?: string;
+  parent_tool_use_id?: string | null;
   model?: string;
   error?: string;
   error_status?: number | null;
@@ -45,6 +46,16 @@ type MessageBlock = {
   is_error?: boolean;
 };
 
+type ParentToolUseId = string | null;
+
+export type ClaudeStreamEventLaneState = {
+  partialBlocks: Map<number, { id: string; kind: 'text' | 'thinking' }>;
+  stepUsage: Record<string, unknown> | undefined;
+  pendingStepToolUseIds: Set<string>;
+  pendingStepUsage: Record<string, unknown> | undefined;
+  stepOpen: boolean;
+};
+
 export type ClaudeStreamEventState = {
   /*
    * Map of native tool-use id → tool name. Claude assistant messages emit
@@ -54,11 +65,8 @@ export type ClaudeStreamEventState = {
    */
   nativeToolCallNames: Map<string, string>;
   approvalRequestedToolUseIds: Set<string>;
-  partialBlocks: Map<number, { id: string; kind: 'text' | 'thinking' }>;
-  stepUsage: Record<string, unknown> | undefined;
-  pendingStepToolUseIds: Set<string>;
-  pendingStepUsage: Record<string, unknown> | undefined;
-  stepOpen: boolean;
+  toolCallParentToolUseIds: Map<string, ParentToolUseId>;
+  lanes: Map<ParentToolUseId, ClaudeStreamEventLaneState>;
   /*
    * Tool-use ids that originated from the MCP server hosting user-supplied
    * tools. The MCP handler emits its own `tool-call`/`tool-result` pair with
@@ -74,11 +82,8 @@ export function createClaudeStreamEventState(): ClaudeStreamEventState {
   return {
     nativeToolCallNames: new Map(),
     approvalRequestedToolUseIds: new Set(),
-    partialBlocks: new Map(),
-    stepUsage: undefined,
-    pendingStepToolUseIds: new Set(),
-    pendingStepUsage: undefined,
-    stepOpen: false,
+    toolCallParentToolUseIds: new Map(),
+    lanes: new Map([[null, createLaneState()]]),
     mcpToolUseIds: new Set(),
     observedTerminalError: undefined,
   };
@@ -182,11 +187,15 @@ export function createEmitStreamEvent({
     }
 
     if (type === 'stream_event') {
-      handleStreamEvent(msg.event, state.partialBlocks, emit);
+      const parentToolUseId = msg.parent_tool_use_id ?? null;
+      const lane = getLaneState(state, parentToolUseId);
+      handleStreamEvent(msg.event, lane.partialBlocks, parentToolUseId, emit);
       return;
     }
 
     if (type === 'assistant' && msg.message?.content) {
+      const parentToolUseId = msg.parent_tool_use_id ?? null;
+      const lane = getLaneState(state, parentToolUseId);
       const usage = mapUsage(msg.message.usage);
       const toolUseIds: string[] = [];
       let opensStep = false;
@@ -197,9 +206,10 @@ export function createEmitStreamEvent({
           typeof block.name === 'string'
         ) {
           toolUseIds.push(block.id);
+          state.toolCallParentToolUseIds.set(block.id, parentToolUseId);
           const mcpPrefix = 'mcp__harness-tools__';
           if (block.name.startsWith(mcpPrefix)) {
-            state.pendingStepToolUseIds.add(block.id);
+            lane.pendingStepToolUseIds.add(block.id);
             state.mcpToolUseIds.add(block.id);
             opensStep = true;
             continue;
@@ -208,7 +218,7 @@ export function createEmitStreamEvent({
           if (state.approvalRequestedToolUseIds.has(block.id)) {
             continue;
           }
-          state.pendingStepToolUseIds.add(block.id);
+          lane.pendingStepToolUseIds.add(block.id);
           opensStep = true;
           emit({
             type: 'tool-call',
@@ -217,25 +227,34 @@ export function createEmitStreamEvent({
             nativeName: block.name,
             input: JSON.stringify(block.input ?? {}),
             providerExecuted: true,
+            ...providerMetadataFor(parentToolUseId),
           });
         }
       }
       if (opensStep || toolUseIds.length === 0) {
-        state.stepOpen = true;
-        if (usage) state.pendingStepUsage = usage;
+        lane.stepOpen = true;
+        if (usage) lane.pendingStepUsage = usage;
       }
       return;
     }
 
     if (type === 'user' && msg.message?.content) {
+      const parentToolUseId = msg.parent_tool_use_id ?? null;
+      const touchedParentToolUseIds = new Set<ParentToolUseId>();
       for (const block of msg.message.content) {
         if (
           block.type === 'tool_result' &&
           typeof block.tool_use_id === 'string'
         ) {
+          const toolCallParentToolUseId =
+            state.toolCallParentToolUseIds.get(block.tool_use_id) ??
+            parentToolUseId;
+          const lane = getLaneState(state, toolCallParentToolUseId);
+          touchedParentToolUseIds.add(toolCallParentToolUseId);
           if (state.mcpToolUseIds.has(block.tool_use_id)) {
             state.mcpToolUseIds.delete(block.tool_use_id);
-            state.pendingStepToolUseIds.delete(block.tool_use_id);
+            lane.pendingStepToolUseIds.delete(block.tool_use_id);
+            state.toolCallParentToolUseIds.delete(block.tool_use_id);
             continue;
           }
           state.approvalRequestedToolUseIds.delete(block.tool_use_id);
@@ -265,11 +284,19 @@ export function createEmitStreamEvent({
             toolName,
             result,
             isError,
+            ...providerMetadataFor(parentToolUseId),
           });
-          state.pendingStepToolUseIds.delete(block.tool_use_id);
+          lane.pendingStepToolUseIds.delete(block.tool_use_id);
+          state.toolCallParentToolUseIds.delete(block.tool_use_id);
         }
       }
-      closeStepIfReady({ state, emit });
+      for (const touchedParentToolUseId of touchedParentToolUseIds) {
+        closeStepIfReady({
+          state,
+          emit,
+          parentToolUseId: touchedParentToolUseId,
+        });
+      }
     }
   };
 }
@@ -283,46 +310,96 @@ export function finishApprovalStep({
   emit: Emit;
   approvalId: string;
 }): void {
-  state.stepOpen = true;
-  state.pendingStepToolUseIds.delete(approvalId);
-  closeStepIfReady({ state, emit });
+  const parentToolUseId =
+    state.toolCallParentToolUseIds.get(approvalId) ?? null;
+  const lane = getLaneState(state, parentToolUseId);
+  lane.stepOpen = true;
+  lane.pendingStepToolUseIds.delete(approvalId);
+  closeStepIfReady({ state, emit, parentToolUseId });
 }
 
 export function emitFinishStep({
   state,
   emit,
   usage,
+  parentToolUseId = null,
 }: {
   state: ClaudeStreamEventState;
   emit: Emit;
   usage: Record<string, unknown> | undefined;
+  parentToolUseId?: ParentToolUseId;
 }): void {
+  const lane = getLaneState(state, parentToolUseId);
   emit({
     type: 'finish-step',
     finishReason: { unified: 'stop', raw: 'stop' },
     usage: usage ?? defaultUsage(),
+    ...harnessMetadataFor(parentToolUseId),
   });
-  state.stepUsage = usage ?? state.stepUsage;
-  state.pendingStepUsage = undefined;
-  state.pendingStepToolUseIds = new Set();
-  state.stepOpen = false;
+  lane.stepUsage = usage ?? lane.stepUsage;
+  lane.pendingStepUsage = undefined;
+  lane.pendingStepToolUseIds = new Set();
+  lane.partialBlocks.clear();
+  lane.stepOpen = false;
+}
+
+export function emitOpenFinishSteps({
+  state,
+  emit,
+  rootUsage,
+}: {
+  state: ClaudeStreamEventState;
+  emit: Emit;
+  rootUsage: Record<string, unknown> | undefined;
+}): void {
+  for (const [parentToolUseId, lane] of state.lanes) {
+    if (!lane.stepOpen) continue;
+    emitFinishStep({
+      state,
+      emit,
+      usage:
+        parentToolUseId === null
+          ? (rootUsage ?? lane.pendingStepUsage)
+          : lane.pendingStepUsage,
+      parentToolUseId,
+    });
+  }
+}
+
+export function getStepUsage(
+  state: ClaudeStreamEventState,
+): Record<string, unknown> | undefined {
+  const rootUsage = state.lanes.get(null)?.stepUsage;
+  if (rootUsage) return rootUsage;
+  for (const lane of state.lanes.values()) {
+    if (lane.stepUsage) return lane.stepUsage;
+  }
+  return undefined;
 }
 
 function closeStepIfReady({
   state,
   emit,
+  parentToolUseId,
 }: {
   state: ClaudeStreamEventState;
   emit: Emit;
+  parentToolUseId: ParentToolUseId;
 }): void {
+  const lane = getLaneState(state, parentToolUseId);
   if (
-    !state.stepOpen ||
-    state.pendingStepToolUseIds.size > 0 ||
-    state.partialBlocks.size > 0
+    !lane.stepOpen ||
+    lane.pendingStepToolUseIds.size > 0 ||
+    lane.partialBlocks.size > 0
   ) {
     return;
   }
-  emitFinishStep({ state, emit, usage: state.pendingStepUsage });
+  emitFinishStep({
+    state,
+    emit,
+    usage: lane.pendingStepUsage,
+    parentToolUseId,
+  });
 }
 
 function formatApiRetryWarning(msg: ClaudeMessage): string {
@@ -347,6 +424,7 @@ function formatApiRetryWarning(msg: ClaudeMessage): string {
 function handleStreamEvent(
   event: ClaudeMessage['event'] | undefined,
   partialBlocks: Map<number, { id: string; kind: 'text' | 'thinking' }>,
+  parentToolUseId: ParentToolUseId,
   send: Emit,
 ): void {
   if (!event || typeof event.index !== 'number') return;
@@ -357,11 +435,15 @@ function handleStreamEvent(
     if (blockType === 'text') {
       const id = randomUUID();
       partialBlocks.set(index, { id, kind: 'text' });
-      send({ type: 'text-start', id });
+      send({ type: 'text-start', id, ...harnessMetadataFor(parentToolUseId) });
     } else if (blockType === 'thinking') {
       const id = randomUUID();
       partialBlocks.set(index, { id, kind: 'thinking' });
-      send({ type: 'reasoning-start', id });
+      send({
+        type: 'reasoning-start',
+        id,
+        ...harnessMetadataFor(parentToolUseId),
+      });
     }
     return;
   }
@@ -374,7 +456,12 @@ function handleStreamEvent(
       event.delta?.type === 'text_delta' &&
       typeof event.delta.text === 'string'
     ) {
-      send({ type: 'text-delta', id: block.id, delta: event.delta.text });
+      send({
+        type: 'text-delta',
+        id: block.id,
+        delta: event.delta.text,
+        ...harnessMetadataFor(parentToolUseId),
+      });
     } else if (
       block.kind === 'thinking' &&
       event.delta?.type === 'thinking_delta' &&
@@ -384,6 +471,7 @@ function handleStreamEvent(
         type: 'reasoning-delta',
         id: block.id,
         delta: event.delta.thinking,
+        ...harnessMetadataFor(parentToolUseId),
       });
     }
     return;
@@ -394,11 +482,63 @@ function handleStreamEvent(
     if (!block) return;
     partialBlocks.delete(index);
     if (block.kind === 'text') {
-      send({ type: 'text-end', id: block.id });
+      send({
+        type: 'text-end',
+        id: block.id,
+        ...harnessMetadataFor(parentToolUseId),
+      });
     } else {
-      send({ type: 'reasoning-end', id: block.id });
+      send({
+        type: 'reasoning-end',
+        id: block.id,
+        ...harnessMetadataFor(parentToolUseId),
+      });
     }
   }
+}
+
+function createLaneState(): ClaudeStreamEventLaneState {
+  return {
+    partialBlocks: new Map(),
+    stepUsage: undefined,
+    pendingStepToolUseIds: new Set(),
+    pendingStepUsage: undefined,
+    stepOpen: false,
+  };
+}
+
+function getLaneState(
+  state: ClaudeStreamEventState,
+  parentToolUseId: ParentToolUseId,
+): ClaudeStreamEventLaneState {
+  let lane = state.lanes.get(parentToolUseId);
+  if (!lane) {
+    lane = createLaneState();
+    state.lanes.set(parentToolUseId, lane);
+  }
+  return lane;
+}
+
+function harnessMetadataFor(
+  parentToolUseId: ParentToolUseId,
+): Record<string, unknown> {
+  return parentToolUseId === null
+    ? {}
+    : { harnessMetadata: claudeCodeParentMetadata(parentToolUseId) };
+}
+
+function providerMetadataFor(
+  parentToolUseId: ParentToolUseId,
+): Record<string, unknown> {
+  return parentToolUseId === null
+    ? {}
+    : { providerMetadata: claudeCodeParentMetadata(parentToolUseId) };
+}
+
+function claudeCodeParentMetadata(
+  parentToolUseId: string,
+): Record<string, unknown> {
+  return { 'claude-code': { parentToolUseId } };
 }
 
 function stringifyContent(content: unknown): string {

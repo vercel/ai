@@ -73,6 +73,12 @@ export type ClaudeCodeHarnessSettings = {
    */
   readonly maxTurns?: number;
   /**
+   * Forward text and reasoning emitted by subagents. Forwarded events include
+   * their immediate parent tool-use id in Claude Code metadata. Defaults to
+   * `false`.
+   */
+  readonly forwardSubagentText?: boolean;
+  /**
    * Controls extended-thinking behavior and whether reasoning is summarized or
    * omitted. Defaults to `{ type: 'adaptive', display: 'summarized' }`.
    */
@@ -436,6 +442,7 @@ export function createClaudeCode(
     type: 'adaptive',
     display: 'summarized',
   };
+  const forwardSubagentText = settings.forwardSubagentText ?? false;
 
   return {
     specificationVersion: 'harness-v1',
@@ -544,6 +551,7 @@ export function createClaudeCode(
             proc: undefined,
             model: settings.model,
             maxTurns: settings.maxTurns,
+            forwardSubagentText,
             thinking,
             isResume: true,
             continueOnFirstPrompt: false,
@@ -711,6 +719,7 @@ export function createClaudeCode(
         proc,
         model: settings.model,
         maxTurns: settings.maxTurns,
+        forwardSubagentText,
         thinking,
         isResume: respawnStrategy !== undefined,
         continueOnFirstPrompt: respawnStrategy !== undefined,
@@ -953,6 +962,7 @@ function createSession({
   proc,
   model,
   maxTurns,
+  forwardSubagentText,
   thinking,
   isResume,
   continueOnFirstPrompt,
@@ -971,6 +981,7 @@ function createSession({
   proc: Experimental_SandboxProcess | undefined;
   model: string | undefined;
   maxTurns: number | undefined;
+  forwardSubagentText: boolean;
   thinking: ClaudeCodeThinkingConfig;
   isResume: boolean;
   continueOnFirstPrompt: boolean;
@@ -1161,6 +1172,7 @@ function createSession({
         })),
         model,
         maxTurns,
+        forwardSubagentText,
         thinking,
         ...(skills.length > 0
           ? { skills: skills.map(skill => skill.name) }
@@ -1213,6 +1225,7 @@ function createSession({
           })),
           model,
           maxTurns,
+          forwardSubagentText,
           thinking,
           ...(skills.length > 0
             ? { skills: skills.map(skill => skill.name) }

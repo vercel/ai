@@ -80,6 +80,7 @@ Use `createClaudeCode()` to configure the runtime:
 const harness = createClaudeCode({
   model: 'claude-sonnet-4-6',
   maxTurns: 10,
+  forwardSubagentText: true,
   thinking: {
     type: 'adaptive',
     display: 'summarized',
@@ -92,12 +93,46 @@ Settings:
 - `auth`: direct Anthropic or AI Gateway authentication settings.
 - `model`: Anthropic model id passed to the underlying Claude Code runtime.
 - `maxTurns`: maximum internal turns before yielding.
+- `forwardSubagentText`: forwards subagent text and reasoning events. Defaults
+  to `false`.
 - `thinking`: extended-thinking configuration. `type` can be `enabled`,
   `disabled`, or `adaptive`. For enabled or adaptive thinking, `display` can be
   `summarized` or `omitted`. Defaults to
   `{ type: 'adaptive', display: 'summarized' }`.
 - `port`: bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the bridge to start.
+
+## Subagent Attribution
+
+Set `forwardSubagentText: true` to receive the full text and reasoning stream
+from Claude Code subagents:
+
+```ts
+const harness = createClaudeCode({
+  forwardSubagentText: true,
+});
+```
+
+Every forwarded descendant event carries the tool-use id of its immediate
+parent:
+
+```ts
+{
+  'claude-code': {
+    parentToolUseId: 'toolu_...',
+  },
+}
+```
+
+Text, reasoning, and step-finish bridge events carry this value as
+`harnessMetadata`. Tool calls and tool results carry it as `providerMetadata`.
+When consuming `HarnessAgent.fullStream`, both forms are exposed as
+`providerMetadata`. Root events omit this metadata entirely.
+
+The id represents only the immediate parent. For example, a grandchild event
+points to the child agent's `Agent` tool call, while the child event points to
+the root agent's `Agent` tool call. Following those ids reconstructs the
+recursive tree.
 
 ## Authentication
 

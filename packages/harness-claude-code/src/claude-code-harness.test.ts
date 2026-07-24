@@ -292,6 +292,28 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('forwards subagent text configuration to fresh bridge starts', async () => {
+    const harness = createClaudeCode({ forwardSubagentText: true });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      prompt: 'delegate this',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({ forwardSubagentText: true });
+
+    await session.doDestroy();
+  });
+
   it('defaults to summarized adaptive thinking', async () => {
     const harness = createClaudeCode();
     const session = await harness.doStart({
@@ -311,6 +333,69 @@ describe('createClaudeCode adapter', () => {
 
     expect(lastStart()).toMatchObject({
       thinking: { type: 'adaptive', display: 'summarized' },
+      forwardSubagentText: false,
+    });
+
+    await session.doDestroy();
+  });
+
+  it('forwards subagent text configuration to resumed bridge starts', async () => {
+    const harness = createClaudeCode({ forwardSubagentText: true });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+    const control = await session.doPromptTurn({
+      prompt: 'resume',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({
+      continue: true,
+      forwardSubagentText: true,
+    });
+
+    await session.doDestroy();
+  });
+
+  it('forwards subagent text configuration to rerun continuations', async () => {
+    const harness = createClaudeCode({ forwardSubagentText: true });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+    const control = await session.doContinueTurn({
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({
+      continue: true,
+      forwardSubagentText: true,
+      prompt: 'Continue.',
     });
 
     await session.doDestroy();
