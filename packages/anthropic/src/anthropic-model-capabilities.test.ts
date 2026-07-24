@@ -7,6 +7,7 @@ describe('getModelCapabilities', () => {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,
       rejectsSamplingParameters: true,
+      rejectsThinkingDisabledAboveHighEffort: true,
       isKnownModel: false,
     });
     expect(
@@ -15,6 +16,7 @@ describe('getModelCapabilities', () => {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,
       rejectsSamplingParameters: true,
+      rejectsThinkingDisabledAboveHighEffort: true,
       isKnownModel: false,
     });
   });
@@ -31,6 +33,7 @@ describe('getModelCapabilities', () => {
         maxOutputTokens: 4096,
         supportsStructuredOutput: false,
         rejectsSamplingParameters: false,
+        rejectsThinkingDisabledAboveHighEffort: false,
         isKnownModel: false,
       });
     },
@@ -41,6 +44,7 @@ describe('getModelCapabilities', () => {
       maxOutputTokens: 64000,
       supportsStructuredOutput: true,
       rejectsSamplingParameters: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     });
   });
@@ -50,6 +54,7 @@ describe('getModelCapabilities', () => {
       maxOutputTokens: 4096,
       supportsStructuredOutput: false,
       rejectsSamplingParameters: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: false,
     });
   });
