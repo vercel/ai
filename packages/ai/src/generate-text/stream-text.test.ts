@@ -3062,6 +3062,8 @@ describe('streamText', () => {
       const cleanupError = new Error('cleanup failed');
       const onError = vi.fn();
       const onEnd = vi.fn();
+      const telemetryOnError = vi.fn();
+      const telemetryOnEnd = vi.fn();
 
       const result = streamText({
         model: new MockLanguageModelV4({
@@ -3077,11 +3079,68 @@ describe('streamText', () => {
         prompt: 'test-input',
         onError,
         onEnd,
+        telemetry: {
+          integrations: {
+            onError: telemetryOnError,
+            onEnd: telemetryOnEnd,
+          },
+        },
       });
 
       await expect(result.text).rejects.toBe(cleanupError);
       expect(onError).toHaveBeenCalledWith({ error: cleanupError });
       expect(onEnd).not.toHaveBeenCalled();
+      expect(telemetryOnError).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({
+          callId: expect.any(String),
+          error: cleanupError,
+        }),
+      );
+      expect(telemetryOnEnd).not.toHaveBeenCalled();
+    });
+
+    it('reports a combined provider and cleanup failure to telemetry once', async () => {
+      const providerError = new Error('provider failed');
+      const cleanupError = new Error('cleanup failed');
+      const onError = vi.fn();
+      const telemetryOnError = vi.fn();
+      const telemetryOnEnd = vi.fn();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async options => {
+            options.experimental_session!.set('resource', 'value', {
+              onDestroy: () => {
+                throw cleanupError;
+              },
+            });
+            throw providerError;
+          },
+        }),
+        maxRetries: 0,
+        prompt: 'test-input',
+        onError,
+        telemetry: {
+          integrations: {
+            onError: telemetryOnError,
+            onEnd: telemetryOnEnd,
+          },
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(telemetryOnError).toHaveBeenCalledOnce();
+      const telemetryError = telemetryOnError.mock.calls[0]?.[0].error;
+      expect(telemetryError).toBeInstanceOf(AggregateError);
+      expect((telemetryError as AggregateError).errors).toEqual([
+        providerError,
+        cleanupError,
+      ]);
+      expect(onError).toHaveBeenCalledExactlyOnceWith({
+        error: telemetryError,
+      });
+      expect(telemetryOnEnd).not.toHaveBeenCalled();
     });
 
     it('destroys the session when the provider call fails', async () => {

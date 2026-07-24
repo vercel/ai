@@ -1166,6 +1166,7 @@ class DefaultStreamTextResult<
       }
     > = createIdMap();
     let recordedNoOutputError: NoOutputGeneratedError | undefined;
+    let setupCleanupError: AggregateError | undefined;
 
     const eventProcessor = new TransformStream<
       EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
@@ -1389,9 +1390,20 @@ class DefaultStreamTextResult<
           try {
             await session.destroy();
           } catch (cleanupError) {
-            self.rejectResultPromises(cleanupError);
-            await onError({ error: cleanupError });
-            controller.error(cleanupError);
+            const error = setupCleanupError ?? cleanupError;
+
+            self.rejectResultPromises(error);
+
+            // don't report the same error twice
+            if (setupCleanupError == null) {
+              await telemetryDispatcher.onError?.({
+                callId,
+                error,
+              });
+              await onError({ error });
+            }
+
+            controller.error(error);
             return;
           }
 
@@ -2465,10 +2477,11 @@ class DefaultStreamTextResult<
       try {
         await session.destroy();
       } catch (cleanupError) {
-        finalError = new AggregateError(
+        setupCleanupError = new AggregateError(
           [error, cleanupError],
           'Streaming failed and session cleanup also failed.',
         );
+        finalError = setupCleanupError;
       }
 
       await telemetryDispatcher.onError?.({
