@@ -234,16 +234,13 @@ export function convertToGoogleGenerativeAIMessages(
     isGemini3Model?: boolean;
     providerOptionsName?: string;
     supportsFunctionResponseParts?: boolean;
-<<<<<<< HEAD:packages/google/src/convert-to-google-generative-ai-messages.ts
     /**
      * Called once for the request when a Gemini 3 `functionCall` part is
      * about to be sent without a `thoughtSignature` and the sentinel is
      * injected.
      */
     onWarning?: (warning: SharedV3Warning) => void;
-=======
     includeFunctionCallIds?: boolean;
->>>>>>> c57a353ead (fix(google): omit unsupported function call IDs (#17902)):packages/google/src/convert-to-google-messages.ts
   },
 ): GoogleGenerativeAIPrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
@@ -254,11 +251,8 @@ export function convertToGoogleGenerativeAIMessages(
   const providerOptionsName = options?.providerOptionsName ?? 'google';
   const supportsFunctionResponseParts =
     options?.supportsFunctionResponseParts ?? true;
-<<<<<<< HEAD:packages/google/src/convert-to-google-generative-ai-messages.ts
   const onWarning = options?.onWarning;
-=======
   const includeFunctionCallIds = options?.includeFunctionCallIds ?? true;
->>>>>>> c57a353ead (fix(google): omit unsupported function call IDs (#17902)):packages/google/src/convert-to-google-messages.ts
 
   let sentinelInjected = false;
   const missingSignatureToolNames: string[] = [];
