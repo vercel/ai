@@ -947,6 +947,95 @@ describe('XaiVideoModel', () => {
         body: doneStatusResponse,
       };
     });
+
+    it('attaches xAI request_id to a content-moderation 400 during polling', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'error',
+        status: 400,
+        body: JSON.stringify({
+          code: 'imagine:content-moderated',
+          error: 'Generated video rejected by content moderation.',
+        }),
+      };
+
+      const model = createModel();
+
+      // The original APICallError (type + status + message) must be preserved
+      // so downstream moderation detection still works; it only gains
+      // requestId, which lets callers correlate with xAI's own logs.
+      await expect(
+        model.doGenerate({ ...defaultOptions }),
+      ).rejects.toMatchObject({
+        message:
+          'imagine:content-moderated: Generated video rejected by content moderation.',
+        statusCode: 400,
+        requestId: 'req-123',
+      });
+
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
+
+    it('attaches xAI request_id to failed, expired, and respect_moderation errors', async () => {
+      const model = createModel();
+
+      const bodies = [
+        { status: 'failed', progress: 0 },
+        { status: 'expired' },
+        {
+          status: 'done',
+          video: { url: '', respect_moderation: false },
+        },
+      ];
+
+      for (const body of bodies) {
+        server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+          type: 'json-value',
+          body: { model: 'grok-imagine-video', ...body },
+        };
+
+        await expect(
+          model.doGenerate({ ...defaultOptions }),
+        ).rejects.toMatchObject({ requestId: 'req-123' });
+      }
+
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
+
+    it('attaches xAI request_id on timeout', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: {
+          status: 'pending',
+          model: 'grok-imagine-video',
+        },
+      };
+
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          providerOptions: {
+            xai: {
+              pollIntervalMs: 10,
+              pollTimeoutMs: 50,
+            },
+          },
+        }),
+      ).rejects.toMatchObject({ requestId: 'req-123' });
+
+      // Reset
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
   });
 
   describe('reference images (R2V)', () => {

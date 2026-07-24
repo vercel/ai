@@ -150,6 +150,20 @@ function resolveVideoMode(
   return undefined;
 }
 
+// Surfaces xAI's resource request id on a thrown error so callers (and the
+// Vercel AI Gateway) can correlate a failed generation with xAI's own logs.
+// `requestId` is xAI's `request_id` from the create response — the same id
+// embedded in the returned video URL and in xAI's request logs. Attached as an
+// own property so the original error instance and type (e.g. an APICallError
+// for a content-moderation 400 during polling) are preserved for downstream
+// handling, which only gains a `requestId` field.
+function withRequestId<E>(error: E, requestId: string): E {
+  if (error != null && typeof error === 'object' && !('requestId' in error)) {
+    Object.assign(error, { requestId });
+  }
+  return error;
+}
+
 export class XaiVideoModel implements Experimental_VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
@@ -427,10 +441,13 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
       await delay(pollIntervalMs, { abortSignal: options.abortSignal });
 
       if (Date.now() - startTime > pollTimeoutMs) {
-        throw new AISDKError({
-          name: 'XAI_VIDEO_GENERATION_TIMEOUT',
-          message: `Video generation timed out after ${pollTimeoutMs}ms`,
-        });
+        throw withRequestId(
+          new AISDKError({
+            name: 'XAI_VIDEO_GENERATION_TIMEOUT',
+            message: `Video generation timed out after ${pollTimeoutMs}ms`,
+          }),
+          requestId,
+        );
       }
 
       const { value: statusResponse, responseHeaders: pollHeaders } =
@@ -442,6 +459,11 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
           failedResponseHandler: xaiFailedResponseHandler,
           abortSignal: options.abortSignal,
           fetch: this.config.fetch,
+        }).catch((error: unknown) => {
+          // Content-moderation rejections and other upstream failures surface
+          // here as APICallErrors from the poll GET. Attach the request id and
+          // re-throw the original error so its type/status/body are preserved.
+          throw withRequestId(error, requestId);
         });
 
       responseHeaders = pollHeaders;
@@ -451,19 +473,25 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
         (statusResponse.status == null && statusResponse.video?.url)
       ) {
         if (statusResponse.video?.respect_moderation === false) {
-          throw new AISDKError({
-            name: 'XAI_VIDEO_MODERATION_ERROR',
-            message:
-              'Video generation was blocked due to a content policy violation.',
-          });
+          throw withRequestId(
+            new AISDKError({
+              name: 'XAI_VIDEO_MODERATION_ERROR',
+              message:
+                'Video generation was blocked due to a content policy violation.',
+            }),
+            requestId,
+          );
         }
 
         if (!statusResponse.video?.url) {
-          throw new AISDKError({
-            name: 'XAI_VIDEO_GENERATION_ERROR',
-            message:
-              'Video generation completed but no video URL was returned.',
-          });
+          throw withRequestId(
+            new AISDKError({
+              name: 'XAI_VIDEO_GENERATION_ERROR',
+              message:
+                'Video generation completed but no video URL was returned.',
+            }),
+            requestId,
+          );
         }
 
         return {
@@ -499,17 +527,23 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
       }
 
       if (statusResponse.status === 'expired') {
-        throw new AISDKError({
-          name: 'XAI_VIDEO_GENERATION_EXPIRED',
-          message: 'Video generation request expired.',
-        });
+        throw withRequestId(
+          new AISDKError({
+            name: 'XAI_VIDEO_GENERATION_EXPIRED',
+            message: 'Video generation request expired.',
+          }),
+          requestId,
+        );
       }
 
       if (statusResponse.status === 'failed') {
-        throw new AISDKError({
-          name: 'XAI_VIDEO_GENERATION_FAILED',
-          message: 'Video generation failed.',
-        });
+        throw withRequestId(
+          new AISDKError({
+            name: 'XAI_VIDEO_GENERATION_FAILED',
+            message: 'Video generation failed.',
+          }),
+          requestId,
+        );
       }
 
       // 'pending' → continue polling
