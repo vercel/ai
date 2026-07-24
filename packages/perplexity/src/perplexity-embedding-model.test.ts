@@ -28,7 +28,7 @@ const provider = createPerplexity({ apiKey: 'test-api-key' });
 const model = provider.embedding('pplx-embed-v1-4b');
 
 const server = createTestServer({
-  'https://api.perplexity.ai/embeddings': {},
+  'https://api.perplexity.ai/v1/embeddings': {},
 });
 
 describe('doEmbed', () => {
@@ -41,7 +41,7 @@ describe('doEmbed', () => {
     usage?: { prompt_tokens: number; total_tokens: number };
     headers?: Record<string, string>;
   } = {}) {
-    server.urls['https://api.perplexity.ai/embeddings'].response = {
+    server.urls['https://api.perplexity.ai/v1/embeddings'].response = {
       type: 'json-value',
       headers,
       body: {

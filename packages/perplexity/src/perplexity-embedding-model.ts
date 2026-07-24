@@ -18,7 +18,7 @@ import { z } from 'zod/v4';
 import {
   perplexityEmbeddingModelOptions,
   type PerplexityEmbeddingModelId,
-} from './perplexity-embedding-options';
+} from './perplexity-embedding-model-options';
 import { perplexityErrorSchema } from './perplexity-language-model';
 
 type PerplexityEmbeddingConfig = {
@@ -95,7 +95,7 @@ export class PerplexityEmbeddingModel implements EmbeddingModelV4 {
       value: response,
       rawValue,
     } = await postJsonToApi({
-      url: `${this.config.baseURL}/embeddings`,
+      url: `${this.config.baseURL}/v1/embeddings`,
       headers: combineHeaders(this.config.headers(), headers),
       body: {
         model: this.modelId,

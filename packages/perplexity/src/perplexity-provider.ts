@@ -1,7 +1,7 @@
 import {
-  type EmbeddingModelV4,
-  type LanguageModelV4,
   NoSuchModelError,
+  type LanguageModelV4,
+  type EmbeddingModelV4,
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
@@ -12,7 +12,7 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { PerplexityEmbeddingModel } from './perplexity-embedding-model';
-import type { PerplexityEmbeddingModelId } from './perplexity-embedding-options';
+import type { PerplexityEmbeddingModelId } from './perplexity-embedding-model-options';
 import { PerplexityLanguageModel } from './perplexity-language-model';
 import type { PerplexityLanguageModelId } from './perplexity-options';
 import { VERSION } from './version';

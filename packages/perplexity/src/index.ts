@@ -7,5 +7,5 @@ export type { PerplexityLanguageModelOptions } from './perplexity-language-model
 export type {
   PerplexityEmbeddingModelId,
   PerplexityEmbeddingModelOptions,
-} from './perplexity-embedding-options';
+} from './perplexity-embedding-model-options';
 export { VERSION } from './version';
