@@ -145,8 +145,11 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
 
   const messages = useSyncExternalStore(
     subscribeToMessages,
-    () => chatRef.current.messages,
-    () => chatRef.current.messages,
+    // Use the throttled snapshot (not `messages`) so that `getSnapshot` returns
+    // a stable reference between throttle windows. Reading `messages` directly
+    // would return a fresh array on every stream chunk and bypass throttling.
+    () => chatRef.current.messagesSnapshot,
+    () => chatRef.current.messagesSnapshot,
   );
 
   const status = useSyncExternalStore(
