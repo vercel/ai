@@ -175,7 +175,12 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       });
     }
 
-    const isAnthropicModel = this.modelId.includes('anthropic');
+    // Application inference profile ARNs do not expose their underlying model.
+    // The Anthropic-only reasoning budget provides the model-family signal.
+    const isAnthropicModel =
+      this.modelId.includes('anthropic') ||
+      (this.modelId.includes(':application-inference-profile/') &&
+        amazonBedrockOptions.reasoningConfig?.budgetTokens != null);
     const isOpenAIModel = this.modelId.startsWith('openai.');
 
     amazonBedrockOptions = resolveAmazonBedrockReasoningConfig({
