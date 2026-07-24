@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.101
+
+### Patch Changes
+
+- 326887b: fix(google): omit unsupported function call IDs
+
 ## 3.0.100
 
 ### Patch Changes
