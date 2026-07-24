@@ -396,6 +396,28 @@ describe('prepareTools', () => {
       expect((tools[2] as any).toolSpec).not.toHaveProperty('strict');
     });
 
+    it.each([
+      'us.anthropic.claude-opus-5',
+      'anthropic.claude-sonnet-5',
+      'eu.anthropic.claude-fable-5',
+    ])('should omit strict for %s', async modelId => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: true,
+          },
+        ],
+        modelId,
+      });
+
+      const toolSpec = (result.toolConfig.tools![0] as any).toolSpec;
+      expect(toolSpec).not.toHaveProperty('strict');
+    });
+
     it('should omit strict for claude-opus-4-7', async () => {
       const result = await prepareTools({
         tools: [
