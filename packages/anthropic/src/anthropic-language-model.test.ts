@@ -219,6 +219,21 @@ describe('AnthropicLanguageModel', () => {
 
         expect(result.warnings).toEqual([]);
       });
+
+      it('should report thinking tokens as reasoning usage', async () => {
+        prepareJsonFixtureResponse('anthropic-claude-opus-5-reasoning-high.1');
+
+        const result = await provider('claude-opus-5').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+        });
+
+        expect(result.usage.outputTokens).toEqual({
+          total: 1699,
+          text: 1560,
+          reasoning: 139,
+        });
+      });
     });
 
     describe('reasoning (thinking disabled)', () => {
