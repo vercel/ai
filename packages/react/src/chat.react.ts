@@ -10,7 +10,17 @@ import { throttle } from './throttle';
 class ReactChatState<
   UI_MESSAGE extends UIMessage,
 > implements ChatState<UI_MESSAGE> {
+  // Internal, always-current message buffer. Every read/write from
+  // `AbstractChat` (slicing, finding, replacing during streaming) goes through
+  // this, so the chat logic always sees the latest messages.
   #messages: UI_MESSAGE[];
+
+  // The message array reference published to React via
+  // `useSyncExternalStore`'s `getSnapshot`. It is only swapped when
+  // `#publishMessages` runs, so between throttle windows `getSnapshot` keeps
+  // returning the same reference and React does not force a re-render.
+  #messagesSnapshot: UI_MESSAGE[];
+
   #status: ChatStatus = 'ready';
   #error: Error | undefined = undefined;
 
@@ -18,8 +28,17 @@ class ReactChatState<
   #statusCallbacks = new Set<() => void>();
   #errorCallbacks = new Set<() => void>();
 
+  // The throttle window currently configured for message updates.
+  #throttleWaitMs: number | undefined = undefined;
+
+  // Throttled version of `#publishMessages`, rebuilt whenever the throttle
+  // window changes. When no throttling is configured this is `#publishMessages`
+  // itself, so publishing happens synchronously.
+  #throttledPublishMessages: () => void = () => this.#publishMessages();
+
   constructor(initialMessages: UI_MESSAGE[] = []) {
     this.#messages = initialMessages;
+    this.#messagesSnapshot = initialMessages;
   }
 
   get status(): ChatStatus {
@@ -46,17 +65,26 @@ class ReactChatState<
 
   set messages(newMessages: UI_MESSAGE[]) {
     this.#messages = [...newMessages];
-    this.#callMessagesCallbacks();
+    this.#scheduleMessagesPublish();
+  }
+
+  /**
+   * The message array reference published to React. It stays stable between
+   * throttle windows so that `useSyncExternalStore`'s `getSnapshot` does not
+   * trip a re-render for updates that have not been flushed yet.
+   */
+  get messagesSnapshot(): UI_MESSAGE[] {
+    return this.#messagesSnapshot;
   }
 
   pushMessage = (message: UI_MESSAGE) => {
     this.#messages = this.#messages.concat(message);
-    this.#callMessagesCallbacks();
+    this.#scheduleMessagesPublish();
   };
 
   popMessage = () => {
     this.#messages = this.#messages.slice(0, -1);
-    this.#callMessagesCallbacks();
+    this.#scheduleMessagesPublish();
   };
 
   replaceMessage = (index: number, message: UI_MESSAGE) => {
@@ -66,7 +94,7 @@ class ReactChatState<
       this.snapshot(message),
       ...this.#messages.slice(index + 1),
     ];
-    this.#callMessagesCallbacks();
+    this.#scheduleMessagesPublish();
   };
 
   snapshot = <T>(value: T): T => structuredClone(value);
@@ -75,12 +103,24 @@ class ReactChatState<
     onChange: () => void,
     throttleWaitMs?: number,
   ): (() => void) => {
-    const callback = throttleWaitMs
-      ? throttle(onChange, throttleWaitMs)
-      : onChange;
-    this.#messagesCallbacks.add(callback);
+    // Configure the throttle window on the state itself, so the published
+    // snapshot and the change notification are throttled together (see
+    // `#publishMessages`). Throttling only the notification would leave
+    // `getSnapshot` returning a fresh array on every chunk, which makes
+    // `useSyncExternalStore` re-render past the throttle whenever the component
+    // re-renders for any reason, and can exceed React's nested update limit
+    // during fast streaming.
+    if (throttleWaitMs !== this.#throttleWaitMs) {
+      this.#throttleWaitMs = throttleWaitMs;
+      this.#throttledPublishMessages = throttle(
+        () => this.#publishMessages(),
+        throttleWaitMs,
+      );
+    }
+
+    this.#messagesCallbacks.add(onChange);
     return () => {
-      this.#messagesCallbacks.delete(callback);
+      this.#messagesCallbacks.delete(onChange);
     };
   };
 
@@ -98,7 +138,14 @@ class ReactChatState<
     };
   };
 
-  #callMessagesCallbacks = () => {
+  #scheduleMessagesPublish = () => {
+    this.#throttledPublishMessages();
+  };
+
+  // Swap the published snapshot to the current messages and notify subscribers.
+  // Doing both together keeps `getSnapshot` consistent with the notifications.
+  #publishMessages = () => {
+    this.#messagesSnapshot = this.#messages;
     this.#messagesCallbacks.forEach(callback => callback());
   };
 
@@ -120,6 +167,15 @@ export class Chat<
     const state = new ReactChatState(messages);
     super({ ...init, state });
     this.#state = state;
+  }
+
+  /**
+   * The throttled messages reference that React subscribes to via
+   * `useSyncExternalStore`. Unlike `messages`, this reference only changes when
+   * a throttled update is published, so it must be used as the store snapshot.
+   */
+  get messagesSnapshot(): UI_MESSAGE[] {
+    return this.#state.messagesSnapshot;
   }
 
   '~registerMessagesCallback' = (

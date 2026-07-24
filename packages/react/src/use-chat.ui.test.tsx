@@ -2388,6 +2388,113 @@ describe('use-chat', () => {
     });
   });
 
+  describe('throttle snapshot stability', () => {
+    const throttleMs = 100;
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2024-01-01T00:00:00Z'));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    setupTestComponent(() => {
+      const { messages, sendMessage, status } = useChat({
+        throttle: throttleMs,
+        generateId: mockId(),
+      });
+      const [, setTick] = useState(0);
+
+      return (
+        <div>
+          <div data-testid="status">{status.toString()}</div>
+          {messages.map((m, idx) => (
+            <div data-testid={`message-${idx}`} key={m.id}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.parts
+                .map(part => (part.type === 'text' ? part.text : ''))
+                .join('')}
+            </div>
+          ))}
+          <button
+            data-testid="do-send"
+            onClick={() => {
+              sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
+            }}
+          />
+          <button
+            data-testid="force-rerender"
+            onClick={() => {
+              setTick(tick => tick + 1);
+            }}
+          />
+        </div>
+      );
+    });
+
+    // Regression test for https://github.com/vercel/ai/issues/6166:
+    // `experimental_throttle`/`throttle` only throttled the subscribe callback,
+    // while `useSyncExternalStore`'s `getSnapshot` returned a fresh `messages`
+    // array on every chunk. Any unrelated re-render then read that fresh
+    // snapshot and re-rendered past the throttle, which could exceed React's
+    // nested update limit during fast streaming.
+    it('does not bypass throttling when the component re-renders for an unrelated reason', async () => {
+      const controller = new TestResponseController();
+
+      server.urls['/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      fireEvent.click(screen.getByTestId('do-send'));
+      expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+      controller.write(formatChunk({ type: 'text-start', id: '0' }));
+      controller.write(
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hel' }),
+      );
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(throttleMs + 10);
+      });
+
+      expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hel');
+
+      // Stream another chunk and let the stream reader consume it (advancing a
+      // small amount, well under the throttle window) so the internal buffer
+      // becomes 'Hello' while the throttled publish is still pending.
+      controller.write(
+        formatChunk({ type: 'text-delta', id: '0', delta: 'lo' }),
+      );
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10);
+      });
+
+      // Force an unrelated re-render before the throttle window elapses. The
+      // displayed messages must stay throttled and not reflect the buffered
+      // 'lo' chunk (before the fix, `getSnapshot` returned the live `messages`
+      // array here, so this re-render showed 'Hello' immediately).
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('force-rerender'));
+      });
+
+      expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hel');
+      expect(screen.getByTestId('message-1')).not.toHaveTextContent(
+        'AI: Hello',
+      );
+
+      // Once the throttle window elapses, the buffered update is published.
+      controller.write(formatChunk({ type: 'text-end', id: '0' }));
+      await act(async () => {
+        await controller.close();
+        await vi.advanceTimersByTimeAsync(throttleMs + 10);
+      });
+
+      expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
+    });
+  });
+
   describe('experimental_throttle (deprecated)', () => {
     const throttleMs = 50;
 
