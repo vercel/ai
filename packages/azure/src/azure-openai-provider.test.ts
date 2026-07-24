@@ -1225,6 +1225,24 @@ describe('responses', () => {
       );
     });
 
+    it('should reject the OpenAI Responses WebSocket transport', async () => {
+      await expect(
+        provider.responses('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            azure: {
+              transport: 'websocket',
+            },
+          },
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_UnsupportedFunctionalityError',
+        functionality: 'Responses API WebSocket transport',
+      });
+
+      expect(server.calls).toHaveLength(0);
+    });
+
     it('should handle Azure file IDs with assistant- prefix', async () => {
       prepareJsonFixtureResponse('azure-text.1');
 
