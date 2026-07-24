@@ -1,6 +1,8 @@
 import {
   UnsupportedFunctionalityError,
   type JSONObject,
+  type LanguageModelV4FilePart,
+  type JSONValue,
   type LanguageModelV4Message,
   type LanguageModelV4Prompt,
   type SharedV4ProviderMetadata,
@@ -20,6 +22,7 @@ import {
   type AmazonBedrockCachePoint,
   type AmazonBedrockDocumentFormat,
   type AmazonBedrockDocumentMimeType,
+  type AmazonBedrockImageBlock,
   type AmazonBedrockImageFormat,
   type AmazonBedrockImageMimeType,
   type AmazonBedrockMessages,
@@ -54,6 +57,32 @@ function pushCachePoint(
   const cachePoint = getCachePoint(providerMetadata);
   if (cachePoint) {
     content.push(cachePoint);
+  }
+}
+
+function sanitizeToolName(toolName: string): string {
+  return toolName.replace(/[^a-zA-Z0-9_-]/g, '') || '_';
+}
+
+function getAmazonBedrockImageSource({
+  data,
+  functionality,
+}: {
+  data: Extract<LanguageModelV4FilePart['data'], { type: 'data' | 'url' }>;
+  functionality: string;
+}): AmazonBedrockImageBlock['image']['source'] {
+  switch (data.type) {
+    case 'data':
+      return { bytes: convertToBase64(data.data) };
+    case 'url':
+      if (data.url.protocol !== 's3:') {
+        throw new UnsupportedFunctionalityError({ functionality });
+      }
+      return {
+        s3Location: {
+          uri: data.url.toString(),
+        },
+      };
   }
 }
 
@@ -141,9 +170,30 @@ export async function convertToAmazonBedrockChatMessages(
                         });
                       }
                       case 'url': {
-                        throw new UnsupportedFunctionalityError({
-                          functionality: 'File URL data',
+                        if (part.data.url.protocol !== 's3:') {
+                          throw new UnsupportedFunctionalityError({
+                            functionality: 'File URL data',
+                          });
+                        }
+
+                        const fullMediaType = resolveFullMediaType({ part });
+
+                        if (getTopLevelMediaType(fullMediaType) !== 'image') {
+                          throw new UnsupportedFunctionalityError({
+                            functionality: 'File URL data',
+                          });
+                        }
+
+                        amazonBedrockContent.push({
+                          image: {
+                            format: getAmazonBedrockImageFormat(fullMediaType),
+                            source: getAmazonBedrockImageSource({
+                              data: part.data,
+                              functionality: 'File URL data',
+                            }),
+                          },
                         });
+                        break;
                       }
                       case 'text': {
                         const textMediaType = isFullMediaType(part.mediaType)
@@ -180,9 +230,10 @@ export async function convertToAmazonBedrockChatMessages(
                             image: {
                               format:
                                 getAmazonBedrockImageFormat(fullMediaType),
-                              source: {
-                                bytes: convertToBase64(part.data.data),
-                              },
+                              source: getAmazonBedrockImageSource({
+                                data: part.data,
+                                functionality: 'File URL data',
+                              }),
                             },
                           });
                         } else {
@@ -235,7 +286,11 @@ export async function convertToAmazonBedrockChatMessages(
                           case 'text':
                             return { text: contentPart.text };
                           case 'file': {
-                            if (contentPart.data.type !== 'data') {
+                            if (
+                              contentPart.data.type !== 'data' &&
+                              (contentPart.data.type !== 'url' ||
+                                contentPart.data.url.protocol !== 's3:')
+                            ) {
                               throw new UnsupportedFunctionalityError({
                                 functionality: `tool result file data of type "${contentPart.data.type}"`,
                               });
@@ -248,6 +303,12 @@ export async function convertToAmazonBedrockChatMessages(
                             if (
                               getTopLevelMediaType(fullMediaType) !== 'image'
                             ) {
+                              if (contentPart.data.type !== 'data') {
+                                throw new UnsupportedFunctionalityError({
+                                  functionality: `tool result file data of type "${contentPart.data.type}"`,
+                                });
+                              }
+
                               const enableCitations =
                                 await shouldEnableCitations(
                                   contentPart.providerOptions,
@@ -278,9 +339,10 @@ export async function convertToAmazonBedrockChatMessages(
                               image: {
                                 format:
                                   getAmazonBedrockImageFormat(fullMediaType),
-                                source: {
-                                  bytes: convertToBase64(contentPart.data.data),
-                                },
+                                source: getAmazonBedrockImageSource({
+                                  data: contentPart.data,
+                                  functionality: `tool result file data of type "${contentPart.data.type}"`,
+                                }),
                               },
                             };
                           }
@@ -420,8 +482,8 @@ export async function convertToAmazonBedrockChatMessages(
                 amazonBedrockContent.push({
                   toolUse: {
                     toolUseId: normalizeToolCallId(part.toolCallId, isMistral),
-                    name: part.toolName,
-                    input: part.input as JSONObject,
+                    name: sanitizeToolName(part.toolName),
+                    input: toBedrockToolInput(part.input),
                   },
                 });
                 break;
@@ -446,6 +508,13 @@ export async function convertToAmazonBedrockChatMessages(
   }
 
   return { system, messages };
+}
+
+// wrap invalid tool call input because Bedrock requires it to be an object
+function toBedrockToolInput(input: unknown): JSONObject {
+  return typeof input === 'object' && input !== null && !Array.isArray(input)
+    ? (input as JSONObject)
+    : { rawInvalidInput: input as JSONValue };
 }
 
 function getAmazonBedrockImageFormat(

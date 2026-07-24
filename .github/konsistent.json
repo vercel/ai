@@ -28,6 +28,20 @@
       ]
     },
     {
+      "name": "package-must-follow-general-code-requirements",
+      "description": "Every package directory must contain a specific minimum set of files.",
+      "paths": [
+        "packages/*/src/**/*.ts",
+        "!packages/codemod",
+        "!packages/*/src/**/node_modules/**"
+      ],
+      "must": [
+        {
+          "use": "aisdk/package-must-import-zod-from-v4"
+        }
+      ]
+    },
+    {
       "name": "provider-package-must-export-required-symbols",
       "description": "Every provider package must have specific files that export a specific set of symbols.",
       "paths": [
@@ -85,22 +99,7 @@
         },
         {
           "use": "aisdk/provider-model-file-must-export-model-class",
-          "excludeFiles": [
-            "${providerId}-video-model.ts",
-            "packages/amazon-bedrock/src/amazon-bedrock-image-model.ts",
-            "packages/deepinfra/src/deepinfra-image-model.ts",
-            "packages/fireworks/src/fireworks-image-model.ts",
-            "packages/gateway/src/gateway-embedding-model.ts",
-            "packages/gateway/src/gateway-image-model.ts",
-            "packages/gateway/src/gateway-language-model.ts",
-            "packages/gateway/src/gateway-realtime-model.ts",
-            "packages/gateway/src/gateway-reranking-model.ts",
-            "packages/gateway/src/gateway-speech-model.ts",
-            "packages/gateway/src/gateway-transcription-model.ts",
-            "packages/mistral/src/mistral-embedding-model.ts",
-            "packages/openai-compatible/src/image/openai-compatible-image-model.ts",
-            "packages/perplexity/src/perplexity-language-model.ts"
-          ]
+          "excludeFiles": ["${providerId}-video-model.ts"]
         },
         {
           "use": "aisdk/provider-model-file-with-subtype-must-export-model-class",
@@ -109,12 +108,30 @@
             "packages/moonshotai/src/moonshotai-chat-language-model.ts"
           ]
         },
+        "aisdk/provider-video-model-file-must-export-model-class",
         {
-          "use": "aisdk/provider-video-model-file-must-export-model-class",
+          "use": "aisdk/provider-model-file-must-have-matching-model-options-file",
           "excludeFiles": [
-            "packages/bytedance/src/bytedance-video-model.ts",
-            "packages/gateway/src/gateway-video-model.ts"
+            "${providerId}-video-model.ts",
+            "packages/gateway/src/gateway-embedding-model.ts",
+            "packages/gateway/src/gateway-image-model.ts",
+            "packages/gateway/src/gateway-language-model.ts",
+            "packages/gateway/src/gateway-realtime-model.ts",
+            "packages/gateway/src/gateway-reranking-model.ts",
+            "packages/gateway/src/gateway-speech-model.ts",
+            "packages/gateway/src/gateway-transcription-model.ts"
           ]
+        },
+        {
+          "use": "aisdk/provider-model-file-with-subtype-must-have-matching-model-options-file",
+          "excludeFiles": [
+            "packages/deepinfra/src/deepinfra-chat-language-model.ts",
+            "packages/moonshotai/src/moonshotai-chat-language-model.ts"
+          ]
+        },
+        {
+          "use": "aisdk/provider-video-model-file-must-have-matching-model-options-file",
+          "excludeFiles": ["packages/gateway/src/gateway-video-model.ts"]
         },
         "aisdk/provider-language-model-file-must-import-workflow-serialization",
         "aisdk/provider-model-options-file-must-export-model-options-type",
@@ -134,6 +151,10 @@
               {
                 "name": "create${harnessId.toPascalCase()}",
                 "from": "./${harnessId}-harness"
+              },
+              {
+                "name": "VERSION",
+                "from": "./version"
               }
             ],
             "exportConstants": ["${harnessId.toCamelCase()}"],
@@ -143,7 +164,15 @@
                 "from": "./${harnessId}-harness"
               }
             ],
-            "haveFiles": ["${harnessId}-harness.ts"]
+            "haveFiles": ["${harnessId}-harness.ts", "version.ts"]
+          }
+        },
+        {
+          "name": "harness-version-file-must-export-version",
+          "description": "Every harness version file must export the package version.",
+          "for": { "files": ["version.ts"] },
+          "must": {
+            "exportConstants": ["VERSION"]
           }
         },
         {
@@ -175,7 +204,10 @@
           "description": "Every harness file must declare its built-in tools.",
           "for": { "files": ["${harnessId}-harness.ts"] },
           "must": {
-            "declareConstants": ["${harnessId.toConstantCase()}_BUILTIN_TOOLS"]
+            "declareConstants": [
+              "${harnessId.toConstantCase()}_CLIENT_APP",
+              "${harnessId.toConstantCase()}_BUILTIN_TOOLS"
+            ]
           }
         },
         {
@@ -185,6 +217,18 @@
           "if": { "hasFile": "bridge/index.ts" },
           "must": {
             "haveFiles": ["${harnessId}-bridge-protocol.ts"],
+            "exportTypes": [
+              {
+                "name": "${harnessId.toPascalCase()}HarnessSettings",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "port": { "type": "number" },
+                    "startupTimeoutMs": { "type": "number" }
+                  }
+                }
+              }
+            ],
             "declareConstants": [
               "${harnessId.toCamelCase()}BridgeCoordsSchema",
               "${harnessId.toCamelCase()}ResumeStateSchema"
@@ -198,6 +242,7 @@
           "for": { "files": ["${harnessId}-harness.ts"] },
           "must": {
             "useDeclarationOrder": [
+              "${harnessId.toConstantCase()}_CLIENT_APP",
               "${harnessId.toPascalCase()}HarnessSettings",
               "${harnessId.toConstantCase()}_BUILTIN_TOOLS",
               "${harnessId.toCamelCase()}BridgeCoordsSchema",
@@ -265,10 +310,15 @@
           "description": "Every harness bridge index file must declare and use the relevant symbols.",
           "for": { "files": ["bridge/index.ts"] },
           "must": {
+            "haveFiles": ["create-emit-stream-event.ts"],
             "import": [
               {
                 "name": "runBridge",
                 "from": "@ai-sdk/harness/bridge"
+              },
+              {
+                "name": "createEmitStreamEvent",
+                "from": "./create-emit-stream-event"
               }
             ],
             "importTypes": [
@@ -292,6 +342,14 @@
                 "returnValueOfType": "Promise<void>"
               }
             ]
+          }
+        },
+        {
+          "name": "harness-stream-event-emitter-must-export-factory",
+          "description": "Every harness stream event emitter file must export its factory function.",
+          "for": { "files": ["bridge/create-emit-stream-event.ts"] },
+          "must": {
+            "exportFunctions": ["createEmitStreamEvent"]
           }
         },
         {
@@ -363,6 +421,7 @@
   "kebabToPascalMap": {
     "assemblyai": "AssemblyAI",
     "bytedance": "ByteDance",
+    "cartesia": "Cartesia",
     "deepagents": "DeepAgents",
     "deepinfra": "DeepInfra",
     "deepseek": "DeepSeek",

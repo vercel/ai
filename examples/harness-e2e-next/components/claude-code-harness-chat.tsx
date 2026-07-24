@@ -5,11 +5,15 @@ import { Response } from '@/components/ai-elements/response';
 import { useChatId } from '@/components/chat-id-provider';
 import ChatInput from '@/components/chat-input';
 import DynamicToolView from '@/components/tool/dynamic-tool-view';
+import GetUserNameToolView from '@/components/tool/get-user-name-tool-view';
 import HarnessBashToolView from '@/components/tool/harness-bash-tool-view';
 import HarnessFileToolView from '@/components/tool/harness-file-tool-view';
 import HarnessToolView from '@/components/tool/harness-tool-view';
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from 'ai';
 
 export default function ClaudeCodeHarnessChat({
   apiRoute,
@@ -19,12 +23,13 @@ export default function ClaudeCodeHarnessChat({
   exampleLabel: string;
 }) {
   const { chatId, resetChatId } = useChatId();
-  const { error, status, sendMessage, messages, regenerate } =
+  const { error, status, sendMessage, messages, regenerate, addToolOutput } =
     useChat<ClaudeCodeHarnessAgentMessage>({
       id: chatId,
       transport: new DefaultChatTransport({
         api: apiRoute,
       }),
+      sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     });
 
   return (
@@ -73,6 +78,21 @@ export default function ClaudeCodeHarnessChat({
                   );
                 }
                 return null;
+              }
+              case 'tool-getUserName': {
+                return (
+                  <GetUserNameToolView
+                    key={index}
+                    invocation={part}
+                    onSubmit={({ toolCallId, name }) =>
+                      addToolOutput({
+                        tool: 'getUserName',
+                        toolCallId,
+                        output: { name },
+                      })
+                    }
+                  />
+                );
               }
               case 'tool-bash': {
                 return <HarnessBashToolView invocation={part} key={index} />;

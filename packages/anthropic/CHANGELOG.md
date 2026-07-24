@@ -1,5 +1,97 @@
 # @ai-sdk/anthropic
 
+## 4.0.19
+
+### Patch Changes
+
+- 01a596a: fix (provider/anthropic): use current-generation capability defaults for unrecognized Claude model IDs while retaining conservative defaults for legacy Claude and non-Claude models.
+
+## 4.0.18
+
+### Patch Changes
+
+- 97de198: Warn when an unknown model uses the default 4096 max output token limit.
+
+## 4.0.17
+
+### Patch Changes
+
+- b72fc7c: fix(amazon-bedrock): sanitize unsupported JSON Schema constraints in native Anthropic structured output
+- 9218ebe: fix(provider/anthropic): warn when parallel tool use is requested with JSON tool structured output
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+
+## 4.0.16
+
+### Patch Changes
+
+- afcf19c: fix(provider/anthropic): preserve web search citations when replaying assistant messages
+- Updated dependencies [cd06458]
+  - @ai-sdk/provider-utils@5.0.11
+
+## 4.0.15
+
+### Patch Changes
+
+- Updated dependencies [31c7be8]
+  - @ai-sdk/provider-utils@5.0.10
+
+## 4.0.14
+
+### Patch Changes
+
+- 4be62c1: fix(provider-utils): validate provider-response URLs in `getFromApi`
+
+  `getFromApi` now has a `validateUrl` flag. It is optional so existing callers keep compiling (omitting it behaves like `false`, i.e. no validation), but all AI SDK provider packages set it explicitly at every call site so each one makes a visible trust decision. When `true`, the URL is routed through `fetchWithValidatedRedirects` — the same guard used by `downloadBlob` — which rejects private/loopback/link-local targets, re-validates every redirect hop, strips proxy/metadata/cookie request headers, and drops all caller headers except the user-agent on cross-origin redirects (custom API-key headers must not follow a redirect off-origin any more than `Authorization` may); blocked URLs throw `DownloadError`. It is enabled at the image/video/audio download and polling call sites where the URL comes from a provider response body; URLs built from developer-configured endpoints pass `validateUrl: false` and are unaffected.
+
+  A new optional `credentialedOrigin` withholds caller headers unless the URL is same-origin with it, so the API key is not sent to a response-supplied host on a different origin.
+
+  A new optional `trustedOrigin` exempts URLs (and redirect hops) that are same-origin with the developer-configured provider endpoint from target validation, so self-hosted and localhost deployments whose response URLs point back at the configured host keep working; all other hops are still validated.
+
+  Also closes range gaps in `validateDownloadUrl` (IPv4 `224.0.0.0/4` multicast and the TEST-NET documentation ranges `192.0.2.0/24`, `198.51.100.0/24`, `203.0.113.0/24`; IPv6 documentation ranges `2001:db8::/32` and `3fff::/20`), and follows only the fetch-spec redirect status codes (301/302/303/307/308) — a `Location` header on any other status is not followed. This guard performs string/literal checks only and does not resolve DNS; hostnames that resolve to private addresses and DNS rebinding remain out of scope and must be constrained at the network layer (or by injecting a Node `fetch` that pins the resolved IP at connect time) for server deployments handling untrusted URLs. See `contributing/secure-url-handling.md`.
+
+- cd12954: Reject empty OpenAI, Anthropic, and Replicate base URLs with a helpful AI SDK
+  invalid argument error.
+- Updated dependencies [4be62c1]
+- Updated dependencies [7805e4a]
+- Updated dependencies [cd12954]
+  - @ai-sdk/provider-utils@5.0.9
+
+## 4.0.13
+
+### Patch Changes
+
+- Updated dependencies [e193290]
+  - @ai-sdk/provider-utils@5.0.8
+
+## 4.0.12
+
+### Patch Changes
+
+- 308a519: chore: enforce consistent imports from `zod/v4` instead of `zod`
+
+## 4.0.11
+
+### Patch Changes
+
+- Updated dependencies [0f93c57]
+  - @ai-sdk/provider@4.0.3
+  - @ai-sdk/provider-utils@5.0.7
+
+## 4.0.10
+
+### Patch Changes
+
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+
+## 4.0.9
+
+### Patch Changes
+
+- 2e45d9c: fix(anthropic): wrap invalid tool input in object
+
 ## 4.0.8
 
 ### Patch Changes

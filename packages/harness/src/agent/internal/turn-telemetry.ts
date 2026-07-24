@@ -42,9 +42,9 @@ export interface TurnTelemetry {
    * model the runtime resolved to (overriding the session's configured id).
    * Idempotent — the first call wins.
    */
-  start(modelId?: string): void;
+  start(modelId?: string): Promise<void>;
   /** Open a step span lazily, before the first content of a step. */
-  ensureStepOpen(): void;
+  ensureStepOpen(): Promise<void>;
   /** Close the current step (on a harness `finish-step`). */
   stepFinish(info: {
     finishReason: unknown;
@@ -52,13 +52,18 @@ export interface TurnTelemetry {
     providerMetadata?: unknown;
     /** The model's output content for this step (text/reasoning/tool-calls). */
     content?: TurnContentPart[];
-  }): void;
+  }): Promise<void>;
   /** A tool execution began (on a `tool-call`). */
   toolStart(call: {
     toolCallId: string;
     toolName: string;
     input: unknown;
-  }): void;
+  }): Promise<void>;
+  /** Execute a host tool through each telemetry integration's context wrapper. */
+  executeTool<T>(input: {
+    toolCallId: string;
+    execute: () => PromiseLike<T>;
+  }): Promise<T>;
   /**
    * A tool execution completed (on its `tool-result` or after host execution).
    * Idempotent per `toolCallId` — the first caller wins, so provider-executed
@@ -67,21 +72,24 @@ export interface TurnTelemetry {
   toolEnd(
     toolCallId: string,
     output: { ok: true; output: unknown } | { ok: false; error: unknown },
-  ): void;
+  ): Promise<void>;
   /** The turn ended (on a harness `finish`). */
-  end(info: { finishReason: unknown; usage: unknown }): void;
+  end(info: { finishReason: unknown; usage: unknown }): Promise<void>;
   /** The turn failed. */
-  error(err: unknown): void;
+  error(err: unknown): Promise<void>;
 }
 
 const NOOP: TurnTelemetry = {
-  start() {},
-  ensureStepOpen() {},
-  stepFinish() {},
-  toolStart() {},
-  toolEnd() {},
-  end() {},
-  error() {},
+  async start() {},
+  async ensureStepOpen() {},
+  async stepFinish() {},
+  async toolStart() {},
+  async executeTool({ execute }) {
+    return await execute();
+  },
+  async toolEnd() {},
+  async end() {},
+  async error() {},
 };
 
 function normalizeFinishReason(finishReason: unknown): unknown {
@@ -194,10 +202,10 @@ export function createTurnTelemetry(opts: {
 
   // onStart — open the operation (root) span. Deferred until `start()` so the
   // runtime-resolved model can be attached to the operation span + trace label.
-  const fireStart = (): void => {
+  const fireStart = async (): Promise<void> => {
     if (started) return;
     started = true;
-    dispatcher.onStart?.(
+    await dispatcher.onStart?.(
       cast<'onStart'>({
         callId,
         operationId: 'ai.harness',
@@ -219,17 +227,17 @@ export function createTurnTelemetry(opts: {
     );
   };
 
-  const start = (overrideModelId?: string): void => {
+  const start = async (overrideModelId?: string): Promise<void> => {
     if (started) return;
     if (overrideModelId) modelId = overrideModelId;
-    fireStart();
+    await fireStart();
   };
 
-  const ensureStepOpen = (): void => {
-    if (!started) fireStart();
+  const ensureStepOpen = async (): Promise<void> => {
+    if (!started) await fireStart();
     if (stepOpen || ended) return;
     stepOpen = true;
-    dispatcher.onStepStart?.(
+    await dispatcher.onStepStart?.(
       cast<'onStepStart'>({
         callId,
         provider,
@@ -247,7 +255,7 @@ export function createTurnTelemetry(opts: {
     );
     // Open the inference (language-model call) span — the gen_ai home for the
     // step's input and (on end) output messages.
-    dispatcher.onLanguageModelCallStart?.(
+    await dispatcher.onLanguageModelCallStart?.(
       cast<'onLanguageModelCallStart'>({
         callId,
         provider,
@@ -259,15 +267,15 @@ export function createTurnTelemetry(opts: {
   };
 
   /** Close the inference span with the step's output content. */
-  const inferenceEnd = (info: {
+  const inferenceEnd = async (info: {
     finishReason: unknown;
     usage: unknown;
     content: TurnContentPart[];
-  }): void => {
+  }): Promise<void> => {
     const finishReason = normalizeFinishReason(info.finishReason);
     const usage = normalizeUsage(info.usage);
 
-    dispatcher.onLanguageModelCallEnd?.(
+    await dispatcher.onLanguageModelCallEnd?.(
       cast<'onLanguageModelCallEnd'>({
         callId,
         finishReason,
@@ -298,9 +306,9 @@ export function createTurnTelemetry(opts: {
     }
   };
 
-  const closeOpenTools = (): void => {
+  const closeOpenTools = async (): Promise<void> => {
     for (const call of openTools.values()) {
-      dispatcher.onToolExecutionEnd?.(
+      await dispatcher.onToolExecutionEnd?.(
         cast<'onToolExecutionEnd'>({
           callId,
           toolExecutionMs: 0,
@@ -324,22 +332,23 @@ export function createTurnTelemetry(opts: {
     start,
     ensureStepOpen,
 
-    stepFinish(info) {
+    async stepFinish(info) {
       if (!stepOpen) return;
       const content = info.content ?? [];
       const finishReason = normalizeFinishReason(info.finishReason);
       const usage = normalizeUsage(info.usage);
       recordOutputContent(content);
       finalStepProviderMetadata = info.providerMetadata;
-      closeOpenTools();
-      inferenceEnd({
+      await closeOpenTools();
+      await inferenceEnd({
         finishReason,
         usage,
         content,
       });
-      dispatcher.onStepEnd?.(
+      await dispatcher.onStepEnd?.(
         cast<'onStepEnd'>({
           callId,
+          stepNumber,
           finishReason,
           usage,
           providerMetadata: info.providerMetadata,
@@ -356,10 +365,11 @@ export function createTurnTelemetry(opts: {
       stepNumber += 1;
     },
 
-    toolStart(call) {
-      ensureStepOpen();
+    async toolStart(call) {
+      await ensureStepOpen();
+      if (openTools.has(call.toolCallId)) return;
       openTools.set(call.toolCallId, call);
-      dispatcher.onToolExecutionStart?.(
+      await dispatcher.onToolExecutionStart?.(
         cast<'onToolExecutionStart'>({
           callId,
           messages: [],
@@ -375,14 +385,19 @@ export function createTurnTelemetry(opts: {
       );
     },
 
-    toolEnd(toolCallId, output) {
+    async executeTool({ toolCallId, execute }) {
+      if (dispatcher.executeTool == null) return await execute();
+      return await dispatcher.executeTool({ callId, toolCallId, execute });
+    },
+
+    async toolEnd(toolCallId, output) {
       const call = openTools.get(toolCallId);
       const normalizedOutput = output.ok
         ? { type: 'tool-result' as const, output: output.output }
         : { type: 'error' as const, error: output.error };
       if (call == null) return;
       openTools.delete(toolCallId);
-      dispatcher.onToolExecutionEnd?.(
+      await dispatcher.onToolExecutionEnd?.(
         cast<'onToolExecutionEnd'>({
           callId,
           toolExecutionMs: 0,
@@ -400,21 +415,22 @@ export function createTurnTelemetry(opts: {
       );
     },
 
-    end(info) {
+    async end(info) {
       if (ended) return;
       const finishReason = normalizeFinishReason(info.finishReason);
       const usage = normalizeUsage(info.usage);
-      if (!started) fireStart();
+      if (!started) await fireStart();
       if (stepOpen) {
-        closeOpenTools();
-        inferenceEnd({
+        await closeOpenTools();
+        await inferenceEnd({
           finishReason,
           usage,
           content: [],
         });
-        dispatcher.onStepEnd?.(
+        await dispatcher.onStepEnd?.(
           cast<'onStepEnd'>({
             callId,
+            stepNumber,
             finishReason,
             usage,
             providerMetadata: undefined,
@@ -430,7 +446,7 @@ export function createTurnTelemetry(opts: {
         stepOpen = false;
       }
       ended = true;
-      dispatcher.onEnd?.(
+      await dispatcher.onEnd?.(
         cast<'onEnd'>({
           callId,
           operationId: 'ai.harness',
@@ -457,12 +473,12 @@ export function createTurnTelemetry(opts: {
       );
     },
 
-    error(err) {
+    async error(err) {
       if (ended) return;
-      if (!started) fireStart();
-      closeOpenTools();
+      if (!started) await fireStart();
+      await closeOpenTools();
       ended = true;
-      dispatcher.onError?.(err);
+      await dispatcher.onError?.(err);
     },
   };
 }

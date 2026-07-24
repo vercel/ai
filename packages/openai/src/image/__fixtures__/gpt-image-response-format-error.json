@@ -1,0 +1,8 @@
+{
+  "error": {
+    "message": "Unknown parameter: 'response_format'.",
+    "type": "invalid_request_error",
+    "param": "response_format",
+    "code": "unknown_parameter"
+  }
+}
