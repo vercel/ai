@@ -74,6 +74,12 @@ You can use the following optional settings to customize the OpenAI provider ins
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
+- **webSocket** _WebSocketConstructor_
+
+  Custom WebSocket implementation for OpenAI Responses WebSocket transport
+  and streaming transcription. Defaults to `globalThis.WebSocket`.
+  Use this option to provide a runtime-specific WebSocket implementation.
+
 ## Language Models
 
 The OpenAI provider instance is a function that you can invoke to create a language model:
@@ -150,6 +156,12 @@ The following provider options are available:
 
 - **parallelToolCalls** _boolean_
   Whether to use parallel tool calls. Defaults to `true`.
+
+- **transport** _'http' | 'websocket'_
+
+  The transport used for OpenAI Responses API calls. Defaults to `'http'`.
+  Set to `'websocket'` to reuse one WebSocket across the model calls in a
+  single `generateText` or `streamText` execution.
 
 - **store** _boolean_
 
@@ -355,47 +367,62 @@ OpenAI's [WebSocket API](https://developers.openai.com/api/docs/guides/websocket
 reduce Time-to-First-Byte (TTFB) in agentic workflows with many tool calls.
 After the initial connection, subsequent requests skip TCP/TLS/HTTP negotiation entirely.
 
-The [`ai-sdk-openai-websocket-fetch`](https://www.npmjs.com/package/ai-sdk-openai-websocket-fetch)
-package provides a drop-in `fetch` replacement that routes streaming requests
-through a persistent WebSocket connection.
+Select the native WebSocket transport with the `transport` OpenAI provider
+option. It works with both `generateText` and `streamText`:
 
-<InstallPackages packages="ai-sdk-openai-websocket-fetch" />
+```ts highlight="8-12"
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
+import { generateText } from 'ai';
 
-Pass the WebSocket fetch to `createOpenAI` via the `fetch` option:
-
-```ts highlight="2,6-7,15"
-import { createOpenAI } from '@ai-sdk/openai';
-import { createWebSocketFetch } from 'ai-sdk-openai-websocket-fetch';
-import { streamText } from 'ai';
-
-// Create a WebSocket-backed fetch instance
-const wsFetch = createWebSocketFetch();
-const openai = createOpenAI({ fetch: wsFetch });
-
-const result = streamText({
-  model: openai('gpt-4.1-mini'),
-  prompt: 'Hello!',
-  tools: {
-    // ...
+const result = await generateText({
+  model: openai('gpt-5.6'),
+  prompt: 'How are you?',
+  providerOptions: {
+    openai: {
+      transport: 'websocket',
+    } satisfies OpenAILanguageModelResponsesOptions,
   },
-  onFinish: () => wsFetch.close(), // close the WebSocket when done
 });
 ```
 
-The first request will be slower because it must establish the WebSocket connection
-(DNS + TCP + TLS + WebSocket upgrade). After that, subsequent steps in a
-multi-step tool-calling loop reuse the open connection, resulting in lower TTFB
-per step.
+The provider opens the connection lazily and stores it in the session for the
+outer `generateText` or `streamText` execution. Every model step in that
+execution reuses the connection. The SDK closes it when the execution finishes,
+fails, or is aborted, so no manual cleanup is required. Separate top-level
+executions do not share a WebSocket.
+
+The provider uses `globalThis.WebSocket` in Node.js, Bun, and Deno by default.
+Those built-in constructors receive `{ protocols, headers }` as their second
+argument. Pass `webSocket` to `createOpenAI` when your runtime needs a
+different implementation:
+
+```ts highlight="6"
+import { createOpenAI, type OpenAIProviderSettings } from '@ai-sdk/openai';
+import { WebSocket } from 'ws';
+
+const openai = createOpenAI({
+  webSocket: WebSocket as unknown as OpenAIProviderSettings['webSocket'],
+});
+```
+
+Injected `ws`-compatible constructors retain their usual three-argument
+signature: URL, protocols, then `{ headers }`.
 
 <Note>
-  The WebSocket transport only routes streaming requests to the OpenAI Responses
-  API (`POST /responses` with `stream: true`) through the WebSocket. All other
-  requests (non-streaming, embeddings, etc.) fall through to the standard
-  `fetch` implementation.
+  WebSocket transport is available only for OpenAI Responses language models.
+  Chat Completions, embeddings, and other OpenAI APIs continue to use HTTP.
 </Note>
 
-You can see a live side-by-side comparison of HTTP vs WebSocket streaming performance
-in the [demo app](https://github.com/vercel-labs/ai-sdk-openai-websocket).
+OpenAI limits each WebSocket connection to 60 minutes. If a connection closes
+before the current model call has emitted output, the provider reconnects once
+and replays the complete locally available context. If output has already been
+emitted, it surfaces the connection error instead of risking duplicated output.
+A chain started with an explicit `previousResponseId` cannot be replayed because
+the earlier context is not available locally, so it fails safely if its
+connection is interrupted.
 
 #### Verbosity Control
 
