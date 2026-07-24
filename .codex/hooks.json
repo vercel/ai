@@ -1,14 +1,13 @@
 {
   "hooks": {
-    "PostToolUse": [
+    "PreCommit": [
       {
         "hooks": [
           {
             "command": "pnpm fix",
             "type": "command"
           }
-        ],
-        "matcher": "Write|Edit"
+        ]
       }
     ]
   }
