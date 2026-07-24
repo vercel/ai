@@ -73,6 +73,13 @@ await pipeUIMessageStreamToResponse({
       description:
         'Optional function to consume the SSE stream independently. The stream is teed and this function receives a copy.',
     },
+    {
+      name: 'keepAliveMs',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Interval in milliseconds at which SSE keep-alive comments are sent while the stream is idle. A keep-alive comment is also sent immediately, so the response headers are flushed before the first chunk is available. Disabled by default. See Streaming not working when deployed.',
+    },
   ]}
 />
 

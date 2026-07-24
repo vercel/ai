@@ -4922,6 +4922,34 @@ describe('streamText', () => {
   });
 
   describe('result.toUIMessageStreamResponse', () => {
+    it('should send keep-alive comments when keepAliveMs is set', async () => {
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
+        },
+      });
+
+      const response = result.toUIMessageStreamResponse({
+        keepAliveMs: 25_000,
+      });
+
+      const reader = response
+        .body!.pipeThrough(new TextDecoderStream())
+        .getReader();
+
+      // the keep-alive comment flushes the response head before the model
+      // produces its first chunk:
+      expect(await reader.read()).toEqual({
+        done: false,
+        value: ': keep-alive\n\n',
+      });
+
+      await reader.cancel();
+    });
+
     it('should create a Response with a data stream', async () => {
       const result = streamText({
         model: createTestModel(),

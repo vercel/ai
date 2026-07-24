@@ -4014,6 +4014,13 @@ To see `streamText` in action, check out [these examples](#examples).
               description:
                 'Function to consume the SSE stream. Required for proper abort handling in UI message streams. Use the `consumeStream` function from the AI SDK.',
             },
+            {
+              name: 'keepAliveMs',
+              type: 'number',
+              isOptional: true,
+              description:
+                'Interval in milliseconds at which SSE keep-alive comments are sent while the stream is idle. A keep-alive comment is also sent immediately, so the response headers are flushed before the first chunk is available. Useful behind reverse proxies that time out idle connections. Disabled by default.',
+            },
           ],
         },
       ],

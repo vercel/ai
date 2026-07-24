@@ -30,3 +30,31 @@ You can try the following:
     },
   });
   ```
+
+- set `keepAliveMs` when you self-host behind a reverse proxy or CDN
+
+  ```tsx
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+    keepAliveMs: 25_000,
+  });
+  ```
+
+  Without `keepAliveMs`, the response body stays empty until the stream produces
+  its first chunk. Many HTTP servers only flush the status line and headers with
+  the first body byte, so a stream that is slow to start (or idle, e.g. a
+  [resumed stream](/docs/ai-sdk-ui/chatbot-resume-streams) at the live edge) can
+  look like a hanging request to a proxy in front of your app, which then times
+  the request out (for example, Cloudflare returns a 524 after 100 seconds).
+  Proxies also terminate connections that stay silent for too long once
+  streaming has started.
+
+  `keepAliveMs` sends an SSE comment immediately, which flushes the response
+  head, and another one whenever the stream has been idle for that long. SSE
+  comments are ignored by the SSE parsers of `useChat` and other clients, so
+  they do not show up in your UI. Pick a value comfortably below the timeout of
+  your proxy, e.g. `25_000` for Cloudflare's 100 second timeout.
+
+  The same option is available on `result.toUIMessageStreamResponse()`,
+  `pipeUIMessageStreamToResponse`, `createAgentUIStreamResponse`, and
+  `pipeAgentUIStreamToResponse`.

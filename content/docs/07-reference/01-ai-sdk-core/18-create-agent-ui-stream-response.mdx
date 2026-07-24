@@ -141,6 +141,13 @@ export async function POST(request: Request) {
       description:
         'Optional function to consume the SSE stream. When provided, this function will be called with the SSE stream to handle consumption.',
     },
+    {
+      name: 'keepAliveMs',
+      type: 'number',
+      isRequired: false,
+      description:
+        'Interval in milliseconds at which SSE keep-alive comments are sent while the stream is idle. A keep-alive comment is also sent immediately, so the response headers are flushed before the first chunk is available. Useful behind reverse proxies that time out idle connections. Disabled by default.',
+    },
   ]}
 />
 
