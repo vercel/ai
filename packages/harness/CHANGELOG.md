@@ -1,5 +1,13 @@
 # @ai-sdk/harness
 
+## 1.0.43
+
+### Patch Changes
+
+- a9a22e1: fix(harness): fix telemetry end events to report `final-step` text and reasoning for multi-step turns
+- 9e4e816: fix(harness): avoid emitting `onTurnFinished` / `onTurnFailed` when turn is suspended mid-flight
+- ea3063f: fix(harness): remove broken bridge `channel.interrupt()` layer and its usage
+
 ## 1.0.42
 
 ### Patch Changes

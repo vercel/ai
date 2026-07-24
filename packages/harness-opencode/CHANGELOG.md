@@ -1,5 +1,15 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.44
+
+### Patch Changes
+
+- ea3063f: fix(harness): remove broken bridge `channel.interrupt()` layer and its usage
+- Updated dependencies [a9a22e1]
+- Updated dependencies [9e4e816]
+- Updated dependencies [ea3063f]
+  - @ai-sdk/harness@1.0.43
+
 ## 1.0.43
 
 ### Patch Changes
