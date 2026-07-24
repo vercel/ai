@@ -63,6 +63,14 @@ const elevenLabsRealtimeErrorTypes = new Set([
   'unaccepted_terms',
 ]);
 
+const elevenLabsLateFinalizationErrorTypes = new Set([
+  'commit_throttled',
+  'input_error',
+  'insufficient_audio_activity',
+]);
+
+const finalCommitGracePeriodMs = 250;
+
 function isRealtimeTranscriptionModelId(modelId: string): boolean {
   return modelId === 'scribe_v2_realtime';
 }
@@ -238,7 +246,7 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
       providerOptions: options.providerOptions,
       schema: elevenLabsTranscriptionModelOptionsSchema,
     });
-    const streamingOptions = elevenLabsOptions?.streaming;
+    const streamingOptions = elevenLabsOptions?.streaming ?? undefined;
     const warnings: SharedV4Warning[] = [];
 
     const rawElevenLabsOptions = options.providerOptions?.elevenlabs ?? {};
@@ -261,6 +269,10 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
       }
     }
 
+    // ElevenLabs documents filter_background_audio as incompatible with
+    // include_timestamps. Language detection is delivered on the same
+    // timestamp-bearing event, so it also requires include_timestamps here.
+    // https://elevenlabs.io/docs/api-reference/speech-to-text/v-1-speech-to-text-realtime
     if (
       streamingOptions?.filterBackgroundAudio === true &&
       (streamingOptions.includeTimestamps === true ||
@@ -388,6 +400,9 @@ function buildElevenLabsRealtimeTranscriptionUrl({
   for (const keyterm of streamingOptions?.keyterms ?? []) {
     url.searchParams.append('keyterms', keyterm);
   }
+  for (const secondaryLanguage of streamingOptions?.secondaryLanguages ?? []) {
+    url.searchParams.append('secondary_languages', secondaryLanguage);
+  }
 
   return url;
 }
@@ -430,6 +445,8 @@ function createElevenLabsRealtimeTranscriptionStream({
       let connection: WebSocketConnection | undefined;
       let detectedLanguage = language;
       let endOfInput = false;
+      let finalCommitGracePeriod: ReturnType<typeof setTimeout> | undefined;
+      let receivedPostInputCommit = false;
       let segmentIndex = 0;
       let sessionId: string | undefined;
       let committedEventCount = 0;
@@ -446,6 +463,7 @@ function createElevenLabsRealtimeTranscriptionStream({
       const finalTexts: string[] = [];
 
       cleanup = (closeCode?: number) => {
+        clearTimeout(finalCommitGracePeriod);
         if (audioReader != null) {
           void audioReader.cancel().catch(() => {});
         } else {
@@ -473,6 +491,11 @@ function createElevenLabsRealtimeTranscriptionStream({
         });
         controller.close();
         cleanup(1000);
+      };
+
+      const scheduleFinish = () => {
+        clearTimeout(finalCommitGracePeriod);
+        finalCommitGracePeriod = setTimeout(finish, finalCommitGracePeriodMs);
       };
 
       const sendAudio = async (socket: WebSocketLike) => {
@@ -520,7 +543,7 @@ function createElevenLabsRealtimeTranscriptionStream({
         onAbort: finishWithError,
         onClose: () => {
           if (finished) return;
-          if (endOfInput && finalCommitEventCount != null) {
+          if (endOfInput && receivedPostInputCommit) {
             finish();
             return;
           }
@@ -543,6 +566,15 @@ function createElevenLabsRealtimeTranscriptionStream({
             raw.message_type != null &&
             elevenLabsRealtimeErrorTypes.has(raw.message_type)
           ) {
+            if (
+              endOfInput &&
+              (committedEventCount > 0 || timestampedCommitCount > 0) &&
+              elevenLabsLateFinalizationErrorTypes.has(raw.message_type)
+            ) {
+              receivedPostInputCommit = true;
+              finish();
+              return;
+            }
             finishWithError(
               new Error(raw.error ?? 'ElevenLabs realtime transcription error'),
             );
@@ -564,18 +596,20 @@ function createElevenLabsRealtimeTranscriptionStream({
             case 'partial_transcript': {
               controller.enqueue({
                 type: 'transcript-partial',
-                id: sessionId,
+                id: `${sessionId ?? 'session'}:${segmentIndex}`,
                 text: raw.text ?? '',
               });
               break;
             }
+            case 'final_transcript':
             case 'committed_transcript': {
               committedEventCount++;
-              const text = raw.text ?? '';
-              const id = `${sessionId ?? 'session'}:${segmentIndex++}`;
+              const text = (raw.text ?? '').trim();
+              const id = `${sessionId ?? 'session'}:${segmentIndex}`;
 
               if (text.length > 0) {
                 finalTexts.push(text);
+                segmentIndex++;
                 controller.enqueue({
                   type: 'transcript-final',
                   id,
@@ -589,13 +623,20 @@ function createElevenLabsRealtimeTranscriptionStream({
                 endOfInput &&
                 committedEventCount > committedEventsAtEndOfInput
               ) {
+                receivedPostInputCommit = true;
                 finalCommitEventCount = committedEventCount;
-                if (!expectDetailedCommit) finish();
+                if (
+                  !expectDetailedCommit ||
+                  raw.message_type === 'final_transcript'
+                ) {
+                  scheduleFinish();
+                }
               }
               break;
             }
+            case 'final_transcript_with_timestamps':
             case 'committed_transcript_with_timestamps': {
-              const text = raw.text ?? '';
+              const text = (raw.text ?? '').trim();
               const words = raw.words ?? [];
               const timestampedWords = words.filter(
                 (word): word is typeof word & { start: number; end: number } =>
@@ -641,7 +682,8 @@ function createElevenLabsRealtimeTranscriptionStream({
                 (finalCommitEventCount == null ||
                   timestampedCommitCount >= finalCommitEventCount)
               ) {
-                finish();
+                receivedPostInputCommit = true;
+                scheduleFinish();
               }
               break;
             }
@@ -649,7 +691,18 @@ function createElevenLabsRealtimeTranscriptionStream({
         },
         onProcessingError: finishWithError,
         onSocketError: () => {
-          finishWithError(new Error('ElevenLabs realtime transcription error'));
+          finishWithError(
+            new Error(
+              'ElevenLabs realtime transcription error.' +
+                (webSocket == null
+                  ? ' Note: the native WebSocket implementation in browsers,' +
+                    ' Node.js, Deno, and Bun cannot send the xi-api-key header' +
+                    ' required by ElevenLabs. Pass a header-capable WebSocket' +
+                    " implementation (e.g. the 'ws' package) via" +
+                    ' createElevenLabs({ webSocket }).'
+                  : ''),
+            ),
+          );
         },
         url,
         webSocket,

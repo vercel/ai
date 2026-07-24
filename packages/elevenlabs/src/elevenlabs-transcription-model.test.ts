@@ -58,6 +58,10 @@ class MockWebSocket {
     this.readyState = 3;
     this.onclose?.({});
   }
+
+  error() {
+    this.onerror?.({});
+  }
 }
 
 const flush = () => new Promise(resolve => setTimeout(resolve, 0));
@@ -304,6 +308,7 @@ describe('doStream', () => {
             minSpeechDurationMs: 150,
             noVerbatim: true,
             previousText: 'Earlier context',
+            secondaryLanguages: ['es', 'fr'],
             vadSilenceThresholdSecs: 1.2,
             vadThreshold: 0.5,
           },
@@ -332,6 +337,10 @@ describe('doStream', () => {
       vad_threshold: '0.5',
     });
     expect(url.searchParams.getAll('keyterms')).toEqual(['Vercel', 'AI SDK']);
+    expect(url.searchParams.getAll('secondary_languages')).toEqual([
+      'es',
+      'fr',
+    ]);
     expect(ws.options?.headers).toMatchObject({
       'xi-api-key': 'test-api-key',
       'Custom-Provider-Header': 'provider-value',
@@ -388,7 +397,7 @@ describe('doStream', () => {
       { type: 'stream-start', warnings: [] },
       {
         type: 'transcript-partial',
-        id: 'session-1',
+        id: 'session-1:0',
         text: 'Hello wor',
       },
       {
@@ -546,6 +555,151 @@ describe('doStream', () => {
     ]);
   });
 
+  it('drains commits received after the input ends and correlates partial IDs', async () => {
+    const result = await createElevenLabs({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('scribe_v2_realtime').doStream!({
+      audio: convertArrayToReadableStream([new Uint8Array([1])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ message_type: 'session_started', session_id: 'session-1' });
+    await flush();
+
+    ws.message({ message_type: 'partial_transcript', text: 'First' });
+    ws.message({ message_type: 'committed_transcript', text: ' First  ' });
+    await flush();
+    expect(ws.close).not.toHaveBeenCalled();
+
+    // A server-initiated VAD/36-second commit can arrive just before the
+    // explicit final commit. The first one must not finish the stream early.
+    ws.message({ message_type: 'partial_transcript', text: 'Second' });
+    ws.message({ message_type: 'committed_transcript', text: ' Second ' });
+
+    await expect(partsPromise).resolves.toEqual([
+      { type: 'stream-start', warnings: [] },
+      {
+        type: 'transcript-partial',
+        id: 'session-1:0',
+        text: 'First',
+      },
+      {
+        type: 'transcript-final',
+        id: 'session-1:0',
+        text: 'First',
+      },
+      {
+        type: 'transcript-partial',
+        id: 'session-1:1',
+        text: 'Second',
+      },
+      {
+        type: 'transcript-final',
+        id: 'session-1:1',
+        text: 'Second',
+      },
+      {
+        type: 'finish',
+        text: 'First Second',
+        segments: [],
+        language: undefined,
+        durationInSeconds: undefined,
+      },
+    ]);
+  });
+
+  it('handles legacy final transcript event variants', async () => {
+    const result = await createElevenLabs({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('scribe_v2_realtime').doStream!({
+      audio: convertArrayToReadableStream([new Uint8Array([1])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: {
+        elevenlabs: { streaming: { includeTimestamps: true } },
+      },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ message_type: 'session_started', session_id: 'session-1' });
+    await flush();
+    ws.message({ message_type: 'final_transcript', text: 'Legacy final' });
+    ws.message({
+      message_type: 'final_transcript_with_timestamps',
+      text: 'Legacy final',
+      language_code: 'en',
+      words: [{ text: 'Legacy final', start: 0, end: 0.5, type: 'word' }],
+    });
+
+    await expect(partsPromise).resolves.toEqual([
+      { type: 'stream-start', warnings: [] },
+      {
+        type: 'transcript-final',
+        id: 'session-1:0',
+        text: 'Legacy final',
+      },
+      {
+        type: 'finish',
+        text: 'Legacy final',
+        segments: [{ text: 'Legacy final', startSecond: 0, endSecond: 0.5 }],
+        language: 'en',
+        durationInSeconds: 0.5,
+      },
+    ]);
+  });
+
+  it('finishes normally when the final empty commit is rejected', async () => {
+    let audioController: ReadableStreamDefaultController<Uint8Array>;
+    const audio = new ReadableStream<Uint8Array>({
+      start(controller) {
+        audioController = controller;
+        controller.enqueue(new Uint8Array([1]));
+      },
+    });
+    const result = await createElevenLabs({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('scribe_v2_realtime').doStream!({
+      audio,
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ message_type: 'session_started', session_id: 'session-1' });
+    await flush();
+    ws.message({ message_type: 'committed_transcript', text: 'Already done' });
+    audioController!.close();
+    await flush();
+    ws.message({
+      message_type: 'insufficient_audio_activity',
+      error: 'not enough audio',
+    });
+
+    await expect(partsPromise).resolves.toEqual([
+      { type: 'stream-start', warnings: [] },
+      {
+        type: 'transcript-final',
+        id: 'session-1:0',
+        text: 'Already done',
+      },
+      {
+        type: 'finish',
+        text: 'Already done',
+        segments: [],
+        language: undefined,
+        durationInSeconds: undefined,
+      },
+    ]);
+  });
+
   it('errors when the upstream closes before the final commit', async () => {
     const result = await createElevenLabs({
       apiKey: 'test-api-key',
@@ -668,6 +822,42 @@ describe('doStream', () => {
     ).rejects.toThrow('cannot be combined');
   });
 
+  it('accepts explicit null values in realtime provider options', async () => {
+    const result = await createElevenLabs({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('scribe_v2_realtime').doStream!({
+      audio: convertArrayToReadableStream([]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: {
+        elevenlabs: {
+          streaming: {
+            commitStrategy: null,
+            enableLogging: null,
+            filterBackgroundAudio: null,
+            includeLanguageDetection: null,
+            includeTimestamps: null,
+            keyterms: null,
+            minSilenceDurationMs: null,
+            minSpeechDurationMs: null,
+            noVerbatim: null,
+            previousText: null,
+            secondaryLanguages: null,
+            vadSilenceThresholdSecs: null,
+            vadThreshold: null,
+          },
+        },
+      },
+    });
+
+    const url = new URL(MockWebSocket.instances[0].url);
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      model_id: 'scribe_v2_realtime',
+      audio_format: 'pcm_16000',
+    });
+    await result.stream.cancel();
+  });
+
   it('warns about batch-only provider options', async () => {
     const result = await createElevenLabs({
       apiKey: 'test-api-key',
@@ -723,6 +913,26 @@ describe('doStream', () => {
     ws.message({ message_type: 'quota_exceeded', error: 'quota exhausted' });
     await assertion;
     expect(ws.close).toHaveBeenCalled();
+  });
+
+  it('explains the native WebSocket header requirement on socket errors', async () => {
+    vi.stubGlobal('WebSocket', MockWebSocket);
+    try {
+      const result = await createElevenLabs({
+        apiKey: 'test-api-key',
+      }).transcription('scribe_v2_realtime').doStream!({
+        audio: convertArrayToReadableStream([]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      });
+
+      const partsPromise = convertReadableStreamToArray(result.stream);
+      MockWebSocket.instances[0].error();
+      await expect(partsPromise).rejects.toThrow(
+        'Pass a header-capable WebSocket implementation',
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('cancels the audio stream when the WebSocket constructor throws', async () => {
