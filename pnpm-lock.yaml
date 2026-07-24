@@ -2636,6 +2636,12 @@ importers:
         specifier: workspace:*
         version: link:../ai
     devDependencies:
+      '@ai-sdk/otel':
+        specifier: workspace:*
+        version: link:../otel
+      '@opentelemetry/sdk-trace-base':
+        specifier: 2.7.1
+        version: 2.7.1(@opentelemetry/api@1.9.1)
       '@types/node':
         specifier: 22.19.19
         version: 22.19.19

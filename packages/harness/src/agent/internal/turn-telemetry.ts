@@ -1,6 +1,6 @@
 import { generateId, type ModelMessage } from '@ai-sdk/provider-utils';
 import { createTelemetryDispatcher } from 'ai/internal';
-import type { TelemetryOptions } from 'ai';
+import type { LanguageModelUsage, TelemetryOptions } from 'ai';
 
 /*
  * Drives AI SDK's pluggable `Telemetry` lifecycle from a harness turn.
@@ -92,6 +92,69 @@ const NOOP: TurnTelemetry = {
   async error() {},
 };
 
+function normalizeFinishReason(finishReason: unknown): unknown {
+  if (
+    finishReason != null &&
+    typeof finishReason === 'object' &&
+    'unified' in finishReason
+  ) {
+    return (finishReason as { unified: unknown }).unified;
+  }
+
+  return finishReason;
+}
+
+function addTokenCounts(
+  tokenCount1: number | undefined,
+  tokenCount2: number | undefined,
+): number | undefined {
+  return tokenCount1 == null && tokenCount2 == null
+    ? undefined
+    : (tokenCount1 ?? 0) + (tokenCount2 ?? 0);
+}
+
+function normalizeUsage(usage: unknown): LanguageModelUsage | unknown {
+  if (
+    usage == null ||
+    typeof usage !== 'object' ||
+    !('inputTokens' in usage) ||
+    !('outputTokens' in usage)
+  ) {
+    return usage;
+  }
+
+  const inputTokens = (usage as { inputTokens: unknown }).inputTokens;
+  const outputTokens = (usage as { outputTokens: unknown }).outputTokens;
+
+  if (
+    inputTokens == null ||
+    typeof inputTokens !== 'object' ||
+    outputTokens == null ||
+    typeof outputTokens !== 'object'
+  ) {
+    return usage;
+  }
+
+  const input = inputTokens as Record<string, number | undefined>;
+  const output = outputTokens as Record<string, number | undefined>;
+
+  return {
+    inputTokens: input.total,
+    inputTokenDetails: {
+      noCacheTokens: input.noCache,
+      cacheReadTokens: input.cacheRead,
+      cacheWriteTokens: input.cacheWrite,
+    },
+    outputTokens: output.total,
+    outputTokenDetails: {
+      textTokens: output.text,
+      reasoningTokens: output.reasoning,
+    },
+    totalTokens: addTokenCounts(input.total, output.total),
+    raw: (usage as { raw?: LanguageModelUsage['raw'] }).raw,
+  };
+}
+
 export function createTurnTelemetry(opts: {
   telemetry: TelemetryOptions | undefined;
   harnessId: string;
@@ -119,6 +182,15 @@ export function createTurnTelemetry(opts: {
   let stepOpen = false;
   let stepNumber = 0;
   let ended = false;
+  let finalStepText = '';
+  let finalStepReasoning: Array<{ text: string }> = [];
+  let finalStepProviderMetadata: unknown;
+  let outputToolCalls: Array<{
+    type: 'tool-call';
+    toolCallId: string;
+    toolName: string;
+    input: unknown;
+  }> = [];
   /** Tool calls started in the current turn and not yet ended. */
   const openTools = new Map<
     string,
@@ -200,15 +272,38 @@ export function createTurnTelemetry(opts: {
     usage: unknown;
     content: TurnContentPart[];
   }): Promise<void> => {
+    const finishReason = normalizeFinishReason(info.finishReason);
+    const usage = normalizeUsage(info.usage);
+
     await dispatcher.onLanguageModelCallEnd?.(
       cast<'onLanguageModelCallEnd'>({
         callId,
-        finishReason: info.finishReason,
+        finishReason,
         responseId: callId,
-        usage: info.usage,
+        usage,
         content: info.content,
+        performance: {
+          responseTimeMs: undefined,
+          timeToFirstOutputMs: undefined,
+          timeBetweenOutputChunksMs: undefined,
+        },
       }),
     );
+  };
+
+  const recordOutputContent = (content: TurnContentPart[]): void => {
+    finalStepText = '';
+    finalStepReasoning = [];
+
+    for (const part of content) {
+      if (part.type === 'text') {
+        finalStepText += part.text;
+      } else if (part.type === 'reasoning') {
+        finalStepReasoning.push({ text: part.text });
+      } else if (part.type === 'tool-call') {
+        outputToolCalls.push(part);
+      }
+    }
   };
 
   const closeOpenTools = async (): Promise<void> => {
@@ -240,18 +335,22 @@ export function createTurnTelemetry(opts: {
     async stepFinish(info) {
       if (!stepOpen) return;
       const content = info.content ?? [];
+      const finishReason = normalizeFinishReason(info.finishReason);
+      const usage = normalizeUsage(info.usage);
+      recordOutputContent(content);
+      finalStepProviderMetadata = info.providerMetadata;
       await closeOpenTools();
       await inferenceEnd({
-        finishReason: info.finishReason,
-        usage: info.usage,
+        finishReason,
+        usage,
         content,
       });
       await dispatcher.onStepEnd?.(
         cast<'onStepEnd'>({
           callId,
           stepNumber,
-          finishReason: info.finishReason,
-          usage: info.usage,
+          finishReason,
+          usage,
           providerMetadata: info.providerMetadata,
           content,
           response: {
@@ -293,6 +392,9 @@ export function createTurnTelemetry(opts: {
 
     async toolEnd(toolCallId, output) {
       const call = openTools.get(toolCallId);
+      const normalizedOutput = output.ok
+        ? { type: 'tool-result' as const, output: output.output }
+        : { type: 'error' as const, error: output.error };
       if (call == null) return;
       openTools.delete(toolCallId);
       await dispatcher.onToolExecutionEnd?.(
@@ -308,29 +410,29 @@ export function createTurnTelemetry(opts: {
             dynamic: true,
           },
           toolContext: undefined,
-          toolOutput: output.ok
-            ? { type: 'tool-result', output: output.output }
-            : { type: 'error', error: output.error },
+          toolOutput: normalizedOutput,
         }),
       );
     },
 
     async end(info) {
       if (ended) return;
+      const finishReason = normalizeFinishReason(info.finishReason);
+      const usage = normalizeUsage(info.usage);
       if (!started) await fireStart();
       if (stepOpen) {
         await closeOpenTools();
         await inferenceEnd({
-          finishReason: info.finishReason,
-          usage: info.usage,
+          finishReason,
+          usage,
           content: [],
         });
         await dispatcher.onStepEnd?.(
           cast<'onStepEnd'>({
             callId,
             stepNumber,
-            finishReason: info.finishReason,
-            usage: info.usage,
+            finishReason,
+            usage,
             providerMetadata: undefined,
             content: [],
             response: {
@@ -348,10 +450,17 @@ export function createTurnTelemetry(opts: {
         cast<'onEnd'>({
           callId,
           operationId: 'ai.harness',
-          finishReason: info.finishReason,
-          usage: info.usage,
-          totalUsage: info.usage,
+          finishReason,
+          usage,
+          totalUsage: usage,
           content: [],
+          text: finalStepText,
+          finalStep: {
+            reasoning: finalStepReasoning,
+            providerMetadata: finalStepProviderMetadata,
+          },
+          toolCalls: outputToolCalls,
+          files: [],
           steps: new Array(stepNumber),
           response: {
             id: callId,
