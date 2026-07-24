@@ -101,6 +101,7 @@ function appendToolResultParts(
     [key: string]: unknown;
   }>,
   toolCallId?: string,
+  includeFunctionCallIds = true,
 ): void {
   const functionResponseParts: GoogleGenerativeAIFunctionResponsePart[] = [];
   const responseTextParts: string[] = [];
@@ -143,7 +144,9 @@ function appendToolResultParts(
 
   parts.push({
     functionResponse: {
-      ...(toolCallId != null ? { id: toolCallId } : {}),
+      ...(includeFunctionCallIds && toolCallId != null
+        ? { id: toolCallId }
+        : {}),
       name: toolName,
       response: {
         name: toolName,
@@ -172,13 +175,16 @@ function appendLegacyToolResultParts(
     [key: string]: unknown;
   }>,
   toolCallId?: string,
+  includeFunctionCallIds = true,
 ): void {
   for (const contentPart of outputValue) {
     switch (contentPart.type) {
       case 'text':
         parts.push({
           functionResponse: {
-            ...(toolCallId != null ? { id: toolCallId } : {}),
+            ...(includeFunctionCallIds && toolCallId != null
+              ? { id: toolCallId }
+              : {}),
             name: toolName,
             response: {
               name: toolName,
@@ -234,6 +240,7 @@ export function convertToGoogleGenerativeAIMessages(
      * injected.
      */
     onWarning?: (warning: SharedV3Warning) => void;
+    includeFunctionCallIds?: boolean;
   },
 ): GoogleGenerativeAIPrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
@@ -245,6 +252,7 @@ export function convertToGoogleGenerativeAIMessages(
   const supportsFunctionResponseParts =
     options?.supportsFunctionResponseParts ?? true;
   const onWarning = options?.onWarning;
+  const includeFunctionCallIds = options?.includeFunctionCallIds ?? true;
 
   let sentinelInjected = false;
   const missingSignatureToolNames: string[] = [];
@@ -413,7 +421,7 @@ export function convertToGoogleGenerativeAIMessages(
 
                   return {
                     functionCall: {
-                      ...(part.toolCallId != null
+                      ...(includeFunctionCallIds && part.toolCallId != null
                         ? { id: part.toolCallId }
                         : {}),
                       name: part.toolName,
@@ -510,6 +518,7 @@ export function convertToGoogleGenerativeAIMessages(
                 part.toolName,
                 output.value,
                 part.toolCallId,
+                includeFunctionCallIds,
               );
             } else {
               appendLegacyToolResultParts(
@@ -517,12 +526,15 @@ export function convertToGoogleGenerativeAIMessages(
                 part.toolName,
                 output.value,
                 part.toolCallId,
+                includeFunctionCallIds,
               );
             }
           } else {
             parts.push({
               functionResponse: {
-                ...(part.toolCallId != null ? { id: part.toolCallId } : {}),
+                ...(includeFunctionCallIds && part.toolCallId != null
+                  ? { id: part.toolCallId }
+                  : {}),
                 name: part.toolName,
                 response: {
                   name: part.toolName,

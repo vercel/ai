@@ -240,6 +240,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
         providerOptionsName,
         supportsFunctionResponseParts: usesGemini3Features,
         onWarning: warning => warnings.push(warning),
+        includeFunctionCallIds: !isVertexProvider,
       },
     );
 
