@@ -602,7 +602,7 @@ describe('doGenerate', () => {
   it('should omit function call IDs from Vertex requests', async () => {
     prepareJsonResponse({ content: 'done' });
 
-    const vertexModel = new GoogleLanguageModel('gemini-pro', {
+    const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
       provider: 'google.vertex.chat',
       baseURL: 'https://generativelanguage.googleapis.com/v1beta',
       headers: { 'x-goog-api-key': 'test-api-key' },
