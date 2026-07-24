@@ -2455,6 +2455,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 usage.input_tokens = value.usage.input_tokens;
               }
               usage.output_tokens = value.usage.output_tokens;
+              if (value.usage.output_tokens_details != null) {
+                usage.output_tokens_details = value.usage.output_tokens_details;
+              }
 
               if (value.usage.cache_read_input_tokens != null) {
                 usage.cache_read_input_tokens =

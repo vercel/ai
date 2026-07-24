@@ -60,6 +60,24 @@ describe('convertAnthropicMessagesUsage', () => {
     });
   });
 
+  it('should report thinking tokens as reasoning usage', () => {
+    const result = convertAnthropicMessagesUsage({
+      usage: {
+        input_tokens: 10,
+        output_tokens: 20,
+        output_tokens_details: {
+          thinking_tokens: 7,
+        },
+      },
+    });
+
+    expect(result.outputTokens).toEqual({
+      total: 20,
+      text: 13,
+      reasoning: 7,
+    });
+  });
+
   it('should handle null cache tokens', () => {
     const usage: AnthropicMessagesUsage = {
       input_tokens: 100,
