@@ -14,18 +14,12 @@ const outboundSchema = z.discriminatedUnion('type', [
   }),
   z.object({ type: z.literal('finish') }),
   z.object({ type: z.literal('finish-step') }),
-  z.object({
-    type: z.literal('bridge-interrupted'),
-    ok: z.boolean(),
-    error: z.unknown().optional(),
-  }),
   z.object({ type: z.literal('error'), error: z.unknown() }),
 ]);
 type Outbound = z.infer<typeof outboundSchema>;
 type Inbound =
   | { type: 'start' }
   | { type: 'abort' }
-  | { type: 'interrupt' }
   | { type: 'resume'; lastSeenEventId: number };
 
 type FakeSocket = {
@@ -168,20 +162,6 @@ describe('SandboxChannel', () => {
     ]);
   });
 
-  it('sends interrupt and resolves after the bridge acknowledges it', async () => {
-    const connector = makeConnector();
-    const channel = makeChannel(connector);
-    await channel.open();
-
-    const interrupted = channel.interrupt();
-    expect(connector.current().sent).toEqual([
-      JSON.stringify({ type: 'interrupt' }),
-    ]);
-
-    connector.current().deliver({ type: 'bridge-interrupted', ok: true });
-    await expect(interrupted).resolves.toBeUndefined();
-  });
-
   it('suspends from a pinned event even after later events were dispatched', async () => {
     const connector = makeConnector();
     const channel = makeChannel(connector);
@@ -205,12 +185,11 @@ describe('SandboxChannel', () => {
     expect(pinSandboxChannelEventCheckpoint(finishStep)).toEqual(
       expect.any(Function),
     );
-    await expect(channel.interrupt()).resolves.toBeUndefined();
     expect(connector.current().sent).toEqual([]);
     await expect(channel.suspend()).resolves.toBe(1);
   });
 
-  it('returns to the latest cursor and normal interruption after releasing a checkpoint', async () => {
+  it('returns to the latest cursor after releasing a checkpoint', async () => {
     const connector = makeConnector();
     const channel = makeChannel(connector);
     await channel.open();
@@ -230,28 +209,7 @@ describe('SandboxChannel', () => {
     expect(releaseCheckpoint).toEqual(expect.any(Function));
     releaseCheckpoint?.();
 
-    const interrupted = channel.interrupt();
-    expect(connector.current().sent).toEqual([
-      JSON.stringify({ type: 'interrupt' }),
-    ]);
-    connector.current().deliver({ type: 'bridge-interrupted', ok: true });
-    await expect(interrupted).resolves.toBeUndefined();
     await expect(channel.suspend()).resolves.toBe(2);
-  });
-
-  it('rejects interrupt when the bridge reports a failure', async () => {
-    const connector = makeConnector();
-    const channel = makeChannel(connector);
-    await channel.open();
-
-    const interrupted = channel.interrupt();
-    connector.current().deliver({
-      type: 'bridge-interrupted',
-      ok: false,
-      error: { message: 'native interrupt failed' },
-    });
-
-    await expect(interrupted).rejects.toThrow(/native interrupt failed/);
   });
 
   it('refuses to send once terminally closed', async () => {

@@ -63,7 +63,7 @@ export interface HarnessWorkflowStreamContext {
  *
  *  - `resumeFrom` reattaches to a warm session before starting this run's new
  *    user turn.
- *  - `continueFrom` reattaches to an interrupted turn from this same run and
+ *  - `continueFrom` reattaches to a suspended turn from this same run and
  *    continues it without sending `prompt` again.
  */
 export interface HarnessWorkflowState {
@@ -83,7 +83,7 @@ export interface HarnessWorkflowState {
   /**
    * Full AI SDK model messages for continuing a suspended approval turn. When
    * present, the next slice sends these to `HarnessAgent.stream()` so approval
-   * responses can resume the interrupted turn.
+   * responses can resume the suspended turn.
    */
   readonly messages?: HarnessWorkflowModelMessage[];
   readonly status: HarnessWorkflowStatus;

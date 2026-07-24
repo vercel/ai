@@ -42,6 +42,7 @@ function mockHarness(options: {
   onDoStart?: (options: Parameters<HarnessV1['doStart']>[0]) => void;
   onPromptTurn?: (options: HarnessV1PromptTurnOptions) => void;
   promptDone?: (options: HarnessV1PromptTurnOptions) => Promise<void>;
+  onSuspendTurn?: () => void | Promise<void>;
   continueScript?: (
     submitToolResult: (input: {
       toolCallId: string;
@@ -88,7 +89,10 @@ function mockHarness(options: {
   const doDestroy = vi.fn(async () => {});
   const doCompact = vi.fn(async (_customInstructions?: string) => {});
   const doDetach = vi.fn(async () => resumeState);
-  const doSuspendTurn = vi.fn(async () => continueState);
+  const doSuspendTurn = vi.fn(async () => {
+    await options.onSuspendTurn?.();
+    return continueState;
+  });
   const doContinueTurn = vi.fn(async (opts: HarnessV1ContinueTurnOptions) => {
     const control: HarnessV1PromptControl = {
       submitToolResult: async input => {
@@ -403,33 +407,6 @@ describe('HarnessAgent', () => {
     expect(doSuspendTurn).toHaveBeenCalledTimes(1);
   });
 
-  test('releases the session when capturing a stop condition boundary fails', async () => {
-    const { harness, doSuspendTurn } = mockHarness({
-      script: () => [
-        finishEvents()[0]!,
-        { type: 'text-delta', id: 'next-step', delta: 'next' },
-      ],
-    });
-    doSuspendTurn.mockRejectedValueOnce(
-      new Error('failed to suspend at stop boundary'),
-    );
-    const agent = new HarnessAgent({
-      harness,
-      sandbox: makeSandboxProvider(),
-      stopWhen: isStepCount(1),
-    });
-    const session = await agent.createSession();
-
-    const failed = await agent.stream({ session, prompt: 'one step' });
-
-    await expect(failed.text).rejects.toThrow(
-      'failed to suspend at stop boundary',
-    );
-    expect(session.hasUnfinishedTurn()).toBe(false);
-
-    await session.destroy();
-  });
-
   test('stream() and continued turns apply stopWhen independently', async () => {
     let continuationCount = 0;
     const continuingTurn = (): HarnessV1StreamPart[] => [
@@ -729,56 +706,36 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
-  test('keeps a turn unfinished when suspension emits a terminal finish', async () => {
-    let activeTurn: HarnessV1PromptTurnOptions | undefined;
-    let resolveTurnDone!: () => void;
-    let resolveSuspension!: () => void;
-    const turnDone = new Promise<void>(resolve => {
-      resolveTurnDone = resolve;
+  test('keeps a turn unfinished when suspension closes its stream mid-step', async () => {
+    let resolvePromptDone!: () => void;
+    const promptDone = new Promise<void>(resolve => {
+      resolvePromptDone = resolve;
     });
-    const suspensionBoundary = new Promise<void>(resolve => {
-      resolveSuspension = resolve;
-    });
-    const continueState = {
-      type: 'continue-turn' as const,
-      harnessId: 'mock',
-      specificationVersion: 'harness-v1' as const,
-      data: { cursor: 'suspended' },
-    };
-    const { harness, doSuspendTurn } = mockHarness({
+    const { harness } = mockHarness({
       script: () => [
-        { type: 'text-delta', id: 'text-1', delta: 'partial response' },
+        { type: 'text-start', id: 't1' },
+        { type: 'text-delta', id: 't1', delta: 'partial' },
       ],
-      onPromptTurn: options => {
-        activeTurn = options;
+      promptDone: () => promptDone,
+      onSuspendTurn: () => {
+        resolvePromptDone();
       },
-      promptDone: () => turnDone,
     });
-    doSuspendTurn.mockImplementation(async () => {
-      if (activeTurn == null) {
-        throw new Error('Expected an active turn.');
-      }
-      activeTurn.emit(finishEvents()[1]!);
-      resolveTurnDone();
-      await suspensionBoundary;
-      return continueState;
-    });
-    const agent = new HarnessAgent({
-      harness,
-      sandbox: makeSandboxProvider(),
-    });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
     const session = await agent.createSession();
-    const result = await agent.stream({ session, prompt: 'keep running' });
+    const result = await agent.stream({ session, prompt: 'work' });
 
-    const suspension = session.suspendTurn();
+    const continueFrom = await session.suspendTurn();
     await result.consumeStream();
 
-    await expect(result.finishReason).resolves.toBe('other');
+    expect(continueFrom).toEqual({
+      type: 'continue-turn',
+      harnessId: 'mock',
+      specificationVersion: 'harness-v1',
+      data: {},
+    });
     expect(session.hasUnfinishedTurn()).toBe(true);
-
-    resolveSuspension();
-    await expect(suspension).resolves.toEqual(continueState);
-    expect(session.hasUnfinishedTurn()).toBe(true);
+    await expect(result.steps).resolves.toEqual([]);
   });
 
   test('settles an aborted turn with an abort part and releases the session for the next turn', async () => {
