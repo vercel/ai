@@ -10,6 +10,20 @@ export const cartesiaTranscriptionModelOptionsSchema = z.object({
   streaming: z
     .object({
       /**
+       * Raw audio encoding sent to Ink 2. Defaults to the encoding inferred
+       * from `inputAudioFormat.type`.
+       */
+      encoding: z
+        .enum([
+          'pcm_alaw',
+          'pcm_f16le',
+          'pcm_f32le',
+          'pcm_mulaw',
+          'pcm_s16le',
+          'pcm_s32le',
+        ])
+        .optional(),
+      /**
        * Use Cartesia's native turn detection endpoint. Defaults to true.
        * Disable this to finalize the transcript only when the audio stream ends.
        */

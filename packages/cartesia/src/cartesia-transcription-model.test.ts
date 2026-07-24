@@ -349,6 +349,30 @@ describe('doStream', () => {
     });
   });
 
+  it.each(['pcm_f16le', 'pcm_f32le', 'pcm_s32le'] as const)(
+    'supports the %s streaming PCM encoding',
+    async encoding => {
+      const provider = createCartesia({
+        apiKey: 'test-api-key',
+        webSocket: MockWebSocket,
+      });
+      const result = await provider.transcription('ink-2').doStream!({
+        audio: convertArrayToReadableStream([]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 48000 },
+        providerOptions: {
+          cartesia: {
+            streaming: { encoding },
+          },
+        },
+      });
+
+      expect(
+        new URL(MockWebSocket.instances[0].url).searchParams.get('encoding'),
+      ).toBe(encoding);
+      await result.stream.cancel();
+    },
+  );
+
   it('rejects unsupported model operations and Ink 2 languages', async () => {
     const provider = createCartesia({
       apiKey: 'test-api-key',

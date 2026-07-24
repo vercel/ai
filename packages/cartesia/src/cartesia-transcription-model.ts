@@ -491,7 +491,8 @@ function buildCartesiaStreamingTranscriptionUrl({
   url.searchParams.set('model', modelId);
   url.searchParams.set(
     'encoding',
-    cartesiaEncodingFromInputAudioFormat(inputAudioFormat.type),
+    providerOptions?.streaming?.encoding ??
+      cartesiaEncodingFromInputAudioFormat(inputAudioFormat.type),
   );
   url.searchParams.set('sample_rate', String(inputAudioFormat.rate ?? 24000));
   url.searchParams.set('cartesia_version', version);
