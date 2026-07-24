@@ -232,6 +232,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
     const { usesGemini3Features } = getGoogleModelCapabilities(this.modelId);
 
+<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
     const { contents, systemInstruction } = convertToGoogleGenerativeAIMessages(
       prompt,
       {
@@ -242,6 +243,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
         onWarning: warning => warnings.push(warning),
       },
     );
+=======
+    const { contents, systemInstruction } = convertToGoogleMessages(prompt, {
+      isGemmaModel,
+      isGemini3Model: usesGemini3Features,
+      onWarning: warning => warnings.push(warning),
+      providerOptionsNames,
+      supportsFunctionResponseParts: usesGemini3Features,
+      includeFunctionCallIds: !isVertexProvider,
+    });
+>>>>>>> c57a353ead (fix(google): omit unsupported function call IDs (#17902)):packages/google/src/google-language-model.ts
 
     const {
       tools: googleTools,
