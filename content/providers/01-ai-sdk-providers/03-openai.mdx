@@ -539,6 +539,7 @@ const result = await generateText({
       },
       filters: {
         allowedDomains: ['sfchronicle.com', 'sfgate.com'],
+        blockedDomains: ['example.com'],
       },
     }),
   },
@@ -566,8 +567,9 @@ The web search tool supports the following configuration options:
 - **userLocation** - Optional location information to provide geographically relevant results. Includes `type` (always `'approximate'`), `country`, `city`, `region`, and `timezone`.
 - **filters** - Optional filter configuration to restrict search results.
   - **allowedDomains** _string[]_ - Array of allowed domains for the search. Subdomains of the provided domains are automatically included.
+  - **blockedDomains** _string[]_ - Array of blocked domains for the search. Subdomains of the provided domains are automatically excluded.
 
-For detailed information on configuration options see the [OpenAI Web Search Tool documentation](https://platform.openai.com/docs/guides/tools-web-search?api-mode=responses).
+For detailed information on configuration options see the [OpenAI Web Search Tool documentation](https://developers.openai.com/api/docs/guides/tools-web-search#domain-filtering).
 
 #### File Search Tool
 

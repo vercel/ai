@@ -637,6 +637,7 @@ describe('prepareResponsesTools', () => {
               externalWebAccess: true,
               filters: {
                 allowedDomains: ['example.com', 'test.org'],
+                blockedDomains: ['blocked.example'],
               },
               searchContextSize: 'high',
               userLocation: {
@@ -663,6 +664,9 @@ describe('prepareResponsesTools', () => {
                 "allowed_domains": [
                   "example.com",
                   "test.org",
+                ],
+                "blocked_domains": [
+                  "blocked.example",
                 ],
               },
               "search_context_size": "high",
@@ -708,6 +712,7 @@ describe('prepareResponsesTools', () => {
                 "allowed_domains": [
                   "example.com",
                 ],
+                "blocked_domains": undefined,
               },
               "search_context_size": undefined,
               "type": "web_search",
