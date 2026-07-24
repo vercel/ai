@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 17881,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/amazon-bedrock-sonnet-4-6-structured-output.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/amazon-bedrock-sonnet-4-6-structured-output.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_17881_REPRODUCED: native structured output hit the token cap while the JSON tool completed normally"
+  }
+}

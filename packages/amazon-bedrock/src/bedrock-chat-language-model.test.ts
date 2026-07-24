@@ -4981,6 +4981,123 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('issue #17881 should let the JSON tool opt-out avoid a recorded Claude Sonnet 4.6 native length failure', async () => {
+    const nativeLengthResponse = JSON.parse(
+      fs.readFileSync(
+        'src/__fixtures__/bedrock-sonnet-4-6-native-structured-output-length.json',
+        'utf8',
+      ),
+    );
+    const model = new BedrockChatLanguageModel(newerAnthropicModelId, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      generateId: () => 'test-id',
+      fetch: async (_url, init) => {
+        const requestBody = JSON.parse(init?.body as string);
+        const usesNativeOutput =
+          requestBody.additionalModelRequestFields?.output_config?.format
+            ?.type === 'json_schema';
+
+        return new Response(
+          JSON.stringify(
+            usesNativeOutput
+              ? nativeLengthResponse
+              : {
+                  output: {
+                    message: {
+                      content: [
+                        {
+                          toolUse: {
+                            toolUseId: 'json-call',
+                            name: 'json',
+                            input: {
+                              reportMarkdown: 'Completed report.',
+                              reviewFlags: [],
+                              findings: [],
+                            },
+                          },
+                        },
+                      ],
+                      role: 'assistant',
+                    },
+                  },
+                  stopReason: 'tool_use',
+                  usage: {
+                    inputTokens: 7423,
+                    outputTokens: 3800,
+                    totalTokens: 11223,
+                  },
+                },
+          ),
+          {
+            headers: { 'content-type': 'application/json' },
+            status: 200,
+          },
+        );
+      },
+    });
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      maxOutputTokens: 3600,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            reportMarkdown: { type: 'string' },
+            reviewFlags: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  type: { type: 'string' },
+                  severity: { type: 'string' },
+                },
+                additionalProperties: false,
+              },
+            },
+            findings: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  text: { type: 'string' },
+                  refs: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        type: { const: 'record_ref' },
+                        targetRecordId: { type: 'number' },
+                        quote: {
+                          anyOf: [{ type: 'string' }, { type: 'null' }],
+                        },
+                      },
+                      required: ['type', 'targetRecordId'],
+                      additionalProperties: false,
+                    },
+                  },
+                },
+                required: ['text'],
+                additionalProperties: false,
+              },
+            },
+          },
+          required: ['reportMarkdown'],
+          additionalProperties: false,
+        },
+      },
+      providerOptions: {
+        bedrock: {
+          structuredOutputMode: 'jsonTool',
+        },
+      } as any,
+    });
+
+    expect(result.finishReason.unified).not.toBe('length');
+  });
+
   describe('forward-compatible Anthropic model capabilities', () => {
     const simpleResponse = {
       type: 'json-value' as const,
