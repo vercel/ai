@@ -582,6 +582,7 @@ export type OpenAIResponsesTool =
         | undefined;
       server_description: string | undefined;
       server_url: string | undefined;
+      tunnel_id: string | undefined;
     }
   | {
       type: 'custom';

@@ -133,6 +133,7 @@ export const openaiTools = {
    * // param requireApproval - Approval policy ('always'|'never'|filter object). (Removed - always 'never')
    * @param serverDescription - Optional description of the server.
    * @param serverUrl - URL for the MCP server.
+   * @param tunnelId - Identifier for an OpenAI Secure MCP tunnel.
    */
   mcp,
 

@@ -745,7 +745,7 @@ The code interpreter tool can be configured with:
 
 #### MCP Tool
 
-The OpenAI responses API supports connecting to [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) servers through the `openai.tools.mcp` tool. This allows models to call tools exposed by remote MCP servers or service connectors.
+The OpenAI responses API supports connecting to [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) servers through the `openai.tools.mcp` tool. This allows models to call tools exposed by remote MCP servers, service connectors, or [Secure MCP tunnels](https://platform.openai.com/docs/guides/tools-connectors-mcp#secure-mcp-tunnels).
 
 ```ts
 import { openai } from '@ai-sdk/openai';
@@ -764,19 +764,40 @@ const result = await generateText({
 });
 ```
 
+For a private MCP server exposed through an OpenAI Secure MCP tunnel, provide
+its tunnel ID instead of a server URL:
+
+```ts
+const result = await generateText({
+  model: openai('gpt-5'),
+  prompt: 'Search the private knowledge base',
+  tools: {
+    mcp: openai.tools.mcp({
+      serverLabel: 'private-knowledge',
+      tunnelId: 'tunnel_0123456789abcdef0123456789abcdef',
+      serverDescription: 'A private knowledge base',
+    }),
+  },
+});
+```
+
 The MCP tool can be configured with:
 
 - **serverLabel** _string_ (required)
 
   A label to identify the MCP server. This label is used in tool calls to distinguish between multiple MCP servers.
 
-- **serverUrl** _string_ (required if `connectorId` is not provided)
+- **serverUrl** _string_ (required if `connectorId` and `tunnelId` are not provided)
 
-  The URL for the MCP server. Either `serverUrl` or `connectorId` must be provided.
+  The URL for the MCP server. Exactly one of `serverUrl`, `connectorId`, or `tunnelId` must be provided.
 
-- **connectorId** _string_ (required if `serverUrl` is not provided)
+- **connectorId** _string_ (required if `serverUrl` and `tunnelId` are not provided)
 
-  Identifier for a service connector. Either `serverUrl` or `connectorId` must be provided.
+  Identifier for a service connector. Exactly one of `serverUrl`, `connectorId`, or `tunnelId` must be provided.
+
+- **tunnelId** _string_ (required if `serverUrl` and `connectorId` are not provided)
+
+  Identifier for an OpenAI Secure MCP tunnel. Exactly one of `serverUrl`, `connectorId`, or `tunnelId` must be provided.
 
 - **serverDescription** _string_ (optional)
 

@@ -49,10 +49,14 @@ export const mcpArgsSchema = lazySchema(() =>
           .optional(),
         serverDescription: z.string().optional(),
         serverUrl: z.string().optional(),
+        tunnelId: z.string().optional(),
       })
       .refine(
-        v => v.serverUrl != null || v.connectorId != null,
-        'One of serverUrl or connectorId must be provided.',
+        v =>
+          [v.serverUrl, v.connectorId, v.tunnelId].filter(
+            value => value != null,
+          ).length === 1,
+        'Exactly one of serverUrl, connectorId, or tunnelId must be provided.',
       ),
   ),
 );
@@ -72,7 +76,7 @@ export const mcpOutputSchema = lazySchema(() =>
   ),
 );
 
-type McpArgs = {
+type McpCommonArgs = {
   /** A label for this MCP server, used to identify it in tool calls. */
   serverLabel: string;
   /** List of allowed tool names or a filter object. */
@@ -84,8 +88,6 @@ type McpArgs = {
       };
   /** OAuth access token usable with the remote MCP server or connector. */
   authorization?: string;
-  /** Identifier for a service connector. */
-  connectorId?: string;
   /** Optional HTTP headers to send to the MCP server. */
   headers?: Record<string, string>;
   /**
@@ -101,9 +103,29 @@ type McpArgs = {
       };
   /** Optional description of the MCP server. */
   serverDescription?: string;
-  /** URL for the MCP server. One of serverUrl or connectorId must be provided. */
-  serverUrl?: string;
 };
+
+type McpArgs = McpCommonArgs &
+  (
+    | {
+        /** URL for the MCP server. */
+        serverUrl: string;
+        connectorId?: never;
+        tunnelId?: never;
+      }
+    | {
+        /** Identifier for a service connector. */
+        connectorId: string;
+        serverUrl?: never;
+        tunnelId?: never;
+      }
+    | {
+        /** Identifier for an OpenAI Secure MCP tunnel. */
+        tunnelId: string;
+        serverUrl?: never;
+        connectorId?: never;
+      }
+  );
 
 export const mcpToolFactory = createProviderExecutedToolFactory<
   {},
