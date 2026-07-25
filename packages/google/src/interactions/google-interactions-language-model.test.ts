@@ -694,6 +694,38 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       expect(body.generation_config?.thinking_summaries).toBe('auto');
     });
 
+    it('forwards topK, presencePenalty and frequencyPenalty into generation_config', async () => {
+      // Matches the standard Gemini model path (google-language-model.ts) and
+      // avoids the silent drop reported in #17937.
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        temperature: 0.5,
+        topP: 0.9,
+        topK: 10,
+        presencePenalty: 0.5,
+        frequencyPenalty: 0.5,
+        seed: 7,
+      });
+      const body = (await server.calls[0].requestBodyJson) as {
+        generation_config?: {
+          temperature?: number;
+          top_p?: number;
+          top_k?: number;
+          presence_penalty?: number;
+          frequency_penalty?: number;
+          seed?: number;
+        };
+      };
+      expect(body.generation_config).toMatchObject({
+        temperature: 0.5,
+        top_p: 0.9,
+        top_k: 10,
+        presence_penalty: 0.5,
+        frequency_penalty: 0.5,
+        seed: 7,
+      });
+    });
+
     it('returns interactionId for turn 1 from a captured fixture', async () => {
       prepareJsonFixtureResponse('multi-turn-stateful-turn1');
       const result = await model.doGenerate({
@@ -1502,6 +1534,9 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
         prompt: TEST_PROMPT,
         temperature: 0.5,
         topP: 0.9,
+        topK: 10,
+        presencePenalty: 0.5,
+        frequencyPenalty: 0.5,
         providerOptions: {
           google: { thinkingLevel: 'high' },
         },
@@ -1516,6 +1551,9 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
           w.type === 'other' &&
           (w as { message?: string }).message?.includes('temperature') &&
           (w as { message?: string }).message?.includes('topP') &&
+          (w as { message?: string }).message?.includes('topK') &&
+          (w as { message?: string }).message?.includes('presencePenalty') &&
+          (w as { message?: string }).message?.includes('frequencyPenalty') &&
           (w as { message?: string }).message?.includes('thinkingLevel'),
       );
       expect(warning).toBeDefined();
