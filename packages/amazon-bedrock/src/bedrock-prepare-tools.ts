@@ -9,6 +9,7 @@ import {
   anthropicTools,
   prepareTools as prepareAnthropicTools,
 } from '@ai-sdk/anthropic/internal';
+import { supportsStrictTools } from './amazon-bedrock-anthropic-model-support';
 import type {
   BedrockTool,
   BedrockToolConfiguration,
@@ -133,11 +134,7 @@ export async function prepareTools({
       ? functionTools.filter(t => t.name === toolChoice.toolName)
       : functionTools;
 
-  // Bedrock's Messages API rejects `strict` on tools for these models.
-  // https://docs.aws.amazon.com/bedrock/latest/userguide/count-tokens.html
-  const supportsStrictOnTools =
-    !modelId.includes('claude-opus-4-7') &&
-    !modelId.includes('claude-opus-4-8');
+  const supportsStrictOnTools = supportsStrictTools(modelId);
 
   for (const tool of filteredFunctionTools) {
     bedrockTools.push({

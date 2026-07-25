@@ -35,12 +35,23 @@ import {
   type BedrockStopReason,
 } from './bedrock-api-types';
 import {
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
   amazonBedrockLanguageModelOptions,
   type BedrockChatModelId,
 } from './bedrock-chat-options';
 import { BedrockErrorSchema } from './bedrock-error';
 import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-response-handler';
 import { prepareTools } from './bedrock-prepare-tools';
+=======
+  amazonBedrockLanguageModelChatOptions,
+  type AmazonBedrockLanguageModelChatOptions,
+  type AmazonBedrockChatModelId,
+} from './amazon-bedrock-chat-language-model-options';
+import { supportsNativeStructuredOutput } from './amazon-bedrock-anthropic-model-support';
+import { AmazonBedrockErrorSchema } from './amazon-bedrock-error';
+import { createAmazonBedrockEventStreamResponseHandler } from './amazon-bedrock-event-stream-response-handler';
+import { prepareTools } from './amazon-bedrock-prepare-tools';
+>>>>>>> eb16508fc7 (fix(provider/amazon-bedrock): omit tool `strict` and `output_config.format` for Claude models Bedrock rejects them on (#17919)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
 import {
   convertBedrockUsage,
   type BedrockUsage,
@@ -151,6 +162,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       bedrockOptions.reasoningConfig?.type === 'enabled' ||
       bedrockOptions.reasoningConfig?.type === 'adaptive';
 
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
     const modelRejectsNativeStructuredOutput =
       this.modelId.includes('claude-opus-4-7') ||
       this.modelId.includes('claude-opus-4-8') ||
@@ -160,9 +172,11 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     const { supportsStructuredOutput: modelSupportsStructuredOutput } =
       getModelCapabilities(this.modelId);
 
+=======
+>>>>>>> eb16508fc7 (fix(provider/amazon-bedrock): omit tool `strict` and `output_config.format` for Claude models Bedrock rejects them on (#17919)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
     const useNativeStructuredOutput =
       isAnthropicModel &&
-      !modelRejectsNativeStructuredOutput &&
+      supportsNativeStructuredOutput(this.modelId) &&
       (modelSupportsStructuredOutput || isThinkingEnabled) &&
       responseFormat?.type === 'json' &&
       responseFormat.schema != null;

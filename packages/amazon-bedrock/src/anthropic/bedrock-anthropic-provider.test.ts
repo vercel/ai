@@ -72,6 +72,7 @@ describe('bedrock-anthropic-provider', () => {
         transformRequestBody: expect.any(Function),
         supportedUrls: expect.any(Function),
         supportsNativeStructuredOutput: true,
+        supportsStrictTools: true,
       }),
     );
   });
@@ -83,6 +84,9 @@ describe('bedrock-anthropic-provider', () => {
     'anthropic.claude-opus-4-8',
     'us.anthropic.claude-opus-4-8',
     'eu.anthropic.claude-opus-4-8',
+    'anthropic.claude-opus-5',
+    'us.anthropic.claude-opus-5',
+    'eu.anthropic.claude-opus-5',
     'anthropic.claude-fable-5',
     'us.anthropic.claude-fable-5',
     'eu.anthropic.claude-fable-5',
@@ -107,6 +111,60 @@ describe('bedrock-anthropic-provider', () => {
       );
     },
   );
+
+  it.each([
+    'anthropic.claude-opus-4-7',
+    'us.anthropic.claude-opus-4-7',
+    'eu.anthropic.claude-opus-4-7',
+    'anthropic.claude-opus-4-8',
+    'us.anthropic.claude-opus-4-8',
+    'eu.anthropic.claude-opus-4-8',
+    'anthropic.claude-opus-5',
+    'us.anthropic.claude-opus-5',
+    'eu.anthropic.claude-opus-5',
+    'anthropic.claude-fable-5',
+    'us.anthropic.claude-fable-5',
+    'eu.anthropic.claude-fable-5',
+    'anthropic.claude-sonnet-5',
+    'us.anthropic.claude-sonnet-5',
+    'eu.anthropic.claude-sonnet-5',
+  ])(
+    'should disable strict tools for %s (Bedrock rejects tools[].strict)',
+    modelId => {
+      const provider = createAmazonBedrockAnthropic({
+        region: 'us-east-1',
+        accessKeyId: 'test-key',
+        secretAccessKey: 'test-secret',
+      });
+      provider(modelId as Parameters<typeof provider>[0]);
+
+      expect(AnthropicLanguageModel).toHaveBeenCalledWith(
+        modelId,
+        expect.objectContaining({
+          supportsStrictTools: false,
+        }),
+      );
+    },
+  );
+
+  it.each([
+    'anthropic.claude-sonnet-4-6',
+    'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+  ])('should keep strict tools enabled for %s', modelId => {
+    const provider = createAmazonBedrockAnthropic({
+      region: 'us-east-1',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    provider(modelId as Parameters<typeof provider>[0]);
+
+    expect(AnthropicLanguageModel).toHaveBeenCalledWith(
+      modelId,
+      expect.objectContaining({
+        supportsStrictTools: true,
+      }),
+    );
+  });
 
   it('should throw an error when using new keyword', () => {
     const provider = createBedrockAnthropic({

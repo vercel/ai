@@ -19,10 +19,21 @@ import {
 import {
   createApiKeyFetchFunction,
   createSigV4FetchFunction,
+<<<<<<< HEAD:packages/amazon-bedrock/src/anthropic/bedrock-anthropic-provider.ts
   type BedrockCredentials,
 } from '../bedrock-sigv4-fetch';
 import { createBedrockAnthropicFetch } from './bedrock-anthropic-fetch';
 import type { BedrockAnthropicModelId } from './bedrock-anthropic-options';
+=======
+  type AmazonBedrockCredentials,
+} from '../amazon-bedrock-sigv4-fetch';
+import {
+  supportsNativeStructuredOutput,
+  supportsStrictTools,
+} from '../amazon-bedrock-anthropic-model-support';
+import { createAmazonBedrockAnthropicFetch } from './amazon-bedrock-anthropic-fetch';
+import type { AmazonBedrockAnthropicModelId } from './amazon-bedrock-anthropic-options';
+>>>>>>> eb16508fc7 (fix(provider/amazon-bedrock): omit tool `strict` and `output_config.format` for Claude models Bedrock rejects them on (#17919)):packages/amazon-bedrock/src/anthropic/amazon-bedrock-anthropic-provider.ts
 import { VERSION } from '../version';
 
 // Bedrock requires newer tool versions than the default Anthropic SDK versions
@@ -334,13 +345,8 @@ export function createBedrockAnthropic(
 
       // Bedrock Anthropic doesn't support URL sources, force download and base64 conversion
       supportedUrls: () => ({}),
-      // native structured output via output_config.format is supported on Bedrock
-      // Bedrock rejects `output_config.format` for `claude-opus-4-7`, `claude-opus-4-8`, `claude-fable-5`, and `claude-sonnet-5`
-      supportsNativeStructuredOutput:
-        !modelId.includes('claude-opus-4-7') &&
-        !modelId.includes('claude-opus-4-8') &&
-        !modelId.includes('claude-fable-5') &&
-        !modelId.includes('claude-sonnet-5'),
+      supportsNativeStructuredOutput: supportsNativeStructuredOutput(modelId),
+      supportsStrictTools: supportsStrictTools(modelId),
     });
 
   const provider = function (modelId: BedrockAnthropicModelId) {
