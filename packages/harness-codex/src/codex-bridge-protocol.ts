@@ -18,6 +18,7 @@ export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
 
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   reasoningEffort: z.enum(['low', 'medium', 'high']).optional(),
+  reasoningSummary: z.enum(['auto', 'concise', 'detailed', 'none']).optional(),
   webSearch: z.boolean().optional(),
   // Resume signal. When supplied, the bridge calls
   // `codex.resumeThread(resumeThreadId, …)` instead of starting a fresh thread.

@@ -151,6 +151,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       },
     };
   }
+  if (start.reasoningSummary) {
+    codexConfig.model_reasoning_summary = start.reasoningSummary;
+  }
   const usesConfiguredModelProvider =
     typeof codexConfig.model_provider === 'string';
 

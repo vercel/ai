@@ -111,8 +111,11 @@ async function startSession(options?: {
   resumeFrom?: HarnessV1ResumeSessionState;
   continueFrom?: HarnessV1ContinueTurnState;
   skills?: ReadonlyArray<HarnessV1Skill>;
+  reasoningSummary?: 'auto' | 'concise' | 'detailed' | 'none';
 }): Promise<HarnessV1Session> {
-  const harness = createCodex();
+  const harness = createCodex({
+    reasoningSummary: options?.reasoningSummary,
+  });
   return harness.doStart({
     sessionId: 's1',
     sandboxSession: fakeNetworkSandboxSession(),
@@ -255,6 +258,19 @@ describe('codex adapter — instructions gating', () => {
     expect(start.prompt).toBe('resumed turn');
     expect(start.instructions).toBeUndefined();
   });
+
+  it('forwards reasoning summary settings', async () => {
+    const freshSession = await startSession({
+      reasoningSummary: 'detailed',
+    });
+    await freshSession.doPromptTurn({
+      prompt: 'fresh turn',
+      emit: () => {},
+    });
+    expect(await waitForStart({ count: 1 })).toMatchObject({
+      reasoningSummary: 'detailed',
+    });
+  });
 });
 
 describe('codex adapter — attach replay mode', () => {
@@ -268,6 +284,7 @@ describe('codex adapter — attach replay mode', () => {
 
   it('attaches a parked session without replaying old turn events', async () => {
     const session = await startSession({
+      reasoningSummary: 'concise',
       resumeFrom: {
         type: 'resume-session',
         harnessId: 'codex',
@@ -293,6 +310,7 @@ describe('codex adapter — attach replay mode', () => {
     expect(start).toMatchObject({
       type: 'start',
       prompt: 'next user turn',
+      reasoningSummary: 'concise',
     });
     expect(start.resumeThreadId).toBeUndefined();
   });
