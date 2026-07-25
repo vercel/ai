@@ -1190,7 +1190,7 @@ function createSession({
        *
        * rerun: the bridge was respawned with no in-flight turn to attach to, so
        * re-drive the runtime's own thread from the workdir snapshot via
-       * `continue: true`. Lossy — work in flight at the interruption is
+       * `continue: true`. Lossy — work in flight at the suspension is
        * recomputed. This is the rare bridge-died fallback; the common slice path
        * is `attach`.
        */
@@ -1378,16 +1378,13 @@ function createSession({
       }
       stopped = true;
       /*
-       * First ask the runtime to interrupt the active model turn, then freeze
-       * the host at a precise cursor. `channel.suspend` stops processing
-       * inbound frames (the cursor stops advancing exactly at the last
-       * delivered event), drains what was already dispatched, then closes the
-       * host socket with reason `'suspended'` — which `wireTurn`'s `onClose`
-       * treats as a clean turn end. The bridge keeps the turn running and
-       * accumulates events past the cursor for the next slice to replay. The
-       * sandbox process is deliberately left alive (no `shutdown`/`detach`).
+       * Freeze the host at a precise cursor without stopping the active model
+       * turn. `channel.suspend` stops processing inbound frames, drains what
+       * was already dispatched, then closes the host socket with reason
+       * `'suspended'`. The bridge keeps the turn running and accumulates events
+       * past the cursor for the next slice to replay. The sandbox process is
+       * deliberately left alive.
        */
-      await channel.interrupt();
       const lastSeenEventId = await channel.suspend();
       const payload: HarnessV1ContinueTurnState = {
         type: 'continue-turn',

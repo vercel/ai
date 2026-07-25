@@ -113,9 +113,13 @@ describe('runBridge', () => {
     expect(events.map(e => e.seq)).toEqual([1, 2, 3]);
   });
 
-  it('replaces the active connection (single-flight) and replays past the cursor on resume', async () => {
+  it('withholds live events from a replacement connection until replay completes', async () => {
     let release!: () => void;
     const gate = new Promise<void>(r => (release = r));
+    let resolveTurnFinished!: () => void;
+    const turnFinished = new Promise<void>(resolve => {
+      resolveTurnFinished = resolve;
+    });
     const handle = await startBridge(async (_start, turn) => {
       turn.emit({ type: 'text-delta', delta: 'one' }); // seq 1
       turn.emit({ type: 'text-delta', delta: 'two' }); // seq 2
@@ -124,6 +128,7 @@ describe('runBridge', () => {
       // aborted by the disconnect.
       turn.emit({ type: 'text-delta', delta: 'three' }); // seq 3
       turn.emit({ type: 'finish' }); // seq 4
+      resolveTurnFinished();
     });
 
     const a = await connect(handle.port);
@@ -135,15 +140,23 @@ describe('runBridge', () => {
     a.close();
     const b = await connect(handle.port);
     await b.waitFor(f => f.type === 'bridge-hello');
-    b.send({ type: 'resume', lastSeenEventId: 2 });
 
     // Let the turn finish; B must receive only seq > 2 (no replay of 1/2).
     release();
-    await b.waitFor(f => f.type === 'finish');
+    await turnFinished;
 
-    const deltas = b.frames.filter(f => f.type === 'text-delta');
-    expect(deltas.map(d => d.delta)).toEqual(['three']);
-    expect(b.frames.filter(f => f.type === 'finish')).toHaveLength(1);
+    b.send({ type: 'resume', lastSeenEventId: 2 });
+    await b.waitFor(f => f.seq === 4);
+
+    const events = b.frames.filter(f => typeof f.seq === 'number');
+    expect(events).toEqual([
+      expect.objectContaining({
+        type: 'text-delta',
+        delta: 'three',
+        seq: 3,
+      }),
+      expect.objectContaining({ type: 'finish', seq: 4 }),
+    ]);
   });
 
   it('routes a host tool result back to the awaiting requestToolResult', async () => {
@@ -243,103 +256,6 @@ describe('runBridge', () => {
     } finally {
       writeSpy.mockRestore();
     }
-  });
-
-  it('runs the active turn interrupt handler before acknowledging interrupt', async () => {
-    let interrupted = false;
-    let release!: () => void;
-    const gate = new Promise<void>(resolve => {
-      release = resolve;
-    });
-    const handle = await startBridge(async (_start, turn) => {
-      turn.onInterrupt(async () => {
-        await gate;
-        interrupted = true;
-      });
-      await new Promise<void>(() => {});
-    });
-    const client = await connect(handle.port);
-    await client.waitFor(f => f.type === 'bridge-hello');
-    client.send({ type: 'start' });
-
-    client.send({ type: 'interrupt' });
-    await new Promise(resolve => setTimeout(resolve, 20));
-    expect(client.frames.some(f => f.type === 'bridge-interrupted')).toBe(
-      false,
-    );
-
-    release();
-    const ack = await client.waitFor(f => f.type === 'bridge-interrupted');
-    expect(interrupted).toBe(true);
-    expect(ack).toMatchObject({ type: 'bridge-interrupted', ok: true });
-  });
-
-  it('preserves a turn waiting for a host tool result when interrupted', async () => {
-    let interrupted = false;
-    const handle = await startBridge(async (_start, turn) => {
-      turn.onInterrupt(() => {
-        interrupted = true;
-      });
-      turn.emit({ type: 'tool-call', toolCallId: 'tool-1' });
-      const result = await turn.requestToolResult('tool-1');
-      turn.emit({ type: 'text-delta', delta: String(result.output) });
-      turn.emit({ type: 'finish' });
-    });
-    const client = await connect(handle.port);
-    await client.waitFor(f => f.type === 'bridge-hello');
-    client.send({ type: 'start' });
-    await client.waitFor(f => f.type === 'tool-call');
-
-    client.send({ type: 'interrupt' });
-    const ack = await client.waitFor(f => f.type === 'bridge-interrupted');
-    expect(interrupted).toBe(false);
-    expect(ack).toMatchObject({ type: 'bridge-interrupted', ok: true });
-
-    client.send({
-      type: 'tool-result',
-      toolCallId: 'tool-1',
-      output: 'sunny',
-    });
-    await client.waitFor(f => f.type === 'finish');
-    expect(client.frames).toContainEqual(
-      expect.objectContaining({ type: 'text-delta', delta: 'sunny' }),
-    );
-  });
-
-  it('preserves a turn waiting for host approval when interrupted', async () => {
-    let interrupted = false;
-    const handle = await startBridge(async (_start, turn) => {
-      turn.onInterrupt(() => {
-        interrupted = true;
-      });
-      turn.emit({
-        type: 'tool-approval-request',
-        approvalId: 'approval-1',
-        toolCallId: 'tool-1',
-      });
-      const response = await turn.requestToolApproval('approval-1');
-      turn.emit({ type: 'text-delta', delta: String(response.approved) });
-      turn.emit({ type: 'finish' });
-    });
-    const client = await connect(handle.port);
-    await client.waitFor(f => f.type === 'bridge-hello');
-    client.send({ type: 'start' });
-    await client.waitFor(f => f.type === 'tool-approval-request');
-
-    client.send({ type: 'interrupt' });
-    const ack = await client.waitFor(f => f.type === 'bridge-interrupted');
-    expect(interrupted).toBe(false);
-    expect(ack).toMatchObject({ type: 'bridge-interrupted', ok: true });
-
-    client.send({
-      type: 'tool-approval-response',
-      approvalId: 'approval-1',
-      approved: true,
-    });
-    await client.waitFor(f => f.type === 'finish');
-    expect(client.frames).toContainEqual(
-      expect.objectContaining({ type: 'text-delta', delta: 'true' }),
-    );
   });
 
   it('clears the log per turn but keeps seq monotonic across turns', async () => {

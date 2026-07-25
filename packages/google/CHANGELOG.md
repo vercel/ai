@@ -1,5 +1,24 @@
 # @ai-sdk/google
 
+## 4.0.24
+
+### Patch Changes
+
+- c57a353: fix(google): omit unsupported function call IDs
+
+## 4.0.23
+
+### Patch Changes
+
+- f126649: feat(provider/google): default unknown Gemini model IDs to the newest supported capabilities
+
+## 4.0.22
+
+### Patch Changes
+
+- 66b7151: fix(provider/google): preserve Gemini Live lifecycle events
+- 5e5453c: Avoid missing thought-signature warnings and skip-validator injection for valid unsigned Gemini 3 parallel function calls in the same model response.
+
 ## 4.0.21
 
 ### Patch Changes

@@ -3,7 +3,12 @@ import {
   type Experimental_SandboxSession,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
-import { hasToolCall, isStepCount, type TextStreamPart } from 'ai';
+import {
+  hasToolCall,
+  isStepCount,
+  type Telemetry,
+  type TextStreamPart,
+} from 'ai';
 import { describe, expect, test, vi } from 'vitest';
 import { z } from 'zod/v4';
 import type {
@@ -102,6 +107,14 @@ const finishEvents: HarnessV1StreamPart[] = [
     },
   },
 ];
+
+const resumableFinishStep: HarnessV1StreamPart = {
+  ...(finishEvents[0]! as Extract<
+    HarnessV1StreamPart,
+    { type: 'finish-step' }
+  >),
+  finishReason: { unified: 'tool-calls', raw: 'tool_use' },
+};
 
 describe('runPrompt workDir stripping', () => {
   test('strips the workDir for consumers but executes host tools with the absolute path', async () => {
@@ -237,13 +250,117 @@ describe('runPrompt usage', () => {
   });
 });
 
+describe('runPrompt telemetry lifecycle', () => {
+  test('does not settle until async end callbacks complete in order', async () => {
+    const events: string[] = [];
+    let resolveLanguageModelEnd!: () => void;
+    let resolveStepEnd!: () => void;
+    let resolveEnd!: () => void;
+    const languageModelEnd = new Promise<void>(resolve => {
+      resolveLanguageModelEnd = resolve;
+    });
+    const stepEnd = new Promise<void>(resolve => {
+      resolveStepEnd = resolve;
+    });
+    const end = new Promise<void>(resolve => {
+      resolveEnd = resolve;
+    });
+    const integration = {
+      async onLanguageModelCallEnd() {
+        events.push('language-model-end:start');
+        await languageModelEnd;
+        events.push('language-model-end:done');
+      },
+      async onStepEnd() {
+        events.push('step-end:start');
+        await stepEnd;
+        events.push('step-end:done');
+      },
+      async onEnd() {
+        events.push('end:start');
+        await end;
+        events.push('end:done');
+      },
+    } satisfies Telemetry;
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'stream-start' },
+        { type: 'text-delta', id: 'text-1', delta: 'done' },
+        finishEvents[0]!,
+        { type: 'text-delta', id: 'text-2', delta: 'ignored' },
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {} as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      stopConditions: [({ steps }) => steps.length === 1],
+      telemetry: { integrations: [integration] },
+    });
+
+    let settled = false;
+    void done.finally(() => {
+      settled = true;
+    });
+    const consumeStream = (async () => {
+      for await (const _part of result.fullStream) {
+        // Drain the stream while lifecycle callbacks are gated.
+      }
+    })();
+
+    await vi.waitFor(() => {
+      expect(events).toEqual(['language-model-end:start']);
+    });
+    expect(settled).toBe(false);
+
+    resolveLanguageModelEnd();
+    await vi.waitFor(() => {
+      expect(events).toEqual([
+        'language-model-end:start',
+        'language-model-end:done',
+        'step-end:start',
+      ]);
+    });
+    expect(settled).toBe(false);
+
+    resolveStepEnd();
+    await vi.waitFor(() => {
+      expect(events).toEqual([
+        'language-model-end:start',
+        'language-model-end:done',
+        'step-end:start',
+        'step-end:done',
+        'end:start',
+      ]);
+    });
+    expect(settled).toBe(false);
+
+    resolveEnd();
+    await Promise.all([done, consumeStream]);
+    expect(settled).toBe(true);
+    expect(events).toEqual([
+      'language-model-end:start',
+      'language-model-end:done',
+      'step-end:start',
+      'step-end:done',
+      'end:start',
+      'end:done',
+    ]);
+  });
+});
+
 describe('runPrompt step accounting', () => {
   test('records one step per finish-step without counting terminal finish', async () => {
     const { result, done } = runPrompt({
       harness,
       session: fakeSession([
         { type: 'text-delta', id: 't1', delta: 'first' },
-        finishEvents[0]!,
+        resumableFinishStep,
         { type: 'text-delta', id: 't2', delta: 'second' },
         ...finishEvents,
       ]),
@@ -350,6 +467,71 @@ describe('runPrompt step accounting', () => {
     await expect(result.steps).resolves.toHaveLength(1);
   });
 
+  test('closes a deliberately suspended mid-step stream without failing the turn', async () => {
+    const onTurnFailed = vi.fn();
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'text-start', id: 't1' },
+        { type: 'text-delta', id: 't1', delta: 'partial' },
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      isTurnSuspending: () => true,
+      onTurnFailed,
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(parts.some(part => part.type === 'error')).toBe(false);
+    expect(parts).toContainEqual(
+      expect.objectContaining({ type: 'text-delta', text: 'partial' }),
+    );
+    expect(onTurnFailed).not.toHaveBeenCalled();
+    await expect(result.steps).resolves.toEqual([]);
+  });
+
+  test('fails a mid-step stream that closes without an intentional suspension', async () => {
+    const onTurnFailed = vi.fn();
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'text-start', id: 't1' },
+        { type: 'text-delta', id: 't1', delta: 'partial' },
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      onTurnFailed,
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(parts).toContainEqual({
+      type: 'error',
+      error: expect.objectContaining({
+        message: expect.stringContaining('unclosed step content'),
+      }),
+    });
+    expect(onTurnFailed).toHaveBeenCalledTimes(1);
+    await expect(result.steps).rejects.toThrow(/unclosed step content/);
+  });
+
   test('fails when terminal finish receives unclosed step content', async () => {
     const { result, done } = runPrompt({
       harness,
@@ -400,6 +582,174 @@ describe('runPrompt step accounting', () => {
     await expect(result.steps).resolves.toEqual([]);
     await expect(result.text).resolves.toBe('');
   });
+
+  test('evaluates stop conditions only after real finish-step events', async () => {
+    const stepCounts: number[] = [];
+    let stopBoundaryCount = 0;
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'text-delta', id: 't1', delta: 'first' },
+        resumableFinishStep,
+        { type: 'text-delta', id: 't2', delta: 'second' },
+        resumableFinishStep,
+        { type: 'text-delta', id: 't3', delta: 'third' },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      stopConditions: [
+        async ({ steps }) => {
+          stepCounts.push(steps.length);
+          return steps.length === 2;
+        },
+      ],
+      onStopConditionMet: async () => {
+        stopBoundaryCount += 1;
+      },
+    });
+
+    await done;
+    await result.consumeStream();
+
+    expect(stepCounts).toEqual([1, 2]);
+    expect(stopBoundaryCount).toBe(1);
+    expect((await result.steps).map(step => step.text)).toEqual([
+      'first',
+      'second',
+    ]);
+  });
+
+  test('lets a terminal text-only step emit finish even when stopWhen matches its step count', async () => {
+    let predicateCount = 0;
+    let stopBoundaryCount = 0;
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'text-delta', id: 't1', delta: 'done' },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      stopConditions: [
+        ({ steps }) => {
+          predicateCount += 1;
+          return steps.length === 1;
+        },
+      ],
+      onStopConditionMet: async () => {
+        stopBoundaryCount += 1;
+      },
+    });
+    const partTypes: string[] = [];
+
+    for await (const part of result.fullStream) partTypes.push(part.type);
+    await done;
+
+    expect(predicateCount).toBe(0);
+    expect(stopBoundaryCount).toBe(0);
+    expect(partTypes.slice(-2)).toEqual(['finish-step', 'finish']);
+    await expect(result.finishReason).resolves.toBe('stop');
+    await expect(result.text).resolves.toBe('done');
+  });
+
+  test('stops before a next-step tool call when the completed step has no tool calls', async () => {
+    const weather = tool({
+      description: 'Get weather',
+      inputSchema: z.object({ city: z.string() }),
+    });
+    let stopBoundaryCount = 0;
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'text-delta', id: 't1', delta: 'first' },
+        finishEvents[0]!,
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'Lima' }),
+          providerExecuted: true,
+        },
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { weather },
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      stopConditions: [({ steps }) => steps.length === 1],
+      onStopConditionMet: async () => {
+        stopBoundaryCount += 1;
+      },
+    });
+    const parts: TextStreamPart<ToolSet>[] = [];
+
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(stopBoundaryCount).toBe(1);
+    expect(parts.some(part => part.type === 'tool-call')).toBe(false);
+    expect((await result.steps).map(step => step.text)).toEqual(['first']);
+  });
+
+  test('processes a lookahead event exactly once when stop conditions do not match', async () => {
+    const stepCounts: number[] = [];
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'text-delta', id: 't1', delta: 'first' },
+        finishEvents[0]!,
+        { type: 'text-start', id: 't2' },
+        { type: 'text-delta', id: 't2', delta: 'second' },
+        { type: 'text-end', id: 't2' },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      stopConditions: [
+        ({ steps }) => {
+          stepCounts.push(steps.length);
+          return false;
+        },
+      ],
+    });
+    const parts: TextStreamPart<ToolSet>[] = [];
+
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(stepCounts).toEqual([1]);
+    expect(
+      parts.filter(
+        part => part.type === 'text-delta' && part.text === 'second',
+      ),
+    ).toHaveLength(1);
+    expect((await result.steps).map(step => step.text)).toEqual([
+      'first',
+      'second',
+    ]);
+  });
 });
 
 type SubmittedResult = {
@@ -421,6 +771,8 @@ describe('runPrompt host tool generator results', () => {
   test('pauses custom tool execution when approval is required', async () => {
     const submitted: SubmittedResult[] = [];
     const pending: unknown[] = [];
+    let stopConditionCalls = 0;
+    let stopBoundaryCalls = 0;
     const weather = tool({
       description: 'Get weather',
       inputSchema: z.object({ city: z.string() }),
@@ -449,6 +801,15 @@ describe('runPrompt host tool generator results', () => {
       runtimeContext: {} as never,
       abortSignal: undefined,
       toolApproval: { weather: 'user-approval' },
+      stopConditions: [
+        () => {
+          stopConditionCalls += 1;
+          return true;
+        },
+      ],
+      onStopConditionMet: async () => {
+        stopBoundaryCalls += 1;
+      },
       onPendingToolApproval: approval => pending.push(approval),
     });
 
@@ -481,6 +842,8 @@ describe('runPrompt host tool generator results', () => {
       'tool-call',
       'tool-approval-request',
     ]);
+    expect(stopConditionCalls).toBe(0);
+    expect(stopBoundaryCalls).toBe(0);
   });
 
   test('denies custom tools configured with denied approval status', async () => {
@@ -557,6 +920,21 @@ describe('runPrompt host tool generator results', () => {
   test('executes an approved pending custom tool continuation', async () => {
     const submitted: SubmittedResult[] = [];
     const settled: string[] = [];
+    const telemetryEvents: string[] = [];
+    const integration = {
+      onToolExecutionStart() {
+        telemetryEvents.push('tool-start');
+      },
+      async executeTool({ execute }) {
+        telemetryEvents.push('wrapper-start');
+        const output = await execute();
+        telemetryEvents.push('wrapper-end');
+        return output;
+      },
+      onToolExecutionEnd() {
+        telemetryEvents.push('tool-end');
+      },
+    } satisfies Telemetry;
     const weather = tool({
       description: 'Get weather',
       inputSchema: z.object({ city: z.string() }),
@@ -604,6 +982,7 @@ describe('runPrompt host tool generator results', () => {
         },
       ],
       onToolApprovalSettled: approvalId => settled.push(approvalId),
+      telemetry: { integrations: [integration] },
     });
 
     const parts: TextStreamPart<ToolSet>[] = [];
@@ -613,6 +992,12 @@ describe('runPrompt host tool generator results', () => {
     expect(settled).toEqual(['approval-1']);
     expect(submitted).toEqual([
       { toolCallId: 'c1', output: { city: 'SF', temperature: 72 } },
+    ]);
+    expect(telemetryEvents).toEqual([
+      'tool-start',
+      'wrapper-start',
+      'wrapper-end',
+      'tool-end',
     ]);
     expect(parts).toContainEqual(
       expect.objectContaining({
@@ -819,6 +1204,123 @@ describe('runPrompt host tool generator results', () => {
     expect(submitted).toEqual([{ toolCallId: 'c1', output: { echoed: 'hi' } }]);
   });
 
+  test('executes host tools through telemetry context wrappers', async () => {
+    const events: string[] = [];
+    const callIds: string[] = [];
+    const echo = tool({
+      description: 'Echo the input',
+      inputSchema: z.object({ text: z.string() }),
+      execute: async (args: { text: string }) => {
+        events.push('execute');
+        return { echoed: args.text };
+      },
+    });
+    const integration = {
+      async onToolExecutionStart(event) {
+        await Promise.resolve();
+        callIds.push(event.callId);
+        events.push('tool-start');
+      },
+      async executeTool({ callId, toolCallId, execute }) {
+        callIds.push(callId);
+        expect(toolCallId).toBe('c1');
+        events.push('wrapper-start');
+        const output = await execute();
+        events.push('wrapper-end');
+        return output;
+      },
+    } satisfies Telemetry;
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'echo',
+          input: JSON.stringify({ text: 'hi' }),
+        },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { echo } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      telemetry: { integrations: [integration] },
+    });
+
+    for await (const _part of result.fullStream) {
+      // Drain the stream so the turn and host tool execution complete.
+    }
+    await done;
+
+    expect(events).toEqual([
+      'tool-start',
+      'wrapper-start',
+      'execute',
+      'wrapper-end',
+    ]);
+    expect(new Set(callIds).size).toBe(1);
+  });
+
+  test('reports telemetry wrapper failures as tool errors', async () => {
+    const submitted: SubmittedResult[] = [];
+    const execute = vi.fn();
+    const echo = tool({
+      description: 'Echo the input',
+      inputSchema: z.object({ text: z.string() }),
+      execute,
+    });
+    const integration = {
+      async executeTool() {
+        throw new Error('telemetry wrapper failed');
+      },
+    } satisfies Telemetry;
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession(
+        [
+          {
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'echo',
+            input: JSON.stringify({ text: 'hi' }),
+          },
+          ...finishEvents,
+        ],
+        input => submitted.push(input),
+      ),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { echo } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      telemetry: { integrations: [integration] },
+    });
+
+    for await (const _part of result.fullStream) {
+      // Drain the stream so host tool error handling completes.
+    }
+    await done;
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(submitted).toEqual([
+      {
+        toolCallId: 'c1',
+        output: { error: 'Error: telemetry wrapper failed' },
+        isError: true,
+      },
+    ]);
+  });
+
   test('strips the workDir from preliminary results before they reach consumers', async () => {
     const find = tool({
       description: 'Find a file',
@@ -857,6 +1359,94 @@ describe('runPrompt host tool generator results', () => {
     expect(results).toHaveLength(1);
     expect(results[0].preliminary).toBe(true);
     expect(results[0].output).toEqual({ path: 'src/foo.ts' });
+  });
+});
+
+describe('runPrompt suspension lifecycle', () => {
+  function suspendingRun(options: {
+    script: HarnessV1StreamPart[];
+    abortSignal?: AbortSignal;
+  }) {
+    const onTurnFinished = vi.fn();
+    const onTurnFailed = vi.fn();
+    return {
+      ...runPrompt({
+        harness,
+        session: fakeSession(options.script),
+        prompt: 'go',
+        instructions: undefined,
+        tools: {} as ToolSet,
+        toolSpecs: [],
+        sandboxSession,
+        sessionWorkDir: WORK_DIR,
+        runtimeContext: {} as never,
+        abortSignal: options.abortSignal,
+        onTurnFinished,
+        onTurnFailed,
+        isTurnSuspending: () => true,
+      }),
+      onTurnFinished,
+      onTurnFailed,
+    };
+  }
+
+  test('settles a result with a terminal finish without finishing the suspended turn', async () => {
+    const { result, done, onTurnFinished, onTurnFailed } = suspendingRun({
+      script: finishEvents,
+    });
+
+    await result.consumeStream();
+    await done;
+
+    await expect(result.finishReason).resolves.toBe('stop');
+    expect(onTurnFinished).not.toHaveBeenCalled();
+    expect(onTurnFailed).not.toHaveBeenCalled();
+  });
+
+  test('settles a cleanly closed result without failing the suspended turn', async () => {
+    const { result, done, onTurnFinished, onTurnFailed } = suspendingRun({
+      script: [],
+    });
+
+    await result.consumeStream();
+    await done;
+
+    expect(onTurnFinished).not.toHaveBeenCalled();
+    expect(onTurnFailed).not.toHaveBeenCalled();
+  });
+
+  test('preserves error result semantics without failing the suspended turn', async () => {
+    const { result, done, onTurnFinished, onTurnFailed } = suspendingRun({
+      script: [{ type: 'error', error: 'boom' }],
+    });
+
+    await result.consumeStream();
+    await done;
+
+    await expect(result.finishReason).rejects.toBeDefined();
+    expect(onTurnFinished).not.toHaveBeenCalled();
+    expect(onTurnFailed).not.toHaveBeenCalled();
+  });
+
+  test('preserves abort result semantics without failing the suspended turn', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const { result, done, onTurnFinished, onTurnFailed } = suspendingRun({
+      script: [
+        { type: 'error', error: 'AbortError: This operation was aborted' },
+      ],
+      abortSignal: controller.signal,
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(parts.filter(part => part.type === 'error')).toHaveLength(0);
+    expect(parts[parts.length - 1]!.type).toBe('abort');
+    await expect(result.finishReason).rejects.toBeDefined();
+    expect(onTurnFinished).not.toHaveBeenCalled();
+    expect(onTurnFailed).not.toHaveBeenCalled();
   });
 });
 

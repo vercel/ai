@@ -76,6 +76,7 @@ function appendToolResultParts(
     { type: 'content' }
   >['value'],
   toolCallId?: string,
+  includeFunctionCallIds = true,
 ): void {
   const functionResponseParts: GoogleFunctionResponsePart[] = [];
   const responseTextParts: string[] = [];
@@ -118,7 +119,9 @@ function appendToolResultParts(
 
   parts.push({
     functionResponse: {
-      ...(toolCallId != null ? { id: toolCallId } : {}),
+      ...(includeFunctionCallIds && toolCallId != null
+        ? { id: toolCallId }
+        : {}),
       name: toolName,
       response: {
         name: toolName,
@@ -147,13 +150,16 @@ function appendLegacyToolResultParts(
     { type: 'content' }
   >['value'],
   toolCallId?: string,
+  includeFunctionCallIds = true,
 ): void {
   for (const contentPart of outputValue) {
     switch (contentPart.type) {
       case 'text':
         parts.push({
           functionResponse: {
-            ...(toolCallId != null ? { id: toolCallId } : {}),
+            ...(includeFunctionCallIds && toolCallId != null
+              ? { id: toolCallId }
+              : {}),
             name: toolName,
             response: {
               name: toolName,
@@ -206,6 +212,7 @@ export function convertToGoogleMessages(
      */
     providerOptionsNames?: readonly string[];
     supportsFunctionResponseParts?: boolean;
+    includeFunctionCallIds?: boolean;
   },
 ): GooglePrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
@@ -218,6 +225,7 @@ export function convertToGoogleMessages(
   const isVertexLike = !providerOptionsNames.includes('google');
   const supportsFunctionResponseParts =
     options?.supportsFunctionResponseParts ?? true;
+  const includeFunctionCallIds = options?.includeFunctionCallIds ?? true;
 
   let sentinelInjected = false;
   const missingSignatureToolNames: string[] = [];
@@ -336,6 +344,8 @@ export function convertToGoogleMessages(
 
       case 'assistant': {
         systemMessagesAllowed = false;
+
+        let modelResponseHasSignedFunctionCall = false;
 
         contents.push({
           role: 'model',
@@ -459,13 +469,27 @@ export function convertToGoogleMessages(
                     providerOpts?.serverToolType != null
                       ? String(providerOpts.serverToolType)
                       : undefined;
+                  const isServerToolCall =
+                    serverToolCallId != null && serverToolType != null;
+                  const shouldSkipMissingSignatureMitigation =
+                    // Gemini 3 returns a single signature for a parallel
+                    // function-call response on the first standard function
+                    // call. Subsequent standard function calls in the same
+                    // model response legitimately have no signature.
+                    !isServerToolCall &&
+                    thoughtSignature == null &&
+                    modelResponseHasSignedFunctionCall;
                   const effectiveThoughtSignature =
                     thoughtSignature ??
-                    (isGemini3Model
+                    (isGemini3Model && !shouldSkipMissingSignatureMitigation
                       ? injectSkipSignature(part.toolName)
                       : undefined);
 
-                  if (serverToolCallId && serverToolType) {
+                  if (!isServerToolCall && thoughtSignature != null) {
+                    modelResponseHasSignedFunctionCall = true;
+                  }
+
+                  if (isServerToolCall) {
                     return {
                       toolCall: {
                         toolType: serverToolType,
@@ -481,7 +505,7 @@ export function convertToGoogleMessages(
 
                   return {
                     functionCall: {
-                      ...(part.toolCallId != null
+                      ...(includeFunctionCallIds && part.toolCallId != null
                         ? { id: part.toolCallId }
                         : {}),
                       name: part.toolName,
@@ -575,6 +599,7 @@ export function convertToGoogleMessages(
                 part.toolName,
                 output.value,
                 part.toolCallId,
+                includeFunctionCallIds,
               );
             } else {
               appendLegacyToolResultParts(
@@ -582,12 +607,15 @@ export function convertToGoogleMessages(
                 part.toolName,
                 output.value,
                 part.toolCallId,
+                includeFunctionCallIds,
               );
             }
           } else {
             parts.push({
               functionResponse: {
-                ...(part.toolCallId != null ? { id: part.toolCallId } : {}),
+                ...(includeFunctionCallIds && part.toolCallId != null
+                  ? { id: part.toolCallId }
+                  : {}),
                 name: part.toolName,
                 response: {
                   name: part.toolName,

@@ -512,6 +512,9 @@ describe('doGenerate', () => {
   const TEST_URL_GEMINI_3_1_PRO =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent';
 
+  const TEST_URL_GEMINI_99_PRO =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-99-pro-preview:generateContent';
+
   const TEST_URL_GEMINI_2_5_PRO =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent';
 
@@ -529,6 +532,7 @@ describe('doGenerate', () => {
     [TEST_URL_GEMINI_1_5_FLASH]: {},
     [TEST_URL_GEMINI_3_PRO]: {},
     [TEST_URL_GEMINI_3_1_PRO]: {},
+    [TEST_URL_GEMINI_99_PRO]: {},
     [TEST_URL_GEMINI_2_5_PRO]: {},
     [TEST_URL_GEMINI_2_5_FLASH_LITE]: {},
     [TEST_URL_GEMINI_2_5_FLASH]: {},
@@ -606,6 +610,64 @@ describe('doGenerate', () => {
     };
   };
 
+  it('should omit function call IDs from Vertex requests', async () => {
+    prepareJsonResponse({ content: 'done' });
+
+    const vertexModel = new GoogleLanguageModel('gemini-pro', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+    });
+
+    await vertexModel.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Look up the answer.' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call_repro_1',
+              toolName: 'lookup',
+              input: { query: 'vertex function id repro' },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call_repro_1',
+              toolName: 'lookup',
+              output: {
+                type: 'json',
+                value: { answer: 'known' },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.contents[1].parts[0].functionCall).toEqual({
+      name: 'lookup',
+      args: { query: 'vertex function id repro' },
+    });
+    expect(requestBody.contents[2].parts[0].functionResponse).toEqual({
+      name: 'lookup',
+      response: {
+        name: 'lookup',
+        content: { answer: 'known' },
+      },
+    });
+  });
+
   it('should send PDF tool result data as inlineData for Gemini 2.5 legacy tool results', async () => {
     server.urls[TEST_URL_GEMINI_2_5_FLASH_LITE].response = {
       type: 'json-value',
@@ -679,6 +741,101 @@ describe('doGenerate', () => {
       },
       {
         text: 'Tool executed successfully and returned this file as a response',
+      },
+    ]);
+  });
+
+  it('should use newest request behavior for an unknown future Gemini model', async () => {
+    server.urls[TEST_URL_GEMINI_99_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [{ text: 'done' }],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+          },
+        ],
+      },
+    };
+
+    const model = provider.chat('gemini-99-pro-preview');
+
+    await model.doGenerate({
+      reasoning: 'high',
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Create a weather chart.' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolName: 'createWeatherChart',
+              toolCallId: 'testCallId',
+              input: { location: 'San Francisco' },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'createWeatherChart',
+              toolCallId: 'testCallId',
+              output: {
+                type: 'content',
+                value: [
+                  { type: 'text', text: 'Weather chart' },
+                  {
+                    type: 'file',
+                    data: { type: 'data', data: 'iVBORw0KGgo=' },
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.generationConfig.thinkingConfig).toEqual({
+      thinkingLevel: 'high',
+    });
+    expect(requestBody.contents[1].parts[0]).toMatchObject({
+      functionCall: {
+        id: 'testCallId',
+        name: 'createWeatherChart',
+        args: { location: 'San Francisco' },
+      },
+      thoughtSignature: 'skip_thought_signature_validator',
+    });
+    expect(requestBody.contents[2].parts).toEqual([
+      {
+        functionResponse: {
+          id: 'testCallId',
+          name: 'createWeatherChart',
+          response: {
+            name: 'createWeatherChart',
+            content: 'Weather chart',
+          },
+          parts: [
+            {
+              inlineData: {
+                mimeType: 'image/png',
+                data: 'iVBORw0KGgo=',
+              },
+            },
+          ],
+        },
       },
     ]);
   });

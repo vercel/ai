@@ -1,5 +1,39 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.31
+
+### Patch Changes
+
+- Updated dependencies [cbdc990]
+- Updated dependencies [cbdc990]
+- Updated dependencies [cbdc990]
+  - @ai-sdk/anthropic@4.0.20
+
+## 5.0.30
+
+### Patch Changes
+
+- Updated dependencies [1f6dd3a]
+- Updated dependencies [01a596a]
+  - @ai-sdk/openai@4.0.20
+  - @ai-sdk/anthropic@4.0.19
+
+## 5.0.29
+
+### Patch Changes
+
+- Updated dependencies [34c53c0]
+  - @ai-sdk/openai@4.0.19
+
+## 5.0.28
+
+### Patch Changes
+
+- 1f92bdb: Pass through `s3://` image URLs to Amazon Bedrock Converse as S3 image sources instead of downloading them.
+- 8fcb72c: Sanitize invalid characters in replayed tool call names before sending conversation history to Amazon Bedrock.
+- Updated dependencies [bc43dc2]
+  - @ai-sdk/openai@4.0.18
+
 ## 5.0.27
 
 ### Patch Changes
