@@ -588,7 +588,7 @@ console.log(result.text);`,
     slug: 'serpdive',
     name: 'SERPdive',
     description:
-      'SERPdive is a real-time web search API built for AI agents. Each result carries the extracted, answer-ready content of the page — not a link or snippet — so agents can quote and cite facts straight from the response. On a public, replayable 1,000-question benchmark it wins 60.7% of decided quality duels against the leading comparable search API while returning 20.2% fewer tokens at the same speed. Localization is automatic: a query in any language searches the web in that language.',
+      'SERPdive is a real-time web search API built for AI agents. Each result carries the extracted, answer-ready content of the page — not a link or snippet — so agents can quote and cite facts straight from the response. On a public, replayable 1,000-question benchmark it wins 60.7% of decided quality duels against the leading comparable search API while returning 20.2% fewer tokens at the same speed. A free tier is included: the `krill` model is free and unlimited under fair use, no card required. Localization is automatic: a query in any language searches the web in that language.',
     packageName: '@serpdive/ai-sdk',
     tags: ['search', 'web', 'extraction'],
     apiKeyEnvName: 'SERPDIVE_API_KEY',
