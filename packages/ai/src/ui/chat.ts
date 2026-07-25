@@ -458,11 +458,23 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     });
   };
 
+  private isResuming = false;
+
   /**
    * Attempt to resume an ongoing streaming response.
+   * Idempotent — concurrent calls from multiple `useChat` subscribers sharing
+   * the same `Chat` instance will not trigger duplicate stream reconnects.
    */
   resumeStream = async (options: ChatRequestOptions = {}): Promise<void> => {
-    await this.makeRequest({ trigger: 'resume-stream', ...options });
+    if (this.isResuming) {
+      return;
+    }
+    this.isResuming = true;
+    try {
+      await this.makeRequest({ trigger: 'resume-stream', ...options });
+    } finally {
+      this.isResuming = false;
+    }
   };
 
   /**
