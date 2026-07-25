@@ -21,9 +21,20 @@ export type MistralUserMessageContent =
   | { type: 'image_url'; image_url: string }
   | { type: 'document_url'; document_url: string };
 
+export type MistralThinkingContent = {
+  type: 'thinking';
+  thinking: Array<{ type: 'text'; text: string }>;
+  closed: boolean;
+};
+
+export type MistralTextContent = {
+  type: 'text';
+  text: string;
+};
+
 export interface MistralAssistantMessage {
   role: 'assistant';
-  content: string;
+  content: string | Array<MistralThinkingContent | MistralTextContent>;
   prefix?: boolean;
   tool_calls?: Array<{
     id: string;

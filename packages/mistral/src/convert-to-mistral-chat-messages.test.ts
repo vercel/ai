@@ -123,10 +123,111 @@ describe('user messages', () => {
     expect(result).toMatchInlineSnapshot(`
       [
         {
-          "content": "Let me think about this...The answer is 42.",
+          "content": [
+            {
+              "closed": true,
+              "thinking": [
+                {
+                  "text": "Let me think about this...",
+                  "type": "text",
+                },
+              ],
+              "type": "thinking",
+            },
+            {
+              "text": "The answer is 42.",
+              "type": "text",
+            },
+          ],
           "prefix": true,
           "role": "assistant",
           "tool_calls": undefined,
+        },
+      ]
+    `);
+  });
+
+  it('should keep plain string content for text-only assistant messages', () => {
+    const result = convertToMistralChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Hello' }],
+      },
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Hi there!' }],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "Hello",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+        {
+          "content": "Hi there!",
+          "prefix": true,
+          "role": "assistant",
+          "tool_calls": undefined,
+        },
+      ]
+    `);
+  });
+
+  it('should convert reasoning with tool calls', () => {
+    const result = convertToMistralChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          { type: 'reasoning', text: 'I should look this up.' },
+          { type: 'text', text: 'Let me search.' },
+          {
+            type: 'tool-call',
+            input: { query: 'test' },
+            toolCallId: 'tc-1',
+            toolName: 'search',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "closed": true,
+              "thinking": [
+                {
+                  "text": "I should look this up.",
+                  "type": "text",
+                },
+              ],
+              "type": "thinking",
+            },
+            {
+              "text": "Let me search.",
+              "type": "text",
+            },
+          ],
+          "prefix": true,
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "function": {
+                "arguments": "{\"query\":\"test\"}",
+                "name": "search",
+              },
+              "id": "tc-1",
+              "type": "function",
+            },
+          ],
         },
       ]
     `);
