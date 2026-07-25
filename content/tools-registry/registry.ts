@@ -584,4 +584,36 @@ console.log(result.text);`,
     websiteUrl: 'https://nitrosend.com',
     npmUrl: 'https://www.npmjs.com/package/@nitrosend/ai-sdk',
   },
+  {
+    slug: 'sqai',
+    name: 'SQAI',
+    description:
+      'SQAI (Structured Query AI) is a governed, read-only structured-data tool for AI agents. It turns a natural-language question into a typed, policy-checked plan, runs it on an on-device runtime, and returns the answer with replayable provenance hashes. Query CSV, JSON, record arrays, and SQLite in-process, alongside 4,574 read-only compute capabilities across statistics, finance, linear algebra, time series, option pricing, and more. Policy lives in code — the model can only narrow what you allow, never widen it. Runs on your machine, no cloud; local compute uses a one-time free `sqai login`.',
+    packageName: '@thyn-ai/sqai-ai-sdk',
+    tags: ['data', 'analytics', 'structured-data', 'read-only', 'governance', 'provenance'],
+    installCommand: {
+      pnpm: 'pnpm add @thyn-ai/sqai-ai-sdk',
+      npm: 'npm install @thyn-ai/sqai-ai-sdk',
+      yarn: 'yarn add @thyn-ai/sqai-ai-sdk',
+      bun: 'bun add @thyn-ai/sqai-ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createSQAI } from '@thyn-ai/sqai-ai-sdk';
+
+const sqai = createSQAI({
+  sources: [{ data: './sales.csv', name: 'sales' }],
+});
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: sqai.tools(),
+  stopWhen: isStepCount(8),
+  prompt: 'Which region had the highest total revenue, and what explains it?',
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.sqai.com',
+    websiteUrl: 'https://sqai.com',
+    npmUrl: 'https://www.npmjs.com/package/@thyn-ai/sqai-ai-sdk',
+  },
 ];
