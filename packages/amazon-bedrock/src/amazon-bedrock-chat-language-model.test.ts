@@ -103,6 +103,11 @@ const opusAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   opusAnthropicModelId,
 )}/converse`;
 
+const opus5AnthropicModelId = 'us.anthropic.claude-opus-5';
+const opus5AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  opus5AnthropicModelId,
+)}/converse`;
+
 const server = createTestServer({
   [generateUrl]: {},
   [streamUrl]: {
@@ -118,6 +123,7 @@ const server = createTestServer({
   [openaiGenerateUrl]: {},
   [newerAnthropicGenerateUrl]: {},
   [opusAnthropicGenerateUrl]: {},
+  [opus5AnthropicGenerateUrl]: {},
 });
 
 describe('supportedUrls', () => {
@@ -235,6 +241,16 @@ const newerAnthropicModel = new AmazonBedrockChatLanguageModel(
 
 const opusAnthropicModel = new AmazonBedrockChatLanguageModel(
   opusAnthropicModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
+const opus5AnthropicModel = new AmazonBedrockChatLanguageModel(
+  opus5AnthropicModelId,
   {
     baseUrl: () => baseUrl,
     headers: {},
@@ -5094,6 +5110,56 @@ describe('doGenerate', () => {
       ]
     `);
     expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
+  });
+
+  it('should use the json tool fallback for claude-opus-5 (Bedrock rejects output_config.format)', async () => {
+    server.urls[opus5AnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'json-tool-id',
+                  name: 'json',
+                  input: { name: 'Test' },
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'tool_use',
+      },
+    };
+
+    await opus5AnthropicModel.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a name' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
+    expect(
+      requestBody.additionalModelRequestFields?.output_config,
+    ).toBeUndefined();
   });
 
   it('should use native output_config.format for models with structured output support even without thinking enabled', async () => {
