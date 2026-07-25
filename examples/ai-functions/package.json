@@ -36,6 +36,7 @@
     "@ai-sdk/harness-pi": "workspace:*",
     "@ai-sdk/huggingface": "workspace:*",
     "@ai-sdk/hume": "workspace:*",
+    "@ai-sdk/interfaze": "workspace:*",
     "@ai-sdk/klingai": "workspace:*",
     "@ai-sdk/langchain": "workspace:*",
     "@ai-sdk/lmnt": "workspace:*",

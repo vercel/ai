@@ -1,0 +1,5 @@
+{"id":"chatcmpl-interfaze-think-only","choices":[{"index":0,"delta":{"role":"assistant"}}],"created":1780000020,"model":"interfaze-beta","object":"chat.completion.chunk"}
+{"id":"chatcmpl-interfaze-think-only","choices":[{"index":0,"delta":{"content":"<thi"}}],"created":1780000020,"model":"interfaze-beta","object":"chat.completion.chunk"}
+{"id":"chatcmpl-interfaze-think-only","choices":[{"index":0,"delta":{"content":"nk>This never resolv"}}],"created":1780000020,"model":"interfaze-beta","object":"chat.completion.chunk"}
+{"id":"chatcmpl-interfaze-think-only","choices":[{"index":0,"delta":{"content":"es visibly."}}],"created":1780000020,"model":"interfaze-beta","object":"chat.completion.chunk"}
+{"id":"chatcmpl-interfaze-think-only","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"created":1780000020,"model":"interfaze-beta","object":"chat.completion.chunk","usage":{"prompt_tokens":9,"completion_tokens":10,"total_tokens":19}}

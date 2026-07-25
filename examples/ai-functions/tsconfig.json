@@ -124,7 +124,13 @@
       "path": "../../packages/hume"
     },
     {
+      "path": "../../packages/interfaze"
+    },
+    {
       "path": "../../packages/klingai"
+    },
+    {
+      "path": "../../packages/langchain"
     },
     {
       "path": "../../packages/lmnt"

@@ -1,0 +1,22 @@
+{
+  "id": "chatcmpl-interfaze-json-fence",
+  "object": "chat.completion",
+  "created": 1780000003,
+  "model": "interfaze-beta",
+  "choices": [
+    {
+      "index": 0,
+      "finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "content": "```json\n{\"result\":\"2026\"}\n```"
+      }
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 5,
+    "completion_tokens": 6,
+    "total_tokens": 11
+  },
+  "vcache": false
+}
