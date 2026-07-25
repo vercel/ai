@@ -131,14 +131,14 @@ describe('bedrock-anthropic-provider', () => {
   ])(
     'should disable strict tools for %s (Bedrock rejects tools[].strict)',
     modelId => {
-      const provider = createAmazonBedrockAnthropic({
+      const provider = createBedrockAnthropic({
         region: 'us-east-1',
         accessKeyId: 'test-key',
         secretAccessKey: 'test-secret',
       });
       provider(modelId as Parameters<typeof provider>[0]);
 
-      expect(AnthropicLanguageModel).toHaveBeenCalledWith(
+      expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
         modelId,
         expect.objectContaining({
           supportsStrictTools: false,
@@ -151,14 +151,14 @@ describe('bedrock-anthropic-provider', () => {
     'anthropic.claude-sonnet-4-6',
     'us.anthropic.claude-haiku-4-5-20251001-v1:0',
   ])('should keep strict tools enabled for %s', modelId => {
-    const provider = createAmazonBedrockAnthropic({
+    const provider = createBedrockAnthropic({
       region: 'us-east-1',
       accessKeyId: 'test-key',
       secretAccessKey: 'test-secret',
     });
     provider(modelId as Parameters<typeof provider>[0]);
 
-    expect(AnthropicLanguageModel).toHaveBeenCalledWith(
+    expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
       modelId,
       expect.objectContaining({
         supportsStrictTools: true,

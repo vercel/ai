@@ -19,21 +19,14 @@ import {
 import {
   createApiKeyFetchFunction,
   createSigV4FetchFunction,
-<<<<<<< HEAD:packages/amazon-bedrock/src/anthropic/bedrock-anthropic-provider.ts
   type BedrockCredentials,
 } from '../bedrock-sigv4-fetch';
-import { createBedrockAnthropicFetch } from './bedrock-anthropic-fetch';
-import type { BedrockAnthropicModelId } from './bedrock-anthropic-options';
-=======
-  type AmazonBedrockCredentials,
-} from '../amazon-bedrock-sigv4-fetch';
 import {
   supportsNativeStructuredOutput,
   supportsStrictTools,
-} from '../amazon-bedrock-anthropic-model-support';
-import { createAmazonBedrockAnthropicFetch } from './amazon-bedrock-anthropic-fetch';
-import type { AmazonBedrockAnthropicModelId } from './amazon-bedrock-anthropic-options';
->>>>>>> eb16508fc7 (fix(provider/amazon-bedrock): omit tool `strict` and `output_config.format` for Claude models Bedrock rejects them on (#17919)):packages/amazon-bedrock/src/anthropic/amazon-bedrock-anthropic-provider.ts
+} from '../bedrock-anthropic-model-support';
+import { createBedrockAnthropicFetch } from './bedrock-anthropic-fetch';
+import type { BedrockAnthropicModelId } from './bedrock-anthropic-options';
 import { VERSION } from '../version';
 
 // Bedrock requires newer tool versions than the default Anthropic SDK versions

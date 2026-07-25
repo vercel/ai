@@ -9,7 +9,7 @@ import {
   anthropicTools,
   prepareTools as prepareAnthropicTools,
 } from '@ai-sdk/anthropic/internal';
-import { supportsStrictTools } from './amazon-bedrock-anthropic-model-support';
+import { supportsStrictTools } from './bedrock-anthropic-model-support';
 import type {
   BedrockTool,
   BedrockToolConfiguration,
