@@ -7,7 +7,6 @@ import {
   loadOptionalSetting,
   loadSetting,
   resolve,
-  withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
   type Resolvable,
@@ -21,6 +20,7 @@ import {
   createSigV4FetchFunction,
   type AmazonBedrockCredentials,
 } from '../amazon-bedrock-sigv4-fetch';
+import { resolveAmazonBedrockBaseURL } from '../resolve-amazon-bedrock-base-url';
 import { createAmazonBedrockAnthropicFetch } from './amazon-bedrock-anthropic-fetch';
 import type { AmazonBedrockAnthropicModelId } from './amazon-bedrock-anthropic-options';
 import { VERSION } from '../version';
@@ -235,15 +235,19 @@ export function createAmazonBedrockAnthropic(
   const fetchFunction = createAmazonBedrockAnthropicFetch(baseFetchFunction);
 
   const getBaseURL = (): string =>
-    withoutTrailingSlash(
-      options.baseURL ??
-        `https://bedrock-runtime.${loadSetting({
+    resolveAmazonBedrockBaseURL({
+      baseURL: options.baseURL,
+      getRegion: () =>
+        loadSetting({
           settingValue: options.region,
           settingName: 'region',
           environmentVariableName: 'AWS_REGION',
           description: 'AWS region',
-        })}.amazonaws.com`,
-    ) ?? 'https://bedrock-runtime.us-east-1.amazonaws.com';
+        }),
+      service: 'bedrock-runtime',
+      serviceEndpointUrlEnvironmentVariableName:
+        'AWS_ENDPOINT_URL_BEDROCK_RUNTIME',
+    });
 
   const getHeaders = async () => {
     const baseHeaders = (await resolve(options.headers)) ?? {};

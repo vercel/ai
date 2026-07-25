@@ -175,6 +175,10 @@ You can use the following optional settings to customize the Amazon Bedrock prov
 
   Optional. Base URL for the Bedrock API calls.
   Useful for custom endpoints or proxy configurations.
+  When omitted, the provider also supports the service-specific
+  `AWS_ENDPOINT_URL_BEDROCK_RUNTIME` and
+  `AWS_ENDPOINT_URL_BEDROCK_AGENT_RUNTIME` environment variables, which take
+  precedence over the global `AWS_ENDPOINT_URL` environment variable.
 
 - **headers** _Record&lt;string, string&gt;_
 
@@ -1374,6 +1378,9 @@ You can use the following optional settings to customize the Bedrock Anthropic p
 
   Base URL for the Bedrock API calls.
   Useful for custom endpoints or proxy configurations.
+  When omitted, the provider also supports the service-specific
+  `AWS_ENDPOINT_URL_BEDROCK_RUNTIME` environment variable, which takes
+  precedence over the global `AWS_ENDPOINT_URL` environment variable.
 
 - **headers** _Resolvable&lt;Record&lt;string, string | undefined&gt;&gt;_
 

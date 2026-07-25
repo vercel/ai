@@ -4,6 +4,7 @@ import {
   AnthropicLanguageModel,
   anthropicTools,
 } from '@ai-sdk/anthropic/internal';
+import { loadOptionalSetting, loadSetting } from '@ai-sdk/provider-utils';
 import { vi, describe, beforeEach, it, expect } from 'vitest';
 
 vi.mock('@ai-sdk/provider-utils', async () => {
@@ -25,7 +26,9 @@ vi.mock('@ai-sdk/provider-utils', async () => {
       if (settingName === 'secretAccessKey') return 'mock-secret-key';
       return settingValue;
     }),
-    withoutTrailingSlash: vi.fn().mockImplementation(url => url),
+    withoutTrailingSlash: vi
+      .fn()
+      .mockImplementation(url => url?.replace(/\/$/, '')),
     withUserAgentSuffix: vi.fn().mockImplementation((headers, suffix) => ({
       ...headers,
       'user-agent': suffix,
@@ -56,9 +59,23 @@ vi.mock('../amazon-bedrock-sigv4-fetch', () => ({
   createApiKeyFetchFunction: vi.fn().mockReturnValue(vi.fn()),
 }));
 
+const mockLoadOptionalSetting = vi.mocked(loadOptionalSetting);
+const mockLoadSetting = vi.mocked(loadSetting);
+
 describe('amazon-bedrock-anthropic-provider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockLoadOptionalSetting.mockImplementation(({ settingValue }) => {
+      if (settingValue === undefined) return undefined;
+      return settingValue;
+    });
+    mockLoadSetting.mockImplementation(({ settingValue, settingName }) => {
+      if (settingValue) return settingValue;
+      if (settingName === 'region') return 'us-east-1';
+      if (settingName === 'accessKeyId') return 'mock-access-key';
+      if (settingName === 'secretAccessKey') return 'mock-secret-key';
+      return settingValue as string;
+    });
   });
 
   it('should create a language model with default settings', () => {
@@ -127,11 +144,56 @@ describe('amazon-bedrock-anthropic-provider', () => {
     );
   });
 
-  it('should pass custom baseURL to the model when created', () => {
+  it('should pass custom baseURL without loading a region', () => {
     const customBaseURL = 'https://custom-bedrock.amazonaws.com';
     const provider = createAmazonBedrockAnthropic({
-      region: 'us-east-1',
+      apiKey: 'test-api-key',
       baseURL: customBaseURL,
+    });
+    provider('test-model-id');
+
+    expect(AnthropicLanguageModel).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        baseURL: customBaseURL,
+      }),
+    );
+    expect(mockLoadSetting).not.toHaveBeenCalled();
+  });
+
+  it('prefers the service-specific endpoint over the global endpoint without loading a region', () => {
+    mockLoadOptionalSetting.mockImplementation(
+      ({ settingValue, environmentVariableName }) => {
+        if (settingValue != null) {
+          return settingValue;
+        }
+        if (environmentVariableName === 'AWS_ENDPOINT_URL_BEDROCK_RUNTIME') {
+          return 'https://runtime.example.com/';
+        }
+        if (environmentVariableName === 'AWS_ENDPOINT_URL') {
+          return 'https://global.example.com';
+        }
+        return undefined;
+      },
+    );
+
+    const provider = createAmazonBedrockAnthropic({
+      apiKey: 'test-api-key',
+    });
+    provider('test-model-id');
+
+    expect(AnthropicLanguageModel).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        baseURL: 'https://runtime.example.com',
+      }),
+    );
+    expect(mockLoadSetting).not.toHaveBeenCalled();
+  });
+
+  it('resolves the Bedrock Runtime endpoint for an AWS ISO region', () => {
+    const provider = createAmazonBedrockAnthropic({
+      region: 'us-iso-east-1',
       accessKeyId: 'test-key',
       secretAccessKey: 'test-secret',
     });
@@ -140,7 +202,7 @@ describe('amazon-bedrock-anthropic-provider', () => {
     expect(AnthropicLanguageModel).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        baseURL: customBaseURL,
+        baseURL: 'https://bedrock-runtime.us-iso-east-1.c2s.ic.gov',
       }),
     );
   });
