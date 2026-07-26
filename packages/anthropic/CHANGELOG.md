@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.103
+
+### Patch Changes
+
+- 7865a71: fix(anthropic): report thinking tokens as reasoning token usage
+
 ## 3.0.102
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.142
+
+### Patch Changes
+
+- 13c9960: fix(provider/amazon-bedrock): omit tool `strict` and `output_config.format` for Claude models Bedrock rejects them on
+- Updated dependencies [7865a71]
+  - @ai-sdk/anthropic@3.0.103
+
 ## 4.0.141
 
 ### Patch Changes
