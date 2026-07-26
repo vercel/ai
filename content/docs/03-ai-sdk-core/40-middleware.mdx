@@ -266,6 +266,107 @@ const model = wrapLanguageModel({
 
 Find more examples at this [link](https://github.com/minpeter/ai-sdk-tool-call-middleware/tree/main/examples/core/src).
 
+### Context Management
+
+The [ai-sdk-context-management](https://github.com/pablof7z/ai-sdk-context-management) package provides middleware-driven context management for long-running agents. It solves the fundamental problem of fitting unlimited conversation history into bounded context windows through composable strategies that rewrite prompts at the model boundary.
+
+The package includes strategies for sliding window trimming, tool result decay, head-and-tail preservation, summarization (both deterministic and LLM-driven), system prompt caching, agent scratchpads, pinned messages, and context utilization warnings.
+
+```ts
+import { generateText, wrapLanguageModel } from 'ai';
+import {
+  ToolResultDecayStrategy,
+  SystemPromptCachingStrategy,
+  SlidingWindowStrategy,
+  createContextManagementRuntime,
+} from 'ai-sdk-context-management';
+
+const runtime = createContextManagementRuntime({
+  strategies: [
+    new SystemPromptCachingStrategy(),
+    new ToolResultDecayStrategy({ maxPromptTokens: 24_000 }),
+    new SlidingWindowStrategy({ maxPromptTokens: 24_000 }),
+  ],
+});
+
+const model = wrapLanguageModel({
+  model: yourModel,
+  middleware: runtime.middleware,
+});
+
+const result = await generateText({
+  model,
+  messages,
+  tools: {
+    ...yourTools,
+    ...runtime.optionalTools, // strategies can expose agent-facing tools
+  },
+  providerOptions: {
+    contextManagement: { conversationId: 'conv-123', agentId: 'agent-1' },
+  },
+});
+```
+
+Strategies compose in order — each one sees the prompt as modified by the previous strategy. Some strategies (like `CompactionToolStrategy` and `ScratchpadStrategy`) also expose optional tools that let the agent manage its own context.
+
+Find more examples and per-strategy documentation at [the repository](https://github.com/pablof7z/ai-sdk-context-management).
+
+### System Reminders
+
+The [ai-sdk-system-reminders](https://github.com/pablof7z/ai-sdk-system-reminders) package provides middleware for dynamically injecting system prompts into AI SDK conversations. It solves the problem of keeping dynamic context — todo lists, routing instructions, delegation status — current across multi-step agents without imperative prompt pushing from scattered call sites.
+
+Register **providers** that compute prompt fragments from your application state. The middleware calls them lazily at each model invocation, so you set data once and reminders stay current across steps.
+
+```ts
+import { generateText, wrapLanguageModel } from 'ai';
+import {
+  createSystemReminderContext,
+  createSystemRemindersMiddleware,
+} from 'ai-sdk-system-reminders';
+
+// 1. Create a typed context
+const ctx = createSystemReminderContext<{
+  userName: string;
+  todos: string[];
+}>();
+
+// 2. Register providers — they run on every model call
+ctx.registerProvider('greeting', data =>
+  data
+    ? { type: 'greeting', content: `You are talking to ${data.userName}.` }
+    : null,
+);
+
+ctx.registerProvider('todos', data => {
+  if (!data?.todos.length) return null;
+  return {
+    type: 'todos',
+    content: `Current todos:\n${data.todos.map(t => `- ${t}`).join('\n')}`,
+  };
+});
+
+// 3. Wire up the middleware
+const model = wrapLanguageModel({
+  model: yourModel,
+  middleware: [createSystemRemindersMiddleware(ctx)],
+});
+
+// 4. Push data — providers pick it up at the next model call
+ctx.setProviderData({
+  userName: 'Alice',
+  todos: ['Set up CI', 'Write tests'],
+});
+
+const result = await generateText({
+  model,
+  prompt: 'What should I work on next?',
+});
+```
+
+The package supports three delivery modes: **providers** (run every call, for state that must stay current), **queue** (consumed once, for one-shot nudges), and **defer** (held until `advance()` is called, for cross-cycle delivery like delegation results arriving between agent runs).
+
+Find more examples at [the repository](https://github.com/pablof7z/ai-sdk-system-reminders).
+
 ## Implementing Language Model Middleware
 
 <Note>
