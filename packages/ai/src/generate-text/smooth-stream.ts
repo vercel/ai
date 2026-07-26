@@ -152,7 +152,7 @@ export function smoothStream<TOOLS extends ToolSet>({
         let match;
 
         while ((match = detectChunk(buffer)) != null) {
-          controller.enqueue({ type, text: match, id });
+          controller.enqueue({ type, text: match, id, ...(providerMetadata != null ? { providerMetadata } : {}) });
           buffer = buffer.slice(match.length);
 
           await delay(delayInMs);
