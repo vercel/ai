@@ -54,6 +54,7 @@ import {
 } from '../types/usage';
 import type { StepResult } from './step-result';
 import { isLoopFinished, isStepCount } from './stop-condition';
+import { smoothStream } from './smooth-stream';
 import { streamText } from './stream-text';
 import type { StreamTextResult, TextStreamPart } from './stream-text-result';
 import type {
@@ -155,6 +156,166 @@ function createTestModel({
     doStream: async () => ({ stream, request, response, warnings }),
   });
 }
+
+describe('transformed stream tool execution', () => {
+  const toolCall = {
+    type: 'tool-call' as const,
+    toolCallId: 'call-1',
+    toolName: 'tool1',
+    input: `{ "value": "value" }`,
+  };
+
+  const finish = {
+    type: 'finish' as const,
+    finishReason: { unified: 'tool-calls' as const, raw: 'tool-calls' },
+    usage: testUsage,
+  };
+
+  for (const outputType of ['text', 'reasoning'] as const) {
+    for (const toolCallBeforeEnd of [false, true]) {
+      it(`should execute tools after preceding transformed ${outputType} is emitted when the tool call is ${
+        toolCallBeforeEnd ? 'before' : 'after'
+      } the ${outputType} end`, async () => {
+        const events: string[] = [];
+
+        const outputChunks: LanguageModelV4StreamPart[] =
+          outputType === 'text'
+            ? [
+                { type: 'text-start', id: '1' },
+                {
+                  type: 'text-delta',
+                  id: '1',
+                  delta: 'I will read the file. ',
+                },
+              ]
+            : [
+                { type: 'reasoning-start', id: '1' },
+                {
+                  type: 'reasoning-delta',
+                  id: '1',
+                  delta: 'I will read the file. ',
+                },
+              ];
+
+        const outputEnd: LanguageModelV4StreamPart =
+          outputType === 'text'
+            ? { type: 'text-end', id: '1' }
+            : { type: 'reasoning-end', id: '1' };
+
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              ...outputChunks,
+              ...(toolCallBeforeEnd
+                ? [toolCall, outputEnd]
+                : [outputEnd, toolCall]),
+              finish,
+            ]),
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async () => {
+                events.push('tool executed');
+                return 'result';
+              },
+            }),
+          },
+          experimental_transform: smoothStream({
+            chunking: 'word',
+            _internal: {
+              delay: () => delay(1),
+            },
+          }),
+          prompt: 'test-input',
+        });
+
+        for await (const part of result.fullStream) {
+          if (part.type === 'text-delta' || part.type === 'reasoning-delta') {
+            events.push(part.text);
+          }
+        }
+
+        expect(events).toEqual([
+          'I ',
+          'will ',
+          'read ',
+          'the ',
+          'file. ',
+          'tool executed',
+        ]);
+      });
+    }
+  }
+
+  it('should execute tools when a transform remaps output ids', async () => {
+    const events: string[] = [];
+
+    const result = streamText({
+      model: createTestModel({
+        stream: convertArrayToReadableStream([
+          { type: 'text-start', id: '1' },
+          {
+            type: 'text-delta',
+            id: '1',
+            delta: 'I will read the file. ',
+          },
+          { type: 'text-end', id: '1' },
+          toolCall,
+          finish,
+        ]),
+      }),
+      tools: {
+        tool1: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute: async () => {
+            events.push('tool executed');
+            return 'result';
+          },
+        }),
+      },
+      experimental_transform: [
+        smoothStream({
+          chunking: 'word',
+          _internal: {
+            delay: () => delay(1),
+          },
+        }),
+        () =>
+          new TransformStream({
+            transform(chunk, controller) {
+              if (
+                chunk.type === 'text-start' ||
+                chunk.type === 'text-delta' ||
+                chunk.type === 'text-end'
+              ) {
+                controller.enqueue({
+                  ...chunk,
+                  id: `transformed-${chunk.id}`,
+                });
+              } else {
+                controller.enqueue(chunk);
+              }
+            },
+          }),
+      ],
+      prompt: 'test-input',
+    });
+
+    for await (const text of result.textStream) {
+      events.push(text);
+    }
+
+    expect(events).toEqual([
+      'I ',
+      'will ',
+      'read ',
+      'the ',
+      'file. ',
+      'tool executed',
+    ]);
+  });
+});
 
 const modelWithSources = new MockLanguageModelV4({
   doStream: async () => ({

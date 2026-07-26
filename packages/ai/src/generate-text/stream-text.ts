@@ -974,6 +974,10 @@ class DefaultStreamTextResult<
 
   private tools: TOOLS | undefined;
 
+  private readonly hasTransforms: boolean;
+
+  private readonly toolCallOutputWaiters: DelayedPromise<void>[] = [];
+
   constructor({
     model,
     telemetry,
@@ -1108,6 +1112,7 @@ class DefaultStreamTextResult<
   }) {
     this.outputSpecification = output;
     this.tools = tools;
+    this.hasTransforms = transforms.length > 0;
 
     const telemetryDispatcher = createRestrictedTelemetryDispatcher<
       TOOLS,
@@ -2093,6 +2098,12 @@ class DefaultStreamTextResult<
 
             executeToolInTelemetryContext: telemetryDispatcher.executeTool,
             runInTracingChannelSpan: runInTracingChannelSpanInStep,
+            ...(transforms.length > 0
+              ? {
+                  createToolCallOutputAvailablePromise: () =>
+                    self.createToolCallOutputAvailablePromise(),
+                }
+              : {}),
           });
 
           // Conditionally include request.body based on include settings.
@@ -2595,7 +2606,40 @@ class DefaultStreamTextResult<
   private teeStream() {
     const [stream1, stream2] = this.baseStream.tee();
     this.baseStream = stream2;
-    return stream1;
+
+    if (!this.hasTransforms) {
+      return stream1;
+    }
+
+    const self = this;
+
+    return stream1.pipeThrough(
+      new TransformStream<
+        EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
+        EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
+      >({
+        transform(chunk, controller) {
+          controller.enqueue(chunk);
+
+          // A transform must emit any preceding buffered output before it can
+          // emit the tool call. Signal when that boundary reaches the active
+          // result stream, independent of transformed output ids.
+          if (chunk.part.type === 'tool-call') {
+            self.markToolCallOutputAvailable();
+          }
+        },
+      }),
+    );
+  }
+
+  private markToolCallOutputAvailable() {
+    this.toolCallOutputWaiters.shift()?.resolve();
+  }
+
+  private createToolCallOutputAvailablePromise() {
+    const waiter = new DelayedPromise<void>();
+    this.toolCallOutputWaiters.push(waiter);
+    return waiter.promise;
   }
 
   get textStream(): AsyncIterableStream<string> {
