@@ -134,7 +134,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       type: 'Experimental_SandboxSession',
       isOptional: true,
       description:
-        'Default sandbox session passed to tool execution as `experimental_sandbox` and exposed to `prepareStep`. Per-stream values override this default.',
+        'Default sandbox session passed to tool descriptions and execution as `experimental_sandbox`, and exposed to `prepareStep`. Per-stream values override this default.',
     },
     {
       name: 'prepareStep',
@@ -556,7 +556,7 @@ const result = await agent.stream({
       type: 'Experimental_SandboxSession',
       isOptional: true,
       description:
-        'Sandbox session passed to tool execution as `experimental_sandbox` and exposed to `prepareStep`. Overrides the constructor default.',
+        'Sandbox session passed to tool descriptions and execution as `experimental_sandbox`, and exposed to `prepareStep`. Overrides the constructor default.',
     },
     {
       name: 'telemetry',
