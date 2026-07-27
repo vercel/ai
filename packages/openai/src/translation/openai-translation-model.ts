@@ -3,7 +3,6 @@ import {
   type Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
   type Experimental_SpeechTranslationModelV4StreamOptions as SpeechTranslationModelV4StreamOptions,
   type Experimental_SpeechTranslationModelV4StreamPart as SpeechTranslationModelV4StreamPart,
-  type Experimental_SpeechTranslationModelV4Usage as SpeechTranslationModelV4Usage,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -38,21 +37,7 @@ export type OpenAITranslationStreamOptions = Omit<
 
 type OpenAIRealtimeTranslationEvent = {
   type?: string;
-  item_id?: string;
   delta?: string;
-  transcript?: string;
-  response?: {
-    usage?: {
-      input_token_details?: {
-        audio_tokens?: number;
-        text_tokens?: number;
-      };
-      output_token_details?: {
-        audio_tokens?: number;
-        text_tokens?: number;
-      };
-    };
-  };
   error?: { message?: string };
 };
 
@@ -99,21 +84,36 @@ export class OpenAITranslationModel implements SpeechTranslationModelV4 {
     }
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const openAIOptions = await parseProviderOptions({
+    await parseProviderOptions({
       provider: 'openai',
       providerOptions: options.providerOptions,
       schema: openAITranslationModelOptions,
     });
     const warnings: SharedV4Warning[] = [];
 
+    validateOpenAITranslationInputAudioFormat(options.inputAudioFormat);
+
+    if (options.sourceLanguage != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'sourceLanguage',
+        details:
+          'The OpenAI Realtime translation API auto-detects the source language and does not accept a source language.',
+      });
+    }
+
+    if (options.outputAudioFormat != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'outputAudioFormat',
+        details:
+          'The OpenAI Realtime translation API always outputs 24kHz 16-bit PCM audio and does not accept an output audio format.',
+      });
+    }
+
     const headers = combineHeaders(this.config.headers?.(), options.headers);
     const sessionUpdate = buildOpenAIRealtimeTranslationSession({
-      modelId: this.modelId,
-      inputAudioFormat: options.inputAudioFormat,
-      outputAudioFormat: options.outputAudioFormat,
       targetLanguage: options.targetLanguage,
-      sourceLanguage: options.sourceLanguage,
-      providerOptions: openAIOptions,
     });
 
     return {
@@ -171,13 +171,8 @@ function createOpenAIRealtimeTranslationStream({
         | undefined;
       let connection: WebSocketConnection | undefined;
 
-      // Final text accumulation: `done`/`completed` events carry the full
-      // segment text; deltas are a fallback when no terminal event arrives
-      // for a segment before the response finishes.
       let sourceText = '';
-      let sourceDeltaBuffer = '';
       let translationText = '';
-      let translationDeltaBuffer = '';
 
       cleanup = (closeCode?: number) => {
         if (audioReader != null) {
@@ -197,16 +192,26 @@ function createOpenAIRealtimeTranslationStream({
         controller.error(error);
       };
 
-      const finish = (usage: SpeechTranslationModelV4Usage | undefined) => {
+      const finish = () => {
         if (finished) return;
         finished = true;
+        if (sourceText !== '') {
+          controller.enqueue({
+            type: 'source-transcript-final',
+            text: sourceText,
+          });
+        }
+        if (translationText !== '') {
+          controller.enqueue({
+            type: 'output-text-final',
+            text: translationText,
+          });
+        }
         controller.enqueue({
           type: 'finish',
-          // concatenate so trailing un-finalized delta buffers are included
-          // (buffers are reset on each terminal event, so no double-count):
-          sourceText: sourceText + sourceDeltaBuffer,
-          outputText: translationText + translationDeltaBuffer,
-          usage,
+          sourceText,
+          outputText: translationText,
+          usage: undefined,
         });
         controller.close();
         cleanup(1000);
@@ -220,7 +225,7 @@ function createOpenAIRealtimeTranslationStream({
             if (done || finished) break;
             socket.send(
               JSON.stringify({
-                type: 'input_audio_buffer.append',
+                type: 'session.input_audio_buffer.append',
                 audio: convertToBase64(value),
               }),
             );
@@ -233,7 +238,7 @@ function createOpenAIRealtimeTranslationStream({
           audioReader = undefined;
         }
         if (!finished) {
-          socket.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
+          socket.send(JSON.stringify({ type: 'session.close' }));
         }
       };
 
@@ -261,64 +266,37 @@ function createOpenAIRealtimeTranslationStream({
           }
 
           switch (raw.type) {
-            case 'response.output_audio.delta': {
+            case 'session.output_audio.delta': {
               // skip empty deltas: an empty `audio` part carries no data
               if (raw.delta) {
                 controller.enqueue({
                   type: 'audio',
-                  id: raw.item_id,
                   audio: raw.delta,
                 });
               }
               break;
             }
 
-            case 'response.output_audio_transcript.delta': {
-              translationDeltaBuffer += raw.delta ?? '';
+            case 'session.output_transcript.delta': {
+              translationText += raw.delta ?? '';
               controller.enqueue({
                 type: 'output-text-delta',
-                id: raw.item_id,
                 delta: raw.delta ?? '',
               });
               break;
             }
 
-            case 'response.output_audio_transcript.done': {
-              const text = raw.transcript ?? translationDeltaBuffer;
-              translationText += text;
-              translationDeltaBuffer = '';
-              controller.enqueue({
-                type: 'output-text-final',
-                id: raw.item_id,
-                text,
-              });
-              break;
-            }
-
-            case 'conversation.item.input_audio_transcription.delta': {
-              sourceDeltaBuffer += raw.delta ?? '';
+            case 'session.input_transcript.delta': {
+              sourceText += raw.delta ?? '';
               controller.enqueue({
                 type: 'source-transcript-delta',
-                id: raw.item_id,
                 delta: raw.delta ?? '',
               });
               break;
             }
 
-            case 'conversation.item.input_audio_transcription.completed': {
-              const text = raw.transcript ?? sourceDeltaBuffer;
-              sourceText += text;
-              sourceDeltaBuffer = '';
-              controller.enqueue({
-                type: 'source-transcript-final',
-                id: raw.item_id,
-                text,
-              });
-              break;
-            }
-
-            case 'response.done': {
-              finish(extractOpenAIRealtimeUsage(raw));
+            case 'session.closed': {
+              finish();
               break;
             }
 
@@ -355,86 +333,42 @@ function createOpenAIRealtimeTranslationStream({
   });
 }
 
-function extractOpenAIRealtimeUsage(
-  event: OpenAIRealtimeTranslationEvent,
-): SpeechTranslationModelV4Usage | undefined {
-  const usage = event.response?.usage;
-  if (usage == null) {
-    return undefined;
-  }
-
-  return {
-    ...(usage.input_token_details?.audio_tokens != null
-      ? { inputAudioTokens: usage.input_token_details.audio_tokens }
-      : {}),
-    ...(usage.input_token_details?.text_tokens != null
-      ? { inputTextTokens: usage.input_token_details.text_tokens }
-      : {}),
-    ...(usage.output_token_details?.audio_tokens != null
-      ? { outputAudioTokens: usage.output_token_details.audio_tokens }
-      : {}),
-    ...(usage.output_token_details?.text_tokens != null
-      ? { outputTextTokens: usage.output_token_details.text_tokens }
-      : {}),
-  };
-}
-
 function buildOpenAIRealtimeTranslationSession({
-  modelId,
-  inputAudioFormat,
-  outputAudioFormat,
   targetLanguage,
-  sourceLanguage,
-  providerOptions,
 }: {
-  modelId: string;
-  inputAudioFormat: SpeechTranslationModelV4StreamOptions['inputAudioFormat'];
-  outputAudioFormat: SpeechTranslationModelV4StreamOptions['outputAudioFormat'];
   targetLanguage: string;
-  sourceLanguage: string | undefined;
-  providerOptions: OpenAITranslationModelOptions | undefined;
 }) {
   return {
     type: 'session.update',
     session: {
-      type: 'translation',
       audio: {
         input: {
-          format: {
-            type: inputAudioFormat.type,
-            ...(inputAudioFormat.rate != null
-              ? { rate: inputAudioFormat.rate }
-              : {}),
+          transcription: {
+            model: 'gpt-realtime-whisper',
           },
-          turn_detection: null,
+          noise_reduction: null,
         },
-        ...(outputAudioFormat != null || providerOptions?.voice != null
-          ? {
-              output: {
-                ...(outputAudioFormat != null
-                  ? {
-                      format: {
-                        type: outputAudioFormat.type,
-                        ...(outputAudioFormat.rate != null
-                          ? { rate: outputAudioFormat.rate }
-                          : {}),
-                      },
-                    }
-                  : {}),
-                ...(providerOptions?.voice != null
-                  ? { voice: providerOptions.voice }
-                  : {}),
-              },
-            }
-          : {}),
-      },
-      translation: {
-        model: modelId,
-        target_language: targetLanguage,
-        ...(sourceLanguage != null ? { source_language: sourceLanguage } : {}),
+        output: {
+          language: targetLanguage,
+        },
       },
     },
   };
+}
+
+function validateOpenAITranslationInputAudioFormat(
+  inputAudioFormat: SpeechTranslationModelV4StreamOptions['inputAudioFormat'],
+) {
+  if (
+    inputAudioFormat.type !== 'audio/pcm' ||
+    (inputAudioFormat.rate != null && inputAudioFormat.rate !== 24000)
+  ) {
+    throw new InvalidArgumentError({
+      argument: 'inputAudioFormat',
+      message:
+        'The OpenAI Realtime translation API only supports 24kHz 16-bit PCM input audio.',
+    });
+  }
 }
 
 // The bearer token rides the `openai-insecure-api-key` subprotocol (native

@@ -1156,7 +1156,7 @@ import { google } from '@ai-sdk/google';
 const result = streamTranslate({
   model: google.translation('gemini-3.5-live-translate-preview'),
   audio: audioStream, // ReadableStream<Uint8Array | string>
-  inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+  inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
   targetLanguage: 'es',
 });
 
@@ -1176,10 +1176,6 @@ The following provider options are available:
 - **echoTargetLanguage** _boolean_
   Whether input audio already in the target language should be echoed instead
   of producing silence.
-  Optional.
-
-- **voice** _string_
-  The prebuilt voice used for translated audio output.
   Optional.
 
 ### Model Capabilities

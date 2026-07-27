@@ -76,13 +76,6 @@ describe('doStream', () => {
       audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
       inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
       targetLanguage: 'es',
-      sourceLanguage: 'en',
-      outputAudioFormat: { type: 'audio/pcm', rate: 24000 },
-      providerOptions: {
-        openai: {
-          voice: 'alloy',
-        },
-      },
     });
 
     const partsPromise = convertReadableStreamToArray(result.stream);
@@ -108,84 +101,56 @@ describe('doStream', () => {
     expect(JSON.parse(ws.send.mock.calls[0][0])).toEqual({
       type: 'session.update',
       session: {
-        type: 'translation',
         audio: {
           input: {
-            format: { type: 'audio/pcm', rate: 24000 },
-            turn_detection: null,
+            transcription: {
+              model: 'gpt-realtime-whisper',
+            },
+            noise_reduction: null,
           },
           output: {
-            format: { type: 'audio/pcm', rate: 24000 },
-            voice: 'alloy',
+            language: 'es',
           },
-        },
-        translation: {
-          model: 'gpt-realtime-translate',
-          target_language: 'es',
-          source_language: 'en',
         },
       },
     });
     expect(JSON.parse(ws.send.mock.calls[1][0])).toEqual({
-      type: 'input_audio_buffer.append',
+      type: 'session.input_audio_buffer.append',
       audio: 'AQID',
     });
     expect(JSON.parse(ws.send.mock.calls[2][0])).toEqual({
-      type: 'input_audio_buffer.commit',
+      type: 'session.close',
     });
 
     ws.message({
-      type: 'conversation.item.input_audio_transcription.delta',
-      item_id: 'item-1',
-      delta: 'Hel',
+      type: 'session.input_transcript.delta',
+      event_id: 'event-1',
+      delta: 'Hello',
     });
     ws.message({
-      type: 'conversation.item.input_audio_transcription.completed',
-      item_id: 'item-1',
-      transcript: 'Hello',
+      type: 'session.output_transcript.delta',
+      event_id: 'event-2',
+      delta: 'Hola',
     });
     ws.message({
-      type: 'response.output_audio_transcript.delta',
-      item_id: 'item-2',
-      delta: 'Ho',
-    });
-    ws.message({
-      type: 'response.output_audio.delta',
-      item_id: 'item-2',
+      type: 'session.output_audio.delta',
+      event_id: 'event-3',
       delta: 'BAUG',
     });
-    ws.message({
-      type: 'response.output_audio_transcript.done',
-      item_id: 'item-2',
-      transcript: 'Hola',
-    });
-    ws.message({
-      type: 'response.done',
-      response: {
-        usage: {
-          input_token_details: { audio_tokens: 10, text_tokens: 2 },
-          output_token_details: { audio_tokens: 20, text_tokens: 3 },
-        },
-      },
-    });
+    ws.message({ type: 'session.closed', event_id: 'event-4' });
 
     await expect(partsPromise).resolves.toEqual([
       { type: 'stream-start', warnings: [] },
-      { type: 'source-transcript-delta', id: 'item-1', delta: 'Hel' },
-      { type: 'source-transcript-final', id: 'item-1', text: 'Hello' },
-      { type: 'output-text-delta', id: 'item-2', delta: 'Ho' },
-      { type: 'audio', id: 'item-2', audio: 'BAUG' },
-      { type: 'output-text-final', id: 'item-2', text: 'Hola' },
+      { type: 'source-transcript-delta', delta: 'Hello' },
+      { type: 'output-text-delta', delta: 'Hola' },
+      { type: 'audio', audio: 'BAUG' },
+      { type: 'source-transcript-final', text: 'Hello' },
+      { type: 'output-text-final', text: 'Hola' },
       {
         type: 'finish',
         sourceText: 'Hello',
         outputText: 'Hola',
-        usage: {
-          inputAudioTokens: 10,
-          inputTextTokens: 2,
-          outputAudioTokens: 20,
-          outputTextTokens: 3,
-        },
+        usage: undefined,
       },
     ]);
     expect(result.response).toEqual({
@@ -197,7 +162,7 @@ describe('doStream', () => {
     });
   });
 
-  it('should fall back to accumulated deltas when no terminal transcript events arrive', async () => {
+  it('should accumulate transcript deltas until the session closes', async () => {
     MockWebSocket.instances = [];
     const model = createModel();
 
@@ -213,27 +178,37 @@ describe('doStream', () => {
     await flush();
 
     ws.message({
-      type: 'conversation.item.input_audio_transcription.delta',
-      item_id: 'item-1',
-      delta: 'Hello',
+      type: 'session.input_transcript.delta',
+      event_id: 'event-1',
+      delta: 'Hello ',
     });
     ws.message({
-      type: 'response.output_audio_transcript.delta',
-      item_id: 'item-2',
-      delta: 'Hola',
+      type: 'session.input_transcript.delta',
+      event_id: 'event-2',
+      delta: 'world',
     });
-    ws.message({ type: 'response.done' });
+    ws.message({
+      type: 'session.output_transcript.delta',
+      event_id: 'event-3',
+      delta: 'Hola ',
+    });
+    ws.message({
+      type: 'session.output_transcript.delta',
+      event_id: 'event-4',
+      delta: 'mundo',
+    });
+    ws.message({ type: 'session.closed', event_id: 'event-5' });
 
     const parts = await partsPromise;
     expect(parts.at(-1)).toEqual({
       type: 'finish',
-      sourceText: 'Hello',
-      outputText: 'Hola',
+      sourceText: 'Hello world',
+      outputText: 'Hola mundo',
       usage: undefined,
     });
   });
 
-  it('should omit output audio session config and source language when not provided', async () => {
+  it('should warn about unsupported sourceLanguage and outputAudioFormat', async () => {
     MockWebSocket.instances = [];
     const model = createModel();
 
@@ -241,6 +216,8 @@ describe('doStream', () => {
       audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
       inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
       targetLanguage: 'es',
+      sourceLanguage: 'en',
+      outputAudioFormat: { type: 'audio/pcm', rate: 24000 },
     });
 
     const partsPromise = convertReadableStreamToArray(result.stream);
@@ -251,27 +228,44 @@ describe('doStream', () => {
     expect(JSON.parse(ws.send.mock.calls[0][0])).toEqual({
       type: 'session.update',
       session: {
-        type: 'translation',
         audio: {
           input: {
-            format: { type: 'audio/pcm', rate: 24000 },
-            turn_detection: null,
+            transcription: {
+              model: 'gpt-realtime-whisper',
+            },
+            noise_reduction: null,
           },
-        },
-        translation: {
-          model: 'gpt-realtime-translate',
-          target_language: 'es',
+          output: {
+            language: 'es',
+          },
         },
       },
     });
 
     ws.message({
-      type: 'response.output_audio_transcript.done',
-      item_id: 'item-1',
-      transcript: 'Hola',
+      type: 'session.output_transcript.delta',
+      event_id: 'event-1',
+      delta: 'Hola',
     });
-    ws.message({ type: 'response.done' });
-    await expect(partsPromise).resolves.toBeDefined();
+    ws.message({ type: 'session.closed', event_id: 'event-2' });
+    const parts = await partsPromise;
+    expect(parts[0]).toEqual({
+      type: 'stream-start',
+      warnings: [
+        {
+          type: 'unsupported',
+          feature: 'sourceLanguage',
+          details:
+            'The OpenAI Realtime translation API auto-detects the source language and does not accept a source language.',
+        },
+        {
+          type: 'unsupported',
+          feature: 'outputAudioFormat',
+          details:
+            'The OpenAI Realtime translation API always outputs 24kHz 16-bit PCM audio and does not accept an output audio format.',
+        },
+      ],
+    });
   });
 
   it('should include raw provider chunks when includeRawChunks is enabled', async () => {
@@ -292,11 +286,11 @@ describe('doStream', () => {
 
     ws.message({ type: 'session.updated' });
     ws.message({
-      type: 'response.output_audio_transcript.done',
-      item_id: 'item-1',
-      transcript: 'Hola',
+      type: 'session.output_transcript.delta',
+      event_id: 'event-1',
+      delta: 'Hola',
     });
-    ws.message({ type: 'response.done' });
+    ws.message({ type: 'session.closed', event_id: 'event-2' });
 
     const parts = await partsPromise;
     expect(parts.filter(part => part.type === 'raw')).toEqual([
@@ -304,12 +298,15 @@ describe('doStream', () => {
       {
         type: 'raw',
         rawValue: {
-          type: 'response.output_audio_transcript.done',
-          item_id: 'item-1',
-          transcript: 'Hola',
+          type: 'session.output_transcript.delta',
+          event_id: 'event-1',
+          delta: 'Hola',
         },
       },
-      { type: 'raw', rawValue: { type: 'response.done' } },
+      {
+        type: 'raw',
+        rawValue: { type: 'session.closed', event_id: 'event-2' },
+      },
     ]);
   });
 
@@ -350,11 +347,11 @@ describe('doStream', () => {
     ws.open();
     await flush();
     ws.message({
-      type: 'response.output_audio_transcript.done',
-      item_id: 'item-1',
-      transcript: 'Hola',
+      type: 'session.output_transcript.delta',
+      event_id: 'event-1',
+      delta: 'Hola',
     });
-    ws.message({ type: 'response.done' });
+    ws.message({ type: 'session.closed', event_id: 'event-2' });
     await expect(partsPromise).resolves.toBeDefined();
   });
 
@@ -483,63 +480,32 @@ describe('doStream', () => {
     ]);
   });
 
-  it('should include finalized segments and trailing un-finalized deltas at response.done', async () => {
-    MockWebSocket.instances = [];
+  it('should reject unsupported input audio types', async () => {
     const model = createModel();
 
-    const result = await model.doStream({
-      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
-      inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
-      targetLanguage: 'es',
-    });
+    await expect(
+      model.doStream({
+        audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+        inputAudioFormat: { type: 'audio/pcmu', rate: 24000 },
+        targetLanguage: 'es',
+      }),
+    ).rejects.toThrow(
+      'The OpenAI Realtime translation API only supports 24kHz 16-bit PCM input audio.',
+    );
+  });
 
-    const partsPromise = convertReadableStreamToArray(result.stream);
-    const ws = MockWebSocket.instances[0];
-    ws.open();
-    await flush();
+  it('should reject unsupported input audio sample rates', async () => {
+    const model = createModel();
 
-    // segment 1: finalized via terminal events
-    ws.message({
-      type: 'conversation.item.input_audio_transcription.delta',
-      item_id: 'item-1',
-      delta: 'Hello ',
-    });
-    ws.message({
-      type: 'conversation.item.input_audio_transcription.completed',
-      item_id: 'item-1',
-      transcript: 'Hello ',
-    });
-    ws.message({
-      type: 'response.output_audio_transcript.delta',
-      item_id: 'item-1',
-      delta: 'Hola ',
-    });
-    ws.message({
-      type: 'response.output_audio_transcript.done',
-      item_id: 'item-1',
-      transcript: 'Hola ',
-    });
-
-    // segment 2: deltas still pending when response.done arrives
-    ws.message({
-      type: 'conversation.item.input_audio_transcription.delta',
-      item_id: 'item-2',
-      delta: 'world',
-    });
-    ws.message({
-      type: 'response.output_audio_transcript.delta',
-      item_id: 'item-2',
-      delta: 'mundo',
-    });
-    ws.message({ type: 'response.done' });
-
-    const parts = await partsPromise;
-    expect(parts.at(-1)).toEqual({
-      type: 'finish',
-      sourceText: 'Hello world',
-      outputText: 'Hola mundo',
-      usage: undefined,
-    });
+    await expect(
+      model.doStream({
+        audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+        targetLanguage: 'es',
+      }),
+    ).rejects.toThrow(
+      'The OpenAI Realtime translation API only supports 24kHz 16-bit PCM input audio.',
+    );
   });
 
   it('should skip empty output audio deltas', async () => {
@@ -558,25 +524,25 @@ describe('doStream', () => {
     await flush();
 
     ws.message({
-      type: 'response.output_audio.delta',
-      item_id: 'item-1',
+      type: 'session.output_audio.delta',
+      event_id: 'event-1',
       delta: '',
     });
     ws.message({
-      type: 'response.output_audio.delta',
-      item_id: 'item-1',
+      type: 'session.output_audio.delta',
+      event_id: 'event-2',
       delta: 'BAUG',
     });
     ws.message({
-      type: 'response.output_audio_transcript.done',
-      item_id: 'item-1',
-      transcript: 'Hola',
+      type: 'session.output_transcript.delta',
+      event_id: 'event-3',
+      delta: 'Hola',
     });
-    ws.message({ type: 'response.done' });
+    ws.message({ type: 'session.closed', event_id: 'event-4' });
 
     const parts = await partsPromise;
     expect(parts.filter(part => part.type === 'audio')).toEqual([
-      { type: 'audio', id: 'item-1', audio: 'BAUG' },
+      { type: 'audio', audio: 'BAUG' },
     ]);
   });
 
@@ -596,8 +562,8 @@ describe('doStream', () => {
     await flush();
 
     ws.message({
-      type: 'response.output_audio_transcript.delta',
-      item_id: 'item-1',
+      type: 'session.output_transcript.delta',
+      event_id: 'event-1',
       delta: 'Ho',
     });
     ws.serverClose(1011, 'internal server error');
@@ -625,8 +591,8 @@ describe('doStream', () => {
     await flush();
 
     ws.message({
-      type: 'response.output_audio_transcript.delta',
-      item_id: 'item-1',
+      type: 'session.output_transcript.delta',
+      event_id: 'event-1',
       delta: 'Ho',
     });
     await flush();
@@ -653,23 +619,23 @@ describe('doStream', () => {
     await flush();
 
     ws.message({
-      type: 'response.output_audio_transcript.done',
-      item_id: 'item-1',
-      transcript: 'Hola',
+      type: 'session.output_transcript.delta',
+      event_id: 'event-1',
+      delta: 'Hola',
     });
-    ws.message({ type: 'response.done' });
+    ws.message({ type: 'session.closed', event_id: 'event-2' });
 
     const parts = await partsPromise;
     expect(parts.at(-1)?.type).toBe('finish');
 
     // post-finish messages are a no-op (no throw, no new parts):
     ws.message({
-      type: 'response.output_audio_transcript.done',
-      item_id: 'item-2',
-      transcript: 'late',
+      type: 'session.output_transcript.delta',
+      event_id: 'event-3',
+      delta: 'late',
     });
-    ws.message({ type: 'response.done' });
+    ws.message({ type: 'session.closed', event_id: 'event-4' });
     await flush();
-    expect(parts).toHaveLength(3);
+    expect(parts).toHaveLength(4);
   });
 });

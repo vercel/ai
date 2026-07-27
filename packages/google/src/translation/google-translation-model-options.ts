@@ -17,11 +17,6 @@ export const googleTranslationModelOptions = lazySchema(() =>
        * instead of producing silence.
        */
       echoTargetLanguage: z.boolean().optional(),
-
-      /**
-       * The prebuilt voice used for translated audio output.
-       */
-      voice: z.string().optional(),
     }),
   ),
 );

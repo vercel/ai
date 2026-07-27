@@ -30,8 +30,6 @@ run(async () => {
     audio,
     inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
     targetLanguage: 'es',
-    sourceLanguage: 'en',
-    outputAudioFormat: { type: 'audio/pcm', rate: 24000 },
   });
 
   let translatedAudioBytes = 0;

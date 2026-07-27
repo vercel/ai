@@ -130,15 +130,7 @@ export class GoogleTranslationModel implements SpeechTranslationModelV4 {
     });
     const warnings: SharedV4Warning[] = [];
 
-    if (options.inputAudioFormat.type !== 'audio/pcm') {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'inputAudioFormat.type',
-        details:
-          `The Gemini Live API only accepts 16-bit PCM input audio; ` +
-          `'${options.inputAudioFormat.type}' chunks are sent as 'audio/pcm'.`,
-      });
-    }
+    validateGoogleTranslationInputAudioFormat(options.inputAudioFormat);
 
     if (options.sourceLanguage != null) {
       warnings.push({
@@ -545,25 +537,29 @@ function buildGoogleLiveTranslationSetup({
     model: getModelPath(modelId),
     generationConfig: {
       responseModalities: ['AUDIO'],
+      inputAudioTranscription: {},
+      outputAudioTranscription: {},
       translationConfig: {
         targetLanguageCode: targetLanguage,
         ...(providerOptions?.echoTargetLanguage != null
           ? { echoTargetLanguage: providerOptions.echoTargetLanguage }
           : {}),
       },
-      ...(providerOptions?.voice != null
-        ? {
-            speechConfig: {
-              voiceConfig: {
-                prebuiltVoiceConfig: {
-                  voiceName: providerOptions.voice,
-                },
-              },
-            },
-          }
-        : {}),
     },
-    inputAudioTranscription: {},
-    outputAudioTranscription: {},
   };
+}
+
+function validateGoogleTranslationInputAudioFormat(
+  inputAudioFormat: SpeechTranslationModelV4StreamOptions['inputAudioFormat'],
+) {
+  if (
+    inputAudioFormat.type !== 'audio/pcm' ||
+    (inputAudioFormat.rate != null && inputAudioFormat.rate !== 16000)
+  ) {
+    throw new InvalidArgumentError({
+      argument: 'inputAudioFormat',
+      message:
+        'The Gemini Live translation API only supports 16kHz 16-bit PCM input audio.',
+    });
+  }
 }

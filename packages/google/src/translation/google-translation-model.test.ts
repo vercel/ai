@@ -82,7 +82,6 @@ describe('doStream', () => {
       providerOptions: {
         google: {
           echoTargetLanguage: true,
-          voice: 'Kore',
         },
       },
     });
@@ -103,18 +102,13 @@ describe('doStream', () => {
         model: 'models/gemini-3.5-live-translate-preview',
         generationConfig: {
           responseModalities: ['AUDIO'],
+          inputAudioTranscription: {},
+          outputAudioTranscription: {},
           translationConfig: {
             targetLanguageCode: 'es',
             echoTargetLanguage: true,
           },
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: 'Kore' },
-            },
-          },
         },
-        inputAudioTranscription: {},
-        outputAudioTranscription: {},
       },
     });
 
@@ -236,37 +230,32 @@ describe('doStream', () => {
     });
   });
 
-  it('should warn about non-PCM input audio formats', async () => {
-    MockWebSocket.instances = [];
+  it('should reject non-PCM input audio formats', async () => {
     const model = createModel();
 
-    const result = await model.doStream({
-      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
-      inputAudioFormat: { type: 'audio/pcmu', rate: 8000 },
-      targetLanguage: 'es',
-    });
+    await expect(
+      model.doStream({
+        audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+        inputAudioFormat: { type: 'audio/pcmu', rate: 8000 },
+        targetLanguage: 'es',
+      }),
+    ).rejects.toThrow(
+      'The Gemini Live translation API only supports 16kHz 16-bit PCM input audio.',
+    );
+  });
 
-    const partsPromise = convertReadableStreamToArray(result.stream);
-    const ws = MockWebSocket.instances[0];
-    ws.open();
-    ws.message({ setupComplete: {} });
-    await flush();
+  it('should reject unsupported input audio sample rates', async () => {
+    const model = createModel();
 
-    ws.message({ serverContent: { outputTranscription: { text: 'Hola' } } });
-    ws.message({ serverContent: { turnComplete: true } });
-
-    const parts = await partsPromise;
-    expect(parts[0]).toEqual({
-      type: 'stream-start',
-      warnings: [
-        {
-          type: 'unsupported',
-          feature: 'inputAudioFormat.type',
-          details:
-            "The Gemini Live API only accepts 16-bit PCM input audio; 'audio/pcmu' chunks are sent as 'audio/pcm'.",
-        },
-      ],
-    });
+    await expect(
+      model.doStream({
+        audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+        targetLanguage: 'es',
+      }),
+    ).rejects.toThrow(
+      'The Gemini Live translation API only supports 16kHz 16-bit PCM input audio.',
+    );
   });
 
   it('should accumulate multiple turns before the audio ends', async () => {

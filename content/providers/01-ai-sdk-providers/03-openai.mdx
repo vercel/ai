@@ -2936,11 +2936,10 @@ for await (const part of result.fullStream) {
 }
 ```
 
-The following provider options are available:
-
-- **voice** _string_
-  The voice used for translated audio output.
-  Optional.
+The OpenAI Realtime translation API auto-detects the source language
+(`sourceLanguage` is not supported), accepts 24kHz 16-bit PCM input, and always
+outputs 24kHz 16-bit PCM audio (`outputAudioFormat` is not supported).
+Unsupported source and output settings surface as call warnings.
 
 ### Model Capabilities
 
