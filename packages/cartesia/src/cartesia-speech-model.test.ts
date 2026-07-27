@@ -1,3 +1,4 @@
+import { InvalidArgumentError } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
 import { createCartesia } from './cartesia-provider';
@@ -58,14 +59,23 @@ describe('CartesiaSpeechModel', () => {
       });
     });
 
-    it('should throw when no voice is provided', async () => {
+    it('should throw a typed error when no voice is provided', async () => {
       prepareAudioResponse();
 
-      await expect(
-        model.doGenerate({
+      try {
+        await model.doGenerate({
           text: 'Hello, world!',
-        }),
-      ).rejects.toThrow('Cartesia speech models require a `voice` to be set.');
+        });
+      } catch (error) {
+        expect(InvalidArgumentError.isInstance(error)).toBe(true);
+        expect(error).toMatchObject({
+          argument: 'voice',
+          message: 'Cartesia speech models require a `voice` to be set.',
+        });
+        return;
+      }
+
+      throw new Error('Expected Cartesia to reject a missing voice.');
     });
 
     it('should map wav output format', async () => {
