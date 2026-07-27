@@ -105,6 +105,65 @@ describe('doGenerate', () => {
 
       expect(result).toMatchSnapshot();
     });
+
+    it('should preserve thinking chunks when replaying reasoning history', async () => {
+      prepareJsonFixtureResponse('mistral-reasoning-history-live');
+
+      const first = await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'What is 17 * 23? Reply with only the result.',
+              },
+            ],
+          },
+        ],
+      });
+
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'What is 17 * 23? Reply with only the result.',
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: first.content.filter(
+              part => part.type === 'reasoning' || part.type === 'text',
+            ),
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Now multiply that result by 3. Reply with only the result.',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((await server.calls[1].requestBodyJson).messages[1]).toEqual({
+        role: 'assistant',
+        content: (
+          JSON.parse(
+            fs.readFileSync(
+              'src/__fixtures__/mistral-reasoning-history-live.json',
+              'utf8',
+            ),
+          ) as any
+        ).choices[0].message.content,
+      });
+    });
   });
 
   it('should pass tools and toolChoice', async () => {
