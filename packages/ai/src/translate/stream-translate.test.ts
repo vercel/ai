@@ -125,7 +125,8 @@ describe('experimental_streamTranslate', () => {
               id: 'item-1',
               text: 'Hello',
               startSecond: 0,
-              durationInSeconds: 1,
+              endSecond: 1,
+              channelIndex: 0,
             },
             {
               type: 'source-transcript-final',
@@ -133,6 +134,7 @@ describe('experimental_streamTranslate', () => {
               text: 'Hello',
               startSecond: 0,
               endSecond: 1,
+              channelIndex: 0,
             },
             { type: 'output-text-delta', id: 'item-1', delta: 'Ho' },
             { type: 'output-text-delta', id: 'item-1', delta: 'la' },
@@ -172,7 +174,8 @@ describe('experimental_streamTranslate', () => {
         id: 'item-1',
         text: 'Hello',
         startSecond: 0,
-        durationInSeconds: 1,
+        endSecond: 1,
+        channelIndex: 0,
       },
       {
         type: 'source-transcript-final',
@@ -180,6 +183,7 @@ describe('experimental_streamTranslate', () => {
         text: 'Hello',
         startSecond: 0,
         endSecond: 1,
+        channelIndex: 0,
       },
       { type: 'output-text-delta', id: 'item-1', delta: 'Ho' },
       { type: 'output-text-delta', id: 'item-1', delta: 'la' },
@@ -199,13 +203,11 @@ describe('experimental_streamTranslate', () => {
     await expect(result.warnings).resolves.toEqual([
       { type: 'other', message: 'test warning' },
     ]);
-    await expect(result.responses).resolves.toEqual([
-      {
-        timestamp: testDate,
-        modelId: 'test-model-id',
-        headers: { 'x-test': 'value' },
-      },
-    ]);
+    await expect(result.response).resolves.toEqual({
+      timestamp: testDate,
+      modelId: 'test-model-id',
+      headers: { 'x-test': 'value' },
+    });
     await expect(result.providerMetadata).resolves.toEqual({
       mock: { key: 'value' },
     });
@@ -265,12 +267,10 @@ describe('experimental_streamTranslate', () => {
     });
     await expect(result.translationText).rejects.toMatchObject({
       name: 'AI_NoTranslationGeneratedError',
-      responses: [
-        {
-          timestamp: testDate,
-          modelId: 'test-model-id',
-        },
-      ],
+      response: {
+        timestamp: testDate,
+        modelId: 'test-model-id',
+      },
     });
   });
 

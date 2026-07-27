@@ -16,7 +16,7 @@ export { MockProviderV3 } from '../src/test/mock-provider-v3';
 export { MockProviderV4 } from '../src/test/mock-provider-v4';
 export { MockSpeechModelV3 } from '../src/test/mock-speech-model-v3';
 export { MockSpeechModelV4 } from '../src/test/mock-speech-model-v4';
-export { MockSpeechTranslationModelV4 } from '../src/test/mock-speech-translation-model-v4';
+export { MockSpeechTranslationModelV4 as Experimental_MockSpeechTranslationModelV4 } from '../src/test/mock-speech-translation-model-v4';
 export { MockTranscriptionModelV3 } from '../src/test/mock-transcription-model-v3';
 export { MockTranscriptionModelV4 } from '../src/test/mock-transcription-model-v4';
 export { MockRerankingModelV3 } from '../src/test/mock-reranking-model-v3';

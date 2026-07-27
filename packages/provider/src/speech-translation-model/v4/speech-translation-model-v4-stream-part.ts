@@ -67,7 +67,8 @@ export type SpeechTranslationModelV4StreamPart =
       id?: string;
       text: string;
       startSecond?: number;
-      durationInSeconds?: number;
+      endSecond?: number;
+      channelIndex?: number;
       providerMetadata?: SharedV4ProviderMetadata;
     }
   | {
@@ -79,6 +80,7 @@ export type SpeechTranslationModelV4StreamPart =
       text: string;
       startSecond?: number;
       endSecond?: number;
+      channelIndex?: number;
       providerMetadata?: SharedV4ProviderMetadata;
     }
   | {

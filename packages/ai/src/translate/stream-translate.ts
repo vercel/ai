@@ -2,6 +2,7 @@ import type {
   Experimental_SpeechTranslationModelV4StreamPart,
   Experimental_SpeechTranslationModelV4Usage,
   JSONObject,
+  SharedV4AudioFormat,
 } from '@ai-sdk/provider';
 import {
   DelayedPromise,
@@ -64,17 +65,7 @@ export function streamTranslate({
   /**
    * The input audio format for the raw audio chunks.
    */
-  inputAudioFormat: {
-    /**
-     * Audio format type, e.g. `audio/pcm`, `audio/pcmu`, or `audio/pcma`.
-     */
-    type: string;
-
-    /**
-     * Sample rate in Hz. Only applicable for formats that require a rate.
-     */
-    rate?: number;
-  };
+  inputAudioFormat: SharedV4AudioFormat;
 
   /**
    * The language to translate the audio into, as a BCP-47-style language
@@ -93,17 +84,7 @@ export function streamTranslate({
    * The desired audio format for translated audio chunks.
    * When absent, the provider default output format is used.
    */
-  outputAudioFormat?: {
-    /**
-     * Audio format type, e.g. `audio/pcm`, `audio/pcmu`, or `audio/pcma`.
-     */
-    type: string;
-
-    /**
-     * Sample rate in Hz. Only applicable for formats that require a rate.
-     */
-    rate?: number;
-  };
+  outputAudioFormat?: SharedV4AudioFormat;
 
   /**
    * Additional provider-specific options.
@@ -148,9 +129,8 @@ export function streamTranslate({
     Experimental_SpeechTranslationModelV4Usage | undefined
   >();
   const warningsPromise = new DelayedPromise<Array<Warning>>();
-  const responsesPromise = new DelayedPromise<
-    Array<SpeechTranslationModelResponseMetadata>
-  >();
+  const responsePromise =
+    new DelayedPromise<SpeechTranslationModelResponseMetadata>();
   const providerMetadataPromise = new DelayedPromise<
     Record<string, JSONObject>
   >();
@@ -162,7 +142,7 @@ export function streamTranslate({
       durationInSecondsPromise,
       usagePromise,
       warningsPromise,
-      responsesPromise,
+      responsePromise,
       providerMetadataPromise,
     ]) {
       if (promise.isPending()) {
@@ -242,7 +222,7 @@ export function streamTranslate({
 
           if (!hasAudioOutput && !value.outputText) {
             throw new NoTranslationGeneratedError({
-              responses: [currentResponseMetadata()],
+              response: currentResponseMetadata(),
             });
           }
 
@@ -250,7 +230,7 @@ export function streamTranslate({
           translationTextPromise.resolve(value.outputText);
           durationInSecondsPromise.resolve(value.durationInSeconds);
           usagePromise.resolve(value.usage);
-          responsesPromise.resolve([currentResponseMetadata()]);
+          responsePromise.resolve(currentResponseMetadata());
           providerMetadataPromise.resolve(value.providerMetadata ?? {});
           break;
         }
@@ -265,7 +245,7 @@ export function streamTranslate({
     flush() {
       if (translationTextPromise.isPending()) {
         throw new NoTranslationGeneratedError({
-          responses: [currentResponseMetadata()],
+          response: currentResponseMetadata(),
         });
       }
     },
@@ -379,9 +359,9 @@ export function streamTranslate({
       consumeStream();
       return warningsPromise.promise;
     },
-    get responses() {
+    get response() {
       consumeStream();
-      return responsesPromise.promise;
+      return responsePromise.promise;
     },
     get providerMetadata() {
       consumeStream();

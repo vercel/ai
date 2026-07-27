@@ -157,8 +157,8 @@ console.log(await result.translationText);
         'Warnings for the call, e.g. unsupported settings. Resolves at stream start, or with an empty array at finish if no stream-start was emitted.',
     },
     {
-      name: 'responses',
-      type: 'Promise<Array<SpeechTranslationModelResponseMetadata>>',
+      name: 'response',
+      type: 'Promise<SpeechTranslationModelResponseMetadata>',
       description: 'Response metadata (timestamp, model ID, headers).',
     },
     {

@@ -1,5 +1,5 @@
 export { streamTranslate as experimental_streamTranslate } from './stream-translate';
 export type {
-  StreamTranslationResult,
-  TranslationStreamPart,
+  StreamTranslationResult as Experimental_StreamTranslationResult,
+  TranslationStreamPart as Experimental_TranslationStreamPart,
 } from './stream-translate-result';

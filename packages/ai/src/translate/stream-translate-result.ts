@@ -10,7 +10,7 @@ import type { AsyncIterableStream } from '../util/async-iterable-stream';
 /**
  * Stream parts emitted by `experimental_streamTranslate`.
  *
- * Speech-to-speech model stream parts are passed through unchanged, except
+ * Speech translation model stream parts are passed through unchanged, except
  * for `stream-start`, `response-metadata`, and `finish`, which are consumed
  * internally and surfaced via the result promises.
  */
@@ -62,7 +62,8 @@ export type TranslationStreamPart =
       id?: string;
       text: string;
       startSecond?: number;
-      durationInSeconds?: number;
+      endSecond?: number;
+      channelIndex?: number;
       providerMetadata?: SharedV4ProviderMetadata;
     }
   | {
@@ -74,6 +75,7 @@ export type TranslationStreamPart =
       text: string;
       startSecond?: number;
       endSecond?: number;
+      channelIndex?: number;
       providerMetadata?: SharedV4ProviderMetadata;
     }
   | {
@@ -125,9 +127,7 @@ export interface StreamTranslationResult {
   /**
    * Response metadata.
    */
-  readonly responses: PromiseLike<
-    Array<SpeechTranslationModelResponseMetadata>
-  >;
+  readonly response: PromiseLike<SpeechTranslationModelResponseMetadata>;
 
   /**
    * Additional provider-specific metadata.

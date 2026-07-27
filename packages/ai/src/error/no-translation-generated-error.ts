@@ -11,17 +11,15 @@ const symbol = Symbol.for(marker);
 export class NoTranslationGeneratedError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
-  readonly responses: Array<SpeechTranslationModelResponseMetadata>;
+  readonly response: SpeechTranslationModelResponseMetadata;
 
-  constructor(options: {
-    responses: Array<SpeechTranslationModelResponseMetadata>;
-  }) {
+  constructor(options: { response: SpeechTranslationModelResponseMetadata }) {
     super({
       name,
       message: 'No translation generated.',
     });
 
-    this.responses = options.responses;
+    this.response = options.response;
   }
 
   static isInstance(error: unknown): error is NoTranslationGeneratedError {

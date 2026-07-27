@@ -125,7 +125,7 @@ const result = streamTranslate({
 Translation models often have provider or model-specific settings which you can
 set using the `providerOptions` parameter.
 
-```ts highlight="7-11"
+```ts highlight="8-12"
 import { experimental_streamTranslate as streamTranslate } from 'ai';
 
 const result = streamTranslate({
@@ -145,7 +145,7 @@ const result = streamTranslate({
 
 Pass an `abortSignal` to cancel the translation:
 
-```ts highlight="7"
+```ts highlight="8"
 import { experimental_streamTranslate as streamTranslate } from 'ai';
 
 const result = streamTranslate({
@@ -166,7 +166,7 @@ without a finish event — it errors with a
 
 The error preserves the following information to help you log the issue:
 
-- `responses`: Metadata about the speech translation model responses, including
+- `response`: Metadata about the speech translation model response, including
   timestamp, model, and headers.
 - `cause`: The cause of the error. You can use this for more detailed error
   handling.
@@ -190,7 +190,7 @@ try {
   if (NoTranslationGeneratedError.isInstance(error)) {
     console.log('NoTranslationGeneratedError');
     console.log('Cause:', error.cause);
-    console.log('Responses:', error.responses);
+    console.log('Response:', error.response);
   }
 }
 ```
