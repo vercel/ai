@@ -266,6 +266,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       onWarning: warning => warnings.push(warning),
       providerOptionsNames,
       supportsFunctionResponseParts: usesGemini3Features,
+      includeFunctionCallIds: !isVertexProvider,
     });
 
     const {

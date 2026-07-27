@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.20
+
+### Patch Changes
+
+- 1f6dd3a: Add OpenAI Responses Programmatic Tool Calling with hosted program tools, function caller controls, structured output schemas, and multi-step continuation support.
+
 ## 4.0.19
 
 ### Patch Changes

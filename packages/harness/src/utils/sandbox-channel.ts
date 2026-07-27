@@ -277,62 +277,6 @@ export class SandboxChannel<
     this.enqueue(() => this.finalizeClose(1000, 'closed'));
   }
 
-  interrupt(options?: { timeoutMs?: number }): Promise<void> {
-    if (this.pinnedSuspensionCursor != null) {
-      return Promise.resolve();
-    }
-    const timeoutMs = options?.timeoutMs ?? 5000;
-    return new Promise<void>((resolve, reject) => {
-      let settled = false;
-      let unsub = (): void => {};
-      const timer = setTimeout(() => {
-        complete(
-          new Error(
-            `SandboxChannel: interrupt was not acknowledged within ${timeoutMs}ms.`,
-          ),
-        );
-      }, timeoutMs);
-      timer.unref?.();
-
-      const complete = (error?: unknown): void => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timer);
-        unsub();
-        if (error) {
-          reject(error);
-        } else {
-          resolve();
-        }
-      };
-
-      unsub = this.on('bridge-interrupted' as EventTypeOf<TOut>, event => {
-        const response = event as unknown as {
-          type: 'bridge-interrupted';
-          ok: boolean;
-          error?: unknown;
-        };
-        if (response.ok) {
-          complete();
-          return;
-        }
-        complete(
-          new Error(
-            `SandboxChannel: interrupt failed: ${formatControlError(
-              response.error,
-            )}`,
-          ),
-        );
-      });
-
-      try {
-        this.send({ type: 'interrupt' } as TIn);
-      } catch (err) {
-        complete(err);
-      }
-    });
-  }
-
   /**
    * Gracefully suspend at a slice boundary: stop processing inbound frames
    * (so the cursor freezes at the last delivered event), drain any frames
@@ -570,14 +514,4 @@ export class SandboxChannel<
     this.connected = false;
     for (const h of this.onCloseHandlers) h(code, reason);
   }
-}
-
-function formatControlError(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (error && typeof error === 'object') {
-    const message = (error as { message?: unknown }).message;
-    if (typeof message === 'string' && message.length > 0) return message;
-  }
-  if (typeof error === 'string' && error.length > 0) return error;
-  return 'unknown error';
 }

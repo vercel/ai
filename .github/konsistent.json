@@ -217,6 +217,18 @@
           "if": { "hasFile": "bridge/index.ts" },
           "must": {
             "haveFiles": ["${harnessId}-bridge-protocol.ts"],
+            "exportTypes": [
+              {
+                "name": "${harnessId.toPascalCase()}HarnessSettings",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "port": { "type": "number" },
+                    "startupTimeoutMs": { "type": "number" }
+                  }
+                }
+              }
+            ],
             "declareConstants": [
               "${harnessId.toCamelCase()}BridgeCoordsSchema",
               "${harnessId.toCamelCase()}ResumeStateSchema"
