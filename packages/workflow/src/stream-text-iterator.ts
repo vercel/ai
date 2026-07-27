@@ -9,6 +9,7 @@ import {
   experimental_filterActiveTools as filterActiveTools,
   type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
   type Experimental_SandboxSession as SandboxSession,
+  type Instructions,
   type LanguageModel,
   type LanguageModelUsage,
   type ModelMessage,
@@ -64,6 +65,8 @@ export interface StreamTextIteratorYieldValue {
 // This runs in the workflow context
 export async function* streamTextIterator({
   prompt,
+  initialInstructions,
+  initialMessages = prompt as unknown as ModelMessage[],
   tools = {},
   writable,
   model,
@@ -84,6 +87,8 @@ export async function* streamTextIterator({
   experimental_sandbox: sandbox,
 }: {
   prompt: LanguageModelV4Prompt;
+  initialInstructions?: Instructions;
+  initialMessages?: Array<ModelMessage>;
   tools: ToolSet;
   writable?: WritableStream<ModelCallStreamPart<ToolSet>>;
   model: LanguageModel;
@@ -150,6 +155,8 @@ export async function* streamTextIterator({
     if (prepareStep) {
       const prepareResult = await prepareStep({
         model: currentModel,
+        initialInstructions,
+        initialMessages,
         stepNumber,
         steps,
         messages: conversationPrompt,
