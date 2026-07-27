@@ -35,6 +35,8 @@ vi.mock('node:fs/promises', async importOriginal => {
       if (path.endsWith('/bridge/package.json')) return '{"name":"mock"}';
       if (path.endsWith('/bridge/pnpm-lock.yaml'))
         return 'lockfileVersion: "9.0"\n';
+      if (path.endsWith('/bridge/pnpm-workspace.yaml'))
+        return "minimumReleaseAgeExclude:\n  - '@openai/codex-sdk'\n  - '@openai/codex'\n";
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (actual.readFile as any)(input, ...rest);
     }),
@@ -208,7 +210,7 @@ describe('createCodex adapter', () => {
       expect(recipe.bootstrapDir).toBe('/tmp/harness/codex');
     });
 
-    it('includes bridge.mjs, package.json, and pnpm-lock.yaml under the bootstrap dir', async () => {
+    it('includes all bridge assets under the bootstrap dir', async () => {
       const harness = createCodex();
       const recipe = await harness.getBootstrap!();
       const paths = recipe.files.map(f => f.path).sort();
@@ -216,6 +218,7 @@ describe('createCodex adapter', () => {
         '/tmp/harness/codex/bridge.mjs',
         '/tmp/harness/codex/package.json',
         '/tmp/harness/codex/pnpm-lock.yaml',
+        '/tmp/harness/codex/pnpm-workspace.yaml',
       ]);
       for (const file of recipe.files) {
         expect(file.content.length).toBeGreaterThan(0);
@@ -226,9 +229,10 @@ describe('createCodex adapter', () => {
       const harness = createCodex();
       const recipe = await harness.getBootstrap!();
       const commands = recipe.commands.map(c => c.command);
-      expect(commands[0]).toContain('mkdir -p /tmp/harness/codex');
-      expect(commands[1]).toContain('pnpm');
-      expect(commands[1]).toContain('install --frozen-lockfile');
+      expect(commands).toEqual([
+        'mkdir -p /tmp/harness/codex',
+        'pnpm --dir /tmp/harness/codex install --frozen-lockfile --store-dir /tmp/harness/codex/.pnpm-store',
+      ]);
     });
 
     it('caches the recipe across calls', async () => {

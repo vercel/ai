@@ -177,9 +177,10 @@ export function createCodex(
     lifecycleStateSchema: codexResumeStateSchema,
     getBootstrap: async () => {
       if (cachedBootstrap != null) return cachedBootstrap;
-      const [pkg, lock, bridge] = await Promise.all([
+      const [pkg, lock, pnpmWorkspace, bridge] = await Promise.all([
         readBridgeAsset('package.json'),
         readBridgeAsset('pnpm-lock.yaml'),
+        readBridgeAsset('pnpm-workspace.yaml'),
         readBridgeAsset('index.mjs'),
       ]);
       cachedBootstrap = {
@@ -188,6 +189,10 @@ export function createCodex(
         files: [
           { path: `${BOOTSTRAP_DIR}/package.json`, content: pkg },
           { path: `${BOOTSTRAP_DIR}/pnpm-lock.yaml`, content: lock },
+          {
+            path: `${BOOTSTRAP_DIR}/pnpm-workspace.yaml`,
+            content: pnpmWorkspace,
+          },
           { path: `${BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
         ],
         commands: [

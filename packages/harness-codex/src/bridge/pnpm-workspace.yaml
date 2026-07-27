@@ -1,0 +1,3 @@
+minimumReleaseAgeExclude:
+  - '@openai/codex-sdk'
+  - '@openai/codex'
