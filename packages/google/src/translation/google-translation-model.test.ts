@@ -186,9 +186,7 @@ describe('doStream', () => {
         outputText: 'Hola',
         usage: {
           inputAudioTokens: 10,
-          inputTextTokens: 2,
           outputAudioTokens: 20,
-          outputTextTokens: 3,
         },
       },
     ]);
@@ -555,9 +553,8 @@ describe('doStream', () => {
       sourceText: 'The quick brown fox jumps over the lazy dog.',
       outputText: 'El zorro marrón rápido salta sobre el perro perezoso.',
       usage: {
-        inputAudioTokens: 25,
-        inputTextTokens: 608,
-        outputAudioTokens: 25,
+        inputAudioTokens: 150,
+        outputAudioTokens: 150,
       },
     });
   });

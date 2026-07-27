@@ -411,7 +411,7 @@ function createGoogleLiveTranslationStream({
           }
 
           if (message.usageMetadata != null) {
-            usage = extractGoogleLiveUsage(message.usageMetadata);
+            usage = accumulateGoogleLiveUsage(usage, message.usageMetadata);
           }
 
           if (message.error != null) {
@@ -512,31 +512,40 @@ function createGoogleLiveTranslationStream({
   });
 }
 
-function extractGoogleLiveUsage(usageMetadata: {
-  promptTokensDetails?: GoogleLiveTokensDetail[];
-  responseTokensDetails?: GoogleLiveTokensDetail[];
-}): SpeechTranslationModelV4Usage {
-  const usage: SpeechTranslationModelV4Usage = {};
+function accumulateGoogleLiveUsage(
+  usage: SpeechTranslationModelV4Usage | undefined,
+  usageMetadata: {
+    promptTokensDetails?: GoogleLiveTokensDetail[];
+    responseTokensDetails?: GoogleLiveTokensDetail[];
+  },
+): SpeechTranslationModelV4Usage | undefined {
+  let inputAudioTokens = usage?.inputAudioTokens;
+  let outputAudioTokens = usage?.outputAudioTokens;
 
+  // Live Translation emits periodic usage deltas. Its TEXT prompt detail is
+  // internal translation context (the public input is audio-only), so only
+  // aggregate the billable input/output audio modalities.
   for (const detail of usageMetadata.promptTokensDetails ?? []) {
-    if (detail.tokenCount == null) continue;
-    if (detail.modality === 'AUDIO') {
-      usage.inputAudioTokens = detail.tokenCount;
-    } else if (detail.modality === 'TEXT') {
-      usage.inputTextTokens = detail.tokenCount;
+    if (detail.modality === 'AUDIO' && detail.tokenCount != null) {
+      inputAudioTokens = (inputAudioTokens ?? 0) + detail.tokenCount;
     }
   }
 
   for (const detail of usageMetadata.responseTokensDetails ?? []) {
-    if (detail.tokenCount == null) continue;
-    if (detail.modality === 'AUDIO') {
-      usage.outputAudioTokens = detail.tokenCount;
-    } else if (detail.modality === 'TEXT') {
-      usage.outputTextTokens = detail.tokenCount;
+    if (detail.modality === 'AUDIO' && detail.tokenCount != null) {
+      outputAudioTokens = (outputAudioTokens ?? 0) + detail.tokenCount;
     }
   }
 
-  return usage;
+  if (inputAudioTokens == null && outputAudioTokens == null) {
+    return usage;
+  }
+
+  return {
+    ...usage,
+    ...(inputAudioTokens != null ? { inputAudioTokens } : {}),
+    ...(outputAudioTokens != null ? { outputAudioTokens } : {}),
+  };
 }
 
 function getPcm16SilenceDurationMs(audio: string): number | undefined {
