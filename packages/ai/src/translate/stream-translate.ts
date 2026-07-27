@@ -1,50 +1,51 @@
-import {
-  UnsupportedFunctionalityError,
-  type Experimental_TranscriptionModelV4StreamPart,
-  type JSONObject,
-  type SharedV4AudioFormat,
+import type {
+  Experimental_SpeechTranslationModelV4StreamPart,
+  Experimental_SpeechTranslationModelV4Usage,
+  JSONObject,
+  SharedV4AudioFormat,
 } from '@ai-sdk/provider';
 import {
   DelayedPromise,
   withUserAgentSuffix,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
-import { NoTranscriptGeneratedError } from '../error/no-transcript-generated-error';
+import { NoTranslationGeneratedError } from '../error/no-translation-generated-error';
 import { logWarnings } from '../logger/log-warnings';
-import { resolveTranscriptionModel } from '../model/resolve-model';
-import type { TranscriptionModel } from '../types/transcription-model';
-import type { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
+import { resolveSpeechTranslationModel } from '../model/resolve-model';
+import type { SpeechTranslationModel } from '../types/speech-translation-model';
+import type { SpeechTranslationModelResponseMetadata } from '../types/speech-translation-model-response-metadata';
 import type { Warning } from '../types/warning';
 import { asAsyncIterableStream } from '../util/async-iterable-stream';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { VERSION } from '../version';
 import type {
-  StreamTranscriptionResult,
-  TranscriptionStreamPart,
-} from './stream-transcribe-result';
-
-type TranscriptSegment = {
-  text: string;
-  startSecond: number;
-  endSecond: number;
-};
+  StreamTranslationResult,
+  TranslationStreamPart,
+} from './stream-translate-result';
 
 /**
- * Streams transcripts using a transcription model.
+ * Streams speech-to-speech translations using a speech translation model.
  *
- * @param model - The transcription model to use.
- * @param audio - Raw audio chunks to transcribe.
+ * @param model - The speech translation model to use.
+ * @param audio - Raw audio chunks to translate.
  * @param inputAudioFormat - The input audio format for the raw audio chunks.
+ * @param targetLanguage - The language to translate the audio into.
+ * @param sourceLanguage - The language of the source audio. Auto-detected when absent.
+ * @param outputAudioFormat - The desired audio format for translated audio chunks.
  * @param providerOptions - Additional provider-specific options.
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param headers - Additional HTTP/WebSocket headers to send when supported by the provider.
+ * @param includeRawChunks - When true, providers include raw provider chunks in the stream as `raw` parts.
  *
- * @returns A result object that contains the streaming transcript and final transcript metadata.
+ * @returns A result object that contains the streaming translation and final translation metadata.
  */
-export function streamTranscribe({
+export function streamTranslate({
   model,
   audio,
   inputAudioFormat,
+  targetLanguage,
+  sourceLanguage,
+  outputAudioFormat,
   providerOptions = {},
   abortSignal,
   headers,
@@ -52,12 +53,12 @@ export function streamTranscribe({
   _internal: { currentDate = () => new Date() } = {},
 }: {
   /**
-   * The transcription model to use.
+   * The speech translation model to use.
    */
-  model: TranscriptionModel;
+  model: SpeechTranslationModel;
 
   /**
-   * Raw audio chunks to transcribe.
+   * Raw audio chunks to translate.
    */
   audio: ReadableStream<Uint8Array | string>;
 
@@ -65,6 +66,25 @@ export function streamTranscribe({
    * The input audio format for the raw audio chunks.
    */
   inputAudioFormat: SharedV4AudioFormat;
+
+  /**
+   * The language to translate the audio into, as a BCP-47-style language
+   * tag (e.g. `en`, `es`, `fr-CA`). Supported values are provider-specific
+   * and validated by the provider.
+   */
+  targetLanguage: string;
+
+  /**
+   * The language of the source audio, as a BCP-47-style language tag.
+   * When absent, providers auto-detect the source language.
+   */
+  sourceLanguage?: string;
+
+  /**
+   * The desired audio format for translated audio chunks.
+   * When absent, the provider default output format is used.
+   */
+  outputAudioFormat?: SharedV4AudioFormat;
 
   /**
    * Additional provider-specific options.
@@ -92,52 +112,37 @@ export function streamTranscribe({
   _internal?: {
     currentDate?: () => Date;
   };
-}): StreamTranscriptionResult {
-  const resolvedModel = resolveTranscriptionModel(model);
-  if (!resolvedModel) {
-    throw new Error('Model could not be resolved');
-  }
+}): StreamTranslationResult {
+  const resolvedModel = resolveSpeechTranslationModel(model);
 
-  const doStream = resolvedModel.doStream?.bind(resolvedModel);
-  if (doStream == null) {
-    throw new UnsupportedFunctionalityError({
-      functionality: 'streaming transcription',
-      message:
-        `The ${resolvedModel.provider} model "${resolvedModel.modelId}" does not support streaming transcription.` +
-        (typeof model === 'string'
-          ? ' String model IDs resolve through the global provider (AI Gateway by default).' +
-            ' If that provider does not support streaming transcription, pass a provider model' +
-            " instance instead (e.g. openai.transcription('gpt-realtime-whisper'))" +
-            ' or upgrade @ai-sdk/gateway to a version with streaming transcription support.'
-          : ''),
-    });
-  }
+  const doStream = resolvedModel.doStream.bind(resolvedModel);
 
   const headersWithUserAgent = withUserAgentSuffix(
     headers ?? {},
     `ai/${VERSION}`,
   );
 
-  const textPromise = new DelayedPromise<string>();
-  const segmentsPromise = new DelayedPromise<Array<TranscriptSegment>>();
-  const languagePromise = new DelayedPromise<string | undefined>();
+  const sourceTextPromise = new DelayedPromise<string>();
+  const translationTextPromise = new DelayedPromise<string>();
   const durationInSecondsPromise = new DelayedPromise<number | undefined>();
-  const warningsPromise = new DelayedPromise<Array<Warning>>();
-  const responsesPromise = new DelayedPromise<
-    Array<TranscriptionModelResponseMetadata>
+  const usagePromise = new DelayedPromise<
+    Experimental_SpeechTranslationModelV4Usage | undefined
   >();
+  const warningsPromise = new DelayedPromise<Array<Warning>>();
+  const responsePromise =
+    new DelayedPromise<SpeechTranslationModelResponseMetadata>();
   const providerMetadataPromise = new DelayedPromise<
     Record<string, JSONObject>
   >();
 
   const rejectPendingPromises = (error: unknown) => {
     for (const promise of [
-      textPromise,
-      segmentsPromise,
-      languagePromise,
+      sourceTextPromise,
+      translationTextPromise,
       durationInSecondsPromise,
+      usagePromise,
       warningsPromise,
-      responsesPromise,
+      responsePromise,
       providerMetadataPromise,
     ]) {
       if (promise.isPending()) {
@@ -147,7 +152,7 @@ export function streamTranscribe({
   };
 
   const startedAt = currentDate();
-  let response: TranscriptionModelResponseMetadata | undefined;
+  let response: SpeechTranslationModelResponseMetadata | undefined;
   const currentResponseMetadata = () =>
     response ?? { timestamp: startedAt, modelId: resolvedModel.modelId };
 
@@ -166,11 +171,16 @@ export function streamTranscribe({
   // spurious unhandled rejection on Node.js 26 when the transform drops chunks.
   const pipeAbortController = new AbortController();
 
+  // A stream is successful when at least one `audio` part was emitted or the
+  // final `outputText` is non-empty (audio-only providers may report an empty
+  // `outputText`).
+  let hasAudioOutput = false;
+
   // `Transformer.cancel` is part of the Streams spec (and supported at runtime),
   // but not yet reflected in the ambient `Transformer` type, so widen it here.
   const transformer: Transformer<
-    Experimental_TranscriptionModelV4StreamPart,
-    TranscriptionStreamPart
+    Experimental_SpeechTranslationModelV4StreamPart,
+    TranslationStreamPart
   > & { cancel?: (reason?: unknown) => void } = {
     transform(value, controller) {
       switch (value.type) {
@@ -188,9 +198,17 @@ export function streamTranscribe({
           break;
         }
 
-        case 'transcript-delta':
-        case 'transcript-partial':
-        case 'transcript-final':
+        case 'audio': {
+          hasAudioOutput = true;
+          controller.enqueue(value);
+          break;
+        }
+
+        case 'output-text-delta':
+        case 'output-text-final':
+        case 'source-transcript-delta':
+        case 'source-transcript-partial':
+        case 'source-transcript-final':
         case 'raw':
         case 'error': {
           controller.enqueue(value);
@@ -202,41 +220,46 @@ export function streamTranscribe({
             resolveWarnings([]);
           }
 
-          if (!value.text) {
-            throw new NoTranscriptGeneratedError({
-              responses: [currentResponseMetadata()],
+          if (!hasAudioOutput && !value.outputText) {
+            throw new NoTranslationGeneratedError({
+              response: currentResponseMetadata(),
             });
           }
 
-          textPromise.resolve(value.text);
-          segmentsPromise.resolve(value.segments);
-          languagePromise.resolve(value.language);
+          sourceTextPromise.resolve(value.sourceText);
+          translationTextPromise.resolve(value.outputText);
           durationInSecondsPromise.resolve(value.durationInSeconds);
-          responsesPromise.resolve([currentResponseMetadata()]);
+          usagePromise.resolve(value.usage);
+          responsePromise.resolve(currentResponseMetadata());
           providerMetadataPromise.resolve(value.providerMetadata ?? {});
           break;
+        }
+
+        default: {
+          const _exhaustiveCheck: never = value;
+          throw new Error(`Unsupported part type: ${_exhaustiveCheck}`);
         }
       }
     },
 
     flush() {
-      if (textPromise.isPending()) {
-        throw new NoTranscriptGeneratedError({
-          responses: [currentResponseMetadata()],
+      if (translationTextPromise.isPending()) {
+        throw new NoTranslationGeneratedError({
+          response: currentResponseMetadata(),
         });
       }
     },
 
     cancel(reason) {
       pipeAbortController.abort(
-        reason ?? new Error('Transcription stream was cancelled.'),
+        reason ?? new Error('Translation stream was cancelled.'),
       );
     },
   };
 
   const transform = new TransformStream<
-    Experimental_TranscriptionModelV4StreamPart,
-    TranscriptionStreamPart
+    Experimental_SpeechTranslationModelV4StreamPart,
+    TranslationStreamPart
   >(transformer);
 
   // Piping (instead of an eager read loop) preserves consumer backpressure
@@ -245,6 +268,9 @@ export function streamTranscribe({
     const result = await doStream({
       audio,
       inputAudioFormat,
+      targetLanguage,
+      sourceLanguage,
+      outputAudioFormat,
       providerOptions,
       // merged so cancelling fullStream also aborts a still-pending doStream
       abortSignal: mergeAbortSignals(abortSignal, pipeAbortController.signal),
@@ -263,7 +289,7 @@ export function streamTranscribe({
     });
   })().catch(error => {
     const reason =
-      error ?? new Error('Transcription stream was cancelled or errored.');
+      error ?? new Error('Translation stream was cancelled or errored.');
     rejectPendingPromises(reason);
     // When `doStream` rejects before the model stream exists (e.g. auth or
     // header resolution failure), nothing has taken ownership of `audio` yet,
@@ -276,7 +302,7 @@ export function streamTranscribe({
     });
   });
 
-  // Transcription streams can be unbounded (live microphone + raw chunks), so
+  // Translation streams can be unbounded (live microphone + raw chunks), so
   // unlike streamText we cannot retain an unread tee branch for replay. The
   // output stream has one owner: either fullStream, or the first result promise
   // getter which claims and drains it internally.
@@ -313,29 +339,29 @@ export function streamTranscribe({
   }
 
   return {
-    get text() {
+    get sourceText() {
       consumeStream();
-      return textPromise.promise;
+      return sourceTextPromise.promise;
     },
-    get segments() {
+    get translationText() {
       consumeStream();
-      return segmentsPromise.promise;
-    },
-    get language() {
-      consumeStream();
-      return languagePromise.promise;
+      return translationTextPromise.promise;
     },
     get durationInSeconds() {
       consumeStream();
       return durationInSecondsPromise.promise;
     },
+    get usage() {
+      consumeStream();
+      return usagePromise.promise;
+    },
     get warnings() {
       consumeStream();
       return warningsPromise.promise;
     },
-    get responses() {
+    get response() {
       consumeStream();
-      return responsesPromise.promise;
+      return responsePromise.promise;
     },
     get providerMetadata() {
       consumeStream();

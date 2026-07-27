@@ -46,6 +46,7 @@ export * from './rerank';
 export * from './telemetry';
 export * from './text-stream';
 export * from './transcribe';
+export * from './translate';
 export * from './types';
 export * from './ui';
 export * from './ui-message-stream';
