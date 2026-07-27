@@ -243,73 +243,12 @@ Automatically consumes the stream.
 The response messages that were generated during the call. It consists of an assistant message,
 potentially containing tool calls.
 
-<<<<<<< HEAD
 When there are tool results, there is an additional tool message with the tool results that are available.
 If there are tools that do not have execute functions, they are not included in the tool results and
 need to be added separately.
        */
       messages: Array<ResponseMessage>;
     }
-=======
-  /**
-   * Additional response information from the last step.
-   *
-   * Automatically consumes the stream.
-   *
-   * @deprecated Use `finalStep.response` instead.
-   */
-  readonly response: PromiseLike<LanguageModelResponseMetadata>;
-
-  /**
-   * The accumulated response messages of all steps that were generated during the call.
-   *
-   * Automatically consumes the stream.
-   */
-  readonly responseMessages: PromiseLike<Array<ResponseMessage>>;
-
-  /**
-   * Additional provider-specific metadata from the last step.
-   * Metadata is passed through from the provider to the AI SDK and
-   * enables provider-specific results that can be fully encapsulated in the provider.
-   *
-   * @deprecated Use `finalStep.providerMetadata` instead.
-   */
-  readonly providerMetadata: PromiseLike<ProviderMetadata | undefined>;
-
-  /**
-   * A text stream that returns only the generated text deltas. You can use it
-   * as either an AsyncIterable or a ReadableStream. Error parts are not
-   * surfaced in this stream. Use the `onError` callback or `stream` to observe
-   * them.
-   */
-  readonly textStream: AsyncIterableStream<string>;
-
-  /**
-   * A stream with all events, including text deltas, tool calls, tool results, and
-   * errors.
-   * You can use it as either an AsyncIterable or a ReadableStream.
-   * Only errors that stop the stream, such as network errors, are thrown.
-   */
-  readonly stream: AsyncIterableStream<TextStreamPart<TOOLS>>;
-
-  /**
-   * A stream with all events, including text deltas, tool calls, tool results, and
-   * errors.
-   * You can use it as either an AsyncIterable or a ReadableStream.
-   * Only errors that stop the stream, such as network errors, are thrown.
-   *
-   * @deprecated Use `stream` instead.
-   */
-  readonly fullStream: AsyncIterableStream<TextStreamPart<TOOLS>>;
-
-  /**
-   * A stream of partial outputs. It uses the `output` specification.
-   *
-   * @deprecated Use `partialOutputStream` instead.
-   */
-  readonly experimental_partialOutputStream: AsyncIterableStream<
-    InferPartialOutput<OUTPUT>
->>>>>>> c391be3192 (docs: clarify that textStream does not surface error parts (#17994))
   >;
 
   /**
@@ -321,8 +260,8 @@ enables provider-specific results that can be fully encapsulated in the provider
 
   /**
   A text stream that returns only the generated text deltas. You can use it
-  as either an AsyncIterable or a ReadableStream. When an error occurs, the
-  stream will throw the error.
+  as either an AsyncIterable or a ReadableStream. Error parts are not surfaced
+  in this stream. Use the `onError` callback or `fullStream` to observe them.
      */
   readonly textStream: AsyncIterableStream<string>;
 
