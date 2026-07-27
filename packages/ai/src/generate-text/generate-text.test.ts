@@ -267,6 +267,94 @@ describe('generateText', () => {
     logWarningsSpy.mockRestore();
   });
 
+  it('should not synthesize a client tool error for an invalid provider-executed tool call', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV3({
+        doGenerate: async () => ({
+          warnings: [],
+          usage: testUsage,
+          finishReason: { unified: 'tool-calls', raw: 'tool_use' },
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'web_search',
+              input: '{}',
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'web_search',
+              result: {
+                type: 'web_search_tool_result_error',
+                errorCode: 'invalid_tool_input',
+              },
+              isError: true,
+            },
+          ],
+        }),
+      }),
+      tools: {
+        web_search: {
+          type: 'provider',
+          id: 'test.web_search',
+          inputSchema: z.object({ query: z.string() }),
+          outputSchema: z.unknown(),
+          args: {},
+        },
+      },
+      prompt: 'Search the web.',
+    });
+
+    expect(result.content).toHaveLength(2);
+    expect(result.content[0]).toMatchObject({
+      type: 'tool-call',
+      toolCallId: 'call-1',
+      toolName: 'web_search',
+      input: {},
+      invalid: true,
+      providerExecuted: true,
+    });
+    expect(result.content[1]).toEqual({
+      type: 'tool-error',
+      toolCallId: 'call-1',
+      toolName: 'web_search',
+      input: {},
+      error: {
+        type: 'web_search_tool_result_error',
+        errorCode: 'invalid_tool_input',
+      },
+      providerExecuted: true,
+      dynamic: true,
+    });
+    expect(result.response.messages).toHaveLength(1);
+    expect(result.response.messages[0]).toMatchObject({
+      role: 'assistant',
+      content: [
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'web_search',
+          input: {},
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'web_search',
+          output: {
+            type: 'error-json',
+            value: {
+              type: 'web_search_tool_result_error',
+              errorCode: 'invalid_tool_input',
+            },
+          },
+        },
+      ],
+    });
+  });
+
   it('should reject calls to inactive tools without executing them', async () => {
     const execute = vi.fn(async () => 'result');
     let providerToolCount: number | undefined;
