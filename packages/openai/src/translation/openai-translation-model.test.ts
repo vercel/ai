@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
@@ -47,6 +49,14 @@ class MockWebSocket {
 }
 
 const flush = () => new Promise(resolve => setTimeout(resolve, 0));
+
+function readFixture(filename: string) {
+  return fs
+    .readFileSync(`src/translation/__fixtures__/${filename}`, 'utf8')
+    .split('\n')
+    .filter(line => line.trim().length > 0)
+    .map(line => JSON.parse(line));
+}
 
 function createModel(
   overrides: Partial<{
@@ -204,6 +214,47 @@ describe('doStream', () => {
       type: 'finish',
       sourceText: 'Hello world',
       outputText: 'Hola mundo',
+      usage: undefined,
+    });
+  });
+
+  it('should parse a real OpenAI Realtime translation response', async () => {
+    MockWebSocket.instances = [];
+    const model = createModel();
+
+    const result = await model.doStream({
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+      targetLanguage: 'es',
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    await flush();
+
+    for (const message of readFixture(
+      'openai-realtime-translation.chunks.txt',
+    )) {
+      ws.message(message);
+    }
+
+    const parts = await partsPromise;
+    expect(parts.filter(part => part.type === 'audio')).toEqual([
+      { type: 'audio', audio: 'AQID' },
+    ]);
+    expect(parts.at(-3)).toEqual({
+      type: 'source-transcript-final',
+      text: ' The quick brown fox jumps over the lazy',
+    });
+    expect(parts.at(-2)).toEqual({
+      type: 'output-text-final',
+      text: 'La rápida zorra marrón salta sobre el perro perezoso.',
+    });
+    expect(parts.at(-1)).toEqual({
+      type: 'finish',
+      sourceText: ' The quick brown fox jumps over the lazy',
+      outputText: 'La rápida zorra marrón salta sobre el perro perezoso.',
       usage: undefined,
     });
   });
