@@ -4,6 +4,7 @@ import {
   convertReadableStreamToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
+import { readFileSync } from 'node:fs';
 import { createMistral } from './mistral-provider';
 import { describe, it, expect, vi } from 'vitest';
 
@@ -213,6 +214,77 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  it('should preserve thinking chunks when replaying reasoning history', async () => {
+    const liveResponse = JSON.parse(
+      readFileSync(
+        new URL(
+          './__fixtures__/mistral-reasoning-history-live.json',
+          import.meta.url,
+        ),
+        'utf8',
+      ),
+    );
+
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = [
+      {
+        type: 'json-value',
+        body: liveResponse,
+      },
+      {
+        type: 'json-value',
+        body: {
+          ...liveResponse,
+          choices: [
+            {
+              ...liveResponse.choices[0],
+              message: {
+                role: 'assistant',
+                tool_calls: null,
+                content: [{ type: 'text', text: '1173' }],
+              },
+            },
+          ],
+        },
+      },
+    ];
+
+    const first = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+    const assistantContent = first.content.filter(
+      (
+        part,
+      ): part is Extract<
+        (typeof first.content)[number],
+        { type: 'reasoning' | 'text' }
+      > => part.type === 'reasoning' || part.type === 'text',
+    );
+
+    await model.doGenerate({
+      prompt: [
+        ...TEST_PROMPT,
+        {
+          role: 'assistant',
+          content: assistantContent,
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Now multiply that result by 3. Reply with only the result.',
+            },
+          ],
+        },
+      ],
+    });
+
+    const secondRequest = await server.calls[1].requestBodyJson;
+    expect(secondRequest.messages[1].content).toStrictEqual(
+      liveResponse.choices[0].message.content,
+    );
   });
 
   it('should preserve ordering of mixed thinking and text content', async () => {
