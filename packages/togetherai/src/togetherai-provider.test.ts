@@ -196,6 +196,14 @@ describe('TogetherAIProvider', () => {
 
       expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
     });
+
+    it('should set includeUsage so streaming responses report token usage', () => {
+      const provider = createTogetherAI();
+      provider.chatModel('together-chat-model');
+
+      const config = OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
+      expect(config.includeUsage).toBe(true);
+    });
   });
 
   describe('completionModel', () => {
@@ -206,6 +214,16 @@ describe('TogetherAIProvider', () => {
       const model = provider.completionModel(modelId);
 
       expect(model).toBeInstanceOf(OpenAICompatibleCompletionLanguageModel);
+    });
+
+    it('should set includeUsage so streaming responses report token usage', () => {
+      const provider = createTogetherAI();
+      provider.completionModel('together-completion-model');
+
+      const config = (
+        OpenAICompatibleCompletionLanguageModel as unknown as Mock
+      ).mock.calls[0][1];
+      expect(config.includeUsage).toBe(true);
     });
   });
 
