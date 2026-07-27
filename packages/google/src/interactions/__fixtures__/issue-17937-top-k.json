@@ -1,0 +1,37 @@
+{
+  "status": "completed",
+  "usage": {
+    "total_tokens": 17,
+    "total_input_tokens": 6,
+    "input_tokens_by_modality": [
+      {
+        "modality": "text",
+        "tokens": 6
+      }
+    ],
+    "total_cached_tokens": 0,
+    "total_output_tokens": 1,
+    "total_tool_use_tokens": 0,
+    "total_thought_tokens": 10
+  },
+  "created": "2026-07-27T12:22:26Z",
+  "updated": "2026-07-27T12:22:26Z",
+  "service_tier": "standard",
+  "steps": [
+    {
+      "signature": "CkUBEU0yD6+X0ZJASL6Kah/IXOE4gNPp0i0RSejzNFMhMiPrTSEqfvltu8mj/UTR6YcCyxKv1pLeItHTHcs4WHQCKa7dBkM=",
+      "type": "thought"
+    },
+    {
+      "content": [
+        {
+          "text": "OK",
+          "type": "text"
+        }
+      ],
+      "type": "model_output"
+    }
+  ],
+  "object": "interaction",
+  "model": "gemini-2.5-flash"
+}

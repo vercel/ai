@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 17937,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-17937-google-interactions-generation-config.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-17937-google-interactions-generation-config.ts",
+    "packages/google/src/interactions/__fixtures__/issue-17937-top-k.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #17937: google.interactions() silently dropped topK, presencePenalty, and frequencyPenalty."
+  }
+}
