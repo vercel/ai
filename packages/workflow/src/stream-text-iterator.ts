@@ -40,6 +40,36 @@ import type {
 // Re-export for consumers
 export type { ProviderExecutedToolResult } from './do-stream-step.js';
 
+const prepareStepGenerationSettingKeys = [
+  'maxOutputTokens',
+  'temperature',
+  'topP',
+  'topK',
+  'presencePenalty',
+  'frequencyPenalty',
+  'stopSequences',
+  'seed',
+  'maxRetries',
+  'headers',
+  'reasoning',
+  'providerOptions',
+] as const satisfies readonly (keyof GenerationSettings)[];
+
+function mergePrepareStepGenerationSettings(
+  current: GenerationSettings,
+  overrides: Partial<GenerationSettings>,
+): GenerationSettings {
+  const definedOverrides: Partial<GenerationSettings> = {};
+
+  for (const key of prepareStepGenerationSettingKeys) {
+    if (overrides[key] !== undefined) {
+      Object.assign(definedOverrides, { [key]: overrides[key] });
+    }
+  }
+
+  return { ...current, ...definedOverrides };
+}
+
 /**
  * The value yielded by the stream text iterator when tool calls are requested.
  * Contains both the tool calls and the current conversation messages.
@@ -202,79 +232,10 @@ export async function* streamTextIterator({
       if (prepareResult?.activeTools !== undefined) {
         currentActiveTools = prepareResult.activeTools;
       }
-      // Apply generation settings overrides
-      if (prepareResult?.maxOutputTokens !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          maxOutputTokens: prepareResult.maxOutputTokens,
-        };
-      }
-      if (prepareResult?.temperature !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          temperature: prepareResult.temperature,
-        };
-      }
-      if (prepareResult?.topP !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          topP: prepareResult.topP,
-        };
-      }
-      if (prepareResult?.topK !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          topK: prepareResult.topK,
-        };
-      }
-      if (prepareResult?.presencePenalty !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          presencePenalty: prepareResult.presencePenalty,
-        };
-      }
-      if (prepareResult?.frequencyPenalty !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          frequencyPenalty: prepareResult.frequencyPenalty,
-        };
-      }
-      if (prepareResult?.stopSequences !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          stopSequences: prepareResult.stopSequences,
-        };
-      }
-      if (prepareResult?.seed !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          seed: prepareResult.seed,
-        };
-      }
-      if (prepareResult?.maxRetries !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          maxRetries: prepareResult.maxRetries,
-        };
-      }
-      if (prepareResult?.headers !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          headers: prepareResult.headers,
-        };
-      }
-      if (prepareResult?.reasoning !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          reasoning: prepareResult.reasoning,
-        };
-      }
-      if (prepareResult?.providerOptions !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          providerOptions: prepareResult.providerOptions,
-        };
-      }
+      currentGenerationSettings = mergePrepareStepGenerationSettings(
+        currentGenerationSettings,
+        prepareResult ?? {},
+      );
       if (prepareResult?.toolChoice !== undefined) {
         currentToolChoice = prepareResult.toolChoice;
       }
