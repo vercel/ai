@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+
+import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
@@ -48,10 +51,19 @@ class MockWebSocket {
 
 const flush = () => new Promise(resolve => setTimeout(resolve, 0));
 
+function readFixture(filename: string) {
+  return fs
+    .readFileSync(`src/translation/__fixtures__/${filename}`, 'utf8')
+    .split('\n')
+    .filter(line => line.trim().length > 0)
+    .map(line => JSON.parse(line));
+}
+
 function createModel(
   overrides: Partial<{
     headers: () => Record<string, string | undefined>;
     currentDate: () => Date;
+    finishGraceMs: number;
   }> = {},
 ) {
   return new GoogleTranslationModel('gemini-3.5-live-translate-preview', {
@@ -61,7 +73,7 @@ function createModel(
       overrides.headers ?? (() => ({ 'x-goog-api-key': 'test-api-key' })),
     webSocket: MockWebSocket,
     _internal: {
-      finishGraceMs: 0,
+      finishGraceMs: overrides.finishGraceMs ?? 0,
       ...(overrides.currentDate != null
         ? { currentDate: overrides.currentDate }
         : {}),
@@ -103,13 +115,13 @@ describe('doStream', () => {
         model: 'models/gemini-3.5-live-translate-preview',
         generationConfig: {
           responseModalities: ['AUDIO'],
-          inputAudioTranscription: {},
-          outputAudioTranscription: {},
           translationConfig: {
             targetLanguageCode: 'es',
             echoTargetLanguage: true,
           },
         },
+        inputAudioTranscription: {},
+        outputAudioTranscription: {},
       },
     });
 
@@ -429,6 +441,124 @@ describe('doStream', () => {
       sourceText: 'Hello',
       outputText: 'Hola',
       usage: undefined,
+    });
+  });
+
+  it('should finish continuous translation after trailing output silence', async () => {
+    MockWebSocket.instances = [];
+    const model = createModel({ finishGraceMs: 500 });
+
+    const result = await model.doStream({
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      targetLanguage: 'es',
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ setupComplete: {} });
+    await flush();
+
+    ws.message({
+      serverContent: {
+        inputTranscription: { text: 'Hello' },
+        outputTranscription: { text: 'Hola' },
+      },
+    });
+    ws.message({
+      serverContent: {
+        modelTurn: {
+          parts: [
+            {
+              inlineData: {
+                data: convertUint8ArrayToBase64(new Uint8Array([1, 0])),
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    const silence = convertUint8ArrayToBase64(new Uint8Array(12_000));
+    ws.message({
+      serverContent: {
+        modelTurn: { parts: [{ inlineData: { data: silence } }] },
+      },
+    });
+    await flush();
+    expect(ws.close).not.toHaveBeenCalled();
+
+    ws.message({
+      serverContent: {
+        modelTurn: { parts: [{ inlineData: { data: silence } }] },
+      },
+    });
+
+    const parts = await partsPromise;
+    expect(parts.at(-3)).toEqual({
+      type: 'source-transcript-final',
+      id: 'google-item-0',
+      text: 'Hello',
+    });
+    expect(parts.at(-2)).toEqual({
+      type: 'output-text-final',
+      id: 'google-item-0',
+      text: 'Hola',
+    });
+    expect(parts.at(-1)).toEqual({
+      type: 'finish',
+      sourceText: 'Hello',
+      outputText: 'Hola',
+      usage: undefined,
+    });
+  });
+
+  it('should parse a real Google Live translation response', async () => {
+    MockWebSocket.instances = [];
+    const model = createModel();
+
+    const result = await model.doStream({
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      targetLanguage: 'es',
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    const messages = readFixture('google-live-translation.chunks.txt');
+    ws.open();
+    ws.message(messages[0]);
+    await flush();
+
+    for (const message of messages.slice(1)) {
+      ws.message(message);
+    }
+
+    const parts = await partsPromise;
+    expect(parts.filter(part => part.type === 'audio')).toEqual([
+      { type: 'audio', id: 'google-item-0', audio: 'AQIDBAUGBwg=' },
+      { type: 'audio', id: 'google-item-0', audio: 'AAAAAAAAAAAAAAAA' },
+    ]);
+    expect(parts.at(-3)).toEqual({
+      type: 'source-transcript-final',
+      id: 'google-item-0',
+      text: 'The quick brown fox jumps over the lazy dog.',
+    });
+    expect(parts.at(-2)).toEqual({
+      type: 'output-text-final',
+      id: 'google-item-0',
+      text: 'El zorro marrón rápido salta sobre el perro perezoso.',
+    });
+    expect(parts.at(-1)).toEqual({
+      type: 'finish',
+      sourceText: 'The quick brown fox jumps over the lazy dog.',
+      outputText: 'El zorro marrón rápido salta sobre el perro perezoso.',
+      usage: {
+        inputAudioTokens: 25,
+        inputTextTokens: 608,
+        outputAudioTokens: 25,
+      },
     });
   });
 

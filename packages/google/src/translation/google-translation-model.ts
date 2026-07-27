@@ -9,6 +9,7 @@ import {
 import {
   connectToWebSocket,
   combineHeaders,
+  convertBase64ToUint8Array,
   convertToBase64,
   parseProviderOptions,
   safeParseJSON,
@@ -32,11 +33,12 @@ const liveWebSocketPath =
   'google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
 
 /**
- * After the input audio has ended, a completed turn schedules the finish
- * after this grace period; further turn activity within the period cancels
- * it (the server is still generating turns for the remaining input).
+ * After the input audio has ended, finish after this much trailing output
+ * silence. Live Translation is continuous and does not emit turnComplete.
  */
 const defaultFinishGraceMs = 1000;
+const googleLiveOutputAudioRate = 24000;
+const pcm16SilenceAmplitudeThreshold = 128;
 
 function getLiveWebSocketURL(baseURL: string, apiKey: string): URL {
   const url = getRealtimeWebSocketURL(baseURL, liveWebSocketPath);
@@ -252,22 +254,14 @@ function createGoogleLiveTranslationStream({
       let audioEnded = false;
       let usage: SpeechTranslationModelV4Usage | undefined;
 
-      // Finalization: the Live API signals per-turn completion
-      // (`turnComplete`) but has no "all input processed" signal, and it may
-      // emit multiple turns after `audioStreamEnd` was sent (one per detected
-      // utterance). The stream therefore finishes on a turnComplete that is
-      // not followed by further turn activity:
-      // - a turnComplete while `audioEnded` is set schedules the finish after
-      //   a grace period,
-      // - a turnComplete that already arrived before `audioEnded` was set
-      //   (with no new turn content since) satisfies the condition, so
-      //   setting `audioEnded` schedules the finish as well (no hang),
-      // - new turn content (transcription or audio) cancels a pending finish:
-      //   the server is still generating turns for the remaining input
-      //   (no truncation),
-      // - a server close while a finish is pending confirms completion.
+      // Live Translation is a continuous pipeline rather than a turn-based
+      // model. After audioStreamEnd it keeps sending PCM silence indefinitely
+      // and does not emit turnComplete. Drain translated speech, then finish
+      // after enough trailing silence. Keep turnComplete handling as a
+      // fallback for compatible server implementations and test doubles.
       let openTurn = false;
       let sawTurnComplete = false;
+      let trailingSilenceMs = 0;
       let finishTimer: ReturnType<typeof setTimeout> | undefined;
 
       const itemId = () => `google-item-${turnCounter}`;
@@ -289,6 +283,7 @@ function createGoogleLiveTranslationStream({
 
       const onTurnActivity = () => {
         openTurn = true;
+        trailingSilenceMs = 0;
         cancelPendingFinish();
       };
 
@@ -313,6 +308,9 @@ function createGoogleLiveTranslationStream({
 
       const finish = () => {
         if (finished) return;
+        if (sourceTurnBuffer !== '' || translationTurnBuffer !== '') {
+          completeTurn();
+        }
         finished = true;
         controller.enqueue({
           type: 'finish',
@@ -443,12 +441,24 @@ function createGoogleLiveTranslationStream({
 
           for (const part of serverContent.modelTurn?.parts ?? []) {
             if (part.inlineData?.data) {
-              onTurnActivity();
               controller.enqueue({
                 type: 'audio',
                 id: itemId(),
                 audio: part.inlineData.data,
               });
+
+              const silenceDurationMs = getPcm16SilenceDurationMs(
+                part.inlineData.data,
+              );
+              if (audioEnded && silenceDurationMs != null) {
+                trailingSilenceMs += silenceDurationMs;
+                if (trailingSilenceMs >= finishGraceMs) {
+                  finish();
+                  return;
+                }
+              } else {
+                onTurnActivity();
+              }
             }
           }
 
@@ -529,6 +539,29 @@ function extractGoogleLiveUsage(usageMetadata: {
   return usage;
 }
 
+function getPcm16SilenceDurationMs(audio: string): number | undefined {
+  let bytes: Uint8Array;
+  try {
+    bytes = convertBase64ToUint8Array(audio);
+  } catch {
+    return undefined;
+  }
+
+  if (bytes.byteLength < 2) {
+    return undefined;
+  }
+
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const sampleCount = Math.floor(bytes.byteLength / 2);
+  for (let i = 0; i < sampleCount; i++) {
+    if (Math.abs(view.getInt16(i * 2, true)) > pcm16SilenceAmplitudeThreshold) {
+      return undefined;
+    }
+  }
+
+  return (sampleCount / googleLiveOutputAudioRate) * 1000;
+}
+
 function buildGoogleLiveTranslationSetup({
   modelId,
   targetLanguage,
@@ -542,8 +575,6 @@ function buildGoogleLiveTranslationSetup({
     model: getModelPath(modelId),
     generationConfig: {
       responseModalities: ['AUDIO'],
-      inputAudioTranscription: {},
-      outputAudioTranscription: {},
       translationConfig: {
         targetLanguageCode: targetLanguage,
         ...(providerOptions?.echoTargetLanguage != null
@@ -551,6 +582,8 @@ function buildGoogleLiveTranslationSetup({
           : {}),
       },
     },
+    inputAudioTranscription: {},
+    outputAudioTranscription: {},
   };
 }
 

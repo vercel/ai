@@ -1,0 +1,11 @@
+{"setupComplete":{}}
+{"serverContent":{"inputTranscription":{"text":"The quick brown fox","languageCode":"en"}}}
+{"serverContent":{"outputTranscription":{"text":"El zorro marrón","languageCode":"es"}}}
+{"serverContent":{"modelTurn":{"parts":[{"inlineData":{"mimeType":"audio/pcm;rate=24000","data":"AQIDBAUGBwg="}}]}}}
+{"serverContent":{"inputTranscription":{"text":" jumps over the","languageCode":"en"}}}
+{"serverContent":{"outputTranscription":{"text":" rápido salta","languageCode":"es"}}}
+{"serverContent":{"inputTranscription":{"text":" lazy dog.","languageCode":"en"}}}
+{"serverContent":{"outputTranscription":{"text":" sobre el perro perezoso.","languageCode":"es"}}}
+{"serverContent":{},"usageMetadata":{"promptTokenCount":25,"responseTokenCount":25,"totalTokenCount":50,"promptTokensDetails":[{"modality":"TEXT","tokenCount":608},{"modality":"AUDIO","tokenCount":25}],"responseTokensDetails":[{"modality":"AUDIO","tokenCount":25}]}}
+{"sessionResumptionUpdate":{"newHandle":"redacted-fixture-handle","resumable":true}}
+{"serverContent":{"modelTurn":{"parts":[{"inlineData":{"mimeType":"audio/pcm;rate=24000","data":"AAAAAAAAAAAAAAAA"}}]}}}
