@@ -3231,6 +3231,52 @@ describe('streamText', () => {
         expect(cleanup).toHaveBeenCalledExactlyOnceWith('value');
       });
     });
+
+    it('destroys the session when aborted without stream consumption', async () => {
+      const cleanup = vi.fn();
+      const abortController = new AbortController();
+
+      let modelCallStarted!: () => void;
+      const modelCallStartedPromise = new Promise<void>(resolve => {
+        modelCallStarted = resolve;
+      });
+
+      streamText({
+        model: new MockLanguageModelV4({
+          doStream: async ({ abortSignal, experimental_session }) => {
+            experimental_session!.set('resource', 'value', {
+              onDestroy: cleanup,
+            });
+
+            modelCallStarted();
+
+            if (abortSignal?.aborted) {
+              throw abortSignal.reason;
+            }
+
+            await new Promise((_, reject) => {
+              abortSignal!.addEventListener('abort', () => {
+                reject(abortSignal!.reason);
+              });
+            });
+
+            throw new Error('unreachable');
+          },
+        }),
+        prompt: 'test-input',
+        abortSignal: abortController.signal,
+        onError: () => {},
+      });
+
+      // the stream is intentionally never consumed
+
+      await modelCallStartedPromise;
+      abortController.abort();
+
+      await vi.waitFor(() => {
+        expect(cleanup).toHaveBeenCalledExactlyOnceWith('value');
+      });
+    });
   });
 
   describe('result.pipeUIMessageStreamToResponse', async () => {
