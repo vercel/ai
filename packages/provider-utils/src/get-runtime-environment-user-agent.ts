@@ -8,7 +8,7 @@ export function getRuntimeEnvironmentUserAgent(
 
   // Cloudflare Workers / Deno / Bun / Node.js >= 21.1
   if (globalThisAny.navigator?.userAgent) {
-    return `runtime/${globalThisAny.navigator.userAgent.toLowerCase()}`;
+    return `runtime/${globalThisAny.navigator.userAgent.toLowerCase().replace(/\//g, '.')}`;
   }
 
   // Nodes.js < 21.1
