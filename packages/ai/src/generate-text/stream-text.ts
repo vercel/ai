@@ -1601,10 +1601,14 @@ class DefaultStreamTextResult<
       },
 
       async cancel(reason) {
-        await stitchableStream.stream.cancel(reason);
-        // the event processor will not flush when the pipeline is
-        // cancelled, so the session must be destroyed here:
-        await destroySessionOnTermination();
+        try {
+          // Cancel through the reader that owns the stitchable stream lock.
+          await reader.cancel(reason);
+        } finally {
+          // the event processor will not flush when the pipeline is
+          // cancelled, so the session must be destroyed here:
+          await destroySessionOnTermination();
+        }
       },
     });
 

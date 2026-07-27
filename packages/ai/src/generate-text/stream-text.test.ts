@@ -3201,6 +3201,7 @@ describe('streamText', () => {
 
     it('destroys the session when a transform errors', async () => {
       const cleanup = vi.fn();
+      const cancelProviderStream = vi.fn();
 
       const result = streamText({
         model: new MockLanguageModelV4({
@@ -3208,7 +3209,21 @@ describe('streamText', () => {
             options.experimental_session!.set('resource', 'value', {
               onDestroy: cleanup,
             });
-            return { stream: createSuccessfulStream() };
+            return {
+              stream: new ReadableStream<LanguageModelV4StreamPart>({
+                start(controller) {
+                  controller.enqueue({ type: 'text-start', id: '1' });
+                  controller.enqueue({
+                    type: 'text-delta',
+                    id: '1',
+                    delta: 'hello',
+                  });
+                  // Keep the provider stream open so the transform error must
+                  // cancel it.
+                },
+                cancel: cancelProviderStream,
+              }),
+            };
           },
         }),
         experimental_transform: () =>
@@ -3230,6 +3245,7 @@ describe('streamText', () => {
       await vi.waitFor(() => {
         expect(cleanup).toHaveBeenCalledExactlyOnceWith('value');
       });
+      expect(cancelProviderStream).toHaveBeenCalledOnce();
     });
 
     it('destroys the session when aborted without stream consumption', async () => {

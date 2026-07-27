@@ -50,6 +50,13 @@ export function writeToServerResponse({
   };
   response.once('close', handleClose);
 
+  // The response may have been destroyed before the close listener was
+  // registered. Cancel immediately instead of waiting indefinitely for the
+  // next stream chunk.
+  if (response.destroyed) {
+    handleClose();
+  }
+
   const read = async () => {
     try {
       while (true) {

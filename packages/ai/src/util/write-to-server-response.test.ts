@@ -82,6 +82,25 @@ describe('writeToServerResponse', () => {
       expect(mockResponse.writtenChunks).toHaveLength(1);
     });
 
+    it('should cancel the stream when the response is already destroyed', async () => {
+      const mockResponse = createMockServerResponse();
+      Object.assign(mockResponse, { destroyed: true });
+      const cancel = vi.fn();
+
+      const stream = new ReadableStream<Uint8Array>({
+        cancel,
+      });
+
+      await writeToServerResponse({
+        response: mockResponse,
+        stream,
+      });
+
+      expect(cancel).toHaveBeenCalledOnce();
+      expect(mockResponse.writtenChunks).toHaveLength(0);
+      expect(mockResponse.ended).toBe(false);
+    });
+
     it('should not cancel the stream when close fires after the response finished', async () => {
       const mockResponse = createMockServerResponse();
       const cancel = vi.fn();
