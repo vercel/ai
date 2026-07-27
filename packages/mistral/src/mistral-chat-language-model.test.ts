@@ -664,6 +664,16 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
+          "providerMetadata": {
+            "mistral": {
+              "thinking": [
+                {
+                  "text": "First thought.",
+                  "type": "text",
+                },
+              ],
+            },
+          },
           "text": "First thought.",
           "type": "reasoning",
         },
@@ -672,6 +682,16 @@ describe('doGenerate', () => {
           "type": "text",
         },
         {
+          "providerMetadata": {
+            "mistral": {
+              "thinking": [
+                {
+                  "text": "Second thought.",
+                  "type": "text",
+                },
+              ],
+            },
+          },
           "text": "Second thought.",
           "type": "reasoning",
         },

@@ -255,7 +255,16 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
         if (part.type === 'thinking') {
           const reasoningText = extractReasoningContent(part.thinking);
           if (reasoningText.length > 0) {
-            content.push({ type: 'reasoning', text: reasoningText });
+            content.push({
+              type: 'reasoning',
+              text: reasoningText,
+              providerMetadata: {
+                mistral: {
+                  thinking: part.thinking,
+                  ...(part.closed != null ? { closed: part.closed } : {}),
+                },
+              },
+            });
           }
         } else if (part.type === 'text') {
           if (part.text.length > 0) {
@@ -562,6 +571,7 @@ const mistralContentSchema = z
               text: z.string(),
             }),
           ),
+          closed: z.boolean().nullish(),
         }),
       ]),
     ),

@@ -4,6 +4,16 @@ exports[`doGenerate > reasoning > should extract reasoning content 1`] = `
 {
   "content": [
     {
+      "providerMetadata": {
+        "mistral": {
+          "thinking": [
+            {
+              "text": "The user is asking for 2+2. This is basic arithmetic. 2+2=4.",
+              "type": "text",
+            },
+          ],
+        },
+      },
       "text": "The user is asking for 2+2. This is basic arithmetic. 2+2=4.",
       "type": "reasoning",
     },

@@ -3,12 +3,34 @@ import {
   type LanguageModelV4FilePart,
   type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
-import type { MistralPrompt } from './mistral-chat-prompt';
 import {
   convertToBase64,
   getTopLevelMediaType,
   resolveFullMediaType,
 } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
+import type {
+  MistralAssistantMessageContent,
+  MistralPrompt,
+} from './mistral-chat-prompt';
+
+const mistralReasoningMetadataSchema = z.object({
+  thinking: z.array(
+    z.object({
+      type: z.literal('text'),
+      text: z.string(),
+    }),
+  ),
+  closed: z.boolean().nullish(),
+});
+
+function getMistralReasoningMetadata(providerOptions: unknown) {
+  const result = mistralReasoningMetadataSchema.safeParse(
+    (providerOptions as { mistral?: unknown } | undefined)?.mistral,
+  );
+
+  return result.success ? result.data : undefined;
+}
 
 function formatFileUrl({ part }: { part: LanguageModelV4FilePart }): string {
   if (part.data.type === 'url') {
@@ -101,6 +123,9 @@ export function convertToMistralChatMessages(
 
       case 'assistant': {
         let text = '';
+        let structuredContent:
+          | Array<MistralAssistantMessageContent>
+          | undefined;
         const toolCalls: Array<{
           id: string;
           type: 'function';
@@ -110,7 +135,11 @@ export function convertToMistralChatMessages(
         for (const part of content) {
           switch (part.type) {
             case 'text': {
-              text += part.text;
+              if (structuredContent != null) {
+                structuredContent.push({ type: 'text', text: part.text });
+              } else {
+                text += part.text;
+              }
               break;
             }
             case 'tool-call': {
@@ -125,7 +154,30 @@ export function convertToMistralChatMessages(
               break;
             }
             case 'reasoning': {
-              text += part.text;
+              const reasoningMetadata = getMistralReasoningMetadata(
+                part.providerOptions,
+              );
+
+              if (reasoningMetadata != null) {
+                if (structuredContent == null) {
+                  structuredContent = [];
+                  if (text.length > 0) {
+                    structuredContent.push({ type: 'text', text });
+                  }
+                }
+
+                structuredContent.push({
+                  type: 'thinking',
+                  thinking: reasoningMetadata.thinking,
+                  ...(reasoningMetadata.closed != null
+                    ? { closed: reasoningMetadata.closed }
+                    : {}),
+                });
+              } else if (structuredContent != null) {
+                structuredContent.push({ type: 'text', text: part.text });
+              } else {
+                text += part.text;
+              }
               break;
             }
             default: {
@@ -138,7 +190,7 @@ export function convertToMistralChatMessages(
 
         messages.push({
           role: 'assistant',
-          content: text,
+          content: structuredContent ?? text,
           prefix: isLastMessage ? true : undefined,
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
