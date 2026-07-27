@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 3.0.52
+
+### Patch Changes
+
+- ce8b671: fix (mistral): preserve reasoning in multi-turn conversations
+
 ## 3.0.51
 
 ### Patch Changes
