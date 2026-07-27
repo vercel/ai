@@ -1,4 +1,3 @@
-import { latestUserMessage } from '@/util/latest-user-message';
 import {
   convertToModelMessages,
   createUIMessageStreamResponse,
@@ -6,7 +5,7 @@ import {
   type UIMessageChunk,
 } from 'ai';
 import { start } from 'workflow/api';
-import { openCodeTimedWorkflow } from './workflow';
+import { timeSliceWorkflow } from './workflow';
 
 /*
  * Durable, multi-turn OpenCode chat via the Vercel Workflow DevKit. The
@@ -23,13 +22,10 @@ export async function POST(request: Request) {
   if (!body.id) {
     return new Response('Missing chat id', { status: 400 });
   }
-  const prompt = latestUserMessage(await convertToModelMessages(body.messages));
-  if (!prompt) {
-    return new Response('No user message to run', { status: 400 });
-  }
 
-  const run = await start(openCodeTimedWorkflow, [
-    { prompt, sessionId: body.id },
+  const messages = await convertToModelMessages(body.messages);
+  const run = await start(timeSliceWorkflow, [
+    { messages, sessionId: body.id },
   ]);
 
   return createUIMessageStreamResponse({
