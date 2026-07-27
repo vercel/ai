@@ -302,6 +302,9 @@ export interface StreamTextResult<
    * A text stream that returns only the generated text deltas. You can use it
    * as either an AsyncIterable or a ReadableStream. When an error occurs, the
    * stream will throw the error.
+   *
+   * With `experimental_streamMode: 'single-consumer'`, accessing this stream
+   * makes final result getters unavailable.
    */
   readonly textStream: AsyncIterableStream<string>;
 
@@ -310,6 +313,9 @@ export interface StreamTextResult<
    * errors.
    * You can use it as either an AsyncIterable or a ReadableStream.
    * Only errors that stop the stream, such as network errors, are thrown.
+   *
+   * With `experimental_streamMode: 'single-consumer'`, accessing this stream
+   * makes final result getters unavailable.
    */
   readonly stream: AsyncIterableStream<TextStreamPart<TOOLS>>;
 

@@ -588,6 +588,13 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
+      name: 'experimental_streamMode',
+      type: "'single-consumer'",
+      isOptional: true,
+      description:
+        'Enables a low-retention stream path for calls without tools. The first stream accessor receives the internal stream without ReadableStream.tee(), and generated text and reasoning are not retained for final results. Only one stream accessor can be used; final result getters become unavailable and final lifecycle callbacks such as onLanguageModelCallEnd, onStepEnd, and onEnd are skipped. If a final result getter or consumeStream() is accessed first, final results remain available.',
+    },
+    {
       name: 'includeRawChunks',
       type: 'boolean',
       isOptional: true,
