@@ -407,6 +407,20 @@ exports[`doStream > reasoning > should stream reasoning 1`] = `
   },
   {
     "id": "id-0",
+    "providerMetadata": {
+      "mistral": {
+        "thinking": [
+          {
+            "text": "The user is asking",
+            "type": "text",
+          },
+          {
+            "text": " for 2+2. This is basic arithmetic. 2+2=4.",
+            "type": "text",
+          },
+        ],
+      },
+    },
     "type": "reasoning-end",
   },
   {

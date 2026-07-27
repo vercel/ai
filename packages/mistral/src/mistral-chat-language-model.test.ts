@@ -4,6 +4,7 @@ import {
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { streamText, type ModelMessage } from 'ai';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMistral } from './mistral-provider';
@@ -1027,6 +1028,62 @@ describe('doStream', () => {
         await convertReadableStreamToArray(result.stream),
       ).toMatchSnapshot();
     });
+
+    it('should preserve thinking chunks when replaying streamed reasoning history', async () => {
+      const replayModel = createMistral({
+        apiKey: 'test-api-key',
+        generateId: mockId(),
+      }).chat('mistral-small-latest');
+
+      server.urls[CHAT_COMPLETIONS_URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"reasoning-history","object":"chat.completion.chunk","created":1750538000,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"role":"assistant","content":[{"type":"thinking","thinking":[{"type":"text","text":"First thought. "}]}]},"finish_reason":null}]}\n\n`,
+          `data: {"id":"reasoning-history","object":"chat.completion.chunk","created":1750538000,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"content":[{"type":"thinking","thinking":[{"type":"text","text":"Second thought."}],"closed":true}]},"finish_reason":null}]}\n\n`,
+          `data: {"id":"reasoning-history","object":"chat.completion.chunk","created":1750538000,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"content":[{"type":"text","text":"Final answer."}]},"finish_reason":null}]}\n\n`,
+          `data: {"id":"reasoning-history","object":"chat.completion.chunk","created":1750538000,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"content":""},"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"total_tokens":20,"completion_tokens":10}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const firstUserMessage: ModelMessage = {
+        role: 'user',
+        content: 'Think before answering.',
+      };
+      const first = streamText({
+        model: replayModel,
+        messages: [firstUserMessage],
+      });
+      const responseMessages = await first.responseMessages;
+
+      prepareChunksFixtureResponse('mistral-text');
+
+      const second = streamText({
+        model: replayModel,
+        messages: [
+          firstUserMessage,
+          ...responseMessages,
+          { role: 'user', content: 'Continue.' },
+        ],
+      });
+      await second.text;
+
+      const secondRequest = await server.calls[1].requestBodyJson;
+      expect(secondRequest.messages[1]).toEqual({
+        role: 'assistant',
+        content: [
+          {
+            type: 'thinking',
+            thinking: [
+              { type: 'text', text: 'First thought. ' },
+              { type: 'text', text: 'Second thought.' },
+            ],
+            closed: true,
+          },
+          { type: 'text', text: 'Final answer.' },
+        ],
+      });
+    });
   });
 
   it('should pass the messages', async () => {
@@ -1331,6 +1388,16 @@ describe('doStream', () => {
         },
         {
           "id": "id-1",
+          "providerMetadata": {
+            "mistral": {
+              "thinking": [
+                {
+                  "text": "First thought.",
+                  "type": "text",
+                },
+              ],
+            },
+          },
           "type": "reasoning-end",
         },
         {
@@ -1357,6 +1424,16 @@ describe('doStream', () => {
         },
         {
           "id": "id-2",
+          "providerMetadata": {
+            "mistral": {
+              "thinking": [
+                {
+                  "text": "Second thought.",
+                  "type": "text",
+                },
+              ],
+            },
+          },
           "type": "reasoning-end",
         },
         {

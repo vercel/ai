@@ -340,6 +340,10 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
     let isFirstChunk = true;
     let activeText = false;
     let activeReasoningId: string | null = null;
+    let activeReasoningMetadata: {
+      thinking: Array<{ type: 'text'; text: string }>;
+      closed?: boolean;
+    } | null = null;
 
     const generateId = this.generateId;
 
@@ -397,11 +401,22 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
                       }
 
                       activeReasoningId = generateId();
+                      activeReasoningMetadata = { thinking: [] };
                       controller.enqueue({
                         type: 'reasoning-start',
                         id: activeReasoningId,
                       });
                     }
+                  }
+
+                  if (activeReasoningMetadata != null) {
+                    activeReasoningMetadata.thinking.push(...part.thinking);
+                    if (part.closed != null) {
+                      activeReasoningMetadata.closed = part.closed;
+                    }
+                  }
+
+                  if (reasoningDelta.length > 0 && activeReasoningId != null) {
                     controller.enqueue({
                       type: 'reasoning-delta',
                       id: activeReasoningId,
@@ -419,8 +434,12 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
                   controller.enqueue({
                     type: 'reasoning-end',
                     id: activeReasoningId,
+                    providerMetadata: {
+                      mistral: activeReasoningMetadata!,
+                    },
                   });
                   activeReasoningId = null;
+                  activeReasoningMetadata = null;
                 }
                 controller.enqueue({ type: 'text-start', id: '0' });
                 activeText = true;
@@ -478,6 +497,9 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
               controller.enqueue({
                 type: 'reasoning-end',
                 id: activeReasoningId,
+                providerMetadata: {
+                  mistral: activeReasoningMetadata!,
+                },
               });
             }
             if (activeText) {
