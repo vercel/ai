@@ -1,5 +1,11 @@
 # @ai-sdk/togetherai
 
+## 1.0.50
+
+### Patch Changes
+
+- 5dcbf7e: Enable `includeUsage` for TogetherAI so streaming responses report token usage
+
 ## 1.0.49
 
 ### Patch Changes
