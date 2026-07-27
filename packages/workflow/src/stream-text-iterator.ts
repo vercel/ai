@@ -329,7 +329,10 @@ export async function* streamTextIterator({
       // Serialize tools before crossing the step boundary — zod schemas
       // contain functions that can't be serialized by the workflow runtime.
       // Tools are reconstructed with Ajv validation inside doStreamStep.
-      const serializedTools = serializeToolSet(effectiveTools);
+      const serializedTools = serializeToolSet(effectiveTools, {
+        toolsContext: currentToolsContext as never,
+        experimental_sandbox: stepSandbox,
+      });
       const modelCallInfo = getModelInfo(currentModel);
 
       await telemetryDispatcher.onLanguageModelCallStart?.({
