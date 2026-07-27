@@ -280,8 +280,8 @@ export interface StreamTextResult<
   /**
    * A text stream that returns only the generated text deltas. You can use it
    * as either an AsyncIterable or a ReadableStream. Error parts are not
-   * surfaced in this stream. Use the `onError` callback or `stream` to observe
-   * them.
+   * surfaced in this stream. Use the `onError` callback or `fullStream` to
+   * observe them.
    */
   readonly textStream: AsyncIterableStream<string>;
 
