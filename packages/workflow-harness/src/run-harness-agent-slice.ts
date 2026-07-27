@@ -28,7 +28,7 @@ export async function runHarnessAgentSlice(
     timeSliceSeconds: timeSliceSeconds ?? sliceTimeoutSeconds,
   });
 
-  return state.status === 'time_slice_completed'
+  return state.status === 'ready_for_next_step'
     ? { ...state, status: 'timed_out' }
     : state;
 }

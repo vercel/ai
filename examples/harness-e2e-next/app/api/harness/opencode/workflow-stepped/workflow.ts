@@ -18,7 +18,7 @@ export async function agentWorkflow(
   let state = createHarnessWorkflowState({ ...input, resumeFrom });
   do {
     state = await agentStep(state);
-  } while (state.status === 'step_completed');
+  } while (state.status === 'ready_for_next_step');
   await persistResumeStep(state.sessionId, state.resumeFrom);
   return finalizeHarnessWorkflow(state);
 }

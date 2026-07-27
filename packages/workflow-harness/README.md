@@ -70,14 +70,14 @@ export async function timeSliceWorkflow(input: {
   let state = createHarnessWorkflowState(input);
   do {
     state = await timeSliceStep(state);
-  } while (state.status === 'time_slice_completed');
+  } while (state.status === 'ready_for_next_step');
   return finalizeHarnessWorkflow(state);
 }
 ```
 
 For a semantic stepped workflow, configure the agent with
 `stopWhen: isStepCount(1)`, call `runHarnessAgentStep()` from the step module,
-and continue while the status is `step_completed`:
+and continue while the status is `ready_for_next_step`:
 
 `stepped-agent.ts`:
 
@@ -130,15 +130,10 @@ export async function agentWorkflow(
   let state = createHarnessWorkflowState(input);
   do {
     state = await agentStep(state);
-  } while (state.status === 'step_completed');
+  } while (state.status === 'ready_for_next_step');
   return finalizeHarnessWorkflow(state);
 }
 ```
-
-`runHarnessAgentSlice()` and its `sliceTimeoutSeconds` option remain available
-for compatibility, but are deprecated. The compatibility runner reports
-`timed_out`; new code should use `runHarnessAgentTimeSlice()`,
-`timeSliceSeconds`, and `time_slice_completed`.
 
 `route.ts` (Next.js example):
 

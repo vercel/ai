@@ -311,7 +311,7 @@ describe('runHarnessAgentTimeSlice', () => {
     expect(next.status).toBe('finished');
   });
 
-  test('times out: suspends at the budget and carries the cursor forward', async () => {
+  test('completes the time slice: suspends at the budget and carries the cursor forward', async () => {
     const session = fakeSession();
     const { result, closeForSuspend } = streamResult({
       chunks: [{ type: 'start' }, { type: 'text-delta', id: 't', delta: 'a' }],
@@ -340,7 +340,7 @@ describe('runHarnessAgentTimeSlice', () => {
       writable,
     });
 
-    expect(next.status).toBe('time_slice_completed');
+    expect(next.status).toBe('ready_for_next_step');
     expect(next.continueFrom).toEqual(continueState('suspended'));
     expect(session.suspendCalls).toBe(1);
     // A suspended slice must NOT destroy the sandbox — the next slice attaches.
@@ -373,7 +373,7 @@ describe('runHarnessAgentTimeSlice', () => {
       state: {
         sessionId: 'ses_1',
         prompt: 'hi',
-        status: 'time_slice_completed',
+        status: 'ready_for_next_step',
         continueFrom: continueState('cursor'),
       },
       writable,
@@ -389,7 +389,7 @@ describe('runHarnessAgentTimeSlice', () => {
     expect(chunks.map(c => c.type)).toEqual(['text-delta', 'finish']);
   });
 
-  test('continued slice reopens text and reasoning parts that were active at timeout', async () => {
+  test('continued slice reopens text and reasoning parts that were active at the time-slice boundary', async () => {
     const firstSession = fakeSession();
     const { result: firstResult, closeForSuspend } = streamResult({
       chunks: [
@@ -419,14 +419,14 @@ describe('runHarnessAgentTimeSlice', () => {
     };
     const firstWritable = collectingWritable();
 
-    const timedOut = await runHarnessAgentTimeSlice({
+    const readyForNextStep = await runHarnessAgentTimeSlice({
       agent: firstAgent,
       state: createHarnessWorkflowState({ prompt: 'hi', sessionId: 'ses_1' }),
       timeSliceSeconds: 0.05,
       writable: firstWritable.writable,
     });
 
-    expect(timedOut.status).toBe('time_slice_completed');
+    expect(readyForNextStep.status).toBe('ready_for_next_step');
     expect(firstWritable.chunks.map(c => c.type)).toEqual([
       'start',
       'text-start',
@@ -458,7 +458,7 @@ describe('runHarnessAgentTimeSlice', () => {
 
     const finished = await runHarnessAgentTimeSlice({
       agent: secondAgent,
-      state: timedOut,
+      state: readyForNextStep,
       writable: secondWritable.writable,
     });
 
@@ -506,7 +506,7 @@ describe('runHarnessAgentTimeSlice', () => {
       }),
     };
 
-    const timedOut = await runHarnessAgentTimeSlice({
+    const readyForNextStep = await runHarnessAgentTimeSlice({
       agent: firstAgent,
       state: createHarnessWorkflowState({ prompt: 'hi', sessionId: 'ses_1' }),
       timeSliceSeconds: 0.05,
@@ -536,7 +536,7 @@ describe('runHarnessAgentTimeSlice', () => {
 
     const finished = await runHarnessAgentTimeSlice({
       agent: secondAgent,
-      state: timedOut,
+      state: readyForNextStep,
       writable: secondWritable.writable,
     });
 
@@ -601,7 +601,7 @@ describe('runHarnessAgentTimeSlice', () => {
 });
 
 describe('runHarnessAgentStep', () => {
-  test('returns step_completed when a semantic step ends before the turn', async () => {
+  test('returns ready_for_next_step when a semantic step ends before the turn', async () => {
     const session = fakeSession({ unfinishedTurn: true });
     const { result } = streamResult({
       chunks: [
@@ -624,7 +624,7 @@ describe('runHarnessAgentStep', () => {
       writable,
     });
 
-    expect(next.status).toBe('step_completed');
+    expect(next.status).toBe('ready_for_next_step');
     expect(next.continueFrom).toEqual(continueState('suspended'));
     expect(next.finalResult).toBeUndefined();
     expect(session.suspendCalls).toBe(1);
@@ -662,7 +662,7 @@ describe('runHarnessAgentStep', () => {
       state: {
         sessionId: 'ses_1',
         prompt: 'hi',
-        status: 'step_completed',
+        status: 'ready_for_next_step',
         continueFrom: continueState('cursor'),
       },
       writable,
@@ -681,7 +681,7 @@ describe('runHarnessAgentStep', () => {
 });
 
 describe('runHarnessAgentSlice', () => {
-  test('supports sliceTimeoutSeconds and maps the completed status to timed_out', async () => {
+  test('supports sliceTimeoutSeconds and maps ready_for_next_step to timed_out', async () => {
     const session = fakeSession();
     const { result, closeForSuspend } = streamResult({
       chunks: [{ type: 'start' }],

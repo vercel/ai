@@ -14,10 +14,8 @@ export type HarnessWorkflowModelMessage =
  * Where a workflow-driven harness run is in its execution loop.
  *
  *  - `not_started` — fresh state, no workflow step has run yet.
- *  - `time_slice_completed` — a time slice completed as planned;
- *                  `continueFrom` carries the cursor to continue the turn.
- *  - `step_completed` — a semantic harness step completed while the turn
- *                  remains unfinished; `continueFrom` carries its cursor.
+ *  - `ready_for_next_step` — the turn remains unfinished and `continueFrom`
+ *                  carries the cursor for the next workflow step.
  *  - `awaiting_tool_approval` — the turn emitted one or more tool approval
  *                  requests and `continueFrom` carries the suspended turn.
  *  - `finished` — the agent turn completed on its own; `finalResult` is set.
@@ -25,12 +23,11 @@ export type HarnessWorkflowModelMessage =
  */
 export type HarnessWorkflowStatus =
   | 'not_started'
-  | 'time_slice_completed'
-  | 'step_completed'
+  | 'ready_for_next_step'
   | 'awaiting_tool_approval'
   | 'finished'
   | 'failed'
-  /** @deprecated Use `time_slice_completed` instead. */
+  /** @deprecated Use `ready_for_next_step` instead. */
   | 'timed_out';
 
 export interface HarnessWorkflowUsageSummary {

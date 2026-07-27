@@ -14,8 +14,8 @@ export type RunHarnessAgentStepOptions = Omit<
  *
  * Configure the agent with a `stopWhen` condition such as `isStepCount(1)`.
  * When that condition completes a result while the underlying turn remains
- * unfinished, the returned state has status `step_completed` and carries the
- * continuation state for the next workflow step.
+ * unfinished, the returned state has status `ready_for_next_step` and carries
+ * the continuation state for the next workflow step.
  */
 export async function runHarnessAgentStep(
   options: RunHarnessAgentStepOptions,

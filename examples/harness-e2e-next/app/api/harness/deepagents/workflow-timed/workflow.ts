@@ -19,7 +19,7 @@ export async function timeSliceWorkflow(
   let state = createHarnessWorkflowState({ ...input, resumeFrom });
   do {
     state = await timeSliceStep(state);
-  } while (state.status === 'time_slice_completed');
+  } while (state.status === 'ready_for_next_step');
   await persistResumeStep(state.sessionId, state.resumeFrom);
   return finalizeHarnessWorkflow(state);
 }

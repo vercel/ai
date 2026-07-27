@@ -25,7 +25,7 @@ export interface RunHarnessAgentTimeSliceOptions extends Omit<
  * Run one time-boxed slice of a durable harness agent turn.
  *
  * When the time slice completes before the turn, the returned state has status
- * `time_slice_completed` and carries the continuation state for the next slice.
+ * `ready_for_next_step` and carries the continuation state for the next slice.
  */
 export async function runHarnessAgentTimeSlice(
   options: RunHarnessAgentTimeSliceOptions,

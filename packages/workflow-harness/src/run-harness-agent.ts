@@ -243,7 +243,7 @@ export async function runHarnessAgent(
       return {
         sessionId: state.sessionId,
         prompt: state.prompt,
-        status: 'time_slice_completed',
+        status: 'ready_for_next_step',
         continueFrom,
         ...serializeStreamContextField(streamContext),
       };
@@ -267,7 +267,7 @@ export async function runHarnessAgent(
         return {
           sessionId: state.sessionId,
           prompt: state.prompt,
-          status: 'step_completed',
+          status: 'ready_for_next_step',
           continueFrom,
           ...serializeStreamContextField(streamContext),
         };
@@ -300,8 +300,8 @@ export async function runHarnessAgent(
     // released-but-open writer leaves it open forever, so a consumer piping
     // `run.readable` into a UI-message-stream response never receives the
     // terminal close and the client stays "streaming" indefinitely.
-    // `time_slice_completed`, `step_completed`, and `failed` deliberately do
-    // NOT close — another execution keeps writing, or the failure propagates.
+    // `ready_for_next_step` and `failed` deliberately do NOT close — another
+    // execution keeps writing, or the failure propagates.
     await writer.write({ type: 'finish' });
     await writer.close();
     writerClosed = true;
