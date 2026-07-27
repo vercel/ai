@@ -1,10 +1,10 @@
 /**
- * Response metadata for speech-to-speech model calls.
+ * Response metadata for speech translation model calls.
  *
- * Experimental: part of the experimental speech-to-speech modality and may
+ * Experimental: part of the experimental speech translation modality and may
  * change in patch releases.
  */
-export type SpeechToSpeechModelResponseMetadata = {
+export type SpeechTranslationModelResponseMetadata = {
   /**
    * Timestamp for the start of the generated response.
    */

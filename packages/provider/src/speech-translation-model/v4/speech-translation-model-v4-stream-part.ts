@@ -2,9 +2,9 @@ import type { JSONObject } from '../../json-value/json-value';
 import type { SharedV4Headers } from '../../shared';
 import type { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provider-metadata';
 import type { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
-import type { SpeechToSpeechModelV4Usage } from './speech-to-speech-model-v4-usage';
+import type { SpeechTranslationModelV4Usage } from './speech-translation-model-v4-usage';
 
-export type SpeechToSpeechModelV4StreamPart =
+export type SpeechTranslationModelV4StreamPart =
   | {
       /**
        * Stream start event with warnings for the call, e.g. unsupported settings.
@@ -116,7 +116,7 @@ export type SpeechToSpeechModelV4StreamPart =
       /**
        * Usage information for the call, if reported by the provider.
        */
-      usage?: SpeechToSpeechModelV4Usage;
+      usage?: SpeechTranslationModelV4Usage;
 
       /**
        * Additional provider-specific metadata.

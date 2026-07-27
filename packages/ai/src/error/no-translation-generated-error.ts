@@ -1,5 +1,5 @@
 import { AISDKError } from '@ai-sdk/provider';
-import type { SpeechToSpeechModelResponseMetadata } from '../types/speech-to-speech-model-response-metadata';
+import type { SpeechTranslationModelResponseMetadata } from '../types/speech-translation-model-response-metadata';
 
 const name = 'AI_NoTranslationGeneratedError';
 const marker = `vercel.ai.error.${name}`;
@@ -11,10 +11,10 @@ const symbol = Symbol.for(marker);
 export class NoTranslationGeneratedError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
-  readonly responses: Array<SpeechToSpeechModelResponseMetadata>;
+  readonly responses: Array<SpeechTranslationModelResponseMetadata>;
 
   constructor(options: {
-    responses: Array<SpeechToSpeechModelResponseMetadata>;
+    responses: Array<SpeechTranslationModelResponseMetadata>;
   }) {
     super({
       name,

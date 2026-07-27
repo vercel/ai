@@ -1,14 +1,14 @@
 import type { SharedV4Headers } from '../../shared';
-import type { SpeechToSpeechModelV4StreamPart } from './speech-to-speech-model-v4-stream-part';
+import type { SpeechTranslationModelV4StreamPart } from './speech-translation-model-v4-stream-part';
 
 /**
- * The result of a speech-to-speech model doStream call.
+ * The result of a speech translation model doStream call.
  */
-export type SpeechToSpeechModelV4StreamResult = {
+export type SpeechTranslationModelV4StreamResult = {
   /**
    * The stream.
    */
-  stream: ReadableStream<SpeechToSpeechModelV4StreamPart>;
+  stream: ReadableStream<SpeechTranslationModelV4StreamPart>;
 
   /**
    * Optional request information for telemetry and debugging purposes.

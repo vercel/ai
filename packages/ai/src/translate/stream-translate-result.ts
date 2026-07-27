@@ -1,9 +1,9 @@
 import type {
-  Experimental_SpeechToSpeechModelV4Usage,
+  Experimental_SpeechTranslationModelV4Usage,
   JSONObject,
   SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
-import type { SpeechToSpeechModelResponseMetadata } from '../types/speech-to-speech-model-response-metadata';
+import type { SpeechTranslationModelResponseMetadata } from '../types/speech-translation-model-response-metadata';
 import type { Warning } from '../types/warning';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
 
@@ -114,7 +114,7 @@ export interface StreamTranslationResult {
    * Usage information for the translation call, if reported by the provider.
    */
   readonly usage: PromiseLike<
-    Experimental_SpeechToSpeechModelV4Usage | undefined
+    Experimental_SpeechTranslationModelV4Usage | undefined
   >;
 
   /**
@@ -125,7 +125,9 @@ export interface StreamTranslationResult {
   /**
    * Response metadata.
    */
-  readonly responses: PromiseLike<Array<SpeechToSpeechModelResponseMetadata>>;
+  readonly responses: PromiseLike<
+    Array<SpeechTranslationModelResponseMetadata>
+  >;
 
   /**
    * Additional provider-specific metadata.
