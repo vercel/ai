@@ -38,7 +38,11 @@ describe('doEmbed', () => {
     headers,
   }: {
     embeddings?: number[][];
-    usage?: { prompt_tokens: number; total_tokens: number };
+    usage?: {
+      prompt_tokens: number;
+      total_tokens: number;
+      cost?: { input_cost: number; total_cost: number; currency: string };
+    };
     headers?: Record<string, string>;
   } = {}) {
     server.urls['https://api.perplexity.ai/v1/embeddings'].response = {
@@ -73,6 +77,32 @@ describe('doEmbed', () => {
     const { usage } = await model.doEmbed({ values: testValues });
 
     expect(usage).toStrictEqual({ tokens: 20 });
+  });
+
+  it('should surface the cost breakdown as provider metadata', async () => {
+    prepareJsonResponse({
+      usage: {
+        prompt_tokens: 8,
+        total_tokens: 8,
+        cost: { input_cost: 0.0001, total_cost: 0.0001, currency: 'USD' },
+      },
+    });
+
+    const { providerMetadata } = await model.doEmbed({ values: testValues });
+
+    expect(providerMetadata).toStrictEqual({
+      perplexity: {
+        cost: { inputCost: 0.0001, totalCost: 0.0001, currency: 'USD' },
+      },
+    });
+  });
+
+  it('should omit provider metadata when no cost is returned', async () => {
+    prepareJsonResponse();
+
+    const { providerMetadata } = await model.doEmbed({ values: testValues });
+
+    expect(providerMetadata).toBeUndefined();
   });
 
   it('should expose the raw response headers', async () => {

@@ -213,6 +213,19 @@ const { embedding } = await embed({
   embeddings with Hamming distance.
 </Note>
 
+When the API returns a cost breakdown, it is exposed via
+`providerMetadata.perplexity.cost` (`inputCost`, `totalCost`, `currency`):
+
+```ts
+const { embedding, providerMetadata } = await embed({
+  model: perplexity.embedding('pplx-embed-v1-4b'),
+  value: 'sunny day at the beach',
+});
+
+console.log(providerMetadata?.perplexity?.cost);
+// { inputCost: 0.0001, totalCost: 0.0001, currency: 'USD' }
+```
+
 ### Provider Options
 
 You can pass provider-specific options via the `providerOptions.perplexity` field:

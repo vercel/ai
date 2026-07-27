@@ -114,12 +114,25 @@ export class PerplexityEmbeddingModel implements EmbeddingModelV4 {
       fetch: this.config.fetch,
     });
 
+    const cost = response.usage?.cost;
+
     return {
       embeddings: response.data.map(item =>
         decodeEmbedding(item.embedding, encodingFormat),
       ),
       usage: response.usage
         ? { tokens: response.usage.prompt_tokens }
+        : undefined,
+      providerMetadata: cost
+        ? {
+            perplexity: {
+              cost: {
+                inputCost: cost.input_cost ?? null,
+                totalCost: cost.total_cost ?? null,
+                currency: cost.currency ?? null,
+              },
+            },
+          }
         : undefined,
       response: { headers: responseHeaders, body: rawValue },
       warnings: [],
@@ -154,5 +167,16 @@ function decodeEmbedding(
 // this approach limits breakages when the API changes and increases efficiency
 const perplexityEmbeddingResponseSchema = z.object({
   data: z.array(z.object({ embedding: z.string() })),
-  usage: z.object({ prompt_tokens: z.number() }).nullish(),
+  usage: z
+    .object({
+      prompt_tokens: z.number(),
+      cost: z
+        .object({
+          input_cost: z.number().nullish(),
+          total_cost: z.number().nullish(),
+          currency: z.string().nullish(),
+        })
+        .nullish(),
+    })
+    .nullish(),
 });
