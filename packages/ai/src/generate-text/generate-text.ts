@@ -996,11 +996,22 @@ export async function generateText<
               }
             }
 
+<<<<<<< HEAD
             // insert error tool outputs for invalid tool calls:
             // TODO AI SDK 6: invalid inputs should not require output parts
             const invalidToolCalls = stepToolCalls.filter(
               toolCall => toolCall.invalid && toolCall.dynamic,
             );
+=======
+              // insert error tool outputs for invalid tool calls:
+              // TODO AI SDK 6: invalid inputs should not require output parts
+              const invalidToolCalls = stepToolCalls.filter(
+                toolCall =>
+                  toolCall.invalid &&
+                  toolCall.dynamic &&
+                  !toolCall.providerExecuted,
+              );
+>>>>>>> 7bd6bddb50 (fix: prevent orphaned Anthropic tool results after invalid provider-executed tool calls (#17400))
 
             clientToolOutputs = [];
 
