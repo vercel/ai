@@ -91,6 +91,7 @@ describe('doStream', () => {
     expect(ws.url.toString()).toBe(
       'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=test-api-key',
     );
+    expect(ws.options?.headers).toEqual({});
 
     ws.open();
     await flush();
@@ -616,6 +617,29 @@ describe('doStream', () => {
     void result.stream.cancel();
     const ws = MockWebSocket.instances[0];
     expect(ws.url.toString()).toContain('key=case-insensitive-key');
+    expect(ws.options?.headers).toEqual({});
+  });
+
+  it('should pass non-credential headers to the WebSocket constructor', async () => {
+    MockWebSocket.instances = [];
+    const model = createModel({
+      headers: () => ({
+        'x-goog-api-key': 'test-api-key',
+        'Custom-Header': 'custom-value',
+      }),
+    });
+
+    const result = await model.doStream({
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      targetLanguage: 'es',
+    });
+
+    void result.stream.cancel();
+    const ws = MockWebSocket.instances[0];
+    expect(ws.options?.headers).toEqual({
+      'Custom-Header': 'custom-value',
+    });
   });
 
   it('should error the stream on server error messages', async () => {

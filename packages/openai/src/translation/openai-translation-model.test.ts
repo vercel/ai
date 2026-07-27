@@ -405,7 +405,7 @@ describe('doStream', () => {
     expect(audioCancelled).toBe(true);
   });
 
-  it('should error the stream with the server message on error events', async () => {
+  it('should emit recoverable server errors and continue streaming', async () => {
     MockWebSocket.instances = [];
     const model = createModel();
 
@@ -424,8 +424,24 @@ describe('doStream', () => {
       type: 'error',
       error: { message: 'invalid target language' },
     });
+    ws.message({
+      type: 'session.output_transcript.delta',
+      event_id: 'event-1',
+      delta: 'Hola',
+    });
+    ws.message({ type: 'session.closed', event_id: 'event-2' });
 
-    await expect(partsPromise).rejects.toThrow('invalid target language');
+    const parts = await partsPromise;
+    expect(parts.find(part => part.type === 'error')).toEqual({
+      type: 'error',
+      error: expect.objectContaining({ message: 'invalid target language' }),
+    });
+    expect(parts.at(-1)).toEqual({
+      type: 'finish',
+      sourceText: '',
+      outputText: 'Hola',
+      usage: undefined,
+    });
   });
 
   it('should close the WebSocket and stop reading audio when the stream is cancelled', async () => {

@@ -23,17 +23,7 @@ import type { OpenAIConfig } from '../openai-config';
 import {
   openAITranslationModelOptions,
   type OpenAITranslationModelId,
-  type OpenAITranslationModelOptions,
 } from './openai-translation-model-options';
-
-export type OpenAITranslationStreamOptions = Omit<
-  SpeechTranslationModelV4StreamOptions,
-  'providerOptions'
-> & {
-  providerOptions?: {
-    openai?: OpenAITranslationModelOptions;
-  };
-};
 
 type OpenAIRealtimeTranslationEvent = {
   type?: string;
@@ -74,7 +64,7 @@ export class OpenAITranslationModel implements SpeechTranslationModelV4 {
   ) {}
 
   async doStream(
-    options: OpenAITranslationStreamOptions,
+    options: SpeechTranslationModelV4StreamOptions,
   ): Promise<Awaited<ReturnType<SpeechTranslationModelV4['doStream']>>> {
     if (options.targetLanguage == null) {
       throw new InvalidArgumentError({
@@ -301,9 +291,10 @@ function createOpenAIRealtimeTranslationStream({
             }
 
             case 'error': {
-              finishWithError(
-                new Error(raw.error?.message ?? 'OpenAI realtime error'),
-              );
+              controller.enqueue({
+                type: 'error',
+                error: new Error(raw.error?.message ?? 'OpenAI realtime error'),
+              });
               break;
             }
           }

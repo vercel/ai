@@ -164,6 +164,11 @@ export class GoogleTranslationModel implements SpeechTranslationModelV4 {
         'Google Generative AI API key is required for streaming translation.',
       );
     }
+    const webSocketHeaders = Object.fromEntries(
+      Object.entries(headers).filter(
+        ([key]) => key.toLowerCase() !== 'x-goog-api-key',
+      ),
+    );
 
     const setup = buildGoogleLiveTranslationSetup({
       modelId: this.modelId,
@@ -180,7 +185,7 @@ export class GoogleTranslationModel implements SpeechTranslationModelV4 {
       stream: createGoogleLiveTranslationStream({
         webSocket: this.config.webSocket,
         url: getLiveWebSocketURL(this.config.baseURL, apiKey),
-        headers,
+        headers: webSocketHeaders,
         setup,
         inputAudioRate: options.inputAudioFormat.rate ?? 16000,
         finishGraceMs:

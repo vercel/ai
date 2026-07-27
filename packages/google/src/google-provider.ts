@@ -96,12 +96,12 @@ export interface GoogleProvider extends ProviderV4 {
   videoModel(modelId: GoogleVideoModelId): Experimental_VideoModelV4;
 
   /**
-   * Creates an experimental model for streaming speech-to-speech translation.
+   * Creates an experimental model for streaming speech translation.
    */
   translation(modelId: GoogleTranslationModelId): SpeechTranslationModelV4;
 
   /**
-   * Creates an experimental model for streaming speech-to-speech translation.
+   * Creates an experimental model for streaming speech translation.
    */
   speechTranslationModel(
     modelId: GoogleTranslationModelId,

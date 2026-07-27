@@ -101,12 +101,12 @@ export interface OpenAIProvider extends ProviderV4 {
   transcription(modelId: OpenAITranscriptionModelId): TranscriptionModelV4;
 
   /**
-   * Creates an experimental model for streaming speech-to-speech translation.
+   * Creates an experimental model for streaming speech translation.
    */
   translation(modelId: OpenAITranslationModelId): SpeechTranslationModelV4;
 
   /**
-   * Creates an experimental model for streaming speech-to-speech translation.
+   * Creates an experimental model for streaming speech translation.
    */
   speechTranslationModel(
     modelId: OpenAITranslationModelId,
