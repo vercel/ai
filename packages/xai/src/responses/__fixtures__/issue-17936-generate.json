@@ -1,0 +1,86 @@
+{
+  "created_at": 1785154553,
+  "completed_at": 1785154554,
+  "id": "a762bf12-e25e-90ee-abf1-a91710c623dc",
+  "max_output_tokens": 8,
+  "model": "grok-4.3",
+  "object": "response",
+  "output": [
+    {
+      "id": "rs_a762bf12-e25e-90ee-abf1-a91710c623dc",
+      "summary": [
+        {
+          "text": "The user said: \"Reply with only: OK\"\n",
+          "type": "summary_text"
+        }
+      ],
+      "type": "reasoning",
+      "status": "completed"
+    },
+    {
+      "content": [
+        {
+          "type": "output_text",
+          "text": "OK",
+          "logprobs": [],
+          "annotations": []
+        }
+      ],
+      "id": "msg_a762bf12-e25e-90ee-abf1-a91710c623dc",
+      "role": "assistant",
+      "type": "message",
+      "status": "completed"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "previous_response_id": null,
+  "reasoning": {
+    "effort": "low",
+    "summary": "detailed"
+  },
+  "temperature": 0.7,
+  "text": {
+    "format": {
+      "type": "text"
+    }
+  },
+  "tool_choice": "auto",
+  "tools": [],
+  "top_p": 0.95,
+  "usage": {
+    "input_tokens": 197,
+    "input_tokens_details": {
+      "cached_tokens": 192
+    },
+    "output_tokens": 143,
+    "output_tokens_details": {
+      "reasoning_tokens": 142
+    },
+    "total_tokens": 340,
+    "num_sources_used": 0,
+    "num_server_side_tools_used": 0,
+    "cost_in_usd_ticks": 4021500,
+    "context_details": {
+      "input_tokens": 197,
+      "output_tokens": 143
+    }
+  },
+  "user": null,
+  "incomplete_details": null,
+  "status": "completed",
+  "store": true,
+  "metadata": {
+    "system_fingerprint": "fp_eb3c003fc66c14ed"
+  },
+  "background": false,
+  "service_tier": "default",
+  "truncation": "disabled",
+  "top_logprobs": 0,
+  "presence_penalty": 0,
+  "frequency_penalty": 0,
+  "prompt_cache_key": null,
+  "max_tool_calls": null,
+  "safety_identifier": null,
+  "error": null,
+  "instructions": null
+}

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "issueId": 17936,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-17936.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-17936.ts",
+    "packages/xai/src/responses/__fixtures__/issue-17936-generate.json",
+    "packages/xai/src/responses/__fixtures__/issue-17936-stream.chunks.txt",
+    "packages/xai/src/responses/__fixtures__/issue-17936-chat.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_17936_REPRODUCED: xAI Responses returned no unsupported warnings for topK, presencePenalty, and frequencyPenalty in generateText and streamText"
+  }
+}
