@@ -3,7 +3,10 @@ import {
   type LanguageModelV3DataContent,
   type LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
-import type { MistralPrompt } from './mistral-chat-prompt';
+import type {
+  MistralAssistantMessageContent,
+  MistralPrompt,
+} from './mistral-chat-prompt';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 function formatFileUrl({
@@ -76,6 +79,8 @@ export function convertToMistralChatMessages(
 
       case 'assistant': {
         let text = '';
+        let hasReasoning = false;
+        const contentParts: Array<MistralAssistantMessageContent> = [];
         const toolCalls: Array<{
           id: string;
           type: 'function';
@@ -86,6 +91,7 @@ export function convertToMistralChatMessages(
           switch (part.type) {
             case 'text': {
               text += part.text;
+              contentParts.push({ type: 'text', text: part.text });
               break;
             }
             case 'tool-call': {
@@ -100,7 +106,12 @@ export function convertToMistralChatMessages(
               break;
             }
             case 'reasoning': {
-              text += part.text;
+              hasReasoning = true;
+              contentParts.push({
+                type: 'thinking',
+                thinking: [{ type: 'text', text: part.text }],
+                closed: true,
+              });
               break;
             }
             default: {
@@ -113,7 +124,7 @@ export function convertToMistralChatMessages(
 
         messages.push({
           role: 'assistant',
-          content: text,
+          content: hasReasoning ? contentParts : text,
           prefix: isLastMessage ? true : undefined,
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
