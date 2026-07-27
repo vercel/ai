@@ -105,6 +105,84 @@ describe('doGenerate', () => {
 
       expect(result).toMatchSnapshot();
     });
+
+    it('should preserve thinking chunks when replaying reasoning history', async () => {
+      prepareJsonFixtureResponse('mistral-reasoning-history-live');
+
+      const firstResult = await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'What is 17 * 23? Reply with only the result.',
+              },
+            ],
+          },
+        ],
+        providerOptions: {
+          mistral: { reasoningEffort: 'high' },
+        },
+      });
+
+      const replayContent = firstResult.content.flatMap(part => {
+        if (part.type !== 'reasoning' && part.type !== 'text') {
+          return [];
+        }
+
+        return [
+          {
+            type: part.type,
+            text: part.text,
+            providerOptions: part.providerMetadata,
+          },
+        ];
+      });
+
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'What is 17 * 23? Reply with only the result.',
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: replayContent,
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Now multiply that result by 3. Reply with only the result.',
+              },
+            ],
+          },
+        ],
+        providerOptions: {
+          mistral: { reasoningEffort: 'high' },
+        },
+      });
+
+      const liveResponse = JSON.parse(
+        fs.readFileSync(
+          'src/__fixtures__/mistral-reasoning-history-live.json',
+          'utf8',
+        ),
+      );
+      const secondRequest = await server.calls[1].requestBodyJson;
+
+      expect(secondRequest.messages[1]).toEqual({
+        role: 'assistant',
+        content: liveResponse.choices[0].message.content,
+      });
+    });
   });
 
   it('should pass tools and toolChoice', async () => {

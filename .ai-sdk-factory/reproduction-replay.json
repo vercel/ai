@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 17930,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/mistral-reasoning-history.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/mistral-reasoning-history.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #17930 REPRODUCED: second request flattened Mistral thinking and text chunks into a plain string, dropped closed metadata, and appended the visible answer"
+  }
+}
