@@ -3198,6 +3198,101 @@ describe('streamText', () => {
 
       expect(destroyed).toBe(true);
     });
+
+    it('destroys the session when a transform errors', async () => {
+      const cleanup = vi.fn();
+      const cancelProviderStream = vi.fn();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async options => {
+            options.experimental_session!.set('resource', 'value', {
+              onDestroy: cleanup,
+            });
+            return {
+              stream: new ReadableStream<LanguageModelV4StreamPart>({
+                start(controller) {
+                  controller.enqueue({ type: 'text-start', id: '1' });
+                  controller.enqueue({
+                    type: 'text-delta',
+                    id: '1',
+                    delta: 'hello',
+                  });
+                  // Keep the provider stream open so the transform error must
+                  // cancel it.
+                },
+                cancel: cancelProviderStream,
+              }),
+            };
+          },
+        }),
+        experimental_transform: () =>
+          new TransformStream({
+            transform(chunk, controller) {
+              if (chunk.type === 'text-delta') {
+                throw new Error('transform failed');
+              }
+
+              controller.enqueue(chunk);
+            },
+          }),
+        prompt: 'test-input',
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      await vi.waitFor(() => {
+        expect(cleanup).toHaveBeenCalledExactlyOnceWith('value');
+      });
+      expect(cancelProviderStream).toHaveBeenCalledOnce();
+    });
+
+    it('destroys the session when aborted without stream consumption', async () => {
+      const cleanup = vi.fn();
+      const abortController = new AbortController();
+
+      let modelCallStarted!: () => void;
+      const modelCallStartedPromise = new Promise<void>(resolve => {
+        modelCallStarted = resolve;
+      });
+
+      streamText({
+        model: new MockLanguageModelV4({
+          doStream: async ({ abortSignal, experimental_session }) => {
+            experimental_session!.set('resource', 'value', {
+              onDestroy: cleanup,
+            });
+
+            modelCallStarted();
+
+            if (abortSignal?.aborted) {
+              throw abortSignal.reason;
+            }
+
+            await new Promise((_, reject) => {
+              abortSignal!.addEventListener('abort', () => {
+                reject(abortSignal!.reason);
+              });
+            });
+
+            throw new Error('unreachable');
+          },
+        }),
+        prompt: 'test-input',
+        abortSignal: abortController.signal,
+        onError: () => {},
+      });
+
+      // the stream is intentionally never consumed
+
+      await modelCallStartedPromise;
+      abortController.abort();
+
+      await vi.waitFor(() => {
+        expect(cleanup).toHaveBeenCalledExactlyOnceWith('value');
+      });
+    });
   });
 
   describe('result.pipeUIMessageStreamToResponse', async () => {
