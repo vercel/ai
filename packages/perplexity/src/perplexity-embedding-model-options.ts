@@ -4,8 +4,6 @@ import { z } from 'zod/v4';
 export type PerplexityEmbeddingModelId =
   | 'pplx-embed-v1-0.6b'
   | 'pplx-embed-v1-4b'
-  | 'pplx-embed-context-v1-0.6b'
-  | 'pplx-embed-context-v1-4b'
   | (string & {});
 
 export const perplexityEmbeddingModelOptions = z.object({
