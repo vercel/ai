@@ -6,7 +6,7 @@ import {
   type UIMessageChunk,
 } from 'ai';
 import { start } from 'workflow/api';
-import { piTimedWorkflow } from './workflow';
+import { timeSliceWorkflow } from './workflow';
 
 /*
  * Durable, multi-turn Pi chat via the Vercel Workflow DevKit. The
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     return new Response('No user message to run', { status: 400 });
   }
 
-  const run = await start(piTimedWorkflow, [{ prompt, sessionId: body.id }]);
+  const run = await start(timeSliceWorkflow, [{ prompt, sessionId: body.id }]);
 
   return createUIMessageStreamResponse({
     stream: run.readable as ReadableStream<UIMessageChunk>,

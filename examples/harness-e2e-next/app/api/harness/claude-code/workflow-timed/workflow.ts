@@ -7,7 +7,7 @@ import {
   finalizeHarnessWorkflow,
   type HarnessWorkflowInput,
 } from '@ai-sdk/workflow-harness';
-import { runClaudeCodeSlice } from './run-slice-step';
+import { timeSliceStep } from './time-slice-step';
 
 /*
  * The durable `'use workflow'` function lives in its own module — NOT in
@@ -24,18 +24,19 @@ import { runClaudeCodeSlice } from './run-slice-step';
  * it reattaches to the same warm session and keeps full conversation context),
  * send the new message, slice the turn across the wall-clock budget if it runs
  * long, and persist the refreshed handle for the next message. All Node-heavy
- * work lives in the step modules (`run-slice-step.ts`, `workflow-resume-steps.ts`).
+ * work lives in the step modules (`time-slice-step.ts`,
+ * `workflow-resume-steps.ts`).
  */
-export async function claudeCodeTimedWorkflow(
+export async function timeSliceWorkflow(
   input: Pick<HarnessWorkflowInput, 'prompt' | 'sessionId'>,
 ) {
   'use workflow';
 
   const resumeFrom = await loadResumeStep(input.sessionId);
   let state = createHarnessWorkflowState({ ...input, resumeFrom });
-  while (state.status === 'running' || state.status === 'timed_out') {
-    state = await runClaudeCodeSlice(state);
-  }
+  do {
+    state = await timeSliceStep(state);
+  } while (state.status === 'time_slice_completed');
   await persistResumeStep(state.sessionId, state.resumeFrom);
   return finalizeHarnessWorkflow(state);
 }

@@ -6,7 +6,7 @@ import {
   type UIMessageChunk,
 } from 'ai';
 import { start } from 'workflow/api';
-import { codexSteppedWorkflow } from './workflow';
+import { agentWorkflow } from './workflow';
 
 export async function POST(request: Request) {
   const body: { id?: string; messages: UIMessage[] } = await request.json();
@@ -19,9 +19,7 @@ export async function POST(request: Request) {
     return new Response('No user message to run', { status: 400 });
   }
 
-  const run = await start(codexSteppedWorkflow, [
-    { messages, sessionId: body.id },
-  ]);
+  const run = await start(agentWorkflow, [{ messages, sessionId: body.id }]);
   return createUIMessageStreamResponse({
     stream: run.readable as ReadableStream<UIMessageChunk>,
   });

@@ -6,7 +6,7 @@ import {
   type UIMessageChunk,
 } from 'ai';
 import { start } from 'workflow/api';
-import { deepAgentsTimedWorkflow } from './workflow';
+import { timeSliceWorkflow } from './workflow';
 
 // Durable multi-turn DeepAgents chat via the Workflow DevKit; the `'use workflow'` orchestration lives in `./workflow` (kept `ai`-free) and this is the plain POST handler.
 export async function POST(request: Request) {
@@ -24,9 +24,7 @@ export async function POST(request: Request) {
   }
 
   // The chat id is the stable harness session id; the session owns history, so we send only the newest user message.
-  const run = await start(deepAgentsTimedWorkflow, [
-    { prompt, sessionId: body.id },
-  ]);
+  const run = await start(timeSliceWorkflow, [{ prompt, sessionId: body.id }]);
 
   return createUIMessageStreamResponse({
     stream: run.readable as ReadableStream<UIMessageChunk>,

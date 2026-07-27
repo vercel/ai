@@ -2,34 +2,23 @@ import {
   loadResumeStep,
   persistResumeStep,
 } from '@/util/workflow-resume-steps';
-import type {
-  SteppedHarnessWorkflowInput,
-  SteppedHarnessWorkflowState,
-} from '@/util/stepped-harness-workflow';
-import { runOpenCodeStep } from './run-agent-step';
+import {
+  createHarnessWorkflowState,
+  finalizeHarnessWorkflow,
+  type HarnessWorkflowInput,
+} from '@ai-sdk/workflow-harness';
+import { agentStep } from './agent-step';
 
-export async function openCodeSteppedWorkflow(
-  input: SteppedHarnessWorkflowInput,
+export async function agentWorkflow(
+  input: Pick<HarnessWorkflowInput, 'messages' | 'sessionId'>,
 ) {
   'use workflow';
 
   const resumeFrom = await loadResumeStep(input.sessionId);
-  let state: SteppedHarnessWorkflowState = {
-    ...input,
-    status: 'running',
-    ...(resumeFrom != null ? { resumeFrom } : {}),
-  };
-  while (state.status === 'running') {
-    state = await runOpenCodeStep(state);
-  }
+  let state = createHarnessWorkflowState({ ...input, resumeFrom });
+  do {
+    state = await agentStep(state);
+  } while (state.status === 'step_completed');
   await persistResumeStep(state.sessionId, state.resumeFrom);
-  if (state.status === 'failed') {
-    throw new Error(state.error ?? 'stepped harness workflow failed');
-  }
-  return (
-    state.finalResult ?? {
-      sessionId: state.sessionId,
-      finishReason: 'unknown',
-    }
-  );
+  return finalizeHarnessWorkflow(state);
 }
