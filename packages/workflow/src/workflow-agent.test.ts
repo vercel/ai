@@ -1459,6 +1459,40 @@ describe('WorkflowAgent', () => {
       );
     });
 
+    it('should pass stream instructions and initial messages to prepareStep', async () => {
+      const mockModel = createMockModel();
+
+      const agent = new WorkflowAgent({
+        model: mockModel,
+        instructions: 'constructor instructions',
+        tools: {},
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockReturnValue({
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      } as unknown as MockIterator);
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        instructions: 'stream instructions',
+      });
+
+      expect(streamTextIterator).toHaveBeenCalledWith(
+        expect.objectContaining({
+          initialInstructions: 'stream instructions',
+          initialMessages: [{ role: 'user', content: 'test' }],
+          prompt: [
+            expect.objectContaining({
+              role: 'system',
+              content: 'stream instructions',
+            }),
+            expect.objectContaining({ role: 'user' }),
+          ],
+        }),
+      );
+    });
+
     it('should allow prepareStep to modify messages', async () => {
       const mockModel = createMockModel();
 
