@@ -12,20 +12,17 @@ description: API Reference for experimental_streamTranslate.
 Streams a speech-to-speech translation from live raw audio. Models translate
 live source audio into target-language audio and text.
 
-`experimental_streamTranslate` is built on the general speech-to-speech model
-specification (`Experimental_SpeechToSpeechModelV4`), which covers
-meaning-preserving audio-to-audio transforms (translation, voice conversion,
-...). The translation function constrains the specification to the translation
-task, e.g. by requiring `targetLanguage`. Provider implementations of the
-specification ship separately — see your provider's documentation for
-available translation models.
+`experimental_streamTranslate` is built on the speech translation model
+specification (`Experimental_SpeechTranslationModelV4`). Provider
+implementations of the specification ship separately — see your provider's
+documentation for available translation models.
 
 ```ts
 import { experimental_streamTranslate as streamTranslate } from 'ai';
 
 const result = streamTranslate({
   // any provider model instance that implements the experimental
-  // speech-to-speech model specification (Experimental_SpeechToSpeechModelV4):
+  // speech translation model specification (Experimental_SpeechTranslationModelV4):
   model: translationModel,
   audio: audioStream, // ReadableStream<Uint8Array | string>
   inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
@@ -56,9 +53,9 @@ console.log(await result.translationText);
   content={[
     {
       name: 'model',
-      type: 'Experimental_SpeechToSpeechModelV4',
+      type: 'Experimental_SpeechTranslationModelV4',
       description:
-        'The speech-to-speech model to use for translation. Translation is a streaming-only modality. Pass a provider model instance that implements the experimental speech-to-speech model specification. String model IDs resolve through the global provider (AI Gateway by default) when it supports speech-to-speech models.',
+        'The speech translation model to use. Translation is a streaming-only modality. Pass a provider model instance that implements the experimental speech translation model specification. String model IDs resolve through the global provider (AI Gateway by default) when it supports speech translation models.',
     },
     {
       name: 'audio',
@@ -149,7 +146,7 @@ console.log(await result.translationText);
     },
     {
       name: 'usage',
-      type: 'Promise<Experimental_SpeechToSpeechModelV4Usage | undefined>',
+      type: 'Promise<Experimental_SpeechTranslationModelV4Usage | undefined>',
       description:
         'Usage information for the translation call, if reported by the provider: `inputAudioSeconds`, `inputAudioTokens`, `outputAudioTokens`, `inputTextTokens`, `outputTextTokens` (all optional numbers).',
     },
@@ -161,7 +158,7 @@ console.log(await result.translationText);
     },
     {
       name: 'responses',
-      type: 'Promise<Array<SpeechToSpeechModelResponseMetadata>>',
+      type: 'Promise<Array<SpeechTranslationModelResponseMetadata>>',
       description: 'Response metadata (timestamp, model ID, headers).',
     },
     {

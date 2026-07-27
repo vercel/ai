@@ -3,4 +3,4 @@
 'ai': patch
 ---
 
-feat: add experimental speech-to-speech model specification (`Experimental_SpeechToSpeechModelV4`) and `experimental_streamTranslate` for streaming speech-to-speech translation
+feat: add experimental speech translation model specification (`Experimental_SpeechTranslationModelV4`) and `experimental_streamTranslate` for streaming speech-to-speech translation

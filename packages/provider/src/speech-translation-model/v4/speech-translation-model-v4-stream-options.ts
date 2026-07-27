@@ -1,16 +1,11 @@
 import type { JSONObject } from '../../json-value/json-value';
 
-type SpeechToSpeechModelV4ProviderOptions = Record<string, JSONObject>;
+type SpeechTranslationModelV4ProviderOptions = Record<string, JSONObject>;
 
 /**
- * Options for a speech-to-speech model stream call.
- *
- * This is a general specification for meaning-preserving audio-to-audio
- * transforms (translation, voice conversion, ...). Task-flavored functions
- * constrain these options further (e.g. translation requires
- * `targetLanguage`).
+ * Options for a speech translation model stream call.
  */
-export type SpeechToSpeechModelV4StreamOptions = {
+export type SpeechTranslationModelV4StreamOptions = {
   /**
    * Source audio chunks to transform.
    *
@@ -37,11 +32,9 @@ export type SpeechToSpeechModelV4StreamOptions = {
   /**
    * The language to produce output audio and text in, as a BCP-47-style
    * language tag (e.g. `en`, `es`, `fr-CA`). Supported values are
-   * provider-specific and validated by the provider. Only applicable for
-   * tasks that change the language (e.g. translation); task functions may
-   * require it.
+   * provider-specific and validated by the provider.
    */
-  targetLanguage?: string;
+  targetLanguage: string;
 
   /**
    * The language of the source audio, as a BCP-47-style language tag.
@@ -71,7 +64,7 @@ export type SpeechToSpeechModelV4StreamOptions = {
    * The outer record is keyed by the provider name, and the inner record is keyed
    * by provider-specific option names.
    */
-  providerOptions?: SpeechToSpeechModelV4ProviderOptions;
+  providerOptions?: SpeechTranslationModelV4ProviderOptions;
 
   /**
    * Abort signal for cancelling the operation.

@@ -13,18 +13,14 @@ function to translate live speech into another language. Translation is a
 streaming-only modality: models translate live source audio into
 target-language audio and text.
 
-`experimental_streamTranslate` is built on the general speech-to-speech model
-specification (`Experimental_SpeechToSpeechModelV4`), which covers
-meaning-preserving audio-to-audio transforms such as translation and voice
-conversion — analogous to how `LanguageModelV4` underlies both `generateText`
-and `generateObject`. The translation function constrains the specification
-to the translation task, e.g. by requiring `targetLanguage`.
+`experimental_streamTranslate` is built on the speech translation model
+specification (`Experimental_SpeechTranslationModelV4`).
 
 <Note>
-  Provider implementations of the speech-to-speech model specification ship
+  Provider implementations of the speech translation model specification ship
   separately. Pass any model instance that implements
-  `Experimental_SpeechToSpeechModelV4` — see your provider's documentation for
-  available translation models.
+  `Experimental_SpeechTranslationModelV4` — see your provider's documentation
+  for available translation models.
 </Note>
 
 ```ts
@@ -32,7 +28,7 @@ import { experimental_streamTranslate as streamTranslate } from 'ai';
 
 const result = streamTranslate({
   // any provider model instance that implements the experimental
-  // speech-to-speech model specification (Experimental_SpeechToSpeechModelV4):
+  // speech translation model specification (Experimental_SpeechTranslationModelV4):
   model: translationModel,
   audio: audioStream, // ReadableStream<Uint8Array | string>
   inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
@@ -170,7 +166,7 @@ without a finish event — it errors with a
 
 The error preserves the following information to help you log the issue:
 
-- `responses`: Metadata about the speech-to-speech model responses, including
+- `responses`: Metadata about the speech translation model responses, including
   timestamp, model, and headers.
 - `cause`: The cause of the error. You can use this for more detailed error
   handling.
