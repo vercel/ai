@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 16753,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-16753-stream-text-retention.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-16753-stream-text-retention.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #16753: streamText().textStream retained a large streaming output until the memory-limited process failed"
+  }
+}
