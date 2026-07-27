@@ -1199,7 +1199,7 @@ class DefaultStreamTextResult<
       EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
       EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
     > & {
-      // TODO: remove once the TypeScript Transformer type includes cancel
+      // TypeScript does not define `.cancel()` from the Stream spec as of 7.0.2. But `@types/node` does.
       cancel?: (reason: unknown) => void | PromiseLike<void>;
     } = {
       async transform(chunk, controller) {
