@@ -51,6 +51,124 @@ describe('writeToServerResponse', () => {
     expect(mockResponse.ended).toBe(true);
   });
 
+  describe('client disconnect handling', () => {
+    it('should cancel a pending stream read when the client disconnects', async () => {
+      const mockResponse = createMockServerResponse();
+      const cancel = vi.fn();
+      let resolvePullStarted!: () => void;
+      const pullStarted = new Promise<void>(resolve => {
+        resolvePullStarted = resolve;
+      });
+
+      const stream = new ReadableStream<Uint8Array>({
+        pull() {
+          resolvePullStarted();
+        },
+        cancel,
+      });
+
+      const writePromise = writeToServerResponse({
+        response: mockResponse,
+        stream,
+      });
+
+      await pullStarted;
+      Object.assign(mockResponse, { destroyed: true });
+      mockResponse.emit('close');
+      await writePromise;
+
+      expect(cancel).toHaveBeenCalledOnce();
+      expect(mockResponse.ended).toBe(false);
+      expect(mockResponse.listenerCount('close')).toBe(0);
+    });
+
+    it('should cancel without writing headers when the response is already destroyed', async () => {
+      const mockResponse = createMockServerResponse();
+      Object.assign(mockResponse, { destroyed: true });
+      const writeHead = vi.spyOn(mockResponse, 'writeHead');
+      const write = vi.spyOn(mockResponse, 'write');
+      const cancel = vi.fn();
+
+      await writeToServerResponse({
+        response: mockResponse,
+        stream: new ReadableStream({ cancel }),
+      });
+
+      expect(cancel).toHaveBeenCalledOnce();
+      expect(writeHead).not.toHaveBeenCalled();
+      expect(write).not.toHaveBeenCalled();
+      expect(mockResponse.ended).toBe(false);
+      expect(mockResponse.listenerCount('close')).toBe(0);
+    });
+
+    it('should handle a synchronous disconnect during write without waiting for drain', async () => {
+      const mockResponse = createMockServerResponse();
+      const cancel = vi.fn();
+
+      vi.spyOn(mockResponse, 'write').mockImplementation(() => {
+        Object.assign(mockResponse, { destroyed: true });
+        mockResponse.emit('close');
+        return false;
+      });
+
+      await writeToServerResponse({
+        response: mockResponse,
+        stream: new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode('chunk'));
+          },
+          cancel,
+        }),
+      });
+
+      expect(cancel).toHaveBeenCalledOnce();
+      expect(mockResponse.ended).toBe(false);
+      expect(mockResponse.listenerCount('drain')).toBe(0);
+      expect(mockResponse.listenerCount('close')).toBe(0);
+    });
+
+    it('should not wait for a retained tee branch to be cancelled', async () => {
+      const mockResponse = createMockServerResponse();
+      const cancelSource = vi.fn();
+      const [responseBranch, retainedBranch] = new ReadableStream<Uint8Array>({
+        cancel: cancelSource,
+      }).tee();
+
+      const writePromise = writeToServerResponse({
+        response: mockResponse,
+        stream: responseBranch,
+      });
+
+      Object.assign(mockResponse, { destroyed: true });
+      mockResponse.emit('close');
+      await writePromise;
+
+      expect(cancelSource).not.toHaveBeenCalled();
+
+      await retainedBranch.cancel();
+      expect(cancelSource).toHaveBeenCalledOnce();
+    });
+
+    it('should not cancel the stream after normal completion', async () => {
+      const mockResponse = createMockServerResponse();
+      const cancel = vi.fn();
+
+      await writeToServerResponse({
+        response: mockResponse,
+        stream: new ReadableStream({
+          start(controller) {
+            controller.close();
+          },
+          cancel,
+        }),
+      });
+
+      expect(cancel).not.toHaveBeenCalled();
+      expect(mockResponse.ended).toBe(true);
+      expect(mockResponse.listenerCount('close')).toBe(0);
+    });
+  });
+
   describe('backpressure handling', () => {
     beforeEach(() => {
       vi.useFakeTimers();
@@ -143,6 +261,34 @@ describe('writeToServerResponse', () => {
         mockResponse,
         mockResponse,
       ]);
+    });
+
+    it('should stop waiting for drain and remove the listener on disconnect', async () => {
+      const mockResponse = createBackpressureMockResponse();
+      const cancel = vi.fn();
+
+      const writePromise = writeToServerResponse({
+        response: mockResponse,
+        stream: new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode('chunk1'));
+            controller.enqueue(new TextEncoder().encode('chunk2'));
+          },
+          cancel,
+        }),
+      });
+
+      await mockResponse.waitForBackpressure();
+      expect(mockResponse.listenerCount('drain')).toBe(1);
+
+      Object.assign(mockResponse, { destroyed: true });
+      mockResponse.emit('close');
+      await writePromise;
+
+      expect(cancel).toHaveBeenCalledOnce();
+      expect(mockResponse.ended).toBe(false);
+      expect(mockResponse.listenerCount('drain')).toBe(0);
+      expect(mockResponse.listenerCount('close')).toBe(0);
     });
   });
 
@@ -247,6 +393,10 @@ class BackpressureMockResponse extends EventEmitter {
   headers: Record<string, string | number | string[]> | undefined;
   ended = false;
   private shouldApplyBackpressure = false;
+  private resolveBackpressure!: () => void;
+  private readonly backpressurePromise = new Promise<void>(resolve => {
+    this.resolveBackpressure = resolve;
+  });
 
   write(chunk: any): boolean {
     this.writtenChunks.push(chunk);
@@ -260,6 +410,7 @@ class BackpressureMockResponse extends EventEmitter {
 
     // If we're in backpressure mode, return false
     if (this.shouldApplyBackpressure) {
+      this.resolveBackpressure();
       return false;
     }
 
@@ -271,6 +422,10 @@ class BackpressureMockResponse extends EventEmitter {
   simulateDrain(): void {
     this.shouldApplyBackpressure = false;
     this.emit('drain');
+  }
+
+  async waitForBackpressure(): Promise<void> {
+    await this.backpressurePromise;
   }
 
   end(): void {

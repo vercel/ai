@@ -3198,6 +3198,129 @@ describe('streamText', () => {
 
       expect(destroyed).toBe(true);
     });
+
+    it('cancels the provider stream and destroys the session when a transform errors', async () => {
+      const cleanup = vi.fn();
+      const cancelProviderStream = vi.fn();
+      const transformError = new Error('transform failed');
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async options => {
+            options.experimental_session!.set('resource', 'value', {
+              onDestroy: cleanup,
+            });
+
+            return {
+              stream: new ReadableStream<LanguageModelV4StreamPart>({
+                start(controller) {
+                  controller.enqueue({ type: 'text-start', id: '1' });
+                  controller.enqueue({
+                    type: 'text-delta',
+                    id: '1',
+                    delta: 'hello',
+                  });
+                },
+                cancel: cancelProviderStream,
+              }),
+            };
+          },
+        }),
+        experimental_transform: () =>
+          new TransformStream({
+            transform(chunk, controller) {
+              if (chunk.type === 'text-delta') {
+                throw transformError;
+              }
+
+              controller.enqueue(chunk);
+            },
+          }),
+        prompt: 'test-input',
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(cancelProviderStream).toHaveBeenCalledOnce();
+      expect(cleanup).toHaveBeenCalledExactlyOnceWith('value');
+      await expect(result.text).rejects.toBe(transformError);
+    });
+
+    it('destroys the session when the provider stream errors', async () => {
+      const cleanup = vi.fn();
+      const providerError = new Error('provider stream failed');
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async options => {
+            options.experimental_session!.set('resource', 'value', {
+              onDestroy: cleanup,
+            });
+
+            return {
+              stream: new ReadableStream<LanguageModelV4StreamPart>({
+                pull() {
+                  throw providerError;
+                },
+              }),
+            };
+          },
+        }),
+        prompt: 'test-input',
+      });
+
+      await result.consumeStream();
+
+      expect(cleanup).toHaveBeenCalledExactlyOnceWith('value');
+      await expect(result.text).rejects.toBe(providerError);
+    });
+
+    it('combines provider stream and session cleanup failures', async () => {
+      const providerError = new Error('provider stream failed');
+      const cleanupError = new Error('cleanup failed');
+      const onError = vi.fn();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async options => {
+            options.experimental_session!.set('resource', 'value', {
+              onDestroy() {
+                throw cleanupError;
+              },
+            });
+
+            return {
+              stream: new ReadableStream<LanguageModelV4StreamPart>({
+                pull() {
+                  throw providerError;
+                },
+              }),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        onError,
+      });
+
+      await result.consumeStream();
+
+      let error: unknown;
+      try {
+        await result.text;
+      } catch (caughtError) {
+        error = caughtError;
+      }
+
+      expect(error).toBeInstanceOf(AggregateError);
+      expect((error as AggregateError).errors).toEqual([
+        providerError,
+        cleanupError,
+      ]);
+      expect(onError).toHaveBeenCalledExactlyOnceWith({
+        error,
+      });
+    });
   });
 
   describe('result.pipeUIMessageStreamToResponse', async () => {

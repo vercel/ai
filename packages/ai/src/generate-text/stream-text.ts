@@ -1560,7 +1560,9 @@ class DefaultStreamTextResult<
       },
 
       cancel(reason) {
-        return stitchableStream.stream.cancel(reason);
+        // The stitchable stream is locked by `reader`, so cancellation must
+        // go through that reader.
+        return reader.cancel(reason);
       },
     });
 
@@ -1591,9 +1593,95 @@ class DefaultStreamTextResult<
       );
     }
 
-    this.baseStream = stream
+    const processedStream = stream
       .pipeThrough(createOutputTransformStream(output ?? text()))
       .pipeThrough(eventProcessor);
+    const processedStreamReader = processedStream.getReader();
+
+    // eventProcessor.flush handles regular completion. This final wrapper
+    // handles pipeline errors and cancellation, which skip flush.
+    this.baseStream = new ReadableStream(
+      {
+        async pull(controller) {
+          try {
+            const { done, value } = await processedStreamReader.read();
+
+            if (done) {
+              controller.close();
+            } else {
+              controller.enqueue(value);
+            }
+          } catch (error) {
+            let finalError = error;
+            let shouldReportCleanupFailure = false;
+
+            try {
+              await session.destroy();
+            } catch (cleanupError) {
+              if (setupCleanupError != null) {
+                finalError = setupCleanupError;
+              } else if (cleanupError !== error) {
+                finalError = new AggregateError(
+                  [error, cleanupError],
+                  'Streaming failed and session cleanup also failed.',
+                );
+                shouldReportCleanupFailure = true;
+              }
+            }
+
+            if (shouldReportCleanupFailure) {
+              self.rejectResultPromises(finalError);
+              await telemetryDispatcher.onError?.({
+                callId,
+                error: finalError,
+              });
+              await onError({ error: finalError });
+            }
+
+            controller.error(finalError);
+          }
+        },
+
+        async cancel(reason) {
+          let cancellationFailed = false;
+          let cancellationError: unknown;
+
+          try {
+            await processedStreamReader.cancel(reason);
+          } catch (error) {
+            cancellationFailed = true;
+            cancellationError = error;
+          }
+
+          try {
+            await session.destroy();
+          } catch (cleanupError) {
+            const error =
+              setupCleanupError ??
+              (cancellationFailed && cleanupError !== cancellationError
+                ? new AggregateError(
+                    [cancellationError, cleanupError],
+                    'Streaming failed and session cleanup also failed.',
+                  )
+                : cleanupError);
+
+            self.rejectResultPromises(error);
+
+            if (setupCleanupError == null) {
+              await telemetryDispatcher.onError?.({ callId, error });
+              await onError({ error });
+            }
+
+            throw error;
+          }
+
+          if (cancellationFailed) {
+            throw cancellationError;
+          }
+        },
+      },
+      { highWaterMark: 0 },
+    );
 
     const { maxRetries } = prepareRetries({
       maxRetries: maxRetriesArg,
