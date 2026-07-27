@@ -9,7 +9,7 @@ description: Run HarnessAgent turns as durable Workflow DevKit workflows.
 inside a [workflow](https://vercel.com/docs/workflow).
 
 The package provides a serializable state machine and runners for time-sliced
-and semantic stepped turns. You call the appropriate runner from your own
+and semantic agent step turns. You call the appropriate runner from your own
 `'use workflow'` and `'use step'` functions.
 
 The core harness and workflow files are framework-independent. The HTTP handler
@@ -21,17 +21,21 @@ integration.
 
 <InstallPackages packages="@ai-sdk/workflow-harness workflow" />
 
-Install the core harness package, a harness adapter, and a sandbox provider as
-shown in [HarnessAgent](/docs/ai-sdk-harnesses/harness-agent).
+In addition to the workflow specific packages, install the core harness package,
+a harness adapter, and a sandbox provider as shown in
+[HarnessAgent](/docs/ai-sdk-harnesses/harness-agent).
 
-## Using a Durable Harness Agent
+## Configuring the Harness Agent
 
-The agent can be configured in the usual way.
+The agent can be configured in the usual way, for the most part. When using
+semantic agent steps, set `stopWhen` to `isStepCount(1)` so one call to
+`stream()` completes one agent step. Omit it when using time slices.
 
-```ts filename='harness-workflow/agent.ts'
+```ts filename='harness-workflow/agent.ts' highlight="13-17"
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { claudeCode } from '@ai-sdk/harness-claude-code';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { isStepCount } from 'ai';
 
 export const agent = new HarnessAgent({
   harness: claudeCode,
@@ -40,6 +44,11 @@ export const agent = new HarnessAgent({
     ports: [4000],
   }),
   instructions: 'You are a helpful coding assistant.',
+  /*
+   * Only needed for semantic agent-step workflows.
+   * Omit this for time-sliced workflows.
+   */
+  stopWhen: isStepCount(1),
 });
 ```
 
