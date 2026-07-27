@@ -3198,6 +3198,39 @@ describe('streamText', () => {
 
       expect(destroyed).toBe(true);
     });
+
+    it('destroys the session when a transform errors', async () => {
+      const cleanup = vi.fn();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async options => {
+            options.experimental_session!.set('resource', 'value', {
+              onDestroy: cleanup,
+            });
+            return { stream: createSuccessfulStream() };
+          },
+        }),
+        experimental_transform: () =>
+          new TransformStream({
+            transform(chunk, controller) {
+              if (chunk.type === 'text-delta') {
+                throw new Error('transform failed');
+              }
+
+              controller.enqueue(chunk);
+            },
+          }),
+        prompt: 'test-input',
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      await vi.waitFor(() => {
+        expect(cleanup).toHaveBeenCalledExactlyOnceWith('value');
+      });
+    });
   });
 
   describe('result.pipeUIMessageStreamToResponse', async () => {

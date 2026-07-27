@@ -1168,10 +1168,40 @@ class DefaultStreamTextResult<
     let recordedNoOutputError: NoOutputGeneratedError | undefined;
     let setupCleanupError: AggregateError | undefined;
 
-    const eventProcessor = new TransformStream<
+    // destroys the session when the pipeline terminates without a regular
+    // flush (cancellation or upstream abort). The consumer is gone at this
+    // point, so cleanup failures are reported instead of thrown:
+    let sessionCleanupErrorHandled = false;
+    const destroySessionOnTermination = async () => {
+      try {
+        await session.destroy();
+      } catch (cleanupError) {
+        // session.destroy() memoizes its rejection, so multiple termination
+        // paths can observe the same failure; only handle it once:
+        if (sessionCleanupErrorHandled) {
+          return;
+        }
+        sessionCleanupErrorHandled = true;
+
+        const error = setupCleanupError ?? cleanupError;
+
+        self.rejectResultPromises(error);
+
+        // don't report the same error twice
+        if (setupCleanupError == null) {
+          await telemetryDispatcher.onError?.({ callId, error });
+          await onError({ error });
+        }
+      }
+    };
+
+    const eventProcessorTransformer: Transformer<
       EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
       EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
-    >({
+    > & {
+      // TODO: remove once the TypeScript Transformer type includes cancel
+      cancel?: (reason: unknown) => void | PromiseLike<void>;
+    } = {
       async transform(chunk, controller) {
         controller.enqueue(chunk); // forward the chunk to the next stream
 
@@ -1390,6 +1420,8 @@ class DefaultStreamTextResult<
           try {
             await session.destroy();
           } catch (cleanupError) {
+            sessionCleanupErrorHandled = true;
+
             const error = setupCleanupError ?? cleanupError;
 
             self.rejectResultPromises(error);
@@ -1496,7 +1528,16 @@ class DefaultStreamTextResult<
           controller.error(error);
         }
       },
-    });
+
+      // runs when the readable side is cancelled or the writable side is
+      // aborted (e.g. an upstream transform threw). flush does not run in
+      // these cases, so the session must be destroyed here:
+      async cancel() {
+        await destroySessionOnTermination();
+      },
+    };
+
+    const eventProcessor = new TransformStream(eventProcessorTransformer);
 
     // initialize the stitchable stream and the transformed stream:
     const stitchableStream = createStitchableStream<TextStreamPart<TOOLS>>();
@@ -1559,8 +1600,11 @@ class DefaultStreamTextResult<
         }
       },
 
-      cancel(reason) {
-        return stitchableStream.stream.cancel(reason);
+      async cancel(reason) {
+        await stitchableStream.stream.cancel(reason);
+        // the event processor will not flush when the pipeline is
+        // cancelled, so the session must be destroyed here:
+        await destroySessionOnTermination();
       },
     });
 
