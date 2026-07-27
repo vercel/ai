@@ -1146,6 +1146,31 @@ describe('XaiResponsesLanguageModel', () => {
         `);
       });
 
+      it('should warn about unsupported topK, presencePenalty and frequencyPenalty', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast-non-reasoning',
+          output: [],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          topK: 10,
+          presencePenalty: 0.5,
+          frequencyPenalty: 0.5,
+        });
+
+        const warningFeatures = result.warnings.map(w =>
+          w.type === 'unsupported' ? w.feature : undefined,
+        );
+        expect(warningFeatures).toContain('topK');
+        expect(warningFeatures).toContain('presencePenalty');
+        expect(warningFeatures).toContain('frequencyPenalty');
+      });
+
       describe('responseFormat', () => {
         it('should send response format json schema', async () => {
           prepareJsonResponse({

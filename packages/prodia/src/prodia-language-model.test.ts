@@ -386,6 +386,7 @@ describe('ProdiaLanguageModel', () => {
         stopSequences: ['stop'],
         presencePenalty: 0.1,
         frequencyPenalty: 0.2,
+        seed: 42,
         tools: [
           {
             type: 'function',
@@ -409,6 +410,7 @@ describe('ProdiaLanguageModel', () => {
       expect(warningFeatures).toContain('stopSequences');
       expect(warningFeatures).toContain('presencePenalty');
       expect(warningFeatures).toContain('frequencyPenalty');
+      expect(warningFeatures).toContain('seed');
       expect(warningFeatures).toContain('tools');
       expect(warningFeatures).toContain('toolChoice');
       expect(warningFeatures).toContain('responseFormat');

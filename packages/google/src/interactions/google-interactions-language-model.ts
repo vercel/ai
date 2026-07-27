@@ -276,6 +276,11 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       const droppedFields: Array<string> = [];
       if (options.temperature != null) droppedFields.push('temperature');
       if (options.topP != null) droppedFields.push('topP');
+      if (options.topK != null) droppedFields.push('topK');
+      if (options.presencePenalty != null)
+        droppedFields.push('presencePenalty');
+      if (options.frequencyPenalty != null)
+        droppedFields.push('frequencyPenalty');
       if (options.seed != null) droppedFields.push('seed');
       if (options.stopSequences != null && options.stopSequences.length > 0) {
         droppedFields.push('stopSequences');
@@ -299,6 +304,9 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       generationConfig = pruneUndefined({
         temperature: options.temperature ?? undefined,
         top_p: options.topP ?? undefined,
+        top_k: options.topK ?? undefined,
+        presence_penalty: options.presencePenalty ?? undefined,
+        frequency_penalty: options.frequencyPenalty ?? undefined,
         seed: options.seed ?? undefined,
         stop_sequences:
           options.stopSequences != null && options.stopSequences.length > 0

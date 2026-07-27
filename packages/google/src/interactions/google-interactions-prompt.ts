@@ -461,6 +461,9 @@ export type GoogleInteractionsResponseFormatEntry =
 export type GoogleInteractionsGenerationConfig = {
   temperature?: number;
   top_p?: number;
+  top_k?: number;
+  presence_penalty?: number;
+  frequency_penalty?: number;
   seed?: number;
   stop_sequences?: Array<string>;
   max_output_tokens?: number;
