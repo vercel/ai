@@ -197,15 +197,28 @@ console.log(images);
     {
       name: 'usage',
       type: 'ImageModelUsage',
-      description: 'The usage statistics for the image generation.',
+      description:
+        'Token usage for the image generation, combined across all underlying provider calls. Fields are undefined for providers that do not report token counts.',
       properties: [
         {
           type: 'ImageModelUsage',
           parameters: [
             {
-              name: 'imagesGenerated',
-              type: 'number',
-              description: 'The total number of images generated.',
+              name: 'inputTokens',
+              type: 'number | undefined',
+              description: 'The number of input (prompt) tokens used.',
+            },
+            {
+              name: 'outputTokens',
+              type: 'number | undefined',
+              description:
+                'The number of output tokens used, if reported by the provider.',
+            },
+            {
+              name: 'totalTokens',
+              type: 'number | undefined',
+              description:
+                'The total number of tokens as reported by the provider.',
             },
           ],
         },
