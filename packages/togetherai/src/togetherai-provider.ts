@@ -132,17 +132,17 @@ export function createTogetherAI(
   });
 
   const createChatModel = (modelId: TogetherAIChatModelId) => {
-    return new OpenAICompatibleChatLanguageModel(
-      modelId,
-      getCommonModelConfig('chat'),
-    );
+    return new OpenAICompatibleChatLanguageModel(modelId, {
+      ...getCommonModelConfig('chat'),
+      includeUsage: true,
+    });
   };
 
   const createCompletionModel = (modelId: TogetherAICompletionModelId) =>
-    new OpenAICompatibleCompletionLanguageModel(
-      modelId,
-      getCommonModelConfig('completion'),
-    );
+    new OpenAICompatibleCompletionLanguageModel(modelId, {
+      ...getCommonModelConfig('completion'),
+      includeUsage: true,
+    });
 
   const createTextEmbeddingModel = (modelId: TogetherAIEmbeddingModelId) =>
     new OpenAICompatibleEmbeddingModel(
