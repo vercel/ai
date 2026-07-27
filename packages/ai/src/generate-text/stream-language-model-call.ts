@@ -220,6 +220,7 @@ export async function streamLanguageModelCall<
     generateId = originalGenerateId,
     generateCallId = originalGenerateCallId,
     now = originalNow,
+    collectModelCallContent = () => true,
   } = {},
   onStart,
   onLanguageModelCallStart,
@@ -253,6 +254,7 @@ export async function streamLanguageModelCall<
     generateId?: IdGenerator;
     generateCallId?: IdGenerator;
     now?: () => number;
+    collectModelCallContent?: () => boolean;
   };
   onLanguageModelCallStart?: Arrayable<OnLanguageModelCallStartCallback>;
   onLanguageModelCallEnd?: Arrayable<OnLanguageModelCallEndCallback<TOOLS>>;
@@ -375,6 +377,7 @@ export async function streamLanguageModelCall<
       now,
       callStartTimestampMs,
       onLanguageModelCallEnd,
+      collectModelCallContent,
     }),
   );
 
@@ -401,6 +404,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   now,
   callStartTimestampMs,
   onLanguageModelCallEnd,
+  collectModelCallContent,
 }: {
   tools: TOOLS | undefined;
   instructions: Instructions | undefined;
@@ -414,6 +418,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   now: () => number;
   callStartTimestampMs: number;
   onLanguageModelCallEnd?: Arrayable<OnLanguageModelCallEndCallback<TOOLS>>;
+  collectModelCallContent: () => boolean;
 }) {
   // keep track of parsed tool calls so provider-emitted approval requests can reference them
   // keep track of tool inputs for provider-side tool results
@@ -447,25 +452,29 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
 
       switch (chunk.type) {
         case 'text-start':
-          upsertTextContentPart({
-            content: modelCallContent,
-            partIndexes: textPartIndexes,
-            id: chunk.id,
-            type: 'text',
-            providerMetadata: chunk.providerMetadata,
-          });
+          if (collectModelCallContent()) {
+            upsertTextContentPart({
+              content: modelCallContent,
+              partIndexes: textPartIndexes,
+              id: chunk.id,
+              type: 'text',
+              providerMetadata: chunk.providerMetadata,
+            });
+          }
           controller.enqueue(chunk);
           break;
 
         case 'text-delta':
-          upsertTextContentPart({
-            content: modelCallContent,
-            partIndexes: textPartIndexes,
-            id: chunk.id,
-            type: 'text',
-            textDelta: chunk.delta,
-            providerMetadata: chunk.providerMetadata,
-          });
+          if (collectModelCallContent()) {
+            upsertTextContentPart({
+              content: modelCallContent,
+              partIndexes: textPartIndexes,
+              id: chunk.id,
+              type: 'text',
+              textDelta: chunk.delta,
+              providerMetadata: chunk.providerMetadata,
+            });
+          }
           controller.enqueue({
             type: 'text-delta',
             id: chunk.id,
@@ -475,37 +484,43 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
           break;
 
         case 'text-end':
-          upsertTextContentPart({
-            content: modelCallContent,
-            partIndexes: textPartIndexes,
-            id: chunk.id,
-            type: 'text',
-            providerMetadata: chunk.providerMetadata,
-          });
+          if (collectModelCallContent()) {
+            upsertTextContentPart({
+              content: modelCallContent,
+              partIndexes: textPartIndexes,
+              id: chunk.id,
+              type: 'text',
+              providerMetadata: chunk.providerMetadata,
+            });
+          }
           textPartIndexes.delete(chunk.id);
           controller.enqueue(chunk);
           break;
 
         case 'reasoning-start':
-          upsertTextContentPart({
-            content: modelCallContent,
-            partIndexes: reasoningPartIndexes,
-            id: chunk.id,
-            type: 'reasoning',
-            providerMetadata: chunk.providerMetadata,
-          });
+          if (collectModelCallContent()) {
+            upsertTextContentPart({
+              content: modelCallContent,
+              partIndexes: reasoningPartIndexes,
+              id: chunk.id,
+              type: 'reasoning',
+              providerMetadata: chunk.providerMetadata,
+            });
+          }
           controller.enqueue(chunk);
           break;
 
         case 'reasoning-delta':
-          upsertTextContentPart({
-            content: modelCallContent,
-            partIndexes: reasoningPartIndexes,
-            id: chunk.id,
-            type: 'reasoning',
-            textDelta: chunk.delta,
-            providerMetadata: chunk.providerMetadata,
-          });
+          if (collectModelCallContent()) {
+            upsertTextContentPart({
+              content: modelCallContent,
+              partIndexes: reasoningPartIndexes,
+              id: chunk.id,
+              type: 'reasoning',
+              textDelta: chunk.delta,
+              providerMetadata: chunk.providerMetadata,
+            });
+          }
           controller.enqueue({
             type: 'reasoning-delta',
             id: chunk.id,
@@ -515,13 +530,15 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
           break;
 
         case 'reasoning-end':
-          upsertTextContentPart({
-            content: modelCallContent,
-            partIndexes: reasoningPartIndexes,
-            id: chunk.id,
-            type: 'reasoning',
-            providerMetadata: chunk.providerMetadata,
-          });
+          if (collectModelCallContent()) {
+            upsertTextContentPart({
+              content: modelCallContent,
+              partIndexes: reasoningPartIndexes,
+              id: chunk.id,
+              type: 'reasoning',
+              providerMetadata: chunk.providerMetadata,
+            });
+          }
           reasoningPartIndexes.delete(chunk.id);
           controller.enqueue(chunk);
           break;
@@ -586,19 +603,21 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
                 : undefined,
           };
 
-          await notify({
-            event: {
-              callId,
-              provider,
-              modelId,
-              finishReason: chunk.finishReason.unified,
-              usage,
-              content: modelCallContent,
-              responseId,
-              performance,
-            },
-            callbacks: onLanguageModelCallEnd,
-          });
+          if (collectModelCallContent()) {
+            await notify({
+              event: {
+                callId,
+                provider,
+                modelId,
+                finishReason: chunk.finishReason.unified,
+                usage,
+                content: modelCallContent,
+                responseId,
+                performance,
+              },
+              callbacks: onLanguageModelCallEnd,
+            });
+          }
 
           controller.enqueue({
             type: 'model-call-end',
