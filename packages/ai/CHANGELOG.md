@@ -1,5 +1,17 @@
 # ai
 
+## 7.0.38
+
+### Patch Changes
+
+- 7bd6bdd: Avoid synthesizing client tool errors for invalid provider-executed tool calls.
+- 1e2f324: feat: add experimental speech translation model specification (`Experimental_SpeechTranslationModelV4`) and `experimental_streamTranslate` for streaming speech-to-speech translation
+- Updated dependencies [d9d2a11]
+- Updated dependencies [1e2f324]
+  - @ai-sdk/gateway@4.0.29
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/provider-utils@5.0.13
+
 ## 7.0.37
 
 ### Patch Changes

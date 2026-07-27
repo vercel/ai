@@ -257,6 +257,16 @@ export interface PrepareStepInfo<
   model: LanguageModel;
 
   /**
+   * The initial instructions passed to the stream.
+   */
+  initialInstructions: Instructions | undefined;
+
+  /**
+   * The initial messages passed to the stream.
+   */
+  initialMessages: Array<ModelMessage>;
+
+  /**
    * The current step number (0-indexed).
    */
   stepNumber: number;
@@ -837,7 +847,14 @@ export type WorkflowAgentStreamOptions<
       }
   ) & {
     /**
-     * Optional system prompt override. If provided, overrides the system prompt from the constructor.
+     * Instructions override for this stream call.
+     */
+    instructions?: Instructions;
+
+    /**
+     * Optional system prompt override.
+     *
+     * @deprecated Use `instructions` instead.
      */
     system?: string;
 
@@ -1324,7 +1341,8 @@ export class WorkflowAgent<
 
     // Call prepareCall to transform parameters before the agent loop
     let effectiveModel: LanguageModel = this.model;
-    let effectiveInstructions = options.system ?? this.instructions;
+    let effectiveInstructions =
+      options.instructions ?? options.system ?? this.instructions;
     let effectivePrompt: string | Array<ModelMessage> | undefined =
       options.prompt;
     let effectiveMessages: Array<ModelMessage> | undefined = options.messages;
@@ -2100,6 +2118,8 @@ export class WorkflowAgent<
       tools: effectiveTools as ToolSet,
       writable: options.writable,
       prompt: modelPrompt,
+      initialInstructions: effectiveInstructions,
+      initialMessages: prompt.messages,
       stopConditions: options.stopWhen ?? this.stopWhen,
 
       onStepEnd: mergedOnStepEnd as any,

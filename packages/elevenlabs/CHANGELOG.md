@@ -1,5 +1,14 @@
 # @ai-sdk/elevenlabs
 
+## 3.0.14
+
+### Patch Changes
+
+- 49fd7cd: Add streaming transcription support for ElevenLabs Scribe v2 Realtime through `experimental_streamTranscribe`.
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/provider-utils@5.0.13
+
 ## 3.0.13
 
 ### Patch Changes

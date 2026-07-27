@@ -1,5 +1,5 @@
 import {
-  runHarnessAgentSlice,
+  runHarnessAgentTimeSlice,
   type HarnessWorkflowState,
 } from '@ai-sdk/workflow-harness';
 
@@ -11,18 +11,18 @@ import {
  *
  * Demo budget lowered from the 750s production default so slicing is observable.
  */
-const DEMO_SLICE_TIMEOUT_SECONDS = 30;
+const DEMO_TIME_SLICE_SECONDS = 30;
 
-export async function runCodexSlice(
+export async function timeSliceStep(
   state: HarnessWorkflowState,
 ): Promise<HarnessWorkflowState> {
   'use step';
 
-  const { codexHarnessAgent } =
-    await import('@/agent/harness/codex/basic-agent');
-  return runHarnessAgentSlice({
-    agent: codexHarnessAgent,
+  const { openCodeHarnessAgent } =
+    await import('@/agent/harness/opencode/basic-agent');
+  return runHarnessAgentTimeSlice({
+    agent: openCodeHarnessAgent,
     state,
-    sliceTimeoutSeconds: DEMO_SLICE_TIMEOUT_SECONDS,
+    timeSliceSeconds: DEMO_TIME_SLICE_SECONDS,
   });
 }
