@@ -8,6 +8,7 @@ export type {
   /** @deprecated Use `MistralLanguageModelChatOptions` instead. */
   MistralLanguageModelChatOptions as MistralLanguageModelOptions,
 } from './mistral-chat-language-model-options';
+export type { MistralLanguageModelConversationsOptions } from './conversations/mistral-conversations-language-model-options';
 export type { MistralEmbeddingModelOptions } from './mistral-embedding-model-options';
 export type {
   MistralSpeechModelId,

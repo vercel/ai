@@ -223,6 +223,67 @@ Mistral language models can also be used in the `streamText` function
 and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output)
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
+### Conversations API and Web Search
+
+Mistral's built-in `web_search` and `web_search_premium` tools are available
+through the Mistral Conversations API. Create a Conversations model with
+`mistral.conversations()` and add the corresponding provider-executed tool from
+`mistral.tools`:
+
+```ts
+import {
+  mistral,
+  type MistralLanguageModelConversationsOptions,
+} from '@ai-sdk/mistral';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: mistral.conversations('mistral-medium-latest'),
+  tools: {
+    webSearch: mistral.tools.webSearch(),
+  },
+  providerOptions: {
+    mistral: {
+      store: false,
+    } satisfies MistralLanguageModelConversationsOptions,
+  },
+  prompt:
+    'Use web search to find the current stable Node.js release. Explain whether it is LTS and cite sources.',
+});
+
+console.log(result.text);
+console.log(result.sources);
+```
+
+The provider maps Mistral's server-side tool executions to AI SDK tool calls and
+tool results. Web references are returned as URL source parts and are available
+through `result.sources` with `generateText`, or as `source` parts when using
+`streamText`.
+
+Use `mistral.tools.webSearchPremium()` to enable Mistral's premium search:
+
+```ts
+const result = await generateText({
+  model: mistral.conversations('mistral-medium-latest'),
+  tools: {
+    webSearch: mistral.tools.webSearchPremium(),
+  },
+  prompt: 'Search for recent reporting about renewable energy policy.',
+});
+```
+
+The following optional provider option is available for Conversations models:
+
+- **store** _boolean_
+
+  Whether Mistral should persist the conversation. Set this to `false` for a
+  non-persistent conversation.
+
+The web search tools are not supported by Mistral's Chat Completions API, so use
+`mistral.conversations()` rather than `mistral()` or `mistral.chat()`. Search
+queries and retrieved content are processed by Mistral. Premium web search may
+have separate plan, availability, and billing requirements.
+
 #### Structured Outputs
 
 Mistral chat models support structured outputs using JSON Schema. You can use `generateText` or `streamText` with [`Output`](/docs/reference/ai-sdk-core/output)

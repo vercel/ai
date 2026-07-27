@@ -2,6 +2,30 @@ import { describe, it, expect } from 'vitest';
 import { prepareTools } from './mistral-prepare-tools';
 
 describe('prepareTools', () => {
+  it('should warn about Mistral provider tools on the Chat Completions API', () => {
+    const result = prepareTools({
+      tools: [
+        {
+          type: 'provider',
+          id: 'mistral.web_search',
+          name: 'search',
+          args: {},
+        },
+      ],
+    });
+
+    expect(result).toStrictEqual({
+      tools: [],
+      toolChoice: undefined,
+      toolWarnings: [
+        {
+          type: 'unsupported',
+          feature: 'provider-defined tool mistral.web_search',
+        },
+      ],
+    });
+  });
+
   it('should pass through strict mode when strict is true', () => {
     const result = prepareTools({
       tools: [

@@ -11,12 +11,14 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
+import { MistralConversationsLanguageModel } from './conversations/mistral-conversations-language-model';
 import { MistralChatLanguageModel } from './mistral-chat-language-model';
 import type { MistralChatModelId } from './mistral-chat-language-model-options';
 import { MistralEmbeddingModel } from './mistral-embedding-model';
 import type { MistralEmbeddingModelId } from './mistral-embedding-model-options';
 import { MistralSpeechModel } from './mistral-speech-model';
 import type { MistralSpeechModelId } from './mistral-speech-model-options';
+import { mistralTools } from './mistral-tools';
 import { VERSION } from './version';
 
 export interface MistralProvider extends ProviderV4 {
@@ -31,6 +33,11 @@ export interface MistralProvider extends ProviderV4 {
    * Creates a model for text generation.
    */
   chat(modelId: MistralChatModelId): LanguageModelV4;
+
+  /**
+   * Creates a model that uses Mistral's Conversations API.
+   */
+  conversations(modelId: MistralChatModelId): LanguageModelV4;
 
   /**
    * Creates a model for text embeddings.
@@ -61,6 +68,11 @@ export interface MistralProvider extends ProviderV4 {
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(modelId: MistralEmbeddingModelId): EmbeddingModelV4;
+
+  /**
+   * Mistral-specific provider-executed tools.
+   */
+  tools: typeof mistralTools;
 }
 
 export interface MistralProviderSettings {
@@ -121,6 +133,15 @@ export function createMistral(
       generateId: options.generateId,
     });
 
+  const createConversationsModel = (modelId: MistralChatModelId) =>
+    new MistralConversationsLanguageModel(modelId, {
+      provider: 'mistral.conversations',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      generateId: options.generateId,
+    });
+
   const createEmbeddingModel = (modelId: MistralEmbeddingModelId) =>
     new MistralEmbeddingModel(modelId, {
       provider: 'mistral.embedding',
@@ -150,18 +171,20 @@ export function createMistral(
   provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
+  provider.conversations = createConversationsModel;
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
+  provider.tools = mistralTools;
 
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
 
-  return provider;
+  return provider as MistralProvider;
 }
 
 /**
