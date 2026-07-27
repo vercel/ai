@@ -11,7 +11,13 @@
  * to use that interface directly.
  */
 import type { JSONSchema7 } from '@ai-sdk/provider';
-import { asSchema, jsonSchema } from '@ai-sdk/provider-utils';
+import {
+  asSchema,
+  type Experimental_SandboxSession as SandboxSession,
+  type InferToolSetContext,
+  jsonSchema,
+  type Tool,
+} from '@ai-sdk/provider-utils';
 import { tool, type ToolSet } from 'ai';
 import Ajv from 'ajv';
 
@@ -37,13 +43,25 @@ export type SerializableToolDef = {
  * (as JSON Schema) are preserved — execute functions are stripped since they
  * run outside the step.
  */
-export function serializeToolSet(
-  tools: ToolSet,
+export function serializeToolSet<TOOLS extends ToolSet>(
+  tools: TOOLS,
+  {
+    toolsContext = {} as InferToolSetContext<TOOLS>,
+    experimental_sandbox: sandbox,
+  }: {
+    toolsContext?: InferToolSetContext<TOOLS>;
+    experimental_sandbox?: SandboxSession;
+  } = {},
 ): Record<string, SerializableToolDef> {
   return Object.fromEntries(
     Object.entries(tools).map(([name, t]) => {
       const def: SerializableToolDef = {
-        description: t.description as string, // TODO support tools with function descriptions
+        description: resolveToolDescription({
+          tool: t,
+          toolName: name,
+          toolsContext,
+          experimental_sandbox: sandbox,
+        }),
         inputSchema: asSchema(t.inputSchema).jsonSchema as JSONSchema7,
       };
 
@@ -59,6 +77,27 @@ export function serializeToolSet(
       return [name, def];
     }),
   );
+}
+
+function resolveToolDescription<TOOLS extends ToolSet>({
+  tool,
+  toolName,
+  toolsContext,
+  experimental_sandbox: sandbox,
+}: {
+  tool: Tool;
+  toolName: string;
+  toolsContext: InferToolSetContext<TOOLS>;
+  experimental_sandbox?: SandboxSession;
+}): string | undefined {
+  return tool.description === undefined
+    ? undefined
+    : typeof tool.description === 'string'
+      ? tool.description
+      : tool.description({
+          context: toolsContext[toolName as keyof InferToolSetContext<TOOLS>],
+          experimental_sandbox: sandbox,
+        });
 }
 
 /**
