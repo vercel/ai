@@ -1,6 +1,6 @@
 import {
   InvalidArgumentError,
-  type Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
+  type Experimental_SpeechTranslationModelV4 as TranslationModelV4,
   type Experimental_SpeechTranslationModelV4StreamOptions as SpeechTranslationModelV4StreamOptions,
   type Experimental_SpeechTranslationModelV4StreamPart as SpeechTranslationModelV4StreamPart,
   type Experimental_SpeechTranslationModelV4Usage as SpeechTranslationModelV4Usage,
@@ -82,7 +82,7 @@ export type GoogleTranslationModelConfig = {
   };
 };
 
-export class GoogleTranslationModel implements SpeechTranslationModelV4 {
+export class GoogleTranslationModel implements TranslationModelV4 {
   readonly specificationVersion = 'v4';
   readonly modelId: GoogleTranslationModelId;
 
@@ -116,7 +116,7 @@ export class GoogleTranslationModel implements SpeechTranslationModelV4 {
 
   async doStream(
     options: SpeechTranslationModelV4StreamOptions,
-  ): Promise<Awaited<ReturnType<SpeechTranslationModelV4['doStream']>>> {
+  ): Promise<Awaited<ReturnType<TranslationModelV4['doStream']>>> {
     if (options.targetLanguage == null) {
       throw new InvalidArgumentError({
         argument: 'targetLanguage',

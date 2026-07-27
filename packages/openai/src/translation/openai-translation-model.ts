@@ -1,6 +1,6 @@
 import {
   InvalidArgumentError,
-  type Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
+  type Experimental_SpeechTranslationModelV4 as TranslationModelV4,
   type Experimental_SpeechTranslationModelV4StreamOptions as SpeechTranslationModelV4StreamOptions,
   type Experimental_SpeechTranslationModelV4StreamPart as SpeechTranslationModelV4StreamPart,
   type SharedV4Warning,
@@ -37,7 +37,7 @@ interface OpenAITranslationModelConfig extends OpenAIConfig {
   };
 }
 
-export class OpenAITranslationModel implements SpeechTranslationModelV4 {
+export class OpenAITranslationModel implements TranslationModelV4 {
   readonly specificationVersion = 'v4';
 
   static [WORKFLOW_SERIALIZE](model: OpenAITranslationModel) {
@@ -65,7 +65,7 @@ export class OpenAITranslationModel implements SpeechTranslationModelV4 {
 
   async doStream(
     options: SpeechTranslationModelV4StreamOptions,
-  ): Promise<Awaited<ReturnType<SpeechTranslationModelV4['doStream']>>> {
+  ): Promise<Awaited<ReturnType<TranslationModelV4['doStream']>>> {
     if (options.targetLanguage == null) {
       throw new InvalidArgumentError({
         argument: 'targetLanguage',
