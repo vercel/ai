@@ -28,7 +28,7 @@ import { timeSliceStep } from './time-slice-step';
  * `workflow-resume-steps.ts`).
  */
 export async function timeSliceWorkflow(
-  input: Pick<HarnessWorkflowInput, 'prompt' | 'sessionId'>,
+  input: Pick<HarnessWorkflowInput, 'messages' | 'sessionId'>,
 ) {
   'use workflow';
 

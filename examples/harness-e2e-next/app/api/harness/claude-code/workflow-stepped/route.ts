@@ -1,4 +1,3 @@
-import { latestUserMessage } from '@/util/latest-user-message';
 import {
   convertToModelMessages,
   createUIMessageStreamResponse,
@@ -15,10 +14,6 @@ export async function POST(request: Request) {
   }
 
   const messages = await convertToModelMessages(body.messages);
-  if (!latestUserMessage(messages)) {
-    return new Response('No user message to run', { status: 400 });
-  }
-
   const run = await start(agentWorkflow, [{ messages, sessionId: body.id }]);
   return createUIMessageStreamResponse({
     stream: run.readable as ReadableStream<UIMessageChunk>,

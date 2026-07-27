@@ -1,4 +1,3 @@
-import { latestUserMessage } from '@/util/latest-user-message';
 import {
   convertToModelMessages,
   createUIMessageStreamResponse,
@@ -18,13 +17,15 @@ export async function POST(request: Request) {
   if (!body.id) {
     return new Response('Missing chat id', { status: 400 });
   }
-  const prompt = latestUserMessage(await convertToModelMessages(body.messages));
-  if (!prompt) {
-    return new Response('No user message to run', { status: 400 });
-  }
 
-  // The chat id is the stable harness session id; the session owns history, so we send only the newest user message.
-  const run = await start(timeSliceWorkflow, [{ prompt, sessionId: body.id }]);
+  const messages = await convertToModelMessages(body.messages);
+  /*
+   * The chat id is the stable harness session id. The complete message list
+   * lets HarnessAgent identify new turns and tool continuations.
+   */
+  const run = await start(timeSliceWorkflow, [
+    { messages, sessionId: body.id },
+  ]);
 
   return createUIMessageStreamResponse({
     stream: run.readable as ReadableStream<UIMessageChunk>,

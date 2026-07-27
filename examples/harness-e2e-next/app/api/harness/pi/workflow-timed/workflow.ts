@@ -22,7 +22,7 @@ import { timeSliceStep } from './time-slice-step';
  * rerun-from-journal rather than a lossless attach.
  */
 export async function timeSliceWorkflow(
-  input: Pick<HarnessWorkflowInput, 'prompt' | 'sessionId'>,
+  input: Pick<HarnessWorkflowInput, 'messages' | 'sessionId'>,
 ) {
   'use workflow';
 
