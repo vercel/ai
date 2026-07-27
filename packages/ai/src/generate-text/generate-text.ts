@@ -999,7 +999,10 @@ export async function generateText<
             // insert error tool outputs for invalid tool calls:
             // TODO AI SDK 6: invalid inputs should not require output parts
             const invalidToolCalls = stepToolCalls.filter(
-              toolCall => toolCall.invalid && toolCall.dynamic,
+              toolCall =>
+                toolCall.invalid &&
+                toolCall.dynamic &&
+                !toolCall.providerExecuted,
             );
 
             clientToolOutputs = [];

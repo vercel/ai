@@ -318,18 +318,20 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
             controller.enqueue(toolCall);
 
             if (toolCall.invalid) {
-              enqueueToolResult({
-                type: 'tool-error',
-                toolCallId: toolCall.toolCallId,
-                toolName: toolCall.toolName,
-                input: toolCall.input,
-                error: getErrorMessage(toolCall.error!),
-                dynamic: true,
-                title: toolCall.title,
-                ...(toolCall.toolMetadata != null
-                  ? { toolMetadata: toolCall.toolMetadata }
-                  : {}),
-              });
+              if (!toolCall.providerExecuted) {
+                enqueueToolResult({
+                  type: 'tool-error',
+                  toolCallId: toolCall.toolCallId,
+                  toolName: toolCall.toolName,
+                  input: toolCall.input,
+                  error: getErrorMessage(toolCall.error!),
+                  dynamic: true,
+                  title: toolCall.title,
+                  ...(toolCall.toolMetadata != null
+                    ? { toolMetadata: toolCall.toolMetadata }
+                    : {}),
+                });
+              }
               break;
             }
 
