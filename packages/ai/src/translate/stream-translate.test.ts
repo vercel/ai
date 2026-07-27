@@ -1,6 +1,6 @@
 import type {
-  Experimental_SpeechToSpeechModelV4 as SpeechToSpeechModelV4,
-  Experimental_SpeechToSpeechModelV4StreamPart as SpeechToSpeechModelV4StreamPart,
+  Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
+  Experimental_SpeechTranslationModelV4StreamPart as SpeechTranslationModelV4StreamPart,
 } from '@ai-sdk/provider';
 import {
   convertArrayToReadableStream,
@@ -16,7 +16,7 @@ import {
   vi,
 } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
-import { MockSpeechToSpeechModelV4 } from '../test/mock-speech-to-speech-model-v4';
+import { MockSpeechTranslationModelV4 } from '../test/mock-speech-translation-model-v4';
 import { streamTranslate } from './stream-translate';
 
 vi.mock('../version', () => {
@@ -31,8 +31,8 @@ const targetLanguage = 'es';
 const testDate = new Date(2024, 0, 1);
 
 const createStreamResponse = (
-  parts: SpeechToSpeechModelV4StreamPart[],
-): Awaited<ReturnType<SpeechToSpeechModelV4['doStream']>> => ({
+  parts: SpeechTranslationModelV4StreamPart[],
+): Awaited<ReturnType<SpeechTranslationModelV4['doStream']>> => ({
   stream: convertArrayToReadableStream(parts),
   response: {
     timestamp: testDate,
@@ -57,10 +57,10 @@ describe('experimental_streamTranslate', () => {
   it('should send args to doStream', async () => {
     const abortController = new AbortController();
     const abortSignal = abortController.signal;
-    let capturedArgs!: Parameters<SpeechToSpeechModelV4['doStream']>[0];
+    let capturedArgs!: Parameters<SpeechTranslationModelV4['doStream']>[0];
 
     const result = streamTranslate({
-      model: new MockSpeechToSpeechModelV4({
+      model: new MockSpeechTranslationModelV4({
         doStream: async args => {
           capturedArgs = args;
           return createStreamResponse([
@@ -108,7 +108,7 @@ describe('experimental_streamTranslate', () => {
 
   it('should stream translation parts and resolve final metadata', async () => {
     const result = streamTranslate({
-      model: new MockSpeechToSpeechModelV4({
+      model: new MockSpeechTranslationModelV4({
         doStream: async () =>
           createStreamResponse([
             {
@@ -125,7 +125,8 @@ describe('experimental_streamTranslate', () => {
               id: 'item-1',
               text: 'Hello',
               startSecond: 0,
-              durationInSeconds: 1,
+              endSecond: 1,
+              channelIndex: 0,
             },
             {
               type: 'source-transcript-final',
@@ -133,6 +134,7 @@ describe('experimental_streamTranslate', () => {
               text: 'Hello',
               startSecond: 0,
               endSecond: 1,
+              channelIndex: 0,
             },
             { type: 'output-text-delta', id: 'item-1', delta: 'Ho' },
             { type: 'output-text-delta', id: 'item-1', delta: 'la' },
@@ -172,7 +174,8 @@ describe('experimental_streamTranslate', () => {
         id: 'item-1',
         text: 'Hello',
         startSecond: 0,
-        durationInSeconds: 1,
+        endSecond: 1,
+        channelIndex: 0,
       },
       {
         type: 'source-transcript-final',
@@ -180,6 +183,7 @@ describe('experimental_streamTranslate', () => {
         text: 'Hello',
         startSecond: 0,
         endSecond: 1,
+        channelIndex: 0,
       },
       { type: 'output-text-delta', id: 'item-1', delta: 'Ho' },
       { type: 'output-text-delta', id: 'item-1', delta: 'la' },
@@ -199,13 +203,11 @@ describe('experimental_streamTranslate', () => {
     await expect(result.warnings).resolves.toEqual([
       { type: 'other', message: 'test warning' },
     ]);
-    await expect(result.responses).resolves.toEqual([
-      {
-        timestamp: testDate,
-        modelId: 'test-model-id',
-        headers: { 'x-test': 'value' },
-      },
-    ]);
+    await expect(result.response).resolves.toEqual({
+      timestamp: testDate,
+      modelId: 'test-model-id',
+      headers: { 'x-test': 'value' },
+    });
     await expect(result.providerMetadata).resolves.toEqual({
       mock: { key: 'value' },
     });
@@ -218,7 +220,7 @@ describe('experimental_streamTranslate', () => {
 
   it('should pass raw chunks through when includeRawChunks is enabled', async () => {
     const result = streamTranslate({
-      model: new MockSpeechToSpeechModelV4({
+      model: new MockSpeechTranslationModelV4({
         doStream: async () =>
           createStreamResponse([
             { type: 'stream-start', warnings: [] },
@@ -245,7 +247,7 @@ describe('experimental_streamTranslate', () => {
 
   it('should reject final promises when no translation is returned', async () => {
     const result = streamTranslate({
-      model: new MockSpeechToSpeechModelV4({
+      model: new MockSpeechTranslationModelV4({
         doStream: async () =>
           createStreamResponse([
             { type: 'stream-start', warnings: [] },
@@ -265,18 +267,16 @@ describe('experimental_streamTranslate', () => {
     });
     await expect(result.translationText).rejects.toMatchObject({
       name: 'AI_NoTranslationGeneratedError',
-      responses: [
-        {
-          timestamp: testDate,
-          modelId: 'test-model-id',
-        },
-      ],
+      response: {
+        timestamp: testDate,
+        modelId: 'test-model-id',
+      },
     });
   });
 
   it('should keep already-resolved promises resolved when the stream errors later', async () => {
     const result = streamTranslate({
-      model: new MockSpeechToSpeechModelV4({
+      model: new MockSpeechTranslationModelV4({
         doStream: async () =>
           createStreamResponse([
             {
@@ -315,7 +315,7 @@ describe('experimental_streamTranslate', () => {
     });
 
     const result = streamTranslate({
-      model: new MockSpeechToSpeechModelV4({
+      model: new MockSpeechTranslationModelV4({
         doStream: async () => {
           throw new Error('authentication failed');
         },
@@ -347,13 +347,13 @@ describe('experimental_streamTranslate', () => {
     });
 
     const result = streamTranslate({
-      model: new MockSpeechToSpeechModelV4({
+      model: new MockSpeechTranslationModelV4({
         doStream: async ({ audio: modelAudio }) => {
           // the model takes ownership of the audio stream, as providers do:
           void modelAudio.getReader();
           audioReaderTaken = true;
           return {
-            stream: new ReadableStream<SpeechToSpeechModelV4StreamPart>({
+            stream: new ReadableStream<SpeechTranslationModelV4StreamPart>({
               start(controller) {
                 controller.enqueue({ type: 'stream-start', warnings: [] });
                 controller.error(new Error('connection lost'));
@@ -379,9 +379,9 @@ describe('experimental_streamTranslate', () => {
     let modelStreamCancelled = false;
 
     const result = streamTranslate({
-      model: new MockSpeechToSpeechModelV4({
+      model: new MockSpeechTranslationModelV4({
         doStream: async () => ({
-          stream: new ReadableStream<SpeechToSpeechModelV4StreamPart>({
+          stream: new ReadableStream<SpeechTranslationModelV4StreamPart>({
             start(controller) {
               controller.enqueue({ type: 'stream-start', warnings: [] });
               controller.enqueue({
@@ -422,7 +422,7 @@ describe('experimental_streamTranslate', () => {
     let observedSignal: AbortSignal | undefined;
 
     const result = streamTranslate({
-      model: new MockSpeechToSpeechModelV4({
+      model: new MockSpeechTranslationModelV4({
         doStream: ({ abortSignal }) => {
           observedSignal = abortSignal;
           return new Promise(() => {}); // setup that never completes
@@ -442,7 +442,7 @@ describe('experimental_streamTranslate', () => {
 
   it('should resolve the result promises without consuming fullStream', async () => {
     const result = streamTranslate({
-      model: new MockSpeechToSpeechModelV4({
+      model: new MockSpeechTranslationModelV4({
         doStream: async () =>
           createStreamResponse([
             { type: 'stream-start', warnings: [] },
@@ -468,7 +468,7 @@ describe('experimental_streamTranslate', () => {
 
   it('should reject the result promises without consuming fullStream when no translation is produced', async () => {
     const result = streamTranslate({
-      model: new MockSpeechToSpeechModelV4({
+      model: new MockSpeechTranslationModelV4({
         doStream: async () =>
           createStreamResponse([{ type: 'stream-start', warnings: [] }]),
       }),
@@ -484,7 +484,7 @@ describe('experimental_streamTranslate', () => {
 
   it('should reject fullStream access after a result promise claimed the stream', async () => {
     const result = streamTranslate({
-      model: new MockSpeechToSpeechModelV4({
+      model: new MockSpeechTranslationModelV4({
         doStream: async () =>
           createStreamResponse([
             { type: 'stream-start', warnings: [] },
@@ -509,7 +509,7 @@ describe('experimental_streamTranslate', () => {
 
   it('should support iterating fullStream before awaiting promises', async () => {
     const result = streamTranslate({
-      model: new MockSpeechToSpeechModelV4({
+      model: new MockSpeechTranslationModelV4({
         doStream: async () =>
           createStreamResponse([
             { type: 'stream-start', warnings: [] },
@@ -534,14 +534,14 @@ describe('experimental_streamTranslate', () => {
   });
 
   it('should resolve a result promise while fullStream is actively consumed', async () => {
-    let modelController!: ReadableStreamDefaultController<SpeechToSpeechModelV4StreamPart>;
-    const modelStream = new ReadableStream<SpeechToSpeechModelV4StreamPart>({
+    let modelController!: ReadableStreamDefaultController<SpeechTranslationModelV4StreamPart>;
+    const modelStream = new ReadableStream<SpeechTranslationModelV4StreamPart>({
       start(controller) {
         modelController = controller;
       },
     });
     const result = streamTranslate({
-      model: new MockSpeechToSpeechModelV4({
+      model: new MockSpeechTranslationModelV4({
         doStream: async () => ({ stream: modelStream }),
       }),
       audio,
@@ -579,7 +579,7 @@ describe('experimental_streamTranslate', () => {
 
   it('should reject a second fullStream access', async () => {
     const result = streamTranslate({
-      model: new MockSpeechToSpeechModelV4({
+      model: new MockSpeechTranslationModelV4({
         doStream: async () =>
           createStreamResponse([
             { type: 'stream-start', warnings: [] },
@@ -608,7 +608,7 @@ describe('experimental_streamTranslate', () => {
 
   it('should succeed with an empty translationText for an audio-only stream', async () => {
     const result = streamTranslate({
-      model: new MockSpeechToSpeechModelV4({
+      model: new MockSpeechTranslationModelV4({
         doStream: async () =>
           createStreamResponse([
             { type: 'stream-start', warnings: [] },
@@ -636,7 +636,7 @@ describe('experimental_streamTranslate', () => {
 
   it('should resolve sourceText to an empty string when only output text was produced', async () => {
     const result = streamTranslate({
-      model: new MockSpeechToSpeechModelV4({
+      model: new MockSpeechTranslationModelV4({
         doStream: async () =>
           createStreamResponse([
             { type: 'stream-start', warnings: [] },
@@ -660,7 +660,7 @@ describe('experimental_streamTranslate', () => {
 
   it('should pass error parts through on fullStream', async () => {
     const result = streamTranslate({
-      model: new MockSpeechToSpeechModelV4({
+      model: new MockSpeechTranslationModelV4({
         doStream: async () =>
           createStreamResponse([
             { type: 'stream-start', warnings: [] },
@@ -685,12 +685,12 @@ describe('experimental_streamTranslate', () => {
 
   it('should error the stream when the external abort signal fires mid-stream', async () => {
     const abortController = new AbortController();
-    let modelController!: ReadableStreamDefaultController<SpeechToSpeechModelV4StreamPart>;
+    let modelController!: ReadableStreamDefaultController<SpeechTranslationModelV4StreamPart>;
 
     const result = streamTranslate({
-      model: new MockSpeechToSpeechModelV4({
+      model: new MockSpeechTranslationModelV4({
         doStream: async ({ abortSignal }) => ({
-          stream: new ReadableStream<SpeechToSpeechModelV4StreamPart>({
+          stream: new ReadableStream<SpeechTranslationModelV4StreamPart>({
             start(controller) {
               modelController = controller;
               // providers error their stream when the signal fires:
@@ -749,7 +749,7 @@ describe('experimental_streamTranslate', () => {
           targetLanguage,
         }),
       ).toThrow(
-        'The default provider does not support speech-to-speech models.',
+        'The default provider does not support speech translation models.',
       );
     } finally {
       delete globalThis.AI_SDK_DEFAULT_PROVIDER;

@@ -1,9 +1,9 @@
 import {
   InvalidArgumentError,
-  type Experimental_SpeechToSpeechModelV4 as SpeechToSpeechModelV4,
-  type Experimental_SpeechToSpeechModelV4StreamOptions as SpeechToSpeechModelV4StreamOptions,
-  type Experimental_SpeechToSpeechModelV4StreamPart as SpeechToSpeechModelV4StreamPart,
-  type Experimental_SpeechToSpeechModelV4Usage as SpeechToSpeechModelV4Usage,
+  type Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
+  type Experimental_SpeechTranslationModelV4StreamOptions as SpeechTranslationModelV4StreamOptions,
+  type Experimental_SpeechTranslationModelV4StreamPart as SpeechTranslationModelV4StreamPart,
+  type Experimental_SpeechTranslationModelV4Usage as SpeechTranslationModelV4Usage,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -80,7 +80,7 @@ export type GoogleTranslationModelConfig = {
   };
 };
 
-export class GoogleTranslationModel implements SpeechToSpeechModelV4 {
+export class GoogleTranslationModel implements SpeechTranslationModelV4 {
   readonly specificationVersion = 'v4';
   readonly modelId: GoogleTranslationModelId;
 
@@ -113,8 +113,8 @@ export class GoogleTranslationModel implements SpeechToSpeechModelV4 {
   }
 
   async doStream(
-    options: SpeechToSpeechModelV4StreamOptions,
-  ): Promise<Awaited<ReturnType<SpeechToSpeechModelV4['doStream']>>> {
+    options: SpeechTranslationModelV4StreamOptions,
+  ): Promise<Awaited<ReturnType<SpeechTranslationModelV4['doStream']>>> {
     if (options.targetLanguage == null) {
       throw new InvalidArgumentError({
         argument: 'targetLanguage',
@@ -228,7 +228,7 @@ function createGoogleLiveTranslationStream({
   let finished = false;
   let cleanup: (closeCode?: number) => void = () => {};
 
-  return new ReadableStream<SpeechToSpeechModelV4StreamPart>({
+  return new ReadableStream<SpeechTranslationModelV4StreamPart>({
     start: controller => {
       let audioReader:
         | ReadableStreamDefaultReader<Uint8Array | string>
@@ -253,7 +253,7 @@ function createGoogleLiveTranslationStream({
       let translationText = '';
       let translationTurnBuffer = '';
       let audioEnded = false;
-      let usage: SpeechToSpeechModelV4Usage | undefined;
+      let usage: SpeechTranslationModelV4Usage | undefined;
 
       // Finalization: the Live API signals per-turn completion
       // (`turnComplete`) but has no "all input processed" signal, and it may
@@ -508,8 +508,8 @@ function createGoogleLiveTranslationStream({
 function extractGoogleLiveUsage(usageMetadata: {
   promptTokensDetails?: GoogleLiveTokensDetail[];
   responseTokensDetails?: GoogleLiveTokensDetail[];
-}): SpeechToSpeechModelV4Usage {
-  const usage: SpeechToSpeechModelV4Usage = {};
+}): SpeechTranslationModelV4Usage {
+  const usage: SpeechTranslationModelV4Usage = {};
 
   for (const detail of usageMetadata.promptTokensDetails ?? []) {
     if (detail.tokenCount == null) continue;

@@ -174,7 +174,7 @@ function InputMessagePreview({
       </div>
 
       {reasoningContent && (
-        <div className="text-xs text-amber-500/60">[thinking]</div>
+        <div className="text-xs text-warning">[thinking]</div>
       )}
 
       {textContent && (

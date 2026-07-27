@@ -9,7 +9,7 @@ import type {
   SpeechModelV4,
   SkillsV4,
   TranscriptionModelV4,
-  Experimental_SpeechToSpeechModelV4 as SpeechToSpeechModelV4,
+  Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -103,12 +103,14 @@ export interface OpenAIProvider extends ProviderV4 {
   /**
    * Creates an experimental model for streaming speech-to-speech translation.
    */
-  translation(modelId: OpenAITranslationModelId): SpeechToSpeechModelV4;
+  translation(modelId: OpenAITranslationModelId): SpeechTranslationModelV4;
 
   /**
    * Creates an experimental model for streaming speech-to-speech translation.
    */
-  speechToSpeechModel(modelId: OpenAITranslationModelId): SpeechToSpeechModelV4;
+  speechTranslationModel(
+    modelId: OpenAITranslationModelId,
+  ): SpeechTranslationModelV4;
 
   /**
    * Creates a model for speech generation.
@@ -357,7 +359,7 @@ export function createOpenAI(
   provider.transcriptionModel = createTranscriptionModel;
 
   provider.translation = createTranslationModel;
-  provider.speechToSpeechModel = createTranslationModel;
+  provider.speechTranslationModel = createTranslationModel;
 
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;

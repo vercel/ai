@@ -1,9 +1,9 @@
 import {
   InvalidArgumentError,
-  type Experimental_SpeechToSpeechModelV4 as SpeechToSpeechModelV4,
-  type Experimental_SpeechToSpeechModelV4StreamOptions as SpeechToSpeechModelV4StreamOptions,
-  type Experimental_SpeechToSpeechModelV4StreamPart as SpeechToSpeechModelV4StreamPart,
-  type Experimental_SpeechToSpeechModelV4Usage as SpeechToSpeechModelV4Usage,
+  type Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
+  type Experimental_SpeechTranslationModelV4StreamOptions as SpeechTranslationModelV4StreamOptions,
+  type Experimental_SpeechTranslationModelV4StreamPart as SpeechTranslationModelV4StreamPart,
+  type Experimental_SpeechTranslationModelV4Usage as SpeechTranslationModelV4Usage,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -28,7 +28,7 @@ import {
 } from './openai-translation-model-options';
 
 export type OpenAITranslationStreamOptions = Omit<
-  SpeechToSpeechModelV4StreamOptions,
+  SpeechTranslationModelV4StreamOptions,
   'providerOptions'
 > & {
   providerOptions?: {
@@ -62,7 +62,7 @@ interface OpenAITranslationModelConfig extends OpenAIConfig {
   };
 }
 
-export class OpenAITranslationModel implements SpeechToSpeechModelV4 {
+export class OpenAITranslationModel implements SpeechTranslationModelV4 {
   readonly specificationVersion = 'v4';
 
   static [WORKFLOW_SERIALIZE](model: OpenAITranslationModel) {
@@ -90,7 +90,7 @@ export class OpenAITranslationModel implements SpeechToSpeechModelV4 {
 
   async doStream(
     options: OpenAITranslationStreamOptions,
-  ): Promise<Awaited<ReturnType<SpeechToSpeechModelV4['doStream']>>> {
+  ): Promise<Awaited<ReturnType<SpeechTranslationModelV4['doStream']>>> {
     if (options.targetLanguage == null) {
       throw new InvalidArgumentError({
         argument: 'targetLanguage',
@@ -163,7 +163,7 @@ function createOpenAIRealtimeTranslationStream({
   let finished = false;
   let cleanup: (closeCode?: number) => void = () => {};
 
-  return new ReadableStream<SpeechToSpeechModelV4StreamPart>({
+  return new ReadableStream<SpeechTranslationModelV4StreamPart>({
     start: controller => {
       const realtimeConnection = getOpenAIRealtimeConnection(headers);
       let audioReader:
@@ -197,7 +197,7 @@ function createOpenAIRealtimeTranslationStream({
         controller.error(error);
       };
 
-      const finish = (usage: SpeechToSpeechModelV4Usage | undefined) => {
+      const finish = (usage: SpeechTranslationModelV4Usage | undefined) => {
         if (finished) return;
         finished = true;
         controller.enqueue({
@@ -357,7 +357,7 @@ function createOpenAIRealtimeTranslationStream({
 
 function extractOpenAIRealtimeUsage(
   event: OpenAIRealtimeTranslationEvent,
-): SpeechToSpeechModelV4Usage | undefined {
+): SpeechTranslationModelV4Usage | undefined {
   const usage = event.response?.usage;
   if (usage == null) {
     return undefined;
@@ -388,8 +388,8 @@ function buildOpenAIRealtimeTranslationSession({
   providerOptions,
 }: {
   modelId: string;
-  inputAudioFormat: SpeechToSpeechModelV4StreamOptions['inputAudioFormat'];
-  outputAudioFormat: SpeechToSpeechModelV4StreamOptions['outputAudioFormat'];
+  inputAudioFormat: SpeechTranslationModelV4StreamOptions['inputAudioFormat'];
+  outputAudioFormat: SpeechTranslationModelV4StreamOptions['outputAudioFormat'];
   targetLanguage: string;
   sourceLanguage: string | undefined;
   providerOptions: OpenAITranslationModelOptions | undefined;

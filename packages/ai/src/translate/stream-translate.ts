@@ -1,7 +1,8 @@
 import type {
-  Experimental_SpeechToSpeechModelV4StreamPart,
-  Experimental_SpeechToSpeechModelV4Usage,
+  Experimental_SpeechTranslationModelV4StreamPart,
+  Experimental_SpeechTranslationModelV4Usage,
   JSONObject,
+  SharedV4AudioFormat,
 } from '@ai-sdk/provider';
 import {
   DelayedPromise,
@@ -10,9 +11,9 @@ import {
 } from '@ai-sdk/provider-utils';
 import { NoTranslationGeneratedError } from '../error/no-translation-generated-error';
 import { logWarnings } from '../logger/log-warnings';
-import { resolveSpeechToSpeechModel } from '../model/resolve-model';
-import type { SpeechToSpeechModel } from '../types/speech-to-speech-model';
-import type { SpeechToSpeechModelResponseMetadata } from '../types/speech-to-speech-model-response-metadata';
+import { resolveSpeechTranslationModel } from '../model/resolve-model';
+import type { SpeechTranslationModel } from '../types/speech-translation-model';
+import type { SpeechTranslationModelResponseMetadata } from '../types/speech-translation-model-response-metadata';
 import type { Warning } from '../types/warning';
 import { asAsyncIterableStream } from '../util/async-iterable-stream';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
@@ -23,9 +24,9 @@ import type {
 } from './stream-translate-result';
 
 /**
- * Streams speech-to-speech translations using a speech-to-speech model.
+ * Streams speech-to-speech translations using a speech translation model.
  *
- * @param model - The speech-to-speech model to use for translation.
+ * @param model - The speech translation model to use.
  * @param audio - Raw audio chunks to translate.
  * @param inputAudioFormat - The input audio format for the raw audio chunks.
  * @param targetLanguage - The language to translate the audio into.
@@ -52,9 +53,9 @@ export function streamTranslate({
   _internal: { currentDate = () => new Date() } = {},
 }: {
   /**
-   * The speech-to-speech model to use for translation.
+   * The speech translation model to use.
    */
-  model: SpeechToSpeechModel;
+  model: SpeechTranslationModel;
 
   /**
    * Raw audio chunks to translate.
@@ -64,17 +65,7 @@ export function streamTranslate({
   /**
    * The input audio format for the raw audio chunks.
    */
-  inputAudioFormat: {
-    /**
-     * Audio format type, e.g. `audio/pcm`, `audio/pcmu`, or `audio/pcma`.
-     */
-    type: string;
-
-    /**
-     * Sample rate in Hz. Only applicable for formats that require a rate.
-     */
-    rate?: number;
-  };
+  inputAudioFormat: SharedV4AudioFormat;
 
   /**
    * The language to translate the audio into, as a BCP-47-style language
@@ -93,17 +84,7 @@ export function streamTranslate({
    * The desired audio format for translated audio chunks.
    * When absent, the provider default output format is used.
    */
-  outputAudioFormat?: {
-    /**
-     * Audio format type, e.g. `audio/pcm`, `audio/pcmu`, or `audio/pcma`.
-     */
-    type: string;
-
-    /**
-     * Sample rate in Hz. Only applicable for formats that require a rate.
-     */
-    rate?: number;
-  };
+  outputAudioFormat?: SharedV4AudioFormat;
 
   /**
    * Additional provider-specific options.
@@ -132,7 +113,7 @@ export function streamTranslate({
     currentDate?: () => Date;
   };
 }): StreamTranslationResult {
-  const resolvedModel = resolveSpeechToSpeechModel(model);
+  const resolvedModel = resolveSpeechTranslationModel(model);
 
   const doStream = resolvedModel.doStream.bind(resolvedModel);
 
@@ -145,12 +126,11 @@ export function streamTranslate({
   const translationTextPromise = new DelayedPromise<string>();
   const durationInSecondsPromise = new DelayedPromise<number | undefined>();
   const usagePromise = new DelayedPromise<
-    Experimental_SpeechToSpeechModelV4Usage | undefined
+    Experimental_SpeechTranslationModelV4Usage | undefined
   >();
   const warningsPromise = new DelayedPromise<Array<Warning>>();
-  const responsesPromise = new DelayedPromise<
-    Array<SpeechToSpeechModelResponseMetadata>
-  >();
+  const responsePromise =
+    new DelayedPromise<SpeechTranslationModelResponseMetadata>();
   const providerMetadataPromise = new DelayedPromise<
     Record<string, JSONObject>
   >();
@@ -162,7 +142,7 @@ export function streamTranslate({
       durationInSecondsPromise,
       usagePromise,
       warningsPromise,
-      responsesPromise,
+      responsePromise,
       providerMetadataPromise,
     ]) {
       if (promise.isPending()) {
@@ -172,7 +152,7 @@ export function streamTranslate({
   };
 
   const startedAt = currentDate();
-  let response: SpeechToSpeechModelResponseMetadata | undefined;
+  let response: SpeechTranslationModelResponseMetadata | undefined;
   const currentResponseMetadata = () =>
     response ?? { timestamp: startedAt, modelId: resolvedModel.modelId };
 
@@ -199,7 +179,7 @@ export function streamTranslate({
   // `Transformer.cancel` is part of the Streams spec (and supported at runtime),
   // but not yet reflected in the ambient `Transformer` type, so widen it here.
   const transformer: Transformer<
-    Experimental_SpeechToSpeechModelV4StreamPart,
+    Experimental_SpeechTranslationModelV4StreamPart,
     TranslationStreamPart
   > & { cancel?: (reason?: unknown) => void } = {
     transform(value, controller) {
@@ -242,7 +222,7 @@ export function streamTranslate({
 
           if (!hasAudioOutput && !value.outputText) {
             throw new NoTranslationGeneratedError({
-              responses: [currentResponseMetadata()],
+              response: currentResponseMetadata(),
             });
           }
 
@@ -250,7 +230,7 @@ export function streamTranslate({
           translationTextPromise.resolve(value.outputText);
           durationInSecondsPromise.resolve(value.durationInSeconds);
           usagePromise.resolve(value.usage);
-          responsesPromise.resolve([currentResponseMetadata()]);
+          responsePromise.resolve(currentResponseMetadata());
           providerMetadataPromise.resolve(value.providerMetadata ?? {});
           break;
         }
@@ -265,7 +245,7 @@ export function streamTranslate({
     flush() {
       if (translationTextPromise.isPending()) {
         throw new NoTranslationGeneratedError({
-          responses: [currentResponseMetadata()],
+          response: currentResponseMetadata(),
         });
       }
     },
@@ -278,7 +258,7 @@ export function streamTranslate({
   };
 
   const transform = new TransformStream<
-    Experimental_SpeechToSpeechModelV4StreamPart,
+    Experimental_SpeechTranslationModelV4StreamPart,
     TranslationStreamPart
   >(transformer);
 
@@ -379,9 +359,9 @@ export function streamTranslate({
       consumeStream();
       return warningsPromise.promise;
     },
-    get responses() {
+    get response() {
       consumeStream();
-      return responsesPromise.promise;
+      return responsePromise.promise;
     },
     get providerMetadata() {
       consumeStream();

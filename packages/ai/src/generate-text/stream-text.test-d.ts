@@ -22,6 +22,16 @@ import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 describe('streamText types', () => {
+  describe('timeout', () => {
+    it('should accept a first chunk timeout', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        timeout: { firstChunkMs: 1000 },
+      });
+    });
+  });
+
   describe('onEnd', () => {
     it('should expose end event properties', () => {
       streamText({

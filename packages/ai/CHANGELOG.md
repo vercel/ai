@@ -1,5 +1,70 @@
 # ai
 
+## 7.0.37
+
+### Patch Changes
+
+- Updated dependencies [0a7c7f4]
+  - @ai-sdk/gateway@4.0.28
+
+## 7.0.36
+
+### Patch Changes
+
+- 7fa85b2: fix(ai): use injective serialization for tool approval HMAC payload
+
+  The tool approval signature (`experimental_toolApprovalSecret`) built its HMAC
+  payload by joining fields with `\n`. Because fields such as `toolName` and
+  `toolCallId` can themselves contain a newline, distinct field tuples could
+  serialize to identical bytes, allowing a signed approval to verify against a
+  different tuple. The payload is now serialized with `JSON.stringify` (with a
+  versioned domain-separation prefix), which escapes delimiter/control characters
+  and makes the encoding injective.
+
+  Verification remains backwards compatible: a signature in the old format still
+  verifies, but only when no field contains the `\n` delimiter (the condition
+  that made the old format ambiguous), so a pending approval that straddles an
+  upgrade is not rejected while the collision stays closed.
+
+## 7.0.35
+
+### Patch Changes
+
+- 7f6650b: Return response piping promises so callers can catch stream read and write errors.
+- 106ea59: feat(ai): add per-step first content timeout for streaming generations
+- Updated dependencies [2112ff1]
+  - @ai-sdk/gateway@4.0.27
+
+## 7.0.34
+
+### Patch Changes
+
+- Updated dependencies [7c16f21]
+  - @ai-sdk/gateway@4.0.26
+
+## 7.0.33
+
+### Patch Changes
+
+- 76cb673: fix: detect MP4 audio from its ftyp box during transcription
+- e808fa5: fix(ai): preserve tool parts when tool call IDs repeat across steps
+- 33647d7: Preserve provider options when combining consecutive tool messages.
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+  - @ai-sdk/gateway@4.0.25
+
+## 7.0.32
+
+### Patch Changes
+
+- 6cd7c74: fix: correct the `onToolCall` callback result documentation
+- e35bcae: Allow UI message chunks to include fields added by newer server versions.
+- a4eb3f3: Propagate abort reasons when generation is cancelled during tool execution.
+- Updated dependencies [cefa3b1]
+- Updated dependencies [8fbb89c]
+  - @ai-sdk/gateway@4.0.24
+
 ## 7.0.31
 
 ### Patch Changes

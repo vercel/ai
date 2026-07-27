@@ -56,5 +56,5 @@ run(async () => {
   console.log('Duration:', await result.durationInSeconds);
   console.log('Usage:', await result.usage);
   console.log('Warnings:', await result.warnings);
-  console.log('Responses:', await result.responses);
+  console.log('Response:', await result.response);
 });

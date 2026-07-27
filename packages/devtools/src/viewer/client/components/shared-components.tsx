@@ -326,27 +326,27 @@ export function ReasoningBlock({ content }: { content: string }) {
     content.length > 200 ? content.slice(0, 200) + '…' : content;
 
   return (
-    <div className="overflow-hidden rounded-md border border-amber-500/30">
+    <div className="overflow-hidden rounded-md border border-warning/30">
       <button
-        className="flex gap-2 items-center px-3 py-2 w-full transition-colors bg-amber-500/10 hover:bg-amber-500/20"
+        className="flex gap-2 items-center px-3 py-2 w-full transition-colors bg-warning/10 hover:bg-warning/20"
         onClick={() => setExpanded(!expanded)}
       >
         <ChevronRight
-          className={`size-3 text-amber-500 transition-transform shrink-0 ${
+          className={`size-3 text-warning transition-transform shrink-0 ${
             expanded ? 'rotate-90' : ''
           }`}
         />
-        <Brain className="text-amber-500 size-3 shrink-0" />
-        <span className="text-xs font-medium text-amber-500">Thinking</span>
+        <Brain className="text-warning size-3 shrink-0" />
+        <span className="text-xs font-medium text-warning">Thinking</span>
         {!expanded && (
-          <span className="text-[11px] text-amber-500/70 truncate ml-1">
+          <span className="text-[11px] text-warning truncate ml-1">
             {previewContent}
           </span>
         )}
       </button>
 
       {expanded && (
-        <div className="p-3 border-t bg-card/50 border-amber-500/30">
+        <div className="p-3 border-t bg-card/50 border-warning/30">
           <div className="text-xs leading-relaxed whitespace-pre-wrap text-foreground/80">
             {content}
           </div>
@@ -371,11 +371,11 @@ export function TextBlock({
   const previewContent =
     content.length > 200 ? content.slice(0, 200) + '…' : content;
 
-  const borderColor = isSystem ? 'border-blue-500/30' : 'border-border';
-  const bgColor = isSystem ? 'bg-blue-500/10' : 'bg-muted/30';
-  const hoverBgColor = isSystem ? 'hover:bg-blue-500/20' : 'hover:bg-muted/50';
-  const iconColor = isSystem ? 'text-blue-400' : 'text-muted-foreground';
-  const labelColor = isSystem ? 'text-blue-400' : 'text-foreground';
+  const borderColor = isSystem ? 'border-info/30' : 'border-border';
+  const bgColor = isSystem ? 'bg-info/10' : 'bg-muted/30';
+  const hoverBgColor = isSystem ? 'hover:bg-info/20' : 'hover:bg-muted/50';
+  const iconColor = isSystem ? 'text-info' : 'text-muted-foreground';
+  const labelColor = isSystem ? 'text-info' : 'text-foreground';
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -399,7 +399,7 @@ export function TextBlock({
         <span className={`text-xs font-medium ${labelColor}`}>Text</span>
         {!expanded && (
           <span
-            className={`text-[11px] ${isSystem ? 'text-blue-400/70' : 'text-muted-foreground'} truncate ml-1`}
+            className={`text-[11px] ${isSystem ? 'text-info' : 'text-muted-foreground'} truncate ml-1`}
           >
             {previewContent}
           </span>
@@ -441,7 +441,7 @@ export function ToolItem({ tool }: { tool: ToolDefinition }) {
         className="w-full flex items-center justify-between p-2.5 hover:bg-accent/50 transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
-        <span className="font-mono text-sm text-purple">{tool.name}</span>
+        <span className="font-mono text-sm text-tool">{tool.name}</span>
         {hasExpandableContent && (
           <ChevronRight
             className={`size-3 text-muted-foreground transition-transform ${
@@ -486,25 +486,25 @@ export function CollapsibleToolCall({
   const parsedData = typeof data === 'string' ? safeParseJson(data) : data;
 
   return (
-    <div className="overflow-hidden rounded-md border border-purple/30">
+    <div className="overflow-hidden rounded-md border border-tool/30">
       <button
-        className="flex gap-2 items-center px-3 py-2 w-full transition-colors bg-purple/10 hover:bg-purple/20"
+        className="flex gap-2 items-center px-3 py-2 w-full transition-colors bg-tool/10 hover:bg-tool/20"
         onClick={() => setExpanded(!expanded)}
       >
         <ChevronRight
-          className={`size-3 text-purple transition-transform shrink-0 ${
+          className={`size-3 text-tool transition-transform shrink-0 ${
             expanded ? 'rotate-90' : ''
           }`}
         />
-        <Wrench className="size-3 text-purple shrink-0" />
-        <span className="font-mono text-xs font-medium text-purple">
+        <Wrench className="size-3 text-tool shrink-0" />
+        <span className="font-mono text-xs font-medium text-tool">
           {toolName}
         </span>
         {!expanded &&
           parsedData != null &&
           typeof parsedData === 'object' &&
           !Array.isArray(parsedData) && (
-            <span className="text-[11px] font-mono text-purple/70 truncate">
+            <span className="text-[11px] font-mono text-tool truncate">
               {formatToolParams(parsedData as Record<string, unknown>)}
             </span>
           )}
@@ -515,7 +515,7 @@ export function CollapsibleToolCall({
         )}
       </button>
       {expanded && (
-        <div className="p-3 border-t bg-card/50 border-purple/30">
+        <div className="p-3 border-t bg-card/50 border-tool/30">
           <JsonBlock data={parsedData} />
         </div>
       )}

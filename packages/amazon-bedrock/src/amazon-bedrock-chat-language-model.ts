@@ -30,7 +30,10 @@ import {
   type ParseResult,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
-import { getModelCapabilities } from '@ai-sdk/anthropic/internal';
+import {
+  getModelCapabilities,
+  sanitizeJsonSchema,
+} from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
 import {
   BEDROCK_STOP_REASONS,
@@ -42,6 +45,7 @@ import {
   type AmazonBedrockLanguageModelChatOptions,
   type AmazonBedrockChatModelId,
 } from './amazon-bedrock-chat-language-model-options';
+import { supportsNativeStructuredOutput } from './amazon-bedrock-anthropic-model-support';
 import { AmazonBedrockErrorSchema } from './amazon-bedrock-error';
 import { createAmazonBedrockEventStreamResponseHandler } from './amazon-bedrock-event-stream-response-handler';
 import { prepareTools } from './amazon-bedrock-prepare-tools';
@@ -190,15 +194,9 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
     const { supportsStructuredOutput: modelSupportsStructuredOutput } =
       getModelCapabilities(this.modelId);
 
-    const modelRejectsNativeStructuredOutput =
-      this.modelId.includes('claude-opus-4-7') ||
-      this.modelId.includes('claude-opus-4-8') ||
-      this.modelId.includes('claude-fable-5') ||
-      this.modelId.includes('claude-sonnet-5');
-
     const useNativeStructuredOutput =
       isAnthropicModel &&
-      !modelRejectsNativeStructuredOutput &&
+      supportsNativeStructuredOutput(this.modelId) &&
       (modelSupportsStructuredOutput || isThinkingEnabled) &&
       responseFormat?.type === 'json' &&
       responseFormat.schema != null;
@@ -355,7 +353,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
           ...amazonBedrockOptions.additionalModelRequestFields?.output_config,
           format: {
             type: 'json_schema',
-            schema: responseFormat!.schema,
+            schema: sanitizeJsonSchema(responseFormat!.schema!),
           },
         },
       };
@@ -485,7 +483,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
   }
 
   readonly supportedUrls: Record<string, RegExp[]> = {
-    // no supported urls for bedrock
+    'image/*': [/^s3:\/\//],
   };
 
   private async getHeaders({

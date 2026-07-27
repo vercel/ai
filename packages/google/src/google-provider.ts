@@ -8,7 +8,7 @@ import type {
   Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
   Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   SpeechModelV4,
-  Experimental_SpeechToSpeechModelV4 as SpeechToSpeechModelV4,
+  Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -98,12 +98,14 @@ export interface GoogleProvider extends ProviderV4 {
   /**
    * Creates an experimental model for streaming speech-to-speech translation.
    */
-  translation(modelId: GoogleTranslationModelId): SpeechToSpeechModelV4;
+  translation(modelId: GoogleTranslationModelId): SpeechTranslationModelV4;
 
   /**
    * Creates an experimental model for streaming speech-to-speech translation.
    */
-  speechToSpeechModel(modelId: GoogleTranslationModelId): SpeechToSpeechModelV4;
+  speechTranslationModel(
+    modelId: GoogleTranslationModelId,
+  ): SpeechTranslationModelV4;
 
   /**
    * Creates a model for speech generation (text-to-speech).
@@ -387,7 +389,7 @@ export function createGoogle(
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
   provider.translation = createTranslationModel;
-  provider.speechToSpeechModel = createTranslationModel;
+  provider.speechTranslationModel = createTranslationModel;
   provider.interactions = createInteractionsModel;
   provider.tools = googleTools;
 
