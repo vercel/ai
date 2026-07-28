@@ -1,5 +1,6 @@
 import {
   APICallError,
+  InvalidArgumentError,
   type JSONValue,
   type LanguageModelV4,
   type LanguageModelV4Prompt,
@@ -73,6 +74,12 @@ import {
   type OpenAIResponsesModelId,
 } from './openai-responses-language-model-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
+import {
+  assertOpenAIResponsesTransport,
+  createOpenAIResponsesWebSocketError,
+  getOpenAIResponsesWebSocketSession,
+  type OpenAIResponsesWebSocketRequest,
+} from './openai-responses-websocket';
 import type {
   ResponsesCompactionProviderMetadata,
   ResponsesProviderMetadata,
@@ -237,6 +244,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     tools,
     toolChoice,
     responseFormat,
+    experimental_session,
   }: LanguageModelV4CallOptions) {
     const warnings: SharedV4Warning[] = [];
     const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
@@ -277,6 +285,48 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         schema: openaiLanguageModelResponsesOptionsSchema,
       });
     }
+
+    const transport = openaiOptions?.transport ?? 'http';
+
+    // Azure also constructs this language-model class, but it does not speak
+    // OpenAI's native Responses WebSocket protocol.
+    if (
+      transport === 'websocket' &&
+      this.config.supportsResponsesWebSocket !== true
+    ) {
+      throw new InvalidArgumentError({
+        argument: `${providerOptionsName}.transport`,
+        message:
+          "OpenAI Responses transport 'websocket' is only supported by the native OpenAI provider.",
+      });
+    }
+
+    // This first transport-only version always sends complete input. Reject
+    // server-side continuation options instead of silently changing their
+    // semantics or accidentally combining them with full-input replay.
+    if (transport === 'websocket' && openaiOptions?.conversation != null) {
+      throw new InvalidArgumentError({
+        argument: `${providerOptionsName}.conversation`,
+        message:
+          'conversation is not supported with OpenAI Responses WebSocket transport in this version. WebSocket requests always send the full input.',
+      });
+    }
+
+    if (
+      transport === 'websocket' &&
+      openaiOptions?.previousResponseId != null
+    ) {
+      throw new InvalidArgumentError({
+        argument: `${providerOptionsName}.previousResponseId`,
+        message:
+          'previousResponseId is not supported with OpenAI Responses WebSocket transport in this version. WebSocket requests always send the full input.',
+      });
+    }
+
+    assertOpenAIResponsesTransport({
+      session: experimental_session,
+      transport,
+    });
 
     const resolvedReasoningEffort =
       openaiOptions?.reasoningEffort ??
@@ -604,6 +654,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       toolNameMapping,
       providerOptionsName,
       isShellProviderExecuted,
+      transport,
     };
   }
 
@@ -617,6 +668,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       toolNameMapping,
       providerOptionsName,
       isShellProviderExecuted,
+      transport,
     } = await this.getArgs(options);
     const url = this.config.url({
       path: '/responses',
@@ -626,30 +678,54 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     const approvalRequestIdToDummyToolCallIdFromPrompt =
       extractApprovalRequestIdToToolCallIdMapping(options.prompt);
 
-    const {
-      responseHeaders,
-      value: response,
-      rawValue: rawResponse,
-    } = await postJsonToApi({
-      url,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
-      body,
-      failedResponseHandler: openaiFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        openaiResponsesResponseSchema,
-      ),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
-    });
+    let responseHeaders: Record<string, string> | undefined;
+    let response: InferSchema<typeof openaiResponsesResponseSchema>;
+    let rawResponse: unknown;
+    let webSocketRequest: OpenAIResponsesWebSocketRequest | undefined;
+
+    if (transport === 'websocket') {
+      // The manager returns a validated terminal response so the rest of
+      // `doGenerate` can share the existing HTTP response mapper unchanged.
+      webSocketRequest = await getOpenAIResponsesWebSocketSession(
+        options.experimental_session!,
+      ).request({
+        url,
+        headers: combineHeaders(this.config.headers?.(), options.headers),
+        body,
+        abortSignal: options.abortSignal,
+      });
+
+      const terminal = await webSocketRequest.terminal;
+      response = terminal.response;
+      rawResponse = asRecord(terminal.rawFrame)?.response ?? terminal.response;
+    } else {
+      const httpResponse = await postJsonToApi({
+        url,
+        headers: combineHeaders(this.config.headers?.(), options.headers),
+        body,
+        failedResponseHandler: openaiFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(
+          openaiResponsesResponseSchema,
+        ),
+        abortSignal: options.abortSignal,
+        fetch: this.config.fetch,
+      });
+      responseHeaders = httpResponse.responseHeaders;
+      response = httpResponse.value;
+      rawResponse = httpResponse.rawValue;
+    }
 
     if (response.error) {
       throw new APICallError({
         message: response.error.message,
         url,
-        requestBodyValues: body,
+        requestBodyValues: webSocketRequest?.body ?? body,
         statusCode: 400,
         responseHeaders,
-        responseBody: rawResponse as string,
+        responseBody:
+          typeof rawResponse === 'string'
+            ? rawResponse
+            : JSON.stringify(rawResponse),
         isRetryable: false,
       });
     }
@@ -661,10 +737,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
           ? `Responses API returned no output (${detail})`
           : 'Responses API returned no output',
         url,
-        requestBodyValues: body,
+        requestBodyValues: webSocketRequest?.body ?? body,
         statusCode: 500,
         responseHeaders,
-        responseBody: rawResponse as string,
+        responseBody:
+          typeof rawResponse === 'string'
+            ? rawResponse
+            : JSON.stringify(rawResponse),
         isRetryable: false,
       });
     }
@@ -1231,6 +1310,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       store,
       providerOptionsName,
       isShellProviderExecuted,
+      transport,
     } = await this.getArgs(options);
 
     const url = this.config.url({
@@ -1238,20 +1318,40 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       modelId: this.modelId,
     });
 
-    const { responseHeaders, value: response } = await postJsonToApi({
-      url,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
-      body: {
-        ...body,
-        stream: true,
-      },
-      failedResponseHandler: openaiFailedResponseHandler,
-      successfulResponseHandler: createEventSourceResponseHandler(
-        openaiResponsesChunkSchema,
-      ),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
-    });
+    let responseHeaders: Record<string, string> | undefined;
+    let response: ReadableStream<ParseResult<OpenAIResponsesChunk>>;
+    let webSocketRequest: OpenAIResponsesWebSocketRequest | undefined;
+
+    if (transport === 'websocket') {
+      // WebSocket frames are adapted to the same parsed chunk stream produced
+      // by the HTTP SSE response handler below.
+      webSocketRequest = await getOpenAIResponsesWebSocketSession(
+        options.experimental_session!,
+      ).request({
+        url,
+        headers: combineHeaders(this.config.headers?.(), options.headers),
+        body,
+        abortSignal: options.abortSignal,
+      });
+      response = webSocketRequest.stream;
+    } else {
+      const httpResponse = await postJsonToApi({
+        url,
+        headers: combineHeaders(this.config.headers?.(), options.headers),
+        body: {
+          ...body,
+          stream: true,
+        },
+        failedResponseHandler: openaiFailedResponseHandler,
+        successfulResponseHandler: createEventSourceResponseHandler(
+          openaiResponsesChunkSchema,
+        ),
+        abortSignal: options.abortSignal,
+        fetch: this.config.fetch,
+      });
+      responseHeaders = httpResponse.responseHeaders;
+      response = httpResponse.value;
+    }
 
     const checkedResponse = await throwIfOpenAIStreamErrorBeforeOutput({
       stream: response,
@@ -1262,8 +1362,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
           : undefined,
       isOutputChunk: isResponseOutputChunk,
       url,
-      requestBodyValues: body,
+      requestBodyValues: webSocketRequest?.body ?? body,
       responseHeaders,
+      // `response.create` has already been sent when a WebSocket error event
+      // arrives, so Core must not retry and replay it.
+      isRetryable: transport === 'websocket' ? false : undefined,
     });
 
     const self = this;
@@ -1329,7 +1432,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     const hostedToolSearchCallIds: string[] = [];
     let encounteredStreamError = false;
 
-    const result = {
+    return {
       stream: checkedResponse.pipeThrough(
         new TransformStream<
           ParseResult<OpenAIResponsesChunk>,
@@ -1346,12 +1449,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
+              encounteredStreamError = true;
               const error = isOpenAIChatCompletionChunk(chunk.rawValue)
                 ? createOpenAIResponsesChatCompletionsMismatchError({
                     value: chunk.rawValue,
                     cause: chunk.error,
                     url,
-                    requestBodyValues: body,
+                    requestBodyValues: webSocketRequest?.body ?? body,
                     responseHeaders,
                   })
                 : chunk.error;
@@ -2308,15 +2412,23 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 encounteredStreamError = true;
                 controller.enqueue({
                   type: 'error',
-                  error: {
-                    type: 'response.failed',
-                    sequence_number: value.sequence_number,
-                    response: {
-                      error: value.response.error,
-                      incomplete_details: value.response.incomplete_details,
-                      service_tier: value.response.service_tier,
-                    },
-                  },
+                  error:
+                    webSocketRequest == null
+                      ? {
+                          type: 'response.failed',
+                          sequence_number: value.sequence_number,
+                          response: {
+                            error: value.response.error,
+                            incomplete_details:
+                              value.response.incomplete_details,
+                            service_tier: value.response.service_tier,
+                          },
+                        }
+                      : createOpenAIResponsesWebSocketError({
+                          frame: chunk.rawValue,
+                          url,
+                          body: webSocketRequest.body,
+                        }),
                 });
               }
             } else if (isResponseAnnotationAddedChunk(value)) {
@@ -2390,7 +2502,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             } else if (isErrorChunk(value)) {
               encounteredStreamError = true;
               finishReason = { unified: 'error', raw: 'error' };
-              controller.enqueue({ type: 'error', error: value });
+              controller.enqueue({
+                type: 'error',
+                error:
+                  webSocketRequest == null
+                    ? value
+                    : createOpenAIResponsesWebSocketError({
+                        frame: chunk.rawValue,
+                        url,
+                        body: webSocketRequest.body,
+                      }),
+              });
             }
           },
 
@@ -2416,8 +2538,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       request: { body },
       response: { headers: responseHeaders },
     };
-
-    return result;
   }
 }
 
