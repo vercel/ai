@@ -9,6 +9,7 @@ export default defineConfig({
   test: {
     environment: 'edge-runtime',
     include: ['**/*.test.ts', '**/*.test.tsx'],
+    exclude: ['**/node_modules/**', '**/dist/**', '**/*.node.test.ts'],
   },
   define: {
     __PACKAGE_VERSION__: JSON.stringify(version),
