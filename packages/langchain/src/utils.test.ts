@@ -76,6 +76,10 @@ class AlternateBuildAIMessageChunk {
     return this.type;
   }
 
+  get text() {
+    return this.content;
+  }
+
   concat() {
     return this;
   }
@@ -821,7 +825,7 @@ describe('isAIMessageChunk', () => {
   it('should return true for AIMessageChunk instances from another module build', () => {
     const chunk = new AlternateBuildAIMessageChunk('Hello', 'msg-1');
 
-    expect(AIMessageChunk.isInstance(chunk)).toBe(false);
+    expect(AIMessageChunk.isInstance(chunk)).toBe(true);
     expect(isAIMessageChunk(chunk)).toBe(true);
   });
 
