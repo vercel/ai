@@ -1,5 +1,13 @@
 # ai
 
+## 5.0.222
+
+### Patch Changes
+
+- d38a1d5: Route the warning system information banner to stderr so it does not corrupt application output written to stdout.
+- Updated dependencies [b408f1d]
+  - @ai-sdk/gateway@2.0.121
+
 ## 5.0.221
 
 ### Patch Changes

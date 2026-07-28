@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.116
+
+### Patch Changes
+
+- 8591016: Add blocked domain filters to the OpenAI and Azure Responses API web search tools.
+
 ## 2.0.115
 
 ### Patch Changes
