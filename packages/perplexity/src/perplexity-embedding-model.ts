@@ -1,6 +1,6 @@
 import {
   TooManyEmbeddingValuesForCallError,
-  type EmbeddingModelV4,
+  type EmbeddingModelV3,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -28,8 +28,8 @@ type PerplexityEmbeddingConfig = {
   fetch?: FetchFunction;
 };
 
-export class PerplexityEmbeddingModel implements EmbeddingModelV4 {
-  readonly specificationVersion = 'v4';
+export class PerplexityEmbeddingModel implements EmbeddingModelV3 {
+  readonly specificationVersion = 'v3';
   readonly modelId: PerplexityEmbeddingModelId;
   // https://docs.perplexity.ai/docs/embeddings/standard-embeddings
   readonly maxEmbeddingsPerCall = 512;
@@ -68,8 +68,8 @@ export class PerplexityEmbeddingModel implements EmbeddingModelV4 {
     abortSignal,
     headers,
     providerOptions,
-  }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
+  }: Parameters<EmbeddingModelV3['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>
   > {
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({

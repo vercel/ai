@@ -1,13 +1,8 @@
 import {
   NoSuchModelError,
-<<<<<<< HEAD
   type LanguageModelV3,
+  type EmbeddingModelV3,
   type ProviderV3,
-=======
-  type LanguageModelV4,
-  type EmbeddingModelV4,
-  type ProviderV4,
->>>>>>> 58eee2c258 (feat (provider/perplexity): add embedding model support (#17925))
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -36,17 +31,17 @@ export interface PerplexityProvider extends ProviderV3 {
   /**
    * Creates a Perplexity model for text embeddings.
    */
-  embedding(modelId: PerplexityEmbeddingModelId): EmbeddingModelV4;
+  embedding(modelId: PerplexityEmbeddingModelId): EmbeddingModelV3;
 
   /**
    * Creates a Perplexity model for text embeddings.
    */
-  embeddingModel(modelId: PerplexityEmbeddingModelId): EmbeddingModelV4;
+  embeddingModel(modelId: PerplexityEmbeddingModelId): EmbeddingModelV3;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(modelId: PerplexityEmbeddingModelId): EmbeddingModelV4;
+  textEmbeddingModel(modelId: PerplexityEmbeddingModelId): EmbeddingModelV3;
 }
 
 export interface PerplexityProviderSettings {
