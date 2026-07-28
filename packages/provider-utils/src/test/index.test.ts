@@ -4,5 +4,6 @@ import * as testExports from './index';
 describe('test exports', () => {
   it('does not include test server utilities', () => {
     expect(testExports).not.toHaveProperty('createTestServer');
+    expect(testExports).not.toHaveProperty('TestResponseController');
   });
 });
