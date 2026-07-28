@@ -398,6 +398,13 @@ const result = await generateText({
         city: 'San Francisco',
         region: 'California',
       },
+<<<<<<< HEAD
+=======
+      filters: {
+        allowedDomains: ['sfchronicle.com', 'sfgate.com'],
+        blockedDomains: ['example.com'],
+      },
+>>>>>>> 96a237d3e5 (feat: support blocked domains in OpenAI web search (#18033))
     }),
   },
   // Force web search tool (optional):
@@ -413,11 +420,26 @@ for (const source of sources) {
 }
 ```
 
+<<<<<<< HEAD
 <Note>
   The tool must be named `web_search_preview` when using Azure OpenAI's web
   search(preview) functionality. This name is required by Azure OpenAI's API
   specification and cannot be customized.
 </Note>
+=======
+The web search tool supports the following configuration options:
+
+- **externalWebAccess** _boolean_ - Whether to use external web access for fetching live content. Defaults to `true`.
+- **searchContextSize** _'low' | 'medium' | 'high'_ - Controls the amount of context used for the search. Higher values provide more comprehensive results but may have higher latency and cost.
+- **userLocation** - Optional location information to provide geographically relevant results. Includes `type` (always `'approximate'`), `country`, `city`, `region`, and `timezone`.
+- **filters** - Optional filter configuration to restrict search results.
+  - **allowedDomains** _string[]_ - Up to 100 allowed domains for the search.
+  - **blockedDomains** _string[]_ - Up to 100 blocked domains for the search.
+
+Omit the HTTP or HTTPS prefix from domain filters. Subdomains of configured domains are automatically included or excluded.
+
+For detailed information on configuration options see the [Azure OpenAI Web Search Tool documentation](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/web-search).
+>>>>>>> 96a237d3e5 (feat: support blocked domains in OpenAI web search (#18033))
 
 <Note>
   The 'web_search_preview' tool is only supported with the default responses

@@ -364,6 +364,13 @@ const result = await generateText({
         city: 'San Francisco',
         region: 'California',
       },
+<<<<<<< HEAD
+=======
+      filters: {
+        allowedDomains: ['sfchronicle.com', 'sfgate.com'],
+        blockedDomains: ['example.com'],
+      },
+>>>>>>> 96a237d3e5 (feat: support blocked domains in OpenAI web search (#18033))
     }),
   },
   // Force web search tool (optional):
@@ -374,6 +381,20 @@ const result = await generateText({
 const sources = result.sources;
 ```
 
+<<<<<<< HEAD
+=======
+The web search tool supports the following configuration options:
+
+- **externalWebAccess** _boolean_ - Whether to use external web access for fetching live content. Defaults to `true`.
+- **searchContextSize** _'low' | 'medium' | 'high'_ - Controls the amount of context used for the search. Higher values provide more comprehensive results but may have higher latency and cost.
+- **userLocation** - Optional location information to provide geographically relevant results. Includes `type` (always `'approximate'`), `country`, `city`, `region`, and `timezone`.
+- **filters** - Optional filter configuration to restrict search results.
+  - **allowedDomains** _string[]_ - Up to 100 allowed domains for the search.
+  - **blockedDomains** _string[]_ - Up to 100 blocked domains for the search.
+
+Omit the HTTP or HTTPS prefix from domain filters. Subdomains of configured domains are automatically included or excluded.
+
+>>>>>>> 96a237d3e5 (feat: support blocked domains in OpenAI web search (#18033))
 For detailed information on configuration options see the [OpenAI Web Search Tool documentation](https://platform.openai.com/docs/guides/tools-web-search?api-mode=responses).
 
 #### File Search Tool

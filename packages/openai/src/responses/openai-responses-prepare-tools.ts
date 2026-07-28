@@ -105,7 +105,10 @@ export async function prepareResponsesTools({
               type: 'web_search',
               filters:
                 args.filters != null
-                  ? { allowed_domains: args.filters.allowedDomains }
+                  ? {
+                      allowed_domains: args.filters.allowedDomains,
+                      blocked_domains: args.filters.blockedDomains,
+                    }
                   : undefined,
               external_web_access: args.externalWebAccess,
               search_context_size: args.searchContextSize,
