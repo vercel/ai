@@ -223,6 +223,16 @@ interface PendingToolApproval {
   resolve: (value: { approved: boolean; reason?: string }) => void;
 }
 
+interface ResumedPendingToolCall {
+  readonly toolCallId: string;
+  readonly toolName: string;
+  readonly input: unknown;
+  runtimeToolCallId?: string;
+  result?: unknown;
+  hasResult?: boolean;
+  approval?: { approved: boolean; reason?: string };
+}
+
 interface ActivePiTurn {
   readonly token: object;
   readonly done: Promise<void>;
@@ -417,6 +427,9 @@ export async function createPiSession(
   let instructionsApplied = input.isResume;
   const pendingToolResults = new Map<string, PendingToolResult>();
   const pendingToolApprovals = new Map<string, PendingToolApproval>();
+  const resumedPendingToolCalls = new Map<string, ResumedPendingToolCall>();
+  const resumedToolCallIds = new Map<string, string>();
+  const originalToolCallIds = new Map<string, string>();
 
   // Emit channel set at the start of every doPromptTurn and cleared on end.
   let currentEmit: ((part: HarnessV1StreamPart) => void) | undefined;
@@ -454,6 +467,45 @@ export async function createPiSession(
     pendingToolApprovals.clear();
   }
 
+  function findResumedToolCall(input: {
+    toolName: string;
+    toolInput?: unknown;
+  }): ResumedPendingToolCall | undefined {
+    const matches = [...resumedPendingToolCalls.values()].filter(call => {
+      if (call.runtimeToolCallId != null) return false;
+      if (call.toolName !== input.toolName) return false;
+      return (
+        input.toolInput === undefined ||
+        stableSerialize(call.input) === stableSerialize(input.toolInput)
+      );
+    });
+    return matches[0];
+  }
+
+  function bindResumedToolCall(input: {
+    runtimeToolCallId: string;
+    toolName: string;
+    toolInput?: unknown;
+  }): ResumedPendingToolCall | undefined {
+    const call =
+      [...resumedPendingToolCalls.values()].find(
+        pending => pending.runtimeToolCallId === input.runtimeToolCallId,
+      ) ?? findResumedToolCall(input);
+    if (!call) return undefined;
+    call.runtimeToolCallId = input.runtimeToolCallId;
+    resumedToolCallIds.set(call.toolCallId, input.runtimeToolCallId);
+    originalToolCallIds.set(input.runtimeToolCallId, call.toolCallId);
+    translatorState?.toolCallIds.set(input.runtimeToolCallId, call.toolCallId);
+    if (call.hasResult) {
+      translatorState?.hostToolResults.set(call.toolCallId, call.result);
+    }
+    return call;
+  }
+
+  function canonicalToolCallId(toolCallId: string): string {
+    return originalToolCallIds.get(toolCallId) ?? toolCallId;
+  }
+
   async function persistSessionFile(): Promise<void> {
     if (!sessionFileName) return;
     await persistSessionFileToSandbox({
@@ -487,27 +539,57 @@ export async function createPiSession(
 
     return {
       async submitToolResult(args) {
-        const pending = pendingToolResults.get(args.toolCallId);
-        if (!pending) return;
-        pendingToolResults.delete(args.toolCallId);
         /*
          * Preserve the original output so the result projection can surface it
-         * unchanged. The tool handler stringifies the output for the runtime
-         * (so the model reads it), and Pi echoes that text back — without this
-         * the consumer-facing result would be the serialized string instead of
-         * the original object.
+         * unchanged. Pi receives serialized text, while consumers should still
+         * receive the original structured value.
          */
-        translatorState?.hostToolResults.set(args.toolCallId, args.output);
-        pending.resolve(args.output);
+        const runtimeToolCallId =
+          resumedToolCallIds.get(args.toolCallId) ?? args.toolCallId;
+        const pending = pendingToolResults.get(runtimeToolCallId);
+        if (pending) {
+          pendingToolResults.delete(runtimeToolCallId);
+          translatorState?.hostToolResults.set(
+            canonicalToolCallId(runtimeToolCallId),
+            args.output,
+          );
+          pending.resolve(args.output);
+          return;
+        }
+        const resumed = resumedPendingToolCalls.get(args.toolCallId);
+        if (!resumed) {
+          throw new Error(
+            `Pi session received a tool result for unknown tool call '${args.toolCallId}'.`,
+          );
+        }
+        resumed.result = args.output;
+        resumed.hasResult = true;
+        if (resumed.runtimeToolCallId != null) {
+          translatorState?.hostToolResults.set(resumed.toolCallId, args.output);
+        }
       },
       async submitToolApproval(args) {
-        const pending = pendingToolApprovals.get(args.approvalId);
-        if (!pending) return;
-        pendingToolApprovals.delete(args.approvalId);
-        pending.resolve({
+        const runtimeToolCallId =
+          resumedToolCallIds.get(args.approvalId) ?? args.approvalId;
+        const pending = pendingToolApprovals.get(runtimeToolCallId);
+        if (pending) {
+          pendingToolApprovals.delete(runtimeToolCallId);
+          pending.resolve({
+            approved: args.approved,
+            reason: args.reason,
+          });
+          return;
+        }
+        const resumed = resumedPendingToolCalls.get(args.approvalId);
+        if (!resumed) {
+          throw new Error(
+            `Pi session received an approval for unknown tool call '${args.approvalId}'.`,
+          );
+        }
+        resumed.approval = {
           approved: args.approved,
           reason: args.reason,
-        });
+        };
       },
       async submitUserMessage(text) {
         await piSession?.steer(text);
@@ -528,19 +610,22 @@ export async function createPiSession(
     ) {
       return { approved: true };
     }
+    const resumed = bindResumedToolCall({
+      runtimeToolCallId: args.toolCallId,
+      toolName: args.nativeName,
+    });
+    const toolCallId = canonicalToolCallId(args.toolCallId);
     currentEmit?.({
       type: 'tool-approval-request',
-      approvalId: args.toolCallId,
-      toolCallId: args.toolCallId,
+      approvalId: toolCallId,
+      toolCallId,
     });
     if (translatorState) {
-      for (const part of finishPiApprovalStep(
-        translatorState,
-        args.toolCallId,
-      )) {
+      for (const part of finishPiApprovalStep(translatorState, toolCallId)) {
         currentEmit?.(part);
       }
     }
+    if (resumed?.approval) return resumed.approval;
     return new Promise(resolve => {
       pendingToolApprovals.set(args.toolCallId, { resolve });
     });
@@ -562,7 +647,16 @@ export async function createPiSession(
         }),
       ),
       ...userTools.map(spec =>
-        buildUserToolDefinition(spec, pendingToolResults),
+        buildUserToolDefinition(
+          spec,
+          pendingToolResults,
+          (runtimeToolCallId, toolInput) =>
+            bindResumedToolCall({
+              runtimeToolCallId,
+              toolName: spec.name,
+              toolInput,
+            }),
+        ),
       ),
     ];
     return {
@@ -601,6 +695,22 @@ export async function createPiSession(
           )
         : SessionManager.create(sessionWorkDir, hostSessionDir);
 
+    if (
+      isFirstBuild &&
+      resumeSessionFilePath &&
+      typeof (sessionManager as { getBranch?: unknown }).getBranch ===
+        'function'
+    ) {
+      for (const call of collectPendingPiToolCalls({
+        sessionManager: sessionManager as {
+          getBranch(): readonly unknown[];
+        },
+        toolNames: new Set(toolNames),
+      })) {
+        resumedPendingToolCalls.set(call.toolCallId, call);
+      }
+    }
+
     const { session } = await createAgentSession({
       cwd: sessionWorkDir,
       agentDir: hostAgentDir,
@@ -635,6 +745,33 @@ export async function createPiSession(
       if (!translatorState) return;
       const event = parseNativeEvent(rawEvent);
       if (!event) return;
+      if (
+        event.type === 'message_end' &&
+        event.message?.role === 'assistant' &&
+        Array.isArray(event.message.content)
+      ) {
+        for (const block of event.message.content) {
+          if (
+            !block ||
+            typeof block !== 'object' ||
+            block.type !== 'toolCall'
+          ) {
+            continue;
+          }
+          bindResumedToolCall({
+            runtimeToolCallId: block.id,
+            toolName: block.name,
+            toolInput: block.arguments,
+          });
+        }
+      }
+      if (event.type === 'tool_execution_start' && event.toolCallId) {
+        bindResumedToolCall({
+          runtimeToolCallId: event.toolCallId,
+          toolName: event.toolName ?? '',
+          toolInput: event.args ?? event.input,
+        });
+      }
       for (const part of translatePiEvent(event, translatorState)) {
         if (currentEmit) {
           currentEmit(part);
@@ -1236,6 +1373,10 @@ function buildBuiltinToolDefinition(input: {
 function buildUserToolDefinition(
   spec: HarnessV1ToolSpec,
   pending: Map<string, PendingToolResult>,
+  onExecute?: (
+    toolCallId: string,
+    input: unknown,
+  ) => ResumedPendingToolCall | undefined,
 ): ToolDefinition {
   const schema = spec.inputSchema ?? {
     type: 'object',
@@ -1247,10 +1388,74 @@ function buildUserToolDefinition(
     label: spec.name,
     description: spec.description ?? `User-registered tool ${spec.name}`,
     parameters: toolSpecToTypeBoxParameters(schema),
-    async execute(toolCallId) {
+    async execute(toolCallId, params) {
+      const resumed = onExecute?.(toolCallId, params);
       return new Promise<unknown>(resolve => {
         pending.set(toolCallId, { resolve });
+        if (resumed?.hasResult) {
+          pending.delete(toolCallId);
+          resolve(resumed.result);
+        }
       }).then(output => asPiToolResult(serializeToolOutput(output)));
     },
   });
+}
+
+function stableSerialize(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value) ?? String(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map(stableSerialize).join(',')}]`;
+  }
+  return `{${Object.keys(value as Record<string, unknown>)
+    .sort()
+    .map(
+      key =>
+        `${JSON.stringify(key)}:${stableSerialize((value as Record<string, unknown>)[key])}`,
+    )
+    .join(',')}}`;
+}
+
+function collectPendingPiToolCalls(input: {
+  readonly sessionManager: { getBranch(): readonly unknown[] };
+  readonly toolNames: ReadonlySet<string>;
+}): ResumedPendingToolCall[] {
+  const pending = new Map<string, ResumedPendingToolCall>();
+  for (const entry of input.sessionManager.getBranch()) {
+    if (!entry || typeof entry !== 'object') continue;
+    const message = (entry as { message?: unknown }).message;
+    if (!message || typeof message !== 'object') continue;
+    const role = (message as { role?: unknown }).role;
+    if (role === 'assistant') {
+      const content = (message as { content?: unknown }).content;
+      if (!Array.isArray(content)) continue;
+      for (const block of content) {
+        if (!block || typeof block !== 'object') continue;
+        const toolBlock = block as {
+          type?: unknown;
+          id?: unknown;
+          name?: unknown;
+          arguments?: unknown;
+        };
+        if (
+          toolBlock.type !== 'toolCall' ||
+          typeof toolBlock.id !== 'string' ||
+          typeof toolBlock.name !== 'string' ||
+          !input.toolNames.has(toolBlock.name)
+        ) {
+          continue;
+        }
+        pending.set(toolBlock.id, {
+          toolCallId: toolBlock.id,
+          toolName: toolBlock.name,
+          input: toolBlock.arguments ?? {},
+        });
+      }
+    } else if (role === 'toolResult') {
+      const toolCallId = (message as { toolCallId?: unknown }).toolCallId;
+      if (typeof toolCallId === 'string') pending.delete(toolCallId);
+    }
+  }
+  return [...pending.values()];
 }

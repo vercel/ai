@@ -43,6 +43,8 @@ export interface PiTranslatorState {
    * the matching `tool_result`/`tool_execution_end` event is translated.
    */
   hostToolResults: Map<string, unknown>;
+  /** Runtime tool-call ids mapped back to the ids persisted by the harness. */
+  toolCallIds: Map<string, string>;
   /**
    * Names of tools that Pi executes natively (read/write/edit/bash/grep/
    * find/ls). `tool-call` events for these get `providerExecuted: true`
@@ -82,6 +84,7 @@ export function createPiTranslatorState(
     pendingStepToolCallIds: new Set(),
     stepOpen: false,
     hostToolResults: new Map(),
+    toolCallIds: new Map(),
     builtinToolNames: new Set(options.builtinToolNames ?? []),
     nativeToCommonNameMap: map,
   };
@@ -162,7 +165,10 @@ export function finishPiApprovalStep(
   return finishStep(state);
 }
 
-function extractPiToolCallIds(message: PiSessionEvent['message']): string[] {
+function extractPiToolCallIds(
+  message: PiSessionEvent['message'],
+  state: PiTranslatorState,
+): string[] {
   if (!message || message.role !== 'assistant') return [];
   if (!Array.isArray(message.content)) return [];
   return message.content.flatMap(part => {
@@ -170,7 +176,9 @@ function extractPiToolCallIds(message: PiSessionEvent['message']): string[] {
     const block = part as Record<string, unknown>;
     if (block.type !== 'toolCall') return [];
     const id = block.id ?? block.toolCallId;
-    return typeof id === 'string' && id.length > 0 ? [id] : [];
+    return typeof id === 'string' && id.length > 0
+      ? [state.toolCallIds.get(id) ?? id]
+      : [];
   });
 }
 
@@ -293,7 +301,7 @@ export function translatePiEvent(
         state.currentReasoningId = undefined;
       }
       if (event.type === 'message_end') {
-        for (const toolCallId of extractPiToolCallIds(event.message)) {
+        for (const toolCallId of extractPiToolCallIds(event.message, state)) {
           state.pendingStepToolCallIds.add(toolCallId);
         }
       } else {
@@ -305,14 +313,16 @@ export function translatePiEvent(
 
     case 'tool_execution_start': {
       if (!event.toolCallId || !event.toolName) return [];
+      const toolCallId =
+        state.toolCallIds.get(event.toolCallId) ?? event.toolCallId;
       const { wire, native } = resolveToolName(state, event.toolName);
-      state.observedToolNames.set(event.toolCallId, wire);
+      state.observedToolNames.set(toolCallId, wire);
       const providerExecuted = state.builtinToolNames.has(native);
       const input = serializeToolOutput(event.args ?? event.input ?? {});
       return [
         {
           type: 'tool-call',
-          toolCallId: event.toolCallId,
+          toolCallId,
           toolName: wire,
           input,
           ...(wire !== native ? { nativeName: native } : {}),
@@ -324,7 +334,9 @@ export function translatePiEvent(
     case 'tool_execution_end':
     case 'tool_result': {
       if (!event.toolCallId) return [];
-      const recordedName = state.observedToolNames.get(event.toolCallId);
+      const toolCallId =
+        state.toolCallIds.get(event.toolCallId) ?? event.toolCallId;
+      const recordedName = state.observedToolNames.get(toolCallId);
       const nativeName = event.toolName;
       const wire =
         recordedName ??
@@ -336,18 +348,18 @@ export function translatePiEvent(
        * reports as text, are not in the map and fall back to unwrapping the
        * event's text payload.
        */
-      const result = state.hostToolResults.has(event.toolCallId)
-        ? ((state.hostToolResults.get(event.toolCallId) ?? null) as Extract<
+      const result = state.hostToolResults.has(toolCallId)
+        ? ((state.hostToolResults.get(toolCallId) ?? null) as Extract<
             HarnessV1StreamPart,
             { type: 'tool-result' }
           >['result'])
         : unwrapPiToolResult(event);
-      state.hostToolResults.delete(event.toolCallId);
-      state.pendingStepToolCallIds.delete(event.toolCallId);
+      state.hostToolResults.delete(toolCallId);
+      state.pendingStepToolCallIds.delete(toolCallId);
       return [
         {
           type: 'tool-result',
-          toolCallId: event.toolCallId,
+          toolCallId,
           toolName: wire,
           result,
           ...(event.isError ? { isError: true } : {}),

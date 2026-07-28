@@ -18,6 +18,7 @@ const piMock = vi.hoisted(() => {
     createAgentSession: vi.fn(),
     customTools: [] as FakePiTool[],
     session: undefined as AgentSession | undefined,
+    sessionEntries: [] as unknown[],
   };
 });
 
@@ -40,9 +41,11 @@ vi.mock('@earendil-works/pi-coding-agent', () => {
     SessionManager: {
       create: vi.fn(() => ({
         getSessionFile: () => undefined,
+        getBranch: () => piMock.sessionEntries,
       })),
       open: vi.fn(() => ({
         getSessionFile: () => undefined,
+        getBranch: () => piMock.sessionEntries,
       })),
     },
     SettingsManager: {
@@ -56,6 +59,7 @@ describe('createPiSession', () => {
   beforeEach(() => {
     piMock.customTools = [];
     piMock.session = undefined;
+    piMock.sessionEntries = [];
     piMock.createAgentSession.mockReset();
     piMock.createAgentSession.mockImplementation(async options => {
       piMock.customTools = options.customTools;
@@ -178,6 +182,96 @@ describe('createPiSession', () => {
     );
   });
 
+  it('delivers a tool result after a cold cross-process resume', async () => {
+    piMock.sessionEntries = [
+      {
+        type: 'message',
+        message: {
+          role: 'assistant',
+          content: [
+            {
+              type: 'toolCall',
+              id: 'original-tool',
+              name: 'weather',
+              arguments: {},
+            },
+          ],
+        },
+      },
+    ];
+
+    const allowToolExecution = createDeferred<void>();
+    let resolvedToolResult: unknown;
+    const prompt = vi.fn(async () => {
+      await allowToolExecution.promise;
+      const tool = piMock.customTools.find(tool => tool.name === 'weather');
+      if (!tool) throw new Error('Expected weather tool.');
+      const toolResult = await tool.execute(
+        'runtime-tool',
+        {},
+        undefined,
+        undefined,
+        undefined as never,
+      );
+      resolvedToolResult = toolResult;
+    });
+    piMock.session = {
+      abort: vi.fn(async () => {}),
+      compact: vi.fn(async () => {}),
+      dispose: vi.fn(),
+      getSessionStats: () => ({
+        tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      }),
+      prompt,
+      steer: vi.fn(async () => {}),
+      subscribe: vi.fn(() => () => {}),
+    } as unknown as AgentSession;
+
+    const sandboxSession = createSandboxSession({
+      sessionFile: new TextEncoder().encode('persisted session'),
+    });
+    const session = await createPiSession({
+      sessionId: 'cold-session',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+      skills: [],
+      settings: {},
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: true,
+      resumeSessionFileName: 'session.jsonl',
+    });
+    const control = await session.doContinueTurn({
+      tools: [{ name: 'weather' }],
+      emit: vi.fn(),
+    });
+
+    await control.submitToolResult({
+      toolCallId: 'original-tool',
+      output: { weather: 'sunny' },
+    });
+    allowToolExecution.resolve();
+    await control.done;
+
+    expect(resolvedToolResult).toMatchInlineSnapshot(
+      {
+        content: [{ type: 'text', text: '{"weather":"sunny"}' }],
+        details: undefined,
+      },
+      `
+      {
+        "content": [
+          {
+            "text": "{"weather":"sunny"}",
+            "type": "text",
+          },
+        ],
+        "details": undefined,
+      }
+    `,
+    );
+    expect(prompt).toHaveBeenCalledTimes(1);
+  });
+
   it('uses agentDir for auth, models, and settings when provided', async () => {
     vi.mocked(ModelRuntime.create).mockClear();
     vi.mocked(SettingsManager.inMemory).mockClear();
@@ -235,12 +329,14 @@ function createDeferred<T>() {
   return { promise, resolve, reject };
 }
 
-function createSandboxSession(): HarnessV1NetworkSandboxSession {
+function createSandboxSession(
+  input: { sessionFile?: Uint8Array } = {},
+): HarnessV1NetworkSandboxSession {
   const sandbox = {
     defaultWorkingDirectory: '/sandbox',
     destroy: vi.fn(async () => {}),
     getPortUrl: vi.fn(),
-    readBinaryFile: vi.fn(async () => undefined),
+    readBinaryFile: vi.fn(async () => input.sessionFile),
     restricted: vi.fn(() => sandbox),
     run: vi.fn(async () => ({ stdout: '', stderr: '', exitCode: 0 })),
     stop: vi.fn(async () => {}),

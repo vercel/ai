@@ -339,6 +339,60 @@ describe('translatePiEvent', () => {
     });
   });
 
+  it('projects a resumed runtime tool-call id back to its persisted id', () => {
+    const state = createPiTranslatorState();
+    state.toolCallIds.set('runtime-call', 'persisted-call');
+    const submitted = { weather: 'sunny' };
+    state.hostToolResults.set('persisted-call', submitted);
+
+    const out = emit(
+      [
+        { type: 'turn_start' } as PiSessionEvent,
+        {
+          type: 'message_start',
+          message: { role: 'assistant', content: [] },
+        } as PiSessionEvent,
+        {
+          type: 'message_end',
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                type: 'toolCall',
+                id: 'runtime-call',
+                name: 'weather',
+                arguments: { city: 'SF' },
+              },
+            ],
+          },
+        } as PiSessionEvent,
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'runtime-call',
+          toolName: 'weather',
+          args: { city: 'SF' },
+        } as PiSessionEvent,
+        {
+          type: 'tool_execution_end',
+          toolCallId: 'runtime-call',
+          result: JSON.stringify(submitted),
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+
+    expect(out.find(part => part.type === 'tool-call')).toMatchObject({
+      type: 'tool-call',
+      toolCallId: 'persisted-call',
+    });
+    expect(out.find(part => part.type === 'tool-result')).toMatchObject({
+      type: 'tool-result',
+      toolCallId: 'persisted-call',
+      result: submitted,
+    });
+    expect(out.at(-1)?.type).toBe('finish-step');
+  });
+
   it('surfaces the original host-submitted output object instead of the echoed text', () => {
     const state = createPiTranslatorState();
     emit(
