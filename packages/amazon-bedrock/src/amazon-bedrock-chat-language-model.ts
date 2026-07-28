@@ -45,6 +45,7 @@ import {
   type AmazonBedrockLanguageModelChatOptions,
   type AmazonBedrockChatModelId,
 } from './amazon-bedrock-chat-language-model-options';
+import { supportsNativeStructuredOutput } from './amazon-bedrock-anthropic-model-support';
 import { AmazonBedrockErrorSchema } from './amazon-bedrock-error';
 import { createAmazonBedrockEventStreamResponseHandler } from './amazon-bedrock-event-stream-response-handler';
 import { prepareTools } from './amazon-bedrock-prepare-tools';
@@ -193,15 +194,9 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
     const { supportsStructuredOutput: modelSupportsStructuredOutput } =
       getModelCapabilities(this.modelId);
 
-    const modelRejectsNativeStructuredOutput =
-      this.modelId.includes('claude-opus-4-7') ||
-      this.modelId.includes('claude-opus-4-8') ||
-      this.modelId.includes('claude-fable-5') ||
-      this.modelId.includes('claude-sonnet-5');
-
     const useNativeStructuredOutput =
       isAnthropicModel &&
-      !modelRejectsNativeStructuredOutput &&
+      supportsNativeStructuredOutput(this.modelId) &&
       (modelSupportsStructuredOutput || isThinkingEnabled) &&
       responseFormat?.type === 'json' &&
       responseFormat.schema != null;

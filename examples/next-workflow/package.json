@@ -15,7 +15,7 @@
     "@ai-sdk/react": "workspace:*",
     "@ai-sdk/workflow": "workspace:*",
     "ai": "workspace:*",
-    "next": "^15.5.18",
+    "next": "^15.5.21",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "workflow": "4.2.4",

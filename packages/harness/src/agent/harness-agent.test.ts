@@ -42,6 +42,7 @@ function mockHarness(options: {
   onDoStart?: (options: Parameters<HarnessV1['doStart']>[0]) => void;
   onPromptTurn?: (options: HarnessV1PromptTurnOptions) => void;
   promptDone?: (options: HarnessV1PromptTurnOptions) => Promise<void>;
+  onSuspendTurn?: () => void | Promise<void>;
   continueScript?: (
     submitToolResult: (input: {
       toolCallId: string;
@@ -88,7 +89,10 @@ function mockHarness(options: {
   const doDestroy = vi.fn(async () => {});
   const doCompact = vi.fn(async (_customInstructions?: string) => {});
   const doDetach = vi.fn(async () => resumeState);
-  const doSuspendTurn = vi.fn(async () => continueState);
+  const doSuspendTurn = vi.fn(async () => {
+    await options.onSuspendTurn?.();
+    return continueState;
+  });
   const doContinueTurn = vi.fn(async (opts: HarnessV1ContinueTurnOptions) => {
     const control: HarnessV1PromptControl = {
       submitToolResult: async input => {
@@ -700,6 +704,38 @@ describe('HarnessAgent', () => {
     ).resolves.toBeDefined();
 
     await session.destroy();
+  });
+
+  test('keeps a turn unfinished when suspension closes its stream mid-step', async () => {
+    let resolvePromptDone!: () => void;
+    const promptDone = new Promise<void>(resolve => {
+      resolvePromptDone = resolve;
+    });
+    const { harness } = mockHarness({
+      script: () => [
+        { type: 'text-start', id: 't1' },
+        { type: 'text-delta', id: 't1', delta: 'partial' },
+      ],
+      promptDone: () => promptDone,
+      onSuspendTurn: () => {
+        resolvePromptDone();
+      },
+    });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession();
+    const result = await agent.stream({ session, prompt: 'work' });
+
+    const continueFrom = await session.suspendTurn();
+    await result.consumeStream();
+
+    expect(continueFrom).toEqual({
+      type: 'continue-turn',
+      harnessId: 'mock',
+      specificationVersion: 'harness-v1',
+      data: {},
+    });
+    expect(session.hasUnfinishedTurn()).toBe(true);
+    await expect(result.steps).resolves.toEqual([]);
   });
 
   test('settles an aborted turn with an abort part and releases the session for the next turn', async () => {

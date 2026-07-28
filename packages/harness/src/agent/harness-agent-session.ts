@@ -212,6 +212,8 @@ export class HarnessAgentSession {
         onTurnFailed: () => {
           this.finishTrackedTurn({ turnId });
         },
+        isTurnSuspending: () =>
+          this.activeTurnSequence === turnId && this.suspendedTurnState != null,
         onStopConditionMet: () =>
           this.captureStopConditionBoundary({ session, turnId }),
       });
@@ -287,6 +289,8 @@ export class HarnessAgentSession {
         onTurnFailed: () => {
           this.finishTrackedTurn({ turnId });
         },
+        isTurnSuspending: () =>
+          this.activeTurnSequence === turnId && this.suspendedTurnState != null,
         onStopConditionMet: () =>
           this.captureStopConditionBoundary({ session, turnId }),
       });

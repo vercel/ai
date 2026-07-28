@@ -33,14 +33,32 @@ import type {
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
+  OpenAIResponsesToolCaller,
 } from './openai-responses-api';
 import {
   toolSearchInputSchema,
   toolSearchOutputSchema,
 } from '../tool/tool-search';
+import {
+  programmaticToolCallingInputSchema,
+  programmaticToolCallingOutputSchema,
+} from '../tool/programmatic-tool-calling';
 
 function serializeToolCallArguments(input: unknown): string {
   return JSON.stringify(input === undefined ? {} : input);
+}
+
+function mapToolCaller(
+  caller:
+    | { type: 'direct' }
+    | { type: 'program'; callerId: string }
+    | undefined,
+): OpenAIResponsesToolCaller | undefined {
+  return caller == null
+    ? undefined
+    : caller.type === 'program'
+      ? { type: 'program', caller_id: caller.callerId }
+      : caller;
 }
 
 type OpenAIPromptCacheBreakpoint = { mode: 'explicit' };
@@ -350,6 +368,11 @@ export async function convertToOpenAIResponsesInput({
                 ).providerMetadata?.[providerOptionsName]?.namespace) as
                 | string
                 | undefined;
+              const caller = part.providerOptions?.[providerOptionsName]
+                ?.caller as
+                | { type: 'direct' }
+                | { type: 'program'; callerId: string }
+                | undefined;
 
               if (hasConversation && id != null) {
                 break;
@@ -386,6 +409,27 @@ export async function convertToOpenAIResponsesInput({
                   call_id: parsedInput.call_id ?? null,
                   status: 'completed',
                   arguments: parsedInput.arguments,
+                });
+                break;
+              }
+
+              if (resolvedToolName === 'programmatic_tool_calling') {
+                if (store && id != null) {
+                  input.push({ type: 'item_reference', id });
+                  break;
+                }
+
+                const parsedInput = await validateTypes({
+                  value: part.input,
+                  schema: programmaticToolCallingInputSchema,
+                });
+
+                input.push({
+                  type: 'program',
+                  id: id ?? part.toolCallId,
+                  call_id: part.toolCallId,
+                  code: parsedInput.code,
+                  fingerprint: parsedInput.fingerprint,
                 });
                 break;
               }
@@ -552,6 +596,9 @@ export async function convertToOpenAIResponsesInput({
                 name: resolvedToolName,
                 arguments: serializeToolCallArguments(part.input),
                 ...(namespace != null && { namespace }),
+                ...(caller != null && {
+                  caller: mapToolCaller(caller),
+                }),
               });
               break;
             }
@@ -610,6 +657,37 @@ export async function convertToOpenAIResponsesInput({
                   });
                 }
 
+                break;
+              }
+
+              if (resolvedResultToolName === 'programmatic_tool_calling') {
+                const itemId = (part.providerOptions?.[providerOptionsName]
+                  ?.itemId ??
+                  (
+                    part as {
+                      providerMetadata?: {
+                        [providerOptionsName]?: { itemId?: string };
+                      };
+                    }
+                  ).providerMetadata?.[providerOptionsName]?.itemId ??
+                  part.toolCallId) as string;
+
+                if (store) {
+                  input.push({ type: 'item_reference', id: itemId });
+                } else if (part.output.type === 'json') {
+                  const parsedOutput = await validateTypes({
+                    value: part.output.value,
+                    schema: programmaticToolCallingOutputSchema,
+                  });
+
+                  input.push({
+                    type: 'program_output',
+                    id: itemId,
+                    call_id: part.toolCallId,
+                    result: parsedOutput.result,
+                    status: parsedOutput.status,
+                  });
+                }
                 break;
               }
 
@@ -1163,10 +1241,18 @@ export async function convertToOpenAIResponsesInput({
               break;
           }
 
+          const caller = mapToolCaller(
+            part.providerOptions?.[providerOptionsName]?.caller as
+              | { type: 'direct' }
+              | { type: 'program'; callerId: string }
+              | undefined,
+          );
+
           input.push({
             type: 'function_call_output',
             call_id: part.toolCallId,
             output: contentValue,
+            ...(caller != null && { caller }),
           });
         }
 

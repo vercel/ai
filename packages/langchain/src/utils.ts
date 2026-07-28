@@ -545,6 +545,26 @@ export function getMessageId(msg: unknown): string | undefined {
 }
 
 /**
+ * Checks if a message is an AIMessageChunk class instance, including instances
+ * created by a different LangChain module build.
+ */
+function isAIMessageChunkInstance(msg: unknown): msg is AIMessageChunk {
+  if (AIMessageChunk.isInstance(msg)) return true;
+  if (msg == null || typeof msg !== 'object') return false;
+
+  const message = msg as {
+    _getType?: () => unknown;
+    concat?: unknown;
+  };
+
+  return (
+    typeof message._getType === 'function' &&
+    typeof message.concat === 'function' &&
+    message._getType() === 'ai'
+  );
+}
+
+/**
  * Checks if a message is an AI message chunk (works for both class instances and plain objects).
  * For class instances, only AIMessageChunk is matched (not AIMessage).
  * For plain objects from RemoteGraph API, matches type === 'ai' (TypeScript langchain-core)
@@ -560,7 +580,7 @@ export function isAIMessageChunk(
   /**
    * Actual AIMessageChunk class instance
    */
-  if (AIMessageChunk.isInstance(msg)) return true;
+  if (isAIMessageChunkInstance(msg)) return true;
   /**
    * Plain object from RemoteGraph API (not a LangChain class instance)
    */
@@ -1237,7 +1257,7 @@ export function processLangGraphEvent(
        * Accumulate message chunks for later reference
        * Note: Only works for actual class instances, not serialized messages
        */
-      if (AIMessageChunk.isInstance(msg)) {
+      if (isAIMessageChunkInstance(msg)) {
         const existingMessage = messageConcat.get(msgId);
         if (existingMessage) {
           messageConcat.set(

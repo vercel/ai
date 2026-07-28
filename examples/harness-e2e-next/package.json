@@ -23,7 +23,7 @@
     "@vercel/sandbox": "^2.0.1",
     "ai": "workspace:*",
     "clsx": "^2.1.1",
-    "next": "^15.5.18",
+    "next": "^15.5.21",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "streamdown": "^1.6.11",
