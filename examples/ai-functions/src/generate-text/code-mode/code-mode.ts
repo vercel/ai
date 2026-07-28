@@ -1,4 +1,4 @@
-import { createCodeModeTool } from '@ai-sdk/code-mode';
+import { experimental_createCodeModeTool as createCodeModeTool } from '@ai-sdk/code-mode';
 import { generateText, isStepCount, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';

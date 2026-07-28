@@ -19,7 +19,7 @@ tools, not browser execution.
 ```ts
 import { generateText, tool } from 'ai';
 import { z } from 'zod';
-import { createCodeModeTool } from '@ai-sdk/code-mode';
+import { experimental_createCodeModeTool as createCodeModeTool } from '@ai-sdk/code-mode';
 
 const search = tool({
   description: 'Search indexed documents.',
@@ -233,12 +233,12 @@ OAuth resolution.
 
 ```ts
 import {
-  continueCodeModeInterrupt,
-  createCodeModeTool,
-  isCodeModeInterrupt,
-  replaceCodeModeInterruptResult,
-  requestCodeModeInterrupt,
-  unwrapCodeModeResult,
+  experimental_continueCodeModeInterrupt as continueCodeModeInterrupt,
+  experimental_createCodeModeTool as createCodeModeTool,
+  experimental_isCodeModeInterrupt as isCodeModeInterrupt,
+  experimental_replaceCodeModeInterruptResult as replaceCodeModeInterruptResult,
+  experimental_requestCodeModeInterrupt as requestCodeModeInterrupt,
+  experimental_unwrapCodeModeResult as unwrapCodeModeResult,
   type CodeModeToolExecutionOptions,
 } from '@ai-sdk/code-mode';
 
@@ -396,11 +396,11 @@ The flow is:
 ```ts
 import type { ModelMessage } from 'ai';
 import {
-  continueCodeModeApproval,
-  createCodeModeTool,
-  getCodeModeApprovalResponse,
-  isCodeModeApprovalInterrupt,
-  toCodeModeApprovalMessages,
+  experimental_continueCodeModeApproval as continueCodeModeApproval,
+  experimental_createCodeModeTool as createCodeModeTool,
+  experimental_getCodeModeApprovalResponse as getCodeModeApprovalResponse,
+  experimental_isCodeModeApprovalInterrupt as isCodeModeApprovalInterrupt,
+  experimental_toCodeModeApprovalMessages as toCodeModeApprovalMessages,
   type CodeModeApprovalInterrupt,
 } from '@ai-sdk/code-mode';
 
@@ -506,7 +506,7 @@ Hosts that use one secret for every invocation can instead configure the
 process-global default before creating or resuming continuations:
 
 ```ts
-import { setCodeModeContinuationSigningKey } from '@ai-sdk/code-mode';
+import { experimental_setCodeModeContinuationSigningKey as setCodeModeContinuationSigningKey } from '@ai-sdk/code-mode';
 
 setCodeModeContinuationSigningKey(process.env.CODE_MODE_CONTINUATION_KEY);
 ```

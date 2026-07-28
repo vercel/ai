@@ -1,16 +1,16 @@
 export {
-  attachCodeModeApprovalResult,
-  continueCodeModeApproval,
-  generateTextWithCodeModeApprovals,
-  getCodeModeApprovalInterrupt,
-  getCodeModeApprovalResponse,
-  isCodeModeApprovalInterrupt,
-  streamTextWithCodeModeApprovals,
-  toCodeModeApprovalMessages,
-  wrapToolLoopAgentForCodeModeApprovals,
+  attachCodeModeApprovalResult as experimental_attachCodeModeApprovalResult,
+  continueCodeModeApproval as experimental_continueCodeModeApproval,
+  generateTextWithCodeModeApprovals as experimental_generateTextWithCodeModeApprovals,
+  getCodeModeApprovalInterrupt as experimental_getCodeModeApprovalInterrupt,
+  getCodeModeApprovalResponse as experimental_getCodeModeApprovalResponse,
+  isCodeModeApprovalInterrupt as experimental_isCodeModeApprovalInterrupt,
+  streamTextWithCodeModeApprovals as experimental_streamTextWithCodeModeApprovals,
+  toCodeModeApprovalMessages as experimental_toCodeModeApprovalMessages,
+  wrapToolLoopAgentForCodeModeApprovals as experimental_wrapToolLoopAgentForCodeModeApprovals,
 } from './approval-continuation.js';
-export { createCodeModeTool } from './code-mode-tool.js';
-export { setCodeModeContinuationSigningKey } from './continuation-capability.js';
+export { createCodeModeTool as experimental_createCodeModeTool } from './code-mode-tool.js';
+export { setCodeModeContinuationSigningKey as experimental_setCodeModeContinuationSigningKey } from './continuation-capability.js';
 export {
   CodeModeAbortedError,
   CodeModeBridgeLimitError,
@@ -25,21 +25,21 @@ export {
   CodeModeToolApprovalRequiredError,
   CodeModeToolError,
 } from './errors.js';
-export { requestCodeModeInterrupt } from './host-interrupt.js';
+export { requestCodeModeInterrupt as experimental_requestCodeModeInterrupt } from './host-interrupt.js';
 export {
-  continueCodeModeInterrupt,
-  getCodeModeInterrupt,
-  isCodeModeInterrupt,
-  replaceCodeModeInterruptResult,
-  unwrapCodeModeResult,
+  continueCodeModeInterrupt as experimental_continueCodeModeInterrupt,
+  getCodeModeInterrupt as experimental_getCodeModeInterrupt,
+  isCodeModeInterrupt as experimental_isCodeModeInterrupt,
+  replaceCodeModeInterruptResult as experimental_replaceCodeModeInterruptResult,
+  unwrapCodeModeResult as experimental_unwrapCodeModeResult,
 } from './interrupt-continuation.js';
-export { runCodeMode } from './run-code-mode.js';
+export { runCodeMode as experimental_runCodeMode } from './run-code-mode.js';
 export {
-  getCodeModeWorkerUrl,
-  getDefaultCodeModeWorkerUrl,
-  setCodeModeWorkerUrl,
+  getCodeModeWorkerUrl as experimental_getCodeModeWorkerUrl,
+  getDefaultCodeModeWorkerUrl as experimental_getDefaultCodeModeWorkerUrl,
+  setCodeModeWorkerUrl as experimental_setCodeModeWorkerUrl,
 } from './runtime/manager.js';
-export { setMaxWorkers } from './runtime/max-workers.js';
+export { setMaxWorkers as experimental_setMaxWorkers } from './runtime/max-workers.js';
 export type {
   ApprovalDecision,
   CodeModeApprovalInterrupt,

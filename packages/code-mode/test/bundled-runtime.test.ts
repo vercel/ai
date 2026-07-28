@@ -150,7 +150,7 @@ for (const specifier of [
 const bundledRuntimePackageScript = `
 import { access, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { runCodeMode } from "@ai-sdk/code-mode";
+import { experimental_runCodeMode as runCodeMode } from "@ai-sdk/code-mode";
 
 const packageRoot = join(
   process.cwd(),
