@@ -39,7 +39,8 @@
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
     "@standard-schema/spec": "^1.0.0",
-    "eventsource-parser": "^3.0.6"
+    "eventsource-parser": "^3.0.6",
+    "undici": "^5.29.0"
   },
   "devDependencies": {
     "@types/node": "20.17.24",
