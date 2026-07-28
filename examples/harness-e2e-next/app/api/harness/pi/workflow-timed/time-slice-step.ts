@@ -1,5 +1,5 @@
 import {
-  runHarnessAgentSlice,
+  runHarnessAgentTimeSlice,
   type HarnessWorkflowState,
 } from '@ai-sdk/workflow-harness';
 
@@ -12,17 +12,17 @@ import {
  * rerun-from-journal rather than a lossless attach. Demo budget lowered from
  * the 750s production default so slicing is observable.
  */
-const DEMO_SLICE_TIMEOUT_SECONDS = 30;
+const DEMO_TIME_SLICE_SECONDS = 30;
 
-export async function runPiSlice(
+export async function timeSliceStep(
   state: HarnessWorkflowState,
 ): Promise<HarnessWorkflowState> {
   'use step';
 
   const { piHarnessAgent } = await import('@/agent/harness/pi/basic-agent');
-  return runHarnessAgentSlice({
+  return runHarnessAgentTimeSlice({
     agent: piHarnessAgent,
     state,
-    sliceTimeoutSeconds: DEMO_SLICE_TIMEOUT_SECONDS,
+    timeSliceSeconds: DEMO_TIME_SLICE_SECONDS,
   });
 }
