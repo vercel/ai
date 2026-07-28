@@ -22,19 +22,17 @@ export function isSandboxLocalImagePath(value: string): boolean {
   );
 }
 
-const sandboxLocalImagePathSchema = z
-  .string()
-  .refine(
-    isSandboxLocalImagePath,
-    "Codex local image paths must begin with '/', './', or '../'.",
-  );
-
 const codexUserInputSchema = z.array(
   z.discriminatedUnion('type', [
     z.object({ type: z.literal('text'), text: z.string() }),
     z.object({
       type: z.literal('local_image'),
-      path: sandboxLocalImagePathSchema,
+      path: z
+        .string()
+        .refine(
+          isSandboxLocalImagePath,
+          "Codex local image paths must begin with '/', './', or '../'.",
+        ),
     }),
   ]),
 );
