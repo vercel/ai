@@ -206,6 +206,52 @@ describe('zodSchema', () => {
 
         expect(schema.jsonSchema).toMatchSnapshot();
       });
+
+      it('should preserve record value schemas', () => {
+        const schema = zodSchema(
+          z4.object({
+            values: z4.record(z4.string(), z4.string()),
+          }),
+        );
+
+        expect(schema.jsonSchema).toStrictEqual({
+          $schema: 'http://json-schema.org/draft-07/schema#',
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            values: {
+              type: 'object',
+              propertyNames: {
+                type: 'string',
+              },
+              additionalProperties: {
+                type: 'string',
+              },
+            },
+          },
+          required: ['values'],
+        });
+      });
+
+      it('should preserve object catchall schemas', () => {
+        const schema = zodSchema(
+          z4.object({ known: z4.string() }).catchall(z4.number()),
+        );
+
+        expect(schema.jsonSchema).toStrictEqual({
+          $schema: 'http://json-schema.org/draft-07/schema#',
+          type: 'object',
+          additionalProperties: {
+            type: 'number',
+          },
+          properties: {
+            known: {
+              type: 'string',
+            },
+          },
+          required: ['known'],
+        });
+      });
     });
 
     describe('output validation', () => {
