@@ -69,6 +69,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
     maxOutputTokens,
     temperature,
     topP,
+    topK,
+    frequencyPenalty,
+    presencePenalty,
     stopSequences,
     seed,
     responseFormat,
@@ -84,6 +87,18 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
         providerOptions,
         schema: xaiResponsesProviderOptions,
       })) ?? {};
+
+    if (topK != null) {
+      warnings.push({ type: 'unsupported', feature: 'topK' });
+    }
+
+    if (frequencyPenalty != null) {
+      warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
+    }
+
+    if (presencePenalty != null) {
+      warnings.push({ type: 'unsupported', feature: 'presencePenalty' });
+    }
 
     if (stopSequences != null) {
       warnings.push({
