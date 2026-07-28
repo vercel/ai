@@ -689,6 +689,55 @@ describe('streamText', () => {
         `);
     });
 
+    it('should preserve provider metadata from empty text deltas', async () => {
+      const providerMetadata = {
+        testProvider: { signature: 'test-signature' },
+      };
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-delta', id: '1', delta: '' },
+            {
+              type: 'text-delta',
+              id: '1',
+              delta: '',
+              providerMetadata,
+            },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        experimental_output: text(),
+        prompt: 'test-input',
+      });
+
+      const fullStream = await convertAsyncIterableToArray(result.fullStream);
+
+      expect(
+        fullStream.filter(
+          chunk => chunk.type === 'text-delta' && chunk.text === '',
+        ),
+      ).toStrictEqual([
+        {
+          type: 'text-delta',
+          id: '1',
+          text: '',
+          providerMetadata,
+        },
+      ]);
+      expect((await result.steps)[0].content).toContainEqual({
+        type: 'text',
+        text: 'Hello',
+        providerMetadata,
+      });
+    });
+
     it('should send reasoning deltas', async () => {
       const result = streamText({
         model: modelWithReasoning,

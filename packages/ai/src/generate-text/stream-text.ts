@@ -540,6 +540,11 @@ function createOutputTransformStream<
       text += chunk.text;
       textChunk += chunk.text;
 
+      if (chunk.text.length === 0 && chunk.providerMetadata != null) {
+        controller.enqueue({ part: chunk, partialOutput: undefined });
+        return;
+      }
+
       // only publish if partial json can be parsed:
       const result = await output.parsePartial({ text });
       if (result != null) {
@@ -1279,7 +1284,10 @@ class DefaultStreamTextResult<
                     }
 
                     case 'text-delta': {
-                      if (chunk.delta.length > 0) {
+                      if (
+                        chunk.delta.length > 0 ||
+                        chunk.providerMetadata != null
+                      ) {
                         controller.enqueue({
                           type: 'text-delta',
                           id: chunk.id,
