@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.83
+
+### Patch Changes
+
+- 54beea0: Warn when xAI Responses models ignore unsupported sampling settings.
+
 ## 2.0.82
 
 ### Patch Changes
