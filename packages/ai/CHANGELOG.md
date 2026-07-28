@@ -1,5 +1,13 @@
 # ai
 
+## 6.0.237
+
+### Patch Changes
+
+- f6020d7: Avoid synthesizing client tool errors for invalid provider-executed tool calls.
+- Updated dependencies [de438f5]
+  - @ai-sdk/gateway@3.0.159
+
 ## 6.0.236
 
 ### Patch Changes
