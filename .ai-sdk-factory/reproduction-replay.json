@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 18075,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-18075-mcp-request-timeouts.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-18075-mcp-request-timeouts.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_18075_REPRODUCED: initialization and timed MCP requests remained pending with their HTTP responses open"
+  }
+}
