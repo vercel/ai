@@ -67,6 +67,7 @@ import { toUIMessageStream as toUIMessageStreamHelper } from '../ui-message-stre
 import type { InferUIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import type { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
 import {
+  asAsyncIterableStream,
   createAsyncIterableStream,
   type AsyncIterableStream,
 } from '../util/async-iterable-stream';
@@ -126,7 +127,10 @@ import {
   isStopConditionMet,
   type StopCondition,
 } from './stop-condition';
-import { streamLanguageModelCall } from './stream-language-model-call';
+import {
+  streamLanguageModelCall,
+  type LanguageModelStreamPart,
+} from './stream-language-model-call';
 import type {
   ConsumeStreamOptions,
   StreamTextResult,
@@ -1967,78 +1971,155 @@ class DefaultStreamTextResult<
 
           const { retry } = prepareRetries({ maxRetries, abortSignal });
 
-          const {
-            stream: languageModelStream,
+          let languageModelCallAttempts = 0;
+
+          const createLanguageModelStream = () => {
+            languageModelCallAttempts++;
+
+            return streamLanguageModelCall({
+              model: prepareStepResult?.model ?? model,
+              tools: stepActiveTools,
+              toolOrder: stepToolOrder,
+              toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+              instructions: stepInstructions,
+              messages: stepMessages,
+              allowSystemInMessages,
+              repairToolCall,
+              refineToolInput,
+              abortSignal,
+              headers,
+              includeRawChunks: include.rawChunks,
+              providerOptions: stepProviderOptions,
+              download,
+              output,
+              callId,
+              executeLanguageModelCallInTelemetryContext:
+                telemetryDispatcher.executeLanguageModelCall,
+              toolsContext,
+              experimental_sandbox: stepSandbox,
+              onLanguageModelCallStart: filterNullable(
+                onLanguageModelCallStart,
+                telemetryDispatcher.onLanguageModelCallStart as
+                  | undefined
+                  | OnLanguageModelCallStartCallback,
+              ),
+              onLanguageModelCallEnd: filterNullable(
+                onLanguageModelCallEnd,
+                telemetryDispatcher.onLanguageModelCallEnd as
+                  | undefined
+                  | OnLanguageModelCallEndCallback<TOOLS>,
+              ),
+              onStart: async ({ promptMessages }) => {
+                await notify({
+                  event: {
+                    callId,
+                    provider: stepModel.provider,
+                    modelId: stepModel.modelId,
+                    stepNumber: recordedSteps.length,
+                    instructions: stepInstructions,
+                    messages: stepMessages,
+                    tools,
+                    toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+                    activeTools: prepareStepResult?.activeTools ?? activeTools,
+                    toolOrder: stepToolOrder,
+                    steps: [...recordedSteps],
+                    providerOptions: stepProviderOptions,
+                    runtimeContext,
+                    toolsContext,
+                    output,
+                    promptMessages,
+                    stepTools,
+                    stepToolChoice,
+                  },
+                  callbacks: [onStepStart, telemetryDispatcher.onStepStart],
+                });
+              },
+              _internal: {
+                now,
+              },
+              ...callSettings,
+            });
+          };
+
+          let {
+            stream: initialLanguageModelStream,
             request,
             response,
           } = await runInStepTracingChannelContext(() =>
-            retry(async () =>
-              streamLanguageModelCall({
-                model: prepareStepResult?.model ?? model,
-                tools: stepActiveTools,
-                toolOrder: stepToolOrder,
-                toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-                instructions: stepInstructions,
-                messages: stepMessages,
-                allowSystemInMessages,
-                repairToolCall,
-                refineToolInput,
-                abortSignal,
-                headers,
-                includeRawChunks: include.rawChunks,
-                providerOptions: stepProviderOptions,
-                download,
-                output,
-                callId,
-                executeLanguageModelCallInTelemetryContext:
-                  telemetryDispatcher.executeLanguageModelCall,
-                toolsContext,
-                experimental_sandbox: stepSandbox,
-                onLanguageModelCallStart: filterNullable(
-                  onLanguageModelCallStart,
-                  telemetryDispatcher.onLanguageModelCallStart as
-                    | undefined
-                    | OnLanguageModelCallStartCallback,
-                ),
-                onLanguageModelCallEnd: filterNullable(
-                  onLanguageModelCallEnd,
-                  telemetryDispatcher.onLanguageModelCallEnd as
-                    | undefined
-                    | OnLanguageModelCallEndCallback<TOOLS>,
-                ),
-                onStart: async ({ promptMessages }) => {
-                  await notify({
-                    event: {
-                      callId,
-                      provider: stepModel.provider,
-                      modelId: stepModel.modelId,
-                      stepNumber: recordedSteps.length,
-                      instructions: stepInstructions,
-                      messages: stepMessages,
-                      tools,
-                      toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-                      activeTools:
-                        prepareStepResult?.activeTools ?? activeTools,
-                      toolOrder: stepToolOrder,
-                      steps: [...recordedSteps],
-                      providerOptions: stepProviderOptions,
-                      runtimeContext,
-                      toolsContext,
-                      output,
-                      promptMessages,
-                      stepTools,
-                      stepToolChoice,
-                    },
-                    callbacks: [onStepStart, telemetryDispatcher.onStepStart],
-                  });
-                },
-                _internal: {
-                  now,
-                },
-                ...callSettings,
-              }),
-            ),
+            retry(createLanguageModelStream),
           );
+
+          const retryableLanguageModelStream = new TransformStream<
+            LanguageModelStreamPart<TOOLS>,
+            LanguageModelStreamPart<TOOLS>
+          >();
+
+          const languageModelStream = asAsyncIterableStream(
+            retryableLanguageModelStream.readable,
+          );
+
+          void (async () => {
+            let currentLanguageModelStream = initialLanguageModelStream;
+
+            try {
+              while (true) {
+                try {
+                  await currentLanguageModelStream.pipeTo(
+                    retryableLanguageModelStream.writable,
+                    {
+                      preventAbort: true,
+                      preventClose: true,
+                    },
+                  );
+
+                  const writer =
+                    retryableLanguageModelStream.writable.getWriter();
+                  try {
+                    await writer.close();
+                  } finally {
+                    writer.releaseLock();
+                  }
+                  return;
+                } catch (error) {
+                  const remainingRetries =
+                    maxRetries - (languageModelCallAttempts - 1);
+
+                  if (remainingRetries <= 0) {
+                    throw error;
+                  }
+
+                  let retryStreamError = true;
+                  const { retry: retryStream } = prepareRetries({
+                    maxRetries: remainingRetries,
+                    abortSignal,
+                  });
+
+                  const nextLanguageModelStream =
+                    await runInStepTracingChannelContext(() =>
+                      retryStream(async () => {
+                        if (retryStreamError) {
+                          retryStreamError = false;
+                          throw error;
+                        }
+
+                        return createLanguageModelStream();
+                      }),
+                    );
+
+                  currentLanguageModelStream = nextLanguageModelStream.stream;
+                  request = nextLanguageModelStream.request;
+                  response = nextLanguageModelStream.response;
+                }
+              }
+            } catch (error) {
+              const writer = retryableLanguageModelStream.writable.getWriter();
+              try {
+                await writer.abort(error);
+              } finally {
+                writer.releaseLock();
+              }
+            }
+          })();
 
           startFirstChunkTimeout();
 
