@@ -96,7 +96,7 @@ export const agent = new HarnessAgent({
 
 Persist only the opaque resume state returned by `session.detach()`. If the
 turn paused for approval or was otherwise interrupted, that resume state carries
-the continuation state internally. The chat id can also be the harness
+the continuation state internally. The chat ID can also be the harness
 `sessionId`, which gives the sandbox a stable identity across requests and
 processes.
 
@@ -164,7 +164,7 @@ export async function POST(request: Request) {
   } = await request.json();
 
   if (!body.id) {
-    throw new Error('Missing chat id');
+    return new Response('Missing chat ID', { status: 400 });
   }
 
   const chatId = body.id;
