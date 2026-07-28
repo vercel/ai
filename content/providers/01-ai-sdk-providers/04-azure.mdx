@@ -416,6 +416,7 @@ const result = await generateText({
       },
       filters: {
         allowedDomains: ['sfchronicle.com', 'sfgate.com'],
+        blockedDomains: ['example.com'],
       },
     }),
   },
@@ -442,7 +443,10 @@ The web search tool supports the following configuration options:
 - **searchContextSize** _'low' | 'medium' | 'high'_ - Controls the amount of context used for the search. Higher values provide more comprehensive results but may have higher latency and cost.
 - **userLocation** - Optional location information to provide geographically relevant results. Includes `type` (always `'approximate'`), `country`, `city`, `region`, and `timezone`.
 - **filters** - Optional filter configuration to restrict search results.
-  - **allowedDomains** _string[]_ - Array of allowed domains for the search. Subdomains of the provided domains are automatically included.
+  - **allowedDomains** _string[]_ - Up to 100 allowed domains for the search.
+  - **blockedDomains** _string[]_ - Up to 100 blocked domains for the search.
+
+Omit the HTTP or HTTPS prefix from domain filters. Subdomains of configured domains are automatically included or excluded.
 
 For detailed information on configuration options see the [Azure OpenAI Web Search Tool documentation](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/web-search).
 
