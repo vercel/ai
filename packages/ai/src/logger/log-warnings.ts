@@ -54,6 +54,23 @@ export const FIRST_WARNING_INFO_MESSAGE =
 
 let hasLoggedBefore = false;
 
+function emitWarning({
+  message,
+  type,
+}: {
+  message: string;
+  type: 'DeprecationWarning' | 'Warning';
+}) {
+  if (
+    typeof process !== 'undefined' &&
+    typeof process.emitWarning === 'function'
+  ) {
+    process.emitWarning(message, { type });
+  } else {
+    console.warn(message);
+  }
+}
+
 export const logWarnings: LogWarningsFunction = warnings => {
   // if the warnings array is empty, do nothing
   if (warnings.length === 0) {
@@ -76,12 +93,18 @@ export const logWarnings: LogWarningsFunction = warnings => {
   // display information note on first call
   if (!hasLoggedBefore) {
     hasLoggedBefore = true;
-    console.info(FIRST_WARNING_INFO_MESSAGE);
+    emitWarning({
+      message: FIRST_WARNING_INFO_MESSAGE,
+      type: 'Warning',
+    });
   }
 
-  // default behavior: log warnings to the console
+  // default behavior: log warnings via process.emitWarning if available, otherwise console.warn
   for (const warning of warnings) {
-    console.warn(formatWarning(warning));
+    emitWarning({
+      message: formatWarning(warning),
+      type: 'Warning',
+    });
   }
 };
 
