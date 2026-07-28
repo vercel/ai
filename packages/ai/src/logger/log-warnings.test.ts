@@ -119,9 +119,15 @@ describe('logWarnings', () => {
     });
   });
 
+<<<<<<< HEAD
   describe('when AI_SDK_LOG_WARNINGS is not set (default behavior)', () => {
     it('should log a single warning to console.warn', () => {
       const warning: LanguageModelV2CallWarning = {
+=======
+  describe('when AI_SDK_LOG_WARNINGS is unset/undefined (default behavior)', () => {
+    it('should emit the information note and warning via process.emitWarning without logging to stdout', () => {
+      const warning: SharedV4Warning = {
+>>>>>>> 2e2224b3c4 (fix: prevent the warning system banner from corrupting stdout output (#17973))
         type: 'other',
         message: 'Test warning message',
       };
@@ -129,6 +135,7 @@ describe('logWarnings', () => {
 
       logWarnings(warnings);
 
+<<<<<<< HEAD
       expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
       expect(mockConsoleWarn).toHaveBeenCalledOnce();
       expect(mockConsoleWarn).toHaveBeenCalledWith(
@@ -147,28 +154,128 @@ describe('logWarnings', () => {
         details: 'Size parameter not supported',
       };
       const warnings: Warning[] = [warning1, warning2];
+=======
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+      expect(mockConsoleWarn).not.toHaveBeenCalled();
+      expect(mockProcessEmitWarning).toHaveBeenCalledTimes(2);
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        1,
+        FIRST_WARNING_INFO_MESSAGE,
+        { type: 'Warning' },
+      );
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        2,
+        'AI SDK Warning (myProvider / myModel): Test warning message',
+        { type: 'Warning' },
+      );
+    });
+
+    it('should only emit the information note on the first non-empty call', () => {
+      const first: Warning[] = [
+        { type: 'other', message: '1' } as SharedV4Warning,
+      ];
+      const second: Warning[] = [
+        { type: 'other', message: '2' } as SharedV4Warning,
+      ];
+>>>>>>> 2e2224b3c4 (fix: prevent the warning system banner from corrupting stdout output (#17973))
 
       logWarnings(warnings);
 
+<<<<<<< HEAD
       expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
       expect(mockConsoleWarn).toHaveBeenCalledTimes(2);
       expect(mockConsoleWarn).toHaveBeenNthCalledWith(
         1,
         'AI SDK Warning: First warning',
+=======
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+      expect(mockConsoleWarn).not.toHaveBeenCalled();
+      expect(mockProcessEmitWarning).toHaveBeenCalledTimes(3);
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        1,
+        FIRST_WARNING_INFO_MESSAGE,
+        { type: 'Warning' },
+>>>>>>> 2e2224b3c4 (fix: prevent the warning system banner from corrupting stdout output (#17973))
       );
       expect(mockConsoleWarn).toHaveBeenNthCalledWith(
         2,
+<<<<<<< HEAD
         'AI SDK Warning: The "size" setting is not supported by this model - Size parameter not supported',
       );
     });
 
     it('should not log anything when warnings array is empty', () => {
       const warnings: Warning[] = [];
+=======
+        'AI SDK Warning (a / b): 1',
+        { type: 'Warning' },
+      );
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        3,
+        'AI SDK Warning (a / b): 2',
+        { type: 'Warning' },
+      );
+    });
+
+    it('should log the information note and warnings with console.warn when process.emitWarning is unavailable', () => {
+      const originalProcess = globalThis.process;
+      vi.stubGlobal('process', undefined);
+
+      try {
+        logWarnings({
+          warnings: [
+            { type: 'other', message: 'Test warning' } as SharedV4Warning,
+          ],
+          provider: 'provider',
+          model: 'model',
+        });
+      } finally {
+        vi.stubGlobal('process', originalProcess);
+      }
+
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+      expect(mockConsoleWarn).toHaveBeenCalledTimes(2);
+      expect(mockConsoleWarn).toHaveBeenNthCalledWith(
+        1,
+        FIRST_WARNING_INFO_MESSAGE,
+      );
+      expect(mockConsoleWarn).toHaveBeenNthCalledWith(
+        2,
+        'AI SDK Warning (provider / model): Test warning',
+      );
+      expect(mockProcessEmitWarning).not.toHaveBeenCalled();
+    });
+
+    it('should only log for non-empty warnings', () => {
+      logWarnings({ warnings: [], provider: 'err', model: 'm' });
+>>>>>>> 2e2224b3c4 (fix: prevent the warning system banner from corrupting stdout output (#17973))
 
       logWarnings(warnings);
 
+<<<<<<< HEAD
       expect(mockConsoleInfo).not.toHaveBeenCalled(); // No information note with empty array
       expect(mockConsoleWarn).not.toHaveBeenCalled();
+=======
+      logWarnings({
+        warnings: [{ type: 'other', message: 't1' } as SharedV4Warning],
+        provider: 'prov',
+        model: 'mod',
+      });
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+      expect(mockProcessEmitWarning).toHaveBeenCalledTimes(2);
+
+      logWarnings({ warnings: [], provider: 'prov', model: 'mod' });
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+      expect(mockProcessEmitWarning).toHaveBeenCalledTimes(2);
+
+      logWarnings({
+        warnings: [{ type: 'other', message: 't2' } as SharedV4Warning],
+        provider: 'prov',
+        model: 'mod',
+      });
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+      expect(mockProcessEmitWarning).toHaveBeenCalledTimes(3);
+>>>>>>> 2e2224b3c4 (fix: prevent the warning system banner from corrupting stdout output (#17973))
     });
 
     describe('with different warning types', () => {
@@ -286,7 +393,41 @@ describe('logWarnings', () => {
           transcriptionWarning,
         ];
 
+<<<<<<< HEAD
         logWarnings(warnings);
+=======
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+      expect(mockConsoleWarn).not.toHaveBeenCalled();
+      expect(mockProcessEmitWarning).toHaveBeenCalledTimes(5);
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        1,
+        FIRST_WARNING_INFO_MESSAGE,
+        { type: 'Warning' },
+      );
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        2,
+        'AI SDK Warning (zzz / MMM): ' +
+          'The feature "mediaType" is not supported. detail',
+        { type: 'Warning' },
+      );
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        3,
+        'AI SDK Warning (zzz / MMM): ' +
+          'The feature "voice" is not supported. detail2',
+        { type: 'Warning' },
+      );
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        4,
+        `AI SDK Warning (zzz / MMM): Deprecated: "providerOptions key 'old-key'". Use 'oldKey' instead.`,
+        { type: 'DeprecationWarning' },
+      );
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        5,
+        'AI SDK Warning (zzz / MMM): other msg',
+        { type: 'Warning' },
+      );
+    });
+>>>>>>> 2e2224b3c4 (fix: prevent the warning system banner from corrupting stdout output (#17973))
 
         expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
         expect(mockConsoleWarn).toHaveBeenCalledTimes(4);
@@ -307,6 +448,16 @@ describe('logWarnings', () => {
           'AI SDK Warning: Transcription model warning',
         );
       });
+<<<<<<< HEAD
+=======
+
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+      expect(mockConsoleWarn).not.toHaveBeenCalled();
+      expect(mockProcessEmitWarning).toHaveBeenCalledWith(
+        'AI SDK Warning (unknown provider / unknown model): messx',
+        { type: 'Warning' },
+      );
+>>>>>>> 2e2224b3c4 (fix: prevent the warning system banner from corrupting stdout output (#17973))
     });
   });
 
@@ -324,10 +475,25 @@ describe('logWarnings', () => {
 
       logWarnings(warnings);
 
+<<<<<<< HEAD
       expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
       expect(mockConsoleWarn).toHaveBeenCalledOnce();
       expect(mockConsoleWarn).toHaveBeenCalledWith(
         'AI SDK Warning: Test warning with undefined logger',
+=======
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+      expect(mockConsoleWarn).not.toHaveBeenCalled();
+      expect(mockProcessEmitWarning).toHaveBeenCalledTimes(2);
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        1,
+        FIRST_WARNING_INFO_MESSAGE,
+        { type: 'Warning' },
+      );
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        2,
+        'AI SDK Warning (p1 / m1): Test warning with undefined logger',
+        { type: 'Warning' },
+>>>>>>> 2e2224b3c4 (fix: prevent the warning system banner from corrupting stdout output (#17973))
       );
     });
   });
@@ -440,6 +606,19 @@ describe('logWarnings', () => {
         expect(customLogger).toHaveBeenCalledOnce();
         expect(customLogger).toHaveBeenCalledWith(warnings);
       });
+<<<<<<< HEAD
+=======
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+      expect(mockProcessEmitWarning).toHaveBeenCalledTimes(2);
+
+      logWarnings({
+        warnings: [{ type: 'other', message: 'bar' } as SharedV4Warning],
+        provider: 'abc',
+        model: 'bbb',
+      });
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+      expect(mockProcessEmitWarning).toHaveBeenCalledTimes(3);
+>>>>>>> 2e2224b3c4 (fix: prevent the warning system banner from corrupting stdout output (#17973))
     });
 
     describe('when AI_SDK_LOG_WARNINGS is false', () => {
