@@ -282,6 +282,9 @@ export interface StreamTextResult<
    * as either an AsyncIterable or a ReadableStream. Error parts are not
    * surfaced in this stream. Use the `onError` callback or `fullStream` to
    * observe them.
+   *
+   * With `experimental_streamMode: 'single-consumer'`, accessing this stream
+   * makes final result getters unavailable.
    */
   readonly textStream: AsyncIterableStream<string>;
 
@@ -290,6 +293,9 @@ export interface StreamTextResult<
    * errors.
    * You can use it as either an AsyncIterable or a ReadableStream.
    * Only errors that stop the stream, such as network errors, are thrown.
+   *
+   * With `experimental_streamMode: 'single-consumer'`, accessing this stream
+   * makes final result getters unavailable.
    */
   readonly fullStream: AsyncIterableStream<TextStreamPart<TOOLS>>;
 

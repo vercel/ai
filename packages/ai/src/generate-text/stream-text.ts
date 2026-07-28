@@ -1,4 +1,5 @@
 import {
+  AISDKError,
   getErrorMessage,
   UnsupportedFunctionalityError,
   type LanguageModelV3,
@@ -365,6 +366,7 @@ export function streamText<
   experimental_context,
   experimental_toolApprovalSecret,
   experimental_include: include,
+  experimental_streamMode,
   _internal: { now = originalNow, generateId = originalGenerateId } = {},
   ...settings
 }: CallSettings &
@@ -563,6 +565,25 @@ export function streamText<
     };
 
     /**
+     * Enables a low-retention, single-consumer streaming mode.
+     *
+     * The first stream accessor receives the internal stream directly instead
+     * of splitting it with `ReadableStream.tee()`. Text and reasoning content
+     * are not accumulated for final results while that stream is consumed.
+     *
+     * Stream access in this mode does not support tools. Only one stream
+     * accessor can be used. Final result getters are unavailable after a
+     * stream accessor is selected, and the `onStepFinish` and `onFinish`
+     * callbacks are skipped.
+     *
+     * When a final result getter or `consumeStream()` is accessed first, the
+     * stream is consumed once internally and final results remain available.
+     *
+     * @experimental This API is experimental and may change without notice.
+     */
+    experimental_streamMode?: 'single-consumer';
+
+    /**
      * Internal. For test use only. May change without notice.
      */
     _internal?: {
@@ -625,6 +646,7 @@ export function streamText<
     experimental_toolApprovalSecret,
     download,
     include,
+    streamMode: experimental_streamMode,
   });
 }
 
@@ -638,6 +660,11 @@ function createOutputTransformStream<
   OUTPUT extends Output,
 >(
   output: OUTPUT,
+  {
+    skipAccumulation,
+  }: {
+    skipAccumulation: () => boolean;
+  },
 ): TransformStream<
   TextStreamPart<TOOLS>,
   EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
@@ -674,6 +701,11 @@ function createOutputTransformStream<
     EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
   >({
     async transform(chunk, controller) {
+      if (skipAccumulation()) {
+        controller.enqueue({ part: chunk, partialOutput: undefined });
+        return;
+      }
+
       // ensure that we publish the last text chunk before the step finish:
       if (chunk.type === 'finish-step' && textChunk.length > 0) {
         publishTextChunk({ controller });
@@ -734,6 +766,13 @@ function createOutputTransformStream<
   });
 }
 
+type StreamTextConsumer =
+  | 'unclaimed'
+  | 'result'
+  | 'parts'
+  | 'partial-output'
+  | 'element';
+
 class DefaultStreamTextResult<
   TOOLS extends ToolSet,
   OUTPUT extends Output,
@@ -766,6 +805,12 @@ class DefaultStreamTextResult<
   private includeRawChunks: boolean;
 
   private tools: TOOLS | undefined;
+
+  private readonly streamMode: 'single-consumer' | undefined;
+
+  private streamOwner: StreamTextConsumer = 'unclaimed';
+
+  private consumptionPromise: Promise<void> | undefined;
 
   constructor({
     model,
@@ -810,6 +855,7 @@ class DefaultStreamTextResult<
     experimental_toolApprovalSecret,
     download,
     include,
+    streamMode,
   }: {
     model: LanguageModelV3;
     telemetry: TelemetrySettings | undefined;
@@ -847,6 +893,7 @@ class DefaultStreamTextResult<
     experimental_toolApprovalSecret: string | Uint8Array | undefined;
     download: DownloadFunction | undefined;
     include: { requestBody?: boolean } | undefined;
+    streamMode: 'single-consumer' | undefined;
 
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
@@ -862,6 +909,7 @@ class DefaultStreamTextResult<
     this.outputSpecification = output;
     this.includeRawChunks = includeRawChunks;
     this.tools = tools;
+    this.streamMode = streamMode;
 
     const createGlobalTelemetry = getGlobalTelemetryIntegration<
       TOOLS,
@@ -966,7 +1014,9 @@ class DefaultStreamTextResult<
             return;
           }
 
-          activeText.text += part.text;
+          if (!self.isLowRetentionStream()) {
+            activeText.text += part.text;
+          }
           activeText.providerMetadata =
             part.providerMetadata ?? activeText.providerMetadata;
         }
@@ -1015,7 +1065,9 @@ class DefaultStreamTextResult<
             return;
           }
 
-          activeReasoning.text += part.text;
+          if (!self.isLowRetentionStream()) {
+            activeReasoning.text += part.text;
+          }
           activeReasoning.providerMetadata =
             part.providerMetadata ?? activeReasoning.providerMetadata;
         }
@@ -1107,7 +1159,9 @@ class DefaultStreamTextResult<
 
           await notify({
             event: currentStepResult,
-            callbacks: [onStepFinish, globalTelemetry.onStepFinish],
+            callbacks: self.isLowRetentionStream()
+              ? []
+              : [onStepFinish, globalTelemetry.onStepFinish],
           });
 
           logWarnings({
@@ -1166,42 +1220,44 @@ class DefaultStreamTextResult<
           // call onFinish callback:
           const finalStep = recordedSteps[recordedSteps.length - 1];
 
-          await notify({
-            event: {
-              stepNumber: finalStep.stepNumber,
-              model: finalStep.model,
-              functionId: finalStep.functionId,
-              metadata: finalStep.metadata,
-              experimental_context: finalStep.experimental_context,
-              finishReason: finalStep.finishReason,
-              rawFinishReason: finalStep.rawFinishReason,
-              totalUsage,
-              usage: finalStep.usage,
-              content: finalStep.content,
-              text: finalStep.text,
-              reasoningText: finalStep.reasoningText,
-              reasoning: finalStep.reasoning,
-              files: finalStep.files,
-              sources: finalStep.sources,
-              toolCalls: finalStep.toolCalls,
-              staticToolCalls: finalStep.staticToolCalls,
-              dynamicToolCalls: finalStep.dynamicToolCalls,
-              toolResults: finalStep.toolResults,
-              staticToolResults: finalStep.staticToolResults,
-              dynamicToolResults: finalStep.dynamicToolResults,
-              request: finalStep.request,
-              response: finalStep.response,
-              warnings: finalStep.warnings,
-              providerMetadata: finalStep.providerMetadata,
-              steps: recordedSteps,
-            },
-            callbacks: [
-              onFinish,
-              globalTelemetry.onFinish as
-                | undefined
-                | StreamTextOnFinishCallback<TOOLS>,
-            ],
-          });
+          if (!self.isLowRetentionStream()) {
+            await notify({
+              event: {
+                stepNumber: finalStep.stepNumber,
+                model: finalStep.model,
+                functionId: finalStep.functionId,
+                metadata: finalStep.metadata,
+                experimental_context: finalStep.experimental_context,
+                finishReason: finalStep.finishReason,
+                rawFinishReason: finalStep.rawFinishReason,
+                totalUsage,
+                usage: finalStep.usage,
+                content: finalStep.content,
+                text: finalStep.text,
+                reasoningText: finalStep.reasoningText,
+                reasoning: finalStep.reasoning,
+                files: finalStep.files,
+                sources: finalStep.sources,
+                toolCalls: finalStep.toolCalls,
+                staticToolCalls: finalStep.staticToolCalls,
+                dynamicToolCalls: finalStep.dynamicToolCalls,
+                toolResults: finalStep.toolResults,
+                staticToolResults: finalStep.staticToolResults,
+                dynamicToolResults: finalStep.dynamicToolResults,
+                request: finalStep.request,
+                response: finalStep.response,
+                warnings: finalStep.warnings,
+                providerMetadata: finalStep.providerMetadata,
+                steps: recordedSteps,
+              },
+              callbacks: [
+                onFinish,
+                globalTelemetry.onFinish as
+                  | undefined
+                  | StreamTextOnFinishCallback<TOOLS>,
+              ],
+            });
+          }
 
           // Add response information to the root span:
           rootSpan.setAttributes(
@@ -1321,7 +1377,11 @@ class DefaultStreamTextResult<
     }
 
     this.baseStream = stream
-      .pipeThrough(createOutputTransformStream(output ?? text()))
+      .pipeThrough(
+        createOutputTransformStream(output ?? text(), {
+          skipAccumulation: () => this.streamOwner === 'parts',
+        }),
+      )
       .pipeThrough(eventProcessor);
 
     const { maxRetries, retry } = prepareRetries({
@@ -1885,7 +1945,9 @@ class DefaultStreamTextResult<
                             text: chunk.delta,
                             providerMetadata: chunk.providerMetadata,
                           });
-                          activeText += chunk.delta;
+                          if (!self.isLowRetentionStream()) {
+                            activeText += chunk.delta;
+                          }
                         }
                         break;
                       }
@@ -2292,7 +2354,7 @@ class DefaultStreamTextResult<
   get steps() {
     // when any of the promises are accessed, the stream is consumed
     // so it resolves without needing to consume the stream separately
-    this.consumeStream();
+    this.startResultConsumption();
 
     return this._steps.promise;
   }
@@ -2372,7 +2434,7 @@ class DefaultStreamTextResult<
   get totalUsage() {
     // when any of the promises are accessed, the stream is consumed
     // so it resolves without needing to consume the stream separately
-    this.consumeStream();
+    this.startResultConsumption();
 
     return this._totalUsage.promise;
   }
@@ -2380,7 +2442,7 @@ class DefaultStreamTextResult<
   get finishReason() {
     // when any of the promises are accessed, the stream is consumed
     // so it resolves without needing to consume the stream separately
-    this.consumeStream();
+    this.startResultConsumption();
 
     return this._finishReason.promise;
   }
@@ -2388,7 +2450,7 @@ class DefaultStreamTextResult<
   get rawFinishReason() {
     // when any of the promises are accessed, the stream is consumed
     // so it resolves without needing to consume the stream separately
-    this.consumeStream();
+    this.startResultConsumption();
 
     return this._rawFinishReason.promise;
   }
@@ -2401,32 +2463,70 @@ class DefaultStreamTextResult<
    * Note: this leads to buffering the stream content on the server.
    * However, the LLM results are expected to be small enough to not cause issues.
    */
-  private teeStream() {
+  private teeStream(owner: Exclude<StreamTextConsumer, 'unclaimed'>) {
+    if (this.streamMode === 'single-consumer') {
+      if (owner !== 'result' && this.tools != null) {
+        throw new UnsupportedFunctionalityError({
+          functionality:
+            "tools with experimental_streamMode: 'single-consumer'",
+        });
+      }
+
+      if (this.streamOwner !== 'unclaimed') {
+        throw this.createSingleConsumerError(
+          owner === 'result'
+            ? 'Final results are unavailable after a stream has been accessed.'
+            : this.streamOwner === 'result'
+              ? 'The stream is unavailable after a final result has been accessed.'
+              : 'The stream has already been accessed.',
+        );
+      }
+
+      this.streamOwner = owner;
+      return this.baseStream;
+    }
+
     const [stream1, stream2] = this.baseStream.tee();
     this.baseStream = stream2;
     return stream1;
   }
 
-  get textStream(): AsyncIterableStream<string> {
-    return createAsyncIterableStream(
-      this.teeStream().pipeThrough(
-        new TransformStream<
-          EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
-          string
-        >({
-          transform({ part }, controller) {
-            if (part.type === 'text-delta') {
-              controller.enqueue(part.text);
-            }
-          },
-        }),
-      ),
+  private isLowRetentionStream() {
+    return (
+      this.streamMode === 'single-consumer' &&
+      this.streamOwner !== 'unclaimed' &&
+      this.streamOwner !== 'result'
     );
   }
 
-  get fullStream(): AsyncIterableStream<TextStreamPart<TOOLS>> {
+  private createSingleConsumerError(message: string) {
+    return new AISDKError({
+      name: 'AI_StreamTextSingleConsumerError',
+      message:
+        "experimental_streamMode: 'single-consumer' only supports one " +
+        `consumer. ${message}`,
+    });
+  }
+
+  private startResultConsumption() {
+    if (
+      this.streamMode === 'single-consumer' &&
+      this.streamOwner !== 'unclaimed' &&
+      this.streamOwner !== 'result'
+    ) {
+      throw this.createSingleConsumerError(
+        'Final results are unavailable after a stream has been accessed.',
+      );
+    }
+
+    void this.consumeStream();
+  }
+
+  private createPartStream(
+    owner: 'result' | 'parts',
+  ): AsyncIterableStream<TextStreamPart<TOOLS>> {
     return createAsyncIterableStream(
-      this.teeStream().pipeThrough(
+      this.teeStream(owner).pipeThrough(
         new TransformStream<
           EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
           TextStreamPart<TOOLS>
@@ -2439,6 +2539,24 @@ class DefaultStreamTextResult<
     );
   }
 
+  get textStream(): AsyncIterableStream<string> {
+    return createAsyncIterableStream(
+      this.createPartStream('parts').pipeThrough(
+        new TransformStream<TextStreamPart<TOOLS>, string>({
+          transform(part, controller) {
+            if (part.type === 'text-delta') {
+              controller.enqueue(part.text);
+            }
+          },
+        }),
+      ),
+    );
+  }
+
+  get fullStream(): AsyncIterableStream<TextStreamPart<TOOLS>> {
+    return this.createPartStream('parts');
+  }
+
   private rejectResultPromises(error: unknown) {
     if (this._finishReason.isPending()) this._finishReason.reject(error);
     if (this._rawFinishReason.isPending()) this._rawFinishReason.reject(error);
@@ -2446,10 +2564,41 @@ class DefaultStreamTextResult<
     if (this._steps.isPending()) this._steps.reject(error);
   }
 
-  async consumeStream(options?: ConsumeStreamOptions): Promise<void> {
+  consumeStream(options?: ConsumeStreamOptions): Promise<void> {
+    if (
+      this.streamMode === 'single-consumer' &&
+      this.streamOwner !== 'unclaimed' &&
+      this.streamOwner !== 'result'
+    ) {
+      return Promise.reject(
+        this.createSingleConsumerError(
+          'The stream has already been accessed by another consumer.',
+        ),
+      );
+    }
+
+    if (
+      this.streamMode === 'single-consumer' &&
+      this.consumptionPromise != null
+    ) {
+      return this.consumptionPromise;
+    }
+
+    const promise = this.consumeStreamInternal(options);
+
+    if (this.streamMode === 'single-consumer') {
+      this.consumptionPromise = promise;
+    }
+
+    return promise;
+  }
+
+  private async consumeStreamInternal(
+    options?: ConsumeStreamOptions,
+  ): Promise<void> {
     try {
       await consumeStream({
-        stream: this.fullStream,
+        stream: this.createPartStream('result'),
         onError: error => {
           this.rejectResultPromises(error);
           options?.onError?.(error);
@@ -2469,7 +2618,7 @@ class DefaultStreamTextResult<
 
   get partialOutputStream(): AsyncIterableStream<InferPartialOutput<OUTPUT>> {
     return createAsyncIterableStream(
-      this.teeStream().pipeThrough(
+      this.teeStream('partial-output').pipeThrough(
         new TransformStream<
           EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
           InferPartialOutput<OUTPUT>
@@ -2493,7 +2642,9 @@ class DefaultStreamTextResult<
       });
     }
 
-    return createAsyncIterableStream(this.teeStream().pipeThrough(transform));
+    return createAsyncIterableStream(
+      this.teeStream('element').pipeThrough(transform),
+    );
   }
 
   get output(): Promise<InferCompleteOutput<OUTPUT>> {

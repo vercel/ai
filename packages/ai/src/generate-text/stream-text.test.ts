@@ -4616,6 +4616,94 @@ describe('streamText', () => {
     });
   });
 
+  describe('options.experimental_streamMode', () => {
+    it('should consume text deltas without retaining final results', async () => {
+      const onStepFinish = vi.fn();
+      const onFinish = vi.fn();
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        experimental_streamMode: 'single-consumer',
+        onStepFinish,
+        onFinish,
+      });
+
+      expect(
+        await convertAsyncIterableToArray(result.textStream),
+      ).toStrictEqual(['Hello', ', ', 'world!']);
+      expect(onStepFinish).not.toHaveBeenCalled();
+      expect(onFinish).not.toHaveBeenCalled();
+      expect(() => result.text).toThrow(
+        'Final results are unavailable after a stream has been accessed.',
+      );
+    });
+
+    it('should preserve final results when a result getter consumes the stream', async () => {
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        experimental_streamMode: 'single-consumer',
+      });
+
+      await expect(result.text).resolves.toBe('Hello, world!');
+      await expect(result.usage).resolves.toMatchObject({
+        inputTokens: 3,
+        outputTokens: 10,
+        totalTokens: 13,
+      });
+      expect(() => result.fullStream).toThrow(
+        'The stream is unavailable after a final result has been accessed.',
+      );
+    });
+
+    it('should preserve final results when consumeStream claims the stream', async () => {
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        experimental_streamMode: 'single-consumer',
+      });
+
+      await result.consumeStream();
+
+      await expect(result.text).resolves.toBe('Hello, world!');
+    });
+
+    it('should reject a second stream consumer', async () => {
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        experimental_streamMode: 'single-consumer',
+      });
+
+      const textStream = result.textStream;
+
+      expect(() => result.fullStream).toThrow(
+        'The stream has already been accessed.',
+      );
+      await expect(result.consumeStream()).rejects.toThrow(
+        'The stream has already been accessed by another consumer.',
+      );
+      await convertAsyncIterableToArray(textStream);
+    });
+
+    it('should reject stream access when tools are configured', () => {
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        experimental_streamMode: 'single-consumer',
+        tools: {
+          testTool: tool({
+            inputSchema: jsonSchema({ type: 'object', properties: {} }),
+          }),
+        },
+      });
+
+      expect(() => result.fullStream).toThrow(
+        "tools with experimental_streamMode: 'single-consumer'",
+      );
+    });
+  });
+
   describe('multiple stream consumption', () => {
     it('should support text stream, ai stream, full stream on single result object', async () => {
       const result = streamText({
