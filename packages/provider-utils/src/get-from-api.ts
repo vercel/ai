@@ -19,7 +19,7 @@ export const getFromApi = async <T>({
   successfulResponseHandler,
   failedResponseHandler,
   abortSignal,
-  fetch = getOriginalFetch(),
+  fetch,
   validateUrl,
   credentialedOrigin,
   trustedOrigin,
@@ -65,6 +65,8 @@ export const getFromApi = async <T>({
   trustedOrigin?: string;
 }) => {
   try {
+    const requestFetch = fetch ?? getOriginalFetch();
+
     // Withhold caller headers when the URL is not same-origin with the origin
     // allowed to receive credentials; the user-agent suffix is still applied.
     const outgoingHeaders =
@@ -86,7 +88,7 @@ export const getFromApi = async <T>({
           fetch,
           trustedOrigin,
         })
-      : await fetch(url, {
+      : await requestFetch(url, {
           method: 'GET',
           headers: requestHeaders,
           signal: abortSignal,
