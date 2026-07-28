@@ -70,7 +70,6 @@ export const webSearchToolFactory =
     },
     {
       /**
-<<<<<<< HEAD
        * An object describing the specific action taken in this web search call.
        * Includes details on how the model used the web (search, open_page, findInPage).
        */
@@ -80,22 +79,6 @@ export const webSearchToolFactory =
              * Action type "search" - Performs a web search query.
              */
             type: 'search';
-=======
-       * Allowed domains for the search.
-       * If not provided, all domains are allowed.
-       * Subdomains of the provided domains are allowed as well.
-       * Omit the HTTP or HTTPS prefix. Maximum 100 domains.
-       */
-      allowedDomains?: string[];
-
-      /**
-       * Blocked domains for the search.
-       * Subdomains of the provided domains are blocked as well.
-       * Omit the HTTP or HTTPS prefix. Maximum 100 domains.
-       */
-      blockedDomains?: string[];
-    };
->>>>>>> 96a237d3e5 (feat: support blocked domains in OpenAI web search (#18033))
 
             /**
              * The search query.
@@ -153,8 +136,16 @@ export const webSearchToolFactory =
          * Allowed domains for the search.
          * If not provided, all domains are allowed.
          * Subdomains of the provided domains are allowed as well.
+         * Omit the HTTP or HTTPS prefix. Maximum 100 domains.
          */
         allowedDomains?: string[];
+
+        /**
+         * Blocked domains for the search.
+         * Subdomains of the provided domains are blocked as well.
+         * Omit the HTTP or HTTPS prefix. Maximum 100 domains.
+         */
+        blockedDomains?: string[];
       };
 
       /**

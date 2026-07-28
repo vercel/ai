@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import assert from 'node:assert/strict';
 import { generateText } from 'ai';
-import { run } from '../../lib/run';
+import { run } from '../lib/run';
 
 const blockedDomain = 'wikipedia.org';
 

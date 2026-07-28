@@ -2620,17 +2620,12 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               type: 'provider-defined',
               id: 'openai.web_search',
-<<<<<<< HEAD
               name: 'web_search',
-              args: {},
-=======
-              name: 'webSearch',
               args: {
                 filters: {
                   blockedDomains: ['example.com'],
                 },
               },
->>>>>>> 96a237d3e5 (feat: support blocked domains in OpenAI web search (#18033))
             },
           ],
           prompt: TEST_PROMPT,
