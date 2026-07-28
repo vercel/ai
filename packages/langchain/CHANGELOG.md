@@ -1,5 +1,13 @@
 # @ai-sdk/langchain
 
+## 3.0.41
+
+### Patch Changes
+
+- 092928a: Fix missing text deltas when LangChain AI message chunks come from a different module build.
+- Updated dependencies [2e2224b]
+  - ai@7.0.41
+
 ## 3.0.40
 
 ### Patch Changes

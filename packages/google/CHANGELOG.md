@@ -1,5 +1,12 @@
 # @ai-sdk/google
 
+## 4.0.27
+
+### Patch Changes
+
+- d2d9324: Forward `topK` through Google Interactions requests and warn when unsupported frequency or presence penalties are provided.
+- 8bedb2c: Allow fetch to derive the content length for Google file upload request bodies.
+
 ## 4.0.26
 
 ### Patch Changes

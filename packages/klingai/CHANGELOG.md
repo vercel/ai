@@ -1,5 +1,16 @@
 # @ai-sdk/klingai
 
+## 4.0.16
+
+### Patch Changes
+
+- 29a7a58: feat(provider/klingai): support single API key authentication
+
+  Kling AI now issues a single API key that is sent as a bearer token. Set it via
+  the `apiKey` provider setting or the `KLINGAI_API_KEY` environment variable. The
+  legacy `accessKey` / `secretKey` pair keeps working; when it is used the
+  provider continues to sign a short-lived JWT per request.
+
 ## 4.0.15
 
 ### Patch Changes
