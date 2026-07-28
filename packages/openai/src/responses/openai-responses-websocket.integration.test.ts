@@ -23,6 +23,7 @@ class MockResponsesWebSocket {
   onerror: ((event: unknown) => void) | null = null;
   onclose: ((event: unknown) => void) | null = null;
   sent: Array<Record<string, unknown>> = [];
+  closeCalls = 0;
 
   constructor(
     readonly url: string | URL,
@@ -46,6 +47,7 @@ class MockResponsesWebSocket {
   }
 
   close() {
+    this.closeCalls++;
     this.readyState = 3;
   }
 }
@@ -516,6 +518,80 @@ describe('OpenAI Responses WebSocket public lifecycle', () => {
     expect(await result.text).toBe('Hello over WebSocket');
     expect(sawCreatedRawChunk).toBe(true);
     expect(MockResponsesWebSocket.instances).toHaveLength(1);
+  });
+
+  it('propagates mapped stream cancellation to the WebSocket request', async () => {
+    let requestCount = 0;
+    MockResponsesWebSocket.respond = (_request, socket) => {
+      requestCount++;
+      if (requestCount === 1) {
+        socket.emit({
+          type: 'response.output_item.added',
+          output_index: 0,
+          item: {
+            id: 'msg_cancelled',
+            type: 'message',
+            status: 'in_progress',
+            role: 'assistant',
+            content: [],
+          },
+        });
+      } else {
+        socket.emit(messageResponse('resp_after_cancel', 'Second response'));
+      }
+    };
+
+    const openai = createOpenAI({ apiKey: 'test-key' });
+    const model = openai('gpt-5.6');
+    const session = experimental_createSession();
+
+    try {
+      const first = await model.doStream({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Start a response.' }],
+          },
+        ],
+        experimental_session: session,
+        providerOptions: {
+          openai: { transport: 'websocket' },
+        },
+      });
+
+      const reader = first.stream.getReader();
+      await reader.read();
+      await reader.cancel(new Error('consumer stopped'));
+
+      await vi.waitFor(() => {
+        expect(MockResponsesWebSocket.instances[0].closeCalls).toBe(1);
+      });
+
+      const second = await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Try again.' }],
+          },
+        ],
+        experimental_session: session,
+        providerOptions: {
+          openai: { transport: 'websocket' },
+        },
+      });
+
+      expect(second.content).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'text',
+            text: 'Second response',
+          }),
+        ]),
+      );
+      expect(MockResponsesWebSocket.instances).toHaveLength(2);
+    } finally {
+      await session.destroy();
+    }
   });
 
   it('surfaces response.failed before stream output without retrying', async () => {
