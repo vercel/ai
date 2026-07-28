@@ -10,7 +10,10 @@ export const webSearchArgsSchema = lazySchema(() =>
     z.object({
       externalWebAccess: z.boolean().optional(),
       filters: z
-        .object({ allowedDomains: z.array(z.string()).optional() })
+        .object({
+          allowedDomains: z.array(z.string()).optional(),
+          blockedDomains: z.array(z.string()).optional(),
+        })
         .optional(),
       searchContextSize: z.enum(['low', 'medium', 'high']).optional(),
       userLocation: z
@@ -140,8 +143,16 @@ export const webSearchToolFactory = createProviderToolFactoryWithOutputSchema<
        * Allowed domains for the search.
        * If not provided, all domains are allowed.
        * Subdomains of the provided domains are allowed as well.
+       * Omit the HTTP or HTTPS prefix. Maximum 100 domains.
        */
       allowedDomains?: string[];
+
+      /**
+       * Blocked domains for the search.
+       * Subdomains of the provided domains are blocked as well.
+       * Omit the HTTP or HTTPS prefix. Maximum 100 domains.
+       */
+      blockedDomains?: string[];
     };
 
     /**
