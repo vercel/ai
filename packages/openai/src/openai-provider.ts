@@ -162,8 +162,10 @@ export interface OpenAIProviderSettings {
   fetch?: FetchFunction;
 
   /**
-   * Custom WebSocket implementation. This is useful for testing or for
-   * runtimes that need a WebSocket constructor with header support.
+   * Custom WebSocket implementation for streaming transcription.
+   *
+   * The Responses WebSocket transport uses the runtime-global WebSocket
+   * constructor instead.
    */
   webSocket?: WebSocketConstructor;
 }
@@ -282,6 +284,7 @@ export function createOpenAI(
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      supportsResponsesWebSocket: true,
       // Soft-deprecated. TODO: remove in v8
       fileIdPrefixes: ['file-'],
     });
