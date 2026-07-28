@@ -23,7 +23,7 @@
         },
         {
           "use": "aisdk/package-must-have-tsup-config",
-          "excludeFiles": ["packages/svelte"]
+          "excludeFiles": ["packages/code-mode", "packages/svelte"]
         }
       ]
     },
@@ -48,6 +48,7 @@
         "packages/{providerId}/src/index.ts",
         "!packages/ai",
         "!packages/angular",
+        "!packages/code-mode",
         "!packages/codemod",
         "!packages/devtools",
         "!packages/harness",
