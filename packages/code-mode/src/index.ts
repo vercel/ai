@@ -1,0 +1,82 @@
+export {
+  attachCodeModeApprovalResult,
+  continueCodeModeApproval,
+  generateTextWithCodeModeApprovals,
+  getCodeModeApprovalInterrupt,
+  getCodeModeApprovalResponse,
+  isCodeModeApprovalInterrupt,
+  streamTextWithCodeModeApprovals,
+  toCodeModeApprovalMessages,
+  wrapToolLoopAgentForCodeModeApprovals,
+} from './approval-continuation.js';
+export { createCodeModeTool } from './code-mode-tool.js';
+export { setCodeModeContinuationSigningKey } from './continuation-capability.js';
+export {
+  CodeModeAbortedError,
+  CodeModeBridgeLimitError,
+  CodeModeConcurrencyError,
+  CodeModeDetachedBridgeRequestError,
+  CodeModeError,
+  CodeModeFetchError,
+  CodeModeProtocolError,
+  CodeModeSourceTooLargeError,
+  CodeModeTimeoutError,
+  CodeModeToolApprovalDeniedError,
+  CodeModeToolApprovalRequiredError,
+  CodeModeToolError,
+} from './errors.js';
+export { requestCodeModeInterrupt } from './host-interrupt.js';
+export {
+  continueCodeModeInterrupt,
+  getCodeModeInterrupt,
+  isCodeModeInterrupt,
+  replaceCodeModeInterruptResult,
+  unwrapCodeModeResult,
+} from './interrupt-continuation.js';
+export { runCodeMode } from './run-code-mode.js';
+export {
+  getCodeModeWorkerUrl,
+  getDefaultCodeModeWorkerUrl,
+  setCodeModeWorkerUrl,
+} from './runtime/manager.js';
+export { setMaxWorkers } from './runtime/max-workers.js';
+export type {
+  ApprovalDecision,
+  CodeModeApprovalInterrupt,
+  CodeModeApprovalInterruptPayload,
+  CodeModeApprovalRequest,
+  CodeModeApprovalResolution,
+  CodeModeApprovalResponse,
+  CodeModeContinuation,
+  CodeModeContinuationAuth,
+  CodeModeContinuationLedgerEntry,
+  CodeModeContinuationSecurityOptions,
+  CodeModeDeterminismState,
+  CodeModeExecutionPolicy,
+  CodeModeFetchPolicy,
+  CodeModeFetchRequestEvent,
+  CodeModeFetchResultEvent,
+  CodeModeInterrupt,
+  CodeModeInterruptEvent,
+  CodeModeInterruptExecutionContext,
+  CodeModeInterruptPayload,
+  CodeModeInterruptResolution,
+  CodeModeLifecycleHookErrorEvent,
+  CodeModeModelOutput,
+  CodeModeModelOutputOptions,
+  CodeModeModelVisibleBridgeSummary,
+  CodeModeNestedToolCallEvent,
+  CodeModeNestedToolResultEvent,
+  CodeModeOptions,
+  CodeModeTelemetryOptions,
+  CodeModeTool,
+  CodeModeToolExecutionOptions,
+  CodeModeToolInput,
+  CodeModeToolSet,
+  CodeModeTrace,
+  CodeModeTraceEntry,
+  CodeModeUnwrappedResult,
+  CodeModeWorkerUrl,
+  RunCodeModeInput,
+  UnsignedCodeModeContinuation,
+} from './types.js';
