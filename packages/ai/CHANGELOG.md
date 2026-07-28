@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.40
+
+### Patch Changes
+
+- c3782a6: Deprecate `Experimental_GeneratedImage` in favor of `GeneratedFile`.
+
 ## 7.0.39
 
 ### Patch Changes
