@@ -219,6 +219,75 @@ describe('HttpMCPTransport', () => {
     expect(responseAborted).toBe(true);
   });
 
+  it('should bound session cleanup after failed initialization', async () => {
+    let resolveDeleteStarted: () => void;
+    const deleteStarted = new Promise<void>(resolve => {
+      resolveDeleteStarted = resolve;
+    });
+    let deleteAborted = false;
+    const fetch = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        if (init?.method === 'GET') {
+          return new Response(null, { status: 405 });
+        }
+
+        if (init?.method === 'DELETE') {
+          resolveDeleteStarted();
+          return new Promise<Response>((_, reject) => {
+            const signal = init.signal as AbortSignal;
+            signal.addEventListener(
+              'abort',
+              () => {
+                deleteAborted = true;
+                reject(signal.reason);
+              },
+              { once: true },
+            );
+          });
+        }
+
+        const message = JSON.parse(String(init?.body));
+        if (message.method === 'initialize') {
+          return Response.json(
+            {
+              jsonrpc: '2.0',
+              id: message.id,
+              result: {
+                protocolVersion: LATEST_PROTOCOL_VERSION,
+                capabilities: {},
+                serverInfo: { name: 'test-server', version: '1.0.0' },
+              },
+            },
+            { headers: { 'mcp-session-id': 'cleanup-session' } },
+          );
+        }
+
+        return new Response('failed initialized notification', {
+          status: 500,
+        });
+      },
+    );
+    const clientPromise = createMCPClient({
+      transport: {
+        type: 'http',
+        url: 'http://localhost:4000/mcp',
+        fetch,
+      },
+      initializationOptions: { timeout: 100 },
+    });
+    const rejection = expect(clientPromise).rejects.toSatisfy(
+      error =>
+        MCPClientError.isInstance(error) &&
+        error.message === 'MCP client initialization timed out after 100ms',
+    );
+
+    await deleteStarted;
+    await vi.advanceTimersByTimeAsync(100);
+
+    await rejection;
+    expect(deleteAborted).toBe(true);
+  });
+
   it.each([
     ['timeout', { timeout: 100 }],
     ['maximum total timeout', { maxTotalTimeout: 100 }],

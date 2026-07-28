@@ -243,6 +243,57 @@ class HangingToolCallTransport implements MCPTransport {
   }
 }
 
+class SignalAwareHangingRequestTransport implements MCPTransport {
+  requestSignal?: AbortSignal;
+  requestAborted = false;
+
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+
+  async start(): Promise<void> {}
+
+  async close(): Promise<void> {
+    this.onclose?.();
+  }
+
+  async send(
+    message: JSONRPCMessage,
+    options?: { signal?: AbortSignal },
+  ): Promise<void> {
+    if (!('method' in message) || !('id' in message)) {
+      return;
+    }
+
+    if (message.method === 'initialize') {
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          protocolVersion: LATEST_PROTOCOL_VERSION,
+          serverInfo: { name: 'signal-aware-server', version: '1.0.0' },
+          capabilities: { tools: {} },
+        },
+      });
+      return;
+    }
+
+    if (message.method === 'tools/list') {
+      this.requestSignal = options?.signal;
+      await new Promise<void>((_, reject) => {
+        options?.signal?.addEventListener(
+          'abort',
+          () => {
+            this.requestAborted = true;
+            reject(options.signal?.reason);
+          },
+          { once: true },
+        );
+      });
+    }
+  }
+}
+
 class HangingInitializationTransport implements MCPTransport {
   closeCalled = false;
 
@@ -1757,6 +1808,26 @@ describe('MCPClient', () => {
         }
       ).responseHandlers.size,
     ).toBe(0);
+  });
+
+  it('should pass request deadline signals to custom transports', async () => {
+    vi.useFakeTimers();
+    const transport = new SignalAwareHangingRequestTransport();
+    client = await createMCPClient({ transport });
+    const requestPromise = client.listTools({ options: { timeout: 100 } });
+    const rejection = expect(requestPromise).rejects.toSatisfy(
+      error =>
+        MCPClientError.isInstance(error) &&
+        error.message === 'Request timed out after 100ms',
+    );
+
+    expect(transport.requestSignal).toBeDefined();
+
+    await vi.advanceTimersByTimeAsync(100);
+
+    await rejection;
+    expect(transport.requestSignal?.aborted).toBe(true);
+    expect(transport.requestAborted).toBe(true);
   });
 
   it('should throw Abort Error if tool call request is aborted', async () => {

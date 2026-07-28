@@ -388,7 +388,6 @@ export interface MCPClient {
  */
 class DefaultMCPClient implements MCPClient {
   private transport: MCPTransport;
-  private transportSupportsRequestSignal: boolean;
   private onUncaughtError?: (error: unknown) => void;
   private maxRetries: number;
   private clientInfo: ClientConfiguration;
@@ -432,10 +431,8 @@ class DefaultMCPClient implements MCPClient {
 
     if (isCustomMcpTransport(transportConfig)) {
       this.transport = transportConfig;
-      this.transportSupportsRequestSignal = false;
     } else {
       this.transport = createMcpTransport(transportConfig);
-      this.transportSupportsRequestSignal = true;
     }
 
     this.transport.onclose = () => this.onClose();
@@ -544,7 +541,10 @@ class DefaultMCPClient implements MCPClient {
 
       return this;
     } catch (error) {
-      await this.close();
+      try {
+        await waitForAbort(this.transport.close({ signal }), signal);
+      } catch {}
+      this.onClose();
 
       if (timeoutError != null) {
         throw timeoutError;
@@ -593,18 +593,10 @@ class DefaultMCPClient implements MCPClient {
     message: JSONRPCMessage,
     signal: AbortSignal | undefined,
   ): Promise<void> {
-    if (!this.transportSupportsRequestSignal || signal == null) {
-      return this.transport.send(message);
-    }
-
-    return (
-      this.transport as MCPTransport & {
-        send(
-          message: JSONRPCMessage,
-          options?: { signal?: AbortSignal },
-        ): Promise<void>;
-      }
-    ).send(message, { signal });
+    return this.transport.send(
+      message,
+      signal == null ? undefined : { signal },
+    );
   }
 
   private assertCapability(method: string): void {

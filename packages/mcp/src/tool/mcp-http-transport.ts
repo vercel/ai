@@ -189,26 +189,28 @@ export class HttpMCPTransport implements MCPTransport {
     this.startInboundSse();
   }
 
-  async close(): Promise<void> {
+  async close(options?: { signal?: AbortSignal }): Promise<void> {
     this.inboundSseConnection?.close();
+    this.abortController?.abort();
+
     try {
       if (
         this.sessionId &&
         this.terminateSessionOnClose &&
-        this.abortController &&
-        !this.abortController.signal.aborted
+        this.abortController
       ) {
+        options?.signal?.throwIfAborted();
         const headers = await this.commonHeaders({ base: {} });
+        options?.signal?.throwIfAborted();
         await this.fetchFn(this.url.href, {
           method: 'DELETE',
           headers,
-          signal: this.abortController.signal,
+          signal: options?.signal,
           redirect: this.redirectMode,
         }).catch(() => undefined);
       }
     } catch {}
 
-    this.abortController?.abort();
     this.onclose?.();
   }
 
