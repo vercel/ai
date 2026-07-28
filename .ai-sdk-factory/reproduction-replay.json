@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 17049,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/google-files-content-length-global-dispatcher.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/google-files-content-length-global-dispatcher.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #17049 REPRODUCED: google.files().uploadFile() failed before sending upload bytes: TypeError: fetch failed (cause: InvalidArgumentError: invalid content-length header)"
+  }
+}
