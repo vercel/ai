@@ -19,18 +19,10 @@
  */
 
 import { execSync } from "node:child_process";
-import {
-  cpSync,
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseSegment, transformMdx } from "./sync-content-utils.mjs";
+import { transformDir } from "./sync-content-utils.mjs";
 
 const appDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = resolve(appDir, "../..");
@@ -101,73 +93,6 @@ const fetchRef = (ref) => {
     }
   }
   throw new Error(`could not fetch content for ref ${ref}`);
-};
-
-const frontmatterOf = (mdx) => {
-  const match = mdx.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
-  return match ? match[1] : "";
-};
-
-/**
- * Recursively transforms `srcDir` into `outDir`, returning the ordered list
- * of clean entry names for the parent meta.json.
- */
-const transformDir = (srcDir, outDir, relPath = "") => {
-  mkdirSync(outDir, { recursive: true });
-
-  const entries = readdirSync(srcDir, { withFileTypes: true })
-    .filter((entry) => !entry.name.startsWith("."))
-    .map((entry) => {
-      const { prefix, clean } = parseSegment(
-        entry.isDirectory() ? entry.name : entry.name.replace(/\.mdx$/, "")
-      );
-      return { entry, prefix, clean };
-    })
-    .sort(
-      (a, b) =>
-        (a.prefix ?? Number.MAX_SAFE_INTEGER) -
-          (b.prefix ?? Number.MAX_SAFE_INTEGER) ||
-        a.clean.localeCompare(b.clean)
-    );
-
-  const seen = new Map();
-  const pages = [];
-  let defaultOpen;
-
-  for (const { entry, clean } of entries) {
-    const srcPath = join(srcDir, entry.name);
-
-    if (seen.has(clean)) {
-      throw new Error(
-        `prefix-strip collision in ${relPath || "."}: "${entry.name}" and "${seen.get(clean)}" both map to "${clean}"`
-      );
-    }
-    seen.set(clean, entry.name);
-
-    if (entry.isDirectory()) {
-      transformDir(srcPath, join(outDir, clean), join(relPath, clean));
-      pages.push(clean);
-    } else if (entry.name.endsWith(".mdx")) {
-      const mdx = readFileSync(srcPath, "utf8");
-      writeFileSync(join(outDir, `${clean}.mdx`), transformMdx(mdx));
-      if (clean === "index" && /^collapsed:\s*true/m.test(frontmatterOf(mdx))) {
-        defaultOpen = false;
-      }
-      // `index` is the folder page; fumadocs doesn't want it in `pages`.
-      if (clean !== "index") {
-        pages.push(clean);
-      }
-    } else {
-      // Copy non-MDX assets verbatim.
-      cpSync(srcPath, join(outDir, entry.name));
-    }
-  }
-
-  const meta = { pages };
-  if (defaultOpen === false) {
-    meta.defaultOpen = false;
-  }
-  writeFileSync(join(outDir, "meta.json"), `${JSON.stringify(meta, null, 2)}\n`);
 };
 
 for (const version of versions) {
