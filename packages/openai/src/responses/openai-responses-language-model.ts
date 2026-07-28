@@ -48,6 +48,10 @@ import type {
   toolSearchInputSchema,
   toolSearchOutputSchema,
 } from '../tool/tool-search';
+import type {
+  programmaticToolCallingInputSchema,
+  programmaticToolCallingOutputSchema,
+} from '../tool/programmatic-tool-calling';
 import type { webSearchOutputSchema } from '../tool/web-search';
 import {
   convertOpenAIResponsesUsage,
@@ -313,6 +317,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         'openai.mcp': 'mcp',
         'openai.apply_patch': 'apply_patch',
         'openai.tool_search': 'tool_search',
+        'openai.programmatic_tool_calling': 'programmatic_tool_calling',
       },
     });
 
@@ -940,6 +945,56 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               [providerOptionsName]: {
                 itemId: part.id,
                 ...(part.namespace != null && { namespace: part.namespace }),
+                ...(part.caller != null && {
+                  caller:
+                    part.caller.type === 'program'
+                      ? {
+                          type: 'program',
+                          callerId: part.caller.caller_id,
+                        }
+                      : part.caller,
+                }),
+              },
+            },
+          });
+          break;
+        }
+
+        case 'program': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.call_id,
+            toolName: toolNameMapping.toCustomToolName(
+              'programmatic_tool_calling',
+            ),
+            input: JSON.stringify({
+              code: part.code,
+              fingerprint: part.fingerprint,
+            } satisfies InferSchema<typeof programmaticToolCallingInputSchema>),
+            providerExecuted: true,
+            providerMetadata: {
+              [providerOptionsName]: {
+                itemId: part.id,
+              },
+            },
+          });
+          break;
+        }
+
+        case 'program_output': {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.call_id,
+            toolName: toolNameMapping.toCustomToolName(
+              'programmatic_tool_calling',
+            ),
+            result: {
+              result: part.result,
+              status: part.status,
+            } satisfies InferSchema<typeof programmaticToolCallingOutputSchema>,
+            providerMetadata: {
+              [providerOptionsName]: {
+                itemId: part.id,
               },
             },
           });
@@ -1631,6 +1686,54 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                       ...(value.item.namespace != null && {
                         namespace: value.item.namespace,
                       }),
+                      ...(value.item.caller != null && {
+                        caller:
+                          value.item.caller.type === 'program'
+                            ? {
+                                type: 'program',
+                                callerId: value.item.caller.caller_id,
+                              }
+                            : value.item.caller,
+                      }),
+                    },
+                  },
+                });
+              } else if (value.item.type === 'program') {
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.call_id,
+                  toolName: toolNameMapping.toCustomToolName(
+                    'programmatic_tool_calling',
+                  ),
+                  input: JSON.stringify({
+                    code: value.item.code,
+                    fingerprint: value.item.fingerprint,
+                  } satisfies InferSchema<
+                    typeof programmaticToolCallingInputSchema
+                  >),
+                  providerExecuted: true,
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      itemId: value.item.id,
+                    },
+                  },
+                });
+              } else if (value.item.type === 'program_output') {
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.call_id,
+                  toolName: toolNameMapping.toCustomToolName(
+                    'programmatic_tool_calling',
+                  ),
+                  result: {
+                    result: value.item.result,
+                    status: value.item.status,
+                  } satisfies InferSchema<
+                    typeof programmaticToolCallingOutputSchema
+                  >,
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      itemId: value.item.id,
                     },
                   },
                 });

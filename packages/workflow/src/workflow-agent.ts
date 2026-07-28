@@ -257,6 +257,16 @@ export interface PrepareStepInfo<
   model: LanguageModel;
 
   /**
+   * The initial instructions passed to the stream.
+   */
+  initialInstructions: Instructions | undefined;
+
+  /**
+   * The initial messages passed to the stream.
+   */
+  initialMessages: Array<ModelMessage>;
+
+  /**
    * The current step number (0-indexed).
    */
   stepNumber: number;
@@ -371,6 +381,11 @@ export interface PrepareCallOptions<
   tools: TTools;
   instructions?: Instructions;
   toolChoice?: ToolChoice<TTools>;
+  stopWhen?:
+    | StopCondition<NoInfer<ToolSet>, any>
+    | Array<StopCondition<NoInfer<ToolSet>, any>>;
+  activeTools?: ActiveTools<NoInfer<TTools>>;
+  experimental_download?: DownloadFunction;
   telemetry?: TelemetryOptions<TRuntimeContext, TTools>;
   /**
    * Runtime context that flows through the agent loop.
@@ -837,7 +852,14 @@ export type WorkflowAgentStreamOptions<
       }
   ) & {
     /**
-     * Optional system prompt override. If provided, overrides the system prompt from the constructor.
+     * Instructions override for this stream call.
+     */
+    instructions?: Instructions;
+
+    /**
+     * Optional system prompt override.
+     *
+     * @deprecated Use `instructions` instead.
      */
     system?: string;
 
@@ -1324,7 +1346,8 @@ export class WorkflowAgent<
 
     // Call prepareCall to transform parameters before the agent loop
     let effectiveModel: LanguageModel = this.model;
-    let effectiveInstructions = options.system ?? this.instructions;
+    let effectiveInstructions =
+      options.instructions ?? options.system ?? this.instructions;
     let effectivePrompt: string | Array<ModelMessage> | undefined =
       options.prompt;
     let effectiveMessages: Array<ModelMessage> | undefined = options.messages;
@@ -1338,6 +1361,11 @@ export class WorkflowAgent<
         Context | undefined
       >;
     let effectiveToolChoiceFromPrepare = options.toolChoice ?? this.toolChoice;
+    let effectiveStopWhenFromPrepare = options.stopWhen ?? this.stopWhen;
+    let effectiveActiveToolsFromPrepare =
+      options.activeTools ?? this.activeTools;
+    let effectiveDownloadFromPrepare =
+      options.experimental_download ?? this.experimentalDownload;
     let effectiveTelemetryFromPrepare = options.telemetry ?? this.telemetry;
 
     // Resolve messages for prepareCall: use messages directly, or convert prompt
@@ -1354,6 +1382,9 @@ export class WorkflowAgent<
         tools: this.tools,
         instructions: effectiveInstructions,
         toolChoice: effectiveToolChoiceFromPrepare as ToolChoice<TBaseTools>,
+        stopWhen: effectiveStopWhenFromPrepare,
+        activeTools: effectiveActiveToolsFromPrepare,
+        experimental_download: effectiveDownloadFromPrepare,
         telemetry: effectiveTelemetryFromPrepare,
         runtimeContext: effectiveRuntimeContext,
         toolsContext: effectiveToolsContext as InferToolSetContext<TBaseTools>,
@@ -1378,6 +1409,12 @@ export class WorkflowAgent<
       if (prepared.toolChoice !== undefined)
         effectiveToolChoiceFromPrepare =
           prepared.toolChoice as ToolChoice<TBaseTools>;
+      if (prepared.stopWhen !== undefined)
+        effectiveStopWhenFromPrepare = prepared.stopWhen;
+      if (prepared.activeTools !== undefined)
+        effectiveActiveToolsFromPrepare = prepared.activeTools;
+      if (prepared.experimental_download !== undefined)
+        effectiveDownloadFromPrepare = prepared.experimental_download;
       if (prepared.telemetry !== undefined)
         effectiveTelemetryFromPrepare = prepared.telemetry;
       if (prepared.maxOutputTokens !== undefined)
@@ -1423,7 +1460,7 @@ export class WorkflowAgent<
         ? { prompt: effectivePrompt }
         : { messages: effectiveMessages! }),
     } as Prompt);
-    const download = options.experimental_download ?? this.experimentalDownload;
+    const download = effectiveDownloadFromPrepare;
     const sandbox = options.experimental_sandbox ?? this.experimentalSandbox;
 
     // Process tool approval responses before starting the agent loop.
@@ -1832,7 +1869,7 @@ export class WorkflowAgent<
     const effectiveToolChoice = effectiveToolChoiceFromPrepare;
 
     // Filter tools if activeTools is specified (stream-level overrides constructor default)
-    const effectiveActiveTools = options.activeTools ?? this.activeTools;
+    const effectiveActiveTools = effectiveActiveToolsFromPrepare;
     const effectiveTools =
       effectiveActiveTools && effectiveActiveTools.length > 0
         ? (filterActiveTools({
@@ -2100,8 +2137,9 @@ export class WorkflowAgent<
       tools: effectiveTools as ToolSet,
       writable: options.writable,
       prompt: modelPrompt,
-      stopConditions: options.stopWhen ?? this.stopWhen,
-
+      initialInstructions: effectiveInstructions,
+      initialMessages: prompt.messages,
+      stopConditions: effectiveStopWhenFromPrepare,
       onStepEnd: mergedOnStepEnd as any,
       onStepStart: mergedOnStepStart as any,
       onError: options.onError,

@@ -578,6 +578,120 @@ describe('generateText', () => {
     });
   });
 
+  it('should not synthesize a client tool error for an invalid provider-executed tool call', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          finishReason: { unified: 'tool-calls', raw: 'tool_use' },
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'web_search',
+              input: '{}',
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'web_search',
+              result: {
+                type: 'web_search_tool_result_error',
+                errorCode: 'invalid_tool_input',
+              },
+              isError: true,
+              providerExecuted: true,
+            },
+          ],
+        }),
+      }),
+      tools: {
+        web_search: {
+          type: 'provider',
+          isProviderExecuted: true,
+          id: 'test.web_search',
+          inputSchema: z.object({ query: z.string() }),
+          outputSchema: z.unknown(),
+          args: {},
+        },
+      },
+      prompt: 'Search the web.',
+    });
+
+    expect({
+      content: result.content,
+      responseMessages: result.responseMessages,
+    }).toMatchInlineSnapshot(`
+      {
+        "content": [
+          {
+            "dynamic": true,
+            "error": [AI_InvalidToolInputError: Invalid input for tool web_search: AI_TypeValidationError: Type validation failed: Value: {}.
+      Error message: [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": [
+            "query"
+          ],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]],
+            "input": {},
+            "invalid": true,
+            "providerExecuted": true,
+            "providerMetadata": undefined,
+            "title": undefined,
+            "toolCallId": "call-1",
+            "toolName": "web_search",
+            "type": "tool-call",
+          },
+          {
+            "dynamic": true,
+            "error": {
+              "errorCode": "invalid_tool_input",
+              "type": "web_search_tool_result_error",
+            },
+            "input": {},
+            "providerExecuted": true,
+            "toolCallId": "call-1",
+            "toolName": "web_search",
+            "type": "tool-error",
+          },
+        ],
+        "responseMessages": [
+          {
+            "content": [
+              {
+                "input": {},
+                "providerExecuted": true,
+                "providerOptions": undefined,
+                "toolCallId": "call-1",
+                "toolName": "web_search",
+                "type": "tool-call",
+              },
+              {
+                "output": {
+                  "type": "error-json",
+                  "value": {
+                    "errorCode": "invalid_tool_input",
+                    "type": "web_search_tool_result_error",
+                  },
+                },
+                "providerOptions": undefined,
+                "toolCallId": "call-1",
+                "toolName": "web_search",
+                "type": "tool-result",
+              },
+            ],
+            "role": "assistant",
+          },
+        ],
+      }
+    `);
+  });
+
   describe('telemetry model-call context', () => {
     it('should execute doGenerate inside executeLanguageModelCall context', async () => {
       let activeContext: string | undefined;

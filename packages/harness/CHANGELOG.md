@@ -1,5 +1,72 @@
 # @ai-sdk/harness
 
+## 1.0.47
+
+### Patch Changes
+
+- Updated dependencies [2e2224b]
+  - ai@7.0.41
+
+## 1.0.46
+
+### Patch Changes
+
+- Updated dependencies [c3782a6]
+  - ai@7.0.40
+
+## 1.0.45
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [09a52cb]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+  - ai@7.0.39
+
+## 1.0.44
+
+### Patch Changes
+
+- Updated dependencies [7bd6bdd]
+- Updated dependencies [1e2f324]
+  - ai@7.0.38
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/provider-utils@5.0.13
+
+## 1.0.43
+
+### Patch Changes
+
+- a9a22e1: fix(harness): fix telemetry end events to report `final-step` text and reasoning for multi-step turns
+- 9e4e816: fix(harness): avoid emitting `onTurnFinished` / `onTurnFailed` when turn is suspended mid-flight
+- ea3063f: fix(harness): remove broken bridge `channel.interrupt()` layer and its usage
+
+## 1.0.42
+
+### Patch Changes
+
+- ai@7.0.37
+
+## 1.0.41
+
+### Patch Changes
+
+- a94425b: fix(harness): ensure harness telemetry hooks are awaited before stream processing continues
+- 2de0611: fix(harness): avoid incorrectly marked invalid tool calls due to `dynamic` flag being dropped
+- Updated dependencies [7fa85b2]
+  - ai@7.0.36
+
+## 1.0.40
+
+### Patch Changes
+
+- 59a2306: fix(harness): execute host tools through telemetry context wrappers
+- 5f65e61: feat(harness): add support for `stopWhen` control to `HarnessAgent` (e.g. `isStepCount(1)`)
+- Updated dependencies [7f6650b]
+- Updated dependencies [106ea59]
+  - ai@7.0.35
+
 ## 1.0.39
 
 ### Patch Changes
