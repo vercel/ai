@@ -1,7 +1,0 @@
-{
-  "error": {
-    "code": 400,
-    "message": "Penalty is not enabled for models/gemini-2.5-flash",
-    "status": "INVALID_ARGUMENT"
-  }
-}

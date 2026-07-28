@@ -62,6 +62,8 @@ const configurableSafetySettingCategories = [
   'HARM_CATEGORY_SEXUALLY_EXPLICIT',
 ] as const;
 
+const gemini25ModelPattern = /(^|\/)gemini-2\.5(?:[.-]|$)/i;
+
 type GoogleConfig = {
   provider: string;
   baseURL: string;
@@ -258,6 +260,21 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     }
 
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
+    const isGemini25Model = gemini25ModelPattern.test(this.modelId);
+
+    if (isGemini25Model && frequencyPenalty != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'frequencyPenalty',
+      });
+    }
+    if (isGemini25Model && presencePenalty != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'presencePenalty',
+      });
+    }
+
     const { usesGemini3Features } = getGoogleModelCapabilities(this.modelId);
 
     const { contents, systemInstruction } = convertToGoogleMessages(prompt, {
@@ -331,8 +348,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           temperature,
           topK,
           topP,
-          frequencyPenalty,
-          presencePenalty,
+          frequencyPenalty: isGemini25Model ? undefined : frequencyPenalty,
+          presencePenalty: isGemini25Model ? undefined : presencePenalty,
           stopSequences,
           seed,
 
