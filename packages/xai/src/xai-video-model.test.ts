@@ -1629,6 +1629,51 @@ describe('XaiVideoModel', () => {
       expect(result.videos[0]?.type).toBe('url');
     });
 
+    it('should reject an oversized HTTP 202 body without hanging', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = ({
+        callNumber,
+      }) =>
+        callNumber === 1
+          ? pending202({ padding: 'x'.repeat(2 * 1024 * 1024) })
+          : { type: 'json-value', body: doneStatusResponse };
+
+      const model = createModel({ fetch: teeingFetch() });
+
+      await expect(model.doGenerate({ ...defaultOptions })).rejects.toThrow(
+        /exceeded/,
+      );
+    });
+
+    it('should honor abort while reading an unfinished HTTP 202 body', async () => {
+      const abortController = new AbortController();
+      // A 202 whose body never finishes. Errors the stream on abort, as fetch
+      // implementations do for an aborted request body.
+      const unfinished202: FetchFunction = async (input, init) => {
+        if (!(input as string).includes('/videos/req-123')) {
+          return globalThis.fetch(input as string, init);
+        }
+        const body = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode('{"status":'));
+            init?.signal?.addEventListener('abort', () => {
+              controller.error(new DOMException('Aborted', 'AbortError'));
+            });
+            queueMicrotask(() => abortController.abort());
+          },
+        });
+        return new Response(body, { status: 202 });
+      };
+
+      const model = createModel({ fetch: unfinished202 });
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          abortSignal: abortController.signal,
+        }),
+      ).rejects.toThrow(/abort/i);
+    });
+
     it('should time out while repeatedly receiving empty HTTP 202 responses', async () => {
       server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
         type: 'empty',

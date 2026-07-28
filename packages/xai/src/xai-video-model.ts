@@ -1,5 +1,6 @@
 import {
   AISDKError,
+  APICallError,
   type Experimental_VideoModelV4,
   type Experimental_VideoModelV4File,
   type SharedV4Warning,
@@ -549,6 +550,58 @@ const xaiVideoStatusJsonResponseHandler = createJsonResponseHandler(
   xaiVideoStatusResponseSchema,
 );
 
+// Generous bound for a `{status, progress}` payload of ~50 bytes.
+const MAX_PENDING_BODY_BYTES = 1024 * 1024;
+
+const textDecoder = new TextDecoder();
+
+// Bounded replacement for `response.text()`. Throws on overflow without
+// cancelling the body: cancelling a tee branch neither settles nor releases
+// the underlying source while the sibling branch is live.
+async function readPendingBody({
+  response,
+  url,
+  requestBodyValues,
+}: Parameters<ResponseHandler<unknown>>[0]): Promise<string> {
+  if (response.body == null) {
+    return '';
+  }
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      totalBytes += value.length;
+      if (totalBytes > MAX_PENDING_BODY_BYTES) {
+        throw new APICallError({
+          message: `xAI video status response exceeded ${MAX_PENDING_BODY_BYTES} bytes`,
+          url,
+          requestBodyValues,
+          statusCode: response.status,
+          responseHeaders: extractResponseHeaders(response),
+        });
+      }
+
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const merged = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return textDecoder.decode(merged);
+}
+
 const xaiVideoStatusResponseHandler: ResponseHandler<
   z.infer<typeof xaiVideoStatusResponseSchema>
 > = async options => {
@@ -557,7 +610,7 @@ const xaiVideoStatusResponseHandler: ResponseHandler<
   // on a tee branch, which `Response.clone()` in fetch instrumentation creates.
   if (options.response.status === 202) {
     const responseHeaders = extractResponseHeaders(options.response);
-    const text = await options.response.text();
+    const text = await readPendingBody(options);
 
     if (text.trim().length === 0) {
       return { responseHeaders, value: { status: 'pending' } };
