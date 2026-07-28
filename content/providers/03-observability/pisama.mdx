@@ -1,0 +1,82 @@
+---
+title: Pisama
+description: Detect process-level failures in AI SDK applications with Pisama
+---
+
+# Pisama observability
+
+[Pisama](https://pisama.ai) is a failure-detection layer for agent systems. Where tracing shows you what happened and rubric graders score the final artifact, Pisama names what went wrong during the run: loops, state corruption, persona drift, coordination breakdown between agents, tool-failure cascades, and unsupported claims.
+
+Pisama provides:
+
+- [Process-level detectors](https://docs.pisama.ai/detection/overview/), each carrying a readiness tier and, where measured, an F1 on a labelled external corpus
+- [Framework integrations](https://docs.pisama.ai/guides/integrations/vercel-ai-sdk/) for the AI SDK, OpenAI Agents SDK, LangGraph, n8n and Dify
+- Heuristic-first escalation, so most detections resolve without an LLM call
+
+<Note>
+  A version of this guide is available in [Pisama's
+  docs](https://docs.pisama.ai/guides/integrations/vercel-ai-sdk/).
+</Note>
+
+## Setup
+
+Pisama supports two independent paths. Use the middleware if you want per-call wrapping in TypeScript; use OpenTelemetry if you already run an OTel pipeline.
+
+### Middleware
+
+`observe()` wraps a model with the AI SDK's own `wrapLanguageModel`, so it composes with any provider.
+
+**Step 1.** Install the SDK
+
+```bash
+npm i @pisama/sdk
+```
+
+**Step 2.** Wrap your model
+
+```ts filename="app/api/chat/route.ts"
+import { observe } from '@pisama/sdk';
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await generateText({
+  model: observe(openai('gpt-4o')),
+  prompt: 'What is the weather in Helsinki?',
+});
+```
+
+**Step 3.** Set your project id
+
+```bash filename=".env.local"
+PISAMA_PROJECT_ID=ps_yourapp
+```
+
+Detections for that project are then available in the Pisama dashboard.
+
+### OpenTelemetry
+
+Enable [AI SDK telemetry](/docs/ai-sdk-core/telemetry) and point your OTLP exporter at Pisama:
+
+```ts
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'What is the weather in Helsinki?',
+  experimental_telemetry: { isEnabled: true, functionId: 'weather-agent' },
+});
+```
+
+Send the spans to `https://api.pisama.ai/api/v1/traces/ingest`, authenticated with a
+Pisama API key. See the [integration guide](https://docs.pisama.ai/guides/integrations/vercel-ai-sdk/)
+for the exporter configuration.
+
+Both attribute vocabularies are read, so prompts, responses, tool calls and token usage all survive ingestion:
+
+| Content | Legacy | GenAI conventions |
+| --- | --- | --- |
+| Operation marker | `ai.operationId` | `gen_ai.operation.name` |
+| Prompt | `ai.prompt`, `ai.prompt.messages` | `gen_ai.input.messages` |
+| Response | `ai.response.text` | `gen_ai.output.messages` |
+| Tool calls | `ai.toolCall.name` / `.args` / `.result` | `gen_ai.tool.name`, `gen_ai.tool.call.arguments` / `.result` |
+| Tokens | `ai.usage.promptTokens` / `.completionTokens` | `gen_ai.usage.input_tokens` / `.output_tokens` |
+
+A `generateText` call with one tool produces an outer `ai.generateText` span, a `doGenerate` span per step, and an `ai.toolCall` span. The outer span carries the run's top-level prompt and final response and is identified by `ai.operationId`.
