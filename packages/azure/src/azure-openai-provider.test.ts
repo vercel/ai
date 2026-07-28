@@ -1,8 +1,9 @@
-import type {
-  EmbeddingModelV4Embedding,
-  LanguageModelV4,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4Prompt,
+import {
+  InvalidArgumentError,
+  type EmbeddingModelV4Embedding,
+  type LanguageModelV4,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
@@ -694,6 +695,21 @@ describe('completion', () => {
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
       ).toMatchInlineSnapshot(`"v1"`);
+    });
+
+    it('should reject the native OpenAI WebSocket transport', async () => {
+      await expect(
+        provider.responses('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            azure: {
+              transport: 'websocket',
+            },
+          },
+        }),
+      ).rejects.toSatisfy(InvalidArgumentError.isInstance);
+
+      expect(server.calls).toHaveLength(0);
     });
 
     it('should pass headers', async () => {
