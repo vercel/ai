@@ -2621,7 +2621,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               type: 'provider-defined',
               id: 'openai.web_search',
               name: 'web_search',
-              args: {},
+              args: {
+                filters: {
+                  blockedDomains: ['example.com'],
+                },
+              },
             },
           ],
           prompt: TEST_PROMPT,
@@ -2648,6 +2652,11 @@ describe('OpenAIResponsesLanguageModel', () => {
             "model": "gpt-5-nano",
             "tools": [
               {
+                "filters": {
+                  "blocked_domains": [
+                    "example.com",
+                  ],
+                },
                 "type": "web_search",
               },
             ],
