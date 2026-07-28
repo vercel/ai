@@ -3,6 +3,7 @@ import { DownloadError } from './download-error';
 import type { FetchFunction } from './fetch-function';
 import { isBrowserRuntime } from './is-browser-runtime';
 import { isSameOrigin } from './is-same-origin';
+import { getDefaultDownloadFetch } from './safe-node-fetch';
 import { sanitizeRequestHeaders } from './sanitize-request-headers';
 import { validateDownloadUrl } from './validate-download-url';
 
@@ -48,13 +49,11 @@ const REDIRECT_STATUS_CODES = new Set([301, 302, 303, 307, 308]);
  * The returned response is the final (non-redirect) response. The caller is
  * responsible for checking `response.ok` and reading the body.
  *
- * Not solved here: this does string/literal checks only and does not resolve
- * DNS, so a hostname that *resolves* to a private address, and DNS rebinding
- * (the resolved IP flipping between validation and connect), are not blocked.
- * Server deployments fetching untrusted URLs should constrain egress at the
- * network layer or inject a Node `fetch` that pins the resolved IP at connect
- * time — those need DNS/socket APIs not available on all target runtimes
- * (edge, browser, Bun), so they are intentionally not built in.
+ * On Node.js, the default fetch resolves every hostname through a validating
+ * lookup hook and passes those exact addresses to the connector, preventing
+ * hostname-to-private-IP and DNS-rebinding bypasses. An injected fetch is
+ * responsible for equivalent connect-time validation. Other runtimes should
+ * constrain egress at the network layer when handling untrusted URLs.
  *
  * @throws DownloadError if a hop is unsafe, the redirect limit is exceeded, or
  * a redirect cannot be validated on a non-browser runtime.
@@ -64,7 +63,7 @@ export async function fetchWithValidatedRedirects({
   headers,
   abortSignal,
   maxRedirects = MAX_DOWNLOAD_REDIRECTS,
-  fetch = globalThis.fetch,
+  fetch: customFetch,
   trustedOrigin,
 }: {
   url: string;
@@ -99,12 +98,16 @@ export async function fetchWithValidatedRedirects({
   for (let redirectCount = 0; redirectCount <= maxRedirects; redirectCount++) {
     // The developer-configured origin is trusted by definition; validating it
     // would reject legitimate self-hosted / localhost deployments.
-    if (
-      trustedOrigin === undefined ||
-      !isSameOrigin(currentUrl, trustedOrigin)
-    ) {
+    const isTrustedHop =
+      trustedOrigin !== undefined && isSameOrigin(currentUrl, trustedOrigin);
+
+    if (!isTrustedHop) {
       validateDownloadUrl(currentUrl);
     }
+
+    const fetch =
+      customFetch ??
+      (isTrustedHop ? globalThis.fetch : await getDefaultDownloadFetch());
 
     const response = await fetch(currentUrl, perHopInit('manual'));
 

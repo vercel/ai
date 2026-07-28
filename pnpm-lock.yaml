@@ -3376,6 +3376,9 @@ importers:
       eventsource-parser:
         specifier: ^3.0.8
         version: 3.0.8
+      undici:
+        specifier: ^7.28.0
+        version: 7.28.0
     devDependencies:
       '@types/node':
         specifier: 22.19.19
