@@ -4165,7 +4165,7 @@ describe('doGenerate', () => {
           type: 'unsupported',
           feature: 'frequencyPenalty',
           details:
-            'frequencyPenalty is not supported for gemini-2.5 models and will be ignored.',
+            'frequencyPenalty is not supported for gemini-2.5 models on the Gemini Developer API and will be ignored.',
         });
       });
 
@@ -4187,7 +4187,7 @@ describe('doGenerate', () => {
           type: 'unsupported',
           feature: 'presencePenalty',
           details:
-            'presencePenalty is not supported for gemini-2.5 models and will be ignored.',
+            'presencePenalty is not supported for gemini-2.5 models on the Gemini Developer API and will be ignored.',
         });
       });
 
