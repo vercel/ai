@@ -15,6 +15,7 @@ export async function throwIfOpenAIStreamErrorBeforeOutput<T>({
   url,
   requestBodyValues,
   responseHeaders,
+  isRetryable,
 }: {
   stream: ReadableStream<ParseResult<T>>;
   getError: (chunk: T) => unknown | undefined;
@@ -22,6 +23,7 @@ export async function throwIfOpenAIStreamErrorBeforeOutput<T>({
   url: string;
   requestBodyValues: unknown;
   responseHeaders?: Record<string, string>;
+  isRetryable?: boolean;
 }): Promise<ReadableStream<ParseResult<T>>> {
   const [streamForEarlyError, streamForConsumer] = stream.tee();
   const reader = streamForEarlyError.getReader();
@@ -49,6 +51,7 @@ export async function throwIfOpenAIStreamErrorBeforeOutput<T>({
           url,
           requestBodyValues,
           responseHeaders,
+          isRetryable,
         });
       }
 
@@ -67,11 +70,13 @@ function createOpenAIStreamError({
   url,
   requestBodyValues,
   responseHeaders,
+  isRetryable,
 }: {
   frame: unknown;
   url: string;
   requestBodyValues: unknown;
   responseHeaders?: Record<string, string>;
+  isRetryable?: boolean;
 }): APICallError {
   const streamError = parseStreamError(frame);
   return new APICallError({
@@ -84,6 +89,9 @@ function createOpenAIStreamError({
     responseHeaders,
     responseBody: JSON.stringify(frame),
     data: frame,
+    // HTTP callers leave this undefined and retain the normal APICallError
+    // inference. WebSocket callers pass false after `response.create` is sent.
+    isRetryable,
   });
 }
 
