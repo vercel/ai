@@ -847,6 +847,7 @@ function createOutputTransformStream<
   let text = '';
   let textChunk = '';
   let textProviderMetadata: ProviderMetadata | undefined = undefined;
+  let hasUnpublishedProviderMetadata = false;
   let lastPublishedValue = '';
 
   function publishTextChunk({
@@ -868,6 +869,7 @@ function createOutputTransformStream<
       partialOutput,
     });
     textChunk = '';
+    hasUnpublishedProviderMetadata = false;
   }
 
   return new TransformStream<
@@ -876,7 +878,10 @@ function createOutputTransformStream<
   >({
     async transform(chunk, controller) {
       // ensure that we publish the last text chunk before the step finish:
-      if (chunk.type === 'finish-step' && textChunk.length > 0) {
+      if (
+        chunk.type === 'finish-step' &&
+        (textChunk.length > 0 || hasUnpublishedProviderMetadata)
+      ) {
         publishTextChunk({ controller });
       }
 
@@ -904,7 +909,7 @@ function createOutputTransformStream<
       }
 
       if (chunk.type === 'text-end') {
-        if (textChunk.length > 0) {
+        if (textChunk.length > 0 || hasUnpublishedProviderMetadata) {
           publishTextChunk({ controller });
         }
         controller.enqueue({ part: chunk, partialOutput: undefined });
@@ -913,7 +918,10 @@ function createOutputTransformStream<
 
       text += chunk.text;
       textChunk += chunk.text;
-      textProviderMetadata = chunk.providerMetadata ?? textProviderMetadata;
+      if (chunk.providerMetadata != null) {
+        textProviderMetadata = chunk.providerMetadata;
+        hasUnpublishedProviderMetadata = true;
+      }
 
       // only publish if partial json can be parsed:
       const result = await output.parsePartialOutput({ text });
@@ -2198,7 +2206,13 @@ class DefaultStreamTextResult<
                     }
 
                     case 'text-delta': {
-                      if (chunk.text.length > 0) {
+                      // forward empty text deltas when they carry provider
+                      // metadata so that the metadata is not lost
+                      // (e.g. metadata-only deltas with thought signatures):
+                      if (
+                        chunk.text.length > 0 ||
+                        chunk.providerMetadata != null
+                      ) {
                         controller.enqueue(chunk);
                       }
                       break;
