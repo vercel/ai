@@ -1,5 +1,12 @@
+import type * as nodeDnsModule from 'node:dns';
+import type * as nodeModule from 'node:module';
+import type * as undiciModule from 'undici';
 import type { FetchFunction } from './fetch-function';
 import { validateDownloadAddress } from './validate-download-url';
+
+type NodeDns = typeof nodeDnsModule;
+type NodeModule = typeof nodeModule;
+type Undici = typeof undiciModule;
 
 type LookupAddress = {
   address: string;
@@ -68,10 +75,16 @@ const initialGlobalFetch = globalThis.fetch;
 const initialGlobalFetchIsNodeDefault = isNodeDefaultFetch(initialGlobalFetch);
 
 export function isNodeRuntime(): boolean {
+  const runtimeProcess = globalThis.process as
+    | {
+        release?: { name?: string };
+        versions?: { bun?: string };
+      }
+    | undefined;
+
   return (
-    typeof process !== 'undefined' &&
-    process.release?.name === 'node' &&
-    process.versions?.bun == null
+    runtimeProcess?.release?.name === 'node' &&
+    runtimeProcess.versions?.bun == null
   );
 }
 
@@ -84,7 +97,7 @@ export async function getDefaultDownloadFetch(): Promise<FetchFunction> {
     return globalThis.fetch;
   }
 
-  return (safeNodeFetchPromise ??= createSafeNodeFetch());
+  return (safeNodeFetchPromise ??= Promise.resolve().then(createSafeNodeFetch));
 }
 
 function isNodeDefaultFetch(fetch: FetchFunction): boolean {
@@ -95,11 +108,14 @@ function isNodeDefaultFetch(fetch: FetchFunction): boolean {
   );
 }
 
-async function createSafeNodeFetch(): Promise<FetchFunction> {
-  const [{ Agent, fetch }, { lookup }] = await Promise.all([
-    import('undici'),
-    import('node:dns'),
-  ]);
+function createSafeNodeFetch(): FetchFunction {
+  // Load Node-only modules indirectly so browser bundlers do not pull undici
+  // and Node built-ins into the browser-facing provider-utils entry point.
+  const { createRequire } = loadBuiltinModule<NodeModule>('node:module');
+  const { lookup } = loadBuiltinModule<NodeDns>('node:dns');
+  const { Agent, fetch } = createRequire(getCurrentModulePath())(
+    'undici',
+  ) as Undici;
 
   const dispatcher = new Agent({
     connect: {
@@ -115,4 +131,43 @@ async function createSafeNodeFetch(): Promise<FetchFunction> {
         dispatcher,
       } as Parameters<typeof fetch>[1],
     ) as unknown as Promise<Response>) satisfies FetchFunction;
+}
+
+function loadBuiltinModule<T>(id: string): T {
+  const processWithBuiltins = globalThis.process as
+    | {
+        getBuiltinModule?: (id: string) => unknown;
+      }
+    | undefined;
+  const builtinModule = processWithBuiltins?.getBuiltinModule?.(id);
+
+  if (builtinModule == null) {
+    throw new Error(`Node.js built-in module ${id} is unavailable`);
+  }
+
+  return builtinModule as T;
+}
+
+function getCurrentModulePath(): string {
+  // `import.meta.url` breaks when provider-utils is rebundled as CommonJS.
+  // The caller frame points at this package when loaded directly and at the
+  // consuming bundle when inlined, giving createRequire the correct base path.
+  const originalPrepareStackTrace = Error.prepareStackTrace;
+
+  try {
+    Error.prepareStackTrace = (_error, callSites) => callSites as never;
+
+    const error = new Error('Capture current module path');
+    Error.captureStackTrace(error, getCurrentModulePath);
+    const [caller] = error.stack as unknown as NodeJS.CallSite[];
+    const fileName = caller?.getFileName();
+
+    if (fileName == null) {
+      throw new Error('Unable to determine the current module path');
+    }
+
+    return fileName;
+  } finally {
+    Error.prepareStackTrace = originalPrepareStackTrace;
+  }
 }
