@@ -9,6 +9,11 @@ export type OpenAIConfig = {
   headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
   webSocket?: WebSocketConstructor;
+  /**
+   * Whether this provider instance supports the native OpenAI Responses
+   * WebSocket protocol.
+   */
+  supportsResponsesWebSocket?: boolean;
   generateId?: () => string;
   /**
    * This is soft-deprecated. Use provider references (e.g. `{ openai: 'file-abc123' }`)
