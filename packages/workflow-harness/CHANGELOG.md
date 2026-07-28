@@ -1,5 +1,84 @@
 # @ai-sdk/workflow-harness
 
+## 1.0.47
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.47
+
+## 1.0.46
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.46
+
+## 1.0.45
+
+### Patch Changes
+
+- 214ea9f: feat(workflow-harness): add utility functions for agent-step based workflow step definitions
+  - @ai-sdk/harness@1.0.45
+
+## 1.0.44
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.44
+
+## 1.0.43
+
+### Patch Changes
+
+- ea3063f: fix(harness): remove broken bridge `channel.interrupt()` layer and its usage
+- Updated dependencies [a9a22e1]
+- Updated dependencies [9e4e816]
+- Updated dependencies [ea3063f]
+  - @ai-sdk/harness@1.0.43
+
+## 1.0.42
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.42
+
+## 1.0.41
+
+### Patch Changes
+
+- Updated dependencies [a94425b]
+- Updated dependencies [2de0611]
+  - @ai-sdk/harness@1.0.41
+
+## 1.0.40
+
+### Patch Changes
+
+- Updated dependencies [59a2306]
+- Updated dependencies [5f65e61]
+  - @ai-sdk/harness@1.0.40
+
+## 1.0.39
+
+### Patch Changes
+
+- Updated dependencies [86a84c9]
+  - @ai-sdk/harness@1.0.39
+
+## 1.0.38
+
+### Patch Changes
+
+- f5cdb2d: chore(harness): update primary SDK dependencies
+  - @ai-sdk/harness@1.0.38
+
+## 1.0.37
+
+### Patch Changes
+
+- Updated dependencies [b460541]
+- Updated dependencies [079591e]
+  - @ai-sdk/harness@1.0.37
+
 ## 1.0.36
 
 ### Patch Changes

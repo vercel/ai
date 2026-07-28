@@ -5,4 +5,8 @@ export type {
 } from './perplexity-provider';
 export type { PerplexityLanguageModelId } from './perplexity-options';
 export type { PerplexityLanguageModelOptions } from './perplexity-language-model-options';
+export type {
+  PerplexityEmbeddingModelId,
+  PerplexityEmbeddingModelOptions,
+} from './perplexity-embedding-model-options';
 export { VERSION } from './version';

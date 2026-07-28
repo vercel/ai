@@ -13,4 +13,8 @@ export type {
   MistralSpeechModelId,
   MistralSpeechModelOptions,
 } from './mistral-speech-model-options';
+export type {
+  MistralTranscriptionModelId,
+  MistralTranscriptionModelOptions,
+} from './mistral-transcription-model-options';
 export { VERSION } from './version';

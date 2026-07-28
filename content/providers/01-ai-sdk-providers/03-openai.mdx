@@ -457,6 +457,68 @@ metadata on tool-call parts. The SDK uses `providerMetadata.openai.namespace` or
 `providerOptions.openai.namespace` to round-trip the namespace back to OpenAI on
 subsequent requests.
 
+#### Programmatic Tool Calling
+
+OpenAI Programmatic Tool Calling lets supported Responses models generate and run
+hosted JavaScript that coordinates client-side function tools. Add the hosted tool
+with `openai.tools.programmaticToolCalling()`, then opt each eligible function into
+programmatic calls with `allowedCallers`.
+
+```ts
+import { openai, type OpenAIToolOptions } from '@ai-sdk/openai';
+import { generateText, isStepCount, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: openai('gpt-5.6'),
+  stopWhen: isStepCount(10),
+  prompt: 'Compare inventory with demand for sku_123.',
+  tools: {
+    program: openai.tools.programmaticToolCalling(),
+    getInventory: tool({
+      description: 'Get available inventory for a SKU.',
+      inputSchema: z.object({ sku: z.string() }),
+      execute: async ({ sku }) => ({ sku, availableUnits: 42 }),
+      providerOptions: {
+        openai: {
+          allowedCallers: ['programmatic'],
+          outputSchema: {
+            type: 'object',
+            properties: {
+              sku: { type: 'string' },
+              availableUnits: { type: 'number' },
+            },
+            required: ['sku', 'availableUnits'],
+            additionalProperties: false,
+          },
+        } satisfies OpenAIToolOptions,
+      },
+    }),
+  },
+});
+```
+
+`allowedCallers` supports:
+
+- `['direct']` (or omitted): only direct model tool calls
+- `['programmatic']`: only calls from hosted JavaScript
+- `['direct', 'programmatic']`: both invocation modes
+
+Use `outputSchema` to describe the JSON value returned by the function. This schema
+is sent to OpenAI as `output_schema` so generated JavaScript can safely use the
+returned fields. It does not replace the tool's AI SDK output validation or execution
+logic.
+
+The provider preserves program code, replay fingerprints, program outputs, and nested
+function caller metadata across the `generateText` and `streamText` tool loops,
+including stateless requests with `store: false`. Programmatic invocation is
+currently supported for AI SDK function tools; other OpenAI tool types remain
+direct-only through this integration.
+
+Treat generated programs and tool arguments as untrusted. Enforce authorization and
+approval inside every tool, avoid programmatic access to side-effecting tools unless
+the operation is idempotent, and set explicit step limits.
+
 #### Web Search Tool
 
 The OpenAI responses API supports web search through the `openai.tools.webSearch` tool.
@@ -477,6 +539,7 @@ const result = await generateText({
       },
       filters: {
         allowedDomains: ['sfchronicle.com', 'sfgate.com'],
+        blockedDomains: ['example.com'],
       },
     }),
   },
@@ -503,7 +566,10 @@ The web search tool supports the following configuration options:
 - **searchContextSize** _'low' | 'medium' | 'high'_ - Controls the amount of context used for the search. Higher values provide more comprehensive results but may have higher latency and cost.
 - **userLocation** - Optional location information to provide geographically relevant results. Includes `type` (always `'approximate'`), `country`, `city`, `region`, and `timezone`.
 - **filters** - Optional filter configuration to restrict search results.
-  - **allowedDomains** _string[]_ - Array of allowed domains for the search. Subdomains of the provided domains are automatically included.
+  - **allowedDomains** _string[]_ - Up to 100 allowed domains for the search.
+  - **blockedDomains** _string[]_ - Up to 100 blocked domains for the search.
+
+Omit the HTTP or HTTPS prefix from domain filters. Subdomains of configured domains are automatically included or excluded.
 
 For detailed information on configuration options see the [OpenAI Web Search Tool documentation](https://platform.openai.com/docs/guides/tools-web-search?api-mode=responses).
 
@@ -2840,6 +2906,50 @@ The following provider options are available:
 | `gpt-4o-mini-transcribe` | <Check />     | <Cross /> | <Cross /> | <Cross /> | <Cross /> |
 | `gpt-4o-transcribe`      | <Check />     | <Cross /> | <Cross /> | <Cross /> | <Cross /> |
 | `gpt-realtime-whisper`   | <Cross />     | <Check /> | <Cross /> | <Cross /> | <Cross /> |
+
+## Translation Models
+
+<Note type="warning">Speech translation is an experimental feature.</Note>
+
+You can create models that translate live speech over the OpenAI Realtime
+translations WebSocket using the `.translation()` factory method. Translation
+models are streaming-only and are used with
+[`experimental_streamTranslate`](/docs/reference/ai-sdk-core/stream-translate).
+
+The first argument is the model id e.g. `gpt-realtime-translate`.
+
+```ts
+const model = openai.translation('gpt-realtime-translate');
+```
+
+```ts
+import { experimental_streamTranslate as streamTranslate } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = streamTranslate({
+  model: openai.translation('gpt-realtime-translate'),
+  audio: audioStream, // ReadableStream<Uint8Array | string>
+  inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+  targetLanguage: 'es',
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'output-text-delta') {
+    process.stdout.write(part.delta);
+  }
+}
+```
+
+The OpenAI Realtime translation API auto-detects the source language
+(`sourceLanguage` is not supported), accepts 24kHz 16-bit PCM input, and always
+outputs 24kHz 16-bit PCM audio (`outputAudioFormat` is not supported).
+Unsupported source and output settings surface as call warnings.
+
+### Model Capabilities
+
+| Model                    | Translated Audio | Translated Text | Source Transcript |
+| ------------------------ | ---------------- | --------------- | ----------------- |
+| `gpt-realtime-translate` | <Check />        | <Check />       | <Check />         |
 
 ## Speech Models
 

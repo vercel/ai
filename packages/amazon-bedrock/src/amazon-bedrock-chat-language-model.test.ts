@@ -78,6 +78,11 @@ const anthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   anthropicModelId,
 )}/converse`;
 
+const legacyAnthropic37ModelId = 'us.anthropic.claude-3-7-sonnet-20250219-v1:0';
+const legacyAnthropic37GenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  legacyAnthropic37ModelId,
+)}/converse`;
+
 const novaModelId = 'us.amazon.nova-2-lite-v1:0';
 const novaGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   novaModelId,
@@ -98,6 +103,11 @@ const opusAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   opusAnthropicModelId,
 )}/converse`;
 
+const opus5AnthropicModelId = 'us.anthropic.claude-opus-5';
+const opus5AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  opus5AnthropicModelId,
+)}/converse`;
+
 const server = createTestServer({
   [generateUrl]: {},
   [streamUrl]: {
@@ -108,10 +118,26 @@ const server = createTestServer({
   },
   // Configure the server for the Anthropic model from the start
   [anthropicGenerateUrl]: {},
+  [legacyAnthropic37GenerateUrl]: {},
   [novaGenerateUrl]: {},
   [openaiGenerateUrl]: {},
   [newerAnthropicGenerateUrl]: {},
   [opusAnthropicGenerateUrl]: {},
+  [opus5AnthropicGenerateUrl]: {},
+});
+
+describe('supportedUrls', () => {
+  it('should support S3 URLs for image parts', () => {
+    const model = new AmazonBedrockChatLanguageModel(modelId, {
+      baseUrl: () => baseUrl,
+      generateId: () => 'test-id',
+      fetch: fakeFetchWithAuth,
+    });
+
+    expect(model.supportedUrls).toEqual({
+      'image/*': [/^s3:\/\//],
+    });
+  });
 });
 
 function prepareJsonFixtureResponse(
@@ -155,6 +181,10 @@ beforeEach(() => {
     type: 'json-value',
     body: {},
   };
+  server.urls[legacyAnthropic37GenerateUrl].response = {
+    type: 'json-value',
+    body: {},
+  };
   mockPrepareAnthropicTools.mockClear();
 });
 
@@ -179,6 +209,26 @@ const openaiModel = new AmazonBedrockChatLanguageModel(openaiModelId, {
   generateId: () => 'test-id',
 });
 
+const legacyAnthropic35Model = new AmazonBedrockChatLanguageModel(
+  anthropicModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
+const legacyAnthropic37Model = new AmazonBedrockChatLanguageModel(
+  legacyAnthropic37ModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
 const newerAnthropicModel = new AmazonBedrockChatLanguageModel(
   newerAnthropicModelId,
   {
@@ -191,6 +241,16 @@ const newerAnthropicModel = new AmazonBedrockChatLanguageModel(
 
 const opusAnthropicModel = new AmazonBedrockChatLanguageModel(
   opusAnthropicModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
+const opus5AnthropicModel = new AmazonBedrockChatLanguageModel(
+  opus5AnthropicModelId,
   {
     baseUrl: () => baseUrl,
     headers: {},
@@ -236,49 +296,156 @@ describe('doGenerate request metadata', () => {
 });
 
 describe('request URL', () => {
-  it('should preserve application inference profile ARN delimiters', async () => {
+  describe('ARN model IDs containing a slash', () => {
     const inferenceProfileArn =
-      'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/abc123xyz';
-    const fetch = vi.fn(async () => {
-      return new Response(
-        JSON.stringify({
-          output: {
-            message: {
-              role: 'assistant',
-              content: [{ text: 'hello' }],
-            },
-          },
-          stopReason: 'end_turn',
+      'arn:aws:bedrock:eu-west-1:474668406012:inference-profile/eu.amazon.nova-lite-v1:0';
+    const encodedInferenceProfileArn = encodeURIComponent(inferenceProfileArn);
+    const unknownOperationResponse = JSON.stringify({
+      Output: {
+        __type: 'com.amazon.coral.service#UnknownOperationException',
+      },
+      Version: '1.0',
+    });
+    const converseResponse = JSON.stringify({
+      output: {
+        message: {
+          role: 'assistant',
+          content: [{ text: 'Hello!' }],
+        },
+      },
+      stopReason: 'end_turn',
+      usage: {
+        inputTokens: 1,
+        outputTokens: 1,
+        totalTokens: 2,
+      },
+    });
+    const converseStreamResponse = [
+      { messageStart: { role: 'assistant' } },
+      {
+        contentBlockDelta: {
+          contentBlockIndex: 0,
+          delta: { text: 'Hello!' },
+        },
+      },
+      { contentBlockStop: { contentBlockIndex: 0 } },
+      { messageStop: { stopReason: 'end_turn' } },
+      {
+        metadata: {
           usage: {
             inputTokens: 1,
             outputTokens: 1,
             totalTokens: 2,
           },
-        }),
-        {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
         },
-      );
-    });
-    const inferenceProfileModel = new AmazonBedrockChatLanguageModel(
-      inferenceProfileArn,
-      {
+      },
+    ]
+      .map(chunk => JSON.stringify(chunk))
+      .join('\n');
+
+    function createInferenceProfileModel() {
+      return new AmazonBedrockChatLanguageModel(inferenceProfileArn, {
         baseUrl: () => baseUrl,
         headers: {},
-        fetch,
-        generateId: () => 'test-id',
-      },
-    );
+        fetch: async input => {
+          const url = input.toString();
+          const isEncodedRoute = url.includes(encodedInferenceProfileArn);
 
-    await inferenceProfileModel.doGenerate({
-      prompt: TEST_PROMPT,
+          return new Response(
+            isEncodedRoute
+              ? url.endsWith('/converse-stream')
+                ? converseStreamResponse
+                : converseResponse
+              : unknownOperationResponse,
+            {
+              status: 200,
+              headers: {
+                'content-type':
+                  isEncodedRoute && url.endsWith('/converse-stream')
+                    ? 'application/vnd.amazon.eventstream'
+                    : 'application/json',
+              },
+            },
+          );
+        },
+        generateId: () => 'test-id',
+      });
+    }
+
+    it('should generate text through the encoded Converse route', async () => {
+      const result = await createInferenceProfileModel().doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "Hello!",
+            "type": "text",
+          },
+        ]
+      `);
     });
 
-    expect(fetch).toHaveBeenCalledWith(
-      `${baseUrl}/model/${inferenceProfileArn}/converse`,
-      expect.any(Object),
-    );
+    it('should stream text through the encoded Converse route', async () => {
+      const { stream } = await createInferenceProfileModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": undefined,
+            "modelId": "arn:aws:bedrock:eu-west-1:474668406012:inference-profile/eu.amazon.nova-lite-v1:0",
+            "timestamp": undefined,
+            "type": "response-metadata",
+          },
+          {
+            "id": "0",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello!",
+            "id": "0",
+            "type": "text-delta",
+          },
+          {
+            "id": "0",
+            "type": "text-end",
+          },
+          {
+            "finishReason": {
+              "raw": "end_turn",
+              "unified": "stop",
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "noCache": 1,
+                "total": 1,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": 1,
+                "total": 1,
+              },
+              "raw": {
+                "inputTokens": 1,
+                "outputTokens": 1,
+                "totalTokens": 2,
+              },
+            },
+          },
+        ]
+      `);
+    });
   });
 });
 
@@ -4810,9 +4977,11 @@ describe('doGenerate', () => {
         type: 'json_schema',
         schema: {
           type: 'object',
+          additionalProperties: false,
           properties: {
             recipe: {
               type: 'object',
+              additionalProperties: false,
               properties: {
                 name: { type: 'string' },
                 ingredients: { type: 'array', items: { type: 'string' } },
@@ -4869,6 +5038,7 @@ describe('doGenerate', () => {
         type: 'json_schema',
         schema: {
           type: 'object',
+          additionalProperties: false,
           properties: {
             name: { type: 'string' },
           },
@@ -4942,6 +5112,56 @@ describe('doGenerate', () => {
     expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
   });
 
+  it('should use the json tool fallback for claude-opus-5 (Bedrock rejects output_config.format)', async () => {
+    server.urls[opus5AnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'json-tool-id',
+                  name: 'json',
+                  input: { name: 'Test' },
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'tool_use',
+      },
+    };
+
+    await opus5AnthropicModel.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a name' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
+    expect(
+      requestBody.additionalModelRequestFields?.output_config,
+    ).toBeUndefined();
+  });
+
   it('should use native output_config.format for models with structured output support even without thinking enabled', async () => {
     server.urls[newerAnthropicGenerateUrl].response = {
       type: 'json-value',
@@ -4985,6 +5205,7 @@ describe('doGenerate', () => {
       {
         "format": {
           "schema": {
+            "additionalProperties": false,
             "properties": {
               "name": {
                 "type": "string",
@@ -4997,6 +5218,63 @@ describe('doGenerate', () => {
           },
           "type": "json_schema",
         },
+      }
+    `);
+  });
+
+  it('should sanitize unsupported JSON schema keywords for native structured output', async () => {
+    server.urls[newerAnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            content: [{ text: '{"labels":["Spring","Summer","Autumn"]}' }],
+            role: 'assistant',
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'end_turn',
+      },
+    };
+
+    await newerAnthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            labels: {
+              type: 'array',
+              maxItems: 3,
+              items: { type: 'string' },
+            },
+          },
+          required: ['labels'],
+          additionalProperties: false,
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.additionalModelRequestFields.output_config.format.schema)
+      .toMatchInlineSnapshot(`
+      {
+        "additionalProperties": false,
+        "properties": {
+          "labels": {
+            "description": "max items: 3.",
+            "items": {
+              "type": "string",
+            },
+            "type": "array",
+          },
+        },
+        "required": [
+          "labels",
+        ],
+        "type": "object",
       }
     `);
   });
@@ -6115,6 +6393,63 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  describe('legacy Anthropic model capabilities', () => {
+    const simpleResponse = {
+      type: 'json-value' as const,
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'stop_sequence',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    it('should use budget-based reasoning for a platform-prefixed Claude 3.5 model', async () => {
+      server.urls[anthropicGenerateUrl].response = simpleResponse;
+
+      await legacyAnthropic35Model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+        type: 'enabled',
+        budget_tokens: Math.round(4096 * 0.6),
+      });
+      expect(
+        requestBody.additionalModelRequestFields?.output_config,
+      ).toBeUndefined();
+    });
+
+    it('should use the JSON tool fallback for a platform-prefixed Claude 3.7 model', async () => {
+      server.urls[legacyAnthropic37GenerateUrl].response = simpleResponse;
+
+      await legacyAnthropic37Model.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+            },
+            required: ['name'],
+            additionalProperties: false,
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.toolConfig?.tools).toHaveLength(1);
+      expect(requestBody.toolConfig?.tools[0].toolSpec.name).toBe('json');
+      expect(
+        requestBody.additionalModelRequestFields?.output_config,
+      ).toBeUndefined();
+    });
   });
 
   describe('top-level reasoning parameter', () => {

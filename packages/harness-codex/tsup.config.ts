@@ -16,10 +16,7 @@ export default defineConfig([
     },
   },
   {
-    entry: {
-      'bridge/index': 'src/bridge/index.ts',
-      'bridge/host-tool-mcp': 'src/bridge/host-tool-mcp.ts',
-    },
+    entry: { 'bridge/index': 'src/bridge/index.ts' },
     format: ['esm'],
     target: 'es2022',
     outExtension: () => ({ js: '.mjs' }),
@@ -31,13 +28,7 @@ export default defineConfig([
     // not resolve there. tsup externalizes package.json deps by default, hence
     // the explicit override.
     noExternal: ['@ai-sdk/harness'],
-    external: [
-      '@openai/codex-sdk',
-      '@openai/codex',
-      '@modelcontextprotocol/sdk',
-      'ws',
-      'zod',
-    ],
+    external: ['@openai/codex-sdk', '@openai/codex', 'ws'],
     define: {
       __PACKAGE_VERSION__: packageVersion,
     },

@@ -1,5 +1,30 @@
 # @ai-sdk/mistral
 
+## 4.0.16
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+
+## 4.0.15
+
+### Patch Changes
+
+- 21d2a2f: fix (mistral): preserve reasoning in multi-turn conversations
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/provider-utils@5.0.13
+
+## 4.0.14
+
+### Patch Changes
+
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+
 ## 4.0.13
 
 ### Patch Changes

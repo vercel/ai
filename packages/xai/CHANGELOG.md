@@ -1,5 +1,45 @@
 # @ai-sdk/xai
 
+## 4.0.21
+
+### Patch Changes
+
+- dc2f851: Warn when xAI Responses models ignore unsupported sampling settings.
+
+## 4.0.20
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+  - @ai-sdk/openai-compatible@3.0.16
+
+## 4.0.19
+
+### Patch Changes
+
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/openai-compatible@3.0.15
+  - @ai-sdk/provider-utils@5.0.13
+
+## 4.0.18
+
+### Patch Changes
+
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+  - @ai-sdk/openai-compatible@3.0.14
+
+## 4.0.17
+
+### Patch Changes
+
+- Updated dependencies [8b52503]
+  - @ai-sdk/openai-compatible@3.0.13
+
 ## 4.0.16
 
 ### Patch Changes

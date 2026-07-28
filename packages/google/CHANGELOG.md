@@ -1,5 +1,69 @@
 # @ai-sdk/google
 
+## 4.0.27
+
+### Patch Changes
+
+- d2d9324: Forward `topK` through Google Interactions requests and warn when unsupported frequency or presence penalties are provided.
+- 8bedb2c: Allow fetch to derive the content length for Google file upload request bodies.
+
+## 4.0.26
+
+### Patch Changes
+
+- c49380c: feat: add experimental streaming speech translation models (`openai.translation('gpt-realtime-translate')` over the OpenAI Realtime translations WebSocket and `google.translation('gemini-3.5-live-translate-preview')` over the Gemini Live API). `connectToWebSocket` in `@ai-sdk/provider-utils` now passes close code and reason to `onClose` (additive, optional parameter).
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+
+## 4.0.25
+
+### Patch Changes
+
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/provider-utils@5.0.13
+
+## 4.0.24
+
+### Patch Changes
+
+- c57a353: fix(google): omit unsupported function call IDs
+
+## 4.0.23
+
+### Patch Changes
+
+- f126649: feat(provider/google): default unknown Gemini model IDs to the newest supported capabilities
+
+## 4.0.22
+
+### Patch Changes
+
+- 66b7151: fix(provider/google): preserve Gemini Live lifecycle events
+- 5e5453c: Avoid missing thought-signature warnings and skip-validator injection for valid unsigned Gemini 3 parallel function calls in the same model response.
+
+## 4.0.21
+
+### Patch Changes
+
+- 7c16f21: feat(google): add `gemini-3.6-flash` and `gemini-3.5-flash-lite` models
+
+## 4.0.20
+
+### Patch Changes
+
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+
+## 4.0.19
+
+### Patch Changes
+
+- a70b027: fix(provider/google): associate multiple code execution results with their tool call
+- a3ce307: fix(provider/google): surface Gemini `responseId` as `response-metadata` (stream) and `response.id` (generate)
+
 ## 4.0.18
 
 ### Patch Changes

@@ -1,5 +1,29 @@
 # @ai-sdk/provider-utils
 
+## 5.0.14
+
+### Patch Changes
+
+- 0c464d9: feat(provider-utils): add a typed serialization error
+- c49380c: feat: add experimental streaming speech translation models (`openai.translation('gpt-realtime-translate')` over the OpenAI Realtime translations WebSocket and `google.translation('gemini-3.5-live-translate-preview')` over the Gemini Live API). `connectToWebSocket` in `@ai-sdk/provider-utils` now passes close code and reason to `onClose` (additive, optional parameter).
+
+## 5.0.13
+
+### Patch Changes
+
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+
+## 5.0.12
+
+### Patch Changes
+
+- 02ffdcb: fix(provider-utils): bound media-type sniffing decode for ID3-prefixed input
+
+  Media-type detection stripped ID3 tags before the ~18-byte prefix cap, decoding the entire base64 attachment (plus a full-size copy) whenever the data began with `ID3`/`SUQz`. This turned the intended O(1) sniff into an O(N) decode of the whole attachment. Detection now decodes at most a bounded prefix and skips the ID3 tag within that bound, keeping cost O(1) in input size on all paths (image, audio, and combined).
+
+- 76cb673: fix: detect MP4 audio from its ftyp box during transcription
+
 ## 5.0.11
 
 ### Patch Changes
