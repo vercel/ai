@@ -99,6 +99,10 @@ class DefaultSession implements Experimental_SharedV4Session {
   }
 }
 
+/**
+ * Creates an experimental key-value Session for sharing state and cleanup
+ * callbacks across a lifecycle.
+ */
 export function createSession(): Experimental_SharedV4Session {
   return new DefaultSession();
 }

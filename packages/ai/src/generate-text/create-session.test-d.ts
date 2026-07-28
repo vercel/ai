@@ -1,11 +1,11 @@
 import { describe, expectTypeOf, it } from 'vitest';
-import { createSession } from './create-session';
+import { experimental_createSession } from '../index';
 
-describe('createSession types', () => {
+describe('experimental_createSession types', () => {
   it('infers created values and supports typed access', () => {
     type Value = { id: number };
 
-    const session = createSession();
+    const session = experimental_createSession();
     const value: Value = { id: 1 };
     const getOrSetValue = session.getOrSet('key', () => value, {
       onDestroy: value => {
