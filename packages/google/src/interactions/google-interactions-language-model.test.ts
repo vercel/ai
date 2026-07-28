@@ -634,6 +634,35 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       expect(body.generation_config?.thinking_summaries).toBe('auto');
     });
 
+    it('forwards topK and warns for unsupported penalties', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        topK: 10,
+        frequencyPenalty: 0.5,
+        presencePenalty: 0.5,
+      });
+      const body = (await server.calls[0].requestBodyJson) as {
+        generation_config?: {
+          top_k?: number;
+          frequency_penalty?: number;
+          presence_penalty?: number;
+        };
+      };
+      expect(body.generation_config).toEqual({
+        top_k: 10,
+      });
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'frequencyPenalty',
+        },
+        {
+          type: 'unsupported',
+          feature: 'presencePenalty',
+        },
+      ]);
+    });
+
     it('returns interactionId for turn 1 from a captured fixture', async () => {
       prepareJsonFixtureResponse('multi-turn-stateful-turn1');
       const result = await model.doGenerate({
@@ -1435,12 +1464,15 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       expect(warning).toBeUndefined();
     });
 
-    it('emits a warning and drops generation-config fields (temperature, topP, thinkingLevel) when an agent is set', async () => {
+    it('emits a warning listing every dropped generation-config field when an agent is set', async () => {
       const agentModel = provider.interactions({ agent: AGENT_NAME });
       const result = await agentModel.doGenerate({
         prompt: TEST_PROMPT,
         temperature: 0.5,
         topP: 0.9,
+        topK: 10,
+        frequencyPenalty: 0.5,
+        presencePenalty: 0.5,
         providerOptions: {
           google: { thinkingLevel: 'high' },
         },
@@ -1455,6 +1487,9 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
           w.type === 'other' &&
           (w as { message?: string }).message?.includes('temperature') &&
           (w as { message?: string }).message?.includes('topP') &&
+          (w as { message?: string }).message?.includes('topK') &&
+          (w as { message?: string }).message?.includes('frequencyPenalty') &&
+          (w as { message?: string }).message?.includes('presencePenalty') &&
           (w as { message?: string }).message?.includes('thinkingLevel'),
       );
       expect(warning).toBeDefined();
