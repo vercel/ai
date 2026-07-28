@@ -3,12 +3,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import {
   CodeModeProtocolError,
-  continueCodeModeInterrupt,
-  isCodeModeInterrupt,
-  replaceCodeModeInterruptResult,
-  requestCodeModeInterrupt,
-  runCodeMode,
-  unwrapCodeModeResult,
+  experimental_continueCodeModeInterrupt as continueCodeModeInterrupt,
+  experimental_isCodeModeInterrupt as isCodeModeInterrupt,
+  experimental_replaceCodeModeInterruptResult as replaceCodeModeInterruptResult,
+  experimental_requestCodeModeInterrupt as requestCodeModeInterrupt,
+  experimental_runCodeMode as runCodeMode,
+  experimental_unwrapCodeModeResult as unwrapCodeModeResult,
 } from '../dist/index.js';
 
 describe('generic host interrupt continuations', () => {

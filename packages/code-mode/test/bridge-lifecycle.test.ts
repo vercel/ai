@@ -4,7 +4,7 @@ import { z } from 'zod';
 import {
   CodeModeBridgeLimitError,
   CodeModeDetachedBridgeRequestError,
-  runCodeMode,
+  experimental_runCodeMode as runCodeMode,
 } from '../dist/index.js';
 import { deferred, delay, withTimeout } from './helpers.js';
 

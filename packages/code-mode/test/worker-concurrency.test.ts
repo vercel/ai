@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import {
   CodeModeAbortedError,
-  runCodeMode,
-  setMaxWorkers,
+  experimental_runCodeMode as runCodeMode,
+  experimental_setMaxWorkers as setMaxWorkers,
 } from '../dist/index.js';
 import { deferred, emptyMessages, withTimeout } from './helpers.js';
 

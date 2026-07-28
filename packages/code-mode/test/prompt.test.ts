@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { jsonSchema, tool } from 'ai';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { createCodeModeTool } from '../dist/index.js';
+import { experimental_createCodeModeTool as createCodeModeTool } from '../dist/index.js';
 
 const PROMPT_SAMPLES_DIR = join(process.cwd(), 'prompt-samples');
 

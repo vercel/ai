@@ -2,20 +2,20 @@ import { tool } from 'ai';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import {
-  attachCodeModeApprovalResult,
   CodeModeProtocolError,
-  continueCodeModeApproval,
-  continueCodeModeInterrupt,
-  createCodeModeTool,
-  getCodeModeApprovalResponse,
-  isCodeModeApprovalInterrupt,
-  isCodeModeInterrupt,
-  requestCodeModeInterrupt,
-  runCodeMode,
-  setCodeModeContinuationSigningKey,
-  toCodeModeApprovalMessages,
-  unwrapCodeModeResult,
-  wrapToolLoopAgentForCodeModeApprovals,
+  experimental_attachCodeModeApprovalResult as attachCodeModeApprovalResult,
+  experimental_continueCodeModeApproval as continueCodeModeApproval,
+  experimental_continueCodeModeInterrupt as continueCodeModeInterrupt,
+  experimental_createCodeModeTool as createCodeModeTool,
+  experimental_getCodeModeApprovalResponse as getCodeModeApprovalResponse,
+  experimental_isCodeModeApprovalInterrupt as isCodeModeApprovalInterrupt,
+  experimental_isCodeModeInterrupt as isCodeModeInterrupt,
+  experimental_requestCodeModeInterrupt as requestCodeModeInterrupt,
+  experimental_runCodeMode as runCodeMode,
+  experimental_setCodeModeContinuationSigningKey as setCodeModeContinuationSigningKey,
+  experimental_toCodeModeApprovalMessages as toCodeModeApprovalMessages,
+  experimental_unwrapCodeModeResult as unwrapCodeModeResult,
+  experimental_wrapToolLoopAgentForCodeModeApprovals as wrapToolLoopAgentForCodeModeApprovals,
 } from '../dist/index.js';
 
 const APPROVAL_KIND = 'ai-sdk-code-mode/tool-approval';

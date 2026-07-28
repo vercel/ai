@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { runCodeMode } from '../dist/index.js';
+import { experimental_runCodeMode as runCodeMode } from '../dist/index.js';
 
 describe('security hardening', () => {
   it('does not expose dynamic code compilation or Node globals', async () => {

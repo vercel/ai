@@ -1,7 +1,10 @@
 import { tool } from 'ai';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import { createCodeModeTool, runCodeMode } from '../dist/index.js';
+import {
+  experimental_createCodeModeTool as createCodeModeTool,
+  experimental_runCodeMode as runCodeMode,
+} from '../dist/index.js';
 import { deferred, emptyMessages } from './helpers.js';
 
 describe('AI SDK tool bridge', () => {

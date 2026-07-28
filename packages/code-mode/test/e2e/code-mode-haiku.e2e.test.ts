@@ -3,7 +3,10 @@ import { join } from 'node:path';
 import { gateway, generateText, stepCountIs, tool } from 'ai';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { createCodeModeTool, setMaxWorkers } from '../../dist/index.js';
+import {
+  experimental_createCodeModeTool as createCodeModeTool,
+  experimental_setMaxWorkers as setMaxWorkers,
+} from '../../dist/index.js';
 
 const HAIKU_MODEL_ID = 'anthropic/claude-haiku-4.5';
 const CODE_SAMPLES_DIR = join(process.cwd(), 'code-samples');
@@ -452,7 +455,7 @@ function codeModeOutputs(result: CodeModeResult): unknown[] {
 function writeCodeSample(slug: string, result: CodeModeResult): void {
   const sources = codeModeSources(result);
   expect(sources).toHaveLength(1);
-  writeCodeSampleFile(slug, sources[0]);
+  writeCodeSampleFile(slug, sources[0]!);
 }
 
 function writeCodeSamples(

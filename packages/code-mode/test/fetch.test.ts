@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { runCodeMode } from '../dist/index.js';
+import { experimental_runCodeMode as runCodeMode } from '../dist/index.js';
 import { deferred, withTimeout } from './helpers.js';
 
 describe('fetch support', () => {

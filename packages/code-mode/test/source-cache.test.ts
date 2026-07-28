@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { CodeModeSourceTooLargeError, runCodeMode } from '../dist/index.js';
+import {
+  CodeModeSourceTooLargeError,
+  experimental_runCodeMode as runCodeMode,
+} from '../dist/index.js';
 import {
   clearTransformedSourceCache,
   getTransformedSourceCacheStats,

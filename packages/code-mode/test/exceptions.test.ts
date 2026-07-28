@@ -1,7 +1,7 @@
 import { tool } from 'ai';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import { runCodeMode } from '../dist/index.js';
+import { experimental_runCodeMode as runCodeMode } from '../dist/index.js';
 
 describe('exceptions and serialization', () => {
   it('fails clearly for unknown tools', async () => {

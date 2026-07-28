@@ -9,7 +9,10 @@ const execFileAsync = promisify(execFile);
 describe('sandbox console', () => {
   it('forwards console log/info/debug to stdout and error to stderr', async () => {
     const { stdout, stderr } = await runIsolated(`
-import { runCodeMode, setMaxWorkers } from "./dist/index.js";
+import {
+  experimental_runCodeMode as runCodeMode,
+  experimental_setMaxWorkers as setMaxWorkers,
+} from "./dist/index.js";
 
 setMaxWorkers(1);
 await runCodeMode({

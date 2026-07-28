@@ -3,10 +3,10 @@ import { tool } from 'ai';
 import { afterEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import {
-  isCodeModeInterrupt,
-  requestCodeModeInterrupt,
-  runCodeMode,
-  setCodeModeWorkerUrl,
+  experimental_isCodeModeInterrupt as isCodeModeInterrupt,
+  experimental_requestCodeModeInterrupt as requestCodeModeInterrupt,
+  experimental_runCodeMode as runCodeMode,
+  experimental_setCodeModeWorkerUrl as setCodeModeWorkerUrl,
 } from '../dist/index.js';
 
 const ADJACENT_TURN_WORKER_SOURCE = `

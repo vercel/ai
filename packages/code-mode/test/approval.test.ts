@@ -4,7 +4,7 @@ import { z } from 'zod';
 import {
   CodeModeToolApprovalDeniedError,
   CodeModeToolApprovalRequiredError,
-  runCodeMode,
+  experimental_runCodeMode as runCodeMode,
 } from '../dist/index.js';
 
 describe('approval behavior', () => {

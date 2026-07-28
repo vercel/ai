@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { runCodeMode, setMaxWorkers } from '../dist/index.js';
+import {
+  experimental_runCodeMode as runCodeMode,
+  experimental_setMaxWorkers as setMaxWorkers,
+} from '../dist/index.js';
 
 setMaxWorkers(32);
 

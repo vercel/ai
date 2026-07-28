@@ -7,10 +7,10 @@ import {
   type CodeModeNestedToolCallEvent,
   type CodeModeNestedToolResultEvent,
   type CodeModeTrace,
-  createCodeModeTool,
-  isCodeModeApprovalInterrupt,
-  runCodeMode,
-  setMaxWorkers,
+  experimental_createCodeModeTool as createCodeModeTool,
+  experimental_isCodeModeApprovalInterrupt as isCodeModeApprovalInterrupt,
+  experimental_runCodeMode as runCodeMode,
+  experimental_setMaxWorkers as setMaxWorkers,
 } from '../dist/index.js';
 import { deferred, delay, emptyMessages } from './helpers.js';
 

@@ -41,8 +41,8 @@ import { tool } from "ai";
 import { z } from "zod";
 import {
   CodeModeConcurrencyError,
-  runCodeMode,
-  setMaxWorkers,
+  experimental_runCodeMode as runCodeMode,
+  experimental_setMaxWorkers as setMaxWorkers,
 } from "./dist/index.js";
 
 let releaseSlow;
@@ -103,8 +103,8 @@ import { tool } from "ai";
 import { z } from "zod";
 import {
   CodeModeConcurrencyError,
-  runCodeMode,
-  setMaxWorkers,
+  experimental_runCodeMode as runCodeMode,
+  experimental_setMaxWorkers as setMaxWorkers,
 } from "./dist/index.js";
 
 setMaxWorkers(undefined);
