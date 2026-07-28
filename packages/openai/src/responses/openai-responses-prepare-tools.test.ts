@@ -469,6 +469,7 @@ describe('prepareResponsesTools', () => {
               externalWebAccess: true,
               filters: {
                 allowedDomains: ['example.com', 'test.org'],
+                blockedDomains: ['blocked.example', 'blocked.test'],
               },
               searchContextSize: 'high',
               userLocation: {
@@ -496,6 +497,10 @@ describe('prepareResponsesTools', () => {
                   "example.com",
                   "test.org",
                 ],
+                "blocked_domains": [
+                  "blocked.example",
+                  "blocked.test",
+                ],
               },
               "search_context_size": "high",
               "type": "web_search",
@@ -512,7 +517,7 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
-    it('should prepare web_search tool with filters but no externalWebAccess', async () => {
+    it('should prepare web_search tool with blocked domains', async () => {
       const result = await prepareResponsesTools({
         tools: [
           {
@@ -521,7 +526,7 @@ describe('prepareResponsesTools', () => {
             name: 'web_search',
             args: {
               filters: {
-                allowedDomains: ['example.com'],
+                blockedDomains: ['example.com'],
               },
             },
           },
@@ -537,7 +542,8 @@ describe('prepareResponsesTools', () => {
             {
               "external_web_access": undefined,
               "filters": {
-                "allowed_domains": [
+                "allowed_domains": undefined,
+                "blocked_domains": [
                   "example.com",
                 ],
               },

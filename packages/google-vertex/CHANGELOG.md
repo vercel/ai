@@ -1,5 +1,24 @@
 # @ai-sdk/google-vertex
 
+## 3.0.158
+
+### Patch Changes
+
+- Updated dependencies [0ab9755]
+- Updated dependencies [0ab9755]
+- Updated dependencies [0ab9755]
+  - @ai-sdk/anthropic@2.0.91
+
+## 3.0.157
+
+### Patch Changes
+
+- 5e9957e: feat(provider/google): default unknown Gemini model IDs to the newest supported capabilities
+- Updated dependencies [5e9957e]
+- Updated dependencies [db28434]
+  - @ai-sdk/google@2.0.85
+  - @ai-sdk/anthropic@2.0.90
+
 ## 3.0.156
 
 ### Patch Changes

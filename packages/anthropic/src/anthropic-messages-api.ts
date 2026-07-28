@@ -23,7 +23,20 @@ export type AnthropicCacheControl = {
 
 export interface AnthropicSystemMessage {
   role: 'system';
-  content: Array<AnthropicTextContent>;
+  content: Array<AnthropicTextContent | AnthropicToolChangeContent>;
+}
+
+/**
+ * Mid-conversation tool change content block. Adds or removes a tool from the
+ * conversation's tool set without invalidating the prompt cache.
+ *
+ * Only valid inside system messages that appear in the `messages` array.
+ * Requires the `mid-conversation-tool-changes-2026-07-01` beta.
+ */
+export interface AnthropicToolChangeContent {
+  type: 'tool_addition' | 'tool_removal';
+  tool: { type: 'tool_reference'; name: string };
+  cache_control?: never;
 }
 
 export interface AnthropicUserMessage {

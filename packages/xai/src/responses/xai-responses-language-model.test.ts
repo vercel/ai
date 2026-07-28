@@ -589,6 +589,41 @@ describe('XaiResponsesLanguageModel', () => {
         `);
       });
 
+      it('should warn about unsupported sampling settings', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast-non-reasoning',
+          output: [],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          topK: 10,
+          frequencyPenalty: 0.5,
+          presencePenalty: 0.5,
+        });
+
+        expect(result.warnings).toMatchInlineSnapshot(`
+          [
+            {
+              "setting": "topK",
+              "type": "unsupported-setting",
+            },
+            {
+              "setting": "frequencyPenalty",
+              "type": "unsupported-setting",
+            },
+            {
+              "setting": "presencePenalty",
+              "type": "unsupported-setting",
+            },
+          ]
+        `);
+      });
+
       describe('responseFormat', () => {
         it('should send response format json schema', async () => {
           prepareJsonResponse({
@@ -1221,6 +1256,37 @@ describe('XaiResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it('should warn about unsupported sampling settings', async () => {
+      prepareChunksFixtureResponse('xai-text-streaming.1');
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+        topK: 10,
+        frequencyPenalty: 0.5,
+        presencePenalty: 0.5,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.find(part => part.type === 'stream-start')?.warnings)
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "setting": "topK",
+            "type": "unsupported-setting",
+          },
+          {
+            "setting": "frequencyPenalty",
+            "type": "unsupported-setting",
+          },
+          {
+            "setting": "presencePenalty",
+            "type": "unsupported-setting",
+          },
+        ]
+      `);
+    });
+
     describe('text streaming', () => {
       it('should stream web search with real response', async () => {
         prepareChunksFixtureResponse('xai-web-search-tool.1');
