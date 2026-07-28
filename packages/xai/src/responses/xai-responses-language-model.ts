@@ -89,15 +89,21 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
       })) ?? {};
 
     if (topK != null) {
-      warnings.push({ type: 'unsupported', feature: 'topK' });
+      warnings.push({ type: 'unsupported-setting', setting: 'topK' });
     }
 
     if (frequencyPenalty != null) {
-      warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'frequencyPenalty',
+      });
     }
 
     if (presencePenalty != null) {
-      warnings.push({ type: 'unsupported', feature: 'presencePenalty' });
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'presencePenalty',
+      });
     }
 
     if (stopSequences != null) {

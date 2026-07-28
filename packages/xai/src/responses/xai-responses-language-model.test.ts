@@ -609,16 +609,16 @@ describe('XaiResponsesLanguageModel', () => {
         expect(result.warnings).toMatchInlineSnapshot(`
           [
             {
-              "feature": "topK",
-              "type": "unsupported",
+              "setting": "topK",
+              "type": "unsupported-setting",
             },
             {
-              "feature": "frequencyPenalty",
-              "type": "unsupported",
+              "setting": "frequencyPenalty",
+              "type": "unsupported-setting",
             },
             {
-              "feature": "presencePenalty",
-              "type": "unsupported",
+              "setting": "presencePenalty",
+              "type": "unsupported-setting",
             },
           ]
         `);
@@ -1272,16 +1272,16 @@ describe('XaiResponsesLanguageModel', () => {
         .toMatchInlineSnapshot(`
         [
           {
-            "feature": "topK",
-            "type": "unsupported",
+            "setting": "topK",
+            "type": "unsupported-setting",
           },
           {
-            "feature": "frequencyPenalty",
-            "type": "unsupported",
+            "setting": "frequencyPenalty",
+            "type": "unsupported-setting",
           },
           {
-            "feature": "presencePenalty",
-            "type": "unsupported",
+            "setting": "presencePenalty",
+            "type": "unsupported-setting",
           },
         ]
       `);
