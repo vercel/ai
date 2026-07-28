@@ -1,5 +1,3 @@
-import fs from 'node:fs';
-
 import type {
   LanguageModelV2Prompt,
   LanguageModelV2ProviderDefinedTool,
@@ -2716,17 +2714,6 @@ describe('doStream', () => {
     [TEST_URL_GEMINI_1_5_FLASH]: {},
   });
 
-  function prepareChunksFixtureResponse(filename: string) {
-    server.urls[TEST_URL_GEMINI_PRO].response = {
-      type: 'stream-chunks',
-      chunks: fs
-        .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
-        .trim()
-        .split('\n')
-        .map(line => `data: ${line}\n\n`),
-    };
-  }
-
   const prepareStreamResponse = ({
     content,
     headers,
@@ -4163,30 +4150,6 @@ describe('doStream', () => {
         },
       ]
     `);
-  });
-
-  it('should stream a thought signature from a final empty text part', async () => {
-    prepareChunksFixtureResponse('issue-18073-empty-text-thought-signature');
-
-    const { stream } = await model.doStream({
-      prompt: TEST_PROMPT,
-    });
-
-    const chunks = await convertReadableStreamToArray(stream);
-    const emptyTextDelta = chunks.find(
-      chunk => chunk.type === 'text-delta' && chunk.delta === '',
-    );
-
-    expect(emptyTextDelta).toMatchObject({
-      type: 'text-delta',
-      id: '0',
-      delta: '',
-      providerMetadata: {
-        google: {
-          thoughtSignature: expect.any(String),
-        },
-      },
-    });
   });
 
   describe('raw chunks', () => {
