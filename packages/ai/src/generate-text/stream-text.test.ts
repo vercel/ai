@@ -6428,6 +6428,106 @@ describe('streamText', () => {
   });
 
   describe('result.steps', () => {
+    it('should retain provider metadata from an empty text delta in the step content', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello, world!' },
+            {
+              type: 'text-delta',
+              id: '1',
+              delta: '',
+              providerMetadata: {
+                testProvider: { signature: '1234567890' },
+              },
+            },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        ...defaultSettings(),
+      });
+
+      const steps = await result.steps;
+      const textPart = steps[0].content.find(part => part.type === 'text');
+
+      expect(textPart?.text).toBe('Hello, world!');
+      expect(textPart?.providerMetadata).toStrictEqual({
+        testProvider: { signature: '1234567890' },
+      });
+    });
+
+    it('should retain provider metadata from a text part that only contains an empty text delta', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            {
+              type: 'text-delta',
+              id: '1',
+              delta: '',
+              providerMetadata: {
+                testProvider: { signature: '1234567890' },
+              },
+            },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        ...defaultSettings(),
+      });
+
+      const steps = await result.steps;
+      const textPart = steps[0].content.find(part => part.type === 'text');
+
+      expect(textPart?.text).toBe('');
+      expect(textPart?.providerMetadata).toStrictEqual({
+        testProvider: { signature: '1234567890' },
+      });
+    });
+
+    it('should filter out empty text deltas without provider metadata from the stream', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: '' },
+            { type: 'text-delta', id: '1', delta: 'Hello, world!' },
+            { type: 'text-delta', id: '1', delta: '' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        ...defaultSettings(),
+      });
+
+      const textDeltas = (
+        await convertAsyncIterableToArray(result.stream)
+      ).filter(part => part.type === 'text-delta');
+
+      expect(textDeltas).toStrictEqual([
+        {
+          type: 'text-delta',
+          id: '1',
+          text: 'Hello, world!',
+          providerMetadata: undefined,
+        },
+      ]);
+    });
+
     it('should add the reasoning from the model response to the step result', async () => {
       const result = streamText({
         model: modelWithReasoning,
