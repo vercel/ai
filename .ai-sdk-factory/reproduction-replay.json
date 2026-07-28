@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 17936,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-17936.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-17936.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_17936_REPRODUCED: xai.responses generateText and streamText silently dropped topK, presencePenalty, and frequencyPenalty without warnings"
+  }
+}
