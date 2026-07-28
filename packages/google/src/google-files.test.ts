@@ -173,7 +173,7 @@ describe('GoogleFiles', () => {
       expect(JSON.parse(capturedBody!)).toEqual({ file: {} });
     });
 
-    it('should send file data to the upload URL with correct headers', async () => {
+    it('should send ArrayBuffer-backed file data to the upload URL', async () => {
       let capturedUploadInit: RequestInit | undefined;
       const uploadUrl = 'https://upload.example.com/resume-session';
       const { files } = createMockFiles({
@@ -185,19 +185,38 @@ describe('GoogleFiles', () => {
         },
       });
 
-      const bytes = new Uint8Array([10, 20, 30]);
+      const bytes = new Uint8Array(new SharedArrayBuffer(3));
+      bytes.set([10, 20, 30]);
+
       await files.uploadFile({
         data: { type: 'data', data: bytes },
         mediaType: 'application/octet-stream',
         providerOptions: {},
       });
 
-      expect(capturedUploadInit?.method).toBe('POST');
-      const headers = capturedUploadInit?.headers as Record<string, string>;
-      expect(headers['Content-Length']).toBe('3');
-      expect(headers['X-Goog-Upload-Offset']).toBe('0');
-      expect(headers['X-Goog-Upload-Command']).toBe('upload, finalize');
-      expect(capturedUploadInit?.body).toEqual(bytes);
+      const body = capturedUploadInit?.body as Uint8Array;
+
+      expect({
+        method: capturedUploadInit?.method,
+        headers: capturedUploadInit?.headers,
+        body: Array.from(body),
+        bodyBuffer: body.buffer.constructor.name,
+      }).toMatchInlineSnapshot(`
+        {
+          "body": [
+            10,
+            20,
+            30,
+          ],
+          "bodyBuffer": "ArrayBuffer",
+          "headers": {
+            "Content-Length": "3",
+            "X-Goog-Upload-Command": "upload, finalize",
+            "X-Goog-Upload-Offset": "0",
+          },
+          "method": "POST",
+        }
+      `);
     });
 
     it('should return providerReference with google key set to file URI', async () => {
