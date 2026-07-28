@@ -304,6 +304,15 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
       store: z.boolean().nullish(),
 
       /**
+       * Transport used for this Responses API call.
+       *
+       * WebSocket transport is only available for the native OpenAI provider
+       * and requires an AI SDK session (as provided by `generateText` and
+       * `streamText`). HTTP remains the default.
+       */
+      transport: z.enum(['http', 'websocket']).optional(),
+
+      /**
        * Whether to pass through non-image file types as generic input files.
        *
        * By default, inline file inputs are restricted to images and PDFs.
