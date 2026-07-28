@@ -70,4 +70,25 @@ try {
 }
 ```
 
+Image prompts must reference files that already exist inside the sandbox. Pass
+an absolute path, or a relative path beginning with `./` or `../`; inline image
+data and remote URLs are not supported.
+
+```ts
+const result = await agent.generate({
+  session,
+  prompt: {
+    role: 'user',
+    content: [
+      { type: 'text', text: 'Describe this screenshot.' },
+      {
+        type: 'image',
+        image: '/workspace/screenshots/dashboard.png',
+        mediaType: 'image/png',
+      },
+    ],
+  },
+});
+```
+
 The adapter requires a `HarnessV1SandboxProvider` whose handles expose at least one port — `@ai-sdk/sandbox-vercel` is the supported choice today. The agent calls `provider.createSession()` when a session starts. Use `session.detach()` to park the bridge and sandbox, `session.stop()` to save state and stop the sandbox, or `session.destroy()` to clean up without keeping resume state.

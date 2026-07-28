@@ -16,7 +16,34 @@ import { z } from 'zod/v4';
 export const outboundMessageSchema = harnessV1BridgeOutboundMessageSchema;
 export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
 
+export function isSandboxLocalImagePath(value: string): boolean {
+  return (
+    value.startsWith('/') || value.startsWith('./') || value.startsWith('../')
+  );
+}
+
+const sandboxLocalImagePathSchema = z
+  .string()
+  .refine(
+    isSandboxLocalImagePath,
+    "Codex local image paths must begin with '/', './', or '../'.",
+  );
+
+const codexUserInputSchema = z.array(
+  z.discriminatedUnion('type', [
+    z.object({ type: z.literal('text'), text: z.string() }),
+    z.object({
+      type: z.literal('local_image'),
+      path: sandboxLocalImagePathSchema,
+    }),
+  ]),
+);
+export type CodexUserInput = z.infer<typeof codexUserInputSchema>[number];
+const codexPromptInputSchema = z.union([z.string(), codexUserInputSchema]);
+export type CodexPromptInput = z.infer<typeof codexPromptInputSchema>;
+
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
+  prompt: codexPromptInputSchema,
   reasoningEffort: z.enum(['low', 'medium', 'high']).optional(),
   webSearch: z.boolean().optional(),
   // Resume signal. When supplied, the bridge calls

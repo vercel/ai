@@ -190,6 +190,69 @@ describe('codex adapter — instructions gating', () => {
     expect(lastStart.instructions).toBeUndefined();
   });
 
+  it('preserves ordered text and local images in the start prompt', async () => {
+    const session = await startSession();
+
+    await session.doPromptTurn({
+      prompt: {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Compare ' },
+          {
+            type: 'image',
+            image: '/wd/codex-s1/screenshots/before.png',
+            mediaType: 'image/png',
+          },
+          { type: 'text', text: ' with ' },
+          {
+            type: 'image',
+            image: './screenshots/after.png',
+            mediaType: 'image/png',
+          },
+        ],
+      },
+      emit: () => {},
+    });
+
+    const start = await waitForStart({ count: 1 });
+    expect(start.prompt).toEqual([
+      {
+        type: 'text',
+        text: expect.stringMatching(
+          /<session-instructions>[\s\S]*<user-message>\n$/,
+        ),
+      },
+      { type: 'text', text: 'Compare ' },
+      {
+        type: 'local_image',
+        path: '/wd/codex-s1/screenshots/before.png',
+      },
+      { type: 'text', text: ' with ' },
+      { type: 'local_image', path: './screenshots/after.png' },
+      { type: 'text', text: '\n</user-message>' },
+    ]);
+  });
+
+  it('rejects inline image data instead of treating it as a local path', async () => {
+    const session = await startSession();
+
+    await expect(
+      session.doPromptTurn({
+        prompt: {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              image: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB',
+              mediaType: 'image/png',
+            },
+          ],
+        },
+        emit: () => {},
+      }),
+    ).rejects.toThrow('Images must be materialized to a sandbox-local path');
+  });
+
   it('prepends host tool usage guidance on the first user message only', async () => {
     const session = await startSession();
     const tools: ReadonlyArray<HarnessV1ToolSpec> = [
