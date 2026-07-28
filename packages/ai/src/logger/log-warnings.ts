@@ -82,23 +82,6 @@ export const FIRST_WARNING_INFO_MESSAGE =
 
 let hasLoggedBefore = false;
 
-function emitWarning({
-  message,
-  type,
-}: {
-  message: string;
-  type: 'DeprecationWarning' | 'Warning';
-}) {
-  if (
-    typeof process !== 'undefined' &&
-    typeof process.emitWarning === 'function'
-  ) {
-    process.emitWarning(message, { type });
-  } else {
-    console.warn(message);
-  }
-}
-
 /**
  * Logs warnings to the console or uses a custom logger if configured.
  *
@@ -134,15 +117,11 @@ export const logWarnings: LogWarningsFunction = options => {
   // display information note on first call
   if (!hasLoggedBefore) {
     hasLoggedBefore = true;
-    emitWarning({
-      message: FIRST_WARNING_INFO_MESSAGE,
-      type: 'Warning',
-    });
+    console.warn(FIRST_WARNING_INFO_MESSAGE);
   }
 
   // default behavior: log warnings to the console
   for (const warning of options.warnings) {
-<<<<<<< HEAD
     console.warn(
       formatWarning({
         warning,
@@ -150,17 +129,6 @@ export const logWarnings: LogWarningsFunction = options => {
         model: options.model,
       }),
     );
-=======
-    const message = formatWarning({
-      warning,
-      provider: options.provider,
-      model: options.model,
-    });
-    emitWarning({
-      message,
-      type: warning.type === 'deprecated' ? 'DeprecationWarning' : 'Warning',
-    });
->>>>>>> 2e2224b3c4 (fix: prevent the warning system banner from corrupting stdout output (#17973))
   }
 };
 
