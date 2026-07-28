@@ -54,9 +54,6 @@ export const FIRST_WARNING_INFO_MESSAGE =
 
 let hasLoggedBefore = false;
 
-<<<<<<< HEAD
-export const logWarnings: LogWarningsFunction = warnings => {
-=======
 function emitWarning({
   message,
   type,
@@ -74,21 +71,7 @@ function emitWarning({
   }
 }
 
-/**
- * Logs warnings to the console or uses a custom logger if configured.
- *
- * The behavior can be customized via the `AI_SDK_LOG_WARNINGS` global variable:
- * - If set to `false`, warnings are suppressed.
- * - If set to a function, that function is called with the warnings.
- * - Otherwise, warnings are logged to the console using `console.warn`.
- *
- * @param options - The options containing warnings and context.
- * @param options.warnings - The warnings to log.
- * @param options.provider - The provider id used for the call, if scoped to a specific provider.
- * @param options.model - The model id used for the call, if scoped to a specific provider.
- */
-export const logWarnings: LogWarningsFunction = options => {
->>>>>>> 2e2224b3c4 (fix: prevent the warning system banner from corrupting stdout output (#17973))
+export const logWarnings: LogWarningsFunction = warnings => {
   // if the warnings array is empty, do nothing
   if (warnings.length === 0) {
     return;
@@ -116,23 +99,12 @@ export const logWarnings: LogWarningsFunction = options => {
     });
   }
 
-<<<<<<< HEAD
-  // default behavior: log warnings to the console
-  for (const warning of warnings) {
-    console.warn(formatWarning(warning));
-=======
   // default behavior: log warnings via process.emitWarning if available, otherwise console.warn
-  for (const warning of options.warnings) {
-    const message = formatWarning({
-      warning,
-      provider: options.provider,
-      model: options.model,
-    });
+  for (const warning of warnings) {
     emitWarning({
-      message,
-      type: warning.type === 'deprecated' ? 'DeprecationWarning' : 'Warning',
+      message: formatWarning(warning),
+      type: 'Warning',
     });
->>>>>>> 2e2224b3c4 (fix: prevent the warning system banner from corrupting stdout output (#17973))
   }
 };
 
