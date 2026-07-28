@@ -9,11 +9,13 @@ import {
   type HarnessWorkflowModelMessage,
 } from './harness-workflow-state';
 import {
-  runHarnessAgentSlice,
   type HarnessWorkflowAgent,
   type HarnessWorkflowChunk,
   type HarnessWorkflowStreamResult,
-} from './run-harness-agent-slice';
+} from './run-harness-agent';
+import { runHarnessAgentSlice } from './run-harness-agent-slice';
+import { runHarnessAgentStep } from './run-harness-agent-step';
+import { runHarnessAgentTimeSlice } from './run-harness-agent-time-slice';
 
 function resumeState(tag: string): HarnessV1ResumeSessionState {
   return {
@@ -33,8 +35,12 @@ function continueState(tag: string): HarnessV1ContinueTurnState {
   };
 }
 
-/** A fake session that records lifecycle calls. */
-function fakeSession(): HarnessAgentSession & {
+function fakeSession(
+  options: {
+    unfinishedTurn?: boolean;
+    suspendState?: HarnessV1ContinueTurnState;
+  } = {},
+): HarnessAgentSession & {
   suspendCalls: number;
   detachCalls: number;
   stopCalls: number;
@@ -46,9 +52,12 @@ function fakeSession(): HarnessAgentSession & {
     detachCalls: 0,
     stopCalls: 0,
     destroyCalls: 0,
+    hasUnfinishedTurn() {
+      return options.unfinishedTurn ?? false;
+    },
     async suspendTurn() {
       session.suspendCalls++;
-      return continueState('suspended');
+      return options.suspendState ?? continueState('suspended');
     },
     async detach() {
       session.detachCalls++;
@@ -70,8 +79,10 @@ function fakeSession(): HarnessAgentSession & {
   return session;
 }
 
-/** A stream result whose chunks are emitted from a fixed list, then either ends
- * (finished) or blocks until the session is suspended (timed_out). */
+/**
+ * A stream result whose chunks are emitted from a fixed list, then either ends
+ * or blocks until the session is suspended.
+ */
 function streamResult(opts: {
   chunks: HarnessWorkflowChunk[];
   blockAfter?: boolean;
@@ -127,7 +138,7 @@ function collectingWritable(): {
   return { writable, chunks, isClosed: () => closed };
 }
 
-describe('runHarnessAgentSlice', () => {
+describe('runHarnessAgentTimeSlice', () => {
   test('first turn finishes: streams chunks, writes one terminal finish, keeps the session warm', async () => {
     const session = fakeSession();
     const { result } = streamResult({
@@ -149,9 +160,14 @@ describe('runHarnessAgentSlice', () => {
     };
 
     const { writable, chunks, isClosed } = collectingWritable();
-    const next = await runHarnessAgentSlice({
+    const state = createHarnessWorkflowState({
+      prompt: 'hi',
+      sessionId: 'ses_1',
+    });
+    expect(state.status).toBe('not_started');
+    const next = await runHarnessAgentTimeSlice({
       agent,
-      state: createHarnessWorkflowState({ prompt: 'hi', sessionId: 'ses_1' }),
+      state,
       writable,
     });
 
@@ -190,7 +206,7 @@ describe('runHarnessAgentSlice', () => {
     };
 
     const { writable } = collectingWritable();
-    const next = await runHarnessAgentSlice({
+    const next = await runHarnessAgentTimeSlice({
       agent,
       state: createHarnessWorkflowState({ prompt: 'hi', sessionId: 'ses_1' }),
       destroyOnFinish: true,
@@ -205,7 +221,23 @@ describe('runHarnessAgentSlice', () => {
   });
 
   test('tool approval pause suspends the turn and closes the response stream', async () => {
-    const session = fakeSession();
+    const continueFrom: HarnessV1ContinueTurnState = {
+      ...continueState('suspended'),
+      pendingToolApprovals: [
+        {
+          approvalId: 'a1',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: '{}',
+          kind: 'custom',
+          providerExecuted: false,
+        },
+      ],
+    };
+    const session = fakeSession({
+      unfinishedTurn: true,
+      suspendState: continueFrom,
+    });
     const { result } = streamResult({
       chunks: [
         { type: 'start' },
@@ -221,14 +253,21 @@ describe('runHarnessAgentSlice', () => {
     };
 
     const { writable, isClosed } = collectingWritable();
-    const next = await runHarnessAgentSlice({
+    const next = await runHarnessAgentTimeSlice({
       agent,
       state: createHarnessWorkflowState({ prompt: 'hi', sessionId: 'ses_1' }),
       writable,
     });
 
     expect(next.status).toBe('awaiting_tool_approval');
-    expect(next.continueFrom).toEqual(continueState('suspended'));
+    expect(next.continueFrom).toEqual(continueFrom);
+    expect(next.resumeFrom).toEqual({
+      type: 'resume-session',
+      harnessId: 'mock',
+      specificationVersion: 'harness-v1',
+      data: { tag: 'suspended' },
+      continueFrom,
+    });
     expect(session.suspendCalls).toBe(1);
     expect(session.detachCalls).toBe(0);
     expect(session.destroyCalls).toBe(0);
@@ -254,7 +293,7 @@ describe('runHarnessAgentSlice', () => {
 
     const { writable } = collectingWritable();
     // A subsequent user turn resumes the warm session and sends the new prompt.
-    const next = await runHarnessAgentSlice({
+    const next = await runHarnessAgentTimeSlice({
       agent,
       state: createHarnessWorkflowState({
         prompt: 'turn 2',
@@ -272,7 +311,7 @@ describe('runHarnessAgentSlice', () => {
     expect(next.status).toBe('finished');
   });
 
-  test('times out: suspends at the budget and carries the cursor forward', async () => {
+  test('completes the time slice: suspends at the budget and carries the cursor forward', async () => {
     const session = fakeSession();
     const { result, closeForSuspend } = streamResult({
       chunks: [{ type: 'start' }, { type: 'text-delta', id: 't', delta: 'a' }],
@@ -294,14 +333,14 @@ describe('runHarnessAgentSlice', () => {
     };
 
     const { writable, isClosed } = collectingWritable();
-    const next = await runHarnessAgentSlice({
+    const next = await runHarnessAgentTimeSlice({
       agent,
       state: createHarnessWorkflowState({ prompt: 'hi', sessionId: 'ses_1' }),
-      sliceTimeoutSeconds: 0.05,
+      timeSliceSeconds: 0.05,
       writable,
     });
 
-    expect(next.status).toBe('timed_out');
+    expect(next.status).toBe('ready_for_next_step');
     expect(next.continueFrom).toEqual(continueState('suspended'));
     expect(session.suspendCalls).toBe(1);
     // A suspended slice must NOT destroy the sandbox — the next slice attaches.
@@ -329,12 +368,12 @@ describe('runHarnessAgentSlice', () => {
     };
 
     const { writable, chunks } = collectingWritable();
-    const next = await runHarnessAgentSlice({
+    const next = await runHarnessAgentTimeSlice({
       agent,
       state: {
         sessionId: 'ses_1',
         prompt: 'hi',
-        status: 'timed_out',
+        status: 'ready_for_next_step',
         continueFrom: continueState('cursor'),
       },
       writable,
@@ -350,7 +389,7 @@ describe('runHarnessAgentSlice', () => {
     expect(chunks.map(c => c.type)).toEqual(['text-delta', 'finish']);
   });
 
-  test('continued slice reopens text and reasoning parts that were active at timeout', async () => {
+  test('continued slice reopens text and reasoning parts that were active at the time-slice boundary', async () => {
     const firstSession = fakeSession();
     const { result: firstResult, closeForSuspend } = streamResult({
       chunks: [
@@ -380,14 +419,14 @@ describe('runHarnessAgentSlice', () => {
     };
     const firstWritable = collectingWritable();
 
-    const timedOut = await runHarnessAgentSlice({
+    const readyForNextStep = await runHarnessAgentTimeSlice({
       agent: firstAgent,
       state: createHarnessWorkflowState({ prompt: 'hi', sessionId: 'ses_1' }),
-      sliceTimeoutSeconds: 0.05,
+      timeSliceSeconds: 0.05,
       writable: firstWritable.writable,
     });
 
-    expect(timedOut.status).toBe('timed_out');
+    expect(readyForNextStep.status).toBe('ready_for_next_step');
     expect(firstWritable.chunks.map(c => c.type)).toEqual([
       'start',
       'text-start',
@@ -417,9 +456,9 @@ describe('runHarnessAgentSlice', () => {
     };
     const secondWritable = collectingWritable();
 
-    const finished = await runHarnessAgentSlice({
+    const finished = await runHarnessAgentTimeSlice({
       agent: secondAgent,
-      state: timedOut,
+      state: readyForNextStep,
       writable: secondWritable.writable,
     });
 
@@ -467,10 +506,10 @@ describe('runHarnessAgentSlice', () => {
       }),
     };
 
-    const timedOut = await runHarnessAgentSlice({
+    const readyForNextStep = await runHarnessAgentTimeSlice({
       agent: firstAgent,
       state: createHarnessWorkflowState({ prompt: 'hi', sessionId: 'ses_1' }),
-      sliceTimeoutSeconds: 0.05,
+      timeSliceSeconds: 0.05,
       writable: collectingWritable().writable,
     });
 
@@ -495,9 +534,9 @@ describe('runHarnessAgentSlice', () => {
     };
     const secondWritable = collectingWritable();
 
-    const finished = await runHarnessAgentSlice({
+    const finished = await runHarnessAgentTimeSlice({
       agent: secondAgent,
-      state: timedOut,
+      state: readyForNextStep,
       writable: secondWritable.writable,
     });
 
@@ -544,7 +583,7 @@ describe('runHarnessAgentSlice', () => {
     };
 
     const { writable } = collectingWritable();
-    const next = await runHarnessAgentSlice({
+    const next = await runHarnessAgentTimeSlice({
       agent,
       state: createHarnessWorkflowState({
         messages,
@@ -558,5 +597,118 @@ describe('runHarnessAgentSlice', () => {
     expect(agent.continueStream).not.toHaveBeenCalled();
     expect(next.status).toBe('finished');
     expect('messages' in next).toBe(false);
+  });
+});
+
+describe('runHarnessAgentStep', () => {
+  test('returns ready_for_next_step when a semantic step ends before the turn', async () => {
+    const session = fakeSession({ unfinishedTurn: true });
+    const { result } = streamResult({
+      chunks: [
+        { type: 'start' },
+        { type: 'text-start', id: 't1' },
+        { type: 'text-delta', id: 't1', delta: 'working' },
+      ],
+      finishReason: 'tool-calls',
+    });
+    const agent: HarnessWorkflowAgent = {
+      createSession: vi.fn(async () => session),
+      stream: vi.fn(async () => result),
+      continueStream: vi.fn(async () => result),
+    };
+
+    const { writable, chunks, isClosed } = collectingWritable();
+    const next = await runHarnessAgentStep({
+      agent,
+      state: createHarnessWorkflowState({ prompt: 'hi', sessionId: 'ses_1' }),
+      writable,
+    });
+
+    expect(next.status).toBe('ready_for_next_step');
+    expect(next.continueFrom).toEqual(continueState('suspended'));
+    expect(next.finalResult).toBeUndefined();
+    expect(session.suspendCalls).toBe(1);
+    expect(session.detachCalls).toBe(0);
+    expect(session.destroyCalls).toBe(0);
+    expect(isClosed()).toBe(false);
+    expect(chunks.map(chunk => chunk.type)).toEqual([
+      'start',
+      'text-start',
+      'text-delta',
+      'text-end',
+    ]);
+  });
+
+  test('continues a semantic step and finishes the completed turn', async () => {
+    const session = fakeSession();
+    const { result } = streamResult({
+      chunks: [
+        { type: 'start' },
+        { type: 'text-delta', id: 't1', delta: 'done' },
+      ],
+      finishReason: 'stop',
+    });
+    const agent: HarnessWorkflowAgent = {
+      createSession: vi.fn(async () => session),
+      stream: vi.fn(async () => {
+        throw new Error('stream should not be called on a continued step');
+      }),
+      continueStream: vi.fn(async () => result),
+    };
+
+    const { writable, chunks, isClosed } = collectingWritable();
+    const next = await runHarnessAgentStep({
+      agent,
+      state: {
+        sessionId: 'ses_1',
+        prompt: 'hi',
+        status: 'ready_for_next_step',
+        continueFrom: continueState('cursor'),
+      },
+      writable,
+    });
+
+    expect(agent.createSession).toHaveBeenCalledWith({
+      sessionId: 'ses_1',
+      continueFrom: continueState('cursor'),
+    });
+    expect(agent.continueStream).toHaveBeenCalledTimes(1);
+    expect(next.status).toBe('finished');
+    expect(next.resumeFrom).toEqual(resumeState('detached'));
+    expect(isClosed()).toBe(true);
+    expect(chunks.map(chunk => chunk.type)).toEqual(['text-delta', 'finish']);
+  });
+});
+
+describe('runHarnessAgentSlice', () => {
+  test('supports sliceTimeoutSeconds and maps ready_for_next_step to timed_out', async () => {
+    const session = fakeSession();
+    const { result, closeForSuspend } = streamResult({
+      chunks: [{ type: 'start' }],
+      blockAfter: true,
+    });
+    const suspendingSession = session as unknown as {
+      suspendTurn: () => Promise<HarnessV1ContinueTurnState>;
+    };
+    const originalSuspend = suspendingSession.suspendTurn.bind(session);
+    suspendingSession.suspendTurn = async () => {
+      closeForSuspend();
+      return originalSuspend();
+    };
+    const agent: HarnessWorkflowAgent = {
+      createSession: vi.fn(async () => session),
+      stream: vi.fn(async () => result),
+      continueStream: vi.fn(async () => result),
+    };
+
+    const next = await runHarnessAgentSlice({
+      agent,
+      state: createHarnessWorkflowState({ prompt: 'hi', sessionId: 'ses_1' }),
+      sliceTimeoutSeconds: 0.05,
+      writable: collectingWritable().writable,
+    });
+
+    expect(next.status).toBe('timed_out');
+    expect(next.continueFrom).toEqual(continueState('suspended'));
   });
 });

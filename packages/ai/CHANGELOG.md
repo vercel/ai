@@ -1,5 +1,41 @@
 # ai
 
+## 7.0.41
+
+### Patch Changes
+
+- 2e2224b: Route the warning system information banner to stderr so it does not corrupt application output written to stdout.
+- Updated dependencies [bf216b3]
+  - @ai-sdk/gateway@4.0.31
+
+## 7.0.40
+
+### Patch Changes
+
+- c3782a6: Deprecate `Experimental_GeneratedImage` in favor of `GeneratedFile`.
+
+## 7.0.39
+
+### Patch Changes
+
+- 09a52cb: Promote the `repairText` option to stable on `generateObject` and `streamObject`, with a deprecated `experimental_repairText` alias for backwards compatibility.
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+  - @ai-sdk/gateway@4.0.30
+
+## 7.0.38
+
+### Patch Changes
+
+- 7bd6bdd: Avoid synthesizing client tool errors for invalid provider-executed tool calls.
+- 1e2f324: feat: add experimental speech translation model specification (`Experimental_SpeechTranslationModelV4`) and `experimental_streamTranslate` for streaming speech-to-speech translation
+- Updated dependencies [d9d2a11]
+- Updated dependencies [1e2f324]
+  - @ai-sdk/gateway@4.0.29
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/provider-utils@5.0.13
+
 ## 7.0.37
 
 ### Patch Changes

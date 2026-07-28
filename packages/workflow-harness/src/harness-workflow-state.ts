@@ -11,22 +11,24 @@ export type HarnessWorkflowModelMessage =
   | { readonly role: 'tool'; readonly content: any };
 
 /**
- * Where a workflow-driven harness run is in its slice loop.
+ * Where a workflow-driven harness run is in its execution loop.
  *
- *  - `running`   — fresh state, no slice has run yet.
- *  - `timed_out` — a slice hit its wall-clock budget; `continueFrom` carries
- *                  the cursor to continue the same turn.
+ *  - `not_started` — fresh state, no workflow step has run yet.
+ *  - `ready_for_next_step` — the turn remains unfinished and `continueFrom`
+ *                  carries the cursor for the next workflow step.
  *  - `awaiting_tool_approval` — the turn emitted one or more tool approval
  *                  requests and `continueFrom` carries the suspended turn.
- *  - `finished`  — the agent turn completed on its own; `finalResult` is set.
- *  - `failed`    — the turn errored; `error` is set.
+ *  - `finished` — the agent turn completed on its own; `finalResult` is set.
+ *  - `failed` — the turn errored; `error` is set.
  */
 export type HarnessWorkflowStatus =
-  | 'running'
-  | 'timed_out'
+  | 'not_started'
+  | 'ready_for_next_step'
   | 'awaiting_tool_approval'
   | 'finished'
-  | 'failed';
+  | 'failed'
+  /** @deprecated Use `ready_for_next_step` instead. */
+  | 'timed_out';
 
 export interface HarnessWorkflowUsageSummary {
   readonly inputTokens?: number;
@@ -54,7 +56,7 @@ export interface HarnessWorkflowStreamContext {
 }
 
 /**
- * Serializable state machine threaded between workflow slices. A `'use step'`
+ * Serializable state machine threaded between workflow steps. A `'use step'`
  * returns the next value of this object, and the Workflow DevKit persists that
  * return value — so this is the entire durable state of a harness run. Every
  * field must be JSON-serializable.
@@ -77,13 +79,13 @@ export interface HarnessWorkflowState {
    * The new user turn for this run — a plain string or a single
    * `UserModelMessage` (the harness's own {@link HarnessV1Prompt}), so
    * structured content survives instead of being flattened to text. Sent once,
-   * on the slice that starts the turn.
+   * on the execution that starts the turn.
    */
   readonly prompt: HarnessV1Prompt;
   /**
    * Full AI SDK model messages for continuing a suspended approval turn. When
-   * present, the next slice sends these to `HarnessAgent.stream()` so approval
-   * responses can resume the suspended turn.
+   * present, the next execution sends these to `HarnessAgent.stream()` so
+   * approval responses can resume the suspended turn.
    */
   readonly messages?: HarnessWorkflowModelMessage[];
   readonly status: HarnessWorkflowStatus;
@@ -94,8 +96,8 @@ export interface HarnessWorkflowState {
   readonly resumeFrom?: HarnessV1ResumeSessionState;
   /**
    * Continuation coordinates for this run's current suspended turn. When
-   * present, the next slice must call `continueTurn` rather than sending
-   * `prompt` again.
+   * present, the next execution continues the turn rather than sending `prompt`
+   * again.
    */
   readonly continueFrom?: HarnessV1ContinueTurnState;
   readonly streamContext?: HarnessWorkflowStreamContext;
@@ -128,7 +130,7 @@ export function createHarnessWorkflowState(
     sessionId: input.sessionId,
     prompt: input.prompt ?? '',
     ...(input.messages != null ? { messages: input.messages } : {}),
-    status: 'running',
+    status: 'not_started',
     ...(input.resumeFrom != null ? { resumeFrom: input.resumeFrom } : {}),
     ...(input.continueFrom != null ? { continueFrom: input.continueFrom } : {}),
   };
