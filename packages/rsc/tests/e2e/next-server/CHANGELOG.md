@@ -4,6 +4,13 @@
 
 ### Patch Changes
 
+- Updated dependencies [f6020d7]
+  - ai@6.0.237
+
+## 0.0.1
+
+### Patch Changes
+
 - ai@6.0.236
 
 ## 0.0.1

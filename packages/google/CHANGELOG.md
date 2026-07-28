@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.102
+
+### Patch Changes
+
+- e728a98: Forward `topK` through Google Interactions requests and warn when unsupported frequency or presence penalties are provided.
+
 ## 3.0.101
 
 ### Patch Changes
