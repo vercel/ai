@@ -20,28 +20,6 @@ class DefaultSession implements Experimental_SharedV4Session {
     return this.items.get(key)?.value as T | undefined;
   }
 
-  set<T>(
-    key: string | symbol,
-    value: T,
-    options?: {
-      onDestroy?: (value: T) => void | PromiseLike<void>;
-    },
-  ): T {
-    this.assertNotDestroyed();
-
-    if (this.items.has(key)) {
-      throw new Error(`Session key ${String(key)} is already in use.`);
-    }
-
-    const onDestroy = options?.onDestroy;
-    this.items.set(key, {
-      value,
-      onDestroy: onDestroy == null ? undefined : () => onDestroy(value),
-    });
-
-    return value;
-  }
-
   getOrSet<T>(
     key: string | symbol,
     createValue: () => T,
@@ -57,7 +35,15 @@ class DefaultSession implements Experimental_SharedV4Session {
       return item.value as T;
     }
 
-    return this.set(key, createValue(), options);
+    const value = createValue();
+    const onDestroy = options?.onDestroy;
+
+    this.items.set(key, {
+      value,
+      onDestroy: onDestroy == null ? undefined : () => onDestroy(value),
+    });
+
+    return value;
   }
 
   delete<T = unknown>(key: string | symbol): T | undefined {

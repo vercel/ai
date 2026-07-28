@@ -2936,13 +2936,13 @@ describe('streamText', () => {
             const session = options.experimental_session!;
             sessions.push(session);
 
-            if (attempt++ === 0) {
-              session.set('resource', 'persisted', {
-                onDestroy: () => {
-                  callOrder.push('destroy');
-                },
-              });
+            const resource = session.getOrSet('resource', () => 'persisted', {
+              onDestroy: () => {
+                callOrder.push('destroy');
+              },
+            });
 
+            if (attempt++ === 0) {
               throw new APICallError({
                 message: 'Internal Server Error',
                 url: 'https://api.example.com/v1/chat',
@@ -2952,7 +2952,7 @@ describe('streamText', () => {
               });
             }
 
-            expect(session.get('resource')).toBe('persisted');
+            expect(resource).toBe('persisted');
             return { stream: createSuccessfulStream() };
           },
         }),
@@ -2990,7 +2990,7 @@ describe('streamText', () => {
           doStream: async options => {
             const session = options.experimental_session!;
             sessions.push(session);
-            session.set('step-state', 'persisted', {
+            session.getOrSet('step-state', () => 'persisted', {
               onDestroy: () => {
                 destroyCalls++;
               },
@@ -3068,7 +3068,7 @@ describe('streamText', () => {
       const result = streamText({
         model: new MockLanguageModelV4({
           doStream: async options => {
-            options.experimental_session!.set('resource', 'value', {
+            options.experimental_session!.getOrSet('resource', () => 'value', {
               onDestroy: async () => {
                 throw cleanupError;
               },
@@ -3109,7 +3109,7 @@ describe('streamText', () => {
       const result = streamText({
         model: new MockLanguageModelV4({
           doStream: async options => {
-            options.experimental_session!.set('resource', 'value', {
+            options.experimental_session!.getOrSet('resource', () => 'value', {
               onDestroy: () => {
                 throw cleanupError;
               },
@@ -3150,7 +3150,7 @@ describe('streamText', () => {
       const result = streamText({
         model: new MockLanguageModelV4({
           doStream: async options => {
-            options.experimental_session!.set('resource', 'value', {
+            options.experimental_session!.getOrSet('resource', () => 'value', {
               onDestroy: cleanup,
             });
             throw providerError;
@@ -3172,7 +3172,7 @@ describe('streamText', () => {
       const result = streamText({
         model: new MockLanguageModelV4({
           doStream: async options => {
-            options.experimental_session!.set('resource', 'value', {
+            options.experimental_session!.getOrSet('resource', () => 'value', {
               onDestroy: () => {
                 destroyed = true;
               },
@@ -3207,7 +3207,7 @@ describe('streamText', () => {
       const result = streamText({
         model: new MockLanguageModelV4({
           doStream: async options => {
-            options.experimental_session!.set('resource', 'value', {
+            options.experimental_session!.getOrSet('resource', () => 'value', {
               onDestroy: cleanup,
             });
 
@@ -3254,7 +3254,7 @@ describe('streamText', () => {
       const result = streamText({
         model: new MockLanguageModelV4({
           doStream: async options => {
-            options.experimental_session!.set('resource', 'value', {
+            options.experimental_session!.getOrSet('resource', () => 'value', {
               onDestroy: cleanup,
             });
 
@@ -3284,7 +3284,7 @@ describe('streamText', () => {
       const result = streamText({
         model: new MockLanguageModelV4({
           doStream: async options => {
-            options.experimental_session!.set('resource', 'value', {
+            options.experimental_session!.getOrSet('resource', () => 'value', {
               onDestroy() {
                 throw cleanupError;
               },
@@ -17452,7 +17452,7 @@ describe('streamText', () => {
         model: new MockLanguageModelV4({
           doStream: async ({ abortSignal, experimental_session }) => {
             receivedAbortSignal = abortSignal;
-            experimental_session!.set('resource', 'value', {
+            experimental_session!.getOrSet('resource', () => 'value', {
               onDestroy: cleanup,
             });
             return {

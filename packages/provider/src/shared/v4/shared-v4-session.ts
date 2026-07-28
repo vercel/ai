@@ -17,18 +17,6 @@ export type SharedV4Session = {
   get<T = unknown>(key: string | symbol): T | undefined;
 
   /**
-   * Stores a value and optional cleanup callback, then returns the value.
-   * Throws when the key is already in use.
-   */
-  set<T>(
-    key: string | symbol,
-    value: T,
-    options?: {
-      onDestroy?: (value: T) => void | PromiseLike<void>;
-    },
-  ): T;
-
-  /**
    * Returns the existing value for the key. When the key is not present,
    * creates, stores, and returns a value. The factory and options are only
    * used when the value is created.

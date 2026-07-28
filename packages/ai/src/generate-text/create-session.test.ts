@@ -11,8 +11,10 @@ describe('createSession', () => {
     expect(session.get('object')).toBeUndefined();
     expect(session.delete('object')).toBeUndefined();
 
-    expect(session.set('object', object)).toBe(object);
-    expect(session.set(symbolKey, 'symbol value')).toBe('symbol value');
+    expect(session.getOrSet('object', () => object)).toBe(object);
+    expect(session.getOrSet(symbolKey, () => 'symbol value')).toBe(
+      'symbol value',
+    );
 
     expect(session.has('object')).toBe(true);
     expect(session.has(symbolKey)).toBe(true);
@@ -26,7 +28,7 @@ describe('createSession', () => {
   it('distinguishes a stored undefined value from a missing key', () => {
     const session = createSession();
 
-    expect(session.set('key', undefined)).toBeUndefined();
+    expect(session.getOrSet('key', () => undefined)).toBeUndefined();
     expect(session.has('key')).toBe(true);
     expect(session.get('key')).toBeUndefined();
 
@@ -34,23 +36,11 @@ describe('createSession', () => {
     expect(session.has('key')).toBe(false);
   });
 
-  it('throws when setting a key that is already in use', () => {
-    const session = createSession();
-
-    session.set('key', undefined);
-
-    expect(() => session.set('key', 'new value')).toThrow(
-      new Error('Session key key is already in use.'),
-    );
-    expect(session.has('key')).toBe(true);
-    expect(session.get('key')).toBeUndefined();
-  });
-
   it('returns an existing value from getOrSet', () => {
     const createValue = vi.fn(() => 'default');
     const session = createSession();
 
-    session.set('key', 'existing');
+    session.getOrSet('key', () => 'existing');
 
     expect(session.getOrSet('key', createValue)).toBe('existing');
     expect(session.get('key')).toBe('existing');
@@ -77,7 +67,7 @@ describe('createSession', () => {
     const createValue = vi.fn(() => 'default');
     const session = createSession();
 
-    session.set('key', undefined);
+    session.getOrSet('key', () => undefined);
 
     expect(session.getOrSet('key', createValue)).toBeUndefined();
     expect(session.has('key')).toBe(true);
@@ -87,10 +77,10 @@ describe('createSession', () => {
   it('allows a deleted key to be inserted again', () => {
     const session = createSession();
 
-    session.set('key', 'first');
+    session.getOrSet('key', () => 'first');
 
     expect(session.delete('key')).toBe('first');
-    expect(session.set('key', 'second')).toBe('second');
+    expect(session.getOrSet('key', () => 'second')).toBe('second');
     expect(session.get('key')).toBe('second');
   });
 
@@ -98,7 +88,7 @@ describe('createSession', () => {
     const cleanup = vi.fn();
     const session = createSession();
 
-    session.set('key', 'value', { onDestroy: cleanup });
+    session.getOrSet('key', () => 'value', { onDestroy: cleanup });
 
     expect(session.delete('key')).toBe('value');
     expect(cleanup).not.toHaveBeenCalled();
@@ -117,11 +107,11 @@ describe('createSession', () => {
     const thirdCleanup = vi.fn();
     const session = createSession();
 
-    session.set('first', 'first', { onDestroy: firstCleanup });
-    session.set('second', 'second', {
+    session.getOrSet('first', () => 'first', { onDestroy: firstCleanup });
+    session.getOrSet('second', () => 'second', {
       onDestroy: failingCleanup,
     });
-    session.set('third', 'third', { onDestroy: thirdCleanup });
+    session.getOrSet('third', () => 'third', { onDestroy: thirdCleanup });
 
     await expect(session.destroy()).rejects.toBe(cleanupError);
     expect(firstCleanup).toHaveBeenCalledExactlyOnceWith('first');
@@ -141,9 +131,13 @@ describe('createSession', () => {
     });
     const session = createSession();
 
-    session.set('first', 'first', { onDestroy: firstCleanup });
-    session.set('middle', 'middle', { onDestroy: successfulCleanup });
-    session.set('second', 'second', { onDestroy: secondCleanup });
+    session.getOrSet('first', () => 'first', { onDestroy: firstCleanup });
+    session.getOrSet('middle', () => 'middle', {
+      onDestroy: successfulCleanup,
+    });
+    session.getOrSet('second', () => 'second', {
+      onDestroy: secondCleanup,
+    });
 
     const error = await session.destroy().catch(error => error);
 
@@ -163,9 +157,6 @@ describe('createSession', () => {
     const cleanup = vi.fn(() => {
       expect(() => session.has('key')).toThrow('Session has been destroyed.');
       expect(() => session.get('key')).toThrow('Session has been destroyed.');
-      expect(() => session.set('other', 'value')).toThrow(
-        'Session has been destroyed.',
-      );
       expect(() => session.getOrSet('other', () => 'value')).toThrow(
         'Session has been destroyed.',
       );
@@ -174,7 +165,7 @@ describe('createSession', () => {
       );
     });
 
-    session.set('key', 'value', { onDestroy: cleanup });
+    session.getOrSet('key', () => 'value', { onDestroy: cleanup });
 
     await session.destroy();
 
@@ -189,7 +180,7 @@ describe('createSession', () => {
     const cleanup = vi.fn(() => cleanupGate);
     const session = createSession();
 
-    session.set('key', 'value', { onDestroy: cleanup });
+    session.getOrSet('key', () => 'value', { onDestroy: cleanup });
 
     const firstDestroyPromise = session.destroy();
     const secondDestroyPromise = session.destroy();
@@ -209,7 +200,7 @@ describe('createSession', () => {
     const cleanupError = new Error('cleanup failed');
     const session = createSession();
 
-    session.set('key', 'value', {
+    session.getOrSet('key', () => 'value', {
       onDestroy: () => {
         throw cleanupError;
       },

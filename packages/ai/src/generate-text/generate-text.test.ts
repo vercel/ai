@@ -96,7 +96,7 @@ describe('abort signal handling', () => {
           modelCallCount++;
 
           if (modelCallCount === 1) {
-            options.experimental_session!.set('resource', 'value', {
+            options.experimental_session!.getOrSet('resource', () => 'value', {
               onDestroy: cleanup,
             });
 
@@ -313,13 +313,17 @@ describe('generateText', () => {
             const session = options.experimental_session!;
             sessions.push(session);
 
-            if (attempt++ === 0) {
-              session.set('retry-state', 'available', {
+            const retryState = session.getOrSet(
+              'retry-state',
+              () => 'available',
+              {
                 onDestroy: () => {
                   events.push('destroy');
                 },
-              });
+              },
+            );
 
+            if (attempt++ === 0) {
               throw new APICallError({
                 message: 'Internal Server Error',
                 url: 'https://example.com',
@@ -329,7 +333,7 @@ describe('generateText', () => {
               });
             }
 
-            expect(session.get<string>('retry-state')).toBe('available');
+            expect(retryState).toBe('available');
 
             return {
               ...dummyResponseValues,
@@ -359,7 +363,7 @@ describe('generateText', () => {
         doGenerate: async options => {
           const session = options.experimental_session!;
           sessions.push(session);
-          session.set('step-state', 'available', {
+          session.getOrSet('step-state', () => 'available', {
             onDestroy: () => {
               events.push('destroy');
             },
@@ -445,11 +449,15 @@ describe('generateText', () => {
           ...defaultSettings(),
           model: new MockLanguageModelV4({
             doGenerate: async options => {
-              options.experimental_session!.set('resource', 'value', {
-                onDestroy: () => {
-                  events.push('destroy');
+              options.experimental_session!.getOrSet(
+                'resource',
+                () => 'value',
+                {
+                  onDestroy: () => {
+                    events.push('destroy');
+                  },
                 },
-              });
+              );
               throw operationError;
             },
           }),
@@ -469,11 +477,15 @@ describe('generateText', () => {
           ...defaultSettings(),
           model: new MockLanguageModelV4({
             doGenerate: async options => {
-              options.experimental_session!.set('resource', 'value', {
-                onDestroy: async () => {
-                  throw cleanupError;
+              options.experimental_session!.getOrSet(
+                'resource',
+                () => 'value',
+                {
+                  onDestroy: async () => {
+                    throw cleanupError;
+                  },
                 },
-              });
+              );
 
               return {
                 ...dummyResponseValues,
@@ -496,7 +508,7 @@ describe('generateText', () => {
         ...defaultSettings(),
         model: new MockLanguageModelV4({
           doGenerate: async options => {
-            options.experimental_session!.set('resource', 'value', {
+            options.experimental_session!.getOrSet('resource', () => 'value', {
               onDestroy: () => {
                 throw cleanupError;
               },
@@ -523,9 +535,13 @@ describe('generateText', () => {
           ...defaultSettings(),
           model: new MockLanguageModelV4({
             doGenerate: async options => {
-              options.experimental_session!.set('resource', 'value', {
-                onDestroy: cleanup,
-              });
+              options.experimental_session!.getOrSet(
+                'resource',
+                () => 'value',
+                {
+                  onDestroy: cleanup,
+                },
+              );
 
               return {
                 ...dummyResponseValues,
@@ -6807,7 +6823,7 @@ describe('generateText', () => {
         model: new MockLanguageModelV4({
           doGenerate: async ({ abortSignal, experimental_session }) => {
             receivedAbortSignal = abortSignal;
-            experimental_session!.set('resource', 'value', {
+            experimental_session!.getOrSet('resource', () => 'value', {
               onDestroy: cleanup,
             });
             await delayedPromise.promise;
