@@ -248,7 +248,8 @@ export async function generateText<
   activeTools,
   toolOrder,
   prepareStep,
-  experimental_repairToolCall: repairToolCall,
+  experimental_repairToolCall,
+  repairToolCall = experimental_repairToolCall,
   experimental_refineToolInput: refineToolInput,
   experimental_download: download,
   runtimeContext = {} as RUNTIME_CONTEXT,
@@ -377,6 +378,13 @@ export async function generateText<
 
     /**
      * A function that attempts to repair a tool call that failed to parse.
+     */
+    repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
+
+    /**
+     * A function that attempts to repair a tool call that failed to parse.
+     *
+     * @deprecated Use `repairToolCall` instead.
      */
     experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
 
@@ -674,9 +682,12 @@ export async function generateText<
         ...collectedDeniedToolApprovals,
         ...revalidationDeniedToolApprovals,
       ];
+      const deniedToolApprovalsWithoutResults = deniedToolApprovals.filter(
+        toolApproval => toolApproval.existingToolResult == null,
+      );
 
       if (
-        deniedToolApprovals.length > 0 ||
+        deniedToolApprovalsWithoutResults.length > 0 ||
         localApprovedToolApprovals.length > 0
       ) {
         const toolResults = await executeTools({
@@ -733,7 +744,7 @@ export async function generateText<
         }
 
         // add execution denied tool results for all denied tool approvals:
-        for (const toolApproval of deniedToolApprovals) {
+        for (const toolApproval of deniedToolApprovalsWithoutResults) {
           toolContent.push({
             type: 'tool-result' as const,
             toolCallId: toolApproval.toolCall.toolCallId,
@@ -784,6 +795,10 @@ export async function generateText<
       const pendingDeferredToolCalls = new Map<string, { toolName: string }>();
 
       do {
+        if (steps.length > 0) {
+          mergedAbortSignal?.throwIfAborted();
+        }
+
         // Set up step timeout if configured
         const stepTimeoutId = setAbortTimeout({
           abortController: stepAbortController,
@@ -1049,6 +1064,15 @@ export async function generateText<
                   continue;
                 }
 
+                if (tool.onInputStart != null) {
+                  await tool.onInputStart({
+                    toolCallId: toolCall.toolCallId,
+                    messages: stepMessages,
+                    abortSignal: mergedAbortSignal,
+                    context: runtimeContext,
+                  });
+                }
+
                 if (tool?.onInputAvailable != null) {
                   await tool.onInputAvailable({
                     input: toolCall.input,
@@ -1140,7 +1164,10 @@ export async function generateText<
               // insert error tool outputs for invalid tool calls:
               // TODO AI SDK 6: invalid inputs should not require output parts
               const invalidToolCalls = stepToolCalls.filter(
-                toolCall => toolCall.invalid && toolCall.dynamic,
+                toolCall =>
+                  toolCall.invalid &&
+                  toolCall.dynamic &&
+                  !toolCall.providerExecuted,
               );
 
               clientToolOutputs = [];

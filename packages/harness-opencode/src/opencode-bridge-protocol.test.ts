@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { inboundMessageSchema } from './opencode-bridge-protocol';
+import {
+  inboundMessageSchema,
+  outboundMessageSchema,
+} from './opencode-bridge-protocol';
 
 describe('OpenCode bridge protocol', () => {
   it('accepts prompt and compact start operations', () => {

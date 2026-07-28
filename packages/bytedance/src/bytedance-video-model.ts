@@ -363,6 +363,7 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
       const { value: statusResponse, responseHeaders: statusHeaders } =
         await getFromApi({
           url: statusUrl,
+          validateUrl: false,
           headers: combineHeaders(
             await resolve(this.config.headers),
             options.headers,

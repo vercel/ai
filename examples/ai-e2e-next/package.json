@@ -42,7 +42,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.545.0",
-    "next": "^15.5.18",
+    "next": "^15.5.21",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-markdown": "9.0.1",

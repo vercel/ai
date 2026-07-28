@@ -1,5 +1,7 @@
 import {
   UnsupportedFunctionalityError,
+  type JSONSchema7,
+  type JSONObject,
   type LanguageModelV4CallOptions,
   type LanguageModelV4FunctionTool,
   type SharedV4ProviderReference,
@@ -24,8 +26,10 @@ import type {
   OpenAIResponsesTool,
 } from './openai-responses-api';
 
-type OpenAIToolOptions = {
+export type OpenAIToolOptions = {
+  allowedCallers?: Array<'direct' | 'programmatic'>;
   deferLoading?: boolean;
+  outputSchema?: JSONObject;
   namespace?: {
     name: string;
     description: string;
@@ -62,6 +66,8 @@ export async function prepareResponsesTools({
     | { type: 'mcp' }
     | { type: 'image_generation' }
     | { type: 'apply_patch' }
+    | { type: 'computer' }
+    | { type: 'programmatic_tool_calling' }
     | {
         type: 'allowed_tools';
         mode: 'auto' | 'required';
@@ -168,6 +174,12 @@ export async function prepareResponsesTools({
           case 'openai.apply_patch': {
             openaiTools.push({
               type: 'apply_patch',
+            });
+            break;
+          }
+          case 'openai.computer': {
+            openaiTools.push({
+              type: 'computer',
             });
             break;
           }
@@ -305,6 +317,12 @@ export async function prepareResponsesTools({
             resolvedCustomProviderToolNames.add(tool.name);
             break;
           }
+          case 'openai.programmatic_tool_calling': {
+            openaiTools.push({
+              type: 'programmatic_tool_calling',
+            });
+            break;
+          }
           case 'openai.tool_search': {
             const args = await validateTypes({
               value: tool.args,
@@ -374,7 +392,9 @@ export async function prepareResponsesTools({
           resolvedToolName === 'web_search_preview' ||
           resolvedToolName === 'web_search' ||
           resolvedToolName === 'mcp' ||
-          resolvedToolName === 'apply_patch'
+          resolvedToolName === 'apply_patch' ||
+          resolvedToolName === 'computer' ||
+          resolvedToolName === 'programmatic_tool_calling'
             ? { type: resolvedToolName }
             : resolvedCustomProviderToolNames.has(resolvedToolName)
               ? { type: 'custom', name: resolvedToolName }
@@ -407,6 +427,12 @@ function prepareFunctionTool({
     parameters: tool.inputSchema,
     ...(tool.strict != null ? { strict: tool.strict } : {}),
     ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
+    ...(options?.allowedCallers != null
+      ? { allowed_callers: options.allowedCallers }
+      : {}),
+    ...(options?.outputSchema != null
+      ? { output_schema: options.outputSchema as JSONSchema7 }
+      : {}),
   };
 }
 

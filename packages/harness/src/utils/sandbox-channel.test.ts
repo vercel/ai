@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { WebSocket } from 'ws';
 import { z } from 'zod/v4';
-import { SandboxChannel } from './sandbox-channel';
+import {
+  pinSandboxChannelEventCheckpoint,
+  SandboxChannel,
+} from './sandbox-channel';
 
 const outboundSchema = z.discriminatedUnion('type', [
   z.object({
@@ -10,6 +13,7 @@ const outboundSchema = z.discriminatedUnion('type', [
     delta: z.string(),
   }),
   z.object({ type: z.literal('finish') }),
+  z.object({ type: z.literal('finish-step') }),
   z.object({ type: z.literal('error'), error: z.unknown() }),
 ]);
 type Outbound = z.infer<typeof outboundSchema>;
@@ -129,7 +133,6 @@ describe('SandboxChannel', () => {
     connector
       .current()
       .deliver({ type: 'text-delta', id: 'a', delta: 'two' }, 2);
-    await flush();
 
     const cursor = await channel.suspend();
     expect(cursor).toBe(2);
@@ -157,6 +160,56 @@ describe('SandboxChannel', () => {
     expect(connector.current().sent).toEqual([
       JSON.stringify({ type: 'abort' }),
     ]);
+  });
+
+  it('suspends from a pinned event even after later events were dispatched', async () => {
+    const connector = makeConnector();
+    const channel = makeChannel(connector);
+    await channel.open();
+    let finishStep: Outbound | undefined;
+    channel.on('finish-step', event => {
+      finishStep = event;
+    });
+    channel.on('text-delta', () => {});
+
+    connector.current().deliver({ type: 'finish-step' }, 1);
+    connector
+      .current()
+      .deliver({ type: 'text-delta', id: 'a', delta: 'next' }, 2);
+    connector
+      .current()
+      .deliver({ type: 'text-delta', id: 'a', delta: ' step' }, 3);
+    await flush();
+
+    expect(channel.lastSeenEventId).toBe(3);
+    expect(pinSandboxChannelEventCheckpoint(finishStep)).toEqual(
+      expect.any(Function),
+    );
+    expect(connector.current().sent).toEqual([]);
+    await expect(channel.suspend()).resolves.toBe(1);
+  });
+
+  it('returns to the latest cursor after releasing a checkpoint', async () => {
+    const connector = makeConnector();
+    const channel = makeChannel(connector);
+    await channel.open();
+    let finishStep: Outbound | undefined;
+    channel.on('finish-step', event => {
+      finishStep = event;
+    });
+    channel.on('text-delta', () => {});
+
+    connector.current().deliver({ type: 'finish-step' }, 1);
+    connector
+      .current()
+      .deliver({ type: 'text-delta', id: 'a', delta: 'next' }, 2);
+    await flush();
+
+    const releaseCheckpoint = pinSandboxChannelEventCheckpoint(finishStep);
+    expect(releaseCheckpoint).toEqual(expect.any(Function));
+    releaseCheckpoint?.();
+
+    await expect(channel.suspend()).resolves.toBe(2);
   });
 
   it('refuses to send once terminally closed', async () => {
@@ -389,5 +442,44 @@ describe('SandboxChannel', () => {
     expect(text).toEqual(['x']);
     // Diagnostics still advance the resume cursor (they carry a seq).
     expect(channel.lastSeenEventId).toBe(3);
+  });
+
+  it('reports error frames to onBridgeError and still dispatches them normally', async () => {
+    const connector = makeConnector();
+    const errors: Outbound[] = [];
+    const channel = new SandboxChannel<Outbound, Inbound>({
+      connect: connector.connect,
+      outboundSchema,
+      onBridgeError: e => errors.push(e),
+    });
+    await channel.open();
+
+    const listenerEvents: Outbound[] = [];
+    channel.on('error', event => listenerEvents.push(event));
+    connector.current().deliver(
+      {
+        type: 'error',
+        error: {
+          name: 'Error',
+          message: 'boom',
+          stack: 'Error: boom',
+        },
+      },
+      1,
+    );
+    await flush();
+
+    expect(errors).toEqual([
+      {
+        type: 'error',
+        error: {
+          name: 'Error',
+          message: 'boom',
+          stack: 'Error: boom',
+        },
+      },
+    ]);
+    expect(listenerEvents).toEqual(errors);
+    expect(channel.lastSeenEventId).toBe(1);
   });
 });

@@ -91,6 +91,16 @@ Google language models can also be used in the `streamText` function
 and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output)
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
+<Note>
+  To remain forward-compatible, the provider treats unrecognized `gemini-*`
+  model IDs and `-latest` aliases like the newest supported Gemini generation.
+  Currently, this means Gemini 3 request behavior for provider-defined and mixed
+  tools, `thinkingLevel` reasoning, multimodal function responses, and thought
+  signatures. Known legacy Gemini model IDs keep their generation-specific
+  request behavior. This SDK default controls request serialization; the
+  selected model must still support each feature in the Google API.
+</Note>
+
 Google also supports some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
 You can pass them as an options argument:
 
@@ -163,7 +173,7 @@ The following optional provider options are available for Google models:
   Optional. Configuration for the model's thinking process. Only supported by specific [Google models](https://ai.google.dev/gemini-api/docs/thinking).
   - **thinkingLevel** _'minimal' | 'low' | 'medium' | 'high'_
 
-    Optional. Controls the thinking depth for Gemini 3 models. Gemini 3.1 Pro supports 'low', 'medium', and 'high', Gemini 3 Pro supports 'low' and 'high', while Gemini 3 Flash supports all four levels: 'minimal', 'low', 'medium', and 'high'. Only supported by Gemini 3 models.
+    Optional. Controls the thinking depth for Gemini 3 and later models. Gemini 3.1 Pro supports 'low', 'medium', and 'high', Gemini 3 Pro supports 'low' and 'high', while Gemini 3 Flash supports all four levels: 'minimal', 'low', 'medium', and 'high'.
 
   - **thinkingBudget** _number_
 
@@ -171,7 +181,7 @@ The following optional provider options are available for Google models:
     For more information about the possible value ranges for each model see [Google thinking documentation](https://ai.google.dev/gemini-api/docs/thinking#set-budget).
 
     <Note>
-      This option is for Gemini 2.5 models. Gemini 3 models should use
+      This option is for Gemini 2.5 models. Gemini 3 and later models should use
       `thinkingLevel` instead.
     </Note>
 
@@ -242,11 +252,11 @@ The following optional provider options are available for Google models:
 
 ### Thinking
 
-The Gemini 2.5 and Gemini 3 series models use an internal "thinking process" that significantly improves their reasoning and multi-step planning abilities, making them highly effective for complex tasks such as coding, advanced mathematics, and data analysis. For more information see [Google thinking documentation](https://ai.google.dev/gemini-api/docs/thinking).
+The Gemini 2.5 and Gemini 3-and-later series models use an internal "thinking process" that significantly improves their reasoning and multi-step planning abilities, making them highly effective for complex tasks such as coding, advanced mathematics, and data analysis. For more information see [Google thinking documentation](https://ai.google.dev/gemini-api/docs/thinking).
 
-#### Gemini 3 Models
+#### Gemini 3 and Later Models
 
-For Gemini 3 models, use the `thinkingLevel` parameter to control the depth of reasoning:
+For Gemini 3 and later models, use the `thinkingLevel` parameter to control the depth of reasoning:
 
 ```ts
 import { google, GoogleLanguageModelOptions } from '@ai-sdk/google';
@@ -498,7 +508,7 @@ The response will contain the tool calls and results from the code execution.
 With [Google Search grounding](https://ai.google.dev/gemini-api/docs/google-search),
 the model has access to the latest information using Google Search.
 
-```ts highlight="8,17-20"
+```ts highlight="8,17-19"
 import { google } from '@ai-sdk/google';
 import { GoogleProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
@@ -628,7 +638,7 @@ Enterprise Web Search provides the following benefits:
 
 ### File Search
 
-The [File Search tool](https://ai.google.dev/gemini-api/docs/file-search) lets Gemini retrieve context from your own documents that you have indexed in File Search stores. Only Gemini 2.5 and Gemini 3 models support this feature.
+The [File Search tool](https://ai.google.dev/gemini-api/docs/file-search) lets Gemini retrieve context from your own documents that you have indexed in File Search stores. The provider enables this tool for Gemini 2.5 and Gemini 3-and-later model IDs, including unrecognized future Gemini IDs.
 
 ```ts highlight="9-13"
 import { google } from '@ai-sdk/google';
@@ -657,7 +667,7 @@ Google provides a provider-defined URL context tool.
 
 The URL context tool allows you to provide specific URLs that you want the model to analyze directly in from the prompt.
 
-```ts highlight="9,13-17"
+```ts highlight="9,13-15"
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
@@ -818,7 +828,7 @@ This enables the model to provide answers based on your specific data sources an
   Google provider (`@ai-sdk/google`) to use this feature.
 </Note>
 
-```ts highlight="8,17-20"
+```ts highlight="5-8,13-17,25-27"
 import { createGoogleVertex } from '@ai-sdk/google-vertex';
 import { GoogleProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
@@ -1031,7 +1041,9 @@ The following Zod features are known to not work with Google:
 
 | Model                                 | Image Input | Object Generation | Tool Usage | Tool Streaming | Google Search | URL Context |
 | ------------------------------------- | ----------- | ----------------- | ---------- | -------------- | ------------- | ----------- |
+| `gemini-3.6-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 | `gemini-3.5-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
+| `gemini-3.5-flash-lite`               | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 | `gemini-3.1-pro-preview`              | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 | `gemini-3.1-flash-image-preview`      | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 | `gemini-3.1-flash-lite-preview`       | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
@@ -1077,6 +1089,11 @@ Google realtime models may require provider-specific audio formats, depending
 on the model and modality. See [Realtime](/docs/ai-sdk-core/realtime) for the
 complete setup and tool calling pattern.
 
+Gemini lifecycle signals that do not have provider-neutral equivalents are
+emitted as custom events. Inspect `rawType` for `goAway`,
+`sessionResumptionUpdate`, and `generationComplete` and use the event's `raw`
+payload for provider-specific details.
+
 ### Live Translation
 
 Use `gemini-3.5-live-translate-preview` for low-latency speech-to-speech
@@ -1115,6 +1132,57 @@ echoed instead of producing silence.
 Gemini Live Translation accepts audio input and produces translated audio
 output. Text input, tools, and custom instructions are not supported by this
 model.
+
+## Translation Models
+
+<Note type="warning">Speech translation is an experimental feature.</Note>
+
+For server-side streaming translation, you can create models that call the
+[Gemini Live API](https://ai.google.dev/gemini-api/docs/live) using the
+`.translation()` factory method. Translation models are streaming-only and are
+used with
+[`experimental_streamTranslate`](/docs/reference/ai-sdk-core/stream-translate).
+
+The first argument is the model id e.g. `gemini-3.5-live-translate-preview`.
+
+```ts
+const model = google.translation('gemini-3.5-live-translate-preview');
+```
+
+```ts
+import { experimental_streamTranslate as streamTranslate } from 'ai';
+import { google } from '@ai-sdk/google';
+
+const result = streamTranslate({
+  model: google.translation('gemini-3.5-live-translate-preview'),
+  audio: audioStream, // ReadableStream<Uint8Array | string>
+  inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+  targetLanguage: 'es',
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'output-text-delta') {
+    process.stdout.write(part.delta);
+  }
+}
+```
+
+The Gemini Live API auto-detects the source language (`sourceLanguage` is not
+supported) and always outputs 24kHz 16-bit PCM audio (`outputAudioFormat` is
+not supported). Unsupported settings surface as call warnings.
+
+The following provider options are available:
+
+- **echoTargetLanguage** _boolean_
+  Whether input audio already in the target language should be echoed instead
+  of producing silence.
+  Optional.
+
+### Model Capabilities
+
+| Model                               | Translated Audio | Translated Text | Source Transcript |
+| ----------------------------------- | ---------------- | --------------- | ----------------- |
+| `gemini-3.5-live-translate-preview` | <Check />        | <Check />       | <Check />         |
 
 ## Interactions API
 
@@ -2024,7 +2092,7 @@ spoken text, so `instructions: 'Say cheerfully'` with `text: 'Hello'` speaks `Sa
 For multi-speaker dialogue, pass a `multiSpeakerVoiceConfig` through `providerOptions`. Each speaker
 name must match a name used in the input text. When set, it overrides the top-level `voice`.
 
-```ts highlight="8-23"
+```ts highlight="7-22"
 import { generateSpeech } from 'ai';
 import { google, type GoogleSpeechModelOptions } from '@ai-sdk/google';
 

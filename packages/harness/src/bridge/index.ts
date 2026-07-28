@@ -57,6 +57,14 @@ function formatBridgeError(err: unknown): {
   if (err instanceof Error) {
     return { name: err.name, message: err.message, stack: err.stack };
   }
+  if (typeof err === 'string') {
+    return { message: err };
+  }
+  if (err !== null && typeof err === 'object') {
+    try {
+      return { message: JSON.stringify(err) };
+    } catch {}
+  }
   return { message: String(err) };
 }
 
@@ -128,6 +136,15 @@ export interface BridgeTurn {
     attrs?: Record<string, unknown>;
     error?: unknown;
   }): void;
+
+  /**
+   * Emit a non-fatal bridge warning to stderr using the runtime's harness
+   * prefix. This is diagnostic-only: it does not emit a stream event, does not
+   * consume a `seq`, and does not fail the turn.
+   */
+  emitWarning(input: { message: string }): void;
+
+  emitError(input: { error: unknown; message?: string }): void;
 }
 
 export interface RunBridgeOptions<TStart extends { type: 'start' }> {
@@ -209,6 +226,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
   let currentBoundPort = 0;
   let currentTurnState: BridgeState = 'init';
   let activeSocket: WebSocket | undefined;
+  let activeSocketReadyForLiveEvents = false;
   let isFirstTurn = true;
   let turnAbort: AbortController | undefined;
   let currentUserMessages: string[] | undefined;
@@ -232,7 +250,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
    * Disk mirror of the in-memory replay log. The in-memory log is lost when the
    * bridge process dies; the on-disk `event-log.ndjson` survives in the sandbox
    * filesystem so a respawned bridge (started with `BRIDGE_REPLAY_FROM_DISK=1`)
-   * can reload the just-interrupted turn and serve a host's resume cursor —
+   * can reload the in-flight turn and serve a host's resume cursor —
    * `replay` recovery. Writes are batched on `setImmediate` (single-flight via
    * `flushPromise`) to keep `emit` off the disk hot path.
    */
@@ -363,7 +381,10 @@ export async function runBridge<TStart extends { type: 'start' }>(
     eventLog.push({ seq, line });
     diskBuffer += `${line}\n`;
     scheduleEventFlush();
-    if (activeSocket?.readyState === WS_OPEN) {
+    if (
+      activeSocketReadyForLiveEvents &&
+      activeSocket?.readyState === WS_OPEN
+    ) {
       try {
         activeSocket.send(line);
       } catch {
@@ -402,6 +423,40 @@ export async function runBridge<TStart extends { type: 'start' }>(
    */
   const rawStdoutWrite = process.stdout.write.bind(process.stdout);
   const rawStderrWrite = process.stderr.write.bind(process.stderr);
+
+  const writeErrorToStderr = (input: {
+    message: string;
+    error: unknown;
+  }): void => {
+    try {
+      const formatted = formatBridgeError(input.error);
+      rawStderrWrite(
+        `[harness:${bridgeType}:error] ${input.message}: ${formatted.message}\n`,
+      );
+      if (formatted.stack) {
+        rawStderrWrite(`${formatted.stack}\n`);
+      }
+    } catch {}
+  };
+
+  const emitWarning = (input: { message: string }): void => {
+    try {
+      for (const line of input.message.split('\n')) {
+        if (line.trim().length > 0) {
+          rawStderrWrite(`[harness:${bridgeType}:warn] ${line}\n`);
+        }
+      }
+    } catch {}
+  };
+
+  const emitError = (input: { error: unknown; message?: string }): void => {
+    writeErrorToStderr({
+      message: input.message ?? 'bridge error',
+      error: input.error,
+    });
+    emit({ type: 'error', error: serialiseError(input.error) });
+  };
+
   const installConsoleCapture = (): void => {
     if (consoleCaptureInstalled) return;
     consoleCaptureInstalled = true;
@@ -462,6 +517,8 @@ export async function runBridge<TStart extends { type: 'start' }>(
   ): Promise<void> => {
     switch (msg.type) {
       case 'start': {
+        if (activeSocket !== ws) return;
+        activeSocketReadyForLiveEvents = true;
         const firstTurn = isFirstTurn;
         isFirstTurn = false;
         eventLog = []; // clear previous turn; keep seqCounter monotonic
@@ -513,12 +570,14 @@ export async function runBridge<TStart extends { type: 'start' }>(
                 : {}),
             });
           },
+          emitWarning,
+          emitError,
         };
         currentUserMessages = turn.pendingUserMessages;
         try {
           await onStart(msg as TStart, turn);
         } catch (err) {
-          emit({ type: 'error', error: serialiseError(err) });
+          emitError({ error: err, message: 'bridge turn failed' });
         } finally {
           currentTurnState = 'waiting';
           void writeBridgeMeta('waiting');
@@ -548,7 +607,9 @@ export async function runBridge<TStart extends { type: 'start' }>(
         turnAbort?.abort();
         return;
       case 'resume':
+        if (activeSocket !== ws) return;
         replay(ws, msg.lastSeenEventId);
+        activeSocketReadyForLiveEvents = true;
         return;
       case 'shutdown':
         currentTurnState = 'done';
@@ -626,6 +687,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
     // (the host reconnecting after a drop). The previous socket's close is a
     // no-op below because it is no longer `activeSocket`.
     activeSocket = ws;
+    activeSocketReadyForLiveEvents = false;
 
     // Announce liveness the instant we accept. Some sandbox runtimes complete
     // the host-side WS handshake before the connection is forwarded here; the
@@ -659,6 +721,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
       // log for replay when the host reconnects.
       if (activeSocket === ws) {
         activeSocket = undefined;
+        activeSocketReadyForLiveEvents = false;
       }
     });
 
@@ -669,10 +732,10 @@ export async function runBridge<TStart extends { type: 'start' }>(
 
   // Surface bridge-internal crashes to the host instead of dying silently.
   process.on('uncaughtException', err => {
-    emit({ type: 'error', error: serialiseError(err) });
+    emitError({ error: err, message: 'uncaught exception' });
   });
   process.on('unhandledRejection', err => {
-    emit({ type: 'error', error: serialiseError(err) });
+    emitError({ error: err, message: 'unhandled rejection' });
   });
 
   await new Promise<void>((resolve, reject) => {

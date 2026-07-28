@@ -203,12 +203,14 @@ describe('createClaudeCode adapter', () => {
       'ExitWorktree',
       'AskUserQuestion',
       'Skill',
+      'ToolSearch',
     ]);
     expect(harness.builtinTools.read.nativeName).toBe('Read');
     expect(harness.builtinTools.read.commonName).toBe('read');
     expect(harness.builtinTools.read.toolUseKind).toBe('readonly');
     expect(harness.builtinTools.write.toolUseKind).toBe('edit');
     expect(harness.builtinTools.bash.toolUseKind).toBe('bash');
+    expect(harness.builtinTools.Skill.toolUseKind).toBe('readonly');
     // WebFetch has no cross-harness common equivalent — its key is the
     // native name directly, so the entry intentionally omits both
     // `nativeName` and `commonName`.
@@ -264,6 +266,53 @@ describe('createClaudeCode adapter', () => {
     expect(spawnEnvs.at(0)?.CLAUDE_AGENT_SDK_CLIENT_APP).toBe(
       'ai-sdk/harness-claude-code/0.0.0-test',
     );
+    await session.doDestroy();
+  });
+
+  it('sends the structured thinking configuration to the bridge', async () => {
+    const thinking = { type: 'enabled' as const, display: 'omitted' as const };
+    const harness = createClaudeCode({ thinking });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      prompt: 'think about this',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({ thinking });
+
+    await session.doDestroy();
+  });
+
+  it('defaults to summarized adaptive thinking', async () => {
+    const harness = createClaudeCode();
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      prompt: 'think about this',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({
+      thinking: { type: 'adaptive', display: 'summarized' },
+    });
+
     await session.doDestroy();
   });
 

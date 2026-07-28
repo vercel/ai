@@ -33,8 +33,17 @@ import { argv, stdout } from 'node:process';
  */
 import * as claudeAgentSdk from '@anthropic-ai/claude-agent-sdk';
 import * as mcpServerModule from '@modelcontextprotocol/sdk/server/mcp.js';
-import { z } from 'zod/v4';
 import { toClaudeSkillsOption } from './claude-skills-option';
+import {
+  createClaudeStreamEventState,
+  createEmitStreamEvent,
+  defaultUsage,
+  emitFinishStep,
+  finishApprovalStep,
+  mapUsage,
+  type ClaudeMessage,
+} from './create-emit-stream-event';
+import { jsonSchemaToZodShape } from './json-schema-to-zod';
 
 /*
  * Native Claude Code tool name → cross-harness common name. Tools outside this
@@ -86,6 +95,7 @@ const PUBLIC_TO_NATIVE: Readonly<Record<string, string>> = {
   ExitWorktree: 'ExitWorktree',
   AskUserQuestion: 'AskUserQuestion',
   Skill: 'Skill',
+  ToolSearch: 'ToolSearch',
 };
 
 const PUBLIC_TOOL_NAMES = Object.keys(PUBLIC_TO_NATIVE);
@@ -113,8 +123,9 @@ const NATIVE_TOOL_KINDS: Readonly<
   EnterWorktree: 'edit',
   ExitWorktree: 'edit',
   ExitPlanMode: 'edit',
-  Skill: 'edit',
+  Skill: 'readonly',
   AskUserQuestion: 'readonly',
+  ToolSearch: 'readonly',
   Bash: 'bash',
   Monitor: 'bash',
 };
@@ -151,40 +162,6 @@ function resolveInactiveNativeTools(start: StartMessage): string[] {
   return inactiveToolNames.map(name => toNativeName(name));
 }
 
-/*
- * The harness exposes a coarse `'off' | 'on' | 'adaptive'` thinking setting,
- * but the Claude Agent SDK's `thinking` option takes a structured
- * `ThinkingConfig` object. Passing the bare string silently disables extended
- * thinking (the SDK ignores the malformed value), so the model never emits
- * thinking blocks and no reasoning is streamed. Map to the SDK's shape:
- *   'adaptive' → { type: 'adaptive' }  (Claude decides depth; Opus 4.6+)
- *   'on'       → { type: 'enabled' }   (extended thinking always on)
- *   'off'      → { type: 'disabled' }
- *
- * `display: 'summarized'` is required for the model's reasoning to actually be
- * streamed: without it the thinking block arrives carrying only a signature
- * and empty `thinking_delta`s, so `reasoningText` comes back empty. We default
- * it on whenever thinking is enabled so reasoning is visible out of the box;
- * `'off'` (disabled) takes no display.
- */
-function toThinkingConfig(
-  thinking: 'off' | 'on' | 'adaptive' | undefined,
-):
-  | { type: 'adaptive' | 'enabled'; display: 'summarized' }
-  | { type: 'disabled' }
-  | undefined {
-  switch (thinking) {
-    case 'adaptive':
-      return { type: 'adaptive', display: 'summarized' };
-    case 'on':
-      return { type: 'enabled', display: 'summarized' };
-    case 'off':
-      return { type: 'disabled' };
-    default:
-      return undefined;
-  }
-}
-
 const args = parseArgs(argv.slice(2));
 const workdir = args.workdir;
 const bridgeStateDir = args.bridgeStateDir;
@@ -216,6 +193,7 @@ function createPermissionOptions(input: {
   inactiveNativeTools: readonly string[];
   turn: BridgeTurn;
   emit: Emit;
+  finishApprovalStep: (approvalId: string) => void;
   nativeToolCallNames: Map<string, string>;
   approvalRequestedToolUseIds: Set<string>;
 }): Record<string, unknown> {
@@ -271,6 +249,7 @@ function createPermissionOptions(input: {
         approvalId,
         toolCallId: approvalId,
       });
+      input.finishApprovalStep(approvalId);
 
       const decision = await input.turn.requestToolApproval(approvalId);
       return decision.approved
@@ -334,23 +313,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     });
   }
 
-  /*
-   * Map of native tool-use id → tool name. Claude assistant messages emit
-   * `tool_use` blocks with both `id` and `name`; the matching `tool_result`
-   * block on a later user message carries only `tool_use_id`, so without this
-   * map the tool-result event would have to emit `toolName: 'unknown'`.
-   */
-  const nativeToolCallNames = new Map<string, string>();
-  const approvalRequestedToolUseIds = new Set<string>();
-
-  /*
-   * Tool-use ids that originated from the MCP server hosting user-supplied
-   * tools. The MCP handler emits its own `tool-call`/`tool-result` pair with
-   * the user-facing tool name and a synthetic id, so the duplicate
-   * `tool_result` block Claude reports for the underlying native id must be
-   * suppressed.
-   */
-  const mcpToolUseIds = new Set<string>();
+  const streamEventState = createClaudeStreamEventState();
 
   const mcpServers: Record<string, unknown> = {};
   if (start.tools && start.tools.length > 0) {
@@ -359,7 +322,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       version: '1.0.0',
     });
     for (const tool of start.tools) {
-      const shape = jsonSchemaToZodShape(tool.inputSchema, z);
+      const shape = jsonSchemaToZodShape(tool.inputSchema);
       server.tool(
         tool.name,
         tool.description ?? '',
@@ -416,8 +379,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     inactiveNativeTools,
     turn,
     emit,
-    nativeToolCallNames,
-    approvalRequestedToolUseIds,
+    finishApprovalStep: approvalId => {
+      finishApprovalStep({ state: streamEventState, emit, approvalId });
+    },
+    nativeToolCallNames: streamEventState.nativeToolCallNames,
+    approvalRequestedToolUseIds: streamEventState.approvalRequestedToolUseIds,
   });
 
   const q = claudeSdk.query({
@@ -430,9 +396,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       ...(inactiveNativeTools.length > 0
         ? { disallowedTools: inactiveNativeTools }
         : {}),
-      ...(toThinkingConfig(start.thinking)
-        ? { thinking: toThinkingConfig(start.thinking) }
-        : {}),
+      thinking: start.thinking,
       includePartialMessages: true,
       // The `PostCompact` hook carries the compaction summary, which the
       // `compact_boundary` system message does not. Latch it for the unified
@@ -462,208 +426,67 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       abortSignal: abortCtl.signal,
     },
   });
-
-  let stepUsage: Record<string, unknown> | undefined;
+  let turnUsage: Record<string, unknown> | undefined;
   let totalCostUsd: number | undefined;
-  let observedTerminalError: string | undefined;
   let emittedTerminalError = false;
   let emittedTerminalFinish = false;
-  let streamStarted = false;
-  const partialBlocks = new Map<
-    number,
-    { id: string; kind: 'text' | 'thinking' }
-  >();
 
   const emitTerminalError = (message: string | undefined): void => {
     const normalized = message?.trim();
     if (!normalized || emittedTerminalError || emittedTerminalFinish) return;
-    observedTerminalError = normalized;
+    streamEventState.observedTerminalError = normalized;
     emittedTerminalError = true;
-    emit({ type: 'error', error: normalized });
+    turn.emitError({
+      error: normalized,
+      message: 'claude-code terminal error',
+    });
     queryInput.close();
     abortCtl.abort();
   };
+
+  const emitStreamEvent = createEmitStreamEvent({
+    state: streamEventState,
+    emit,
+    emitWarning: turn.emitWarning,
+    emitTerminalError,
+    onCompactionBoundary: boundary => compaction.onBoundary(boundary),
+    toCommonName,
+  });
 
   try {
     for await (const msg of q as AsyncIterable<ClaudeMessage>) {
       if (abortCtl.signal.aborted) break;
 
-      if (typeof msg.error === 'string' && msg.error.trim()) {
-        observedTerminalError = msg.error.trim();
-      }
-
       const type = msg.type;
 
-      // Emit `stream-start` once, on the first message, carrying the model the
-      // CLI resolved to (the `system`/`init` message reports it — this is the
-      // default model when none was configured).
-      if (!streamStarted) {
-        const initModel =
-          type === 'system' &&
-          msg.subtype === 'init' &&
-          typeof (msg as { model?: unknown }).model === 'string'
-            ? (msg as { model: string }).model
-            : undefined;
-        emit({
-          type: 'stream-start',
-          ...(initModel ? { modelId: initModel } : {}),
-        });
-        streamStarted = true;
-      }
-
-      if (
-        type === 'auth_status' &&
-        typeof msg.error === 'string' &&
-        msg.error.trim()
-      ) {
-        emitTerminalError(msg.error);
-        continue;
-      }
-
-      if (
-        type === 'system' &&
-        msg.subtype === 'api_retry' &&
-        typeof msg.error_status === 'number' &&
-        [401, 403, 404].includes(msg.error_status)
-      ) {
-        emitTerminalError(
-          `HTTP ${msg.error_status}: ${msg.error ?? 'provider request failed'}`,
-        );
-        continue;
-      }
-
-      if (
-        type === 'system' &&
-        msg.subtype === 'task_updated' &&
-        msg.patch?.status === 'failed' &&
-        typeof msg.patch.error === 'string'
-      ) {
-        emitTerminalError(msg.patch.error);
-        continue;
-      }
-
-      if (type === 'system' && msg.subtype === 'compact_boundary') {
-        const meta = msg.compact_metadata;
-        if (meta) {
-          compaction.onBoundary({
-            trigger: meta.trigger,
-            ...(typeof meta.pre_tokens === 'number'
-              ? { tokensBefore: meta.pre_tokens }
-              : {}),
-            ...(typeof meta.post_tokens === 'number'
-              ? { tokensAfter: meta.post_tokens }
-              : {}),
-          });
-        }
-        continue;
-      }
-
-      if (type === 'stream_event') {
-        handleStreamEvent(msg.event, partialBlocks, emit);
-        continue;
-      }
-
-      if (type === 'assistant' && msg.message?.content) {
-        for (const block of msg.message.content) {
-          if (
-            block.type === 'tool_use' &&
-            typeof block.id === 'string' &&
-            typeof block.name === 'string'
-          ) {
-            const mcpPrefix = 'mcp__harness-tools__';
-            if (block.name.startsWith(mcpPrefix)) {
-              mcpToolUseIds.add(block.id);
-              continue;
-            }
-            nativeToolCallNames.set(block.id, block.name);
-            if (approvalRequestedToolUseIds.has(block.id)) {
-              continue;
-            }
-            emit({
-              type: 'tool-call',
-              toolCallId: block.id,
-              toolName: toCommonName(block.name),
-              nativeName: block.name,
-              input: JSON.stringify(block.input ?? {}),
-              providerExecuted: true,
-            });
-          }
-        }
-        continue;
-      }
-
-      if (type === 'user' && msg.message?.content) {
-        for (const block of msg.message.content) {
-          if (
-            block.type === 'tool_result' &&
-            typeof block.tool_use_id === 'string'
-          ) {
-            if (mcpToolUseIds.has(block.tool_use_id)) {
-              mcpToolUseIds.delete(block.tool_use_id);
-              continue;
-            }
-            approvalRequestedToolUseIds.delete(block.tool_use_id);
-            const nativeName =
-              nativeToolCallNames.get(block.tool_use_id) ?? 'unknown';
-            nativeToolCallNames.delete(block.tool_use_id);
-            const toolName = toCommonName(nativeName);
-            const isError = !!block.is_error;
-            const content = stringifyContent(block.content);
-            /*
-             * Claude Code's Bash tool does not report the command's real
-             * numeric exit code — the SDK exposes only stdout/stderr text and
-             * an is_error flag. Consumers (and the example UI) render bash
-             * failures from an `exitCode` field on a structured result, the
-             * shape Codex's shell tool provides natively. To match it, derive
-             * a binary code from is_error: 1 on failure, 0 on success. This is
-             * a stand-in for failed/succeeded, not the process's true exit
-             * status.
-             */
-            const result =
-              toolName === 'bash'
-                ? { exitCode: isError ? 1 : 0, stdout: content }
-                : content;
-            emit({
-              type: 'tool-result',
-              toolCallId: block.tool_use_id,
-              toolName,
-              result,
-              isError,
-            });
-          }
-        }
-        continue;
-      }
+      emitStreamEvent(msg);
 
       if (type === 'result') {
         if (msg.subtype === 'success') {
           const emptyResult = !msg.result?.trim?.();
-          if (emptyResult && observedTerminalError) {
-            emitTerminalError(observedTerminalError);
+          if (emptyResult && streamEventState.observedTerminalError) {
+            emitTerminalError(streamEventState.observedTerminalError);
             continue;
           }
           const usage = msg.usage ?? msg.message?.usage;
           const harnessUsage = mapUsage(usage);
-          if (harnessUsage) stepUsage = harnessUsage;
+          if (harnessUsage) turnUsage = harnessUsage;
           if (typeof msg.total_cost_usd === 'number') {
             totalCostUsd = (totalCostUsd ?? 0) + msg.total_cost_usd;
           }
-          const metadata =
-            typeof msg.total_cost_usd === 'number'
-              ? { 'claude-code': { costUsd: msg.total_cost_usd } }
-              : undefined;
-          emit({
-            type: 'finish-step',
-            finishReason: { unified: 'stop', raw: 'stop' },
-            usage: harnessUsage ?? defaultUsage(),
-            ...(metadata ? { harnessMetadata: metadata } : {}),
-          });
+          if (streamEventState.stepOpen) {
+            emitFinishStep({
+              state: streamEventState,
+              emit,
+              usage: harnessUsage ?? streamEventState.pendingStepUsage,
+            });
+          }
           queryInput.close();
           break;
         } else {
           emitTerminalError(
             (Array.isArray(msg.errors) ? msg.errors.join('\n') : undefined) ||
-              observedTerminalError ||
+              streamEventState.observedTerminalError ||
               msg.result ||
               'Unknown error',
           );
@@ -673,7 +496,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     }
   } catch (err) {
     if (!(abortCtl.signal.aborted && emittedTerminalError)) {
-      emit({ type: 'error', error: serialiseError(err) });
+      turn.emitError({ error: err, message: 'claude-code turn failed' });
     }
     return;
   } finally {
@@ -686,95 +509,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   emit({
     type: 'finish',
     finishReason: { unified: 'stop', raw: 'stop' },
-    totalUsage: stepUsage ?? defaultUsage(),
+    totalUsage: turnUsage ?? streamEventState.stepUsage ?? defaultUsage(),
     ...(totalCostUsd !== undefined
       ? { harnessMetadata: { 'claude-code': { costUsd: totalCostUsd } } }
       : {}),
   });
-}
-
-type ClaudeMessage = {
-  type?: string;
-  subtype?: string;
-  error?: string;
-  error_status?: number;
-  patch?: { status?: string; error?: string };
-  compact_metadata?: {
-    trigger: 'manual' | 'auto';
-    pre_tokens?: number;
-    post_tokens?: number;
-  };
-  event?: {
-    type?: string;
-    index?: number;
-    content_block?: { type?: string };
-    delta?: { type?: string; text?: string; thinking?: string };
-  };
-  message?: {
-    content?: ReadonlyArray<MessageBlock>;
-    usage?: Record<string, unknown>;
-  };
-  result?: string;
-  errors?: ReadonlyArray<string>;
-  usage?: Record<string, unknown>;
-  total_cost_usd?: number;
-};
-
-function handleStreamEvent(
-  event: ClaudeMessage['event'] | undefined,
-  partialBlocks: Map<number, { id: string; kind: 'text' | 'thinking' }>,
-  send: Emit,
-): void {
-  if (!event || typeof event.index !== 'number') return;
-  const index = event.index;
-
-  if (event.type === 'content_block_start') {
-    const blockType = event.content_block?.type;
-    if (blockType === 'text') {
-      const id = randomUUID();
-      partialBlocks.set(index, { id, kind: 'text' });
-      send({ type: 'text-start', id });
-    } else if (blockType === 'thinking') {
-      const id = randomUUID();
-      partialBlocks.set(index, { id, kind: 'thinking' });
-      send({ type: 'reasoning-start', id });
-    }
-    return;
-  }
-
-  if (event.type === 'content_block_delta') {
-    const block = partialBlocks.get(index);
-    if (!block) return;
-    if (
-      block.kind === 'text' &&
-      event.delta?.type === 'text_delta' &&
-      typeof event.delta.text === 'string'
-    ) {
-      send({ type: 'text-delta', id: block.id, delta: event.delta.text });
-    } else if (
-      block.kind === 'thinking' &&
-      event.delta?.type === 'thinking_delta' &&
-      typeof event.delta.thinking === 'string'
-    ) {
-      send({
-        type: 'reasoning-delta',
-        id: block.id,
-        delta: event.delta.thinking,
-      });
-    }
-    return;
-  }
-
-  if (event.type === 'content_block_stop') {
-    const block = partialBlocks.get(index);
-    if (!block) return;
-    partialBlocks.delete(index);
-    if (block.kind === 'text') {
-      send({ type: 'text-end', id: block.id });
-    } else {
-      send({ type: 'reasoning-end', id: block.id });
-    }
-  }
 }
 
 function createQueryInput({
@@ -839,106 +578,6 @@ function createQueryInput({
   };
 }
 
-type MessageBlock = {
-  type: string;
-  text?: string;
-  thinking?: string;
-  id?: string;
-  name?: string;
-  input?: unknown;
-  tool_use_id?: string;
-  content?: unknown;
-  is_error?: boolean;
-};
-
-function stringifyContent(content: unknown): string {
-  if (typeof content === 'string') return content;
-  if (Array.isArray(content)) {
-    return content
-      .map(entry =>
-        entry && typeof entry === 'object' && 'text' in entry
-          ? String((entry as { text?: unknown }).text ?? '')
-          : JSON.stringify(entry),
-      )
-      .join('');
-  }
-  return JSON.stringify(content);
-}
-
-function mapUsage(usage: unknown): Record<string, unknown> | undefined {
-  if (!usage || typeof usage !== 'object') return undefined;
-  const u = usage as {
-    input_tokens?: number;
-    cache_creation_input_tokens?: number;
-    cache_read_input_tokens?: number;
-    output_tokens?: number;
-  };
-  return {
-    inputTokens: {
-      total:
-        (u.input_tokens ?? 0) +
-        (u.cache_creation_input_tokens ?? 0) +
-        (u.cache_read_input_tokens ?? 0),
-      noCache: u.input_tokens ?? 0,
-      cacheRead: u.cache_read_input_tokens ?? 0,
-      cacheWrite: u.cache_creation_input_tokens ?? 0,
-    },
-    outputTokens: {
-      total: u.output_tokens ?? 0,
-      text: u.output_tokens ?? 0,
-    },
-  };
-}
-
-function defaultUsage(): Record<string, unknown> {
-  return {
-    inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
-    outputTokens: { total: 0, text: 0 },
-  };
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function jsonSchemaToZodShape(
-  schema: unknown,
-  z: any,
-): Record<string, unknown> {
-  if (!schema || typeof schema !== 'object') return {};
-  const s = schema as {
-    properties?: Record<string, { type?: string; description?: string }>;
-    required?: string[];
-  };
-  const shape: Record<string, unknown> = {};
-  const required = new Set(s.required ?? []);
-  for (const [key, val] of Object.entries(s.properties ?? {})) {
-    let z_: unknown;
-    switch (val.type) {
-      case 'string':
-        z_ = z.string();
-        break;
-      case 'number':
-      case 'integer':
-        z_ = z.number();
-        break;
-      case 'boolean':
-        z_ = z.boolean();
-        break;
-      case 'array':
-        z_ = z.array(z.any());
-        break;
-      default:
-        z_ = z.any();
-    }
-    if (val.description)
-      z_ = (z_ as { describe: (s: string) => unknown }).describe(
-        val.description,
-      );
-    shape[key] = required.has(key)
-      ? z_
-      : (z_ as { optional: () => unknown }).optional();
-  }
-  return shape;
-}
-
 function parseArgs(args: string[]): {
   workdir?: string;
   bridgeStateDir?: string;
@@ -952,13 +591,6 @@ function parseArgs(args: string[]): {
     }
   }
   return out;
-}
-
-function serialiseError(err: unknown): unknown {
-  if (err instanceof Error) {
-    return { name: err.name, message: err.message, stack: err.stack };
-  }
-  return err;
 }
 
 function emitFatal(message: string): never {
