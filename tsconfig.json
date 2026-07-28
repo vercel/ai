@@ -82,6 +82,9 @@
       "path": "packages/harness-claude-code"
     },
     {
+      "path": "packages/harness-cline"
+    },
+    {
       "path": "packages/harness-codex"
     },
     {
