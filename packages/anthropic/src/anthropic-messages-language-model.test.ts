@@ -579,7 +579,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           tools: [
             {
               type: 'function',
-              name: 'get-weather',
+              name: 'weather',
               description: 'Get the weather in a location',
               inputSchema: {
                 type: 'object',
@@ -626,10 +626,26 @@ describe('AnthropicMessagesLanguageModel', () => {
             "model": "claude-3-haiku-20240307",
             "tool_choice": {
               "disable_parallel_tool_use": true,
-              "name": "json",
-              "type": "tool",
+              "type": "any",
             },
             "tools": [
+              {
+                "description": "Get the weather in a location",
+                "input_schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "location": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "location",
+                  ],
+                  "type": "object",
+                },
+                "name": "weather",
+              },
               {
                 "description": "Respond with a JSON object.",
                 "input_schema": {
@@ -660,15 +676,21 @@ describe('AnthropicMessagesLanguageModel', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
-              "text": "{"location":"San Francisco"}",
-              "type": "text",
+              "input": "{"location":"San Francisco"}",
+              "toolCallId": "toolu_01PQjhxo3eirCdKNvCJrKc8f",
+              "toolName": "weather",
+              "type": "tool-call",
             },
           ]
         `);
       });
 
       it('should send tool-calls finish reason', async () => {
-        expect(result.finishReason).toBe('stop');
+        expect(result.finishReason).toBe('tool-calls');
+      });
+
+      it('should not warn that tools are unsupported', () => {
+        expect(result.warnings).toEqual([]);
       });
     });
 
