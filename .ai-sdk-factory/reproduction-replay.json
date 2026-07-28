@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 18073,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-18073-empty-text-delta-provider-metadata.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-18073-empty-text-delta-provider-metadata.ts",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_18073_REPRODUCED: streamText dropped provider metadata from the final text part"
+  }
+}

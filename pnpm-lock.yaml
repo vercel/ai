@@ -227,6 +227,16 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
 
+  examples/ai-functions:
+    dependencies:
+      ai:
+        specifier: workspace:*
+        version: link:../../packages/ai
+    devDependencies:
+      tsx:
+        specifier: 4.19.2
+        version: 4.19.2
+
   examples/angular:
     dependencies:
       '@ai-sdk/angular':
