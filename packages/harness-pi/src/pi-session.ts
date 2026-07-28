@@ -519,7 +519,16 @@ export async function createPiSession(
       sessionWorkDir,
     );
     const messages = journal.buildSessionContext().messages;
-    const resolvedToolCallIds = new Set<string>();
+    /*
+     * Results already delivered by a previous continuation of this session
+     * count as resolved even though they are not in the journal yet — the
+     * framework has marked them settled and will never re-deliver them, so a
+     * new barrier must not wait on them (it would deadlock the turn). They
+     * are injected into the journal before the rerun.
+     */
+    const resolvedToolCallIds = new Set<string>(
+      deliveredDanglingResults.keys(),
+    );
     for (const message of messages) {
       if (message.role === 'toolResult') {
         resolvedToolCallIds.add(message.toolCallId);
@@ -658,7 +667,8 @@ export async function createPiSession(
       deferredRerun = undefined;
       void (async () => {
         try {
-          appendDeliveredHostToolResults();
+          // `runTurn` injects the delivered results into the journal before
+          // rebuilding the Pi session from it.
           const control = await runTurn({
             text: '',
             tools: continueOpts.tools ?? [],
@@ -911,6 +921,13 @@ export async function createPiSession(
     if (stopped) {
       throw new Error('Pi session has been stopped.');
     }
+
+    /*
+     * Any host tool results delivered while no turn was live must land in the
+     * journal before the session (re)builds from it, whichever turn entry
+     * point runs next. No-op when nothing was delivered.
+     */
+    appendDeliveredHostToolResults();
 
     const userTools = turnOpts.tools;
     const signature = JSON.stringify(userTools.map(t => t.name).sort());

@@ -276,6 +276,82 @@ describe('createPiSession', () => {
     expect(journal.appendMessage).not.toHaveBeenCalled();
   });
 
+  it('does not re-await results already delivered by a previous continuation of the same session', async () => {
+    const { session: fakePiSession, prompt } = createFakePiSession();
+    piMock.session = fakePiSession;
+    const { journal, appendedMessages } = createJournal([
+      userMessage('ask the user two things'),
+      assistantMessageWithToolCalls([
+        { id: 'tool-1', name: 'askUser' },
+        { id: 'tool-2', name: 'askUser' },
+      ]),
+    ]);
+    piMock.sessionManagerOpen.mockImplementation(() => journal);
+
+    const sandboxSession = createSandboxSession({
+      sessionFileContent: 'pi-journal',
+    });
+    const session = await createPiSession({
+      sessionId: 'session-cross-process-reentrant',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+      skills: [],
+      settings: {},
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: true,
+      resumeSessionFileName: 'pi-session.jsonl',
+    });
+
+    // First continuation delivers only tool-1's result, then ends (e.g. it
+    // paused again awaiting a tool-result continuation for tool-2).
+    const firstControl = await session.doContinueTurn({
+      tools: [{ name: 'askUser' }],
+      emit: vi.fn(),
+    });
+    await firstControl.submitToolResult({
+      toolCallId: 'tool-1',
+      output: 'first answer',
+    });
+    expect(prompt).not.toHaveBeenCalled();
+
+    // Second continuation: the framework will only re-deliver tool-2 — it
+    // marked tool-1 settled. The new barrier must not wait on tool-1 again.
+    const secondControl = await session.doContinueTurn({
+      tools: [{ name: 'askUser' }],
+      emit: vi.fn(),
+    });
+    // Installing the new barrier settles the abandoned first turn cleanly.
+    await expect(firstControl.done).resolves.toBeUndefined();
+    expect(prompt).not.toHaveBeenCalled();
+
+    await secondControl.submitToolResult({
+      toolCallId: 'tool-2',
+      output: 'second answer',
+    });
+    await secondControl.done;
+
+    expect(appendedMessages).toEqual([
+      {
+        role: 'toolResult',
+        toolCallId: 'tool-1',
+        toolName: 'askUser',
+        content: [{ type: 'text', text: 'first answer' }],
+        isError: false,
+        timestamp: expect.any(Number),
+      },
+      {
+        role: 'toolResult',
+        toolCallId: 'tool-2',
+        toolName: 'askUser',
+        content: [{ type: 'text', text: 'second answer' }],
+        isError: false,
+        timestamp: expect.any(Number),
+      },
+    ]);
+    expect(prompt).toHaveBeenCalledTimes(1);
+    expect(prompt).toHaveBeenCalledWith('');
+  });
+
   it('flushes results delivered before a suspend into the journal so a later resume sees them', async () => {
     const { session: fakePiSession, prompt } = createFakePiSession();
     piMock.session = fakePiSession;
