@@ -16,6 +16,7 @@ import type { z } from 'zod/v4';
 import { MCPClientError } from '../error/mcp-client-error';
 import type {
   JSONRPCError,
+  JSONRPCMessage,
   JSONRPCNotification,
   JSONRPCRequest,
   JSONRPCResponse,
@@ -144,6 +145,56 @@ function prepareMaxRetries(maxRetries: number | undefined): number {
   return maxRetries;
 }
 
+function getEffectiveTimeout({
+  timeout,
+  maxTotalTimeout,
+}: RequestOptions): number | undefined {
+  if (timeout == null) {
+    return maxTotalTimeout;
+  }
+
+  if (maxTotalTimeout == null) {
+    return timeout;
+  }
+
+  return Math.min(timeout, maxTotalTimeout);
+}
+
+function waitForAbort<T>(
+  promise: Promise<T>,
+  signal: AbortSignal | undefined,
+): Promise<T> {
+  if (signal == null) {
+    return promise;
+  }
+
+  return new Promise((resolve, reject) => {
+    const cleanup = () => {
+      signal.removeEventListener('abort', onAbort);
+    };
+    const onAbort = () => {
+      cleanup();
+      reject(signal.reason);
+    };
+
+    if (signal.aborted) {
+      onAbort();
+      return;
+    }
+
+    signal.addEventListener('abort', onAbort, { once: true });
+    promise
+      .then(value => {
+        cleanup();
+        resolve(value);
+      })
+      .catch(error => {
+        cleanup();
+        reject(error);
+      });
+  });
+}
+
 function mcpToModelOutput({
   output,
 }: {
@@ -179,6 +230,10 @@ function mcpToModelOutput({
 export interface MCPClientConfig {
   /** Transport configuration for connecting to the MCP server */
   transport: MCPTransportConfig | MCPTransport;
+  /**
+   * Options that bound or cancel transport startup and the initialize request.
+   */
+  initializationOptions?: RequestOptions;
   /** Optional callback for uncaught errors */
   onUncaughtError?: (error: unknown) => void;
   /**
@@ -333,11 +388,13 @@ export interface MCPClient {
  */
 class DefaultMCPClient implements MCPClient {
   private transport: MCPTransport;
+  private transportSupportsRequestSignal: boolean;
   private onUncaughtError?: (error: unknown) => void;
   private maxRetries: number;
   private clientInfo: ClientConfiguration;
   private clientCapabilities: ClientCapabilities;
   private initialInitializeResult?: InitializeResult;
+  private initializationOptions?: RequestOptions;
   private requestMessageId = 0;
   private responseHandlers: Map<
     number,
@@ -365,16 +422,20 @@ class DefaultMCPClient implements MCPClient {
     maxRetries,
     capabilities,
     initialInitializeResult,
+    initializationOptions,
   }: MCPClientConfig) {
     this.onUncaughtError = onUncaughtError;
     this.maxRetries = prepareMaxRetries(maxRetries);
     this.clientCapabilities = capabilities ?? {};
     this.initialInitializeResult = initialInitializeResult;
+    this.initializationOptions = initializationOptions;
 
     if (isCustomMcpTransport(transportConfig)) {
       this.transport = transportConfig;
+      this.transportSupportsRequestSignal = false;
     } else {
       this.transport = createMcpTransport(transportConfig);
+      this.transportSupportsRequestSignal = true;
     }
 
     this.transport.onclose = () => this.onClose();
@@ -415,9 +476,34 @@ class DefaultMCPClient implements MCPClient {
   }
 
   async init(): Promise<this> {
+    const externalSignal = this.initializationOptions?.signal;
+    const timeout = this.initializationOptions
+      ? getEffectiveTimeout(this.initializationOptions)
+      : undefined;
+    const timeoutController =
+      timeout == null ? undefined : new AbortController();
+    const signal =
+      externalSignal == null
+        ? timeoutController?.signal
+        : timeoutController == null
+          ? externalSignal
+          : AbortSignal.any([externalSignal, timeoutController.signal]);
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let timeoutError: MCPClientError | undefined;
+
+    if (timeout != null) {
+      timeoutId = setTimeout(() => {
+        timeoutError = new MCPClientError({
+          message: `MCP client initialization timed out after ${timeout}ms`,
+        });
+        timeoutController?.abort(timeoutError);
+      }, timeout);
+    }
+
     try {
-      await this.transport.start();
       this.isClosed = false;
+      signal?.throwIfAborted();
+      await waitForAbort(this.transport.start(), signal);
 
       if (this.initialInitializeResult) {
         const result = InitializeResultSchema.parse(
@@ -437,6 +523,7 @@ class DefaultMCPClient implements MCPClient {
           },
         },
         resultSchema: InitializeResultSchema,
+        options: { signal },
       });
 
       if (result === undefined) {
@@ -448,14 +535,33 @@ class DefaultMCPClient implements MCPClient {
       this.applyInitializeResult(result);
 
       // Complete initialization handshake:
-      await this.notification({
-        method: 'notifications/initialized',
-      });
+      await this.notification(
+        {
+          method: 'notifications/initialized',
+        },
+        { signal },
+      );
 
       return this;
     } catch (error) {
       await this.close();
+
+      if (timeoutError != null) {
+        throw timeoutError;
+      }
+
+      if (externalSignal?.aborted) {
+        throw new MCPClientError({
+          message: 'MCP client initialization was aborted',
+          cause: externalSignal.reason,
+        });
+      }
+
       throw error;
+    } finally {
+      if (timeoutId != null) {
+        clearTimeout(timeoutId);
+      }
     }
   }
 
@@ -481,6 +587,24 @@ class DefaultMCPClient implements MCPClient {
     if (this.isClosed) return;
     await this.transport?.close();
     this.onClose();
+  }
+
+  private send(
+    message: JSONRPCMessage,
+    signal: AbortSignal | undefined,
+  ): Promise<void> {
+    if (!this.transportSupportsRequestSignal || signal == null) {
+      return this.transport.send(message);
+    }
+
+    return (
+      this.transport as MCPTransport & {
+        send(
+          message: JSONRPCMessage,
+          options?: { signal?: AbortSignal },
+        ): Promise<void>;
+      }
+    ).send(message, { signal });
   }
 
   private assertCapability(method: string): void {
@@ -548,6 +672,17 @@ class DefaultMCPClient implements MCPClient {
 
       const signal = options?.signal;
       signal?.throwIfAborted();
+      const timeout =
+        options == null ? undefined : getEffectiveTimeout(options);
+      const timeoutController =
+        timeout == null ? undefined : new AbortController();
+      const transportSignal =
+        signal == null
+          ? timeoutController?.signal
+          : timeoutController == null
+            ? signal
+            : AbortSignal.any([signal, timeoutController.signal]);
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
       const messageId = this.requestMessageId++;
       const jsonrpcRequest: JSONRPCRequest = {
@@ -568,6 +703,9 @@ class DefaultMCPClient implements MCPClient {
       const cleanup = () => {
         this.responseHandlers.delete(messageId);
         signal?.removeEventListener('abort', onAbort);
+        if (timeoutId != null) {
+          clearTimeout(timeoutId);
+        }
       };
 
       const rejectAndCleanup = (error: unknown) => {
@@ -578,6 +716,14 @@ class DefaultMCPClient implements MCPClient {
       const onAbort = () => {
         cleanup();
         rejectWithAbortError();
+      };
+
+      const onTimeout = () => {
+        const error = new MCPClientError({
+          message: `Request timed out after ${timeout}ms`,
+        });
+        timeoutController?.abort(error);
+        rejectAndCleanup(error);
       };
 
       this.responseHandlers.set(messageId, response => {
@@ -605,7 +751,16 @@ class DefaultMCPClient implements MCPClient {
 
       signal?.addEventListener('abort', onAbort, { once: true });
 
-      this.transport.send(jsonrpcRequest).catch(error => {
+      if (timeout != null) {
+        timeoutId = setTimeout(onTimeout, timeout);
+      }
+
+      const sendPromise =
+        transportSignal == null
+          ? this.transport.send(jsonrpcRequest)
+          : this.send(jsonrpcRequest, transportSignal);
+
+      sendPromise.catch(error => {
         rejectAndCleanup(error);
       });
     });
@@ -778,12 +933,18 @@ class DefaultMCPClient implements MCPClient {
     });
   }
 
-  private async notification(notification: Notification): Promise<void> {
+  private async notification(
+    notification: Notification,
+    options?: { signal?: AbortSignal },
+  ): Promise<void> {
     const jsonrpcNotification: JSONRPCNotification = {
       ...notification,
       jsonrpc: '2.0',
     };
-    await this.transport.send(jsonrpcNotification);
+    await waitForAbort(
+      this.send(jsonrpcNotification, options?.signal),
+      options?.signal,
+    );
   }
 
   /**
