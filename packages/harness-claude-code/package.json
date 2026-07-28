@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/harness-claude-code",
-  "version": "1.0.45",
+  "version": "1.0.46",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,

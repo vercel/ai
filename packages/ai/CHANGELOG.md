@@ -1,5 +1,15 @@
 # ai
 
+## 7.0.39
+
+### Patch Changes
+
+- 09a52cb: Promote the `repairText` option to stable on `generateObject` and `streamObject`, with a deprecated `experimental_repairText` alias for backwards compatibility.
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+  - @ai-sdk/gateway@4.0.30
+
 ## 7.0.38
 
 ### Patch Changes
