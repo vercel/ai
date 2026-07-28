@@ -61,6 +61,30 @@ function expectObjectPrototypeNotPolluted() {
   }
 }
 
+class AlternateBuildAIMessageChunk {
+  readonly type = 'ai';
+  readonly additional_kwargs = {};
+  readonly response_metadata = {};
+  readonly tool_call_chunks = [];
+
+  constructor(
+    readonly content: string,
+    readonly id: string,
+  ) {}
+
+  _getType() {
+    return this.type;
+  }
+
+  get text() {
+    return this.content;
+  }
+
+  concat() {
+    return this;
+  }
+}
+
 describe('convertToolResultPart', () => {
   it('should convert text output', () => {
     const part: ToolResultPart = {
@@ -798,6 +822,13 @@ describe('isAIMessageChunk', () => {
     expect(isAIMessageChunk(chunk)).toBe(true);
   });
 
+  it('should return true for AIMessageChunk instances from another module build', () => {
+    const chunk = new AlternateBuildAIMessageChunk('Hello', 'msg-1');
+
+    expect(AIMessageChunk.isInstance(chunk)).toBe(false);
+    expect(isAIMessageChunk(chunk)).toBe(true);
+  });
+
   it('should return true for plain objects with type: ai', () => {
     const plainObj = { type: 'ai', content: 'Hello', id: 'msg-1' };
     expect(isAIMessageChunk(plainObj)).toBe(true);
@@ -1439,6 +1470,22 @@ describe('processLangGraphEvent', () => {
     const controller = createMockController(chunks);
 
     const aiChunk = new AIMessageChunk({ content: 'Hello', id: 'msg-1' });
+    processLangGraphEvent(['messages', [aiChunk]], state, controller);
+
+    expect(chunks).toContainEqual({ type: 'text-start', id: 'msg-1' });
+    expect(chunks).toContainEqual({
+      type: 'text-delta',
+      delta: 'Hello',
+      id: 'msg-1',
+    });
+  });
+
+  it('should handle AI message chunks from another module build', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+    const aiChunk = new AlternateBuildAIMessageChunk('Hello', 'msg-1');
+
     processLangGraphEvent(['messages', [aiChunk]], state, controller);
 
     expect(chunks).toContainEqual({ type: 'text-start', id: 'msg-1' });
