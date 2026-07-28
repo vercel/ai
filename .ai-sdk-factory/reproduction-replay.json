@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "issueId": 8943,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-8943-google-2-5-penalties.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-8943-google-2-5-penalties.ts",
+    "packages/google/src/issue-8943.test.ts",
+    "packages/google/src/__fixtures__/issue-8943-gemini-2.5-flash-error.json",
+    "packages/google/src/__fixtures__/issue-8943-gemini-2.5-flash-lite-error.json",
+    "packages/google/src/__fixtures__/issue-8943-gemini-2.5-pro-error.json",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_8943_REPRODUCED: 6/6 Gemini 2.5 penalty calls failed with HTTP 400 INVALID_ARGUMENT"
+  }
+}
