@@ -9,9 +9,6 @@ import {
   createJsonResponseHandler,
   parseProviderOptions,
   postJsonToApi,
-  serializeModelOptions,
-  WORKFLOW_DESERIALIZE,
-  WORKFLOW_SERIALIZE,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -39,20 +36,6 @@ export class PerplexityEmbeddingModel implements EmbeddingModelV3 {
 
   get provider(): string {
     return this.config.provider;
-  }
-
-  static [WORKFLOW_SERIALIZE](model: PerplexityEmbeddingModel) {
-    return serializeModelOptions({
-      modelId: model.modelId,
-      config: model.config,
-    });
-  }
-
-  static [WORKFLOW_DESERIALIZE](options: {
-    modelId: PerplexityEmbeddingModelId;
-    config: PerplexityEmbeddingConfig;
-  }) {
-    return new PerplexityEmbeddingModel(options.modelId, options.config);
   }
 
   constructor(
