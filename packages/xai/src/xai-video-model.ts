@@ -5,7 +5,6 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
-  cancelResponseBody,
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
@@ -15,6 +14,7 @@ import {
   getTopLevelMediaType,
   parseProviderOptions,
   postJsonToApi,
+  safeParseJSON,
   type FetchFunction,
   type ResponseHandler,
 } from '@ai-sdk/provider-utils';
@@ -552,13 +552,25 @@ const xaiVideoStatusJsonResponseHandler = createJsonResponseHandler(
 const xaiVideoStatusResponseHandler: ResponseHandler<
   z.infer<typeof xaiVideoStatusResponseSchema>
 > = async options => {
+  // xAI answers 202 while a generation is still running, sometimes with an
+  // empty body. Read it rather than cancelling: `body.cancel()` never settles
+  // on a tee branch, which `Response.clone()` in fetch instrumentation creates.
   if (options.response.status === 202) {
     const responseHeaders = extractResponseHeaders(options.response);
-    await cancelResponseBody(options.response);
+    const text = await options.response.text();
+
+    if (text.trim().length === 0) {
+      return { responseHeaders, value: { status: 'pending' } };
+    }
+
+    const parsed = await safeParseJSON({
+      text,
+      schema: xaiVideoStatusResponseSchema,
+    });
 
     return {
       responseHeaders,
-      value: { status: 'pending' },
+      value: parsed.success ? parsed.value : { status: 'pending' },
     };
   }
 
