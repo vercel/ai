@@ -4,9 +4,8 @@ import { DownloadError } from './download-error';
  * Validates that a URL is safe to download from, blocking private/internal addresses
  * to prevent SSRF attacks.
  *
- * Note: this performs string/literal-IP checks only. It does not resolve DNS, so a
- * hostname that resolves to a private address is not blocked here (see callers, which
- * should additionally constrain egress at the network layer when handling untrusted URLs).
+ * Note: this function performs string/literal-IP checks only. The Node.js
+ * download fetch additionally validates and pins DNS results at connect time.
  *
  * @param url - The URL string to validate.
  * @throws DownloadError if the URL is unsafe.
@@ -80,6 +79,34 @@ export function validateDownloadUrl(url: string): void {
       });
     }
     return;
+  }
+}
+
+/**
+ * Validates an address returned by DNS before it is used to open a socket.
+ * This is intentionally not exported from the package entry point.
+ */
+export function validateDownloadAddress({
+  address,
+  family,
+  hostname,
+}: {
+  address: string;
+  family: number;
+  hostname: string;
+}): void {
+  const isUnsafe =
+    family === 4
+      ? !isIPv4(address) || isPrivateIPv4(address)
+      : family === 6
+        ? isPrivateIPv6(address)
+        : true;
+
+  if (isUnsafe) {
+    throw new DownloadError({
+      url: hostname,
+      message: `Hostname ${hostname} resolved to disallowed IP address ${address}`,
+    });
   }
 }
 
