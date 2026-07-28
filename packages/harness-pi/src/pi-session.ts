@@ -228,6 +228,29 @@ interface ActivePiTurn {
   readonly done: Promise<void>;
 }
 
+/**
+ * A host tool call recorded in the restored journal without a matching tool
+ * result — it was awaiting host input (typically a tool approval) when the
+ * process that owned the live turn went away.
+ */
+interface DanglingHostToolCall {
+  readonly toolCallId: string;
+  readonly toolName: string;
+}
+
+/**
+ * Barrier that holds a cross-process rerun until the framework has
+ * re-delivered the results for every journal-pending host tool call.
+ */
+interface DeferredRerunBarrier {
+  /** toolCallId -> toolName still awaiting a submitted result. */
+  readonly awaiting: Map<string, string>;
+  readonly startRerun: () => void;
+  /** Settle the barrier without running: resolves `done` cleanly when no
+   * reason is given, rejects it otherwise. No-op once the rerun started. */
+  readonly cancel: (reason?: unknown) => void;
+}
+
 export async function createPiSession(
   input: CreatePiSessionInput,
 ): Promise<HarnessV1Session> {
@@ -417,6 +440,17 @@ export async function createPiSession(
   let instructionsApplied = input.isResume;
   const pendingToolResults = new Map<string, PendingToolResult>();
   const pendingToolApprovals = new Map<string, PendingToolApproval>();
+  /*
+   * Results the framework submitted for journal-pending (dangling) host tool
+   * calls while no live turn held a promise for them — the cross-process
+   * continuation path. They are written into the restored journal before the
+   * rerun (or on suspend/stop, so a later resume still sees them).
+   */
+  const deliveredDanglingResults = new Map<
+    string,
+    { toolName: string; output: unknown }
+  >();
+  let deferredRerun: DeferredRerunBarrier | undefined;
 
   // Emit channel set at the start of every doPromptTurn and cleared on end.
   let currentEmit: ((part: HarnessV1StreamPart) => void) | undefined;
@@ -464,6 +498,219 @@ export async function createPiSession(
     });
   }
 
+  /*
+   * Host tool calls in the restored journal that never received a result on
+   * the active branch. These are the calls that were blocked on host input
+   * (typically a tool approval) when the process owning the live turn exited;
+   * the framework re-delivers their results via `submitToolResult` right after
+   * `doContinueTurn` returns. Only meaningful before the first rebuild of a
+   * resumed session — once a Pi session is live, pending host input is held as
+   * in-process promises instead.
+   */
+  function findDanglingHostToolCalls(
+    userTools: ReadonlyArray<HarnessV1ToolSpec>,
+  ): DanglingHostToolCall[] {
+    if (piSession != null || resumeSessionFilePath == null) return [];
+    const hostToolNames = new Set(userTools.map(tool => tool.name));
+    if (hostToolNames.size === 0) return [];
+    const journal = SessionManager.open(
+      resumeSessionFilePath,
+      hostSessionDir,
+      sessionWorkDir,
+    );
+    const messages = journal.buildSessionContext().messages;
+    const resolvedToolCallIds = new Set<string>();
+    for (const message of messages) {
+      if (message.role === 'toolResult') {
+        resolvedToolCallIds.add(message.toolCallId);
+      }
+    }
+    const dangling: DanglingHostToolCall[] = [];
+    for (const message of messages) {
+      if (message.role !== 'assistant') continue;
+      /*
+       * Pi's message transform drops errored/aborted assistant messages from
+       * the LLM context entirely, so their tool calls are not awaiting
+       * results — the model retries from the last valid state instead.
+       */
+      if (message.stopReason === 'error' || message.stopReason === 'aborted') {
+        continue;
+      }
+      for (const block of message.content) {
+        if (
+          block.type === 'toolCall' &&
+          hostToolNames.has(block.name) &&
+          !resolvedToolCallIds.has(block.id)
+        ) {
+          dangling.push({ toolCallId: block.id, toolName: block.name });
+        }
+      }
+    }
+    return dangling;
+  }
+
+  /*
+   * A result submitted while no live turn holds a pending promise for its
+   * toolCallId. On the cross-process continuation path this is the framework
+   * re-delivering the caller's tool-approval/tool-result continuation for a
+   * journal-pending call; stash it for injection and release the rerun once
+   * every dangling call has its result. Results for ids that are neither live
+   * nor journal-pending have nowhere to go and are dropped, as before.
+   */
+  function acceptDanglingHostToolResult(args: {
+    toolCallId: string;
+    output: unknown;
+  }): void {
+    const barrier = deferredRerun;
+    const toolName = barrier?.awaiting.get(args.toolCallId);
+    if (barrier == null || toolName == null) return;
+    barrier.awaiting.delete(args.toolCallId);
+    deliveredDanglingResults.set(args.toolCallId, {
+      toolName,
+      output: args.output,
+    });
+    if (barrier.awaiting.size === 0) {
+      barrier.startRerun();
+    }
+  }
+
+  /*
+   * Write delivered dangling-call results into the restored journal so the
+   * rerun's context carries the real outputs — without this, Pi's message
+   * transform synthesizes an error result ("No result provided") for each
+   * dangling call and the model continues as if the tool never answered. The
+   * serialized text matches what a live turn would have produced
+   * (`asPiToolResult(serializeToolOutput(...))`), so the model sees the same
+   * bytes either way.
+   */
+  function appendDeliveredHostToolResults(): void {
+    if (deliveredDanglingResults.size === 0 || resumeSessionFilePath == null) {
+      return;
+    }
+    const journal = SessionManager.open(
+      resumeSessionFilePath,
+      hostSessionDir,
+      sessionWorkDir,
+    );
+    for (const [toolCallId, delivered] of deliveredDanglingResults) {
+      journal.appendMessage({
+        role: 'toolResult',
+        toolCallId,
+        toolName: delivered.toolName,
+        content: [
+          { type: 'text', text: serializeToolOutput(delivered.output) },
+        ],
+        isError: false,
+        timestamp: Date.now(),
+      });
+    }
+    deliveredDanglingResults.clear();
+    /*
+     * The journal on disk now differs from the copy in the sandbox. Make sure
+     * the lifecycle persistence knows which file to push back even when no
+     * turn ever rebuilt the Pi session in this process (e.g. a suspend that
+     * lands while the rerun is still held back).
+     */
+    if (!sessionFileName) {
+      sessionFileName = safePiSessionFileName(
+        path.basename(resumeSessionFilePath),
+      );
+    }
+  }
+
+  /*
+   * Cross-process continuation of a turn that paused on host input: the
+   * restored journal ends with host tool calls that have no results, and the
+   * framework re-delivers those results through `control.submitToolResult`
+   * (with the original tool-call ids) immediately after this call returns.
+   * Starting the rerun right away would race that delivery — the rerun's
+   * context would resolve the dangling calls as synthetic empty results and
+   * the submitted outputs would be dropped. Hold the rerun until every
+   * dangling call's result has arrived, write the results into the journal,
+   * and only then re-drive the turn.
+   *
+   * If the caller resumes without supplying all continuations, the turn stays
+   * parked awaiting the remaining host input — the same behaviour as the
+   * in-process path, where the live turn stays blocked on its tool promises.
+   */
+  function deferRerunUntilHostToolResults(
+    danglingCalls: ReadonlyArray<DanglingHostToolCall>,
+    continueOpts: HarnessV1ContinueTurnOptions,
+  ): HarnessV1PromptControl {
+    /*
+     * A previous continuation may have ended while its rerun was still held
+     * back (e.g. it paused again awaiting a tool-result continuation). Close
+     * that turn's control cleanly before installing the new barrier.
+     */
+    deferredRerun?.cancel();
+
+    let resolveDone!: () => void;
+    let rejectDone!: (error: unknown) => void;
+    const done = new Promise<void>((resolve, reject) => {
+      resolveDone = resolve;
+      rejectDone = reject;
+    });
+    let settled = false;
+
+    const startRerun = () => {
+      if (settled) return;
+      settled = true;
+      deferredRerun = undefined;
+      void (async () => {
+        try {
+          appendDeliveredHostToolResults();
+          const control = await runTurn({
+            text: '',
+            tools: continueOpts.tools ?? [],
+            emit: continueOpts.emit,
+            abortSignal: continueOpts.abortSignal,
+          });
+          await control.done;
+          resolveDone();
+        } catch (error) {
+          rejectDone(error);
+        }
+      })();
+    };
+
+    const cancel = (reason?: unknown) => {
+      if (settled) return;
+      settled = true;
+      deferredRerun = undefined;
+      if (reason == null) {
+        resolveDone();
+      } else {
+        rejectDone(reason);
+      }
+    };
+
+    deferredRerun = {
+      awaiting: new Map(
+        danglingCalls.map(call => [call.toolCallId, call.toolName]),
+      ),
+      startRerun,
+      cancel,
+    };
+
+    continueOpts.abortSignal?.addEventListener(
+      'abort',
+      () => {
+        cancel(
+          continueOpts.abortSignal?.reason ??
+            new Error(
+              'Pi turn was aborted before its host tool results were delivered.',
+            ),
+        );
+      },
+      { once: true },
+    );
+
+    return createPromptControl({
+      done,
+      abortSignal: continueOpts.abortSignal,
+    });
+  }
+
   function createPromptControl(input: {
     done: Promise<void>;
     abortSignal?: AbortSignal;
@@ -488,7 +735,10 @@ export async function createPiSession(
     return {
       async submitToolResult(args) {
         const pending = pendingToolResults.get(args.toolCallId);
-        if (!pending) return;
+        if (!pending) {
+          acceptDanglingHostToolResult(args);
+          return;
+        }
         pendingToolResults.delete(args.toolCallId);
         /*
          * Preserve the original output so the result projection can surface it
@@ -781,8 +1031,20 @@ export async function createPiSession(
     }
     stopped = true;
     parkedPiSessions.delete(input.sessionId);
+    deferredRerun?.cancel();
     settlePendingToolResults('Pi session stopped');
     settlePendingToolApprovals('Pi session stopped');
+
+    /*
+     * Results the framework already delivered for journal-pending calls must
+     * reach the journal before it is persisted — the framework has marked
+     * them settled and will not re-deliver them on a later resume.
+     */
+    try {
+      appendDeliveredHostToolResults();
+    } catch {
+      // Best-effort: an unwritable journal falls back to the pre-delivery copy.
+    }
 
     // Persist the Pi session file into the sandbox so a future process
     // can pick it up after `provider.resumeSession({ sessionId })` reattaches.
@@ -849,6 +1111,27 @@ export async function createPiSession(
         });
       }
 
+      if (stopped) {
+        throw new Error('Pi session has been stopped.');
+      }
+
+      /*
+       * The restored journal ends with host tool calls that never got their
+       * results — the turn was paused on host input (e.g. a tool approval)
+       * when the previous process exited. The framework re-delivers those
+       * results via `submitToolResult` right after this call returns; hold
+       * the rerun until they have all arrived so they reach the model.
+       */
+      const danglingHostToolCalls = findDanglingHostToolCalls(
+        continueOpts.tools ?? [],
+      );
+      if (danglingHostToolCalls.length > 0) {
+        return deferRerunUntilHostToolResults(
+          danglingHostToolCalls,
+          continueOpts,
+        );
+      }
+
       /*
        * Pi runs the model on the host, so there is no live turn in the sandbox
        * to attach to — the previous slice's turn died with its process.
@@ -882,6 +1165,7 @@ export async function createPiSession(
       if (stopped) return;
       stopped = true;
       parkedPiSessions.delete(input.sessionId);
+      deferredRerun?.cancel();
       settlePendingToolResults('Pi session stopped');
       settlePendingToolApprovals('Pi session stopped');
       unsubscribe?.();
@@ -957,6 +1241,19 @@ export async function createPiSession(
        */
       suspending = true;
       await Promise.resolve(piSession?.abort()).catch(() => {});
+      deferredRerun?.cancel();
+
+      /*
+       * A suspend can land while the rerun is still held back waiting for
+       * host tool results. Whatever the framework already delivered must land
+       * in the journal now — it will not be re-delivered — while calls still
+       * awaiting results stay dangling for the next continuation to collect.
+       */
+      try {
+        appendDeliveredHostToolResults();
+      } catch {
+        // Best-effort: an unwritable journal falls back to the pre-delivery copy.
+      }
 
       if (sessionFileName) {
         try {
