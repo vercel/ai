@@ -1,9 +1,11 @@
+import { APICallError } from '@ai-sdk/provider';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { DEFAULT_MAX_DOWNLOAD_SIZE } from './read-response-with-size-limit';
 import {
   createJsonErrorResponseHandler,
   createBinaryResponseHandler,
+  createEventSourceResponseHandler,
   createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
 } from './response-handler';
@@ -107,6 +109,54 @@ describe('createJsonErrorResponseHandler', () => {
     ).rejects.toThrow('exceeded maximum size');
 
     expect(cancelled()).toBe(true);
+  });
+});
+
+describe('createEventSourceResponseHandler', () => {
+  it('should mark response body socket errors as retryable', async () => {
+    const socketError = Object.assign(new Error('other side closed'), {
+      code: 'UND_ERR_SOCKET',
+    });
+    const terminatedError = new TypeError('terminated');
+    (terminatedError as any).cause = socketError;
+    let pullCount = 0;
+    const response = new Response(
+      new ReadableStream<Uint8Array>({
+        pull(controller) {
+          if (pullCount++ === 0) {
+            controller.enqueue(
+              new TextEncoder().encode('data: {"value":"partial"}\n\n'),
+            );
+          } else {
+            controller.error(terminatedError);
+          }
+        },
+      }),
+    );
+    const handler = createEventSourceResponseHandler(
+      z.object({ value: z.string() }),
+    );
+    const result = await handler({
+      url: 'test-url',
+      requestBodyValues: { prompt: 'test' },
+      response,
+    });
+    const reader = result.value.getReader();
+
+    await expect(reader.read()).resolves.toMatchObject({
+      value: { success: true, value: { value: 'partial' } },
+    });
+    await expect(reader.read()).rejects.toMatchObject({
+      name: 'AI_APICallError',
+      isRetryable: true,
+      cause: terminatedError,
+    });
+
+    try {
+      await reader.closed;
+    } catch (error) {
+      expect(APICallError.isInstance(error)).toBe(true);
+    }
   });
 });
 
