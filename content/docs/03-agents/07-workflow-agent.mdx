@@ -447,8 +447,9 @@ This differs from `ToolLoopAgent`, which runs in memory and can carry richer Jav
 ### experimental_sandbox
 
 Pass a sandbox session when tools need an execution environment. The sandbox is
-available to tool `execute` functions as `experimental_sandbox` and to
-`prepareStep`, where you can override it for the current step:
+available to tool descriptions and `execute` functions as
+`experimental_sandbox`, and to `prepareStep`, where you can override it for the
+current step:
 
 ```ts
 const agent = new WorkflowAgent({
