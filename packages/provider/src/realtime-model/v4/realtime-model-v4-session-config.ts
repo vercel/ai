@@ -1,3 +1,4 @@
+import type { SharedV4AudioFormat } from '../../shared';
 import type { RealtimeModelV4ToolDefinition } from './realtime-model-v4-tool-definition';
 
 /**
@@ -23,17 +24,7 @@ export type RealtimeModelV4SessionConfig = {
   /**
    * Audio format configuration for input audio.
    */
-  inputAudioFormat?: {
-    /**
-     * Audio format type (e.g. "audio/pcm", "audio/pcmu", "audio/pcma").
-     */
-    type: string;
-
-    /**
-     * Sample rate in Hz. Only applicable for PCM format.
-     */
-    rate?: number;
-  };
+  inputAudioFormat?: SharedV4AudioFormat;
 
   /**
    * Input audio transcription configuration.
@@ -87,17 +78,7 @@ export type RealtimeModelV4SessionConfig = {
   /**
    * Audio format configuration for output audio.
    */
-  outputAudioFormat?: {
-    /**
-     * Audio format type (e.g. "audio/pcm", "audio/pcmu", "audio/pcma").
-     */
-    type: string;
-
-    /**
-     * Sample rate in Hz. Only applicable for PCM format.
-     */
-    rate?: number;
-  };
+  outputAudioFormat?: SharedV4AudioFormat;
 
   /**
    * Voice activity detection configuration.

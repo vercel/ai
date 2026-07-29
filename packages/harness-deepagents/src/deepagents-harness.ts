@@ -91,7 +91,10 @@ export type DeepAgentsHarnessSettings = {
   readonly port?: number;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
-  /** Max LangGraph super-steps per turn before it errors. Defaults to 100; raise for long multi-step tasks. */
+  /**
+   * Maximum LangGraph super-steps per turn before it errors.
+   * When omitted, the Deep Agents default applies.
+   */
   readonly recursionLimit?: number;
 };
 
@@ -673,7 +676,6 @@ function createSession({
       }
       stopped = true;
       // Freeze the active turn at the cursor, leaving the bridge running so the next slice replays the tail.
-      await channel.interrupt();
       const lastSeenEventId = await channel.suspend();
       const payload: HarnessV1ContinueTurnState = {
         type: 'continue-turn',

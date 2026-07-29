@@ -627,18 +627,20 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             modelCallContent.push(toolCall);
 
             if (toolCall.invalid) {
-              controller.enqueue({
-                type: 'tool-error',
-                toolCallId: toolCall.toolCallId,
-                toolName: toolCall.toolName,
-                input: toolCall.input,
-                error: getErrorMessage(toolCall.error!),
-                dynamic: true,
-                title: toolCall.title,
-                ...(toolCall.toolMetadata != null
-                  ? { toolMetadata: toolCall.toolMetadata }
-                  : {}),
-              });
+              if (!toolCall.providerExecuted) {
+                controller.enqueue({
+                  type: 'tool-error',
+                  toolCallId: toolCall.toolCallId,
+                  toolName: toolCall.toolName,
+                  input: toolCall.input,
+                  error: getErrorMessage(toolCall.error!),
+                  dynamic: true,
+                  title: toolCall.title,
+                  ...(toolCall.toolMetadata != null
+                    ? { toolMetadata: toolCall.toolMetadata }
+                    : {}),
+                });
+              }
               break;
             }
           } catch (error) {

@@ -10,6 +10,7 @@ import { toolSearch } from './tool/tool-search';
 import { webSearch } from './tool/web-search';
 import { webSearchPreview } from './tool/web-search-preview';
 import { mcp } from './tool/mcp';
+import { programmaticToolCalling } from './tool/programmatic-tool-calling';
 
 export const openaiTools = {
   /**
@@ -134,6 +135,12 @@ export const openaiTools = {
    * @param serverUrl - URL for the MCP server.
    */
   mcp,
+
+  /**
+   * Programmatic Tool Calling lets OpenAI Responses models write and execute
+   * JavaScript that orchestrates eligible tools.
+   */
+  programmaticToolCalling,
 
   /**
    * Tool search allows the model to dynamically search for and load deferred

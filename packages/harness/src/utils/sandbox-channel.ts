@@ -75,6 +75,30 @@ type Listener<TOut extends { type: string }, T extends EventTypeOf<TOut>> = (
   event: Extract<TOut, { type: T }>,
 ) => void;
 
+/*
+ * The agent and utilities entrypoints bundle this module separately. A global
+ * symbol lets the agent recognize metadata attached by the channel's bundle
+ * copy, while the non-enumerable property leaves protocol payloads unchanged.
+ */
+const sandboxChannelEventCheckpointSymbol = Symbol.for(
+  'vercel.ai.harness.sandboxChannelEventCheckpoint',
+);
+
+type SandboxChannelEventCheckpoint = {
+  pin: () => () => void;
+};
+
+export function pinSandboxChannelEventCheckpoint(
+  event: unknown,
+): (() => void) | undefined {
+  if (event == null || typeof event !== 'object') return undefined;
+  return (
+    event as {
+      [sandboxChannelEventCheckpointSymbol]?: SandboxChannelEventCheckpoint;
+    }
+  )[sandboxChannelEventCheckpointSymbol]?.pin();
+}
+
 const sleep = (ms: number): Promise<void> =>
   new Promise(resolve => {
     const t = setTimeout(resolve, ms);
@@ -136,6 +160,9 @@ export class SandboxChannel<
    * replayed to the next process on `resume`.
    */
   private suspended = false;
+  private pinnedSuspensionCursor:
+    | { eventId: number; token: object }
+    | undefined;
   /** Channel is fully torn down; `send` throws and `onClose` has fired. */
   private terminal = false;
   private _lastSeenEventId = 0;
@@ -250,59 +277,6 @@ export class SandboxChannel<
     this.enqueue(() => this.finalizeClose(1000, 'closed'));
   }
 
-  interrupt(options?: { timeoutMs?: number }): Promise<void> {
-    const timeoutMs = options?.timeoutMs ?? 5000;
-    return new Promise<void>((resolve, reject) => {
-      let settled = false;
-      let unsub = (): void => {};
-      const timer = setTimeout(() => {
-        complete(
-          new Error(
-            `SandboxChannel: interrupt was not acknowledged within ${timeoutMs}ms.`,
-          ),
-        );
-      }, timeoutMs);
-      timer.unref?.();
-
-      const complete = (error?: unknown): void => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timer);
-        unsub();
-        if (error) {
-          reject(error);
-        } else {
-          resolve();
-        }
-      };
-
-      unsub = this.on('bridge-interrupted' as EventTypeOf<TOut>, event => {
-        const response = event as unknown as {
-          type: 'bridge-interrupted';
-          ok: boolean;
-          error?: unknown;
-        };
-        if (response.ok) {
-          complete();
-          return;
-        }
-        complete(
-          new Error(
-            `SandboxChannel: interrupt failed: ${formatControlError(
-              response.error,
-            )}`,
-          ),
-        );
-      });
-
-      try {
-        this.send({ type: 'interrupt' } as TIn);
-      } catch (err) {
-        complete(err);
-      }
-    });
-  }
-
   /**
    * Gracefully suspend at a slice boundary: stop processing inbound frames
    * (so the cursor freezes at the last delivered event), drain any frames
@@ -313,19 +287,24 @@ export class SandboxChannel<
    * aborts it) and accumulates events past the cursor for the next process to
    * `resume`. Unlike {@link close}, the consumer's active turn is wound down
    * cleanly — adapters distinguish a suspend from an unexpected drop via the
-   * `'suspended'` close reason and resolve `done` successfully.
+   * `'suspended'` close reason and resolve `done` successfully. When an event
+   * checkpoint is pinned, the returned cursor points to that event so any
+   * already-dispatched tail is replayed by the next process.
    */
   suspend(): Promise<number> {
     return new Promise<number>(resolve => {
+      const pinnedSuspensionCursor = this.pinnedSuspensionCursor?.eventId;
       if (this.terminal) {
-        resolve(this._lastSeenEventId);
+        resolve(pinnedSuspensionCursor ?? this._lastSeenEventId);
         return;
       }
       // Stop counting/dispatching further inbound frames immediately, and
       // suppress reconnect so the socket close finalises.
       this.suspended = true;
       this.closing = true;
-      this.onClose(() => resolve(this._lastSeenEventId));
+      this.onClose(() =>
+        resolve(pinnedSuspensionCursor ?? this._lastSeenEventId),
+      );
       // Queue the close behind any already-dispatched frames so everything
       // delivered to the consumer is reflected in the final cursor.
       this.enqueue(() => {
@@ -465,6 +444,9 @@ export class SandboxChannel<
       schema: this.outboundSchema,
     });
     if (validated.success) {
+      if (seq !== undefined) {
+        this.attachEventCheckpoint({ event: validated.value, eventId: seq });
+      }
       this.dispatch(validated.value);
     } else {
       this.dispatch({
@@ -506,20 +488,30 @@ export class SandboxChannel<
     }
   }
 
+  private attachEventCheckpoint(options: {
+    event: TOut;
+    eventId: number;
+  }): void {
+    if (!Object.isExtensible(options.event)) return;
+    Object.defineProperty(options.event, sandboxChannelEventCheckpointSymbol, {
+      value: {
+        pin: () => {
+          const token = {};
+          this.pinnedSuspensionCursor = { eventId: options.eventId, token };
+          return () => {
+            if (this.pinnedSuspensionCursor?.token === token) {
+              this.pinnedSuspensionCursor = undefined;
+            }
+          };
+        },
+      } satisfies SandboxChannelEventCheckpoint,
+    });
+  }
+
   private finalizeClose(code: number, reason: string): void {
     if (this.terminal) return;
     this.terminal = true;
     this.connected = false;
     for (const h of this.onCloseHandlers) h(code, reason);
   }
-}
-
-function formatControlError(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (error && typeof error === 'object') {
-    const message = (error as { message?: unknown }).message;
-    if (typeof message === 'string' && message.length > 0) return message;
-  }
-  if (typeof error === 'string' && error.length > 0) return error;
-  return 'unknown error';
 }

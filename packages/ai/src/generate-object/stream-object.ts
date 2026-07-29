@@ -168,6 +168,10 @@ export type StreamObjectOnFinishCallback<RESULT> = (event: {
  * - 'enum': The output is an enum.
  * - 'no-schema': The output is not a schema.
  *
+ * @param repairText - A function that attempts to repair the raw output of the model
+ * to enable JSON parsing.
+ * @param experimental_repairText - Deprecated alias for `repairText`.
+ *
  * @param telemetry - Optional telemetry configuration.
  *
  * @param providerOptions - Additional provider-specific options. They are passed through
@@ -230,6 +234,14 @@ export function streamObject<
       /**
        * A function that attempts to repair the raw output of the model
        * to enable JSON parsing.
+       */
+      repairText?: RepairTextFunction;
+
+      /**
+       * A function that attempts to repair the raw output of the model
+       * to enable JSON parsing.
+       *
+       * @deprecated Use `repairText` instead.
        */
       experimental_repairText?: RepairTextFunction;
 
@@ -346,7 +358,8 @@ export function streamObject<
     maxRetries,
     abortSignal,
     headers,
-    experimental_repairText: repairText,
+    experimental_repairText,
+    repairText = experimental_repairText,
     experimental_telemetry,
     telemetry = experimental_telemetry,
     experimental_download: download,
@@ -964,7 +977,7 @@ class DefaultStreamObjectResult<
   }
 
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
-    pipeTextStreamToResponse({
+    return pipeTextStreamToResponse({
       response,
       stream: this.textStream,
       ...init,

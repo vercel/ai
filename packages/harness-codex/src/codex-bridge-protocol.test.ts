@@ -45,7 +45,6 @@ describe('outboundMessageSchema', () => {
     { type: 'file-change', event: 'create', path: 'notes.md' },
     { type: 'file-change', event: 'modify', path: 'src/lib.ts' },
     { type: 'file-change', event: 'delete', path: 'old.txt' },
-    { type: 'bridge-interrupted', ok: true },
     { type: 'error', error: 'boom' },
     { type: 'raw', rawValue: { hello: 'world' } },
   ];
@@ -98,11 +97,10 @@ describe('inboundMessageSchema', () => {
     ).not.toThrow();
   });
 
-  it('accepts user-message, abort, interrupt, shutdown', () => {
+  it('accepts user-message, abort, and shutdown', () => {
     for (const sample of [
       { type: 'user-message', text: 'hi' },
       { type: 'abort' },
-      { type: 'interrupt' },
       { type: 'shutdown' },
     ]) {
       expect(() => inboundMessageSchema.parse(sample)).not.toThrow();
