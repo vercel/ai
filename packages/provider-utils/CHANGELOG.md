@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.0.31
+
+### Patch Changes
+
+- 7a6bdbc: Prevent validated downloads on Node.js from reaching private or internal services through DNS aliases or DNS rebinding by validating and pinning every resolved address at connection time.
+
 ## 3.0.30
 
 ### Patch Changes
