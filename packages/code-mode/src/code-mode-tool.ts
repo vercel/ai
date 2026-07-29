@@ -18,6 +18,7 @@ import type {
 
 const TRACE_ID = Symbol('codeModeTraceId');
 const MAX_MODEL_OUTPUT_BYTES = Number.MAX_SAFE_INTEGER;
+const MAX_PENDING_MODEL_OUTPUTS = 256;
 
 type NestedToolModelOutputInput = {
   toolName: string;
@@ -125,7 +126,11 @@ export function createCodeModeTool(
       const traceId = `code-mode-trace-${randomId()}`;
       rememberInputTraceId(input, traceId);
       if (includeNestedToolOutputs) {
-        nestedToolResultsById.set(traceId, new Map());
+        rememberBounded(
+          nestedToolResultsById,
+          traceId,
+          new Map<number, NestedToolModelOutputInput>(),
+        );
       }
       const runtimeOptions = includeNestedToolSummary
         ? withModelOutputCapture(options, {
@@ -150,12 +155,18 @@ export function createCodeModeTool(
           })
         : options;
 
-      return await runCodeMode({
-        js,
-        tools,
-        toolExecutionOptions: executionOptions,
-        options: runtimeOptions,
-      });
+      try {
+        return await runCodeMode({
+          js,
+          tools,
+          toolExecutionOptions: executionOptions,
+          options: runtimeOptions,
+        });
+      } catch (error) {
+        traceById.delete(traceId);
+        nestedToolResultsById.delete(traceId);
+        throw error;
+      }
     },
   }) as CodeModeTool;
 }
@@ -300,13 +311,17 @@ function rememberTrace(
   toolCallId: string,
   trace: CodeModeTrace,
 ): void {
-  traceByToolCallId.set(toolCallId, trace);
-  while (traceByToolCallId.size > 256) {
-    const oldestKey = traceByToolCallId.keys().next().value;
+  rememberBounded(traceByToolCallId, toolCallId, trace);
+}
+
+function rememberBounded<K, V>(map: Map<K, V>, key: K, value: V): void {
+  map.set(key, value);
+  while (map.size > MAX_PENDING_MODEL_OUTPUTS) {
+    const oldestKey = map.keys().next().value;
     if (oldestKey === undefined) {
       return;
     }
-    traceByToolCallId.delete(oldestKey);
+    map.delete(oldestKey);
   }
 }
 

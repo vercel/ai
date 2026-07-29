@@ -629,6 +629,50 @@ describe('observability', () => {
     });
   });
 
+  it('discards captured model output data when execution throws', async () => {
+    const codeMode = createCodeModeTool(
+      {
+        getUser: tool({
+          inputSchema: z.object({}),
+          execute: async () => ({ name: 'Ada' }),
+        }),
+      },
+      {
+        modelOutput: {
+          includeNestedToolOutputs: true,
+        },
+      },
+    );
+    const input = {
+      js: `
+        await tools.getUser({});
+        throw new Error("execution failed");
+      `,
+    };
+
+    await expect(
+      codeMode.execute?.(input, {
+        toolCallId: 'outer',
+        messages: emptyMessages,
+        context: {},
+      }),
+    ).rejects.toThrow('execution failed');
+
+    await expect(
+      (codeMode as any).toModelOutput({
+        toolCallId: 'outer',
+        input,
+        output: null,
+      }),
+    ).resolves.toEqual({
+      type: 'json',
+      value: {
+        result: null,
+        nestedTools: [],
+      },
+    });
+  });
+
   it('uses AI SDK default model output mapping for nested tools without toModelOutput', async () => {
     const codeMode = createCodeModeTool(
       {
