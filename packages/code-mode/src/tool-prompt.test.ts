@@ -1,11 +1,7 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { jsonSchema, tool } from 'ai';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { experimental_createCodeModeTool as createCodeModeTool } from '../dist/index.js';
-
-const PROMPT_SAMPLES_DIR = join(process.cwd(), 'prompt-samples');
 
 const BASE_RULES = `Execute code-mode TypeScript in an isolated sandbox.
 
@@ -25,15 +21,6 @@ function requireStaticDescription(description: CodeModeDescription): string {
     throw new TypeError('Code mode must have a static tool description.');
   }
   return description;
-}
-
-function writePromptSample(
-  slug: string,
-  description: CodeModeDescription,
-): void {
-  const prompt = requireStaticDescription(description);
-  mkdirSync(PROMPT_SAMPLES_DIR, { recursive: true });
-  writeFileSync(join(PROMPT_SAMPLES_DIR, `${slug}.md`), `${prompt}\n`);
 }
 
 function wordCount(description: CodeModeDescription): number {
@@ -84,11 +71,6 @@ describe('code mode prompt', () => {
         execute: async () => ({}),
       }),
     });
-
-    writePromptSample(
-      'typescript-signatures-and-examples',
-      codeMode.description,
-    );
 
     expect(codeMode.description).toBe(`${DISABLED_FETCH_PREFIX}
 \`\`\`ts
@@ -181,8 +163,6 @@ return { urls: result.urls };
         execute: async () => ({}),
       }),
     });
-
-    writePromptSample('nested-json-schema-shapes', codeMode.description);
 
     expect(codeMode.description).toBe(`${DISABLED_FETCH_PREFIX}
 \`\`\`ts
