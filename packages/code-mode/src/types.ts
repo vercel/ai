@@ -48,6 +48,8 @@ export interface CodeModeExecutionPolicy {
   maxStackSizeBytes?: number;
   /** @defaultValue `1024 * 1024` */
   maxResultBytes?: number;
+  /** @defaultValue `64 * 1024` */
+  maxConsoleOutputBytes?: number;
   /** @defaultValue `256 * 1024` */
   maxSourceBytes?: number;
   /** @defaultValue `1024 * 1024` */
@@ -87,6 +89,7 @@ export interface NormalizedCodeModeOptions {
   memoryLimitBytes: number;
   maxStackSizeBytes: number;
   maxResultBytes: number;
+  maxConsoleOutputBytes: number;
   maxSourceBytes: number;
   maxToolInputBytes: number;
   maxToolOutputBytes: number;

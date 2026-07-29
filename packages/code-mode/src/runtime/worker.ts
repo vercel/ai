@@ -120,7 +120,7 @@ async function execute(message: WorkerRunMessage): Promise<string> {
   });
 
   try {
-    installConsole(context);
+    installConsole(context, message.options.maxConsoleOutputBytes);
     bridgeFunctions = createBridgeFunctions(context, message);
     const setupSource = buildGuestRuntimeSetupSource();
     const setupEvalResult = await context.evalCodeAsync(
@@ -279,13 +279,17 @@ function serializeQuickJSJsonPayload(
   }
 }
 
-function installConsole(context: QuickJSAsyncContext): void {
+function installConsole(
+  context: QuickJSAsyncContext,
+  maxOutputBytes: number,
+): void {
+  const outputBudget = { remainingBytes: maxOutputBytes };
   const consoleHandle = context.newObject();
   const handles = [
-    ['log', createConsoleFunction(context, 'stdout')],
-    ['info', createConsoleFunction(context, 'stdout')],
-    ['debug', createConsoleFunction(context, 'stdout')],
-    ['error', createConsoleFunction(context, 'stderr')],
+    ['log', createConsoleFunction(context, 'stdout', outputBudget)],
+    ['info', createConsoleFunction(context, 'stdout', outputBudget)],
+    ['debug', createConsoleFunction(context, 'stdout', outputBudget)],
+    ['error', createConsoleFunction(context, 'stderr', outputBudget)],
   ] as const;
 
   for (const [name, handle] of handles) {
@@ -302,11 +306,21 @@ function installConsole(context: QuickJSAsyncContext): void {
 function createConsoleFunction(
   context: QuickJSAsyncContext,
   stream: 'stdout' | 'stderr',
+  outputBudget: { remainingBytes: number },
 ): QuickJSHandle {
   return context.newFunction('console', (...args: QuickJSHandle[]) => {
+    if (outputBudget.remainingBytes === 0) {
+      return;
+    }
     const values = args.map(arg => dumpConsoleArg(context, arg));
     const line = formatWithOptions({ colors: false, depth: 4 }, ...values);
     const output = `${line}\n`;
+    const outputBytes = Buffer.byteLength(output);
+    if (outputBytes > outputBudget.remainingBytes) {
+      outputBudget.remainingBytes = 0;
+      return;
+    }
+    outputBudget.remainingBytes -= outputBytes;
     writeSync(stream === 'stderr' ? 2 : 1, output);
   });
 }

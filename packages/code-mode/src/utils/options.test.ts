@@ -10,6 +10,7 @@ describe('options validation', () => {
     ['memoryLimitBytes', -1],
     ['maxStackSizeBytes', 1.5],
     ['maxResultBytes', Number.NaN],
+    ['maxConsoleOutputBytes', 0],
     ['maxSourceBytes', 0],
     ['maxToolInputBytes', 0],
     ['maxToolOutputBytes', 0],

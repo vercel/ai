@@ -4,6 +4,7 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_MEMORY_LIMIT_BYTES = 64 * 1024 * 1024;
 const DEFAULT_STACK_LIMIT_BYTES = 2 * 1024 * 1024;
 const DEFAULT_MAX_RESULT_BYTES = 1024 * 1024;
+const DEFAULT_MAX_CONSOLE_OUTPUT_BYTES = 64 * 1024;
 const DEFAULT_MAX_SOURCE_BYTES = 256 * 1024;
 const DEFAULT_MAX_TOOL_INPUT_BYTES = 1024 * 1024;
 const DEFAULT_MAX_TOOL_OUTPUT_BYTES = 4 * 1024 * 1024;
@@ -35,6 +36,11 @@ export function normalizeOptions(
       executionPolicy.maxResultBytes,
       DEFAULT_MAX_RESULT_BYTES,
       'executionPolicy.maxResultBytes',
+    ),
+    maxConsoleOutputBytes: positiveInteger(
+      executionPolicy.maxConsoleOutputBytes,
+      DEFAULT_MAX_CONSOLE_OUTPUT_BYTES,
+      'executionPolicy.maxConsoleOutputBytes',
     ),
     maxSourceBytes: positiveInteger(
       executionPolicy.maxSourceBytes,

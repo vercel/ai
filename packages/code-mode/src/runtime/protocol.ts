@@ -6,7 +6,11 @@ export interface WorkerRunMessage {
   js: string;
   options: Pick<
     NormalizedCodeModeOptions,
-    'timeoutMs' | 'memoryLimitBytes' | 'maxStackSizeBytes' | 'maxResultBytes'
+    | 'timeoutMs'
+    | 'memoryLimitBytes'
+    | 'maxStackSizeBytes'
+    | 'maxResultBytes'
+    | 'maxConsoleOutputBytes'
   >;
 }
 

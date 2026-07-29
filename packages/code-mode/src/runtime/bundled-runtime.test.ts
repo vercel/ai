@@ -217,6 +217,7 @@ try {
         memoryLimitBytes: 128 * 1024 * 1024,
         maxStackSizeBytes: 1024 * 1024,
         maxResultBytes: 1024 * 1024,
+        maxConsoleOutputBytes: 64 * 1024,
       },
     });
   });

@@ -30,6 +30,32 @@ await runCodeMode({
     expect(stdout).toBe('log { a: 1 }\ninfo value\ndebug 3\n');
     expect(stderr).toBe('err { bad: true }\n');
   });
+
+  it('limits combined stdout and stderr bytes per invocation', async () => {
+    const { stdout, stderr } = await runIsolated(`
+import {
+  experimental_runCodeMode as runCodeMode,
+  experimental_setMaxWorkers as setMaxWorkers,
+} from "./dist/index.js";
+
+setMaxWorkers(1);
+await runCodeMode({
+  js: \`
+    console.log("first");
+    console.error("error");
+    for (let index = 0; index < 100; index++) {
+      console.log("dropped");
+    }
+    return "ok";
+  \`,
+  tools: {},
+  options: { executionPolicy: { maxConsoleOutputBytes: 12 } },
+});
+`);
+
+    expect(stdout).toBe('first\n');
+    expect(stderr).toBe('error\n');
+  });
 });
 
 async function runIsolated(

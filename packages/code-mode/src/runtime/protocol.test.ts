@@ -12,6 +12,7 @@ const WORKER_OPTIONS = {
   memoryLimitBytes: 64 * 1024 * 1024,
   maxStackSizeBytes: 2 * 1024 * 1024,
   maxResultBytes: 1024 * 1024,
+  maxConsoleOutputBytes: 64 * 1024,
 };
 
 describe('worker protocol hardening', () => {

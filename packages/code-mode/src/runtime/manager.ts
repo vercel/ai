@@ -256,6 +256,7 @@ function startWorkerRun({
       memoryLimitBytes: normalizedOptions.memoryLimitBytes,
       maxStackSizeBytes: normalizedOptions.maxStackSizeBytes,
       maxResultBytes: normalizedOptions.maxResultBytes,
+      maxConsoleOutputBytes: normalizedOptions.maxConsoleOutputBytes,
     },
   };
 

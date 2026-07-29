@@ -118,6 +118,7 @@ const codeMode = createCodeModeTool(tools, {
   executionPolicy: {
     timeoutMs: 30_000,
     memoryLimitBytes: 64 * 1024 * 1024,
+    maxConsoleOutputBytes: 64 * 1024,
   },
 });
 ```
