@@ -1,3 +1,5 @@
+import { isRecord } from '@ai-sdk/provider-utils';
+
 export type OpenCodeEvent = {
   id?: string;
   type?: string;
@@ -248,13 +250,7 @@ function stripSyncVersion(type: string): string {
 }
 
 function asRecord(value: unknown): Record<string, any> | undefined {
-  if (!value || typeof value !== 'object' || Array.isArray(value))
-    return undefined;
-  return value as Record<string, any>;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+  return isRecord(value) ? value : undefined;
 }
 
 function stringValue(value: unknown): string | undefined {
