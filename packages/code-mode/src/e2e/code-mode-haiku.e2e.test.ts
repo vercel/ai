@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { gateway, generateText, stepCountIs, tool } from 'ai';
 import { describe, expect, it } from 'vitest';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import {
   experimental_createCodeModeTool as createCodeModeTool,
   experimental_setMaxWorkers as setMaxWorkers,

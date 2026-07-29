@@ -1,6 +1,6 @@
 import { tool } from 'ai';
 import { describe, expect, it, vi } from 'vitest';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { experimental_runCodeMode as runCodeMode } from '../../dist/index.js';
 import { deferred } from '../utils/test-helpers.js';
 

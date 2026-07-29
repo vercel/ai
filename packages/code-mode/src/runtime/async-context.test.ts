@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { tool } from 'ai';
 import { describe, expect, it } from 'vitest';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { experimental_runCodeMode as runCodeMode } from '../../dist/index.js';
 
 // Workers are pooled and reused across invocations. A worker's `message` event
