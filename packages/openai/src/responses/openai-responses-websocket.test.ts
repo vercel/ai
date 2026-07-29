@@ -102,6 +102,7 @@ function userInput(text: string): OpenAIResponsesInput {
 type CreateRequestOptions = {
   abortSignal?: AbortSignal;
   headers?: Record<string, string | undefined>;
+  includeEvents?: boolean;
   modelId?: string;
   store?: boolean;
   url?: string;
@@ -127,6 +128,7 @@ function startRequest(
       background: false,
     },
     abortSignal: options.abortSignal,
+    includeEvents: options.includeEvents,
   });
 }
 
@@ -189,6 +191,28 @@ describe('OpenAIResponsesWebSocketSession', () => {
 
     await completeRequest(request, socket, 'resp_1');
     expect(socket.closeCalls).toBe(0);
+  });
+
+  it('does not buffer events for a terminal-only request', async () => {
+    const manager = new OpenAIResponsesWebSocketSession();
+    const { request, socket } = await createRequest(
+      manager,
+      userInput('Hello'),
+      { includeEvents: false },
+    );
+    const reader = request.stream.getReader();
+
+    await expect(reader.read()).resolves.toEqual({
+      done: true,
+      value: undefined,
+    });
+
+    socket.message({
+      type: 'response.output_text.delta',
+      item_id: 'msg_1',
+      delta: 'Hello',
+    });
+    await completeRequest(request, socket, 'resp_1');
   });
 
   it('waits for send backpressure to drain', async () => {

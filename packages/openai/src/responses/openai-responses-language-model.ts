@@ -693,6 +693,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         headers: combineHeaders(this.config.headers?.(), options.headers),
         body,
         abortSignal: options.abortSignal,
+        includeEvents: false,
       });
 
       const terminal = await webSocketRequest.terminal;

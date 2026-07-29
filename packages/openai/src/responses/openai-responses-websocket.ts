@@ -37,9 +37,9 @@ type ConnectionIdentity = {
 
 type RequestState = {
   body: Record<string, unknown>;
-  controller: ReadableStreamDefaultController<
-    ParseResult<OpenAIResponsesChunk>
-  >;
+  controller:
+    | ReadableStreamDefaultController<ParseResult<OpenAIResponsesChunk>>
+    | undefined;
   sent: boolean;
   terminal: {
     resolve: (value: OpenAIResponsesWebSocketTerminal) => void;
@@ -114,11 +114,13 @@ export class OpenAIResponsesWebSocketSession {
     headers,
     body,
     abortSignal,
+    includeEvents = true,
   }: {
     url: string;
     headers: Record<string, string | undefined>;
     body: Record<string, unknown> & { input: OpenAIResponsesInput };
     abortSignal?: AbortSignal;
+    includeEvents?: boolean;
   }): Promise<OpenAIResponsesWebSocketRequest> {
     // OpenAI permits only one in-flight response on a WebSocket connection.
     if (this.requestReserved) {
@@ -180,7 +182,13 @@ export class OpenAIResponsesWebSocketSession {
     >;
     const stream = new ReadableStream<ParseResult<OpenAIResponsesChunk>>({
       start(value) {
-        controller = value;
+        if (includeEvents) {
+          controller = value;
+        } else {
+          // `doGenerate` only consumes the full terminal response. Closing its
+          // unused event view avoids retaining every intermediate delta.
+          value.close();
+        }
       },
       cancel: reason => {
         // The protocol has no documented per-response cancel event. Closing
@@ -195,7 +203,7 @@ export class OpenAIResponsesWebSocketSession {
 
     const request: RequestState = {
       body: preparedBody,
-      controller,
+      controller: includeEvents ? controller : undefined,
       sent: false,
       terminal: { resolve: terminalResolve, reject: terminalReject },
       abortSignal,
@@ -459,11 +467,11 @@ export class OpenAIResponsesWebSocketSession {
         schema: openaiResponsesChunkSchema,
       });
 
-      // The stream mapper still needs to observe the terminal event before the
+      // Streaming callers still need to observe the terminal event before the
       // request is released for reuse.
-      request.controller.enqueue(chunk);
+      request.controller?.enqueue(chunk);
       request.settled = true;
-      request.controller.close();
+      request.controller?.close();
       request.terminal.resolve({
         type,
         response: terminalResponse.value,
@@ -477,13 +485,13 @@ export class OpenAIResponsesWebSocketSession {
       value,
       schema: openaiResponsesChunkSchema,
     });
-    request.controller.enqueue(chunk);
+    request.controller?.enqueue(chunk);
 
     if (type === 'error' || type === 'response.failed' || !chunk.success) {
       // Error events are part of the stream protocol, so enqueue the parsed
       // result for the existing mapper and reject the terminal view as well.
       request.settled = true;
-      request.controller.close();
+      request.controller?.close();
       request.terminal.reject(
         createOpenAIResponsesWebSocketError({
           frame: value,
@@ -520,10 +528,10 @@ export class OpenAIResponsesWebSocketSession {
               body: request.body,
               cause: error,
             });
-      request.controller.error(finalError);
+      request.controller?.error(finalError);
       request.terminal.reject(finalError);
     } else {
-      request.controller.error(error);
+      request.controller?.error(error);
       request.terminal.reject(error);
     }
 
