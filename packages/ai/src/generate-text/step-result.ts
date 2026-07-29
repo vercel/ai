@@ -176,7 +176,8 @@ export type StepResult<
   readonly content: Array<ContentPart<TOOLS>>;
 
   /**
-   * The generated text. Can be an empty string if the model has not generated any text.
+   * The concatenation of all text parts generated in this step.
+   * It is an empty string if the step contains no text parts.
    */
   readonly text: string;
 

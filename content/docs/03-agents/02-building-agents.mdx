@@ -129,6 +129,10 @@ const result = await agent.generate({
 });
 ```
 
+Model call settings returned from `prepareStep`, such as `temperature`, apply
+only to the current step. Later steps use the agent's top-level setting unless
+they return another override.
+
 For the full model, including sensitive context filtering and where each context
 value is available, see [Runtime and Tool
 Context](/docs/ai-sdk-core/runtime-and-tool-context).
