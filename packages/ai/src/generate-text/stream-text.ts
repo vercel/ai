@@ -70,6 +70,11 @@ import type { ContentPart } from './content-part';
 import { filterActiveTools } from './filter-active-tools';
 import type { Output } from './output';
 import type { PrepareStepFunction } from './prepare-step';
+<<<<<<< HEAD
+=======
+import { prepareStepCallSettings } from './prepare-step-call-settings';
+import { convertToReasoningOutputs } from './reasoning-output';
+>>>>>>> 60f97f6738 (feat: support per-step model call setting overrides in prepareStep (#18105))
 import type { ResponseMessage } from './response-message';
 import {
   type SingleRequestTextStreamPart,
@@ -1129,8 +1134,127 @@ class DefaultStreamTextResult<
           });
           currentStepToolSet = stepToolSet;
 
+<<<<<<< HEAD
           const { toolChoice: stepToolChoice, tools: stepTools } =
             prepareToolsAndToolChoice({
+=======
+          const stepTools = await prepareTools({
+            tools: stepActiveTools,
+            toolOrder: stepToolOrder as ToolOrder<
+              ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
+            >,
+            // active tools context is a subset of the tools context, so we can cast to the unknown type
+            toolsContext: toolsContext as unknown as InferToolSetContext<
+              ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
+            >,
+            experimental_sandbox: stepSandbox,
+          });
+
+          const stepToolChoice = prepareToolChoice({
+            toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+          });
+
+          const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
+          currentStepMessages = stepMessages;
+          const stepInstructions =
+            prepareStepResult?.instructions ??
+            prepareStepResult?.system ??
+            instructionsForNextStep;
+          instructionsForNextStep = stepInstructions;
+
+          const stepProviderOptions = mergeObjects(
+            providerOptions,
+            prepareStepResult?.providerOptions,
+          );
+
+          const stepCallSettings = prepareStepCallSettings({
+            callSettings,
+            stepSettings: prepareStepResult,
+          });
+
+          const stepStartTimestampMs = now();
+
+          const { retry } = prepareRetries({ maxRetries, abortSignal });
+
+          const {
+            stream: languageModelStream,
+            request,
+            response,
+          } = await runInStepTracingChannelContext(() =>
+            retry(async () =>
+              streamLanguageModelCall({
+                model: prepareStepResult?.model ?? model,
+                tools: stepActiveTools,
+                toolOrder: stepToolOrder,
+                toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+                instructions: stepInstructions,
+                messages: stepMessages,
+                allowSystemInMessages,
+                repairToolCall,
+                refineToolInput,
+                abortSignal,
+                headers,
+                includeRawChunks: include.rawChunks,
+                providerOptions: stepProviderOptions,
+                download,
+                output,
+                callId,
+                executeLanguageModelCallInTelemetryContext:
+                  telemetryDispatcher.executeLanguageModelCall,
+                toolsContext,
+                experimental_sandbox: stepSandbox,
+                onLanguageModelCallStart: filterNullable(
+                  onLanguageModelCallStart,
+                  telemetryDispatcher.onLanguageModelCallStart as
+                    | undefined
+                    | OnLanguageModelCallStartCallback,
+                ),
+                onLanguageModelCallEnd: filterNullable(
+                  onLanguageModelCallEnd,
+                  telemetryDispatcher.onLanguageModelCallEnd as
+                    | undefined
+                    | OnLanguageModelCallEndCallback<TOOLS>,
+                ),
+                onStart: async ({ promptMessages }) => {
+                  await notify({
+                    event: {
+                      callId,
+                      provider: stepModel.provider,
+                      modelId: stepModel.modelId,
+                      stepNumber: recordedSteps.length,
+                      instructions: stepInstructions,
+                      messages: stepMessages,
+                      tools,
+                      toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+                      activeTools:
+                        prepareStepResult?.activeTools ?? activeTools,
+                      toolOrder: stepToolOrder,
+                      steps: [...recordedSteps],
+                      providerOptions: stepProviderOptions,
+                      runtimeContext,
+                      toolsContext,
+                      output,
+                      promptMessages,
+                      stepTools,
+                      stepToolChoice,
+                    },
+                    callbacks: [onStepStart, telemetryDispatcher.onStepStart],
+                  });
+                },
+                _internal: {
+                  now,
+                },
+                ...stepCallSettings,
+              }),
+            ),
+          );
+
+          startFirstChunkTimeout();
+
+          const streamAfterToolCallbackInvocation =
+            invokeToolCallbacksFromStream({
+              stream: languageModelStream,
+>>>>>>> 60f97f6738 (feat: support per-step model call setting overrides in prepareStep (#18105))
               tools,
               toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
               activeTools: stepActiveTools,
