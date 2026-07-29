@@ -197,7 +197,7 @@ The event types for each method are the same as the corresponding [event callbac
 
 `generateText` records 3 types of spans:
 
-- `ai.generateText` (span): the full length of the generateText call. It contains 1 or more `ai.generateText.doGenerate` spans.
+- `ai.generateText` (span): the full length of the generateText call. It is the direct parent of 1 or more `ai.generateText.doGenerate` spans and any `ai.toolCall` spans recorded for the call.
   It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
 
   - `operation.name`: `ai.generateText` and the functionId that was set through `telemetry.functionId`
@@ -208,7 +208,7 @@ The event types for each method are the same as the corresponding [event callbac
   - `ai.response.finishReason`: the reason why the generation finished
   - `ai.settings.maxOutputTokens`: the maximum number of output tokens that were set
 
-- `ai.generateText.doGenerate` (span): a provider doGenerate call. It can contain `ai.toolCall` spans.
+- `ai.generateText.doGenerate` (span): a provider doGenerate call.
   It contains the [call LLM span information](#call-llm-span-information) and the following attributes:
 
   - `operation.name`: `ai.generateText.doGenerate` and the functionId that was set through `telemetry.functionId`
@@ -229,7 +229,7 @@ The event types for each method are the same as the corresponding [event callbac
 
 `streamText` records 3 types of spans and 2 types of events:
 
-- `ai.streamText` (span): the full length of the streamText call. It contains a `ai.streamText.doStream` span.
+- `ai.streamText` (span): the full length of the streamText call. It is the direct parent of 1 or more `ai.streamText.doStream` spans and any `ai.toolCall` spans recorded for the call.
   It contains the [basic LLM span information](#basic-llm-span-information) and the following attributes:
 
   - `operation.name`: `ai.streamText` and the functionId that was set through `telemetry.functionId`
@@ -241,7 +241,7 @@ The event types for each method are the same as the corresponding [event callbac
   - `ai.settings.maxOutputTokens`: the maximum number of output tokens that were set
 
 - `ai.streamText.doStream` (span): a provider doStream call.
-  This span contains an `ai.stream.firstChunk` event and `ai.toolCall` spans.
+  This span can contain `ai.stream.firstChunk` and `ai.stream.finish` events.
   It contains the [call LLM span information](#call-llm-span-information) and the following attributes:
 
   - `operation.name`: `ai.streamText.doStream` and the functionId that was set through `telemetry.functionId`
