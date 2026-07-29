@@ -38,7 +38,7 @@ describe('MiniMaxProvider', () => {
   describe('createMiniMax', () => {
     it('should create a MiniMaxProvider instance with default options', () => {
       const provider = createMiniMax();
-      provider('MiniMax-M3');
+      provider('minimax-m3');
 
       const constructorCall = AnthropicLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
@@ -58,7 +58,7 @@ describe('MiniMaxProvider', () => {
         headers: { 'Custom-Header': 'value' },
       };
       const provider = createMiniMax(options);
-      provider('MiniMax-M3');
+      provider('minimax-m3');
 
       const constructorCall = AnthropicLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
@@ -73,19 +73,19 @@ describe('MiniMaxProvider', () => {
 
     it('should return a chat model when called as a function', () => {
       const provider = createMiniMax();
-      const model = provider('MiniMax-M3');
+      const model = provider('minimax-m3');
       expect(model).toBeInstanceOf(AnthropicLanguageModel);
     });
 
     it('should construct the model with the Anthropic-compatible config', () => {
       const provider = createMiniMax();
-      provider('MiniMax-M3');
+      provider('minimax-m3');
 
       const constructorCall = AnthropicLanguageModelMock.mock.calls[0];
       const modelId = constructorCall[0];
       const config = constructorCall[1];
 
-      expect(modelId).toBe('MiniMax-M3');
+      expect(modelId).toBe('minimax-m3');
       // provider prefix `minimax` is the provider-options namespace
       expect(config.provider).toBe('minimax.messages');
       expect(config.baseURL).toBe('https://api.minimax.io/anthropic/v1');
@@ -99,7 +99,7 @@ describe('MiniMaxProvider', () => {
   describe('languageModel', () => {
     it('should construct a language model', () => {
       const provider = createMiniMax();
-      const model = provider.languageModel('MiniMax-M2.5');
+      const model = provider.languageModel('minimax-m2.5');
       expect(model).toBeInstanceOf(AnthropicLanguageModel);
     });
   });
@@ -107,7 +107,7 @@ describe('MiniMaxProvider', () => {
   describe('chat', () => {
     it('should construct a chat model', () => {
       const provider = createMiniMax();
-      const model = provider.chat('MiniMax-M2.1');
+      const model = provider.chat('minimax-m2.1');
       expect(model).toBeInstanceOf(AnthropicLanguageModel);
     });
   });

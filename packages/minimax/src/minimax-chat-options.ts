@@ -2,11 +2,11 @@ import { z } from 'zod/v4';
 
 // https://platform.minimax.io/docs/api-reference/text-chat-anthropic
 export type MiniMaxChatModelId =
-  | 'MiniMax-M2'
-  | 'MiniMax-M2.1'
-  | 'MiniMax-M2.1-lightning'
-  | 'MiniMax-M2.5'
-  | 'MiniMax-M3'
+  | 'minimax-m2'
+  | 'minimax-m2.1'
+  | 'minimax-m2.1-lightning'
+  | 'minimax-m2.5'
+  | 'minimax-m3'
   | (string & {});
 
 export const minimaxLanguageModelOptions = z.object({

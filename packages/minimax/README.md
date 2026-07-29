@@ -35,7 +35,7 @@ import { minimax } from '@ai-sdk/minimax';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: minimax('MiniMax-M3'),
+  model: minimax('minimax-m3'),
   prompt: 'Write a JavaScript function that sorts a list:',
 });
 ```
@@ -47,7 +47,7 @@ import { minimax } from '@ai-sdk/minimax';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: minimax('MiniMax-M3'),
+  model: minimax('minimax-m3'),
   prompt: 'Solve this problem step by step: What is 15% of 240?',
   providerOptions: {
     minimax: {
