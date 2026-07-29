@@ -356,7 +356,7 @@ export function myIntegration(): Telemetry {
       name: 'onLanguageModelCallEnd',
       type: '(event: LanguageModelCallEndEvent) => void | PromiseLike<void>',
       description:
-        'Called after the model response has been normalized and parsed, but before any client-side tool execution begins.',
+        'Called after the model response has been normalized and parsed, but before any client-side tool execution begins. Includes provider-specific metadata when available.',
     },
     {
       name: 'onToolExecutionStart',
@@ -627,7 +627,7 @@ registerTelemetry(
 The available options are:
 
 - `usage`: detailed usage attributes that are not covered by GenAI usage attributes, such as uncached input tokens and output text/reasoning token details.
-- `providerMetadata`: `ai.response.providerMetadata`.
+- `providerMetadata`: `ai.response.providerMetadata` on operation, step, and model-call spans.
 - `embedding`: embedding inputs and outputs.
 - `reranking`: rerank input documents and ranking output.
 - `runtimeContext`: `ai.settings.context.*`.

@@ -350,6 +350,9 @@ export async function* streamTextIterator({
         usage: step.usage,
         content: step.content,
         responseId: step.response.id,
+        ...(finish?.providerMetadata != null
+          ? { providerMetadata: finish.providerMetadata }
+          : {}),
       });
 
       _isFirstIteration = false;

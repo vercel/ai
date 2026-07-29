@@ -87,6 +87,8 @@ describe('abort signal handling', () => {
     const abortController = new AbortController();
     const abortError = new DOMException('tool execution aborted', 'AbortError');
     let modelCallCount = 0;
+    const onLanguageModelCallEnd = vi.fn();
+    const onEnd = vi.fn();
 
     const result = generateText({
       model: new MockLanguageModelV4({
@@ -96,6 +98,9 @@ describe('abort signal handling', () => {
           if (modelCallCount === 1) {
             return {
               ...dummyResponseValues,
+              providerMetadata: {
+                gateway: { generationId: 'generation-id' },
+              },
               content: [
                 {
                   type: 'tool-call',
@@ -128,12 +133,22 @@ describe('abort signal handling', () => {
       abortSignal: abortController.signal,
       stopWhen: isStepCount(10),
       maxRetries: 0,
+      onLanguageModelCallEnd,
+      onEnd,
     });
 
     await expect(result).rejects.toMatchInlineSnapshot(
       `[AbortError: tool execution aborted]`,
     );
     expect(modelCallCount).toBe(1);
+    expect(onLanguageModelCallEnd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerMetadata: {
+          gateway: { generationId: 'generation-id' },
+        },
+      }),
+    );
+    expect(onEnd).not.toHaveBeenCalled();
   });
 
   it('should reject before another model call when a tool completes after cancellation', async () => {

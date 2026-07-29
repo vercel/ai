@@ -64,11 +64,13 @@ const mockUsage = {
 function createMockFinish(
   finishReason: 'stop' | 'tool-calls' = 'stop',
   rawFinishReason: string = 'stop',
+  providerMetadata?: Record<string, Record<string, unknown>>,
 ) {
   return {
     finishReason,
     rawFinishReason,
     usage: mockUsage,
+    providerMetadata,
   };
 }
 
@@ -76,16 +78,18 @@ function createMockDoStreamStepResult({
   toolCalls = [] as ParsedToolCall[],
   finishReason = 'stop' as 'stop' | 'tool-calls',
   finishRaw = 'stop',
+  providerMetadata,
   rawOverrides = {},
 }: {
   toolCalls?: ParsedToolCall[];
   finishReason?: 'stop' | 'tool-calls';
   finishRaw?: string;
+  providerMetadata?: Record<string, Record<string, unknown>>;
   rawOverrides?: Partial<DoStreamStepRawResult>;
 } = {}) {
   return {
     toolCalls,
-    finish: createMockFinish(finishReason, finishRaw),
+    finish: createMockFinish(finishReason, finishRaw, providerMetadata),
     // doStreamStep now returns minimal raw aggregates; the iterator
     // reconstructs the StepResult via buildStepResult.
     raw: {
@@ -130,6 +134,40 @@ describe('streamTextIterator', () => {
         topP: 0.9,
         maxOutputTokens: 256,
       });
+    });
+  });
+
+  describe('telemetry', () => {
+    it('should expose provider metadata on model-call end', async () => {
+      vi.mocked(doStreamStep).mockResolvedValue(
+        createMockDoStreamStepResult({
+          providerMetadata: {
+            gateway: { generationId: 'generation-id' },
+          },
+        }),
+      );
+      const onLanguageModelCallEnd = vi.fn();
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {},
+        model: vi.fn() as any,
+        telemetry: {
+          integrations: {
+            onLanguageModelCallEnd,
+          },
+        },
+      });
+
+      await iterator.next();
+
+      expect(onLanguageModelCallEnd).toHaveBeenCalledWith(
+        expect.objectContaining({
+          providerMetadata: {
+            gateway: { generationId: 'generation-id' },
+          },
+        }),
+      );
     });
   });
 

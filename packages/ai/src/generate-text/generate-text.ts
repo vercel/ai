@@ -1024,6 +1024,11 @@ export async function generateText<
                   usage: stepUsage,
                   content: modelCallContent,
                   responseId: currentModelResponse.response.id,
+                  ...(currentModelResponse.providerMetadata != null
+                    ? {
+                        providerMetadata: currentModelResponse.providerMetadata,
+                      }
+                    : {}),
                   performance: {
                     responseTimeMs,
                     effectiveOutputTokensPerSecond: calculateTokensPerSecond({

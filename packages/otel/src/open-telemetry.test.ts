@@ -1319,7 +1319,10 @@ describe('OpenTelemetry', () => {
       );
       integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
       integration.onLanguageModelCallEnd!(
-        makeLanguageModelCallEndEvent({ usage: detailedUsage }),
+        makeLanguageModelCallEndEvent({
+          usage: detailedUsage,
+          providerMetadata: { openai: { response: 'metadata' } },
+        }),
       );
       integration.onToolExecutionStart!(makeToolCallStartEvent());
       integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
@@ -1393,6 +1396,7 @@ describe('OpenTelemetry', () => {
             },
             "name": "chat gpt-4",
             "runtimeAttributes": {
+              "ai.response.providerMetadata": "{"openai":{"response":"metadata"}}",
               "ai.usage.inputTokenDetails.noCacheTokens": 7,
               "ai.usage.outputTokenDetails.reasoningTokens": 5,
               "ai.usage.outputTokenDetails.textTokens": 15,

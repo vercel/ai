@@ -1368,6 +1368,12 @@ To see `generateText` in action, check out [these examples](#examples).
                 'The provider-returned response ID for this model call.',
             },
             {
+              name: 'providerMetadata',
+              type: 'ProviderMetadata | undefined',
+              description:
+                'Provider-specific metadata for this model call, when returned by the provider.',
+            },
+            {
               name: 'performance',
               type: '{ responseTimeMs: number; effectiveOutputTokensPerSecond: number; outputTokensPerSecond: number | undefined; inputTokensPerSecond: number | undefined; effectiveTotalTokensPerSecond: number; timeToFirstOutputMs: number | undefined; timeBetweenOutputChunksMs?: OutputChunkTimingStats }',
               description: 'Performance metrics for the model call.',

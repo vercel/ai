@@ -97,7 +97,13 @@ const result = streamText({
   model: __MODEL__,
   prompt: 'Explain partial prerendering in two paragraphs.',
 
-  onLanguageModelCallEnd({ callId, modelId, usage, performance }) {
+  onLanguageModelCallEnd({
+    callId,
+    modelId,
+    usage,
+    performance,
+    providerMetadata,
+  }) {
     metrics.histogram('ai.model.response_time_ms', performance.responseTimeMs, {
       callId,
       modelId,
@@ -107,6 +113,11 @@ const result = streamText({
       output: performance.outputTokensPerSecond,
       total: performance.effectiveTotalTokensPerSecond,
       tokens: usage.totalTokens,
+    });
+
+    logger.info('ai.model.provider_metadata', {
+      callId,
+      providerMetadata,
     });
   },
 });
@@ -674,6 +685,12 @@ Called after the provider response has been normalized and parsed, before local 
       name: 'responseId',
       type: 'string',
       description: 'Provider-returned response ID for this model call.',
+    },
+    {
+      name: 'providerMetadata',
+      type: 'ProviderMetadata | undefined',
+      description:
+        'Provider-specific metadata for this model call, when returned by the provider.',
     },
     {
       name: 'performance',

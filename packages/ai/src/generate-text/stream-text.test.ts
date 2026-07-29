@@ -8356,6 +8356,39 @@ describe('streamText', () => {
   });
 
   describe('options.onLanguageModelCallStart and onLanguageModelCallEnd', () => {
+    it('should expose provider metadata on model-call end', async () => {
+      const onLanguageModelCallEnd = vi.fn();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+                providerMetadata: {
+                  gateway: { generationId: 'generation-id' },
+                },
+              },
+            ]),
+          }),
+        }),
+        prompt: 'test-input',
+        onLanguageModelCallEnd,
+      });
+
+      await result.consumeStream();
+
+      expect(onLanguageModelCallEnd).toHaveBeenCalledWith(
+        expect.objectContaining({
+          providerMetadata: {
+            gateway: { generationId: 'generation-id' },
+          },
+        }),
+      );
+    });
+
     it('should fire the model-call callbacks before tool execution and step finish', async () => {
       const callOrder: string[] = [];
       const modelCallEndEvents: LanguageModelCallEndEvent<any>[] = [];

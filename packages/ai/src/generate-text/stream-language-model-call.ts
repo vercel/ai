@@ -595,6 +595,9 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
               usage,
               content: modelCallContent,
               responseId,
+              ...(chunk.providerMetadata != null
+                ? { providerMetadata: chunk.providerMetadata }
+                : {}),
               performance,
             },
             callbacks: onLanguageModelCallEnd,

@@ -10,6 +10,7 @@ import { z } from 'zod/v4';
 import { Output, streamText } from '../generate-text';
 import type { Instructions } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import type { ProviderMetadata } from '../types';
 import type { UIMessage } from '../ui';
 import type {
   UIMessageStreamOnEndCallback,
@@ -22,6 +23,20 @@ import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 describe('streamText types', () => {
+  describe('onLanguageModelCallEnd', () => {
+    it('should expose provider metadata', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onLanguageModelCallEnd: event => {
+          expectTypeOf(event.providerMetadata).toEqualTypeOf<
+            ProviderMetadata | undefined
+          >();
+        },
+      });
+    });
+  });
+
   describe('timeout', () => {
     it('should accept a first chunk timeout', () => {
       streamText({

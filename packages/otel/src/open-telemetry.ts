@@ -763,6 +763,11 @@ export class OpenTelemetry implements Telemetry {
           telemetry,
           this.supplementalAttributes,
           {
+            providerMetadata: {
+              'ai.response.providerMetadata': event.providerMetadata
+                ? JSON.stringify(event.providerMetadata)
+                : undefined,
+            },
             usage: getDetailedUsageAttributes(event.usage),
           },
         ),
