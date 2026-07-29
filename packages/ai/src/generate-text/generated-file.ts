@@ -25,6 +25,11 @@ export interface GeneratedFile {
   readonly mediaType: string;
 }
 
+/**
+ * @deprecated Use `GeneratedFile` instead. This alias will be removed in v8.
+ */
+export type Experimental_GeneratedImage = GeneratedFile;
+
 export class DefaultGeneratedFile implements GeneratedFile {
   private base64Data: string | undefined;
   private uint8ArrayData: Uint8Array | undefined;

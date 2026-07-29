@@ -1,0 +1,21 @@
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  type UIMessage,
+  type UIMessageChunk,
+} from 'ai';
+import { start } from 'workflow/api';
+import { agentWorkflow } from './workflow';
+
+export async function POST(request: Request) {
+  const body: { id?: string; messages: UIMessage[] } = await request.json();
+  if (!body.id) {
+    return new Response('Missing chat id', { status: 400 });
+  }
+
+  const messages = await convertToModelMessages(body.messages);
+  const run = await start(agentWorkflow, [{ messages, sessionId: body.id }]);
+  return createUIMessageStreamResponse({
+    stream: run.readable as ReadableStream<UIMessageChunk>,
+  });
+}

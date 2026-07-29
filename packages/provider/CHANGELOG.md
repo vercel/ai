@@ -1,5 +1,17 @@
 # @ai-sdk/provider
 
+## 4.0.4
+
+### Patch Changes
+
+- 1e2f324: feat: add experimental speech translation model specification (`Experimental_SpeechTranslationModelV4`) and `experimental_streamTranslate` for streaming speech-to-speech translation
+
+## 4.0.3
+
+### Patch Changes
+
+- 0f93c57: feat (video): support video (not just image) reference inputs in `inputReferences` for reference-to-video generation
+
 ## 4.0.2
 
 ### Patch Changes

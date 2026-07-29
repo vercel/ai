@@ -1,5 +1,228 @@
 # @ai-sdk/harness-codex
 
+## 1.0.49
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.47
+
+## 1.0.48
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.46
+
+## 1.0.47
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+  - @ai-sdk/harness@1.0.45
+
+## 1.0.46
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.44
+- @ai-sdk/provider-utils@5.0.13
+
+## 1.0.45
+
+### Patch Changes
+
+- ea3063f: fix(harness): remove broken bridge `channel.interrupt()` layer and its usage
+- Updated dependencies [a9a22e1]
+- Updated dependencies [9e4e816]
+- Updated dependencies [ea3063f]
+  - @ai-sdk/harness@1.0.43
+
+## 1.0.44
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.42
+
+## 1.0.43
+
+### Patch Changes
+
+- 07c977a: chore(harness): refactor bridge code to break out stream event emission from launcher to make it testable
+- 560db3a: fix(harness-codex): fix obsolete default Codex model ID
+- Updated dependencies [a94425b]
+- Updated dependencies [2de0611]
+  - @ai-sdk/harness@1.0.41
+
+## 1.0.42
+
+### Patch Changes
+
+- Updated dependencies [59a2306]
+- Updated dependencies [5f65e61]
+  - @ai-sdk/harness@1.0.40
+
+## 1.0.41
+
+### Patch Changes
+
+- b2f553b: fix(harness-codex): route Codex host tools through the CLI relay only instead of registering them as MCP tools
+- Updated dependencies [86a84c9]
+  - @ai-sdk/harness@1.0.39
+
+## 1.0.40
+
+### Patch Changes
+
+- f5cdb2d: chore(harness): update primary SDK dependencies
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+  - @ai-sdk/harness@1.0.38
+
+## 1.0.39
+
+### Patch Changes
+
+- Updated dependencies [b460541]
+- Updated dependencies [079591e]
+  - @ai-sdk/harness@1.0.37
+
+## 1.0.38
+
+### Patch Changes
+
+- Updated dependencies [cd06458]
+  - @ai-sdk/provider-utils@5.0.11
+  - @ai-sdk/harness@1.0.36
+
+## 1.0.37
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.35
+
+## 1.0.36
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.34
+
+## 1.0.35
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.33
+
+## 1.0.34
+
+### Patch Changes
+
+- Updated dependencies [31c7be8]
+  - @ai-sdk/provider-utils@5.0.10
+  - @ai-sdk/harness@1.0.32
+
+## 1.0.33
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.31
+
+## 1.0.32
+
+### Patch Changes
+
+- Updated dependencies [4be62c1]
+- Updated dependencies [7805e4a]
+- Updated dependencies [cd12954]
+  - @ai-sdk/provider-utils@5.0.9
+  - @ai-sdk/harness@1.0.30
+
+## 1.0.31
+
+### Patch Changes
+
+- Updated dependencies [e193290]
+  - @ai-sdk/provider-utils@5.0.8
+  - @ai-sdk/harness@1.0.29
+
+## 1.0.30
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.28
+
+## 1.0.29
+
+### Patch Changes
+
+- c93803d: fix(harness): improve CLI relay tool invocation logic
+
+## 1.0.28
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.27
+
+## 1.0.27
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.26
+
+## 1.0.26
+
+### Patch Changes
+
+- Updated dependencies [44e988a]
+  - @ai-sdk/harness@1.0.25
+
+## 1.0.25
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.24
+
+## 1.0.24
+
+### Patch Changes
+
+- 39c8276: fix(harness): improve opaque sandbox bridge error handling
+- 91fe6d8: fix(harness): emit `finish-step` stream parts correctly per the underlying model steps
+- Updated dependencies [39c8276]
+- Updated dependencies [91fe6d8]
+- Updated dependencies [0be5014]
+  - @ai-sdk/harness@1.0.23
+
+## 1.0.23
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.22
+- @ai-sdk/provider-utils@5.0.7
+
+## 1.0.22
+
+### Patch Changes
+
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+  - @ai-sdk/harness@1.0.21
+
+## 1.0.21
+
+### Patch Changes
+
+- b2d0306: feat(harness): send `User-Agent` and `x-client-app` headers in harness adapters
+- Updated dependencies [b7aa06a]
+  - @ai-sdk/harness@1.0.20
+
+## 1.0.20
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.19
+
 ## 1.0.19
 
 ### Patch Changes

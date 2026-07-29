@@ -6,7 +6,7 @@ import {
   type Tool,
 } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { Output, streamText } from '../generate-text';
 import type { Instructions } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
@@ -22,6 +22,16 @@ import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 describe('streamText types', () => {
+  describe('timeout', () => {
+    it('should accept a first chunk timeout', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        timeout: { firstChunkMs: 1000 },
+      });
+    });
+  });
+
   describe('onEnd', () => {
     it('should expose end event properties', () => {
       streamText({

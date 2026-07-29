@@ -22,6 +22,10 @@ import {
 } from '@ai-sdk/harness';
 import {
   classifyDiskLog,
+  createBridgeErrorHandler,
+  createBridgeStartupError,
+  drainBridgeProcessStream,
+  forwardBridgeProcessStream,
   markBridgeStarting,
   resolveSandboxHomeDir,
   SandboxChannel,
@@ -42,6 +46,7 @@ import {
   type OutboundMessage,
 } from './codex-bridge-protocol';
 import { CLI_SHIM_FILENAME } from './bridge/cli-relay';
+import { VERSION } from './version';
 
 type CodexChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 type CodexRespawnStrategy = 'replay' | 'rerun';
@@ -55,12 +60,17 @@ type WriteSkillsResult = {
  * The model the adapter pins when the consumer configures none. The Codex SDK
  * does not report the model it resolves to at runtime (no model field on any
  * event), and exposes no default-model constant, so we pin the latest
- * codex-specialized model available for the bundled `@openai/codex@0.130.0`
- * (published 2026-05-08): `gpt-5.3-codex` (released 2026-02). Keep this in sync
- * when bumping the codex SDK/binary. Passing it explicitly makes the resolved
- * model deterministic and the telemetry (`gen_ai.request.model`) accurate.
+ * default model resolved by the bundled `@openai/codex@0.144.5`:
+ * `gpt-5.6-sol`. Keep this in sync when bumping the codex SDK/binary. Passing
+ * it explicitly makes the resolved model deterministic and the telemetry
+ * (`gen_ai.request.model`) accurate.
  */
-const DEFAULT_CODEX_MODEL = 'gpt-5.3-codex';
+const DEFAULT_CODEX_MODEL = 'gpt-5.6-sol';
+
+/**
+ * Value to use in User-Agent and `x-client-app` headers.
+ */
+const CODEX_CLIENT_APP = `ai-sdk/harness-codex/${VERSION}`;
 
 export type CodexHarnessSettings = {
   readonly auth?: CodexAuthOptions;
@@ -167,11 +177,10 @@ export function createCodex(
     lifecycleStateSchema: codexResumeStateSchema,
     getBootstrap: async () => {
       if (cachedBootstrap != null) return cachedBootstrap;
-      const [pkg, lock, bridge, hostToolMcp] = await Promise.all([
+      const [pkg, lock, bridge] = await Promise.all([
         readBridgeAsset('package.json'),
         readBridgeAsset('pnpm-lock.yaml'),
         readBridgeAsset('index.mjs'),
-        readBridgeAsset('host-tool-mcp.mjs'),
       ]);
       cachedBootstrap = {
         harnessId: 'codex',
@@ -180,10 +189,6 @@ export function createCodex(
           { path: `${BOOTSTRAP_DIR}/package.json`, content: pkg },
           { path: `${BOOTSTRAP_DIR}/pnpm-lock.yaml`, content: lock },
           { path: `${BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
-          {
-            path: `${BOOTSTRAP_DIR}/host-tool-mcp.mjs`,
-            content: hostToolMcp,
-          },
         ],
         commands: [
           { command: `mkdir -p ${BOOTSTRAP_DIR}` },
@@ -252,6 +257,10 @@ export function createCodex(
               }),
             )
         : undefined;
+      const onBridgeError = createBridgeErrorHandler({
+        harnessId: 'codex',
+        sessionId: startOpts.sessionId,
+      });
 
       /*
        * Rung 1 — ATTACH. With live coordinates, reopen a socket to the
@@ -273,6 +282,7 @@ export function createCodex(
             outboundSchema: outboundMessageSchema,
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
+            onBridgeError,
           });
           await attachChannel.open(isContinue ? { resume: true } : undefined);
           return createSession({
@@ -334,6 +344,7 @@ export function createCodex(
           : undefined;
       const env = {
         ...resolveCodexEnv(settings.auth),
+        AI_SDK_HARNESS_CLIENT_APP: CODEX_CLIENT_APP,
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
         ...(codexSkillSetup
@@ -362,9 +373,16 @@ export function createCodex(
       });
 
       const proc = await session.spawn({
-        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(BOOTSTRAP_DIR)} --cli-shim-dir ${shellQuote(cliShimDir)}`,
+        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --cli-shim-dir ${shellQuote(cliShimDir)}`,
         env,
         abortSignal: startOpts.abortSignal,
+      });
+      const stderrTail: string[] = [];
+      const bridgeStderrDone = forwardBridgeProcessStream({
+        stream: proc.stderr,
+        streamName: 'stderr',
+        source: 'codex',
+        collectTail: stderrTail,
       });
 
       const { port: boundPort } = await waitForBridgeReady({
@@ -374,22 +392,24 @@ export function createCodex(
         bridgeType: 'codex',
         timeoutMs,
         abortSignal: startOpts.abortSignal,
-        createTimeoutError: () =>
-          new Error('codex bridge did not become ready in time.'),
-        createExitError: () =>
-          new Error('codex bridge exited before becoming ready.'),
+        createTimeoutError: ({ proc, stdoutTail }) =>
+          createBridgeStartupError({
+            message: 'codex bridge did not become ready in time.',
+            proc,
+            stdoutTail,
+            stderrTail,
+            stderrDone: bridgeStderrDone,
+          }),
+        createExitError: ({ proc, stdoutTail }) =>
+          createBridgeStartupError({
+            message: 'codex bridge exited before becoming ready.',
+            proc,
+            stdoutTail,
+            stderrTail,
+            stderrDone: bridgeStderrDone,
+          }),
       });
-      void drainRest(proc.stdout);
-      /*
-       * Bridge stderr is the only diagnostic channel for what happens
-       * inside the sandbox once the bridge is running (uncaught
-       * exceptions, Codex SDK errors, network failures). Forward it
-       * line-by-line to the host console so a mid-turn bridge crash can
-       * be inspected from `pnpm dev` logs without redeploying. The
-       * bridge itself writes nothing to stderr in steady state, so this
-       * is silent on the happy path.
-       */
-      void forwardBridgeStderr(proc.stderr);
+      void drainBridgeProcessStream(proc.stdout);
 
       const wsUrl =
         (await sandboxSession.getPortUrl({
@@ -401,6 +421,7 @@ export function createCodex(
         connect: () => openWebSocket(wsUrl),
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
+        onBridgeError,
         // In replay mode the respawned bridge reloaded the finished turn from
         // disk; seed the cursor and resume so it streams the tail (incl.
         // `finish`).
@@ -497,37 +518,6 @@ async function writeCodexSkills({
     homeDir,
     codexHomeDir,
   };
-}
-
-async function forwardBridgeStderr(
-  stream: ReadableStream<Uint8Array>,
-): Promise<void> {
-  try {
-    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) return;
-      if (value) {
-        const trimmed = value.endsWith('\n') ? value.slice(0, -1) : value;
-        if (trimmed.length > 0) {
-          // eslint-disable-next-line no-console
-          console.log(`[bridge stderr] ${trimmed}`);
-        }
-      }
-    }
-  } catch {
-    // Reader errors are non-fatal — best-effort diagnostic only.
-  }
-}
-
-async function drainRest(stream: ReadableStream<Uint8Array>): Promise<void> {
-  try {
-    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
-    while (true) {
-      const { done } = await reader.read();
-      if (done) return;
-    }
-  } catch {}
 }
 
 function openWebSocket(url: string): Promise<WebSocket> {
@@ -835,7 +825,7 @@ function createSession({
        *
        * rerun: the bridge was respawned with no in-flight turn to attach to, so
        * re-drive codex's own thread via `resumeThreadId`. Lossy — work in flight
-       * at the interruption is recomputed. This is the rare bridge-died
+       * at the suspension is recomputed. This is the rare bridge-died
        * fallback; the common slice path is `attach`.
        */
       if (rerunContinue) {
@@ -1021,13 +1011,12 @@ function createSession({
       }
       stopped = true;
       /*
-       * Gracefully freeze the active turn at a precise cursor. `channel.suspend`
-       * stops processing inbound frames (the cursor stops advancing exactly at
-       * the last delivered event), drains what was already dispatched, then
-       * closes the host socket with reason `'suspended'` — which `wireTurn`'s
-       * `onClose` treats as a clean turn end. The bridge keeps the turn running
-       * and accumulates events past the cursor for the next slice to replay. The
-       * sandbox process is deliberately left alive (no `shutdown`/`detach`).
+       * Freeze the host at a precise cursor without stopping the active model
+       * turn. `channel.suspend` stops processing inbound frames, drains what
+       * was already dispatched, then closes the host socket with reason
+       * `'suspended'`. The bridge keeps the turn running and accumulates events
+       * past the cursor for the next slice to replay. The sandbox process is
+       * deliberately left alive.
        */
       const lastSeenEventId = await channel.suspend();
       const payload: HarnessV1ContinueTurnState = {

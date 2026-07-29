@@ -97,7 +97,7 @@ describe('inboundMessageSchema', () => {
     ).not.toThrow();
   });
 
-  it('accepts user-message, abort, shutdown', () => {
+  it('accepts user-message, abort, and shutdown', () => {
     for (const sample of [
       { type: 'user-message', text: 'hi' },
       { type: 'abort' },

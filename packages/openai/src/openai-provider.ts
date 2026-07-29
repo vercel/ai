@@ -9,10 +9,12 @@ import type {
   SpeechModelV4,
   SkillsV4,
   TranscriptionModelV4,
+  Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
   loadOptionalSetting,
+  validateBaseURL,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -35,6 +37,8 @@ import { OpenAISpeechModel } from './speech/openai-speech-model';
 import type { OpenAISpeechModelId } from './speech/openai-speech-model-options';
 import { OpenAITranscriptionModel } from './transcription/openai-transcription-model';
 import type { OpenAITranscriptionModelId } from './transcription/openai-transcription-model-options';
+import { OpenAITranslationModel } from './translation/openai-translation-model';
+import type { OpenAITranslationModelId } from './translation/openai-translation-model-options';
 import { OpenAISkills } from './skills/openai-skills';
 import { VERSION } from './version';
 
@@ -95,6 +99,18 @@ export interface OpenAIProvider extends ProviderV4 {
    * Creates a model for transcription.
    */
   transcription(modelId: OpenAITranscriptionModelId): TranscriptionModelV4;
+
+  /**
+   * Creates an experimental model for streaming speech translation.
+   */
+  translation(modelId: OpenAITranslationModelId): SpeechTranslationModelV4;
+
+  /**
+   * Creates an experimental model for streaming speech translation.
+   */
+  speechTranslationModel(
+    modelId: OpenAITranslationModelId,
+  ): SpeechTranslationModelV4;
 
   /**
    * Creates a model for speech generation.
@@ -175,10 +191,12 @@ export function createOpenAI(
 ): OpenAIProvider {
   const baseURL =
     withoutTrailingSlash(
-      loadOptionalSetting({
-        settingValue: options.baseURL,
-        environmentVariableName: 'OPENAI_BASE_URL',
-      }),
+      validateBaseURL(
+        loadOptionalSetting({
+          settingValue: options.baseURL,
+          environmentVariableName: 'OPENAI_BASE_URL',
+        }),
+      ),
     ) ?? 'https://api.openai.com/v1';
 
   const providerName = options.name ?? 'openai';
@@ -233,6 +251,15 @@ export function createOpenAI(
   const createTranscriptionModel = (modelId: OpenAITranscriptionModelId) =>
     new OpenAITranscriptionModel(modelId, {
       provider: `${providerName}.transcription`,
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+      webSocket: options.webSocket,
+    });
+
+  const createTranslationModel = (modelId: OpenAITranslationModelId) =>
+    new OpenAITranslationModel(modelId, {
+      provider: `${providerName}.translation`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
@@ -330,6 +357,9 @@ export function createOpenAI(
 
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
+
+  provider.translation = createTranslationModel;
+  provider.speechTranslationModel = createTranslationModel;
 
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;

@@ -637,6 +637,7 @@ describe('prepareResponsesTools', () => {
               externalWebAccess: true,
               filters: {
                 allowedDomains: ['example.com', 'test.org'],
+                blockedDomains: ['blocked.example', 'blocked.test'],
               },
               searchContextSize: 'high',
               userLocation: {
@@ -664,6 +665,10 @@ describe('prepareResponsesTools', () => {
                   "example.com",
                   "test.org",
                 ],
+                "blocked_domains": [
+                  "blocked.example",
+                  "blocked.test",
+                ],
               },
               "search_context_size": "high",
               "type": "web_search",
@@ -680,7 +685,7 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
-    it('should prepare web_search tool with filters but no externalWebAccess', async () => {
+    it('should prepare web_search tool with blocked domains', async () => {
       const result = await prepareResponsesTools({
         tools: [
           {
@@ -689,7 +694,7 @@ describe('prepareResponsesTools', () => {
             name: 'web_search',
             args: {
               filters: {
-                allowedDomains: ['example.com'],
+                blockedDomains: ['example.com'],
               },
             },
           },
@@ -705,7 +710,8 @@ describe('prepareResponsesTools', () => {
             {
               "external_web_access": undefined,
               "filters": {
-                "allowed_domains": [
+                "allowed_domains": undefined,
+                "blocked_domains": [
                   "example.com",
                 ],
               },
@@ -1541,6 +1547,44 @@ describe('prepareResponsesTools', () => {
     });
   });
 
+  describe('computer', () => {
+    it('should prepare computer tool', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.computer',
+            name: 'computer',
+            args: {},
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toEqual({
+        tools: [{ type: 'computer' }],
+        toolChoice: undefined,
+        toolWarnings: [],
+      });
+    });
+
+    it('should handle computer tool choice', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.computer',
+            name: 'computer',
+            args: {},
+          },
+        ],
+        toolChoice: { type: 'tool', toolName: 'computer' },
+      });
+
+      expect(result.toolChoice).toEqual({ type: 'computer' });
+    });
+  });
+
   describe('apply_patch', () => {
     it('should prepare apply_patch tool', async () => {
       const result = await prepareResponsesTools({
@@ -1996,6 +2040,94 @@ describe('prepareResponsesTools', () => {
         type: 'allowed_tools',
         mode: 'auto',
         tools: [{ type: 'function', name: 'get_weather' }],
+      });
+    });
+  });
+
+  describe('programmatic tool calling', () => {
+    it('should serialize the hosted tool and function tool options', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.programmatic_tool_calling',
+            name: 'program',
+            args: {},
+          },
+          {
+            type: 'function',
+            name: 'get_inventory',
+            description: 'Get inventory',
+            inputSchema: {
+              type: 'object',
+              properties: { sku: { type: 'string' } },
+              required: ['sku'],
+              additionalProperties: false,
+            },
+            providerOptions: {
+              openai: {
+                allowedCallers: ['programmatic'],
+                outputSchema: {
+                  type: 'object',
+                  properties: {
+                    sku: { type: 'string' },
+                    availableUnits: { type: 'number' },
+                  },
+                  required: ['sku', 'availableUnits'],
+                  additionalProperties: false,
+                },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools).toEqual([
+        { type: 'programmatic_tool_calling' },
+        {
+          type: 'function',
+          name: 'get_inventory',
+          description: 'Get inventory',
+          parameters: {
+            type: 'object',
+            properties: { sku: { type: 'string' } },
+            required: ['sku'],
+            additionalProperties: false,
+          },
+          allowed_callers: ['programmatic'],
+          output_schema: {
+            type: 'object',
+            properties: {
+              sku: { type: 'string' },
+              availableUnits: { type: 'number' },
+            },
+            required: ['sku', 'availableUnits'],
+            additionalProperties: false,
+          },
+        },
+      ]);
+    });
+
+    it('should support forcing the hosted tool', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.programmatic_tool_calling',
+            name: 'program',
+            args: {},
+          },
+        ],
+        toolChoice: { type: 'tool', toolName: 'program' },
+        toolNameMapping: {
+          toProviderToolName: () => 'programmatic_tool_calling',
+          toCustomToolName: () => 'program',
+        },
+      });
+
+      expect(result.toolChoice).toEqual({
+        type: 'programmatic_tool_calling',
       });
     });
   });

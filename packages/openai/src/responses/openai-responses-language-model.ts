@@ -38,6 +38,7 @@ import type {
   codeInterpreterInputSchema,
   codeInterpreterOutputSchema,
 } from '../tool/code-interpreter';
+import type { computerInputSchema } from '../tool/computer';
 import type { fileSearchOutputSchema } from '../tool/file-search';
 import type { imageGenerationOutputSchema } from '../tool/image-generation';
 import type { localShellInputSchema } from '../tool/local-shell';
@@ -47,6 +48,10 @@ import type {
   toolSearchInputSchema,
   toolSearchOutputSchema,
 } from '../tool/tool-search';
+import type {
+  programmaticToolCallingInputSchema,
+  programmaticToolCallingOutputSchema,
+} from '../tool/programmatic-tool-calling';
 import type { webSearchOutputSchema } from '../tool/web-search';
 import {
   convertOpenAIResponsesUsage,
@@ -64,6 +69,7 @@ import {
   type OpenAIResponsesWebSearchAction,
   type OpenAIResponsesApplyPatchOperationDiffDeltaChunk,
   type OpenAIResponsesApplyPatchOperationDiffDoneChunk,
+  type OpenAIResponsesComputerAction,
 } from './openai-responses-api';
 import {
   openaiLanguageModelResponsesOptionsSchema,
@@ -102,6 +108,87 @@ function extractApprovalRequestIdToToolCallIdMapping(
     }
   }
   return mapping;
+}
+
+function mapComputerAction(
+  action: OpenAIResponsesComputerAction,
+): InferSchema<typeof computerInputSchema>['actions'][number] {
+  switch (action.type) {
+    case 'click':
+      return {
+        type: 'click',
+        button: action.button,
+        x: action.x,
+        y: action.y,
+        ...(action.keys != null && { keys: action.keys }),
+      };
+    case 'double_click':
+      return {
+        type: 'double_click',
+        x: action.x,
+        y: action.y,
+        ...(action.keys != null && { keys: action.keys }),
+      };
+    case 'drag':
+      return {
+        type: 'drag',
+        path: action.path,
+        ...(action.keys != null && { keys: action.keys }),
+      };
+    case 'keypress':
+      return action;
+    case 'move':
+      return {
+        type: 'move',
+        x: action.x,
+        y: action.y,
+        ...(action.keys != null && { keys: action.keys }),
+      };
+    case 'screenshot':
+      return action;
+    case 'scroll':
+      return {
+        type: 'scroll',
+        x: action.x,
+        y: action.y,
+        scrollX: action.scroll_x,
+        scrollY: action.scroll_y,
+        ...(action.keys != null && { keys: action.keys }),
+      };
+    case 'type':
+      return action;
+    case 'wait':
+      return action;
+  }
+}
+
+function mapComputerCallInput({
+  action,
+  actions,
+  pending_safety_checks,
+  status,
+}: {
+  action?: OpenAIResponsesComputerAction | null;
+  actions?: OpenAIResponsesComputerAction[] | null;
+  pending_safety_checks?: Array<{
+    id: string;
+    code?: string | null;
+    message?: string | null;
+  }> | null;
+  status: 'in_progress' | 'completed' | 'incomplete';
+}): InferSchema<typeof computerInputSchema> {
+  return {
+    actions: (actions ?? (action != null ? [action] : [])).map(
+      mapComputerAction,
+    ),
+    pendingSafetyChecks:
+      pending_safety_checks?.map(safetyCheck => ({
+        id: safetyCheck.id,
+        ...(safetyCheck.code != null && { code: safetyCheck.code }),
+        ...(safetyCheck.message != null && { message: safetyCheck.message }),
+      })) ?? [],
+    status,
+  };
 }
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
@@ -220,6 +307,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       tools,
       providerToolNames: {
         'openai.code_interpreter': 'code_interpreter',
+        'openai.computer': 'computer',
         'openai.file_search': 'file_search',
         'openai.image_generation': 'image_generation',
         'openai.local_shell': 'local_shell',
@@ -229,6 +317,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         'openai.mcp': 'mcp',
         'openai.apply_patch': 'apply_patch',
         'openai.tool_search': 'tool_search',
+        'openai.programmatic_tool_calling': 'programmatic_tool_calling',
       },
     });
 
@@ -264,6 +353,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
         hasShellTool: hasOpenAITool('openai.shell'),
         hasApplyPatchTool: hasOpenAITool('openai.apply_patch'),
+        hasComputerTool: hasOpenAITool('openai.computer'),
         customProviderToolNames:
           customProviderToolNames.size > 0
             ? customProviderToolNames
@@ -367,6 +457,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       service_tier: openaiOptions?.serviceTier,
       include,
       prompt_cache_key: openaiOptions?.promptCacheKey,
+      prompt_cache_options: openaiOptions?.promptCacheOptions,
       prompt_cache_retention: openaiOptions?.promptCacheRetention,
       safety_identifier: openaiOptions?.safetyIdentifier,
       top_logprobs: topLogprobs,
@@ -383,13 +474,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       // model-specific settings:
       ...(isReasoningModel &&
         (resolvedReasoningEffort != null ||
-          resolvedReasoningSummary != null) && {
+          resolvedReasoningSummary != null ||
+          openaiOptions?.reasoningMode != null ||
+          openaiOptions?.reasoningContext != null) && {
           reasoning: {
             ...(resolvedReasoningEffort != null && {
               effort: resolvedReasoningEffort,
             }),
             ...(resolvedReasoningSummary != null && {
               summary: resolvedReasoningSummary,
+            }),
+            ...(openaiOptions?.reasoningMode != null && {
+              mode: openaiOptions.reasoningMode,
+            }),
+            ...(openaiOptions?.reasoningContext != null && {
+              context: openaiOptions.reasoningContext,
             }),
           },
         }),
@@ -438,6 +537,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
           type: 'unsupported',
           feature: 'reasoningSummary',
           details: 'reasoningSummary is not supported for non-reasoning models',
+        });
+      }
+
+      if (openaiOptions?.reasoningMode != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'reasoningMode',
+          details: 'reasoningMode is not supported for non-reasoning models',
+        });
+      }
+
+      if (openaiOptions?.reasoningContext != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'reasoningContext',
+          details: 'reasoningContext is not supported for non-reasoning models',
         });
       }
     }
@@ -544,6 +659,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       });
     }
 
+    if (response.output == null) {
+      const detail = response.incomplete_details?.reason;
+      throw new APICallError({
+        message: detail
+          ? `Responses API returned no output (${detail})`
+          : 'Responses API returned no output',
+        url,
+        requestBodyValues: body,
+        statusCode: 500,
+        responseHeaders,
+        responseBody: rawResponse as string,
+        isRetryable: false,
+      });
+    }
+
     const content: Array<LanguageModelV4Content> = [];
     const logprobs: Array<OpenAIResponsesLogprobs> = [];
 
@@ -551,8 +681,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     let hasFunctionCall = false;
     const hostedToolSearchCallIds: string[] = [];
 
-    // map response content to content array (defined when there is no error)
-    for (const part of response.output!) {
+    // map response content to content array
+    for (const part of response.output) {
       switch (part.type) {
         case 'reasoning': {
           // when there are no summary parts, we need to add an empty reasoning part:
@@ -815,6 +945,56 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               [providerOptionsName]: {
                 itemId: part.id,
                 ...(part.namespace != null && { namespace: part.namespace }),
+                ...(part.caller != null && {
+                  caller:
+                    part.caller.type === 'program'
+                      ? {
+                          type: 'program',
+                          callerId: part.caller.caller_id,
+                        }
+                      : part.caller,
+                }),
+              },
+            },
+          });
+          break;
+        }
+
+        case 'program': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.call_id,
+            toolName: toolNameMapping.toCustomToolName(
+              'programmatic_tool_calling',
+            ),
+            input: JSON.stringify({
+              code: part.code,
+              fingerprint: part.fingerprint,
+            } satisfies InferSchema<typeof programmaticToolCallingInputSchema>),
+            providerExecuted: true,
+            providerMetadata: {
+              [providerOptionsName]: {
+                itemId: part.id,
+              },
+            },
+          });
+          break;
+        }
+
+        case 'program_output': {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.call_id,
+            toolName: toolNameMapping.toCustomToolName(
+              'programmatic_tool_calling',
+            ),
+            result: {
+              result: part.result,
+              status: part.status,
+            } satisfies InferSchema<typeof programmaticToolCallingOutputSchema>,
+            providerMetadata: {
+              [providerOptionsName]: {
+                itemId: part.id,
               },
             },
           });
@@ -932,21 +1112,39 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         }
 
         case 'computer_call': {
-          content.push({
-            type: 'tool-call',
-            toolCallId: part.id,
-            toolName: toolNameMapping.toCustomToolName('computer_use'),
-            input: '',
-            providerExecuted: true,
-          });
+          if (part.call_id == null) {
+            content.push({
+              type: 'tool-call',
+              toolCallId: part.id,
+              toolName: toolNameMapping.toCustomToolName('computer_use'),
+              input: '',
+              providerExecuted: true,
+            });
+
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.id,
+              toolName: toolNameMapping.toCustomToolName('computer_use'),
+              result: {
+                type: 'computer_use_tool_result',
+                status: part.status,
+              },
+            });
+            break;
+          }
+
+          hasFunctionCall = true;
+          const toolName = toolNameMapping.toCustomToolName('computer');
 
           content.push({
-            type: 'tool-result',
-            toolCallId: part.id,
-            toolName: toolNameMapping.toCustomToolName('computer_use'),
-            result: {
-              type: 'computer_use_tool_result',
-              status: part.status || 'completed',
+            type: 'tool-call',
+            toolCallId: part.call_id,
+            toolName,
+            input: JSON.stringify(mapComputerCallInput(part)),
+            providerMetadata: {
+              [providerOptionsName]: {
+                itemId: part.id,
+              },
             },
           });
           break;
@@ -1045,6 +1243,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         ...(logprobs.length > 0 ? { logprobs } : {}),
         ...(typeof response.service_tier === 'string'
           ? { serviceTier: response.service_tier }
+          : {}),
+        ...(response.reasoning?.context != null
+          ? { reasoningContext: response.reasoning.context }
           : {}),
       } satisfies ResponsesProviderMetadata,
     };
@@ -1179,6 +1380,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     > = {};
 
     let serviceTier: string | undefined;
+    let reasoningContext: ResponsesProviderMetadata['reasoningContext'];
     const hostedToolSearchCallIds: string[] = [];
     let encounteredStreamError = false;
 
@@ -1274,16 +1476,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'computer_call') {
+                const toolCallId = value.item.call_id ?? value.item.id;
                 ongoingToolCalls[value.output_index] = {
-                  toolName: toolNameMapping.toCustomToolName('computer_use'),
-                  toolCallId: value.item.id,
+                  toolName: toolNameMapping.toCustomToolName('computer'),
+                  toolCallId,
                 };
 
                 controller.enqueue({
                   type: 'tool-input-start',
-                  id: value.item.id,
-                  toolName: toolNameMapping.toCustomToolName('computer_use'),
-                  providerExecuted: true,
+                  id: toolCallId,
+                  toolName: toolNameMapping.toCustomToolName('computer'),
                 });
               } else if (value.item.type === 'code_interpreter_call') {
                 ongoingToolCalls[value.output_index] = {
@@ -1484,6 +1686,54 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                       ...(value.item.namespace != null && {
                         namespace: value.item.namespace,
                       }),
+                      ...(value.item.caller != null && {
+                        caller:
+                          value.item.caller.type === 'program'
+                            ? {
+                                type: 'program',
+                                callerId: value.item.caller.caller_id,
+                              }
+                            : value.item.caller,
+                      }),
+                    },
+                  },
+                });
+              } else if (value.item.type === 'program') {
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.call_id,
+                  toolName: toolNameMapping.toCustomToolName(
+                    'programmatic_tool_calling',
+                  ),
+                  input: JSON.stringify({
+                    code: value.item.code,
+                    fingerprint: value.item.fingerprint,
+                  } satisfies InferSchema<
+                    typeof programmaticToolCallingInputSchema
+                  >),
+                  providerExecuted: true,
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      itemId: value.item.id,
+                    },
+                  },
+                });
+              } else if (value.item.type === 'program_output') {
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.call_id,
+                  toolName: toolNameMapping.toCustomToolName(
+                    'programmatic_tool_calling',
+                  ),
+                  result: {
+                    result: value.item.result,
+                    status: value.item.status,
+                  } satisfies InferSchema<
+                    typeof programmaticToolCallingOutputSchema
+                  >,
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      itemId: value.item.id,
                     },
                   },
                 });
@@ -1524,26 +1774,54 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               } else if (value.item.type === 'computer_call') {
                 ongoingToolCalls[value.output_index] = undefined;
 
+                if (value.item.call_id == null) {
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: value.item.id,
+                  });
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId: value.item.id,
+                    toolName: toolNameMapping.toCustomToolName('computer_use'),
+                    input: '',
+                    providerExecuted: true,
+                  });
+                  controller.enqueue({
+                    type: 'tool-result',
+                    toolCallId: value.item.id,
+                    toolName: toolNameMapping.toCustomToolName('computer_use'),
+                    result: {
+                      type: 'computer_use_tool_result',
+                      status: value.item.status,
+                    },
+                  });
+                  return;
+                }
+
+                hasFunctionCall = true;
+                const toolName = toolNameMapping.toCustomToolName('computer');
+                const input = JSON.stringify(mapComputerCallInput(value.item));
+
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: value.item.call_id,
+                  delta: input,
+                });
+
                 controller.enqueue({
                   type: 'tool-input-end',
-                  id: value.item.id,
+                  id: value.item.call_id,
                 });
 
                 controller.enqueue({
                   type: 'tool-call',
-                  toolCallId: value.item.id,
-                  toolName: toolNameMapping.toCustomToolName('computer_use'),
-                  input: '',
-                  providerExecuted: true,
-                });
-
-                controller.enqueue({
-                  type: 'tool-result',
-                  toolCallId: value.item.id,
-                  toolName: toolNameMapping.toCustomToolName('computer_use'),
-                  result: {
-                    type: 'computer_use_tool_result',
-                    status: value.item.status || 'completed',
+                  toolCallId: value.item.call_id,
+                  toolName,
+                  input,
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      itemId: value.item.id,
+                    },
                   },
                 });
               } else if (value.item.type === 'file_search_call') {
@@ -2109,6 +2387,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               if (typeof value.response.service_tier === 'string') {
                 serviceTier = value.response.service_tier;
               }
+              if (value.response.reasoning?.context != null) {
+                reasoningContext = value.response.reasoning.context;
+              }
             } else if (isResponseFailedChunk(value)) {
               const incompleteReason =
                 value.response.incomplete_details?.reason;
@@ -2122,6 +2403,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 raw: incompleteReason ?? 'error',
               };
               usage = value.response.usage ?? undefined;
+              if (value.response.reasoning?.context != null) {
+                reasoningContext = value.response.reasoning.context;
+              }
 
               if (!encounteredStreamError && value.response.error != null) {
                 encounteredStreamError = true;
@@ -2219,6 +2503,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 responseId: responseId,
                 ...(logprobs.length > 0 ? { logprobs } : {}),
                 ...(serviceTier !== undefined ? { serviceTier } : {}),
+                ...(reasoningContext !== undefined ? { reasoningContext } : {}),
               } satisfies ResponsesProviderMetadata,
             };
 
