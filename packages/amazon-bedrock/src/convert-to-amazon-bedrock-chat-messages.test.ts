@@ -1122,6 +1122,68 @@ describe('assistant messages', () => {
     `);
   });
 
+  it('should preserve provider-executed tool results embedded in an assistant message', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Add two numbers.' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'add',
+            input: { a: 2, b: 2 },
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'add',
+            output: { type: 'json', value: { sum: 4 } },
+          },
+        ],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Now use that result.' }],
+      },
+    ]);
+
+    expect(result.messages).toEqual([
+      {
+        role: 'user',
+        content: [{ text: 'Add two numbers.' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            toolUse: {
+              toolUseId: 'call-1',
+              name: 'add',
+              input: { a: 2, b: 2 },
+            },
+          },
+        ],
+      },
+      {
+        role: 'user',
+        content: [
+          {
+            toolResult: {
+              toolUseId: 'call-1',
+              content: [{ text: JSON.stringify({ sum: 4 }) }],
+            },
+          },
+          { text: 'Now use that result.' },
+        ],
+      },
+    ]);
+  });
+
   it('should preserve reasoning text with signature in multi-turn tool use', async () => {
     const result = await convertToAmazonBedrockChatMessages([
       {

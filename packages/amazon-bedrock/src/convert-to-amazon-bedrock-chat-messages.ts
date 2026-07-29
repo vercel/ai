@@ -588,6 +588,63 @@ function groupIntoBlocks(
         break;
       }
       case 'assistant': {
+        const providerExecutedToolCallIds = new Set(
+          message.content
+            .filter(
+              (
+                part,
+              ): part is Extract<
+                (typeof message.content)[number],
+                { type: 'tool-call' }
+              > => part.type === 'tool-call' && part.providerExecuted === true,
+            )
+            .map(part => part.toolCallId),
+        );
+        const providerExecutedToolResults = message.content.filter(
+          (
+            part,
+          ): part is Extract<
+            (typeof message.content)[number],
+            { type: 'tool-result' }
+          > =>
+            part.type === 'tool-result' &&
+            providerExecutedToolCallIds.has(part.toolCallId),
+        );
+
+        if (providerExecutedToolResults.length > 0) {
+          const providerExecutedToolResultSet = new Set(
+            providerExecutedToolResults,
+          );
+          const assistantMessage = {
+            ...message,
+            content: message.content.filter(
+              part =>
+                !(
+                  part.type === 'tool-result' &&
+                  providerExecutedToolResultSet.has(part)
+                ),
+            ),
+          };
+
+          if (currentBlock?.type !== 'assistant') {
+            currentBlock = { type: 'assistant', messages: [] };
+            blocks.push(currentBlock);
+          }
+          currentBlock.messages.push(assistantMessage);
+
+          currentBlock = {
+            type: 'user',
+            messages: [
+              {
+                role: 'tool',
+                content: providerExecutedToolResults,
+              },
+            ],
+          };
+          blocks.push(currentBlock);
+          break;
+        }
+
         if (currentBlock?.type !== 'assistant') {
           currentBlock = { type: 'assistant', messages: [] };
           blocks.push(currentBlock);
