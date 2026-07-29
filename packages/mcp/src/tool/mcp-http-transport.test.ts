@@ -2,7 +2,7 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMCPClient } from './mcp-client';
 import { HttpMCPTransport } from './mcp-http-transport';
 import { LATEST_PROTOCOL_VERSION } from './types';
@@ -50,6 +50,10 @@ describe('HttpMCPTransport', () => {
 
   beforeEach(() => {
     transport = new HttpMCPTransport({ url: 'http://localhost:4000/mcp' });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('should POST JSON and receive JSON response', async () => {
@@ -179,6 +183,7 @@ describe('HttpMCPTransport', () => {
   });
 
   it('should abort an unterminated initialization response on timeout', async () => {
+    vi.useFakeTimers();
     let responseAborted = false;
     const fetch = vi.fn(
       async (_input: RequestInfo | URL, init?: RequestInit) => {
@@ -215,6 +220,7 @@ describe('HttpMCPTransport', () => {
   });
 
   it('should bound session cleanup after failed initialization', async () => {
+    vi.useFakeTimers();
     let resolveDeleteStarted: () => void;
     const deleteStarted = new Promise<void>(resolve => {
       resolveDeleteStarted = resolve;
@@ -289,6 +295,7 @@ describe('HttpMCPTransport', () => {
   ])(
     'should abort an unterminated request response at its %s',
     async (_, options) => {
+      vi.useFakeTimers();
       let responseAborted = false;
       const fetch = vi.fn(
         async (_input: RequestInfo | URL, init?: RequestInit) => {
