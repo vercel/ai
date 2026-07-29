@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 12118,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-12118-groq-transcription-text.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-12118-groq-transcription-text.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_12118_REPRODUCED: Groq returned a successful text/plain transcript, but AI SDK threw \"Invalid JSON response\"."
+  }
+}
