@@ -3081,9 +3081,9 @@ importers:
 
   packages/minimax:
     dependencies:
-      '@ai-sdk/openai-compatible':
+      '@ai-sdk/anthropic':
         specifier: workspace:*
-        version: link:../openai-compatible
+        version: link:../anthropic
       '@ai-sdk/provider':
         specifier: workspace:*
         version: link:../provider

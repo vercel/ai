@@ -1,34 +1,18 @@
-import type { ProviderErrorStructure } from '@ai-sdk/openai-compatible';
 import {
   NoSuchModelError,
   type LanguageModelV4,
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  generateId,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
-import { MiniMaxChatLanguageModel } from './minimax-chat-language-model';
+import { AnthropicLanguageModel } from '@ai-sdk/anthropic/internal';
 import type { MiniMaxChatModelId } from './minimax-chat-options';
 import { VERSION } from './version';
-
-export type MiniMaxErrorData = z.infer<typeof minimaxErrorSchema>;
-
-const minimaxErrorSchema = z.object({
-  error: z.object({
-    message: z.string(),
-    type: z.string().nullish(),
-    code: z.union([z.string(), z.number()]).nullish(),
-  }),
-});
-
-const minimaxErrorStructure: ProviderErrorStructure<MiniMaxErrorData> = {
-  errorSchema: minimaxErrorSchema,
-  errorToMessage: data => data.error.message,
-};
 
 export interface MiniMaxProviderSettings {
   /**
@@ -37,7 +21,8 @@ export interface MiniMaxProviderSettings {
    */
   apiKey?: string;
   /**
-   * Base URL for the API calls.
+   * Base URL for the API calls. Defaults to MiniMax's Anthropic-compatible
+   * endpoint (`https://api.minimax.io/anthropic/v1`).
    */
   baseURL?: string;
   /**
@@ -66,38 +51,44 @@ export interface MiniMaxProvider extends ProviderV4 {
    * Creates a MiniMax chat model for text generation.
    */
   chat(modelId: MiniMaxChatModelId): LanguageModelV4;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
-const defaultBaseURL = 'https://api.minimax.io/v1';
+const defaultBaseURL = 'https://api.minimax.io/anthropic/v1';
 
 export function createMiniMax(
   options: MiniMaxProviderSettings = {},
 ): MiniMaxProvider {
-  const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
+  const baseURL =
+    withoutTrailingSlash(options.baseURL ?? defaultBaseURL) ?? defaultBaseURL;
+
   const getHeaders = () =>
     withUserAgentSuffix(
       {
-        Authorization: `Bearer ${loadApiKey({
+        'anthropic-version': '2023-06-01',
+        'x-api-key': loadApiKey({
           apiKey: options.apiKey,
           environmentVariableName: 'MINIMAX_API_KEY',
           description: 'MiniMax API key',
-        })}`,
+        }),
         ...options.headers,
       },
       `ai-sdk/minimax/${VERSION}`,
     );
 
-  const createChatModel = (modelId: MiniMaxChatModelId) => {
-    return new MiniMaxChatLanguageModel(modelId, {
-      provider: 'minimax.chat',
-      url: ({ path }) => `${baseURL}${path}`,
+  const createChatModel = (modelId: MiniMaxChatModelId) =>
+    new AnthropicLanguageModel(modelId, {
+      provider: 'minimax.messages',
+      baseURL,
       headers: getHeaders,
       fetch: options.fetch,
-      includeUsage: true,
-      errorStructure: minimaxErrorStructure,
-      supportsStructuredOutputs: true,
+      generateId,
+      supportedUrls: () => ({}),
     });
-  };
 
   const provider = (modelId: MiniMaxChatModelId) => createChatModel(modelId);
 
@@ -108,6 +99,7 @@ export function createMiniMax(
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };

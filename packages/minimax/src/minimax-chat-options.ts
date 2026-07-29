@@ -1,6 +1,6 @@
 import { z } from 'zod/v4';
 
-// https://platform.minimax.io/docs/api-reference/text-chat-openai
+// https://platform.minimax.io/docs/api-reference/text-chat-anthropic
 export type MiniMaxChatModelId =
   | 'MiniMax-M2'
   | 'MiniMax-M2.1'
