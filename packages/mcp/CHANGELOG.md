@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.66
+
+### Patch Changes
+
+- e8d2654: Honor MCP request deadlines and support bounding or aborting client initialization.
+
 ## 1.0.65
 
 ### Patch Changes
