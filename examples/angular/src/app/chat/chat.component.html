@@ -58,6 +58,79 @@
             </div>
           } @else if (part.type === 'step-start') {
             <!-- <div class="step-separator">Step</div> -->
+          } @else if (
+            isToolPart(part) && part.type === 'tool-getWeatherInformation'
+          ) {
+            <div class="tool-call">
+              <div class="tool-name">Tool: getWeatherInformation</div>
+              <div class="tool-status">Status: {{ part.state }}</div>
+
+              @switch (part.state) {
+                @case ('input-streaming') {
+                  <div>Preparing weather request...</div>
+                  @if (part.input !== undefined) {
+                    <pre class="tool-input">{{ part.input | json }}</pre>
+                  }
+                }
+                @case ('input-available') {
+                  <div>Requesting weather information...</div>
+                  <pre class="tool-input">{{ part.input | json }}</pre>
+                }
+                @case ('approval-requested') {
+                  @if (part.approval.isAutomatic) {
+                    <div>Checking approval for this weather request...</div>
+                  } @else {
+                    <div class="tool-approval">
+                      <p>Allow this weather lookup?</p>
+                      <pre class="tool-input">{{ part.input | json }}</pre>
+                      <div class="tool-approval-actions">
+                        <button
+                          type="button"
+                          (click)="approveTool(part.approval.id)"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          type="button"
+                          class="secondary"
+                          (click)="denyTool(part.approval.id)"
+                        >
+                          Deny
+                        </button>
+                      </div>
+                    </div>
+                  }
+                }
+                @case ('approval-responded') {
+                  <div>
+                    Request
+                    {{ part.approval.approved ? 'approved' : 'denied' }}.
+                  </div>
+                  @if (part.approval.reason) {
+                    <div class="tool-approval-reason">
+                      Reason: {{ part.approval.reason }}
+                    </div>
+                  }
+                }
+                @case ('output-available') {
+                  <div class="tool-result-container">
+                    <div class="tool-result-title">Result</div>
+                    <pre class="tool-result">{{ part.output | json }}</pre>
+                  </div>
+                }
+                @case ('output-error') {
+                  <div class="tool-error">{{ part.errorText }}</div>
+                }
+                @case ('output-denied') {
+                  <div>Weather lookup was not performed.</div>
+                  @if (part.approval.reason) {
+                    <div class="tool-approval-reason">
+                      Reason: {{ part.approval.reason }}
+                    </div>
+                  }
+                }
+              }
+            </div>
           } @else if (isToolPart(part)) {
             <div class="tool-call">
               <div class="tool-name">

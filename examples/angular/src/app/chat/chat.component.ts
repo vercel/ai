@@ -9,6 +9,7 @@ import {
 import { Chat } from '@ai-sdk/angular';
 import {
   isToolUIPart,
+  lastAssistantMessageIsCompleteWithApprovalResponses,
   type DataUIPart,
   type ToolUIPart,
   type UIDataTypes,
@@ -24,7 +25,9 @@ import {
 })
 export class ChatComponent {
   private fb = inject(FormBuilder);
-  public chat: Chat = new Chat({});
+  public chat: Chat = new Chat({
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
+  });
 
   chatForm: FormGroup;
 
@@ -60,9 +63,24 @@ export class ChatComponent {
       },
       {
         body: {
-          selectedModel: 'openai/gpt-5.6',
+          selectedModel: 'openai/gpt-4o-mini',
         },
       },
     );
+  }
+
+  approveTool(approvalId: string) {
+    void this.chat.addToolApprovalResponse({
+      id: approvalId,
+      approved: true,
+    });
+  }
+
+  denyTool(approvalId: string) {
+    void this.chat.addToolApprovalResponse({
+      id: approvalId,
+      approved: false,
+      reason: 'Denied by the user',
+    });
   }
 }
