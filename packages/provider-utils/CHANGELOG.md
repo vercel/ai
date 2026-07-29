@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.41
+
+### Patch Changes
+
+- 9ecdefe: Prevent validated downloads on Node.js from reaching private or internal services through DNS aliases or DNS rebinding by validating and pinning every resolved address at connection time.
+
 ## 4.0.40
 
 ### Patch Changes
