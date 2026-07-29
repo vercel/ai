@@ -1141,6 +1141,25 @@ class DefaultStreamTextResult<
     const initialResponseMessages: Array<ResponseMessage> = [];
     let stepMessagesForNextStep: Array<ModelMessage> | undefined;
     let currentStepMessages: Array<ModelMessage> = [];
+    const usedTextPartIds = new Set<string>();
+
+    const reserveTextPartId = (id: string) => {
+      if (!usedTextPartIds.has(id)) {
+        usedTextPartIds.add(id);
+        return id;
+      }
+
+      const generatedId = generateId();
+      let uniqueId = generatedId;
+      let suffix = 0;
+
+      while (usedTextPartIds.has(uniqueId)) {
+        uniqueId = `${generatedId}-${++suffix}`;
+      }
+
+      usedTextPartIds.add(uniqueId);
+      return uniqueId;
+    };
 
     // Track provider-executed tool calls that support deferred results
     // (e.g., code_execution in programmatic tool calling scenarios).
@@ -2154,6 +2173,7 @@ class DefaultStreamTextResult<
             timestamp: new Date(),
             modelId: model.modelId,
           };
+          const textPartIds = new Map<string, string>();
 
           self.addStream(
             streamWithToolResults.pipeThrough(
@@ -2194,8 +2214,6 @@ class DefaultStreamTextResult<
                     case 'file':
                     case 'custom':
                     case 'source':
-                    case 'text-start':
-                    case 'text-end':
                     case 'reasoning-start':
                     case 'reasoning-end':
                     case 'reasoning-delta':
@@ -2208,13 +2226,32 @@ class DefaultStreamTextResult<
                       break;
                     }
 
+                    case 'text-start': {
+                      const id = reserveTextPartId(chunk.id);
+                      textPartIds.set(chunk.id, id);
+                      controller.enqueue({ ...chunk, id });
+                      break;
+                    }
+
                     case 'text-delta': {
                       if (
                         chunk.text.length > 0 ||
                         chunk.providerMetadata != null
                       ) {
-                        controller.enqueue(chunk);
+                        controller.enqueue({
+                          ...chunk,
+                          id: textPartIds.get(chunk.id) ?? chunk.id,
+                        });
                       }
+                      break;
+                    }
+
+                    case 'text-end': {
+                      controller.enqueue({
+                        ...chunk,
+                        id: textPartIds.get(chunk.id) ?? chunk.id,
+                      });
+                      textPartIds.delete(chunk.id);
                       break;
                     }
 
