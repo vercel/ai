@@ -18,6 +18,20 @@ describe('canonicalJSON', () => {
     expect(canonicalJSON('x')).toBe('"x"');
     expect(canonicalJSON(42)).toBe('42');
   });
+
+  it('distinguishes [] from [undefined]', () => {
+    expect(canonicalJSON([])).toBe('[]');
+    expect(canonicalJSON([undefined])).toBe('[null]');
+  });
+
+  it('serializes undefined array elements as null, matching JSON.stringify', () => {
+    expect(canonicalJSON([undefined])).toBe(JSON.stringify([undefined]));
+    expect(canonicalJSON([null])).toBe('[null]');
+    expect(canonicalJSON([1, undefined, 2])).toBe('[1,null,2]');
+    expect(canonicalJSON([1, undefined, 2])).toBe(
+      JSON.stringify([1, undefined, 2]),
+    );
+  });
 });
 
 describe('hashCanonical', () => {
@@ -37,5 +51,13 @@ describe('hashCanonical', () => {
     expect(await hashCanonical({ a: 1 })).not.toBe(
       await hashCanonical({ a: 2 }),
     );
+  });
+
+  it('produces different digests for [] and [undefined]', async () => {
+    expect(await hashCanonical([])).not.toBe(await hashCanonical([undefined]));
+  });
+
+  it('produces the same digest for [null] and [undefined]', async () => {
+    expect(await hashCanonical([null])).toBe(await hashCanonical([undefined]));
   });
 });
