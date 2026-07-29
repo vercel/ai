@@ -1,7 +1,6 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { GroqTranscriptionModel } from './groq-transcription-model';
 import { createGroq } from './groq-provider';
-import fs from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
@@ -184,17 +183,31 @@ describe('doGenerate', () => {
     });
   });
 
-  it('maps live Groq word timestamps to result segments', async () => {
+  it('should fallback to words when segments are not available', async () => {
     server.urls[
       'https://api.groq.com/openai/v1/audio/transcriptions'
     ].response = {
       type: 'json-value',
-      body: JSON.parse(
-        fs.readFileSync(
-          'src/__fixtures__/groq-transcription-word-timestamps.json',
-          'utf8',
-        ),
-      ),
+      body: {
+        task: 'transcribe',
+        language: 'English',
+        duration: 2,
+        text: 'Hello world',
+        segments: null,
+        words: [
+          {
+            word: 'Hello',
+            start: 0,
+            end: 1,
+          },
+          {
+            word: 'world',
+            start: 1,
+            end: 2,
+          },
+        ],
+        x_groq: { id: 'req_01jrh9nn61f24rydqq1r4b3yg5' },
+      },
     };
 
     const result = await provider.transcription('whisper-large-v3').doGenerate({
@@ -209,6 +222,17 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(result.segments).not.toHaveLength(0);
+    expect(result.segments).toEqual([
+      {
+        text: 'Hello',
+        startSecond: 0,
+        endSecond: 1,
+      },
+      {
+        text: 'world',
+        startSecond: 1,
+        endSecond: 2,
+      },
+    ]);
   });
 });
