@@ -1,7 +1,7 @@
 import {
   NoSuchModelError,
-  type LanguageModelV4,
-  type ProviderV4,
+  type LanguageModelV3,
+  type ProviderV3,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -10,7 +10,7 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { AnthropicLanguageModel } from '@ai-sdk/anthropic/internal';
+import { AnthropicMessagesLanguageModel } from '@ai-sdk/anthropic/internal';
 import type { MiniMaxChatModelId } from './minimax-chat-options';
 import { VERSION } from './version';
 
@@ -36,21 +36,21 @@ export interface MiniMaxProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface MiniMaxProvider extends ProviderV4 {
+export interface MiniMaxProvider extends ProviderV3 {
   /**
    * Creates a MiniMax model for text generation.
    */
-  (modelId: MiniMaxChatModelId): LanguageModelV4;
+  (modelId: MiniMaxChatModelId): LanguageModelV3;
 
   /**
    * Creates a MiniMax language model for text generation.
    */
-  languageModel(modelId: MiniMaxChatModelId): LanguageModelV4;
+  languageModel(modelId: MiniMaxChatModelId): LanguageModelV3;
 
   /**
    * Creates a MiniMax chat model for text generation.
    */
-  chat(modelId: MiniMaxChatModelId): LanguageModelV4;
+  chat(modelId: MiniMaxChatModelId): LanguageModelV3;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -81,7 +81,7 @@ export function createMiniMax(
     );
 
   const createChatModel = (modelId: MiniMaxChatModelId) =>
-    new AnthropicLanguageModel(modelId, {
+    new AnthropicMessagesLanguageModel(modelId, {
       provider: 'minimax.messages',
       baseURL,
       headers: getHeaders,
@@ -92,7 +92,7 @@ export function createMiniMax(
 
   const provider = (modelId: MiniMaxChatModelId) => createChatModel(modelId);
 
-  provider.specificationVersion = 'v4' as const;
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
 

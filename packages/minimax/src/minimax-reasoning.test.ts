@@ -1,4 +1,4 @@
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { createMiniMax } from './minimax-provider';
@@ -8,7 +8,7 @@ import { createMiniMax } from './minimax-provider';
 // namespace to the request, and the response `thinking` block must surface as
 // an AI SDK reasoning part
 
-const TEST_PROMPT: LanguageModelV4Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 

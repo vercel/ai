@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import { NoSuchModelError } from '@ai-sdk/provider';
-import { AnthropicLanguageModel } from '@ai-sdk/anthropic/internal';
+import { AnthropicMessagesLanguageModel } from '@ai-sdk/anthropic/internal';
 import { createMiniMax } from './minimax-provider';
 
-const AnthropicLanguageModelMock = AnthropicLanguageModel as unknown as Mock;
+const AnthropicMessagesLanguageModelMock =
+  AnthropicMessagesLanguageModel as unknown as Mock;
 
 vi.mock('@ai-sdk/anthropic/internal', () => {
   const mockConstructor = vi.fn().mockImplementation(function (
@@ -17,7 +18,7 @@ vi.mock('@ai-sdk/anthropic/internal', () => {
     this.config = config;
   });
   return {
-    AnthropicLanguageModel: mockConstructor,
+    AnthropicMessagesLanguageModel: mockConstructor,
   };
 });
 
@@ -40,7 +41,7 @@ describe('MiniMaxProvider', () => {
       const provider = createMiniMax();
       provider('minimax-m3');
 
-      const constructorCall = AnthropicLanguageModelMock.mock.calls[0];
+      const constructorCall = AnthropicMessagesLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
       config.headers();
 
@@ -60,7 +61,7 @@ describe('MiniMaxProvider', () => {
       const provider = createMiniMax(options);
       provider('minimax-m3');
 
-      const constructorCall = AnthropicLanguageModelMock.mock.calls[0];
+      const constructorCall = AnthropicMessagesLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
       config.headers();
 
@@ -74,14 +75,14 @@ describe('MiniMaxProvider', () => {
     it('should return a chat model when called as a function', () => {
       const provider = createMiniMax();
       const model = provider('minimax-m3');
-      expect(model).toBeInstanceOf(AnthropicLanguageModel);
+      expect(model).toBeInstanceOf(AnthropicMessagesLanguageModel);
     });
 
     it('should construct the model with the Anthropic-compatible config', () => {
       const provider = createMiniMax();
       provider('minimax-m3');
 
-      const constructorCall = AnthropicLanguageModelMock.mock.calls[0];
+      const constructorCall = AnthropicMessagesLanguageModelMock.mock.calls[0];
       const modelId = constructorCall[0];
       const config = constructorCall[1];
 
@@ -100,7 +101,7 @@ describe('MiniMaxProvider', () => {
     it('should construct a language model', () => {
       const provider = createMiniMax();
       const model = provider.languageModel('minimax-m2.5');
-      expect(model).toBeInstanceOf(AnthropicLanguageModel);
+      expect(model).toBeInstanceOf(AnthropicMessagesLanguageModel);
     });
   });
 
@@ -108,7 +109,7 @@ describe('MiniMaxProvider', () => {
     it('should construct a chat model', () => {
       const provider = createMiniMax();
       const model = provider.chat('minimax-m2.1');
-      expect(model).toBeInstanceOf(AnthropicLanguageModel);
+      expect(model).toBeInstanceOf(AnthropicMessagesLanguageModel);
     });
   });
 
