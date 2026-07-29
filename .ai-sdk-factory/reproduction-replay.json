@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 12119,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/groq-word-timestamps-empty-segments.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/groq-word-timestamps-empty-segments.ts",
+    "packages/groq/src/__fixtures__/groq-transcription-word-timestamps.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_12119: Groq returned timestamped words but AI SDK result.segments is empty"
+  }
+}
