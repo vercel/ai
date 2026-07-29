@@ -15,7 +15,13 @@ export function canonicalJSON(value: unknown): string {
     return JSON.stringify(value);
   }
   if (Array.isArray(value)) {
-    return `[${value.map(canonicalJSON).join(',')}]`;
+    // `undefined` elements serialize as `null` (matching `JSON.stringify`).
+    // Recursing would return the JS value `undefined`, which
+    // `Array.prototype.join` coerces to an empty string, colliding e.g.
+    // `[undefined]` with `[]`.
+    return `[${value
+      .map(item => (item === undefined ? 'null' : canonicalJSON(item)))
+      .join(',')}]`;
   }
   const keys = Object.keys(value as Record<string, unknown>).sort();
   const entries = keys.map(
