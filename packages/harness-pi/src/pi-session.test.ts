@@ -18,6 +18,8 @@ const piMock = vi.hoisted(() => {
     createAgentSession: vi.fn(),
     customTools: [] as FakePiTool[],
     session: undefined as AgentSession | undefined,
+    /** Catalog the stubbed `ModelRegistry.getAll()` reports. */
+    models: [] as unknown[],
   };
 });
 
@@ -29,7 +31,7 @@ vi.mock('@earendil-works/pi-coding-agent', () => {
     },
     defineTool: vi.fn(tool => tool),
     ModelRegistry: class {
-      getAll = vi.fn(() => []);
+      getAll = vi.fn(() => piMock.models);
       registerProvider = vi.fn();
     },
     ModelRuntime: {
@@ -56,11 +58,81 @@ describe('createPiSession', () => {
   beforeEach(() => {
     piMock.customTools = [];
     piMock.session = undefined;
+    piMock.models = [];
     piMock.createAgentSession.mockReset();
     piMock.createAgentSession.mockImplementation(async options => {
       piMock.customTools = options.customTools;
       return { session: piMock.session };
     });
+  });
+
+  it('rejects a configured model that resolves to nothing', async () => {
+    // Without this the `model` key is simply omitted and Pi runs the turn on
+    // its own default model. Nothing reports the substitution, and when that
+    // default has no credential the mismatch surfaces much later as
+    // "No API key found for the selected model" — pointing at a credential
+    // rather than at the unknown id that caused it.
+    const sandboxSession = createSandboxSession();
+
+    await expect(
+      createPiSession({
+        sessionId: 'session-1',
+        sandboxSession,
+        sessionWorkDir: '/sandbox/work',
+        skills: [],
+        settings: { model: 'my-custom-model' },
+        clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+        isResume: false,
+      }),
+    ).rejects.toThrow(/my-custom-model.*not found in the model registry/s);
+  });
+
+  it('still defers to Pi default when no model is configured', async () => {
+    // `model: undefined` legitimately means "no model configured"; only an id
+    // that was asked for and did not resolve is an error.
+    const sandboxSession = createSandboxSession();
+
+    await expect(
+      createPiSession({
+        sessionId: 'session-1',
+        sandboxSession,
+        sessionWorkDir: '/sandbox/work',
+        skills: [],
+        settings: {},
+        clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+        isResume: false,
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  it('accepts a configured model that the registry knows', async () => {
+    piMock.models = [
+      {
+        id: 'my-custom-model',
+        name: 'My Custom Model',
+        api: 'openai-completions',
+        provider: 'myprovider',
+        baseUrl: 'https://example.test',
+        reasoning: false,
+        input: ['text'],
+        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+        contextWindow: 100_000,
+        maxTokens: 4_096,
+      },
+    ];
+    const sandboxSession = createSandboxSession();
+
+    await expect(
+      createPiSession({
+        sessionId: 'session-1',
+        sandboxSession,
+        sessionWorkDir: '/sandbox/work',
+        skills: [],
+        settings: { model: 'my-custom-model' },
+        clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+        isResume: false,
+      }),
+    ).resolves.toBeDefined();
   });
 
   it('rejects unsafe resume session filenames before sandbox restore', async () => {
