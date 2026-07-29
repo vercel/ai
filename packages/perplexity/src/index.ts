@@ -3,4 +3,8 @@ export type {
   PerplexityProvider,
   PerplexityProviderSettings,
 } from './perplexity-provider';
+export type {
+  PerplexityEmbeddingModelId,
+  PerplexityEmbeddingModelOptions,
+} from './perplexity-embedding-model-options';
 export { VERSION } from './version';
