@@ -25,7 +25,7 @@ import {
   SPAN_COLORS,
   SPAN_COLORS_MUTED,
 } from '../utils';
-import { JsonBlock } from './shared-components';
+import { MediaAwareValue } from './shared-components';
 import { StepDetailContent } from './step-card';
 
 export function TraceTimeline({
@@ -450,7 +450,7 @@ function SpanDetailPanel({
             <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
               Input
             </h4>
-            <JsonBlock data={parsedArgs} />
+            <MediaAwareValue data={parsedArgs} />
           </div>
         )}
         {parsedResult != null && (
@@ -458,7 +458,7 @@ function SpanDetailPanel({
             <h4 className="text-[11px] font-semibold uppercase tracking-wider text-success mb-2">
               Output
             </h4>
-            <JsonBlock data={parsedResult} />
+            <MediaAwareValue data={parsedResult} />
           </div>
         )}
         {!parsedArgs && !parsedResult && (

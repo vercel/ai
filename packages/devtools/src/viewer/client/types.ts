@@ -137,11 +137,25 @@ export interface ReasoningContentPart {
   toolCallId?: string;
 }
 
+export interface MediaContentPart {
+  type:
+    | 'file'
+    | 'reasoning-file'
+    | 'image'
+    | 'media'
+    | 'file-data'
+    | 'file-url'
+    | 'image-data'
+    | 'image-url';
+  [key: string]: unknown;
+}
+
 export type ContentPart =
   | TextContentPart
   | ToolCallContentPart
   | ToolResultContentPart
-  | ReasoningContentPart;
+  | ReasoningContentPart
+  | MediaContentPart;
 
 export type MessageRole = 'user' | 'assistant' | 'system' | 'tool';
 

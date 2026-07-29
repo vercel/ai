@@ -24,6 +24,8 @@ import {
   ReasoningBlock,
   TextBlock,
 } from './shared-components';
+import { MediaPreviewList } from './media-components';
+import { findMediaPreviews } from '../media';
 
 export function InputPanel({ input }: { input: ParsedInput | null }) {
   const messages: PromptMessage[] = input?.prompt ?? [];
@@ -128,6 +130,17 @@ function getReasoningContent(content: string | ContentPart[]): string {
   return '';
 }
 
+function getDirectMediaContent(content: string | ContentPart[]): ContentPart[] {
+  return Array.isArray(content)
+    ? content.filter(
+        part =>
+          part.type !== 'tool-call' &&
+          part.type !== 'tool-result' &&
+          findMediaPreviews(part).length > 0,
+      )
+    : [];
+}
+
 function InputMessagePreview({
   message,
   index,
@@ -148,12 +161,14 @@ function InputMessagePreview({
   const toolCalls = getToolCalls(content);
   const toolResults = getToolResults(content);
   const reasoningContent = getReasoningContent(content);
+  const mediaCount = getDirectMediaContent(content).length;
 
   const partCount =
     (textContent ? 1 : 0) +
     (reasoningContent ? 1 : 0) +
     toolCalls.length +
-    toolResults.length;
+    toolResults.length +
+    mediaCount;
 
   return (
     <div className="rounded-md border border-border/50 bg-background/50 p-2.5 space-y-2">
@@ -180,6 +195,12 @@ function InputMessagePreview({
       {textContent && (
         <div className="text-xs text-foreground/90 line-clamp-3">
           {textContent}
+        </div>
+      )}
+
+      {mediaCount > 0 && (
+        <div className="text-[11px] text-muted-foreground">
+          {mediaCount} media {mediaCount === 1 ? 'part' : 'parts'}
         </div>
       )}
 
@@ -235,7 +256,8 @@ function InputMessagePreview({
       {!textContent &&
         !reasoningContent &&
         toolCalls.length === 0 &&
-        toolResults.length === 0 && (
+        toolResults.length === 0 &&
+        mediaCount === 0 && (
           <div className="text-[11px] text-muted-foreground italic">
             Empty message
           </div>
@@ -264,12 +286,15 @@ export function MessageBubble({
   const toolCalls = getToolCalls(content);
   const toolResults = getToolResults(content);
   const reasoningContent = getReasoningContent(content);
+  const directMediaContent = getDirectMediaContent(content);
+  const mediaCount = directMediaContent.length;
 
   const partCount =
     (textContent ? 1 : 0) +
     (reasoningContent ? 1 : 0) +
     toolCalls.length +
-    toolResults.length;
+    toolResults.length +
+    mediaCount;
 
   return (
     <div className="rounded-md border border-border/50 bg-background/50 p-3 space-y-2">
@@ -303,6 +328,8 @@ export function MessageBubble({
         />
       )}
 
+      <MediaPreviewList data={directMediaContent} />
+
       {toolCalls.length > 0 && (
         <div className="space-y-2">
           {toolCalls.map((call, i) => (
@@ -332,7 +359,8 @@ export function MessageBubble({
       {!textContent &&
         !reasoningContent &&
         toolCalls.length === 0 &&
-        toolResults.length === 0 && (
+        toolResults.length === 0 &&
+        mediaCount === 0 && (
           <div className="text-[11px] text-muted-foreground italic">
             Empty message
           </div>

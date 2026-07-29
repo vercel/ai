@@ -44,7 +44,21 @@ const selectedRun = {
         prompt: [
           {
             role: 'user',
-            content: 'Inspect representative selected-run content.',
+            content: [
+              {
+                type: 'text',
+                text: 'Inspect representative selected-run content.',
+              },
+              {
+                type: 'file',
+                filename: 'input-screenshot.png',
+                mediaType: 'image/png',
+                data: {
+                  type: 'data',
+                  data: 'iVBORw0KGgo=',
+                },
+              },
+            ],
           },
           {
             role: 'assistant',
@@ -64,7 +78,18 @@ const selectedRun = {
                 type: 'tool-result',
                 toolName: 'lookupWeather',
                 toolCallId: 'weather-call',
-                output: { temperature: 72 },
+                output: {
+                  temperature: 72,
+                  screenshot: {
+                    type: 'file',
+                    filename: 'tool-screenshot.png',
+                    mediaType: 'image/png',
+                    data: {
+                      type: 'data',
+                      data: 'iVBORw0KGgo=',
+                    },
+                  },
+                },
               },
             ],
           },
@@ -82,7 +107,18 @@ const selectedRun = {
             type: 'tool-result',
             toolName: 'lookupWeather',
             toolCallId: 'weather-call',
-            output: { temperature: 72 },
+            output: {
+              temperature: 72,
+              screenshot: {
+                type: 'file',
+                filename: 'tool-screenshot.png',
+                mediaType: 'image/png',
+                data: {
+                  type: 'data',
+                  data: 'iVBORw0KGgo=',
+                },
+              },
+            },
           },
           {
             type: 'text',
@@ -182,9 +218,9 @@ test('selected-run content and timeline metadata meet contrast targets', async (
   const toolCall = page.getByText('lookupWeather({ city: "Portland" })', {
     exact: true,
   });
-  const toolResult = page.getByText('lookupWeather(…) => { temperature: 72 }', {
-    exact: true,
-  });
+  const toolResult = page.getByText(
+    /lookupWeather\(…\) => \{ temperature: 72,/,
+  );
   const error = page.getByText('Representative provider error.', {
     exact: true,
   });
@@ -203,6 +239,33 @@ test('selected-run content and timeline metadata meet contrast targets', async (
 
   await page.getByRole('button', { name: 'Timeline' }).click();
   await assertTextContrast([selectedRunMessage, toolCall, toolResult, error]);
+});
+
+test('shows media previews in prompts and tool results', async ({ page }) => {
+  await page
+    .getByRole('button', {
+      name: /Generate a concise status update/,
+    })
+    .click();
+
+  await page
+    .locator('main')
+    .getByRole('button', {
+      name: /Inspect representative selecte/,
+    })
+    .click();
+
+  await page.getByRole('button', { name: /^Input / }).click();
+
+  await expect(
+    page.getByRole('img', { name: 'input-screenshot.png' }),
+  ).toHaveAttribute('src', 'data:image/png;base64,iVBORw0KGgo=');
+
+  await page.getByRole('button', { name: /Result lookupWeather/ }).click();
+
+  await expect(
+    page.getByRole('img', { name: 'tool-screenshot.png' }),
+  ).toHaveAttribute('src', 'data:image/png;base64,iVBORw0KGgo=');
 });
 
 async function assertThemeContrast({

@@ -15,6 +15,7 @@ import {
   updateStepResult,
   notifyServerAsync,
 } from './db.js';
+import { serializeForDevTools } from './serialize.js';
 
 type OperationType = 'generate' | 'stream';
 
@@ -261,7 +262,7 @@ export function DevToolsTelemetry(
         model_id: stepStartEvent.modelId,
         provider: stepStartEvent.provider ?? null,
         started_at: new Date().toISOString(),
-        input: JSON.stringify({
+        input: serializeForDevTools({
           prompt,
           tools: stepStartEvent.tools
             ? Object.entries(stepStartEvent.tools).map(([name, tool]) => ({
@@ -280,7 +281,7 @@ export function DevToolsTelemetry(
           seed: state.settings.seed,
         }),
         provider_options: stepStartEvent.providerOptions
-          ? JSON.stringify(stepStartEvent.providerOptions)
+          ? serializeForDevTools(stepStartEvent.providerOptions)
           : null,
       });
     },
@@ -311,7 +312,7 @@ export function DevToolsTelemetry(
         model_id: stepStartEvent.modelId,
         provider: stepStartEvent.provider ?? null,
         started_at: new Date().toISOString(),
-        input: JSON.stringify({
+        input: serializeForDevTools({
           prompt: stepStartEvent.promptMessages,
           maxOutputTokens: state.settings.maxOutputTokens,
           temperature: state.settings.temperature,
@@ -322,7 +323,7 @@ export function DevToolsTelemetry(
           seed: state.settings.seed,
         }),
         provider_options: stepStartEvent.providerOptions
-          ? JSON.stringify(stepStartEvent.providerOptions)
+          ? serializeForDevTools(stepStartEvent.providerOptions)
           : null,
       });
     },
@@ -353,14 +354,14 @@ export function DevToolsTelemetry(
 
       await updateStepResult(stepState.stepId, {
         duration_ms: durationMs,
-        output: JSON.stringify(output),
-        usage: stepResult.usage ? JSON.stringify(stepResult.usage) : null,
+        output: serializeForDevTools(output),
+        usage: stepResult.usage ? serializeForDevTools(stepResult.usage) : null,
         error: null,
         raw_request: stepResult.request?.body
-          ? JSON.stringify(stepResult.request.body)
+          ? serializeForDevTools(stepResult.request.body)
           : null,
         raw_response: stepResult.response?.body
-          ? JSON.stringify(stepResult.response.body)
+          ? serializeForDevTools(stepResult.response.body)
           : null,
         raw_chunks: null,
       });
@@ -393,14 +394,14 @@ export function DevToolsTelemetry(
 
       await updateStepResult(stepState.stepId, {
         duration_ms: durationMs,
-        output: JSON.stringify(output),
-        usage: stepResult.usage ? JSON.stringify(stepResult.usage) : null,
+        output: serializeForDevTools(output),
+        usage: stepResult.usage ? serializeForDevTools(stepResult.usage) : null,
         error: null,
         raw_request: stepResult.request?.body
-          ? JSON.stringify(stepResult.request.body)
+          ? serializeForDevTools(stepResult.request.body)
           : null,
         raw_response: stepResult.response?.body
-          ? JSON.stringify(stepResult.response.body)
+          ? serializeForDevTools(stepResult.response.body)
           : null,
       });
 

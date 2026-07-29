@@ -9,7 +9,12 @@ import type {
   ReasoningContentPart,
 } from '../types';
 import { safeParseJson, formatToolParams } from '../utils';
-import { JsonBlock, ReasoningBlock, TextBlock } from './shared-components';
+import {
+  MediaAwareValue,
+  ReasoningBlock,
+  TextBlock,
+} from './shared-components';
+import { MediaPreviewList } from './media-components';
 
 export function OutputDisplay({
   output,
@@ -61,6 +66,15 @@ export function OutputDisplay({
       {textContent && (
         <TextBlock content={textContent} defaultExpanded={!!isTextOnly} />
       )}
+
+      <MediaPreviewList
+        data={output?.content?.filter(
+          part =>
+            part.type === 'file' ||
+            part.type === 'reasoning-file' ||
+            part.type === 'image',
+        )}
+      />
 
       {toolCalls.map((call, i) => {
         const result = call.toolCallId
@@ -127,7 +141,7 @@ function ToolCallCard({
             <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-2">
               Input
             </div>
-            <JsonBlock data={parsedArgs} />
+            <MediaAwareValue data={parsedArgs} />
           </div>
 
           {parsedResult != null && (
@@ -135,7 +149,7 @@ function ToolCallCard({
               <div className="text-[10px] font-medium uppercase tracking-wider text-success mb-2">
                 Output
               </div>
-              <JsonBlock data={parsedResult} />
+              <MediaAwareValue data={parsedResult} />
             </div>
           )}
         </>

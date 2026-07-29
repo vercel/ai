@@ -10,6 +10,7 @@ import {
   updateStepResult,
   notifyServerAsync,
 } from './db.js';
+import { serializeForDevTools } from './serialize.js';
 
 const generateId = () => crypto.randomUUID();
 
@@ -39,17 +40,17 @@ const registerSignalHandlers = () => {
         const durationMs = Date.now() - data.startTime;
         await updateStepResult(stepId, {
           duration_ms: durationMs,
-          output: JSON.stringify(data.collectedOutput),
+          output: serializeForDevTools(data.collectedOutput),
           usage: null,
           error: 'Request aborted',
           raw_request:
             data.request &&
             typeof data.request === 'object' &&
             'body' in data.request
-              ? JSON.stringify((data.request as { body: unknown }).body)
+              ? serializeForDevTools((data.request as { body: unknown }).body)
               : null,
-          raw_response: JSON.stringify(data.fullStreamChunks),
-          raw_chunks: JSON.stringify(data.rawChunks),
+          raw_response: serializeForDevTools(data.fullStreamChunks),
+          raw_chunks: serializeForDevTools(data.rawChunks),
         });
       },
     );
@@ -143,7 +144,7 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
         // @ts-expect-error broken type
         provider: model.config?.provider,
         started_at: new Date().toISOString(),
-        input: JSON.stringify({
+        input: serializeForDevTools({
           prompt: params.prompt,
           tools: params.tools,
           toolChoice: params.toolChoice,
@@ -157,7 +158,7 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
           responseFormat: params.responseFormat,
         }),
         provider_options: params.providerOptions
-          ? JSON.stringify(params.providerOptions)
+          ? serializeForDevTools(params.providerOptions)
           : null,
       });
 
@@ -167,18 +168,18 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
 
         await updateStepResult(stepId, {
           duration_ms: durationMs,
-          output: JSON.stringify({
+          output: serializeForDevTools({
             content: result.content,
             finishReason: result.finishReason,
             response: result.response,
           }),
-          usage: result.usage ? JSON.stringify(result.usage) : null,
+          usage: result.usage ? serializeForDevTools(result.usage) : null,
           error: null,
           raw_request: result.request?.body
-            ? JSON.stringify(result.request.body)
+            ? serializeForDevTools(result.request.body)
             : null,
           raw_response: result.response?.body
-            ? JSON.stringify(result.response.body)
+            ? serializeForDevTools(result.response.body)
             : null,
         });
 
@@ -217,7 +218,7 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
         // @ts-expect-error broken type
         provider: model.config?.provider,
         started_at: new Date().toISOString(),
-        input: JSON.stringify({
+        input: serializeForDevTools({
           prompt: params.prompt,
           tools: params.tools,
           toolChoice: params.toolChoice,
@@ -231,7 +232,7 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
           responseFormat: params.responseFormat,
         }),
         provider_options: params.providerOptions
-          ? JSON.stringify(params.providerOptions)
+          ? serializeForDevTools(params.providerOptions)
           : null,
       });
 
@@ -335,14 +336,16 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
             const durationMs = Date.now() - startTime;
             await updateStepResult(stepId, {
               duration_ms: durationMs,
-              output: JSON.stringify(collectedOutput),
+              output: serializeForDevTools(collectedOutput),
               usage: collectedOutput.usage
-                ? JSON.stringify(collectedOutput.usage)
+                ? serializeForDevTools(collectedOutput.usage)
                 : null,
               error: null,
-              raw_request: request?.body ? JSON.stringify(request.body) : null,
-              raw_response: JSON.stringify(fullStreamChunks),
-              raw_chunks: JSON.stringify(rawChunks),
+              raw_request: request?.body
+                ? serializeForDevTools(request.body)
+                : null,
+              raw_response: serializeForDevTools(fullStreamChunks),
+              raw_chunks: serializeForDevTools(rawChunks),
             });
           },
 
@@ -354,14 +357,16 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
             const durationMs = Date.now() - startTime;
             await updateStepResult(stepId, {
               duration_ms: durationMs,
-              output: JSON.stringify(collectedOutput),
+              output: serializeForDevTools(collectedOutput),
               usage: collectedOutput.usage
-                ? JSON.stringify(collectedOutput.usage)
+                ? serializeForDevTools(collectedOutput.usage)
                 : null,
               error: 'Request aborted',
-              raw_request: request?.body ? JSON.stringify(request.body) : null,
-              raw_response: JSON.stringify(fullStreamChunks),
-              raw_chunks: JSON.stringify(rawChunks),
+              raw_request: request?.body
+                ? serializeForDevTools(request.body)
+                : null,
+              raw_response: serializeForDevTools(fullStreamChunks),
+              raw_chunks: serializeForDevTools(rawChunks),
             });
           },
         });

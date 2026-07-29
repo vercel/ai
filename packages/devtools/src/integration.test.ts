@@ -203,6 +203,82 @@ describe('DevToolsTelemetry', () => {
         }
       `);
     });
+
+    it('stores binary media in prompts and tool results as base64', async () => {
+      const integration = createIntegration();
+
+      await integration.onStart!(makeStartEvent());
+      await integration.onStepStart!(
+        makeStepStartEvent({
+          promptMessages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  data: {
+                    type: 'data',
+                    data: new Uint8Array([137, 80, 78, 71]),
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      );
+      await integration.onStepEnd!(
+        makeStepFinishEvent({
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'screenshot',
+              toolCallId: 'call-1',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file',
+                    mediaType: 'image/png',
+                    data: {
+                      type: 'data',
+                      data: new Uint8Array([137, 80, 78, 71]),
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      );
+
+      expect(JSON.parse(mockCreateStep.mock.calls[0][0].input)).toMatchObject({
+        prompt: [
+          {
+            content: [
+              {
+                data: { data: 'iVBORw==' },
+              },
+            ],
+          },
+        ],
+      });
+      expect(
+        JSON.parse(mockUpdateStepResult.mock.calls[0][1].output),
+      ).toMatchObject({
+        content: [
+          {
+            output: {
+              value: [
+                {
+                  data: { data: 'iVBORw==' },
+                },
+              ],
+            },
+          },
+        ],
+      });
+    });
   });
 
   describe('streamText lifecycle', () => {

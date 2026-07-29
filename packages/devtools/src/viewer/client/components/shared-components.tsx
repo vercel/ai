@@ -29,6 +29,7 @@ import {
   getInputTokenBreakdown,
   getOutputTokenBreakdown,
 } from '../utils';
+import { MediaPreviewList } from './media-components';
 
 export function JsonBlock({
   data,
@@ -77,6 +78,15 @@ export function JsonBlock({
       >
         {displayString}
       </pre>
+    </div>
+  );
+}
+
+export function MediaAwareValue({ data }: { data: unknown }) {
+  return (
+    <div className="space-y-3">
+      <MediaPreviewList data={data} />
+      <JsonBlock data={data} />
     </div>
   );
 }
@@ -516,7 +526,7 @@ export function CollapsibleToolCall({
       </button>
       {expanded && (
         <div className="p-3 border-t bg-card/50 border-tool/30">
-          <JsonBlock data={parsedData} />
+          <MediaAwareValue data={parsedData} />
         </div>
       )}
     </div>
@@ -559,7 +569,7 @@ export function CollapsibleToolResult({
       </button>
       {expanded && (
         <div className="p-3 border-t bg-card/50 border-success/30">
-          <JsonBlock data={data} />
+          <MediaAwareValue data={data} />
         </div>
       )}
     </div>
