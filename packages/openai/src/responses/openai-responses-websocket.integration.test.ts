@@ -623,6 +623,44 @@ describe('OpenAI Responses WebSocket public lifecycle', () => {
     expect(MockResponsesWebSocket.instances[0].sent).toHaveLength(1);
   });
 
+  it('preserves the status of nested error frames without error.type', async () => {
+    MockResponsesWebSocket.respond = (_request, socket) => {
+      socket.emit({
+        type: 'error',
+        status: 400,
+        error: {
+          code: 'previous_response_not_found',
+          message: 'Previous response not found.',
+          param: 'previous_response_id',
+        },
+      });
+    };
+
+    const onError = vi.fn();
+    const openai = createOpenAI({ apiKey: 'test-key' });
+    const result = streamText({
+      model: openai('gpt-5.6'),
+      prompt: 'Say hello.',
+      maxRetries: 2,
+      onError,
+      providerOptions: {
+        openai: { transport: 'websocket' },
+      },
+    });
+
+    await result.consumeStream();
+
+    expect(onError).toHaveBeenCalledWith({
+      error: expect.objectContaining({
+        message: 'Previous response not found.',
+        statusCode: 400,
+        isRetryable: false,
+      }),
+    });
+    expect(MockResponsesWebSocket.instances).toHaveLength(1);
+    expect(MockResponsesWebSocket.instances[0].sent).toHaveLength(1);
+  });
+
   it('surfaces response.failed after stream output', async () => {
     MockResponsesWebSocket.respond = (_request, socket) => {
       socket.emit({
