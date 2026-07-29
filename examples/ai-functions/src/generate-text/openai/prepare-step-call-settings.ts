@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, isStepCount, tool } from 'ai';
+import { generateText, stepCountIs, tool } from 'ai';
 import { z } from 'zod';
 import { print } from '../../lib/print';
 import { run } from '../../lib/run';
@@ -22,7 +22,7 @@ run(async () => {
         }),
       }),
     },
-    stopWhen: isStepCount(2),
+    stopWhen: stepCountIs(2),
     prepareStep: ({ stepNumber }) => {
       if (stepNumber === 0) {
         return {
@@ -37,12 +37,6 @@ run(async () => {
         temperature: 0.7,
         maxOutputTokens: 200,
       };
-    },
-    onLanguageModelCallStart: ({ temperature, maxOutputTokens }) => {
-      print('Step model call settings:', {
-        temperature,
-        maxOutputTokens,
-      });
     },
   });
 

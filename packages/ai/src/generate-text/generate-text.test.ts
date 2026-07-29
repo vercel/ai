@@ -30,7 +30,6 @@ import {
 import { z } from 'zod/v4';
 import { Output } from '.';
 import * as logWarningsModule from '../logger/log-warnings';
-<<<<<<< HEAD
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { MockTracer } from '../test/mock-tracer';
 import {
@@ -42,19 +41,6 @@ import {
   type GenerateTextOnToolCallStartCallback,
   type GenerateTextOnToolCallFinishCallback,
 } from './generate-text';
-=======
-import type { Instructions, LanguageModelCallOptions } from '../prompt';
-import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
-import { mockValues } from '../test/mock-values';
-import { generateText } from './generate-text';
-import type {
-  GenerateTextOnEndCallback,
-  GenerateTextOnStartCallback,
-  GenerateTextOnStepEndCallback,
-  GenerateTextOnStepFinishCallback,
-  GenerateTextOnStepStartCallback,
-} from './generate-text-events';
->>>>>>> 60f97f6738 (feat: support per-step model call setting overrides in prepareStep (#18105))
 import type { GenerateTextResult } from './generate-text-result';
 import type { StepResult } from './step-result';
 import { isLoopFinished, stepCountIs } from './stop-condition';
@@ -1340,36 +1326,37 @@ describe('generateText', () => {
     });
 
     it('should apply prepareStep model call settings only to the current step', async () => {
-      const modelCallOptions: Array<LanguageModelV4CallOptions> = [];
-      const modelCallStartEvents: Array<LanguageModelCallStartEvent> = [];
-      const telemetryModelCallStartEvents: Array<LanguageModelCallOptions> = [];
+      const modelCallOptions: Array<LanguageModelV3CallOptions> = [];
+      const tracer = new MockTracer();
       let responseCount = 0;
 
       await generateText({
-        model: new MockLanguageModelV4({
+        model: new MockLanguageModelV3({
           doGenerate: async options => {
             modelCallOptions.push(options);
+            const currentResponse = responseCount++;
 
-            if (responseCount++ < 2) {
-              return {
-                ...dummyResponseValues,
-                content: [
-                  {
-                    type: 'tool-call',
-                    toolCallType: 'function',
-                    toolCallId: `call-${responseCount}`,
-                    toolName: 'tool1',
-                    input: '{ "value": "test" }',
+            return currentResponse < 2
+              ? {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: `call-${currentResponse}`,
+                      toolName: 'tool1',
+                      input: '{ "value": "test" }',
+                    },
+                  ],
+                  finishReason: {
+                    unified: 'tool-calls',
+                    raw: undefined,
                   },
-                ],
-                finishReason: { unified: 'tool-calls', raw: undefined },
-              };
-            }
-
-            return {
-              ...dummyResponseValues,
-              content: [{ type: 'text', text: 'Final answer.' }],
-            };
+                }
+              : {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Final answer.' }],
+                };
           },
         }),
         tools: {
@@ -1379,7 +1366,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        stopWhen: isStepCount(3),
+        stopWhen: stepCountIs(3),
         maxOutputTokens: 100,
         temperature: 1,
         topP: 0.9,
@@ -1388,7 +1375,6 @@ describe('generateText', () => {
         frequencyPenalty: 0.3,
         stopSequences: ['outer'],
         seed: 123,
-        reasoning: 'high',
         prepareStep: async ({ stepNumber }) =>
           stepNumber === 1
             ? {
@@ -1400,21 +1386,13 @@ describe('generateText', () => {
                 frequencyPenalty: -0.2,
                 stopSequences: [],
                 seed: 0,
-                reasoning: 'provider-default',
               }
             : stepNumber === 2
               ? { temperature: undefined }
               : undefined,
-        onLanguageModelCallStart: event => {
-          modelCallStartEvents.push(event);
-        },
-        telemetry: {
+        experimental_telemetry: {
           isEnabled: true,
-          integrations: {
-            onLanguageModelCallStart: event => {
-              telemetryModelCallStartEvents.push(event);
-            },
-          },
+          tracer,
         },
       });
 
@@ -1427,8 +1405,7 @@ describe('generateText', () => {
         frequencyPenalty,
         stopSequences,
         seed,
-        reasoning,
-      }: LanguageModelCallOptions) => ({
+      }: LanguageModelV3CallOptions) => ({
         maxOutputTokens,
         temperature,
         topP,
@@ -1437,59 +1414,59 @@ describe('generateText', () => {
         frequencyPenalty,
         stopSequences,
         seed,
-        reasoning,
       });
 
-      const outerSettings = {
-        maxOutputTokens: 100,
-        temperature: 1,
-        topP: 0.9,
-        topK: 40,
-        presencePenalty: 0.4,
-        frequencyPenalty: 0.3,
-        stopSequences: ['outer'],
-        seed: 123,
-        reasoning: 'high',
-      };
-      const stepSettings = {
-        maxOutputTokens: 50,
-        temperature: 0,
-        topP: 0.5,
-        topK: 10,
-        presencePenalty: 0,
-        frequencyPenalty: -0.2,
-        stopSequences: [],
-        seed: 0,
-        reasoning: 'provider-default',
-      };
-
       expect(modelCallOptions.map(selectCallSettings)).toEqual([
-        outerSettings,
-        stepSettings,
-        outerSettings,
+        {
+          maxOutputTokens: 100,
+          temperature: 1,
+          topP: 0.9,
+          topK: 40,
+          presencePenalty: 0.4,
+          frequencyPenalty: 0.3,
+          stopSequences: ['outer'],
+          seed: 123,
+        },
+        {
+          maxOutputTokens: 50,
+          temperature: 0,
+          topP: 0.5,
+          topK: 10,
+          presencePenalty: 0,
+          frequencyPenalty: -0.2,
+          stopSequences: [],
+          seed: 0,
+        },
+        {
+          maxOutputTokens: 100,
+          temperature: 1,
+          topP: 0.9,
+          topK: 40,
+          presencePenalty: 0.4,
+          frequencyPenalty: 0.3,
+          stopSequences: ['outer'],
+          seed: 123,
+        },
       ]);
-      expect(modelCallStartEvents.map(selectCallSettings)).toEqual([
-        outerSettings,
-        stepSettings,
-        outerSettings,
-      ]);
-      expect(telemetryModelCallStartEvents.map(selectCallSettings)).toEqual([
-        outerSettings,
-        stepSettings,
-        outerSettings,
-      ]);
+      expect(
+        tracer.jsonSpans
+          .filter(span => span.name === 'ai.generateText.doGenerate')
+          .map(span => span.attributes['gen_ai.request.temperature']),
+      ).toEqual([1, 0, 1]);
     });
 
     it('should validate model call settings returned from prepareStep', async () => {
       await expect(
         generateText({
-          model: new MockLanguageModelV4(),
+          model: new MockLanguageModelV3(),
           prompt: 'test-input',
           prepareStep: async () => ({
             maxOutputTokens: 0,
           }),
         }),
-      ).rejects.toThrow('maxOutputTokens must be >= 1');
+      ).rejects.toThrow(
+        'Invalid argument for parameter maxOutputTokens: maxOutputTokens must be >= 1',
+      );
     });
 
     it('should provide empty steps array on first step', async () => {

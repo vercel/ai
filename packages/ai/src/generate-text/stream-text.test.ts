@@ -39,12 +39,7 @@ import {
 import { z } from 'zod/v4';
 import { Output } from '..';
 import * as logWarningsModule from '../logger/log-warnings';
-<<<<<<< HEAD
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
-=======
-import type { Instructions, LanguageModelCallOptions } from '../prompt';
-import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
->>>>>>> 60f97f6738 (feat: support per-step model call setting overrides in prepareStep (#18105))
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
@@ -6104,23 +6099,19 @@ describe('streamText', () => {
       });
     });
 
-<<<<<<< HEAD
-    it('should expose providerOptions and experimental_context', async () => {
-=======
     it('should apply prepareStep model call settings only to the current step', async () => {
-      const modelCallOptions: Array<LanguageModelV4CallOptions> = [];
-      const modelCallStartEvents: Array<LanguageModelCallOptions> = [];
-      const telemetryModelCallStartEvents: Array<LanguageModelCallOptions> = [];
+      const modelCallOptions: Array<LanguageModelV3CallOptions> = [];
+      const tracer = new MockTracer();
       let responseCount = 0;
 
       const result = streamText({
-        model: new MockLanguageModelV4({
+        model: new MockLanguageModelV3({
           doStream: async options => {
             modelCallOptions.push(options);
             const currentResponse = responseCount++;
 
             return {
-              stream: convertArrayToReadableStream<LanguageModelV4StreamPart>(
+              stream: convertArrayToReadableStream<LanguageModelV3StreamPart>(
                 currentResponse < 2
                   ? [
                       {
@@ -6166,7 +6157,7 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        stopWhen: isStepCount(3),
+        stopWhen: stepCountIs(3),
         maxOutputTokens: 100,
         temperature: 1,
         topP: 0.9,
@@ -6175,7 +6166,6 @@ describe('streamText', () => {
         frequencyPenalty: 0.3,
         stopSequences: ['outer'],
         seed: 123,
-        reasoning: 'high',
         prepareStep: async ({ stepNumber }) =>
           stepNumber === 1
             ? {
@@ -6187,21 +6177,13 @@ describe('streamText', () => {
                 frequencyPenalty: -0.2,
                 stopSequences: [],
                 seed: 0,
-                reasoning: 'provider-default',
               }
             : stepNumber === 2
               ? { temperature: undefined }
               : undefined,
-        onLanguageModelCallStart: event => {
-          modelCallStartEvents.push(event);
-        },
-        telemetry: {
+        experimental_telemetry: {
           isEnabled: true,
-          integrations: {
-            onLanguageModelCallStart: event => {
-              telemetryModelCallStartEvents.push(event);
-            },
-          },
+          tracer,
         },
         onError: () => {},
       });
@@ -6217,8 +6199,7 @@ describe('streamText', () => {
         frequencyPenalty,
         stopSequences,
         seed,
-        reasoning,
-      }: LanguageModelCallOptions) => ({
+      }: LanguageModelV3CallOptions) => ({
         maxOutputTokens,
         temperature,
         topP,
@@ -6227,47 +6208,45 @@ describe('streamText', () => {
         frequencyPenalty,
         stopSequences,
         seed,
-        reasoning,
       });
 
-      const outerSettings = {
-        maxOutputTokens: 100,
-        temperature: 1,
-        topP: 0.9,
-        topK: 40,
-        presencePenalty: 0.4,
-        frequencyPenalty: 0.3,
-        stopSequences: ['outer'],
-        seed: 123,
-        reasoning: 'high',
-      };
-      const stepSettings = {
-        maxOutputTokens: 50,
-        temperature: 0,
-        topP: 0.5,
-        topK: 10,
-        presencePenalty: 0,
-        frequencyPenalty: -0.2,
-        stopSequences: [],
-        seed: 0,
-        reasoning: 'provider-default',
-      };
-
       expect(modelCallOptions.map(selectCallSettings)).toEqual([
-        outerSettings,
-        stepSettings,
-        outerSettings,
+        {
+          maxOutputTokens: 100,
+          temperature: 1,
+          topP: 0.9,
+          topK: 40,
+          presencePenalty: 0.4,
+          frequencyPenalty: 0.3,
+          stopSequences: ['outer'],
+          seed: 123,
+        },
+        {
+          maxOutputTokens: 50,
+          temperature: 0,
+          topP: 0.5,
+          topK: 10,
+          presencePenalty: 0,
+          frequencyPenalty: -0.2,
+          stopSequences: [],
+          seed: 0,
+        },
+        {
+          maxOutputTokens: 100,
+          temperature: 1,
+          topP: 0.9,
+          topK: 40,
+          presencePenalty: 0.4,
+          frequencyPenalty: 0.3,
+          stopSequences: ['outer'],
+          seed: 123,
+        },
       ]);
-      expect(modelCallStartEvents.map(selectCallSettings)).toEqual([
-        outerSettings,
-        stepSettings,
-        outerSettings,
-      ]);
-      expect(telemetryModelCallStartEvents.map(selectCallSettings)).toEqual([
-        outerSettings,
-        stepSettings,
-        outerSettings,
-      ]);
+      expect(
+        tracer.jsonSpans
+          .filter(span => span.name === 'ai.streamText.doStream')
+          .map(span => span.attributes['gen_ai.request.temperature']),
+      ).toEqual([1, 0, 1]);
     });
 
     it('should validate model call settings returned from prepareStep', async () => {
@@ -6291,8 +6270,7 @@ describe('streamText', () => {
       });
     });
 
-    it('should expose providerOptions and runtimeContext', async () => {
->>>>>>> 60f97f6738 (feat: support per-step model call setting overrides in prepareStep (#18105))
+    it('should expose providerOptions and experimental_context', async () => {
       let stepStartEvent!: Parameters<
         StreamTextOnStepStartCallback<any, any>
       >[0];

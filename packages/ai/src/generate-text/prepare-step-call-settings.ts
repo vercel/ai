@@ -1,5 +1,5 @@
-import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
-import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
+import { prepareCallSettings } from '../prompt/prepare-call-settings';
+import type { PrepareStepCallSettings } from './prepare-step';
 
 /**
  * Resolves model call settings for a single step.
@@ -11,10 +11,10 @@ export function prepareStepCallSettings({
   callSettings,
   stepSettings,
 }: {
-  callSettings: LanguageModelCallOptions;
-  stepSettings: LanguageModelCallOptions | undefined;
-}): LanguageModelCallOptions {
-  return prepareLanguageModelCallOptions({
+  callSettings: PrepareStepCallSettings;
+  stepSettings: PrepareStepCallSettings | undefined;
+}): PrepareStepCallSettings {
+  return prepareCallSettings({
     maxOutputTokens:
       stepSettings?.maxOutputTokens ?? callSettings.maxOutputTokens,
     temperature: stepSettings?.temperature ?? callSettings.temperature,
@@ -26,6 +26,5 @@ export function prepareStepCallSettings({
       stepSettings?.frequencyPenalty ?? callSettings.frequencyPenalty,
     stopSequences: stepSettings?.stopSequences ?? callSettings.stopSequences,
     seed: stepSettings?.seed ?? callSettings.seed,
-    reasoning: stepSettings?.reasoning ?? callSettings.reasoning,
   });
 }
