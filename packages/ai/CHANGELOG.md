@@ -1,5 +1,17 @@
 # ai
 
+## 6.0.238
+
+### Patch Changes
+
+- 9ecdefe: Prevent validated downloads on Node.js from reaching private or internal services through DNS aliases or DNS rebinding by validating and pinning every resolved address at connection time.
+- 26d10c0: support overriding model call settings for individual `prepareStep` invocations
+- 7767170: Preserve provider metadata from empty text deltas in `streamText`.
+- Updated dependencies [9ecdefe]
+- Updated dependencies [87fb433]
+  - @ai-sdk/provider-utils@4.0.41
+  - @ai-sdk/gateway@3.0.160
+
 ## 6.0.237
 
 ### Patch Changes
