@@ -11,11 +11,16 @@ import {
 function createStepResult({
   toolCalls = [],
   toolResults = [],
+  toolErrors = [],
+  content = [...toolCalls, ...toolResults, ...toolErrors],
 }: {
   toolCalls?: StepResult<any, any>['toolCalls'];
   toolResults?: StepResult<any, any>['toolResults'];
+  toolErrors?: Array<any>;
+  content?: StepResult<any, any>['content'];
 } = {}): StepResult<any, any> {
   return {
+    content,
     toolCalls,
     toolResults,
   } as StepResult<any, any>;
@@ -30,7 +35,7 @@ function createToolCall({
   toolName: string;
   input: unknown;
 }) {
-  return { toolCallId, toolName, input } as any;
+  return { type: 'tool-call', toolCallId, toolName, input } as any;
 }
 
 function createToolResult({
@@ -44,7 +49,33 @@ function createToolResult({
   input: unknown;
   output: unknown;
 }) {
-  return { toolCallId, toolName, input, output } as any;
+  return {
+    type: 'tool-result',
+    toolCallId,
+    toolName,
+    input,
+    output,
+  } as any;
+}
+
+function createToolError({
+  toolCallId,
+  toolName,
+  input,
+  error,
+}: {
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+  error: unknown;
+}) {
+  return {
+    type: 'tool-error',
+    toolCallId,
+    toolName,
+    input,
+    error,
+  } as any;
 }
 
 describe('stop conditions', () => {
@@ -343,7 +374,7 @@ describe('stop conditions', () => {
       ).toBe(false);
     });
 
-    it('should compare the JSON serialization of inputs', () => {
+    it('should ignore object key insertion order in inputs', () => {
       const stopCondition = hasRepeatedToolCalls(2);
 
       expect(
@@ -369,7 +400,51 @@ describe('stop conditions', () => {
             }),
           ],
         }),
-      ).toBe(false);
+      ).toBe(true);
+    });
+
+    it('should compare zero-argument calls with empty object inputs', () => {
+      const repeatedStep = (toolCallId: string) =>
+        createStepResult({
+          toolCalls: [
+            createToolCall({
+              toolCallId,
+              toolName: 'getCurrentTime',
+              input: {},
+            }),
+          ],
+        });
+
+      expect(
+        hasRepeatedToolCalls(2)({
+          steps: [repeatedStep('call-1'), repeatedStep('call-2')],
+        }),
+      ).toBe(true);
+    });
+
+    it('should cache signatures for completed step objects', () => {
+      let inputReads = 0;
+      const repeatedStep = (toolCallId: string) =>
+        createStepResult({
+          toolCalls: [
+            createToolCall({
+              toolCallId,
+              toolName: 'status',
+              input: {
+                get jobId() {
+                  inputReads++;
+                  return 'job-1';
+                },
+              },
+            }),
+          ],
+        });
+      const steps = [repeatedStep('call-1'), repeatedStep('call-2')];
+      const stopCondition = hasRepeatedToolCalls(2);
+
+      expect(stopCondition({ steps })).toBe(true);
+      expect(stopCondition({ steps })).toBe(true);
+      expect(inputReads).toBe(2);
     });
 
     it('should compare matching tool outputs when compareResults is enabled', () => {
@@ -497,7 +572,359 @@ describe('stop conditions', () => {
       ).toBe(false);
     });
 
-    it('should return false instead of throwing for values that cannot be JSON serialized', () => {
+    it('should compare matching tool errors when compareResults is enabled', () => {
+      const stopCondition = hasRepeatedToolCalls(2, {
+        compareResults: true,
+      });
+      const failedStep = (toolCallId: string) => {
+        const input = { city: 'London' };
+        return createStepResult({
+          toolCalls: [
+            createToolCall({
+              toolCallId,
+              toolName: 'weather',
+              input,
+            }),
+          ],
+          toolErrors: [
+            createToolError({
+              toolCallId,
+              toolName: 'weather',
+              input,
+              error: new Error('service unavailable'),
+            }),
+          ],
+        });
+      };
+
+      expect(
+        stopCondition({
+          steps: [failedStep('call-1'), failedStep('call-2')],
+        }),
+      ).toBe(true);
+    });
+
+    it('should return false when tool errors change and compareResults is enabled', () => {
+      const stopCondition = hasRepeatedToolCalls(2, {
+        compareResults: true,
+      });
+      const failedStep = (toolCallId: string, message: string) => {
+        const input = { city: 'London' };
+        return createStepResult({
+          toolCalls: [
+            createToolCall({
+              toolCallId,
+              toolName: 'weather',
+              input,
+            }),
+          ],
+          toolErrors: [
+            createToolError({
+              toolCallId,
+              toolName: 'weather',
+              input,
+              error: new Error(message),
+            }),
+          ],
+        });
+      };
+
+      expect(
+        stopCondition({
+          steps: [
+            failedStep('call-1', 'service unavailable'),
+            failedStep('call-2', 'invalid input'),
+          ],
+        }),
+      ).toBe(false);
+    });
+
+    it('should ignore preliminary results when a final result is available', () => {
+      const stopCondition = hasRepeatedToolCalls(2, {
+        compareResults: true,
+      });
+      const completedStep = (toolCallId: string, preliminary: number) => {
+        const input = { jobId: 'job-1' };
+        const toolCall = createToolCall({
+          toolCallId,
+          toolName: 'status',
+          input,
+        });
+        const finalResult = createToolResult({
+          toolCallId,
+          toolName: 'status',
+          input,
+          output: { progress: 100 },
+        });
+        return createStepResult({
+          toolCalls: [toolCall],
+          toolResults: [finalResult],
+          content: [
+            toolCall,
+            {
+              ...finalResult,
+              output: { progress: preliminary },
+              preliminary: true,
+            },
+            finalResult,
+          ],
+        });
+      };
+
+      expect(
+        stopCondition({
+          steps: [completedStep('call-1', 10), completedStep('call-2', 20)],
+        }),
+      ).toBe(true);
+    });
+
+    it('should return false when only a preliminary result is available', () => {
+      const stopCondition = hasRepeatedToolCalls(2, {
+        compareResults: true,
+      });
+      const preliminaryStep = (toolCallId: string) => {
+        const input = { jobId: 'job-1' };
+        const toolCall = createToolCall({
+          toolCallId,
+          toolName: 'status',
+          input,
+        });
+        return createStepResult({
+          toolCalls: [toolCall],
+          content: [
+            toolCall,
+            {
+              ...createToolResult({
+                toolCallId,
+                toolName: 'status',
+                input,
+                output: { progress: 10 },
+              }),
+              preliminary: true,
+            },
+          ],
+        });
+      };
+
+      expect(
+        stopCondition({
+          steps: [preliminaryStep('call-1'), preliminaryStep('call-2')],
+        }),
+      ).toBe(false);
+    });
+
+    it('should return false when a deferred result has no call in the same step', () => {
+      const stopCondition = hasRepeatedToolCalls(2, {
+        compareResults: true,
+      });
+      const stepWithDeferredResult = (
+        toolCallId: string,
+        deferredToolCallId: string,
+      ) => {
+        const input = { jobId: 'job-1' };
+        return createStepResult({
+          toolCalls: [
+            createToolCall({
+              toolCallId,
+              toolName: 'status',
+              input,
+            }),
+          ],
+          toolResults: [
+            createToolResult({
+              toolCallId,
+              toolName: 'status',
+              input,
+              output: { progress: 10 },
+            }),
+            createToolResult({
+              toolCallId: deferredToolCallId,
+              toolName: 'deferred',
+              input: undefined,
+              output: { done: true },
+            }),
+          ],
+        });
+      };
+
+      expect(
+        stopCondition({
+          steps: [
+            stepWithDeferredResult('call-1', 'deferred-1'),
+            stepWithDeferredResult('call-2', 'deferred-2'),
+          ],
+        }),
+      ).toBe(false);
+    });
+
+    it('should return false for consecutive steps without tool calls', () => {
+      expect(
+        hasRepeatedToolCalls(2)({
+          steps: [createStepResult(), createStepResult()],
+        }),
+      ).toBe(false);
+    });
+
+    it('should return false for duplicate result IDs', () => {
+      const input = { jobId: 'job-1' };
+      const toolCall = (toolCallId: string) =>
+        createToolCall({ toolCallId, toolName: 'status', input });
+      const duplicateResultStep = (toolCallId: string) =>
+        createStepResult({
+          toolCalls: [toolCall(toolCallId)],
+          toolResults: [
+            createToolResult({
+              toolCallId,
+              toolName: 'status',
+              input,
+              output: 'pending',
+            }),
+            createToolResult({
+              toolCallId,
+              toolName: 'status',
+              input,
+              output: 'pending',
+            }),
+          ],
+        });
+
+      expect(
+        hasRepeatedToolCalls(2, { compareResults: true })({
+          steps: [duplicateResultStep('call-1'), duplicateResultStep('call-2')],
+        }),
+      ).toBe(false);
+    });
+
+    it('should return false when a result tool name does not match its call', () => {
+      const input = { jobId: 'job-1' };
+      const mismatchedStep = (toolCallId: string) =>
+        createStepResult({
+          toolCalls: [
+            createToolCall({
+              toolCallId,
+              toolName: 'status',
+              input,
+            }),
+          ],
+          toolResults: [
+            createToolResult({
+              toolCallId,
+              toolName: 'other',
+              input,
+              output: 'pending',
+            }),
+          ],
+        });
+
+      expect(
+        hasRepeatedToolCalls(2, { compareResults: true })({
+          steps: [mismatchedStep('call-1'), mismatchedStep('call-2')],
+        }),
+      ).toBe(false);
+    });
+
+    describe('comparison of values that JSON.stringify represents lossily', () => {
+      function repeatsWithOutputs(first: unknown, second: unknown) {
+        return hasRepeatedToolCalls(2, { compareResults: true })({
+          steps: [
+            createOutputStep({ toolCallId: 'call-1', output: first }),
+            createOutputStep({ toolCallId: 'call-2', output: second }),
+          ],
+        });
+      }
+
+      function createOutputStep({
+        toolCallId,
+        output,
+      }: {
+        toolCallId: string;
+        output: unknown;
+      }): StepResult<any, any> {
+        return createStepResult({
+          toolCalls: [
+            createToolCall({
+              toolCallId,
+              toolName: 'status',
+              input: { jobId: 'job-1' },
+            }),
+          ],
+          toolResults: [
+            createToolResult({
+              toolCallId,
+              toolName: 'status',
+              input: { jobId: 'job-1' },
+              output,
+            }),
+          ],
+        });
+      }
+
+      it.each([
+        [{ progress: undefined }, {}],
+        [[undefined], [null]],
+        [new Map([['a', 1]]), new Map([['b', 2]])],
+        [new Set([1]), new Set([2])],
+        [Number.NaN, Number.POSITIVE_INFINITY],
+        [Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY],
+        [{ notify: () => 'a' }, { notify: () => 'b' }],
+        [{ token: Symbol('a') }, {}],
+        [
+          { meta: { cache: new Map([['a', 1]]) } },
+          { meta: { cache: new Map([['b', 2]]) } },
+        ],
+      ])('should not compare lossy values %#', (first, second) => {
+        expect(repeatsWithOutputs(first, second)).toBe(false);
+      });
+
+      it('should reject a value whose toJSON throws instead of throwing', () => {
+        const throwing = () => ({
+          toJSON() {
+            throw new Error('boom');
+          },
+        });
+
+        expect(repeatsWithOutputs(throwing(), throwing())).toBe(false);
+      });
+
+      it('should distinguish dates, which serialize through toJSON', () => {
+        expect(repeatsWithOutputs(new Date(0), new Date(1))).toBe(false);
+      });
+
+      it('should treat equal dates as repeated', () => {
+        expect(repeatsWithOutputs(new Date(0), new Date(0))).toBe(true);
+      });
+
+      it('should treat equal supported structures as repeated', () => {
+        const output = () => ({
+          done: false,
+          percent: 0,
+          note: null,
+          items: [1, 'a', { deep: true }],
+        });
+
+        expect(repeatsWithOutputs(output(), output())).toBe(true);
+      });
+
+      it('should compare null-prototype objects', () => {
+        const output = () =>
+          Object.assign(Object.create(null), { state: 'pending' });
+
+        expect(repeatsWithOutputs(output(), output())).toBe(true);
+      });
+
+      it('should compare values that share a reference in two places', () => {
+        const shared = { x: 1 };
+
+        expect(
+          repeatsWithOutputs(
+            { a: shared, b: shared },
+            { a: { x: 1 }, b: { x: 1 } },
+          ),
+        ).toBe(true);
+      });
+    });
+
+    it('should return false instead of throwing for unsupported values', () => {
       const stopCondition = hasRepeatedToolCalls(2);
       const cyclicInput: Record<string, unknown> = {};
       cyclicInput.self = cyclicInput;

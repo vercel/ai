@@ -46,7 +46,11 @@ import type {
 import type { GenerateTextResult } from './generate-text-result';
 import * as Output from './output';
 import type { StepResult } from './step-result';
-import { isLoopFinished, isStepCount } from './stop-condition';
+import {
+  hasRepeatedToolCalls,
+  isLoopFinished,
+  isStepCount,
+} from './stop-condition';
 import type {
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
@@ -4800,6 +4804,38 @@ describe('generateText', () => {
   });
 
   describe('options.stopWhen', () => {
+    it('should stop after repeated identical tool calls', async () => {
+      let modelCallCount = 0;
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: `call-${++modelCallCount}`,
+                toolName: 'weather',
+                input: JSON.stringify({ city: 'London' }),
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+          }),
+        }),
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+            execute: async ({ city }) => ({ city, condition: 'rainy' }),
+          }),
+        },
+        prompt: 'Check the weather repeatedly.',
+        stopWhen: [hasRepeatedToolCalls(3), isStepCount(4)],
+      });
+
+      expect(result.steps).toHaveLength(3);
+      expect(modelCallCount).toBe(3);
+    });
+
     let result: GenerateTextResult<any, any, any>;
     let onFinishResult: Parameters<GenerateTextOnEndCallback<any, any>>[0];
     let onStepFinishResults: StepResult<any, any>[];

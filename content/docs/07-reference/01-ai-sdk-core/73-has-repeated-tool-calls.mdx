@@ -9,8 +9,9 @@ Creates a stop condition that triggers when the requested number of consecutive
 steps contain the same tool calls.
 
 The function compares each step as an order-independent collection of tool names
-and JSON-serialized inputs. It supports parallel calls, preserves duplicate
-calls, and ignores changing tool-call IDs.
+and deterministically serialized inputs. Object key order is ignored. Parallel
+calls and duplicate calls are preserved, while changing tool-call IDs are
+ignored.
 
 ```ts
 import { ToolLoopAgent, hasRepeatedToolCalls, isLoopFinished } from 'ai';
@@ -52,7 +53,7 @@ const agent = new ToolLoopAgent({
       type: 'boolean',
       isOptional: true,
       description:
-        'Whether corresponding JSON-serialized tool outputs must also match. Defaults to false.',
+        'Whether corresponding final tool results or errors must also match. Defaults to false.',
     },
   ]}
 />
@@ -98,8 +99,13 @@ const agent = new ToolLoopAgent({
 ```
 
 When result comparison is enabled, every tool call in the compared steps must
-have a corresponding successful tool result. Inputs or outputs that cannot be
-serialized with `JSON.stringify` do not trigger the condition.
+have a corresponding final tool result or error. Preliminary results are
+ignored. Steps with missing or deferred results are not considered repeated.
+
+Inputs, results, or errors that cannot be compared without losing information
+do not trigger the condition. Unsupported values include cyclic structures,
+`bigint`, functions, symbols, non-finite numbers, sparse arrays, and `Map`,
+`Set`, or class instances without a `toJSON` method.
 
 ## See also
 

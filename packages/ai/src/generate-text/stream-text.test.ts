@@ -53,7 +53,11 @@ import {
   createNullLanguageModelUsage,
 } from '../types/usage';
 import type { StepResult } from './step-result';
-import { isLoopFinished, isStepCount } from './stop-condition';
+import {
+  hasRepeatedToolCalls,
+  isLoopFinished,
+  isStepCount,
+} from './stop-condition';
 import { streamText } from './stream-text';
 import type { StreamTextResult, TextStreamPart } from './stream-text-result';
 import type {
@@ -11461,6 +11465,43 @@ describe('streamText', () => {
   });
 
   describe('options.stopWhen', () => {
+    it('should stop after repeated identical tool calls', async () => {
+      let modelCallCount = 0;
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'tool-call',
+                toolCallId: `call-${++modelCallCount}`,
+                toolName: 'weather',
+                input: JSON.stringify({ city: 'London' }),
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+            execute: async ({ city }) => ({ city, condition: 'rainy' }),
+          }),
+        },
+        prompt: 'Check the weather repeatedly.',
+        stopWhen: [hasRepeatedToolCalls(3), isStepCount(4)],
+      });
+
+      await result.consumeStream();
+
+      await expect(result.steps).resolves.toHaveLength(3);
+      expect(modelCallCount).toBe(3);
+    });
+
     let result: StreamTextResult<any, any, any>;
     let onFinishResult: Parameters<GenerateTextOnEndCallback<any, any>>[0];
     let onStepFinishResults: StepResult<any, any>[];

@@ -19,6 +19,10 @@ import type {
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
 } from '../generate-text/tool-execution-events';
+import {
+  hasRepeatedToolCalls,
+  isStepCount,
+} from '../generate-text/stop-condition';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { now } from '../util/now';
 import { ToolLoopAgent } from './tool-loop-agent';
@@ -73,6 +77,53 @@ describe('ToolLoopAgent', () => {
           };
         },
       });
+    });
+
+    it('should stop after repeated identical tool calls', async () => {
+      let modelCallCount = 0;
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: `call-${++modelCallCount}`,
+                toolName: 'weather',
+                input: JSON.stringify({ city: 'London' }),
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+            usage: {
+              inputTokens: {
+                total: 3,
+                noCache: 3,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 10,
+                text: 10,
+                reasoning: undefined,
+              },
+            },
+            warnings: [],
+          }),
+        }),
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+            execute: async ({ city }) => ({ city, condition: 'rainy' }),
+          }),
+        },
+        stopWhen: [hasRepeatedToolCalls(3), isStepCount(4)],
+      });
+
+      const result = await agent.generate({
+        prompt: 'Check the weather repeatedly.',
+      });
+
+      expect(result.steps).toHaveLength(3);
+      expect(modelCallCount).toBe(3);
     });
 
     it('should use prepareCall', async () => {

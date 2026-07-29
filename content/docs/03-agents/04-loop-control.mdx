@@ -80,8 +80,8 @@ const result = await agent.generate({
 
 Use `hasRepeatedToolCalls()` to stop after consecutive steps repeat the same
 tool calls. Each step is compared as an order-independent collection of tool
-names and JSON-serialized inputs, so reordered parallel calls are considered
-equal while duplicate calls are preserved.
+names and deterministically serialized inputs, so reordered object keys and
+parallel calls are considered equal while duplicate calls are preserved.
 
 ```ts
 import { ToolLoopAgent, hasRepeatedToolCalls, isLoopFinished } from 'ai';
@@ -116,8 +116,10 @@ stopWhen: [
 ```
 
 When `compareResults` is enabled, every call in the compared steps must have a
-corresponding successful result. Inputs and outputs that cannot be serialized
-with `JSON.stringify` do not trigger the condition.
+corresponding final result or error. Preliminary results are ignored, and steps
+with missing or deferred results do not trigger the condition. Values that
+cannot be compared without losing information, such as cyclic structures,
+functions, symbols, non-finite numbers, `Map`, or `Set`, also do not trigger it.
 
 ### Combine Multiple Conditions
 
