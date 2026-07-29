@@ -100,13 +100,22 @@ async function raceWithTimeout<T>(
   timeoutMs: number,
 ): Promise<{ timedOut: false; value: T } | { timedOut: true }> {
   let timer: ReturnType<typeof setTimeout> | undefined;
+  const wrapped = promise.then(value => ({ timedOut: false as const, value }));
   try {
-    return await Promise.race([
-      promise.then(value => ({ timedOut: false as const, value })),
+    const raced = await Promise.race([
+      wrapped,
       new Promise<{ timedOut: true }>(resolve => {
         timer = setTimeout(() => resolve({ timedOut: true }), timeoutMs);
       }),
     ]);
+    if (raced.timedOut) {
+      // The losing read settles later (typically when the peek branch is
+      // cancelled after the stream is handed to the consumer, or rejects if
+      // the source errors). Adopt it so it can never surface as an
+      // unhandled rejection; the consumer branch sees the same outcome.
+      wrapped.catch(() => {});
+    }
+    return raced;
   } finally {
     clearTimeout(timer);
   }

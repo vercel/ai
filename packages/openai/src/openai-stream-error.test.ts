@@ -28,6 +28,7 @@ function createControlledStream(): {
   stream: ReadableStream<ParseResult<TestChunk>>;
   enqueue: (chunk: TestChunk) => void;
   close: () => void;
+  error: (error: Error) => void;
 } {
   let controller!: ReadableStreamDefaultController<ParseResult<TestChunk>>;
   const stream = new ReadableStream<ParseResult<TestChunk>>({
@@ -39,6 +40,7 @@ function createControlledStream(): {
     stream,
     enqueue: chunk => controller.enqueue(ok(chunk)),
     close: () => controller.close(),
+    error: error => controller.error(error),
   };
 }
 
@@ -165,6 +167,27 @@ describe('throwIfOpenAIStreamErrorBeforeOutput', () => {
       ).rejects.toMatchObject({
         responseBody: expect.stringContaining('insufficient quota'),
       });
+    });
+
+    it('should surface a source error to the consumer after grace resolution without unhandled rejections', async () => {
+      const { stream, enqueue, error } = createControlledStream();
+      enqueue({ type: 'created' });
+      enqueue({ type: 'accepted' });
+
+      const checked = await throwIfOpenAIStreamErrorBeforeOutput({
+        ...baseArgs,
+        stream,
+        isAcceptedChunk,
+        acceptedGraceMs: 10,
+      });
+
+      // the source errors after the stream was already handed over (e.g. a
+      // connection reset while waiting for the first token). The consumer
+      // must see the error; the abandoned peek read must not surface as an
+      // unhandled rejection (vitest fails the run if one occurs).
+      error(new Error('connection reset'));
+
+      await expect(readAll(checked)).rejects.toThrow('connection reset');
     });
 
     it('should resolve immediately on output without waiting for the grace window', async () => {
