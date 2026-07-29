@@ -1,6 +1,7 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { GroqTranscriptionModel } from './groq-transcription-model';
 import { createGroq } from './groq-provider';
+import fs from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
@@ -181,5 +182,33 @@ describe('doGenerate', () => {
       'timestamp_granularities[]': 'segment',
       response_format: 'verbose_json',
     });
+  });
+
+  it('maps live Groq word timestamps to result segments', async () => {
+    server.urls[
+      'https://api.groq.com/openai/v1/audio/transcriptions'
+    ].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(
+          'src/__fixtures__/groq-transcription-word-timestamps.json',
+          'utf8',
+        ),
+      ),
+    };
+
+    const result = await provider.transcription('whisper-large-v3').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        groq: {
+          language: 'en',
+          responseFormat: 'verbose_json',
+          timestampGranularities: ['word'],
+        },
+      },
+    });
+
+    expect(result.segments).not.toHaveLength(0);
   });
 });
