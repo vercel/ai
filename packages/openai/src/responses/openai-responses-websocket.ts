@@ -29,14 +29,9 @@ type OpenAIResponsesResponse = InferSchema<
   typeof openaiResponsesResponseSchema
 >;
 
-// Node's runtime WebSocket supports handshake headers in its second argument.
-// The portable global WebSocket type only describes the browser constructor,
-// so use Node's type for the server-only constructor extension.
-type RuntimeWebSocketConstructor = typeof NodeWebSocket;
-
 type ConnectionIdentity = {
   url: string;
-  constructor: RuntimeWebSocketConstructor;
+  constructor: typeof NodeWebSocket;
   headers: Record<string, string>;
 };
 
@@ -86,8 +81,6 @@ export function assertOpenAIResponsesTransport({
 export function getOpenAIResponsesWebSocketSession(
   session: Experimental_SharedV4Session,
 ): OpenAIResponsesWebSocketSession {
-  // The stable string key lets separately loaded copies of this module find the
-  // same manager when they receive the same Session.
   return session.getOrSet(
     OPENAI_RESPONSES_WEBSOCKET_SESSION_KEY,
     () => new OpenAIResponsesWebSocketSession(),
@@ -138,8 +131,10 @@ export class OpenAIResponsesWebSocketSession {
     this.requestReserved = true;
 
     // TODO: support custom webSocket constructor instead of always using the runtime global WebSocket
+    // Node's WebSocket extends the browser API with support for headers in the second argument
+    // which is required to send authorization headers to the OpenAI API.
     const RuntimeWebSocket = globalThis.WebSocket as unknown as
-      | RuntimeWebSocketConstructor
+      | typeof NodeWebSocket
       | undefined;
 
     if (RuntimeWebSocket == null) {
