@@ -10,6 +10,7 @@ import type {
   HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
 import { createPiSession } from './pi-session';
+import { PiWorkspaceVfs } from './pi-workspace-vfs';
 
 type FakePiTool = Pick<ToolDefinition, 'name' | 'execute'>;
 
@@ -85,6 +86,30 @@ describe('createPiSession', () => {
         isResume: false,
       }),
     ).rejects.toThrow(/my-custom-model.*not found in the model registry/s);
+  });
+
+  it('unmounts the workspace VFS when rejecting an unresolved model', async () => {
+    // `mount()` installs a process-global `fs` patch that only the session's
+    // own lifecycle methods unmount — and those never exist if construction
+    // throws. Without this the patch, and a stale `mountedRoots` entry, leak
+    // for the lifetime of the process on every misconfigured model id.
+    const unmount = vi.spyOn(PiWorkspaceVfs.prototype, 'unmount');
+    const sandboxSession = createSandboxSession();
+
+    await expect(
+      createPiSession({
+        sessionId: 'session-1',
+        sandboxSession,
+        sessionWorkDir: '/sandbox/work',
+        skills: [],
+        settings: { model: 'my-custom-model' },
+        clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+        isResume: false,
+      }),
+    ).rejects.toThrow();
+
+    expect(unmount).toHaveBeenCalledTimes(1);
+    unmount.mockRestore();
   });
 
   it('still defers to Pi default when no model is configured', async () => {

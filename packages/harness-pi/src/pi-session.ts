@@ -379,6 +379,12 @@ export async function createPiSession(
   // `model: undefined` is deliberately left alone: that means "no model
   // configured", and deferring to Pi's default is the intended behaviour.
   if (input.settings.model !== undefined && resolvedModel === undefined) {
+    // `workspaceVfs.mount()` above installed a process-global `fs` patch, and
+    // the session lifecycle methods that would `unmount()` it only exist once
+    // this function returns a session. Release it before throwing, or a
+    // misconfigured model id leaks the patch and a stale `mountedRoots` entry
+    // for the lifetime of the process.
+    workspaceVfs.unmount();
     throw new Error(
       `Pi model '${input.settings.model}' was not found in the model registry. ` +
         `Pi resolves a model id against its built-in catalog and models.json ` +
