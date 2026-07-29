@@ -16,7 +16,6 @@ const textResponse = JSON.parse(
     'utf8',
   ),
 ) as {
-  status: number;
   headers: Record<string, string>;
   body: string;
 };
@@ -140,6 +139,7 @@ describe('doGenerate', () => {
       response_format: 'text',
     });
     expect(result.text).toBe(textResponse.body);
+    expect(result.response.body).toBe(textResponse.body);
   });
 
   it('should include response data with timestamp, modelId and headers', async () => {

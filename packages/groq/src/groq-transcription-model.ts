@@ -2,11 +2,13 @@ import type { TranscriptionModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
+  createBinaryResponseHandler,
   createJsonResponseHandler,
   mediaTypeToExtension,
   parseProviderOptions,
   postFormDataToApi,
   serializeModelOptions,
+  type ResponseHandler,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -113,6 +115,7 @@ export class GroqTranscriptionModel implements TranscriptionModelV4 {
 
     return {
       formData,
+      responseFormat: groqOptions?.responseFormat,
       warnings,
     };
   }
@@ -121,7 +124,12 @@ export class GroqTranscriptionModel implements TranscriptionModelV4 {
     options: Parameters<TranscriptionModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { formData, warnings } = await this.getArgs(options);
+    const { formData, responseFormat, warnings } = await this.getArgs(options);
+
+    const successfulResponseHandler: ResponseHandler<GroqTranscriptionResponse> =
+      responseFormat === 'text'
+        ? groqTextTranscriptionResponseHandler
+        : createJsonResponseHandler(groqTranscriptionResponseSchema);
 
     const {
       value: response,
@@ -135,9 +143,7 @@ export class GroqTranscriptionModel implements TranscriptionModelV4 {
       headers: combineHeaders(this.config.headers?.(), options.headers),
       formData,
       failedResponseHandler: groqFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        groqTranscriptionResponseSchema,
-      ),
+      successfulResponseHandler,
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
@@ -189,3 +195,25 @@ const groqTranscriptionResponseSchema = z.object({
     )
     .nullish(),
 });
+
+type GroqTranscriptionResponse = Partial<
+  Omit<z.infer<typeof groqTranscriptionResponseSchema>, 'text'>
+> & {
+  text: string;
+};
+
+const binaryResponseHandler = createBinaryResponseHandler();
+const textDecoder = new TextDecoder();
+
+const groqTextTranscriptionResponseHandler: ResponseHandler<
+  GroqTranscriptionResponse
+> = async options => {
+  const { value, responseHeaders } = await binaryResponseHandler(options);
+  const text = textDecoder.decode(value);
+
+  return {
+    value: { text },
+    rawValue: text,
+    responseHeaders,
+  };
+};
