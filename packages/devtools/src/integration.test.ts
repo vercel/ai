@@ -281,21 +281,25 @@ describe('DevToolsTelemetry', () => {
           },
         ],
       });
-      expect(
-        JSON.parse(mockUpdateStepResult.mock.calls[0][1].output),
-      ).toMatchObject({
-        toolResults: [
-          {
-            output: {
-              value: [
-                {
-                  data: { data: 'iVBORw==' },
-                },
-              ],
+      const capturedOutput = JSON.parse(
+        mockUpdateStepResult.mock.calls[0][1].output,
+      );
+      expect(capturedOutput).not.toHaveProperty('toolResults');
+      expect(capturedOutput.response.messages).toMatchObject([
+        {
+          content: [
+            {
+              output: {
+                value: [
+                  {
+                    data: { data: 'iVBORw==' },
+                  },
+                ],
+              },
             },
-          },
-        ],
-      });
+          ],
+        },
+      ]);
     });
   });
 

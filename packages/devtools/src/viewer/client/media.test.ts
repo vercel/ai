@@ -74,6 +74,52 @@ describe('findMediaPreviews', () => {
     ]);
   });
 
+  it('detects subtypes for current top-level audio and video media types', () => {
+    expect(
+      findMediaPreviews([
+        {
+          type: 'file',
+          mediaType: 'audio',
+          data: { type: 'data', data: 'SUQzBA==' },
+        },
+        {
+          type: 'file',
+          mediaType: 'video',
+          data: { type: 'data', data: 'AAAAGGZ0eXA=' },
+        },
+      ]),
+    ).toEqual([
+      {
+        kind: 'audio',
+        mediaType: 'audio',
+        source: 'data:audio/mpeg;base64,SUQzBA==',
+        sourceType: 'inline',
+      },
+      {
+        kind: 'video',
+        mediaType: 'video',
+        source: 'data:video/mp4;base64,AAAAGGZ0eXA=',
+        sourceType: 'inline',
+      },
+    ]);
+  });
+
+  it('infers deprecated file-url media types from the URL', () => {
+    expect(
+      findMediaPreviews({
+        type: 'file-url',
+        url: 'https://example.com/recording.mp3?download=true',
+      }),
+    ).toEqual([
+      {
+        kind: 'audio',
+        mediaType: 'audio/mpeg',
+        source: 'https://example.com/recording.mp3?download=true',
+        sourceType: 'remote',
+      },
+    ]);
+  });
+
   it('supports serialized generated file output', () => {
     const serializedValue = JSON.parse(
       serializeForDevTools({
@@ -115,6 +161,10 @@ describe('findMediaPreviews', () => {
           mediaType: 'image/png',
           data: { type: 'data', data: 'not base64' },
         },
+        {
+          type: 'image-url',
+          url: 'https://user:password@example.com/screenshot.png',
+        },
       ]),
     ).toEqual([
       {
@@ -128,6 +178,10 @@ describe('findMediaPreviews', () => {
       {
         kind: 'image',
         mediaType: 'image/png',
+      },
+      {
+        kind: 'image',
+        mediaType: 'image',
       },
     ]);
   });

@@ -118,7 +118,9 @@ video data is previewed directly, while the captured JSON shape and metadata
 remain available for inspection. The viewer displays at most 8 previews per
 value, traverses at most 12 nested levels, and embeds inline previews up to 5
 MiB. Longer JSON strings are truncated in the viewer to avoid duplicating large
-base64 payloads; the persisted local capture is unchanged.
+base64 payloads. Binary values in recognized media-bearing fields are persisted
+as base64 so they remain previewable; unrelated binary values retain their
+normal JSON representation.
 
 For example, a tool can return media through `toModelOutput`:
 
@@ -146,10 +148,12 @@ const captureScreenshot = tool({
 ```
 
 Remote `http` and `https` media is not loaded automatically. Select **Load
-preview** in the viewer to fetch it without browser credentials or referrer
-information. Unsupported media, provider references, malformed values, unsafe
-URL schemes, and inline values over the preview limit retain their JSON and
-metadata fallback without an embedded preview.
+preview** in the viewer to fetch it with anonymous CORS and no referrer.
+Cross-origin browser credentials are omitted, but same-origin browser
+credentials may still be included by the browser. URLs containing embedded
+usernames or passwords are rejected. Unsupported media, provider references,
+malformed values, unsafe URL schemes, and inline values over the preview limit
+retain their JSON and metadata fallback without an embedded preview.
 
 Telemetry is enabled automatically, but AI SDK 7 excludes raw request and response bodies from step results by default. To make them available to DevTools for `generateText`, enable body retention on the call:
 

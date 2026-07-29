@@ -95,33 +95,6 @@ function getOperationType(operationId: string): OperationType {
   return 'generate';
 }
 
-function getToolResultsFromResponseMessages(messages: unknown): unknown[] {
-  if (!Array.isArray(messages)) {
-    return [];
-  }
-
-  return messages.flatMap(message => {
-    if (
-      message == null ||
-      typeof message !== 'object' ||
-      !('role' in message) ||
-      message.role !== 'tool' ||
-      !('content' in message) ||
-      !Array.isArray(message.content)
-    ) {
-      return [];
-    }
-
-    return message.content.filter(
-      (part: unknown) =>
-        part != null &&
-        typeof part === 'object' &&
-        'type' in part &&
-        part.type === 'tool-result',
-    );
-  });
-}
-
 /**
  * Creates a devtools telemetry integration that logs all AI SDK operations
  * to the devtools viewer.
@@ -367,13 +340,9 @@ export function DevToolsTelemetry(
       activeSteps.delete(stepState.stepId);
 
       const durationMs = Date.now() - stepState.startTime;
-      const toolResults = getToolResultsFromResponseMessages(
-        stepResult.response.messages,
-      );
 
       const output = {
         content: stepResult.content,
-        ...(toolResults.length > 0 ? { toolResults } : {}),
         finishReason: stepResult.finishReason,
         response: {
           id: stepResult.response.id,

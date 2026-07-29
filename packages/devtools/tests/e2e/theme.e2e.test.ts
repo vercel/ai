@@ -206,27 +206,34 @@ const mediaRun = {
             },
           },
         ],
-        toolResults: [
-          {
-            type: 'tool-result',
-            toolName: 'captureScreenshot',
-            toolCallId: 'screenshot-call',
-            output: {
-              type: 'content',
-              value: [
+        response: {
+          messages: [
+            {
+              role: 'tool',
+              content: [
                 {
-                  type: 'file',
-                  filename: 'tool-screenshot.png',
-                  mediaType: 'image/png',
-                  data: {
-                    type: 'data',
-                    data: 'iVBORw0KGgo=',
+                  type: 'tool-result',
+                  toolName: 'captureScreenshot',
+                  toolCallId: 'screenshot-call',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'file',
+                        filename: 'tool-screenshot.png',
+                        mediaType: 'image/png',
+                        data: {
+                          type: 'data',
+                          data: 'iVBORw0KGgo=',
+                        },
+                      },
+                    ],
                   },
                 },
               ],
             },
-          },
-        ],
+          ],
+        },
       }),
       usage: JSON.stringify({
         inputTokens: 20,

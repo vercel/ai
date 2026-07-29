@@ -14,6 +14,7 @@ import type {
   SpanKind,
   TraceSpan,
   ParseJson,
+  ParsedInput,
   ParsedOutput,
   ContentPart,
   ToolCallContentPart,
@@ -21,6 +22,7 @@ import type {
 } from '../types';
 import {
   buildTraceSpans,
+  getOutputToolResults,
   safeParseJson,
   SPAN_COLORS,
   SPAN_COLORS_MUTED,
@@ -424,12 +426,17 @@ function SpanDetailPanel({
         'toolCallId' in p &&
         p.toolCallId === span.toolCallId,
     );
-    const toolResult = [
-      ...(output?.toolResults ?? []),
-      ...contentParts.filter(
-        (p): p is ToolResultContentPart => p.type === 'tool-result',
-      ),
-    ].find(
+    const nextStep = steps[stepIndex + 1];
+    const nextInput = nextStep
+      ? (parseJson(nextStep.input) as ParsedInput | null)
+      : null;
+    const fallbackToolResults =
+      nextInput?.prompt
+        ?.filter(message => message.role === 'tool')
+        .flatMap(message =>
+          Array.isArray(message.content) ? message.content : [],
+        ) ?? [];
+    const toolResult = getOutputToolResults(output, fallbackToolResults).find(
       (p): p is ToolResultContentPart =>
         p.type === 'tool-result' &&
         'toolCallId' in p &&

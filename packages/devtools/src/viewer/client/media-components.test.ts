@@ -2,6 +2,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { MediaAwareValue } from './components/shared-components';
+import { MessageBubble } from './components/message-components';
 
 describe('MediaAwareValue', () => {
   it('renders inline image previews and retains the JSON value', () => {
@@ -38,7 +39,7 @@ describe('MediaAwareValue', () => {
     );
   });
 
-  it('uses credentialless no-referrer media elements', () => {
+  it('uses anonymous no-referrer media elements', () => {
     const html = renderToStaticMarkup(
       createElement(MediaAwareValue, {
         data: [
@@ -75,5 +76,34 @@ describe('MediaAwareValue', () => {
 
     expect(html).toContain('10 characters omitted from the viewer');
     expect(html).not.toContain('a'.repeat(16 * 1024 + 1));
+  });
+
+  it('retains JSON metadata for direct prompt media without a preview source', () => {
+    const html = renderToStaticMarkup(
+      createElement(MessageBubble, {
+        message: {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              filename: 'uploaded-image',
+              mediaType: 'image/png',
+              data: {
+                type: 'reference',
+                reference: {
+                  providerName: 'example',
+                  id: 'provider-file-123',
+                },
+              },
+            },
+          ],
+        },
+      }),
+    );
+
+    expect(html).toContain(
+      'Preview unavailable; inspect the JSON metadata below.',
+    );
+    expect(html).toContain('provider-file-123');
   });
 });

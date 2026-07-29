@@ -43,6 +43,25 @@ const safeInlineMediaTypes = new Set([
   'video/webm',
 ]);
 
+const mediaTypesByExtension: Record<string, string> = {
+  avif: 'image/avif',
+  bmp: 'image/bmp',
+  gif: 'image/gif',
+  ico: 'image/x-icon',
+  jpeg: 'image/jpeg',
+  jpg: 'image/jpeg',
+  m4a: 'audio/mp4',
+  mp3: 'audio/mpeg',
+  mp4: 'video/mp4',
+  oga: 'audio/ogg',
+  ogg: 'audio/ogg',
+  ogv: 'video/ogg',
+  png: 'image/png',
+  wav: 'audio/wav',
+  webm: 'video/webm',
+  webp: 'image/webp',
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === 'object' && !Array.isArray(value);
 }
@@ -54,6 +73,36 @@ function getKind(mediaType: string): MediaKind {
     topLevelType === 'video'
     ? topLevelType
     : 'file';
+}
+
+function getBase64Prefix(data: string, maxBytes = 16): number[] {
+  const alphabet =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  const bytes: number[] = [];
+  let buffer = 0;
+  let bitCount = 0;
+
+  for (const character of data) {
+    if (character === '=') break;
+
+    const value = alphabet.indexOf(character);
+    if (value === -1) return [];
+
+    buffer = (buffer << 6) | value;
+    bitCount += 6;
+
+    if (bitCount >= 8) {
+      bitCount -= 8;
+      bytes.push((buffer >> bitCount) & 0xff);
+      if (bytes.length >= maxBytes) break;
+    }
+  }
+
+  return bytes;
+}
+
+function hasBytes(bytes: number[], expected: number[], offset = 0): boolean {
+  return expected.every((value, index) => bytes[offset + index] === value);
 }
 
 function detectInlineMediaType({
@@ -68,17 +117,55 @@ function detectInlineMediaType({
     return normalizedMediaType;
   }
 
-  if (normalizedMediaType !== 'image') {
-    return undefined;
+  const bytes = getBase64Prefix(data);
+
+  if (normalizedMediaType === 'image') {
+    if (hasBytes(bytes, [0x89, 0x50, 0x4e, 0x47])) return 'image/png';
+    if (hasBytes(bytes, [0xff, 0xd8, 0xff])) return 'image/jpeg';
+    if (hasBytes(bytes, [0x47, 0x49, 0x46, 0x38])) return 'image/gif';
+    if (
+      hasBytes(bytes, [0x52, 0x49, 0x46, 0x46]) &&
+      hasBytes(bytes, [0x57, 0x45, 0x42, 0x50], 8)
+    ) {
+      return 'image/webp';
+    }
+    if (hasBytes(bytes, [0x42, 0x4d])) return 'image/bmp';
   }
 
-  if (data.startsWith('iVBOR')) return 'image/png';
-  if (data.startsWith('/9j/')) return 'image/jpeg';
-  if (data.startsWith('R0lGOD')) return 'image/gif';
-  if (data.startsWith('UklGR')) return 'image/webp';
-  if (data.startsWith('Qk')) return 'image/bmp';
+  if (normalizedMediaType === 'audio') {
+    if (hasBytes(bytes, [0x49, 0x44, 0x33])) return 'audio/mpeg';
+    if (bytes[0] === 0xff && bytes[1] != null && (bytes[1] & 0xe0) === 0xe0) {
+      return 'audio/mpeg';
+    }
+    if (
+      hasBytes(bytes, [0x52, 0x49, 0x46, 0x46]) &&
+      hasBytes(bytes, [0x57, 0x41, 0x56, 0x45], 8)
+    ) {
+      return 'audio/wav';
+    }
+    if (hasBytes(bytes, [0x4f, 0x67, 0x67, 0x53])) return 'audio/ogg';
+    if (hasBytes(bytes, [0x1a, 0x45, 0xdf, 0xa3])) return 'audio/webm';
+    if (hasBytes(bytes, [0x66, 0x74, 0x79, 0x70], 4)) return 'audio/mp4';
+  }
+
+  if (normalizedMediaType === 'video') {
+    if (hasBytes(bytes, [0x4f, 0x67, 0x67, 0x53])) return 'video/ogg';
+    if (hasBytes(bytes, [0x1a, 0x45, 0xdf, 0xa3])) return 'video/webm';
+    if (hasBytes(bytes, [0x66, 0x74, 0x79, 0x70], 4)) return 'video/mp4';
+  }
 
   return undefined;
+}
+
+function inferMediaTypeFromUrl(source: unknown): string | undefined {
+  if (typeof source !== 'string') return undefined;
+
+  try {
+    const extension = new URL(source).pathname.split('.').pop()?.toLowerCase();
+    return extension == null ? undefined : mediaTypesByExtension[extension];
+  } catch {
+    return undefined;
+  }
 }
 
 function getBase64ByteLength(value: string): number | undefined {
@@ -136,7 +223,9 @@ function getSafeSource({
 
   try {
     const url = new URL(source);
-    return url.protocol === 'http:' || url.protocol === 'https:'
+    return (url.protocol === 'http:' || url.protocol === 'https:') &&
+      url.username === '' &&
+      url.password === ''
       ? { source: url.toString(), sourceType: 'remote' }
       : {};
   } catch {
@@ -285,7 +374,7 @@ function parseMediaPart(
         ? value.mediaType
         : value.type === 'image-url'
           ? 'image'
-          : 'application/octet-stream';
+          : (inferMediaTypeFromUrl(value.url) ?? 'application/octet-stream');
 
     return {
       filename: typeof value.filename === 'string' ? value.filename : undefined,

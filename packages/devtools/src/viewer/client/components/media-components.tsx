@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Download, ExternalLink, File, Image } from 'lucide-react';
 import { findMediaPreviews, type MediaPreviewData } from '../media';
 
-const credentiallessMediaProps = {
+const anonymousMediaProps = {
   crossOrigin: 'anonymous' as const,
   referrerPolicy: 'no-referrer' as const,
 };
@@ -57,7 +57,7 @@ function MediaPreviewCard({ preview }: { preview: MediaPreviewData }) {
           decoding="async"
           loading="lazy"
           src={preview.source}
-          {...credentiallessMediaProps}
+          {...anonymousMediaProps}
         />
       )}
 
@@ -69,7 +69,7 @@ function MediaPreviewCard({ preview }: { preview: MediaPreviewData }) {
           controls
           preload="none"
           src={preview.source}
-          {...credentiallessMediaProps}
+          {...anonymousMediaProps}
         />
       )}
 
@@ -81,7 +81,7 @@ function MediaPreviewCard({ preview }: { preview: MediaPreviewData }) {
           controls
           preload="metadata"
           src={preview.source}
-          {...credentiallessMediaProps}
+          {...anonymousMediaProps}
         />
       )}
 

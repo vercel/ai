@@ -66,9 +66,12 @@ describe('serializeForDevTools', () => {
     });
   });
 
-  it('normalizes root binary values', () => {
-    expect(serializeForDevTools(new Uint8Array([137, 80, 78, 71]))).toBe(
-      '"iVBORw=="',
-    );
+  it('retains normal JSON serialization for unrelated binary values', () => {
+    const value = {
+      bytes: new Uint8Array([1, 2]),
+      buffer: new Uint8Array([3, 4]).buffer,
+    };
+
+    expect(serializeForDevTools(value)).toBe(JSON.stringify(value));
   });
 });

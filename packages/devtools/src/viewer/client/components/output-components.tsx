@@ -8,7 +8,11 @@ import type {
   TextContentPart,
   ReasoningContentPart,
 } from '../types';
-import { safeParseJson, formatToolParams } from '../utils';
+import {
+  safeParseJson,
+  formatToolParams,
+  getOutputToolResults,
+} from '../utils';
 import {
   MediaAwareValue,
   ReasoningBlock,
@@ -23,15 +27,7 @@ export function OutputDisplay({
   output: ParsedOutput;
   fallbackToolResults?: ContentPart[];
 }) {
-  const contentToolResults =
-    output.content?.filter(
-      (part): part is ToolResultContentPart => part.type === 'tool-result',
-    ) ?? [];
-  const toolResults = [
-    ...(output.toolResults ?? []),
-    ...fallbackToolResults,
-    ...contentToolResults,
-  ];
+  const toolResults = getOutputToolResults(output, fallbackToolResults);
 
   const getToolResult = (toolCallId: string) => {
     return toolResults.find(

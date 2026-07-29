@@ -21,10 +21,10 @@ import {
 import {
   CollapsibleToolCall,
   CollapsibleToolResult,
+  MediaAwareValue,
   ReasoningBlock,
   TextBlock,
 } from './shared-components';
-import { MediaPreviewList } from './media-components';
 import { findMediaPreviews } from '../media';
 
 export function InputPanel({ input }: { input: ParsedInput | null }) {
@@ -328,7 +328,9 @@ export function MessageBubble({
         />
       )}
 
-      <MediaPreviewList data={directMediaContent} />
+      {directMediaContent.length > 0 && (
+        <MediaAwareValue data={directMediaContent} />
+      )}
 
       {toolCalls.length > 0 && (
         <div className="space-y-2">
