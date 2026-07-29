@@ -37,7 +37,6 @@ interface PooledWorker {
 
 interface ManagedWorkerRun {
   result: Promise<unknown>;
-  accountingDone: Promise<void>;
 }
 
 let invocationCounter = 0;
@@ -58,7 +57,6 @@ export async function runManagedCodeMode(
   }
 
   activeInvocations++;
-  let releaseSlotOnExit = true;
   try {
     if (input.toolExecutionOptions?.abortSignal?.aborted) {
       throw new CodeModeAbortedError();
@@ -71,16 +69,9 @@ export async function runManagedCodeMode(
       normalizedOptions,
       maxWorkers,
     });
-    releaseSlotOnExit = false;
-    void run.accountingDone.then(
-      () => releaseInvocationSlot(normalizedOptions.memoryLimitBytes),
-      () => releaseInvocationSlot(normalizedOptions.memoryLimitBytes),
-    );
     return await run.result;
   } finally {
-    if (releaseSlotOnExit) {
-      releaseInvocationSlot(normalizedOptions.memoryLimitBytes);
-    }
+    releaseInvocationSlot(normalizedOptions.memoryLimitBytes);
   }
 }
 
@@ -124,7 +115,6 @@ function startWorkerRun({
 
   let resultMessage: WorkerResultMessage | undefined;
   let callerSettled = false;
-  let accountingSettled = false;
   let terminalReached = false;
   let workerCleanedUp = false;
   let totalBridgeRequests = 0;
@@ -136,11 +126,6 @@ function startWorkerRun({
   const result = new Promise<unknown>((resolve, reject) => {
     resolveResult = resolve;
     rejectResult = reject;
-  });
-
-  let resolveAccounting!: () => void;
-  const accountingDone = new Promise<void>(resolve => {
-    resolveAccounting = resolve;
   });
 
   const abortInvocation = (reason: unknown) => {
@@ -167,13 +152,6 @@ function startWorkerRun({
     }
   };
 
-  const settleAccountingIfDone = () => {
-    if (!accountingSettled && callerSettled && inFlightBridgeRequests === 0) {
-      accountingSettled = true;
-      resolveAccounting();
-    }
-  };
-
   const settleCaller = (settle: () => void) => {
     if (callerSettled) {
       return;
@@ -183,8 +161,6 @@ function startWorkerRun({
       settle();
     } catch (error) {
       rejectResult(error);
-    } finally {
-      settleAccountingIfDone();
     }
   };
 
@@ -292,7 +268,7 @@ function startWorkerRun({
     }
   }
 
-  return { result, accountingDone };
+  return { result };
 
   function markWorkerRequest(message: WorkerToolRequest): number | undefined {
     if (terminalReached) {
@@ -371,7 +347,6 @@ function startWorkerRun({
       });
     } finally {
       inFlightBridgeRequests--;
-      settleAccountingIfDone();
     }
   }
 

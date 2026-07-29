@@ -23,6 +23,8 @@ export async function invokeHostTool({
   maxToolOutputBytes: number;
   toolCallId: string;
 }): Promise<string> {
+  throwIfAborted(baseExecutionOptions.abortSignal);
+
   const hostTool = tools[toolName];
   if (!hostTool) {
     throw new CodeModeToolError(`Unknown tool: ${toolName}`, {
@@ -39,7 +41,10 @@ export async function invokeHostTool({
   const input = inputJson === '' ? undefined : JSON.parse(inputJson);
   assertJsonSerializable(input, maxToolInputBytes, `Tool "${toolName}" input`);
 
-  const validation = await validateToolInput(hostTool.inputSchema, input);
+  const validation = await raceAgainstAbort(
+    validateToolInput(hostTool.inputSchema, input),
+    baseExecutionOptions.abortSignal,
+  );
   if (!validation.success) {
     throw new CodeModeToolError(
       `Invalid input for tool "${toolName}": ${validation.error.message}`,
@@ -52,17 +57,25 @@ export async function invokeHostTool({
     toolCallId,
   };
 
-  if (await requiresApproval(hostTool, validation.value, executionOptions)) {
+  if (
+    await raceAgainstAbort(
+      requiresApproval(hostTool, validation.value, executionOptions),
+      executionOptions.abortSignal,
+    )
+  ) {
     throw new CodeModeToolError(
       `Tool "${toolName}" requires approval, which code mode does not support yet.`,
       { toolName, input: validation.value, toolCallId },
     );
   }
 
-  const output = await executeHostTool(hostTool.execute.bind(hostTool), {
-    input: validation.value,
-    options: executionOptions,
-  });
+  const output = await raceAgainstAbort(
+    executeHostTool(hostTool.execute.bind(hostTool), {
+      input: validation.value,
+      options: executionOptions,
+    }),
+    executionOptions.abortSignal,
+  );
   return toJsonPayload(output, maxToolOutputBytes, `Tool "${toolName}" output`);
 }
 
@@ -122,5 +135,47 @@ function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
     typeof (value as { [Symbol.asyncIterator]?: unknown })[
       Symbol.asyncIterator
     ] === 'function'
+  );
+}
+
+async function raceAgainstAbort<T>(
+  operation: Promise<T>,
+  abortSignal: AbortSignal | undefined,
+): Promise<T> {
+  if (abortSignal === undefined) {
+    return await operation;
+  }
+  throwIfAborted(abortSignal);
+
+  let rejectOnAbort!: (reason?: unknown) => void;
+  const aborted = new Promise<never>((_resolve, reject) => {
+    rejectOnAbort = reject;
+  });
+  const onAbort = () => {
+    rejectOnAbort(abortReason(abortSignal));
+  };
+
+  abortSignal.addEventListener('abort', onAbort, { once: true });
+  if (abortSignal.aborted) {
+    onAbort();
+  }
+
+  try {
+    return await Promise.race([operation, aborted]);
+  } finally {
+    abortSignal.removeEventListener('abort', onAbort);
+  }
+}
+
+function throwIfAborted(abortSignal: AbortSignal | undefined): void {
+  if (abortSignal?.aborted) {
+    throw abortReason(abortSignal);
+  }
+}
+
+function abortReason(abortSignal: AbortSignal): unknown {
+  return (
+    abortSignal.reason ??
+    new DOMException('The operation was aborted.', 'AbortError')
   );
 }

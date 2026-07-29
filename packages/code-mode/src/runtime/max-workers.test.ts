@@ -11,6 +11,14 @@ describe('global max worker configuration', () => {
     await expect(runIsolated(setMaxWorkersScript)).resolves.toBe('');
   });
 
+  it('releases a worker slot after a non-cooperative host tool times out', async () => {
+    await expect(runIsolated(nonCooperativeTimeoutScript)).resolves.toBe('');
+  });
+
+  it('releases a worker slot after a non-cooperative host tool is detached', async () => {
+    await expect(runIsolated(nonCooperativeDetachedScript)).resolves.toBe('');
+  });
+
   it('uses available memory to reject an additional default worker', async () => {
     await expect(runIsolated(memorySensitiveDefaultScript)).resolves.toBe('');
   });
@@ -95,6 +103,75 @@ if (await first !== "ok") {
 setMaxWorkers(undefined);
 if (await runCodeMode({ js: "return 'slot free';", tools }) !== "slot free") {
   throw new Error("Expected worker slot to be released.");
+}
+`;
+
+const nonCooperativeTimeoutScript = `
+import { tool } from "ai";
+import { z } from "zod";
+import {
+  CodeModeTimeoutError,
+  experimental_runCodeMode as runCodeMode,
+  experimental_setMaxWorkers as setMaxWorkers,
+} from "./dist/index.js";
+
+setMaxWorkers(1);
+const tools = {
+  waitForever: tool({
+    inputSchema: z.object({}),
+    execute: async () => await new Promise(() => {}),
+  }),
+};
+
+try {
+  await runCodeMode({
+    js: "return await tools.waitForever({});",
+    tools,
+    options: { executionPolicy: { timeoutMs: 100 } },
+  });
+  throw new Error("Expected the invocation to time out.");
+} catch (error) {
+  if (!(error instanceof CodeModeTimeoutError)) {
+    throw error;
+  }
+}
+
+if (await runCodeMode({ js: "return 'slot free';", tools }) !== "slot free") {
+  throw new Error("Expected a timed-out host tool to release its worker slot.");
+}
+`;
+
+const nonCooperativeDetachedScript = `
+import { tool } from "ai";
+import { z } from "zod";
+import {
+  CodeModeDetachedBridgeRequestError,
+  experimental_runCodeMode as runCodeMode,
+  experimental_setMaxWorkers as setMaxWorkers,
+} from "./dist/index.js";
+
+setMaxWorkers(1);
+const tools = {
+  waitForever: tool({
+    inputSchema: z.object({}),
+    execute: async () => await new Promise(() => {}),
+  }),
+};
+
+try {
+  await runCodeMode({
+    js: "tools.waitForever({}).then(() => undefined); return 'done';",
+    tools,
+  });
+  throw new Error("Expected the invocation to reject detached bridge work.");
+} catch (error) {
+  if (!(error instanceof CodeModeDetachedBridgeRequestError)) {
+    throw error;
+  }
+}
+
+if (await runCodeMode({ js: "return 'slot free';", tools }) !== "slot free") {
+  throw new Error("Expected a detached host tool to release its worker slot.");
 }
 `;
 
