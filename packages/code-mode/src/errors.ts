@@ -76,8 +76,6 @@ export class CodeModeSourceTooLargeError extends CodeModeError {
 
 /**
  * Raised when sandboxed code exceeds bridge request limits.
- *
- * Bridge requests include host tool calls and sandbox fetch calls.
  */
 export class CodeModeBridgeLimitError extends CodeModeError {
   constructor(message: string, details?: unknown) {
@@ -111,53 +109,6 @@ export class CodeModeProtocolError extends CodeModeError {
 export class CodeModeToolError extends CodeModeError {
   constructor(message: string, details?: unknown) {
     super(message, 'CODE_MODE_TOOL_ERROR', details);
-  }
-}
-
-/**
- * Raised when sandboxed code requests a tool that requires approval and no
- * approval callback approves it.
- */
-export class CodeModeToolApprovalRequiredError extends CodeModeToolError {
-  constructor(toolName: string, input: unknown, toolCallId: string) {
-    super(`Tool "${toolName}" requires approval before execution.`, {
-      toolName,
-      input,
-      toolCallId,
-    });
-    this.name = 'CodeModeToolApprovalRequiredError';
-    this.code = 'CODE_MODE_TOOL_APPROVAL_REQUIRED';
-  }
-}
-
-/**
- * Raised when `approval.onApprovalRequired` denies a requested host tool call.
- */
-export class CodeModeToolApprovalDeniedError extends CodeModeToolError {
-  constructor(
-    toolName: string,
-    input: unknown,
-    toolCallId: string,
-    reason?: string,
-  ) {
-    super(`Tool "${toolName}" approval was denied.`, {
-      toolName,
-      input,
-      toolCallId,
-      reason,
-    });
-    this.name = 'CodeModeToolApprovalDeniedError';
-    this.code = 'CODE_MODE_TOOL_APPROVAL_DENIED';
-  }
-}
-
-/**
- * Raised when sandboxed `fetch` is unavailable, disallowed by policy, aborted,
- * too large, or otherwise fails during host fetch handling.
- */
-export class CodeModeFetchError extends CodeModeError {
-  constructor(message: string, details?: unknown) {
-    super(message, 'CODE_MODE_FETCH_ERROR', details);
   }
 }
 
@@ -210,13 +161,13 @@ export function serializeError(error: unknown): SerializableError {
  * Converts host bridge failures into a sandbox-visible sanitized shape.
  *
  * This intentionally omits stack traces and diagnostic details. Full host
- * diagnostics should use `serializeError` through lifecycle hooks or telemetry.
+ * diagnostics remain on the host side.
  *
  * @internal
  */
 export function serializeBridgeErrorForGuest(
   error: unknown,
-  context: 'tool' | 'fetch' | 'bridge',
+  context: 'tool' | 'bridge',
 ): SerializableError {
   if (error instanceof CodeModeError) {
     return compactError({
@@ -232,15 +183,10 @@ export function serializeBridgeErrorForGuest(
           message: 'Host tool failed.',
           code: 'CODE_MODE_HOST_TOOL_ERROR',
         }
-      : context === 'fetch'
-        ? {
-            message: 'Host fetch failed.',
-            code: 'CODE_MODE_HOST_FETCH_ERROR',
-          }
-        : {
-            message: 'Host bridge request failed.',
-            code: 'CODE_MODE_HOST_BRIDGE_ERROR',
-          };
+      : {
+          message: 'Host bridge request failed.',
+          code: 'CODE_MODE_HOST_BRIDGE_ERROR',
+        };
 
   return {
     name: 'Error',
@@ -300,38 +246,6 @@ export function deserializeError(error: SerializableError): Error {
 
   if (error.code === 'CODE_MODE_PROTOCOL_ERROR') {
     const result = new CodeModeProtocolError(error.message, error.details);
-    restoreStack(result, error);
-    return result;
-  }
-
-  if (error.code === 'CODE_MODE_TOOL_APPROVAL_REQUIRED') {
-    const details = error.details as
-      | { toolName?: string; input?: unknown; toolCallId?: string }
-      | undefined;
-    const result = new CodeModeToolApprovalRequiredError(
-      details?.toolName ?? 'unknown',
-      details?.input,
-      details?.toolCallId ?? 'unknown',
-    );
-    restoreStack(result, error);
-    return result;
-  }
-
-  if (error.code === 'CODE_MODE_TOOL_APPROVAL_DENIED') {
-    const details = error.details as
-      | {
-          toolName?: string;
-          input?: unknown;
-          toolCallId?: string;
-          reason?: string;
-        }
-      | undefined;
-    const result = new CodeModeToolApprovalDeniedError(
-      details?.toolName ?? 'unknown',
-      details?.input,
-      details?.toolCallId ?? 'unknown',
-      details?.reason,
-    );
     restoreStack(result, error);
     return result;
   }

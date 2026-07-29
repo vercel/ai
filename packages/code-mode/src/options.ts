@@ -9,21 +9,11 @@ const DEFAULT_MAX_TOOL_INPUT_BYTES = 1024 * 1024;
 const DEFAULT_MAX_TOOL_OUTPUT_BYTES = 4 * 1024 * 1024;
 const DEFAULT_MAX_BRIDGE_REQUESTS = 256;
 const DEFAULT_MAX_IN_FLIGHT_BRIDGE_REQUESTS = 32;
-const DEFAULT_MAX_FETCH_RESPONSE_BYTES = 1024 * 1024;
-const DEFAULT_MAX_FETCH_REDIRECTS = 10;
 
 export function normalizeOptions(
   options: CodeModeOptions = {},
 ): NormalizedCodeModeOptions {
   const executionPolicy = options.executionPolicy ?? {};
-  const fetchPolicy =
-    options.fetchPolicy === false ? undefined : options.fetchPolicy;
-  const fetch = fetchPolicy?.fetch ?? globalThis.fetch;
-  if (fetchPolicy !== undefined && typeof fetch !== 'function') {
-    throw new TypeError(
-      'fetchPolicy.fetch must be provided when global fetch is unavailable.',
-    );
-  }
 
   return {
     timeoutMs: positiveInteger(
@@ -71,43 +61,17 @@ export function normalizeOptions(
       DEFAULT_MAX_IN_FLIGHT_BRIDGE_REQUESTS,
       'executionPolicy.maxInFlightBridgeRequests',
     ),
-    fetch: fetchPolicy === undefined ? undefined : fetch,
-    fetchEnabled: fetchPolicy !== undefined,
-    fetchPolicy: {
-      ...(fetchPolicy?.allowedOrigins !== undefined
-        ? { allowedOrigins: fetchPolicy.allowedOrigins }
-        : {}),
-      ...(fetchPolicy?.allowedUrlPrefixes !== undefined
-        ? { allowedUrlPrefixes: fetchPolicy.allowedUrlPrefixes }
-        : {}),
-      ...(fetchPolicy?.allowedMethods !== undefined
-        ? { allowedMethods: fetchPolicy.allowedMethods }
-        : {}),
-      maxResponseBytes: positiveInteger(
-        fetchPolicy?.maxResponseBytes,
-        DEFAULT_MAX_FETCH_RESPONSE_BYTES,
-        'fetchPolicy.maxResponseBytes',
-      ),
-      allowRedirects: fetchPolicy?.allowRedirects ?? false,
-      maxRedirects: positiveInteger(
-        fetchPolicy?.maxRedirects,
-        DEFAULT_MAX_FETCH_REDIRECTS,
-        'fetchPolicy.maxRedirects',
-      ),
-    },
   };
 }
 
 function positiveInteger(
   value: number | undefined,
   fallback: number,
-  name: string,
-) {
-  if (value === undefined) {
-    return fallback;
+  path: string,
+): number {
+  const resolved = value ?? fallback;
+  if (!Number.isInteger(resolved) || resolved <= 0) {
+    throw new TypeError(`${path} must be a positive integer.`);
   }
-  if (!Number.isInteger(value) || value <= 0) {
-    throw new TypeError(`${name} must be a positive integer.`);
-  }
-  return value;
+  return resolved;
 }

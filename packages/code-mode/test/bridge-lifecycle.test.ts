@@ -59,60 +59,6 @@ describe('bridge request lifecycle', () => {
     expect(execute).not.toHaveBeenCalled();
   });
 
-  it('rejects unawaited fetch calls without calling host fetch', async () => {
-    const fetchMock = vi.fn(async () => new Response('ok'));
-
-    await expect(
-      runCodeMode({
-        js: "fetch('https://api.example.test/data'); return 'done';",
-        tools: {},
-        options: {
-          fetchPolicy: {
-            fetch: fetchMock,
-            allowedOrigins: ['https://api.example.test'],
-          },
-        },
-      }),
-    ).rejects.toBeInstanceOf(CodeModeDetachedBridgeRequestError);
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it('does not expose the raw fetch bridge global to sandbox code', async () => {
-    const fetchMock = vi.fn(async () => new Response('ok'));
-
-    await expect(
-      runCodeMode({
-        js: `
-          let message = "";
-          try {
-            await globalThis.__codeModeFetch(JSON.stringify({
-              url: "https://api.example.test/data"
-            }));
-          } catch (error) {
-            message = error.message;
-          }
-          return {
-            identifierType: typeof __codeModeFetch,
-            type: typeof globalThis.__codeModeFetch,
-            message
-          };
-        `,
-        tools: {},
-        options: {
-          fetchPolicy: {
-            fetch: fetchMock,
-            allowedOrigins: ['https://api.example.test'],
-          },
-        },
-      }),
-    ).resolves.toEqual({
-      identifierType: 'undefined',
-      type: 'undefined',
-      message: 'not a function',
-    });
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
   it('aborts observed detached tool calls', async () => {
     const started = deferred<void>();
     const abortObserved = deferred<void>();

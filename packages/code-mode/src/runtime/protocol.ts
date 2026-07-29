@@ -1,21 +1,12 @@
-import type {
-  CodeModeDeterminismState,
-  NormalizedCodeModeOptions,
-  SerializableError,
-} from '../types.js';
+import type { NormalizedCodeModeOptions, SerializableError } from '../types.js';
 
 export interface WorkerRunMessage {
   type: 'run';
   invocationId: string;
   js: string;
-  determinism: CodeModeDeterminismState;
   options: Pick<
     NormalizedCodeModeOptions,
-    | 'timeoutMs'
-    | 'memoryLimitBytes'
-    | 'maxStackSizeBytes'
-    | 'maxResultBytes'
-    | 'fetchEnabled'
+    'timeoutMs' | 'memoryLimitBytes' | 'maxStackSizeBytes' | 'maxResultBytes'
   >;
 }
 
@@ -27,38 +18,13 @@ export interface WorkerToolRequest {
   inputJson: string;
 }
 
-export interface WorkerFetchRequest {
-  type: 'fetch-request';
-  invocationId: string;
-  requestId: string;
-  request: {
-    url: string;
-    method?: string;
-    headers?: Record<string, string>;
-    body?: string;
-  };
-}
-
 export interface WorkerBridgeResponse {
   type: 'bridge-response';
   invocationId: string;
   requestId: string;
   success: boolean;
-  dateNowMs: number;
   valueJson?: string;
   error?: SerializableError;
-}
-
-interface WorkerBridgeDrainRequest {
-  type: 'bridge-drain';
-  invocationId: string;
-  drainId: string;
-}
-
-interface WorkerBridgeDrainedMessage {
-  type: 'bridge-drained';
-  invocationId: string;
-  drainId: string;
 }
 
 export interface WorkerResultMessage {
@@ -76,12 +42,7 @@ export interface WorkerReadyMessage {
 
 export type WorkerToMainMessage =
   | WorkerToolRequest
-  | WorkerFetchRequest
-  | WorkerBridgeDrainedMessage
   | WorkerResultMessage
   | WorkerReadyMessage;
 
-export type MainToWorkerMessage =
-  | WorkerRunMessage
-  | WorkerBridgeResponse
-  | WorkerBridgeDrainRequest;
+export type MainToWorkerMessage = WorkerRunMessage | WorkerBridgeResponse;

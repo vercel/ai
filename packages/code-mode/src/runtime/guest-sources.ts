@@ -90,105 +90,6 @@ const HARDENING_SOURCE = `
 })();
 `;
 
-const DETERMINISTIC_APIS_SOURCE = `
-var __codeModeResetDateNow = (function(config) {
-  var OriginalDate = Date;
-  var dateNowMs = Number(config && config.dateNowMs);
-  if (!Number.isFinite(dateNowMs)) dateNowMs = 0;
-
-  function resetDateNow(value) {
-    var next = Number(value);
-    if (Number.isFinite(next)) {
-      dateNowMs = Math.trunc(next);
-    }
-  }
-
-  function nextDateMs() {
-    var value = dateNowMs;
-    dateNowMs += 1;
-    return value;
-  }
-
-  function CodeModeDate() {
-    if (new.target) {
-      if (arguments.length === 0) {
-        return new OriginalDate(nextDateMs());
-      }
-      return Reflect.construct(OriginalDate, arguments, new.target);
-    }
-    return new OriginalDate(nextDateMs()).toString();
-  }
-
-  Object.defineProperty(CodeModeDate, 'prototype', {
-    value: OriginalDate.prototype,
-    writable: false,
-    configurable: false,
-  });
-  Object.defineProperty(OriginalDate.prototype, 'constructor', {
-    value: CodeModeDate,
-    writable: false,
-    configurable: false,
-  });
-  Object.defineProperty(CodeModeDate, 'now', {
-    value: nextDateMs,
-    writable: false,
-    configurable: false,
-  });
-  Object.defineProperty(CodeModeDate, 'parse', {
-    value: OriginalDate.parse,
-    writable: false,
-    configurable: false,
-  });
-  Object.defineProperty(CodeModeDate, 'UTC', {
-    value: OriginalDate.UTC,
-    writable: false,
-    configurable: false,
-  });
-  Object.defineProperty(globalThis, 'Date', {
-    value: CodeModeDate,
-    writable: false,
-    configurable: false,
-  });
-
-  var randomSeed = String(config && config.randomSeed || '');
-  var mask64 = (1n << 64n) - 1n;
-
-  function readSeedPart(offset, fallback) {
-    var part = randomSeed.slice(offset, offset + 16);
-    if (!/^[0-9a-fA-F]{16}$/.test(part)) {
-      return fallback;
-    }
-    return BigInt('0x' + part);
-  }
-
-  var randomState0 = readSeedPart(0, 0x243f6a8885a308d3n);
-  var randomState1 = readSeedPart(16, 0x13198a2e03707344n);
-  if ((randomState0 | randomState1) === 0n) {
-    randomState1 = 0x9e3779b97f4a7c15n;
-  }
-
-  function nextRandom64() {
-    var s1 = randomState0;
-    var s0 = randomState1;
-    randomState0 = s0;
-    s1 = (s1 ^ ((s1 << 23n) & mask64)) & mask64;
-    randomState1 = (s1 ^ s0 ^ (s1 >> 17n) ^ (s0 >> 26n)) & mask64;
-    return (randomState1 + s0) & mask64;
-  }
-
-  function deterministicRandom() {
-    return Number(nextRandom64() >> 11n) / 9007199254740992;
-  }
-
-  Object.defineProperty(Math, 'random', {
-    value: deterministicRandom,
-    writable: false,
-    configurable: false,
-  });
-  return resetDateNow;
-})(__codeModeDeterminism);
-`;
-
 const BRIDGE_TRACKING_SOURCE = `
 (function() {
   var nextRecordId = 0;
@@ -339,72 +240,13 @@ const SERIALIZATION_GUARD_SOURCE = `
 })();
 `;
 
-const FETCH_POLYFILL_SOURCE = `
-(function(hostFetch) {
-  globalThis.fetch = function(input, init) {
-    var url = typeof input === 'string' ? input : String(input && input.url || input);
-    init = init || {};
-    var headers = {};
-    if (init.headers) {
-      if (Array.isArray(init.headers)) {
-        for (var i = 0; i < init.headers.length; i++) {
-          headers[String(init.headers[i][0])] = String(init.headers[i][1]);
-        }
-      } else {
-        for (var key in init.headers) headers[String(key)] = String(init.headers[key]);
-      }
-    }
-    var payload = {
-      url: url,
-      method: init.method,
-      headers: headers,
-      body: init.body == null ? undefined : String(init.body)
-    };
-    var requestJson = JSON.stringify(payload);
-    return globalThis.__codeModeCreateBridgePromise('fetch', url, async function() {
-      var responseJson = await hostFetch(requestJson);
-      var data = JSON.parse(responseJson);
-      var headerMap = data.headers || {};
-      return {
-        ok: data.status >= 200 && data.status < 300,
-        status: data.status,
-        statusText: data.statusText || '',
-        url: data.url || url,
-        headers: {
-          get: function(name) {
-            return headerMap[String(name).toLowerCase()] || null;
-          },
-          entries: function() {
-            return Object.entries(headerMap)[Symbol.iterator]();
-          }
-        },
-        text: async function() { return data.body; },
-        json: async function() { return JSON.parse(data.body); },
-        arrayBuffer: async function() {
-          var text = data.body;
-          var buffer = new ArrayBuffer(text.length);
-          var view = new Uint8Array(buffer);
-          for (var i = 0; i < text.length; i++) view[i] = text.charCodeAt(i) & 255;
-          return buffer;
-        }
-      };
-    });
-  };
-})(__codeModeFetch);
-`;
-
-export function buildGuestRuntimeSetupSource(fetchEnabled: boolean): string {
+export function buildGuestRuntimeSetupSource(): string {
   return `
-(function(__codeModeInvokeTool, __codeModeFetch, __codeModeDeterminism) {
-${DETERMINISTIC_APIS_SOURCE}
+(function(__codeModeInvokeTool) {
 ${HARDENING_SOURCE}
 ${BRIDGE_TRACKING_SOURCE}
 ${TOOLS_PROXY_SOURCE}
 ${SERIALIZATION_GUARD_SOURCE}
-${fetchEnabled ? FETCH_POLYFILL_SOURCE : ''}
-return Object.freeze({
-  resetDateNow: __codeModeResetDateNow,
-});
 })
 `;
 }

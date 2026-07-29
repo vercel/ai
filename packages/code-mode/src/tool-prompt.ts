@@ -1,5 +1,5 @@
 import { asSchema } from 'ai';
-import type { CodeModeOptions, CodeModeToolSet } from './types.js';
+import type { CodeModeToolSet } from './types.js';
 
 type JsonSchema = Record<string, unknown>;
 
@@ -10,15 +10,9 @@ interface SchemaContext {
 }
 
 const MAX_SCHEMA_DEPTH = 8;
-const DEFAULT_FETCH_METHODS = ['GET', 'HEAD'];
-const DEFAULT_MAX_FETCH_RESPONSE_BYTES = 1024 * 1024;
-const DEFAULT_MAX_FETCH_REDIRECTS = 10;
 const MAX_COMPACT_OBJECT_TYPE_LENGTH = 120;
 
-export function buildCodeModeToolDescription(
-  tools: CodeModeToolSet,
-  options: CodeModeOptions = {},
-): string {
+export function buildCodeModeToolDescription(tools: CodeModeToolSet): string {
   const toolEntries = Object.entries(tools);
   const typeBlock =
     toolEntries.length === 0
@@ -42,18 +36,13 @@ export function buildCodeModeToolDescription(
           '```',
         ].join('\n');
 
-  const fetchLine =
-    options.fetchPolicy !== undefined && options.fetchPolicy !== false
-      ? renderFetchPolicyLine(options)
-      : 'Fetch: `fetch` is not available.';
-
   const sections = [
     'Execute code-mode TypeScript in an isolated sandbox.',
     '',
     'Put the full program in `js`; top-level `await`/`return` work. Return a JSON-serializable result.',
     'Call host tools only as async `tools.name(input)`; await each or use `Promise.all` for independent calls.',
     'Use exact names/types below. `JSON.parse`/`JSON.stringify` are available.',
-    fetchLine,
+    'Fetch: `fetch` is not available.',
   ];
 
   sections.push('', 'Tools:', typeBlock);
@@ -63,42 +52,6 @@ export function buildCodeModeToolDescription(
   }
 
   return sections.join('\n');
-}
-
-function renderFetchPolicyLine(options: CodeModeOptions): string {
-  const policy = options.fetchPolicy;
-  if (policy === undefined || policy === false) {
-    return 'Fetch: `fetch` is not available.';
-  }
-
-  const policyParts: string[] = [];
-  if (policy.allowedOrigins !== undefined && policy.allowedOrigins.length > 0) {
-    policyParts.push(`origins=${formatInlineList(policy.allowedOrigins)}`);
-  }
-  if (
-    policy.allowedUrlPrefixes !== undefined &&
-    policy.allowedUrlPrefixes.length > 0
-  ) {
-    policyParts.push(`prefixes=${formatInlineList(policy.allowedUrlPrefixes)}`);
-  }
-  if (policyParts.length === 0) {
-    policyParts.push('no origins or URL prefixes allowed');
-  }
-
-  const methods = policy.allowedMethods ?? DEFAULT_FETCH_METHODS;
-  policyParts.push(
-    `methods=${formatInlineList(methods.map(method => method.toUpperCase()))}`,
-  );
-  policyParts.push(
-    `maxBody=${policy.maxResponseBytes ?? DEFAULT_MAX_FETCH_RESPONSE_BYTES}`,
-  );
-  policyParts.push(
-    policy.allowRedirects === true
-      ? `redirects=same-policy,max=${policy.maxRedirects ?? DEFAULT_MAX_FETCH_REDIRECTS}`
-      : 'redirects=none',
-  );
-
-  return `Fetch: \`fetch\` is available; policy: ${policyParts.join('; ')}.`;
 }
 
 function renderToolType([toolName, tool]: [
@@ -562,10 +515,6 @@ function formatObjectKey(key: string): string {
 
 function formatPropertyAccess(key: string): string {
   return isIdentifier(key) ? `.${key}` : `[${JSON.stringify(key)}]`;
-}
-
-function formatInlineList(values: string[]): string {
-  return values.map(value => `\`${value}\``).join(', ');
 }
 
 function uniqueToolVariableNames(toolNames: string[]): string[] {

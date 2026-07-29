@@ -212,16 +212,11 @@ try {
       type: "run",
       invocationId: "inline-wasm-test",
       js: "return { ok: true };",
-      determinism: {
-        dateNowMs: 0,
-        randomSeed: "0123456789abcdef0123456789abcdef",
-      },
       options: {
         timeoutMs: 5_000,
         memoryLimitBytes: 128 * 1024 * 1024,
         maxStackSizeBytes: 1024 * 1024,
         maxResultBytes: 1024 * 1024,
-        fetchEnabled: false,
       },
     });
   });

@@ -43,6 +43,24 @@ describe('exceptions and serialization', () => {
     expect(execute).not.toHaveBeenCalled();
   });
 
+  it('does not execute tools that require approval', async () => {
+    const execute = vi.fn(async () => ({ ok: true }));
+
+    await expect(
+      runCodeMode({
+        js: 'return await tools.guarded({});',
+        tools: {
+          guarded: tool({
+            inputSchema: z.object({}),
+            needsApproval: true,
+            execute,
+          }),
+        },
+      }),
+    ).rejects.toThrow(/requires approval.*does not support/i);
+    expect(execute).not.toHaveBeenCalled();
+  });
+
   it('sanitizes tool throws', async () => {
     await expect(
       runCodeMode({
