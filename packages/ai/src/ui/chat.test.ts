@@ -1471,6 +1471,133 @@ describe('Chat', () => {
     expect(chat.status).toBe('error');
   });
 
+  describe('resume stream', () => {
+    function createResumeStream(messageId?: string) {
+      return new ReadableStream<UIMessageChunk>({
+        start(controller) {
+          controller.enqueue({
+            type: 'start',
+            ...(messageId == null ? {} : { messageId }),
+          });
+          controller.enqueue({ type: 'start-step' });
+          controller.enqueue({ type: 'text-start', id: 'text-1' });
+          controller.enqueue({
+            type: 'text-delta',
+            id: 'text-1',
+            delta: 'resumed',
+          });
+          controller.enqueue({ type: 'text-end', id: 'text-1' });
+          controller.enqueue({ type: 'finish-step' });
+          controller.enqueue({ type: 'finish', finishReason: 'stop' });
+          controller.close();
+        },
+      });
+    }
+
+    function createChat({
+      messages,
+      messageId,
+    }: {
+      messages: UIMessage[];
+      messageId?: string;
+    }) {
+      return new TestChat({
+        id: '123',
+        messages,
+        generateId: mockId(),
+        transport: {
+          sendMessages: async () => {
+            throw new Error('not implemented');
+          },
+          reconnectToStream: async () => createResumeStream(messageId),
+        },
+      });
+    }
+
+    it('should not adopt an assistant message from a different turn', async () => {
+      const chat = createChat({
+        messages: [
+          {
+            id: 'turn-0',
+            role: 'user',
+            parts: [{ type: 'text', text: 'first question' }],
+          },
+          {
+            id: 'turn-0:reply',
+            role: 'assistant',
+            parts: [{ type: 'text', text: 'first answer' }],
+          },
+        ],
+        messageId: 'turn-1:reply',
+      });
+
+      await chat.resumeStream();
+
+      expect(chat.messages).toHaveLength(3);
+      expect(chat.messages[1]).toMatchObject({
+        id: 'turn-0:reply',
+        parts: [{ type: 'text', text: 'first answer' }],
+        role: 'assistant',
+      });
+      expect(chat.messages[2]).toMatchObject({
+        id: 'turn-1:reply',
+        parts: [{ type: 'step-start' }, { type: 'text', text: 'resumed' }],
+        role: 'assistant',
+      });
+    });
+
+    it('should preserve the assistant message when its id matches', async () => {
+      const chat = createChat({
+        messages: [
+          {
+            id: 'turn-1:reply',
+            role: 'assistant',
+            parts: [{ type: 'text', text: 'partial response' }],
+          },
+        ],
+        messageId: 'turn-1:reply',
+      });
+
+      await chat.resumeStream();
+
+      expect(chat.messages).toHaveLength(1);
+      expect(chat.messages[0]).toMatchObject({
+        id: 'turn-1:reply',
+        parts: [
+          { type: 'text', text: 'partial response' },
+          { type: 'step-start' },
+          { type: 'text', text: 'resumed' },
+        ],
+        role: 'assistant',
+      });
+    });
+
+    it('should preserve the assistant message when the stream has no message id', async () => {
+      const chat = createChat({
+        messages: [
+          {
+            id: 'turn-0:reply',
+            role: 'assistant',
+            parts: [{ type: 'text', text: 'existing response' }],
+          },
+        ],
+      });
+
+      await chat.resumeStream();
+
+      expect(chat.messages).toHaveLength(1);
+      expect(chat.messages[0]).toMatchObject({
+        id: 'turn-0:reply',
+        parts: [
+          { type: 'text', text: 'existing response' },
+          { type: 'step-start' },
+          { type: 'text', text: 'resumed' },
+        ],
+        role: 'assistant',
+      });
+    });
+  });
+
   it('should not throw to console when an overlapped request clears activeResponse before resume-stream finishes', async () => {
     let resumeController!: ReadableStreamDefaultController<UIMessageChunk>;
     const resumeStream = new ReadableStream<UIMessageChunk>({

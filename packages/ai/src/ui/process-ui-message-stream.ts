@@ -49,6 +49,20 @@ export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   finishReason?: FinishReason;
 };
 
+function createEmptyAssistantMessage<UI_MESSAGE extends UIMessage>(
+  messageId: string,
+): UI_MESSAGE {
+  return {
+    id: messageId,
+    metadata: undefined,
+    role: 'assistant',
+    parts: [] as UIMessagePart<
+      InferUIMessageData<UI_MESSAGE>,
+      InferUIMessageTools<UI_MESSAGE>
+    >[],
+  } as UI_MESSAGE;
+}
+
 export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
   lastMessage,
   messageId,
@@ -60,15 +74,7 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
     message:
       lastMessage?.role === 'assistant'
         ? lastMessage
-        : ({
-            id: messageId,
-            metadata: undefined,
-            role: 'assistant',
-            parts: [] as UIMessagePart<
-              InferUIMessageData<UI_MESSAGE>,
-              InferUIMessageTools<UI_MESSAGE>
-            >[],
-          } as UI_MESSAGE),
+        : createEmptyAssistantMessage<UI_MESSAGE>(messageId),
     activeTextParts: createIdMap(),
     activeReasoningParts: createIdMap(),
     partialToolCalls: createIdMap(),
@@ -83,6 +89,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   onError,
   onToolCall,
   onData,
+  isResume = false,
 }: {
   // input stream is not fully typed yet:
   stream: ReadableStream<UIMessageChunk>;
@@ -99,6 +106,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
     }) => Promise<void>,
   ) => Promise<void>;
   onError: ErrorHandler;
+  isResume?: boolean;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
   return stream.pipeThrough(
     new TransformStream<UIMessageChunk, InferUIMessageChunk<UI_MESSAGE>>({
@@ -884,7 +892,13 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'start': {
               if (chunk.messageId != null) {
-                state.message.id = chunk.messageId;
+                if (isResume && state.message.id !== chunk.messageId) {
+                  state.message = createEmptyAssistantMessage<UI_MESSAGE>(
+                    chunk.messageId,
+                  );
+                } else {
+                  state.message.id = chunk.messageId;
+                }
               }
 
               await updateMessageMetadata(chunk.messageMetadata);
