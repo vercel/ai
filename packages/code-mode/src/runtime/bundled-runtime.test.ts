@@ -14,7 +14,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
-import * as workerSourceModule from '../dist/runtime/worker-source.js';
+import * as workerSourceModule from '../../dist/runtime/worker-source.js';
 
 const execFileAsync = promisify(execFile);
 const require = createRequire(import.meta.url);

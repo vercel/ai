@@ -11,9 +11,9 @@ import {
   deserializeError,
   serializeBridgeErrorForGuest,
 } from '../errors.js';
-import { normalizeOptions } from '../options.js';
-import { assertSourceSize, transformSource } from '../source-cache.js';
 import { invokeHostTool } from '../tool-invocation.js';
+import { normalizeOptions } from '../utils/options.js';
+import { assertSourceSize, transformSource } from '../utils/source-cache.js';
 import type {
   CodeModeToolExecutionOptions,
   NormalizedCodeModeOptions,

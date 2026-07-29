@@ -5,8 +5,8 @@ import {
   CodeModeBridgeLimitError,
   CodeModeDetachedBridgeRequestError,
   experimental_runCodeMode as runCodeMode,
-} from '../dist/index.js';
-import { deferred, delay } from './helpers.js';
+} from '../../dist/index.js';
+import { deferred, delay } from '../utils/test-helpers.js';
 
 describe('bridge request lifecycle', () => {
   it('rejects unawaited tool calls without starting host work', async () => {

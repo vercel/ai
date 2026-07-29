@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer';
 import { Worker } from 'node:worker_threads';
 import { describe, expect, it } from 'vitest';
-import * as workerSourceModule from '../dist/runtime/worker-source.js';
+import * as workerSourceModule from '../../dist/runtime/worker-source.js';
 
 const { INLINE_CODE_MODE_WORKER_SOURCE } = workerSourceModule as {
   INLINE_CODE_MODE_WORKER_SOURCE: string;

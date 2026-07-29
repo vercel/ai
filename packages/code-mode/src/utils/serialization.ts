@@ -1,4 +1,4 @@
-import { CodeModeError } from './errors.js';
+import { CodeModeError } from '../errors.js';
 
 export function assertJsonSerializable(
   value: unknown,

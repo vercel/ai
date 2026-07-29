@@ -1,8 +1,8 @@
 import { tool } from 'ai';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { experimental_runCodeMode as runCodeMode } from '../dist/index.js';
-import { deferred } from './helpers.js';
+import { experimental_runCodeMode as runCodeMode } from '../../dist/index.js';
+import { deferred } from '../utils/test-helpers.js';
 
 describe('timeouts and infinite loops', () => {
   it('terminates a direct infinite loop', async () => {

@@ -5,7 +5,7 @@ import {
   experimental_createCodeModeTool as createCodeModeTool,
   experimental_runCodeMode as runCodeMode,
 } from '../dist/index.js';
-import { deferred, emptyMessages } from './helpers.js';
+import { deferred, emptyMessages } from './utils/test-helpers.js';
 
 describe('AI SDK tool bridge', () => {
   it('calls an AI SDK tool with validated input', async () => {

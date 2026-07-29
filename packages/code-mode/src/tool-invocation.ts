@@ -1,7 +1,10 @@
 import { asSchema } from 'ai';
 import { CodeModeToolError } from './errors.js';
-import { assertJsonSerializable, toJsonPayload } from './serialization.js';
 import type { CodeModeToolExecutionOptions, CodeModeToolSet } from './types.js';
+import {
+  assertJsonSerializable,
+  toJsonPayload,
+} from './utils/serialization.js';
 
 export async function invokeHostTool({
   toolName,

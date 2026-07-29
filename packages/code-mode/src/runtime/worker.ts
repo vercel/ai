@@ -10,7 +10,7 @@ import {
   RELEASE_ASYNC,
 } from 'quickjs-emscripten';
 import { CodeModeProtocolError, serializeError } from '../errors.js';
-import { assertJsonPayloadSize } from '../serialization.js';
+import { assertJsonPayloadSize } from '../utils/serialization.js';
 import { buildGuestRuntimeSetupSource, wrapUserCode } from './guest-sources.js';
 import type {
   MainToWorkerMessage,

@@ -1,8 +1,8 @@
 import { tool } from 'ai';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import { experimental_runCodeMode as runCodeMode } from '../dist/index.js';
-import { deferred } from './helpers.js';
+import { experimental_runCodeMode as runCodeMode } from '../../dist/index.js';
+import { deferred } from '../utils/test-helpers.js';
 
 describe('tool concurrency inside a worker', () => {
   it('supports Promise.all over multiple host tool calls in one sandbox', async () => {

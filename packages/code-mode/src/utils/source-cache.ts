@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { stripTypeScriptTypes } from 'node:module';
-import { CodeModeSourceTooLargeError } from './errors.js';
+import { CodeModeSourceTooLargeError } from '../errors.js';
 
 const MAX_CACHE_ENTRIES = 256;
 const MAX_CACHE_BYTES = 4 * 1024 * 1024;

@@ -5,8 +5,8 @@ import {
   CodeModeAbortedError,
   experimental_runCodeMode as runCodeMode,
   experimental_setMaxWorkers as setMaxWorkers,
-} from '../dist/index.js';
-import { deferred, emptyMessages } from './helpers.js';
+} from '../../dist/index.js';
+import { deferred, emptyMessages } from '../utils/test-helpers.js';
 
 setMaxWorkers(32);
 

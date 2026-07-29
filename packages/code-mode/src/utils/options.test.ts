@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   experimental_runCodeMode as runCodeMode,
   experimental_setMaxWorkers as setMaxWorkers,
-} from '../dist/index.js';
+} from '../../dist/index.js';
 
 describe('options validation', () => {
   it.each([

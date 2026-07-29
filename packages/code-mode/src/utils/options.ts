@@ -1,4 +1,4 @@
-import type { CodeModeOptions, NormalizedCodeModeOptions } from './types.js';
+import type { CodeModeOptions, NormalizedCodeModeOptions } from '../types.js';
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_MEMORY_LIMIT_BYTES = 64 * 1024 * 1024;

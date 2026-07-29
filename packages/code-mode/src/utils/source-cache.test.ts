@@ -2,12 +2,12 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   CodeModeSourceTooLargeError,
   experimental_runCodeMode as runCodeMode,
-} from '../dist/index.js';
+} from '../../dist/index.js';
 import {
   clearTransformedSourceCache,
   getTransformedSourceCacheStats,
   transformSource,
-} from '../dist/source-cache.js';
+} from '../../dist/utils/source-cache.js';
 
 describe('source limits and transform cache', () => {
   beforeEach(() => {

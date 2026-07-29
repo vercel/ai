@@ -11,6 +11,12 @@
     "exactOptionalPropertyTypes": true
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["dist", "build", "node_modules"],
+  "exclude": [
+    "dist",
+    "build",
+    "node_modules",
+    "src/**/*.test.ts",
+    "src/utils/test-helpers.ts"
+  ],
   "references": [{ "path": "../ai" }]
 }
