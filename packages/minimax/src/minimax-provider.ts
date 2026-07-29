@@ -31,8 +31,18 @@ const minimaxErrorStructure: ProviderErrorStructure<MiniMaxErrorData> = {
 };
 
 export interface MiniMaxProviderSettings {
+  /**
+   * MiniMax API key. Default value is taken from the `MINIMAX_API_KEY`
+   * environment variable.
+   */
   apiKey?: string;
+  /**
+   * Base URL for the API calls.
+   */
   baseURL?: string;
+  /**
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
   /**
    * Custom fetch implementation. You can use it as a middleware to intercept requests,
@@ -56,11 +66,6 @@ export interface MiniMaxProvider extends ProviderV4 {
    * Creates a MiniMax chat model for text generation.
    */
   chat(modelId: MiniMaxChatModelId): LanguageModelV4;
-
-  /**
-   * @deprecated Use `embeddingModel` instead.
-   */
-  textEmbeddingModel(modelId: string): never;
 }
 
 const defaultBaseURL = 'https://api.minimax.io/v1';
@@ -103,7 +108,6 @@ export function createMiniMax(
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
-  provider.textEmbeddingModel = provider.embeddingModel;
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };

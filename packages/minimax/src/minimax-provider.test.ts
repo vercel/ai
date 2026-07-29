@@ -119,13 +119,6 @@ describe('MiniMaxProvider', () => {
       expect(() => provider.embeddingModel('foo')).toThrow(NoSuchModelError);
     });
 
-    it('should throw NoSuchModelError for textEmbeddingModel', () => {
-      const provider = createMiniMax();
-      expect(() => provider.textEmbeddingModel('foo')).toThrow(
-        NoSuchModelError,
-      );
-    });
-
     it('should throw NoSuchModelError for imageModel', () => {
       const provider = createMiniMax();
       expect(() => provider.imageModel('foo')).toThrow(NoSuchModelError);
