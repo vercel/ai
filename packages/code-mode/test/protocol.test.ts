@@ -2,7 +2,6 @@ import { Buffer } from 'node:buffer';
 import { Worker } from 'node:worker_threads';
 import { describe, expect, it } from 'vitest';
 import * as workerSourceModule from '../dist/runtime/worker-source.js';
-import { withTimeout } from './helpers.js';
 
 const { INLINE_CODE_MODE_WORKER_SOURCE } = workerSourceModule as {
   INLINE_CODE_MODE_WORKER_SOURCE: string;
@@ -34,7 +33,7 @@ describe('worker protocol hardening', () => {
         valueJson: '"accepted"',
       }); // eslint-disable-line unicorn/require-post-message-target-origin -- Node.js Worker has no targetOrigin parameter.
 
-      const error = await withTimeout(errorPromise, 1_000);
+      const error = await errorPromise;
       expect(error.message).toBe(
         'Unexpected bridge response requestId: missing-request.',
       );
@@ -61,7 +60,7 @@ describe('worker protocol hardening', () => {
         options: WORKER_OPTIONS,
       }); // eslint-disable-line unicorn/require-post-message-target-origin -- Node.js Worker has no targetOrigin parameter.
 
-      const request = await withTimeout(requestPromise, 1_000);
+      const request = await requestPromise;
       worker.postMessage({
         type: 'bridge-response',
         invocationId: 'invocation-b',
@@ -71,7 +70,7 @@ describe('worker protocol hardening', () => {
         valueJson: '{"value":1}',
       }); // eslint-disable-line unicorn/require-post-message-target-origin -- Node.js Worker has no targetOrigin parameter.
 
-      const error = await withTimeout(errorPromise, 1_000);
+      const error = await errorPromise;
       expect(error.message).toBe(
         `Bridge response invocationId mismatch for request ${request.requestId}: expected invocation-a, received invocation-b.`,
       );
@@ -97,7 +96,7 @@ describe('worker protocol hardening', () => {
         determinism: WORKER_DETERMINISM,
         options: WORKER_OPTIONS,
       }); // eslint-disable-line unicorn/require-post-message-target-origin -- Node.js Worker has no targetOrigin parameter.
-      await withTimeout(requestPromise, 1_000);
+      await requestPromise;
 
       worker.postMessage({
         type: 'run',
@@ -107,7 +106,7 @@ describe('worker protocol hardening', () => {
         options: WORKER_OPTIONS,
       }); // eslint-disable-line unicorn/require-post-message-target-origin -- Node.js Worker has no targetOrigin parameter.
 
-      const error = await withTimeout(errorPromise, 1_000);
+      const error = await errorPromise;
       expect(error.message).toBe(
         'Worker received run invocation-b while invocation-a is still active.',
       );

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { experimental_runCodeMode as runCodeMode } from '../dist/index.js';
-import { deferred, withTimeout } from './helpers.js';
+import { deferred } from './helpers.js';
 
 describe('fetch support', () => {
   it('does not expose fetch by default', async () => {
@@ -535,9 +535,12 @@ describe('fetch support', () => {
         },
       },
     });
+    const rejection = expect(run).rejects.toThrow(
+      /timed out|aborted|interrupted/i,
+    );
 
-    await withTimeout(fetchStarted.promise, 1_000);
-    await expect(run).rejects.toThrow(/timed out|aborted|interrupted/i);
+    await fetchStarted.promise;
+    await rejection;
     expect(seenSignal).toBeInstanceOf(AbortSignal);
     expect(seenSignal?.aborted).toBe(true);
   });

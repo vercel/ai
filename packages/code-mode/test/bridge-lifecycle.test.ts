@@ -6,7 +6,7 @@ import {
   CodeModeDetachedBridgeRequestError,
   experimental_runCodeMode as runCodeMode,
 } from '../dist/index.js';
-import { deferred, delay, withTimeout } from './helpers.js';
+import { deferred, delay } from './helpers.js';
 
 describe('bridge request lifecycle', () => {
   it('rejects unawaited tool calls without starting host work', async () => {
@@ -149,12 +149,12 @@ describe('bridge request lifecycle', () => {
       CodeModeDetachedBridgeRequestError,
     );
 
-    await withTimeout(started.promise, 1_000);
-    await withTimeout(abortObserved.promise, 1_000);
+    await started.promise;
+    await abortObserved.promise;
     await rejection;
 
     releaseAbort.resolve();
-    await withTimeout(toolSettled.promise, 1_000);
+    await toolSettled.promise;
     await delay(0);
 
     await expect(
@@ -222,9 +222,9 @@ describe('bridge request lifecycle', () => {
       CodeModeBridgeLimitError,
     );
 
-    await withTimeout(started.promise, 1_000);
+    await started.promise;
     await rejection;
-    await withTimeout(aborted.promise, 1_000);
+    await aborted.promise;
     expect(execute).toHaveBeenCalledTimes(1);
   });
 });

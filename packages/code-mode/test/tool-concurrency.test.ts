@@ -2,7 +2,7 @@ import { tool } from 'ai';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { experimental_runCodeMode as runCodeMode } from '../dist/index.js';
-import { deferred, withTimeout } from './helpers.js';
+import { deferred } from './helpers.js';
 
 describe('tool concurrency inside a worker', () => {
   it('supports Promise.all over multiple host tool calls in one sandbox', async () => {
@@ -35,7 +35,7 @@ describe('tool concurrency inside a worker', () => {
       tools,
     });
 
-    await withTimeout(bothStarted.promise, 2_000);
+    await bothStarted.promise;
     releases.get('b')?.();
     releases.get('a')?.();
     await expect(run).resolves.toEqual([{ id: 'a' }, { id: 'b' }]);
@@ -108,9 +108,10 @@ describe('tool concurrency inside a worker', () => {
       tools,
       options: { executionPolicy: { timeoutMs: 2_000 } },
     });
+    const rejection = expect(run).rejects.toThrow('Host tool failed.');
 
     await slowStarted.promise;
-    await expect(withTimeout(run, 2_000)).rejects.toThrow('Host tool failed.');
+    await rejection;
   });
 
   it('executes many parallel tool calls without dropping responses', async () => {

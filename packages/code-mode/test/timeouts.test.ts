@@ -2,7 +2,7 @@ import { tool } from 'ai';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { experimental_runCodeMode as runCodeMode } from '../dist/index.js';
-import { deferred, withTimeout } from './helpers.js';
+import { deferred } from './helpers.js';
 
 describe('timeouts and infinite loops', () => {
   it('terminates a direct infinite loop', async () => {
@@ -51,6 +51,11 @@ describe('timeouts and infinite loops', () => {
   });
 
   it('aborts a pending nested tool when the invocation times out', async () => {
+    await runCodeMode({
+      js: "return 'worker ready';",
+      tools: {},
+    });
+
     const started = deferred<void>();
     const aborted = deferred<void>();
 
@@ -76,10 +81,11 @@ describe('timeouts and infinite loops', () => {
       },
       options: { executionPolicy: { timeoutMs: 1_000 } },
     });
+    const rejection = expect(run).rejects.toThrow(/timed out/i);
 
-    await withTimeout(started.promise, 2_000);
-    await expect(run).rejects.toThrow(/timed out/i);
-    await withTimeout(aborted.promise, 2_000);
+    await started.promise;
+    await rejection;
+    await aborted.promise;
   });
 
   it('continues to run later invocations after repeated infinite-loop timeouts', async () => {

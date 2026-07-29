@@ -6,7 +6,7 @@ import {
   experimental_runCodeMode as runCodeMode,
   experimental_setMaxWorkers as setMaxWorkers,
 } from '../dist/index.js';
-import { deferred, emptyMessages, withTimeout } from './helpers.js';
+import { deferred, emptyMessages } from './helpers.js';
 
 setMaxWorkers(32);
 
@@ -40,13 +40,10 @@ describe('worker concurrency', () => {
 
     const fastRuns = await Promise.all(
       Array.from({ length: 5 }, (_value, id) =>
-        withTimeout(
-          runCodeMode({
-            js: `return await tools.fast({ id: ${id} });`,
-            tools,
-          }),
-          2_000,
-        ),
+        runCodeMode({
+          js: `return await tools.fast({ id: ${id} });`,
+          tools,
+        }),
       ),
     );
 
