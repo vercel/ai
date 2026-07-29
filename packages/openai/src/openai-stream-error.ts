@@ -12,6 +12,8 @@ export async function throwIfOpenAIStreamErrorBeforeOutput<T>({
   stream,
   getError,
   isOutputChunk,
+  isAcceptedChunk,
+  acceptedGraceMs = 50,
   url,
   requestBodyValues,
   responseHeaders,
@@ -19,6 +21,21 @@ export async function throwIfOpenAIStreamErrorBeforeOutput<T>({
   stream: ReadableStream<ParseResult<T>>;
   getError: (chunk: T) => unknown | undefined;
   isOutputChunk: (chunk: T) => boolean;
+  /**
+   * Marks a chunk that proves the request was accepted and generation has
+   * started (e.g. the Responses API `response.in_progress` event). Once seen,
+   * the early-error peek stops blocking indefinitely: each subsequent read is
+   * raced against `acceptedGraceMs` so error frames that are flushed together
+   * with the accepted chunk (e.g. `insufficient_quota`) still throw, while a
+   * healthy stream becomes available without waiting for the first output
+   * token.
+   */
+  isAcceptedChunk?: (chunk: T) => boolean;
+  /**
+   * How long to keep peeking for an error frame after an accepted chunk was
+   * seen. Only used when `isAcceptedChunk` is provided.
+   */
+  acceptedGraceMs?: number;
   url: string;
   requestBodyValues: unknown;
   responseHeaders?: Record<string, string>;
@@ -27,8 +44,20 @@ export async function throwIfOpenAIStreamErrorBeforeOutput<T>({
   const reader = streamForEarlyError.getReader();
 
   try {
+    let accepted = false;
+
     while (true) {
-      const result = await reader.read();
+      let result: ReadableStreamReadResult<ParseResult<T>>;
+
+      if (accepted) {
+        const raced = await raceWithTimeout(reader.read(), acceptedGraceMs);
+        if (raced.timedOut) {
+          return streamForConsumer;
+        }
+        result = raced.value;
+      } else {
+        result = await reader.read();
+      }
 
       if (result.done) {
         return streamForConsumer;
@@ -55,10 +84,31 @@ export async function throwIfOpenAIStreamErrorBeforeOutput<T>({
       if (isOutputChunk(chunk.value)) {
         return streamForConsumer;
       }
+
+      if (!accepted && isAcceptedChunk?.(chunk.value) === true) {
+        accepted = true;
+      }
     }
   } finally {
     reader.cancel().catch(() => {});
     reader.releaseLock();
+  }
+}
+
+async function raceWithTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+): Promise<{ timedOut: false; value: T } | { timedOut: true }> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise.then(value => ({ timedOut: false as const, value })),
+      new Promise<{ timedOut: true }>(resolve => {
+        timer = setTimeout(() => resolve({ timedOut: true }), timeoutMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
   }
 }
 
