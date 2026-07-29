@@ -120,6 +120,11 @@ The following optional provider options are available for MiniMax language model
 
   When omitted, the model uses its provider-side default.
 
+  <Note>
+    Thinking control is only supported on `minimax-m3`. The M2.x models always
+    think, so `'disabled'` has no effect on them.
+  </Note>
+
 ## Model Capabilities
 
 | Model                    | Image Input | Object Generation | Tool Usage | Tool Streaming |
