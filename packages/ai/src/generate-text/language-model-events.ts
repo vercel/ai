@@ -5,6 +5,7 @@ import type { LanguageModelUsage } from '../types/usage';
 import type { ContentPart } from './content-part';
 import type { StandardizedPrompt } from '../prompt/standardize-prompt';
 import type { LanguageModelCallOptions } from '../prompt';
+import type { ProviderMetadata } from '../types/provider-metadata';
 import type { OutputChunkTimingStats } from './step-result';
 
 /**
@@ -54,6 +55,13 @@ export type LanguageModelCallEndEvent<TOOLS extends ToolSet = ToolSet> =
 
     /** The provider-returned response id for this model call. */
     readonly responseId: string;
+
+    /**
+     * Additional provider-specific metadata. They are passed through
+     * from the provider to the AI SDK and enable provider-specific
+     * results that can be fully encapsulated in the provider.
+     */
+    readonly providerMetadata?: ProviderMetadata;
 
     /** Performance metrics for the model call. */
     readonly performance: {
