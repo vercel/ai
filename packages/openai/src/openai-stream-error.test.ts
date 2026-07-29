@@ -29,11 +29,16 @@ function createControlledStream(): {
   enqueue: (chunk: TestChunk) => void;
   close: () => void;
   error: (error: Error) => void;
+  cancelReasons: unknown[];
 } {
   let controller!: ReadableStreamDefaultController<ParseResult<TestChunk>>;
+  const cancelReasons: unknown[] = [];
   const stream = new ReadableStream<ParseResult<TestChunk>>({
     start(c) {
       controller = c;
+    },
+    cancel(reason) {
+      cancelReasons.push(reason);
     },
   });
   return {
@@ -41,6 +46,7 @@ function createControlledStream(): {
     enqueue: chunk => controller.enqueue(ok(chunk)),
     close: () => controller.close(),
     error: error => controller.error(error),
+    cancelReasons,
   };
 }
 
@@ -67,17 +73,21 @@ const baseArgs = {
 };
 
 describe('throwIfOpenAIStreamErrorBeforeOutput', () => {
-  it('should throw when an error frame arrives before output', async () => {
-    const { stream, enqueue, close } = createControlledStream();
+  it('should throw when an error frame arrives before output without cancelling the source', async () => {
+    const { stream, enqueue, close, cancelReasons } = createControlledStream();
     enqueue({ type: 'created' });
     enqueue({ type: 'error', message: 'quota exceeded' });
-    close();
 
     await expect(
       throwIfOpenAIStreamErrorBeforeOutput({ ...baseArgs, stream }),
     ).rejects.toMatchObject({
       responseBody: expect.stringContaining('quota exceeded'),
     });
+
+    expect(cancelReasons).toEqual([]);
+
+    enqueue({ type: 'output', text: 'ignored' });
+    close();
   });
 
   it('should resolve on the first output chunk and replay all chunks to the consumer', async () => {

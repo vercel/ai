@@ -42,6 +42,7 @@ export async function throwIfOpenAIStreamErrorBeforeOutput<T>({
 }): Promise<ReadableStream<ParseResult<T>>> {
   const [streamForEarlyError, streamForConsumer] = stream.tee();
   const reader = streamForEarlyError.getReader();
+  let drainAfterError = false;
 
   try {
     let accepted = false;
@@ -72,7 +73,12 @@ export async function throwIfOpenAIStreamErrorBeforeOutput<T>({
       const errorFrame = getError(chunk.value);
 
       if (errorFrame != null) {
-        streamForConsumer.cancel().catch(() => {});
+        // Let the source finish instead of cancelling its transform pipeline.
+        // Node.js 26 can otherwise leave a queued pipe write rejected with
+        // the cancellation reason after the API error has already surfaced.
+        drainAfterError = true;
+        drainReader(reader).catch(() => {});
+        drainReader(streamForConsumer.getReader()).catch(() => {});
         throw createOpenAIStreamError({
           frame: errorFrame,
           url,
@@ -90,7 +96,23 @@ export async function throwIfOpenAIStreamErrorBeforeOutput<T>({
       }
     }
   } finally {
-    reader.cancel().catch(() => {});
+    if (!drainAfterError) {
+      reader.cancel().catch(() => {});
+      reader.releaseLock();
+    }
+  }
+}
+
+async function drainReader<T>(
+  reader: ReadableStreamDefaultReader<T>,
+): Promise<void> {
+  try {
+    while (!(await reader.read()).done) {
+      // Drain the source without retaining its remaining chunks.
+    }
+  } catch {
+    // The API error has already been reported to the caller.
+  } finally {
     reader.releaseLock();
   }
 }
