@@ -20,42 +20,8 @@ Pisama provides:
 
 ## Setup
 
-Pisama supports two independent paths. Use the middleware if you want per-call wrapping in TypeScript; use OpenTelemetry if you already run an OTel pipeline.
-
-### Middleware
-
-`observe()` wraps a model with the AI SDK's own `wrapLanguageModel`, so it composes with any provider.
-
-**Step 1.** Install the SDK
-
-```bash
-npm i @pisama/sdk
-```
-
-**Step 2.** Wrap your model
-
-```ts filename="app/api/chat/route.ts"
-import { observe } from '@pisama/sdk';
-import { generateText } from 'ai';
-import { openai } from '@ai-sdk/openai';
-
-const result = await generateText({
-  model: observe(openai('gpt-4o')),
-  prompt: 'What is the weather in Helsinki?',
-});
-```
-
-**Step 3.** Set your project id
-
-```bash filename=".env.local"
-PISAMA_PROJECT_ID=ps_yourapp
-```
-
-Detections for that project are then available in the Pisama dashboard.
-
-### OpenTelemetry
-
-Enable [AI SDK telemetry](/docs/ai-sdk-core/telemetry) and point your OTLP exporter at Pisama:
+Pisama ingests AI SDK telemetry over OpenTelemetry. Enable
+[AI SDK telemetry](/docs/ai-sdk-core/telemetry) on the calls you want covered:
 
 ```ts
 const result = await generateText({
@@ -65,11 +31,14 @@ const result = await generateText({
 });
 ```
 
-Send the spans to `https://api.pisama.ai/api/v1/traces/ingest`, authenticated with a
-Pisama API key. See the [integration guide](https://docs.pisama.ai/guides/integrations/vercel-ai-sdk/)
-for the exporter configuration.
+Then point your OTLP exporter at `https://api.pisama.ai/api/v1/traces/ingest`,
+authenticated with a Pisama API key. The
+[integration guide](https://docs.pisama.ai/guides/integrations/vercel-ai-sdk/)
+covers the exporter configuration.
 
-Both attribute vocabularies are read, so prompts, responses, tool calls and token usage all survive ingestion:
+## What Pisama reads
+
+The AI SDK emits two attribute vocabularies. `ai` 6.0.x still uses the legacy `ai.*` names by default; the `gen_ai.*` semantic conventions are an opt-in. Both are handled, so prompts, responses, tool calls and token usage all survive ingestion:
 
 | Content | Legacy | GenAI conventions |
 | --- | --- | --- |
@@ -79,4 +48,13 @@ Both attribute vocabularies are read, so prompts, responses, tool calls and toke
 | Tool calls | `ai.toolCall.name` / `.args` / `.result` | `gen_ai.tool.name`, `gen_ai.tool.call.arguments` / `.result` |
 | Tokens | `ai.usage.promptTokens` / `.completionTokens` | `gen_ai.usage.input_tokens` / `.output_tokens` |
 
-A `generateText` call with one tool produces an outer `ai.generateText` span, a `doGenerate` span per step, and an `ai.toolCall` span. The outer span carries the run's top-level prompt and final response and is identified by `ai.operationId`.
+A `generateText` call with one tool produces four spans:
+
+```
+ai.generateText                outer span, carries ai.prompt and ai.response.text
+  ai.generateText.doGenerate   step 1, returns a tool call
+  ai.toolCall                  the tool executing
+  ai.generateText.doGenerate   step 2, returns final text
+```
+
+The outer `ai.generateText` span carries only `ai.*` attributes and is identified by `ai.operationId`. It holds the run's top-level prompt and final response; the inner `doGenerate` spans hold the per-step detail.
