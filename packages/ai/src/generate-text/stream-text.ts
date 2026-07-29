@@ -70,11 +70,7 @@ import type { ContentPart } from './content-part';
 import { filterActiveTools } from './filter-active-tools';
 import type { Output } from './output';
 import type { PrepareStepFunction } from './prepare-step';
-<<<<<<< HEAD
-=======
 import { prepareStepCallSettings } from './prepare-step-call-settings';
-import { convertToReasoningOutputs } from './reasoning-output';
->>>>>>> 60f97f6738 (feat: support per-step model call setting overrides in prepareStep (#18105))
 import type { ResponseMessage } from './response-message';
 import {
   type SingleRequestTextStreamPart,
@@ -1134,10 +1130,9 @@ class DefaultStreamTextResult<
           });
           currentStepToolSet = stepToolSet;
 
-<<<<<<< HEAD
           const { toolChoice: stepToolChoice, tools: stepTools } =
             prepareToolsAndToolChoice({
-=======
+              /*
           const stepTools = await prepareTools({
             tools: stepActiveTools,
             toolOrder: stepToolOrder as ToolOrder<
@@ -1254,11 +1249,16 @@ class DefaultStreamTextResult<
           const streamAfterToolCallbackInvocation =
             invokeToolCallbacksFromStream({
               stream: languageModelStream,
->>>>>>> 60f97f6738 (feat: support per-step model call setting overrides in prepareStep (#18105))
+            */
               tools,
               toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
               activeTools: stepActiveTools,
             });
+
+          const stepCallSettings = prepareStepCallSettings({
+            callSettings,
+            stepSettings: prepareStepResult,
+          });
 
           const {
             result: { stream, response, request },
@@ -1297,14 +1297,15 @@ class DefaultStreamTextResult<
                   'gen_ai.system': stepModel.provider,
                   'gen_ai.request.model': stepModel.modelId,
                   'gen_ai.request.frequency_penalty':
-                    callSettings.frequencyPenalty,
-                  'gen_ai.request.max_tokens': callSettings.maxOutputTokens,
+                    stepCallSettings.frequencyPenalty,
+                  'gen_ai.request.max_tokens': stepCallSettings.maxOutputTokens,
                   'gen_ai.request.presence_penalty':
-                    callSettings.presencePenalty,
-                  'gen_ai.request.stop_sequences': callSettings.stopSequences,
-                  'gen_ai.request.temperature': callSettings.temperature,
-                  'gen_ai.request.top_k': callSettings.topK,
-                  'gen_ai.request.top_p': callSettings.topP,
+                    stepCallSettings.presencePenalty,
+                  'gen_ai.request.stop_sequences':
+                    stepCallSettings.stopSequences,
+                  'gen_ai.request.temperature': stepCallSettings.temperature,
+                  'gen_ai.request.top_k': stepCallSettings.topK,
+                  'gen_ai.request.top_p': stepCallSettings.topP,
                 },
               }),
               tracer,
@@ -1314,7 +1315,7 @@ class DefaultStreamTextResult<
                   startTimestampMs: now(), // get before the call
                   doStreamSpan,
                   result: await stepModel.doStream({
-                    ...callSettings,
+                    ...stepCallSettings,
                     tools: stepTools,
                     toolChoice: stepToolChoice,
                     responseFormat: output?.responseFormat,

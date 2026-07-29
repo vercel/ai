@@ -74,8 +74,7 @@ const codeAgent = new Agent({
 });
 ```
 
-<<<<<<< HEAD
-=======
+{/*
 ### Context and Agent State
 
 Use `runtimeContext` as the agent's shared runtime state. It flows through the
@@ -208,8 +207,7 @@ const agent = new ToolLoopAgent({
 For manual approvals, automatic approvals and denials, dynamic policy functions,
 and `useChat` integration, see [Tool
 Approvals](/docs/agents/tool-approvals).
-
->>>>>>> 60f97f6738 (feat: support per-step model call setting overrides in prepareStep (#18105))
+*/}
 ### Loop Control
 
 By default, agents run for a single step (`stopWhen: stepCountIs(1)`). In each step, the model either generates text or calls a tool. If it generates text, the agent completes. If it calls a tool, the AI SDK executes that tool.
@@ -245,6 +243,10 @@ const agent = new Agent({
 ```
 
 Learn more about [loop control and stop conditions](/docs/agents/loop-control).
+
+Model call settings returned from `prepareStep`, such as `temperature` and
+`maxOutputTokens`, apply only to the current step. Later steps use the agent's
+top-level settings unless they return another override.
 
 ### Tool Choice
 

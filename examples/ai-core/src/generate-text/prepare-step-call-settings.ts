@@ -38,12 +38,6 @@ run(async () => {
         maxOutputTokens: 200,
       };
     },
-    onLanguageModelCallStart: ({ temperature, maxOutputTokens }) => {
-      print('Step model call settings:', {
-        temperature,
-        maxOutputTokens,
-      });
-    },
   });
 
   print('Result:', result.text);

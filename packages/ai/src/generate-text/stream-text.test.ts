@@ -34,12 +34,7 @@ import {
 } from 'vitest';
 import { z } from 'zod/v4';
 import * as logWarningsModule from '../logger/log-warnings';
-<<<<<<< HEAD
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
-=======
-import type { Instructions, LanguageModelCallOptions } from '../prompt';
-import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
->>>>>>> 60f97f6738 (feat: support per-step model call setting overrides in prepareStep (#18105))
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
@@ -4869,8 +4864,7 @@ describe('streamText', () => {
         ]
       `);
     });
-<<<<<<< HEAD
-=======
+    /*
 
     it('should resolve with tool results from all steps', async () => {
       let responseCount = 0;
@@ -7361,7 +7355,7 @@ describe('streamText', () => {
       expect(toolExecutionStartEvents.length).toMatchInlineSnapshot(`2`);
       expect(toolExecutionEndEvents.length).toMatchInlineSnapshot(`2`);
     });
->>>>>>> 60f97f6738 (feat: support per-step model call setting overrides in prepareStep (#18105))
+    */
   });
 
   describe('options.onChunk', () => {
@@ -16754,6 +16748,128 @@ describe('streamText', () => {
       `);
 
       expect(await result.text).toBe('response from without-image-url-support');
+    });
+  });
+
+  describe('prepareStep model call settings', () => {
+    it('applies overrides only to the current step', async () => {
+      const calls: LanguageModelV2CallOptions[] = [];
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV2({
+          doStream: async options => {
+            calls.push(options);
+
+            return {
+              stream: convertArrayToReadableStream<LanguageModelV2StreamPart>(
+                responseCount++ === 0
+                  ? [
+                      {
+                        type: 'tool-call' as const,
+                        toolCallId: 'call-1',
+                        toolName: 'tool1',
+                        input: '{}',
+                      },
+                      {
+                        type: 'finish' as const,
+                        finishReason: 'tool-calls' as const,
+                        usage: testUsage,
+                      },
+                    ]
+                  : [
+                      { type: 'text-start' as const, id: '1' },
+                      {
+                        type: 'text-delta' as const,
+                        id: '1',
+                        delta: 'done',
+                      },
+                      { type: 'text-end' as const, id: '1' },
+                      {
+                        type: 'finish' as const,
+                        finishReason: 'stop' as const,
+                        usage: testUsage,
+                      },
+                    ],
+              ),
+            };
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({}),
+            execute: async () => 'result',
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: stepCountIs(2),
+        maxOutputTokens: 100,
+        temperature: 1,
+        topP: 0.9,
+        topK: 40,
+        presencePenalty: 0.4,
+        frequencyPenalty: 0.3,
+        stopSequences: ['outer'],
+        seed: 123,
+        prepareStep: ({ stepNumber }) =>
+          stepNumber === 0
+            ? {
+                maxOutputTokens: 50,
+                temperature: 0,
+                topP: 0.5,
+                topK: 10,
+                presencePenalty: 0,
+                frequencyPenalty: -0.2,
+                stopSequences: [],
+                seed: 0,
+              }
+            : { temperature: undefined },
+      });
+
+      await result.consumeStream();
+
+      const selectSettings = ({
+        maxOutputTokens,
+        temperature,
+        topP,
+        topK,
+        presencePenalty,
+        frequencyPenalty,
+        stopSequences,
+        seed,
+      }: LanguageModelV2CallOptions) => ({
+        maxOutputTokens,
+        temperature,
+        topP,
+        topK,
+        presencePenalty,
+        frequencyPenalty,
+        stopSequences,
+        seed,
+      });
+
+      expect(calls.map(selectSettings)).toEqual([
+        {
+          maxOutputTokens: 50,
+          temperature: 0,
+          topP: 0.5,
+          topK: 10,
+          presencePenalty: 0,
+          frequencyPenalty: -0.2,
+          stopSequences: [],
+          seed: 0,
+        },
+        {
+          maxOutputTokens: 100,
+          temperature: 1,
+          topP: 0.9,
+          topK: 40,
+          presencePenalty: 0.4,
+          frequencyPenalty: 0.3,
+          stopSequences: ['outer'],
+          seed: 123,
+        },
+      ]);
     });
   });
 });

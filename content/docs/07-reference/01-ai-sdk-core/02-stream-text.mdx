@@ -574,11 +574,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: '(options: PrepareStepOptions) => PrepareStepResult<TOOLS> | Promise<PrepareStepResult<TOOLS>>',
       isOptional: true,
       description:
-<<<<<<< HEAD
-        'Optional function that you can use to provide different settings for a step. You can modify the model, tool choices, active tools, system prompt, and input messages for each step.',
-=======
-        'Optional function that you can use to provide different settings for a step. You can modify the model, model call settings, tool choices, active tools, instructions, input messages, and experimental sandbox for each step.',
->>>>>>> 60f97f6738 (feat: support per-step model call setting overrides in prepareStep (#18105))
+        'Optional function that you can use to provide different settings for a step. You can modify the model, model call settings, tool choices, active tools, system prompt, and input messages for each step.',
       properties: [
         {
           type: 'PrepareStepFunction<TOOLS>',
@@ -685,13 +681,6 @@ To see `streamText` in action, check out [these examples](#examples).
               isOptional: true,
               description:
                 'Random sampling seed for this step. Uses the top-level value when omitted or undefined.',
-            },
-            {
-              name: 'reasoning',
-              type: 'LanguageModelV4CallOptions["reasoning"]',
-              isOptional: true,
-              description:
-                'Reasoning effort for this step. Uses the top-level value when omitted or undefined.',
             },
             {
               name: 'toolChoice',

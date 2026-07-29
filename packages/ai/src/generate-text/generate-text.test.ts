@@ -25,14 +25,8 @@ import {
 import { z } from 'zod/v4';
 import { Output } from '.';
 import * as logWarningsModule from '../logger/log-warnings';
-<<<<<<< HEAD
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockTracer } from '../test/mock-tracer';
-=======
-import type { Instructions, LanguageModelCallOptions } from '../prompt';
-import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
-import { mockValues } from '../test/mock-values';
->>>>>>> 60f97f6738 (feat: support per-step model call setting overrides in prepareStep (#18105))
 import { generateText } from './generate-text';
 import type { GenerateTextResult } from './generate-text-result';
 import type { StepResult } from './step-result';
@@ -823,8 +817,7 @@ describe('generateText', () => {
     });
   });
 
-<<<<<<< HEAD
-=======
+  /*
   describe('options.onStart', () => {
     it('should send correct information with text prompt', async () => {
       let startEvent!: Parameters<
@@ -3907,8 +3900,7 @@ describe('generateText', () => {
       expect(calls).toEqual(['onEnd']);
     });
   });
-
->>>>>>> 60f97f6738 (feat: support per-step model call setting overrides in prepareStep (#18105))
+  */
   describe('options.stopWhen', () => {
     describe('2 steps: initial, tool-result', () => {
       let result: GenerateTextResult<any, any>;
@@ -6793,6 +6785,114 @@ describe('generateText', () => {
       `);
 
       expect(result.text).toBe('response from without-image-url-support');
+    });
+  });
+
+  describe('prepareStep model call settings', () => {
+    it('applies overrides only to the current step', async () => {
+      const calls: LanguageModelV2CallOptions[] = [];
+      let responseCount = 0;
+
+      await generateText({
+        model: new MockLanguageModelV2({
+          doGenerate: async options => {
+            calls.push(options);
+
+            if (responseCount++ === 0) {
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    input: '{}',
+                  },
+                ],
+                finishReason: 'tool-calls',
+              };
+            }
+
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'done' }],
+            };
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({}),
+            execute: async () => 'result',
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: stepCountIs(2),
+        maxOutputTokens: 100,
+        temperature: 1,
+        topP: 0.9,
+        topK: 40,
+        presencePenalty: 0.4,
+        frequencyPenalty: 0.3,
+        stopSequences: ['outer'],
+        seed: 123,
+        prepareStep: ({ stepNumber }) =>
+          stepNumber === 0
+            ? {
+                maxOutputTokens: 50,
+                temperature: 0,
+                topP: 0.5,
+                topK: 10,
+                presencePenalty: 0,
+                frequencyPenalty: -0.2,
+                stopSequences: [],
+                seed: 0,
+              }
+            : { temperature: undefined },
+      });
+
+      const selectSettings = ({
+        maxOutputTokens,
+        temperature,
+        topP,
+        topK,
+        presencePenalty,
+        frequencyPenalty,
+        stopSequences,
+        seed,
+      }: LanguageModelV2CallOptions) => ({
+        maxOutputTokens,
+        temperature,
+        topP,
+        topK,
+        presencePenalty,
+        frequencyPenalty,
+        stopSequences,
+        seed,
+      });
+
+      expect(calls.map(selectSettings)).toEqual([
+        {
+          maxOutputTokens: 50,
+          temperature: 0,
+          topP: 0.5,
+          topK: 10,
+          presencePenalty: 0,
+          frequencyPenalty: -0.2,
+          stopSequences: [],
+          seed: 0,
+        },
+        {
+          maxOutputTokens: 100,
+          temperature: 1,
+          topP: 0.9,
+          topK: 40,
+          presencePenalty: 0.4,
+          frequencyPenalty: 0.3,
+          stopSequences: ['outer'],
+          seed: 123,
+        },
+      ]);
     });
   });
 });

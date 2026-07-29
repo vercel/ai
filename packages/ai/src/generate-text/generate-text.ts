@@ -43,12 +43,7 @@ import { DefaultGeneratedFile } from './generated-file';
 import type { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
 import type { PrepareStepFunction } from './prepare-step';
-<<<<<<< HEAD
-=======
 import { prepareStepCallSettings } from './prepare-step-call-settings';
-import { convertToReasoningOutputs } from './reasoning-output';
-import { resolveToolApproval } from './resolve-tool-approval';
->>>>>>> 60f97f6738 (feat: support per-step model call setting overrides in prepareStep (#18105))
 import type { ResponseMessage } from './response-message';
 import { type StepResult, DefaultStepResult } from './step-result';
 import {
@@ -361,6 +356,11 @@ A function that attempts to repair a tool call that failed to parse.
               activeTools: stepActiveTools,
             });
 
+          const stepCallSettings = prepareStepCallSettings({
+            callSettings,
+            stepSettings: prepareStepResult,
+          });
+
           currentModelResponse = await retry(() =>
             recordSpan({
               name: 'ai.generateText.doGenerate',
@@ -393,21 +393,23 @@ A function that attempts to repair a tool call that failed to parse.
                   // standardized gen-ai llm span attributes:
                   'gen_ai.system': stepModel.provider,
                   'gen_ai.request.model': stepModel.modelId,
-                  'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
-                  'gen_ai.request.max_tokens': settings.maxOutputTokens,
-                  'gen_ai.request.presence_penalty': settings.presencePenalty,
-                  'gen_ai.request.stop_sequences': settings.stopSequences,
+                  'gen_ai.request.frequency_penalty':
+                    stepCallSettings.frequencyPenalty,
+                  'gen_ai.request.max_tokens': stepCallSettings.maxOutputTokens,
+                  'gen_ai.request.presence_penalty':
+                    stepCallSettings.presencePenalty,
+                  'gen_ai.request.stop_sequences':
+                    stepCallSettings.stopSequences,
                   'gen_ai.request.temperature':
-                    settings.temperature ?? undefined,
-                  'gen_ai.request.top_k': settings.topK,
-                  'gen_ai.request.top_p': settings.topP,
+                    stepCallSettings.temperature ?? undefined,
+                  'gen_ai.request.top_k': stepCallSettings.topK,
+                  'gen_ai.request.top_p': stepCallSettings.topP,
                 },
               }),
-<<<<<<< HEAD
               tracer,
               fn: async span => {
                 const result = await stepModel.doGenerate({
-                  ...callSettings,
+                  ...stepCallSettings,
                   tools: stepTools,
                   toolChoice: stepToolChoice,
                   responseFormat: output?.responseFormat,
@@ -416,7 +418,7 @@ A function that attempts to repair a tool call that failed to parse.
                   abortSignal,
                   headers: headersWithUserAgent,
                 });
-=======
+                /*
             },
           });
         }
@@ -624,7 +626,7 @@ A function that attempts to repair a tool call that failed to parse.
                       }),
                   },
                 );
->>>>>>> 60f97f6738 (feat: support per-step model call setting overrides in prepareStep (#18105))
+                */
 
                 // Fill in default values:
                 const responseData = {

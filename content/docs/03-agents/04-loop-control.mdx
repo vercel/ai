@@ -145,10 +145,10 @@ be useful when tool-calling steps need more deterministic sampling than the
 final response:
 
 ```ts
-import { ToolLoopAgent } from 'ai';
+import { Experimental_Agent as Agent } from 'ai';
 __PROVIDER_IMPORT__;
 
-const agent = new ToolLoopAgent({
+const agent = new Agent({
   model: __MODEL__,
   temperature: 0.7,
   tools: {
@@ -172,11 +172,11 @@ const result = await agent.generate({
 ```
 
 `prepareStep` can override `maxOutputTokens`, `temperature`, `topP`, `topK`,
-`presencePenalty`, `frequencyPenalty`, `stopSequences`, `seed`, and
-`reasoning`. These overrides apply only to the current step. When a setting is
-omitted or `undefined`, the top-level value is used for that step. Defined
-falsy values such as `temperature: 0`, `seed: 0`, and an empty
-`stopSequences` array are preserved.
+`presencePenalty`, `frequencyPenalty`, `stopSequences`, and `seed`. These
+overrides apply only to the current step. When a setting is omitted or
+`undefined`, the top-level value is used for that step. Defined falsy values
+such as `temperature: 0`, `seed: 0`, and an empty `stopSequences` array are
+preserved.
 
 ### Context Management
 
