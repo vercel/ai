@@ -39,7 +39,12 @@ import {
 import { z } from 'zod/v4';
 import { Output } from '..';
 import * as logWarningsModule from '../logger/log-warnings';
+<<<<<<< HEAD
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+=======
+import type { Instructions, LanguageModelCallOptions } from '../prompt';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+>>>>>>> 60f97f6738 (feat: support per-step model call setting overrides in prepareStep (#18105))
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
@@ -6099,7 +6104,195 @@ describe('streamText', () => {
       });
     });
 
+<<<<<<< HEAD
     it('should expose providerOptions and experimental_context', async () => {
+=======
+    it('should apply prepareStep model call settings only to the current step', async () => {
+      const modelCallOptions: Array<LanguageModelV4CallOptions> = [];
+      const modelCallStartEvents: Array<LanguageModelCallOptions> = [];
+      const telemetryModelCallStartEvents: Array<LanguageModelCallOptions> = [];
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async options => {
+            modelCallOptions.push(options);
+            const currentResponse = responseCount++;
+
+            return {
+              stream: convertArrayToReadableStream<LanguageModelV4StreamPart>(
+                currentResponse < 2
+                  ? [
+                      {
+                        type: 'tool-call' as const,
+                        toolCallId: `call-${currentResponse}`,
+                        toolName: 'tool1',
+                        input: '{ "value": "test" }',
+                      },
+                      {
+                        type: 'finish' as const,
+                        finishReason: {
+                          unified: 'tool-calls' as const,
+                          raw: undefined,
+                        },
+                        usage: testUsage,
+                      },
+                    ]
+                  : [
+                      { type: 'text-start' as const, id: '1' },
+                      {
+                        type: 'text-delta' as const,
+                        id: '1',
+                        delta: 'Final answer.',
+                      },
+                      { type: 'text-end' as const, id: '1' },
+                      {
+                        type: 'finish' as const,
+                        finishReason: {
+                          unified: 'stop' as const,
+                          raw: 'stop',
+                        },
+                        usage: testUsage,
+                      },
+                    ],
+              ),
+            };
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: isStepCount(3),
+        maxOutputTokens: 100,
+        temperature: 1,
+        topP: 0.9,
+        topK: 40,
+        presencePenalty: 0.4,
+        frequencyPenalty: 0.3,
+        stopSequences: ['outer'],
+        seed: 123,
+        reasoning: 'high',
+        prepareStep: async ({ stepNumber }) =>
+          stepNumber === 1
+            ? {
+                maxOutputTokens: 50,
+                temperature: 0,
+                topP: 0.5,
+                topK: 10,
+                presencePenalty: 0,
+                frequencyPenalty: -0.2,
+                stopSequences: [],
+                seed: 0,
+                reasoning: 'provider-default',
+              }
+            : stepNumber === 2
+              ? { temperature: undefined }
+              : undefined,
+        onLanguageModelCallStart: event => {
+          modelCallStartEvents.push(event);
+        },
+        telemetry: {
+          isEnabled: true,
+          integrations: {
+            onLanguageModelCallStart: event => {
+              telemetryModelCallStartEvents.push(event);
+            },
+          },
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      const selectCallSettings = ({
+        maxOutputTokens,
+        temperature,
+        topP,
+        topK,
+        presencePenalty,
+        frequencyPenalty,
+        stopSequences,
+        seed,
+        reasoning,
+      }: LanguageModelCallOptions) => ({
+        maxOutputTokens,
+        temperature,
+        topP,
+        topK,
+        presencePenalty,
+        frequencyPenalty,
+        stopSequences,
+        seed,
+        reasoning,
+      });
+
+      const outerSettings = {
+        maxOutputTokens: 100,
+        temperature: 1,
+        topP: 0.9,
+        topK: 40,
+        presencePenalty: 0.4,
+        frequencyPenalty: 0.3,
+        stopSequences: ['outer'],
+        seed: 123,
+        reasoning: 'high',
+      };
+      const stepSettings = {
+        maxOutputTokens: 50,
+        temperature: 0,
+        topP: 0.5,
+        topK: 10,
+        presencePenalty: 0,
+        frequencyPenalty: -0.2,
+        stopSequences: [],
+        seed: 0,
+        reasoning: 'provider-default',
+      };
+
+      expect(modelCallOptions.map(selectCallSettings)).toEqual([
+        outerSettings,
+        stepSettings,
+        outerSettings,
+      ]);
+      expect(modelCallStartEvents.map(selectCallSettings)).toEqual([
+        outerSettings,
+        stepSettings,
+        outerSettings,
+      ]);
+      expect(telemetryModelCallStartEvents.map(selectCallSettings)).toEqual([
+        outerSettings,
+        stepSettings,
+        outerSettings,
+      ]);
+    });
+
+    it('should validate model call settings returned from prepareStep', async () => {
+      let validationError: unknown;
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        prepareStep: async () => ({
+          maxOutputTokens: 0,
+        }),
+        onError: ({ error }) => {
+          validationError = error;
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(validationError).toMatchObject({
+        message:
+          'Invalid argument for parameter maxOutputTokens: maxOutputTokens must be >= 1',
+      });
+    });
+
+    it('should expose providerOptions and runtimeContext', async () => {
+>>>>>>> 60f97f6738 (feat: support per-step model call setting overrides in prepareStep (#18105))
       let stepStartEvent!: Parameters<
         StreamTextOnStepStartCallback<any, any>
       >[0];

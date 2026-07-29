@@ -103,6 +103,11 @@ import type {
   InferPartialOutput,
 } from './output-utils';
 import type { PrepareStepFunction } from './prepare-step';
+<<<<<<< HEAD
+=======
+import { prepareStepCallSettings } from './prepare-step-call-settings';
+import { convertToReasoningOutputs } from './reasoning-output';
+>>>>>>> 60f97f6738 (feat: support per-step model call setting overrides in prepareStep (#18105))
 import type { ResponseMessage } from './response-message';
 import {
   runToolsTransformation,
@@ -1481,6 +1486,7 @@ class DefaultStreamTextResult<
 
             const toolOutputs: Array<ToolOutput<TOOLS>> = [];
 
+<<<<<<< HEAD
             await Promise.all(
               localApprovedToolApprovals.map(async toolApproval => {
                 const result = await executeToolCall({
@@ -1505,6 +1511,282 @@ class DefaultStreamTextResult<
                   ],
                   onPreliminaryToolResult: result => {
                     toolExecutionStepStreamController?.enqueue(result);
+=======
+      self._initialResponseMessages.resolve(initialResponseMessages);
+
+      async function streamStep({
+        currentStep,
+        usage,
+      }: {
+        currentStep: number;
+        usage: LanguageModelUsage;
+      }) {
+        // Set up step timeout if configured
+        const stepTimeoutId = setAbortTimeout({
+          abortController: stepAbortController,
+          label: 'Step',
+          timeoutMs: stepTimeoutMs,
+        });
+
+        // The first-content timeout is armed when the provider response stream
+        // starts and is cleared by the first semantic output chunk.
+        let firstChunkTimeoutId: ReturnType<typeof setTimeout> | undefined =
+          undefined;
+
+        function startFirstChunkTimeout() {
+          if (abortSignal?.aborted) {
+            return;
+          }
+
+          firstChunkTimeoutId = setAbortTimeout({
+            abortController: firstChunkAbortController,
+            label: 'First chunk',
+            timeoutMs: firstChunkTimeoutMs,
+          });
+        }
+
+        function clearFirstChunkTimeout() {
+          if (firstChunkTimeoutId != null) {
+            clearTimeout(firstChunkTimeoutId);
+            firstChunkTimeoutId = undefined;
+          }
+        }
+
+        // Chunk timeout tracking starts after semantic output begins and is
+        // reset only by subsequent semantic output chunks.
+        let chunkTimeoutId: ReturnType<typeof setTimeout> | undefined =
+          undefined;
+
+        function resetChunkTimeout() {
+          if (chunkTimeoutId != null) {
+            clearTimeout(chunkTimeoutId);
+          }
+          chunkTimeoutId = setAbortTimeout({
+            abortController: chunkAbortController,
+            label: 'Chunk',
+            timeoutMs: chunkTimeoutMs,
+          });
+        }
+
+        function clearChunkTimeout() {
+          if (chunkTimeoutId != null) {
+            clearTimeout(chunkTimeoutId);
+            chunkTimeoutId = undefined;
+          }
+        }
+
+        function clearStepTimeout() {
+          if (stepTimeoutId != null) {
+            clearTimeout(stepTimeoutId);
+          }
+        }
+
+        function clearStepTimeouts() {
+          clearStepTimeout();
+          clearFirstChunkTimeout();
+          clearChunkTimeout();
+        }
+
+        function cleanupStepTimeouts() {
+          abortSignal?.removeEventListener('abort', cleanupStepTimeouts);
+          clearStepTimeouts();
+        }
+
+        // The step's stream is registered lazily and consumed long after this
+        // function returns, so its timers must stay armed past setup. When the
+        // merged abort signal fires, drop all step-scoped timers so none
+        // outlives the step.
+        abortSignal?.addEventListener('abort', cleanupStepTimeouts, {
+          once: true,
+        });
+
+        try {
+          stepFinish = new DelayedPromise<void>();
+
+          const stepTracingChannelContext =
+            telemetryDispatcher.startTracingChannelContext?.({
+              type: 'step',
+              event: { callId, stepNumber: currentStep },
+              completion: stepFinish.promise,
+            });
+          // Re-enter the current step before creating child spans.
+          const runInStepTracingChannelContext = <T>(execute: () => T): T =>
+            stepTracingChannelContext?.run(execute) ?? execute();
+
+          const responseMessagesFromPreviousSteps = recordedSteps.flatMap(
+            step => step.response.messages,
+          );
+          const accumulatedResponseMessages = [
+            ...initialResponseMessages,
+            ...responseMessagesFromPreviousSteps,
+          ];
+          const stepInputMessages = stepMessagesForNextStep ?? [
+            ...initialMessages,
+            ...initialResponseMessages,
+          ];
+
+          const prepareStepResult = await prepareStep?.({
+            model,
+            steps: recordedSteps,
+            stepNumber: recordedSteps.length,
+            instructions: instructionsForNextStep,
+            initialInstructions: initialPrompt.instructions,
+            messages: stepInputMessages,
+            initialMessages,
+            responseMessages: accumulatedResponseMessages,
+            toolsContext,
+            runtimeContext,
+            experimental_sandbox: sandbox,
+          });
+
+          const stepSandbox =
+            prepareStepResult?.experimental_sandbox ?? sandbox;
+
+          runtimeContext = prepareStepResult?.runtimeContext ?? runtimeContext;
+          toolsContext = prepareStepResult?.toolsContext ?? toolsContext;
+
+          const stepModel = resolveLanguageModel(
+            prepareStepResult?.model ?? model,
+          );
+
+          const stepActiveTools = filterActiveTools({
+            tools,
+            activeTools: prepareStepResult?.activeTools ?? activeTools,
+          });
+          const stepToolOrder = prepareStepResult?.toolOrder ?? toolOrder;
+
+          const stepTools = await prepareTools({
+            tools: stepActiveTools,
+            toolOrder: stepToolOrder as ToolOrder<
+              ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
+            >,
+            // active tools context is a subset of the tools context, so we can cast to the unknown type
+            toolsContext: toolsContext as unknown as InferToolSetContext<
+              ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
+            >,
+            experimental_sandbox: stepSandbox,
+          });
+
+          const stepToolChoice = prepareToolChoice({
+            toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+          });
+
+          const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
+          currentStepMessages = stepMessages;
+          const stepInstructions =
+            prepareStepResult?.instructions ??
+            prepareStepResult?.system ??
+            instructionsForNextStep;
+          instructionsForNextStep = stepInstructions;
+
+          const stepProviderOptions = mergeObjects(
+            providerOptions,
+            prepareStepResult?.providerOptions,
+          );
+
+          const stepCallSettings = prepareStepCallSettings({
+            callSettings,
+            stepSettings: prepareStepResult,
+          });
+
+          const stepStartTimestampMs = now();
+
+          const { retry } = prepareRetries({ maxRetries, abortSignal });
+
+          const {
+            stream: languageModelStream,
+            request,
+            response,
+          } = await runInStepTracingChannelContext(() =>
+            retry(async () =>
+              streamLanguageModelCall({
+                model: prepareStepResult?.model ?? model,
+                tools: stepActiveTools,
+                toolOrder: stepToolOrder,
+                toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+                instructions: stepInstructions,
+                messages: stepMessages,
+                allowSystemInMessages,
+                repairToolCall,
+                refineToolInput,
+                abortSignal,
+                headers,
+                includeRawChunks: include.rawChunks,
+                providerOptions: stepProviderOptions,
+                download,
+                output,
+                callId,
+                executeLanguageModelCallInTelemetryContext:
+                  telemetryDispatcher.executeLanguageModelCall,
+                toolsContext,
+                experimental_sandbox: stepSandbox,
+                onLanguageModelCallStart: filterNullable(
+                  onLanguageModelCallStart,
+                  telemetryDispatcher.onLanguageModelCallStart as
+                    | undefined
+                    | OnLanguageModelCallStartCallback,
+                ),
+                onLanguageModelCallEnd: filterNullable(
+                  onLanguageModelCallEnd,
+                  telemetryDispatcher.onLanguageModelCallEnd as
+                    | undefined
+                    | OnLanguageModelCallEndCallback<TOOLS>,
+                ),
+                onStart: async ({ promptMessages }) => {
+                  await notify({
+                    event: {
+                      callId,
+                      provider: stepModel.provider,
+                      modelId: stepModel.modelId,
+                      stepNumber: recordedSteps.length,
+                      instructions: stepInstructions,
+                      messages: stepMessages,
+                      tools,
+                      toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+                      activeTools:
+                        prepareStepResult?.activeTools ?? activeTools,
+                      toolOrder: stepToolOrder,
+                      steps: [...recordedSteps],
+                      providerOptions: stepProviderOptions,
+                      runtimeContext,
+                      toolsContext,
+                      output,
+                      promptMessages,
+                      stepTools,
+                      stepToolChoice,
+                    },
+                    callbacks: [onStepStart, telemetryDispatcher.onStepStart],
+                  });
+                },
+                _internal: {
+                  now,
+                },
+                ...stepCallSettings,
+              }),
+            ),
+          );
+
+          startFirstChunkTimeout();
+
+          const streamAfterToolCallbackInvocation =
+            invokeToolCallbacksFromStream({
+              stream: languageModelStream,
+              tools,
+              stepInputMessages: stepMessages,
+              abortSignal,
+              runtimeContext,
+            });
+
+          // Create child spans under the current step context.
+          const runInTracingChannelSpanInStep =
+            telemetryDispatcher.runInTracingChannelSpan == null
+              ? undefined
+              : <T>(
+                  options: Parameters<
+                    NonNullable<TelemetryDispatcher['runInTracingChannelSpan']>
+                  >[0] & {
+                    execute: () => PromiseLike<T>;
+>>>>>>> 60f97f6738 (feat: support per-step model call setting overrides in prepareStep (#18105))
                   },
                 });
 

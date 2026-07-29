@@ -4,6 +4,11 @@ import type {
   SystemModelMessage,
   Tool,
 } from '@ai-sdk/provider-utils';
+<<<<<<< HEAD
+=======
+import type { Instructions } from '../prompt';
+import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
+>>>>>>> 60f97f6738 (feat: support per-step model call setting overrides in prepareStep (#18105))
 import type { LanguageModel, ToolChoice } from '../types/language-model';
 import type { StepResult } from './step-result';
 
@@ -51,12 +56,20 @@ export type PrepareStepFunction<
 
 /**
  * The result type returned by a {@link PrepareStepFunction},
+<<<<<<< HEAD
  * allowing per-step overrides of model, tools, or messages.
+=======
+ * allowing per-step overrides of model call settings, model, tools,
+ * instructions, or messages.
+ *
+ * Model call setting overrides apply only to the current step. Undefined
+ * settings fall back to the outer call settings.
+>>>>>>> 60f97f6738 (feat: support per-step model call setting overrides in prepareStep (#18105))
  */
 export type PrepareStepResult<
   TOOLS extends Record<string, Tool> = Record<string, Tool>,
 > =
-  | {
+  | ({
       /**
        * Optionally override which LanguageModel instance is used for this step.
        */
@@ -99,5 +112,5 @@ export type PrepareStepResult<
        * container IDs for Anthropic's code execution.
        */
       providerOptions?: ProviderOptions;
-    }
+    } & LanguageModelCallOptions)
   | undefined;

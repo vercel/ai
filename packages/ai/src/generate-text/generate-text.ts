@@ -77,6 +77,12 @@ import { text, type Output } from './output';
 import type { InferCompleteOutput } from './output-utils';
 import { parseToolCall } from './parse-tool-call';
 import type { PrepareStepFunction } from './prepare-step';
+<<<<<<< HEAD
+=======
+import { prepareStepCallSettings } from './prepare-step-call-settings';
+import { convertToReasoningOutputs } from './reasoning-output';
+import { resolveToolApproval } from './resolve-tool-approval';
+>>>>>>> 60f97f6738 (feat: support per-step model call setting overrides in prepareStep (#18105))
 import type { ResponseMessage } from './response-message';
 import { DefaultStepResult, type StepResult } from './step-result';
 import {
@@ -951,12 +957,316 @@ export async function generateText<
                 continue;
               }
 
+<<<<<<< HEAD
               if (tool.onInputStart != null) {
                 await tool.onInputStart({
                   toolCallId: toolCall.toolCallId,
                   messages: stepInputMessages,
                   abortSignal: mergedAbortSignal,
                   experimental_context,
+=======
+      do {
+        if (steps.length > 0) {
+          mergedAbortSignal?.throwIfAborted();
+        }
+
+        // Set up step timeout if configured
+        const stepTimeoutId = setAbortTimeout({
+          abortController: stepAbortController,
+          label: 'Step',
+          timeoutMs: stepTimeoutMs,
+        });
+        const stepNumber = steps.length;
+
+        try {
+          await runInTracingChannelSpan({
+            type: 'step',
+            event: { callId, stepNumber },
+            execute: async () => {
+              const accumulatedResponseMessages = [
+                ...initialResponseMessages,
+                ...steps.flatMap(step => step.response.messages),
+              ];
+              const stepInputMessages = messagesForNextStep;
+
+              const prepareStepResult = await prepareStep?.({
+                model,
+                steps,
+                stepNumber: steps.length,
+                instructions: instructionsForNextStep,
+                initialInstructions: initialPrompt.instructions,
+                messages: stepInputMessages,
+                initialMessages,
+                responseMessages: accumulatedResponseMessages,
+                runtimeContext,
+                toolsContext,
+                experimental_sandbox: sandbox,
+              });
+
+              const stepSandbox =
+                prepareStepResult?.experimental_sandbox ?? sandbox;
+
+              const stepModel = resolveLanguageModel(
+                prepareStepResult?.model ?? model,
+              );
+
+              const stepInstructions =
+                prepareStepResult?.instructions ??
+                prepareStepResult?.system ??
+                instructionsForNextStep;
+
+              const promptMessages = await convertToLanguageModelPrompt({
+                prompt: {
+                  instructions: stepInstructions,
+                  messages: prepareStepResult?.messages ?? stepInputMessages,
+                },
+                supportedUrls: await stepModel.supportedUrls,
+                download,
+                provider: stepModel.provider.split('.')[0],
+              });
+
+              runtimeContext =
+                prepareStepResult?.runtimeContext ?? runtimeContext;
+              toolsContext = prepareStepResult?.toolsContext ?? toolsContext;
+
+              const stepActiveTools = filterActiveTools({
+                tools,
+                activeTools: prepareStepResult?.activeTools ?? activeTools,
+              });
+              const stepToolOrder = prepareStepResult?.toolOrder ?? toolOrder;
+
+              const stepTools = await prepareTools({
+                tools: stepActiveTools,
+                toolOrder: stepToolOrder as ToolOrder<
+                  ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
+                >,
+                // active tools context is a subset of the tools context, so we can cast to the unknown type
+                toolsContext: toolsContext as unknown as InferToolSetContext<
+                  ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
+                >,
+                experimental_sandbox: stepSandbox,
+              });
+
+              const stepToolChoice = prepareToolChoice({
+                toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+              });
+
+              const stepMessages =
+                prepareStepResult?.messages ?? stepInputMessages;
+
+              const stepProviderOptions = mergeObjects(
+                providerOptions,
+                prepareStepResult?.providerOptions,
+              );
+
+              const stepCallSettings = prepareStepCallSettings({
+                callSettings,
+                stepSettings: prepareStepResult,
+              });
+
+              await notify({
+                event: {
+                  callId,
+                  provider: stepModel.provider,
+                  modelId: stepModel.modelId,
+                  stepNumber,
+                  instructions: stepInstructions,
+                  messages: stepMessages,
+                  tools,
+                  toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+                  activeTools: prepareStepResult?.activeTools ?? activeTools,
+                  toolOrder: stepToolOrder,
+                  steps: [...steps],
+                  providerOptions: stepProviderOptions,
+                  output,
+                  runtimeContext,
+                  promptMessages,
+                  stepTools,
+                  stepToolChoice,
+                  toolsContext,
+                },
+                callbacks: [
+                  resolvedOnStepStart,
+                  telemetryDispatcher.onStepStart,
+                ],
+              });
+
+              const languageModelCallContext = {
+                provider: stepModel.provider,
+                modelId: stepModel.modelId,
+                instructions: stepInstructions,
+                messages: stepMessages,
+                tools: stepTools,
+                ...stepCallSettings,
+              };
+              const languageModelCallStartEvent = {
+                callId,
+                ...languageModelCallContext,
+              };
+
+              const stepStartTimestampMs = now();
+
+              await notify({
+                event: languageModelCallStartEvent,
+                callbacks: [
+                  resolvedOnLanguageModelCallStart,
+                  telemetryDispatcher.onLanguageModelCallStart as
+                    | undefined
+                    | OnLanguageModelCallStartCallback,
+                ],
+              });
+
+              const executeLanguageModelCallInTelemetryContext =
+                telemetryDispatcher.executeLanguageModelCall ??
+                (async <T>({ execute }: { execute: () => PromiseLike<T> }) =>
+                  await execute());
+
+              currentModelResponse = await retry(async () => {
+                const result = await executeLanguageModelCallInTelemetryContext(
+                  {
+                    ...languageModelCallStartEvent,
+                    execute: async () =>
+                      await stepModel.doGenerate({
+                        ...stepCallSettings,
+                        tools: stepTools,
+                        toolChoice: stepToolChoice,
+                        responseFormat: await output?.responseFormat,
+                        prompt: promptMessages,
+                        providerOptions: stepProviderOptions,
+                        abortSignal: mergedAbortSignal,
+                        headers: headersWithUserAgent,
+                      }),
+                  },
+                );
+
+                const responseData = {
+                  id: result.response?.id ?? generateId(),
+                  timestamp: result.response?.timestamp ?? new Date(),
+                  modelId: result.response?.modelId ?? stepModel.modelId,
+                  headers: result.response?.headers,
+                  body: result.response?.body,
+                };
+
+                return { ...result, response: responseData };
+              });
+              const responseTimeMs = now() - stepStartTimestampMs;
+              const stepUsage = asLanguageModelUsage(
+                currentModelResponse.usage,
+              );
+
+              // parse tool calls:
+              const stepToolCalls: TypedToolCall<TOOLS>[] = await Promise.all(
+                currentModelResponse.content
+                  .filter(
+                    (part): part is LanguageModelV4ToolCall =>
+                      part.type === 'tool-call',
+                  )
+                  .map(toolCall =>
+                    parseToolCall({
+                      toolCall,
+                      tools,
+                      repairToolCall,
+                      refineToolInput,
+                      instructions: stepInstructions,
+                      messages: stepMessages,
+                    }),
+                  ),
+              );
+              const toolApprovalRequests: Record<
+                string,
+                ToolApprovalRequestOutput<TOOLS>
+              > = {};
+              const stepToolApprovalResponses: Record<
+                string,
+                ToolApprovalResponseOutput<TOOLS>
+              > = {};
+              const blockedToolCallIds = new Set<string>();
+
+              const modelCallContent = asContent({
+                content: currentModelResponse.content,
+                toolCalls: stepToolCalls,
+                toolOutputs: [],
+                toolApprovalRequests: [],
+                toolApprovalResponses: [],
+                tools,
+              });
+
+              await notify({
+                event: {
+                  callId,
+                  provider: stepModel.provider,
+                  modelId: stepModel.modelId,
+                  finishReason: currentModelResponse.finishReason.unified,
+                  usage: stepUsage,
+                  content: modelCallContent,
+                  responseId: currentModelResponse.response.id,
+                  performance: {
+                    responseTimeMs,
+                    effectiveOutputTokensPerSecond: calculateTokensPerSecond({
+                      tokens: stepUsage.outputTokens,
+                      durationMs: responseTimeMs,
+                    }),
+                    outputTokensPerSecond: undefined,
+                    inputTokensPerSecond: undefined,
+                    effectiveTotalTokensPerSecond: calculateTokensPerSecond({
+                      tokens: sumTokenCounts(
+                        stepUsage.inputTokens,
+                        stepUsage.outputTokens,
+                      ),
+                      durationMs: responseTimeMs,
+                    }),
+                    timeToFirstOutputMs: undefined,
+                  },
+                },
+                callbacks: [
+                  resolvedOnLanguageModelCallEnd,
+                  telemetryDispatcher.onLanguageModelCallEnd as
+                    | undefined
+                    | OnLanguageModelCallEndCallback<TOOLS>,
+                ],
+              });
+
+              // notify the tools that the tool calls are available:
+              for (const toolCall of stepToolCalls) {
+                if (toolCall.invalid) {
+                  continue; // ignore invalid tool calls
+                }
+
+                const tool = getOwn(tools, toolCall.toolName);
+
+                if (tool == null) {
+                  // ignore tool calls for tools that are not available,
+                  // e.g. provider-executed dynamic tools
+                  continue;
+                }
+
+                if (tool.onInputStart != null) {
+                  await tool.onInputStart({
+                    toolCallId: toolCall.toolCallId,
+                    messages: stepMessages,
+                    abortSignal: mergedAbortSignal,
+                    context: runtimeContext,
+                  });
+                }
+
+                if (tool?.onInputAvailable != null) {
+                  await tool.onInputAvailable({
+                    input: toolCall.input,
+                    toolCallId: toolCall.toolCallId,
+                    messages: stepMessages,
+                    abortSignal: mergedAbortSignal,
+                    context: runtimeContext,
+                  });
+                }
+
+                const toolApprovalStatus = await resolveToolApproval({
+                  tools,
+                  toolApproval,
+                  toolCall,
+                  messages: stepMessages,
+                  toolsContext,
+                  runtimeContext,
+>>>>>>> 60f97f6738 (feat: support per-step model call setting overrides in prepareStep (#18105))
                 });
               }
 
