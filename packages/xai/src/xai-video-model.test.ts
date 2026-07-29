@@ -1,7 +1,32 @@
 import { InvalidArgumentError } from '@ai-sdk/provider';
+import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { XaiVideoModel } from './xai-video-model';
+
+// `json-value` forces status 200, so a 202 with a body must go through `error`.
+function pending202(body: unknown) {
+  return { type: 'error' as const, status: 202, body: JSON.stringify(body) };
+}
+
+// Tees the body and keeps the sibling alive, as `Response.clone()` does inside
+// fetch instrumentation. Explicit so the guard does not rely on msw internals.
+function teeingFetch(): FetchFunction {
+  const siblings: ReadableStream[] = [];
+  return async (input, init) => {
+    const response = await globalThis.fetch(input as string, init);
+    if (!response.body) {
+      return response;
+    }
+    const [caller, sibling] = response.body.tee();
+    siblings.push(sibling);
+    return new Response(caller, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+    });
+  };
+}
 
 const prompt = 'A chicken flying into the sunset';
 
@@ -45,14 +70,17 @@ const defaultOptions = {
 function createModel({
   headers,
   currentDate,
+  fetch,
 }: {
   headers?: () => Record<string, string>;
   currentDate?: () => Date;
+  fetch?: FetchFunction;
 } = {}) {
   return new XaiVideoModel('grok-imagine-video', {
     provider: 'xai.video',
     baseURL: TEST_BASE_URL,
     headers: headers ?? (() => ({ 'api-key': 'test-key' })),
+    fetch,
     _internal: {
       currentDate,
     },
@@ -1531,6 +1559,120 @@ describe('XaiVideoModel', () => {
         expect(server.calls).toHaveLength(3);
       },
     );
+
+    it('should treat an HTTP 202 carrying a status payload as pending', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = ({
+        callNumber,
+      }) =>
+        callNumber === 1
+          ? pending202({ status: 'pending', progress: 42 })
+          : { type: 'json-value', body: doneStatusResponse };
+
+      const model = createModel();
+      const result = await model.doGenerate({ ...defaultOptions });
+
+      expect(result.videos[0]).toMatchInlineSnapshot(`
+        {
+          "mediaType": "video/mp4",
+          "type": "url",
+          "url": "https://vidgen.x.ai/output/video-001.mp4",
+        }
+      `);
+      expect(server.calls).toHaveLength(3);
+    });
+
+    it('should complete when an HTTP 202 body already carries the video', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response =
+        pending202(doneStatusResponse);
+
+      const model = createModel();
+      const result = await model.doGenerate({ ...defaultOptions });
+
+      expect(result.videos[0]).toMatchInlineSnapshot(`
+        {
+          "mediaType": "video/mp4",
+          "type": "url",
+          "url": "https://vidgen.x.ai/output/video-001.mp4",
+        }
+      `);
+      expect(server.calls).toHaveLength(2);
+    });
+
+    it('should treat an HTTP 202 with an unparseable body as pending', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = ({
+        callNumber,
+      }) =>
+        callNumber === 1
+          ? { type: 'error' as const, status: 202, body: 'not json' }
+          : { type: 'json-value', body: doneStatusResponse };
+
+      const model = createModel();
+      const result = await model.doGenerate({ ...defaultOptions });
+
+      expect(result.videos[0]?.type).toBe('url');
+      expect(server.calls).toHaveLength(3);
+    });
+
+    // Body must be non-empty: an empty 202 has no stream to tee.
+    it('should keep polling past a 202 when the caller fetch tees the response body', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = ({
+        callNumber,
+      }) =>
+        callNumber === 1
+          ? pending202({ status: 'pending', progress: 10 })
+          : { type: 'json-value', body: doneStatusResponse };
+
+      const model = createModel({ fetch: teeingFetch() });
+
+      const result = await model.doGenerate({ ...defaultOptions });
+
+      expect(result.videos[0]?.type).toBe('url');
+    });
+
+    it('should reject an oversized HTTP 202 body without hanging', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = ({
+        callNumber,
+      }) =>
+        callNumber === 1
+          ? pending202({ padding: 'x'.repeat(2 * 1024 * 1024) })
+          : { type: 'json-value', body: doneStatusResponse };
+
+      const model = createModel({ fetch: teeingFetch() });
+
+      await expect(model.doGenerate({ ...defaultOptions })).rejects.toThrow(
+        /exceeded/,
+      );
+    });
+
+    it('should honor abort while reading an unfinished HTTP 202 body', async () => {
+      const abortController = new AbortController();
+      // A 202 whose body never finishes. Errors the stream on abort, as fetch
+      // implementations do for an aborted request body.
+      const unfinished202: FetchFunction = async (input, init) => {
+        if (!(input as string).includes('/videos/req-123')) {
+          return globalThis.fetch(input as string, init);
+        }
+        const body = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode('{"status":'));
+            init?.signal?.addEventListener('abort', () => {
+              controller.error(new DOMException('Aborted', 'AbortError'));
+            });
+            queueMicrotask(() => abortController.abort());
+          },
+        });
+        return new Response(body, { status: 202 });
+      };
+
+      const model = createModel({ fetch: unfinished202 });
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          abortSignal: abortController.signal,
+        }),
+      ).rejects.toThrow(/abort/i);
+    });
 
     it('should time out while repeatedly receiving empty HTTP 202 responses', async () => {
       server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
