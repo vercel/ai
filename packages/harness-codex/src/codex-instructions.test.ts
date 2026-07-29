@@ -7,6 +7,7 @@ import type {
   HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
+import type { UserContent } from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /*
@@ -209,6 +210,11 @@ describe('codex adapter — instructions gating', () => {
             image: './screenshots/after.png',
             mediaType: 'image/png',
           },
+          {
+            type: 'image',
+            image: '../screenshots/reference.png',
+            mediaType: 'image/png',
+          },
         ],
       },
       emit: () => {},
@@ -229,29 +235,58 @@ describe('codex adapter — instructions gating', () => {
       },
       { type: 'text', text: ' with ' },
       { type: 'local_image', path: './screenshots/after.png' },
+      { type: 'local_image', path: '../screenshots/reference.png' },
       { type: 'text', text: '\n</user-message>' },
     ]);
   });
 
-  it('rejects inline image data instead of treating it as a local path', async () => {
-    const session = await startSession();
+  it.each([
+    [
+      'inline image data',
+      { type: 'image', image: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB' },
+    ],
+    [
+      'a remote URL string',
+      { type: 'image', image: 'https://example.com/screenshot.png' },
+    ],
+    [
+      'a URL object',
+      {
+        type: 'image',
+        image: new URL('https://example.com/screenshot.png'),
+      },
+    ],
+    ['a provider reference', { type: 'image', image: { openai: 'file-123' } }],
+    [
+      'a file part',
+      {
+        type: 'file',
+        data: '/wd/codex-s1/screenshots/example.png',
+        mediaType: 'image/png',
+      },
+    ],
+    [
+      'a bare relative path',
+      { type: 'image', image: 'screenshots/example.png' },
+    ],
+  ] satisfies ReadonlyArray<
+    readonly [string, Exclude<UserContent, string>[number]]
+  >)(
+    'rejects %s instead of treating it as a local image path',
+    async (_name, part) => {
+      const session = await startSession();
 
-    await expect(
-      session.doPromptTurn({
-        prompt: {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              image: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB',
-              mediaType: 'image/png',
-            },
-          ],
-        },
-        emit: () => {},
-      }),
-    ).rejects.toThrow('Images must be materialized to a sandbox-local path');
-  });
+      await expect(
+        session.doPromptTurn({
+          prompt: {
+            role: 'user',
+            content: [part],
+          },
+          emit: () => {},
+        }),
+      ).rejects.toThrow('Images must be materialized to a sandbox-local path');
+    },
+  );
 
   it('prepends host tool usage guidance on the first user message only', async () => {
     const session = await startSession();
