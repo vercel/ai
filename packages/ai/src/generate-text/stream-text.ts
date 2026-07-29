@@ -113,6 +113,7 @@ import type {
   InferPartialOutput,
 } from './output-utils';
 import type { PrepareStepFunction } from './prepare-step';
+import { prepareStepCallSettings } from './prepare-step-call-settings';
 import { convertToReasoningOutputs } from './reasoning-output';
 import type { ResponseMessage } from './response-message';
 import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
@@ -1968,6 +1969,11 @@ class DefaultStreamTextResult<
             prepareStepResult?.providerOptions,
           );
 
+          const stepCallSettings = prepareStepCallSettings({
+            callSettings,
+            stepSettings: prepareStepResult,
+          });
+
           const stepStartTimestampMs = now();
 
           const { retry } = prepareRetries({ maxRetries, abortSignal });
@@ -2040,7 +2046,7 @@ class DefaultStreamTextResult<
                 _internal: {
                   now,
                 },
-                ...callSettings,
+                ...stepCallSettings,
               }),
             ),
           );

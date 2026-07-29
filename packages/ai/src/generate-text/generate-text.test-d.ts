@@ -525,6 +525,24 @@ describe('generateText types', () => {
           }),
         });
       });
+
+      it('should accept model call setting overrides', async () => {
+        generateText({
+          model: new MockLanguageModelV4(),
+          prompt: 'Hello',
+          prepareStep: () => ({
+            maxOutputTokens: 100,
+            temperature: 0,
+            topP: 0.9,
+            topK: 40,
+            presencePenalty: 0,
+            frequencyPenalty: 0,
+            stopSequences: ['stop'],
+            seed: 0,
+            reasoning: 'high',
+          }),
+        });
+      });
     });
 
     it('should pass the runtimeContext type into toolApproval callbacks', async () => {
