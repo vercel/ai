@@ -3091,9 +3091,6 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
-      '@ai-sdk/test-server':
-        specifier: workspace:*
-        version: link:../test-server
       '@types/node':
         specifier: 22.19.19
         version: 22.19.19
