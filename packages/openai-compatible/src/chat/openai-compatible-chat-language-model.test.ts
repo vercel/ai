@@ -1777,6 +1777,53 @@ describe('doStream', () => {
     });
   });
 
+  it('should preserve text-tool-text order across sequential steps', async () => {
+    prepareChunksFixtureResponse('issue-15789-step-1');
+    const firstStep = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+    const firstStepEvents = await convertReadableStreamToArray(
+      firstStep.stream,
+    );
+
+    prepareChunksFixtureResponse('issue-15789-step-2');
+    const secondStep = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+    const secondStepEvents = await convertReadableStreamToArray(
+      secondStep.stream,
+    );
+
+    const uiParts: Array<
+      | { type: 'text'; textId: string; text: string }
+      | { type: 'tool'; toolName: string }
+    > = [];
+    const textPartIndexes = new Map<string, number>();
+
+    for (const event of [...firstStepEvents, ...secondStepEvents]) {
+      if (event.type === 'text-start' && !textPartIndexes.has(event.id)) {
+        textPartIndexes.set(event.id, uiParts.length);
+        uiParts.push({ type: 'text', textId: event.id, text: '' });
+      } else if (event.type === 'text-delta') {
+        const index = textPartIndexes.get(event.id);
+        const uiPart = index == null ? undefined : uiParts[index];
+        if (uiPart?.type === 'text') {
+          uiPart.text += event.delta;
+        }
+      } else if (event.type === 'tool-call') {
+        uiParts.push({ type: 'tool', toolName: event.toolName });
+      }
+    }
+
+    expect(uiParts).toEqual([
+      { type: 'text', textId: 'txt-0', text: 'PRE_TOOL' },
+      { type: 'tool', toolName: 'weather' },
+      { type: 'text', textId: 'txt-1', text: 'POST_TOOL' },
+    ]);
+  });
+
   it('should expose the raw response headers', async () => {
     prepareChunksFixtureResponse('xai-text', {
       headers: { 'test-header': 'test-value' },
