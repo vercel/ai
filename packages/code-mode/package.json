@@ -39,7 +39,7 @@
   "scripts": {
     "build": "pnpm clean && tsc -p tsconfig.build.json && node scripts/embed-inline-worker.mjs",
     "clean": "del-cli build dist *.tsbuildinfo",
-    "type-check": "tsc --build && tsc -p tsconfig.test.json",
+    "type-check": "tsc --build && tsc -p src/tsconfig.json",
     "test": "pnpm test:node",
     "test:watch": "vitest --config vitest.node.config.js",
     "test:node": "vitest --config vitest.node.config.js --run",
