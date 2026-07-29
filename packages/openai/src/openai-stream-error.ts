@@ -5,6 +5,7 @@ type StreamError = {
   message: string;
   code?: string | number | null;
   type?: string | null;
+  status?: number;
   frame: unknown;
 };
 
@@ -111,6 +112,7 @@ function parseStreamError(frame: unknown): StreamError | undefined {
           message: responseError.message,
           code: getStringOrNumber(responseError.code),
           type: 'response.failed',
+          status: getHttpErrorStatus(value.status),
           frame,
         }
       : undefined;
@@ -127,12 +129,18 @@ function parseStreamError(frame: unknown): StreamError | undefined {
         message: error.message,
         code: getStringOrNumber(error.code),
         type: typeof error.type === 'string' ? error.type : undefined,
+        status:
+          getHttpErrorStatus(value.status) ?? getHttpErrorStatus(error.status),
         frame,
       }
     : undefined;
 }
 
 function getStatusCode(error: StreamError): number {
+  if (error.status != null) {
+    return error.status;
+  }
+
   if (typeof error.code === 'number' && isHttpErrorStatusCode(error.code)) {
     return error.code;
   }
@@ -170,6 +178,12 @@ function getStatusCode(error: StreamError): number {
   if (discriminator.includes('timeout')) return 504;
 
   return 500;
+}
+
+function getHttpErrorStatus(value: unknown): number | undefined {
+  return typeof value === 'number' && isHttpErrorStatusCode(value)
+    ? value
+    : undefined;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
