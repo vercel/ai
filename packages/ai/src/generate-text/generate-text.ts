@@ -77,6 +77,7 @@ import { text, type Output } from './output';
 import type { InferCompleteOutput } from './output-utils';
 import { parseToolCall } from './parse-tool-call';
 import type { PrepareStepFunction } from './prepare-step';
+import { prepareStepCallSettings } from './prepare-step-call-settings';
 import type { ResponseMessage } from './response-message';
 import { DefaultStepResult, type StepResult } from './step-result';
 import {
@@ -752,6 +753,11 @@ export async function generateText<
               prepareStepResult?.providerOptions,
             );
 
+            const stepCallSettings = prepareStepCallSettings({
+              callSettings,
+              stepSettings: prepareStepResult,
+            });
+
             await notify({
               event: {
                 stepNumber: steps.length,
@@ -816,20 +822,22 @@ export async function generateText<
                     'gen_ai.system': stepModel.provider,
                     'gen_ai.request.model': stepModel.modelId,
                     'gen_ai.request.frequency_penalty':
-                      settings.frequencyPenalty,
-                    'gen_ai.request.max_tokens': settings.maxOutputTokens,
-                    'gen_ai.request.presence_penalty': settings.presencePenalty,
-                    'gen_ai.request.stop_sequences': settings.stopSequences,
-                    'gen_ai.request.temperature':
-                      settings.temperature ?? undefined,
-                    'gen_ai.request.top_k': settings.topK,
-                    'gen_ai.request.top_p': settings.topP,
+                      stepCallSettings.frequencyPenalty,
+                    'gen_ai.request.max_tokens':
+                      stepCallSettings.maxOutputTokens,
+                    'gen_ai.request.presence_penalty':
+                      stepCallSettings.presencePenalty,
+                    'gen_ai.request.stop_sequences':
+                      stepCallSettings.stopSequences,
+                    'gen_ai.request.temperature': stepCallSettings.temperature,
+                    'gen_ai.request.top_k': stepCallSettings.topK,
+                    'gen_ai.request.top_p': stepCallSettings.topP,
                   },
                 }),
                 tracer,
                 fn: async span => {
                   const result = await stepModel.doGenerate({
-                    ...callSettings,
+                    ...stepCallSettings,
                     tools: stepTools,
                     toolChoice: stepToolChoice,
                     responseFormat: await output?.responseFormat,

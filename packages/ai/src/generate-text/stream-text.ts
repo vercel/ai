@@ -103,6 +103,7 @@ import type {
   InferPartialOutput,
 } from './output-utils';
 import type { PrepareStepFunction } from './prepare-step';
+import { prepareStepCallSettings } from './prepare-step-call-settings';
 import type { ResponseMessage } from './response-message';
 import {
   runToolsTransformation,
@@ -1675,6 +1676,11 @@ class DefaultStreamTextResult<
               prepareStepResult?.providerOptions,
             );
 
+            const stepCallSettings = prepareStepCallSettings({
+              callSettings,
+              stepSettings: prepareStepResult,
+            });
+
             await notify({
               event: {
                 stepNumber: recordedSteps.length,
@@ -1740,14 +1746,16 @@ class DefaultStreamTextResult<
                     'gen_ai.system': stepModel.provider,
                     'gen_ai.request.model': stepModel.modelId,
                     'gen_ai.request.frequency_penalty':
-                      callSettings.frequencyPenalty,
-                    'gen_ai.request.max_tokens': callSettings.maxOutputTokens,
+                      stepCallSettings.frequencyPenalty,
+                    'gen_ai.request.max_tokens':
+                      stepCallSettings.maxOutputTokens,
                     'gen_ai.request.presence_penalty':
-                      callSettings.presencePenalty,
-                    'gen_ai.request.stop_sequences': callSettings.stopSequences,
-                    'gen_ai.request.temperature': callSettings.temperature,
-                    'gen_ai.request.top_k': callSettings.topK,
-                    'gen_ai.request.top_p': callSettings.topP,
+                      stepCallSettings.presencePenalty,
+                    'gen_ai.request.stop_sequences':
+                      stepCallSettings.stopSequences,
+                    'gen_ai.request.temperature': stepCallSettings.temperature,
+                    'gen_ai.request.top_k': stepCallSettings.topK,
+                    'gen_ai.request.top_p': stepCallSettings.topP,
                   },
                 }),
                 tracer,
@@ -1756,7 +1764,7 @@ class DefaultStreamTextResult<
                   startTimestampMs: now(), // get before the call
                   doStreamSpan,
                   result: await stepModel.doStream({
-                    ...callSettings,
+                    ...stepCallSettings,
                     tools: stepTools,
                     toolChoice: stepToolChoice,
                     responseFormat: await output?.responseFormat,

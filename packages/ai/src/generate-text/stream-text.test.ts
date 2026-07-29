@@ -6099,6 +6099,177 @@ describe('streamText', () => {
       });
     });
 
+    it('should apply prepareStep model call settings only to the current step', async () => {
+      const modelCallOptions: Array<LanguageModelV3CallOptions> = [];
+      const tracer = new MockTracer();
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async options => {
+            modelCallOptions.push(options);
+            const currentResponse = responseCount++;
+
+            return {
+              stream: convertArrayToReadableStream<LanguageModelV3StreamPart>(
+                currentResponse < 2
+                  ? [
+                      {
+                        type: 'tool-call' as const,
+                        toolCallId: `call-${currentResponse}`,
+                        toolName: 'tool1',
+                        input: '{ "value": "test" }',
+                      },
+                      {
+                        type: 'finish' as const,
+                        finishReason: {
+                          unified: 'tool-calls' as const,
+                          raw: undefined,
+                        },
+                        usage: testUsage,
+                      },
+                    ]
+                  : [
+                      { type: 'text-start' as const, id: '1' },
+                      {
+                        type: 'text-delta' as const,
+                        id: '1',
+                        delta: 'Final answer.',
+                      },
+                      { type: 'text-end' as const, id: '1' },
+                      {
+                        type: 'finish' as const,
+                        finishReason: {
+                          unified: 'stop' as const,
+                          raw: 'stop',
+                        },
+                        usage: testUsage,
+                      },
+                    ],
+              ),
+            };
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: stepCountIs(3),
+        maxOutputTokens: 100,
+        temperature: 1,
+        topP: 0.9,
+        topK: 40,
+        presencePenalty: 0.4,
+        frequencyPenalty: 0.3,
+        stopSequences: ['outer'],
+        seed: 123,
+        prepareStep: async ({ stepNumber }) =>
+          stepNumber === 1
+            ? {
+                maxOutputTokens: 50,
+                temperature: 0,
+                topP: 0.5,
+                topK: 10,
+                presencePenalty: 0,
+                frequencyPenalty: -0.2,
+                stopSequences: [],
+                seed: 0,
+              }
+            : stepNumber === 2
+              ? { temperature: undefined }
+              : undefined,
+        experimental_telemetry: {
+          isEnabled: true,
+          tracer,
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      const selectCallSettings = ({
+        maxOutputTokens,
+        temperature,
+        topP,
+        topK,
+        presencePenalty,
+        frequencyPenalty,
+        stopSequences,
+        seed,
+      }: LanguageModelV3CallOptions) => ({
+        maxOutputTokens,
+        temperature,
+        topP,
+        topK,
+        presencePenalty,
+        frequencyPenalty,
+        stopSequences,
+        seed,
+      });
+
+      expect(modelCallOptions.map(selectCallSettings)).toEqual([
+        {
+          maxOutputTokens: 100,
+          temperature: 1,
+          topP: 0.9,
+          topK: 40,
+          presencePenalty: 0.4,
+          frequencyPenalty: 0.3,
+          stopSequences: ['outer'],
+          seed: 123,
+        },
+        {
+          maxOutputTokens: 50,
+          temperature: 0,
+          topP: 0.5,
+          topK: 10,
+          presencePenalty: 0,
+          frequencyPenalty: -0.2,
+          stopSequences: [],
+          seed: 0,
+        },
+        {
+          maxOutputTokens: 100,
+          temperature: 1,
+          topP: 0.9,
+          topK: 40,
+          presencePenalty: 0.4,
+          frequencyPenalty: 0.3,
+          stopSequences: ['outer'],
+          seed: 123,
+        },
+      ]);
+      expect(
+        tracer.jsonSpans
+          .filter(span => span.name === 'ai.streamText.doStream')
+          .map(span => span.attributes['gen_ai.request.temperature']),
+      ).toEqual([1, 0, 1]);
+    });
+
+    it('should validate model call settings returned from prepareStep', async () => {
+      let validationError: unknown;
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        prepareStep: async () => ({
+          maxOutputTokens: 0,
+        }),
+        onError: ({ error }) => {
+          validationError = error;
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(validationError).toMatchObject({
+        message:
+          'Invalid argument for parameter maxOutputTokens: maxOutputTokens must be >= 1',
+      });
+    });
+
     it('should expose providerOptions and experimental_context', async () => {
       let stepStartEvent!: Parameters<
         StreamTextOnStepStartCallback<any, any>

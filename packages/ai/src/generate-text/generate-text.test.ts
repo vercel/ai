@@ -1325,6 +1325,150 @@ describe('generateText', () => {
       });
     });
 
+    it('should apply prepareStep model call settings only to the current step', async () => {
+      const modelCallOptions: Array<LanguageModelV3CallOptions> = [];
+      const tracer = new MockTracer();
+      let responseCount = 0;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async options => {
+            modelCallOptions.push(options);
+            const currentResponse = responseCount++;
+
+            return currentResponse < 2
+              ? {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: `call-${currentResponse}`,
+                      toolName: 'tool1',
+                      input: '{ "value": "test" }',
+                    },
+                  ],
+                  finishReason: {
+                    unified: 'tool-calls',
+                    raw: undefined,
+                  },
+                }
+              : {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Final answer.' }],
+                };
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: stepCountIs(3),
+        maxOutputTokens: 100,
+        temperature: 1,
+        topP: 0.9,
+        topK: 40,
+        presencePenalty: 0.4,
+        frequencyPenalty: 0.3,
+        stopSequences: ['outer'],
+        seed: 123,
+        prepareStep: async ({ stepNumber }) =>
+          stepNumber === 1
+            ? {
+                maxOutputTokens: 50,
+                temperature: 0,
+                topP: 0.5,
+                topK: 10,
+                presencePenalty: 0,
+                frequencyPenalty: -0.2,
+                stopSequences: [],
+                seed: 0,
+              }
+            : stepNumber === 2
+              ? { temperature: undefined }
+              : undefined,
+        experimental_telemetry: {
+          isEnabled: true,
+          tracer,
+        },
+      });
+
+      const selectCallSettings = ({
+        maxOutputTokens,
+        temperature,
+        topP,
+        topK,
+        presencePenalty,
+        frequencyPenalty,
+        stopSequences,
+        seed,
+      }: LanguageModelV3CallOptions) => ({
+        maxOutputTokens,
+        temperature,
+        topP,
+        topK,
+        presencePenalty,
+        frequencyPenalty,
+        stopSequences,
+        seed,
+      });
+
+      expect(modelCallOptions.map(selectCallSettings)).toEqual([
+        {
+          maxOutputTokens: 100,
+          temperature: 1,
+          topP: 0.9,
+          topK: 40,
+          presencePenalty: 0.4,
+          frequencyPenalty: 0.3,
+          stopSequences: ['outer'],
+          seed: 123,
+        },
+        {
+          maxOutputTokens: 50,
+          temperature: 0,
+          topP: 0.5,
+          topK: 10,
+          presencePenalty: 0,
+          frequencyPenalty: -0.2,
+          stopSequences: [],
+          seed: 0,
+        },
+        {
+          maxOutputTokens: 100,
+          temperature: 1,
+          topP: 0.9,
+          topK: 40,
+          presencePenalty: 0.4,
+          frequencyPenalty: 0.3,
+          stopSequences: ['outer'],
+          seed: 123,
+        },
+      ]);
+      expect(
+        tracer.jsonSpans
+          .filter(span => span.name === 'ai.generateText.doGenerate')
+          .map(span => span.attributes['gen_ai.request.temperature']),
+      ).toEqual([1, 0, 1]);
+    });
+
+    it('should validate model call settings returned from prepareStep', async () => {
+      await expect(
+        generateText({
+          model: new MockLanguageModelV3(),
+          prompt: 'test-input',
+          prepareStep: async () => ({
+            maxOutputTokens: 0,
+          }),
+        }),
+      ).rejects.toThrow(
+        'Invalid argument for parameter maxOutputTokens: maxOutputTokens must be >= 1',
+      );
+    });
+
     it('should provide empty steps array on first step', async () => {
       let stepStartEvent!: Parameters<
         GenerateTextOnStepStartCallback<any, any>
