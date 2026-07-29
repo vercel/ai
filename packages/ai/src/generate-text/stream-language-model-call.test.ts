@@ -419,6 +419,65 @@ describe('streamLanguageModelCall', () => {
         }
       `);
     });
+
+    it('should expose providerMetadata on model-call end when the model provides it', async () => {
+      let endEvent!: LanguageModelCallEndEvent;
+
+      const { stream } = await streamLanguageModelCall({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+                providerMetadata: {
+                  testProvider: { testKey: 'test-value' },
+                },
+              },
+            ]),
+          }),
+        }),
+        prompt: 'test prompt',
+        callId: 'test-telemetry-call-id',
+        onLanguageModelCallEnd: async event => {
+          endEvent = event;
+        },
+      });
+
+      await convertReadableStreamToArray(stream);
+
+      expect(endEvent.providerMetadata).toStrictEqual({
+        testProvider: { testKey: 'test-value' },
+      });
+    });
+
+    it('should not expose providerMetadata on model-call end when the model does not provide it', async () => {
+      let endEvent!: LanguageModelCallEndEvent;
+
+      const { stream } = await streamLanguageModelCall({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        prompt: 'test prompt',
+        callId: 'test-telemetry-call-id',
+        onLanguageModelCallEnd: async event => {
+          endEvent = event;
+        },
+      });
+
+      await convertReadableStreamToArray(stream);
+
+      expect(endEvent).not.toHaveProperty('providerMetadata');
+    });
   });
 
   describe('stream-start parts', () => {

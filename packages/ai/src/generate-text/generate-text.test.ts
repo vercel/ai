@@ -3080,6 +3080,49 @@ describe('generateText', () => {
         ]
       `);
     });
+
+    it('should expose providerMetadata on model-call end when the model provides it', async () => {
+      let modelCallEndEvent!: LanguageModelCallEndEvent;
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            providerMetadata: {
+              testProvider: { testKey: 'test-value' },
+            },
+          }),
+        }),
+        onLanguageModelCallEnd: async event => {
+          modelCallEndEvent = event;
+        },
+        ...defaultSettings(),
+      });
+
+      expect(modelCallEndEvent.providerMetadata).toStrictEqual({
+        testProvider: { testKey: 'test-value' },
+      });
+    });
+
+    it('should not expose providerMetadata on model-call end when the model does not provide it', async () => {
+      let modelCallEndEvent!: LanguageModelCallEndEvent;
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+          }),
+        }),
+        onLanguageModelCallEnd: async event => {
+          modelCallEndEvent = event;
+        },
+        ...defaultSettings(),
+      });
+
+      expect(modelCallEndEvent).not.toHaveProperty('providerMetadata');
+    });
   });
 
   describe('options.onToolExecutionStart', () => {
