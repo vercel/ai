@@ -7889,34 +7889,37 @@ describe('OpenAIResponsesLanguageModel', () => {
           controller,
         };
 
-        controller.write(
+        const streamPromise = createModel('gpt-4o-mini').doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: false,
+        });
+
+        await controller.write(
           `data:{"type":"response.created","sequence_number":0,"response":{"id":"resp_in_progress_early","created_at":1741269019,"model":"gpt-4o-2024-07-18","service_tier":null}}\n\n`,
         );
-        controller.write(
+        await controller.write(
           `data:{"type":"response.in_progress","sequence_number":1,"response":{"id":"resp_in_progress_early","created_at":1741269019,"model":"gpt-4o-2024-07-18","service_tier":null}}\n\n`,
         );
         // the stream now stalls: no output item yet (first token pending)
 
         // doStream must resolve via the accepted-chunk grace window instead of
         // blocking until the first output token:
-        const { stream } = await createModel('gpt-4o-mini').doStream({
-          prompt: TEST_PROMPT,
-          includeRawChunks: false,
-        });
+        const { stream } = await streamPromise;
+        const eventsPromise = convertReadableStreamToArray(stream);
 
         // output arrives after doStream already resolved:
-        controller.write(
+        await controller.write(
           `data:{"type":"response.output_item.added","sequence_number":2,"output_index":0,"item":{"id":"msg_in_progress_early","type":"message"}}\n\n`,
         );
-        controller.write(
+        await controller.write(
           `data:{"type":"response.output_text.delta","sequence_number":3,"item_id":"msg_in_progress_early","output_index":0,"delta":"Hello"}\n\n`,
         );
-        controller.write(
+        await controller.write(
           `data:{"type":"response.completed","sequence_number":4,"response":{"id":"resp_in_progress_early","object":"response","created_at":1741269019,"status":"completed","error":null,"incomplete_details":null,"model":"gpt-4o-2024-07-18","output":[],"service_tier":null,"usage":{"input_tokens":10,"input_tokens_details":{"cached_tokens":0},"output_tokens":1,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":11}}}\n\n`,
         );
-        controller.close();
+        await controller.close();
 
-        const events = await convertReadableStreamToArray(stream);
+        const events = await eventsPromise;
 
         expect(events).toContainEqual({
           type: 'response-metadata',
