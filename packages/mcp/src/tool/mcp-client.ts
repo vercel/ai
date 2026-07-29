@@ -369,11 +369,7 @@ class DefaultMCPClient implements MCPClient {
   private maxRetries: number;
   private clientInfo: ClientConfiguration;
   private clientCapabilities: ClientCapabilities;
-<<<<<<< HEAD
-=======
-  private initialInitializeResult?: InitializeResult;
   private initializationOptions?: RequestOptions;
->>>>>>> 97f0565272 (fix: MCP requests and client initialization can hang past configured deadlines (#18082))
   private requestMessageId = 0;
   private responseHandlers: Map<
     number,
@@ -395,20 +391,12 @@ class DefaultMCPClient implements MCPClient {
     onUncaughtError,
     maxRetries,
     capabilities,
-<<<<<<< HEAD
-=======
-    initialInitializeResult,
     initializationOptions,
->>>>>>> 97f0565272 (fix: MCP requests and client initialization can hang past configured deadlines (#18082))
   }: MCPClientConfig) {
     this.onUncaughtError = onUncaughtError;
     this.maxRetries = prepareMaxRetries(maxRetries);
     this.clientCapabilities = capabilities ?? {};
-<<<<<<< HEAD
-=======
-    this.initialInitializeResult = initialInitializeResult;
     this.initializationOptions = initializationOptions;
->>>>>>> 97f0565272 (fix: MCP requests and client initialization can hang past configured deadlines (#18082))
 
     if (isCustomMcpTransport(transportConfig)) {
       this.transport = transportConfig;

@@ -148,21 +148,10 @@ export class HttpMCPTransport implements MCPTransport {
     this.abortController?.abort();
 
     try {
-      if (
-        this.sessionId &&
-<<<<<<< HEAD
-        this.abortController &&
-        !this.abortController.signal.aborted
-      ) {
+      if (this.sessionId && this.abortController) {
+        options?.signal?.throwIfAborted();
         const headers = await this.commonHeaders({});
-=======
-        this.terminateSessionOnClose &&
-        this.abortController
-      ) {
         options?.signal?.throwIfAborted();
-        const headers = await this.commonHeaders({ base: {} });
-        options?.signal?.throwIfAborted();
->>>>>>> 97f0565272 (fix: MCP requests and client initialization can hang past configured deadlines (#18082))
         await this.fetchFn(this.url.href, {
           method: 'DELETE',
           headers,
