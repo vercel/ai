@@ -32,8 +32,48 @@ describe('MediaAwareValue', () => {
     );
 
     expect(html).toContain('Load preview');
+    expect(html).toContain('rel="noreferrer"');
     expect(html).not.toContain(
       '<img alt="image preview" class="max-h-72 w-full',
     );
+  });
+
+  it('uses credentialless no-referrer media elements', () => {
+    const html = renderToStaticMarkup(
+      createElement(MediaAwareValue, {
+        data: [
+          {
+            type: 'file',
+            mediaType: 'audio/mpeg',
+            data: { type: 'data', data: 'SUQz' },
+          },
+          {
+            type: 'file',
+            mediaType: 'video/mp4',
+            data: { type: 'data', data: 'AAAA' },
+          },
+        ],
+      }),
+    );
+
+    expect(html).toMatch(
+      /<audio[^>]*crossorigin="anonymous"[^>]*referrerPolicy="no-referrer"/,
+    );
+    expect(html).toMatch(
+      /<video[^>]*crossorigin="anonymous"[^>]*referrerPolicy="no-referrer"/,
+    );
+  });
+
+  it('truncates large strings in the JSON display', () => {
+    const html = renderToStaticMarkup(
+      createElement(MediaAwareValue, {
+        data: {
+          value: 'a'.repeat(16 * 1024 + 10),
+        },
+      }),
+    );
+
+    expect(html).toContain('10 characters omitted from the viewer');
+    expect(html).not.toContain('a'.repeat(16 * 1024 + 1));
   });
 });

@@ -18,11 +18,21 @@ import { MediaPreviewList } from './media-components';
 
 export function OutputDisplay({
   output,
-  toolResults = [],
+  fallbackToolResults = [],
 }: {
   output: ParsedOutput;
-  toolResults?: ContentPart[];
+  fallbackToolResults?: ContentPart[];
 }) {
+  const contentToolResults =
+    output.content?.filter(
+      (part): part is ToolResultContentPart => part.type === 'tool-result',
+    ) ?? [];
+  const toolResults = [
+    ...(output.toolResults ?? []),
+    ...fallbackToolResults,
+    ...contentToolResults,
+  ];
+
   const getToolResult = (toolCallId: string) => {
     return toolResults.find(
       (r): r is ToolResultContentPart =>

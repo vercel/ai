@@ -47,10 +47,10 @@ const registerSignalHandlers = () => {
             data.request &&
             typeof data.request === 'object' &&
             'body' in data.request
-              ? serializeForDevTools((data.request as { body: unknown }).body)
+              ? JSON.stringify((data.request as { body: unknown }).body)
               : null,
-          raw_response: serializeForDevTools(data.fullStreamChunks),
-          raw_chunks: serializeForDevTools(data.rawChunks),
+          raw_response: JSON.stringify(data.fullStreamChunks),
+          raw_chunks: JSON.stringify(data.rawChunks),
         });
       },
     );
@@ -158,7 +158,7 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
           responseFormat: params.responseFormat,
         }),
         provider_options: params.providerOptions
-          ? serializeForDevTools(params.providerOptions)
+          ? JSON.stringify(params.providerOptions)
           : null,
       });
 
@@ -173,13 +173,13 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
             finishReason: result.finishReason,
             response: result.response,
           }),
-          usage: result.usage ? serializeForDevTools(result.usage) : null,
+          usage: result.usage ? JSON.stringify(result.usage) : null,
           error: null,
           raw_request: result.request?.body
-            ? serializeForDevTools(result.request.body)
+            ? JSON.stringify(result.request.body)
             : null,
           raw_response: result.response?.body
-            ? serializeForDevTools(result.response.body)
+            ? JSON.stringify(result.response.body)
             : null,
         });
 
@@ -232,7 +232,7 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
           responseFormat: params.responseFormat,
         }),
         provider_options: params.providerOptions
-          ? serializeForDevTools(params.providerOptions)
+          ? JSON.stringify(params.providerOptions)
           : null,
       });
 
@@ -244,6 +244,7 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
           textParts: Array<{ id: string; text: string }>;
           reasoningParts: Array<{ id: string; text: string }>;
           toolCalls: LanguageModelV4StreamPart[];
+          content?: LanguageModelV4StreamPart[];
           finishReason?: LanguageModelV4FinishReason;
           usage?: LanguageModelV4Usage;
         } = {
@@ -320,6 +321,11 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
               case 'tool-call':
                 collectedOutput.toolCalls.push(chunk);
                 break;
+              case 'file':
+              case 'reasoning-file':
+              case 'tool-result':
+                (collectedOutput.content ??= []).push(chunk);
+                break;
               case 'finish':
                 collectedOutput.finishReason = chunk.finishReason;
                 collectedOutput.usage = chunk.usage;
@@ -338,14 +344,12 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
               duration_ms: durationMs,
               output: serializeForDevTools(collectedOutput),
               usage: collectedOutput.usage
-                ? serializeForDevTools(collectedOutput.usage)
+                ? JSON.stringify(collectedOutput.usage)
                 : null,
               error: null,
-              raw_request: request?.body
-                ? serializeForDevTools(request.body)
-                : null,
-              raw_response: serializeForDevTools(fullStreamChunks),
-              raw_chunks: serializeForDevTools(rawChunks),
+              raw_request: request?.body ? JSON.stringify(request.body) : null,
+              raw_response: JSON.stringify(fullStreamChunks),
+              raw_chunks: JSON.stringify(rawChunks),
             });
           },
 
@@ -359,14 +363,12 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
               duration_ms: durationMs,
               output: serializeForDevTools(collectedOutput),
               usage: collectedOutput.usage
-                ? serializeForDevTools(collectedOutput.usage)
+                ? JSON.stringify(collectedOutput.usage)
                 : null,
               error: 'Request aborted',
-              raw_request: request?.body
-                ? serializeForDevTools(request.body)
-                : null,
-              raw_response: serializeForDevTools(fullStreamChunks),
-              raw_chunks: serializeForDevTools(rawChunks),
+              raw_request: request?.body ? JSON.stringify(request.body) : null,
+              raw_response: JSON.stringify(fullStreamChunks),
+              raw_chunks: JSON.stringify(rawChunks),
             });
           },
         });

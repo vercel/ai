@@ -11,23 +11,6 @@ function normalizeBinaryData(value: unknown): unknown {
     ).toString('base64');
   }
 
-  if (Array.isArray(value)) {
-    return value.map(normalizeBinaryData);
-  }
-
-  if (value != null && typeof value === 'object') {
-    if (value instanceof Date || value instanceof URL) {
-      return value;
-    }
-
-    return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [
-        key,
-        normalizeBinaryData(item),
-      ]),
-    );
-  }
-
   return value;
 }
 
@@ -38,5 +21,13 @@ function normalizeBinaryData(value: unknown): unknown {
  * impossible after the capture is persisted.
  */
 export function serializeForDevTools(value: unknown): string {
-  return JSON.stringify(normalizeBinaryData(value));
+  return JSON.stringify(value, function (key, serializedValue) {
+    // JSON.stringify invokes toJSON before the replacer. Read the original
+    // property from the holder so binary values can still be normalized while
+    // preserving custom toJSON behavior for every other object.
+    const originalValue = (this as Record<string, unknown>)[key];
+    return normalizeBinaryData(originalValue) === originalValue
+      ? serializedValue
+      : normalizeBinaryData(originalValue);
+  });
 }

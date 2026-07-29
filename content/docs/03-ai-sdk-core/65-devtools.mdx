@@ -114,8 +114,11 @@ DevTools captures the following information from your AI SDK calls:
 
 DevTools recognizes current `file` content parts as well as the deprecated
 `image-*`, `file-*`, and `media` tool-result aliases. Inline image, audio, and
-video data is previewed directly, while the original JSON and metadata remain
-available for inspection.
+video data is previewed directly, while the captured JSON shape and metadata
+remain available for inspection. The viewer displays at most 8 previews per
+value, traverses at most 12 nested levels, and embeds inline previews up to 5
+MiB. Longer JSON strings are truncated in the viewer to avoid duplicating large
+base64 payloads; the persisted local capture is unchanged.
 
 For example, a tool can return media through `toModelOutput`:
 
@@ -143,9 +146,10 @@ const captureScreenshot = tool({
 ```
 
 Remote `http` and `https` media is not loaded automatically. Select **Load
-preview** in the viewer to fetch it in your browser. Unsupported media,
-provider references, malformed values, and unsafe URL schemes retain their JSON
-and metadata fallback without an embedded preview.
+preview** in the viewer to fetch it without browser credentials or referrer
+information. Unsupported media, provider references, malformed values, unsafe
+URL schemes, and inline values over the preview limit retain their JSON and
+metadata fallback without an embedded preview.
 
 Telemetry is enabled automatically, but AI SDK 7 excludes raw request and response bodies from step results by default. To make them available to DevTools for `generateText`, enable body retention on the call:
 

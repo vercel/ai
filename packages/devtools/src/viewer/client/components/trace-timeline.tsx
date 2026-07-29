@@ -424,7 +424,12 @@ function SpanDetailPanel({
         'toolCallId' in p &&
         p.toolCallId === span.toolCallId,
     );
-    const toolResult = contentParts.find(
+    const toolResult = [
+      ...(output?.toolResults ?? []),
+      ...contentParts.filter(
+        (p): p is ToolResultContentPart => p.type === 'tool-result',
+      ),
+    ].find(
       (p): p is ToolResultContentPart =>
         p.type === 'tool-result' &&
         'toolCallId' in p &&

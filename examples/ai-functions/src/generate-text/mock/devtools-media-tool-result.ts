@@ -1,30 +1,14 @@
 import { DevToolsTelemetry } from '@ai-sdk/devtools';
-import { generateText, isStepCount, registerTelemetry, tool } from 'ai';
+import { generateText, registerTelemetry, tool } from 'ai';
 import { MockLanguageModelV4 } from 'ai/test';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
 registerTelemetry(DevToolsTelemetry());
 
-const screenshot = {
-  type: 'content' as const,
-  value: [
-    {
-      type: 'text' as const,
-      text: 'Screenshot captured successfully.',
-    },
-    {
-      type: 'file' as const,
-      filename: 'screenshot.png',
-      mediaType: 'image/png',
-      data: {
-        type: 'data' as const,
-        // A small inline PNG payload for a focused, self-contained example.
-        data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAF/gL+AvzZAAAAAElFTkSuQmCC',
-      },
-    },
-  ],
-};
+// A small inline PNG payload for a focused, self-contained example.
+const screenshotBase64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAF/gL+AvzZAAAAAElFTkSuQmCC';
 
 const usage = {
   inputTokens: {
@@ -57,17 +41,6 @@ run(async () => {
           usage,
           warnings: [],
         },
-        {
-          content: [
-            {
-              type: 'text',
-              text: 'The screenshot was captured.',
-            },
-          ],
-          finishReason: { raw: undefined, unified: 'stop' },
-          usage,
-          warnings: [],
-        },
       ],
     }),
     prompt: 'Capture a screenshot and confirm what happened.',
@@ -75,17 +48,33 @@ run(async () => {
       captureScreenshot: tool({
         description: 'Capture a screenshot for debugging.',
         inputSchema: z.object({}),
-        execute: async () => screenshot,
-        toModelOutput: ({ output }) => output,
+        execute: async () => ({ base64: screenshotBase64 }),
+        toModelOutput: ({ output }) => ({
+          type: 'content',
+          value: [
+            {
+              type: 'text',
+              text: 'Screenshot captured successfully.',
+            },
+            {
+              type: 'file',
+              filename: 'screenshot.png',
+              mediaType: 'image/png',
+              data: {
+                type: 'data',
+                data: output.base64,
+              },
+            },
+          ],
+        }),
       }),
     },
-    stopWhen: isStepCount(2),
     telemetry: {
       functionId: 'devtools-media-tool-result',
     },
   });
 
-  console.log(result.text);
+  console.log(`Captured ${result.toolResults.length} tool result.`);
   console.log(
     'Run `npx @ai-sdk/devtools@latest` and inspect the captureScreenshot tool result to view the image preview.',
   );

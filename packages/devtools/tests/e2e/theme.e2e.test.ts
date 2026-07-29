@@ -21,6 +21,16 @@ const runs = [
     type: 'stream',
     function_id: 'streamText',
   },
+  {
+    id: 'media-run',
+    started_at: '2026-07-22T08:02:00.000Z',
+    stepCount: 1,
+    firstMessage: 'Capture a screenshot',
+    hasError: false,
+    isInProgress: false,
+    type: 'generate',
+    function_id: 'devtools-media-tool-result',
+  },
 ];
 
 const selectedRun = {
@@ -140,6 +150,98 @@ const selectedRun = {
   childRuns: [],
 };
 
+const mediaRun = {
+  run: {
+    id: 'media-run',
+    started_at: '2026-07-22T08:02:00.000Z',
+    isInProgress: false,
+    function_id: 'devtools-media-tool-result',
+  },
+  steps: [
+    {
+      id: 'media-step',
+      run_id: 'media-run',
+      step_number: 1,
+      type: 'generate',
+      model_id: 'mock/media-model',
+      provider: 'mock',
+      started_at: '2026-07-22T08:02:00.000Z',
+      duration_ms: 400,
+      input: JSON.stringify({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Capture a screenshot',
+              },
+              {
+                type: 'file',
+                filename: 'input-screenshot.png',
+                mediaType: 'image/png',
+                data: {
+                  type: 'data',
+                  data: 'iVBORw0KGgo=',
+                },
+              },
+            ],
+          },
+        ],
+      }),
+      output: JSON.stringify({
+        content: [
+          {
+            type: 'tool-call',
+            toolName: 'captureScreenshot',
+            toolCallId: 'screenshot-call',
+            input: { area: 'viewport' },
+          },
+          {
+            type: 'tool-result',
+            toolName: 'captureScreenshot',
+            toolCallId: 'screenshot-call',
+            output: {
+              base64: 'raw execute output is not itself a media part',
+            },
+          },
+        ],
+        toolResults: [
+          {
+            type: 'tool-result',
+            toolName: 'captureScreenshot',
+            toolCallId: 'screenshot-call',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'file',
+                  filename: 'tool-screenshot.png',
+                  mediaType: 'image/png',
+                  data: {
+                    type: 'data',
+                    data: 'iVBORw0KGgo=',
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      }),
+      usage: JSON.stringify({
+        inputTokens: 20,
+        outputTokens: 10,
+      }),
+      error: null,
+      raw_request: null,
+      raw_response: null,
+      raw_chunks: null,
+      provider_options: null,
+    },
+  ],
+  childRuns: [],
+};
+
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/runs', route =>
     route.fulfill({
@@ -153,6 +255,12 @@ test.beforeEach(async ({ page }) => {
       body: JSON.stringify(selectedRun),
     }),
   );
+  await page.route('**/api/runs/media-run', route =>
+    route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify(mediaRun),
+    }),
+  );
   await page.route('**/api/events', route =>
     route.fulfill({
       contentType: 'text/event-stream',
@@ -161,14 +269,16 @@ test.beforeEach(async ({ page }) => {
   );
 
   await page.goto('/');
-  await expect(page.getByText('generate', { exact: true })).toBeVisible();
+  await expect(
+    page.getByText('generate', { exact: true }).first(),
+  ).toBeVisible();
 });
 
 test('theme status text and keyboard focus meet contrast targets', async ({
   page,
 }) => {
   const themeToggle = page.getByRole('button', { name: 'Use light theme' });
-  const generateBadge = page.getByText('generate', { exact: true });
+  const generateBadge = page.getByText('generate', { exact: true }).first();
   const streamBadge = page.getByText('stream', { exact: true });
 
   await assertThemeContrast({
@@ -244,14 +354,14 @@ test('selected-run content and timeline metadata meet contrast targets', async (
 test('shows media previews in prompts and tool results', async ({ page }) => {
   await page
     .getByRole('button', {
-      name: /Generate a concise status update/,
+      name: /Capture a screenshot/,
     })
     .click();
 
   await page
     .locator('main')
     .getByRole('button', {
-      name: /Inspect representative selecte/,
+      name: /Capture a screenshot/,
     })
     .click();
 
@@ -261,10 +371,21 @@ test('shows media previews in prompts and tool results', async ({ page }) => {
     page.getByRole('img', { name: 'input-screenshot.png' }),
   ).toHaveAttribute('src', 'data:image/png;base64,iVBORw0KGgo=');
 
-  await page.getByRole('button', { name: /Result lookupWeather/ }).click();
+  await page.keyboard.press('Escape');
+  await page
+    .getByRole('button', { name: /captureScreenshot/ })
+    .last()
+    .click();
 
   await expect(
     page.getByRole('img', { name: 'tool-screenshot.png' }),
+  ).toHaveAttribute('src', 'data:image/png;base64,iVBORw0KGgo=');
+
+  await page.getByRole('button', { name: 'Timeline' }).click();
+  await page.getByText('captureScreenshot', { exact: true }).first().click();
+
+  await expect(
+    page.getByRole('img', { name: 'tool-screenshot.png' }).last(),
   ).toHaveAttribute('src', 'data:image/png;base64,iVBORw0KGgo=');
 });
 

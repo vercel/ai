@@ -2,6 +2,11 @@ import React, { useState } from 'react';
 import { Download, ExternalLink, File, Image } from 'lucide-react';
 import { findMediaPreviews, type MediaPreviewData } from '../media';
 
+const credentiallessMediaProps = {
+  crossOrigin: 'anonymous' as const,
+  referrerPolicy: 'no-referrer' as const,
+};
+
 export function MediaPreviewList({ data }: { data: unknown }) {
   const previews = findMediaPreviews(data);
 
@@ -51,8 +56,8 @@ function MediaPreviewCard({ preview }: { preview: MediaPreviewData }) {
           className="max-h-72 w-full bg-muted/30 object-contain"
           decoding="async"
           loading="lazy"
-          referrerPolicy="no-referrer"
           src={preview.source}
+          {...credentiallessMediaProps}
         />
       )}
 
@@ -64,6 +69,7 @@ function MediaPreviewCard({ preview }: { preview: MediaPreviewData }) {
           controls
           preload="none"
           src={preview.source}
+          {...credentiallessMediaProps}
         />
       )}
 
@@ -75,6 +81,7 @@ function MediaPreviewCard({ preview }: { preview: MediaPreviewData }) {
           controls
           preload="metadata"
           src={preview.source}
+          {...credentiallessMediaProps}
         />
       )}
 
@@ -110,7 +117,8 @@ function MediaPreviewCard({ preview }: { preview: MediaPreviewData }) {
 
         {preview.source == null && (
           <span className="text-xs text-muted-foreground">
-            Preview unavailable; inspect the JSON metadata below.
+            {preview.unavailableReason ??
+              'Preview unavailable; inspect the JSON metadata below.'}
           </span>
         )}
       </div>

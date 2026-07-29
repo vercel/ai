@@ -45,4 +45,30 @@ describe('serializeForDevTools', () => {
       timestamp: '2026-07-29T00:00:00.000Z',
     });
   });
+
+  it('preserves prototype-defined toJSON behavior', () => {
+    class RedactedValue {
+      secret = 'token';
+
+      toJSON() {
+        return { redacted: true };
+      }
+    }
+
+    expect(
+      JSON.parse(
+        serializeForDevTools({
+          value: new RedactedValue(),
+        }),
+      ),
+    ).toEqual({
+      value: { redacted: true },
+    });
+  });
+
+  it('normalizes root binary values', () => {
+    expect(serializeForDevTools(new Uint8Array([137, 80, 78, 71]))).toBe(
+      '"iVBORw=="',
+    );
+  });
 });

@@ -204,7 +204,7 @@ describe('DevToolsTelemetry', () => {
       `);
     });
 
-    it('stores binary media in prompts and tool results as base64', async () => {
+    it('stores binary prompts and transformed tool media as base64', async () => {
       const integration = createIntegration();
 
       await integration.onStart!(makeStartEvent());
@@ -234,21 +234,39 @@ describe('DevToolsTelemetry', () => {
               type: 'tool-result',
               toolName: 'screenshot',
               toolCallId: 'call-1',
-              output: {
-                type: 'content',
-                value: [
+              output: { base64: 'raw execute output' },
+            },
+          ],
+          response: {
+            id: 'resp-1',
+            modelId: 'test-model',
+            timestamp: new Date('2025-01-01'),
+            messages: [
+              {
+                role: 'tool',
+                content: [
                   {
-                    type: 'file',
-                    mediaType: 'image/png',
-                    data: {
-                      type: 'data',
-                      data: new Uint8Array([137, 80, 78, 71]),
+                    type: 'tool-result',
+                    toolName: 'screenshot',
+                    toolCallId: 'call-1',
+                    output: {
+                      type: 'content',
+                      value: [
+                        {
+                          type: 'file',
+                          mediaType: 'image/png',
+                          data: {
+                            type: 'data',
+                            data: new Uint8Array([137, 80, 78, 71]),
+                          },
+                        },
+                      ],
                     },
                   },
                 ],
               },
-            },
-          ],
+            ],
+          },
         }),
       );
 
@@ -266,7 +284,7 @@ describe('DevToolsTelemetry', () => {
       expect(
         JSON.parse(mockUpdateStepResult.mock.calls[0][1].output),
       ).toMatchObject({
-        content: [
+        toolResults: [
           {
             output: {
               value: [

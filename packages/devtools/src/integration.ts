@@ -95,6 +95,33 @@ function getOperationType(operationId: string): OperationType {
   return 'generate';
 }
 
+function getToolResultsFromResponseMessages(messages: unknown): unknown[] {
+  if (!Array.isArray(messages)) {
+    return [];
+  }
+
+  return messages.flatMap(message => {
+    if (
+      message == null ||
+      typeof message !== 'object' ||
+      !('role' in message) ||
+      message.role !== 'tool' ||
+      !('content' in message) ||
+      !Array.isArray(message.content)
+    ) {
+      return [];
+    }
+
+    return message.content.filter(
+      (part: unknown) =>
+        part != null &&
+        typeof part === 'object' &&
+        'type' in part &&
+        part.type === 'tool-result',
+    );
+  });
+}
+
 /**
  * Creates a devtools telemetry integration that logs all AI SDK operations
  * to the devtools viewer.
@@ -281,7 +308,7 @@ export function DevToolsTelemetry(
           seed: state.settings.seed,
         }),
         provider_options: stepStartEvent.providerOptions
-          ? serializeForDevTools(stepStartEvent.providerOptions)
+          ? JSON.stringify(stepStartEvent.providerOptions)
           : null,
       });
     },
@@ -323,7 +350,7 @@ export function DevToolsTelemetry(
           seed: state.settings.seed,
         }),
         provider_options: stepStartEvent.providerOptions
-          ? serializeForDevTools(stepStartEvent.providerOptions)
+          ? JSON.stringify(stepStartEvent.providerOptions)
           : null,
       });
     },
@@ -340,9 +367,13 @@ export function DevToolsTelemetry(
       activeSteps.delete(stepState.stepId);
 
       const durationMs = Date.now() - stepState.startTime;
+      const toolResults = getToolResultsFromResponseMessages(
+        stepResult.response.messages,
+      );
 
       const output = {
         content: stepResult.content,
+        ...(toolResults.length > 0 ? { toolResults } : {}),
         finishReason: stepResult.finishReason,
         response: {
           id: stepResult.response.id,
@@ -355,13 +386,13 @@ export function DevToolsTelemetry(
       await updateStepResult(stepState.stepId, {
         duration_ms: durationMs,
         output: serializeForDevTools(output),
-        usage: stepResult.usage ? serializeForDevTools(stepResult.usage) : null,
+        usage: stepResult.usage ? JSON.stringify(stepResult.usage) : null,
         error: null,
         raw_request: stepResult.request?.body
-          ? serializeForDevTools(stepResult.request.body)
+          ? JSON.stringify(stepResult.request.body)
           : null,
         raw_response: stepResult.response?.body
-          ? serializeForDevTools(stepResult.response.body)
+          ? JSON.stringify(stepResult.response.body)
           : null,
         raw_chunks: null,
       });
@@ -394,14 +425,14 @@ export function DevToolsTelemetry(
 
       await updateStepResult(stepState.stepId, {
         duration_ms: durationMs,
-        output: serializeForDevTools(output),
-        usage: stepResult.usage ? serializeForDevTools(stepResult.usage) : null,
+        output: JSON.stringify(output),
+        usage: stepResult.usage ? JSON.stringify(stepResult.usage) : null,
         error: null,
         raw_request: stepResult.request?.body
-          ? serializeForDevTools(stepResult.request.body)
+          ? JSON.stringify(stepResult.request.body)
           : null,
         raw_response: stepResult.response?.body
-          ? serializeForDevTools(stepResult.response.body)
+          ? JSON.stringify(stepResult.response.body)
           : null,
       });
 

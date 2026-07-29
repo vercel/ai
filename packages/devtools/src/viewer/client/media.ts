@@ -6,7 +6,22 @@ export interface MediaPreviewData {
   mediaType: string;
   source?: string;
   sourceType?: 'inline' | 'remote';
+  unavailableReason?: string;
 }
+
+export interface MediaPreviewLimits {
+  maxCount: number;
+  maxDepth: number;
+  maxInlineBytes: number;
+  maxNodes: number;
+}
+
+export const DEFAULT_MEDIA_PREVIEW_LIMITS: MediaPreviewLimits = {
+  maxCount: 8,
+  maxDepth: 12,
+  maxInlineBytes: 5 * 1024 * 1024,
+  maxNodes: 1000,
+};
 
 const safeInlineMediaTypes = new Set([
   'audio/m4a',
@@ -66,28 +81,54 @@ function detectInlineMediaType({
   return undefined;
 }
 
+function getBase64ByteLength(value: string): number | undefined {
+  if (
+    value.length === 0 ||
+    value.length % 4 !== 0 ||
+    !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(
+      value,
+    )
+  ) {
+    return undefined;
+  }
+
+  const padding = value.endsWith('==') ? 2 : value.endsWith('=') ? 1 : 0;
+  return (value.length / 4) * 3 - padding;
+}
+
 function getSafeSource({
   source,
   mediaType,
+  maxInlineBytes,
 }: {
   source: unknown;
   mediaType: string;
-}): Pick<MediaPreviewData, 'source' | 'sourceType'> {
+  maxInlineBytes: number;
+}): Pick<MediaPreviewData, 'source' | 'sourceType' | 'unavailableReason'> {
   if (typeof source !== 'string') {
     return {};
   }
 
   if (source.startsWith('data:')) {
-    const match = /^data:([^;,]+);base64,/i.exec(source);
+    const match = /^data:([^;,]+);base64,(.*)$/i.exec(source);
     const sourceMediaType = match?.[1]?.toLowerCase();
+    const byteLength =
+      match?.[2] == null ? undefined : getBase64ByteLength(match[2]);
     const declaredTopLevelType = mediaType.toLowerCase().split('/')[0];
     if (
       sourceMediaType == null ||
+      byteLength == null ||
       (sourceMediaType !== mediaType.toLowerCase() &&
         sourceMediaType.split('/')[0] !== declaredTopLevelType) ||
       !safeInlineMediaTypes.has(sourceMediaType)
     ) {
       return {};
+    }
+
+    if (byteLength > maxInlineBytes) {
+      return {
+        unavailableReason: `Inline preview exceeds the ${maxInlineBytes}-byte limit.`,
+      };
     }
 
     return { source, sourceType: 'inline' };
@@ -103,8 +144,15 @@ function getSafeSource({
       data: source,
       mediaType,
     });
-    if (inlineMediaType == null) {
+    const byteLength = getBase64ByteLength(source);
+    if (inlineMediaType == null || byteLength == null) {
       return {};
+    }
+
+    if (byteLength > maxInlineBytes) {
+      return {
+        unavailableReason: `Inline preview exceeds the ${maxInlineBytes}-byte limit.`,
+      };
     }
 
     return {
@@ -116,9 +164,15 @@ function getSafeSource({
 
 function getFileData(
   value: Record<string, unknown>,
-): Pick<MediaPreviewData, 'source' | 'sourceType'> {
+  maxInlineBytes: number,
+): Pick<MediaPreviewData, 'source' | 'sourceType' | 'unavailableReason'> {
+  const generatedFile = isRecord(value.file) ? value.file : undefined;
   const mediaType =
-    typeof value.mediaType === 'string' ? value.mediaType : undefined;
+    typeof value.mediaType === 'string'
+      ? value.mediaType
+      : typeof generatedFile?.mediaType === 'string'
+        ? generatedFile.mediaType
+        : undefined;
   if (mediaType == null) {
     return {};
   }
@@ -126,34 +180,57 @@ function getFileData(
   const data = value.data;
   if (isRecord(data)) {
     if (data.type === 'data') {
-      return getSafeSource({ source: data.data, mediaType });
+      return getSafeSource({ source: data.data, mediaType, maxInlineBytes });
     }
     if (data.type === 'url') {
-      return getSafeSource({ source: data.url, mediaType });
+      return getSafeSource({ source: data.url, mediaType, maxInlineBytes });
     }
     return {};
   }
 
-  return getSafeSource({ source: data, mediaType });
+  const generatedFileData =
+    generatedFile?.base64 ??
+    generatedFile?.base64Data ??
+    generatedFile?.uint8Array ??
+    generatedFile?.uint8ArrayData;
+
+  return getSafeSource({
+    source: data ?? generatedFileData,
+    mediaType,
+    maxInlineBytes,
+  });
 }
 
-function parseMediaPart(value: unknown): MediaPreviewData | undefined {
+function parseMediaPart(
+  value: unknown,
+  maxInlineBytes: number,
+): MediaPreviewData | undefined {
   if (!isRecord(value) || typeof value.type !== 'string') {
     return undefined;
   }
 
   if (value.type === 'file' || value.type === 'reasoning-file') {
+    const generatedFile = isRecord(value.file) ? value.file : undefined;
     const mediaType =
-      typeof value.mediaType === 'string' ? value.mediaType : undefined;
+      typeof value.mediaType === 'string'
+        ? value.mediaType
+        : typeof generatedFile?.mediaType === 'string'
+          ? generatedFile.mediaType
+          : undefined;
     if (mediaType == null) {
       return undefined;
     }
 
     return {
-      filename: typeof value.filename === 'string' ? value.filename : undefined,
+      filename:
+        typeof value.filename === 'string'
+          ? value.filename
+          : typeof generatedFile?.filename === 'string'
+            ? generatedFile.filename
+            : undefined,
       kind: getKind(mediaType),
       mediaType,
-      ...getFileData(value),
+      ...getFileData(value, maxInlineBytes),
     };
   }
 
@@ -171,7 +248,7 @@ function parseMediaPart(value: unknown): MediaPreviewData | undefined {
     return {
       kind: 'image',
       mediaType,
-      ...getSafeSource({ source, mediaType }),
+      ...getSafeSource({ source, mediaType, maxInlineBytes }),
     };
   }
 
@@ -194,7 +271,11 @@ function parseMediaPart(value: unknown): MediaPreviewData | undefined {
       filename: typeof value.filename === 'string' ? value.filename : undefined,
       kind: getKind(mediaType),
       mediaType,
-      ...getSafeSource({ source: value.data, mediaType }),
+      ...getSafeSource({
+        source: value.data,
+        mediaType,
+        maxInlineBytes,
+      }),
     };
   }
 
@@ -210,33 +291,61 @@ function parseMediaPart(value: unknown): MediaPreviewData | undefined {
       filename: typeof value.filename === 'string' ? value.filename : undefined,
       kind: getKind(mediaType),
       mediaType,
-      ...getSafeSource({ source: value.url, mediaType }),
+      ...getSafeSource({ source: value.url, mediaType, maxInlineBytes }),
     };
   }
 
   return undefined;
 }
 
-export function findMediaPreviews(value: unknown): MediaPreviewData[] {
+export function findMediaPreviews(
+  value: unknown,
+  limitOverrides: Partial<MediaPreviewLimits> = {},
+): MediaPreviewData[] {
+  const limits = { ...DEFAULT_MEDIA_PREVIEW_LIMITS, ...limitOverrides };
   const previews: MediaPreviewData[] = [];
+  const visited = new WeakSet<object>();
+  const pending: Array<{ value: unknown; depth: number }> = [
+    { value, depth: 0 },
+  ];
+  let visitedNodes = 0;
 
-  function visit(current: unknown) {
-    const preview = parseMediaPart(current);
+  while (
+    pending.length > 0 &&
+    previews.length < limits.maxCount &&
+    visitedNodes < limits.maxNodes
+  ) {
+    const { value: current, depth } = pending.pop()!;
+    visitedNodes++;
+
+    const preview = parseMediaPart(current, limits.maxInlineBytes);
     if (preview != null) {
       previews.push(preview);
-      return;
+      continue;
     }
 
-    if (Array.isArray(current)) {
-      current.forEach(visit);
-      return;
+    if (
+      depth >= limits.maxDepth ||
+      current == null ||
+      typeof current !== 'object'
+    ) {
+      continue;
     }
 
-    if (isRecord(current)) {
-      Object.values(current).forEach(visit);
+    if (visited.has(current)) {
+      continue;
+    }
+    visited.add(current);
+
+    const children = Array.isArray(current)
+      ? current
+      : isRecord(current)
+        ? Object.values(current)
+        : [];
+    for (let index = children.length - 1; index >= 0; index--) {
+      pending.push({ value: children[index], depth: depth + 1 });
     }
   }
 
-  visit(value);
   return previews;
 }
