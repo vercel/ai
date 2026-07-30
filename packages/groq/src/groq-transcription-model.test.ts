@@ -10,6 +10,16 @@ vi.mock('./version', () => ({
 }));
 
 const audioData = await readFile(path.join(__dirname, 'transcript-test.mp3'));
+const textResponseFixture = JSON.parse(
+  await readFile(
+    path.join(__dirname, '__fixtures__/groq-transcription-text.json'),
+    'utf8',
+  ),
+) as {
+  status: number;
+  contentType: string;
+  body: string;
+};
 const provider = createGroq({ apiKey: 'test-api-key' });
 const model = provider.transcription('whisper-large-v3-turbo');
 
@@ -105,6 +115,35 @@ describe('doGenerate', () => {
     });
 
     expect(result.text).toBe('Hello world!');
+  });
+
+  it('should extract a plain-text transcription when responseFormat is text', async () => {
+    server.urls[
+      'https://api.groq.com/openai/v1/audio/transcriptions'
+    ].response = {
+      type: 'stream-chunks',
+      headers: {
+        'Content-Type': textResponseFixture.contentType,
+      },
+      chunks: [textResponseFixture.body],
+    };
+
+    const result = await provider.transcription('whisper-large-v3').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/mpeg',
+      providerOptions: {
+        groq: {
+          responseFormat: 'text',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+      model: 'whisper-large-v3',
+      response_format: 'text',
+    });
+    expect(result.text).toBe(textResponseFixture.body);
+    expect(result.response.body).toBe(textResponseFixture.body);
   });
 
   it('should include response data with timestamp, modelId and headers', async () => {

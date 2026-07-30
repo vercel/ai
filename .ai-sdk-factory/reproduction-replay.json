@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 12118,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-12118-groq-transcription-text.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-12118-groq-transcription-text.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_12118_REPRODUCED: AI SDK rejected Groq responseFormat=text with Invalid JSON response"
+  }
+}
