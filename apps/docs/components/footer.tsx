@@ -24,6 +24,14 @@ export const Footer = () => (
             />
           </svg>
         </a>
+        <a
+          className="inline-flex size-9 items-center justify-center rounded-md text-gray-900 hover:bg-gray-100 hover:text-gray-1000 focus-visible:ring-2 focus-visible:ring-blue-700"
+          href="https://eve.dev/"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          eve
+        </a>
         <ThemeToggle />
       </div>
     </div>
