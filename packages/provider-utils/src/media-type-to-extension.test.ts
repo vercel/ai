@@ -15,6 +15,9 @@ describe('mediaTypeToExtension()', () => {
     ['audio/x-m4a', 'm4a'],
     ['audio/flac', 'flac'],
     ['audio/aac', 'aac'],
+    // parameters
+    ['audio/webm;codecs=opus', 'webm'],
+    ['audio/mp4; codecs=mp4a.40.2', 'm4a'],
     // upper case
     ['AUDIO/MPEG', 'mp3'],
     ['AUDIO/MP3', 'mp3'],
