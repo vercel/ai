@@ -679,9 +679,10 @@ export type OpenAIResponsesReasoning = {
 // currently documented ResponseErrorEvent below.
 const openaiResponsesNestedErrorChunkSchema = z.object({
   type: z.literal('error'),
-  sequence_number: z.number(),
+  sequence_number: z.number().optional(),
+  status: z.number().optional(),
   error: z.object({
-    type: z.string(),
+    type: z.string().optional(),
     code: z.string(),
     message: z.string(),
     param: z.string().nullish(),
@@ -692,7 +693,8 @@ const openaiResponsesNestedErrorChunkSchema = z.object({
 // code/message/param fields.
 const openaiResponsesErrorChunkSchema = z.object({
   type: z.literal('error'),
-  sequence_number: z.number(),
+  sequence_number: z.number().optional(),
+  status: z.number().optional(),
   code: z.string().nullish(),
   message: z.string(),
   param: z.string().nullish(),

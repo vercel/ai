@@ -5,6 +5,7 @@ type StreamError = {
   message: string;
   code?: string | number | null;
   type?: string | null;
+  status?: number;
   frame: unknown;
 };
 
@@ -17,6 +18,7 @@ export async function throwIfOpenAIStreamErrorBeforeOutput<T>({
   url,
   requestBodyValues,
   responseHeaders,
+  isRetryable,
 }: {
   stream: ReadableStream<ParseResult<T>>;
   getError: (chunk: T) => unknown | undefined;
@@ -39,6 +41,7 @@ export async function throwIfOpenAIStreamErrorBeforeOutput<T>({
   url: string;
   requestBodyValues: unknown;
   responseHeaders?: Record<string, string>;
+  isRetryable?: boolean;
 }): Promise<ReadableStream<ParseResult<T>>> {
   const [streamForEarlyError, streamForConsumer] = stream.tee();
   const reader = streamForEarlyError.getReader();
@@ -84,6 +87,7 @@ export async function throwIfOpenAIStreamErrorBeforeOutput<T>({
           url,
           requestBodyValues,
           responseHeaders,
+          isRetryable,
         });
       }
 
@@ -148,11 +152,13 @@ function createOpenAIStreamError({
   url,
   requestBodyValues,
   responseHeaders,
+  isRetryable,
 }: {
   frame: unknown;
   url: string;
   requestBodyValues: unknown;
   responseHeaders?: Record<string, string>;
+  isRetryable?: boolean;
 }): APICallError {
   const streamError = parseStreamError(frame);
   return new APICallError({
@@ -165,6 +171,9 @@ function createOpenAIStreamError({
     responseHeaders,
     responseBody: JSON.stringify(frame),
     data: frame,
+    // HTTP callers leave this undefined and retain the normal APICallError
+    // inference. WebSocket callers pass false after `response.create` is sent.
+    isRetryable,
   });
 }
 
@@ -184,6 +193,7 @@ function parseStreamError(frame: unknown): StreamError | undefined {
           message: responseError.message,
           code: getStringOrNumber(responseError.code),
           type: 'response.failed',
+          status: getHttpErrorStatus(value.status),
           frame,
         }
       : undefined;
@@ -200,12 +210,18 @@ function parseStreamError(frame: unknown): StreamError | undefined {
         message: error.message,
         code: getStringOrNumber(error.code),
         type: typeof error.type === 'string' ? error.type : undefined,
+        status:
+          getHttpErrorStatus(value.status) ?? getHttpErrorStatus(error.status),
         frame,
       }
     : undefined;
 }
 
 function getStatusCode(error: StreamError): number {
+  if (error.status != null) {
+    return error.status;
+  }
+
   if (typeof error.code === 'number' && isHttpErrorStatusCode(error.code)) {
     return error.code;
   }
@@ -243,6 +259,12 @@ function getStatusCode(error: StreamError): number {
   if (discriminator.includes('timeout')) return 504;
 
   return 500;
+}
+
+function getHttpErrorStatus(value: unknown): number | undefined {
+  return typeof value === 'number' && isHttpErrorStatusCode(value)
+    ? value
+    : undefined;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
