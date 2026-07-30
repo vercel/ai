@@ -233,7 +233,7 @@ export abstract class HttpChatTransport<
       requestMetadata: options.metadata,
     });
 
-    const api = preparedRequest?.api ?? `${this.api}/${options.chatId}/stream`;
+    const api = preparedRequest?.api ?? `${this.api}/${encodeURIComponent(options.chatId)}/stream`;
     const headers =
       preparedRequest?.headers !== undefined
         ? normalizeHeaders(preparedRequest.headers)
