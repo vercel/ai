@@ -394,12 +394,12 @@ describe('KlingAIVideoModel', () => {
       );
     });
 
-    it('should warn about unsupported seed', async () => {
+    it('should warn about an unsupported zero seed', async () => {
       const model = createBasicModel();
 
       const result = await model.doGenerate({
         ...defaultOptions,
-        seed: 42,
+        seed: 0,
       });
 
       expect(result.warnings).toContainEqual(
