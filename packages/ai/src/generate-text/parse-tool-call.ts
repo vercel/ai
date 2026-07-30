@@ -221,7 +221,7 @@ async function doParseToolCall<TOOLS extends ToolSet>({
                 input: retryResult.value,
                 providerExecuted: toolCall.providerExecuted,
                 providerMetadata: toolCall.providerMetadata,
-                ...(tool.metadata !== null
+                ...(tool.metadata != null
                   ? { toolMetadata: tool.metadata }
                   : {}),
                 dynamic: true,
@@ -234,7 +234,7 @@ async function doParseToolCall<TOOLS extends ToolSet>({
                 input: retryResult.value,
                 providerExecuted: toolCall.providerExecuted,
                 providerMetadata: toolCall.providerMetadata,
-                ...(tool.metadata !== null
+                ...(tool.metadata != null
                   ? { toolMetadata: tool.metadata }
                   : {}),
                 title: tool.title,
