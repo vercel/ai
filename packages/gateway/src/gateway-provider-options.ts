@@ -47,6 +47,14 @@ export type GatewayProviderOptions = {
   /** User-specified tags for reporting and filtering usage. */
   tags?: string[];
 
+  /**
+   * Transport used end-to-end for Gateway language model calls. This takes
+   * priority over model provider transport options. When omitted, a model
+   * provider's `'websocket'` transport selects WebSockets. Defaults to
+   * `'http'`.
+   */
+  transport?: 'http' | 'websocket';
+
   /** End-user identifier for spend tracking and attribution. */
   user?: string;
 

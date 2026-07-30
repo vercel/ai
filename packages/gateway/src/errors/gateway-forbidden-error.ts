@@ -31,14 +31,16 @@ export class GatewayForbiddenError extends GatewayError {
     cause,
     generationId,
     ruleId,
+    isRetryable,
   }: {
     message?: string;
     statusCode?: number;
     cause?: unknown;
     generationId?: string;
     ruleId?: string;
+    isRetryable?: boolean;
   } = {}) {
-    super({ message, statusCode, cause, generationId });
+    super({ message, statusCode, cause, generationId, isRetryable });
     this.ruleId = ruleId;
   }
 

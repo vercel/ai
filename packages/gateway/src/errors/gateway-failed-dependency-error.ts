@@ -20,13 +20,15 @@ export class GatewayFailedDependencyError extends GatewayError {
     statusCode = 424,
     cause,
     generationId,
+    isRetryable,
   }: {
     message?: string;
     statusCode?: number;
     cause?: unknown;
     generationId?: string;
+    isRetryable?: boolean;
   } = {}) {
-    super({ message, statusCode, cause, generationId });
+    super({ message, statusCode, cause, generationId, isRetryable });
   }
 
   static isInstance(error: unknown): error is GatewayFailedDependencyError {

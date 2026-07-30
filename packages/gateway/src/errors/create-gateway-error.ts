@@ -26,12 +26,14 @@ export async function createGatewayErrorFromResponse({
   defaultMessage = 'Gateway request failed',
   cause,
   authMethod,
+  isRetryable,
 }: {
   response: unknown;
   statusCode: number;
   defaultMessage?: string;
   cause?: unknown;
   authMethod?: 'api-key' | 'oidc';
+  isRetryable?: boolean;
 }): Promise<GatewayError> {
   const parseResult = await safeValidateTypes({
     value: response,
@@ -54,6 +56,7 @@ export async function createGatewayErrorFromResponse({
       validationError: parseResult.error,
       cause,
       generationId: rawGenerationId,
+      isRetryable,
     });
   }
 
@@ -70,6 +73,7 @@ export async function createGatewayErrorFromResponse({
         statusCode,
         cause,
         generationId,
+        isRetryable,
       });
     case 'invalid_request_error':
       return new GatewayInvalidRequestError({
@@ -77,6 +81,7 @@ export async function createGatewayErrorFromResponse({
         statusCode,
         cause,
         generationId,
+        isRetryable,
       });
     case 'rate_limit_exceeded':
       return new GatewayRateLimitError({
@@ -84,6 +89,7 @@ export async function createGatewayErrorFromResponse({
         statusCode,
         cause,
         generationId,
+        isRetryable,
       });
     case 'model_not_found': {
       const modelResult = await safeValidateTypes({
@@ -97,6 +103,7 @@ export async function createGatewayErrorFromResponse({
         modelId: modelResult.success ? modelResult.value.modelId : undefined,
         cause,
         generationId,
+        isRetryable,
       });
     }
     case 'internal_server_error':
@@ -105,6 +112,7 @@ export async function createGatewayErrorFromResponse({
         statusCode,
         cause,
         generationId,
+        isRetryable,
       });
     case 'failed_dependency':
       return new GatewayFailedDependencyError({
@@ -112,6 +120,7 @@ export async function createGatewayErrorFromResponse({
         statusCode,
         cause,
         generationId,
+        isRetryable,
       });
     case 'forbidden': {
       const ruleResult = await safeValidateTypes({
@@ -125,6 +134,7 @@ export async function createGatewayErrorFromResponse({
         cause,
         generationId,
         ruleId: ruleResult.success ? ruleResult.value.ruleId : undefined,
+        isRetryable,
       });
     }
     default:
@@ -133,6 +143,7 @@ export async function createGatewayErrorFromResponse({
         statusCode,
         cause,
         generationId,
+        isRetryable,
       });
   }
 }
