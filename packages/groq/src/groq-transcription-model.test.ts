@@ -217,4 +217,57 @@ describe('doGenerate', () => {
       response_format: 'verbose_json',
     });
   });
+
+  it('should fallback to words when segments are not available', async () => {
+    server.urls[
+      'https://api.groq.com/openai/v1/audio/transcriptions'
+    ].response = {
+      type: 'json-value',
+      body: {
+        task: 'transcribe',
+        language: 'English',
+        duration: 2,
+        text: 'Hello world',
+        segments: null,
+        words: [
+          {
+            word: 'Hello',
+            start: 0,
+            end: 1,
+          },
+          {
+            word: 'world',
+            start: 1,
+            end: 2,
+          },
+        ],
+        x_groq: { id: 'req_01jrh9nn61f24rydqq1r4b3yg5' },
+      },
+    };
+
+    const result = await provider.transcription('whisper-large-v3').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        groq: {
+          language: 'en',
+          responseFormat: 'verbose_json',
+          timestampGranularities: ['word'],
+        },
+      },
+    });
+
+    expect(result.segments).toEqual([
+      {
+        text: 'Hello',
+        startSecond: 0,
+        endSecond: 1,
+      },
+      {
+        text: 'world',
+        startSecond: 1,
+        endSecond: 2,
+      },
+    ]);
+  });
 });
