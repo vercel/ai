@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.145
+
+### Patch Changes
+
+- 6077642: fix(amazon-bedrock): warn when unsupported strict tools are omitted and align structured output fallback routing
+
 ## 4.0.144
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @ai-sdk/groq
 
+## 3.0.55
+
+### Patch Changes
+
+- ae2812a: fix(groq): map word timestamps to transcription segments when segment timestamps are unavailable
+- cc3269f: Support plain-text responses from Groq transcription models when `responseFormat` is set to `text`.
+
 ## 3.0.54
 
 ### Patch Changes
