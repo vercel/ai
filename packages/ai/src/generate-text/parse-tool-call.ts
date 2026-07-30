@@ -15,6 +15,7 @@ import { getOwn } from '../util/get-own';
 import type { DynamicToolCall, TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { ToolInputRefinement } from './tool-input-refinement';
+import { coerceNullableToolInput } from '../util/coerce-nullable-tool-input';
 
 export async function parseToolCall<TOOLS extends ToolSet>({
   toolCall,
@@ -194,6 +195,53 @@ async function doParseToolCall<TOOLS extends ToolSet>({
       : await safeParseJSON({ text: toolCall.input, schema });
 
   if (parseResult.success === false) {
+    // When strict : true , some models , omit required nullables fileds instead of
+    // setting then to null . Attempt to coerce missing nullable fields to null
+    // and re-validate before throwing.
+
+    if (tool.strict === true) {
+      const jsonSchema = await schema.jsonSchema;
+      const rawParsed = await safeParseJSON({ text: toolCall.input });
+      if (
+        rawParsed.success &&
+        typeof rawParsed.value === 'object' &&
+        rawParsed.value !== null
+      ) {
+        const coerced = coerceNullableToolInput(
+          rawParsed.value as Record<string, unknown>,
+          jsonSchema,
+        );
+        const retryResult = await safeValidateTypes({ value: coerced, schema });
+        if (retryResult.success) {
+          return tool.type === 'dynamic'
+            ? {
+                type: 'tool-call',
+                toolCallId: toolCall.toolCallId,
+                toolName: toolCall.toolName,
+                input: retryResult.value,
+                providerExecuted: toolCall.providerExecuted,
+                providerMetadata: toolCall.providerMetadata,
+                ...(tool.metadata !== null
+                  ? { toolMetadata: tool.metadata }
+                  : {}),
+                dynamic: true,
+                title: tool.title,
+              }
+            : {
+                type: 'tool-call',
+                toolCallId: toolCall.toolCallId,
+                toolName,
+                input: retryResult.value,
+                providerExecuted: toolCall.providerExecuted,
+                providerMetadata: toolCall.providerMetadata,
+                ...(tool.metadata !== null
+                  ? { toolMetadata: tool.metadata }
+                  : {}),
+                title: tool.title,
+              };
+        }
+      }
+    }
     throw new InvalidToolInputError({
       toolName,
       toolInput: toolCall.input,

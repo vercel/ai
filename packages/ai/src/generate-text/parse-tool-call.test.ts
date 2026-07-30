@@ -841,4 +841,104 @@ describe('parseToolCall', () => {
       `);
     });
   });
+  describe('strict mode nullable field coercion', () => {
+    it('should coerce missing required nullable fields to null when strict: true', async () => {
+      const result = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolName: 'createSlides',
+          toolCallId: '123',
+          // clientRef is missing — model omitted it despite strict: true
+          input: JSON.stringify({
+            title: 'Example Title',
+            description: 'A description.',
+            parentRef: 'course',
+            content: { slides: [{ kind: 'custom' }] },
+          }),
+        },
+        tools: {
+          createSlides: tool({
+            strict: true,
+            inputSchema: z.object({
+              title: z.string().min(1).max(300),
+              description: z.string().max(2000).nullable(),
+              parentRef: z.string().min(1).max(100).nullable(),
+              content: z
+                .object({ slides: z.array(z.unknown()).min(1) })
+                .strict()
+                .nullable(),
+              clientRef: z.string().min(1).max(100).nullable(),
+            }),
+          }),
+        } as const,
+        repairToolCall: undefined,
+        messages: [],
+        instructions: undefined,
+      });
+
+      expect(result.input).toStrictEqual({
+        title: 'Example Title',
+        description: 'A description.',
+        parentRef: 'course',
+        content: { slides: [{ kind: 'custom' }] },
+        clientRef: null,
+      });
+    });
+
+    it('should NOT coerce when strict is not set', async () => {
+      const result = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolName: 'createSlides',
+          toolCallId: '123',
+          input: JSON.stringify({ title: 'Title' }),
+        },
+        tools: {
+          createSlides: tool({
+            // no strict: true
+            inputSchema: z.object({
+              title: z.string(),
+              clientRef: z.string().nullable(),
+            }),
+          }),
+        } as const,
+        repairToolCall: undefined,
+        messages: [],
+        instructions: undefined,
+      });
+
+      // should still fail — coercion only runs for strict: true
+      expect(result.invalid).toBe(true);
+    });
+
+    it('should coerce multiple missing nullable fields', async () => {
+      const result = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolName: 'testTool',
+          toolCallId: '123',
+          input: JSON.stringify({ title: 'Only Title' }),
+        },
+        tools: {
+          testTool: tool({
+            strict: true,
+            inputSchema: z.object({
+              title: z.string(),
+              ref1: z.string().nullable(),
+              ref2: z.number().nullable(),
+            }),
+          }),
+        } as const,
+        repairToolCall: undefined,
+        messages: [],
+        instructions: undefined,
+      });
+
+      expect(result.input).toStrictEqual({
+        title: 'Only Title',
+        ref1: null,
+        ref2: null,
+      });
+    });
+  });
 });
