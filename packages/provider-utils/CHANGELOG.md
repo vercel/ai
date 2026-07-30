@@ -1,5 +1,12 @@
 # @ai-sdk/provider-utils
 
+## 5.0.16
+
+### Patch Changes
+
+- d8210b6: chore: centralize record type guards in provider-utils
+- b192878: feat: add experimental_toolCaller routing to generateText for code mode
+
 ## 5.0.15
 
 ### Patch Changes
