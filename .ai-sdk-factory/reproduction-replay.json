@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 18223,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-18223-openai-file-expiry.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-18223-openai-file-expiry.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_18223_REPRODUCED: AI SDK expiresAfter upload was rejected because expires_after was unexpected."
+  }
+}

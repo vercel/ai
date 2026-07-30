@@ -1,0 +1,38 @@
+{
+  "directBracketedUpload": {
+    "requestFields": {
+      "purpose": "user_data",
+      "expires_after[anchor]": "created_at",
+      "expires_after[seconds]": "604800"
+    },
+    "response": {
+      "object": "file",
+      "id": "file-KikekTxziprtHY5hUFuCZM",
+      "purpose": "user_data",
+      "filename": "issue-18223-probe.txt",
+      "bytes": 6,
+      "created_at": 1785439798,
+      "expires_at": 1786044598,
+      "status": "processed",
+      "status_details": null
+    }
+  },
+  "flatExpiresAfterUpload": {
+    "requestFields": {
+      "purpose": "user_data",
+      "expires_after": "604800"
+    },
+    "response": {
+      "error": {
+        "message": "Additional properties are not allowed ('expires_after' was unexpected)",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": null
+      },
+      "detail": {
+        "message": "Additional properties are not allowed ('expires_after' was unexpected)",
+        "code": null
+      }
+    }
+  }
+}
