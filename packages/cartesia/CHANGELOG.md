@@ -1,5 +1,13 @@
 # @ai-sdk/cartesia
 
+## 3.0.9
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+
 ## 3.0.8
 
 ### Patch Changes

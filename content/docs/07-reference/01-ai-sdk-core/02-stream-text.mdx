@@ -641,7 +641,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: '(options: PrepareStepOptions) => PrepareStepResult<TOOLS> | Promise<PrepareStepResult<TOOLS>>',
       isOptional: true,
       description:
-        'Optional function that you can use to provide different settings for a step. You can modify the model, tool choices, active tools, instructions, input messages, and experimental sandbox for each step.',
+        'Optional function that you can use to provide different settings for a step. You can modify the model, model call settings, tool choices, active tools, instructions, input messages, and experimental sandbox for each step.',
       properties: [
         {
           type: 'PrepareStepFunction<TOOLS>',
@@ -725,6 +725,69 @@ To see `streamText` in action, check out [these examples](#examples).
               isOptional: true,
               description:
                 'Optionally override which LanguageModel instance is used for this step.',
+            },
+            {
+              name: 'maxOutputTokens',
+              type: 'number',
+              isOptional: true,
+              description:
+                'Maximum number of tokens to generate for this step. Uses the top-level value when omitted or undefined.',
+            },
+            {
+              name: 'temperature',
+              type: 'number',
+              isOptional: true,
+              description:
+                'Temperature for this step. Uses the top-level value when omitted or undefined.',
+            },
+            {
+              name: 'topP',
+              type: 'number',
+              isOptional: true,
+              description:
+                'Nucleus sampling value for this step. Uses the top-level value when omitted or undefined.',
+            },
+            {
+              name: 'topK',
+              type: 'number',
+              isOptional: true,
+              description:
+                'Top-K sampling value for this step. Uses the top-level value when omitted or undefined.',
+            },
+            {
+              name: 'presencePenalty',
+              type: 'number',
+              isOptional: true,
+              description:
+                'Presence penalty for this step. Uses the top-level value when omitted or undefined.',
+            },
+            {
+              name: 'frequencyPenalty',
+              type: 'number',
+              isOptional: true,
+              description:
+                'Frequency penalty for this step. Uses the top-level value when omitted or undefined.',
+            },
+            {
+              name: 'stopSequences',
+              type: 'string[]',
+              isOptional: true,
+              description:
+                'Stop sequences for this step. Uses the top-level value when omitted or undefined.',
+            },
+            {
+              name: 'seed',
+              type: 'number',
+              isOptional: true,
+              description:
+                'Random sampling seed for this step. Uses the top-level value when omitted or undefined.',
+            },
+            {
+              name: 'reasoning',
+              type: 'LanguageModelV4CallOptions["reasoning"]',
+              isOptional: true,
+              description:
+                'Reasoning effort for this step. Uses the top-level value when omitted or undefined.',
             },
             {
               name: 'toolChoice',

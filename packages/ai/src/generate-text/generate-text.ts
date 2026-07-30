@@ -85,6 +85,7 @@ import { text, type Output } from './output';
 import type { InferCompleteOutput } from './output-utils';
 import { parseToolCall } from './parse-tool-call';
 import type { PrepareStepFunction } from './prepare-step';
+import { prepareStepCallSettings } from './prepare-step-call-settings';
 import { convertToReasoningOutputs } from './reasoning-output';
 import { resolveToolApproval } from './resolve-tool-approval';
 import type { ResponseMessage } from './response-message';
@@ -891,6 +892,11 @@ export async function generateText<
                 prepareStepResult?.providerOptions,
               );
 
+              const stepCallSettings = prepareStepCallSettings({
+                callSettings,
+                stepSettings: prepareStepResult,
+              });
+
               await notify({
                 event: {
                   callId,
@@ -924,7 +930,7 @@ export async function generateText<
                 instructions: stepInstructions,
                 messages: stepMessages,
                 tools: stepTools,
-                ...callSettings,
+                ...stepCallSettings,
               };
               const languageModelCallStartEvent = {
                 callId,
@@ -954,7 +960,7 @@ export async function generateText<
                     ...languageModelCallStartEvent,
                     execute: async () =>
                       await stepModel.doGenerate({
-                        ...callSettings,
+                        ...stepCallSettings,
                         tools: stepTools,
                         toolChoice: stepToolChoice,
                         responseFormat: await output?.responseFormat,

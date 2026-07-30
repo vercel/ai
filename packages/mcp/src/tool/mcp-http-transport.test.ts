@@ -10,6 +10,30 @@ import { MCPClientError } from '../error/mcp-client-error';
 import type { OAuthClientProvider } from './oauth';
 import type { OAuthTokens } from './oauth-types';
 
+function createAbortableSseResponse({
+  signal,
+  onAbort,
+}: {
+  signal: AbortSignal;
+  onAbort: () => void;
+}): Response {
+  return new Response(
+    new ReadableStream({
+      start(controller) {
+        signal.addEventListener(
+          'abort',
+          () => {
+            onAbort();
+            controller.error(signal.reason);
+          },
+          { once: true },
+        );
+      },
+    }),
+    { headers: { 'content-type': 'text/event-stream' } },
+  );
+}
+
 describe('HttpMCPTransport', () => {
   const server = createTestServer({
     'http://localhost:4000/mcp': {
@@ -158,6 +182,171 @@ describe('HttpMCPTransport', () => {
 
     await client.close();
   });
+
+  it('should abort an unterminated initialization response on timeout', async () => {
+    let responseAborted = false;
+    const fetch = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        if (init?.method !== 'POST') {
+          return new Response(null, { status: 405 });
+        }
+
+        return createAbortableSseResponse({
+          signal: init.signal as AbortSignal,
+          onAbort: () => {
+            responseAborted = true;
+          },
+        });
+      },
+    );
+    const clientPromise = createMCPClient({
+      transport: {
+        type: 'http',
+        url: 'http://localhost:4000/mcp',
+        fetch,
+      },
+      initializationOptions: { timeout: 100 },
+    });
+    const rejection = expect(clientPromise).rejects.toSatisfy(
+      error =>
+        MCPClientError.isInstance(error) &&
+        error.message === 'MCP client initialization timed out after 100ms',
+    );
+
+    await vi.advanceTimersByTimeAsync(100);
+
+    await rejection;
+    expect(responseAborted).toBe(true);
+  });
+
+  it('should bound session cleanup after failed initialization', async () => {
+    let resolveDeleteStarted: () => void;
+    const deleteStarted = new Promise<void>(resolve => {
+      resolveDeleteStarted = resolve;
+    });
+    let deleteAborted = false;
+    const fetch = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        if (init?.method === 'GET') {
+          return new Response(null, { status: 405 });
+        }
+
+        if (init?.method === 'DELETE') {
+          resolveDeleteStarted();
+          return new Promise<Response>((_, reject) => {
+            const signal = init.signal as AbortSignal;
+            signal.addEventListener(
+              'abort',
+              () => {
+                deleteAborted = true;
+                reject(signal.reason);
+              },
+              { once: true },
+            );
+          });
+        }
+
+        const message = JSON.parse(String(init?.body));
+        if (message.method === 'initialize') {
+          return Response.json(
+            {
+              jsonrpc: '2.0',
+              id: message.id,
+              result: {
+                protocolVersion: LATEST_PROTOCOL_VERSION,
+                capabilities: {},
+                serverInfo: { name: 'test-server', version: '1.0.0' },
+              },
+            },
+            { headers: { 'mcp-session-id': 'cleanup-session' } },
+          );
+        }
+
+        return new Response('failed initialized notification', {
+          status: 500,
+        });
+      },
+    );
+    const clientPromise = createMCPClient({
+      transport: {
+        type: 'http',
+        url: 'http://localhost:4000/mcp',
+        fetch,
+      },
+      initializationOptions: { timeout: 100 },
+    });
+    const rejection = expect(clientPromise).rejects.toSatisfy(
+      error =>
+        MCPClientError.isInstance(error) &&
+        error.message === 'MCP client initialization timed out after 100ms',
+    );
+
+    await deleteStarted;
+    await vi.advanceTimersByTimeAsync(100);
+
+    await rejection;
+    expect(deleteAborted).toBe(true);
+  });
+
+  it.each([
+    ['timeout', { timeout: 100 }],
+    ['maximum total timeout', { maxTotalTimeout: 100 }],
+  ])(
+    'should abort an unterminated request response at its %s',
+    async (_, options) => {
+      let responseAborted = false;
+      const fetch = vi.fn(
+        async (_input: RequestInfo | URL, init?: RequestInit) => {
+          if (init?.method !== 'POST') {
+            return new Response(null, { status: 405 });
+          }
+
+          const message = JSON.parse(String(init.body));
+          if (message.method === 'initialize') {
+            return Response.json({
+              jsonrpc: '2.0',
+              id: message.id,
+              result: {
+                protocolVersion: LATEST_PROTOCOL_VERSION,
+                capabilities: { tools: {} },
+                serverInfo: { name: 'test-server', version: '1.0.0' },
+              },
+            });
+          }
+
+          if (message.method === 'notifications/initialized') {
+            return new Response(null, { status: 202 });
+          }
+
+          return createAbortableSseResponse({
+            signal: init.signal as AbortSignal,
+            onAbort: () => {
+              responseAborted = true;
+            },
+          });
+        },
+      );
+      const client = await createMCPClient({
+        transport: {
+          type: 'http',
+          url: 'http://localhost:4000/mcp',
+          fetch,
+        },
+      });
+      const requestPromise = client.listTools({ options });
+      const rejection = expect(requestPromise).rejects.toSatisfy(
+        error =>
+          MCPClientError.isInstance(error) &&
+          error.message === 'Request timed out after 100ms',
+      );
+
+      await vi.advanceTimersByTimeAsync(100);
+
+      await rejection;
+      expect(responseAborted).toBe(true);
+      await client.close();
+    },
+  );
 
   it('should (re)open inbound SSE after 202 Accepted', async () => {
     const controller = new TestResponseController();

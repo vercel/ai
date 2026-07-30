@@ -14,6 +14,7 @@ import type {
   SpanKind,
   TraceSpan,
   ParseJson,
+  ParsedInput,
   ParsedOutput,
   ContentPart,
   ToolCallContentPart,
@@ -21,11 +22,12 @@ import type {
 } from '../types';
 import {
   buildTraceSpans,
+  getOutputToolResults,
   safeParseJson,
   SPAN_COLORS,
   SPAN_COLORS_MUTED,
 } from '../utils';
-import { JsonBlock } from './shared-components';
+import { MediaAwareValue } from './shared-components';
 import { StepDetailContent } from './step-card';
 
 export function TraceTimeline({
@@ -424,7 +426,17 @@ function SpanDetailPanel({
         'toolCallId' in p &&
         p.toolCallId === span.toolCallId,
     );
-    const toolResult = contentParts.find(
+    const nextStep = steps[stepIndex + 1];
+    const nextInput = nextStep
+      ? (parseJson(nextStep.input) as ParsedInput | null)
+      : null;
+    const fallbackToolResults =
+      nextInput?.prompt
+        ?.filter(message => message.role === 'tool')
+        .flatMap(message =>
+          Array.isArray(message.content) ? message.content : [],
+        ) ?? [];
+    const toolResult = getOutputToolResults(output, fallbackToolResults).find(
       (p): p is ToolResultContentPart =>
         p.type === 'tool-result' &&
         'toolCallId' in p &&
@@ -450,7 +462,7 @@ function SpanDetailPanel({
             <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
               Input
             </h4>
-            <JsonBlock data={parsedArgs} />
+            <MediaAwareValue data={parsedArgs} />
           </div>
         )}
         {parsedResult != null && (
@@ -458,7 +470,7 @@ function SpanDetailPanel({
             <h4 className="text-[11px] font-semibold uppercase tracking-wider text-success mb-2">
               Output
             </h4>
-            <JsonBlock data={parsedResult} />
+            <MediaAwareValue data={parsedResult} />
           </div>
         )}
         {!parsedArgs && !parsedResult && (
