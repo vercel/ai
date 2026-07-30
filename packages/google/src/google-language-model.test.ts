@@ -1412,7 +1412,7 @@ describe('doGenerate', () => {
     ]);
   });
 
-  it('should pass tools and toolChoice', async () => {
+  it('should preserve a named tool choice when another tool is strict', async () => {
     prepareJsonFixtureResponse('google-text');
 
     await model.doGenerate({
@@ -1427,6 +1427,18 @@ describe('doGenerate', () => {
             additionalProperties: false,
             $schema: 'http://json-schema.org/draft-07/schema#',
           },
+        },
+        {
+          type: 'function',
+          name: 'strict-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+          strict: true,
         },
       ],
       toolChoice: {
@@ -1463,6 +1475,21 @@ describe('doGenerate', () => {
               {
                 "description": "",
                 "name": "test-tool",
+                "parameters": {
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "value",
+                  ],
+                  "type": "object",
+                },
+              },
+              {
+                "description": "",
+                "name": "strict-tool",
                 "parameters": {
                   "properties": {
                     "value": {

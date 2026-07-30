@@ -884,97 +884,101 @@ it('should add warnings for google maps on unsupported models', () => {
   `);
 });
 
-it('should use VALIDATED mode when any function tool has strict: true', () => {
-  const result = prepareTools({
-    tools: [
-      {
-        type: 'function',
-        name: 'createMeeting',
-        description: 'Create a meeting',
-        inputSchema: {
-          type: 'object',
-          properties: { title: { type: 'string' } },
-          required: ['title'],
-          additionalProperties: false,
-        },
-        strict: true,
-      },
-    ],
-    modelId: 'gemini-3-flash-preview',
-  });
-  expect(result.toolConfig).toEqual({
-    functionCallingConfig: { mode: 'VALIDATED' },
-  });
-  expect(result.toolWarnings).toEqual([]);
-});
-
-it('should use VALIDATED mode with toolChoice auto when strict: true', () => {
-  const result = prepareTools({
-    tools: [
-      {
-        type: 'function',
-        name: 'getWeather',
-        description: 'Get weather',
-        inputSchema: {
-          type: 'object',
-          properties: { city: { type: 'string' } },
-          required: ['city'],
-          additionalProperties: false,
-        },
-        strict: true,
-      },
-    ],
+const strictToolChoiceCases: Array<{
+  name: string;
+  toolStrictness: Array<'strict' | 'non-strict'>;
+  toolChoice: Parameters<typeof prepareTools>[0]['toolChoice'];
+  expectedToolConfig: ReturnType<typeof prepareTools>['toolConfig'];
+}> = [
+  {
+    name: 'default choice with a strict tool uses VALIDATED',
+    toolStrictness: ['strict'],
+    toolChoice: undefined,
+    expectedToolConfig: { functionCallingConfig: { mode: 'VALIDATED' } },
+  },
+  {
+    name: 'default choice with mixed strict and non-strict tools uses VALIDATED',
+    toolStrictness: ['non-strict', 'strict'],
+    toolChoice: undefined,
+    expectedToolConfig: { functionCallingConfig: { mode: 'VALIDATED' } },
+  },
+  {
+    name: 'auto choice with a strict tool uses VALIDATED',
+    toolStrictness: ['strict'],
     toolChoice: { type: 'auto' },
-    modelId: 'gemini-3-flash-preview',
-  });
-  expect(result.toolConfig).toEqual({
-    functionCallingConfig: { mode: 'VALIDATED' },
-  });
-});
-
-it('should use VALIDATED mode with toolChoice required when strict: true', () => {
-  const result = prepareTools({
-    tools: [
-      {
-        type: 'function',
-        name: 'getWeather',
-        description: 'Get weather',
-        inputSchema: {
-          type: 'object',
-          properties: { city: { type: 'string' } },
-          required: ['city'],
-          additionalProperties: false,
-        },
-        strict: true,
-      },
-    ],
+    expectedToolConfig: { functionCallingConfig: { mode: 'VALIDATED' } },
+  },
+  {
+    name: 'auto choice with mixed strict and non-strict tools uses VALIDATED',
+    toolStrictness: ['non-strict', 'strict'],
+    toolChoice: { type: 'auto' },
+    expectedToolConfig: { functionCallingConfig: { mode: 'VALIDATED' } },
+  },
+  {
+    name: 'required choice with a strict tool uses ANY',
+    toolStrictness: ['strict'],
     toolChoice: { type: 'required' },
-    modelId: 'gemini-3-flash-preview',
-  });
-  expect(result.toolConfig).toEqual({
-    functionCallingConfig: { mode: 'VALIDATED' },
-  });
-});
-
-it('should use AUTO mode when no tools have strict: true', () => {
-  const result = prepareTools({
-    tools: [
-      {
-        type: 'function',
-        name: 'getWeather',
-        description: 'Get weather',
-        inputSchema: {
-          type: 'object',
-          properties: { city: { type: 'string' } },
-          required: ['city'],
-          additionalProperties: false,
-        },
+    expectedToolConfig: { functionCallingConfig: { mode: 'ANY' } },
+  },
+  {
+    name: 'required choice with mixed strict and non-strict tools uses ANY',
+    toolStrictness: ['non-strict', 'strict'],
+    toolChoice: { type: 'required' },
+    expectedToolConfig: { functionCallingConfig: { mode: 'ANY' } },
+  },
+  {
+    name: 'named strict tool choice with mixed strict and non-strict tools uses ANY',
+    toolStrictness: ['strict', 'non-strict'],
+    toolChoice: { type: 'tool', toolName: 'tool-0' },
+    expectedToolConfig: {
+      functionCallingConfig: {
+        mode: 'ANY',
+        allowedFunctionNames: ['tool-0'],
       },
-    ],
-    toolChoice: { type: 'auto' },
-    modelId: 'gemini-3-flash-preview',
-  });
-  expect(result.toolConfig).toEqual({
-    functionCallingConfig: { mode: 'AUTO' },
-  });
-});
+    },
+  },
+  {
+    name: 'named non-strict tool choice with another strict tool uses ANY',
+    toolStrictness: ['non-strict', 'strict'],
+    toolChoice: { type: 'tool', toolName: 'tool-0' },
+    expectedToolConfig: {
+      functionCallingConfig: {
+        mode: 'ANY',
+        allowedFunctionNames: ['tool-0'],
+      },
+    },
+  },
+  {
+    name: 'none choice with mixed strict and non-strict tools uses NONE',
+    toolStrictness: ['non-strict', 'strict'],
+    toolChoice: { type: 'none' },
+    expectedToolConfig: { functionCallingConfig: { mode: 'NONE' } },
+  },
+];
+
+it.each(strictToolChoiceCases)(
+  '$name',
+  ({ toolStrictness, toolChoice, expectedToolConfig }) => {
+    const tools = toolStrictness.map((strictness, index) => ({
+      type: 'function' as const,
+      name: `tool-${index}`,
+      description: `Tool ${index}`,
+      inputSchema: {
+        type: 'object' as const,
+        properties: { value: { type: 'string' as const } },
+        required: ['value'],
+        additionalProperties: false,
+      },
+      strict: strictness === 'strict',
+    }));
+
+    const result = prepareTools({
+      tools,
+      toolChoice,
+      modelId: 'gemini-3-flash-preview',
+    });
+
+    expect(result.toolConfig).toEqual(expectedToolConfig);
+    expect(result.toolWarnings).toEqual([]);
+  },
+);

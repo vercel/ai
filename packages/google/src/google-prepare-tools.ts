@@ -290,7 +290,7 @@ export function prepareTools({
         tools: [{ functionDeclarations }],
         toolConfig: {
           functionCallingConfig: {
-            mode: hasStrictTools ? 'VALIDATED' : 'ANY',
+            mode: 'ANY',
           },
         },
         toolWarnings,
@@ -300,7 +300,7 @@ export function prepareTools({
         tools: [{ functionDeclarations }],
         toolConfig: {
           functionCallingConfig: {
-            mode: hasStrictTools ? 'VALIDATED' : 'ANY',
+            mode: 'ANY',
             allowedFunctionNames: [toolChoice.toolName],
           },
         },
