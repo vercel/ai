@@ -7,7 +7,11 @@ import {
 } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { GatewayRateLimitError } from './errors';
+import {
+  GatewayInternalServerError,
+  GatewayRateLimitError,
+  GatewayResponseError,
+} from './errors';
 import { GatewayLanguageModel } from './gateway-language-model';
 import {
   GATEWAY_LANGUAGE_MODEL_ERROR_FRAME_TYPE,
@@ -83,6 +87,11 @@ class MockWebSocket {
 
   message(value: unknown) {
     this.onmessage?.({ data: JSON.stringify(value) });
+  }
+
+  disconnect() {
+    this.readyState = 3;
+    this.onclose?.({ code: 1006, reason: 'connection lost' });
   }
 }
 
@@ -403,6 +412,49 @@ describe('GatewayLanguageModel WebSocket transport', () => {
     await expect(resultPromise).rejects.toSatisfy(
       GatewayRateLimitError.isInstance,
     );
+  });
+
+  it('preserves a protocol error frame retryability override', async () => {
+    const session = new TestSession();
+    const resultPromise = createTestModel().doGenerate(
+      websocketOptions(session),
+    );
+    const socket = await waitForSocket();
+    socket.open();
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    socket.message({
+      type: GATEWAY_LANGUAGE_MODEL_ERROR_FRAME_TYPE,
+      statusCode: 500,
+      isRetryable: false,
+      body: {
+        error: {
+          message: 'Upstream request may already have been accepted',
+          type: 'internal_server_error',
+        },
+      },
+    });
+
+    const error = await resultPromise.catch(error => error);
+    expect(GatewayInternalServerError.isInstance(error)).toBe(true);
+    expect(error).toMatchObject({ isRetryable: false });
+  });
+
+  it('makes a disconnect after send non-retryable', async () => {
+    const session = new TestSession();
+    const resultPromise = createTestModel().doGenerate(
+      websocketOptions(session),
+    );
+    const socket = await waitForSocket();
+    socket.open();
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(socket.sent).toHaveLength(1);
+    socket.disconnect();
+
+    const error = await resultPromise.catch(error => error);
+    expect(GatewayResponseError.isInstance(error)).toBe(true);
+    expect(error).toMatchObject({ isRetryable: false });
   });
 
   it('closes the persisted socket when the session is destroyed', async () => {
