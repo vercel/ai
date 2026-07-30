@@ -18,13 +18,15 @@ export class GatewayRateLimitError extends GatewayError {
     statusCode = 429,
     cause,
     generationId,
+    isRetryable,
   }: {
     message?: string;
     statusCode?: number;
     cause?: unknown;
     generationId?: string;
+    isRetryable?: boolean;
   } = {}) {
-    super({ message, statusCode, cause, generationId });
+    super({ message, statusCode, cause, generationId, isRetryable });
   }
 
   static isInstance(error: unknown): error is GatewayRateLimitError {

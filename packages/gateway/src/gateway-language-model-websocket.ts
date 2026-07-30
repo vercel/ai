@@ -16,7 +16,7 @@ import {
   type WebSocketConstructor,
   type WebSocketLike,
 } from '@ai-sdk/provider-utils';
-import { createGatewayErrorFromResponse } from './errors';
+import { createGatewayErrorFromResponse, GatewayResponseError } from './errors';
 import { VERCEL_AI_GATEWAY_TEAM_HEADER } from './gateway-headers';
 import {
   GATEWAY_LANGUAGE_MODEL_SUBPROTOCOL,
@@ -68,6 +68,7 @@ export type GatewayLanguageModelRequestFrame = {
 export type GatewayLanguageModelErrorFrame = {
   type: typeof GATEWAY_LANGUAGE_MODEL_ERROR_FRAME_TYPE;
   statusCode?: number;
+  isRetryable?: boolean;
   body: unknown;
 };
 
@@ -81,6 +82,7 @@ type ConnectionIdentity = {
 type ActiveRequest = {
   mode: 'generate' | 'stream';
   settled: boolean;
+  requestSent: boolean;
   authMethod: 'api-key' | 'oidc' | undefined;
   abortSignal: AbortSignal | undefined;
   abortListener: (() => void) | undefined;
@@ -276,6 +278,7 @@ export class GatewayLanguageModelWebSocketSession {
     const activeRequest: ActiveRequest = {
       mode,
       settled: false,
+      requestSent: false,
       authMethod,
       abortSignal,
       abortListener: undefined,
@@ -322,6 +325,7 @@ export class GatewayLanguageModelWebSocketSession {
 
     try {
       socket.send(JSON.stringify(frame));
+      activeRequest.requestSent = true;
       await waitForWebSocketBufferDrain(socket, { abortSignal });
 
       if (
@@ -334,8 +338,9 @@ export class GatewayLanguageModelWebSocketSession {
         );
       }
     } catch (error) {
-      this.failActiveRequest(error);
-      throw error;
+      throw this.failActiveRequest(error, {
+        postSend: activeRequest.requestSent,
+      });
     }
 
     return mode === 'generate'
@@ -387,7 +392,9 @@ export class GatewayLanguageModelWebSocketSession {
       if (!opened) {
         rejectOpen(error);
       } else {
-        this.failActiveRequest(error);
+        this.failActiveRequest(error, {
+          postSend: this.activeRequest?.requestSent === true,
+        });
       }
       this.closeConnection();
     };
@@ -475,6 +482,10 @@ export class GatewayLanguageModelWebSocketSession {
             ? errorFrame.statusCode
             : 500,
         authMethod: request.authMethod,
+        isRetryable:
+          typeof errorFrame.isRetryable === 'boolean'
+            ? errorFrame.isRetryable
+            : undefined,
       });
       this.settleActiveRequestWithError(request, error);
       return;
@@ -517,15 +528,29 @@ export class GatewayLanguageModelWebSocketSession {
     this.clearActiveRequest(request);
   }
 
-  private failActiveRequest(error: unknown): void {
+  private failActiveRequest(
+    error: unknown,
+    { postSend = false }: { postSend?: boolean } = {},
+  ): unknown {
     const request = this.activeRequest;
-    if (request == null || request.settled) return;
+    if (request == null || request.settled) return error;
+
+    const requestError = postSend
+      ? new GatewayResponseError({
+          message:
+            'AI Gateway language model WebSocket failed after the request was sent.',
+          statusCode: 500,
+          cause: error,
+          isRetryable: false,
+        })
+      : error;
 
     request.settled = true;
-    request.generate?.reject(error);
-    request.controller?.error(error);
+    request.generate?.reject(requestError);
+    request.controller?.error(requestError);
     this.clearActiveRequest(request);
     this.closeConnection();
+    return requestError;
   }
 
   private clearActiveRequest(request: ActiveRequest): void {
