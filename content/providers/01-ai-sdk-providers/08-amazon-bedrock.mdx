@@ -465,6 +465,47 @@ The following Bedrock-specific metadata may be returned in `providerMetadata.bed
 - **stopSequence** _string | null_
   The stop sequence that triggered the stop, if any.
 
+## Structured Outputs
+
+For Anthropic models, the `structuredOutputMode` provider option controls how
+schema-constrained output is requested:
+
+- `auto` uses Bedrock's native `output_config.format` when the model supports it
+  and otherwise falls back to a JSON tool. This is the default.
+- `outputFormat` always uses Bedrock's native `output_config.format`.
+- `jsonTool` uses a special `json` tool and forces a tool call. This can be used
+  as an escape hatch when native structured output does not work well for a
+  particular schema or workload.
+
+```ts
+import {
+  amazonBedrock,
+  type AmazonBedrockLanguageModelChatOptions,
+} from '@ai-sdk/amazon-bedrock';
+import { generateText, Output } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: amazonBedrock('anthropic.claude-sonnet-4-6-v1'),
+  prompt: 'Generate a city and country for a travel itinerary.',
+  output: Output.object({
+    schema: z.object({
+      city: z.string(),
+      country: z.string(),
+    }),
+  }),
+  providerOptions: {
+    amazonBedrock: {
+      structuredOutputMode: 'jsonTool',
+    } satisfies AmazonBedrockLanguageModelChatOptions,
+  },
+});
+
+console.log(result.output);
+```
+
+The legacy `providerOptions.bedrock` key also supports this option.
+
 ## Reasoning
 
 Amazon Bedrock supports model creator-specific reasoning features:

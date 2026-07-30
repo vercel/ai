@@ -194,32 +194,37 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
     const { supportsStructuredOutput: modelSupportsStructuredOutput } =
       getModelCapabilities(this.modelId);
 
+    const structuredOutputMode =
+      amazonBedrockOptions.structuredOutputMode ?? 'auto';
+    const hasStructuredOutputSchema =
+      responseFormat?.type === 'json' && responseFormat.schema != null;
+
     const useNativeStructuredOutput =
       isAnthropicModel &&
-      supportsNativeStructuredOutput(this.modelId) &&
-      (modelSupportsStructuredOutput || isThinkingEnabled) &&
-      responseFormat?.type === 'json' &&
-      responseFormat.schema != null;
+      hasStructuredOutputSchema &&
+      (structuredOutputMode === 'outputFormat' ||
+        (structuredOutputMode === 'auto' &&
+          supportsNativeStructuredOutput(this.modelId) &&
+          (modelSupportsStructuredOutput || isThinkingEnabled)));
 
     const useJsonInstructionForStructuredOutput =
+      structuredOutputMode === 'auto' &&
       isAnthropicModel &&
       (this.modelId.includes('claude-opus-4-7') ||
         this.modelId.includes('claude-opus-4-8')) &&
-      responseFormat?.type === 'json' &&
-      responseFormat.schema != null &&
+      hasStructuredOutputSchema &&
       tools != null &&
       tools.length > 0;
 
     const jsonResponseTool: LanguageModelV4FunctionTool | undefined =
-      responseFormat?.type === 'json' &&
-      responseFormat.schema != null &&
+      hasStructuredOutputSchema &&
       !useNativeStructuredOutput &&
       !useJsonInstructionForStructuredOutput
         ? {
             type: 'function',
             name: 'json',
             description: 'Respond with a JSON object.',
-            inputSchema: responseFormat.schema,
+            inputSchema: responseFormat!.schema!,
           }
         : undefined;
 
@@ -446,6 +451,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       reasoningConfig: _,
       additionalModelRequestFields: __,
       serviceTier: ___,
+      structuredOutputMode: ____,
       ...filteredAmazonBedrockOptions
     } = providerOptions?.amazonBedrock ?? providerOptions?.bedrock ?? {};
 

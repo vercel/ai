@@ -5162,7 +5162,7 @@ describe('doGenerate', () => {
     ).toBeUndefined();
   });
 
-  it('should use native output_config.format for models with structured output support even without thinking enabled', async () => {
+  it('should use native output_config.format in auto mode for models with structured output support', async () => {
     server.urls[newerAnthropicGenerateUrl].response = {
       type: 'json-value',
       body: {
@@ -5194,6 +5194,11 @@ describe('doGenerate', () => {
           required: ['name'],
         },
       },
+      providerOptions: {
+        amazonBedrock: {
+          structuredOutputMode: 'auto',
+        },
+      },
     });
 
     const requestBody = await server.calls[0].requestBodyJson;
@@ -5220,6 +5225,155 @@ describe('doGenerate', () => {
         },
       }
     `);
+  });
+
+  it('should use the JSON tool when structuredOutputMode is jsonTool on a model with native structured output support', async () => {
+    server.urls[newerAnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'json-tool-id',
+                  name: 'json',
+                  input: { name: 'Test' },
+                },
+              },
+            ],
+            role: 'assistant',
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'tool_use',
+      },
+    };
+
+    const result = await newerAnthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+          additionalProperties: false,
+        },
+      },
+      providerOptions: {
+        amazonBedrock: {
+          structuredOutputMode: 'jsonTool',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toMatchInlineSnapshot(`
+      {
+        "toolChoice": {
+          "any": {},
+        },
+        "tools": [
+          {
+            "toolSpec": {
+              "description": "Respond with a JSON object.",
+              "inputSchema": {
+                "json": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "name",
+                  ],
+                  "type": "object",
+                },
+              },
+              "name": "json",
+            },
+          },
+        ],
+      }
+    `);
+    expect(
+      requestBody.additionalModelRequestFields?.output_config,
+    ).toBeUndefined();
+    expect(requestBody.structuredOutputMode).toBeUndefined();
+    expect(result).toMatchObject({
+      content: [{ type: 'text', text: '{"name":"Test"}' }],
+      finishReason: { unified: 'stop', raw: 'tool_use' },
+      providerMetadata: {
+        amazonBedrock: { isJsonResponseFromTool: true },
+        bedrock: { isJsonResponseFromTool: true },
+      },
+    });
+  });
+
+  it('should force native output_config.format when structuredOutputMode is outputFormat', async () => {
+    server.urls[legacyAnthropic37GenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            content: [{ text: '{"name":"Test"}' }],
+            role: 'assistant',
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'end_turn',
+      },
+    };
+
+    await legacyAnthropic37Model.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+          additionalProperties: false,
+        },
+      },
+      providerOptions: {
+        bedrock: {
+          structuredOutputMode: 'outputFormat',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeUndefined();
+    expect(requestBody.additionalModelRequestFields?.output_config)
+      .toMatchInlineSnapshot(`
+        {
+          "format": {
+            "schema": {
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "name",
+              ],
+              "type": "object",
+            },
+            "type": "json_schema",
+          },
+        }
+      `);
+    expect(requestBody.structuredOutputMode).toBeUndefined();
   });
 
   it('should sanitize unsupported JSON schema keywords for native structured output', async () => {
