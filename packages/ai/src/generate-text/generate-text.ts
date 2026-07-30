@@ -104,6 +104,11 @@ import { toResponseMessages } from './to-response-messages';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
 import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import type { ToolApprovalResponseOutput } from './tool-approval-response-output';
+import {
+  prepareToolsForToolCallers,
+  resolveToolCallerConfiguration,
+  type Experimental_ToolCallers,
+} from './tool-caller-configuration';
 import type { TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { TypedToolError } from './tool-error';
@@ -242,6 +247,7 @@ export async function generateText<
   experimental_sandbox: sandbox,
   output,
   toolApproval,
+  experimental_toolCallers,
   experimental_toolApprovalSecret,
   experimental_telemetry,
   telemetry = experimental_telemetry,
@@ -357,6 +363,11 @@ export async function generateText<
      * This configuration takes precedence over tool-defined approval settings.
      */
     toolApproval?: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>;
+
+    /**
+     * Configures which caller tools may invoke each tool.
+     */
+    experimental_toolCallers?: Experimental_ToolCallers<NoInfer<TOOLS>>;
 
     /**
      * Secret for HMAC-signing tool approval requests. When set, the server
@@ -560,6 +571,10 @@ export async function generateText<
   };
 
   const model = resolveLanguageModel(modelArg);
+  const resolvedToolCallers = resolveToolCallerConfiguration({
+    tools,
+    toolCallers: experimental_toolCallers,
+  });
   const stopConditions = asArray(stopWhen);
   const resolvedOnStart = onStart ?? experimental_onStart;
   const resolvedOnStepStart = onStepStart ?? experimental_onStepStart;
@@ -863,10 +878,20 @@ export async function generateText<
                 tools,
                 activeTools: prepareStepResult?.activeTools ?? activeTools,
               });
+              const {
+                executionTools: stepExecutionTools,
+                modelTools: stepModelTools,
+              } = prepareToolsForToolCallers({
+                tools: stepActiveTools,
+                toolCallers: resolvedToolCallers,
+              });
               const stepToolOrder = prepareStepResult?.toolOrder ?? toolOrder;
 
               const stepTools = await prepareTools({
-                tools: stepActiveTools,
+                tools: stepModelTools as ActiveToolSubset<
+                  TOOLS,
+                  ActiveTools<NoInfer<TOOLS>>
+                >,
                 toolOrder: stepToolOrder as ToolOrder<
                   ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
                 >,
@@ -994,7 +1019,7 @@ export async function generateText<
                   .map(toolCall =>
                     parseToolCall({
                       toolCall,
-                      tools,
+                      tools: stepExecutionTools as TOOLS,
                       repairToolCall,
                       refineToolInput,
                       instructions: stepInstructions,
@@ -1062,7 +1087,7 @@ export async function generateText<
                   continue; // ignore invalid tool calls
                 }
 
-                const tool = getOwn(tools, toolCall.toolName);
+                const tool = getOwn(stepExecutionTools, toolCall.toolName);
 
                 if (tool == null) {
                   // ignore tool calls for tools that are not available,
@@ -1090,7 +1115,7 @@ export async function generateText<
                 }
 
                 const toolApprovalStatus = await resolveToolApproval({
-                  tools,
+                  tools: stepExecutionTools as TOOLS,
                   toolApproval,
                   toolCall,
                   messages: stepMessages,
@@ -1199,14 +1224,14 @@ export async function generateText<
               );
               const toolExecutionMs: Record<string, number> = {};
 
-              if (tools != null) {
+              if (stepExecutionTools != null) {
                 const toolExecutionResults = await executeTools({
                   toolCalls: clientToolCalls.filter(
                     toolCall =>
                       !toolCall.invalid &&
                       !blockedToolCallIds.has(toolCall.toolCallId),
                   ),
-                  tools,
+                  tools: stepExecutionTools as TOOLS,
                   callId,
                   messages: stepMessages,
                   abortSignal: mergedAbortSignal,
@@ -1268,7 +1293,7 @@ export async function generateText<
               // the client tool's result is sent back.
               for (const toolCall of stepToolCalls) {
                 if (!toolCall.providerExecuted) continue;
-                const tool = getOwn(tools, toolCall.toolName);
+                const tool = getOwn(stepExecutionTools, toolCall.toolName);
                 if (tool?.type === 'provider' && tool.supportsDeferredResults) {
                   // Check if this tool call already has a result in the current response
                   const hasResultInResponse = currentModelResponse.content.some(

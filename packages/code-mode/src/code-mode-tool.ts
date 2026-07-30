@@ -1,4 +1,9 @@
-import { jsonSchema, tool } from 'ai';
+import {
+  experimental_toolCaller,
+  jsonSchema,
+  tool,
+  type Experimental_ToolCallerTool,
+} from 'ai';
 import { runCodeMode } from './run-code-mode.js';
 import { buildCodeModeToolDescription } from './tool-prompt.js';
 import type {
@@ -38,4 +43,18 @@ export function createCodeModeTool(
         options,
       }),
   }) as CodeModeTool;
+}
+
+/**
+ * Creates a code-mode caller whose host tools are bound by the surrounding
+ * AI SDK generation call.
+ */
+export function codeModeTool(
+  options: CodeModeOptions = {},
+): Experimental_ToolCallerTool<CodeModeTool> {
+  return experimental_toolCaller(createCodeModeTool({}, options), {
+    type: 'local',
+    bind: tools =>
+      createCodeModeTool(tools as unknown as CodeModeToolSet, options),
+  });
 }
