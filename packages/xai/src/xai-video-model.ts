@@ -1,15 +1,9 @@
 import {
   AISDKError,
-<<<<<<< HEAD
+  APICallError,
   type Experimental_VideoModelV3,
   type Experimental_VideoModelV3File,
   type SharedV3Warning,
-=======
-  APICallError,
-  type Experimental_VideoModelV4,
-  type Experimental_VideoModelV4File,
-  type SharedV4Warning,
->>>>>>> 2b872b0db3 (fix(xai): read the video status 202 body instead of cancelling it (#18048))
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -21,11 +15,7 @@ import {
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
-<<<<<<< HEAD
-=======
   safeParseJSON,
-  type FetchFunction,
->>>>>>> 2b872b0db3 (fix(xai): read the video status 202 body instead of cancelling it (#18048))
   type ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
