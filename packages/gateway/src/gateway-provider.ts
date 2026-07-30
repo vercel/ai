@@ -9,7 +9,11 @@ import {
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { asGatewayError, GatewayAuthenticationError } from './errors';
+import {
+  asGatewayError,
+  gatewayErrorToMessage,
+  GatewayAuthenticationError,
+} from './errors';
 import {
   GATEWAY_AUTH_METHOD_HEADER,
   VERCEL_AI_GATEWAY_TEAM_HEADER,
@@ -372,7 +376,7 @@ export function createGateway(
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: gatewayErrorToMessage,
         }),
         fetch: options.fetch,
       });

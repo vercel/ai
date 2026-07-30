@@ -13,7 +13,7 @@ import {
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { asGatewayError } from './errors';
+import { asGatewayError, gatewayErrorToMessage } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
 
@@ -69,7 +69,7 @@ export class GatewayRerankingModel implements RerankingModelV4 {
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: gatewayErrorToMessage,
         }),
         ...(abortSignal && { abortSignal }),
         fetch: this.config.fetch,

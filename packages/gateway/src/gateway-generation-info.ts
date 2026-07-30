@@ -7,7 +7,7 @@ import {
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { asGatewayError } from './errors';
+import { asGatewayError, gatewayErrorToMessage } from './errors';
 import type { GatewayConfig } from './gateway-config';
 
 export interface GatewayGenerationInfoParams {
@@ -74,7 +74,7 @@ export class GatewayGenerationInfoFetcher {
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: gatewayErrorToMessage,
         }),
         fetch: this.config.fetch,
       });

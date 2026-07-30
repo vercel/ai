@@ -28,7 +28,11 @@ import {
   type WebSocketLike,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { asGatewayError, createGatewayErrorFromResponse } from './errors';
+import {
+  asGatewayError,
+  createGatewayErrorFromResponse,
+  gatewayErrorToMessage,
+} from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
 import { VERCEL_AI_GATEWAY_TEAM_HEADER } from './gateway-headers';
@@ -93,7 +97,7 @@ export class GatewayTranscriptionModel implements TranscriptionModelV4 {
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: gatewayErrorToMessage,
         }),
         ...(abortSignal && { abortSignal }),
         fetch: this.config.fetch,

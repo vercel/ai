@@ -21,7 +21,7 @@ import {
 import { z } from 'zod/v4';
 import type { GatewayConfig } from './gateway-config';
 import type { GatewayModelId } from './gateway-language-model-settings';
-import { asGatewayError } from './errors';
+import { asGatewayError, gatewayErrorToMessage } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 
 type GatewayChatConfig = GatewayConfig & {
@@ -92,7 +92,7 @@ export class GatewayLanguageModel implements LanguageModelV4 {
         successfulResponseHandler: createJsonResponseHandler(z.any()),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: gatewayErrorToMessage,
         }),
         ...(abortSignal && { abortSignal }),
         fetch: this.config.fetch,
@@ -135,7 +135,7 @@ export class GatewayLanguageModel implements LanguageModelV4 {
         successfulResponseHandler: createEventSourceResponseHandler(z.any()),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: gatewayErrorToMessage,
         }),
         ...(abortSignal && { abortSignal }),
         fetch: this.config.fetch,

@@ -4,6 +4,7 @@ export {
   type GatewayErrorResponse,
 } from './create-gateway-error';
 export { extractApiCallResponse } from './extract-api-call-response';
+export { gatewayErrorToMessage } from './gateway-error-to-message';
 export { GatewayError } from './gateway-error';
 export { GatewayAuthenticationError } from './gateway-authentication-error';
 export { GatewayFailedDependencyError } from './gateway-failed-dependency-error';

@@ -1,6 +1,7 @@
-import type {
-  LanguageModelV4Prompt,
-  LanguageModelV4FilePart,
+import {
+  APICallError,
+  type LanguageModelV4FilePart,
+  type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
@@ -524,6 +525,10 @@ describe('GatewayLanguageModel', () => {
         expect(serverError.message).toBe('Database connection failed');
         expect(serverError.statusCode).toBe(500);
         expect(serverError.type).toBe('internal_server_error');
+        expect(APICallError.isInstance(serverError.cause)).toBe(true);
+        expect((serverError.cause as APICallError).message).toBe(
+          'Database connection failed',
+        );
       }
     });
 
@@ -773,6 +778,10 @@ describe('GatewayLanguageModel', () => {
         expect(rateLimitError.message).toBe('Rate limit exceeded');
         expect(rateLimitError.statusCode).toBe(429);
         expect(rateLimitError.type).toBe('rate_limit_exceeded');
+        expect(APICallError.isInstance(rateLimitError.cause)).toBe(true);
+        expect((rateLimitError.cause as APICallError).message).toBe(
+          'Rate limit exceeded',
+        );
       }
     });
 

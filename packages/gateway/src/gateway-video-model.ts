@@ -18,7 +18,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { GatewayConfig } from './gateway-config';
-import { asGatewayError } from './errors';
+import { asGatewayError, gatewayErrorToMessage } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 
 export class GatewayVideoModel implements Experimental_VideoModelV4 {
@@ -177,7 +177,7 @@ export class GatewayVideoModel implements Experimental_VideoModelV4 {
         },
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: gatewayErrorToMessage,
         }),
         ...(abortSignal && { abortSignal }),
         fetch: this.config.fetch,
