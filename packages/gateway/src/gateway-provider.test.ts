@@ -261,10 +261,20 @@ describe('GatewayProvider', () => {
 
   describe('createGateway', () => {
     it('should create provider with correct configuration', async () => {
+      class CustomWebSocket {
+        readyState = 0;
+        send() {}
+        close() {}
+        onopen = null;
+        onmessage = null;
+        onerror = null;
+        onclose = null;
+      }
       const options = {
         baseURL: 'https://api.example.com',
         apiKey: 'test-api-key',
         headers: { 'Custom-Header': 'value' },
+        webSocket: CustomWebSocket,
       };
 
       const provider = createGateway(options);
@@ -277,6 +287,7 @@ describe('GatewayProvider', () => {
           baseURL: 'https://api.example.com',
           headers: expect.any(Function),
           fetch: undefined,
+          webSocket: CustomWebSocket,
         }),
       );
 
