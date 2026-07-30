@@ -6,6 +6,7 @@ import type {
 export type OpenAIConfig = {
   provider: string;
   url: (options: { modelId: string; path: string }) => string;
+  isCustomBaseURL?: boolean;
   headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
   webSocket?: WebSocketConstructor;
