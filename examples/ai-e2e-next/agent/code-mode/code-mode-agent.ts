@@ -1,4 +1,4 @@
-import { experimental_createCodeModeTool as createCodeModeTool } from '@ai-sdk/code-mode';
+import { experimental_codeModeTool as codeModeTool } from '@ai-sdk/code-mode';
 import { ToolLoopAgent, tool, type InferAgentUIMessage } from 'ai';
 import { z } from 'zod';
 
@@ -32,24 +32,26 @@ const getDemand = tool({
   }),
 });
 
-const codeMode = createCodeModeTool(
-  {
-    getInventory,
-    getDemand,
-  },
-  {
+const tools = {
+  codeMode: codeModeTool({
     executionPolicy: {
       timeoutMs: 30_000,
       memoryLimitBytes: 64 * 1024 * 1024,
     },
-  },
-);
+  }),
+  getInventory,
+  getDemand,
+} as const;
 
 export const codeModeAgent = new ToolLoopAgent({
   model: 'moonshotai/kimi-k3',
   instructions:
     'You are an inventory planning assistant. Use code mode to coordinate the available tools when answering inventory questions. Call independent tools in parallel when possible, and explain the result clearly. Use prior messages to answer follow-up questions.',
-  tools: { codeMode },
+  tools,
+  experimental_toolCallers: ({ codeMode }) => ({
+    getInventory: [codeMode],
+    getDemand: [codeMode],
+  }),
 });
 
 export type CodeModeMessage = InferAgentUIMessage<typeof codeModeAgent>;
