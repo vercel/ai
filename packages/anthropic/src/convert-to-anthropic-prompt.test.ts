@@ -3283,7 +3283,6 @@ describe('assistant messages', () => {
                       "command": "create",
                       "file_text": "def..",
                       "path": "/tmp/fibonacci.py",
-                      "type": "text_editor_code_execution",
                     },
                     "name": "text_editor_code_execution",
                     "type": "server_tool_use",
@@ -3302,7 +3301,6 @@ describe('assistant messages', () => {
                     "id": "srvtoolu_0193G3ttnkiTfZASwHQSKc2V",
                     "input": {
                       "command": "python /tmp/fibonacci.py",
-                      "type": "bash_code_execution",
                     },
                     "name": "bash_code_execution",
                     "type": "server_tool_use",
@@ -3455,7 +3453,6 @@ describe('assistant messages', () => {
                       "command": "create",
                       "file_text": "def..",
                       "path": "/tmp/fibonacci.py",
-                      "type": "text_editor_code_execution",
                     },
                     "name": "text_editor_code_execution",
                     "type": "server_tool_use",
@@ -3474,7 +3471,6 @@ describe('assistant messages', () => {
                     "id": "srvtoolu_0193G3ttnkiTfZASwHQSKc2V",
                     "input": {
                       "command": "python /tmp/fibonacci.py",
-                      "type": "bash_code_execution",
                     },
                     "name": "bash_code_execution",
                     "type": "server_tool_use",

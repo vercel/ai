@@ -9983,7 +9983,7 @@ describe('AnthropicLanguageModel', () => {
         ).toMatchSnapshot();
       });
 
-      it('should parse the live prompt-cache reproduction fixture', async () => {
+      it('should parse code execution tool calls from a cached response', async () => {
         prepareChunksFixtureResponse(
           'anthropic-code-execution-20260120-prompt-cache.1',
         );

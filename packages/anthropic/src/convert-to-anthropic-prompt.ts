@@ -754,7 +754,7 @@ export async function convertToAnthropicPrompt({
                       cache_control: cacheControl,
                     });
                   } else if (
-                    // code execution 20250825:
+                    // code execution subtools:
                     providerToolName === 'code_execution' &&
                     part.input != null &&
                     typeof part.input === 'object' &&
@@ -763,11 +763,14 @@ export async function convertToAnthropicPrompt({
                     (part.input.type === 'bash_code_execution' ||
                       part.input.type === 'text_editor_code_execution')
                   ) {
+                    const { type: codeExecutionType, ...inputWithoutType } =
+                      part.input;
+
                     anthropicContent.push({
                       type: 'server_tool_use',
                       id: part.toolCallId,
-                      name: part.input.type, // map back to subtool name
-                      input: part.input,
+                      name: codeExecutionType, // map back to subtool name
+                      input: inputWithoutType,
                       cache_control: cacheControl,
                     });
                   } else if (
