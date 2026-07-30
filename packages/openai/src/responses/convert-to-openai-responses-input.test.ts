@@ -3864,6 +3864,7 @@ describe('convertToOpenAIResponsesInput', () => {
                   toolCallId: 'call_XWgeTylovOiS8xLNz2TONOgO',
                   toolName: 'local_shell',
                   input: { action: { type: 'exec', command: ['ls'] } },
+                  providerExecuted: true,
                   providerOptions: {
                     openai: {
                       itemId:
@@ -3906,7 +3907,7 @@ describe('convertToOpenAIResponsesInput', () => {
         `);
       });
 
-      it('should convert local shell tool call and result into item reference with store: false', async () => {
+      it('should reconstruct provider-executed local shell call and result with store: false', async () => {
         const result = await convertToOpenAIResponsesInput({
           toolNameMapping: testToolNameMapping,
           prompt: [
@@ -3918,6 +3919,7 @@ describe('convertToOpenAIResponsesInput', () => {
                   toolCallId: 'call_XWgeTylovOiS8xLNz2TONOgO',
                   toolName: 'local_shell',
                   input: { action: { type: 'exec', command: ['ls'] } },
+                  providerExecuted: true,
                   providerOptions: {
                     openai: {
                       itemId:
@@ -3969,6 +3971,86 @@ describe('convertToOpenAIResponsesInput', () => {
             },
           ]
         `);
+      });
+    });
+
+    describe('shell', () => {
+      it('should reconstruct provider-executed shell call and result with store: false', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_abc123def456ghi789jkl012',
+                  toolName: 'shell',
+                  input: {
+                    action: {
+                      commands: ['uname -a'],
+                      timeoutMs: 1000,
+                      maxOutputLength: 4000,
+                    },
+                  },
+                  providerExecuted: true,
+                  providerOptions: {
+                    openai: {
+                      itemId:
+                        'sh_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e50',
+                    },
+                  },
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_abc123def456ghi789jkl012',
+                  toolName: 'shell',
+                  output: {
+                    type: 'json',
+                    value: {
+                      output: [
+                        {
+                          stdout: 'Linux x86_64\n',
+                          stderr: '',
+                          outcome: { type: 'exit', exitCode: 0 },
+                        },
+                      ],
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: false,
+          hasShellTool: true,
+        });
+
+        expect(result.input).toEqual([
+          {
+            type: 'shell_call',
+            call_id: 'call_abc123def456ghi789jkl012',
+            id: 'sh_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e50',
+            status: 'completed',
+            action: {
+              commands: ['uname -a'],
+              timeout_ms: 1000,
+              max_output_length: 4000,
+            },
+          },
+          {
+            type: 'shell_call_output',
+            call_id: 'call_abc123def456ghi789jkl012',
+            output: [
+              {
+                stdout: 'Linux x86_64\n',
+                stderr: '',
+                outcome: { type: 'exit', exit_code: 0 },
+              },
+            ],
+          },
+        ]);
       });
     });
 

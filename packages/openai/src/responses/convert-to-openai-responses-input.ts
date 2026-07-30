@@ -437,8 +437,20 @@ export async function convertToOpenAIResponsesInput({
               if (part.providerExecuted) {
                 if (store && id != null) {
                   input.push({ type: 'item_reference', id });
+                  break;
                 }
-                break;
+
+                // When storage is disabled, shell outputs are reconstructed as
+                // call output items and need their matching call in the input.
+                // Other provider-executed tools remain omitted.
+                const shouldReconstructShellCall =
+                  !store &&
+                  ((hasLocalShellTool && resolvedToolName === 'local_shell') ||
+                    (hasShellTool && resolvedToolName === 'shell'));
+
+                if (!shouldReconstructShellCall) {
+                  break;
+                }
               }
 
               // When chaining with a previous response id, items already part
