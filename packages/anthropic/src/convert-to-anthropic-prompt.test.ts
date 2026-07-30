@@ -3333,6 +3333,50 @@ describe('assistant messages', () => {
   });
 
   describe('code_execution 20260120', () => {
+    it('should replay server_tool_use input without the internal discriminator', async () => {
+      const warnings: SharedV4Warning[] = [];
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'srvtoolu_cache_replay',
+                toolName: 'code_execution',
+                input: {
+                  type: 'bash_code_execution',
+                  command: 'echo cache-compatible',
+                },
+                providerExecuted: true,
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.messages).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'server_tool_use',
+              id: 'srvtoolu_cache_replay',
+              name: 'bash_code_execution',
+              input: {
+                command: 'echo cache-compatible',
+              },
+              cache_control: undefined,
+            },
+          ],
+        },
+      ]);
+      expect(warnings).toEqual([]);
+    });
+
     it('should convert anthropic code_execution tool call and result parts', async () => {
       const warnings: SharedV4Warning[] = [];
       const result = await convertToAnthropicPrompt({

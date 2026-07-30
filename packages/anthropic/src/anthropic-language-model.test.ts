@@ -9982,6 +9982,36 @@ describe('AnthropicLanguageModel', () => {
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
       });
+
+      it('should parse the live prompt-cache reproduction fixture', async () => {
+        prepareChunksFixtureResponse(
+          'anthropic-code-execution-20260120-prompt-cache.1',
+        );
+
+        const result = await provider('claude-sonnet-5').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20260120',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+        const parts = await convertReadableStreamToArray(result.stream);
+        const bashToolCall = parts.find(
+          (part): part is LanguageModelV4StreamPart & { type: 'tool-call' } =>
+            part.type === 'tool-call' &&
+            JSON.parse(part.input).type === 'bash_code_execution',
+        );
+
+        expect(bashToolCall).toBeDefined();
+        expect(JSON.parse(bashToolCall!.input)).toMatchObject({
+          type: 'bash_code_execution',
+          command: expect.any(String),
+        });
+      });
     });
 
     describe('web fetch tool', () => {
