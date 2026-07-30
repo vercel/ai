@@ -1037,6 +1037,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               webSearchToolName ?? 'web_search',
             ),
             result: mapWebSearchOutput(part.action),
+            ...(part.status === 'failed' && { isError: true }),
           });
 
           break;
@@ -1770,6 +1771,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                     webSearchToolName ?? 'web_search',
                   ),
                   result: mapWebSearchOutput(value.item.action),
+                  ...(value.item.status === 'failed' && { isError: true }),
                 });
               } else if (value.item.type === 'computer_call') {
                 ongoingToolCalls[value.output_index] = undefined;

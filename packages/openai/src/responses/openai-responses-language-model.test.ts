@@ -4093,6 +4093,41 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('web search sources schema resilience', () => {
+      it('should mark a failed web search result as an error', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            output: [
+              {
+                type: 'web_search_call',
+                id: 'ws_failed',
+                status: 'failed',
+              },
+            ],
+          },
+        };
+
+        const result = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.web_search',
+              name: 'webSearch',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'ws_failed',
+          toolName: 'webSearch',
+          result: {},
+          isError: true,
+        });
+      });
+
       it('should accept api-type sources without throwing', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'json-value',
@@ -6795,6 +6830,55 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('web search tool', () => {
+      it('should mark a failed streamed web search result as an error', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: ${JSON.stringify({
+              type: 'response.output_item.added',
+              output_index: 0,
+              item: {
+                type: 'web_search_call',
+                id: 'ws_failed',
+                status: 'in_progress',
+              },
+            })}\n\n`,
+            `data: ${JSON.stringify({
+              type: 'response.output_item.done',
+              output_index: 0,
+              item: {
+                type: 'web_search_call',
+                id: 'ws_failed',
+                status: 'failed',
+              },
+            })}\n\n`,
+            'data: [DONE]\n\n',
+          ],
+        };
+
+        const { stream } = await createModel('gpt-5-nano').doStream({
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.web_search',
+              name: 'webSearch',
+              args: {},
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'ws_failed',
+          toolName: 'webSearch',
+          result: {},
+          isError: true,
+        });
+      });
+
       it('should stream web search results (sources, tool calls, tool results)', async () => {
         prepareChunksFixtureResponse('openai-web-search-tool.1');
 
