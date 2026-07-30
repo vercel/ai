@@ -35,6 +35,7 @@ import {
   type BedrockStopReason,
 } from './bedrock-api-types';
 import {
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
   amazonBedrockLanguageModelOptions,
   type BedrockChatModelId,
 } from './bedrock-chat-options';
@@ -42,6 +43,19 @@ import { supportsNativeStructuredOutput } from './bedrock-anthropic-model-suppor
 import { BedrockErrorSchema } from './bedrock-error';
 import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-response-handler';
 import { prepareTools } from './bedrock-prepare-tools';
+=======
+  amazonBedrockLanguageModelChatOptions,
+  type AmazonBedrockLanguageModelChatOptions,
+  type AmazonBedrockChatModelId,
+} from './amazon-bedrock-chat-language-model-options';
+import {
+  supportsNativeStructuredOutput,
+  supportsStrictTools,
+} from './amazon-bedrock-anthropic-model-support';
+import { AmazonBedrockErrorSchema } from './amazon-bedrock-error';
+import { createAmazonBedrockEventStreamResponseHandler } from './amazon-bedrock-event-stream-response-handler';
+import { prepareTools } from './amazon-bedrock-prepare-tools';
+>>>>>>> ebd31b8087 (fix: warn when Bedrock cannot enforce strict tools and correctly route structured output for unsupported Claude models (#18206)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
 import {
   convertBedrockUsage,
   type BedrockUsage,
@@ -164,8 +178,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
 
     const useJsonInstructionForStructuredOutput =
       isAnthropicModel &&
-      (this.modelId.includes('claude-opus-4-7') ||
-        this.modelId.includes('claude-opus-4-8')) &&
+      !supportsStrictTools(this.modelId) &&
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
       tools != null &&

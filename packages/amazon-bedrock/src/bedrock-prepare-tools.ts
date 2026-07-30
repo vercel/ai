@@ -137,7 +137,19 @@ export async function prepareTools({
   const supportsStrictOnTools = supportsStrictTools(modelId);
 
   for (const tool of filteredFunctionTools) {
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-prepare-tools.ts
     bedrockTools.push({
+=======
+    if (!supportsStrictOnTools && tool.strict != null) {
+      toolWarnings.push({
+        type: 'unsupported',
+        feature: 'strict',
+        details: `Tool '${tool.name}' has strict: ${tool.strict}, but strict mode is not supported by this model on Amazon Bedrock. The strict property will be ignored.`,
+      });
+    }
+
+    amazonBedrockTools.push({
+>>>>>>> ebd31b8087 (fix: warn when Bedrock cannot enforce strict tools and correctly route structured output for unsupported Claude models (#18206)):packages/amazon-bedrock/src/amazon-bedrock-prepare-tools.ts
       toolSpec: {
         name: tool.name,
         ...(tool.description?.trim() !== ''
