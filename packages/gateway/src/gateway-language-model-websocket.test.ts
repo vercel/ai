@@ -4,6 +4,7 @@ import {
   type LanguageModelV4GenerateResult,
   type LanguageModelV4Prompt,
   type LanguageModelV4StreamPart,
+  type SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -231,14 +232,58 @@ describe('GatewayLanguageModel WebSocket transport', () => {
       prompt: TEST_PROMPT,
       providerOptions: {
         gateway: { transport: 'http' },
+        openai: { transport: 'websocket' },
       },
     });
 
     expect(fetch).toHaveBeenCalledOnce();
     expect(MockWebSocket.instances).toHaveLength(0);
-    expect(
-      JSON.parse(fetch.mock.calls[0][1]?.body as string),
-    ).not.toHaveProperty('providerOptions.gateway.transport');
+    expect(JSON.parse(fetch.mock.calls[0][1]?.body as string)).toMatchObject({
+      providerOptions: {
+        gateway: {},
+        openai: { transport: 'websocket' },
+      },
+    });
+  });
+
+  it.each<{
+    name: string;
+    providerOptions: SharedV4ProviderOptions;
+  }>([
+    {
+      name: 'a model provider requests it',
+      providerOptions: {
+        openai: { transport: 'websocket' },
+      },
+    },
+    {
+      name: 'a non-OpenAI model provider requests it',
+      providerOptions: {
+        custom: { transport: 'websocket' },
+      },
+    },
+  ])('uses the WebSocket path when $name', async ({ providerOptions }) => {
+    const session = new TestSession();
+    const resultPromise = createTestModel().doGenerate({
+      prompt: TEST_PROMPT,
+      experimental_session: session,
+      providerOptions,
+    });
+    const socket = await waitForSocket();
+    socket.open();
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(socket.sent).toHaveLength(1);
+    expect(socket.sent[0]).toMatchObject({
+      body: {
+        providerOptions,
+      },
+    });
+
+    socket.message(GENERATE_RESULT);
+    await expect(resultPromise).resolves.toMatchObject({
+      content: GENERATE_RESULT.content,
+    });
   });
 
   it('sends the HTTP-equivalent request over an authenticated WebSocket', async () => {

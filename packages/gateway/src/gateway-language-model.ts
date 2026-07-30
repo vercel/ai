@@ -347,18 +347,23 @@ function maybeBase64EncodeFileData<T extends { type: string }>(data: T): T {
 function getGatewayTransport(
   providerOptions: LanguageModelV4CallOptions['providerOptions'],
 ): 'http' | 'websocket' {
-  const transport = providerOptions?.gateway?.transport;
+  const gatewayTransport = providerOptions?.gateway?.transport;
 
-  if (transport == null || transport === 'http') {
-    return 'http';
-  }
-  if (transport === 'websocket') {
-    return 'websocket';
+  if (gatewayTransport !== undefined) {
+    if (gatewayTransport !== 'http' && gatewayTransport !== 'websocket') {
+      throw new InvalidArgumentError({
+        argument: 'providerOptions.gateway.transport',
+        message:
+          "AI Gateway transport must be either 'http' or 'websocket' when provided.",
+      });
+    }
+
+    return gatewayTransport;
   }
 
-  throw new InvalidArgumentError({
-    argument: 'providerOptions.gateway.transport',
-    message:
-      "AI Gateway transport must be either 'http' or 'websocket' when provided.",
-  });
+  return Object.values(providerOptions ?? {}).some(
+    options => options.transport === 'websocket',
+  )
+    ? 'websocket'
+    : 'http';
 }

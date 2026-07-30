@@ -48,8 +48,10 @@ export type GatewayProviderOptions = {
   tags?: string[];
 
   /**
-   * Transport used between the AI SDK Gateway provider and AI Gateway.
-   * Defaults to `'http'`.
+   * Transport used end-to-end for Gateway language model calls. This takes
+   * priority over model provider transport options. When omitted, a model
+   * provider's `'websocket'` transport selects WebSockets. Defaults to
+   * `'http'`.
    */
   transport?: 'http' | 'websocket';
 

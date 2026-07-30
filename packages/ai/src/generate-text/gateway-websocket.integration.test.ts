@@ -97,7 +97,6 @@ function createTestGateway() {
 }
 
 const providerOptions = {
-  gateway: { transport: 'websocket' },
   openai: { transport: 'websocket' },
 } as const;
 
@@ -148,7 +147,6 @@ describe('Gateway WebSocket public lifecycle', () => {
     expect(socket.sent[1]).toMatchObject({
       body: {
         providerOptions: {
-          gateway: {},
           openai: { transport: 'websocket' },
         },
       },
