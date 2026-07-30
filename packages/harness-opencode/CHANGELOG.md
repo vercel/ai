@@ -1,5 +1,15 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.50
+
+### Patch Changes
+
+- d8210b6: chore: centralize record type guards in provider-utils
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+  - @ai-sdk/harness@1.0.49
+
 ## 1.0.49
 
 ### Patch Changes

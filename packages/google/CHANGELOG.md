@@ -1,5 +1,14 @@
 # @ai-sdk/google
 
+## 4.0.29
+
+### Patch Changes
+
+- d8210b6: chore: centralize record type guards in provider-utils
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+
 ## 4.0.28
 
 ### Patch Changes
