@@ -1,9 +1,18 @@
 export type { GatewayModelId } from './gateway-language-model-settings';
 export {
+  GATEWAY_LANGUAGE_MODEL_ERROR_FRAME_TYPE,
+  GATEWAY_LANGUAGE_MODEL_REQUEST_FRAME_TYPE,
+  type GatewayLanguageModelErrorFrame,
+  type GatewayLanguageModelRequestBody,
+  type GatewayLanguageModelRequestFrame,
+} from './gateway-language-model-websocket';
+export {
   GATEWAY_AUTH_SUBPROTOCOL_PREFIX,
+  GATEWAY_LANGUAGE_MODEL_SUBPROTOCOL,
   GATEWAY_REALTIME_SUBPROTOCOL,
   GATEWAY_TEAM_SUBPROTOCOL_PREFIX,
   GATEWAY_TRANSCRIPTION_SUBPROTOCOL,
+  getGatewayLanguageModelProtocols,
   getGatewayRealtimeAuthToken,
   getGatewayRealtimeProtocols,
   getGatewayRealtimeTeamIdOrSlug,

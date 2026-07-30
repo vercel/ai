@@ -1,9 +1,11 @@
-import type {
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4StreamPart,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4StreamResult,
+import {
+  InvalidArgumentError,
+  type Experimental_SharedV4Session,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4StreamResult,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -23,6 +25,10 @@ import type { GatewayConfig } from './gateway-config';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
+import {
+  assertGatewayLanguageModelTransport,
+  getGatewayLanguageModelWebSocketSession,
+} from './gateway-language-model-websocket';
 
 type GatewayChatConfig = GatewayConfig & {
   provider: string;
@@ -57,14 +63,25 @@ export class GatewayLanguageModel implements LanguageModelV4 {
   }
 
   private async getArgs(options: LanguageModelV4CallOptions) {
+    const transport = getGatewayTransport(options.providerOptions);
     const {
       abortSignal: _abortSignal,
       experimental_session: _experimentalSession,
-      ...optionsWithoutInternalState
+      ...args
     } = options;
 
+    if (args.providerOptions?.gateway?.transport !== undefined) {
+      const { transport: _transport, ...gatewayOptions } =
+        args.providerOptions.gateway;
+      args.providerOptions = {
+        ...args.providerOptions,
+        gateway: gatewayOptions,
+      };
+    }
+
     return {
-      args: this.maybeEncodeFileParts(optionsWithoutInternalState),
+      args: this.maybeEncodeFileParts(args),
+      transport,
       warnings: [],
     };
   }
@@ -72,26 +89,54 @@ export class GatewayLanguageModel implements LanguageModelV4 {
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
-    const { args, warnings } = await this.getArgs(options);
+    const { args, transport, warnings } = await this.getArgs(options);
     const { abortSignal } = options;
+
+    assertGatewayLanguageModelTransport({
+      session: options.experimental_session,
+      transport,
+    });
 
     const resolvedHeaders = this.config.headers
       ? await resolve(this.config.headers)
       : undefined;
+    const o11yHeaders = await resolve(this.config.o11yHeaders);
+    const requestHeaders = combineHeaders(
+      resolvedHeaders,
+      options.headers,
+      this.getModelConfigHeaders(this.modelId, false),
+      o11yHeaders,
+    );
 
     try {
+      if (transport === 'websocket') {
+        const responseBody = await getGatewayLanguageModelWebSocketSession(
+          options.experimental_session as Experimental_SharedV4Session,
+        ).generate({
+          url: this.getUrl(),
+          webSocket: this.config.webSocket,
+          connectionHeaders: combineHeaders(resolvedHeaders, options.headers),
+          requestHeaders,
+          body: args,
+          abortSignal,
+          authMethod: await parseAuthMethod(resolvedHeaders ?? {}),
+        });
+
+        return {
+          ...responseBody,
+          request: { body: args },
+          response: { body: responseBody },
+          warnings,
+        };
+      }
+
       const {
         responseHeaders,
         value: responseBody,
         rawValue: rawResponse,
       } = await postJsonToApi({
         url: this.getUrl(),
-        headers: combineHeaders(
-          resolvedHeaders,
-          options.headers,
-          this.getModelConfigHeaders(this.modelId, false),
-          await resolve(this.config.o11yHeaders),
-        ),
+        headers: requestHeaders,
         body: args,
         successfulResponseHandler: createJsonResponseHandler(z.any()),
         failedResponseHandler: createJsonErrorResponseHandler({
@@ -109,6 +154,9 @@ export class GatewayLanguageModel implements LanguageModelV4 {
         warnings,
       };
     } catch (error) {
+      if (InvalidArgumentError.isInstance(error)) {
+        throw error;
+      }
       throw await asGatewayError(
         error,
         await parseAuthMethod(resolvedHeaders ?? {}),
@@ -119,22 +167,52 @@ export class GatewayLanguageModel implements LanguageModelV4 {
   async doStream(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4StreamResult> {
-    const { args, warnings } = await this.getArgs(options);
+    const { args, transport, warnings } = await this.getArgs(options);
     const { abortSignal } = options;
+
+    assertGatewayLanguageModelTransport({
+      session: options.experimental_session,
+      transport,
+    });
 
     const resolvedHeaders = this.config.headers
       ? await resolve(this.config.headers)
       : undefined;
+    const o11yHeaders = await resolve(this.config.o11yHeaders);
+    const requestHeaders = combineHeaders(
+      resolvedHeaders,
+      options.headers,
+      this.getModelConfigHeaders(this.modelId, true),
+      o11yHeaders,
+    );
 
     try {
+      if (transport === 'websocket') {
+        const response = await getGatewayLanguageModelWebSocketSession(
+          options.experimental_session as Experimental_SharedV4Session,
+        ).stream({
+          url: this.getUrl(),
+          webSocket: this.config.webSocket,
+          connectionHeaders: combineHeaders(resolvedHeaders, options.headers),
+          requestHeaders,
+          body: args,
+          abortSignal,
+          authMethod: await parseAuthMethod(resolvedHeaders ?? {}),
+        });
+
+        return {
+          stream: transformGatewayLanguageModelStream({
+            stream: response,
+            options,
+            warnings,
+          }),
+          request: { body: args },
+        };
+      }
+
       const { value: response, responseHeaders } = await postJsonToApi({
         url: this.getUrl(),
-        headers: combineHeaders(
-          resolvedHeaders,
-          options.headers,
-          this.getModelConfigHeaders(this.modelId, true),
-          await resolve(this.config.o11yHeaders),
-        ),
+        headers: requestHeaders,
         body: args,
         successfulResponseHandler: createEventSourceResponseHandler(z.any()),
         failedResponseHandler: createJsonErrorResponseHandler({
@@ -146,47 +224,31 @@ export class GatewayLanguageModel implements LanguageModelV4 {
       });
 
       return {
-        stream: response.pipeThrough(
-          new TransformStream<
-            ParseResult<LanguageModelV4StreamPart>,
-            LanguageModelV4StreamPart
-          >({
-            start(controller) {
-              if (warnings.length > 0) {
-                controller.enqueue({ type: 'stream-start', warnings });
-              }
-            },
-            transform(chunk, controller) {
-              if (chunk.success) {
-                const streamPart = chunk.value;
-
-                // Handle raw chunks: if this is a raw chunk from the gateway API,
-                // only emit it if includeRawChunks is true
-                if (streamPart.type === 'raw' && !options.includeRawChunks) {
-                  return; // Skip raw chunks if not requested
+        stream: transformGatewayLanguageModelStream({
+          stream: response.pipeThrough(
+            new TransformStream<
+              ParseResult<LanguageModelV4StreamPart>,
+              LanguageModelV4StreamPart
+            >({
+              transform(chunk, controller) {
+                if (chunk.success) {
+                  controller.enqueue(chunk.value);
+                } else {
+                  controller.error(chunk.error);
                 }
-
-                if (
-                  streamPart.type === 'response-metadata' &&
-                  streamPart.timestamp &&
-                  typeof streamPart.timestamp === 'string'
-                ) {
-                  streamPart.timestamp = new Date(streamPart.timestamp);
-                }
-
-                controller.enqueue(streamPart);
-              } else {
-                controller.error(
-                  (chunk as { success: false; error: unknown }).error,
-                );
-              }
-            },
-          }),
-        ),
+              },
+            }),
+          ),
+          options,
+          warnings,
+        }),
         request: { body: args },
         response: { headers: responseHeaders },
       };
     } catch (error) {
+      if (InvalidArgumentError.isInstance(error)) {
+        throw error;
+      }
       throw await asGatewayError(
         error,
         await parseAuthMethod(resolvedHeaders ?? {}),
@@ -235,6 +297,43 @@ export class GatewayLanguageModel implements LanguageModelV4 {
   }
 }
 
+function transformGatewayLanguageModelStream({
+  stream,
+  options,
+  warnings,
+}: {
+  stream: ReadableStream<LanguageModelV4StreamPart>;
+  options: LanguageModelV4CallOptions;
+  warnings: LanguageModelV4GenerateResult['warnings'];
+}): ReadableStream<LanguageModelV4StreamPart> {
+  return stream.pipeThrough(
+    new TransformStream<LanguageModelV4StreamPart, LanguageModelV4StreamPart>({
+      start(controller) {
+        if (warnings.length > 0) {
+          controller.enqueue({ type: 'stream-start', warnings });
+        }
+      },
+      transform(streamPart, controller) {
+        // Handle raw chunks: if this is a raw chunk from the gateway API,
+        // only emit it if includeRawChunks is true
+        if (streamPart.type === 'raw' && !options.includeRawChunks) {
+          return; // Skip raw chunks if not requested
+        }
+
+        if (
+          streamPart.type === 'response-metadata' &&
+          streamPart.timestamp &&
+          typeof streamPart.timestamp === 'string'
+        ) {
+          streamPart.timestamp = new Date(streamPart.timestamp);
+        }
+
+        controller.enqueue(streamPart);
+      },
+    }),
+  );
+}
+
 function maybeBase64EncodeFileData<T extends { type: string }>(data: T): T {
   if (data.type === 'data') {
     const bytes = (data as { data?: unknown }).data;
@@ -243,4 +342,23 @@ function maybeBase64EncodeFileData<T extends { type: string }>(data: T): T {
     }
   }
   return data;
+}
+
+function getGatewayTransport(
+  providerOptions: LanguageModelV4CallOptions['providerOptions'],
+): 'http' | 'websocket' {
+  const transport = providerOptions?.gateway?.transport;
+
+  if (transport == null || transport === 'http') {
+    return 'http';
+  }
+  if (transport === 'websocket') {
+    return 'websocket';
+  }
+
+  throw new InvalidArgumentError({
+    argument: 'providerOptions.gateway.transport',
+    message:
+      "AI Gateway transport must be either 'http' or 'websocket' when provided.",
+  });
 }
