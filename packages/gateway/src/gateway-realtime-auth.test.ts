@@ -1,12 +1,28 @@
 import { describe, expect, it } from 'vitest';
 import {
   GATEWAY_AUTH_SUBPROTOCOL_PREFIX,
+  GATEWAY_LANGUAGE_MODEL_SUBPROTOCOL,
   GATEWAY_REALTIME_SUBPROTOCOL,
   GATEWAY_TEAM_SUBPROTOCOL_PREFIX,
+  getGatewayLanguageModelProtocols,
   getGatewayRealtimeAuthToken,
   getGatewayRealtimeProtocols,
   getGatewayRealtimeTeamIdOrSlug,
 } from './gateway-realtime-auth';
+
+describe('getGatewayLanguageModelProtocols', () => {
+  it('offers the language model marker, auth token, and team scope', () => {
+    expect(
+      getGatewayLanguageModelProtocols('vck_test-token', {
+        teamIdOrSlug: 'team/with/slashes',
+      }),
+    ).toEqual([
+      GATEWAY_LANGUAGE_MODEL_SUBPROTOCOL,
+      `${GATEWAY_AUTH_SUBPROTOCOL_PREFIX}vck_test-token`,
+      expect.stringMatching(/^ai-gateway-team\.[A-Za-z0-9_-]+$/u),
+    ]);
+  });
+});
 
 describe('getGatewayRealtimeProtocols', () => {
   it('offers the marker subprotocol and the prefixed auth token', () => {
