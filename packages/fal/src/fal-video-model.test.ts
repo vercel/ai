@@ -141,17 +141,17 @@ describe('FalVideoModel', () => {
       });
     });
 
-    it('should pass seed when provided', async () => {
+    it('should pass a zero seed', async () => {
       const model = createBasicModel();
 
       await model.doGenerate({
         ...defaultOptions,
-        seed: 42,
+        seed: 0,
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
         prompt,
-        seed: 42,
+        seed: 0,
       });
     });
 

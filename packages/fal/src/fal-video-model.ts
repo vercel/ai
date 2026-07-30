@@ -79,7 +79,7 @@ export class FalVideoModel implements Experimental_VideoModelV4 {
       body.duration = `${options.duration}s`;
     }
 
-    if (options.seed) {
+    if (options.seed != null) {
       body.seed = options.seed;
     }
 
