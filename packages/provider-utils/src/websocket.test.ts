@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { waitForWebSocketBufferDrain, type WebSocketLike } from './websocket';
 
 function socketWithBuffer(initial: number): WebSocketLike & {
@@ -69,14 +69,24 @@ describe('waitForWebSocketBufferDrain', () => {
   });
 
   it('should resolve when the abort signal fires mid-wait', async () => {
-    const socket = socketWithBuffer(100);
-    const controller = new AbortController();
-    const wait = waitForWebSocketBufferDrain(socket, {
-      highWaterMark: 10,
-      pollIntervalMs: 1,
-      abortSignal: controller.signal,
-    });
-    controller.abort();
-    await expect(wait).resolves.toBeUndefined();
+    vi.useFakeTimers();
+    vi.stubGlobal('DOMException', undefined);
+    try {
+      const socket = socketWithBuffer(100);
+      const controller = new AbortController();
+      const wait = waitForWebSocketBufferDrain(socket, {
+        highWaterMark: 10,
+        pollIntervalMs: 60_000,
+        abortSignal: controller.signal,
+      });
+
+      controller.abort();
+
+      expect(vi.getTimerCount()).toBe(0);
+      await expect(wait).resolves.toBeUndefined();
+    } finally {
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
+    }
   });
 });

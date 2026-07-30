@@ -3,7 +3,7 @@
  * @param delayInMs - The delay duration in milliseconds. If null or undefined, resolves immediately.
  * @param signal - Optional AbortSignal to cancel the delay
  * @returns A Promise that resolves after the specified delay
- * @throws {DOMException} When the signal is aborted
+ * @throws {Error} With the name `AbortError` when the signal is aborted
  */
 export async function delay(
   delayInMs?: number | null,
@@ -42,6 +42,12 @@ export async function delay(
   });
 }
 
-function createAbortError(): DOMException {
-  return new DOMException('Delay was aborted', 'AbortError');
+function createAbortError(): Error {
+  if (typeof DOMException === 'function') {
+    return new DOMException('Delay was aborted', 'AbortError');
+  }
+
+  const error = new Error('Delay was aborted');
+  error.name = 'AbortError';
+  return error;
 }

@@ -7,6 +7,7 @@ describe('delay', () => {
   });
 
   afterEach(() => {
+    vi.unstubAllGlobals();
     vi.useRealTimers();
   });
 
@@ -75,6 +76,19 @@ describe('delay', () => {
       controller.abort();
 
       await expect(delayPromise).rejects.toThrow('Delay was aborted');
+    });
+
+    it('should reject with an AbortError when DOMException is unavailable', async () => {
+      vi.stubGlobal('DOMException', undefined);
+      const controller = new AbortController();
+      const delayPromise = delay(1000, { abortSignal: controller.signal });
+
+      controller.abort();
+
+      await expect(delayPromise).rejects.toMatchObject({
+        name: 'AbortError',
+        message: 'Delay was aborted',
+      });
     });
 
     it('should clean up timeout when aborted', async () => {

@@ -89,9 +89,13 @@ export async function waitForWebSocketBufferDrain(
     socket.readyState === WEBSOCKET_OPEN_STATE &&
     (socket.bufferedAmount ?? 0) > highWaterMark
   ) {
-    if (abortSignal?.aborted === true) {
-      return;
+    try {
+      await delay(pollIntervalMs, { abortSignal });
+    } catch (error) {
+      if (abortSignal?.aborted === true) {
+        return;
+      }
+      throw error;
     }
-    await delay(pollIntervalMs);
   }
 }
