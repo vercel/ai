@@ -466,7 +466,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       } else if ('functionCall' in part && part.functionCall.name != null) {
         content.push({
           type: 'tool-call' as const,
-          toolCallId: part.functionCall.id ?? this.config.generateId(),
+          toolCallId: part.functionCall.id || this.config.generateId(),
           toolName: part.functionCall.name,
           input: JSON.stringify(part.functionCall.args ?? {}),
           providerMetadata: part.thoughtSignature
@@ -952,7 +952,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
                 if (isStreamingChunk) {
                   if (part.functionCall.name != null) {
-                    const toolCallId = part.functionCall.id ?? generateId();
+                    const toolCallId = part.functionCall.id || generateId();
                     const accumulator = new GoogleJSONAccumulator();
                     activeStreamingToolCalls.push({
                       toolCallId,
@@ -1021,7 +1021,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                 ) {
                   finishActiveStreamingToolCall(controller);
                 } else if (isCompleteCall) {
-                  const toolCallId = part.functionCall.id ?? generateId();
+                  const toolCallId = part.functionCall.id || generateId();
                   const toolName = part.functionCall.name!;
                   const args =
                     typeof part.functionCall.args === 'string'
@@ -1058,7 +1058,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
                   hasToolCalls = true;
                 } else if (isNoArgsCompleteCall) {
-                  const toolCallId = part.functionCall.id ?? generateId();
+                  const toolCallId = part.functionCall.id || generateId();
                   const toolName = part.functionCall.name!;
 
                   controller.enqueue({

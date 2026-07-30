@@ -3763,6 +3763,50 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should generate a tool call id when the response contains an empty id', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  functionCall: {
+                    id: '',
+                    name: 'test-tool',
+                    args: { value: 'test' },
+                  },
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 10,
+          candidatesTokenCount: 20,
+          totalTokenCount: 30,
+        },
+      },
+    };
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toContainEqual({
+      type: 'tool-call',
+      toolCallId: 'test-id',
+      toolName: 'test-tool',
+      input: '{"value":"test"}',
+      providerMetadata: undefined,
+    });
+  });
+
   it('should support includeThoughts with google generative ai provider', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'json-value',
@@ -6422,6 +6466,72 @@ describe('doStream', () => {
         "unified": "tool-calls",
       }
     `);
+  });
+
+  it('should generate a tool call id when a stream chunk contains an empty id', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    functionCall: {
+                      id: '',
+                      name: 'test-tool',
+                      args: { value: 'example value' },
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 20,
+            totalTokenCount: 30,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const toolEvents = events.filter(
+      event =>
+        event.type === 'tool-input-start' ||
+        event.type === 'tool-input-delta' ||
+        event.type === 'tool-input-end' ||
+        event.type === 'tool-call',
+    );
+
+    expect(toolEvents).toHaveLength(4);
+    expect(
+      toolEvents.map(event =>
+        event.type === 'tool-call' ? event.toolCallId : event.id,
+      ),
+    ).toEqual(['test-id', 'test-id', 'test-id', 'test-id']);
   });
 
   it('should omit server-side tool invocation flag for Vertex Gemini 3', async () => {
