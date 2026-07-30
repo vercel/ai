@@ -10,4 +10,14 @@ describe('web-search tool type', () => {
       Tool<{}, InferSchema<typeof webSearchOutputSchema>, {}>
     >();
   });
+
+  it('should accept blocked domains', () => {
+    expectTypeOf(
+      webSearch({
+        filters: {
+          blockedDomains: ['example.com'],
+        },
+      }),
+    ).toExtend<Tool>();
+  });
 });

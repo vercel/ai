@@ -932,7 +932,6 @@ function createSession({
         );
       }
       stopped = true;
-      await channel.interrupt();
       const lastSeenEventId = await channel.suspend();
       const payload: HarnessV1ContinueTurnState = {
         type: 'continue-turn',

@@ -4,7 +4,7 @@ import type { TranscriptionModelV4StreamOptions } from './transcription-model-v4
 import type { TranscriptionModelV4StreamResult } from './transcription-model-v4-stream-result';
 
 /**
- * Transcription model specification version 3.
+ * Transcription model specification version 4.
  */
 export type TranscriptionModelV4 = {
   /**

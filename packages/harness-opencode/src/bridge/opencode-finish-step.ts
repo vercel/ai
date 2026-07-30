@@ -1,4 +1,5 @@
 import type { HarnessV1StreamPart } from '@ai-sdk/harness';
+import { isRecord } from '@ai-sdk/provider-utils';
 import { mapUsage } from './opencode-usage';
 
 type FinishStepEvent = Extract<HarnessV1StreamPart, { type: 'finish-step' }>;
@@ -32,8 +33,4 @@ export function legacyStepFinishPartToFinishStep(
       ? { harnessMetadata: { opencode: { cost: part.cost } } }
       : {}),
   };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
 }

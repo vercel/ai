@@ -13,6 +13,7 @@ import type {
   ParsedUsage,
   ContentPart,
   ToolCallContentPart,
+  ToolResultContentPart,
   PromptMessage,
   ParseJson,
 } from './types';
@@ -58,6 +59,49 @@ export function summarizeToolCalls(toolCalls: ToolCallContentPart[]): {
 export function truncateText(text: string, maxLength: number = 30): string {
   if (text.length <= maxLength) return text;
   return text.slice(0, maxLength).trim() + '…';
+}
+
+function getToolResultsFromMessages(
+  messages: PromptMessage[] | undefined,
+): ToolResultContentPart[] {
+  return (
+    messages
+      ?.filter(message => message.role === 'tool')
+      .flatMap(message =>
+        Array.isArray(message.content)
+          ? message.content.filter(
+              (part): part is ToolResultContentPart =>
+                part.type === 'tool-result',
+            )
+          : [],
+      ) ?? []
+  );
+}
+
+export function getOutputToolResults(
+  output: ParsedOutput | null,
+  fallbackToolResults: ContentPart[] = [],
+): ToolResultContentPart[] {
+  const candidates = [
+    ...getToolResultsFromMessages(output?.response?.messages),
+    // Retain compatibility with captures created by the initial media-preview
+    // implementation, which persisted transformed results separately.
+    ...(output?.toolResults ?? []),
+    ...fallbackToolResults.filter(
+      (part): part is ToolResultContentPart => part.type === 'tool-result',
+    ),
+    ...(output?.content?.filter(
+      (part): part is ToolResultContentPart => part.type === 'tool-result',
+    ) ?? []),
+  ];
+  const seenToolCallIds = new Set<string>();
+
+  return candidates.filter(result => {
+    if (result.toolCallId == null) return true;
+    if (seenToolCallIds.has(result.toolCallId)) return false;
+    seenToolCallIds.add(result.toolCallId);
+    return true;
+  });
 }
 
 function extractTextFromMessage(message: PromptMessage): string | null {

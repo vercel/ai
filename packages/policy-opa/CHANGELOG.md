@@ -1,5 +1,71 @@
 # @ai-sdk/policy
 
+## 1.0.42
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [60f97f6]
+- Updated dependencies [6a5bdff]
+- Updated dependencies [6de2ec1]
+  - @ai-sdk/provider-utils@5.0.15
+  - ai@7.0.42
+
+## 1.0.41
+
+### Patch Changes
+
+- Updated dependencies [2e2224b]
+  - ai@7.0.41
+
+## 1.0.40
+
+### Patch Changes
+
+- Updated dependencies [c3782a6]
+  - ai@7.0.40
+
+## 1.0.39
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [09a52cb]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+  - ai@7.0.39
+
+## 1.0.38
+
+### Patch Changes
+
+- Updated dependencies [7bd6bdd]
+- Updated dependencies [1e2f324]
+  - ai@7.0.38
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/provider-utils@5.0.13
+
+## 1.0.37
+
+### Patch Changes
+
+- ai@7.0.37
+
+## 1.0.36
+
+### Patch Changes
+
+- Updated dependencies [7fa85b2]
+  - ai@7.0.36
+
+## 1.0.35
+
+### Patch Changes
+
+- Updated dependencies [7f6650b]
+- Updated dependencies [106ea59]
+  - ai@7.0.35
+
 ## 1.0.34
 
 ### Patch Changes

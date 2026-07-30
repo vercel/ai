@@ -6,7 +6,8 @@ description: Learn how to use Mistral.
 # Mistral AI Provider
 
 The [Mistral AI](https://mistral.ai/) provider contains language model,
-embedding model, and speech model support for Mistral APIs.
+embedding model, speech model, and transcription model support for Mistral
+APIs.
 
 ## Setup
 
@@ -312,6 +313,98 @@ const result = await generateText({
   full list of available models. The table above lists popular models. You can
   also pass any available provider model ID as a string if needed.
 </Note>
+
+## Transcription Models
+
+You can create models that call the
+[Mistral audio transcription API](https://docs.mistral.ai/api/endpoint/audio/transcriptions)
+using the `.transcription()` factory method:
+
+```ts
+const model = mistral.transcription('voxtral-mini-latest');
+```
+
+Use Mistral transcription models with [`transcribe`](/docs/reference/ai-sdk-core/transcribe):
+
+```ts
+import { mistral } from '@ai-sdk/mistral';
+import { transcribe } from 'ai';
+import { readFile } from 'node:fs/promises';
+
+const result = await transcribe({
+  model: mistral.transcription('voxtral-mini-latest'),
+  audio: await readFile('audio.mp3'),
+});
+```
+
+Mistral transcription models support additional provider options. Pass them
+through `providerOptions.mistral` and use
+`MistralTranscriptionModelOptions` for type checking:
+
+```ts highlight="9-13"
+import {
+  mistral,
+  type MistralTranscriptionModelOptions,
+} from '@ai-sdk/mistral';
+import { transcribe } from 'ai';
+import { readFile } from 'node:fs/promises';
+
+const result = await transcribe({
+  model: mistral.transcription('voxtral-mini-latest'),
+  audio: await readFile('audio.mp3'),
+  providerOptions: {
+    mistral: {
+      timestampGranularities: ['segment'],
+      diarize: true,
+      contextBias: ['Vercel', 'AI_SDK'],
+    } satisfies MistralTranscriptionModelOptions,
+  },
+});
+```
+
+The following optional provider options are available:
+
+- **language** _string_
+
+  The language of the audio, such as `en`. Providing it can improve accuracy.
+
+- **temperature** _number_
+
+  The sampling temperature for the transcription.
+
+- **timestampGranularities** _Array&lt;'segment' | 'word'&gt;_
+
+  Timestamp granularities to include in the response. Mistral does not support
+  combining this option with `language`; the SDK throws an
+  `InvalidArgumentError` when both are provided.
+
+- **diarize** _boolean_
+
+  Whether to identify speakers in the transcription.
+
+- **contextBias** _string[]_
+
+  Up to 100 words or phrases that guide spelling for names, technical terms,
+  or domain-specific vocabulary. Items cannot contain commas or whitespace;
+  use underscores for multi-word phrases.
+
+The normalized result includes transcript text, language, timed segments, and
+duration when returned by Mistral. Mistral token and prompt-audio usage is
+available under `result.providerMetadata.mistral.usage`. Segment scores and
+speaker IDs from diarization are available under
+`result.providerMetadata.mistral.segments`.
+
+<Note>
+  Audio is uploaded to Mistral for processing. This integration supports batch
+  transcription only; Mistral realtime transcription is not exposed by this
+  model.
+</Note>
+
+### Model Capabilities
+
+| Model                 | Timestamps | Diarization | Context Bias |
+| --------------------- | ---------- | ----------- | ------------ |
+| `voxtral-mini-latest` | <Check />  | <Check />   | <Check />    |
 
 ## Speech Models
 

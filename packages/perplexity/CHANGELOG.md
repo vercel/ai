@@ -1,5 +1,35 @@
 # @ai-sdk/perplexity
 
+## 4.0.17
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+
+## 4.0.16
+
+### Patch Changes
+
+- 58eee2c: feat (provider/perplexity): add embedding model support
+
+## 4.0.15
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+
+## 4.0.14
+
+### Patch Changes
+
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/provider-utils@5.0.13
+
 ## 4.0.13
 
 ### Patch Changes
