@@ -795,6 +795,11 @@ export async function generateText<
       // These tools may not return their results in the same turn as their call.
       const pendingDeferredToolCalls = new Map<string, { toolName: string }>();
 
+      // When the stop condition fires while the model is still calling tools
+      // and output is configured, allow one more output-only step with
+      // toolChoice: 'none' to let the model generate the structured output.
+      let needsOutputStep = false;
+
       do {
         if (steps.length > 0) {
           mergedAbortSignal?.throwIfAborted();
@@ -859,27 +864,39 @@ export async function generateText<
                 prepareStepResult?.runtimeContext ?? runtimeContext;
               toolsContext = prepareStepResult?.toolsContext ?? toolsContext;
 
-              const stepActiveTools = filterActiveTools({
-                tools,
-                activeTools: prepareStepResult?.activeTools ?? activeTools,
-              });
+              const stepActiveTools = needsOutputStep
+                ? ({} as ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>)
+                : filterActiveTools({
+                    tools,
+                    activeTools: prepareStepResult?.activeTools ?? activeTools,
+                  });
               const stepToolOrder = prepareStepResult?.toolOrder ?? toolOrder;
 
-              const stepTools = await prepareTools({
-                tools: stepActiveTools,
-                toolOrder: stepToolOrder as ToolOrder<
-                  ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
-                >,
-                // active tools context is a subset of the tools context, so we can cast to the unknown type
-                toolsContext: toolsContext as unknown as InferToolSetContext<
-                  ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
-                >,
-                experimental_sandbox: stepSandbox,
-              });
+              const stepTools = needsOutputStep
+                ? []
+                : await prepareTools({
+                    tools: stepActiveTools,
+                    toolOrder: stepToolOrder as ToolOrder<
+                      ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
+                    >,
+                    toolsContext:
+                      toolsContext as unknown as InferToolSetContext<
+                        ActiveToolSubset<
+                          TOOLS,
+                          ActiveTools<NoInfer<TOOLS>>
+                        >
+                      >,
+                    experimental_sandbox: stepSandbox,
+                  });
 
-              const stepToolChoice = prepareToolChoice({
-                toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-              });
+              const stepToolChoice = needsOutputStep
+                ? { type: 'none' as const }
+                : prepareToolChoice({
+                    toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+                  });
+
+              // Clear flag now that the next iteration has been configured:
+              needsOutputStep = false;
 
               const stepMessages =
                 prepareStepResult?.messages ?? stepInputMessages;
@@ -1371,16 +1388,26 @@ export async function generateText<
             clearTimeout(stepTimeoutId);
           }
         }
+        const outputStepNeeded =
+          output != null &&
+          currentModelResponse.finishReason.unified === 'tool-calls' &&
+          (await isStopConditionMet({ stopConditions, steps }));
+
+        if (outputStepNeeded) {
+          needsOutputStep = true;
+        }
       } while (
         // Continue if:
-        // 1. There are client tool calls that have all been executed or denied, OR
-        // 2. There are pending deferred results from provider-executed tools
+        // 1. There are client tool calls that have all been executed or denied, AND
+        //    no stop condition is met, OR
+        // 2. An output-only step is needed to generate structured output
+        //    (overrides the stop condition for one final step with toolChoice none)
         ((clientToolCalls.length > 0 &&
           clientToolOutputs.length + deniedToolApprovalResponses.length ===
-            clientToolCalls.length) ||
-          pendingDeferredToolCalls.size > 0) &&
-        // continue until a stop condition is met:
-        !(await isStopConditionMet({ stopConditions, steps }))
+            clientToolCalls.length &&
+          !(await isStopConditionMet({ stopConditions, steps }))) ||
+          pendingDeferredToolCalls.size > 0 ||
+          needsOutputStep)
       );
 
       const lastStep = steps[steps.length - 1];
