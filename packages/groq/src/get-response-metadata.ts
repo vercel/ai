@@ -1,1 +1,1 @@
-export { createOpenAICompatibleResponseMetadata as getResponseMetadata } from '@ai-sdk/provider-utils';
+export { createLanguageModelResponseMetadata as getResponseMetadata } from '@ai-sdk/provider-utils';

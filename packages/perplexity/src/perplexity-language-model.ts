@@ -13,7 +13,7 @@ import {
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  createOpenAICompatibleResponseMetadata as getResponseMetadata,
+  createLanguageModelResponseMetadata as getResponseMetadata,
   isCustomReasoning,
   parseProviderOptions,
   postJsonToApi,

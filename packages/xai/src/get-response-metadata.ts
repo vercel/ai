@@ -1,4 +1,4 @@
-import { createOpenAICompatibleResponseMetadata } from '@ai-sdk/provider-utils';
+import { createLanguageModelResponseMetadata } from '@ai-sdk/provider-utils';
 
 export function getResponseMetadata({
   id,
@@ -11,7 +11,7 @@ export function getResponseMetadata({
   created_at?: number | undefined | null;
   model?: string | undefined | null;
 }) {
-  return createOpenAICompatibleResponseMetadata({
+  return createLanguageModelResponseMetadata({
     id,
     model,
     created: created ?? created_at,

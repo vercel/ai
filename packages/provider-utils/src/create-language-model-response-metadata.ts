@@ -1,10 +1,10 @@
 import type { LanguageModelV4ResponseMetadata } from '@ai-sdk/provider';
 
 /**
- * Converts OpenAI-compatible response fields into language model response
+ * Converts common provider response fields into language model response
  * metadata.
  */
-export function createOpenAICompatibleResponseMetadata({
+export function createLanguageModelResponseMetadata({
   id,
   model,
   created,
