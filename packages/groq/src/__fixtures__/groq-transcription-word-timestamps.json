@@ -1,0 +1,37 @@
+{
+  "task": "transcribe",
+  "language": "English",
+  "duration": 2.507750144,
+  "text": " Hello from the Versal AISDK.",
+  "words": [
+    {
+      "word": "Hello",
+      "start": 0.2,
+      "end": 0.36
+    },
+    {
+      "word": "from",
+      "start": 0.36,
+      "end": 0.62
+    },
+    {
+      "word": "the",
+      "start": 0.62,
+      "end": 0.78
+    },
+    {
+      "word": "Versal",
+      "start": 0.78,
+      "end": 1.06
+    },
+    {
+      "word": "AISDK.",
+      "start": 1.06,
+      "end": 2.48
+    }
+  ],
+  "segments": null,
+  "x_groq": {
+    "id": "req_01kys82trmfgz89arrsm37hg1s"
+  }
+}
