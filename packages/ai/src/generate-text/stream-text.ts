@@ -2264,6 +2264,10 @@ class DefaultStreamTextResult<
                     case 'model-call-end': {
                       hasReceivedTerminalChunk = true;
 
+                      // Per-step model timers exclude client-side tool execution.
+                      // Total and tool-specific timeouts remain active.
+                      clearStepTimeouts();
+
                       // Note: tool executions might not be finished yet when the finish event is emitted.
                       // store usage and finish reason for promises and onEnd callback:
                       stepUsage = chunk.usage;

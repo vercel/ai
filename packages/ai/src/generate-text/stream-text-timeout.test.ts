@@ -431,3 +431,263 @@ describe('streamText chunk timeout', () => {
     await consumePromise;
   });
 });
+
+describe('streamText model-call timeout boundaries', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  const timeoutCases = [
+    { name: 'stepMs', timeout: { stepMs: 50 } },
+    { name: 'chunkMs', timeout: { chunkMs: 50 } },
+  ] as const;
+
+  for (const { name, timeout } of timeoutCases) {
+    it(`should not count tool execution time against ${name}`, async () => {
+      let receivedAbortSignal: AbortSignal | undefined;
+      let toolAbortSignal: AbortSignal | undefined;
+      const toolStarted = new DelayedPromise<void>();
+      const finishTool = new DelayedPromise<void>();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async ({ abortSignal }) => {
+            receivedAbortSignal = abortSignal;
+
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'slowTool',
+                  input: '{}',
+                },
+                {
+                  type: 'finish',
+                  finishReason: {
+                    unified: 'tool-calls',
+                    raw: 'tool-calls',
+                  },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          slowTool: {
+            inputSchema: z.object({}),
+            execute: async (_input, { abortSignal }) => {
+              toolAbortSignal = abortSignal;
+              toolStarted.resolve(undefined);
+              await finishTool.promise;
+              return { ok: true };
+            },
+          },
+        },
+        prompt: 'test-input',
+        timeout,
+        onError: () => {},
+      });
+
+      const consumePromise = result.consumeStream();
+
+      await toolStarted.promise;
+      await vi.advanceTimersByTimeAsync(100);
+
+      expect(receivedAbortSignal?.aborted).toBe(false);
+      expect(toolAbortSignal?.aborted).toBe(false);
+
+      finishTool.resolve(undefined);
+      await consumePromise;
+
+      await expect(result.text).resolves.toBe('');
+    });
+  }
+
+  const activeTimeoutCases = [
+    { name: 'totalMs', timeout: { totalMs: 50 } },
+    { name: 'toolMs', timeout: { toolMs: 50 } },
+  ] as const;
+
+  for (const { name, timeout } of activeTimeoutCases) {
+    it(`should keep ${name} active during tool execution`, async () => {
+      let toolAbortSignal: AbortSignal | undefined;
+      const toolStarted = new DelayedPromise<void>();
+      const finishTool = new DelayedPromise<void>();
+      const timeoutAbortController = new AbortController();
+      vi.spyOn(AbortSignal, 'timeout').mockReturnValue(
+        timeoutAbortController.signal,
+      );
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'slowTool',
+                input: '{}',
+              },
+              {
+                type: 'finish',
+                finishReason: {
+                  unified: 'tool-calls',
+                  raw: 'tool-calls',
+                },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          slowTool: {
+            inputSchema: z.object({}),
+            execute: async (_input, { abortSignal }) => {
+              toolAbortSignal = abortSignal;
+              toolStarted.resolve(undefined);
+              await finishTool.promise;
+              return { ok: true };
+            },
+          },
+        },
+        prompt: 'test-input',
+        timeout,
+        onError: () => {},
+      });
+
+      const consumePromise = result.consumeStream();
+
+      await toolStarted.promise;
+      timeoutAbortController.abort(
+        new DOMException(`${name} exceeded`, 'TimeoutError'),
+      );
+
+      expect(toolAbortSignal?.aborted).toBe(true);
+      expect((toolAbortSignal?.reason as Error)?.name).toBe('TimeoutError');
+
+      finishTool.resolve(undefined);
+      await consumePromise;
+    });
+  }
+
+  const rearmedTimeoutCases = [
+    {
+      name: 'stepMs',
+      timeout: { stepMs: 50 },
+      emitOutputBeforeStalling: false,
+    },
+    {
+      name: 'chunkMs',
+      timeout: { chunkMs: 50 },
+      emitOutputBeforeStalling: true,
+    },
+  ] as const;
+
+  for (const {
+    name,
+    timeout,
+    emitOutputBeforeStalling,
+  } of rearmedTimeoutCases) {
+    it(`should re-arm ${name} after tool execution`, async () => {
+      const receivedAbortSignals: AbortSignal[] = [];
+      const toolStarted = new DelayedPromise<void>();
+      const finishTool = new DelayedPromise<void>();
+      const secondStepStarted = new DelayedPromise<void>();
+      let stepCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async ({ abortSignal }) => {
+            receivedAbortSignals.push(abortSignal!);
+            stepCount++;
+
+            if (stepCount === 1) {
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'call-1',
+                    toolName: 'slowTool',
+                    input: '{}',
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: {
+                      unified: 'tool-calls',
+                      raw: 'tool-calls',
+                    },
+                    usage: testUsage,
+                  },
+                ]),
+              };
+            }
+
+            secondStepStarted.resolve(undefined);
+
+            return {
+              stream: new ReadableStream<LanguageModelV4StreamPart>({
+                start(controller) {
+                  if (emitOutputBeforeStalling) {
+                    controller.enqueue({ type: 'text-start', id: 'text-1' });
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: 'text-1',
+                      delta: 'Hello',
+                    });
+                  }
+
+                  abortSignal?.addEventListener(
+                    'abort',
+                    () => controller.error(abortSignal.reason),
+                    { once: true },
+                  );
+                },
+              }),
+            };
+          },
+        }),
+        tools: {
+          slowTool: {
+            inputSchema: z.object({}),
+            execute: async () => {
+              toolStarted.resolve(undefined);
+              await finishTool.promise;
+              return { ok: true };
+            },
+          },
+        },
+        prompt: 'test-input',
+        timeout,
+        stopWhen: isStepCount(2),
+        onError: () => {},
+      });
+
+      const consumePromise = result.consumeStream();
+
+      await toolStarted.promise;
+      await vi.advanceTimersByTimeAsync(100);
+
+      expect(receivedAbortSignals[0].aborted).toBe(false);
+
+      finishTool.resolve(undefined);
+      await secondStepStarted.promise;
+      await vi.advanceTimersByTimeAsync(0);
+      await vi.advanceTimersByTimeAsync(100);
+
+      expect(stepCount).toBe(2);
+      expect(receivedAbortSignals[1].aborted).toBe(true);
+      expect((receivedAbortSignals[1].reason as Error).name).toBe(
+        'TimeoutError',
+      );
+
+      await consumePromise;
+    });
+  }
+});
