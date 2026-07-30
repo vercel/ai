@@ -1,5 +1,12 @@
 # @ai-sdk/provider-utils
 
+## 5.0.15
+
+### Patch Changes
+
+- 1659cd5: Prevent validated downloads on Node.js from reaching private or internal services through DNS aliases or DNS rebinding by validating and pinning every resolved address at connection time.
+- 6a5bdff: Fix validated Node.js downloads when the HTTP connector requests a single DNS address.
+
 ## 5.0.14
 
 ### Patch Changes

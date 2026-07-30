@@ -127,6 +127,9 @@
       "path": "packages/mcp"
     },
     {
+      "path": "packages/minimax"
+    },
+    {
       "path": "packages/mistral"
     },
     {

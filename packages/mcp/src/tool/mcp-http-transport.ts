@@ -189,30 +189,45 @@ export class HttpMCPTransport implements MCPTransport {
     this.startInboundSse();
   }
 
-  async close(): Promise<void> {
+  async close(options?: { signal?: AbortSignal }): Promise<void> {
     this.inboundSseConnection?.close();
+    this.abortController?.abort();
+
     try {
       if (
         this.sessionId &&
         this.terminateSessionOnClose &&
-        this.abortController &&
-        !this.abortController.signal.aborted
+        this.abortController
       ) {
+        options?.signal?.throwIfAborted();
         const headers = await this.commonHeaders({ base: {} });
+        options?.signal?.throwIfAborted();
         await this.fetchFn(this.url.href, {
           method: 'DELETE',
           headers,
-          signal: this.abortController.signal,
+          signal: options?.signal,
           redirect: this.redirectMode,
         }).catch(() => undefined);
       }
     } catch {}
 
-    this.abortController?.abort();
     this.onclose?.();
   }
 
-  async send(message: JSONRPCMessage): Promise<void> {
+  async send(
+    message: JSONRPCMessage,
+    options?: { signal?: AbortSignal },
+  ): Promise<void> {
+    options?.signal?.throwIfAborted();
+
+    const transportSignal = this.abortController?.signal;
+    const requestSignal =
+      options?.signal == null
+        ? transportSignal
+        : transportSignal == null
+          ? options.signal
+          : AbortSignal.any([transportSignal, options.signal]);
+
     const attempt = async (triedAuth: boolean = false): Promise<void> => {
       try {
         const isInitializeRequest =
@@ -232,7 +247,7 @@ export class HttpMCPTransport implements MCPTransport {
           method: 'POST',
           headers,
           body: JSON.stringify(message),
-          signal: this.abortController?.signal,
+          signal: requestSignal,
           redirect: this.redirectMode,
         } satisfies RequestInit;
 
@@ -348,7 +363,10 @@ export class HttpMCPTransport implements MCPTransport {
                 }
               }
             } catch (error) {
-              if (error instanceof Error && error.name === 'AbortError') {
+              if (
+                options?.signal?.aborted ||
+                (error instanceof Error && error.name === 'AbortError')
+              ) {
                 return;
               }
               this.onerror?.(error);
@@ -356,7 +374,10 @@ export class HttpMCPTransport implements MCPTransport {
           };
 
           void processEvents().catch(error => {
-            if (error instanceof Error && error.name === 'AbortError') {
+            if (
+              options?.signal?.aborted ||
+              (error instanceof Error && error.name === 'AbortError')
+            ) {
               return;
             }
             this.onerror?.(error);
@@ -372,6 +393,9 @@ export class HttpMCPTransport implements MCPTransport {
         this.onerror?.(error);
         throw error;
       } catch (error) {
+        if (options?.signal?.aborted) {
+          throw error;
+        }
         this.onerror?.(error);
         throw error;
       }
