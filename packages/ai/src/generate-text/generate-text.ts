@@ -1050,7 +1050,7 @@ export async function generateText<
                 event: {
                   callId,
                   provider: stepModel.provider,
-                  modelId: stepModel.modelId,
+                  modelId: currentModelResponse.response.modelId,
                   finishReason: currentModelResponse.finishReason.unified,
                   usage: stepUsage,
                   content: modelCallContent,
