@@ -167,7 +167,7 @@ describe('GoogleVertexVideoModel', () => {
       });
     });
 
-    it('should pass seed when provided', async () => {
+    it('should pass a zero seed when provided', async () => {
       let capturedBody: unknown;
       const model = createMockModel({
         onRequest: (url, body) => {
@@ -179,12 +179,12 @@ describe('GoogleVertexVideoModel', () => {
 
       await model.doGenerate({
         ...defaultOptions,
-        seed: 42,
+        seed: 0,
       });
 
       expect(capturedBody).toStrictEqual({
         instances: [{ prompt }],
-        parameters: { sampleCount: 1, seed: 42 },
+        parameters: { sampleCount: 1, seed: 0 },
       });
     });
 
