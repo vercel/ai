@@ -40,7 +40,9 @@ export interface GenerateTextResult<
   readonly content: Array<ContentPart<TOOLS>>;
 
   /**
-   * The text that was generated in the final step.
+   * The concatenation of all text parts generated in the final step.
+   * It is an empty string if the final step contains no text parts.
+   * Inspect `finalStep.content` to distinguish that case.
    */
   readonly text: string;
 

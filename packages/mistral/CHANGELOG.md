@@ -1,5 +1,14 @@
 # @ai-sdk/mistral
 
+## 4.0.17
+
+### Patch Changes
+
+- 4e116c9: Add Voxtral batch transcription support through `mistral.transcription()` and `mistral.transcriptionModel()`.
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+
 ## 4.0.16
 
 ### Patch Changes

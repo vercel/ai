@@ -1,5 +1,19 @@
 # ai
 
+## 7.0.42
+
+### Patch Changes
+
+- 1659cd5: Prevent validated downloads on Node.js from reaching private or internal services through DNS aliases or DNS rebinding by validating and pinning every resolved address at connection time.
+- 60f97f6: support overriding model call settings for individual `prepareStep` invocations
+- 6a5bdff: Fix validated Node.js downloads when the HTTP connector requests a single DNS address.
+- 6de2ec1: Preserve provider metadata from empty text deltas in `streamText`.
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+- Updated dependencies [0012529]
+  - @ai-sdk/provider-utils@5.0.15
+  - @ai-sdk/gateway@4.0.32
+
 ## 7.0.41
 
 ### Patch Changes
