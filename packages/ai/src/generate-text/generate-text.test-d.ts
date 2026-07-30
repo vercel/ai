@@ -1,5 +1,6 @@
 import type { JSONValue } from '@ai-sdk/provider';
 import {
+  experimental_toolCaller,
   tool,
   type Context,
   type ModelMessage,
@@ -24,6 +25,46 @@ import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 describe('generateText types', () => {
+  describe('experimental_toolCallers', () => {
+    it('should expose only caller-capable tools as references', () => {
+      const codeMode = experimental_toolCaller(
+        tool({
+          inputSchema: z.object({}),
+          execute: async () => undefined,
+        }),
+        {
+          type: 'local',
+          bind: () =>
+            tool({
+              inputSchema: z.object({}),
+              execute: async () => undefined,
+            }),
+        },
+      );
+
+      generateText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        tools: {
+          code_mode: codeMode,
+          getInventory: tool({
+            inputSchema: z.object({ sku: z.string() }),
+            execute: async ({ sku }) => ({ sku }),
+          }),
+        },
+        experimental_toolCallers: callers => {
+          expectTypeOf(callers.code_mode.toolName).toEqualTypeOf<'code_mode'>();
+          // @ts-expect-error regular tools are not caller references
+          callers.getInventory;
+
+          return {
+            getInventory: ['direct', callers.code_mode],
+          };
+        },
+      });
+    });
+  });
+
   describe('onEnd', () => {
     it('should expose end event properties', async () => {
       await generateText({

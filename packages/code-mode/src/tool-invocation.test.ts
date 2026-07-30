@@ -1,7 +1,8 @@
-import { tool } from 'ai';
+import { generateText, tool } from 'ai';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import {
+  experimental_codeModeTool as codeModeTool,
   experimental_createCodeModeTool as createCodeModeTool,
   experimental_runCodeMode as runCodeMode,
 } from '../dist/index.js';
@@ -178,5 +179,62 @@ describe('AI SDK tool bridge', () => {
         { toolCallId: 'code', messages: emptyMessages, context: {} },
       ),
     ).resolves.toEqual({ sum: 10 });
+  });
+
+  it('late-binds host tools through generateText', async () => {
+    const result = await generateText({
+      model: {
+        specificationVersion: 'v4',
+        provider: 'test',
+        modelId: 'test',
+        supportedUrls: Promise.resolve({}),
+        doGenerate: async options => {
+          expect(options.tools?.map(tool => tool.name)).toEqual(['code_mode']);
+
+          return {
+            content: [
+              {
+                type: 'tool-call' as const,
+                toolCallType: 'function' as const,
+                toolCallId: 'code-call',
+                toolName: 'code_mode',
+                input: '{"js":"return await tools.add({ a: 4, b: 6 });"}',
+              },
+            ],
+            finishReason: { unified: 'tool-calls' as const, raw: 'tool_calls' },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: 1,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 1,
+                text: 1,
+                reasoning: undefined,
+              },
+            },
+            warnings: [],
+          };
+        },
+        doStream: async () => {
+          throw new Error('not implemented');
+        },
+      },
+      tools: {
+        code_mode: codeModeTool(),
+        add: tool({
+          inputSchema: z.object({ a: z.number(), b: z.number() }),
+          execute: async ({ a, b }) => ({ sum: a + b }),
+        }),
+      },
+      experimental_toolCallers: ({ code_mode }) => ({
+        add: [code_mode],
+      }),
+      prompt: 'Add the numbers.',
+    });
+
+    expect(result.toolResults[0]?.output).toEqual({ sum: 10 });
   });
 });
