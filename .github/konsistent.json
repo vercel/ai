@@ -23,7 +23,7 @@
         },
         {
           "use": "aisdk/package-must-have-tsup-config",
-          "excludeFiles": ["packages/code-mode", "packages/svelte"]
+          "excludeFiles": ["packages/svelte"]
         }
       ]
     },

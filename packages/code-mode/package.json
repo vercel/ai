@@ -37,7 +37,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "pnpm clean && tsc -p tsconfig.build.json && node scripts/embed-inline-worker.mjs",
+    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json && node scripts/embed-inline-worker.mjs",
     "clean": "del-cli build dist *.tsbuildinfo",
     "type-check": "tsc --build && tsc -p src/tsconfig.json",
     "test": "pnpm test:node",
@@ -54,6 +54,7 @@
     "ai": "workspace:*",
     "esbuild": "^0.28.1",
     "quickjs-emscripten": "^0.32.0",
+    "tsup": "^8.5.1",
     "typescript": "5.8.3",
     "zod": "3.25.76"
   },
