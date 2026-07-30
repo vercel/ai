@@ -137,9 +137,6 @@ export async function prepareTools({
   const supportsStrictOnTools = supportsStrictTools(modelId);
 
   for (const tool of filteredFunctionTools) {
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-prepare-tools.ts
-    bedrockTools.push({
-=======
     if (!supportsStrictOnTools && tool.strict != null) {
       toolWarnings.push({
         type: 'unsupported',
@@ -148,8 +145,7 @@ export async function prepareTools({
       });
     }
 
-    amazonBedrockTools.push({
->>>>>>> ebd31b8087 (fix: warn when Bedrock cannot enforce strict tools and correctly route structured output for unsupported Claude models (#18206)):packages/amazon-bedrock/src/amazon-bedrock-prepare-tools.ts
+    bedrockTools.push({
       toolSpec: {
         name: tool.name,
         ...(tool.description?.trim() !== ''

@@ -35,27 +35,16 @@ import {
   type BedrockStopReason,
 } from './bedrock-api-types';
 import {
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
   amazonBedrockLanguageModelOptions,
   type BedrockChatModelId,
 } from './bedrock-chat-options';
-import { supportsNativeStructuredOutput } from './bedrock-anthropic-model-support';
-import { BedrockErrorSchema } from './bedrock-error';
-import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-response-handler';
-import { prepareTools } from './bedrock-prepare-tools';
-=======
-  amazonBedrockLanguageModelChatOptions,
-  type AmazonBedrockLanguageModelChatOptions,
-  type AmazonBedrockChatModelId,
-} from './amazon-bedrock-chat-language-model-options';
 import {
   supportsNativeStructuredOutput,
   supportsStrictTools,
-} from './amazon-bedrock-anthropic-model-support';
-import { AmazonBedrockErrorSchema } from './amazon-bedrock-error';
-import { createAmazonBedrockEventStreamResponseHandler } from './amazon-bedrock-event-stream-response-handler';
-import { prepareTools } from './amazon-bedrock-prepare-tools';
->>>>>>> ebd31b8087 (fix: warn when Bedrock cannot enforce strict tools and correctly route structured output for unsupported Claude models (#18206)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
+} from './bedrock-anthropic-model-support';
+import { BedrockErrorSchema } from './bedrock-error';
+import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-response-handler';
+import { prepareTools } from './bedrock-prepare-tools';
 import {
   convertBedrockUsage,
   type BedrockUsage,

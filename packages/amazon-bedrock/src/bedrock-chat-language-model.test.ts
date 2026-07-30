@@ -5203,7 +5203,7 @@ describe('doGenerate', () => {
         },
       };
 
-      const unsupportedModel = new AmazonBedrockChatLanguageModel(modelId, {
+      const unsupportedModel = new BedrockChatLanguageModel(modelId, {
         baseUrl: () => baseUrl,
         headers: {},
         fetch: fakeFetchWithAuth,
