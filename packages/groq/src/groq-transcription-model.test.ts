@@ -116,7 +116,6 @@ describe('doGenerate', () => {
     expect(result.text).toBe('Hello world!');
   });
 
-<<<<<<< HEAD
   it('should map word timestamps to segments when segment timestamps are unavailable', async () => {
     server.urls[
       'https://api.groq.com/openai/v1/audio/transcriptions'
@@ -142,15 +141,6 @@ describe('doGenerate', () => {
         segments: null,
         x_groq: { id: 'req_1234' },
       },
-=======
-  it('should extract a plain-text transcription response', async () => {
-    server.urls[
-      'https://api.groq.com/openai/v1/audio/transcriptions'
-    ].response = {
-      type: 'binary',
-      headers: textResponse.headers,
-      body: Buffer.from(textResponse.body),
->>>>>>> origin/release-v6.0
     };
 
     const result = await model.doGenerate({
@@ -158,17 +148,12 @@ describe('doGenerate', () => {
       mediaType: 'audio/wav',
       providerOptions: {
         groq: {
-<<<<<<< HEAD
           timestampGranularities: ['word'],
           responseFormat: 'verbose_json',
-=======
-          responseFormat: 'text',
->>>>>>> origin/release-v6.0
         },
       },
     });
 
-<<<<<<< HEAD
     expect(result.segments).toEqual([
       {
         text: 'Hello',
@@ -181,13 +166,32 @@ describe('doGenerate', () => {
         endSecond: 2,
       },
     ]);
-=======
+  });
+
+  it('should extract a plain-text transcription response', async () => {
+    server.urls[
+      'https://api.groq.com/openai/v1/audio/transcriptions'
+    ].response = {
+      type: 'binary',
+      headers: textResponse.headers,
+      body: Buffer.from(textResponse.body),
+    };
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        groq: {
+          responseFormat: 'text',
+        },
+      },
+    });
+
     expect(await server.calls[0].requestBodyMultipart).toMatchObject({
       response_format: 'text',
     });
     expect(result.text).toBe(textResponse.body);
     expect(result.response.body).toBe(textResponse.body);
->>>>>>> origin/release-v6.0
   });
 
   it('should include response data with timestamp, modelId and headers', async () => {
