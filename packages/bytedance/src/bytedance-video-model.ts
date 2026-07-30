@@ -281,8 +281,17 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
       body.duration = options.duration;
     }
 
-    if (options.seed) {
-      body.seed = options.seed;
+    if (options.seed != null) {
+      if (this.modelId.startsWith('dreamina-seedance-2-0')) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'seed',
+          details:
+            'Seedance 2.0 video models do not support the `seed` option.',
+        });
+      } else {
+        body.seed = options.seed;
+      }
     }
 
     if (options.resolution) {

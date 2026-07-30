@@ -116,12 +116,12 @@ describe('ByteDanceVideoModel', () => {
       });
     });
 
-    it('should pass seed when provided', async () => {
+    it('should pass a zero seed when provided', async () => {
       const model = createBasicModel();
 
       await model.doGenerate({
         ...defaultOptions,
-        seed: 42,
+        seed: 0,
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -132,7 +132,26 @@ describe('ByteDanceVideoModel', () => {
             text: prompt,
           },
         ],
-        seed: 42,
+        seed: 0,
+      });
+    });
+
+    it.each([
+      'dreamina-seedance-2-0-260128',
+      'dreamina-seedance-2-0-fast-260128',
+    ])('should omit seed and warn for Seedance 2.0 model %s', async modelId => {
+      const model = createBasicModel({ modelId });
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        seed: 0,
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty('seed');
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'seed',
+        details: 'Seedance 2.0 video models do not support the `seed` option.',
       });
     });
 
