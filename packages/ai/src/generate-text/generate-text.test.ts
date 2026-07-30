@@ -9,6 +9,7 @@ import {
 import {
   DelayedPromise,
   dynamicTool,
+  experimental_toolCaller,
   jsonSchema,
   tool,
   type ModelMessage,
@@ -187,6 +188,108 @@ describe('abort signal handling', () => {
       `[AbortError: tool execution aborted]`,
     );
     expect(modelCallCount).toBe(1);
+  });
+});
+
+describe('experimental_toolCallers', () => {
+  it('late-binds local caller tools and hides local-only callees', async () => {
+    let modelTools: LanguageModelV4CallOptions['tools'];
+
+    const localCaller = experimental_toolCaller(
+      tool({
+        inputSchema: z.object({}),
+        execute: async (): Promise<unknown> => {
+          throw new Error('Caller was not bound.');
+        },
+      }),
+      {
+        type: 'local',
+        bind: tools =>
+          tool({
+            inputSchema: z.object({}),
+            execute: async () => Object.keys(tools),
+          }),
+      },
+    );
+
+    const result = await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async options => {
+          modelTools = options.tools;
+          return {
+            ...dummyResponseValues,
+            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'code_mode',
+                input: '{}',
+              },
+            ],
+          };
+        },
+      }),
+      tools: {
+        code_mode: localCaller,
+        getInventory: tool({
+          inputSchema: z.object({ sku: z.string() }),
+          execute: async ({ sku }) => ({ sku, availableUnits: 42 }),
+        }),
+      },
+      experimental_toolCallers: ({ code_mode }) => ({
+        getInventory: [code_mode],
+      }),
+      prompt: 'Check inventory.',
+    });
+
+    expect(modelTools?.map(tool => tool.name)).toEqual(['code_mode']);
+    expect(result.toolResults[0]?.output).toEqual(['getInventory']);
+  });
+
+  it('adds provider caller options while preserving direct access', async () => {
+    let modelTools: LanguageModelV4CallOptions['tools'];
+
+    const providerCaller = experimental_toolCaller(
+      tool({
+        inputSchema: z.object({}),
+        execute: async () => undefined,
+      }),
+      {
+        type: 'provider',
+        prepareProviderOptions: providerOptions => ({
+          ...providerOptions,
+          test: { allowedCallers: ['programmatic'] },
+        }),
+      },
+    );
+
+    await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async options => {
+          modelTools = options.tools;
+          return { ...dummyResponseValues, content: [] };
+        },
+      }),
+      tools: {
+        programmatic: providerCaller,
+        getDemand: tool({
+          inputSchema: z.object({ sku: z.string() }),
+          execute: async ({ sku }) => ({ sku }),
+        }),
+      },
+      experimental_toolCallers: ({ programmatic }) => ({
+        getDemand: ['direct', programmatic],
+      }),
+      prompt: 'Check demand.',
+    });
+
+    expect(modelTools?.find(tool => tool.name === 'getDemand')).toMatchObject({
+      providerOptions: {
+        test: { allowedCallers: ['programmatic'] },
+      },
+    });
   });
 });
 
