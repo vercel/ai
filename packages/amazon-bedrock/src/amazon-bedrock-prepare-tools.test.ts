@@ -397,10 +397,12 @@ describe('prepareTools', () => {
     });
 
     it.each([
+      'us.anthropic.claude-opus-4-7',
+      'anthropic.claude-opus-4-8',
       'us.anthropic.claude-opus-5',
       'anthropic.claude-sonnet-5',
       'eu.anthropic.claude-fable-5',
-    ])('should omit strict for %s', async modelId => {
+    ])('should warn when strict is omitted for %s', async modelId => {
       const result = await prepareTools({
         tools: [
           {
@@ -416,42 +418,14 @@ describe('prepareTools', () => {
 
       const toolSpec = (result.toolConfig.tools![0] as any).toolSpec;
       expect(toolSpec).not.toHaveProperty('strict');
-    });
-
-    it('should omit strict for claude-opus-4-7', async () => {
-      const result = await prepareTools({
-        tools: [
-          {
-            type: 'function',
-            name: 'testFunction',
-            description: 'A test function',
-            inputSchema: { type: 'object', properties: {} },
-            strict: true,
-          },
-        ],
-        modelId: 'us.anthropic.claude-opus-4-7',
-      });
-
-      const toolSpec = (result.toolConfig.tools![0] as any).toolSpec;
-      expect(toolSpec).not.toHaveProperty('strict');
-    });
-
-    it('should omit strict for claude-opus-4-8', async () => {
-      const result = await prepareTools({
-        tools: [
-          {
-            type: 'function',
-            name: 'testFunction',
-            description: 'A test function',
-            inputSchema: { type: 'object', properties: {} },
-            strict: true,
-          },
-        ],
-        modelId: 'anthropic.claude-opus-4-8',
-      });
-
-      const toolSpec = (result.toolConfig.tools![0] as any).toolSpec;
-      expect(toolSpec).not.toHaveProperty('strict');
+      expect(result.toolWarnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'strict',
+          details:
+            "Tool 'testFunction' has strict: true, but strict mode is not supported by this model on Amazon Bedrock. The strict property will be ignored.",
+        },
+      ]);
     });
   });
 });
