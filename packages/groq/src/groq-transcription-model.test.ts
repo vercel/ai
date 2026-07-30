@@ -10,15 +10,6 @@ vi.mock('./version', () => ({
 }));
 
 const audioData = await readFile(path.join(__dirname, 'transcript-test.mp3'));
-const wordTimestampResponse = JSON.parse(
-  await readFile(
-    path.join(
-      __dirname,
-      '__fixtures__/groq-transcription-word-timestamps.json',
-    ),
-    'utf8',
-  ),
-);
 const provider = createGroq({ apiKey: 'test-api-key' });
 const model = provider.transcription('whisper-large-v3-turbo');
 
@@ -121,7 +112,26 @@ describe('doGenerate', () => {
       'https://api.groq.com/openai/v1/audio/transcriptions'
     ].response = {
       type: 'json-value',
-      body: wordTimestampResponse,
+      body: {
+        task: 'transcribe',
+        language: 'English',
+        duration: 2,
+        text: 'Hello world',
+        words: [
+          {
+            word: 'Hello',
+            start: 0,
+            end: 1,
+          },
+          {
+            word: 'world',
+            start: 1,
+            end: 2,
+          },
+        ],
+        segments: null,
+        x_groq: { id: 'req_1234' },
+      },
     };
 
     const result = await model.doGenerate({
@@ -135,15 +145,18 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(result.segments).toEqual(
-      wordTimestampResponse.words.map(
-        (word: { word: string; start: number; end: number }) => ({
-          text: word.word,
-          startSecond: word.start,
-          endSecond: word.end,
-        }),
-      ),
-    );
+    expect(result.segments).toEqual([
+      {
+        text: 'Hello',
+        startSecond: 0,
+        endSecond: 1,
+      },
+      {
+        text: 'world',
+        startSecond: 1,
+        endSecond: 2,
+      },
+    ]);
   });
 
   it('should include response data with timestamp, modelId and headers', async () => {
