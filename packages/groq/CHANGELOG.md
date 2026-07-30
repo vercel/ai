@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 2.0.47
+
+### Patch Changes
+
+- 3fbb9cc: Support plain-text responses from Groq transcription models when `responseFormat` is set to `text`.
+
 ## 2.0.46
 
 ### Patch Changes
