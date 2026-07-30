@@ -47,6 +47,12 @@ export type GatewayProviderOptions = {
   /** User-specified tags for reporting and filtering usage. */
   tags?: string[];
 
+  /**
+   * Transport used between the AI SDK Gateway provider and AI Gateway.
+   * Defaults to `'http'`.
+   */
+  transport?: 'http' | 'websocket';
+
   /** End-user identifier for spend tracking and attribution. */
   user?: string;
 
