@@ -390,7 +390,7 @@ describe('FireworksImageModel', () => {
     });
 
     describe('warnings', () => {
-      it('should return size warning on workflow model', async () => {
+      it('should omit size and return a warning on workflow model', async () => {
         const model = createBasicModel();
 
         const result1 = await model.doGenerate({
@@ -413,9 +413,15 @@ describe('FireworksImageModel', () => {
             },
           ]
         `);
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          prompt,
+          aspect_ratio: '1:1',
+          seed: 123,
+          samples: 1,
+        });
       });
 
-      it('should return aspectRatio warning on size-supporting model', async () => {
+      it('should omit aspectRatio and return a warning on size-supporting model', async () => {
         const sizeModel = createSizeModel();
 
         const result2 = await sizeModel.doGenerate({
@@ -438,6 +444,13 @@ describe('FireworksImageModel', () => {
             },
           ]
         `);
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          prompt,
+          width: '1024',
+          height: '1024',
+          seed: 123,
+          samples: 1,
+        });
       });
     });
 

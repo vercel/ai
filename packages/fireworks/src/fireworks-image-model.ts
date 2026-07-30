@@ -202,7 +202,9 @@ export class FireworksImageModel implements ImageModelV4 {
       });
     }
 
-    const splitSize = size?.split('x');
+    const splitSize = backendConfig?.supportsSize
+      ? size?.split('x')
+      : undefined;
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const combinedHeaders = combineHeaders(this.config.headers?.(), headers);
     const fireworksOptions =
@@ -214,7 +216,7 @@ export class FireworksImageModel implements ImageModelV4 {
 
     const body = {
       prompt,
-      aspect_ratio: aspectRatio,
+      aspect_ratio: backendConfig?.supportsSize ? undefined : aspectRatio,
       seed,
       samples: n,
       ...(inputImage && { input_image: inputImage }),
