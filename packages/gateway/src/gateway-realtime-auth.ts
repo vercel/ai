@@ -1,6 +1,6 @@
 /**
- * Shared WebSocket subprotocol contract for AI Gateway realtime and streaming
- * transcription auth.
+ * Shared WebSocket subprotocol contract for AI Gateway realtime, language
+ * model, and streaming transcription auth.
  *
  * The browser `WebSocket` API cannot set request headers, so the Gateway auth
  * (bearer) token is carried through the `Sec-WebSocket-Protocol` handshake
@@ -9,9 +9,9 @@
  *
  * This module is the single source of truth for that contract so the client and
  * the Gateway server can't drift: the client encodes values with
- * `getGatewayRealtimeProtocols` / `getGatewayTranscriptionProtocols`, and the
- * Gateway server decodes them with `getGatewayRealtimeAuthToken` /
- * `getGatewayRealtimeTeamIdOrSlug`.
+ * `getGatewayRealtimeProtocols` / `getGatewayLanguageModelProtocols` /
+ * `getGatewayTranscriptionProtocols`, and the Gateway server decodes them with
+ * `getGatewayRealtimeAuthToken` / `getGatewayRealtimeTeamIdOrSlug`.
  *
  * WebSocket subprotocol values must fit the RFC token grammar. The auth token is
  * sent as-is, so callers must use tokens that are valid subprotocol tokens; the
@@ -26,6 +26,12 @@
  * server to select one of the offered subprotocols).
  */
 export const GATEWAY_REALTIME_SUBPROTOCOL = 'ai-gateway-realtime.v1';
+
+/**
+ * Marker subprotocol for language model handshakes.
+ */
+export const GATEWAY_LANGUAGE_MODEL_SUBPROTOCOL =
+  'ai-gateway-language-model.v4';
 
 /**
  * Marker subprotocol for streaming transcription handshakes (same negotiation
@@ -48,6 +54,21 @@ export function getGatewayRealtimeProtocols(
   options?: { teamIdOrSlug?: string },
 ): string[] {
   return buildGatewayProtocols(GATEWAY_REALTIME_SUBPROTOCOL, token, options);
+}
+
+/**
+ * Client-side: `getGatewayRealtimeProtocols`, but with the language model
+ * marker subprotocol.
+ */
+export function getGatewayLanguageModelProtocols(
+  token: string,
+  options?: { teamIdOrSlug?: string },
+): string[] {
+  return buildGatewayProtocols(
+    GATEWAY_LANGUAGE_MODEL_SUBPROTOCOL,
+    token,
+    options,
+  );
 }
 
 /**
