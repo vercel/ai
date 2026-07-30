@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 11409,
+  "command": "pnpm -C packages/amazon-bedrock exec vitest --config vitest.node.config.js --run src/issue-11409.test.ts",
+  "artifactPaths": [
+    "packages/amazon-bedrock/src/issue-11409.test.ts",
+    "packages/amazon-bedrock/src/__fixtures__/issue-11409-kimi-k2-thinking-glob-search.chunks.txt",
+    "packages/amazon-bedrock/src/__fixtures__/issue-11409-kimi-k2-thinking-read-file.chunks.txt"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_11409_REPRODUCED: read_file was emitted as visible text, not executed, and the final answer was missing"
+  }
+}
