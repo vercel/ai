@@ -111,6 +111,11 @@ const opusAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   opusAnthropicModelId,
 )}/converse`;
 
+const opus47AnthropicModelId = 'us.anthropic.claude-opus-4-7';
+const opus47AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  opus47AnthropicModelId,
+)}/converse`;
+
 const opus5AnthropicModelId = 'us.anthropic.claude-opus-5';
 const opus5AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   opus5AnthropicModelId,
@@ -132,6 +137,7 @@ const server = createTestServer({
   [openaiGenerateUrl]: {},
   [newerAnthropicGenerateUrl]: {},
   [opusAnthropicGenerateUrl]: {},
+  [opus47AnthropicGenerateUrl]: {},
   [opus5AnthropicGenerateUrl]: {},
 });
 
@@ -3373,6 +3379,54 @@ describe('doStream', () => {
 });
 
 describe('doGenerate', () => {
+  it('should warn when strict is omitted for Claude Opus 4.7', async () => {
+    server.urls[opus47AnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(
+          'src/__fixtures__/bedrock-opus-4-7-strict-tool-live.json',
+          'utf8',
+        ),
+      ),
+    };
+
+    const opus47Model = new BedrockChatLanguageModel(opus47AnthropicModelId, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      generateId: () => 'test-id',
+    });
+
+    const result = await opus47Model.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'function',
+          name: 'report_result',
+          description: 'Report the requested value.',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+          },
+          strict: true,
+        },
+      ],
+      toolChoice: { type: 'required' },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.toolConfig.tools[0].toolSpec).not.toHaveProperty(
+      'strict',
+    );
+    expect(result.warnings).toContainEqual({
+      type: 'unsupported',
+      feature: 'strict',
+      details:
+        "Tool 'report_result' has strict: true, but strict mode is not supported by this model. The strict property was omitted.",
+    });
+  });
+
   describe('text', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('bedrock-text');

@@ -1,0 +1,31 @@
+{
+  "metrics": {
+    "latencyMs": 1222
+  },
+  "output": {
+    "message": {
+      "content": [
+        {
+          "toolUse": {
+            "input": {
+              "value": "ok"
+            },
+            "name": "report_result",
+            "toolUseId": "tooluse_Ru34XPGTGs2bBXFsZqCHgo",
+            "type": "tool_use"
+          }
+        }
+      ],
+      "role": "assistant"
+    }
+  },
+  "stopReason": "tool_use",
+  "usage": {
+    "cacheReadInputTokenCount": 0,
+    "cacheReadInputTokens": 0,
+    "inputTokens": 931,
+    "outputTokens": 46,
+    "serverToolUsage": {},
+    "totalTokens": 977
+  }
+}
