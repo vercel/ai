@@ -8,7 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
-    "@ai-sdk/amazon-bedrock": "4.0.144",
+    "@ai-sdk/amazon-bedrock": "4.0.145",
     "@ai-sdk/anthropic": "3.0.104",
     "@ai-sdk/azure": "3.0.95",
     "@ai-sdk/cohere": "3.0.50",
@@ -16,11 +16,11 @@
     "@ai-sdk/fireworks": "2.0.71",
     "@ai-sdk/google": "3.0.103",
     "@ai-sdk/google-vertex": "4.0.174",
-    "@ai-sdk/groq": "3.0.54",
+    "@ai-sdk/groq": "3.0.55",
     "@ai-sdk/mcp": "1.0.66",
     "@ai-sdk/mistral": "3.0.53",
     "@ai-sdk/openai": "3.0.90",
-    "@ai-sdk/perplexity": "3.0.48",
+    "@ai-sdk/perplexity": "3.0.49",
     "@ai-sdk/provider-utils": "4.0.41",
     "@ai-sdk/react": "3.0.240",
     "@ai-sdk/rsc": "2.0.238",
