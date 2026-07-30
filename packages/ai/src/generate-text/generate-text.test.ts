@@ -33,7 +33,7 @@ import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { signToolApproval } from './tool-approval-signature';
 import { z } from 'zod/v4';
 import * as logWarningsModule from '../logger/log-warnings';
-import type { Instructions } from '../prompt';
+import type { Instructions, LanguageModelCallOptions } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { mockValues } from '../test/mock-values';
 import { generateText } from './generate-text';
@@ -576,6 +576,120 @@ describe('generateText', () => {
 
       expect(cleanup).toHaveBeenCalledExactlyOnceWith('value');
     });
+  });
+
+  it('should not synthesize a client tool error for an invalid provider-executed tool call', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          finishReason: { unified: 'tool-calls', raw: 'tool_use' },
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'web_search',
+              input: '{}',
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'web_search',
+              result: {
+                type: 'web_search_tool_result_error',
+                errorCode: 'invalid_tool_input',
+              },
+              isError: true,
+              providerExecuted: true,
+            },
+          ],
+        }),
+      }),
+      tools: {
+        web_search: {
+          type: 'provider',
+          isProviderExecuted: true,
+          id: 'test.web_search',
+          inputSchema: z.object({ query: z.string() }),
+          outputSchema: z.unknown(),
+          args: {},
+        },
+      },
+      prompt: 'Search the web.',
+    });
+
+    expect({
+      content: result.content,
+      responseMessages: result.responseMessages,
+    }).toMatchInlineSnapshot(`
+      {
+        "content": [
+          {
+            "dynamic": true,
+            "error": [AI_InvalidToolInputError: Invalid input for tool web_search: AI_TypeValidationError: Type validation failed: Value: {}.
+      Error message: [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": [
+            "query"
+          ],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]],
+            "input": {},
+            "invalid": true,
+            "providerExecuted": true,
+            "providerMetadata": undefined,
+            "title": undefined,
+            "toolCallId": "call-1",
+            "toolName": "web_search",
+            "type": "tool-call",
+          },
+          {
+            "dynamic": true,
+            "error": {
+              "errorCode": "invalid_tool_input",
+              "type": "web_search_tool_result_error",
+            },
+            "input": {},
+            "providerExecuted": true,
+            "toolCallId": "call-1",
+            "toolName": "web_search",
+            "type": "tool-error",
+          },
+        ],
+        "responseMessages": [
+          {
+            "content": [
+              {
+                "input": {},
+                "providerExecuted": true,
+                "providerOptions": undefined,
+                "toolCallId": "call-1",
+                "toolName": "web_search",
+                "type": "tool-call",
+              },
+              {
+                "output": {
+                  "type": "error-json",
+                  "value": {
+                    "errorCode": "invalid_tool_input",
+                    "type": "web_search_tool_result_error",
+                  },
+                },
+                "providerOptions": undefined,
+                "toolCallId": "call-1",
+                "toolName": "web_search",
+                "type": "tool-result",
+              },
+            ],
+            "role": "assistant",
+          },
+        ],
+      }
+    `);
   });
 
   describe('telemetry model-call context', () => {
@@ -2410,6 +2524,159 @@ describe('generateText', () => {
       expect(stepStartEvents[0].modelId).toBe('mock-model-id');
       expect(stepStartEvents[1].provider).toBe('alternate-provider');
       expect(stepStartEvents[1].modelId).toBe('alternate-model-id');
+    });
+
+    it('should apply prepareStep model call settings only to the current step', async () => {
+      const modelCallOptions: Array<LanguageModelV4CallOptions> = [];
+      const modelCallStartEvents: Array<LanguageModelCallStartEvent> = [];
+      const telemetryModelCallStartEvents: Array<LanguageModelCallOptions> = [];
+      let responseCount = 0;
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async options => {
+            modelCallOptions.push(options);
+
+            if (responseCount++ < 2) {
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: `call-${responseCount}`,
+                    toolName: 'tool1',
+                    input: '{ "value": "test" }',
+                  },
+                ],
+                finishReason: { unified: 'tool-calls', raw: undefined },
+              };
+            }
+
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'Final answer.' }],
+            };
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: isStepCount(3),
+        maxOutputTokens: 100,
+        temperature: 1,
+        topP: 0.9,
+        topK: 40,
+        presencePenalty: 0.4,
+        frequencyPenalty: 0.3,
+        stopSequences: ['outer'],
+        seed: 123,
+        reasoning: 'high',
+        prepareStep: async ({ stepNumber }) =>
+          stepNumber === 1
+            ? {
+                maxOutputTokens: 50,
+                temperature: 0,
+                topP: 0.5,
+                topK: 10,
+                presencePenalty: 0,
+                frequencyPenalty: -0.2,
+                stopSequences: [],
+                seed: 0,
+                reasoning: 'provider-default',
+              }
+            : stepNumber === 2
+              ? { temperature: undefined }
+              : undefined,
+        onLanguageModelCallStart: event => {
+          modelCallStartEvents.push(event);
+        },
+        telemetry: {
+          isEnabled: true,
+          integrations: {
+            onLanguageModelCallStart: event => {
+              telemetryModelCallStartEvents.push(event);
+            },
+          },
+        },
+      });
+
+      const selectCallSettings = ({
+        maxOutputTokens,
+        temperature,
+        topP,
+        topK,
+        presencePenalty,
+        frequencyPenalty,
+        stopSequences,
+        seed,
+        reasoning,
+      }: LanguageModelCallOptions) => ({
+        maxOutputTokens,
+        temperature,
+        topP,
+        topK,
+        presencePenalty,
+        frequencyPenalty,
+        stopSequences,
+        seed,
+        reasoning,
+      });
+
+      const outerSettings = {
+        maxOutputTokens: 100,
+        temperature: 1,
+        topP: 0.9,
+        topK: 40,
+        presencePenalty: 0.4,
+        frequencyPenalty: 0.3,
+        stopSequences: ['outer'],
+        seed: 123,
+        reasoning: 'high',
+      };
+      const stepSettings = {
+        maxOutputTokens: 50,
+        temperature: 0,
+        topP: 0.5,
+        topK: 10,
+        presencePenalty: 0,
+        frequencyPenalty: -0.2,
+        stopSequences: [],
+        seed: 0,
+        reasoning: 'provider-default',
+      };
+
+      expect(modelCallOptions.map(selectCallSettings)).toEqual([
+        outerSettings,
+        stepSettings,
+        outerSettings,
+      ]);
+      expect(modelCallStartEvents.map(selectCallSettings)).toEqual([
+        outerSettings,
+        stepSettings,
+        outerSettings,
+      ]);
+      expect(telemetryModelCallStartEvents.map(selectCallSettings)).toEqual([
+        outerSettings,
+        stepSettings,
+        outerSettings,
+      ]);
+    });
+
+    it('should validate model call settings returned from prepareStep', async () => {
+      await expect(
+        generateText({
+          model: new MockLanguageModelV4(),
+          prompt: 'test-input',
+          prepareStep: async () => ({
+            maxOutputTokens: 0,
+          }),
+        }),
+      ).rejects.toThrow('maxOutputTokens must be >= 1');
     });
 
     it('should provide empty steps array on first step', async () => {

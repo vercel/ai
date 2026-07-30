@@ -39,6 +39,7 @@ export { isBuffer } from './is-buffer';
 export { isSameOrigin } from './is-same-origin';
 export { isNonNullable } from './is-non-nullable';
 export { isProviderReference } from './is-provider-reference';
+export { isRecord } from './is-record';
 export { isUrlSupported } from './is-url-supported';
 export * from './load-api-key';
 export { loadOptionalSetting } from './load-optional-setting';
@@ -88,6 +89,7 @@ export {
   type ValidationResult,
 } from './schema';
 export { serializeModelOptions } from './serialize-model-options';
+export { SerializationError } from './serialization-error';
 export { secureJsonParse } from './secure-json-parse';
 export {
   StreamingToolCallTracker,

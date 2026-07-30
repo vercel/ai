@@ -18,6 +18,33 @@ const config: NextConfig = {
       destination: '/docs/introduction',
       permanent: false,
     },
+    // Legacy section landing pages (card grids) were folded into their
+    // Overview pages; the content sync drops the folder index when an
+    // overview sibling exists (see scripts/sync-content-utils.mjs).
+    {
+      source:
+        '/docs/:section(foundations|agents|ai-sdk-core|ai-sdk-ui|ai-sdk-rsc)',
+      destination: '/docs/:section/overview',
+      permanent: true,
+    },
+    {
+      source:
+        '/docs/:section(foundations|agents|ai-sdk-core|ai-sdk-ui|ai-sdk-rsc).md',
+      destination: '/docs/:section/overview.md',
+      permanent: true,
+    },
+    {
+      source:
+        '/v7/docs/:section(foundations|agents|ai-sdk-core|ai-sdk-harnesses|ai-sdk-ui|ai-sdk-rsc)',
+      destination: '/v7/docs/:section/overview',
+      permanent: true,
+    },
+    {
+      source:
+        '/v7/docs/:section(foundations|agents|ai-sdk-core|ai-sdk-harnesses|ai-sdk-ui|ai-sdk-rsc).md',
+      destination: '/v7/docs/:section/overview.md',
+      permanent: true,
+    },
     {
       source: '/v7/docs',
       destination: '/v7/docs/introduction',

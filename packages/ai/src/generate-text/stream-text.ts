@@ -115,6 +115,7 @@ import type {
   InferPartialOutput,
 } from './output-utils';
 import type { PrepareStepFunction } from './prepare-step';
+import { prepareStepCallSettings } from './prepare-step-call-settings';
 import { convertToReasoningOutputs } from './reasoning-output';
 import type { ResponseMessage } from './response-message';
 import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
@@ -919,6 +920,11 @@ function createOutputTransformStream<
       text += chunk.text;
       textChunk += chunk.text;
       textProviderMetadata = chunk.providerMetadata ?? textProviderMetadata;
+
+      if (chunk.text.length === 0 && chunk.providerMetadata != null) {
+        controller.enqueue({ part: chunk, partialOutput: undefined });
+        return;
+      }
 
       // only publish if partial json can be parsed:
       const result = await output.parsePartialOutput({ text });
@@ -2079,6 +2085,11 @@ class DefaultStreamTextResult<
             prepareStepResult?.providerOptions,
           );
 
+          const stepCallSettings = prepareStepCallSettings({
+            callSettings,
+            stepSettings: prepareStepResult,
+          });
+
           const stepStartTimestampMs = now();
 
           const { retry } = prepareRetries({ maxRetries, abortSignal });
@@ -2152,7 +2163,7 @@ class DefaultStreamTextResult<
                 _internal: {
                   now,
                 },
-                ...callSettings,
+                ...stepCallSettings,
               }),
             ),
           );
@@ -2315,7 +2326,10 @@ class DefaultStreamTextResult<
                     }
 
                     case 'text-delta': {
-                      if (chunk.text.length > 0) {
+                      if (
+                        chunk.text.length > 0 ||
+                        chunk.providerMetadata != null
+                      ) {
                         controller.enqueue(chunk);
                       }
                       break;

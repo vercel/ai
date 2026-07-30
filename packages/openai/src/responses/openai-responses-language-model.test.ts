@@ -10,7 +10,10 @@ import {
   convertReadableStreamToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
-import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import {
+  createTestServer,
+  TestResponseController,
+} from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
@@ -3428,7 +3431,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               type: 'provider',
               id: 'openai.web_search',
               name: 'webSearch',
-              args: {},
+              args: {
+                filters: {
+                  blockedDomains: ['example.com'],
+                },
+              },
             },
           ],
           prompt: TEST_PROMPT,
@@ -3455,6 +3462,11 @@ describe('OpenAIResponsesLanguageModel', () => {
             "model": "gpt-5-nano",
             "tools": [
               {
+                "filters": {
+                  "blocked_domains": [
+                    "example.com",
+                  ],
+                },
                 "type": "web_search",
               },
             ],
@@ -7870,6 +7882,58 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
       });
 
+      it('should make the stream available after response.in_progress without waiting for the first output token', async () => {
+        const controller = new TestResponseController();
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'controlled-stream',
+          controller,
+        };
+
+        const streamPromise = createModel('gpt-4o-mini').doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: false,
+        });
+
+        await controller.write(
+          `data:{"type":"response.created","sequence_number":0,"response":{"id":"resp_in_progress_early","created_at":1741269019,"model":"gpt-4o-2024-07-18","service_tier":null}}\n\n`,
+        );
+        await controller.write(
+          `data:{"type":"response.in_progress","sequence_number":1,"response":{"id":"resp_in_progress_early","created_at":1741269019,"model":"gpt-4o-2024-07-18","service_tier":null}}\n\n`,
+        );
+        // the stream now stalls: no output item yet (first token pending)
+
+        // doStream must resolve via the accepted-chunk grace window instead of
+        // blocking until the first output token:
+        const { stream } = await streamPromise;
+        const eventsPromise = convertReadableStreamToArray(stream);
+
+        // output arrives after doStream already resolved:
+        await controller.write(
+          `data:{"type":"response.output_item.added","sequence_number":2,"output_index":0,"item":{"id":"msg_in_progress_early","type":"message"}}\n\n`,
+        );
+        await controller.write(
+          `data:{"type":"response.output_text.delta","sequence_number":3,"item_id":"msg_in_progress_early","output_index":0,"delta":"Hello"}\n\n`,
+        );
+        await controller.write(
+          `data:{"type":"response.completed","sequence_number":4,"response":{"id":"resp_in_progress_early","object":"response","created_at":1741269019,"status":"completed","error":null,"incomplete_details":null,"model":"gpt-4o-2024-07-18","output":[],"service_tier":null,"usage":{"input_tokens":10,"input_tokens_details":{"cached_tokens":0},"output_tokens":1,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":11}}}\n\n`,
+        );
+        await controller.close();
+
+        const events = await eventsPromise;
+
+        expect(events).toContainEqual({
+          type: 'response-metadata',
+          id: 'resp_in_progress_early',
+          modelId: 'gpt-4o-2024-07-18',
+          timestamp: new Date('2025-03-06T13:50:19.000Z'),
+        });
+        expect(events).toContainEqual({
+          type: 'text-delta',
+          id: 'msg_in_progress_early',
+          delta: 'Hello',
+        });
+      });
+
       it('should throw an api error when response.failed arrives before output starts', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'stream-chunks',
@@ -9773,6 +9837,194 @@ describe('OpenAIResponsesLanguageModel', () => {
           phase: 'final_answer',
         });
       });
+    });
+  });
+
+  describe('programmatic tool calling', () => {
+    const tools: Array<
+      LanguageModelV4FunctionTool | LanguageModelV4ProviderTool
+    > = [
+      {
+        type: 'provider',
+        id: 'openai.programmatic_tool_calling',
+        name: 'program',
+        args: {},
+      },
+      {
+        type: 'function',
+        name: 'getInventory',
+        inputSchema: {
+          type: 'object',
+          properties: { sku: { type: 'string' } },
+          required: ['sku'],
+        },
+      },
+      {
+        type: 'function',
+        name: 'getDemand',
+        inputSchema: {
+          type: 'object',
+          properties: { sku: { type: 'string' } },
+          required: ['sku'],
+        },
+      },
+    ];
+
+    it('should map programmatic tool calling across generate steps from real fixtures', async () => {
+      const content: LanguageModelV4Content[] = [];
+
+      for (const step of [1, 2, 3]) {
+        prepareJsonFixtureResponse(`programmatic-tool-calling.${step}`);
+        const result = await createModel('gpt-5.6').doGenerate({
+          prompt: TEST_PROMPT,
+          tools,
+        });
+        content.push(...result.content);
+      }
+
+      expect(content).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'tool-call',
+            toolCallId: 'call_O2IvSLQcJ0bwIvJZ2ovGV69M',
+            toolName: 'program',
+            providerExecuted: true,
+            providerMetadata: {
+              openai: {
+                itemId: 'cm_0742d30c1d273351016a6145f1d2d0819faa3ecfc950fceec4',
+              },
+            },
+          }),
+          {
+            type: 'tool-call',
+            toolCallId: 'call_rj6LW6NEyodD5YVKeoexoLNz',
+            toolName: 'getInventory',
+            input: '{"sku":"sku_123"}',
+            providerMetadata: {
+              openai: {
+                itemId: 'fc_0742d30c1d273351016a6145f1dac0819fb0053980ae918c16',
+                caller: {
+                  type: 'program',
+                  callerId: 'call_O2IvSLQcJ0bwIvJZ2ovGV69M',
+                },
+              },
+            },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call_IYnPSr6i8TyBPs1H9U539pUP',
+            toolName: 'getDemand',
+            input: '{"sku":"sku_123"}',
+            providerMetadata: {
+              openai: {
+                itemId: 'fc_0742d30c1d273351016a6145f446e8819f9a2bd24df7057cd8',
+                caller: {
+                  type: 'program',
+                  callerId: 'call_O2IvSLQcJ0bwIvJZ2ovGV69M',
+                },
+              },
+            },
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call_O2IvSLQcJ0bwIvJZ2ovGV69M',
+            toolName: 'program',
+            result: {
+              result:
+                '{"sku":"sku_123","availableUnits":42,"requestedUnits":31,"sufficient":true}',
+              status: 'completed',
+            },
+            providerMetadata: {
+              openai: {
+                itemId:
+                  'cmo_0742d30c1d273351016a6145f6ba7c819f93fcba5b06569347',
+              },
+            },
+          },
+        ]),
+      );
+      expect(
+        content.some(
+          part =>
+            part.type === 'text' &&
+            part.text.includes('Inventory is sufficient for `sku_123`'),
+        ),
+      ).toBe(true);
+    });
+
+    it('should stream programmatic tool calling across steps from real fixtures', async () => {
+      const parts: LanguageModelV4StreamPart[] = [];
+
+      for (const step of [1, 2, 3]) {
+        prepareChunksFixtureResponse(`programmatic-tool-calling.${step}`);
+        const { stream } = await createModel('gpt-5.6').doStream({
+          prompt: TEST_PROMPT,
+          tools,
+        });
+        parts.push(...(await convertReadableStreamToArray(stream)));
+      }
+
+      expect(parts).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'tool-call',
+            toolCallId: 'call_voPdoCqf8APY4DMpam3bdmxq',
+            toolName: 'program',
+            providerExecuted: true,
+          }),
+          expect.objectContaining({
+            type: 'tool-call',
+            toolCallId: 'call_VgDSZztLociNcutQZWkC2fmL',
+            toolName: 'getInventory',
+            providerMetadata: {
+              openai: {
+                itemId: 'fc_0bac52ec5f239d30016a61460099bc8192a9ebe7381b9efd87',
+                caller: {
+                  type: 'program',
+                  callerId: 'call_voPdoCqf8APY4DMpam3bdmxq',
+                },
+              },
+            },
+          }),
+          expect.objectContaining({
+            type: 'tool-call',
+            toolCallId: 'call_8GZvm5Bs4q0YSJIFH8hZeIcp',
+            toolName: 'getDemand',
+            providerMetadata: {
+              openai: {
+                itemId: 'fc_0bac52ec5f239d30016a6146031b5081928dcd2cd4ed0747ff',
+                caller: {
+                  type: 'program',
+                  callerId: 'call_voPdoCqf8APY4DMpam3bdmxq',
+                },
+              },
+            },
+          }),
+          expect.objectContaining({
+            type: 'tool-result',
+            toolCallId: 'call_voPdoCqf8APY4DMpam3bdmxq',
+            toolName: 'program',
+            result: {
+              result:
+                '{"inventory":{"availableUnits":42,"sku":"sku_123"},"demand":{"requestedUnits":31,"sku":"sku_123"}}',
+              status: 'completed',
+            },
+          }),
+        ]),
+      );
+      expect(
+        parts
+          .filter(
+            (
+              part,
+            ): part is Extract<
+              LanguageModelV4StreamPart,
+              { type: 'text-delta' }
+            > => part.type === 'text-delta',
+          )
+          .map(part => part.delta)
+          .join(''),
+      ).toContain('Inventory is sufficient for `sku_123`');
     });
   });
 });

@@ -41,6 +41,7 @@
     "@ai-sdk/lmnt": "workspace:*",
     "@ai-sdk/luma": "workspace:*",
     "@ai-sdk/mcp": "workspace:*",
+    "@ai-sdk/minimax": "workspace:*",
     "@ai-sdk/mistral": "workspace:*",
     "@ai-sdk/moonshotai": "workspace:*",
     "@ai-sdk/open-responses": "workspace:*",

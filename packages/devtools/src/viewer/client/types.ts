@@ -137,11 +137,25 @@ export interface ReasoningContentPart {
   toolCallId?: string;
 }
 
+export interface MediaContentPart {
+  type:
+    | 'file'
+    | 'reasoning-file'
+    | 'image'
+    | 'media'
+    | 'file-data'
+    | 'file-url'
+    | 'image-data'
+    | 'image-url';
+  [key: string]: unknown;
+}
+
 export type ContentPart =
   | TextContentPart
   | ToolCallContentPart
   | ToolResultContentPart
-  | ReasoningContentPart;
+  | ReasoningContentPart
+  | MediaContentPart;
 
 export type MessageRole = 'user' | 'assistant' | 'system' | 'tool';
 
@@ -169,9 +183,13 @@ export interface ToolDefinition {
 export interface ParsedOutput {
   finishReason?: string | { unified?: string; raw?: string };
   toolCalls?: ToolCallContentPart[];
+  toolResults?: ToolResultContentPart[];
   textParts?: TextContentPart[];
   reasoningParts?: ReasoningContentPart[];
   content?: ContentPart[];
+  response?: {
+    messages?: PromptMessage[];
+  };
 }
 
 export interface ParsedUsage {
