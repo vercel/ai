@@ -7,13 +7,7 @@ import {
   mediaTypeToExtension,
   parseProviderOptions,
   postFormDataToApi,
-<<<<<<< HEAD
-=======
-  serializeModelOptions,
   type ResponseHandler,
-  WORKFLOW_SERIALIZE,
-  WORKFLOW_DESERIALIZE,
->>>>>>> 817910dfcf (fix: handle plain-text Groq transcription responses (#18138))
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { GroqConfig } from './groq-config';
