@@ -225,7 +225,7 @@ describe('ReplicateVideoModel', () => {
 
       await model.doGenerate({ ...defaultOptions });
 
-      expect(capturedBody).toMatchObject({
+      expect(capturedBody).toStrictEqual({
         input: { prompt },
       });
     });
@@ -277,9 +277,10 @@ describe('ReplicateVideoModel', () => {
       });
     });
 
-    it('should pass seed when provided', async () => {
+    it('should pass a zero seed to a model that supports it', async () => {
       let capturedBody: unknown;
       const model = createMockModel({
+        modelId: 'bytedance/seedance-1-pro',
         pollsUntilDone: 0,
         onRequest: (url, body) => {
           if (
@@ -293,13 +294,13 @@ describe('ReplicateVideoModel', () => {
 
       await model.doGenerate({
         ...defaultOptions,
-        seed: 42,
+        seed: 0,
       });
 
-      expect(capturedBody).toMatchObject({
+      expect(capturedBody).toStrictEqual({
         input: {
           prompt,
-          seed: 42,
+          seed: 0,
         },
       });
     });
