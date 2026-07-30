@@ -15,6 +15,7 @@
     "@ai-sdk/bytedance": "workspace:*",
     "@ai-sdk/cartesia": "workspace:*",
     "@ai-sdk/cerebras": "workspace:*",
+    "@ai-sdk/code-mode": "workspace:*",
     "@ai-sdk/cohere": "workspace:*",
     "@ai-sdk/deepgram": "workspace:*",
     "@ai-sdk/deepinfra": "workspace:*",

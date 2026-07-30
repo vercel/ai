@@ -1,0 +1,77 @@
+{
+  "name": "@ai-sdk/code-mode",
+  "version": "0.0.0",
+  "description": "QuickJS-backed code mode tool for AI SDK",
+  "keywords": [
+    "ai",
+    "ai-sdk",
+    "agents",
+    "code-mode",
+    "quickjs",
+    "sandbox",
+    "tools"
+  ],
+  "type": "module",
+  "license": "Apache-2.0",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "source": "./src/index.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist/**/*",
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.test-d.ts",
+    "!src/**/__snapshots__",
+    "!src/**/__fixtures__",
+    "!src/utils/test-helpers.ts",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json && node scripts/embed-inline-worker.mjs",
+    "clean": "del-cli build dist *.tsbuildinfo",
+    "type-check": "tsc --build && tsc -p src/tsconfig.json",
+    "test": "pnpm test:node",
+    "test:watch": "vitest --config vitest.node.config.js",
+    "test:node": "vitest --config vitest.node.config.js --run",
+    "test:e2e": "pnpm build && vitest --config vitest.e2e.config.ts --run"
+  },
+  "peerDependencies": {
+    "ai": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.19",
+    "@vercel/ai-tsconfig": "workspace:*",
+    "ai": "workspace:*",
+    "esbuild": "^0.28.1",
+    "quickjs-emscripten": "^0.32.0",
+    "tsup": "^8.5.1",
+    "typescript": "5.8.3",
+    "zod": "3.25.76"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "homepage": "https://ai-sdk.dev/docs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vercel/ai",
+    "directory": "packages/code-mode"
+  },
+  "bugs": {
+    "url": "https://github.com/vercel/ai/issues"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "noEmit": true,
+    "rootDir": ".",
+    "types": ["node"]
+  },
+  "include": ["**/*.test.ts", "utils/test-helpers.ts"],
+  "exclude": ["../build", "../dist", "../node_modules"]
+}

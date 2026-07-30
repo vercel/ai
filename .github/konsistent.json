@@ -48,6 +48,7 @@
         "packages/{providerId}/src/index.ts",
         "!packages/ai",
         "!packages/angular",
+        "!packages/code-mode",
         "!packages/codemod",
         "!packages/devtools",
         "!packages/harness",
