@@ -71,10 +71,6 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   const { toolName, toolCallId, input } = toolCall;
   const tool = tools?.[toolName];
 
-  if (tool?.execute == null) {
-    return undefined;
-  }
-
   const baseCallbackEvent = {
     callId,
     stepNumber,
@@ -87,6 +83,15 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     metadata: telemetry?.metadata as Record<string, unknown> | undefined,
     experimental_context,
   };
+
+  if (tool?.execute == null) {
+    await notify({ event: baseCallbackEvent, callbacks: onToolCallStart });
+    await notify({
+      event: { ...baseCallbackEvent, success: true as const, output: undefined, durationMs: 0 },
+      callbacks: onToolCallFinish,
+    });
+    return undefined;
+  }
 
   let output: unknown;
 
