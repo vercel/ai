@@ -138,7 +138,13 @@ export class GroqTranscriptionModel implements TranscriptionModelV3 {
           text: segment.text,
           startSecond: segment.start,
           endSecond: segment.end,
-        })) ?? [],
+        })) ??
+        response.words?.map(word => ({
+          text: word.word,
+          startSecond: word.start,
+          endSecond: word.end,
+        })) ??
+        [],
       language: response.language ?? undefined,
       durationInSeconds: response.duration ?? undefined,
       warnings,
@@ -174,6 +180,15 @@ const groqTranscriptionResponseSchema = z.object({
         avg_logprob: z.number(),
         compression_ratio: z.number(),
         no_speech_prob: z.number(),
+      }),
+    )
+    .nullish(),
+  words: z
+    .array(
+      z.object({
+        word: z.string(),
+        start: z.number(),
+        end: z.number(),
       }),
     )
     .nullish(),
