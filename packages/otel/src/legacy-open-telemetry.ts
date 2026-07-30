@@ -40,6 +40,7 @@ import { assembleOperationName } from './assemble-operation-name';
 import { getBaseTelemetryAttributes } from './get-base-telemetry-attributes';
 import { sanitizeAttributeValue } from './sanitize-attribute-value';
 import { stringifyForTelemetry } from './stringify-for-telemetry';
+import { getRuntimeContextAttributes } from './supplemental-attributes';
 
 function recordSpanError(span: Span, error: unknown): void {
   if (error instanceof Error) {
@@ -138,6 +139,7 @@ interface CallState {
   rerankSpan: { span: Span; context: OpenTelemetryContext } | undefined;
   toolSpans: Map<string, { span: Span; context: OpenTelemetryContext }>;
   baseTelemetryAttributes: Attributes;
+  runtimeContextAttributes?: Attributes;
   settings: Record<string, unknown>;
 }
 
@@ -297,6 +299,12 @@ export class LegacyOpenTelemetry implements Telemetry {
       rerankSpan: undefined,
       toolSpans: new Map(),
       baseTelemetryAttributes,
+      runtimeContextAttributes: selectAttributes(
+        telemetry,
+        getRuntimeContextAttributes(
+          event.runtimeContext as Record<string, unknown> | undefined,
+        ),
+      ),
       settings,
     });
   }
@@ -540,6 +548,12 @@ export class LegacyOpenTelemetry implements Telemetry {
     if (!state?.rootSpan || !state.rootContext) return;
 
     const { telemetry } = state;
+    state.runtimeContextAttributes = selectAttributes(
+      telemetry,
+      getRuntimeContextAttributes(
+        event.runtimeContext as Record<string, unknown> | undefined,
+      ),
+    );
 
     const stepOperationId =
       state.operationId === 'ai.streamText'
@@ -612,6 +626,7 @@ export class LegacyOpenTelemetry implements Telemetry {
         operationId: 'ai.toolCall',
         telemetry,
       }),
+      ...state.runtimeContextAttributes,
       'ai.toolCall.name': toolCall.toolName,
       'ai.toolCall.id': toolCall.toolCallId,
       'ai.toolCall.args': {

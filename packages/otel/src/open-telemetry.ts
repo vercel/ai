@@ -784,6 +784,7 @@ export class OpenTelemetry implements Telemetry {
 
     const attributes = selectAttributes(telemetry, {
       'gen_ai.operation.name': 'execute_tool',
+      ...state.baseSupplementalAttributes,
       'gen_ai.tool.name': toolCall.toolName,
       'gen_ai.tool.call.id': toolCall.toolCallId,
       'gen_ai.tool.type': 'function',

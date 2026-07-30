@@ -1228,6 +1228,21 @@ describe('OpenTelemetry', () => {
   });
 
   describe('supplemental attributes', () => {
+    it('exports runtime context attributes on tool spans', () => {
+      integration = new OpenTelemetry({
+        tracer,
+        runtimeContext: true,
+      });
+
+      const runtimeContext = { requestId: 'request-123' };
+      integration.onStart!(makeOnStartEvent({ runtimeContext }));
+      integration.onStepStart!(makeStepStartEvent({ runtimeContext }));
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+
+      const attrs = getStartSpanAttributes(tracer, 2);
+      expect(attrs['ai.settings.context.requestId']).toBe('request-123');
+    });
+
     it('exports flat runtime context attribute keys', () => {
       const sdkTrace = createSdkTracer();
       integration = new OpenTelemetry({
@@ -1411,6 +1426,8 @@ describe('OpenTelemetry', () => {
           {
             "ended": true,
             "initAttributes": {
+              "ai.request.headers.x-request-id": "request-123",
+              "ai.settings.context.userId": "user-123",
               "gen_ai.operation.name": "execute_tool",
               "gen_ai.tool.call.arguments": "{"query":"test"}",
               "gen_ai.tool.call.id": "tool-call-1",
@@ -1511,6 +1528,7 @@ describe('OpenTelemetry', () => {
           {
             "ended": true,
             "initAttributes": {
+              "ai.settings.context.userId": "user-123",
               "gen_ai.operation.name": "execute_tool",
               "gen_ai.tool.call.arguments": "{"query":"test"}",
               "gen_ai.tool.call.id": "tool-call-1",

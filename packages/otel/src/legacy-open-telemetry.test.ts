@@ -562,6 +562,17 @@ describe('LegacyOpenTelemetry', () => {
       expect(attrs['ai.toolCall.id']).toBe('tool-call-1');
     });
 
+    it('includes filtered runtime context attributes', () => {
+      const runtimeContext = { requestId: 'request-123' };
+
+      otelIntegration.onStart!(makeOnStartEvent({ runtimeContext }));
+      otelIntegration.onStepStart!(makeStepStartEvent({ runtimeContext }));
+      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
+
+      const attrs = getStartSpanAttributes(tracer, 2);
+      expect(attrs['ai.settings.context.requestId']).toBe('request-123');
+    });
+
     it('sets tool call args as output attribute', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
