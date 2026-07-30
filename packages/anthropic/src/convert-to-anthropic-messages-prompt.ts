@@ -685,11 +685,12 @@ export async function convertToAnthropicMessagesPrompt({
                     (part.input.type === 'bash_code_execution' ||
                       part.input.type === 'text_editor_code_execution')
                   ) {
+                    const { type: subtoolName, ...input } = part.input;
                     anthropicContent.push({
                       type: 'server_tool_use',
                       id: part.toolCallId,
-                      name: part.input.type, // map back to subtool name
-                      input: part.input,
+                      name: subtoolName, // map back to subtool name
+                      input,
                       cache_control: cacheControl,
                     });
                   } else if (

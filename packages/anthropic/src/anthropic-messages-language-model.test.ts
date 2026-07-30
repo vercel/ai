@@ -9113,7 +9113,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         ).toMatchSnapshot();
       });
 
-      it('should replay live code execution blocks byte-for-byte for prompt caching', async () => {
+      it('should omit the synthetic code execution type when replaying streamed output', async () => {
         prepareChunksFixtureResponse(
           'anthropic-code-execution-20260120-cache-replay',
         );
