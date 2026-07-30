@@ -1,4 +1,4 @@
-import { experimental_createCodeModeTool as createCodeModeTool } from '@ai-sdk/code-mode';
+import { experimental_codeModeTool as codeModeTool } from '@ai-sdk/code-mode';
 import { isStepCount, streamText, tool } from 'ai';
 import { z } from 'zod';
 import { printFullStream } from '../../lib/print-full-stream';
@@ -34,23 +34,25 @@ const getDemand = tool({
   }),
 });
 
-const codeMode = createCodeModeTool(
-  {
-    getInventory,
-    getDemand,
-  },
-  {
+const tools = {
+  code_mode: codeModeTool({
     executionPolicy: {
       timeoutMs: 30_000,
       memoryLimitBytes: 64 * 1024 * 1024,
     },
-  },
-);
+  }),
+  getInventory,
+  getDemand,
+} as const;
 
 run(async () => {
   const result = streamText({
     model: 'moonshotai/kimi-k3',
-    tools: { codeMode },
+    tools,
+    experimental_toolCallers: ({ code_mode }) => ({
+      getInventory: [code_mode],
+      getDemand: [code_mode],
+    }),
     stopWhen: isStepCount(20),
     prompt: 'compare inventory and demand for product sku_123.',
     include: {
