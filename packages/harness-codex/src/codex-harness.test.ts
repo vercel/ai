@@ -190,7 +190,7 @@ describe('createCodex adapter', () => {
       "mkdir -p '/vercel/sandbox/codex-s1; env > /tmp/workdir-leak #' '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/bridge'",
     );
     expect(spawns).toEqual([
-      "node /tmp/harness/codex/bridge.mjs --workdir '/vercel/sandbox/codex-s1; env > /tmp/workdir-leak #' --bridge-state-dir '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/bridge' --cli-shim-dir '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/codex'",
+      "node '/vercel/sandbox/.harness-bootstrap/codex/bridge.mjs' --workdir '/vercel/sandbox/codex-s1; env > /tmp/workdir-leak #' --bridge-state-dir '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/bridge' --cli-shim-dir '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/codex'",
     ]);
     expect(spawnEnvs.at(0)?.AI_SDK_HARNESS_CLIENT_APP).toBe(
       'ai-sdk/harness-codex/0.0.0-test',
@@ -205,7 +205,7 @@ describe('createCodex adapter', () => {
       expect(harness.getBootstrap).toBeDefined();
       const recipe = await harness.getBootstrap!();
       expect(recipe.harnessId).toBe('codex');
-      expect(recipe.bootstrapDir).toBe('/tmp/harness/codex');
+      expect(recipe.bootstrapDir).toBe('.harness-bootstrap/codex');
     });
 
     it('includes bridge.mjs, package.json, and pnpm-lock.yaml under the bootstrap dir', async () => {
@@ -213,22 +213,22 @@ describe('createCodex adapter', () => {
       const recipe = await harness.getBootstrap!();
       const paths = recipe.files.map(f => f.path).sort();
       expect(paths).toEqual([
-        '/tmp/harness/codex/bridge.mjs',
-        '/tmp/harness/codex/package.json',
-        '/tmp/harness/codex/pnpm-lock.yaml',
+        '.harness-bootstrap/codex/bridge.mjs',
+        '.harness-bootstrap/codex/package.json',
+        '.harness-bootstrap/codex/pnpm-lock.yaml',
       ]);
       for (const file of recipe.files) {
         expect(file.content.length).toBeGreaterThan(0);
       }
     });
 
-    it('declares mkdir and pnpm install commands', async () => {
+    it('declares a pnpm install command for the bootstrap cwd', async () => {
       const harness = createCodex();
       const recipe = await harness.getBootstrap!();
       const commands = recipe.commands.map(c => c.command);
-      expect(commands[0]).toContain('mkdir -p /tmp/harness/codex');
-      expect(commands[1]).toContain('pnpm');
-      expect(commands[1]).toContain('install --frozen-lockfile');
+      expect(commands).toEqual([
+        'pnpm install --frozen-lockfile --store-dir .pnpm-store',
+      ]);
     });
 
     it('caches the recipe across calls', async () => {

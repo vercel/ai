@@ -57,18 +57,23 @@ function textStream(text: string): ReadableStream<Uint8Array> {
 
 function fakeSandboxSession({
   spawnEnvs,
+  spawns,
 }: {
   spawnEnvs?: Array<Record<string, string | undefined>>;
+  spawns?: string[];
 } = {}): HarnessV1NetworkSandboxSession {
   const session = {
     run: async () => ({ exitCode: 0, stdout: '', stderr: '' }),
     readTextFile: async () => null,
     writeTextFile: async () => {},
     spawn: async ({
+      command,
       env,
     }: {
+      command: string;
       env?: Record<string, string | undefined>;
-    } = {}) => {
+    }) => {
+      spawns?.push(command);
       if (env) spawnEnvs?.push(env);
       return {
         stdout: textStream('{"type":"bridge-ready","port":4319}\n'),
@@ -119,17 +124,18 @@ describe('createDeepAgents', () => {
     const harness = createDeepAgents();
     const bootstrap = await harness.getBootstrap!();
     expect(bootstrap.harnessId).toBe('deepagents');
+    expect(bootstrap.bootstrapDir).toBe('.harness-bootstrap/deepagents');
     const paths = bootstrap.files.map(f => f.path);
-    expect(paths).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining('bridge.mjs'),
-        expect.stringContaining('package.json'),
-        expect.stringContaining('pnpm-lock.yaml'),
-      ]),
-    );
+    expect(paths).toEqual([
+      '.harness-bootstrap/deepagents/bridge.mjs',
+      '.harness-bootstrap/deepagents/package.json',
+      '.harness-bootstrap/deepagents/pnpm-lock.yaml',
+    ]);
     const commands = bootstrap.commands.map(c => c.command).join('\n');
-    expect(commands).toContain('pnpm');
-    expect(commands).toContain('install');
+    expect(commands).toContain(
+      'pnpm install --frozen-lockfile --store-dir .pnpm-store',
+    );
+    expect(commands).not.toContain('mkdir -p .harness-bootstrap/deepagents');
   });
 
   it('caches the bootstrap across calls', async () => {
@@ -146,15 +152,22 @@ describe('createDeepAgents', () => {
 
   it('passes the harness client app to the bridge environment', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const spawns: string[] = [];
     const harness = createDeepAgents();
     const session = await harness.doStart({
       sessionId: 'test-session',
       sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
-      sandboxSession: fakeSandboxSession({ spawnEnvs }),
+      sandboxSession: fakeSandboxSession({ spawnEnvs, spawns }),
     } as unknown as Parameters<typeof harness.doStart>[0]);
 
     expect(spawnEnvs.at(0)?.AI_SDK_HARNESS_CLIENT_APP).toBe(
       'ai-sdk/harness-deepagents/0.0.0-test',
+    );
+    expect(spawns.at(0)).toContain(
+      "node '/vercel/sandbox/.harness-bootstrap/deepagents/bridge.mjs'",
+    );
+    expect(spawns.at(0)).toContain(
+      "--bootstrap-dir '/vercel/sandbox/.harness-bootstrap/deepagents'",
     );
 
     await session.doDestroy();

@@ -111,6 +111,15 @@ See the [harness adapters documentation](https://ai-sdk.dev/v7/docs/ai-sdk-harne
 
 Implement the `HarnessV1` factory and a `HarnessV1Session` whose `doPromptTurn` emits events; the agent surface, streaming, tool execution, and multi-turn state are handled for you. Read `startOpts.sandboxSession` for the network sandbox session the agent created and will stop on cleanup. Call `sandboxSession.restricted()` for the tool-safe file-IO/exec/spawn surface.
 
+Bootstrap recipe paths may be absolute or relative. Relative `bootstrapDir` and
+file paths are resolved against `sandboxSession.defaultWorkingDirectory`.
+The framework creates `bootstrapDir` before writing files, and bootstrap
+commands run from that directory by default. A relative command
+`workingDirectory` override is resolved against the sandbox's default working
+directory. Prefer a relative directory such as
+`.harness-bootstrap/my-harness` so bootstrap assets are kept with the sandbox's
+snapshot-persistent working tree.
+
 ```ts
 import type { HarnessV1, HarnessV1Session } from '@ai-sdk/harness';
 
