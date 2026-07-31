@@ -28,6 +28,7 @@ const pendingBridgeRequests = new Map<
     context: QuickJSAsyncContext;
     deferred: QuickJSDeferredPromise;
     invocationId: string;
+    resetDateNow?: QuickJSHandle;
   }
 >();
 let activeInvocationId: string | undefined;
@@ -35,6 +36,20 @@ let bridgeRequestCounter = 0;
 let embeddedQuickJsWasmModulePromise: Promise<WebAssembly.Module> | undefined;
 
 parentPort.on('message', (message: MainToWorkerMessage) => {
+  if (message.type === 'bridge-drain') {
+    if (message.invocationId !== activeInvocationId) {
+      throw new CodeModeProtocolError(
+        `Bridge drain invocationId mismatch: expected ${activeInvocationId ?? 'no active invocation'}, received ${message.invocationId}.`,
+      );
+    }
+    parentPort?.postMessage({
+      type: 'bridge-drained',
+      invocationId: message.invocationId,
+      drainId: message.drainId,
+    });
+    return;
+  }
+
   if (message.type === 'bridge-response') {
     const pending = pendingBridgeRequests.get(message.requestId);
     if (!pending) {
@@ -59,7 +74,12 @@ parentPort.on('message', (message: MainToWorkerMessage) => {
     }
 
     pendingBridgeRequests.delete(message.requestId);
-    resolveBridgeResponse(pending.context, pending.deferred, message);
+    resolveBridgeResponse(
+      pending.context,
+      pending.deferred,
+      message,
+      pending.resetDateNow,
+    );
     return;
   }
 
@@ -111,6 +131,8 @@ async function execute(message: WorkerRunMessage): Promise<string> {
   const deadline = Date.now() + message.options.timeoutMs;
   let interruptChecks = 0;
   let bridgeFunctions: { invokeTool: QuickJSHandle } | undefined;
+  let determinismHandle: QuickJSHandle | undefined;
+  let resetDateNowHandle: QuickJSHandle | undefined;
 
   runtime.setMemoryLimit(message.options.memoryLimitBytes);
   runtime.setMaxStackSize(message.options.maxStackSizeBytes);
@@ -121,7 +143,12 @@ async function execute(message: WorkerRunMessage): Promise<string> {
 
   try {
     installConsole(context, message.options.maxConsoleOutputBytes);
-    bridgeFunctions = createBridgeFunctions(context, message);
+    bridgeFunctions = createBridgeFunctions(
+      context,
+      message,
+      () => resetDateNowHandle,
+    );
+    determinismHandle = jsToHandle(context, message.determinism);
     const setupSource = buildGuestRuntimeSetupSource();
     const setupEvalResult = await context.evalCodeAsync(
       setupSource,
@@ -139,6 +166,7 @@ async function execute(message: WorkerRunMessage): Promise<string> {
         setupEvalResult.value,
         context.undefined,
         bridgeFunctions.invokeTool,
+        determinismHandle,
       );
       if (setupCallResult.error) {
         const error = context.dump(setupCallResult.error);
@@ -148,6 +176,10 @@ async function execute(message: WorkerRunMessage): Promise<string> {
         throw toError(error);
       }
       if (setupCallResult.value.alive) {
+        resetDateNowHandle = context.getProp(
+          setupCallResult.value,
+          'resetDateNow',
+        );
         setupCallResult.value.dispose();
       }
     } finally {
@@ -209,6 +241,12 @@ async function execute(message: WorkerRunMessage): Promise<string> {
     pendingBridgeRequests.clear();
     if (bridgeFunctions?.invokeTool.alive) {
       bridgeFunctions.invokeTool.dispose();
+    }
+    if (determinismHandle?.alive) {
+      determinismHandle.dispose();
+    }
+    if (resetDateNowHandle?.alive) {
+      resetDateNowHandle.dispose();
     }
     context.dispose();
   }
@@ -339,16 +377,19 @@ function dumpConsoleArg(
 function createBridgeFunctions(
   context: QuickJSAsyncContext,
   message: WorkerRunMessage,
+  getResetDateNow: () => QuickJSHandle | undefined,
 ): { invokeTool: QuickJSHandle } {
   const invokeTool = context.newFunction(
     '__codeModeInvokeTool',
     (toolNameHandle: QuickJSHandle, inputJsonHandle: QuickJSHandle) => {
       const toolName = context.getString(toolNameHandle);
       const inputJson = context.getString(inputJsonHandle);
-      return requestHost(context, message.invocationId, {
-        toolName,
-        inputJson,
-      });
+      return requestHost(
+        context,
+        message.invocationId,
+        { toolName, inputJson },
+        getResetDateNow(),
+      );
     },
   );
 
@@ -359,6 +400,7 @@ function requestHost(
   context: QuickJSAsyncContext,
   invocationId: string,
   payload: Record<string, unknown>,
+  resetDateNow: QuickJSHandle | undefined,
 ): QuickJSHandle {
   const requestId = `${invocationId}:bridge-${++bridgeRequestCounter}`;
   const deferred = context.newPromise();
@@ -366,6 +408,7 @@ function requestHost(
     context,
     deferred,
     invocationId,
+    ...(resetDateNow !== undefined ? { resetDateNow } : {}),
   });
   deferred.settled.then(() => {
     context.runtime.executePendingJobs();
@@ -384,7 +427,9 @@ function resolveBridgeResponse(
   context: QuickJSAsyncContext,
   deferred: QuickJSDeferredPromise,
   message: WorkerBridgeResponse,
+  resetDateNow?: QuickJSHandle,
 ): void {
+  resetGuestDateNow(context, resetDateNow, message.dateNowMs);
   if (message.success) {
     const value = context.newString(message.valueJson ?? '');
     deferred.resolve(value);
@@ -394,6 +439,32 @@ function resolveBridgeResponse(
   const error = createBridgeErrorHandle(context, message.error);
   deferred.reject(error);
   error.dispose();
+}
+
+function resetGuestDateNow(
+  context: QuickJSAsyncContext,
+  resetDateNow: QuickJSHandle | undefined,
+  dateNowMs: number,
+): void {
+  if (resetDateNow === undefined) {
+    return;
+  }
+  const value = context.newNumber(dateNowMs);
+  try {
+    const result = context.callFunction(resetDateNow, context.undefined, value);
+    if (result.error) {
+      const error = context.dump(result.error);
+      if (result.error.alive) {
+        result.error.dispose();
+      }
+      throw toError(error);
+    }
+    if (result.value.alive) {
+      result.value.dispose();
+    }
+  } finally {
+    value.dispose();
+  }
 }
 
 function drainPendingJobs(context: QuickJSAsyncContext): void {
@@ -494,4 +565,43 @@ function createBridgeErrorHandle(
     code.dispose();
   }
   return handle;
+}
+
+function jsToHandle(
+  context: QuickJSAsyncContext,
+  value: unknown,
+): QuickJSHandle {
+  if (value === null || value === undefined) {
+    return context.undefined;
+  }
+  if (typeof value === 'string') {
+    return context.newString(value);
+  }
+  if (typeof value === 'number') {
+    return context.newNumber(value);
+  }
+  if (typeof value === 'boolean') {
+    return value ? context.true : context.false;
+  }
+  if (Array.isArray(value)) {
+    const array = context.newArray();
+    value.forEach((item, index) => {
+      const itemHandle = jsToHandle(context, item);
+      context.setProp(array, index, itemHandle);
+      itemHandle.dispose();
+    });
+    return array;
+  }
+  if (typeof value === 'object') {
+    const object = context.newObject();
+    for (const [key, item] of Object.entries(
+      value as Record<string, unknown>,
+    )) {
+      const itemHandle = jsToHandle(context, item);
+      context.setProp(object, key, itemHandle);
+      itemHandle.dispose();
+    }
+    return object;
+  }
+  return context.undefined;
 }

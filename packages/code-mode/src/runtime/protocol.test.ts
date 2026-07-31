@@ -14,6 +14,10 @@ const WORKER_OPTIONS = {
   maxResultBytes: 1024 * 1024,
   maxConsoleOutputBytes: 64 * 1024,
 };
+const DETERMINISM = {
+  dateNowMs: 1_700_000_000_000,
+  randomSeed: '00000000000000000000000000000001',
+};
 
 describe('worker protocol hardening', () => {
   it('rejects bridge responses with unknown request IDs', async () => {
@@ -25,6 +29,7 @@ describe('worker protocol hardening', () => {
         invocationId: 'invocation-a',
         requestId: 'missing-request',
         success: true,
+        dateNowMs: DETERMINISM.dateNowMs,
         valueJson: '"accepted"',
       }); // eslint-disable-line unicorn/require-post-message-target-origin -- Node.js Worker has no targetOrigin parameter.
 
@@ -51,6 +56,7 @@ describe('worker protocol hardening', () => {
         type: 'run',
         invocationId: 'invocation-a',
         js: 'return await tools.echo({ value: 1 });',
+        determinism: DETERMINISM,
         options: WORKER_OPTIONS,
       }); // eslint-disable-line unicorn/require-post-message-target-origin -- Node.js Worker has no targetOrigin parameter.
 
@@ -60,6 +66,7 @@ describe('worker protocol hardening', () => {
         invocationId: 'invocation-b',
         requestId: request.requestId,
         success: true,
+        dateNowMs: DETERMINISM.dateNowMs,
         valueJson: '{"value":1}',
       }); // eslint-disable-line unicorn/require-post-message-target-origin -- Node.js Worker has no targetOrigin parameter.
 
@@ -86,6 +93,7 @@ describe('worker protocol hardening', () => {
         type: 'run',
         invocationId: 'invocation-a',
         js: 'return await tools.echo({});',
+        determinism: DETERMINISM,
         options: WORKER_OPTIONS,
       }); // eslint-disable-line unicorn/require-post-message-target-origin -- Node.js Worker has no targetOrigin parameter.
       await requestPromise;
@@ -94,6 +102,7 @@ describe('worker protocol hardening', () => {
         type: 'run',
         invocationId: 'invocation-b',
         js: "return 'should not run';",
+        determinism: DETERMINISM,
         options: WORKER_OPTIONS,
       }); // eslint-disable-line unicorn/require-post-message-target-origin -- Node.js Worker has no targetOrigin parameter.
 

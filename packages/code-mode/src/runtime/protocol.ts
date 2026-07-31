@@ -1,9 +1,14 @@
-import type { NormalizedCodeModeOptions, SerializableError } from '../types.js';
+import type {
+  CodeModeDeterminismState,
+  NormalizedCodeModeOptions,
+  SerializableError,
+} from '../types.js';
 
 export interface WorkerRunMessage {
   type: 'run';
   invocationId: string;
   js: string;
+  determinism: CodeModeDeterminismState;
   options: Pick<
     NormalizedCodeModeOptions,
     | 'timeoutMs'
@@ -27,8 +32,21 @@ export interface WorkerBridgeResponse {
   invocationId: string;
   requestId: string;
   success: boolean;
+  dateNowMs: number;
   valueJson?: string;
   error?: SerializableError;
+}
+
+export interface WorkerBridgeDrainRequest {
+  type: 'bridge-drain';
+  invocationId: string;
+  drainId: string;
+}
+
+export interface WorkerBridgeDrainedMessage {
+  type: 'bridge-drained';
+  invocationId: string;
+  drainId: string;
 }
 
 export interface WorkerResultMessage {
@@ -46,7 +64,11 @@ export interface WorkerReadyMessage {
 
 export type WorkerToMainMessage =
   | WorkerToolRequest
+  | WorkerBridgeDrainedMessage
   | WorkerResultMessage
   | WorkerReadyMessage;
 
-export type MainToWorkerMessage = WorkerRunMessage | WorkerBridgeResponse;
+export type MainToWorkerMessage =
+  | WorkerRunMessage
+  | WorkerBridgeResponse
+  | WorkerBridgeDrainRequest;

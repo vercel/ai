@@ -1,7 +1,10 @@
 import { tool } from 'ai';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
-import { experimental_runCodeMode as runCodeMode } from '../dist/index.js';
+import {
+  CodeModeToolApprovalRequiredError,
+  experimental_runCodeMode as runCodeMode,
+} from '../dist/index.js';
 
 describe('exceptions and serialization', () => {
   it('fails clearly for unknown tools', async () => {
@@ -57,7 +60,7 @@ describe('exceptions and serialization', () => {
           }),
         },
       }),
-    ).rejects.toThrow(/requires approval.*does not support/i);
+    ).rejects.toBeInstanceOf(CodeModeToolApprovalRequiredError);
     expect(execute).not.toHaveBeenCalled();
   });
 

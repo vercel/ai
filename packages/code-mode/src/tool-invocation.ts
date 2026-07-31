@@ -1,28 +1,57 @@
 import { asSchema } from 'ai';
-import { CodeModeToolError } from './errors.js';
-import type { CodeModeToolExecutionOptions, CodeModeToolSet } from './types.js';
+import { CODE_MODE_TOOL_APPROVAL_KIND } from './approval.js';
+import {
+  CodeModeProtocolError,
+  CodeModeToolApprovalDeniedError,
+  CodeModeToolApprovalRequiredError,
+  CodeModeToolError,
+} from './errors.js';
+import { isCodeModeHostInterruptSignal } from './host-interrupt.js';
+import type {
+  CodeModeInterruptExecutionContext,
+  CodeModeInterruptPayload,
+  CodeModeOptions,
+  CodeModeToolExecutionOptions,
+  CodeModeToolSet,
+} from './types.js';
 import {
   assertJsonSerializable,
   toJsonPayload,
 } from './utils/serialization.js';
+
+export type HostToolInvocationResult =
+  | { type: 'success'; valueJson: string }
+  | {
+      type: 'interrupted';
+      toolName: string;
+      input: unknown;
+      toolCallId: string;
+      payload: CodeModeInterruptPayload;
+    };
 
 export async function invokeHostTool({
   toolName,
   inputJson,
   tools,
   baseExecutionOptions,
+  codeModeOptions,
   maxToolInputBytes,
   maxToolOutputBytes,
   toolCallId,
+  codeModeInterrupt,
+  skipApproval = false,
 }: {
   toolName: string;
   inputJson: string;
   tools: CodeModeToolSet;
   baseExecutionOptions: CodeModeToolExecutionOptions;
+  codeModeOptions: CodeModeOptions;
   maxToolInputBytes: number;
   maxToolOutputBytes: number;
   toolCallId: string;
-}): Promise<string> {
+  codeModeInterrupt?: CodeModeInterruptExecutionContext;
+  skipApproval?: boolean;
+}): Promise<HostToolInvocationResult> {
   throwIfAborted(baseExecutionOptions.abortSignal);
 
   const hostTool = tools[toolName];
@@ -55,28 +84,100 @@ export async function invokeHostTool({
   const executionOptions: CodeModeToolExecutionOptions = {
     ...baseExecutionOptions,
     toolCallId,
+    ...(codeModeInterrupt !== undefined ? { codeModeInterrupt } : {}),
   };
 
-  if (
-    await raceAgainstAbort(
+  const needsApproval =
+    !skipApproval &&
+    (await raceAgainstAbort(
       requiresApproval(hostTool, validation.value, executionOptions),
       executionOptions.abortSignal,
-    )
-  ) {
-    throw new CodeModeToolError(
-      `Tool "${toolName}" requires approval, which code mode does not support yet.`,
-      { toolName, input: validation.value, toolCallId },
+    ));
+
+  if (needsApproval) {
+    if (codeModeOptions.approval?.mode === 'interrupt') {
+      return {
+        type: 'interrupted',
+        toolName,
+        input: validation.value,
+        toolCallId,
+        payload: { kind: CODE_MODE_TOOL_APPROVAL_KIND },
+      };
+    }
+
+    const approval = await raceAgainstAbort(
+      Promise.resolve(
+        codeModeOptions.approval?.onApprovalRequired?.({
+          toolName,
+          input: validation.value,
+          toolCallId,
+        }),
+      ),
+      baseExecutionOptions.abortSignal,
     );
+    if (approval === undefined) {
+      throw new CodeModeToolApprovalRequiredError(
+        toolName,
+        validation.value,
+        toolCallId,
+      );
+    }
+    const approved =
+      typeof approval === 'string'
+        ? approval === 'approved'
+        : approval?.approved;
+    const reason = typeof approval === 'string' ? undefined : approval?.reason;
+    if (typeof approved !== 'boolean') {
+      throw new CodeModeProtocolError(
+        `Tool "${toolName}" approval callback returned a malformed approval decision.`,
+        { toolName, toolCallId },
+      );
+    }
+    if (reason !== undefined && typeof reason !== 'string') {
+      throw new CodeModeProtocolError(
+        `Tool "${toolName}" approval callback returned a malformed approval reason.`,
+        { toolName, toolCallId },
+      );
+    }
+    if (!approved) {
+      throw new CodeModeToolApprovalDeniedError(
+        toolName,
+        validation.value,
+        toolCallId,
+        reason,
+      );
+    }
   }
 
-  const output = await raceAgainstAbort(
-    executeHostTool(hostTool.execute.bind(hostTool), {
-      input: validation.value,
-      options: executionOptions,
-    }),
-    executionOptions.abortSignal,
-  );
-  return toJsonPayload(output, maxToolOutputBytes, `Tool "${toolName}" output`);
+  let output: unknown;
+  try {
+    output = await raceAgainstAbort(
+      executeHostTool(hostTool.execute.bind(hostTool), {
+        input: validation.value,
+        options: executionOptions,
+      }),
+      executionOptions.abortSignal,
+    );
+  } catch (error) {
+    if (isCodeModeHostInterruptSignal(error)) {
+      return {
+        type: 'interrupted',
+        toolName,
+        input: validation.value,
+        toolCallId,
+        payload: error.payload,
+      };
+    }
+    throw error;
+  }
+  return {
+    type: 'success',
+    valueJson: toJsonPayload(
+      output,
+      maxToolOutputBytes,
+      `Tool "${toolName}" output`,
+    ),
+  };
 }
 
 async function requiresApproval(

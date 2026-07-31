@@ -90,6 +90,93 @@ const HARDENING_SOURCE = `
 })();
 `;
 
+const DETERMINISTIC_APIS_SOURCE = `
+var __codeModeResetDateNow = (function(config) {
+  var OriginalDate = Date;
+  var dateNowMs = Number(config && config.dateNowMs);
+  if (!Number.isFinite(dateNowMs)) dateNowMs = 0;
+
+  function resetDateNow(value) {
+    var next = Number(value);
+    if (Number.isFinite(next)) dateNowMs = Math.trunc(next);
+  }
+
+  function nextDateMs() {
+    var value = dateNowMs;
+    dateNowMs += 1;
+    return value;
+  }
+
+  function CodeModeDate() {
+    if (new.target) {
+      if (arguments.length === 0) return new OriginalDate(nextDateMs());
+      return Reflect.construct(OriginalDate, arguments, new.target);
+    }
+    return new OriginalDate(nextDateMs()).toString();
+  }
+
+  Object.defineProperty(CodeModeDate, 'prototype', {
+    value: OriginalDate.prototype,
+    writable: false,
+    configurable: false,
+  });
+  Object.defineProperty(OriginalDate.prototype, 'constructor', {
+    value: CodeModeDate,
+    writable: false,
+    configurable: false,
+  });
+  Object.defineProperty(CodeModeDate, 'now', {
+    value: nextDateMs,
+    writable: false,
+    configurable: false,
+  });
+  Object.defineProperty(CodeModeDate, 'parse', {
+    value: OriginalDate.parse,
+    writable: false,
+    configurable: false,
+  });
+  Object.defineProperty(CodeModeDate, 'UTC', {
+    value: OriginalDate.UTC,
+    writable: false,
+    configurable: false,
+  });
+  Object.defineProperty(globalThis, 'Date', {
+    value: CodeModeDate,
+    writable: false,
+    configurable: false,
+  });
+
+  var randomSeed = String(config && config.randomSeed || '');
+  var mask64 = (1n << 64n) - 1n;
+  function readSeedPart(offset, fallback) {
+    var part = randomSeed.slice(offset, offset + 16);
+    return /^[0-9a-fA-F]{16}$/.test(part) ? BigInt('0x' + part) : fallback;
+  }
+  var randomState0 = readSeedPart(0, 0x243f6a8885a308d3n);
+  var randomState1 = readSeedPart(16, 0x13198a2e03707344n);
+  if ((randomState0 | randomState1) === 0n) {
+    randomState1 = 0x9e3779b97f4a7c15n;
+  }
+  function nextRandom64() {
+    var s1 = randomState0;
+    var s0 = randomState1;
+    randomState0 = s0;
+    s1 = (s1 ^ ((s1 << 23n) & mask64)) & mask64;
+    randomState1 = (s1 ^ s0 ^ (s1 >> 17n) ^ (s0 >> 26n)) & mask64;
+    return (randomState1 + s0) & mask64;
+  }
+  Object.defineProperty(Math, 'random', {
+    value: function() {
+      return Number(nextRandom64() >> 11n) / 9007199254740992;
+    },
+    writable: false,
+    configurable: false,
+  });
+
+  return resetDateNow;
+})(__codeModeDeterminism);
+`;
+
 const BRIDGE_TRACKING_SOURCE = `
 (function() {
   var nextRecordId = 0;
@@ -242,11 +329,15 @@ const SERIALIZATION_GUARD_SOURCE = `
 
 export function buildGuestRuntimeSetupSource(): string {
   return `
-(function(__codeModeInvokeTool) {
+(function(__codeModeInvokeTool, __codeModeDeterminism) {
+${DETERMINISTIC_APIS_SOURCE}
 ${HARDENING_SOURCE}
 ${BRIDGE_TRACKING_SOURCE}
 ${TOOLS_PROXY_SOURCE}
 ${SERIALIZATION_GUARD_SOURCE}
+return Object.freeze({
+  resetDateNow: __codeModeResetDateNow,
+});
 })
 `;
 }

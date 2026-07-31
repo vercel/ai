@@ -112,6 +112,37 @@ export class CodeModeToolError extends CodeModeError {
   }
 }
 
+export class CodeModeToolApprovalRequiredError extends CodeModeToolError {
+  constructor(toolName: string, input: unknown, toolCallId: string) {
+    super(`Tool "${toolName}" requires approval before execution.`, {
+      toolName,
+      input,
+      toolCallId,
+    });
+    this.code = 'CODE_MODE_TOOL_APPROVAL_REQUIRED';
+  }
+}
+
+export class CodeModeToolApprovalDeniedError extends CodeModeToolError {
+  constructor(
+    toolName: string,
+    input: unknown,
+    toolCallId: string,
+    reason?: string,
+  ) {
+    super(
+      `Tool "${toolName}" approval was denied${reason ? `: ${reason}` : '.'}`,
+      {
+        toolName,
+        input,
+        toolCallId,
+        ...(reason !== undefined ? { reason } : {}),
+      },
+    );
+    this.code = 'CODE_MODE_TOOL_APPROVAL_DENIED';
+  }
+}
+
 /**
  * Converts an unknown thrown value into a worker-safe serializable shape.
  *
@@ -246,6 +277,40 @@ export function deserializeError(error: SerializableError): Error {
 
   if (error.code === 'CODE_MODE_PROTOCOL_ERROR') {
     const result = new CodeModeProtocolError(error.message, error.details);
+    restoreStack(result, error);
+    return result;
+  }
+
+  if (error.code === 'CODE_MODE_TOOL_APPROVAL_REQUIRED') {
+    const details = error.details as
+      | { toolName?: string; input?: unknown; toolCallId?: string }
+      | undefined;
+    const result = new CodeModeToolApprovalRequiredError(
+      details?.toolName ?? 'unknown',
+      details?.input,
+      details?.toolCallId ?? 'unknown',
+    );
+    result.message = error.message;
+    restoreStack(result, error);
+    return result;
+  }
+
+  if (error.code === 'CODE_MODE_TOOL_APPROVAL_DENIED') {
+    const details = error.details as
+      | {
+          toolName?: string;
+          input?: unknown;
+          toolCallId?: string;
+          reason?: string;
+        }
+      | undefined;
+    const result = new CodeModeToolApprovalDeniedError(
+      details?.toolName ?? 'unknown',
+      details?.input,
+      details?.toolCallId ?? 'unknown',
+      details?.reason,
+    );
+    result.message = error.message;
     restoreStack(result, error);
     return result;
   }
