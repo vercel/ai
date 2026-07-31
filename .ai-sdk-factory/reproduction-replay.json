@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 18271,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-18271.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-18271.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_18271_REPRODUCED: executed sibling results are missing from the client stream and HITL auto-resume remains false"
+  }
+}
