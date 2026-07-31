@@ -93,6 +93,48 @@ try {
 }
 ```
 
+## Steer an Active Turn
+
+Use `session.steer()` to send an additional user instruction while a turn is
+running:
+
+```ts
+const session = await agent.createSession();
+
+try {
+  const result = await agent.stream({
+    session,
+    prompt: 'Inspect the repository and propose a migration plan.',
+  });
+
+  const steering = session.steer(
+    'Focus only on the database migration and include a rollback plan.',
+  );
+
+  for await (const part of result.stream) {
+    if (part.type === 'text-delta') {
+      process.stdout.write(part.text);
+    }
+  }
+
+  await steering;
+} finally {
+  await session.destroy();
+}
+```
+
+`steer()` can be called immediately after starting `stream()` or `generate()`;
+it waits until the adapter's active-turn control is ready. The runtime may
+interrupt its current model work immediately or consume the instruction at its
+next safe input boundary. In both cases, redirected output continues on the
+original result stream.
+
+Claude Code and Pi currently support active-turn steering. Codex, OpenCode, and
+Deep Agents do not; calling `steer()` with those adapters throws
+`HarnessCapabilityUnsupportedError`. Calling it without an active turn throws
+an error. Steering is separate from aborting a turn with an `AbortSignal` and
+from preserving a turn across process boundaries with `suspendTurn()`.
+
 ## Messages and History
 
 A harness session owns its native conversation history. When you pass `messages`
@@ -120,6 +162,8 @@ End every session explicitly:
   the turn is unfinished, the resume state includes the continuation state.
 - `session.suspendTurn()` is for advanced active-turn continuation across a
   process boundary.
+- `session.steer(message)` redirects the active turn when the harness supports
+  mid-turn user messages.
 - `session.hasUnfinishedTurn()` reports whether the current turn must be
   continued or suspended before the session accepts a new prompt.
 

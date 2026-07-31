@@ -103,6 +103,7 @@ export function runPrompt<
   onToolResultSettled?: (toolCallId: string) => void;
   onTurnFinished?: () => void;
   onTurnFailed?: () => void;
+  onPromptControl?: (control: HarnessV1PromptControl) => void;
   /**
    * Reports that the adapter stream closed because the host intentionally
    * suspended the still-running turn at a workflow slice boundary.
@@ -204,6 +205,7 @@ export function runPrompt<
     }
 
     const { stream, control } = bridge;
+    input.onPromptControl?.(control);
     const reader = stream.getReader();
     const toolCallsByToolCallId = new Map<string, ToolCallTextStreamPart>();
     const rawToolCallsByToolCallId = new Map<

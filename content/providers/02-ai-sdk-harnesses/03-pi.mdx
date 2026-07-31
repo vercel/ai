@@ -135,6 +135,10 @@ common tool shape.
 Pi supports built-in tool approval requests when `permissionMode` is
 `allow-reads` or `allow-edits`.
 
+Pi supports redirecting a running turn with `session.steer(message)`. Pi queues
+the additional user instruction through its native steering API, and output
+continues on the same result stream.
+
 ## Related
 
 - [HarnessAgent](/docs/ai-sdk-harnesses/harness-agent)

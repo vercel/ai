@@ -139,6 +139,21 @@ describe('claude-code adapter — instructions gating', () => {
     expect(lastStart().prompt).toBe('second turn');
   });
 
+  it('sends mid-turn user messages to the active bridge turn', async () => {
+    const session = await startSession();
+    const control = await session.doPromptTurn({
+      prompt: 'first turn',
+      emit: () => {},
+    });
+
+    await control.submitUserMessage?.('change direction');
+
+    expect(sentMessages).toContainEqual({
+      type: 'user-message',
+      text: 'change direction',
+    });
+  });
+
   it('does not apply instructions when resuming a session', async () => {
     const session = await startSession({
       resumeFrom: {

@@ -178,6 +178,40 @@ describe('createPiSession', () => {
     );
   });
 
+  it('forwards mid-turn user messages to Pi steering', async () => {
+    const steer = vi.fn(async () => {});
+    piMock.session = {
+      abort: vi.fn(async () => {}),
+      compact: vi.fn(async () => {}),
+      dispose: vi.fn(),
+      getSessionStats: () => ({
+        tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      }),
+      prompt: vi.fn(async () => {}),
+      steer,
+      subscribe: vi.fn(() => () => {}),
+    } as unknown as AgentSession;
+
+    const session = await createPiSession({
+      sessionId: 'session-steer',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      skills: [],
+      settings: {},
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: false,
+    });
+    const control = await session.doPromptTurn({
+      prompt: 'start',
+      emit: vi.fn(),
+    });
+
+    await control.submitUserMessage?.('change direction');
+
+    expect(steer).toHaveBeenCalledWith('change direction');
+    await control.done;
+  });
+
   it('uses agentDir for auth, models, and settings when provided', async () => {
     vi.mocked(ModelRuntime.create).mockClear();
     vi.mocked(SettingsManager.inMemory).mockClear();

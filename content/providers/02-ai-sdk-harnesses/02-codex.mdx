@@ -157,6 +157,9 @@ Codex does not currently support built-in tool filtering. You can still use
 `activeTools` and `inactiveTools` to filter host-executed tools, but filtering
 Codex built-ins such as `bash` or `webSearch` will throw.
 
+Codex does not currently support active-turn steering. Calling
+`session.steer(message)` throws `HarnessCapabilityUnsupportedError`.
+
 ## Related
 
 - [HarnessAgent](/docs/ai-sdk-harnesses/harness-agent)

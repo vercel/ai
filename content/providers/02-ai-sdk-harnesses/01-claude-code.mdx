@@ -155,6 +155,10 @@ not fit a common tool shape.
 Claude Code supports built-in tool approval requests when `permissionMode` is
 `allow-reads` or `allow-edits`.
 
+Claude Code supports redirecting a running turn with
+`session.steer(message)`. The additional user message is delivered through the
+active Claude Code query, and output continues on the same result stream.
+
 ## Related
 
 - [HarnessAgent](/docs/ai-sdk-harnesses/harness-agent)
