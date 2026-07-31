@@ -57,6 +57,9 @@
     },
     {
       "path": "../../packages/workflow"
+    },
+    {
+      "path": "../../packages/xai"
     }
   ]
 }

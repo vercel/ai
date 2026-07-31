@@ -1516,6 +1516,9 @@ importers:
       '@ai-sdk/workflow':
         specifier: workspace:*
         version: link:../../packages/workflow
+      '@ai-sdk/xai':
+        specifier: workspace:*
+        version: link:../../packages/xai
       ai:
         specifier: workspace:*
         version: link:../../packages/ai

@@ -11,6 +11,7 @@ This example demonstrates using the AI SDK's `WorkflowAgent` with the Workflow D
 - **Resumable**: Workflow runs survive restarts and can be reconnected
 - **Telemetry E2E Harness**: Visit `/telemetry` to run deterministic WorkflowAgent telemetry scenarios for lifecycle events, tool execution, context filtering, approvals, errors, and reconnects
 - **Sandbox E2E Harness**: Visit `/sandbox` to run a deterministic WorkflowAgent sandbox tool execution scenario
+- **Async Video Workflow**: Visit `/async-apis` to find recent repository maintainers and turn their GitHub avatars into short xAI videos while workflow progress streams to the browser
 
 ## Testing `toModelOutput`
 
@@ -35,8 +36,19 @@ The `calculate` tool has no `toModelOutput`, so its model-facing output stays th
 ## Running
 
 1. Install dependencies: `pnpm install`
-2. Start the dev server: `pnpm dev`
-3. Open http://localhost:3000
+2. Create `.env.local` and add the API keys needed by the page you want to run:
+
+   ```bash
+   ANTHROPIC_API_KEY=...
+   GITHUB_TOKEN=...
+   XAI_API_KEY=...
+   ```
+
+   `GITHUB_TOKEN` needs read access to the repository submitted on the async
+   APIs page. Public-repository access is enough for public repositories.
+
+3. Start the dev server: `pnpm dev`
+4. Open http://localhost:3000
 
 ## Telemetry
 
@@ -45,3 +57,17 @@ Open http://localhost:3000/telemetry to run deterministic WorkflowAgent telemetr
 ## Sandbox
 
 Open http://localhost:3000/sandbox to run a deterministic WorkflowAgent `experimental_sandbox` scenario. The harness verifies that the sandbox session provided to `agent.stream` is available during tool execution.
+
+## Async APIs
+
+Open http://localhost:3000/async-apis and submit a GitHub repository URL. The
+workflow queries merged pull requests from the last 30 days, ranks the human
+users who merged them, downloads their avatars, and generates a five-second
+image-to-video clip for each maintainer with xAI's
+`grok-imagine-video` model.
+
+The workflow passes the new `webhook` option to `experimental_generateVideo`.
+xAI does not currently expose native completion webhooks, so the AI SDK emits
+an unsupported-webhook warning and durably falls back to the same asynchronous
+start/status flow with polling. The page streams that warning alongside all
+other workflow progress updates.
