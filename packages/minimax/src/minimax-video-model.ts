@@ -181,10 +181,42 @@ export class MiniMaxVideoModel implements VideoModelV4 {
     const firstFrameImage = options.frameImages?.find(
       frame => frame.frameType === 'first_frame',
     )?.image;
-    const firstFrame = firstFrameImage ?? options.image;
-    const lastFrame = options.frameImages?.find(
+    let firstFrame = firstFrameImage ?? options.image;
+    let lastFrame = options.frameImages?.find(
       frame => frame.frameType === 'last_frame',
     )?.image;
+
+    // Reject unusable frames before deciding the generation mode.
+    if (firstFrame != null && isVideoFile(firstFrame)) {
+      warnings.push({
+        type: 'unsupported',
+        feature: firstFrameImage != null ? 'frameImages' : 'image',
+        details:
+          'MiniMax-H3 does not accept a video as a frame image. The video was ignored.',
+      });
+      firstFrame = undefined;
+    }
+
+    if (lastFrame != null) {
+      if (firstFrame == null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'frameImages',
+          details:
+            'MiniMax-H3 requires a first_frame when a last_frame is provided. The last_frame was ignored.',
+        });
+        lastFrame = undefined;
+      } else if (isVideoFile(lastFrame)) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'frameImages',
+          details:
+            'MiniMax-H3 does not accept a video as a frame image. The last_frame video was ignored.',
+        });
+        lastFrame = undefined;
+      }
+    }
+
     const usesFrameImages = firstFrame != null || lastFrame != null;
 
     const referenceFiles = options.inputReferences ?? [];
@@ -194,46 +226,21 @@ export class MiniMaxVideoModel implements VideoModelV4 {
 
     if (usesFrameImages) {
       if (firstFrame != null) {
-        if (isVideoFile(firstFrame)) {
-          warnings.push({
-            type: 'unsupported',
-            feature: firstFrameImage != null ? 'frameImages' : 'image',
-            details:
-              'MiniMax-H3 does not accept a video as a frame image. The video was ignored.',
-          });
-        } else {
-          content.push({
-            type: 'image_url',
-            image_url: { url: convertImageModelFileToDataUri(firstFrame) },
-            role: 'first_frame',
-          });
-          sentImageCount++;
-        }
+        content.push({
+          type: 'image_url',
+          image_url: { url: convertImageModelFileToDataUri(firstFrame) },
+          role: 'first_frame',
+        });
+        sentImageCount++;
       }
 
       if (lastFrame != null) {
-        if (firstFrame == null) {
-          warnings.push({
-            type: 'unsupported',
-            feature: 'frameImages',
-            details:
-              'MiniMax-H3 requires a first_frame when a last_frame is provided. The last_frame was ignored.',
-          });
-        } else if (isVideoFile(lastFrame)) {
-          warnings.push({
-            type: 'unsupported',
-            feature: 'frameImages',
-            details:
-              'MiniMax-H3 does not accept a video as a frame image. The last_frame video was ignored.',
-          });
-        } else {
-          content.push({
-            type: 'image_url',
-            image_url: { url: convertImageModelFileToDataUri(lastFrame) },
-            role: 'last_frame',
-          });
-          sentImageCount++;
-        }
+        content.push({
+          type: 'image_url',
+          image_url: { url: convertImageModelFileToDataUri(lastFrame) },
+          role: 'last_frame',
+        });
+        sentImageCount++;
       }
 
       // Frame images and reference inputs are mutually exclusive.

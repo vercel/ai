@@ -1110,6 +1110,44 @@ describe('MiniMaxVideoModel', () => {
       });
     });
 
+    // A frame image that is rejected never reaches the API, so it must not go
+    // on to suppress the reference inputs or the aspect ratio: doing so turned
+    // a mistyped input into a plain text-to-video call with two warnings
+    // describing a frame image that was never sent.
+    it('should keep references and the aspect ratio when the only frame image is a video', async () => {
+      const model = createModel();
+
+      const { warnings } = await model.doGenerate({
+        ...defaultOptions,
+        image: videoUrlFile,
+        aspectRatio: '16:9',
+        inputReferences: [imageUrlFile],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'MiniMax-H3',
+        content: [
+          { type: 'text', text: prompt },
+          {
+            type: 'image_url',
+            image_url: { url: imageUrlFile.url },
+            role: 'reference_image',
+          },
+        ],
+        resolution: '2K',
+        duration: 5,
+        ratio: '16:9',
+      });
+      expect(
+        warnings.filter(
+          warning =>
+            warning.type === 'unsupported' &&
+            (warning.feature === 'inputReferences' ||
+              warning.feature === 'aspectRatio'),
+        ),
+      ).toStrictEqual([]);
+    });
+
     it('should attribute a video standalone image to the image feature', async () => {
       const model = createModel();
 
