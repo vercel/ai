@@ -2822,10 +2822,9 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'output',
-      type: 'Output',
-      isOptional: true,
+      type: 'InferCompleteOutput<OUTPUT>',
       description:
-        'The generated structured output. It uses the `output` specification.',
+        'The generated output according to the `output` specification. Accessing this property throws `NoOutputGeneratedError` when no output is available, for example when the final step does not finish with a `stop` reason.',
     },
     {
       name: 'steps',

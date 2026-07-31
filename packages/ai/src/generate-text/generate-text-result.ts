@@ -172,8 +172,10 @@ export interface GenerateTextResult<
   readonly finalStep: StepResult<TOOLS, RUNTIME_CONTEXT>;
 
   /**
-   * The generated structured output. It uses the `output` specification.
+   * The generated output according to the `output` specification.
    *
+   * @throws {NoOutputGeneratedError} When no output is available, for example
+   * when the final step does not finish with a `stop` reason.
    */
   readonly output: InferCompleteOutput<OUTPUT>;
 }
