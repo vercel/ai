@@ -139,6 +139,49 @@ describe('MiniMaxVideoModel', () => {
       });
     });
 
+    it('should clamp a duration above the maximum and warn', async () => {
+      const model = createModel();
+
+      const { warnings } = await model.doGenerate({
+        ...defaultOptions,
+        duration: 20,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'MiniMax-H3',
+        content: [{ type: 'text', text: prompt }],
+        resolution: '2K',
+        duration: 15,
+      });
+      expect(warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'duration',
+        details:
+          '20 exceeds the MiniMax-H3 maximum of 15 seconds. clamped to 15',
+      });
+    });
+
+    it('should clamp a duration below the minimum and warn', async () => {
+      const model = createModel();
+
+      const { warnings } = await model.doGenerate({
+        ...defaultOptions,
+        duration: 3,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'MiniMax-H3',
+        content: [{ type: 'text', text: prompt }],
+        resolution: '2K',
+        duration: 5,
+      });
+      expect(warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'duration',
+        details: '3 is below the MiniMax-H3 minimum of 5 seconds. clamped to 5',
+      });
+    });
+
     it('should map a top-level resolution onto the named tier', async () => {
       const model = createModel();
 

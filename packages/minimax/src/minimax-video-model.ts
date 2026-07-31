@@ -342,17 +342,24 @@ export class MiniMaxVideoModel implements VideoModelV4 {
       ratio = undefined;
     }
 
-    const duration = options.duration ?? MIN_DURATION_SECONDS;
-    if (
+    let duration = options.duration ?? MIN_DURATION_SECONDS;
+    if (options.duration != null && options.duration > MAX_DURATION_SECONDS) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'duration',
+        details: `${options.duration} exceeds the MiniMax-H3 maximum of ${MAX_DURATION_SECONDS} seconds. clamped to ${MAX_DURATION_SECONDS}`,
+      });
+      duration = MAX_DURATION_SECONDS;
+    } else if (
       options.duration != null &&
-      (options.duration < MIN_DURATION_SECONDS ||
-        options.duration > MAX_DURATION_SECONDS)
+      options.duration < MIN_DURATION_SECONDS
     ) {
       warnings.push({
         type: 'unsupported',
         feature: 'duration',
-        details: `MiniMax-H3 supports durations between ${MIN_DURATION_SECONDS} and ${MAX_DURATION_SECONDS} seconds.`,
+        details: `${options.duration} is below the MiniMax-H3 minimum of ${MIN_DURATION_SECONDS} seconds. clamped to ${MIN_DURATION_SECONDS}`,
       });
+      duration = MIN_DURATION_SECONDS;
     }
 
     const body: Record<string, unknown> = {
