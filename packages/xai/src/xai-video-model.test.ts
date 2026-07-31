@@ -304,6 +304,31 @@ describe('XaiVideoModel', () => {
       expect(body).toMatchObject({ resolution: '480p' });
     });
 
+    it('should map SDK resolution 1920x1080 to 1080p', async () => {
+      const model = createModel();
+
+      await model.doStart({ ...defaultOptions, resolution: '1920x1080' });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ resolution: '1080p' });
+    });
+
+    it('should pass through provider option resolution 1080p', async () => {
+      const model = createModel();
+
+      await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            resolution: '1080p',
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ resolution: '1080p' });
+    });
+
     it('should prefer provider option resolution over SDK resolution', async () => {
       const model = createModel();
 
@@ -326,7 +351,7 @@ describe('XaiVideoModel', () => {
 
       const result = await model.doStart({
         ...defaultOptions,
-        resolution: '1920x1080',
+        resolution: '2560x1440',
       });
 
       expect(result.warnings).toContainEqual(
@@ -730,6 +755,73 @@ describe('XaiVideoModel', () => {
           { url: 'https://example.com/ref2.jpg' },
         ],
       });
+    });
+
+    it('should send reference_audios array alongside reference_images', async () => {
+      const model = createModel();
+
+      await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+            referenceImageUrls: ['https://example.com/ref1.jpg'],
+            referenceAudioUrls: ['https://example.com/voice.mp3'],
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        reference_images: [{ url: 'https://example.com/ref1.jpg' }],
+        reference_audios: [{ url: 'https://example.com/voice.mp3' }],
+      });
+    });
+
+    it('should downgrade R2V 1080p to 720p with a warning', async () => {
+      const model = createModel();
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+            referenceImageUrls: ['https://example.com/ref1.jpg'],
+            resolution: '1080p',
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ resolution: '720p' });
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'resolution',
+        }),
+      );
+    });
+
+    it('should warn and ignore reference audio outside reference-to-video mode', async () => {
+      const model = createModel();
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            referenceAudioUrls: ['https://example.com/voice.mp3'],
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('reference_audios');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'referenceAudioUrls',
+        }),
+      );
     });
 
     it('should fallback to reference-to-video mode when referenceImageUrls is set without mode', async () => {

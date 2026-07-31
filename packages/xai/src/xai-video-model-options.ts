@@ -2,7 +2,7 @@ import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 const nonEmptyStringSchema = z.string().min(1);
-const resolutionSchema = z.enum(['480p', '720p']);
+const resolutionSchema = z.enum(['480p', '720p', '1080p']);
 const modeSchema = z.enum(['edit-video', 'extend-video', 'reference-to-video']);
 
 export type XaiVideoMode = z.infer<typeof modeSchema>;
@@ -48,6 +48,8 @@ interface XaiVideoReferenceToVideoOptions
   mode: 'reference-to-video';
   /** Reference image URLs (1-7) for R2V generation. */
   referenceImageUrls: string[];
+  /** Reference audio URL (max 1) for R2V generation. */
+  referenceAudioUrls?: string[];
 }
 
 interface XaiVideoGenerationOptions
@@ -75,6 +77,8 @@ interface XaiLegacyReferenceToVideoOptions
    */
   mode?: undefined;
   referenceImageUrls: string[];
+  /** Reference audio URL (max 1) for R2V generation. */
+  referenceAudioUrls?: string[];
 }
 
 /**
@@ -125,11 +129,14 @@ const extendVideoSchema = z.object({
   referenceImageUrls: z.undefined().optional(),
 });
 
+const referenceAudioUrlsSchema = z.array(nonEmptyStringSchema).min(1).max(1);
+
 const referenceToVideoSchema = z.object({
   ...baseFields,
   ...userField,
   mode: z.literal('reference-to-video'),
   referenceImageUrls: z.array(nonEmptyStringSchema).min(1).max(7),
+  referenceAudioUrls: referenceAudioUrlsSchema.optional(),
   videoUrl: z.undefined().optional(),
 });
 
@@ -139,6 +146,7 @@ const autoDetectSchema = z.object({
   mode: z.undefined().optional(),
   videoUrl: nonEmptyStringSchema.optional(),
   referenceImageUrls: z.array(nonEmptyStringSchema).min(1).max(7).optional(),
+  referenceAudioUrls: referenceAudioUrlsSchema.optional(),
 });
 
 export const xaiVideoModelOptions = z.union([
@@ -153,6 +161,7 @@ const runtimeSchema = z.looseObject({
   videoUrl: nonEmptyStringSchema.optional(),
   referenceImageUrls: z.array(nonEmptyStringSchema).min(1).max(7).optional(),
   user: z.string().optional(),
+  referenceAudioUrls: referenceAudioUrlsSchema.optional(),
   ...baseFields,
 });
 
