@@ -11,6 +11,7 @@
 '@ai-sdk/xai': patch
 '@ai-sdk/bytedance': patch
 '@ai-sdk/prodia': patch
+'@ai-sdk/minimax': patch
 'ai': patch
 ---
 
