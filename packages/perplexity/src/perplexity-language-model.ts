@@ -13,6 +13,7 @@ import {
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  createLanguageModelResponseMetadata as getResponseMetadata,
   isCustomReasoning,
   parseProviderOptions,
   postJsonToApi,
@@ -415,22 +416,6 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
       response: { headers: responseHeaders },
     };
   }
-}
-
-function getResponseMetadata({
-  id,
-  model,
-  created,
-}: {
-  id: string;
-  created: number;
-  model: string;
-}) {
-  return {
-    id,
-    modelId: model,
-    timestamp: new Date(created * 1000),
-  };
 }
 
 const perplexityCostSchema = z.object({

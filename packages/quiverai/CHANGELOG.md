@@ -1,5 +1,12 @@
 # @ai-sdk/quiverai
 
+## 2.0.17
+
+### Patch Changes
+
+- Updated dependencies [fa95504]
+  - @ai-sdk/provider-utils@5.0.17
+
 ## 2.0.16
 
 ### Patch Changes
