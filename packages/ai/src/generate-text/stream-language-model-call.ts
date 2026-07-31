@@ -7,7 +7,7 @@ import {
 import {
   createIdGenerator,
   type Arrayable,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as SandboxSession,
   type IdGenerator,
   type InferToolSetContext,
   type ModelMessage,
@@ -16,6 +16,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { resolveLanguageModel } from '../model/resolve-model';
+import { getOwn } from '../util/get-own';
 import type { Instructions, Prompt } from '../prompt';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
@@ -65,6 +66,7 @@ import type { TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { TypedToolError } from './tool-error';
 import type { ToolInputRefinement } from './tool-input-refinement';
+import type { ToolOrder } from './tool-order';
 import type { TypedToolResult } from './tool-result';
 
 const originalGenerateId = createIdGenerator({
@@ -194,6 +196,7 @@ export async function streamLanguageModelCall<
 >({
   model,
   tools,
+  toolOrder,
   output,
   toolChoice,
   prompt,
@@ -225,6 +228,7 @@ export async function streamLanguageModelCall<
 }: {
   model: LanguageModel;
   tools?: TOOLS;
+  toolOrder?: ToolOrder<TOOLS>;
   output?: OUTPUT;
   toolChoice?: ToolChoice<TOOLS>;
   download?: DownloadFunction;
@@ -242,9 +246,9 @@ export async function streamLanguageModelCall<
    */
   toolsContext?: InferToolSetContext<TOOLS>;
   /**
-   * Sandbox passed through for resolving tool descriptions that depend on it.
+   * Sandbox session passed through for resolving tool descriptions that depend on it.
    */
-  experimental_sandbox?: Sandbox;
+  experimental_sandbox?: SandboxSession;
   _internal?: {
     generateId?: IdGenerator;
     generateCallId?: IdGenerator;
@@ -303,6 +307,7 @@ export async function streamLanguageModelCall<
 
   const stepTools = await prepareTools({
     tools,
+    toolOrder,
     toolsContext,
     experimental_sandbox: sandbox,
   });
@@ -316,16 +321,21 @@ export async function streamLanguageModelCall<
     callbacks: onStart,
   });
 
+  const languageModelCallContext = {
+    provider: resolvedModel.provider,
+    modelId: resolvedModel.modelId,
+    instructions: standardizedPrompt.instructions,
+    messages: standardizedPrompt.messages,
+    tools: stepTools,
+    ...callSettings,
+  };
+  const languageModelCallStartEvent = {
+    callId: effectiveCallId,
+    ...languageModelCallContext,
+  };
+
   await notify({
-    event: {
-      callId: effectiveCallId,
-      provider: resolvedModel.provider,
-      modelId: resolvedModel.modelId,
-      instructions: standardizedPrompt.instructions,
-      messages: standardizedPrompt.messages,
-      tools: stepTools,
-      ...callSettings,
-    },
+    event: languageModelCallStartEvent,
     callbacks: onLanguageModelCallStart,
   });
 
@@ -336,7 +346,7 @@ export async function streamLanguageModelCall<
     response,
     request,
   } = await executeLanguageModelCallInTelemetryContext({
-    callId: effectiveCallId,
+    ...languageModelCallStartEvent,
     execute: async () =>
       await resolvedModel.doStream({
         ...callSettings,
@@ -412,6 +422,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   const textPartIndexes = new Map<string, number>();
   const reasoningPartIndexes = new Map<string, number>();
   let responseId = generateId();
+  let responseModelId = modelId;
   let timeToFirstOutputMs: number | undefined;
   let previousOutputChunkTimestampMs: number | undefined;
   const timeBetweenOutputChunksMs: number[] = [];
@@ -580,7 +591,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             event: {
               callId,
               provider,
-              modelId,
+              modelId: responseModelId,
               finishReason: chunk.finishReason.unified,
               usage,
               content: modelCallContent,
@@ -617,18 +628,20 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             modelCallContent.push(toolCall);
 
             if (toolCall.invalid) {
-              controller.enqueue({
-                type: 'tool-error',
-                toolCallId: toolCall.toolCallId,
-                toolName: toolCall.toolName,
-                input: toolCall.input,
-                error: getErrorMessage(toolCall.error!),
-                dynamic: true,
-                title: toolCall.title,
-                ...(toolCall.toolMetadata != null
-                  ? { toolMetadata: toolCall.toolMetadata }
-                  : {}),
-              });
+              if (!toolCall.providerExecuted) {
+                controller.enqueue({
+                  type: 'tool-error',
+                  toolCallId: toolCall.toolCallId,
+                  toolName: toolCall.toolName,
+                  input: toolCall.input,
+                  error: getErrorMessage(toolCall.error!),
+                  dynamic: true,
+                  title: toolCall.title,
+                  ...(toolCall.toolMetadata != null
+                    ? { toolMetadata: toolCall.toolMetadata }
+                    : {}),
+                });
+              }
               break;
             }
           } catch (error) {
@@ -706,7 +719,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         }
 
         case 'tool-input-start': {
-          const tool = tools?.[chunk.toolName];
+          const tool = getOwn(tools, chunk.toolName);
 
           controller.enqueue({
             ...chunk,
@@ -727,6 +740,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
 
         case 'response-metadata': {
           responseId = chunk.id ?? responseId;
+          responseModelId = chunk.modelId ?? responseModelId;
 
           controller.enqueue({
             type: 'model-call-response-metadata',

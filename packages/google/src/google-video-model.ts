@@ -1,6 +1,8 @@
 import {
   AISDKError,
   type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
+  type Experimental_VideoModelV4File,
   type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
   type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
   type SharedV4ProviderMetadata,
@@ -11,6 +13,7 @@ import {
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
   getFromApi,
+  isSameOrigin,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -34,6 +37,106 @@ interface GoogleVideoModelConfig {
   _internal?: {
     currentDate?: () => Date;
   };
+}
+
+function getFirstFrameImage(
+  options: VideoModelV4CallOptions,
+): Experimental_VideoModelV4File | undefined {
+  return options.frameImages?.find(frame => frame.frameType === 'first_frame')
+    ?.image;
+}
+
+function resolveStartImage(
+  options: VideoModelV4CallOptions,
+): Experimental_VideoModelV4File | undefined {
+  return getFirstFrameImage(options) ?? options.image;
+}
+
+function getLastFrameImage(
+  options: VideoModelV4CallOptions,
+): Experimental_VideoModelV4File | undefined {
+  return options.frameImages?.find(frame => frame.frameType === 'last_frame')
+    ?.image;
+}
+
+function getInputReferences(
+  options: VideoModelV4CallOptions,
+): Array<Experimental_VideoModelV4File> | undefined {
+  if (options.frameImages != null && options.frameImages.length > 0) {
+    return undefined;
+  }
+
+  return options.inputReferences != null && options.inputReferences.length > 0
+    ? options.inputReferences
+    : undefined;
+}
+
+function convertFileToGoogleImage(
+  file: Experimental_VideoModelV4File,
+  warnings: SharedV4Warning[],
+): Record<string, unknown> | undefined {
+  if (file.type === 'url') {
+    if (file.url.startsWith('gs://')) {
+      return {
+        gcsUri: file.url,
+        mimeType: 'image/png',
+      };
+    }
+
+    warnings.push({
+      type: 'unsupported',
+      feature: 'URL-based image input',
+      details:
+        'Google Generative AI video models require base64-encoded images or GCS URIs. URL will be ignored.',
+    });
+    return undefined;
+  }
+
+  const base64Data =
+    typeof file.data === 'string'
+      ? file.data
+      : convertUint8ArrayToBase64(file.data);
+
+  // Veo's predictLongRunning endpoint uses Vertex-style image payloads, not
+  // Gemini generateContent inlineData.
+  return {
+    bytesBase64Encoded: base64Data,
+    mimeType: file.mediaType || 'image/png',
+  };
+}
+
+function convertProviderReferenceImage(
+  refImg: NonNullable<GoogleVideoModelOptions['referenceImages']>[number],
+): Record<string, unknown> {
+  if (refImg.bytesBase64Encoded) {
+    return {
+      image: {
+        bytesBase64Encoded: refImg.bytesBase64Encoded,
+        mimeType: 'image/png',
+      },
+      referenceType: 'asset',
+    };
+  }
+
+  if (refImg.gcsUri) {
+    return {
+      image: {
+        gcsUri: refImg.gcsUri,
+        mimeType: 'image/png',
+      },
+      referenceType: 'asset',
+    };
+  }
+
+  return refImg;
+}
+
+function convertInputReferenceImage(
+  file: Experimental_VideoModelV4File,
+  warnings: SharedV4Warning[],
+): Record<string, unknown> | undefined {
+  const image = convertFileToGoogleImage(file, warnings);
+  return image != null ? { image, referenceType: 'asset' } : undefined;
 }
 
 export class GoogleVideoModel implements VideoModelV4 {
@@ -76,46 +179,32 @@ export class GoogleVideoModel implements VideoModelV4 {
       instance.prompt = options.prompt;
     }
 
-    // Handle image-to-video: convert image to base64
-    if (options.image != null) {
-      if (options.image.type === 'url') {
-        warnings.push({
-          type: 'unsupported',
-          feature: 'URL-based image input',
-          details:
-            'Google Generative AI video models require base64-encoded images. URL will be ignored.',
-        });
-      } else {
-        const base64Data =
-          typeof options.image.data === 'string'
-            ? options.image.data
-            : convertUint8ArrayToBase64(options.image.data);
-
-        instance.image = {
-          inlineData: {
-            mimeType: options.image.mediaType || 'image/png',
-            data: base64Data,
-          },
-        };
+    const startImage = resolveStartImage(options);
+    if (startImage != null) {
+      const image = convertFileToGoogleImage(startImage, warnings);
+      if (image != null) {
+        instance.image = image;
       }
     }
 
-    if (googleOptions?.referenceImages != null) {
-      instance.referenceImages = googleOptions.referenceImages.map(refImg => {
-        if (refImg.bytesBase64Encoded) {
-          return {
-            inlineData: {
-              mimeType: 'image/png',
-              data: refImg.bytesBase64Encoded,
-            },
-          };
-        } else if (refImg.gcsUri) {
-          return {
-            gcsUri: refImg.gcsUri,
-          };
-        }
-        return refImg;
+    const lastFrameImage = getLastFrameImage(options);
+    if (lastFrameImage != null) {
+      const lastFrame = convertFileToGoogleImage(lastFrameImage, warnings);
+      if (lastFrame != null) {
+        instance.lastFrame = lastFrame;
+      }
+    }
+
+    const inputReferences = getInputReferences(options);
+    if (inputReferences != null) {
+      instance.referenceImages = inputReferences.flatMap(reference => {
+        const converted = convertInputReferenceImage(reference, warnings);
+        return converted != null ? [converted] : [];
       });
+    } else if (googleOptions?.referenceImages != null) {
+      instance.referenceImages = googleOptions.referenceImages.map(refImg =>
+        convertProviderReferenceImage(refImg),
+      );
     }
 
     const parameters: Record<string, unknown> = {
@@ -212,10 +301,13 @@ export class GoogleVideoModel implements VideoModelV4 {
     for (const generatedSample of response.generateVideoResponse
       .generatedSamples) {
       if (generatedSample.video?.uri) {
-        // Append API key to URL for authentication during download
-        const urlWithAuth = apiKey
-          ? `${generatedSample.video.uri}${generatedSample.video.uri.includes('?') ? '&' : '?'}key=${apiKey}`
-          : generatedSample.video.uri;
+        // Append the API key to the download URL for authentication, but only
+        // when the response-supplied URI stays on the provider's own origin —
+        // otherwise the key would leak to whatever host the response names.
+        const urlWithAuth =
+          apiKey && isSameOrigin(generatedSample.video.uri, this.config.baseURL)
+            ? `${generatedSample.video.uri}${generatedSample.video.uri.includes('?') ? '&' : '?'}key=${apiKey}`
+            : generatedSample.video.uri;
 
         videos.push({
           type: 'url',
@@ -304,6 +396,7 @@ export class GoogleVideoModel implements VideoModelV4 {
 
     const { value: statusOperation, responseHeaders } = await getFromApi({
       url: `${this.config.baseURL}/${operationName}`,
+      validateUrl: false,
       headers: combineHeaders(
         await resolve(this.config.headers),
         options.headers,

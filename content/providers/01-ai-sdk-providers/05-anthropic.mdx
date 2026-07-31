@@ -11,21 +11,7 @@ The [Anthropic](https://www.anthropic.com/) provider contains language model sup
 
 The Anthropic provider is available in the `@ai-sdk/anthropic` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add @ai-sdk/anthropic" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install @ai-sdk/anthropic" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add @ai-sdk/anthropic" dark />
-  </Tab>
-
-  <Tab>
-    <Snippet text="bun add @ai-sdk/anthropic" dark />
-  </Tab>
-</Tabs>
+<InstallPackages packages="@ai-sdk/anthropic" />
 
 ## Provider Instance
 
@@ -189,7 +175,9 @@ const result = streamText({
 
 ### Effort
 
-Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT). `claude-opus-4-7` additionally supports `xhigh` for maximum reasoning effort.
+Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT). `claude-opus-4-7`, `claude-opus-4-8`, `claude-opus-5`, `claude-fable-5`, and `claude-sonnet-5` additionally support `xhigh` for maximum reasoning effort.
+
+On `claude-opus-5`, thinking can only be disabled at effort levels up to and including `high`. When you combine `thinking: { type: 'disabled' }` with `effort: 'xhigh'` or `effort: 'max'`, the AI SDK lowers the effort to `high` and emits a warning instead of sending a request that the API would reject.
 
 ```ts highlight="8-10"
 import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
@@ -291,6 +279,83 @@ const { text } = await generateText({
 
 The `inferenceGeo` option accepts `'us'` (US-only infrastructure) or `'global'` (default, any available geography).
 
+### Safety Classifiers and Fallbacks
+
+Claude Fable 5 has safeguards that limit its performance in certain areas like cybersecurity, biology, and chemistry, and automated safety checks are run on every request.
+
+When one of these checks blocks a request, the API does not answer it. Instead it returns a classifier block: a `200` response with a `refusal` stop reason and an optional `stop_details` object describing the category that triggered the block. The AI SDK surfaces this as a `content-filter` finish reason, with the details available on `providerMetadata.anthropic.stopDetails`.
+
+A classifier block looks like this:
+
+```json
+{
+  "type": "message",
+  "model": "claude-fable-5",
+  "content": [],
+  "stop_reason": "refusal",
+  "stop_details": {
+    "type": "refusal",
+    "category": "cyber",
+    "explanation": "This request triggered restrictions on violative cyber content and was blocked under Anthropic's Usage Policy."
+  }
+}
+```
+
+Branch on the finish reason rather than on the presence of `stop_details` — the API may return a refusal with no details at all.
+
+To avoid receiving a classifier block, pass the `fallbacks` option. When the primary model's classifiers block a turn, the API automatically retries it server-side on a fallback model and returns that model's answer. The required beta header is added for you.
+
+The recommended configuration is `fallbacks: 'default'`, which lets the API route the retry to Anthropic's recommended fallback model based on the refusal category and removes the need to migrate when a fallback model is deprecated:
+
+```ts highlight="8-10"
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: anthropic('claude-fable-5'),
+  prompt: 'Explain the history of cryptography.',
+  providerOptions: {
+    anthropic: {
+      fallbacks: 'default',
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+```
+
+You can also pin an explicit fallback chain:
+
+```ts highlight="8-10"
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: anthropic('claude-fable-5'),
+  prompt: 'Explain the history of cryptography.',
+  providerOptions: {
+    anthropic: {
+      fallbacks: [{ model: 'claude-fable-5' }],
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+```
+
+Each fallback entry requires a `model` and may additionally override `max_tokens`, `thinking`, `output_config`, and `speed` for that attempt only.
+
+When a fallback serves the turn, it is recorded in the per-model usage breakdown (`usage.iterations`) as a `fallback_message` entry. The AI SDK exposes this breakdown on `providerMetadata.anthropic.iterations`, so you can detect whether a fallback ran:
+
+```ts
+// set up `result` with a `streamText` call passing `fallbacks` as shown
+// above, then consume the stream
+
+const { iterations } =
+  (await result.finalStep).providerMetadata?.anthropic ?? {};
+const servedByFallback = iterations?.some(
+  iteration => iteration.type === 'fallback_message',
+);
+
+console.log('Served by fallback:', servedByFallback);
+```
+
 ### Reasoning
 
 Anthropic models support extended thinking, where Claude shows its reasoning process before providing a final answer.
@@ -382,6 +447,11 @@ console.log(reasoningText); // reasoning text
 console.log(reasoning); // reasoning details including redacted reasoning
 console.log(text); // text response
 ```
+
+Anthropic's `max_tokens` limit includes both thinking and final text. To reserve
+room for both, the provider adds `budgetTokens` to `maxOutputTokens` when
+setting `max_tokens`. For known models, the combined value is capped at the
+model's maximum output token limit.
 
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
 on how to integrate reasoning into your chatbot.
@@ -1143,6 +1213,61 @@ const result = await generateText({
 
 This sends `tool_reference` blocks to Anthropic, which loads the corresponding deferred tool schemas into Claude's context.
 
+### Mid-Conversation Tool Changes
+
+With `claude-opus-4-8`, you can add or remove tools between turns of a conversation without invalidating the prompt cache. Attach `toolChanges` to a system message that appears mid-conversation (right before an assistant message or at the end of the messages). The required `mid-conversation-tool-changes-2026-07-01` beta header is added automatically.
+
+Tools referenced by a `tool_addition` must be declared in the `tools` option — typically with `deferLoading: true`, so they are not loaded into context until the addition surfaces them. A `tool_removal` removes a previously available tool from the conversation going forward.
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: anthropic('claude-opus-4-8'),
+  // required for system messages inside `messages`:
+  allowSystemInMessages: true,
+  tools: {
+    get_weather: tool({
+      description: 'Get weather',
+      inputSchema: z.object({ city: z.string() }),
+    }),
+    get_forecast: tool({
+      description: 'Get 5-day forecast',
+      inputSchema: z.object({ city: z.string() }),
+      providerOptions: {
+        // declared up front but not loaded until a tool_addition surfaces it
+        anthropic: { deferLoading: true },
+      },
+    }),
+  },
+  messages: [
+    { role: 'user', content: 'What tools do you have for weather in Paris?' },
+    {
+      role: 'system',
+      content: '',
+      providerOptions: {
+        anthropic: {
+          toolChanges: [
+            { type: 'tool_addition', toolName: 'get_forecast' },
+            { type: 'tool_removal', toolName: 'get_weather' },
+          ],
+        },
+      },
+    },
+  ],
+});
+```
+
+To change a tool's definition, remove the old definition at the end of one request, then carry the conversation forward with the updated definition in `tools` on the next request.
+
+<Note>
+  Tool changes are not supported on the initial system message. The AI SDK
+  ignores them there and emits a warning — configure the initial tool set via
+  the `tools` option instead.
+</Note>
+
 ### MCP Connectors
 
 Anthropic supports connecting to [MCP servers](https://docs.claude.com/en/docs/agents-and-tools/mcp-connector) as part of their execution.
@@ -1445,7 +1570,7 @@ To use skills, you need to:
 1. Enable the code execution tool
 2. Specify the container with skills in `providerOptions`
 
-```ts highlight="4,9-17,19-23"
+```ts highlight="6-8,10-23"
 import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
@@ -1475,7 +1600,7 @@ const result = await generateText({
 
 You can also use custom skills by specifying `type: 'custom'`:
 
-```ts highlight="9-11"
+```ts highlight="11-15"
 const result = await generateText({
   model: anthropic('claude-sonnet-4-5'),
   tools: {
@@ -1565,18 +1690,21 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 ### Model Capabilities
 
-| Model               | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          | Tool Search         | Compaction          |
-| ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `claude-opus-4-8`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-opus-4-7`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-opus-4-6`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-sonnet-4-6` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-opus-4-5`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-haiku-4-5`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
-| `claude-sonnet-4-5` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-opus-4-1`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
-| `claude-opus-4-0`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
-| `claude-sonnet-4-0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| Model               | Image Input | Object Generation | Tool Usage | Computer Use | Web Search | Tool Search | Compaction |
+| ------------------- | ----------- | ----------------- | ---------- | ------------ | ---------- | ----------- | ---------- |
+| `claude-opus-5`     | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-sonnet-5`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-fable-5`    | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-opus-4-8`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-opus-4-7`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-opus-4-6`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-sonnet-4-6` | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   |            |
+| `claude-opus-4-5`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   |            |
+| `claude-haiku-4-5`  | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  |             |            |
+| `claude-sonnet-4-5` | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   |            |
+| `claude-opus-4-1`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  |             |            |
+| `claude-opus-4-0`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  |             |            |
+| `claude-sonnet-4-0` | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  |             |            |
 
 <Note>
   The table above lists popular models. Please see the [Anthropic

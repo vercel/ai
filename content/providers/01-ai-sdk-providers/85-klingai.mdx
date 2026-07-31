@@ -11,21 +11,7 @@ The [Kling AI](https://klingai.com/) provider contains support for Kling AI's vi
 
 The Kling AI provider is available in the `@ai-sdk/klingai` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add @ai-sdk/klingai" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install @ai-sdk/klingai" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add @ai-sdk/klingai" dark />
-  </Tab>
-
-  <Tab>
-    <Snippet text="bun add @ai-sdk/klingai" dark />
-  </Tab>
-</Tabs>
+<InstallPackages packages="@ai-sdk/klingai" />
 
 ## Provider Instance
 
@@ -41,20 +27,26 @@ If you need a customized setup, you can import `createKlingAI` from `@ai-sdk/kli
 import { createKlingAI } from '@ai-sdk/klingai';
 
 const klingai = createKlingAI({
-  accessKey: 'your-access-key',
-  secretKey: 'your-secret-key',
+  apiKey: 'your-api-key',
 });
 ```
 
 You can use the following optional settings to customize the Kling AI provider instance:
 
+- **apiKey** _string_
+
+  Kling AI API key. Defaults to the `KLINGAI_API_KEY` environment variable.
+  Create one in the [Kling AI developer console](https://kling.ai/dev/api-key).
+
 - **accessKey** _string_
 
   Kling AI access key. Defaults to the `KLINGAI_ACCESS_KEY` environment variable.
+  Legacy authentication — prefer `apiKey`.
 
 - **secretKey** _string_
 
   Kling AI secret key. Defaults to the `KLINGAI_SECRET_KEY` environment variable.
+  Legacy authentication — prefer `apiKey`.
 
 - **baseURL** _string_
 
@@ -71,12 +63,31 @@ You can use the following optional settings to customize the Kling AI provider i
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
+## Authentication
+
+Kling AI supports two authentication schemes:
+
+- **API key** (recommended). A single key that is sent as a bearer token. Create
+  one in the [Kling AI developer console](https://kling.ai/dev/api-key) and set
+  it as `KLINGAI_API_KEY`, or pass it via the `apiKey` setting.
+- **Access key / secret key** (legacy). A key pair that the provider uses to
+  sign a short-lived JWT for each request. Set `KLINGAI_ACCESS_KEY` and
+  `KLINGAI_SECRET_KEY`, or pass the `accessKey` and `secretKey` settings.
+
+Credentials are resolved in this order, with explicit settings taking
+precedence over environment variables:
+
+1. The `apiKey` setting
+2. The `accessKey` and `secretKey` settings
+3. The `KLINGAI_API_KEY` environment variable
+4. The `KLINGAI_ACCESS_KEY` and `KLINGAI_SECRET_KEY` environment variables
+
 ## Video Models
 
 You can create Kling AI video models using the `.video()` factory method.
 For more on video generation with the AI SDK see [generateVideo()](/docs/reference/ai-sdk-core/generate-video).
 
-This provider currently supports three video generation modes: text-to-video, image-to-video, and motion control.
+This provider currently supports four video generation modes: text-to-video, image-to-video, reference-to-video (multi-image), and motion control.
 
 <Note>
   Not all options are supported by every model version and mode combination. See
@@ -174,6 +185,31 @@ const { videos } = await generateVideo({
 ```
 
 Multi-shot also works with image-to-video by combining a start frame image with per-shot prompts.
+
+### Reference-to-Video (Multi-Image)
+
+Generate a video that combines reference images using the top-level `inputReferences` option.
+
+```ts
+import { klingai, type KlingAIVideoModelOptions } from '@ai-sdk/klingai';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { videos } = await generateVideo({
+  model: klingai.video('kling-v1.6-i2v'),
+  prompt: 'The two characters meet and walk together through a sunny park',
+  inputReferences: [
+    'https://example.com/character-1.png',
+    'https://example.com/character-2.png',
+  ],
+  aspectRatio: '16:9',
+  duration: 5,
+  providerOptions: {
+    klingai: {
+      mode: 'std',
+    } satisfies KlingAIVideoModelOptions,
+  },
+});
+```
 
 ### Motion Control
 

@@ -4,16 +4,21 @@ import type {
   ImageModelV4,
   LanguageModelV4,
   ProviderV4,
+  Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
+  Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   SpeechModelV4,
   SkillsV4,
   TranscriptionModelV4,
+  Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
   loadOptionalSetting,
+  validateBaseURL,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { OpenAIChatLanguageModel } from './chat/openai-chat-language-model';
 import type { OpenAIChatModelId } from './chat/openai-chat-language-model-options';
@@ -25,12 +30,15 @@ import type { OpenAIEmbeddingModelId } from './embedding/openai-embedding-model-
 import { OpenAIImageModel } from './image/openai-image-model';
 import type { OpenAIImageModelId } from './image/openai-image-model-options';
 import { openaiTools } from './openai-tools';
+import { OpenAIRealtimeModel } from './realtime/openai-realtime-model';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
 import type { OpenAIResponsesModelId } from './responses/openai-responses-language-model-options';
 import { OpenAISpeechModel } from './speech/openai-speech-model';
 import type { OpenAISpeechModelId } from './speech/openai-speech-model-options';
 import { OpenAITranscriptionModel } from './transcription/openai-transcription-model';
 import type { OpenAITranscriptionModelId } from './transcription/openai-transcription-model-options';
+import { OpenAITranslationModel } from './translation/openai-translation-model';
+import type { OpenAITranslationModelId } from './translation/openai-translation-model-options';
 import { OpenAISkills } from './skills/openai-skills';
 import { VERSION } from './version';
 
@@ -93,9 +101,27 @@ export interface OpenAIProvider extends ProviderV4 {
   transcription(modelId: OpenAITranscriptionModelId): TranscriptionModelV4;
 
   /**
+   * Creates an experimental model for streaming speech translation.
+   */
+  translation(modelId: OpenAITranslationModelId): SpeechTranslationModelV4;
+
+  /**
+   * Creates an experimental model for streaming speech translation.
+   */
+  speechTranslationModel(
+    modelId: OpenAITranslationModelId,
+  ): SpeechTranslationModelV4;
+
+  /**
    * Creates a model for speech generation.
    */
   speech(modelId: OpenAISpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates an experimental realtime model for bidirectional audio/text
+   * communication over WebSocket.
+   */
+  experimental_realtime: RealtimeFactoryV4;
 
   /**
    * Returns a FilesV4 interface for uploading files to OpenAI.
@@ -149,6 +175,12 @@ export interface OpenAIProviderSettings {
    * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /**
+   * Custom WebSocket implementation. This is useful for testing or for
+   * runtimes that need a WebSocket constructor with header support.
+   */
+  webSocket?: WebSocketConstructor;
 }
 
 /**
@@ -159,10 +191,12 @@ export function createOpenAI(
 ): OpenAIProvider {
   const baseURL =
     withoutTrailingSlash(
-      loadOptionalSetting({
-        settingValue: options.baseURL,
-        environmentVariableName: 'OPENAI_BASE_URL',
-      }),
+      validateBaseURL(
+        loadOptionalSetting({
+          settingValue: options.baseURL,
+          environmentVariableName: 'OPENAI_BASE_URL',
+        }),
+      ),
     ) ?? 'https://api.openai.com/v1';
 
   const providerName = options.name ?? 'openai';
@@ -220,6 +254,16 @@ export function createOpenAI(
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      webSocket: options.webSocket,
+    });
+
+  const createTranslationModel = (modelId: OpenAITranslationModelId) =>
+    new OpenAITranslationModel(modelId, {
+      provider: `${providerName}.translation`,
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+      webSocket: options.webSocket,
     });
 
   const createSpeechModel = (modelId: OpenAISpeechModelId) =>
@@ -267,6 +311,33 @@ export function createOpenAI(
     });
   };
 
+  const createRealtimeModel = (modelId: string) =>
+    new OpenAIRealtimeModel(modelId, {
+      provider: `${providerName}.realtime`,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const experimentalRealtimeFactory = Object.assign(
+    (modelId: string) => createRealtimeModel(modelId),
+    {
+      getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
+        const model = createRealtimeModel(tokenOptions.model);
+        const secret = await model.doCreateClientSecret({
+          sessionConfig: tokenOptions.sessionConfig,
+          expiresAfterSeconds: tokenOptions.expiresAfterSeconds,
+        });
+
+        return {
+          token: secret.token,
+          url: secret.url,
+          expiresAt: secret.expiresAt,
+        };
+      },
+    },
+  ) as RealtimeFactoryV4;
+
   const provider = function (modelId: OpenAIResponsesModelId) {
     return createLanguageModel(modelId);
   };
@@ -287,10 +358,15 @@ export function createOpenAI(
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 
+  provider.translation = createTranslationModel;
+  provider.speechTranslationModel = createTranslationModel;
+
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
   provider.files = createFiles;
   provider.skills = createSkills;
+
+  provider.experimental_realtime = experimentalRealtimeFactory;
 
   provider.tools = openaiTools;
 

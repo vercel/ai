@@ -1,15 +1,21 @@
 import type { JSONValue } from '@ai-sdk/provider';
 import {
+  experimental_toolCaller,
   tool,
   type Context,
   type ModelMessage,
   type Tool,
 } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { Output, streamText } from '../generate-text';
 import type { Instructions } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import type { UIMessage } from '../ui';
+import type {
+  UIMessageStreamOnEndCallback,
+  UIMessageStreamOnFinishCallback,
+} from '../ui-message-stream';
 import type { AsyncIterableStream } from '../util';
 import type { DeepPartial } from '../util/deep-partial';
 import type { GenerateTextEndEvent } from './generate-text-events';
@@ -17,6 +23,56 @@ import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 describe('streamText types', () => {
+  describe('experimental_toolCallers', () => {
+    it('should expose only caller-capable tools as references', () => {
+      const codeMode = experimental_toolCaller(
+        tool({
+          inputSchema: z.object({}),
+          execute: async () => undefined,
+        }),
+        {
+          type: 'local',
+          bind: () =>
+            tool({
+              inputSchema: z.object({}),
+              execute: async () => undefined,
+            }),
+        },
+      );
+
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        tools: {
+          code_mode: codeMode,
+          getInventory: tool({
+            inputSchema: z.object({ sku: z.string() }),
+            execute: async ({ sku }) => ({ sku }),
+          }),
+        },
+        experimental_toolCallers: callers => {
+          expectTypeOf(callers.code_mode.toolName).toEqualTypeOf<'code_mode'>();
+          // @ts-expect-error regular tools are not caller references
+          callers.getInventory;
+
+          return {
+            getInventory: ['direct', callers.code_mode],
+          };
+        },
+      });
+    });
+  });
+
+  describe('timeout', () => {
+    it('should accept a first chunk timeout', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        timeout: { firstChunkMs: 1000 },
+      });
+    });
+  });
+
   describe('onEnd', () => {
     it('should expose end event properties', () => {
       streamText({
@@ -67,6 +123,31 @@ describe('streamText types', () => {
           >();
           expectTypeOf(event.providerMetadata).toEqualTypeOf<
             StepResult<any>['providerMetadata']
+          >();
+        },
+      });
+    });
+  });
+
+  describe('toUIMessageStream options', () => {
+    it('should support onEnd and deprecated onFinish', () => {
+      const result = streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+      });
+
+      result.toUIMessageStream({
+        onEnd: event => {
+          expectTypeOf(event).toMatchTypeOf<
+            Parameters<UIMessageStreamOnEndCallback<UIMessage>>[0]
+          >();
+        },
+      });
+
+      result.toUIMessageStream({
+        onFinish: event => {
+          expectTypeOf(event).toMatchTypeOf<
+            Parameters<UIMessageStreamOnFinishCallback<UIMessage>>[0]
           >();
         },
       });
@@ -465,19 +546,19 @@ describe('streamText types', () => {
         telemetry: {
           includeRuntimeContext: { userId: true },
         },
-        experimental_onStart: ({ runtimeContext }) => {
+        onStart: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
             requestId: string;
           }>();
         },
-        experimental_onStepStart: ({ runtimeContext }) => {
+        onStepStart: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
             requestId: string;
           }>();
         },
-        onStepFinish: ({ runtimeContext }) => {
+        onStepEnd: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
             requestId: string;
@@ -612,6 +693,24 @@ describe('streamText types', () => {
                 kill: async () => {},
               }),
             },
+          }),
+        });
+      });
+
+      it('should accept model call setting overrides', async () => {
+        streamText({
+          model: new MockLanguageModelV4(),
+          prompt: 'Hello',
+          prepareStep: () => ({
+            maxOutputTokens: 100,
+            temperature: 0,
+            topP: 0.9,
+            topK: 40,
+            presencePenalty: 0,
+            frequencyPenalty: 0,
+            stopSequences: ['stop'],
+            seed: 0,
+            reasoning: 'high',
           }),
         });
       });

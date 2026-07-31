@@ -1,5 +1,563 @@
 # @ai-sdk/svelte
 
+## 5.0.44
+
+### Patch Changes
+
+- Updated dependencies [015acb4]
+  - ai@7.0.44
+
+## 5.0.43
+
+### Patch Changes
+
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+  - ai@7.0.43
+
+## 5.0.42
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [60f97f6]
+- Updated dependencies [6a5bdff]
+- Updated dependencies [6de2ec1]
+  - @ai-sdk/provider-utils@5.0.15
+  - ai@7.0.42
+
+## 5.0.41
+
+### Patch Changes
+
+- Updated dependencies [2e2224b]
+  - ai@7.0.41
+
+## 5.0.40
+
+### Patch Changes
+
+- Updated dependencies [c3782a6]
+  - ai@7.0.40
+
+## 5.0.39
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [09a52cb]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+  - ai@7.0.39
+
+## 5.0.38
+
+### Patch Changes
+
+- Updated dependencies [7bd6bdd]
+- Updated dependencies [1e2f324]
+  - ai@7.0.38
+  - @ai-sdk/provider-utils@5.0.13
+
+## 5.0.37
+
+### Patch Changes
+
+- ai@7.0.37
+
+## 5.0.36
+
+### Patch Changes
+
+- Updated dependencies [7fa85b2]
+  - ai@7.0.36
+
+## 5.0.35
+
+### Patch Changes
+
+- Updated dependencies [7f6650b]
+- Updated dependencies [106ea59]
+  - ai@7.0.35
+
+## 5.0.34
+
+### Patch Changes
+
+- ai@7.0.34
+
+## 5.0.33
+
+### Patch Changes
+
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+- Updated dependencies [e808fa5]
+- Updated dependencies [33647d7]
+  - @ai-sdk/provider-utils@5.0.12
+  - ai@7.0.33
+
+## 5.0.32
+
+### Patch Changes
+
+- Updated dependencies [6cd7c74]
+- Updated dependencies [e35bcae]
+- Updated dependencies [a4eb3f3]
+  - ai@7.0.32
+
+## 5.0.31
+
+### Patch Changes
+
+- Updated dependencies [70f18c3]
+- Updated dependencies [cd06458]
+  - ai@7.0.31
+  - @ai-sdk/provider-utils@5.0.11
+
+## 5.0.30
+
+### Patch Changes
+
+- ai@7.0.30
+
+## 5.0.29
+
+### Patch Changes
+
+- ai@7.0.29
+
+## 5.0.28
+
+### Patch Changes
+
+- Updated dependencies [0bc8d4f]
+  - ai@7.0.28
+
+## 5.0.27
+
+### Patch Changes
+
+- Updated dependencies [ac01b79]
+- Updated dependencies [31c7be8]
+- Updated dependencies [2696562]
+  - ai@7.0.27
+  - @ai-sdk/provider-utils@5.0.10
+
+## 5.0.26
+
+### Patch Changes
+
+- Updated dependencies [27d294d]
+  - ai@7.0.26
+
+## 5.0.25
+
+### Patch Changes
+
+- Updated dependencies [4be62c1]
+- Updated dependencies [7805e4a]
+- Updated dependencies [7805e4a]
+- Updated dependencies [f8e82fd]
+- Updated dependencies [cd12954]
+  - @ai-sdk/provider-utils@5.0.9
+  - ai@7.0.25
+
+## 5.0.24
+
+### Patch Changes
+
+- Updated dependencies [e193290]
+- Updated dependencies [e193290]
+  - @ai-sdk/provider-utils@5.0.8
+  - ai@7.0.24
+
+## 5.0.23
+
+### Patch Changes
+
+- Updated dependencies [930f949]
+  - ai@7.0.23
+
+## 5.0.22
+
+### Patch Changes
+
+- Updated dependencies [8f89c25]
+  - ai@7.0.22
+
+## 5.0.21
+
+### Patch Changes
+
+- Updated dependencies [308a519]
+  - ai@7.0.21
+
+## 5.0.20
+
+### Patch Changes
+
+- Updated dependencies [b9ac19f]
+- Updated dependencies [a4186d6]
+  - ai@7.0.20
+
+## 5.0.19
+
+### Patch Changes
+
+- Updated dependencies [be7f05a]
+- Updated dependencies [ee55a07]
+- Updated dependencies [aad737d]
+- Updated dependencies [0f93c57]
+  - ai@7.0.19
+  - @ai-sdk/provider-utils@5.0.7
+
+## 5.0.18
+
+### Patch Changes
+
+- 0363440: Promote `useObject` (React, Vue) and `StructuredObject` (Svelte) to stable exports, with deprecated experimental aliases for backwards compatibility.
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+  - ai@7.0.18
+
+## 5.0.17
+
+### Patch Changes
+
+- ai@7.0.17
+
+## 5.0.16
+
+### Patch Changes
+
+- Updated dependencies [a8f9b6d]
+  - ai@7.0.16
+
+## 5.0.15
+
+### Patch Changes
+
+- ai@7.0.15
+
+## 5.0.14
+
+### Patch Changes
+
+- Updated dependencies [5c5c0f5]
+  - ai@7.0.14
+  - @ai-sdk/provider-utils@5.0.5
+
+## 5.0.13
+
+### Patch Changes
+
+- ai@7.0.13
+
+## 5.0.12
+
+### Patch Changes
+
+- Updated dependencies [ecfeb6f]
+- Updated dependencies [a193137]
+- Updated dependencies [c6f5e62]
+  - ai@7.0.12
+  - @ai-sdk/provider-utils@5.0.4
+
+## 5.0.11
+
+### Patch Changes
+
+- Updated dependencies [0a87626]
+  - ai@7.0.11
+
+## 5.0.10
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - ai@7.0.10
+  - @ai-sdk/provider-utils@5.0.3
+
+## 5.0.9
+
+### Patch Changes
+
+- ai@7.0.9
+
+## 5.0.8
+
+### Patch Changes
+
+- Updated dependencies [0274f34]
+  - ai@7.0.8
+  - @ai-sdk/provider-utils@5.0.2
+
+## 5.0.7
+
+### Patch Changes
+
+- Updated dependencies [d598481]
+  - ai@7.0.7
+
+## 5.0.6
+
+### Patch Changes
+
+- Updated dependencies [989402d]
+  - ai@7.0.6
+
+## 5.0.5
+
+### Patch Changes
+
+- Updated dependencies [a2750db]
+  - ai@7.0.5
+
+## 5.0.4
+
+### Patch Changes
+
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+  - ai@7.0.4
+
+## 5.0.3
+
+### Patch Changes
+
+- ai@7.0.3
+
+## 5.0.2
+
+### Patch Changes
+
+- ai@7.0.2
+
+## 5.0.1
+
+### Patch Changes
+
+- ai@7.0.1
+
+## 5.0.0
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- 0c4c275: trigger initial canary release
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- b8396f0: trigger initial beta release
+
+## 5.0.0-beta.187
+
+### Patch Changes
+
+- ai@7.0.0-beta.187
+
+## 5.0.0-beta.186
+
+### Patch Changes
+
+- ai@7.0.0-beta.186
+
+## 5.0.0-beta.185
+
+### Patch Changes
+
+- Updated dependencies [75763b0]
+  - ai@7.0.0-beta.185
+
+## 5.0.0-beta.184
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - ai@7.0.0-beta.184
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
+## 5.0.0-beta.183
+
+### Patch Changes
+
+- ai@7.0.0-beta.183
+
+## 5.0.0-beta.182
+
+### Patch Changes
+
+- Updated dependencies [cc6ab90]
+  - ai@7.0.0-beta.182
+
+## 5.0.0-beta.181
+
+### Patch Changes
+
+- Updated dependencies [6a2caf9]
+  - ai@7.0.0-beta.181
+
+## 5.0.0-beta.180
+
+### Patch Changes
+
+- Updated dependencies [81a284b]
+  - ai@7.0.0-beta.180
+
+## 5.0.0-beta.179
+
+### Patch Changes
+
+- ai@7.0.0-beta.179
+
+## 5.0.0-beta.178
+
+### Patch Changes
+
+- Updated dependencies [b097c52]
+  - ai@7.0.0-beta.178
+
+## 5.0.0-beta.177
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - ai@7.0.0-beta.177
+
+## 5.0.0-canary.176
+
+### Patch Changes
+
+- ai@7.0.0-canary.176
+
+## 5.0.0-canary.175
+
+### Patch Changes
+
+- Updated dependencies [6ec57f5]
+  - ai@7.0.0-canary.175
+
+## 5.0.0-canary.174
+
+### Patch Changes
+
+- ai@7.0.0-canary.174
+
+## 5.0.0-canary.173
+
+### Patch Changes
+
+- ai@7.0.0-canary.173
+
+## 5.0.0-canary.172
+
+### Patch Changes
+
+- Updated dependencies [aeda373]
+- Updated dependencies [25a64f8]
+- Updated dependencies [375fdd7]
+- Updated dependencies [f18b08f]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+  - ai@7.0.0-canary.172
+
+## 5.0.0-canary.171
+
+### Patch Changes
+
+- Updated dependencies [89ad56f]
+- Updated dependencies [f9a496f]
+- Updated dependencies [3295831]
+  - ai@7.0.0-canary.171
+
+## 5.0.0-canary.170
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+- Updated dependencies [69d7128]
+  - ai@7.0.0-canary.170
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+
+## 5.0.0-canary.169
+
+### Patch Changes
+
+- Updated dependencies [a5018ab]
+- Updated dependencies [21d3d60]
+- Updated dependencies [426dbbb]
+- Updated dependencies [7fd3360]
+  - ai@7.0.0-canary.169
+
+## 5.0.0-canary.168
+
+### Patch Changes
+
+- Updated dependencies [1e4b350]
+  - ai@7.0.0-canary.168
+
+## 5.0.0-canary.167
+
+### Patch Changes
+
+- Updated dependencies [4757690]
+- Updated dependencies [eeefc3f]
+- Updated dependencies [b79b6a8]
+  - ai@7.0.0-canary.167
+
+## 5.0.0-canary.166
+
+### Patch Changes
+
+- Updated dependencies [19736ee]
+- Updated dependencies [d66ae02]
+- Updated dependencies [e4182bd]
+  - ai@7.0.0-canary.166
+
+## 5.0.0-canary.165
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - ai@7.0.0-canary.165
+  - @ai-sdk/provider-utils@5.0.0-canary.46
+
+## 5.0.0-canary.164
+
+### Patch Changes
+
+- ai@7.0.0-canary.164
+
+## 5.0.0-canary.163
+
+### Patch Changes
+
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+- Updated dependencies [c907622]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+  - ai@7.0.0-canary.163
+
+## 5.0.0-canary.162
+
+### Patch Changes
+
+- ai@7.0.0-canary.162
+
+## 5.0.0-canary.161
+
+### Patch Changes
+
+- ai@7.0.0-canary.161
+
 ## 5.0.0-canary.160
 
 ### Patch Changes

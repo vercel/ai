@@ -116,7 +116,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         'Default structured output specification. Per-stream values override this default.',
     },
     {
-      name: 'experimental_repairToolCall',
+      name: 'repairToolCall',
       type: 'ToolCallRepairFunction',
       isOptional: true,
       description:
@@ -130,11 +130,18 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         'Default custom download function for URLs. Per-stream values override this default.',
     },
     {
+      name: 'experimental_sandbox',
+      type: 'Experimental_SandboxSession',
+      isOptional: true,
+      description:
+        'Default sandbox session passed to tool descriptions and execution as `experimental_sandbox`, and exposed to `prepareStep`. Per-stream values override this default.',
+    },
+    {
       name: 'prepareStep',
       type: 'PrepareStepCallback',
       isOptional: true,
       description:
-        'Callback called before each step in the agent loop. Use it to modify settings, manage context, or inject messages dynamically. Receives step number, previous steps, messages, and context.',
+        'Callback called before each step in the agent loop. Use it to modify settings, manage context, inject messages dynamically, or override `experimental_sandbox` for the current step. Receives step number, previous steps, messages, context, and sandbox.',
     },
     {
       name: 'prepareCall',
@@ -325,11 +332,18 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       ],
     },
     {
+      name: 'onStepEnd',
+      type: 'WorkflowAgentOnStepEndCallback',
+      isOptional: true,
+      description:
+        'Callback invoked after each agent step completes. If also specified in `stream()`, both callbacks fire (constructor first).',
+    },
+    {
       name: 'onStepFinish',
       type: 'WorkflowAgentOnStepFinishCallback',
       isOptional: true,
       description:
-        'Callback invoked after each agent step completes. If also specified in `stream()`, both callbacks fire (constructor first).',
+        'Deprecated. Use `onStepEnd` instead. This alias is only used as a fallback when `onStepEnd` is not provided.',
     },
     {
       name: 'onEnd',
@@ -458,10 +472,16 @@ const result = await agent.stream({
         'A writable stream that receives raw model stream parts in real-time. Convert to UI message chunks at the response boundary using `createModelCallToUIChunkTransform()`.',
     },
     {
+      name: 'instructions',
+      type: 'Instructions',
+      isOptional: true,
+      description: 'Override the agent instructions for this call.',
+    },
+    {
       name: 'system',
       type: 'string',
       isOptional: true,
-      description: 'Override the system prompt for this call.',
+      description: 'Deprecated. Use `instructions` instead.',
     },
     {
       name: 'stopWhen',
@@ -514,7 +534,7 @@ const result = await agent.stream({
       description: 'Include raw, unprocessed chunks from the provider in the stream. Default: false.',
     },
     {
-      name: 'experimental_repairToolCall',
+      name: 'repairToolCall',
       type: 'ToolCallRepairFunction',
       isOptional: true,
       description: 'Callback to attempt automatic recovery when a tool call cannot be parsed.',
@@ -530,6 +550,13 @@ const result = await agent.stream({
       type: 'DownloadFunction',
       isOptional: true,
       description: 'Custom download function for fetching files/URLs.',
+    },
+    {
+      name: 'experimental_sandbox',
+      type: 'Experimental_SandboxSession',
+      isOptional: true,
+      description:
+        'Sandbox session passed to tool descriptions and execution as `experimental_sandbox`, and exposed to `prepareStep`. Overrides the constructor default.',
     },
     {
       name: 'telemetry',
@@ -555,7 +582,8 @@ const result = await agent.stream({
       name: 'prepareStep',
       type: 'PrepareStepCallback',
       isOptional: true,
-      description: 'Per-call prepareStep override.',
+      description:
+        'Per-call prepareStep override. Receives the initial instructions and messages alongside the current step state.',
     },
     {
       name: 'experimental_onStart',
@@ -586,11 +614,18 @@ const result = await agent.stream({
         'Per-call onToolExecutionEnd callback. If also specified in the constructor, both fire (constructor first).',
     },
     {
+      name: 'onStepEnd',
+      type: 'WorkflowAgentOnStepEndCallback',
+      isOptional: true,
+      description:
+        'Per-call onStepEnd callback. If also specified in the constructor, both fire (constructor first).',
+    },
+    {
       name: 'onStepFinish',
       type: 'WorkflowAgentOnStepFinishCallback',
       isOptional: true,
       description:
-        'Per-call onStepFinish callback. If also specified in the constructor, both fire (constructor first).',
+        'Deprecated. Use `onStepEnd` instead. This alias is only used as a fallback when `onStepEnd` is not provided.',
     },
     {
       name: 'onEnd',
@@ -890,7 +925,7 @@ const agent = new WorkflowAgent({
   tools: { weather: weatherTool },
 
   // Agent-wide callbacks
-  onStepFinish({ usage }) {
+  onStepEnd({ usage }) {
     console.log('Tokens used:', usage.totalTokens);
   },
 });
@@ -899,7 +934,7 @@ const result = await agent.stream({
   messages,
 
   // Per-call callbacks (both fire)
-  onStepFinish({ usage }) {
+  onStepEnd({ usage }) {
     await trackUsage(usage);
   },
 

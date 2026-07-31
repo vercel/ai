@@ -63,7 +63,7 @@ export class FalVideoModel implements VideoModelV4 {
 
     const { body } = await this.buildRequestBody(options);
 
-    const responseUrl = await this.submitToQueue(
+    const { responseUrl, submitUrl } = await this.submitToQueue(
       {
         headers: options.headers,
         abortSignal: options.abortSignal,
@@ -73,7 +73,7 @@ export class FalVideoModel implements VideoModelV4 {
     );
 
     return {
-      operation: { responseUrl },
+      operation: { responseUrl, submitUrl },
       warnings,
       response: {
         timestamp: currentDate,
@@ -87,11 +87,15 @@ export class FalVideoModel implements VideoModelV4 {
     options: Parameters<NonNullable<VideoModelV4['doStatus']>>[0],
   ): Promise<VideoModelV4OperationStatusResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { responseUrl } = options.operation as { responseUrl: string };
+    const { responseUrl, submitUrl } = options.operation as {
+      responseUrl: string;
+      submitUrl: string;
+    };
 
     try {
       const { value: response, responseHeaders } = await this.fetchStatus({
         responseUrl,
+        submitUrl,
         headers: options.headers,
         abortSignal: options.abortSignal,
       });
@@ -214,17 +218,18 @@ export class FalVideoModel implements VideoModelV4 {
       webhookUrl?: string;
     },
     body: Record<string, unknown>,
-  ): Promise<string> {
+  ): Promise<{ responseUrl: string; submitUrl: string }> {
     let queuePath = `https://queue.fal.run/fal-ai/${this.normalizedModelId}`;
     if (options.webhookUrl) {
       queuePath += `?fal_webhook=${encodeURIComponent(options.webhookUrl)}`;
     }
 
+    const submitUrl = this.config.url({
+      path: queuePath,
+      modelId: this.modelId,
+    });
     const { value: queueResponse } = await postJsonToApi({
-      url: this.config.url({
-        path: queuePath,
-        modelId: this.modelId,
-      }),
+      url: submitUrl,
       headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: falFailedResponseHandler,
@@ -242,26 +247,34 @@ export class FalVideoModel implements VideoModelV4 {
       });
     }
 
-    return responseUrl;
+    return { responseUrl, submitUrl };
   }
 
   private async fetchStatus({
     responseUrl,
+    submitUrl,
     headers,
     abortSignal,
   }: {
     responseUrl: string;
+    submitUrl: string;
     headers?: Record<string, string | undefined>;
     abortSignal?: AbortSignal;
   }): Promise<{
     value: FalVideoResponse;
     responseHeaders?: Record<string, string>;
   }> {
+    const statusUrl = this.config.url({
+      path: responseUrl,
+      modelId: this.modelId,
+    });
+
     return getFromApi({
-      url: this.config.url({
-        path: responseUrl,
-        modelId: this.modelId,
-      }),
+      url: statusUrl,
+      // statusUrl comes from the queue response body.
+      validateUrl: true,
+      credentialedOrigin: submitUrl,
+      trustedOrigin: submitUrl,
       headers: combineHeaders(this.config.headers?.(), headers),
       failedResponseHandler: async ({ response, url, requestBodyValues }) => {
         const body = await response.clone().json();

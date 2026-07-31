@@ -1,5 +1,698 @@
 # @ai-sdk/react
 
+## 4.0.47
+
+### Patch Changes
+
+- Updated dependencies [015acb4]
+  - ai@7.0.44
+
+## 4.0.46
+
+### Patch Changes
+
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+- Updated dependencies [97f0565]
+  - @ai-sdk/provider-utils@5.0.16
+  - ai@7.0.43
+  - @ai-sdk/mcp@2.0.20
+
+## 4.0.45
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [60f97f6]
+- Updated dependencies [6a5bdff]
+- Updated dependencies [6de2ec1]
+  - @ai-sdk/provider-utils@5.0.15
+  - ai@7.0.42
+  - @ai-sdk/mcp@2.0.19
+
+## 4.0.44
+
+### Patch Changes
+
+- Updated dependencies [2e2224b]
+  - ai@7.0.41
+
+## 4.0.43
+
+### Patch Changes
+
+- Updated dependencies [c3782a6]
+  - ai@7.0.40
+
+## 4.0.42
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [09a52cb]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+  - ai@7.0.39
+  - @ai-sdk/mcp@2.0.18
+
+## 4.0.41
+
+### Patch Changes
+
+- Updated dependencies [7bd6bdd]
+- Updated dependencies [1e2f324]
+  - ai@7.0.38
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/mcp@2.0.17
+  - @ai-sdk/provider-utils@5.0.13
+
+## 4.0.40
+
+### Patch Changes
+
+- ai@7.0.37
+
+## 4.0.39
+
+### Patch Changes
+
+- Updated dependencies [7fa85b2]
+  - ai@7.0.36
+
+## 4.0.38
+
+### Patch Changes
+
+- Updated dependencies [7f6650b]
+- Updated dependencies [106ea59]
+  - ai@7.0.35
+
+## 4.0.37
+
+### Patch Changes
+
+- ai@7.0.34
+
+## 4.0.36
+
+### Patch Changes
+
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+- Updated dependencies [e808fa5]
+- Updated dependencies [33647d7]
+  - @ai-sdk/provider-utils@5.0.12
+  - ai@7.0.33
+  - @ai-sdk/mcp@2.0.16
+
+## 4.0.35
+
+### Patch Changes
+
+- Updated dependencies [6cd7c74]
+- Updated dependencies [e35bcae]
+- Updated dependencies [a4eb3f3]
+  - ai@7.0.32
+
+## 4.0.34
+
+### Patch Changes
+
+- Updated dependencies [70f18c3]
+- Updated dependencies [cd06458]
+- Updated dependencies [d84ea43]
+  - ai@7.0.31
+  - @ai-sdk/provider-utils@5.0.11
+  - @ai-sdk/mcp@2.0.15
+
+## 4.0.33
+
+### Patch Changes
+
+- ai@7.0.30
+
+## 4.0.32
+
+### Patch Changes
+
+- ai@7.0.29
+
+## 4.0.31
+
+### Patch Changes
+
+- 48e7e78: Harden MCP Apps handling of server-supplied resource metadata and the host/iframe bridge:
+
+  - Runtime-validate `_meta.ui` and drop malformed or non-string fields.
+  - Gate iframe permissions deny-by-default via a new `sandbox.allowedPermissions` allowlist.
+  - Derive a concrete `postMessage` target origin and validate inbound message origins.
+  - Validate inbound bridge params: limit `resources/read` to `ui://` resources and allow only `https`/`http`/`mailto` in `ui/open-link`.
+  - Add `fingerprintMCPAppResource` / `detectMCPAppResourceDrift` for pinning and comparing app resources.
+
+- Updated dependencies [48e7e78]
+  - @ai-sdk/mcp@2.0.14
+
+## 4.0.30
+
+### Patch Changes
+
+- Updated dependencies [0bc8d4f]
+  - ai@7.0.28
+
+## 4.0.29
+
+### Patch Changes
+
+- 519c72b: fix (react/mcp-apps): sanitize server-supplied CSP domains in `getMCPAppCSP` so values cannot inject extra directives, sources, or policies into the generated Content-Security-Policy
+
+## 4.0.28
+
+### Patch Changes
+
+- Updated dependencies [ac01b79]
+- Updated dependencies [31c7be8]
+- Updated dependencies [2696562]
+  - ai@7.0.27
+  - @ai-sdk/provider-utils@5.0.10
+  - @ai-sdk/mcp@2.0.13
+
+## 4.0.27
+
+### Patch Changes
+
+- Updated dependencies [27d294d]
+  - ai@7.0.26
+
+## 4.0.26
+
+### Patch Changes
+
+- Updated dependencies [4be62c1]
+- Updated dependencies [7805e4a]
+- Updated dependencies [7805e4a]
+- Updated dependencies [f8e82fd]
+- Updated dependencies [cd12954]
+  - @ai-sdk/provider-utils@5.0.9
+  - ai@7.0.25
+  - @ai-sdk/mcp@2.0.12
+
+## 4.0.25
+
+### Patch Changes
+
+- Updated dependencies [e193290]
+- Updated dependencies [e193290]
+  - @ai-sdk/provider-utils@5.0.8
+  - ai@7.0.24
+  - @ai-sdk/mcp@2.0.11
+
+## 4.0.24
+
+### Patch Changes
+
+- Updated dependencies [930f949]
+  - ai@7.0.23
+
+## 4.0.23
+
+### Patch Changes
+
+- Updated dependencies [8f89c25]
+  - ai@7.0.22
+
+## 4.0.22
+
+### Patch Changes
+
+- Updated dependencies [308a519]
+  - ai@7.0.21
+
+## 4.0.21
+
+### Patch Changes
+
+- d26bf99: Align React development dependencies with React 18 so workspace-linked examples do not bundle duplicate React copies.
+- Updated dependencies [b9ac19f]
+- Updated dependencies [a4186d6]
+  - ai@7.0.20
+
+## 4.0.20
+
+### Patch Changes
+
+- Updated dependencies [be7f05a]
+- Updated dependencies [ee55a07]
+- Updated dependencies [aad737d]
+- Updated dependencies [0f93c57]
+  - ai@7.0.19
+  - @ai-sdk/provider@4.0.3
+  - @ai-sdk/mcp@2.0.10
+  - @ai-sdk/provider-utils@5.0.7
+
+## 4.0.19
+
+### Patch Changes
+
+- 0363440: Promote `useObject` (React, Vue) and `StructuredObject` (Svelte) to stable exports, with deprecated experimental aliases for backwards compatibility.
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+  - ai@7.0.18
+  - @ai-sdk/mcp@2.0.9
+
+## 4.0.18
+
+### Patch Changes
+
+- 3271474: Promote the `throttle` option on `useChat` and `useCompletion` to stable, with a deprecated `experimental_throttle` alias for backwards compatibility.
+- Updated dependencies [3e6e955]
+- Updated dependencies [eebd14b]
+  - @ai-sdk/mcp@2.0.8
+  - ai@7.0.17
+
+## 4.0.17
+
+### Patch Changes
+
+- Updated dependencies [a8f9b6d]
+  - ai@7.0.16
+
+## 4.0.16
+
+### Patch Changes
+
+- ai@7.0.15
+
+## 4.0.15
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - ai@7.0.14
+  - @ai-sdk/provider@4.0.2
+  - @ai-sdk/provider-utils@5.0.5
+  - @ai-sdk/mcp@2.0.7
+
+## 4.0.14
+
+### Patch Changes
+
+- ai@7.0.13
+
+## 4.0.13
+
+### Patch Changes
+
+- Updated dependencies [ecfeb6f]
+- Updated dependencies [a193137]
+- Updated dependencies [c6f5e62]
+- Updated dependencies [3c30eb4]
+  - ai@7.0.12
+  - @ai-sdk/provider-utils@5.0.4
+  - @ai-sdk/mcp@2.0.6
+
+## 4.0.12
+
+### Patch Changes
+
+- 8b2dc3c: fix(react): use the latest transport in useChat instead of a stale one
+- Updated dependencies [0a87626]
+  - ai@7.0.11
+
+## 4.0.11
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - ai@7.0.10
+  - @ai-sdk/mcp@2.0.5
+  - @ai-sdk/provider-utils@5.0.3
+
+## 4.0.10
+
+### Patch Changes
+
+- ai@7.0.9
+
+## 4.0.9
+
+### Patch Changes
+
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - ai@7.0.8
+  - @ai-sdk/mcp@2.0.4
+  - @ai-sdk/provider-utils@5.0.2
+
+## 4.0.8
+
+### Patch Changes
+
+- 550e413: Treat nullish `useChat` IDs the same as omitted IDs so the chat instance is not recreated on every render.
+- Updated dependencies [d598481]
+  - ai@7.0.7
+
+## 4.0.7
+
+### Patch Changes
+
+- Updated dependencies [989402d]
+  - ai@7.0.6
+
+## 4.0.6
+
+### Patch Changes
+
+- Updated dependencies [a2750db]
+  - ai@7.0.5
+
+## 4.0.5
+
+### Patch Changes
+
+- Updated dependencies [6a436e3]
+- Updated dependencies [68a739a]
+  - @ai-sdk/provider-utils@5.0.1
+  - @ai-sdk/mcp@2.0.3
+  - ai@7.0.4
+
+## 4.0.4
+
+### Patch Changes
+
+- Updated dependencies [ba6d510]
+  - @ai-sdk/mcp@2.0.2
+  - ai@7.0.3
+
+## 4.0.3
+
+### Patch Changes
+
+- Updated dependencies [241a8c5]
+  - @ai-sdk/mcp@2.0.1
+
+## 4.0.2
+
+### Patch Changes
+
+- ai@7.0.2
+
+## 4.0.1
+
+### Patch Changes
+
+- ai@7.0.1
+
+## 4.0.0
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- b567a6c: dependency updates
+- 9f0e36c: trigger release for all packages after provenance setup
+- 555c5de: fix(react): deny MCP App tool calls by default when allowedTools is omitted
+
+  `experimental_MCPAppRenderer`'s bridge only enforced the `allowedTools` allowlist when it was non-null, so omitting `allowedTools` skipped the check and forwarded every `tools/call` from the (untrusted) MCP App iframe to the host's `callTool`. A malicious or compromised MCP server could therefore invoke any tool the host wired up.
+
+  Tool invocation from MCP App content is now deny-by-default: if `allowedTools` is not explicitly provided, all `tools/call` requests are rejected. To expose tools to an app, list them in `handlers.allowedTools`.
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- 0c4c275: trigger initial canary release
+- 611f621: feat(mcp): feat(mcp): add support for MCP Apps
+- ce769dd: feat(provider): add experimental Realtime API support for voice conversations
+
+  Adds first-class support for realtime (speech-to-speech) APIs:
+
+  - `Experimental_RealtimeModelV4` spec in `@ai-sdk/provider` with normalized event types and factory
+  - OpenAI, Google, and xAI realtime provider implementations
+  - `openai.experimental_realtime()` / `google.experimental_realtime()` / `xai.experimental_realtime()` work in both server and browser
+  - `.getToken()` static method on each provider for server-side ephemeral token creation
+  - `experimental_getRealtimeToolDefinitions` helper for provider session tool definitions
+  - `experimental_useRealtime` hook in `@ai-sdk/react` returning `UIMessage[]` (aligned with `useChat`), with `onToolCall` and `addToolOutput` for client-driven tool execution
+  - `inputAudioTranscription` session config for showing transcribed user audio messages when supported by the provider
+
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- 03c9784: fix(react): fix toolMetadata mismatch
+- b8396f0: trigger initial beta release
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+
+## 4.0.0-beta.192
+
+### Patch Changes
+
+- ai@7.0.0-beta.187
+
+## 4.0.0-beta.191
+
+### Patch Changes
+
+- ai@7.0.0-beta.186
+
+## 4.0.0-beta.190
+
+### Patch Changes
+
+- Updated dependencies [75763b0]
+  - ai@7.0.0-beta.185
+
+## 4.0.0-beta.189
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - ai@7.0.0-beta.184
+  - @ai-sdk/mcp@2.0.0-beta.67
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
+## 4.0.0-beta.188
+
+### Patch Changes
+
+- 03c9784: fix(react): fix toolMetadata mismatch
+
+## 4.0.0-beta.187
+
+### Patch Changes
+
+- ai@7.0.0-beta.183
+
+## 4.0.0-beta.186
+
+### Patch Changes
+
+- Updated dependencies [cc6ab90]
+  - ai@7.0.0-beta.182
+
+## 4.0.0-beta.185
+
+### Patch Changes
+
+- Updated dependencies [6a2caf9]
+  - ai@7.0.0-beta.181
+
+## 4.0.0-beta.184
+
+### Patch Changes
+
+- Updated dependencies [81a284b]
+  - ai@7.0.0-beta.180
+
+## 4.0.0-beta.183
+
+### Patch Changes
+
+- ai@7.0.0-beta.179
+
+## 4.0.0-beta.182
+
+### Patch Changes
+
+- Updated dependencies [b097c52]
+  - ai@7.0.0-beta.178
+
+## 4.0.0-beta.181
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/mcp@2.0.0-beta.66
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+  - ai@7.0.0-beta.177
+
+## 4.0.0-canary.180
+
+### Patch Changes
+
+- ai@7.0.0-canary.176
+
+## 4.0.0-canary.179
+
+### Patch Changes
+
+- Updated dependencies [6ec57f5]
+  - ai@7.0.0-canary.175
+
+## 4.0.0-canary.178
+
+### Patch Changes
+
+- ai@7.0.0-canary.174
+
+## 4.0.0-canary.177
+
+### Patch Changes
+
+- Updated dependencies [b29e087]
+  - @ai-sdk/mcp@2.0.0-canary.65
+
+## 4.0.0-canary.176
+
+### Patch Changes
+
+- Updated dependencies [024a6b4]
+  - @ai-sdk/mcp@2.0.0-canary.64
+  - ai@7.0.0-canary.173
+
+## 4.0.0-canary.175
+
+### Patch Changes
+
+- 555c5de: fix(react): deny MCP App tool calls by default when allowedTools is omitted
+
+  `experimental_MCPAppRenderer`'s bridge only enforced the `allowedTools` allowlist when it was non-null, so omitting `allowedTools` skipped the check and forwarded every `tools/call` from the (untrusted) MCP App iframe to the host's `callTool`. A malicious or compromised MCP server could therefore invoke any tool the host wired up.
+
+  Tool invocation from MCP App content is now deny-by-default: if `allowedTools` is not explicitly provided, all `tools/call` requests are rejected. To expose tools to an app, list them in `handlers.allowedTools`.
+
+- Updated dependencies [2a150f8]
+- Updated dependencies [b44b051]
+- Updated dependencies [aeda373]
+- Updated dependencies [25a64f8]
+- Updated dependencies [375fdd7]
+- Updated dependencies [f18b08f]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/mcp@2.0.0-canary.63
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+  - ai@7.0.0-canary.172
+
+## 4.0.0-canary.174
+
+### Patch Changes
+
+- Updated dependencies [e33ad0b]
+- Updated dependencies [3e0b82f]
+- Updated dependencies [89ad56f]
+- Updated dependencies [f9a496f]
+- Updated dependencies [3295831]
+  - @ai-sdk/mcp@2.0.0-canary.62
+  - ai@7.0.0-canary.171
+
+## 4.0.0-canary.173
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+- Updated dependencies [69d7128]
+  - ai@7.0.0-canary.170
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+  - @ai-sdk/mcp@2.0.0-canary.61
+
+## 4.0.0-canary.172
+
+### Patch Changes
+
+- Updated dependencies [a5018ab]
+- Updated dependencies [21d3d60]
+- Updated dependencies [426dbbb]
+- Updated dependencies [f0c6770]
+- Updated dependencies [7fd3360]
+  - ai@7.0.0-canary.169
+  - @ai-sdk/mcp@2.0.0-canary.60
+
+## 4.0.0-canary.171
+
+### Patch Changes
+
+- Updated dependencies [1e4b350]
+  - ai@7.0.0-canary.168
+
+## 4.0.0-canary.170
+
+### Patch Changes
+
+- Updated dependencies [4757690]
+- Updated dependencies [eeefc3f]
+- Updated dependencies [b79b6a8]
+  - ai@7.0.0-canary.167
+
+## 4.0.0-canary.169
+
+### Patch Changes
+
+- Updated dependencies [19736ee]
+- Updated dependencies [d66ae02]
+- Updated dependencies [e4182bd]
+  - ai@7.0.0-canary.166
+
+## 4.0.0-canary.168
+
+### Patch Changes
+
+- ce769dd: feat(provider): add experimental Realtime API support for voice conversations
+
+  Adds first-class support for realtime (speech-to-speech) APIs:
+
+  - `Experimental_RealtimeModelV4` spec in `@ai-sdk/provider` with normalized event types and factory
+  - OpenAI, Google, and xAI realtime provider implementations
+  - `openai.experimental_realtime()` / `google.experimental_realtime()` / `xai.experimental_realtime()` work in both server and browser
+  - `.getToken()` static method on each provider for server-side ephemeral token creation
+  - `experimental_getRealtimeToolDefinitions` helper for provider session tool definitions
+  - `experimental_useRealtime` hook in `@ai-sdk/react` returning `UIMessage[]` (aligned with `useChat`), with `onToolCall` and `addToolOutput` for client-driven tool execution
+  - `inputAudioTranscription` session config for showing transcribed user audio messages when supported by the provider
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+  - ai@7.0.0-canary.165
+  - @ai-sdk/mcp@2.0.0-canary.59
+  - @ai-sdk/provider-utils@5.0.0-canary.46
+
+## 4.0.0-canary.167
+
+### Patch Changes
+
+- ai@7.0.0-canary.164
+
+## 4.0.0-canary.166
+
+### Patch Changes
+
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+- Updated dependencies [c907622]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+  - ai@7.0.0-canary.163
+  - @ai-sdk/mcp@2.0.0-canary.58
+
+## 4.0.0-canary.165
+
+### Patch Changes
+
+- Updated dependencies [78e0023]
+  - @ai-sdk/mcp@2.0.0-canary.57
+  - ai@7.0.0-canary.162
+
+## 4.0.0-canary.164
+
+### Patch Changes
+
+- ai@7.0.0-canary.161
+
 ## 4.0.0-canary.163
 
 ### Patch Changes

@@ -591,7 +591,7 @@ describe('generateObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_repairText: async ({ text, error }) => {
+          repairText: async ({ text, error }) => {
             expect(error).toBeInstanceOf(JSONParseError);
             expect(text).toStrictEqual(
               '{ "content": "provider metadata test" ',
@@ -622,7 +622,7 @@ describe('generateObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_repairText: async ({ text, error }) => {
+          repairText: async ({ text, error }) => {
             expect(error).toBeInstanceOf(TypeValidationError);
             expect(text).toStrictEqual(
               '{ "content-a": "provider metadata test" }',
@@ -653,7 +653,7 @@ describe('generateObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_repairText: async ({ text, error }) => {
+          repairText: async ({ text, error }) => {
             expect(error).toBeInstanceOf(TypeValidationError);
             expect(text).toStrictEqual(
               '{ "content-a": "provider metadata test" }',
@@ -662,9 +662,54 @@ describe('generateObject', () => {
           },
         });
 
-        expect(result).rejects.toThrow(
+        await expect(result).rejects.toThrow(
           'No object generated: response did not match schema.',
         );
+      });
+
+      it('should support the deprecated experimental_repairText option', async () => {
+        const result = await generateObject({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'text',
+                  text: '{ "content": "repaired"',
+                },
+              ],
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_repairText: async ({ text }) => text + ' }',
+        });
+
+        expect(result.object).toStrictEqual({ content: 'repaired' });
+      });
+
+      it('should prefer repairText over experimental_repairText', async () => {
+        const result = await generateObject({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'text',
+                  text: '{ "content": "repaired"',
+                },
+              ],
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          repairText: async ({ text }) => text + ' }',
+          experimental_repairText: async () => {
+            throw new Error('deprecated alias should not be called');
+          },
+        });
+
+        expect(result.object).toStrictEqual({ content: 'repaired' });
       });
     });
 
@@ -784,7 +829,7 @@ describe('generateObject', () => {
             }),
             schema: z.object({ content: z.string() }),
             prompt: 'prompt',
-            experimental_repairText: async ({ text }) => text + '{',
+            repairText: async ({ text }) => text + '{',
           });
 
           fail('must throw error');
@@ -905,6 +950,36 @@ describe('generateObject', () => {
         "type": "json",
       }
     `);
+    });
+
+    it('should return transformed array elements', async () => {
+      const model = new MockLanguageModelV4({
+        doGenerate: {
+          ...dummyResponseValues,
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                elements: [{ content: 'element 1' }, { content: 'element 2' }],
+              }),
+            },
+          ],
+        },
+      });
+
+      const result = await generateObject({
+        model,
+        schema: z.object({
+          content: z
+            .string()
+            .transform(value => value.length)
+            .pipe(z.number()),
+        }),
+        output: 'array',
+        prompt: 'prompt',
+      });
+
+      expect(result.object).toStrictEqual([{ content: 9 }, { content: 9 }]);
     });
   });
 
@@ -1094,7 +1169,7 @@ describe('generateObject', () => {
   });
 
   describe('callbacks', () => {
-    describe('experimental_onStart', () => {
+    describe('onStart', () => {
       it('should call onStart before the model call', async () => {
         const events: string[] = [];
 
@@ -1114,7 +1189,7 @@ describe('generateObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStart: () => {
+          onStart: () => {
             events.push('onStart');
           },
         });
@@ -1145,7 +1220,7 @@ describe('generateObject', () => {
           telemetry: {
             functionId: 'test-function',
           },
-          experimental_onStart: event => {
+          onStart: event => {
             startEvent = event;
           },
           _internal: {
@@ -1212,7 +1287,7 @@ describe('generateObject', () => {
             isEnabled: true,
             functionId: 'deprecated-fn',
           },
-          experimental_onStart: event => {
+          onStart: event => {
             startEvent = event;
           },
         });
@@ -1222,7 +1297,7 @@ describe('generateObject', () => {
       });
     });
 
-    describe('experimental_onStepStart', () => {
+    describe('onStepStart', () => {
       it('should call onStepStart before the model call', async () => {
         const events: string[] = [];
 
@@ -1242,7 +1317,7 @@ describe('generateObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStepStart: () => {
+          onStepStart: () => {
             events.push('onStepStart');
           },
         });
@@ -1266,7 +1341,7 @@ describe('generateObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStepStart: event => {
+          onStepStart: event => {
             stepStartEvent = event;
           },
         });
@@ -1474,10 +1549,10 @@ describe('generateObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStart: () => {
+          onStart: () => {
             events.push('onStart');
           },
-          experimental_onStepStart: () => {
+          onStepStart: () => {
             events.push('onStepStart');
           },
           onStepFinish: () => {
@@ -1511,10 +1586,10 @@ describe('generateObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStart: event => {
+          onStart: event => {
             callIds.push(event.callId);
           },
-          experimental_onStepStart: event => {
+          onStepStart: event => {
             callIds.push(event.callId);
           },
           onStepFinish: event => {
@@ -1543,10 +1618,10 @@ describe('generateObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStart: () => {
+          onStart: () => {
             throw new Error('onStart error');
           },
-          experimental_onStepStart: () => {
+          onStepStart: () => {
             throw new Error('onStepStart error');
           },
           onStepFinish: () => {

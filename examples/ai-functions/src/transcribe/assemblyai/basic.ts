@@ -1,11 +1,11 @@
 import { assemblyai } from '@ai-sdk/assemblyai';
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import { readFile } from 'fs/promises';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await transcribe({
-    model: assemblyai.transcription('best'),
+    model: assemblyai.transcription('universal-3-5-pro'),
     audio: await readFile('data/galileo.mp3'),
   });
 

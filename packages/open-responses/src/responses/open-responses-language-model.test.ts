@@ -46,6 +46,53 @@ describe('OpenResponsesLanguageModel', () => {
       return;
     }
 
+    it('should throw a descriptive error when the response has no output', async () => {
+      server.urls[URL].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_no_output',
+          created_at: 1741257730,
+          model: 'gemma-7b-it',
+          status: 'incomplete',
+          incomplete_details: { reason: 'content_filter' },
+          // no `output` field
+          usage: {
+            input_tokens: 10,
+            output_tokens: 0,
+          },
+        },
+      };
+
+      await expect(
+        createModel().doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toThrow('Responses API returned no output (content_filter)');
+    });
+
+    it('should surface response.error message before the no-output fallback', async () => {
+      server.urls[URL].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_error',
+          created_at: 1741257730,
+          model: 'gemma-7b-it',
+          status: 'failed',
+          error: {
+            code: 'server_error',
+            message: 'The upstream provider failed to generate a response.',
+          },
+          // no `output` field
+          usage: {
+            input_tokens: 10,
+            output_tokens: 0,
+          },
+        },
+      };
+
+      await expect(
+        createModel().doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toThrow('The upstream provider failed to generate a response.');
+    });
+
     describe('basic generation', () => {
       let result: LanguageModelV4GenerateResult;
 
@@ -685,6 +732,64 @@ describe('OpenResponsesLanguageModel', () => {
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
       });
+    });
+
+    it('should not pollute Object.prototype from tool call item ids', async () => {
+      const originalArgumentsDescriptor = Object.getOwnPropertyDescriptor(
+        Object.prototype,
+        'arguments',
+      );
+
+      try {
+        server.urls[URL].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: ${JSON.stringify({
+              type: 'response.function_call_arguments.done',
+              item_id: '__proto__',
+              output_index: 0,
+              arguments: 'polluted',
+              sequence_number: 0,
+            })}\n\n`,
+            `data: ${JSON.stringify({
+              type: 'response.completed',
+              response: {
+                incomplete_details: null,
+                status: 'completed',
+                usage: {
+                  input_tokens: 0,
+                  input_tokens_details: { cached_tokens: 0 },
+                  output_tokens: 0,
+                  output_tokens_details: { reasoning_tokens: 0 },
+                  total_tokens: 0,
+                },
+              },
+              sequence_number: 1,
+            })}\n\n`,
+            'data: [DONE]\n\n',
+          ],
+        };
+
+        const result = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        await convertReadableStreamToArray(result.stream);
+
+        expect(
+          Object.getOwnPropertyDescriptor(Object.prototype, 'arguments'),
+        ).toStrictEqual(originalArgumentsDescriptor);
+      } finally {
+        if (originalArgumentsDescriptor == null) {
+          delete (Object.prototype as { arguments?: unknown }).arguments;
+        } else {
+          Reflect.defineProperty(
+            Object.prototype,
+            'arguments',
+            originalArgumentsDescriptor,
+          );
+        }
+      }
     });
 
     describe('pdf input file', () => {

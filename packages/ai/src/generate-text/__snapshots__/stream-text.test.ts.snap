@@ -2,7 +2,7 @@
 
 exports[`streamText > errors > should swallow error to prevent server crash 1`] = `[]`;
 
-exports[`streamText > options.experimental_onStart > should send correct information with text prompt 1`] = `
+exports[`streamText > options.onStart > should send correct information with text prompt 1`] = `
 {
   "activeTools": undefined,
   "callId": "test-telemetry-call-id",
@@ -30,6 +30,7 @@ exports[`streamText > options.experimental_onStart > should send correct informa
   "temperature": undefined,
   "timeout": undefined,
   "toolChoice": undefined,
+  "toolOrder": undefined,
   "tools": undefined,
   "toolsContext": {},
   "topK": undefined,
@@ -220,7 +221,7 @@ exports[`streamText > result.pipeUIMessageStreamToResponse > should mask error m
   "data: {"type":"start-step"}
 
 ",
-  "data: {"type":"error","errorText":"error"}
+  "data: {"type":"error","errorText":"An error occurred."}
 
 ",
   "data: {"type":"finish-step"}
@@ -645,7 +646,7 @@ exports[`streamText > result.toUIMessageStream > should mask error messages by d
     "type": "start-step",
   },
   {
-    "errorText": "error",
+    "errorText": "An error occurred.",
     "type": "error",
   },
   {
@@ -734,7 +735,7 @@ exports[`streamText > result.toUIMessageStreamResponse > should mask error messa
   "data: {"type":"start-step"}
 
 ",
-  "data: {"type":"error","errorText":"error"}
+  "data: {"type":"error","errorText":"An error occurred."}
 
 ",
   "data: {"type":"finish-step"}

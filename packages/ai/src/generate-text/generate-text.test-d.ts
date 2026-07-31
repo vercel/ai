@@ -1,5 +1,6 @@
 import type { JSONValue } from '@ai-sdk/provider';
 import {
+  experimental_toolCaller,
   tool,
   type Context,
   type ModelMessage,
@@ -7,8 +8,14 @@ import {
   type Tool,
 } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
-import { z } from 'zod';
-import { generateText, Output } from '../generate-text';
+import { z } from 'zod/v4';
+import { ToolLoopAgent } from '../agent';
+import {
+  generateText,
+  Output,
+  streamText,
+  type ToolOrder,
+} from '../generate-text';
 import type { Instructions, Prompt } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import type { LanguageModelRequestMetadata } from '../types';
@@ -18,6 +25,46 @@ import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 describe('generateText types', () => {
+  describe('experimental_toolCallers', () => {
+    it('should expose only caller-capable tools as references', () => {
+      const codeMode = experimental_toolCaller(
+        tool({
+          inputSchema: z.object({}),
+          execute: async () => undefined,
+        }),
+        {
+          type: 'local',
+          bind: () =>
+            tool({
+              inputSchema: z.object({}),
+              execute: async () => undefined,
+            }),
+        },
+      );
+
+      generateText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        tools: {
+          code_mode: codeMode,
+          getInventory: tool({
+            inputSchema: z.object({ sku: z.string() }),
+            execute: async ({ sku }) => ({ sku }),
+          }),
+        },
+        experimental_toolCallers: callers => {
+          expectTypeOf(callers.code_mode.toolName).toEqualTypeOf<'code_mode'>();
+          // @ts-expect-error regular tools are not caller references
+          callers.getInventory;
+
+          return {
+            getInventory: ['direct', callers.code_mode],
+          };
+        },
+      });
+    });
+  });
+
   describe('onEnd', () => {
     it('should expose end event properties', async () => {
       await generateText({
@@ -195,6 +242,47 @@ describe('generateText types', () => {
   const toolWithFullyOptionalContext = {} as ToolWithFullyOptionalContext;
   const toolWithOptionalContextObject = {} as ToolWithOptionalContextObject;
 
+  describe('toolOrder', () => {
+    it('should accept valid tool names for generateText, streamText, and ToolLoopAgent', () => {
+      const toolOrder: ToolOrder<typeof mixedTools> = ['calculator', 'weather'];
+
+      expectTypeOf(toolOrder).toMatchTypeOf<ToolOrder<typeof mixedTools>>();
+
+      generateText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        tools: mixedTools,
+        toolsContext: { weather: { weatherApiKey: 'key' } },
+        toolOrder,
+      });
+
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        tools: mixedTools,
+        toolsContext: { weather: { weatherApiKey: 'key' } },
+        toolOrder: ['weather'] as const,
+      });
+
+      new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        tools: mixedTools,
+        toolsContext: { weather: { weatherApiKey: 'key' } },
+        toolOrder: ['calculator'] as const,
+      });
+    });
+
+    it('should reject unknown tool names', () => {
+      generateText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        tools: toolWithoutContext,
+        // @ts-expect-error toolOrder only accepts keys of the tool set
+        toolOrder: ['unknown'] as const,
+      });
+    });
+  });
+
   describe('experimental_refineToolInput', () => {
     it('should infer input and return types for each tool', async () => {
       generateText({
@@ -328,19 +416,19 @@ describe('generateText types', () => {
         telemetry: {
           includeRuntimeContext: { userId: true },
         },
-        experimental_onStart: ({ runtimeContext }) => {
+        onStart: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
             requestId: string;
           }>();
         },
-        experimental_onStepStart: ({ runtimeContext }) => {
+        onStepStart: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
             requestId: string;
           }>();
         },
-        onStepFinish: ({ runtimeContext }) => {
+        onStepEnd: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
             requestId: string;
@@ -475,6 +563,24 @@ describe('generateText types', () => {
                 kill: async () => {},
               }),
             },
+          }),
+        });
+      });
+
+      it('should accept model call setting overrides', async () => {
+        generateText({
+          model: new MockLanguageModelV4(),
+          prompt: 'Hello',
+          prepareStep: () => ({
+            maxOutputTokens: 100,
+            temperature: 0,
+            topP: 0.9,
+            topK: 40,
+            presencePenalty: 0,
+            frequencyPenalty: 0,
+            stopSequences: ['stop'],
+            seed: 0,
+            reasoning: 'high',
           }),
         });
       });

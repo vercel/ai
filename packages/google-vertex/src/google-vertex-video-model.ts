@@ -1,6 +1,8 @@
 import {
   AISDKError,
   type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
+  type Experimental_VideoModelV4File,
   type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
   type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
   type SharedV4ProviderMetadata,
@@ -33,6 +35,78 @@ interface GoogleVertexVideoModelConfig {
   _internal?: {
     currentDate?: () => Date;
   };
+}
+
+function getFirstFrameImage(
+  options: VideoModelV4CallOptions,
+): Experimental_VideoModelV4File | undefined {
+  return options.frameImages?.find(frame => frame.frameType === 'first_frame')
+    ?.image;
+}
+
+function resolveStartImage(
+  options: VideoModelV4CallOptions,
+): Experimental_VideoModelV4File | undefined {
+  return getFirstFrameImage(options) ?? options.image;
+}
+
+function getLastFrameImage(
+  options: VideoModelV4CallOptions,
+): Experimental_VideoModelV4File | undefined {
+  return options.frameImages?.find(frame => frame.frameType === 'last_frame')
+    ?.image;
+}
+
+function getInputReferences(
+  options: VideoModelV4CallOptions,
+): Array<Experimental_VideoModelV4File> | undefined {
+  if (options.frameImages != null && options.frameImages.length > 0) {
+    return undefined;
+  }
+
+  return options.inputReferences != null && options.inputReferences.length > 0
+    ? options.inputReferences
+    : undefined;
+}
+
+function convertFileToVertexImage(
+  file: Experimental_VideoModelV4File,
+  warnings: SharedV4Warning[],
+): Record<string, unknown> | undefined {
+  if (file.type === 'url') {
+    if (file.url.startsWith('gs://')) {
+      return {
+        gcsUri: file.url,
+        mimeType: 'image/png',
+      };
+    }
+
+    warnings.push({
+      type: 'unsupported',
+      feature: 'URL-based image input',
+      details:
+        'Vertex AI video models require base64-encoded images or GCS URIs. URL will be ignored.',
+    });
+    return undefined;
+  }
+
+  const base64Data =
+    typeof file.data === 'string'
+      ? file.data
+      : convertUint8ArrayToBase64(file.data);
+
+  return {
+    bytesBase64Encoded: base64Data,
+    mimeType: file.mediaType || 'image/png',
+  };
+}
+
+function convertInputReferenceImage(
+  file: Experimental_VideoModelV4File,
+  warnings: SharedV4Warning[],
+): Record<string, unknown> | undefined {
+  const image = convertFileToVertexImage(file, warnings);
+  return image != null ? { image, referenceType: 'asset' } : undefined;
 }
 
 export class GoogleVertexVideoModel implements VideoModelV4 {
@@ -80,28 +154,29 @@ export class GoogleVertexVideoModel implements VideoModelV4 {
       instance.prompt = options.prompt;
     }
 
-    if (options.image != null) {
-      if (options.image.type === 'url') {
-        warnings.push({
-          type: 'unsupported',
-          feature: 'URL-based image input',
-          details:
-            'Vertex AI video models require base64-encoded images or GCS URIs. URL will be ignored.',
-        });
-      } else {
-        const base64Data =
-          typeof options.image.data === 'string'
-            ? options.image.data
-            : convertUint8ArrayToBase64(options.image.data);
-
-        instance.image = {
-          bytesBase64Encoded: base64Data,
-          mimeType: options.image.mediaType,
-        };
+    const startImage = resolveStartImage(options);
+    if (startImage != null) {
+      const image = convertFileToVertexImage(startImage, warnings);
+      if (image != null) {
+        instance.image = image;
       }
     }
 
-    if (googleVertexOptions?.referenceImages != null) {
+    const lastFrameImage = getLastFrameImage(options);
+    if (lastFrameImage != null) {
+      const lastFrame = convertFileToVertexImage(lastFrameImage, warnings);
+      if (lastFrame != null) {
+        instance.lastFrame = lastFrame;
+      }
+    }
+
+    const inputReferences = getInputReferences(options);
+    if (inputReferences != null) {
+      instance.referenceImages = inputReferences.flatMap(reference => {
+        const converted = convertInputReferenceImage(reference, warnings);
+        return converted != null ? [converted] : [];
+      });
+    } else if (googleVertexOptions?.referenceImages != null) {
       instance.referenceImages = googleVertexOptions.referenceImages;
     }
 
@@ -131,6 +206,12 @@ export class GoogleVertexVideoModel implements VideoModelV4 {
       parameters.seed = options.seed;
     }
 
+    const generateAudio =
+      options.generateAudio ?? googleVertexOptions?.generateAudio;
+    if (generateAudio != null) {
+      parameters.generateAudio = generateAudio;
+    }
+
     if (googleVertexOptions != null) {
       const opts = googleVertexOptions;
 
@@ -142,9 +223,6 @@ export class GoogleVertexVideoModel implements VideoModelV4 {
       }
       if (opts.negativePrompt !== undefined && opts.negativePrompt !== null) {
         parameters.negativePrompt = opts.negativePrompt;
-      }
-      if (opts.generateAudio !== undefined && opts.generateAudio !== null) {
-        parameters.generateAudio = opts.generateAudio;
       }
       if (
         opts.gcsOutputDirectory !== undefined &&

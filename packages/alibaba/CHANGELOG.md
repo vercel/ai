@@ -1,5 +1,282 @@
 # @ai-sdk/alibaba
 
+## 2.0.20
+
+### Patch Changes
+
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+  - @ai-sdk/openai-compatible@3.0.18
+
+## 2.0.19
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+  - @ai-sdk/openai-compatible@3.0.17
+
+## 2.0.18
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+  - @ai-sdk/openai-compatible@3.0.16
+
+## 2.0.17
+
+### Patch Changes
+
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/openai-compatible@3.0.15
+  - @ai-sdk/provider-utils@5.0.13
+
+## 2.0.16
+
+### Patch Changes
+
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+  - @ai-sdk/openai-compatible@3.0.14
+
+## 2.0.15
+
+### Patch Changes
+
+- Updated dependencies [8b52503]
+  - @ai-sdk/openai-compatible@3.0.13
+
+## 2.0.14
+
+### Patch Changes
+
+- Updated dependencies [cd06458]
+  - @ai-sdk/provider-utils@5.0.11
+  - @ai-sdk/openai-compatible@3.0.12
+
+## 2.0.13
+
+### Patch Changes
+
+- Updated dependencies [0b61267]
+  - @ai-sdk/openai-compatible@3.0.11
+
+## 2.0.12
+
+### Patch Changes
+
+- Updated dependencies [31c7be8]
+  - @ai-sdk/provider-utils@5.0.10
+  - @ai-sdk/openai-compatible@3.0.10
+
+## 2.0.11
+
+### Patch Changes
+
+- 4be62c1: fix(provider-utils): validate provider-response URLs in `getFromApi`
+
+  `getFromApi` now has a `validateUrl` flag. It is optional so existing callers keep compiling (omitting it behaves like `false`, i.e. no validation), but all AI SDK provider packages set it explicitly at every call site so each one makes a visible trust decision. When `true`, the URL is routed through `fetchWithValidatedRedirects` — the same guard used by `downloadBlob` — which rejects private/loopback/link-local targets, re-validates every redirect hop, strips proxy/metadata/cookie request headers, and drops all caller headers except the user-agent on cross-origin redirects (custom API-key headers must not follow a redirect off-origin any more than `Authorization` may); blocked URLs throw `DownloadError`. It is enabled at the image/video/audio download and polling call sites where the URL comes from a provider response body; URLs built from developer-configured endpoints pass `validateUrl: false` and are unaffected.
+
+  A new optional `credentialedOrigin` withholds caller headers unless the URL is same-origin with it, so the API key is not sent to a response-supplied host on a different origin.
+
+  A new optional `trustedOrigin` exempts URLs (and redirect hops) that are same-origin with the developer-configured provider endpoint from target validation, so self-hosted and localhost deployments whose response URLs point back at the configured host keep working; all other hops are still validated.
+
+  Also closes range gaps in `validateDownloadUrl` (IPv4 `224.0.0.0/4` multicast and the TEST-NET documentation ranges `192.0.2.0/24`, `198.51.100.0/24`, `203.0.113.0/24`; IPv6 documentation ranges `2001:db8::/32` and `3fff::/20`), and follows only the fetch-spec redirect status codes (301/302/303/307/308) — a `Location` header on any other status is not followed. This guard performs string/literal checks only and does not resolve DNS; hostnames that resolve to private addresses and DNS rebinding remain out of scope and must be constrained at the network layer (or by injecting a Node `fetch` that pins the resolved IP at connect time) for server deployments handling untrusted URLs. See `contributing/secure-url-handling.md`.
+
+- Updated dependencies [4be62c1]
+- Updated dependencies [7805e4a]
+- Updated dependencies [cd12954]
+  - @ai-sdk/provider-utils@5.0.9
+  - @ai-sdk/openai-compatible@3.0.9
+
+## 2.0.10
+
+### Patch Changes
+
+- Updated dependencies [e193290]
+  - @ai-sdk/provider-utils@5.0.8
+  - @ai-sdk/openai-compatible@3.0.8
+
+## 2.0.9
+
+### Patch Changes
+
+- 0f93c57: feat (video): support video (not just image) reference inputs in `inputReferences` for reference-to-video generation
+- Updated dependencies [0f93c57]
+  - @ai-sdk/provider@4.0.3
+  - @ai-sdk/openai-compatible@3.0.7
+  - @ai-sdk/provider-utils@5.0.7
+
+## 2.0.8
+
+### Patch Changes
+
+- ac306ed: Fix `StreamingToolCallTracker` finalizing streaming tool calls on parsable partial JSON. Tool calls now only finalize during stream flush, restoring the behavior of #13137: a parsable argument buffer can still be the prefix of a longer argument string, so finalizing early could act on truncated tool inputs.
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+  - @ai-sdk/openai-compatible@3.0.6
+
+## 2.0.7
+
+### Patch Changes
+
+- 0c3c7e4: feat(alibaba): support wan2.7 text-to-video and reference-to-video models with the new protocol (`input.media`, `resolution` + `ratio`)
+
+## 2.0.6
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - @ai-sdk/provider@4.0.2
+  - @ai-sdk/provider-utils@5.0.5
+  - @ai-sdk/openai-compatible@3.0.5
+
+## 2.0.5
+
+### Patch Changes
+
+- Updated dependencies [c6f5e62]
+  - @ai-sdk/provider-utils@5.0.4
+  - @ai-sdk/openai-compatible@3.0.4
+
+## 2.0.4
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - @ai-sdk/provider-utils@5.0.3
+  - @ai-sdk/openai-compatible@3.0.3
+
+## 2.0.3
+
+### Patch Changes
+
+- 0274f34: feat (video): add first-class `frameImages` and `inputReferences` call options for video generation
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - @ai-sdk/openai-compatible@3.0.2
+  - @ai-sdk/provider-utils@5.0.2
+
+## 2.0.2
+
+### Patch Changes
+
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+  - @ai-sdk/openai-compatible@3.0.1
+
+## 2.0.1
+
+### Patch Changes
+
+- ba6d510: chore: fix deprecated use of zod `.passthrough()`
+
+## 2.0.0
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- 8359612: Start v7 pre-release
+- 04e9009: chore: make provider implementations code patterns more consistent, including renaming certain exported symbols
+
+  For all externally exported symbols that were renamed, the old names continue to work via deprecated aliases.
+
+### Patch Changes
+
+- 94c6edc: Add `qwen3.7-max` model ID to Alibaba and AI Gateway.
+- 38fc777: Add AI Gateway hint to provider READMEs
+- 74d520f: feat: migrate providers to support new top-level `reasoning` parameter
+- 45b3d76: fix(security): prevent streaming tool calls from finalizing on parsable partial JSON
+
+  Streaming tool call arguments were finalized using `isParsableJson()` as a heuristic for completion. If partial accumulated JSON happened to be valid JSON before all chunks arrived, the tool call would be executed with incomplete arguments. Tool call finalization now only occurs in `flush()` after the stream is fully consumed.
+
+- 811cd8e: fix(provider/alibaba): handle single-item content array cache control
+- 9f0e36c: trigger release for all packages after provenance setup
+- 58a2ad7: fix: more precise default message for tool execution denial
+- f7295cb: revert incorrect fix https://github.com/vercel/ai/pull/13172
+- 4ab27b9: chore(alibaba): update v3 specs to v4
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- f807e45: Extract shared `StreamingToolCallTracker` class into `@ai-sdk/provider-utils` to deduplicate streaming tool call handling across OpenAI-compatible providers. Also adds missing `generateId()` fallback for `toolCallId` in Alibaba's `doGenerate` path and ensures all providers finalize unfinished tool calls during stream flush.
+- 0c4c275: trigger initial canary release
+- 616bb31: feat(aliababa): add embedding model support
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- b8396f0: trigger initial beta release
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- 0416e3e: feat (video): add first-class `generateAudio` call option
+- b3976a2: Add workflow serialization support to all provider models.
+
+  **`@ai-sdk/provider-utils`:** New `serializeModel()` helper that extracts only serializable properties from a model instance, filtering out functions and objects containing functions. Third-party provider authors can use this to add workflow support to their own models.
+
+  **All providers:** `headers` is now optional in provider config types. This is non-breaking — existing code that passes `headers` continues to work. Custom provider implementations that construct model configs manually can now omit `headers`, which is useful when models are deserialized from a workflow step boundary where auth is provided separately.
+
+  All provider model classes now include `WORKFLOW_SERIALIZE` and `WORKFLOW_DESERIALIZE` static methods, enabling them to cross workflow step boundaries without serialization errors.
+
+## 2.0.0-beta.61
+
+### Patch Changes
+
+- 0416e3e: feat (video): add first-class `generateAudio` call option
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - @ai-sdk/openai-compatible@3.0.0-beta.58
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
+## 2.0.0-beta.60
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/openai-compatible@3.0.0-beta.57
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+
+## 2.0.0-canary.59
+
+### Patch Changes
+
+- Updated dependencies [aeda373]
+- Updated dependencies [375fdd7]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+  - @ai-sdk/openai-compatible@3.0.0-canary.56
+
+## 2.0.0-canary.58
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+  - @ai-sdk/openai-compatible@3.0.0-canary.55
+
+## 2.0.0-canary.57
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+  - @ai-sdk/openai-compatible@3.0.0-canary.54
+  - @ai-sdk/provider-utils@5.0.0-canary.46
+
+## 2.0.0-canary.56
+
+### Patch Changes
+
+- 616bb31: feat(aliababa): add embedding model support
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+  - @ai-sdk/openai-compatible@3.0.0-canary.53
+
 ## 2.0.0-canary.55
 
 ### Patch Changes

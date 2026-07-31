@@ -32,8 +32,8 @@ export type { ModelMessage } from './model-message';
 export type { ProviderOptions } from './provider-options';
 export type { ProviderReference } from './provider-reference';
 export type {
-  Experimental_Sandbox,
-  Experimental_SandboxProcess,
+  SandboxSession as Experimental_SandboxSession,
+  SandboxProcess as Experimental_SandboxProcess,
 } from './sandbox';
 export type { SystemModelMessage } from './system-model-message';
 export {
@@ -48,6 +48,12 @@ export {
 export type { ToolApprovalRequest } from './tool-approval-request';
 export type { ToolApprovalResponse } from './tool-approval-response';
 export type { ToolCall } from './tool-call';
+export {
+  getToolCaller as experimental_getToolCaller,
+  toolCaller as experimental_toolCaller,
+  type ToolCallerDefinition as Experimental_ToolCallerDefinition,
+  type ToolCallerTool as Experimental_ToolCallerTool,
+} from './tool-caller';
 export type {
   ToolExecuteFunction,
   ToolExecutionOptions,

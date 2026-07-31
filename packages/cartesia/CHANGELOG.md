@@ -1,0 +1,83 @@
+# @ai-sdk/cartesia
+
+## 3.0.10
+
+### Patch Changes
+
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+
+## 3.0.9
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+
+## 3.0.8
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+
+## 3.0.7
+
+### Patch Changes
+
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/provider-utils@5.0.13
+
+## 3.0.6
+
+### Patch Changes
+
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+
+## 3.0.5
+
+### Patch Changes
+
+- Updated dependencies [cd06458]
+  - @ai-sdk/provider-utils@5.0.11
+
+## 3.0.4
+
+### Patch Changes
+
+- 529a5ef: Add Ink 2 streaming transcription through `TranscriptionModelV4.doStream` and the shared WebSocket transport.
+
+## 3.0.3
+
+### Patch Changes
+
+- Updated dependencies [31c7be8]
+  - @ai-sdk/provider-utils@5.0.10
+
+## 3.0.2
+
+### Patch Changes
+
+- Updated dependencies [4be62c1]
+- Updated dependencies [7805e4a]
+- Updated dependencies [cd12954]
+  - @ai-sdk/provider-utils@5.0.9
+
+## 3.0.1
+
+### Patch Changes
+
+- Updated dependencies [e193290]
+  - @ai-sdk/provider-utils@5.0.8
+
+## 3.0.0
+
+### Major Changes
+
+- 8f89c25: Add the Cartesia provider with Sonic 3.5 speech generation, Ink-Whisper batch transcription, and Ink 2 realtime transcription support.

@@ -72,6 +72,118 @@ describe('system messages', () => {
     });
     expect(result.betas.has('mid-conversation-system-2026-04-07')).toBe(true);
   });
+
+  it('should emit tool change blocks on a mid-conversation system message and add the beta', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        { role: 'system', content: 'initial' },
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        { role: 'assistant', content: [{ type: 'text', text: 'hello' }] },
+        {
+          role: 'system',
+          content: 'tools have changed',
+          providerOptions: {
+            anthropic: {
+              toolChanges: [
+                { type: 'tool_addition', toolName: 'get_forecast' },
+                { type: 'tool_removal', toolName: 'get_weather' },
+              ],
+            },
+          },
+        },
+        { role: 'user', content: [{ type: 'text', text: 'go' }] },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toContainEqual({
+      role: 'system',
+      content: [
+        { type: 'text', text: 'tools have changed' },
+        {
+          type: 'tool_addition',
+          tool: { type: 'tool_reference', name: 'get_forecast' },
+        },
+        {
+          type: 'tool_removal',
+          tool: { type: 'tool_reference', name: 'get_weather' },
+        },
+      ],
+    });
+    expect(result.betas.has('mid-conversation-system-2026-04-07')).toBe(true);
+    expect(result.betas.has('mid-conversation-tool-changes-2026-07-01')).toBe(
+      true,
+    );
+  });
+
+  it('should not emit an empty text block for a system message that only carries tool changes', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        { role: 'system', content: 'initial' },
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        { role: 'assistant', content: [{ type: 'text', text: 'hello' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            anthropic: {
+              toolChanges: [{ type: 'tool_removal', toolName: 'get_weather' }],
+            },
+          },
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toContainEqual({
+      role: 'system',
+      content: [
+        {
+          type: 'tool_removal',
+          tool: { type: 'tool_reference', name: 'get_weather' },
+        },
+      ],
+    });
+  });
+
+  it('should warn and drop tool changes on the initial system message', async () => {
+    const warnings: SharedV4Warning[] = [];
+
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'system',
+          content: 'initial',
+          providerOptions: {
+            anthropic: {
+              toolChanges: [
+                { type: 'tool_addition', toolName: 'get_forecast' },
+              ],
+            },
+          },
+        },
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+      ],
+      sendReasoning: true,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.system).toEqual([{ type: 'text', text: 'initial' }]);
+    expect(result.betas.has('mid-conversation-tool-changes-2026-07-01')).toBe(
+      false,
+    );
+    expect(warnings).toContainEqual(
+      expect.objectContaining({
+        type: 'other',
+        message: expect.stringContaining('initial system message'),
+      }),
+    );
+  });
 });
 
 describe('user messages', () => {
@@ -1334,6 +1446,76 @@ describe('tool messages', () => {
 });
 
 describe('assistant messages', () => {
+  it('should preserve citations on assistant text', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'The Federal Reserve held rates steady.',
+              providerOptions: {
+                anthropic: {
+                  citations: [
+                    {
+                      type: 'web_search_result_location',
+                      cited_text: 'The Committee decided to maintain the rate.',
+                      url: 'https://example.com/fed-decision',
+                      title: 'Federal Reserve decision',
+                      encrypted_index: 'encrypted-index',
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'What happened before that?' }],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "cache_control": undefined,
+              "citations": [
+                {
+                  "cited_text": "The Committee decided to maintain the rate.",
+                  "encrypted_index": "encrypted-index",
+                  "title": "Federal Reserve decision",
+                  "type": "web_search_result_location",
+                  "url": "https://example.com/fed-decision",
+                },
+              ],
+              "text": "The Federal Reserve held rates steady.",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "cache_control": undefined,
+              "text": "What happened before that?",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
   it('should remove trailing whitespace from last assistant message when there is no further user message', async () => {
     const result = await convertToAnthropicPrompt({
       prompt: [
@@ -1765,6 +1947,264 @@ describe('assistant messages', () => {
         },
       }
     `);
+    expect(warnings).toMatchInlineSnapshot(`[]`);
+  });
+
+  it('should move regular tool_use blocks after provider-executed web_search results', async () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'I will save a note and search the web.',
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_regular',
+              toolName: 'saveNote',
+              input: {
+                note: 'Searching for basketball news',
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'srvtoolu_web_search',
+              toolName: 'web_search',
+              providerExecuted: true,
+              input: {
+                query: 'basketball news today',
+              },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'srvtoolu_web_search',
+              toolName: 'web_search',
+              output: {
+                type: 'json',
+                value: [
+                  {
+                    url: 'https://www.nba.com/news',
+                    title: 'NBA News',
+                    pageAge: '1 hour ago',
+                    encryptedContent: 'encrypted-content',
+                    type: 'web_search_result',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'toolu_regular',
+              toolName: 'saveNote',
+              output: {
+                type: 'json',
+                value: {
+                  success: true,
+                },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'text',
+            text: 'I will save a note and search the web.',
+            cache_control: undefined,
+          },
+          {
+            type: 'server_tool_use',
+            id: 'srvtoolu_web_search',
+            name: 'web_search',
+            input: {
+              query: 'basketball news today',
+            },
+            cache_control: undefined,
+          },
+          {
+            type: 'web_search_tool_result',
+            tool_use_id: 'srvtoolu_web_search',
+            content: [
+              {
+                url: 'https://www.nba.com/news',
+                title: 'NBA News',
+                page_age: '1 hour ago',
+                encrypted_content: 'encrypted-content',
+                type: 'web_search_result',
+              },
+            ],
+            cache_control: undefined,
+          },
+          {
+            type: 'tool_use',
+            id: 'toolu_regular',
+            name: 'saveNote',
+            input: {
+              note: 'Searching for basketball news',
+            },
+            cache_control: undefined,
+          },
+        ],
+      },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: 'toolu_regular',
+            content: JSON.stringify({ success: true }),
+            is_error: undefined,
+          },
+        ],
+      },
+    ]);
+    expect(warnings).toMatchInlineSnapshot(`[]`);
+  });
+
+  it('should not move regular tool_use blocks across thinking blocks', async () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'Think before the initial note.',
+              providerOptions: {
+                anthropic: {
+                  signature: 'test-signature-1',
+                },
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_initial',
+              toolName: 'saveNote',
+              input: {
+                note: 'phase 1: initial plan',
+              },
+            },
+            {
+              type: 'reasoning',
+              text: 'Think before the revised note.',
+              providerOptions: {
+                anthropic: {
+                  signature: 'test-signature-2',
+                },
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_revised',
+              toolName: 'saveNote',
+              input: {
+                note: 'phase 2: revised plan',
+              },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'toolu_initial',
+              toolName: 'saveNote',
+              output: {
+                type: 'json',
+                value: {
+                  success: true,
+                },
+              },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'toolu_revised',
+              toolName: 'saveNote',
+              output: {
+                type: 'json',
+                value: {
+                  success: true,
+                },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'thinking',
+            thinking: 'Think before the initial note.',
+            signature: 'test-signature-1',
+          },
+          {
+            type: 'tool_use',
+            id: 'toolu_initial',
+            name: 'saveNote',
+            input: {
+              note: 'phase 1: initial plan',
+            },
+            cache_control: undefined,
+          },
+          {
+            type: 'thinking',
+            thinking: 'Think before the revised note.',
+            signature: 'test-signature-2',
+          },
+          {
+            type: 'tool_use',
+            id: 'toolu_revised',
+            name: 'saveNote',
+            input: {
+              note: 'phase 2: revised plan',
+            },
+            cache_control: undefined,
+          },
+        ],
+      },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: 'toolu_initial',
+            content: JSON.stringify({ success: true }),
+            is_error: undefined,
+          },
+          {
+            type: 'tool_result',
+            tool_use_id: 'toolu_revised',
+            content: JSON.stringify({ success: true }),
+            is_error: undefined,
+          },
+        ],
+      },
+    ]);
     expect(warnings).toMatchInlineSnapshot(`[]`);
   });
 
@@ -3321,6 +3761,48 @@ describe('cache control', () => {
                   id: 'test-id',
                   input: { some: 'arg' },
                   cache_control: { type: 'ephemeral' },
+                },
+              ],
+            },
+          ],
+        },
+        betas: new Set(),
+      });
+    });
+
+    it('should wrap non-object (invalid) tool call input in an object', async () => {
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'cityAttractions',
+                // malformed JSON the model produced, kept as a raw string
+                input: '{ "city": "San Francisco", }',
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result).toEqual({
+        prompt: {
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool_use',
+                  name: 'cityAttractions',
+                  id: 'call-1',
+                  input: { rawInvalidInput: '{ "city": "San Francisco", }' },
+                  cache_control: undefined,
                 },
               ],
             },

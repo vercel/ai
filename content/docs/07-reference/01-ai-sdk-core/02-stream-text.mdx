@@ -346,7 +346,7 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'description',
               isOptional: true,
-              type: 'string | ((options: { context: CONTEXT; experimental_sandbox?: Experimental_Sandbox }) => string)',
+              type: 'string | ((options: { context: CONTEXT; experimental_sandbox?: Experimental_SandboxSession }) => string)',
               description:
                 'Information about the purpose of the tool including details on how and when it can be used by the model. Provide a string for a fixed description, or a function to derive the description from the tool-specific context and optional experimental sandbox before each model call.',
             },
@@ -477,10 +477,10 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'timeout',
-      type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number; toolMs?: number; tools?: { [toolName]Ms?: number } }',
+      type: 'number | { totalMs?: number; stepMs?: number; firstChunkMs?: number; chunkMs?: number; toolMs?: number; tools?: { [toolName]Ms?: number } }',
       isOptional: true,
       description:
-        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, chunkMs, toolMs, and/or tools properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each individual step (LLM call). chunkMs sets the timeout between stream chunks - the call will abort if no new chunk is received within this duration. toolMs sets the default timeout for all tool executions. tools sets per-tool timeout overrides using the pattern {toolName}Ms (e.g. weatherMs, slowApiMs) that take precedence over toolMs - tool names are type-checked for autocomplete. If a tool takes longer than its timeout, it aborts and returns a tool-error so the model can respond or retry. Can be used alongside abortSignal.',
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, firstChunkMs, chunkMs, toolMs, and/or tools properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each individual step (LLM call). firstChunkMs sets the timeout until the first content-bearing output in each step; metadata, stream starts, empty deltas, raw chunks, and transport activity do not satisfy it. chunkMs sets the timeout between content-bearing output chunks after output has started; non-content chunks do not reset it. toolMs sets the default timeout for all tool executions. tools sets per-tool timeout overrides using the pattern {toolName}Ms (e.g. weatherMs, slowApiMs) that take precedence over toolMs - tool names are type-checked for autocomplete. If a tool takes longer than its timeout, it aborts and returns a tool-error so the model can respond or retry. Can be used alongside abortSignal.',
     },
     {
       name: 'headers',
@@ -609,11 +609,25 @@ To see `streamText` in action, check out [these examples](#examples).
         'Limits the tools that are available for the model to call without changing the tool call and result types in the result. All tools are active by default. Tool names are restricted to the string keys of the tool set.',
     },
     {
+      name: 'toolOrder',
+      type: 'ToolOrder<TOOLS>',
+      isOptional: true,
+      description:
+        'Controls the order in which tools are sent to the provider. The list can be partial. Tools not listed in `toolOrder` are sent after the listed tools, sorted alphabetically. Tool names are restricted to the string keys of the tool set.',
+    },
+    {
       name: 'toolApproval',
       type: 'ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>',
       isOptional: true,
       description:
         "Approval configuration for this call. Pass a `GenericToolApprovalFunction` to handle all tool calls in one callback with `toolCall`, `tools`, `toolsContext`, `messages`, and `runtimeContext`, or pass a per-tool object where each key can be a status (`'not-applicable'`, `'approved'`, `'denied'`, or `'user-approval'`), an object form such as `{ type: 'denied', reason: 'blocked by policy' }`, or a `SingleToolApprovalFunction` that receives the tool input and options `toolCallId`, `messages`, `toolContext`, and `runtimeContext` (same shape as tool execution options without `abortSignal`, with `context` renamed to `toolContext`). The `RUNTIME_CONTEXT` type parameter matches the call's `runtimeContext`. A `GenericToolApprovalFunction` or `SingleToolApprovalFunction` may return `undefined` for the same effect as `'not-applicable'`. `'not-applicable'` is the default execution path and runs the tool without approval metadata. Use `'approved'`, `'denied'`, or their object forms when you want explicit automatic approval request/response parts in the output. Automatic approvals and denials can include a `reason`, which is forwarded to the emitted approval response. This setting takes precedence over a tool's `needsApproval` default.",
+    },
+    {
+      name: 'experimental_toolCallers',
+      type: 'Experimental_ToolCallers<TOOLS>',
+      isOptional: true,
+      description:
+        "Configures which caller tools may invoke each tool. The callback receives typed references for caller-capable tools in the `tools` set and returns an object keyed by callee tool name. Include `'direct'` to keep a configured tool directly callable by the model. Local-only callees are hidden from direct model calls and bound to their local caller for each generation step. Provider caller references are translated to provider-native allowed-caller options. Tools without an entry keep their existing direct tool-calling behavior.",
     },
     {
       name: 'experimental_refineToolInput',
@@ -634,7 +648,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: '(options: PrepareStepOptions) => PrepareStepResult<TOOLS> | Promise<PrepareStepResult<TOOLS>>',
       isOptional: true,
       description:
-        'Optional function that you can use to provide different settings for a step. You can modify the model, tool choices, active tools, instructions, input messages, and experimental sandbox for each step.',
+        'Optional function that you can use to provide different settings for a step. You can modify the model, model call settings, tool choices, active tools, instructions, input messages, and experimental sandbox for each step.',
       properties: [
         {
           type: 'PrepareStepFunction<TOOLS>',
@@ -696,7 +710,7 @@ To see `streamText` in action, check out [these examples](#examples).
                     },
                     {
                       name: 'experimental_sandbox',
-                      type: 'Experimental_Sandbox | undefined',
+                      type: 'Experimental_SandboxSession | undefined',
                       isOptional: true,
                       description:
                         'The experimental sandbox environment passed via the `experimental_sandbox` setting.',
@@ -720,6 +734,69 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Optionally override which LanguageModel instance is used for this step.',
             },
             {
+              name: 'maxOutputTokens',
+              type: 'number',
+              isOptional: true,
+              description:
+                'Maximum number of tokens to generate for this step. Uses the top-level value when omitted or undefined.',
+            },
+            {
+              name: 'temperature',
+              type: 'number',
+              isOptional: true,
+              description:
+                'Temperature for this step. Uses the top-level value when omitted or undefined.',
+            },
+            {
+              name: 'topP',
+              type: 'number',
+              isOptional: true,
+              description:
+                'Nucleus sampling value for this step. Uses the top-level value when omitted or undefined.',
+            },
+            {
+              name: 'topK',
+              type: 'number',
+              isOptional: true,
+              description:
+                'Top-K sampling value for this step. Uses the top-level value when omitted or undefined.',
+            },
+            {
+              name: 'presencePenalty',
+              type: 'number',
+              isOptional: true,
+              description:
+                'Presence penalty for this step. Uses the top-level value when omitted or undefined.',
+            },
+            {
+              name: 'frequencyPenalty',
+              type: 'number',
+              isOptional: true,
+              description:
+                'Frequency penalty for this step. Uses the top-level value when omitted or undefined.',
+            },
+            {
+              name: 'stopSequences',
+              type: 'string[]',
+              isOptional: true,
+              description:
+                'Stop sequences for this step. Uses the top-level value when omitted or undefined.',
+            },
+            {
+              name: 'seed',
+              type: 'number',
+              isOptional: true,
+              description:
+                'Random sampling seed for this step. Uses the top-level value when omitted or undefined.',
+            },
+            {
+              name: 'reasoning',
+              type: 'LanguageModelV4CallOptions["reasoning"]',
+              isOptional: true,
+              description:
+                'Reasoning effort for this step. Uses the top-level value when omitted or undefined.',
+            },
+            {
               name: 'toolChoice',
               type: 'ToolChoice<TOOLS>',
               isOptional: true,
@@ -732,6 +809,13 @@ To see `streamText` in action, check out [these examples](#examples).
               isOptional: true,
               description:
                 'If provided, only these tools are enabled/available for this step.',
+            },
+            {
+              name: 'toolOrder',
+              type: 'ToolOrder<TOOLS>',
+              isOptional: true,
+              description:
+                'If provided, overrides the order in which tools are sent to the provider for this step. Tools not listed are appended alphabetically.',
             },
             {
               name: 'instructions',
@@ -762,7 +846,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_sandbox',
-              type: 'Experimental_Sandbox',
+              type: 'Experimental_SandboxSession',
               isOptional: true,
               description:
                 'Experimental sandbox environment for this step. Changing it will affect tool execution in this step only.',
@@ -793,7 +877,7 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_sandbox',
-      type: 'Experimental_Sandbox',
+      type: 'Experimental_SandboxSession',
       isOptional: true,
       description:
         'Experimental sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
@@ -841,7 +925,7 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_repairToolCall',
+      name: 'repairToolCall',
       type: '(options: ToolCallRepairOptions) => Promise<LanguageModelV4ToolCall | null>',
       isOptional: true,
       description:
@@ -1262,13 +1346,13 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'onStepFinish',
-      type: '(result: onStepFinishResult) => Promise<void> | void',
+      name: 'onStepEnd',
+      type: '(result: StepResult<TOOLS>) => Promise<void> | void',
       isOptional: true,
-      description: 'Callback that is called when a step is finished.',
+      description: 'Callback that is called when a step ends.',
       properties: [
         {
-          type: 'onStepFinishResult',
+          type: 'StepResult',
           parameters: [
             {
               name: 'stepType',
@@ -1593,6 +1677,13 @@ To see `streamText` in action, check out [these examples](#examples).
           ],
         },
       ],
+    },
+    {
+      name: 'onStepFinish',
+      type: 'GenerateTextOnStepFinishCallback<TOOLS>',
+      isOptional: true,
+      description:
+        'Deprecated. Use `onStepEnd` instead. This alias is only used as a fallback when `onStepEnd` is not provided.',
     },
     {
       name: 'onEnd',
@@ -1973,11 +2064,11 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onStart',
+      name: 'onStart',
       type: '(event: GenerateTextStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        'Callback that is called when the streamText operation begins, before any LLM calls are made. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
+        'Callback that is called when the streamText operation begins, before any LLM calls are made. Errors thrown in this callback are silently caught and do not break the generation flow.',
       properties: [
         {
           type: 'GenerateTextStartEvent',
@@ -2018,6 +2109,12 @@ To see `streamText` in action, check out [these examples](#examples).
               type: 'ActiveTools<TOOLS>',
               description:
                 'Limits which tools are available for the model to call.',
+            },
+            {
+              name: 'toolOrder',
+              type: 'ToolOrder<TOOLS>',
+              description:
+                'Controls the order in which tools are sent to the provider.',
             },
             {
               name: 'maxOutputTokens',
@@ -2114,11 +2211,11 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onStepStart',
+      name: 'onStepStart',
       type: '(event: GenerateTextStepStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        'Callback that is called when a step (LLM call) begins, before the provider is called. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
+        'Callback that is called when a step (LLM call) begins, before the provider is called. Errors thrown in this callback are silently caught and do not break the generation flow.',
       properties: [
         {
           type: 'GenerateTextStepStartEvent',
@@ -2165,6 +2262,12 @@ To see `streamText` in action, check out [these examples](#examples).
               name: 'activeTools',
               type: 'ActiveTools<TOOLS>',
               description: 'Limits which tools are available for this step.',
+            },
+            {
+              name: 'toolOrder',
+              type: 'ToolOrder<TOOLS>',
+              description:
+                'Controls the order in which tools are sent to the provider for this step.',
             },
             {
               name: 'steps',
@@ -2227,11 +2330,11 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onLanguageModelCallStart',
+      name: 'onLanguageModelCallStart',
       type: '(event: LanguageModelCallStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        'Callback that is called immediately before the provider model call begins. Unlike `experimental_onStepStart`, this callback is scoped to model work only and excludes any later client-side tool execution. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
+        'Callback that is called immediately before the provider model call begins. Unlike `onStepStart`, this callback is scoped to model work only and excludes any later client-side tool execution. Errors thrown in this callback are silently caught and do not break the generation flow.',
       properties: [
         {
           type: 'LanguageModelCallStartEvent',
@@ -2272,11 +2375,11 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onLanguageModelCallEnd',
+      name: 'onLanguageModelCallEnd',
       type: '(event: LanguageModelCallEndEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        'Callback that is called after the model response has been normalized and parsed, but before any client-side tool execution begins. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
+        'Callback that is called after the model response has been normalized and parsed, but before any client-side tool execution begins. Errors thrown in this callback are silently caught and do not break the generation flow.',
       properties: [
         {
           type: 'LanguageModelCallEndEvent',
@@ -2294,7 +2397,8 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'modelId',
               type: 'string',
-              description: 'The specific model identifier for this model call.',
+              description:
+                'The provider-returned model identifier for this model call.',
             },
             {
               name: 'finishReason',
@@ -2381,7 +2485,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: '(event: ToolExecutionStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        "Callback that is called right before a tool's execute function runs. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).",
+        "Callback that is called right before a tool's execute function runs. Errors thrown in this callback are silently caught and do not break the generation flow.",
       properties: [
         {
           type: 'ToolExecutionStartEvent',
@@ -2419,7 +2523,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: '(event: ToolExecutionEndEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        "Callback that is called right after a tool's execute function completes (or errors). The `toolOutput` field is a discriminated union: when `toolOutput.type` is `'tool-result'`, the `output` field contains the tool result; when `toolOutput.type` is `'tool-error'`, the `error` field contains the error. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).",
+        "Callback that is called right after a tool's execute function completes (or errors). The `toolOutput` field is a discriminated union: when `toolOutput.type` is `'tool-result'`, the `output` field contains the tool result; when `toolOutput.type` is `'tool-error'`, the `error` field contains the error. Errors thrown in this callback are silently caught and do not break the generation flow.",
       properties: [
         {
           type: 'ToolExecutionEndEvent',
@@ -3177,7 +3281,7 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'textStream',
       type: 'AsyncIterableStream<string>',
       description:
-        'A text stream that returns only the generated text deltas. You can use it as either an AsyncIterable or a ReadableStream. When an error occurs, the stream will throw the error.',
+        'A text stream that returns only the generated text deltas. You can use it as either an AsyncIterable or a ReadableStream. Error parts are not surfaced in this stream. Use the `onError` callback or `stream` to observe them.',
     },
     {
       name: 'finalStep',
@@ -3922,10 +4026,16 @@ To see `streamText` in action, check out [these examples](#examples).
               description: 'The original messages.',
             },
             {
+              name: 'onEnd',
+              type: '(options: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage; isAborted: boolean; }) => void',
+              isOptional: true,
+              description: 'Callback function called when the stream ends. Provides the updated list of UI messages, whether the response is a continuation, the response message, and whether the stream was aborted.',
+            },
+            {
               name: 'onFinish',
               type: '(options: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage; isAborted: boolean; }) => void',
               isOptional: true,
-              description: 'Callback function called when the stream finishes. Provides the updated list of UI messages, whether the response is a continuation, the response message, and whether the stream was aborted.',
+              description: 'Deprecated alias for `onEnd`.',
             },
             {
               name: 'messageMetadata',
@@ -3981,7 +4091,7 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'pipeUIMessageStreamToResponse',
-      type: '(response: ServerResponse, options?: ResponseInit & UIMessageStreamOptions) => void',
+      type: '(response: ServerResponse, options?: ResponseInit & UIMessageStreamOptions) => Promise<void>',
       description:
         'Writes UI message stream output to a Node.js response-like object.',
       properties: [
@@ -4012,7 +4122,7 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'pipeTextStreamToResponse',
-      type: '(response: ServerResponse, init?: ResponseInit) => void',
+      type: '(response: ServerResponse, init?: ResponseInit) => Promise<void>',
       description:
         'Writes text delta output to a Node.js response-like object. It sets a `Content-Type` header to `text/plain; charset=utf-8` and writes each text delta as a separate chunk.',
       properties: [

@@ -944,9 +944,60 @@ describe('tool messages', () => {
         text: 'Tool executed successfully and returned this image as a response',
       },
       {
-        text: `{"type":"file","data":{"type":"data","data":"base64pdfdata"},"mediaType":"application/pdf","filename":"report.pdf"}`,
+        inlineData: {
+          mimeType: 'application/pdf',
+          data: 'base64pdfdata',
+        },
+      },
+      {
+        text: 'Tool executed successfully and returned this file as a response',
       },
     ]);
+  });
+
+  it('issue #16072: should not serialize PDF file tool results as text on the non-Gemini-3 path', async () => {
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'catalogSearch',
+              toolCallId: 'testCallId',
+              output: {
+                type: 'content',
+                value: [
+                  { type: 'text', text: 'metadata' },
+                  {
+                    type: 'file',
+                    data: { type: 'data', data: 'JVBERi0xLjQK' },
+                    mediaType: 'application/pdf',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      { supportsFunctionResponseParts: false },
+    );
+
+    const textParts = result.contents.flatMap(content =>
+      content.parts
+        .filter(part => 'text' in part)
+        .map(part => (part as { text: string }).text),
+    );
+
+    expect(textParts).not.toEqual(
+      expect.arrayContaining([expect.stringContaining('JVBERi0xLjQK')]),
+    );
+    expect(result.contents[0].parts).toContainEqual({
+      inlineData: {
+        mimeType: 'application/pdf',
+        data: 'JVBERi0xLjQK',
+      },
+    });
   });
 
   it('should keep URL tool result parts on the legacy path', async () => {
@@ -1683,6 +1734,235 @@ describe('Gemini 3 missing thoughtSignature mitigation', () => {
       type: 'other',
       message: expect.stringContaining('skip_thought_signature_validator'),
     });
+    expect(onWarning.mock.calls[0][0].message).toContain('`weather`');
+  });
+
+  it('does NOT inject the sentinel or warn for unsigned parallel calls after a signed call', () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_paris',
+              toolName: 'get_weather',
+              input: { city: 'Paris' },
+              providerOptions: {
+                vertex: { thoughtSignature: 'parallel_batch_signature' },
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_tokyo',
+              toolName: 'get_weather',
+              input: { city: 'Tokyo' },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_new_york',
+              toolName: 'get_weather',
+              input: { city: 'New York' },
+            },
+          ],
+        },
+      ],
+      {
+        isGemini3Model: true,
+        providerOptionsNames: ['googleVertex', 'vertex'],
+        onWarning,
+      },
+    );
+
+    expect(result.contents[0].parts).toStrictEqual([
+      {
+        functionCall: {
+          id: 'tc_paris',
+          name: 'get_weather',
+          args: { city: 'Paris' },
+        },
+        thoughtSignature: 'parallel_batch_signature',
+      },
+      {
+        functionCall: {
+          id: 'tc_tokyo',
+          name: 'get_weather',
+          args: { city: 'Tokyo' },
+        },
+        thoughtSignature: undefined,
+      },
+      {
+        functionCall: {
+          id: 'tc_new_york',
+          name: 'get_weather',
+          args: { city: 'New York' },
+        },
+        thoughtSignature: undefined,
+      },
+    ]);
+    expect(onWarning).not.toHaveBeenCalled();
+  });
+
+  it('does NOT inject the sentinel when other response parts separate parallel function calls', () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_signed',
+              toolName: 'weather',
+              input: { location: 'SF' },
+              providerOptions: {
+                google: { thoughtSignature: 'signed_batch' },
+              },
+            },
+            {
+              type: 'text',
+              text: 'Checking another city in the same response.',
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_unsigned',
+              toolName: 'weather',
+              input: { location: 'NYC' },
+            },
+          ],
+        },
+      ],
+      { isGemini3Model: true, onWarning },
+    );
+
+    expect(result.contents[0].parts[2]).toStrictEqual({
+      functionCall: {
+        id: 'tc_unsigned',
+        name: 'weather',
+        args: { location: 'NYC' },
+      },
+      thoughtSignature: undefined,
+    });
+    expect(onWarning).not.toHaveBeenCalled();
+  });
+
+  it('does NOT inject the sentinel when server tool parts separate parallel function calls', () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'signed_function_call',
+              toolName: 'weather',
+              input: { location: 'SF' },
+              providerOptions: {
+                google: { thoughtSignature: 'function_signature' },
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'server_call',
+              toolName: 'server:GOOGLE_SEARCH_WEB',
+              input: { query: 'weather' },
+              providerOptions: {
+                google: {
+                  serverToolCallId: 'server_call',
+                  serverToolType: 'GOOGLE_SEARCH_WEB',
+                  thoughtSignature: 'server_call_signature',
+                },
+              },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'server_call',
+              toolName: 'server:GOOGLE_SEARCH_WEB',
+              output: { type: 'json', value: { results: [] } },
+              providerOptions: {
+                google: {
+                  serverToolCallId: 'server_call',
+                  serverToolType: 'GOOGLE_SEARCH_WEB',
+                  thoughtSignature: 'server_response_signature',
+                },
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'unsigned_function_call',
+              toolName: 'weather',
+              input: { location: 'NYC' },
+            },
+          ],
+        },
+      ],
+      { isGemini3Model: true, onWarning },
+    );
+
+    expect(result.contents[0].parts[3]).toStrictEqual({
+      functionCall: {
+        id: 'unsigned_function_call',
+        name: 'weather',
+        args: { location: 'NYC' },
+      },
+      thoughtSignature: undefined,
+    });
+    expect(onWarning).not.toHaveBeenCalled();
+  });
+
+  it('injects the sentinel when a signed server tool call precedes an unsigned function call', () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'server_call',
+              toolName: 'server:GOOGLE_SEARCH_WEB',
+              input: { query: 'weather' },
+              providerOptions: {
+                google: {
+                  serverToolCallId: 'server_call',
+                  serverToolType: 'GOOGLE_SEARCH_WEB',
+                  thoughtSignature: 'server_signature',
+                },
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'function_call',
+              toolName: 'weather',
+              input: { location: 'NYC' },
+            },
+          ],
+        },
+      ],
+      { isGemini3Model: true, onWarning },
+    );
+
+    expect(result.contents[0].parts).toStrictEqual([
+      {
+        toolCall: {
+          toolType: 'GOOGLE_SEARCH_WEB',
+          args: { query: 'weather' },
+          id: 'server_call',
+        },
+        thoughtSignature: 'server_signature',
+      },
+      {
+        functionCall: {
+          id: 'function_call',
+          name: 'weather',
+          args: { location: 'NYC' },
+        },
+        thoughtSignature: SKIP_THOUGHT_SIGNATURE_VALIDATOR,
+      },
+    ]);
+    expect(onWarning).toHaveBeenCalledTimes(1);
     expect(onWarning.mock.calls[0][0].message).toContain('`weather`');
   });
 

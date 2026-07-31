@@ -6,8 +6,8 @@ import {
 } from '@ai-sdk/provider-utils';
 import { MCPClientError } from '../error/mcp-client-error';
 import {
-  JSONRPCMessageSchema,
   parseJSONRPCMessage,
+  validateJSONRPCMessage,
   type JSONRPCMessage,
 } from './json-rpc-message';
 import type { MCPTransport } from './mcp-transport';
@@ -20,6 +20,10 @@ import {
   type OAuthClientProvider,
 } from './oauth';
 import { LATEST_PROTOCOL_VERSION } from './types';
+
+function isMessageEvent(event: string | undefined): boolean {
+  return event === undefined || event === 'message';
+}
 
 /**
  * HTTP MCP transport implementing the Streamable HTTP style.
@@ -39,6 +43,9 @@ export class HttpMCPTransport implements MCPTransport {
   private redirectMode: RequestRedirect;
   private fetchFn: FetchFunction;
   private authPromise?: Promise<AuthResult>;
+  private onSessionIdChange?: (sessionId: string | undefined) => void;
+  private onSessionExpired?: (sessionId: string) => void;
+  private terminateSessionOnClose: boolean;
 
   // Inbound SSE resumption and reconnection state
   private lastInboundEventId?: string;
@@ -60,31 +67,54 @@ export class HttpMCPTransport implements MCPTransport {
     headers,
     authProvider,
     redirect = 'error',
+    initialSessionId,
+    initialProtocolVersion,
+    onSessionIdChange,
+    onSessionExpired,
+    terminateSessionOnClose = true,
     fetch: fetchFn,
   }: {
     url: string;
     headers?: Record<string, string>;
     authProvider?: OAuthClientProvider;
     redirect?: 'follow' | 'error';
+    initialSessionId?: string;
+    initialProtocolVersion?: string;
+    onSessionIdChange?: (sessionId: string | undefined) => void;
+    onSessionExpired?: (sessionId: string) => void;
+    terminateSessionOnClose?: boolean;
     fetch?: FetchFunction;
   }) {
     this.url = new URL(url);
     this.headers = headers;
     this.authProvider = authProvider;
     this.redirectMode = redirect;
+    this.sessionId = initialSessionId;
+    this.protocolVersion = initialProtocolVersion;
+    this.onSessionIdChange = onSessionIdChange;
+    this.onSessionExpired = onSessionExpired;
+    this.terminateSessionOnClose = terminateSessionOnClose;
     this.fetchFn = fetchFn ?? globalThis.fetch;
   }
 
-  private async commonHeaders(
-    base: Record<string, string>,
-  ): Promise<Record<string, string>> {
+  setProtocolVersion(version: string): void {
+    this.protocolVersion = version;
+  }
+
+  private async commonHeaders({
+    base,
+    includeSessionId = true,
+  }: {
+    base: Record<string, string>;
+    includeSessionId?: boolean;
+  }): Promise<Record<string, string>> {
     const headers: Record<string, string> = {
       ...this.headers,
       ...base,
       'mcp-protocol-version': this.protocolVersion ?? LATEST_PROTOCOL_VERSION,
     };
 
-    if (this.sessionId) {
+    if (includeSessionId && this.sessionId) {
       headers['mcp-session-id'] = this.sessionId;
     }
 
@@ -100,6 +130,30 @@ export class HttpMCPTransport implements MCPTransport {
       `ai-sdk/${VERSION}`,
       getRuntimeEnvironmentUserAgent(),
     );
+  }
+
+  private setSessionId(sessionId: string | undefined): void {
+    if (this.sessionId === sessionId) {
+      return;
+    }
+
+    this.sessionId = sessionId;
+    this.onSessionIdChange?.(sessionId);
+  }
+
+  private applySessionIdFromResponse(response: Response): void {
+    const sessionId = response.headers.get('mcp-session-id');
+    if (sessionId) {
+      this.setSessionId(sessionId);
+    }
+  }
+
+  private expireSessionId(sessionId: string): void {
+    if (this.sessionId === sessionId) {
+      this.setSessionId(undefined);
+    }
+
+    this.onSessionExpired?.(sessionId);
   }
 
   /**
@@ -132,53 +186,74 @@ export class HttpMCPTransport implements MCPTransport {
     }
     this.abortController = new AbortController();
 
-    void this.openInboundSse();
+    this.startInboundSse();
   }
 
-  async close(): Promise<void> {
+  async close(options?: { signal?: AbortSignal }): Promise<void> {
     this.inboundSseConnection?.close();
+    this.abortController?.abort();
+
     try {
       if (
         this.sessionId &&
-        this.abortController &&
-        !this.abortController.signal.aborted
+        this.terminateSessionOnClose &&
+        this.abortController
       ) {
-        const headers = await this.commonHeaders({});
+        options?.signal?.throwIfAborted();
+        const headers = await this.commonHeaders({ base: {} });
+        options?.signal?.throwIfAborted();
         await this.fetchFn(this.url.href, {
           method: 'DELETE',
           headers,
-          signal: this.abortController.signal,
+          signal: options?.signal,
           redirect: this.redirectMode,
         }).catch(() => undefined);
       }
     } catch {}
 
-    this.abortController?.abort();
     this.onclose?.();
   }
 
-  async send(message: JSONRPCMessage): Promise<void> {
+  async send(
+    message: JSONRPCMessage,
+    options?: { signal?: AbortSignal },
+  ): Promise<void> {
+    options?.signal?.throwIfAborted();
+
+    const transportSignal = this.abortController?.signal;
+    const requestSignal =
+      options?.signal == null
+        ? transportSignal
+        : transportSignal == null
+          ? options.signal
+          : AbortSignal.any([transportSignal, options.signal]);
+
     const attempt = async (triedAuth: boolean = false): Promise<void> => {
       try {
+        const isInitializeRequest =
+          'method' in message && message.method === 'initialize';
+        const sessionIdForRequest = isInitializeRequest
+          ? undefined
+          : this.sessionId;
         const headers = await this.commonHeaders({
-          'Content-Type': 'application/json',
-          Accept: 'application/json, text/event-stream',
+          base: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json, text/event-stream',
+          },
+          includeSessionId: !isInitializeRequest,
         });
 
         const init = {
           method: 'POST',
           headers,
           body: JSON.stringify(message),
-          signal: this.abortController?.signal,
+          signal: requestSignal,
           redirect: this.redirectMode,
         } satisfies RequestInit;
 
         const response = await this.fetchFn(this.url.href, init);
 
-        const sessionId = response.headers.get('mcp-session-id');
-        if (sessionId) {
-          this.sessionId = sessionId;
-        }
+        this.applySessionIdFromResponse(response);
 
         if (response.status === 401 && this.authProvider && !triedAuth) {
           this.resourceMetadataUrl = extractResourceMetadataUrl(response);
@@ -200,7 +275,7 @@ export class HttpMCPTransport implements MCPTransport {
           // If inbound SSE was not available earlier (e.g. 405 before init), try again now
           // Do not await to avoid blocking send()
           if (!this.inboundSseConnection) {
-            void this.openInboundSse();
+            this.startInboundSse();
           }
           return;
         }
@@ -209,10 +284,16 @@ export class HttpMCPTransport implements MCPTransport {
           const text = await response.text().catch(() => null);
           let errorMessage = `MCP HTTP Transport Error: POSTing to endpoint (HTTP ${response.status}): ${text}`;
 
-          // 404 since this is a GET request which the server does not support
           if (response.status === 404) {
-            errorMessage +=
-              '. This server does not support HTTP transport. Try using `sse` transport instead';
+            if (sessionIdForRequest) {
+              this.expireSessionId(sessionIdForRequest);
+
+              errorMessage +=
+                '. The MCP session expired. Create a new client without `initialSessionId` to start a fresh session';
+            } else {
+              errorMessage +=
+                '. This server does not support HTTP transport. Try using `sse` transport instead';
+            }
           }
 
           const error = new MCPClientError({
@@ -236,10 +317,8 @@ export class HttpMCPTransport implements MCPTransport {
         if (contentType.includes('application/json')) {
           const data = await response.json();
           const messages: JSONRPCMessage[] = Array.isArray(data)
-            ? data.map((message: unknown) =>
-                JSONRPCMessageSchema.parse(message),
-              )
-            : [JSONRPCMessageSchema.parse(data)];
+            ? data.map((message: unknown) => validateJSONRPCMessage(message))
+            : [validateJSONRPCMessage(data)];
           for (const jsonRpcMessage of messages) {
             this.onmessage?.(jsonRpcMessage);
           }
@@ -269,7 +348,7 @@ export class HttpMCPTransport implements MCPTransport {
                 const { done, value } = await reader.read();
                 if (done) return;
                 const { event, data } = value;
-                if (event === 'message') {
+                if (isMessageEvent(event)) {
                   try {
                     const jsonRpcMessage = await parseJSONRPCMessage(data);
                     this.onmessage?.(jsonRpcMessage);
@@ -284,14 +363,25 @@ export class HttpMCPTransport implements MCPTransport {
                 }
               }
             } catch (error) {
-              if (error instanceof Error && error.name === 'AbortError') {
+              if (
+                options?.signal?.aborted ||
+                (error instanceof Error && error.name === 'AbortError')
+              ) {
                 return;
               }
               this.onerror?.(error);
             }
           };
 
-          processEvents();
+          void processEvents().catch(error => {
+            if (
+              options?.signal?.aborted ||
+              (error instanceof Error && error.name === 'AbortError')
+            ) {
+              return;
+            }
+            this.onerror?.(error);
+          });
           return;
         }
 
@@ -303,6 +393,9 @@ export class HttpMCPTransport implements MCPTransport {
         this.onerror?.(error);
         throw error;
       } catch (error) {
+        if (options?.signal?.aborted) {
+          throw error;
+        }
         this.onerror?.(error);
         throw error;
       }
@@ -336,10 +429,22 @@ export class HttpMCPTransport implements MCPTransport {
 
     const delay = this.getNextReconnectionDelay(this.inboundReconnectAttempts);
     this.inboundReconnectAttempts += 1;
-    setTimeout(async () => {
+    setTimeout(() => {
       if (this.abortController?.signal.aborted) return;
-      await this.openInboundSse(false, this.lastInboundEventId);
+      this.startInboundSse(false, this.lastInboundEventId);
     }, delay);
+  }
+
+  private startInboundSse(
+    triedAuth: boolean = false,
+    resumeToken?: string,
+  ): void {
+    void this.openInboundSse(triedAuth, resumeToken).catch(error => {
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+      this.onerror?.(error);
+    });
   }
 
   // Open optional inbound SSE stream; best-effort and resumable
@@ -348,8 +453,11 @@ export class HttpMCPTransport implements MCPTransport {
     resumeToken?: string,
   ): Promise<void> {
     try {
+      const sessionIdForRequest = this.sessionId;
       const headers = await this.commonHeaders({
-        Accept: 'text/event-stream',
+        base: {
+          Accept: 'text/event-stream',
+        },
       });
       if (resumeToken) {
         headers['last-event-id'] = resumeToken;
@@ -362,10 +470,7 @@ export class HttpMCPTransport implements MCPTransport {
         redirect: this.redirectMode,
       });
 
-      const sessionId = response.headers.get('mcp-session-id');
-      if (sessionId) {
-        this.sessionId = sessionId;
-      }
+      this.applySessionIdFromResponse(response);
 
       if (response.status === 401 && this.authProvider && !triedAuth) {
         this.resourceMetadataUrl = extractResourceMetadataUrl(response);
@@ -388,6 +493,10 @@ export class HttpMCPTransport implements MCPTransport {
       }
 
       if (!response.ok || !response.body) {
+        if (response.status === 404 && sessionIdForRequest) {
+          this.expireSessionId(sessionIdForRequest);
+        }
+
         const error = new MCPClientError({
           message: `MCP HTTP Transport Error: GET SSE failed: ${response.status} ${response.statusText}`,
           statusCode: response.status,
@@ -417,7 +526,7 @@ export class HttpMCPTransport implements MCPTransport {
               this.lastInboundEventId = id;
             }
 
-            if (event === 'message') {
+            if (isMessageEvent(event)) {
               try {
                 const jsonRpcMessage = await parseJSONRPCMessage(data);
                 this.onmessage?.(jsonRpcMessage);
@@ -442,10 +551,25 @@ export class HttpMCPTransport implements MCPTransport {
       };
 
       this.inboundSseConnection = {
-        close: () => reader.cancel(),
+        close: () => {
+          void reader.cancel().catch(error => {
+            if (error instanceof Error && error.name === 'AbortError') {
+              return;
+            }
+            this.onerror?.(error);
+          });
+        },
       };
       this.inboundReconnectAttempts = 0;
-      processEvents();
+      void processEvents().catch(error => {
+        if (error instanceof Error && error.name === 'AbortError') {
+          return;
+        }
+        this.onerror?.(error);
+        if (!this.abortController?.signal.aborted) {
+          this.scheduleInboundSseReconnection();
+        }
+      });
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         return;

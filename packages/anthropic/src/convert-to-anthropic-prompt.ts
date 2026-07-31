@@ -1,5 +1,7 @@
 import {
   UnsupportedFunctionalityError,
+  type JSONObject,
+  type JSONValue,
   type SharedV4Warning,
   type LanguageModelV4Message,
   type LanguageModelV4Prompt,
@@ -9,22 +11,30 @@ import {
   convertBase64ToUint8Array,
   convertToBase64,
   getTopLevelMediaType,
+  isNonNullable,
   parseProviderOptions,
   resolveFullMediaType,
   resolveProviderReference,
+  secureJsonParse,
   validateTypes,
-  isNonNullable,
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import {
   anthropicReasoningMetadataSchema,
   type AnthropicAssistantMessage,
   type AnthropicPrompt,
+  type AnthropicSystemMessage,
+  type AnthropicTextContent,
+  type AnthropicToolChangeContent,
   type AnthropicToolResultContent,
   type AnthropicUserMessage,
   type AnthropicWebFetchToolResultContent,
+  type Citation,
 } from './anthropic-api';
-import { anthropicFilePartProviderOptions } from './anthropic-language-model-options';
+import {
+  anthropicFilePartProviderOptions,
+  anthropicSystemMessageProviderOptions,
+} from './anthropic-language-model-options';
 import { CacheControlValidator } from './get-cache-control';
 import { advisor_20260301OutputSchema } from './tool/advisor_20260301';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
@@ -48,7 +58,7 @@ function convertBytesDataToString(data: Uint8Array | string): string {
 function extractErrorValue(value: unknown): { errorCode?: string } {
   try {
     if (typeof value === 'string') {
-      return JSON.parse(value);
+      return secureJsonParse(value);
     } else if (typeof value === 'object' && value !== null) {
       return value as { errorCode?: string };
     }
@@ -133,20 +143,66 @@ export async function convertToAnthropicPrompt({
 
     switch (type) {
       case 'system': {
-        const content = block.messages.map(({ content, providerOptions }) => ({
-          type: 'text' as const,
-          text: content,
-          cache_control: validator.getCacheControl(providerOptions, {
-            type: 'system message',
-            canCache: true,
-          }),
-        }));
+        const content: AnthropicSystemMessage['content'] = [];
+        let toolChangeCount = 0;
 
-        if (system == null) {
-          system = content;
+        for (const { content: text, providerOptions } of block.messages) {
+          const systemMessageOptions = await parseProviderOptions({
+            provider: 'anthropic',
+            providerOptions,
+            schema: anthropicSystemMessageProviderOptions,
+          });
+          const toolChanges = systemMessageOptions?.toolChanges ?? [];
+
+          // A system message that only carries tool changes may have empty
+          // text; do not emit an empty text block for it.
+          if (text !== '' || toolChanges.length === 0) {
+            content.push({
+              type: 'text' as const,
+              text,
+              cache_control: validator.getCacheControl(providerOptions, {
+                type: 'system message',
+                canCache: true,
+              }),
+            });
+          }
+
+          for (const toolChange of toolChanges) {
+            toolChangeCount++;
+            content.push({
+              type: toolChange.type,
+              tool: {
+                type: 'tool_reference',
+                name: toolNameMapping.toProviderToolName(toolChange.toolName),
+              },
+            } satisfies AnthropicToolChangeContent);
+          }
+        }
+
+        // The first block becomes the top-level system prompt. Later system
+        // blocks are sent as inline system messages — always when they carry
+        // tool changes (which are only valid mid-conversation), and otherwise
+        // only when a top-level system prompt already exists (preserving the
+        // existing hoisting behavior for plain text).
+        if (i === 0 || (system == null && toolChangeCount === 0)) {
+          if (toolChangeCount > 0) {
+            warnings.push({
+              type: 'other',
+              message:
+                'tool changes on the initial system message are not supported by Anthropic. ' +
+                'Configure the initial tool set via the tools option instead. ' +
+                'The tool changes have been ignored.',
+            });
+          }
+          system = content.filter(
+            (part): part is AnthropicTextContent => part.type === 'text',
+          );
         } else {
           messages.push({ role: 'system', content });
           betas.add('mid-conversation-system-2026-04-07');
+          if (toolChangeCount > 0) {
+            betas.add('mid-conversation-tool-changes-2026-07-01');
+          }
         }
 
         break;
@@ -582,7 +638,7 @@ export async function convertToAnthropicPrompt({
               case 'text': {
                 // Check if this is a compaction block (via providerMetadata)
                 const textMetadata = part.providerOptions?.anthropic as
-                  | { type?: string }
+                  | { type?: string; citations?: Citation[] }
                   | undefined;
 
                 if (textMetadata?.type === 'compaction') {
@@ -601,7 +657,9 @@ export async function convertToAnthropicPrompt({
                       isLastBlock && isLastMessage && isLastContentPart
                         ? part.text.trim()
                         : part.text,
-
+                    ...(textMetadata?.citations != null && {
+                      citations: textMetadata.citations,
+                    }),
                     cache_control: cacheControl,
                   });
                 }
@@ -800,7 +858,7 @@ export async function convertToAnthropicPrompt({
                   type: 'tool_use',
                   id: part.toolCallId,
                   name: part.toolName,
-                  input: part.input,
+                  input: toAnthropicToolInput(part.input),
                   ...(caller && { caller }),
                   cache_control: cacheControl,
                 });
@@ -844,7 +902,7 @@ export async function convertToAnthropicPrompt({
                     let errorInfo: { type?: string; errorCode?: string } = {};
                     try {
                       if (typeof output.value === 'string') {
-                        errorInfo = JSON.parse(output.value);
+                        errorInfo = secureJsonParse(output.value);
                       } else if (
                         typeof output.value === 'object' &&
                         output.value !== null
@@ -1209,7 +1267,10 @@ export async function convertToAnthropicPrompt({
           }
         }
 
-        messages.push({ role: 'assistant', content: anthropicContent });
+        messages.push({
+          role: 'assistant',
+          content: moveToolUseBlocksToEnd(anthropicContent),
+        });
 
         break;
       }
@@ -1294,4 +1355,39 @@ function groupIntoBlocks(
   }
 
   return blocks;
+}
+
+function moveToolUseBlocksToEnd(
+  content: AnthropicAssistantMessage['content'],
+): AnthropicAssistantMessage['content'] {
+  const result: AnthropicAssistantMessage['content'] = [];
+  let segment: AnthropicAssistantMessage['content'] = [];
+
+  function flushSegment() {
+    result.push(
+      ...segment.filter(part => part.type !== 'tool_use'),
+      ...segment.filter(part => part.type === 'tool_use'),
+    );
+    segment = [];
+  }
+
+  for (const part of content) {
+    if (part.type === 'thinking' || part.type === 'redacted_thinking') {
+      flushSegment();
+      result.push(part);
+    } else {
+      segment.push(part);
+    }
+  }
+
+  flushSegment();
+
+  return result;
+}
+
+// wrap invalid tool call input because Anthropic requires it to be an object
+function toAnthropicToolInput(input: unknown): JSONObject {
+  return typeof input === 'object' && input !== null && !Array.isArray(input)
+    ? (input as JSONObject)
+    : { rawInvalidInput: input as JSONValue };
 }

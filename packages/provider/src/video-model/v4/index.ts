@@ -8,3 +8,7 @@ export type { VideoModelV4File as Experimental_VideoModelV4File } from './video-
 export type { VideoModelV4OperationStartResult as Experimental_VideoModelV4OperationStartResult } from './video-model-v4-operation-start-result';
 export type { VideoModelV4OperationStatusResult as Experimental_VideoModelV4OperationStatusResult } from './video-model-v4-operation-status-result';
 export type { VideoModelV4OperationWebhook as Experimental_VideoModelV4OperationWebhook } from './video-model-v4-operation-webhook';
+export type {
+  VideoModelV4FrameImage as Experimental_VideoModelV4FrameImage,
+  VideoModelV4FrameType as Experimental_VideoModelV4FrameType,
+} from './video-model-v4-frame-image';

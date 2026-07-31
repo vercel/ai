@@ -12,6 +12,7 @@ import type { ActiveTools } from '../generate-text/active-tools';
 import type {
   GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
+  GenerateTextOnStepEndCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from '../generate-text/generate-text-events';
@@ -21,12 +22,14 @@ import type { PrepareStepFunction } from '../generate-text/prepare-step';
 import type { StopCondition } from '../generate-text/stop-condition';
 import type { StreamTextInclude } from '../generate-text/stream-text';
 import type { ToolApprovalConfiguration } from '../generate-text/tool-approval-configuration';
+import type { Experimental_ToolCallers } from '../generate-text/tool-caller-configuration';
 import type { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
 import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from '../generate-text/tool-execution-events';
 import type { ToolInputRefinement } from '../generate-text/tool-input-refinement';
+import type { ToolOrder } from '../generate-text/tool-order';
 import type { ToolsContextParameter } from '../generate-text/tools-context-parameter';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import type { Instructions, Prompt } from '../prompt/prompt';
@@ -106,6 +109,15 @@ export type ToolLoopAgentSettings<
     activeTools?: ActiveTools<NoInfer<TOOLS>>;
 
     /**
+     * Controls the order in which tools are sent to the provider.
+     *
+     * The list can be partial. Tools not listed in `toolOrder` are sent after
+     * the listed tools, sorted alphabetically. This can improve provider-side
+     * caching by keeping tool definitions in a stable order.
+     */
+    toolOrder?: ToolOrder<NoInfer<TOOLS>>;
+
+    /**
      * Optional specification for generating structured outputs.
      */
     output?: OUTPUT;
@@ -124,12 +136,24 @@ export type ToolLoopAgentSettings<
     toolApproval?: ToolApprovalConfiguration<NoInfer<TOOLS>, RUNTIME_CONTEXT>;
 
     /**
+     * Configures which caller tools may invoke each tool.
+     */
+    experimental_toolCallers?: Experimental_ToolCallers<NoInfer<TOOLS>>;
+
+    /**
      * Optional function that you can use to provide different settings for a step.
      */
     prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, RUNTIME_CONTEXT>;
 
     /**
      * A function that attempts to repair a tool call that failed to parse.
+     */
+    repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
+
+    /**
+     * A function that attempts to repair a tool call that failed to parse.
+     *
+     * @deprecated Use `repairToolCall` instead.
      */
     experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
 
@@ -144,6 +168,17 @@ export type ToolLoopAgentSettings<
     /**
      * Callback that is called when the agent operation begins, before any LLM calls.
      */
+    onStart?: GenerateTextOnStartCallback<
+      NoInfer<TOOLS>,
+      RUNTIME_CONTEXT,
+      NoInfer<OUTPUT>
+    >;
+
+    /**
+     * Callback that is called when the agent operation begins, before any LLM calls.
+     *
+     * @deprecated Use `onStart` instead.
+     */
     experimental_onStart?: GenerateTextOnStartCallback<
       NoInfer<TOOLS>,
       RUNTIME_CONTEXT,
@@ -152,6 +187,17 @@ export type ToolLoopAgentSettings<
 
     /**
      * Callback that is called when a step (LLM call) begins, before the provider is called.
+     */
+    onStepStart?: GenerateTextOnStepStartCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>,
+      NoInfer<OUTPUT>
+    >;
+
+    /**
+     * Callback that is called when a step (LLM call) begins, before the provider is called.
+     *
+     * @deprecated Use `onStepStart` instead.
      */
     experimental_onStepStart?: GenerateTextOnStepStartCallback<
       NoInfer<TOOLS>,
@@ -170,7 +216,17 @@ export type ToolLoopAgentSettings<
     onToolExecutionEnd?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
 
     /**
-     * Callback that is called when each step (LLM call) is finished, including intermediate steps.
+     * Callback that is called when each step (LLM call) ends, including intermediate steps.
+     */
+    onStepEnd?: GenerateTextOnStepEndCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>
+    >;
+
+    /**
+     * Callback that is called when each step (LLM call) ends, including intermediate steps.
+     *
+     * @deprecated Use `onStepEnd` instead.
      */
     onStepFinish?: GenerateTextOnStepFinishCallback<
       NoInfer<TOOLS>,
@@ -251,7 +307,7 @@ export type ToolLoopAgentSettings<
           NoInfer<TOOLS>,
           NoInfer<RUNTIME_CONTEXT>
         >,
-        'onStepFinish'
+        'onStepEnd' | 'onStepFinish'
       > &
         Pick<
           ToolLoopAgentSettings<
@@ -277,7 +333,9 @@ export type ToolLoopAgentSettings<
           | 'telemetry'
           | 'experimental_telemetry'
           | 'activeTools'
+          | 'toolOrder'
           | 'toolApproval'
+          | 'experimental_toolCallers'
           | 'providerOptions'
           | 'experimental_download'
           | 'experimental_refineToolInput'
@@ -310,7 +368,9 @@ export type ToolLoopAgentSettings<
         | 'telemetry'
         | 'experimental_telemetry'
         | 'activeTools'
+        | 'toolOrder'
         | 'toolApproval'
+        | 'experimental_toolCallers'
         | 'providerOptions'
         | 'experimental_download'
         | 'experimental_refineToolInput'

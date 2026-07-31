@@ -128,11 +128,11 @@ const { embeddings } = await embedMany({
       ],
     },
     {
-      name: 'experimental_onStart',
+      name: 'onStart',
       type: '(event: EmbedStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        'Callback that is called when the embedMany operation begins, before the embedding model is called. Errors thrown in this callback are silently caught and do not break the embedding flow. Experimental (can break in patch releases).',
+        'Callback that is called when the embedMany operation begins, before the embedding model is called. Errors thrown in this callback are silently caught and do not break the embedding flow.',
       properties: [
         {
           type: 'EmbedStartEvent',
@@ -183,11 +183,11 @@ const { embeddings } = await embedMany({
       ],
     },
     {
-      name: 'experimental_onEnd',
+      name: 'onEnd',
       type: '(event: EmbedEndEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        'Callback that is called when the embedMany operation completes, after all embedding model calls return. Errors thrown in this callback are silently caught and do not break the embedding flow. Experimental (can break in patch releases).',
+        'Callback that is called when the embedMany operation completes, after all embedding model calls return. Errors thrown in this callback are silently caught and do not break the embedding flow.',
       properties: [
         {
           type: 'EmbedEndEvent',

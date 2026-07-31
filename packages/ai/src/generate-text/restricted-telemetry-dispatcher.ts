@@ -15,6 +15,7 @@ import type {
   GenerateTextOnAbortCallback,
   GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
+  GenerateTextOnStepEndCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from './generate-text-events';
@@ -37,6 +38,7 @@ export type RestrictedTelemetryDispatcher<
   TelemetryDispatcher,
   | 'onStart'
   | 'onStepStart'
+  | 'onStepEnd'
   | 'onStepFinish'
   | 'onEnd'
   | 'onAbort'
@@ -45,6 +47,8 @@ export type RestrictedTelemetryDispatcher<
 > & {
   onStart: GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   onStepStart: GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
+  onStepEnd: GenerateTextOnStepEndCallback<TOOLS, RUNTIME_CONTEXT>;
+  /** @deprecated Use `onStepEnd` instead. */
   onStepFinish: GenerateTextOnStepFinishCallback<TOOLS, RUNTIME_CONTEXT>;
   onEnd: GenerateTextOnEndCallback<TOOLS, RUNTIME_CONTEXT>;
   onAbort?: GenerateTextOnAbortCallback<TOOLS, RUNTIME_CONTEXT>;
@@ -218,8 +222,16 @@ export function createRestrictedTelemetryDispatcher<
           includeToolsContext,
         }),
       }),
+    onStepEnd: event =>
+      telemetryDispatcher.onStepEnd?.(
+        restrictStepResult({
+          step: event,
+          includeRuntimeContext,
+          includeToolsContext,
+        }),
+      ),
     onStepFinish: event =>
-      telemetryDispatcher.onStepFinish?.(
+      telemetryDispatcher.onStepEnd?.(
         restrictStepResult({
           step: event,
           includeRuntimeContext,

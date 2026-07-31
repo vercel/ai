@@ -10,6 +10,30 @@ import { MCPClientError } from '../error/mcp-client-error';
 import type { OAuthClientProvider } from './oauth';
 import type { OAuthTokens } from './oauth-types';
 
+function createAbortableSseResponse({
+  signal,
+  onAbort,
+}: {
+  signal: AbortSignal;
+  onAbort: () => void;
+}): Response {
+  return new Response(
+    new ReadableStream({
+      start(controller) {
+        signal.addEventListener(
+          'abort',
+          () => {
+            onAbort();
+            controller.error(signal.reason);
+          },
+          { once: true },
+        );
+      },
+    }),
+    { headers: { 'content-type': 'text/event-stream' } },
+  );
+}
+
 describe('HttpMCPTransport', () => {
   const server = createTestServer({
     'http://localhost:4000/mcp': {
@@ -107,6 +131,223 @@ describe('HttpMCPTransport', () => {
     });
   });
 
+  it('should initialize MCP client from SSE response without explicit event field', async () => {
+    const controller = new TestResponseController();
+
+    server.urls['http://localhost:4000/stream'].response = ({ callNumber }) => {
+      switch (callNumber) {
+        case 0:
+          return { type: 'error', status: 405 };
+        case 1:
+          return {
+            type: 'controlled-stream',
+            controller,
+            headers: { 'content-type': 'text/event-stream' },
+          };
+        case 2:
+          return { type: 'empty', status: 202 };
+        default:
+          return { type: 'empty', status: 200 };
+      }
+    };
+
+    const clientPromise = createMCPClient({
+      transport: {
+        type: 'http',
+        url: 'http://localhost:4000/stream',
+      },
+    });
+
+    await vi.waitFor(() => {
+      expect(server.calls[1]?.requestMethod).toBe('POST');
+    });
+
+    controller.write(
+      `data: ${JSON.stringify({
+        jsonrpc: '2.0',
+        id: 0,
+        result: {
+          protocolVersion: LATEST_PROTOCOL_VERSION,
+          capabilities: {},
+          serverInfo: { name: 'test-server', version: '1.0.0' },
+        },
+      })}\n\n`,
+    );
+
+    const client = await clientPromise;
+    expect(client.serverInfo).toEqual({
+      name: 'test-server',
+      version: '1.0.0',
+    });
+
+    await client.close();
+  });
+
+  it('should abort an unterminated initialization response on timeout', async () => {
+    let responseAborted = false;
+    const fetch = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        if (init?.method !== 'POST') {
+          return new Response(null, { status: 405 });
+        }
+
+        return createAbortableSseResponse({
+          signal: init.signal as AbortSignal,
+          onAbort: () => {
+            responseAborted = true;
+          },
+        });
+      },
+    );
+    const clientPromise = createMCPClient({
+      transport: {
+        type: 'http',
+        url: 'http://localhost:4000/mcp',
+        fetch,
+      },
+      initializationOptions: { timeout: 100 },
+    });
+    const rejection = expect(clientPromise).rejects.toSatisfy(
+      error =>
+        MCPClientError.isInstance(error) &&
+        error.message === 'MCP client initialization timed out after 100ms',
+    );
+
+    await vi.advanceTimersByTimeAsync(100);
+
+    await rejection;
+    expect(responseAborted).toBe(true);
+  });
+
+  it('should bound session cleanup after failed initialization', async () => {
+    let resolveDeleteStarted: () => void;
+    const deleteStarted = new Promise<void>(resolve => {
+      resolveDeleteStarted = resolve;
+    });
+    let deleteAborted = false;
+    const fetch = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        if (init?.method === 'GET') {
+          return new Response(null, { status: 405 });
+        }
+
+        if (init?.method === 'DELETE') {
+          resolveDeleteStarted();
+          return new Promise<Response>((_, reject) => {
+            const signal = init.signal as AbortSignal;
+            signal.addEventListener(
+              'abort',
+              () => {
+                deleteAborted = true;
+                reject(signal.reason);
+              },
+              { once: true },
+            );
+          });
+        }
+
+        const message = JSON.parse(String(init?.body));
+        if (message.method === 'initialize') {
+          return Response.json(
+            {
+              jsonrpc: '2.0',
+              id: message.id,
+              result: {
+                protocolVersion: LATEST_PROTOCOL_VERSION,
+                capabilities: {},
+                serverInfo: { name: 'test-server', version: '1.0.0' },
+              },
+            },
+            { headers: { 'mcp-session-id': 'cleanup-session' } },
+          );
+        }
+
+        return new Response('failed initialized notification', {
+          status: 500,
+        });
+      },
+    );
+    const clientPromise = createMCPClient({
+      transport: {
+        type: 'http',
+        url: 'http://localhost:4000/mcp',
+        fetch,
+      },
+      initializationOptions: { timeout: 100 },
+    });
+    const rejection = expect(clientPromise).rejects.toSatisfy(
+      error =>
+        MCPClientError.isInstance(error) &&
+        error.message === 'MCP client initialization timed out after 100ms',
+    );
+
+    await deleteStarted;
+    await vi.advanceTimersByTimeAsync(100);
+
+    await rejection;
+    expect(deleteAborted).toBe(true);
+  });
+
+  it.each([
+    ['timeout', { timeout: 100 }],
+    ['maximum total timeout', { maxTotalTimeout: 100 }],
+  ])(
+    'should abort an unterminated request response at its %s',
+    async (_, options) => {
+      let responseAborted = false;
+      const fetch = vi.fn(
+        async (_input: RequestInfo | URL, init?: RequestInit) => {
+          if (init?.method !== 'POST') {
+            return new Response(null, { status: 405 });
+          }
+
+          const message = JSON.parse(String(init.body));
+          if (message.method === 'initialize') {
+            return Response.json({
+              jsonrpc: '2.0',
+              id: message.id,
+              result: {
+                protocolVersion: LATEST_PROTOCOL_VERSION,
+                capabilities: { tools: {} },
+                serverInfo: { name: 'test-server', version: '1.0.0' },
+              },
+            });
+          }
+
+          if (message.method === 'notifications/initialized') {
+            return new Response(null, { status: 202 });
+          }
+
+          return createAbortableSseResponse({
+            signal: init.signal as AbortSignal,
+            onAbort: () => {
+              responseAborted = true;
+            },
+          });
+        },
+      );
+      const client = await createMCPClient({
+        transport: {
+          type: 'http',
+          url: 'http://localhost:4000/mcp',
+          fetch,
+        },
+      });
+      const requestPromise = client.listTools({ options });
+      const rejection = expect(requestPromise).rejects.toSatisfy(
+        error =>
+          MCPClientError.isInstance(error) &&
+          error.message === 'Request timed out after 100ms',
+      );
+
+      await vi.advanceTimersByTimeAsync(100);
+
+      await rejection;
+      expect(responseAborted).toBe(true);
+      await client.close();
+    },
+  );
+
   it('should (re)open inbound SSE after 202 Accepted', async () => {
     const controller = new TestResponseController();
 
@@ -180,6 +421,236 @@ describe('HttpMCPTransport', () => {
     expect(server.calls[2].requestHeaders['mcp-session-id']).toBe(
       'xyz-session',
     );
+  });
+
+  it('should not DELETE to terminate session on close when disabled', async () => {
+    transport = new HttpMCPTransport({
+      url: 'http://localhost:4000/mcp',
+      terminateSessionOnClose: false,
+    });
+
+    server.urls['http://localhost:4000/mcp'].response = ({ callNumber }) => {
+      switch (callNumber) {
+        case 0:
+          return { type: 'error', status: 405 };
+        case 1:
+          return {
+            type: 'json-value',
+            headers: { 'mcp-session-id': 'xyz-session' },
+            body: { jsonrpc: '2.0', id: 1, result: { ok: true } },
+          };
+        default:
+          return { type: 'empty', status: 200 };
+      }
+    };
+
+    await transport.start();
+    await transport.send({
+      jsonrpc: '2.0' as const,
+      method: 'initialize',
+      id: 1,
+      params: {},
+    });
+
+    await transport.close();
+
+    expect(server.calls).toHaveLength(2);
+    expect(server.calls[0].requestMethod).toBe('GET');
+    expect(server.calls[1].requestMethod).toBe('POST');
+  });
+
+  it('should send initial session id on resumed HTTP requests', async () => {
+    const initialSessionId = 'saved-session';
+    const initialProtocolVersion = '2025-06-18';
+
+    transport = new HttpMCPTransport({
+      url: 'http://localhost:4000/mcp',
+      initialSessionId,
+      initialProtocolVersion,
+    });
+
+    server.urls['http://localhost:4000/mcp'].response = ({ callNumber }) => {
+      switch (callNumber) {
+        case 0:
+          return { type: 'error', status: 405 };
+        case 1:
+          return {
+            type: 'json-value',
+            body: { jsonrpc: '2.0', id: 1, result: { ok: true } },
+          };
+        case 2:
+          return {
+            type: 'json-value',
+            body: { jsonrpc: '2.0', id: 2, result: { ok: true } },
+          };
+        default:
+          return { type: 'empty', status: 200 };
+      }
+    };
+
+    await transport.start();
+    await transport.send({
+      jsonrpc: '2.0' as const,
+      method: 'initialize',
+      id: 1,
+      params: {},
+    });
+    await transport.send({
+      jsonrpc: '2.0' as const,
+      method: 'tools/list',
+      id: 2,
+      params: {},
+    });
+
+    expect(server.calls[0].requestMethod).toBe('GET');
+    expect(server.calls[0].requestHeaders['mcp-session-id']).toBe(
+      initialSessionId,
+    );
+    expect(server.calls[0].requestHeaders['mcp-protocol-version']).toBe(
+      initialProtocolVersion,
+    );
+
+    expect(server.calls[1].requestMethod).toBe('POST');
+    expect(server.calls[1].requestHeaders['mcp-session-id']).toBeUndefined();
+    expect(server.calls[1].requestHeaders['mcp-protocol-version']).toBe(
+      initialProtocolVersion,
+    );
+
+    expect(server.calls[2].requestMethod).toBe('POST');
+    expect(server.calls[2].requestHeaders['mcp-session-id']).toBe(
+      initialSessionId,
+    );
+    expect(server.calls[2].requestHeaders['mcp-protocol-version']).toBe(
+      initialProtocolVersion,
+    );
+  });
+
+  it('should notify when the server changes the session id', async () => {
+    const onSessionIdChange = vi.fn();
+
+    transport = new HttpMCPTransport({
+      url: 'http://localhost:4000/mcp',
+      onSessionIdChange,
+    });
+
+    server.urls['http://localhost:4000/mcp'].response = ({ callNumber }) => {
+      switch (callNumber) {
+        case 0:
+          return { type: 'error', status: 405 };
+        default:
+          return {
+            type: 'json-value',
+            headers: { 'mcp-session-id': 'new-session' },
+            body: {
+              jsonrpc: '2.0',
+              id: callNumber,
+              result: { ok: true },
+            },
+          };
+      }
+    };
+
+    await transport.start();
+    await transport.send({
+      jsonrpc: '2.0' as const,
+      method: 'initialize',
+      id: 1,
+      params: {},
+    });
+    await transport.send({
+      jsonrpc: '2.0' as const,
+      method: 'tools/list',
+      id: 2,
+      params: {},
+    });
+
+    expect(onSessionIdChange).toHaveBeenCalledTimes(1);
+    expect(onSessionIdChange).toHaveBeenCalledWith('new-session');
+    expect(server.calls[2].requestHeaders['mcp-session-id']).toBe(
+      'new-session',
+    );
+  });
+
+  it('should notify and clear the session id when POST returns 404', async () => {
+    const onSessionIdChange = vi.fn();
+    const onSessionExpired = vi.fn();
+
+    transport = new HttpMCPTransport({
+      url: 'http://localhost:4000/mcp',
+      initialSessionId: 'expired-session',
+      onSessionIdChange,
+      onSessionExpired,
+    });
+
+    server.urls['http://localhost:4000/mcp'].response = ({ callNumber }) => {
+      switch (callNumber) {
+        case 0:
+          return { type: 'error', status: 405 };
+        case 1:
+          return { type: 'error', status: 404, body: 'Not Found' };
+        case 2:
+          return {
+            type: 'json-value',
+            body: { jsonrpc: '2.0', id: 2, result: { ok: true } },
+          };
+        default:
+          return { type: 'empty', status: 200 };
+      }
+    };
+
+    await transport.start();
+    await expect(
+      transport.send({
+        jsonrpc: '2.0' as const,
+        method: 'tools/list',
+        id: 1,
+        params: {},
+      }),
+    ).rejects.toThrow('The MCP session expired');
+
+    expect(onSessionExpired).toHaveBeenCalledTimes(1);
+    expect(onSessionExpired).toHaveBeenCalledWith('expired-session');
+    expect(onSessionIdChange).toHaveBeenCalledTimes(1);
+    expect(onSessionIdChange).toHaveBeenCalledWith(undefined);
+
+    await transport.send({
+      jsonrpc: '2.0' as const,
+      method: 'tools/list',
+      id: 2,
+      params: {},
+    });
+
+    expect(server.calls[2].requestHeaders['mcp-session-id']).toBeUndefined();
+  });
+
+  it('should notify and clear the session id when inbound SSE returns 404', async () => {
+    const onSessionIdChange = vi.fn();
+    const onSessionExpired = vi.fn();
+
+    transport = new HttpMCPTransport({
+      url: 'http://localhost:4000/mcp',
+      initialSessionId: 'expired-session',
+      onSessionIdChange,
+      onSessionExpired,
+    });
+
+    server.urls['http://localhost:4000/mcp'].response = {
+      type: 'error',
+      status: 404,
+      body: 'Not Found',
+    };
+
+    await transport.start();
+
+    await vi.waitFor(() => {
+      expect(onSessionExpired).toHaveBeenCalledWith('expired-session');
+    });
+
+    expect(server.calls[0].requestMethod).toBe('GET');
+    expect(server.calls[0].requestHeaders['mcp-session-id']).toBe(
+      'expired-session',
+    );
+    expect(onSessionIdChange).toHaveBeenCalledWith(undefined);
   });
 
   it('should report HTTP errors from POST', async () => {
@@ -295,6 +766,29 @@ describe('HttpMCPTransport', () => {
     expect(error.message).toContain('GET SSE failed');
   });
 
+  it('should handle inbound SSE messages without explicit event field', async () => {
+    const controller = new TestResponseController();
+    server.urls['http://localhost:4000/mcp'].response = {
+      type: 'controlled-stream',
+      controller,
+      headers: { 'content-type': 'text/event-stream' },
+    };
+
+    const message = { jsonrpc: '2.0' as const, id: 1, result: { ok: true } };
+    const messagePromise = new Promise(resolve => {
+      transport.onmessage = msg => resolve(msg);
+    });
+
+    await transport.start();
+    await vi.waitFor(() => {
+      expect(server.calls[0]?.requestMethod).toBe('GET');
+    });
+
+    controller.write(`data: ${JSON.stringify(message)}\n\n`);
+
+    expect(await messagePromise).toEqual(message);
+  });
+
   it('should handle invalid JSON-RPC messages from inbound SSE', async () => {
     const controller = new TestResponseController();
     server.urls['http://localhost:4000/mcp'].response = {
@@ -316,6 +810,54 @@ describe('HttpMCPTransport', () => {
     const error = await errorPromise;
     expect(error).toBeInstanceOf(MCPClientError);
     expect((error as Error).message).toContain('Failed to parse message');
+  });
+
+  it('should handle rejected inbound SSE cancel after stream errors', async () => {
+    const streamError = new TypeError('terminated');
+    let streamController:
+      | ReadableStreamDefaultController<Uint8Array>
+      | undefined;
+
+    const fetch = vi.fn(async () => {
+      return new Response(
+        new ReadableStream<Uint8Array>({
+          start(controller) {
+            streamController = controller;
+          },
+        }),
+        {
+          headers: { 'content-type': 'text/event-stream' },
+        },
+      );
+    });
+
+    transport = new HttpMCPTransport({
+      url: 'http://localhost:4000/mcp',
+      fetch,
+    });
+
+    const errors: unknown[] = [];
+    transport.onerror = error => {
+      errors.push(error);
+    };
+
+    await transport.start();
+
+    await vi.waitFor(() => {
+      expect(streamController).toBeDefined();
+    });
+
+    streamController!.error(streamError);
+
+    await vi.waitFor(() => {
+      expect(errors).toContain(streamError);
+    });
+
+    await transport.close();
+
+    await vi.waitFor(() => {
+      expect(errors.filter(error => error === streamError)).toHaveLength(2);
+    });
   });
 
   it('should handle non-JSON-RPC response for notifications', async () => {
@@ -409,6 +951,8 @@ describe('HttpMCPTransport', () => {
       access_token: 'expired-access-token',
       token_type: 'Bearer',
       refresh_token: 'rotating-refresh-token',
+      authorization_server: 'http://localhost:4000/',
+      token_endpoint: 'http://localhost:4000/token',
     };
     let releaseRefresh: () => void;
     const refreshGate = new Promise<void>(resolve => {

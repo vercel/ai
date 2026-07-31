@@ -11,10 +11,13 @@ const defaultOptions = {
   prompt,
   n: 1,
   image: undefined,
+  frameImages: undefined,
+  inputReferences: undefined,
   aspectRatio: undefined,
   resolution: undefined,
   duration: undefined,
   fps: undefined,
+  generateAudio: undefined,
   seed: undefined,
   providerOptions: {},
 } as const;
@@ -347,10 +350,8 @@ describe('GoogleVideoModel', () => {
 
       const body = capturedBody as { instances: Array<{ image: unknown }> };
       expect(body.instances[0].image).toStrictEqual({
-        inlineData: {
-          mimeType: 'image/png',
-          data: 'base64-image-data',
-        },
+        bytesBase64Encoded: 'base64-image-data',
+        mimeType: 'image/png',
       });
     });
 
@@ -455,13 +456,18 @@ describe('GoogleVideoModel', () => {
       };
       expect(body.instances[0].referenceImages).toStrictEqual([
         {
-          inlineData: {
+          image: {
+            bytesBase64Encoded: 'reference-image-data',
             mimeType: 'image/png',
-            data: 'reference-image-data',
           },
+          referenceType: 'asset',
         },
         {
-          gcsUri: 'gs://bucket/reference.png',
+          image: {
+            gcsUri: 'gs://bucket/reference.png',
+            mimeType: 'image/png',
+          },
+          referenceType: 'asset',
         },
       ]);
     });

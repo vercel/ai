@@ -1,14 +1,14 @@
 import type {
-  Experimental_Sandbox,
+  Experimental_SandboxSession,
   Experimental_SandboxProcess,
 } from '@ai-sdk/provider-utils';
 
 /**
- * No-op stubs for the file and spawn methods on `Experimental_Sandbox`,
+ * No-op stubs for the file and spawn methods on `Experimental_SandboxSession`,
  * intended to be spread into test fixtures that only care about `run`.
  */
-export const mockSandboxFileStubs: Pick<
-  Experimental_Sandbox,
+export const mockSandboxSessionFileStubs: Pick<
+  Experimental_SandboxSession,
   | 'readFile'
   | 'readBinaryFile'
   | 'readTextFile'

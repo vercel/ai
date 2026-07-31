@@ -5,6 +5,10 @@ import type {
   ImageModelV4,
   LanguageModelV4,
   ProviderV4,
+  Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
+  Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
+  SpeechModelV4,
+  Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -12,6 +16,7 @@ import {
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 import { GoogleEmbeddingModel } from './google-embedding-model';
@@ -28,12 +33,17 @@ import { GoogleImageModel } from './google-image-model';
 import { GoogleFiles } from './google-files';
 import { GoogleVideoModel } from './google-video-model';
 import type { GoogleVideoModelId } from './google-video-settings';
+import { GoogleSpeechModel } from './google-speech-model';
+import type { GoogleSpeechModelId } from './google-speech-model-options';
 import {
   GoogleInteractionsLanguageModel,
   type GoogleInteractionsModelInput,
 } from './interactions/google-interactions-language-model';
 import type { GoogleInteractionsModelId } from './interactions/google-interactions-language-model-options';
 import type { GoogleInteractionsAgentName } from './interactions/google-interactions-agent';
+import { GoogleRealtimeModel } from './realtime/google-realtime-model';
+import { GoogleTranslationModel } from './translation/google-translation-model';
+import type { GoogleTranslationModelId } from './translation/google-translation-model-options';
 
 export interface GoogleProvider extends ProviderV4 {
   (modelId: GoogleModelId): LanguageModelV4;
@@ -85,6 +95,28 @@ export interface GoogleProvider extends ProviderV4 {
    */
   videoModel(modelId: GoogleVideoModelId): Experimental_VideoModelV4;
 
+  /**
+   * Creates an experimental model for streaming speech translation.
+   */
+  translation(modelId: GoogleTranslationModelId): SpeechTranslationModelV4;
+
+  /**
+   * Creates an experimental model for streaming speech translation.
+   */
+  speechTranslationModel(
+    modelId: GoogleTranslationModelId,
+  ): SpeechTranslationModelV4;
+
+  /**
+   * Creates a model for speech generation (text-to-speech).
+   */
+  speech(modelId: GoogleSpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a model for speech generation (text-to-speech).
+   */
+  speechModel(modelId: GoogleSpeechModelId): SpeechModelV4;
+
   files(): FilesV4;
 
   /**
@@ -101,6 +133,8 @@ export interface GoogleProvider extends ProviderV4 {
       | { agent: GoogleInteractionsAgentName }
       | { managedAgent: string },
   ): LanguageModelV4;
+
+  experimental_realtime: RealtimeFactoryV4;
 
   tools: typeof googleTools;
 }
@@ -135,10 +169,47 @@ export interface GoogleProviderSettings {
   generateId?: () => string;
 
   /**
+   * Custom WebSocket implementation. This is useful for testing or for
+   * runtimes that need a WebSocket constructor with header support.
+   */
+  webSocket?: WebSocketConstructor;
+
+  /**
    * Custom provider name
    * Defaults to 'google.generative-ai'.
    */
   name?: string;
+}
+
+const supportedExternalUrlMediaTypes = [
+  'text/html',
+  'text/css',
+  'text/plain',
+  'text/xml',
+  'text/csv',
+  'text/rtf',
+  'text/javascript',
+  'application/json',
+  'application/pdf',
+  'image/bmp',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'video/mp4',
+  'video/mpeg',
+  'video/quicktime',
+  'video/avi',
+  'video/x-flv',
+  'video/mpg',
+  'video/webm',
+  'video/wmv',
+  'video/3gpp',
+];
+
+const externalHttpsUrlPattern = /^https:\/\/.*$/;
+
+function supportsExternalFileUrls(modelId: string) {
+  return /(^|\/)gemini-/.test(modelId) && !/(^|\/)gemini-2\.0/.test(modelId);
 }
 
 /**
@@ -183,6 +254,14 @@ export function createGoogle(
           ),
           new RegExp(`^https://youtu\\.be/[\\w-]+(?:\\?[\\w=&.-]*)?$`),
         ],
+        ...(supportsExternalFileUrls(modelId)
+          ? Object.fromEntries(
+              supportedExternalUrlMediaTypes.map(mediaType => [
+                mediaType,
+                [externalHttpsUrlPattern],
+              ]),
+            )
+          : {}),
       }),
       fetch: options.fetch,
     });
@@ -223,6 +302,49 @@ export function createGoogle(
       generateId: options.generateId ?? generateId,
     });
 
+  const createRealtimeModel = (modelId: string) =>
+    new GoogleRealtimeModel(modelId, {
+      provider: `${providerName}.realtime`,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const createTranslationModel = (modelId: GoogleTranslationModelId) =>
+    new GoogleTranslationModel(modelId, {
+      provider: `${providerName}.translation`,
+      baseURL,
+      headers: getHeaders,
+      webSocket: options.webSocket,
+    });
+
+  const createSpeechModel = (modelId: GoogleSpeechModelId) =>
+    new GoogleSpeechModel(modelId, {
+      provider: `${providerName}.speech`,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const experimentalRealtimeFactory = Object.assign(
+    (modelId: string) => createRealtimeModel(modelId),
+    {
+      getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
+        const model = createRealtimeModel(tokenOptions.model);
+        const secret = await model.doCreateClientSecret({
+          sessionConfig: tokenOptions.sessionConfig,
+          expiresAfterSeconds: tokenOptions.expiresAfterSeconds,
+        });
+
+        return {
+          token: secret.token,
+          url: secret.url,
+          expiresAt: secret.expiresAt,
+        };
+      },
+    },
+  ) as RealtimeFactoryV4;
+
   const createInteractionsModel = (
     modelIdOrAgent:
       | GoogleInteractionsModelId
@@ -262,7 +384,12 @@ export function createGoogle(
   provider.imageModel = createImageModel;
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
+  provider.experimental_realtime = experimentalRealtimeFactory;
   provider.files = createFiles;
+  provider.speech = createSpeechModel;
+  provider.speechModel = createSpeechModel;
+  provider.translation = createTranslationModel;
+  provider.speechTranslationModel = createTranslationModel;
   provider.interactions = createInteractionsModel;
   provider.tools = googleTools;
 

@@ -4,7 +4,7 @@ import {
   extractLines,
   type Experimental_SandboxProcess,
 } from '@ai-sdk/provider-utils';
-import { type Experimental_Sandbox as Sandbox } from 'ai';
+import { type Experimental_SandboxSession as SandboxSession } from 'ai';
 import type { Command, Sandbox as VercelSandboxSDK } from '@vercel/sandbox';
 import {
   bytesToStream,
@@ -27,12 +27,8 @@ const rootDirectory = '/vercel/sandbox';
 //
 // Without OIDC, @vercel/sandbox reports a missing `x-vercel-oidc-token`
 // header when creating or retrieving sandboxes.
-export class VercelSandbox implements Sandbox {
-  constructor(
-    public readonly sandbox: Awaited<
-      ReturnType<typeof VercelSandboxSDK.create>
-    >,
-  ) {}
+export class VercelSandboxSession implements SandboxSession {
+  constructor(public readonly sandbox: VercelSandboxSDK) {}
 
   private resolvePath(path: string): string {
     return isAbsolute(path) ? path : join(rootDirectory, path);
@@ -41,15 +37,18 @@ export class VercelSandbox implements Sandbox {
   async run({
     command,
     workingDirectory,
+    env,
     abortSignal,
   }: {
     command: string;
     workingDirectory?: string;
+    env?: Record<string, string>;
     abortSignal?: AbortSignal;
   }) {
     const proc = await this.spawn({
       command,
       workingDirectory,
+      env,
       abortSignal,
     });
 
@@ -65,10 +64,12 @@ export class VercelSandbox implements Sandbox {
   async spawn({
     command,
     workingDirectory,
+    env,
     abortSignal,
   }: {
     command: string;
     workingDirectory?: string;
+    env?: Record<string, string>;
     abortSignal?: AbortSignal;
   }): Promise<Experimental_SandboxProcess> {
     abortSignal?.throwIfAborted();
@@ -77,6 +78,7 @@ export class VercelSandbox implements Sandbox {
       cmd: 'bash',
       args: ['-c', command],
       cwd: workingDirectory ?? rootDirectory,
+      env,
       detached: true,
     });
 
@@ -188,7 +190,7 @@ export class VercelSandbox implements Sandbox {
   }
 
   get description() {
-    return `Vercel Sandbox: ${this.sandbox.sandboxId}\nRoot directory: ${rootDirectory}`;
+    return `Vercel Sandbox: ${this.sandbox.name}\nRoot directory: ${rootDirectory}`;
   }
 }
 

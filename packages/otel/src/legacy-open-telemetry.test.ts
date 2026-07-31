@@ -171,6 +171,7 @@ function makeOnStartEvent(overrides?: Record<string, unknown>) {
     tools: undefined,
     toolChoice: undefined,
     activeTools: undefined,
+    toolOrder: undefined,
     maxOutputTokens: 100,
     temperature: 0.7,
     topP: undefined,
@@ -205,6 +206,7 @@ function makeStepStartEvent(overrides?: Record<string, unknown>) {
     tools: undefined,
     toolChoice: undefined,
     activeTools: undefined,
+    toolOrder: undefined,
     steps: [],
     providerOptions: undefined,
     abortSignal: undefined,
@@ -709,6 +711,18 @@ describe('LegacyOpenTelemetry', () => {
       expect(setAttrsCall['gen_ai.response.model']).toBe('test-model');
       expect(setAttrsCall['gen_ai.usage.input_tokens']).toBe(10);
       expect(setAttrsCall['gen_ai.usage.output_tokens']).toBe(20);
+    });
+
+    it('omits malformed gen_ai finish reason arrays', () => {
+      otelIntegration.onStart!(makeOnStartEvent());
+      otelIntegration.onStepStart!(makeStepStartEvent());
+      otelIntegration.onStepFinish!(
+        makeStepFinishEvent({ finishReason: undefined }),
+      );
+
+      const stepSpan = tracer.spans[1];
+      const setAttrsCall = getSetAttributesArg(stepSpan);
+      expect('gen_ai.response.finish_reasons' in setAttrsCall).toBe(false);
     });
 
     it('includes text in output attributes', () => {

@@ -558,7 +558,7 @@ describe('streamObject', () => {
         // consume stream (runs in parallel)
         convertAsyncIterableToArray(result.partialObjectStream);
 
-        expect(result.object).rejects.toThrow(NoObjectGeneratedError);
+        await expect(result.object).rejects.toThrow(NoObjectGeneratedError);
       });
 
       it('should not lead to unhandled promise rejections when the streamed object does not match the schema', async () => {
@@ -1460,7 +1460,7 @@ describe('streamObject', () => {
     });
   });
 
-  describe('options.experimental_repairText', () => {
+  describe('options.repairText', () => {
     it('should be able to repair a JSONParseError', async () => {
       const result = streamObject({
         model: new MockLanguageModelV4({
@@ -1489,7 +1489,7 @@ describe('streamObject', () => {
         }),
         schema: z.object({ content: z.string() }),
         prompt: 'prompt',
-        experimental_repairText: async ({ text, error }) => {
+        repairText: async ({ text, error }) => {
           expect(error).toBeInstanceOf(JSONParseError);
           expect(text).toStrictEqual('{ "content": "provider metadata test" ');
           return text + '}';
@@ -1532,7 +1532,7 @@ describe('streamObject', () => {
         }),
         schema: z.object({ content: z.string() }),
         prompt: 'prompt',
-        experimental_repairText: async ({ text, error }) => {
+        repairText: async ({ text, error }) => {
           expect(error).toBeInstanceOf(TypeValidationError);
           expect(text).toStrictEqual(
             '{ "content-a": "provider metadata test" }',
@@ -1577,7 +1577,7 @@ describe('streamObject', () => {
         }),
         schema: z.object({ content: z.string() }),
         prompt: 'prompt',
-        experimental_repairText: async ({ text, error }) => {
+        repairText: async ({ text, error }) => {
           expect(error).toBeInstanceOf(TypeValidationError);
           expect(text).toStrictEqual(
             '{ "content-a": "provider metadata test" }',
@@ -1589,7 +1589,7 @@ describe('streamObject', () => {
       // consume stream
       await convertAsyncIterableToArray(result.partialObjectStream);
 
-      expect(result.object).rejects.toThrow(
+      await expect(result.object).rejects.toThrow(
         'No object generated: response did not match schema.',
       );
     });
@@ -1622,7 +1622,7 @@ describe('streamObject', () => {
         }),
         schema: z.object({ content: z.string() }),
         prompt: 'prompt',
-        experimental_repairText: async ({ text, error }) => {
+        repairText: async ({ text, error }) => {
           expect(error).toBeInstanceOf(JSONParseError);
           expect(text).toStrictEqual(
             '```json\n{ "content": "test message" }\n```',
@@ -1668,7 +1668,7 @@ describe('streamObject', () => {
         }),
         schema: z.object({ content: z.string() }),
         prompt: 'prompt',
-        experimental_repairText: async ({ text }) => text + '{',
+        repairText: async ({ text }) => text + '{',
       });
 
       try {
@@ -1687,6 +1687,69 @@ describe('streamObject', () => {
           finishReason: 'stop',
         });
       }
+    });
+
+    it('should support the deprecated experimental_repairText option', async () => {
+      const result = streamObject({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{ "content": "repaired"',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+        experimental_repairText: async ({ text }) => text + ' }',
+      });
+
+      await convertAsyncIterableToArray(result.partialObjectStream);
+
+      expect(await result.object).toStrictEqual({ content: 'repaired' });
+    });
+
+    it('should prefer repairText over experimental_repairText', async () => {
+      const result = streamObject({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{ "content": "repaired"',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+        repairText: async ({ text }) => text + ' }',
+        experimental_repairText: async () => {
+          throw new Error('deprecated alias should not be called');
+        },
+      });
+
+      await convertAsyncIterableToArray(result.partialObjectStream);
+
+      expect(await result.object).toStrictEqual({ content: 'repaired' });
     });
   });
 
@@ -1801,7 +1864,7 @@ describe('streamObject', () => {
   });
 
   describe('callbacks', () => {
-    describe('experimental_onStart', () => {
+    describe('onStart', () => {
       it('should call onStart before the model call', async () => {
         const events: string[] = [];
 
@@ -1831,7 +1894,7 @@ describe('streamObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStart: () => {
+          onStart: () => {
             events.push('onStart');
           },
         });
@@ -1874,7 +1937,7 @@ describe('streamObject', () => {
           telemetry: {
             functionId: 'test-function',
           },
-          experimental_onStart: event => {
+          onStart: event => {
             startEvent = event;
           },
           _internal: {
@@ -1915,7 +1978,7 @@ describe('streamObject', () => {
             isEnabled: true,
             functionId: 'deprecated-fn',
           },
-          experimental_onStart: event => {
+          onStart: event => {
             startEvent = event;
           },
         });
@@ -1927,7 +1990,7 @@ describe('streamObject', () => {
       });
     });
 
-    describe('experimental_onStepStart', () => {
+    describe('onStepStart', () => {
       it('should call onStepStart before the model call', async () => {
         const events: string[] = [];
 
@@ -1957,7 +2020,7 @@ describe('streamObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStepStart: () => {
+          onStepStart: () => {
             events.push('onStepStart');
           },
         });
@@ -1993,7 +2056,7 @@ describe('streamObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStepStart: event => {
+          onStepStart: event => {
             stepStartEvent = event;
           },
         });
@@ -2123,10 +2186,10 @@ describe('streamObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStart: () => {
+          onStart: () => {
             events.push('onStart');
           },
-          experimental_onStepStart: () => {
+          onStepStart: () => {
             events.push('onStepStart');
           },
           onStepFinish: () => {
@@ -2172,10 +2235,10 @@ describe('streamObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStart: event => {
+          onStart: event => {
             callIds.push(event.callId);
           },
-          experimental_onStepStart: event => {
+          onStepStart: event => {
             callIds.push(event.callId);
           },
           onStepFinish: event => {
@@ -2216,10 +2279,10 @@ describe('streamObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStart: () => {
+          onStart: () => {
             throw new Error('onStart error');
           },
-          experimental_onStepStart: () => {
+          onStepStart: () => {
             throw new Error('onStepStart error');
           },
           onStepFinish: () => {

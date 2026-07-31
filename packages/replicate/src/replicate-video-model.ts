@@ -235,7 +235,14 @@ export class ReplicateVideoModel implements VideoModelV4 {
 
     const { value: prediction, responseHeaders } = await getFromApi({
       url: getUrl,
-      headers: await resolve(this.config.headers),
+      // getUrl comes from the provider response body.
+      validateUrl: true,
+      credentialedOrigin: this.config.baseURL,
+      trustedOrigin: this.config.baseURL,
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       successfulResponseHandler: createJsonResponseHandler(
         replicatePredictionSchema,
       ),

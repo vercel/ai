@@ -1,4 +1,4 @@
-import { getErrorMessage, type ToolSet } from '@ai-sdk/provider-utils';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import type {
   TextStreamPart,
   UIMessageStreamOptions,
@@ -13,7 +13,7 @@ import { toUIMessageChunk } from './to-ui-message-chunk';
  * Converts a stream of `TextStreamPart<TOOLS>` chunks (as emitted by
  * `streamText`'s `stream`) into a stream of `UIMessageChunk`s suitable for
  * UI message streaming, including response message ID injection and
- * `onFinish` handling.
+ * `onEnd` handling.
  */
 export function toUIMessageStream<
   TOOLS extends ToolSet = ToolSet,
@@ -25,10 +25,11 @@ export function toUIMessageStream<
   sendSources = false,
   sendStart = true,
   sendFinish = true,
-  onError = getErrorMessage,
+  onError = () => 'An error occurred.', // prevent leaking server error details to the client by default
   messageMetadata,
   originalMessages,
   generateMessageId,
+  onEnd,
   onFinish,
 }: {
   stream: ReadableStream<TextStreamPart<TOOLS>>;
@@ -84,7 +85,7 @@ export function toUIMessageStream<
     stream: uiMessageChunkStream,
     messageId: responseMessageId ?? generateMessageId?.(),
     originalMessages,
-    onFinish,
+    onEnd: onEnd ?? onFinish,
     onError,
   });
 }

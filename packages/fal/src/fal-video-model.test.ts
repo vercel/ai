@@ -9,10 +9,13 @@ const defaultOptions = {
   prompt,
   n: 1,
   image: undefined,
+  frameImages: undefined,
+  inputReferences: undefined,
   aspectRatio: undefined,
   resolution: undefined,
   duration: undefined,
   fps: undefined,
+  generateAudio: undefined,
   seed: undefined,
   providerOptions: {},
 } as const;
@@ -125,6 +128,7 @@ describe('FalVideoModel', () => {
       expect(result.operation).toStrictEqual({
         responseUrl:
           'https://queue.fal.run/fal-ai/luma-dream-machine/requests/test-request-id-123',
+        submitUrl: 'https://queue.fal.run/fal-ai/luma-dream-machine',
       });
       expect(result.warnings).toStrictEqual([]);
       expect(result.response.modelId).toBe('luma-dream-machine');

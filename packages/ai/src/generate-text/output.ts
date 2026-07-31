@@ -278,6 +278,7 @@ export const array = <ELEMENT>({
         });
       }
 
+      const validatedElements: Array<ELEMENT> = [];
       for (const element of outerValue.elements) {
         const validationResult = await safeValidateTypes({
           value: element,
@@ -294,9 +295,11 @@ export const array = <ELEMENT>({
             finishReason: context.finishReason,
           });
         }
+
+        validatedElements.push(validationResult.value);
       }
 
-      return outerValue.elements as Array<ELEMENT>;
+      return validatedElements;
     },
 
     async parsePartialOutput({ text }: { text: string }) {
