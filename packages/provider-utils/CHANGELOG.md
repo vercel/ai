@@ -1,5 +1,12 @@
 # @ai-sdk/provider-utils
 
+## 5.0.18
+
+### Patch Changes
+
+- 5fc7da5: chore: centralize empty language model usage creation in provider utilities.
+- 93b2acd: chore: centralize response metadata conversion
+
 ## 5.0.17
 
 ### Patch Changes
