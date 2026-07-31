@@ -8,7 +8,7 @@ import {
   type FetchFunction,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
-import { z } from './zod';
+import { z } from 'zod/v4';
 import { asGatewayError, GatewayAuthenticationError } from './errors';
 import {
   GATEWAY_AUTH_METHOD_HEADER,
