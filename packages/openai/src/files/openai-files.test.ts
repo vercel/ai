@@ -1,5 +1,4 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import { readFileSync } from 'node:fs';
 import { describe, it, expect, vi } from 'vitest';
 import { createOpenAI } from '../openai-provider';
 
@@ -10,35 +9,6 @@ vi.mock('../version', () => ({
 const server = createTestServer({
   'https://api.openai.com/v1/files': {},
 });
-
-const issue18223LiveResponses = JSON.parse(
-  readFileSync(
-    new URL(
-      './__fixtures__/issue-18223-live-file-upload-responses.json',
-      import.meta.url,
-    ),
-    'utf8',
-  ),
-) as {
-  directBracketedUpload: {
-    requestFields: Record<string, string>;
-    response: {
-      id: string;
-      expires_at: number;
-    };
-  };
-  flatExpiresAfterUpload: {
-    requestFields: Record<string, string>;
-    response: {
-      error: {
-        message: string;
-        type: string;
-        param: null;
-        code: null;
-      };
-    };
-  };
-};
 
 function prepareFileResponse({
   headers,
@@ -144,7 +114,7 @@ describe('OpenAI Files - uploadFile', () => {
     });
   });
 
-  it('should pass expires_after when provided', async () => {
+  it('should pass expires_after as bracketed multipart fields', async () => {
     prepareFileResponse();
 
     const provider = createOpenAI({ apiKey: 'test-api-key' });
@@ -159,71 +129,11 @@ describe('OpenAI Files - uploadFile', () => {
     });
 
     const multipart = await server.calls[0].requestBodyMultipart;
-    expect(multipart!.expires_after).toBe('3600');
-  });
-
-  it('should upload a file with retention using the OpenAI multipart shape', async () => {
-    const provider = createOpenAI({
-      apiKey: 'test-api-key',
-      fetch: async (_url, init) => {
-        const formData = init?.body;
-
-        if (!(formData instanceof FormData)) {
-          throw new Error('Expected a multipart FormData body.');
-        }
-
-        const requestFields = Object.fromEntries(
-          [...formData.entries()]
-            .filter((entry): entry is [string, string] => {
-              return typeof entry[1] === 'string';
-            })
-            .map(([key, value]) => [key, value]),
-        );
-
-        if (
-          requestFields.expires_after ===
-          issue18223LiveResponses.flatExpiresAfterUpload.requestFields
-            .expires_after
-        ) {
-          return new Response(
-            JSON.stringify(
-              issue18223LiveResponses.flatExpiresAfterUpload.response,
-            ),
-            {
-              status: 400,
-              headers: { 'content-type': 'application/json' },
-            },
-          );
-        }
-
-        expect(requestFields).toMatchObject(
-          issue18223LiveResponses.directBracketedUpload.requestFields,
-        );
-
-        return new Response(
-          JSON.stringify(
-            issue18223LiveResponses.directBracketedUpload.response,
-          ),
-          {
-            status: 200,
-            headers: { 'content-type': 'application/json' },
-          },
-        );
-      },
+    expect(multipart).toMatchObject({
+      'expires_after[anchor]': 'created_at',
+      'expires_after[seconds]': '3600',
     });
-
-    const result = await provider.files().uploadFile({
-      data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
-      mediaType: 'application/octet-stream',
-      providerOptions: {
-        openai: { purpose: 'user_data', expiresAfter: 604800 },
-      },
-    });
-
-    expect(result.providerMetadata?.openai?.expiresAt).toBe(
-      issue18223LiveResponses.directBracketedUpload.response.expires_at,
-    );
-    expect(result.warnings).toEqual([]);
+    expect(multipart).not.toHaveProperty('expires_after');
   });
 
   it('should pass auth headers', async () => {

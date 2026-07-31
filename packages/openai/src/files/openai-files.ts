@@ -60,7 +60,11 @@ export class OpenAIFiles implements FilesV4 {
     formData.append('purpose', openaiOptions?.purpose ?? 'assistants');
 
     if (openaiOptions?.expiresAfter != null) {
-      formData.append('expires_after', String(openaiOptions.expiresAfter));
+      formData.append('expires_after[anchor]', 'created_at');
+      formData.append(
+        'expires_after[seconds]',
+        String(openaiOptions.expiresAfter),
+      );
     }
 
     const { value: response } = await postFormDataToApi({
