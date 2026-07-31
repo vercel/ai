@@ -15,7 +15,9 @@ export function canonicalJSON(value: unknown): string {
     return JSON.stringify(value);
   }
   if (Array.isArray(value)) {
-    return `[${value.map(canonicalJSON).join(',')}]`;
+    return `[${value
+      .map(element => (element === undefined ? 'null' : canonicalJSON(element)))
+      .join(',')}]`;
   }
   const keys = Object.keys(value as Record<string, unknown>).sort();
   const entries = keys.map(
