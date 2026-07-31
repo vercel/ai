@@ -1,3 +1,4 @@
+import { posix } from 'node:path';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import type { HarnessV1Bootstrap } from '../../v1';
 
@@ -59,55 +60,102 @@ export async function hashHarnessBootstrap(
 
 /**
  * Absolute path of the marker file the framework writes after a recipe runs
- * successfully. Presence of this path inside the sandbox indicates the
- * recipe with the matching `identity` has already been applied.
+ * successfully. Presence of this path inside the sandbox indicates the recipe
+ * with the matching `identity` has already been applied.
  */
-export function bootstrapMarkerPath(
-  recipe: HarnessV1Bootstrap,
-  identity: string,
-): string {
-  return `${recipe.bootstrapDir}/.bootstrap-${identity}.ok`;
+export function bootstrapMarkerPath({
+  recipe,
+  identity,
+  defaultWorkingDirectory,
+}: {
+  recipe: HarnessV1Bootstrap;
+  identity: string;
+  defaultWorkingDirectory: string;
+}): string {
+  return posix.join(
+    resolveBootstrapPath({
+      path: recipe.bootstrapDir,
+      defaultWorkingDirectory,
+    }),
+    `.bootstrap-${identity}.ok`,
+  );
 }
 
 /**
  * Apply a bootstrap recipe to a sandbox session idempotently. Reads the
- * marker file; if it exists, returns immediately. Otherwise writes the
- * recipe's files, runs its commands sequentially, and writes the marker
- * on success.
+ * marker file; if it exists, returns immediately. Otherwise creates the
+ * bootstrap directory, writes the recipe's files, runs its commands
+ * sequentially, and writes the marker on success.
  *
  * Safe to call multiple times. For sandboxes that already contain the
  * recipe (resumed from snapshot, reused across sessions, or applied by
  * an earlier process) this is a single fast read.
  */
-export async function applyBootstrapRecipe(
-  session: SandboxSession,
-  recipe: HarnessV1Bootstrap,
-  identity: string,
-  options?: { abortSignal?: AbortSignal },
-): Promise<void> {
-  const markerPath = bootstrapMarkerPath(recipe, identity);
+export async function applyBootstrapRecipe({
+  session,
+  recipe,
+  identity,
+  defaultWorkingDirectory,
+  abortSignal,
+}: {
+  session: SandboxSession;
+  recipe: HarnessV1Bootstrap;
+  identity: string;
+  defaultWorkingDirectory: string;
+  abortSignal?: AbortSignal;
+}): Promise<void> {
+  const markerPath = bootstrapMarkerPath({
+    recipe,
+    identity,
+    defaultWorkingDirectory,
+  });
 
   const existingMarker = await session.readTextFile({
     path: markerPath,
-    abortSignal: options?.abortSignal,
+    abortSignal,
   });
   if (existingMarker !== null) {
     return;
   }
 
+  const bootstrapDir = resolveBootstrapPath({
+    path: recipe.bootstrapDir,
+    defaultWorkingDirectory,
+  });
+  const mkdirResult = await session.run({
+    command: 'mkdir -p "$BOOTSTRAP_DIR"',
+    workingDirectory: defaultWorkingDirectory,
+    env: { BOOTSTRAP_DIR: bootstrapDir },
+    abortSignal,
+  });
+  if (mkdirResult.exitCode !== 0) {
+    throw new Error(
+      `Failed to create bootstrap directory for harness '${recipe.harnessId}' (exit ${mkdirResult.exitCode}): ${bootstrapDir}\n${mkdirResult.stderr || mkdirResult.stdout}`,
+    );
+  }
+
   for (const file of recipe.files) {
     await session.writeTextFile({
-      path: file.path,
+      path: resolveBootstrapPath({
+        path: file.path,
+        defaultWorkingDirectory,
+      }),
       content: file.content,
-      abortSignal: options?.abortSignal,
+      abortSignal,
     });
   }
 
   for (const cmd of recipe.commands) {
     const result = await session.run({
       command: cmd.command,
-      workingDirectory: cmd.workingDirectory,
-      abortSignal: options?.abortSignal,
+      workingDirectory:
+        cmd.workingDirectory == null
+          ? bootstrapDir
+          : resolveBootstrapPath({
+              path: cmd.workingDirectory,
+              defaultWorkingDirectory,
+            }),
+      abortSignal,
     });
     if (result.exitCode !== 0) {
       throw new Error(
@@ -119,6 +167,18 @@ export async function applyBootstrapRecipe(
   await session.writeTextFile({
     path: markerPath,
     content: '',
-    abortSignal: options?.abortSignal,
+    abortSignal,
   });
+}
+
+function resolveBootstrapPath({
+  path,
+  defaultWorkingDirectory,
+}: {
+  path: string;
+  defaultWorkingDirectory: string;
+}): string {
+  return posix.isAbsolute(path)
+    ? path
+    : posix.resolve(defaultWorkingDirectory, path);
 }

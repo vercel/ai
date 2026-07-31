@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   commonTool,
@@ -47,8 +48,12 @@ import { VERSION } from './version';
 
 type DeepAgentsChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 
-// Pure derived state in /tmp; reinstalled per sandbox, persistence is the provider snapshot.
-const BOOTSTRAP_DIR = '/tmp/harness/deepagents';
+/*
+ * Bootstrap is derived state stored under the sandbox's default working
+ * directory so snapshot-capable providers preserve its installation and
+ * recipe marker without requiring root filesystem access.
+ */
+const BOOTSTRAP_DIR = '.harness-bootstrap/deepagents';
 /**
  * Value to use in User-Agent and `x-client-app` headers.
  */
@@ -198,10 +203,9 @@ export function createDeepAgents(
           { path: `${BOOTSTRAP_DIR}/pnpm-lock.yaml`, content: lock },
         ],
         commands: [
-          { command: `mkdir -p ${BOOTSTRAP_DIR}` },
           { command: installRipgrepCommand() },
           {
-            command: `pnpm --dir ${BOOTSTRAP_DIR} install --frozen-lockfile --store-dir ${BOOTSTRAP_DIR}/.pnpm-store`,
+            command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
           },
         ],
       };
@@ -212,6 +216,10 @@ export function createDeepAgents(
       const sandboxSession = startOpts.sandboxSession;
       const session = sandboxSession.restricted();
       const sandboxId = sandboxSession.id;
+      const bootstrapDir = posix.resolve(
+        sandboxSession.defaultWorkingDirectory,
+        BOOTSTRAP_DIR,
+      );
 
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
@@ -318,7 +326,7 @@ export function createDeepAgents(
       });
 
       const proc = await session.spawn({
-        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(BOOTSTRAP_DIR)}`,
+        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(bootstrapDir)}`,
         env,
         abortSignal: startOpts.abortSignal,
       });

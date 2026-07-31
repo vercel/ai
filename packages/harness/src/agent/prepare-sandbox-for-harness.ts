@@ -7,6 +7,7 @@ import {
 } from './internal/bootstrap-recipe';
 import {
   normalizeSandboxWorkDir,
+  resolveDefaultWorkingDirectory,
   runSandboxBootstrap,
   validateSandboxBootstrapSettings,
 } from './internal/sandbox-bootstrap';
@@ -62,6 +63,7 @@ export async function prepareSandboxForHarness(options: {
       : normalizeSandboxWorkDir(sandboxConfig.workDir);
   const recipeIdentities: Record<string, string> = {};
   const skippedHarnessIds: string[] = [];
+  let defaultWorkingDirectory: string | undefined;
 
   for (const harness of harnesses) {
     const recipe = await harness.getBootstrap?.({
@@ -74,7 +76,15 @@ export async function prepareSandboxForHarness(options: {
 
     const recipeIdentity = await hashHarnessBootstrap(recipe);
     recipeIdentities[harness.harnessId] = recipeIdentity;
-    await applyBootstrapRecipe(options.session, recipe, recipeIdentity, {
+    defaultWorkingDirectory ??= await resolveDefaultWorkingDirectory({
+      session: options.session,
+      abortSignal: options.abortSignal,
+    });
+    await applyBootstrapRecipe({
+      session: options.session,
+      recipe,
+      identity: recipeIdentity,
+      defaultWorkingDirectory,
       abortSignal: options.abortSignal,
     });
   }
@@ -84,6 +94,7 @@ export async function prepareSandboxForHarness(options: {
       session: options.session,
       workDir,
       onBootstrap: sandboxConfig.onBootstrap,
+      defaultWorkingDirectory,
       abortSignal: options.abortSignal,
     });
   }
