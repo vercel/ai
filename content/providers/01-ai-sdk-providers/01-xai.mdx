@@ -1136,7 +1136,7 @@ import { experimental_generateVideo as generateVideo } from 'ai';
 const { video } = await generateVideo({
   model: xai.video('grok-imagine-video'),
   prompt:
-    'The comic cat from <IMAGE_0> and the comic dog from <IMAGE_1> ' +
+    'The comic cat from <IMAGE_1> and the comic dog from <IMAGE_2> ' +
     'are having a playful chase through a sunlit park. ' +
     'Cinematic slow-motion, warm afternoon light.',
   duration: 8,
@@ -1154,7 +1154,14 @@ const { video } = await generateVideo({
 });
 ```
 
-Use `<IMAGE_0>`, `<IMAGE_1>`, etc. in your prompt to reference specific images — the tags are zero-indexed and follow the order of the reference images you provide. Up to 7 reference images are supported per request.
+Use `<IMAGE_1>`, `<IMAGE_2>`, etc. in your prompt to reference specific images, in the order the images are passed. Up to 7 reference images are supported per request.
+
+<Note>
+  Tag numbering differs by model. xAI's `grok-imagine-video` reference-to-video
+  examples tag images starting at `<IMAGE_1>`, while `grok-imagine-video-1.5`
+  documents zero-indexed tags (`<IMAGE_0>` … `<IMAGE_N>`, plus `<AUDIO_0>`).
+  Follow the convention for the model you are calling.
+</Note>
 
 With the `grok-imagine-video-1.5` model you can also provide a single reference audio track via `referenceAudioUrls`. Tag the speaker with `<AUDIO_0>` in the prompt so the model knows which voice to use:
 
@@ -1292,8 +1299,9 @@ You can validate the provider options using the `XaiVideoModelOptions` type.
   Array of reference image URLs (1–7 images) or base64 data URIs for
   reference-to-video (R2V) generation. The model incorporates visual
   elements from these images without using them as the first frame. Use
-  `<IMAGE_0>`, `<IMAGE_1>`, etc. (zero-indexed) in the prompt to reference
-  specific images. Used with `mode: 'reference-to-video'`.
+  `<IMAGE_N>` tags in the prompt to reference specific images — see the
+  reference-to-video section above for per-model tag numbering. Used with
+  `mode: 'reference-to-video'`.
 
 - **referenceAudioUrls** _string[]_
 
