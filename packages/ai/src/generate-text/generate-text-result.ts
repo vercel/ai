@@ -167,8 +167,10 @@ export interface GenerateTextResult<
   readonly experimental_output: InferCompleteOutput<OUTPUT>;
 
   /**
-   * The generated structured output. It uses the `output` specification.
+   * The generated output according to the `output` specification.
    *
+   * @throws {NoOutputGeneratedError} When no output is available, for example
+   * when the final step does not finish with a `stop` reason.
    */
   readonly output: InferCompleteOutput<OUTPUT>;
 }
