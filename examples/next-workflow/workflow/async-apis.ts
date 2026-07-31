@@ -1,14 +1,12 @@
-import { type FalVideoModelOptions, fal } from '@ai-sdk/fal';
+import { createFal, type FalVideoModelOptions } from '@ai-sdk/fal';
 import { experimental_generateVideo as generateVideo } from 'ai';
-import {
-  createWebhook,
-  fetch as workflowFetch,
-  getWritable,
-  sleep,
-} from 'workflow';
+import { createWebhook, getWritable, sleep } from 'workflow';
 
 const MAX_GITHUB_SEARCH_PAGES = 10;
 const MAX_AVATAR_BYTES = 10 * 1024 * 1024;
+const FAL_WEBHOOK_TIMEOUT_MS = 10 * 60 * 1000;
+const FAL_VIDEO_MODEL_ID = 'luma-dream-machine/ray-2' as const;
+const fal = createFal();
 
 export interface AsyncApisMaintainer {
   login: string;
@@ -65,6 +63,14 @@ interface DownloadedMaintainer extends AsyncApisMaintainer {
   image: Uint8Array;
   mediaType: string;
 }
+
+type FalVideoModel = ReturnType<ReturnType<typeof createFal>['video']>;
+type FalVideoStartOptions = Parameters<
+  NonNullable<FalVideoModel['doStart']>
+>[0];
+type FalVideoStatusOptions = Parameters<
+  NonNullable<FalVideoModel['doStatus']>
+>[0];
 
 interface GitHubSearchResponse {
   data?: {
@@ -287,13 +293,77 @@ async function downloadAvatar(
   return { ...maintainer, image, mediaType };
 }
 
+async function startFalVideo(options: FalVideoStartOptions) {
+  'use step';
+
+  return fal.video(FAL_VIDEO_MODEL_ID).doStart!(options);
+}
+
+async function getFalVideoStatus(options: FalVideoStatusOptions) {
+  'use step';
+
+  return fal.video(FAL_VIDEO_MODEL_ID).doStatus!(options);
+}
+
+function createDurableFalVideoModel({
+  useWebhook,
+}: {
+  useWebhook: boolean;
+}): FalVideoModel {
+  const model = fal.video(FAL_VIDEO_MODEL_ID);
+
+  return {
+    specificationVersion: model.specificationVersion,
+    provider: model.provider,
+    modelId: model.modelId,
+    maxVideosPerCall: model.maxVideosPerCall,
+    doStart: options => startFalVideo(options),
+    doStatus: options => getFalVideoStatus(options),
+    ...(useWebhook
+      ? {
+          handleWebhookOption: async ({ webhook: webhookFactory }) => {
+            const { url, received } = await webhookFactory();
+            return { webhookUrl: url, received };
+          },
+        }
+      : {}),
+  };
+}
+
+function waitWithoutSchedulingTimeout(): Promise<void> {
+  return new Promise(() => {
+    // The durable webhook owns the wait. A competing Workflow sleep would be
+    // left uncommitted when the webhook wins the race.
+  });
+}
+
+async function downloadGeneratedVideo(url: string): Promise<{
+  data: Uint8Array;
+  mediaType: string | undefined;
+}> {
+  'use step';
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(
+      `Could not download generated video (${response.status} ${response.statusText}).`,
+    );
+  }
+
+  return {
+    data: new Uint8Array(await response.arrayBuffer()),
+    mediaType: response.headers.get('content-type')?.split(';')[0],
+  };
+}
+
 async function generateMaintainerVideo(
   maintainer: DownloadedMaintainer,
 ): Promise<{ videoUrl: string; warnings: string[] }> {
-  using webhook = createWebhook();
+  const useWebhook = canReceiveFalWebhook();
+  using webhook = useWebhook ? createWebhook() : undefined;
 
   const result = await generateVideo({
-    model: fal.video('luma-dream-machine/ray-2'),
+    model: createDurableFalVideoModel({ useWebhook }),
     prompt: {
       image: maintainer.image,
       text:
@@ -302,7 +372,7 @@ async function generateMaintainerVideo(
         'their identity, facial features, clothing, and background consistent.',
     },
     duration: 5,
-    aspectRatio: '1:1',
+    aspectRatio: '9:16',
     providerOptions: {
       fal: {
         resolution: '540p',
@@ -310,16 +380,20 @@ async function generateMaintainerVideo(
     },
     maxRetries: 0,
     poll: {
-      delay: sleep,
-      timeoutMs: 10 * 60 * 1000,
+      delay: useWebhook ? waitWithoutSchedulingTimeout : sleep,
+      timeoutMs: FAL_WEBHOOK_TIMEOUT_MS,
     },
-    webhook: async () => ({
-      url: webhook.url,
-      received: webhook.then(async request => ({
-        body: await request.text(),
-        headers: Object.fromEntries(request.headers),
-      })),
-    }),
+    download: ({ url }) => downloadGeneratedVideo(url.toString()),
+    webhook:
+      webhook == null
+        ? undefined
+        : async () => ({
+            url: webhook.url,
+            received: webhook.then(request => ({
+              body: null,
+              headers: Object.fromEntries(request.headers),
+            })),
+          }),
   });
 
   const falMetadata = result.providerMetadata.fal;
@@ -348,10 +422,29 @@ async function generateMaintainerVideo(
   };
 }
 
+function canReceiveFalWebhook(): boolean {
+  const localBaseUrl = process.env.WORKFLOW_LOCAL_BASE_URL;
+  if (localBaseUrl == null || localBaseUrl.length === 0) {
+    return process.env.VERCEL === '1';
+  }
+
+  try {
+    const url = new URL(localBaseUrl);
+    const hostname = url.hostname.toLowerCase();
+    return (
+      url.protocol === 'https:' &&
+      hostname !== 'localhost' &&
+      hostname !== '127.0.0.1' &&
+      hostname !== '::1' &&
+      !hostname.endsWith('.localhost')
+    );
+  } catch {
+    return false;
+  }
+}
+
 export async function createMaintainerVideos(repositoryUrl: string) {
   'use workflow';
-
-  globalThis.fetch = workflowFetch;
 
   try {
     await writeProgress({

@@ -655,18 +655,24 @@ async function waitForWebhook({
 }) {
   // Cancel the timeout delay once the webhook arrives (or we abort/time out),
   // so its timer does not keep the event loop alive on the success path.
-  const timeoutController = new AbortController();
+  const timeoutController =
+    typeof globalThis.AbortController === 'function'
+      ? new globalThis.AbortController()
+      : undefined;
   try {
     await Promise.race([
       received,
       delay(timeoutMs, {
-        abortSignal: mergeAbortSignals(abortSignal, timeoutController.signal),
+        abortSignal:
+          timeoutController == null
+            ? abortSignal
+            : mergeAbortSignals(abortSignal, timeoutController.signal),
       }).then(() => {
         throw new Error(`Video generation timed out after ${timeoutMs}ms.`);
       }),
     ]);
   } finally {
-    timeoutController.abort();
+    timeoutController?.abort();
   }
 }
 

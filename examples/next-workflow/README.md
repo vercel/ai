@@ -70,3 +70,9 @@ The workflow passes the new `webhook` option to `experimental_generateVideo`.
 It uses Workflow DevKit's `createWebhook()` to give FAL a durable callback URL.
 The workflow suspends until FAL calls that URL, then checks the completed job
 and streams the result to the page without polling.
+
+FAL cannot call a webhook on a private loopback address. When this example runs
+on plain `localhost`, it automatically uses the same async start/status API with
+durable polling instead. Deploy it to Vercel, or set `WORKFLOW_LOCAL_BASE_URL`
+to a public HTTPS URL that forwards to the local server, to exercise the webhook
+path locally.

@@ -1496,6 +1496,56 @@ describe('experimental_generateVideo', () => {
       });
     });
 
+    it('should support a custom webhook delay without AbortController', async () => {
+      const delay = vi.fn(() => new Promise<void>(() => {}));
+      vi.stubGlobal('AbortController', undefined);
+
+      try {
+        await experimental_generateVideo({
+          model: new MockVideoModelV4({
+            doGenerate: undefined,
+            handleWebhookOption: async ({ webhook }) => {
+              const { url, received } = await webhook();
+              return { webhookUrl: url, received };
+            },
+            doStart: async () => ({
+              operation: 'op-custom-delay-without-abort-controller',
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            }),
+            doStatus: async () => ({
+              status: 'completed' as const,
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+              ],
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            }),
+          }),
+          prompt,
+          poll: { delay },
+          webhook: async () => ({
+            url: 'https://example.com/webhook',
+            received: Promise.resolve({ headers: {}, body: {} }),
+          }),
+        });
+      } finally {
+        vi.unstubAllGlobals();
+      }
+
+      expect(delay).toHaveBeenCalledWith(600_000, {
+        abortSignal: undefined,
+      });
+    });
+
     it('should use webhook over poll when both are provided', async () => {
       let statusCallCount = 0;
       let resolveWebhook: (value: VideoModelV4OperationWebhook) => void;

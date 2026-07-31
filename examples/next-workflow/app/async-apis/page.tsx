@@ -189,8 +189,8 @@ export default function AsyncApisPage() {
           <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
             <div className="font-medium">Webhook-aware</div>
             <div className="mt-1 max-w-xs text-xs leading-5 text-amber-100/70">
-              FAL calls a durable workflow webhook when each video is ready, so
-              the workflow can suspend instead of polling.
+              Public deployments suspend on a durable FAL webhook. Localhost
+              automatically uses durable status polling.
             </div>
           </div>
         </header>
@@ -385,7 +385,7 @@ function describeUpdate(update: AsyncApisProgressUpdate): string {
         : `Downloaded @${update.maintainer.login}'s profile image.`;
     case 'video':
       return update.status === 'generating'
-        ? `Generating @${update.maintainer.login}'s wave with FAL and waiting for its webhook…`
+        ? `Generating @${update.maintainer.login}'s wave with FAL…`
         : `@${update.maintainer.login}'s video is ready.`;
     case 'complete':
       return `Workflow complete with ${update.videoCount} videos.`;
