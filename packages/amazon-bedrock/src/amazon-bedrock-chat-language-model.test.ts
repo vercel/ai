@@ -133,7 +133,7 @@ const server = createTestServer({
 });
 
 describe('supportedUrls', () => {
-  it('should support S3 URLs for image parts', () => {
+  it('should support S3 URLs for image and video parts', () => {
     const model = new AmazonBedrockChatLanguageModel(modelId, {
       baseUrl: () => baseUrl,
       generateId: () => 'test-id',
@@ -142,6 +142,7 @@ describe('supportedUrls', () => {
 
     expect(model.supportedUrls).toEqual({
       'image/*': [/^s3:\/\//],
+      'video/*': [/^s3:\/\//],
     });
   });
 });

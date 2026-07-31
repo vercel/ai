@@ -34,7 +34,13 @@
       "path": "packages/bytedance"
     },
     {
+      "path": "packages/cartesia"
+    },
+    {
       "path": "packages/cerebras"
+    },
+    {
+      "path": "packages/code-mode"
     },
     {
       "path": "packages/codemod"

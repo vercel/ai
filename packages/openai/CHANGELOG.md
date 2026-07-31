@@ -1,5 +1,26 @@
 # @ai-sdk/openai
 
+## 4.0.26
+
+### Patch Changes
+
+- f7c4a38: Serialize file upload expiry settings in the multipart field shape accepted by OpenAI.
+- Updated dependencies [fa95504]
+  - @ai-sdk/provider-utils@5.0.17
+
+## 4.0.25
+
+### Patch Changes
+
+- beaecb3: fix(provider/openai): resolve responses doStream at response.in_progress instead of first output token
+
+  The early-stream-error peek treated `response.in_progress` as an unknown chunk, so `doStream` did not resolve until the first output item arrived — delaying stream availability (and downstream TTFB for proxies/gateways) by the model's full time-to-first-token. `response.in_progress` is now modeled in the chunk schema and marks the request as accepted: the peek keeps watching for error frames for a short grace window (50ms) so quota/rate-limit errors flushed alongside `response.in_progress` still throw as retryable `APICallError`s, while healthy streams become available right after upstream acknowledges the request.
+
+- b192878: feat: add experimental_toolCaller routing to generateText for code mode
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+
 ## 4.0.24
 
 ### Patch Changes

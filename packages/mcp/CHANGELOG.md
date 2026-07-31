@@ -1,5 +1,21 @@
 # @ai-sdk/mcp
 
+## 2.0.21
+
+### Patch Changes
+
+- Updated dependencies [fa95504]
+  - @ai-sdk/provider-utils@5.0.17
+
+## 2.0.20
+
+### Patch Changes
+
+- 97f0565: Honor MCP request deadlines and support bounding or aborting client initialization.
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+
 ## 2.0.19
 
 ### Patch Changes

@@ -1,5 +1,40 @@
 # ai
 
+## 7.0.46
+
+### Patch Changes
+
+- Updated dependencies [4f2e064]
+  - @ai-sdk/gateway@4.0.35
+
+## 7.0.45
+
+### Patch Changes
+
+- d6ce0ee: feat(ai): support experimental_toolCallers in streamText
+- fa95504: feat(ai): support experimental tool callers in ToolLoopAgent
+- 349afe7: Warn when `generateText` receives streaming-only `firstChunkMs` or `chunkMs` timeout settings.
+- Updated dependencies [fa95504]
+  - @ai-sdk/provider-utils@5.0.17
+  - @ai-sdk/gateway@4.0.34
+
+## 7.0.44
+
+### Patch Changes
+
+- 015acb4: fix telemetry attribution for language model calls that resolve to a different response model
+
+## 7.0.43
+
+### Patch Changes
+
+- b192878: feat: add experimental_toolCaller routing to generateText for code mode
+- Updated dependencies [d8210b6]
+- Updated dependencies [af3f400]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+  - @ai-sdk/gateway@4.0.33
+
 ## 7.0.42
 
 ### Patch Changes

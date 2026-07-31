@@ -917,7 +917,7 @@ describe('runPrompt host tool generator results', () => {
     ]);
   });
 
-  test('executes an approved pending custom tool continuation', async () => {
+  test('emits one final result after approved pending custom tool execution', async () => {
     const submitted: SubmittedResult[] = [];
     const settled: string[] = [];
     const telemetryEvents: string[] = [];
@@ -946,7 +946,17 @@ describe('runPrompt host tool generator results', () => {
 
     const { result, done } = runPrompt({
       harness,
-      session: fakeSession([], input => submitted.push(input)),
+      session: fakeSession(
+        [
+          {
+            type: 'tool-result',
+            toolCallId: 'c1',
+            toolName: 'weather',
+            result: { city: 'SF', temperature: 72 },
+          },
+        ],
+        input => submitted.push(input),
+      ),
       mode: 'continue',
       instructions: undefined,
       tools: { weather } as ToolSet,
@@ -1006,8 +1016,85 @@ describe('runPrompt host tool generator results', () => {
         approved: true,
       }),
     );
+    expect(toolResultParts(parts)).toEqual([
+      expect.objectContaining({
+        toolCallId: 'c1',
+        toolName: 'weather',
+        output: { city: 'SF', temperature: 72 },
+      }),
+    ]);
     expect(parts.map(part => part.type)).not.toContain('error');
     await expect(result.steps).resolves.toEqual([]);
+  });
+
+  test('emits an error after approved pending custom tool execution fails', async () => {
+    const submitted: SubmittedResult[] = [];
+    const weather = tool({
+      description: 'Get weather',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async (): Promise<{ temperature: number }> => {
+        throw new Error('weather unavailable');
+      },
+    });
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([], input => submitted.push(input)),
+      mode: 'continue',
+      instructions: undefined,
+      tools: { weather } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      pendingToolApprovals: [
+        {
+          approvalId: 'approval-1',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'SF' }),
+          kind: 'custom',
+          providerExecuted: false,
+        },
+      ],
+      toolApprovalContinuations: [
+        {
+          approvalResponse: {
+            type: 'tool-approval-response',
+            approvalId: 'approval-1',
+            approved: true,
+          },
+          toolCall: {
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'weather',
+            input: { city: 'SF' },
+            providerExecuted: false,
+          },
+        },
+      ],
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(submitted).toEqual([
+      {
+        toolCallId: 'c1',
+        output: { error: 'Error: weather unavailable' },
+        isError: true,
+      },
+    ]);
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-error',
+        toolCallId: 'c1',
+        toolName: 'weather',
+        error: expect.objectContaining({ message: 'weather unavailable' }),
+      }),
+    );
   });
 
   test('does not reuse a consumed approval for replayed custom tool calls', async () => {
