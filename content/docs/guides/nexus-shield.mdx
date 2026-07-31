@@ -1,0 +1,50 @@
+---
+title: Nexus Shield Guardrail
+description: Learn how to secure and sanitize PII in Vercel AI SDK using Nexus Shield sub-10ms proxy.
+---
+
+# Nexus Shield Guardrail
+
+[Nexus Shield](https://api.nexusshield.ai) is a sub-10ms in-RAM PII sanitization and security proxy. You can seamlessly route Vercel AI SDK OpenAI or Custom Provider requests through Nexus Shield to redact sensitive data before sending prompts upstream.
+
+## Integration Example
+
+Pass Nexus Shield's endpoint as the `baseURL` and include your Nexus API key in the headers when initializing your provider in Vercel AI SDK:
+
+```typescript
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const openai = createOpenAI({
+  baseURL: 'https://api.nexusshield.ai/v1',
+  headers: {
+    'X-API-Key': process.env.NEXUS_SHIELD_API_KEY || '',
+  },
+});
+
+async function main() {
+  const { text } = await generateText({
+    model: openai('gpt-4o'),
+    prompt: 'My SSN is 000-12-3456 and my email is test@example.com',
+  });
+
+  console.log(text);
+}
+
+main();
+```
+
+## Features
+
+- **Sub-10ms Overhead:** Zero noticeable latency added to streaming responses.
+- **In-RAM PII Redaction:** Strips sensitive user data before reaching external LLM providers.
+
+## Get a Trial API Key
+
+Start a 14-day free trial at [api.nexusshield.ai](https://api.nexusshield.ai):
+
+```bash
+curl -X POST https://api.nexusshield.ai/v1/auth/register-trial \
+  -H "Content-Type: application/json" \
+  -d '{"email":"you@company.com"}'
+```
