@@ -1,5 +1,13 @@
 # @ai-sdk/otel
 
+## 1.0.44
+
+### Patch Changes
+
+- 015acb4: fix telemetry attribution for language model calls that resolve to a different response model
+- Updated dependencies [015acb4]
+  - ai@7.0.44
+
 ## 1.0.43
 
 ### Patch Changes

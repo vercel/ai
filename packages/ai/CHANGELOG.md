@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.44
+
+### Patch Changes
+
+- 015acb4: fix telemetry attribution for language model calls that resolve to a different response model
+
 ## 7.0.43
 
 ### Patch Changes
