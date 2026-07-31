@@ -32,14 +32,50 @@ const interfazeErrorStructure: ProviderErrorStructure<InterfazeErrorData> = {
   errorToMessage: data => data.message,
 };
 
+/** Serialize guardrail categories into a `<guard>…</guard>` system message. */
+function injectGuardTag(
+  args: Record<string, any>,
+  guard: readonly string[],
+): Record<string, any> {
+  if (!Array.isArray(guard) || guard.length === 0) return args;
+  const tag = `<guard>${guard.join(', ')}</guard>`;
+  const messages = Array.isArray(args.messages) ? [...args.messages] : [];
+  const idx = messages.findIndex((m: any) => m?.role === 'system');
+  if (idx !== -1 && typeof messages[idx]?.content === 'string') {
+    const existing = messages[idx].content as string;
+    messages[idx] = {
+      ...messages[idx],
+      content: existing ? `${tag}\n${existing}` : tag,
+    };
+  } else {
+    messages.unshift({ role: 'system', content: tag });
+  }
+  return { ...args, messages };
+}
+
 function transformInterfazeRequestBody(
   args: Record<string, any>,
 ): Record<string, any> {
-  const resolved = resolveInterfazeVideoFileParts(args);
-  if (resolved.precontext === undefined || Array.isArray(resolved.precontext)) {
-    return resolved;
+  let out = resolveInterfazeVideoFileParts(args);
+
+  // `precontext` may arrive as a single object; the API expects an array.
+  if (out.precontext !== undefined && !Array.isArray(out.precontext)) {
+    out = { ...out, precontext: [out.precontext] };
   }
-  return { ...resolved, precontext: [resolved.precontext] };
+
+  // Map the camelCase provider option to the wire field.
+  if (out.reasoningEffort !== undefined) {
+    const { reasoningEffort, ...rest } = out;
+    out = { ...rest, reasoning_effort: reasoningEffort };
+  }
+
+  // `guard` is serialized into a `<guard>…</guard>` system message.
+  if (out.guard !== undefined) {
+    const { guard, ...rest } = out;
+    out = injectGuardTag(rest, guard);
+  }
+
+  return out;
 }
 
 export interface InterfazeProviderSettings {
@@ -47,6 +83,14 @@ export interface InterfazeProviderSettings {
   baseURL?: string;
   headers?: Record<string, string>;
   fetch?: FetchFunction;
+  /** Stream `<precontext>` deltas as they're produced (`x-show-additional-info`). */
+  showAdditionalInfo?: boolean;
+  /** Skip the mixture-of-experts router (`x-bypass-moe`). */
+  bypassMoe?: boolean;
+  /** Skip the semantic cache (`x-bypass-cache`). */
+  bypassCache?: boolean;
+  /** Admin key that surfaces a `debug` field on responses (`x-admin-key`). */
+  adminKey?: string;
 }
 
 export interface InterfazeProvider extends ProviderV4 {
@@ -68,6 +112,12 @@ export function createInterfaze(
           environmentVariableName: 'INTERFAZE_API_KEY',
           description: 'Interfaze API key',
         })}`,
+        ...(options.showAdditionalInfo
+          ? { 'x-show-additional-info': 'true' }
+          : {}),
+        ...(options.bypassMoe ? { 'x-bypass-moe': 'true' } : {}),
+        ...(options.bypassCache ? { 'x-bypass-cache': 'true' } : {}),
+        ...(options.adminKey ? { 'x-admin-key': options.adminKey } : {}),
         ...options.headers,
       },
       `ai-sdk/interfaze/${VERSION}`,

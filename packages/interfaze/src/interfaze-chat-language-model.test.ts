@@ -199,6 +199,34 @@ describe('doGenerate', () => {
     const body = JSON.parse(fetch.mock.calls[0][1].body as string);
     expect(body.precontext).toEqual([{ name: 'ocr', result: 'x' }]);
   });
+
+  it('serializes providerOptions.interfaze.guard into a <guard> system message and maps reasoningEffort', async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ choices: [{ message: {} }] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+    const model = createInterfaze({ apiKey: 'test-api-key', fetch })(
+      'interfaze-beta',
+    );
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        interfaze: { guard: ['S1', 'S12_IMAGE'], reasoningEffort: 'high' },
+      },
+    });
+
+    const body = JSON.parse(fetch.mock.calls[0][1].body as string);
+    expect(body.guard).toBeUndefined();
+    expect(body.reasoningEffort).toBeUndefined();
+    expect(body.reasoning_effort).toBe('high');
+    expect(body.messages[0]).toEqual({
+      role: 'system',
+      content: '<guard>S1, S12_IMAGE</guard>',
+    });
+  });
 });
 
 describe('doStream', () => {

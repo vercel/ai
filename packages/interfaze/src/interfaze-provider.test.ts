@@ -71,6 +71,29 @@ describe('InterfazeProvider', () => {
       );
     });
 
+    it('maps client options to Interfaze headers', () => {
+      const provider = createInterfaze({
+        fetch: vi.fn(),
+        showAdditionalInfo: true,
+        bypassMoe: true,
+        bypassCache: true,
+        adminKey: 'admin-secret',
+      });
+      const headers = (provider('interfaze-beta') as any).config.headers();
+      expect(headers['x-show-additional-info']).toBe('true');
+      expect(headers['x-bypass-moe']).toBe('true');
+      expect(headers['x-bypass-cache']).toBe('true');
+      expect(headers['x-admin-key']).toBe('admin-secret');
+    });
+
+    it('omits client-option headers when unset', () => {
+      const headers = (
+        createInterfaze({ fetch: vi.fn() })('interfaze-beta') as any
+      ).config.headers();
+      expect(headers['x-bypass-moe']).toBeUndefined();
+      expect(headers['x-admin-key']).toBeUndefined();
+    });
+
     it('should default the base URL to the Interfaze API', () => {
       const provider = createInterfaze({ fetch: vi.fn() });
       const model = provider('interfaze-beta') as InstanceType<
@@ -128,6 +151,52 @@ describe('InterfazeProvider', () => {
         precontext: [{ name: 'ocr', result: 'text' }],
       };
       expect(model.config.transformRequestBody(args)).toEqual(args);
+    });
+
+    it('maps reasoningEffort to the reasoning_effort wire field', () => {
+      const model = createInterfaze()('interfaze-beta') as any;
+      expect(
+        model.config.transformRequestBody({
+          model: 'interfaze-beta',
+          messages: [],
+          reasoningEffort: 'high',
+        }),
+      ).toEqual({
+        model: 'interfaze-beta',
+        messages: [],
+        reasoning_effort: 'high',
+      });
+    });
+
+    it('serializes guard codes into a <guard> system message', () => {
+      const model = createInterfaze()('interfaze-beta') as any;
+      const out = model.config.transformRequestBody({
+        model: 'interfaze-beta',
+        messages: [{ role: 'user', content: 'hi' }],
+        guard: ['S1', 'S12_IMAGE'],
+      });
+      expect(out.guard).toBeUndefined();
+      expect(out.messages[0]).toEqual({
+        role: 'system',
+        content: '<guard>S1, S12_IMAGE</guard>',
+      });
+      expect(out.messages[1]).toEqual({ role: 'user', content: 'hi' });
+    });
+
+    it('merges the guard tag into an existing string system message', () => {
+      const model = createInterfaze()('interfaze-beta') as any;
+      const out = model.config.transformRequestBody({
+        model: 'interfaze-beta',
+        messages: [
+          { role: 'system', content: 'You are concise.' },
+          { role: 'user', content: 'hi' },
+        ],
+        guard: ['S1'],
+      });
+      expect(out.messages[0].content).toBe(
+        '<guard>S1</guard>\nYou are concise.',
+      );
+      expect(out.messages).toHaveLength(2);
     });
   });
 
