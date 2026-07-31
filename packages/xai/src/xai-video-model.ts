@@ -71,7 +71,13 @@ function resolveStartImage(
 const isVideoFile = (file: Experimental_VideoModelV4File): boolean =>
   file.mediaType != null && getTopLevelMediaType(file.mediaType) === 'video';
 
-function fileToXaiImageUrl(file: Experimental_VideoModelV4File): string {
+const isAudioFile = (file: Experimental_VideoModelV4File): boolean =>
+  file.mediaType != null && getTopLevelMediaType(file.mediaType) === 'audio';
+
+// xAI accepts a single reference audio track per request.
+const MAX_REFERENCE_AUDIOS = 1;
+
+function fileToXaiUrl(file: Experimental_VideoModelV4File): string {
   if (file.type === 'url') {
     return file.url;
   }
@@ -83,44 +89,83 @@ function fileToXaiImageUrl(file: Experimental_VideoModelV4File): string {
   return `data:${file.mediaType};base64,${base64Data}`;
 }
 
-// Resolves the reference images for R2V generation. First-class
-// `inputReferences` win over the legacy `referenceImageUrls` provider option.
-// Video references are not supported for reference-to-video and are skipped
-// with a warning.
-function resolveReferenceImages(
+// Resolves the reference images and audio for R2V generation. First-class
+// `inputReferences` win over the legacy `referenceImageUrls` and
+// `referenceAudioUrls` provider options. Video references are not supported for
+// reference-to-video and are skipped with a warning. References without a media
+// type (only possible for URLs) are treated as images.
+function resolveReferences(
   options: XaiVideoDoGenerateOptions,
   xaiOptions: XaiParsedVideoModelOptions | undefined,
   warnings: SharedV4Warning[],
-): Array<{ url: string }> | undefined {
+): {
+  images: Array<{ url: string }> | undefined;
+  audios: Array<{ url: string }> | undefined;
+} {
+  let images: Array<{ url: string }> | undefined;
+  let audios: Array<{ url: string }> | undefined;
+
   if (options.inputReferences != null && options.inputReferences.length > 0) {
-    const imageReferences = options.inputReferences.filter(reference => {
+    const imageFiles: Experimental_VideoModelV4File[] = [];
+    const audioFiles: Experimental_VideoModelV4File[] = [];
+
+    for (const reference of options.inputReferences) {
       if (isVideoFile(reference)) {
         warnings.push({
           type: 'unsupported',
           feature: 'inputReferences',
           details:
-            'xAI reference-to-video accepts image references only. The video ' +
-            'reference was ignored. Use providerOptions.xai.mode ' +
+            'xAI reference-to-video accepts image and audio references only. ' +
+            'The video reference was ignored. Use providerOptions.xai.mode ' +
             '"extend-video" to continue from a video.',
         });
-        return false;
+        continue;
       }
-      return true;
-    });
 
-    return imageReferences.map(reference => ({
-      url: fileToXaiImageUrl(reference),
-    }));
-  }
+      if (isAudioFile(reference)) {
+        audioFiles.push(reference);
+        continue;
+      }
 
-  if (
+      imageFiles.push(reference);
+    }
+
+    images = imageFiles.map(reference => ({ url: fileToXaiUrl(reference) }));
+
+    if (audioFiles.length > 0) {
+      audios = audioFiles
+        .slice(0, MAX_REFERENCE_AUDIOS)
+        .map(reference => ({ url: fileToXaiUrl(reference) }));
+
+      if (audioFiles.length > MAX_REFERENCE_AUDIOS) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'inputReferences',
+          details:
+            `xAI accepts at most ${MAX_REFERENCE_AUDIOS} reference audio ` +
+            'track. The extra audio references were ignored.',
+        });
+      }
+    }
+  } else if (
     xaiOptions?.referenceImageUrls != null &&
     xaiOptions.referenceImageUrls.length > 0
   ) {
-    return xaiOptions.referenceImageUrls.map(url => ({ url }));
+    images = xaiOptions.referenceImageUrls.map(url => ({ url }));
   }
 
-  return undefined;
+  // The provider option supplies audio whenever `inputReferences` carried none,
+  // so reference images can come from `inputReferences` while the audio comes
+  // from `referenceAudioUrls`.
+  if (
+    audios == null &&
+    xaiOptions?.referenceAudioUrls != null &&
+    xaiOptions.referenceAudioUrls.length > 0
+  ) {
+    audios = xaiOptions.referenceAudioUrls.map(url => ({ url }));
+  }
+
+  return { images, audios };
 }
 
 function resolveVideoMode(
@@ -316,7 +361,7 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
             'continue from a video instead.',
         });
       } else {
-        body.image = { url: fileToXaiImageUrl(startImage) };
+        body.image = { url: fileToXaiUrl(startImage) };
       }
     }
 
@@ -336,25 +381,28 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
       });
     }
 
-    // Reference images for R2V (reference-to-video) generation
+    // Reference images and audio for R2V (reference-to-video) generation
     if (hasReferenceImages) {
-      const referenceImages = resolveReferenceImages(
-        options,
-        xaiOptions,
-        warnings,
-      );
+      const { images: referenceImages, audios: referenceAudios } =
+        resolveReferences(options, xaiOptions, warnings);
+
       if (referenceImages != null) {
         body.reference_images = referenceImages;
       }
 
       // Optional reference audio (max 1).
-      if (
-        xaiOptions?.referenceAudioUrls != null &&
-        xaiOptions.referenceAudioUrls.length > 0
-      ) {
-        body.reference_audios = xaiOptions.referenceAudioUrls.map(url => ({
-          url,
-        }));
+      if (referenceAudios != null) {
+        if (referenceImages == null || referenceImages.length === 0) {
+          warnings.push({
+            type: 'unsupported',
+            feature: 'referenceAudioUrls',
+            details:
+              'xAI reference audio must be paired with at least one reference ' +
+              'image. The reference audio was ignored.',
+          });
+        } else {
+          body.reference_audios = referenceAudios;
+        }
       }
 
       // Reference-to-video is capped at 720p; downgrade a 1080p request.

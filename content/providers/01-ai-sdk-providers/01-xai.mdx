@@ -1277,7 +1277,12 @@ You can validate the provider options using the `XaiVideoModelOptions` type.
   Optional reference audio URL (max 1) for reference-to-video (R2V)
   generation, supported by the `grok-imagine-video-1.5` model. Include
   `<AUDIO_0>` in the prompt so the model knows which speaker should talk.
-  Used with `mode: 'reference-to-video'`.
+  Used whenever reference-to-video is selected — either via
+  `mode: 'reference-to-video'` or via the top-level `inputReferences` option —
+  so it does not require `referenceImageUrls` alongside it. Reference audio
+  must accompany at least one reference image; on its own it is ignored with
+  a warning. An audio reference passed through `inputReferences` takes
+  precedence over this option.
 
 <Note>
   Video generation is an asynchronous process that can take several minutes.

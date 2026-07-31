@@ -1298,6 +1298,31 @@ describe('XaiVideoModel', () => {
       });
     });
 
+    it('should send reference_audios when inputReferences select R2V', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [{ type: 'url', url: 'https://example.com/ref1.jpg' }],
+        providerOptions: {
+          xai: {
+            referenceAudioUrls: ['https://example.com/voice.mp3'],
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        reference_images: [{ url: 'https://example.com/ref1.jpg' }],
+        reference_audios: [{ url: 'https://example.com/voice.mp3' }],
+      });
+      expect(result.warnings).not.toContainEqual(
+        expect.objectContaining({ feature: 'referenceAudioUrls' }),
+      );
+    });
+
     it('should map file inputReferences to data URI reference_images', async () => {
       const model = createModel();
 
@@ -1315,6 +1340,134 @@ describe('XaiVideoModel', () => {
       const body = await server.calls[0].requestBodyJson;
       expect(body).toMatchObject({
         reference_images: [{ url: 'data:image/png;base64,iVBORw==' }],
+      });
+    });
+
+    it('should route audio inputReferences to reference_audios', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          { type: 'url', url: 'https://example.com/ref1.jpg' },
+          {
+            type: 'url',
+            url: 'https://example.com/voice.mp3',
+            mediaType: 'audio/mpeg',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        reference_images: [{ url: 'https://example.com/ref1.jpg' }],
+        reference_audios: [{ url: 'https://example.com/voice.mp3' }],
+      });
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should map file audio inputReferences to a data URI', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          { type: 'url', url: 'https://example.com/ref1.jpg' },
+          {
+            type: 'file',
+            data: new Uint8Array([73, 68, 51, 4]),
+            mediaType: 'audio/mpeg',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        reference_audios: [{ url: 'data:audio/mpeg;base64,SUQzBA==' }],
+      });
+    });
+
+    it('should keep only the first audio reference and warn', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          { type: 'url', url: 'https://example.com/ref1.jpg' },
+          {
+            type: 'url',
+            url: 'https://example.com/voice-a.mp3',
+            mediaType: 'audio/mpeg',
+          },
+          {
+            type: 'url',
+            url: 'https://example.com/voice-b.mp3',
+            mediaType: 'audio/mpeg',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        reference_audios: [{ url: 'https://example.com/voice-a.mp3' }],
+      });
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'inputReferences',
+        }),
+      );
+    });
+
+    it('should drop audio-only inputReferences with a warning', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          {
+            type: 'url',
+            url: 'https://example.com/voice.mp3',
+            mediaType: 'audio/mpeg',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('reference_audios');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'referenceAudioUrls',
+        }),
+      );
+    });
+
+    it('should prefer audio inputReferences over the referenceAudioUrls option', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          { type: 'url', url: 'https://example.com/ref1.jpg' },
+          {
+            type: 'url',
+            url: 'https://example.com/first-class.mp3',
+            mediaType: 'audio/mpeg',
+          },
+        ],
+        providerOptions: {
+          xai: {
+            referenceAudioUrls: ['https://example.com/legacy.mp3'],
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        reference_audios: [{ url: 'https://example.com/first-class.mp3' }],
       });
     });
 

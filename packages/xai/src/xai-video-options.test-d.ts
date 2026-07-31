@@ -45,6 +45,26 @@ describe('XaiVideoModelOptions type', () => {
     expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
   });
 
+  it('should allow reference-to-video with reference audio and no referenceImageUrls', () => {
+    // Reference images come from the top-level `inputReferences` option.
+    const options = {
+      mode: 'reference-to-video',
+      referenceAudioUrls: ['https://example.com/voice.mp3'],
+      resolution: '720p',
+    } satisfies XaiVideoModelOptions;
+
+    expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
+  });
+
+  it('should allow reference audio without mode for inputReferences-driven R2V', () => {
+    const options = {
+      referenceAudioUrls: ['https://example.com/voice.mp3'],
+      pollTimeoutMs: 600000,
+    } satisfies XaiVideoModelOptions;
+
+    expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
+  });
+
   it('should allow reference-to-video with multiple hardcoded URLs', () => {
     const options = {
       mode: 'reference-to-video',
@@ -187,6 +207,17 @@ describe('XaiVideoModelOptions type', () => {
     const options: XaiVideoModelOptions = {
       mode: 'reference-to-video',
       referenceImageUrls: ['https://example.com/ref.png'],
+      // @ts-expect-error - reference-to-video does not accept videoUrl
+      videoUrl: 'https://example.com/video.mp4',
+    };
+
+    options;
+  });
+
+  it('should not allow videoUrl with reference-to-video mode and reference audio', () => {
+    const options: XaiVideoModelOptions = {
+      mode: 'reference-to-video',
+      referenceAudioUrls: ['https://example.com/voice.mp3'],
       // @ts-expect-error - reference-to-video does not accept videoUrl
       videoUrl: 'https://example.com/video.mp4',
     };
