@@ -9,4 +9,6 @@ export type {
   /** @deprecated Use `MiniMaxLanguageModelOptions` instead. */
   MiniMaxLanguageModelOptions as MiniMaxProviderOptions,
 } from './minimax-chat-options';
+export type { MiniMaxVideoModelId } from './minimax-video-settings';
+export type { MiniMaxVideoModelOptions } from './minimax-video-model-options';
 export { VERSION } from './version';
