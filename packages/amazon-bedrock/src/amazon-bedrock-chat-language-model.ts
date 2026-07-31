@@ -486,6 +486,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
 
   readonly supportedUrls: Record<string, RegExp[]> = {
     'image/*': [/^s3:\/\//],
+    'video/*': [/^s3:\/\//],
   };
 
   private async getHeaders({

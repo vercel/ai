@@ -28,13 +28,13 @@ Code mode is provided by the `@ai-sdk/code-mode` package.
 pnpm add ai @ai-sdk/code-mode zod
 ```
 
-## Creating a Code Mode Tool
+## Using Code Mode with `generateText`
 
-Define the AI SDK tools that generated code should be able to call, then pass
-them to `experimental_createCodeModeTool`:
+Define your tools in one tool set and use `experimental_toolCallers` to select
+which tools code mode can call:
 
 ```ts
-import { experimental_createCodeModeTool as createCodeModeTool } from '@ai-sdk/code-mode';
+import { experimental_codeModeTool as codeModeTool } from '@ai-sdk/code-mode';
 import { generateText, isStepCount, tool } from 'ai';
 import { z } from 'zod';
 
@@ -68,24 +68,45 @@ const getDemand = tool({
   }),
 });
 
-const codeMode = createCodeModeTool({
+const tools = {
+  code_mode: codeModeTool({
+    executionPolicy: {
+      timeoutMs: 30_000,
+    },
+  }),
   getInventory,
   getDemand,
-});
+} as const;
 
 const result = await generateText({
   model: __MODEL__,
-  tools: { codeMode },
+  tools,
+  experimental_toolCallers: ({ code_mode }) => ({
+    getInventory: [code_mode],
+    getDemand: [code_mode],
+  }),
   stopWhen: isStepCount(10),
   prompt: 'Compare inventory and demand for product sku_123.',
 });
 ```
 
-`createCodeModeTool` returns a regular AI SDK tool. You can use it with
-`generateText`, `streamText`, or a `ToolLoopAgent`.
+The keys returned by `experimental_toolCallers` are the tools being governed.
+The values identify their allowed callers. In this example, `getInventory` and
+`getDemand` are available through `code_mode`, but they are not exposed to the
+model as directly callable tools. Include `'direct'` when a tool should also be
+callable directly:
+
+```ts
+experimental_toolCallers: ({ code_mode }) => ({
+  getInventory: ['direct', code_mode],
+});
+```
+
+Tools without an `experimental_toolCallers` entry keep their existing direct
+tool-calling behavior.
 
 The code mode tool description includes TypeScript signatures generated from
-the input and output schemas of the tools you provide. Descriptions,
+the input and output schemas of its allowed tools. Descriptions,
 `inputExamples`, and precise schemas help the model write correct code.
 
 For the example above, the model can generate a program like:
@@ -163,21 +184,15 @@ payloads, console output, and tool calls. Override them with
 `executionPolicy`:
 
 ```ts
-const codeMode = createCodeModeTool(
-  {
-    getInventory,
-    getDemand,
+const codeMode = codeModeTool({
+  executionPolicy: {
+    timeoutMs: 30_000,
+    memoryLimitBytes: 64 * 1024 * 1024,
+    maxResultBytes: 1024 * 1024,
+    maxBridgeRequests: 100,
+    maxInFlightBridgeRequests: 10,
   },
-  {
-    executionPolicy: {
-      timeoutMs: 30_000,
-      memoryLimitBytes: 64 * 1024 * 1024,
-      maxResultBytes: 1024 * 1024,
-      maxBridgeRequests: 100,
-      maxInFlightBridgeRequests: 10,
-    },
-  },
-);
+});
 ```
 
 The available limits are:

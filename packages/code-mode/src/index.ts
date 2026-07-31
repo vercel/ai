@@ -1,4 +1,7 @@
-export { createCodeModeTool as experimental_createCodeModeTool } from './code-mode-tool.js';
+export {
+  codeModeTool as experimental_codeModeTool,
+  createCodeModeTool as experimental_createCodeModeTool,
+} from './code-mode-tool.js';
 export {
   CodeModeAbortedError,
   CodeModeBridgeLimitError,

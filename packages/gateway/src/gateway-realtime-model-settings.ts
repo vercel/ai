@@ -4,4 +4,5 @@ export type GatewayRealtimeModelId =
   | 'openai/gpt-realtime-2.1'
   | 'openai/gpt-realtime-mini'
   | 'xai/grok-voice-think-fast-1.0'
+  | 'xai/grok-voice-think-fast-2.0'
   | (string & {});

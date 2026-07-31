@@ -1,5 +1,22 @@
 # ai
 
+## 7.0.44
+
+### Patch Changes
+
+- 015acb4: fix telemetry attribution for language model calls that resolve to a different response model
+
+## 7.0.43
+
+### Patch Changes
+
+- b192878: feat: add experimental_toolCaller routing to generateText for code mode
+- Updated dependencies [d8210b6]
+- Updated dependencies [af3f400]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+  - @ai-sdk/gateway@4.0.33
+
 ## 7.0.42
 
 ### Patch Changes

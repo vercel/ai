@@ -1,5 +1,23 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.38
+
+### Patch Changes
+
+- 52e22a7: feat(bedrock): support video inputs in Converse messages
+
+## 5.0.37
+
+### Patch Changes
+
+- ebd31b8: fix(amazon-bedrock): warn when unsupported strict tools are omitted and align structured output fallback routing
+- Updated dependencies [d8210b6]
+- Updated dependencies [beaecb3]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+  - @ai-sdk/anthropic@4.0.25
+  - @ai-sdk/openai@4.0.25
+
 ## 5.0.36
 
 ### Patch Changes
