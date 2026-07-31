@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@shikijs/transformers": "3.23.0",
-    "@vercel/geistdocs": "1.11.3",
+    "@vercel/geistdocs": "1.15.5",
     "fumadocs-core": "16.2.2",
     "fumadocs-mdx": "14.0.4",
     "fumadocs-ui": "16.2.2",

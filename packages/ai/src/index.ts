@@ -7,6 +7,7 @@ export {
   asSchema,
   createIdGenerator,
   dynamicTool,
+  experimental_toolCaller,
   generateId,
   jsonSchema,
   parseJsonEventStream,
@@ -19,6 +20,7 @@ export {
   type InferToolOutput,
   type Experimental_SandboxSession,
   type Experimental_SandboxProcess,
+  type Experimental_ToolCallerTool,
   type Schema,
   type Tool,
   type ToolApprovalRequest,
@@ -46,6 +48,7 @@ export * from './rerank';
 export * from './telemetry';
 export * from './text-stream';
 export * from './transcribe';
+export * from './translate';
 export * from './types';
 export * from './ui';
 export * from './ui-message-stream';

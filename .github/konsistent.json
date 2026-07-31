@@ -48,6 +48,7 @@
         "packages/{providerId}/src/index.ts",
         "!packages/ai",
         "!packages/angular",
+        "!packages/code-mode",
         "!packages/codemod",
         "!packages/devtools",
         "!packages/harness",
@@ -429,6 +430,7 @@
     "huggingface": "HuggingFace",
     "klingai": "KlingAI",
     "lmnt": "LMNT",
+    "minimax": "MiniMax",
     "moonshotai": "MoonshotAI",
     "openai": "OpenAI",
     "openai-compatible": "OpenAICompatible",
@@ -437,6 +439,7 @@
     "togetherai": "TogetherAI"
   },
   "kebabToCamelMap": {
-    "lmnt": "lmnt"
+    "lmnt": "lmnt",
+    "minimax": "minimax"
   }
 }

@@ -1,5 +1,75 @@
 # @ai-sdk/angular
 
+## 3.0.45
+
+### Patch Changes
+
+- Updated dependencies [d6ce0ee]
+- Updated dependencies [fa95504]
+- Updated dependencies [349afe7]
+  - ai@7.0.45
+  - @ai-sdk/provider-utils@5.0.17
+
+## 3.0.44
+
+### Patch Changes
+
+- Updated dependencies [015acb4]
+  - ai@7.0.44
+
+## 3.0.43
+
+### Patch Changes
+
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+  - ai@7.0.43
+
+## 3.0.42
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [60f97f6]
+- Updated dependencies [6a5bdff]
+- Updated dependencies [6de2ec1]
+  - @ai-sdk/provider-utils@5.0.15
+  - ai@7.0.42
+
+## 3.0.41
+
+### Patch Changes
+
+- Updated dependencies [2e2224b]
+  - ai@7.0.41
+
+## 3.0.40
+
+### Patch Changes
+
+- Updated dependencies [c3782a6]
+  - ai@7.0.40
+
+## 3.0.39
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [09a52cb]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+  - ai@7.0.39
+
+## 3.0.38
+
+### Patch Changes
+
+- Updated dependencies [7bd6bdd]
+- Updated dependencies [1e2f324]
+  - ai@7.0.38
+  - @ai-sdk/provider-utils@5.0.13
+
 ## 3.0.37
 
 ### Patch Changes

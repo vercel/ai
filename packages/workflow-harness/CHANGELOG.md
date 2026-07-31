@@ -1,5 +1,55 @@
 # @ai-sdk/workflow-harness
 
+## 1.0.51
+
+### Patch Changes
+
+- Updated dependencies [226a679]
+  - @ai-sdk/harness@1.0.51
+
+## 1.0.50
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.50
+
+## 1.0.49
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.49
+
+## 1.0.48
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.48
+
+## 1.0.47
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.47
+
+## 1.0.46
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.46
+
+## 1.0.45
+
+### Patch Changes
+
+- 214ea9f: feat(workflow-harness): add utility functions for agent-step based workflow step definitions
+  - @ai-sdk/harness@1.0.45
+
+## 1.0.44
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.44
+
 ## 1.0.43
 
 ### Patch Changes

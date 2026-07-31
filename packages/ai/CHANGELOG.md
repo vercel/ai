@@ -1,5 +1,83 @@
 # ai
 
+## 7.0.45
+
+### Patch Changes
+
+- d6ce0ee: feat(ai): support experimental_toolCallers in streamText
+- fa95504: feat(ai): support experimental tool callers in ToolLoopAgent
+- 349afe7: Warn when `generateText` receives streaming-only `firstChunkMs` or `chunkMs` timeout settings.
+- Updated dependencies [fa95504]
+  - @ai-sdk/provider-utils@5.0.17
+  - @ai-sdk/gateway@4.0.34
+
+## 7.0.44
+
+### Patch Changes
+
+- 015acb4: fix telemetry attribution for language model calls that resolve to a different response model
+
+## 7.0.43
+
+### Patch Changes
+
+- b192878: feat: add experimental_toolCaller routing to generateText for code mode
+- Updated dependencies [d8210b6]
+- Updated dependencies [af3f400]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+  - @ai-sdk/gateway@4.0.33
+
+## 7.0.42
+
+### Patch Changes
+
+- 1659cd5: Prevent validated downloads on Node.js from reaching private or internal services through DNS aliases or DNS rebinding by validating and pinning every resolved address at connection time.
+- 60f97f6: support overriding model call settings for individual `prepareStep` invocations
+- 6a5bdff: Fix validated Node.js downloads when the HTTP connector requests a single DNS address.
+- 6de2ec1: Preserve provider metadata from empty text deltas in `streamText`.
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+- Updated dependencies [0012529]
+  - @ai-sdk/provider-utils@5.0.15
+  - @ai-sdk/gateway@4.0.32
+
+## 7.0.41
+
+### Patch Changes
+
+- 2e2224b: Route the warning system information banner to stderr so it does not corrupt application output written to stdout.
+- Updated dependencies [bf216b3]
+  - @ai-sdk/gateway@4.0.31
+
+## 7.0.40
+
+### Patch Changes
+
+- c3782a6: Deprecate `Experimental_GeneratedImage` in favor of `GeneratedFile`.
+
+## 7.0.39
+
+### Patch Changes
+
+- 09a52cb: Promote the `repairText` option to stable on `generateObject` and `streamObject`, with a deprecated `experimental_repairText` alias for backwards compatibility.
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+  - @ai-sdk/gateway@4.0.30
+
+## 7.0.38
+
+### Patch Changes
+
+- 7bd6bdd: Avoid synthesizing client tool errors for invalid provider-executed tool calls.
+- 1e2f324: feat: add experimental speech translation model specification (`Experimental_SpeechTranslationModelV4`) and `experimental_streamTranslate` for streaming speech-to-speech translation
+- Updated dependencies [d9d2a11]
+- Updated dependencies [1e2f324]
+  - @ai-sdk/gateway@4.0.29
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/provider-utils@5.0.13
+
 ## 7.0.37
 
 ### Patch Changes

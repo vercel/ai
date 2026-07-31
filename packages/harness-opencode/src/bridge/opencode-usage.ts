@@ -1,4 +1,5 @@
 import type { HarnessV1StreamPart } from '@ai-sdk/harness';
+import { isRecord } from '@ai-sdk/provider-utils';
 
 type FinishStepEvent = Extract<HarnessV1StreamPart, { type: 'finish-step' }>;
 
@@ -132,9 +133,7 @@ function asTokenGroup(value: unknown): Record<string, number | undefined> {
 }
 
 function asRecord(value: unknown): Record<string, any> | undefined {
-  if (!value || typeof value !== 'object' || Array.isArray(value))
-    return undefined;
-  return value as Record<string, any>;
+  return isRecord(value) ? value : undefined;
 }
 
 function numberValue(value: unknown): number {

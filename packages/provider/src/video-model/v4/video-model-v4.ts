@@ -6,7 +6,7 @@ type GetMaxVideosPerCallFunction = (options: {
 }) => PromiseLike<number | undefined> | number | undefined;
 
 /**
- * Video generation model specification version 3.
+ * Video generation model specification version 4.
  */
 export type VideoModelV4 = {
   /**

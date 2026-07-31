@@ -40,6 +40,9 @@
       "path": "packages/cerebras"
     },
     {
+      "path": "packages/code-mode"
+    },
+    {
       "path": "packages/codemod"
     },
     {
@@ -125,6 +128,9 @@
     },
     {
       "path": "packages/mcp"
+    },
+    {
+      "path": "packages/minimax"
     },
     {
       "path": "packages/mistral"

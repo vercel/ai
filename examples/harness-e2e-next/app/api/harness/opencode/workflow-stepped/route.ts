@@ -1,4 +1,3 @@
-import { latestUserMessage } from '@/util/latest-user-message';
 import {
   convertToModelMessages,
   createUIMessageStreamResponse,
@@ -6,7 +5,7 @@ import {
   type UIMessageChunk,
 } from 'ai';
 import { start } from 'workflow/api';
-import { openCodeSteppedWorkflow } from './workflow';
+import { agentWorkflow } from './workflow';
 
 export async function POST(request: Request) {
   const body: { id?: string; messages: UIMessage[] } = await request.json();
@@ -15,13 +14,7 @@ export async function POST(request: Request) {
   }
 
   const messages = await convertToModelMessages(body.messages);
-  if (!latestUserMessage(messages)) {
-    return new Response('No user message to run', { status: 400 });
-  }
-
-  const run = await start(openCodeSteppedWorkflow, [
-    { messages, sessionId: body.id },
-  ]);
+  const run = await start(agentWorkflow, [{ messages, sessionId: body.id }]);
   return createUIMessageStreamResponse({
     stream: run.readable as ReadableStream<UIMessageChunk>,
   });

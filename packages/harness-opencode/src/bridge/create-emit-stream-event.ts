@@ -1,4 +1,5 @@
 import type { BridgeTurn } from '@ai-sdk/harness/bridge';
+import { isRecord } from '@ai-sdk/provider-utils';
 import {
   emitLegacyPartDelta,
   emitLegacyTextPartUpdate,
@@ -501,10 +502,6 @@ function nextRetryEventMessage({
   return details.length > 0
     ? `OpenCode session retry: ${details.join('; ')}`
     : 'OpenCode session retry';
-}
-
-export function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
 }
 
 export function stringValue(value: unknown): string | undefined {

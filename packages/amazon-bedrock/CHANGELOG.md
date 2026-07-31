@@ -1,5 +1,79 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.39
+
+### Patch Changes
+
+- Updated dependencies [dc0c28e]
+- Updated dependencies [f7c4a38]
+- Updated dependencies [fa95504]
+  - @ai-sdk/anthropic@4.0.26
+  - @ai-sdk/openai@4.0.26
+  - @ai-sdk/provider-utils@5.0.17
+
+## 5.0.38
+
+### Patch Changes
+
+- 52e22a7: feat(bedrock): support video inputs in Converse messages
+
+## 5.0.37
+
+### Patch Changes
+
+- ebd31b8: fix(amazon-bedrock): warn when unsupported strict tools are omitted and align structured output fallback routing
+- Updated dependencies [d8210b6]
+- Updated dependencies [beaecb3]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+  - @ai-sdk/anthropic@4.0.25
+  - @ai-sdk/openai@4.0.25
+
+## 5.0.36
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+  - @ai-sdk/anthropic@4.0.24
+  - @ai-sdk/openai@4.0.24
+
+## 5.0.35
+
+### Patch Changes
+
+- Updated dependencies [96a237d]
+  - @ai-sdk/openai@4.0.23
+
+## 5.0.34
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+  - @ai-sdk/openai@4.0.22
+  - @ai-sdk/anthropic@4.0.23
+
+## 5.0.33
+
+### Patch Changes
+
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/anthropic@4.0.22
+  - @ai-sdk/openai@4.0.21
+  - @ai-sdk/provider-utils@5.0.13
+
+## 5.0.32
+
+### Patch Changes
+
+- eb16508: fix(provider/amazon-bedrock): omit tool `strict` and `output_config.format` for Claude models Bedrock rejects them on
+- Updated dependencies [e29788d]
+  - @ai-sdk/anthropic@4.0.21
+
 ## 5.0.31
 
 ### Patch Changes

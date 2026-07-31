@@ -3,6 +3,7 @@ import {
   type BridgeEvent,
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
+import { isRecord } from '@ai-sdk/provider-utils';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
@@ -22,11 +23,7 @@ import {
   type TranslationState,
   unwrapOpenCodeEvent,
 } from './opencode-events';
-import {
-  createEmitStreamEvent,
-  isRecord,
-  stringValue,
-} from './create-emit-stream-event';
+import { createEmitStreamEvent, stringValue } from './create-emit-stream-event';
 import { mapOpenCodeFinishReason } from './opencode-finish-step';
 import { prependOpenCodeBinToPath } from './opencode-path';
 import {

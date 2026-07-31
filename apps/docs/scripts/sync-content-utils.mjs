@@ -1,3 +1,12 @@
+import {
+  cpSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
+import { join } from "node:path";
+
 /** Returns { prefix, clean } for a `NN-name` path segment. */
 export const parseSegment = segment => {
   const match = segment.match(/^(\d+)-(.+)$/);
@@ -119,3 +128,97 @@ const addLegacyAnchors = mdx => {
 
 export const transformMdx = mdx =>
   addLegacyAnchors(stripLeadingH1(rewriteLines(mdx)));
+
+const frontmatterOf = mdx => {
+  const match = mdx.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
+  return match ? match[1] : "";
+};
+
+const titleOf = mdx => {
+  const raw = frontmatterOf(mdx).match(/^title:\s*(.+)$/m)?.[1]?.trim();
+  return raw?.replace(/^(['"])(.*)\1$/, "$2");
+};
+
+/**
+ * Recursively transforms `srcDir` into `outDir`, returning the ordered list
+ * of clean entry names for the parent meta.json.
+ *
+ * Folders that contain both an `index.mdx` and an `overview.mdx` drop the
+ * index (legacy ai-sdk.dev card-grid landing pages): Geistdocs' sidebar
+ * surfaces folder index pages as a synthetic "Overview" item, which would
+ * duplicate the real Overview page. `next.config.ts` redirects the folder
+ * URL to the overview page. Frontmatter signals on the dropped index (such
+ * as `collapsed: true`) still apply to the folder's meta.json.
+ */
+export const transformDir = (srcDir, outDir, relPath = "") => {
+  mkdirSync(outDir, { recursive: true });
+
+  const entries = readdirSync(srcDir, { withFileTypes: true })
+    .filter((entry) => !entry.name.startsWith("."))
+    .map((entry) => {
+      const { prefix, clean } = parseSegment(
+        entry.isDirectory() ? entry.name : entry.name.replace(/\.mdx$/, "")
+      );
+      return { entry, prefix, clean };
+    })
+    .sort(
+      (a, b) =>
+        (a.prefix ?? Number.MAX_SAFE_INTEGER) -
+          (b.prefix ?? Number.MAX_SAFE_INTEGER) ||
+        a.clean.localeCompare(b.clean)
+    );
+
+  const hasOverviewPage = entries.some(
+    ({ entry, clean }) =>
+      !entry.isDirectory() && entry.name.endsWith(".mdx") && clean === "overview"
+  );
+
+  const seen = new Map();
+  const pages = [];
+  let defaultOpen;
+  let folderTitle;
+
+  for (const { entry, clean } of entries) {
+    const srcPath = join(srcDir, entry.name);
+
+    if (seen.has(clean)) {
+      throw new Error(
+        `prefix-strip collision in ${relPath || "."}: "${entry.name}" and "${seen.get(clean)}" both map to "${clean}"`
+      );
+    }
+    seen.set(clean, entry.name);
+
+    if (entry.isDirectory()) {
+      transformDir(srcPath, join(outDir, clean), join(relPath, clean));
+      pages.push(clean);
+    } else if (entry.name.endsWith(".mdx")) {
+      const mdx = readFileSync(srcPath, "utf8");
+      if (clean === "index" && /^collapsed:\s*true/m.test(frontmatterOf(mdx))) {
+        defaultOpen = false;
+      }
+      if (clean === "index" && hasOverviewPage) {
+        // Without an index page the folder would fall back to a
+        // slug-derived display name; keep the index title on the folder.
+        folderTitle = titleOf(mdx);
+        continue;
+      }
+      writeFileSync(join(outDir, `${clean}.mdx`), transformMdx(mdx));
+      // `index` is the folder page; fumadocs doesn't want it in `pages`.
+      if (clean !== "index") {
+        pages.push(clean);
+      }
+    } else {
+      // Copy non-MDX assets verbatim.
+      cpSync(srcPath, join(outDir, entry.name));
+    }
+  }
+
+  const meta = { pages };
+  if (folderTitle) {
+    meta.title = folderTitle;
+  }
+  if (defaultOpen === false) {
+    meta.defaultOpen = false;
+  }
+  writeFileSync(join(outDir, "meta.json"), `${JSON.stringify(meta, null, 2)}\n`);
+};

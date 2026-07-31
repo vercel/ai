@@ -1,5 +1,53 @@
 # @ai-sdk/google
 
+## 4.0.30
+
+### Patch Changes
+
+- Updated dependencies [fa95504]
+  - @ai-sdk/provider-utils@5.0.17
+
+## 4.0.29
+
+### Patch Changes
+
+- d8210b6: chore: centralize record type guards in provider-utils
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+
+## 4.0.28
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+
+## 4.0.27
+
+### Patch Changes
+
+- d2d9324: Forward `topK` through Google Interactions requests and warn when unsupported frequency or presence penalties are provided.
+- 8bedb2c: Allow fetch to derive the content length for Google file upload request bodies.
+
+## 4.0.26
+
+### Patch Changes
+
+- c49380c: feat: add experimental streaming speech translation models (`openai.translation('gpt-realtime-translate')` over the OpenAI Realtime translations WebSocket and `google.translation('gemini-3.5-live-translate-preview')` over the Gemini Live API). `connectToWebSocket` in `@ai-sdk/provider-utils` now passes close code and reason to `onClose` (additive, optional parameter).
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+
+## 4.0.25
+
+### Patch Changes
+
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/provider-utils@5.0.13
+
 ## 4.0.24
 
 ### Patch Changes
