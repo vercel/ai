@@ -1,5 +1,11 @@
 # @ai-sdk/workflow
 
+## 1.0.46
+
+### Patch Changes
+
+- ai@7.0.46
+
 ## 1.0.45
 
 ### Patch Changes
