@@ -4,6 +4,13 @@
 
 ### Patch Changes
 
+- Updated dependencies [015acb4]
+  - ai@7.0.44
+
+## 0.0.1
+
+### Patch Changes
+
 - Updated dependencies [b192878]
   - ai@7.0.43
 
