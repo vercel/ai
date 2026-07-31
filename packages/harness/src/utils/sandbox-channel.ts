@@ -259,8 +259,8 @@ export class SandboxChannel<
   /**
    * Mark that the host is tearing the session down. The next socket close is
    * then treated as terminal rather than triggering a reconnect. Call before
-   * sending a `shutdown` / `detach` message whose ack the bridge follows with a
-   * socket close.
+   * sending a `stop` / `destroy` message whose completion closes the bridge
+   * socket.
    */
   beginClose(): void {
     this.closing = true;

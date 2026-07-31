@@ -22,9 +22,9 @@ describe('deepagents bridge protocol', () => {
       { type: 'tool-result', toolCallId: 't1', output: { ok: true } },
       { type: 'user-message', text: 'more' },
       { type: 'abort' },
-      { type: 'shutdown' },
+      { type: 'destroy' },
       { type: 'resume', lastSeenEventId: 3 },
-      { type: 'detach' },
+      { type: 'stop' },
     ]) {
       expect(() => inboundMessageSchema.parse(msg)).not.toThrow();
     }

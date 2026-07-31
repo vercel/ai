@@ -732,7 +732,7 @@ function createSession({
         );
       }
       stopped = true;
-      await teardown(channel, proc);
+      await teardown({ channel, proc, operation: 'stop' });
       // In-memory conversation is lost on teardown; the sandbox snapshot preserves the workspace files, not the conversation.
       const payload: HarnessV1ResumeSessionState = {
         type: 'resume-session',
@@ -745,19 +745,24 @@ function createSession({
     doDestroy: async () => {
       if (stopped) return;
       stopped = true;
-      await teardown(channel, proc);
+      await teardown({ channel, proc, operation: 'destroy' });
     },
   };
 }
 
-async function teardown(
-  channel: DeepAgentsChannel,
-  proc: Experimental_SandboxProcess | undefined,
-): Promise<void> {
+async function teardown({
+  channel,
+  proc,
+  operation,
+}: {
+  channel: DeepAgentsChannel;
+  proc: Experimental_SandboxProcess | undefined;
+  operation: 'stop' | 'destroy';
+}): Promise<void> {
   channel.beginClose();
   try {
     if (!channel.isClosed()) {
-      channel.send({ type: 'shutdown' });
+      channel.send({ type: operation });
     }
   } catch {}
   let stopTimer: ReturnType<typeof setTimeout> | undefined;

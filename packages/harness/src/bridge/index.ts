@@ -4,7 +4,7 @@
 // transport — the WebSocket server, token auth, single-flight connection
 // replacement, the in-memory event log + monotonic `seq`, resume replay, and
 // the lifecycle/meta files. The adapter supplies only `onStart` (drive its
-// CLI/SDK and translate to wire events) and `onDetach` (its resume payload).
+// CLI/SDK and translate to wire events) and lifecycle-specific cleanup hooks.
 
 import { appendFile, mkdir, writeFile } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
@@ -154,8 +154,10 @@ export interface RunBridgeOptions<TStart extends { type: 'start' }> {
   bridgeStateDir: string;
   /** Drive one prompt turn. Rejections surface to the host as an `error` event. */
   onStart(start: TStart, turn: BridgeTurn): Promise<void>;
-  /** Produce the adapter-defined resume payload for a `detach`. Defaults to `{}`. */
-  onDetach?(): unknown | Promise<unknown>;
+  /** Produce the adapter-defined runtime resume data for `stop`. Defaults to `{}`. */
+  onStop?(): unknown | Promise<unknown>;
+  /** Perform adapter-defined destruction before the bridge exits. */
+  onDestroy?(): void | Promise<void>;
   /** WS port. Defaults to `BRIDGE_WS_PORT` env (0 = OS-assigned). */
   port?: number;
   /** Auth token. Defaults to `BRIDGE_CHANNEL_TOKEN` env. */
@@ -163,7 +165,7 @@ export interface RunBridgeOptions<TStart extends { type: 'start' }> {
   /** Called with the bound port once the server is listening. */
   onListening?(port: number): void;
   /**
-   * Tear the process down after a `shutdown` / `detach`. Defaults to closing
+   * Tear the process down after `stop` / `destroy`. Defaults to closing
    * the server and calling `process.exit(0)`. Overridable for tests.
    */
   onExit?(): void;
@@ -184,8 +186,8 @@ type InboundControl =
     }
   | { type: 'user-message'; text: string }
   | { type: 'abort' }
-  | { type: 'shutdown' }
-  | { type: 'detach' }
+  | { type: 'stop' }
+  | { type: 'destroy' }
   | { type: 'resume'; lastSeenEventId: number };
 
 const WS_OPEN = 1;
@@ -194,7 +196,7 @@ const WS_OPEN = 1;
  * Boot the bridge: bind the WebSocket server, announce `bridge-ready`, and
  * service host connections for the lifetime of the process. Resolves once the
  * server is listening; the process then stays alive on the server until a
- * `shutdown` / `detach` exits it.
+ * `stop` / `destroy` exits it.
  */
 export interface BridgeHandle {
   /** The port the WebSocket server bound to. */
@@ -206,7 +208,7 @@ export interface BridgeHandle {
 export async function runBridge<TStart extends { type: 'start' }>(
   options: RunBridgeOptions<TStart>,
 ): Promise<BridgeHandle> {
-  const { bridgeType, bridgeStateDir, onStart, onDetach } = options;
+  const { bridgeType, bridgeStateDir, onStart, onStop, onDestroy } = options;
   const expectedToken = options.token ?? procEnv.BRIDGE_CHANNEL_TOKEN ?? '';
   const bridgeWsPort =
     options.port ?? parseInt(procEnv.BRIDGE_WS_PORT ?? '0', 10);
@@ -611,17 +613,18 @@ export async function runBridge<TStart extends { type: 'start' }>(
         replay(ws, msg.lastSeenEventId);
         activeSocketReadyForLiveEvents = true;
         return;
-      case 'shutdown':
+      case 'destroy':
         currentTurnState = 'done';
         void writeBridgeMeta('done');
-        drainThenExit(ws, 1000, 'shutdown');
+        await onDestroy?.();
+        drainThenExit(ws, 1000, 'destroy');
         return;
-      case 'detach': {
+      case 'stop': {
         currentTurnState = 'done';
         void writeBridgeMeta('done');
-        const data = (await onDetach?.()) ?? {};
-        sendControl({ type: 'bridge-detach', data });
-        drainThenExit(ws, 1000, 'detach');
+        const data = (await onStop?.()) ?? {};
+        sendControl({ type: 'bridge-stop', data });
+        drainThenExit(ws, 1000, 'stop');
         return;
       }
     }
@@ -646,7 +649,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
     const tick = (): void => {
       const drained = ws.bufferedAmount === 0 || ws.readyState !== WS_OPEN;
       if (drained || Date.now() - start >= 5_000) {
-        // Flush the on-disk log so a clean shutdown/detach leaves a complete
+        // Flush the on-disk log so a clean stop/destroy leaves a complete
         // event-log.ndjson for any later replay recovery.
         void flushPendingEventsToDisk().finally(() => {
           try {

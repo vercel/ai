@@ -65,14 +65,14 @@ const HARNESS_CLIENT_APP = procEnv.AI_SDK_HARNESS_CLIENT_APP;
 const codexSdk = codexSdkModule as any;
 
 // Codex thread id — survives across turns within this bridge process and is
-// returned to the host on `detach` so a future process can resume the thread.
+// returned to the host on `stop` so a future process can resume the thread.
 const threadState: { id: string | undefined } = { id: undefined };
 
 await runBridge<StartMessage>({
   bridgeType: 'codex',
   bridgeStateDir,
   onStart: runTurn,
-  onDetach: () => (threadState.id ? { threadId: threadState.id } : {}),
+  onStop: () => (threadState.id ? { threadId: threadState.id } : {}),
 });
 
 type Emit = (msg: Record<string, unknown>) => void;
@@ -80,7 +80,7 @@ type Emit = (msg: Record<string, unknown>) => void;
 async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const emit: Emit = msg => turn.emit(msg as BridgeEvent);
 
-  // Cross-process resume: the host carries the threadId we returned on detach.
+  // Cross-process resume: the host carries the threadId we returned on stop.
   // Seed `threadState.id` so the codex SDK call below takes the `resumeThread`
   // branch.
   if (

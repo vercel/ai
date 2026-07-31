@@ -1277,7 +1277,7 @@ function createSession({
         channel.beginClose();
         try {
           if (!channel.isClosed()) {
-            channel.send({ type: 'shutdown' });
+            channel.send({ type: 'destroy' });
           }
         } catch {}
         let stopTimer: ReturnType<typeof setTimeout> | undefined;
@@ -1310,13 +1310,13 @@ function createSession({
       stopped = true;
       /*
        * If the bridge's channel already closed (e.g. mid-turn WS drop)
-       * there is no one to ack a `detach` message. Synthesize an empty
+       * there is no one to acknowledge a `stop` message. Synthesize an empty
        * payload — for Claude Code the resume state structurally is `{}`
        * (the conversation lives in the workdir, captured by the sandbox
        * snapshot during the subsequent `sandboxSession.stop()`), so we
        * lose nothing by skipping the round-trip.
        */
-      // Tell the channel we are tearing down so the bridge's post-detach
+      // Tell the channel we are tearing down so the bridge's post-stop
       // socket close finalises instead of triggering a reconnect.
       channel.beginClose();
       const data: unknown = channel.isClosed()
@@ -1326,18 +1326,18 @@ function createSession({
               unsub();
               reject(
                 new Error(
-                  `claude-code session ${sessionId} did not reply to detach within 5s.`,
+                  `claude-code session ${sessionId} did not reply to stop within 5s.`,
                 ),
               );
             }, 5000);
             timer.unref?.();
-            const unsub = channel.on('bridge-detach', msg => {
+            const unsub = channel.on('bridge-stop', msg => {
               clearTimeout(timer);
               unsub();
               resolve(msg.data);
             });
             try {
-              channel.send({ type: 'detach' });
+              channel.send({ type: 'stop' });
             } catch (err) {
               clearTimeout(timer);
               unsub();
@@ -1345,7 +1345,7 @@ function createSession({
             }
           });
 
-      // The bridge exits itself ~50ms after sending bridge-detach. Give
+      // The bridge exits itself after sending bridge-stop. Give
       // it a moment, then ensure the process is reaped and the channel
       // closed.
       let stopTimer: ReturnType<typeof setTimeout> | undefined;

@@ -124,7 +124,7 @@ await runBridge<StartMessage>({
   bridgeType: 'opencode',
   bridgeStateDir,
   onStart: runTurn,
-  onDetach: () =>
+  onStop: () =>
     runtime.sessionId ? { openCodeSessionId: runtime.sessionId } : {},
 });
 
