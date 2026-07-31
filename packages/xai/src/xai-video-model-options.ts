@@ -52,11 +52,24 @@ interface XaiVideoReferenceToVideoOptions
   referenceAudioUrls?: string[];
 }
 
+/**
+ * Reference-to-video where the reference images come from the top-level
+ * `inputReferences` option instead of `referenceImageUrls`, leaving reference
+ * audio as the only provider-option payload.
+ */
+interface XaiVideoReferenceAudioToVideoOptions
+  extends XaiVideoSharedOptions, XaiVideoUserOptions {
+  mode: 'reference-to-video';
+  referenceImageUrls?: undefined;
+  referenceAudioUrls: string[];
+}
+
 interface XaiVideoGenerationOptions
   extends XaiVideoSharedOptions, XaiVideoUserOptions {
   mode?: undefined;
   videoUrl?: undefined;
   referenceImageUrls?: undefined;
+  referenceAudioUrls?: string[];
 }
 
 interface XaiLegacyEditVideoOptions
@@ -91,6 +104,10 @@ interface XaiLegacyReferenceToVideoOptions
  * - `'reference-to-video'` + `referenceImageUrls` -- R2V generation  (`POST /v1/videos/generations`)
  * - no `mode`                                     -- standard generation from text prompts or image input
  *
+ * Reference images may also come from the top-level `inputReferences` option
+ * instead of `referenceImageUrls`, so `referenceAudioUrls` does not require
+ * `referenceImageUrls` alongside it.
+ *
  * Runtime remains backward compatible with legacy auto-detected provider
  * options, but the public TypeScript type is intentionally explicit so editors
  * can suggest valid modes and flag invalid field combinations.
@@ -100,6 +117,7 @@ export type XaiVideoModelOptions =
   | XaiVideoEditModeOptions
   | XaiVideoExtendModeOptions
   | XaiVideoReferenceToVideoOptions
+  | XaiVideoReferenceAudioToVideoOptions
   | XaiLegacyEditVideoOptions
   | XaiLegacyReferenceToVideoOptions;
 
