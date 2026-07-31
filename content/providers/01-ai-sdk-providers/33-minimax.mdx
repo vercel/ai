@@ -125,6 +125,77 @@ The following optional provider options are available for MiniMax language model
     think, so `'disabled'` has no effect on them.
   </Note>
 
+## Video Models
+
+You can generate videos with the MiniMax-H3 model using the
+[`experimental_generateVideo`](/docs/reference/ai-sdk-core/generate-video)
+function:
+
+```ts
+import { minimax } from '@ai-sdk/minimax';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: minimax.video('minimax-h3'),
+  prompt: 'A white kitten chases a butterfly across a sunlit garden.',
+  aspectRatio: '16:9',
+  duration: 5,
+});
+```
+
+MiniMax-H3 generates one video per call. Generation is asynchronous — the model
+creates a task and polls until it completes, then returns the resulting MP4 URL.
+
+<Note>
+  Result URLs are time-limited. Download and persist the video to your own
+  storage promptly after generation.
+</Note>
+
+### Generation modes
+
+The generation mode is inferred from the inputs you pass:
+
+- **Text-to-video** — `prompt` only.
+- **First-frame image-to-video** — pass `image` (or a `frameImages` entry with
+  `frameType: 'first_frame'`) to animate a starting image.
+- **First-to-last keyframes** — pass `frameImages` with both a `first_frame` and
+  a `last_frame` to control the transition.
+- **Reference-to-video** — pass `inputReferences` (images and/or videos, routed
+  by media type) to keep a subject/style or follow motion. Frame images and
+  references are mutually exclusive.
+
+When a frame image is supplied, the aspect ratio follows the image and any
+explicit `aspectRatio` is ignored.
+
+### Video Provider Options
+
+The following optional provider options are available for MiniMax video models:
+
+- **resolution** _string_
+
+  Output resolution. MiniMax-H3 currently only supports `'2K'` (the default).
+
+- **ratio** _'adaptive' | '21:9' | '16:9' | '4:3' | '1:1' | '3:4' | '9:16'_
+
+  Aspect ratio of the generated video. Overrides the top-level `aspectRatio`.
+
+- **referenceAudioUrls** _string[]_
+
+  Reference audio URLs (or `mm_file://` handles) for reference-to-video
+  generation. Must be paired with at least one reference image or video. Up to 3.
+
+- **aigcWatermark** _boolean_
+
+  Whether to embed an AIGC watermark in the output. Defaults to `false`.
+
+- **pollIntervalMs** _number_
+
+  Interval in milliseconds between task status polls. Default: `10000`.
+
+- **pollTimeoutMs** _number_
+
+  Maximum time in milliseconds to poll before timing out. Default: `600000`.
+
 ## Model Capabilities
 
 | Model                    | Image Input | Object Generation | Tool Usage | Tool Streaming |

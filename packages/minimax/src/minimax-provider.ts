@@ -1,5 +1,6 @@
 import {
   NoSuchModelError,
+  type Experimental_VideoModelV4 as VideoModelV4,
   type LanguageModelV4,
   type ProviderV4,
 } from '@ai-sdk/provider';
@@ -12,6 +13,8 @@ import {
 } from '@ai-sdk/provider-utils';
 import { AnthropicLanguageModel } from '@ai-sdk/anthropic/internal';
 import type { MiniMaxChatModelId } from './minimax-chat-options';
+import { MiniMaxVideoModel } from './minimax-video-model';
+import type { MiniMaxVideoModelId } from './minimax-video-settings';
 import { VERSION } from './version';
 
 export interface MiniMaxProviderSettings {
@@ -53,6 +56,16 @@ export interface MiniMaxProvider extends ProviderV4 {
   chat(modelId: MiniMaxChatModelId): LanguageModelV4;
 
   /**
+   * Creates a MiniMax video model for video generation.
+   */
+  video(modelId: MiniMaxVideoModelId): VideoModelV4;
+
+  /**
+   * Creates a MiniMax video model for video generation.
+   */
+  videoModel(modelId: MiniMaxVideoModelId): VideoModelV4;
+
+  /**
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(modelId: string): never;
@@ -90,11 +103,37 @@ export function createMiniMax(
       supportedUrls: () => ({}),
     });
 
+  const videoBaseURL = baseURL
+    .replace(/\/anthropic\/v1$/, '')
+    .replace(/\/v1$/, '');
+  const getVideoHeaders = () =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'MINIMAX_API_KEY',
+          description: 'MiniMax API key',
+        })}`,
+        ...options.headers,
+      },
+      `ai-sdk/minimax/${VERSION}`,
+    );
+
+  const createVideoModel = (modelId: MiniMaxVideoModelId) =>
+    new MiniMaxVideoModel(modelId, {
+      provider: 'minimax.video',
+      baseURL: videoBaseURL,
+      headers: getVideoHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = (modelId: MiniMaxChatModelId) => createChatModel(modelId);
 
   provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
+  provider.video = createVideoModel;
+  provider.videoModel = createVideoModel;
 
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
