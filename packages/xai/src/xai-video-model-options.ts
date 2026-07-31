@@ -128,51 +128,9 @@ const baseFields = {
   resolution: resolutionSchema.nullish(),
 };
 
-const userField = {
-  user: z.string().optional(),
-};
-
-const editVideoSchema = z.object({
-  ...baseFields,
-  ...userField,
-  mode: z.literal('edit-video'),
-  videoUrl: nonEmptyStringSchema,
-  referenceImageUrls: z.undefined().optional(),
-});
-
-const extendVideoSchema = z.object({
-  ...baseFields,
-  mode: z.literal('extend-video'),
-  videoUrl: nonEmptyStringSchema,
-  referenceImageUrls: z.undefined().optional(),
-});
-
-const referenceAudioUrlsSchema = z.array(nonEmptyStringSchema).min(1).max(1);
-
-const referenceToVideoSchema = z.object({
-  ...baseFields,
-  ...userField,
-  mode: z.literal('reference-to-video'),
-  referenceImageUrls: z.array(nonEmptyStringSchema).min(1).max(7),
-  referenceAudioUrls: referenceAudioUrlsSchema.optional(),
-  videoUrl: z.undefined().optional(),
-});
-
-const autoDetectSchema = z.object({
-  ...baseFields,
-  ...userField,
-  mode: z.undefined().optional(),
-  videoUrl: nonEmptyStringSchema.optional(),
-  referenceImageUrls: z.array(nonEmptyStringSchema).min(1).max(7).optional(),
-  referenceAudioUrls: referenceAudioUrlsSchema.optional(),
-});
-
-export const xaiVideoModelOptions = z.union([
-  editVideoSchema,
-  extendVideoSchema,
-  referenceToVideoSchema,
-  autoDetectSchema,
-]);
+// xAI accepts at most one reference audio track. An empty array is allowed and
+// means "no reference audio", matching the API's 0-1 range.
+const referenceAudioUrlsSchema = z.array(nonEmptyStringSchema).max(1);
 
 const runtimeSchema = z.looseObject({
   mode: modeSchema.optional(),
