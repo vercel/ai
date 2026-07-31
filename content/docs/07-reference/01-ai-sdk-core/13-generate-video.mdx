@@ -190,7 +190,7 @@ console.log(videos);
               type: 'number',
               isOptional: true,
               description:
-                'Maximum time to wait for completion in milliseconds. Default: 600000 (10 minutes).',
+                'Maximum time to wait for completion in milliseconds, including while waiting for a webhook notification. Default: 600000 (10 minutes).',
             },
           ],
         },
@@ -201,7 +201,7 @@ console.log(videos);
       type: '() => PromiseLike<{ url: string; received: PromiseLike<VideoModelV4OperationWebhook> }>',
       isOptional: true,
       description:
-        'Webhook factory for providers that support webhook notifications. When provided and the model supports webhooks, the SDK uses the webhook instead of polling. The factory should return a URL for the provider to notify and a `received` promise that resolves when the notification arrives.',
+        'Webhook factory for providers that support webhook notifications. When provided and the model supports webhooks, the SDK uses the webhook instead of polling. The factory should return a URL for the provider to notify and a `received` promise that resolves when the notification arrives. The `poll` option can also be provided to configure the webhook timeout and polling fallback.',
     },
   ]}
 />

@@ -1,3 +1,4 @@
+import type { JSONValue } from '../../json-value/json-value';
 import type { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provider-metadata';
 import type { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
 
@@ -6,10 +7,10 @@ import type { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
  */
 export type VideoModelV4OperationStartResult = {
   /**
-   * Opaque reference passed to `doStatus` to check the status of the
-   * generation (e.g., a task ID or prediction URL).
+   * JSON-serializable opaque reference passed to `doStatus` to check the
+   * status of the generation (e.g., a task ID or prediction URL).
    */
-  operation: unknown;
+  operation: JSONValue;
 
   /**
    * Warnings for the call, e.g. unsupported features.

@@ -7,6 +7,7 @@ import type {
   Experimental_VideoModelV4OperationWebhook,
   Experimental_VideoModelV4FrameImage,
   Experimental_VideoModelV4FrameType,
+  JSONValue,
   SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
@@ -44,6 +45,10 @@ export type GenerateVideoPrompt =
 /**
  * Polling configuration for models that support the asynchronous
  * start/status flow.
+ *
+ * When used with `webhook`, `timeoutMs` also limits how long the SDK waits for
+ * the webhook notification. If the model does not support webhooks, these
+ * options configure the automatic polling fallback.
  */
 export type GenerateVideoPollOptions = {
   /**
@@ -245,6 +250,10 @@ export async function experimental_generateVideo({
    * Polling configuration for models that support the asynchronous
    * start/status flow. When provided and the model implements `doStart`
    * and `doStatus`, the SDK will orchestrate polling automatically.
+   *
+   * This option can be combined with `webhook`: `timeoutMs` limits the webhook
+   * wait, and the polling settings apply if the model does not support
+   * webhooks.
    */
   poll?: GenerateVideoPollOptions;
 
@@ -255,6 +264,8 @@ export async function experimental_generateVideo({
    *
    * The factory should return a URL for the provider to send notifications to,
    * and a `received` promise that resolves when the notification arrives.
+   * `poll` can also be provided to configure the webhook timeout and polling
+   * fallback.
    */
   webhook?: GenerateVideoWebhookFactory;
 }): Promise<GenerateVideoResult> {
@@ -696,7 +707,7 @@ async function pollUntilComplete({
   retry,
 }: {
   model: Experimental_VideoModelV4;
-  operation: unknown;
+  operation: JSONValue;
   pollConfig?: GenerateVideoPollOptions;
   abortSignal?: AbortSignal;
   headers?: Record<string, string | undefined>;

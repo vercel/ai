@@ -1,3 +1,4 @@
+import type { JSONValue } from '../../json-value/json-value';
 import type { VideoModelV4CallOptions } from './video-model-v4-call-options';
 import type { VideoModelV4Result } from './video-model-v4-result';
 import type { VideoModelV4OperationStartResult } from './video-model-v4-operation-start-result';
@@ -113,9 +114,9 @@ export type VideoModelV4 = {
    */
   doStatus?(options: {
     /**
-     * The opaque operation reference returned by `doStart`.
+     * The JSON-serializable opaque operation reference returned by `doStart`.
      */
-    operation: unknown;
+    operation: JSONValue;
 
     /**
      * Abort signal for cancelling the operation.

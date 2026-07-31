@@ -1,7 +1,7 @@
 import {
   AISDKError,
   NoSuchModelError,
-  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4,
   type Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
   type Experimental_VideoModelV4File,
   type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
@@ -28,6 +28,7 @@ import {
 } from './klingai-video-model-options';
 import type { KlingAIVideoModelId } from './klingai-video-settings';
 
+type VideoModelV4 = Experimental_VideoModelV4;
 type KlingAIVideoMode = 't2v' | 'i2v' | 'mi2v' | 'motion-control';
 
 function fileToImageString(file: Experimental_VideoModelV4File): string {
@@ -203,7 +204,7 @@ interface KlingAIVideoModelConfig {
   };
 }
 
-export class KlingAIVideoModel implements VideoModelV4 {
+export class KlingAIVideoModel implements Experimental_VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 

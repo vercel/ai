@@ -1,7 +1,7 @@
 import {
   AISDKError,
   APICallError,
-  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4,
   type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
   type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
   type SharedV4ProviderMetadata,
@@ -25,13 +25,15 @@ import {
 } from './fal-video-model-options';
 import type { FalVideoModelId } from './fal-video-settings';
 
+type VideoModelV4 = Experimental_VideoModelV4;
+
 interface FalVideoModelConfig extends FalConfig {
   _internal?: {
     currentDate?: () => Date;
   };
 }
 
-export class FalVideoModel implements VideoModelV4 {
+export class FalVideoModel implements Experimental_VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1; // FAL video models support 1 video at a time
 

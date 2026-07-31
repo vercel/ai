@@ -1,6 +1,6 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4,
   type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
   type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
   type SharedV4Warning,
@@ -24,6 +24,8 @@ import {
 } from './replicate-video-model-options';
 import type { ReplicateVideoModelId } from './replicate-video-settings';
 
+type VideoModelV4 = Experimental_VideoModelV4;
+
 interface ReplicateVideoModelConfig {
   provider: string;
   baseURL: string;
@@ -34,7 +36,7 @@ interface ReplicateVideoModelConfig {
   };
 }
 
-export class ReplicateVideoModel implements VideoModelV4 {
+export class ReplicateVideoModel implements Experimental_VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1; // Replicate video models support 1 video at a time
 

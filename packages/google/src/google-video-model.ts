@@ -1,6 +1,6 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4,
   type Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
   type Experimental_VideoModelV4File,
   type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
@@ -27,6 +27,8 @@ import {
   type GoogleVideoModelOptions,
 } from './google-video-model-options';
 import type { GoogleVideoModelId } from './google-video-settings';
+
+type VideoModelV4 = Experimental_VideoModelV4;
 
 interface GoogleVideoModelConfig {
   provider: string;
@@ -139,7 +141,7 @@ function convertInputReferenceImage(
   return image != null ? { image, referenceType: 'asset' } : undefined;
 }
 
-export class GoogleVideoModel implements VideoModelV4 {
+export class GoogleVideoModel implements Experimental_VideoModelV4 {
   readonly specificationVersion = 'v4';
 
   get provider(): string {

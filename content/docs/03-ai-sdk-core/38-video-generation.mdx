@@ -308,6 +308,11 @@ const { video } = await generateVideo({
 });
 ```
 
+You can provide `poll` together with `webhook`. For models with native webhook
+support, `poll.timeoutMs` limits how long the SDK waits for the notification.
+If the model does not support webhooks, the SDK falls back to polling with the
+provided interval and timeout.
+
 ### Custom Headers
 
 `experimental_generateVideo` accepts an optional `headers` parameter of type `Record<string, string>`

@@ -1,7 +1,7 @@
 import {
   AISDKError,
   APICallError,
-  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4,
   type Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
   type Experimental_VideoModelV4File,
   type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
@@ -28,6 +28,8 @@ import {
   type XaiParsedVideoModelOptions,
 } from './xai-video-model-options';
 import type { XaiVideoModelId } from './xai-video-settings';
+
+type VideoModelV4 = Experimental_VideoModelV4;
 
 interface XaiVideoModelConfig {
   provider: string;
@@ -151,7 +153,7 @@ function resolveVideoMode(
   return undefined;
 }
 
-export class XaiVideoModel implements VideoModelV4 {
+export class XaiVideoModel implements Experimental_VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 

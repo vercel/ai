@@ -1,6 +1,6 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4,
   type Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
   type Experimental_VideoModelV4File,
   type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
@@ -27,6 +27,8 @@ import {
   type AlibabaVideoModelOptions,
 } from './alibaba-video-model-options';
 import type { AlibabaVideoModelId } from './alibaba-video-settings';
+
+type VideoModelV4 = Experimental_VideoModelV4;
 
 interface AlibabaVideoModelConfig {
   provider: string;
@@ -252,7 +254,7 @@ function resolveReferenceUrls(
   return alibabaOptions?.referenceUrls ?? undefined;
 }
 
-export class AlibabaVideoModel implements VideoModelV4 {
+export class AlibabaVideoModel implements Experimental_VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
