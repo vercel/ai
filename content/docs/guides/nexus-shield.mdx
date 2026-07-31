@@ -17,8 +17,9 @@ import { generateText } from 'ai';
 
 const openai = createOpenAI({
   baseURL: 'https://api.nexusshield.ai/v1',
+  apiKey: process.env.OPENAI_API_KEY || 'dummy-key',
   headers: {
-    'X-API-Key': process.env.NEXUS_SHIELD_API_KEY || '',
+    'x-nexus-api-key': process.env.NEXUS_SHIELD_API_KEY || '',
   },
 });
 
