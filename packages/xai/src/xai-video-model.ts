@@ -331,7 +331,8 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
           feature: 'resolution',
           details:
             `Unrecognized resolution "${options.resolution}". ` +
-            'Use providerOptions.xai.resolution with "480p" or "720p" instead.',
+            'Use providerOptions.xai.resolution with "480p", "720p", or ' +
+            '"1080p" instead.',
         });
       }
     }

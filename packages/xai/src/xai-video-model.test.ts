@@ -71,12 +71,14 @@ function createModel({
   headers,
   currentDate,
   fetch,
+  modelId = 'grok-imagine-video',
 }: {
   headers?: () => Record<string, string>;
   currentDate?: () => Date;
   fetch?: FetchFunction;
+  modelId?: string;
 } = {}) {
-  return new XaiVideoModel('grok-imagine-video', {
+  return new XaiVideoModel(modelId, {
     provider: 'xai.video',
     baseURL: TEST_BASE_URL,
     headers: headers ?? (() => ({ 'api-key': 'test-key' })),
@@ -123,6 +125,15 @@ describe('XaiVideoModel', () => {
       expect(model.modelId).toBe('grok-imagine-video');
       expect(model.specificationVersion).toBe('v4');
       expect(model.maxVideosPerCall).toBe(1);
+    });
+
+    it('should send the grok-imagine-video-1.5 model id in the request body', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      await model.doGenerate({ ...defaultOptions });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ model: 'grok-imagine-video-1.5' });
     });
   });
 
@@ -1125,6 +1136,32 @@ describe('XaiVideoModel', () => {
       );
     });
 
+    it('should downgrade R2V 1920x1080 from the SDK resolution to 720p', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        resolution: '1920x1080',
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+            referenceImageUrls: ['https://example.com/ref1.jpg'],
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ resolution: '720p' });
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'resolution',
+        }),
+      );
+    });
+
     it('should warn and ignore reference audio outside reference-to-video mode', async () => {
       const model = createModel();
 
@@ -1146,6 +1183,29 @@ describe('XaiVideoModel', () => {
           type: 'unsupported',
           feature: 'referenceAudioUrls',
         }),
+      );
+    });
+
+    it('should treat an empty referenceAudioUrls array as no reference audio', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+            referenceImageUrls: ['https://example.com/ref1.jpg'],
+            referenceAudioUrls: [],
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('reference_audios');
+      expect(result.warnings).not.toContainEqual(
+        expect.objectContaining({ feature: 'referenceAudioUrls' }),
       );
     });
   });

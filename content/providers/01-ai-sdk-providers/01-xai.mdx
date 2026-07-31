@@ -1136,7 +1136,7 @@ import { experimental_generateVideo as generateVideo } from 'ai';
 const { video } = await generateVideo({
   model: xai.video('grok-imagine-video'),
   prompt:
-    'The comic cat from <IMAGE_1> and the comic dog from <IMAGE_2> ' +
+    'The comic cat from <IMAGE_0> and the comic dog from <IMAGE_1> ' +
     'are having a playful chase through a sunlit park. ' +
     'Cinematic slow-motion, warm afternoon light.',
   duration: 8,
@@ -1154,7 +1154,7 @@ const { video } = await generateVideo({
 });
 ```
 
-Use `<IMAGE_1>`, `<IMAGE_2>`, etc. in your prompt to reference specific images. Up to 7 reference images are supported per request.
+Use `<IMAGE_0>`, `<IMAGE_1>`, etc. in your prompt to reference specific images — the tags are zero-indexed and follow the order of the reference images you provide. Up to 7 reference images are supported per request.
 
 With the `grok-imagine-video-1.5` model you can also provide a single reference audio track via `referenceAudioUrls`. Tag the speaker with `<AUDIO_0>` in the prompt so the model knows which voice to use:
 
@@ -1209,6 +1209,29 @@ const { video } = await generateVideo({
   },
 });
 ```
+
+`inputReferences` accepts audio as well as images. References with an `audio/*`
+media type are routed to the reference audio track rather than sent as reference
+images, so you can supply both kinds in one array with `grok-imagine-video-1.5`:
+
+```ts
+const { video } = await generateVideo({
+  model: xai.video('grok-imagine-video-1.5'),
+  prompt:
+    'The creator from <IMAGE_0> holds the product from <IMAGE_1> and talks ' +
+    'about it in the voice from <AUDIO_0>.',
+  inputReferences: [
+    'https://example.com/creator.jpg',
+    'https://example.com/product.jpg',
+    { data: 'https://example.com/voice.mp3', mediaType: 'audio/mpeg' },
+  ],
+  duration: 10,
+  aspectRatio: '9:16',
+});
+```
+
+At most one audio reference is used; any extras are ignored with a warning. A
+reference with no media type is treated as an image.
 
 <Note>
   Reference-to-video supports `duration`, `aspectRatio`, and `resolution`. Use
@@ -1269,8 +1292,8 @@ You can validate the provider options using the `XaiVideoModelOptions` type.
   Array of reference image URLs (1–7 images) or base64 data URIs for
   reference-to-video (R2V) generation. The model incorporates visual
   elements from these images without using them as the first frame. Use
-  `<IMAGE_1>`, `<IMAGE_2>`, etc. in the prompt to reference specific
-  images. Used with `mode: 'reference-to-video'`.
+  `<IMAGE_0>`, `<IMAGE_1>`, etc. (zero-indexed) in the prompt to reference
+  specific images. Used with `mode: 'reference-to-video'`.
 
 - **referenceAudioUrls** _string[]_
 
@@ -1312,13 +1335,18 @@ from the source video. `duration` is supported and controls only the
 extension length.
 
 For **reference-to-video (R2V)**, you can specify `duration`, `aspectRatio`,
-and `resolution` just like text-to-video.
+and `resolution`. Unlike text-to-video, R2V is capped at `720p` — a `1080p`
+request is downgraded to `720p` with a warning.
 
 ### Video Model Capabilities
 
-| Model                | Duration | Aspect Ratios                                     | Resolution     | Image-to-Video | Editing   | Extension | R2V       |
-| -------------------- | -------- | ------------------------------------------------- | -------------- | -------------- | --------- | --------- | --------- |
-| `grok-imagine-video` | 1–15s    | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3` | `480p`, `720p` | <Check />      | <Check /> | <Check /> | <Check /> |
+| Model                    | Duration | Aspect Ratios                                     | Resolution                | Image-to-Video | Editing   | Extension | R2V       |
+| ------------------------ | -------- | ------------------------------------------------- | ------------------------- | -------------- | --------- | --------- | --------- |
+| `grok-imagine-video`     | 1–15s    | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3` | `480p`, `720p`            | <Check />      | <Check /> | <Check /> | <Check /> |
+| `grok-imagine-video-1.5` | 1–15s    | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3` | `480p`, `720p`, `1080p`\* | <Check />      | <Check /> | <Check /> | <Check /> |
+
+\* Native `1080p` applies to text-to-video and image-to-video. Reference-to-video
+is capped at `720p` — a `1080p` request is downgraded with a warning.
 
 <Note>
   You can also pass any available provider model ID as a string if needed.
