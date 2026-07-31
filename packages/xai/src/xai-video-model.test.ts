@@ -316,7 +316,7 @@ describe('XaiVideoModel', () => {
     });
 
     it('should map SDK resolution 1920x1080 to 1080p', async () => {
-      const model = createModel();
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
 
       await model.doStart({ ...defaultOptions, resolution: '1920x1080' });
 
@@ -325,7 +325,7 @@ describe('XaiVideoModel', () => {
     });
 
     it('should pass through provider option resolution 1080p', async () => {
-      const model = createModel();
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
 
       await model.doStart({
         ...defaultOptions,
@@ -769,7 +769,7 @@ describe('XaiVideoModel', () => {
     });
 
     it('should send reference_audios array alongside reference_images', async () => {
-      const model = createModel();
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
 
       await model.doStart({
         ...defaultOptions,
@@ -790,7 +790,7 @@ describe('XaiVideoModel', () => {
     });
 
     it('should downgrade R2V 1080p to 720p with a warning', async () => {
-      const model = createModel();
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
 
       const result = await model.doStart({
         ...defaultOptions,
@@ -814,7 +814,7 @@ describe('XaiVideoModel', () => {
     });
 
     it('should downgrade R2V 1920x1080 from the SDK resolution to 720p', async () => {
-      const model = createModel();
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
 
       const result = await model.doStart({
         ...defaultOptions,
@@ -838,7 +838,7 @@ describe('XaiVideoModel', () => {
     });
 
     it('should warn and ignore reference audio outside reference-to-video mode', async () => {
-      const model = createModel();
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
 
       const result = await model.doStart({
         ...defaultOptions,
@@ -860,7 +860,7 @@ describe('XaiVideoModel', () => {
     });
 
     it('should send reference_audios when inputReferences select R2V', async () => {
-      const model = createModel();
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
 
       const result = await model.doStart({
         ...defaultOptions,
@@ -883,7 +883,7 @@ describe('XaiVideoModel', () => {
     });
 
     it('should route audio inputReferences to reference_audios', async () => {
-      const model = createModel();
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
 
       const result = await model.doStart({
         ...defaultOptions,
@@ -906,7 +906,7 @@ describe('XaiVideoModel', () => {
     });
 
     it('should map file audio inputReferences to a data URI', async () => {
-      const model = createModel();
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
 
       await model.doStart({
         ...defaultOptions,
@@ -927,7 +927,7 @@ describe('XaiVideoModel', () => {
     });
 
     it('should keep only the first audio reference and warn', async () => {
-      const model = createModel();
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
 
       const result = await model.doStart({
         ...defaultOptions,
@@ -959,7 +959,7 @@ describe('XaiVideoModel', () => {
     });
 
     it('should drop audio-only inputReferences with a warning', async () => {
-      const model = createModel();
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
 
       const result = await model.doStart({
         ...defaultOptions,
@@ -974,6 +974,113 @@ describe('XaiVideoModel', () => {
 
       const body = await server.calls[0].requestBodyJson;
       expect(body).not.toHaveProperty('reference_audios');
+      // Audio alone cannot drive R2V, so no empty reference_images is sent and
+      // the warning names the option the audio actually came from.
+      expect(body).not.toHaveProperty('reference_images');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'inputReferences',
+        }),
+      );
+    });
+
+    it('should not send an empty reference_images array for video-only inputReferences', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      await model.doStart({
+        ...defaultOptions,
+        inputReferences: [
+          {
+            type: 'url',
+            url: 'https://example.com/clip.mp4',
+            mediaType: 'video/mp4',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('reference_images');
+    });
+
+    it('should keep image-to-video mode when an audio reference is supplied', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        image: {
+          type: 'url',
+          url: 'https://example.com/start.jpg',
+          mediaType: 'image/jpeg',
+        },
+        inputReferences: [
+          {
+            type: 'url',
+            url: 'https://example.com/voice.mp3',
+            mediaType: 'audio/mpeg',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        image: { url: 'https://example.com/start.jpg' },
+      });
+      expect(body).not.toHaveProperty('reference_images');
+      expect(body).not.toHaveProperty('reference_audios');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'inputReferences',
+        }),
+      );
+    });
+
+    it('should drop audio and send no reference_images for explicit R2V without images', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        inputReferences: [
+          {
+            type: 'url',
+            url: 'https://example.com/voice.mp3',
+            mediaType: 'audio/mpeg',
+          },
+        ],
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('reference_images');
+      expect(body).not.toHaveProperty('reference_audios');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'inputReferences',
+        }),
+      );
+    });
+
+    it('should attribute the unpaired-audio warning to referenceAudioUrls', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+            referenceAudioUrls: ['https://example.com/voice.mp3'],
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('reference_audios');
       expect(result.warnings).toContainEqual(
         expect.objectContaining({
           type: 'unsupported',
@@ -983,7 +1090,7 @@ describe('XaiVideoModel', () => {
     });
 
     it('should prefer audio inputReferences over the referenceAudioUrls option', async () => {
-      const model = createModel();
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
 
       await model.doStart({
         ...defaultOptions,
@@ -1009,7 +1116,7 @@ describe('XaiVideoModel', () => {
     });
 
     it('should treat an empty referenceAudioUrls array as no reference audio', async () => {
-      const model = createModel();
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
 
       const result = await model.doStart({
         ...defaultOptions,

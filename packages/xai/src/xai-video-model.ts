@@ -101,9 +101,12 @@ function resolveReferences(
 ): {
   images: Array<{ url: string }> | undefined;
   audios: Array<{ url: string }> | undefined;
+  // Which option the audio came from, so warnings name what the caller wrote.
+  audioSource: 'inputReferences' | 'referenceAudioUrls' | undefined;
 } {
   let images: Array<{ url: string }> | undefined;
   let audios: Array<{ url: string }> | undefined;
+  let audioSource: 'inputReferences' | 'referenceAudioUrls' | undefined;
 
   if (options.inputReferences != null && options.inputReferences.length > 0) {
     const imageFiles: VideoModelV4File[] = [];
@@ -130,12 +133,19 @@ function resolveReferences(
       imageFiles.push(reference);
     }
 
-    images = imageFiles.map(reference => ({ url: fileToXaiUrl(reference) }));
+    // Every reference may have been filtered out (audio- or video-only input),
+    // so collapse an empty list to undefined rather than sending an empty
+    // `reference_images` array.
+    images =
+      imageFiles.length > 0
+        ? imageFiles.map(reference => ({ url: fileToXaiUrl(reference) }))
+        : undefined;
 
     if (audioFiles.length > 0) {
       audios = audioFiles
         .slice(0, MAX_REFERENCE_AUDIOS)
         .map(reference => ({ url: fileToXaiUrl(reference) }));
+      audioSource = 'inputReferences';
 
       if (audioFiles.length > MAX_REFERENCE_AUDIOS) {
         warnings.push({
@@ -163,9 +173,20 @@ function resolveReferences(
     xaiOptions.referenceAudioUrls.length > 0
   ) {
     audios = xaiOptions.referenceAudioUrls.map(url => ({ url }));
+    audioSource = 'referenceAudioUrls';
   }
 
-  return { images, audios };
+  return { images, audios, audioSource };
+}
+
+// True when at least one reference would survive as an image. Audio-only or
+// video-only references cannot drive reference-to-video on their own.
+function hasImageInputReference(options: XaiVideoCallOptions): boolean {
+  return (
+    options.inputReferences?.some(
+      reference => !isVideoFile(reference) && !isAudioFile(reference),
+    ) ?? false
+  );
 }
 
 function resolveVideoMode(
@@ -184,13 +205,17 @@ function resolveVideoMode(
   // only auto-select reference-to-video when no frame images are provided.
   const hasFrameImages =
     options.frameImages != null && options.frameImages.length > 0;
-  const hasInputReferences =
-    options.inputReferences != null && options.inputReferences.length > 0;
   const hasLegacyReferenceUrls =
     xaiOptions?.referenceImageUrls != null &&
     xaiOptions.referenceImageUrls.length > 0;
 
-  if (!hasFrameImages && (hasInputReferences || hasLegacyReferenceUrls)) {
+  // Reference-to-video needs at least one image reference. An audio-only (or
+  // video-only) `inputReferences` array must not flip a text- or
+  // image-to-video request into R2V.
+  if (
+    !hasFrameImages &&
+    (hasImageInputReference(options) || hasLegacyReferenceUrls)
+  ) {
     return 'reference-to-video';
   }
 
@@ -389,8 +414,11 @@ export class XaiVideoModel implements VideoModelV4 {
 
     // Reference images and audio for R2V (reference-to-video) generation
     if (hasReferenceImages) {
-      const { images: referenceImages, audios: referenceAudios } =
-        resolveReferences(options, xaiOptions, warnings);
+      const {
+        images: referenceImages,
+        audios: referenceAudios,
+        audioSource,
+      } = resolveReferences(options, xaiOptions, warnings);
 
       if (referenceImages != null) {
         body.reference_images = referenceImages;
@@ -398,10 +426,10 @@ export class XaiVideoModel implements VideoModelV4 {
 
       // Optional reference audio (max 1).
       if (referenceAudios != null) {
-        if (referenceImages == null || referenceImages.length === 0) {
+        if (referenceImages == null) {
           warnings.push({
             type: 'unsupported',
-            feature: 'referenceAudioUrls',
+            feature: audioSource ?? 'referenceAudioUrls',
             details:
               'xAI reference audio must be paired with at least one reference ' +
               'image. The reference audio was ignored.',
@@ -440,8 +468,9 @@ export class XaiVideoModel implements VideoModelV4 {
       });
     }
 
-    // Warn when reference images were provided but cannot be used in the
-    // resolved mode (e.g. alongside frameImages, or in edit/extend modes).
+    // Warn when references were provided but cannot be used in the resolved
+    // mode (e.g. alongside frameImages, in edit/extend modes, or when the
+    // references carried no usable image to drive reference-to-video).
     if (
       options.inputReferences != null &&
       options.inputReferences.length > 0 &&
@@ -450,9 +479,11 @@ export class XaiVideoModel implements VideoModelV4 {
       warnings.push({
         type: 'unsupported',
         feature: 'inputReferences',
-        details:
-          'xAI only supports inputReferences for reference-to-video ' +
-          'generation. The reference images were ignored.',
+        details: hasImageInputReference(options)
+          ? 'xAI only supports inputReferences for reference-to-video ' +
+            'generation. The reference images were ignored.'
+          : 'xAI reference-to-video requires at least one image reference. ' +
+            'The references were ignored.',
       });
     }
 
