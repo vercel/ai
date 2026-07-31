@@ -1,5 +1,155 @@
 # @ai-sdk/harness
 
+## 1.0.53
+
+### Patch Changes
+
+- bdde5d9: fix(harness): avoid placing harness bootstrap files in `/tmp` and instead use sandbox working directory
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+  - ai@7.0.47
+
+## 1.0.52
+
+### Patch Changes
+
+- ai@7.0.46
+
+## 1.0.51
+
+### Patch Changes
+
+- 226a679: fix(harness): emit the final result or error after an approved host tool continuation executes.
+- Updated dependencies [d6ce0ee]
+- Updated dependencies [fa95504]
+- Updated dependencies [349afe7]
+  - ai@7.0.45
+  - @ai-sdk/provider-utils@5.0.17
+
+## 1.0.50
+
+### Patch Changes
+
+- Updated dependencies [015acb4]
+  - ai@7.0.44
+
+## 1.0.49
+
+### Patch Changes
+
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+  - ai@7.0.43
+
+## 1.0.48
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [60f97f6]
+- Updated dependencies [6a5bdff]
+- Updated dependencies [6de2ec1]
+  - @ai-sdk/provider-utils@5.0.15
+  - ai@7.0.42
+
+## 1.0.47
+
+### Patch Changes
+
+- Updated dependencies [2e2224b]
+  - ai@7.0.41
+
+## 1.0.46
+
+### Patch Changes
+
+- Updated dependencies [c3782a6]
+  - ai@7.0.40
+
+## 1.0.45
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [09a52cb]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+  - ai@7.0.39
+
+## 1.0.44
+
+### Patch Changes
+
+- Updated dependencies [7bd6bdd]
+- Updated dependencies [1e2f324]
+  - ai@7.0.38
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/provider-utils@5.0.13
+
+## 1.0.43
+
+### Patch Changes
+
+- a9a22e1: fix(harness): fix telemetry end events to report `final-step` text and reasoning for multi-step turns
+- 9e4e816: fix(harness): avoid emitting `onTurnFinished` / `onTurnFailed` when turn is suspended mid-flight
+- ea3063f: fix(harness): remove broken bridge `channel.interrupt()` layer and its usage
+
+## 1.0.42
+
+### Patch Changes
+
+- ai@7.0.37
+
+## 1.0.41
+
+### Patch Changes
+
+- a94425b: fix(harness): ensure harness telemetry hooks are awaited before stream processing continues
+- 2de0611: fix(harness): avoid incorrectly marked invalid tool calls due to `dynamic` flag being dropped
+- Updated dependencies [7fa85b2]
+  - ai@7.0.36
+
+## 1.0.40
+
+### Patch Changes
+
+- 59a2306: fix(harness): execute host tools through telemetry context wrappers
+- 5f65e61: feat(harness): add support for `stopWhen` control to `HarnessAgent` (e.g. `isStepCount(1)`)
+- Updated dependencies [7f6650b]
+- Updated dependencies [106ea59]
+  - ai@7.0.35
+
+## 1.0.39
+
+### Patch Changes
+
+- 86a84c9: fix(harness): settle a turn aborted by the caller's abortSignal with an `abort` stream part instead of an AbortError `error` part, matching `streamText`'s abort contract
+  - ai@7.0.34
+
+## 1.0.38
+
+### Patch Changes
+
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+- Updated dependencies [e808fa5]
+- Updated dependencies [33647d7]
+  - @ai-sdk/provider-utils@5.0.12
+  - ai@7.0.33
+
+## 1.0.37
+
+### Patch Changes
+
+- b460541: fix(harness): properly support client-side / host-side tools and handle unfinished turn semantics
+- 079591e: fix (harness): emit the message-level `start` part on HarnessAgent streams so `toUIMessageStream` persistence mode can inject the response message id
+- Updated dependencies [6cd7c74]
+- Updated dependencies [e35bcae]
+- Updated dependencies [a4eb3f3]
+  - ai@7.0.32
+
 ## 1.0.36
 
 ### Patch Changes

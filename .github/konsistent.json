@@ -30,7 +30,11 @@
     {
       "name": "package-must-follow-general-code-requirements",
       "description": "Every package directory must contain a specific minimum set of files.",
-      "paths": ["packages/*/src/**/*.ts", "!packages/codemod"],
+      "paths": [
+        "packages/*/src/**/*.ts",
+        "!packages/codemod",
+        "!packages/*/src/**/node_modules/**"
+      ],
       "must": [
         {
           "use": "aisdk/package-must-import-zod-from-v4"
@@ -44,6 +48,7 @@
         "packages/{providerId}/src/index.ts",
         "!packages/ai",
         "!packages/angular",
+        "!packages/code-mode",
         "!packages/codemod",
         "!packages/devtools",
         "!packages/harness",
@@ -95,6 +100,18 @@
         },
         {
           "use": "aisdk/provider-model-file-must-export-model-class",
+          "excludeFiles": ["${providerId}-video-model.ts"]
+        },
+        {
+          "use": "aisdk/provider-model-file-with-subtype-must-export-model-class",
+          "excludeFiles": [
+            "packages/deepinfra/src/deepinfra-chat-language-model.ts",
+            "packages/moonshotai/src/moonshotai-chat-language-model.ts"
+          ]
+        },
+        "aisdk/provider-video-model-file-must-export-model-class",
+        {
+          "use": "aisdk/provider-model-file-must-have-matching-model-options-file",
           "excludeFiles": [
             "${providerId}-video-model.ts",
             "packages/gateway/src/gateway-embedding-model.ts",
@@ -107,14 +124,14 @@
           ]
         },
         {
-          "use": "aisdk/provider-model-file-with-subtype-must-export-model-class",
+          "use": "aisdk/provider-model-file-with-subtype-must-have-matching-model-options-file",
           "excludeFiles": [
             "packages/deepinfra/src/deepinfra-chat-language-model.ts",
             "packages/moonshotai/src/moonshotai-chat-language-model.ts"
           ]
         },
         {
-          "use": "aisdk/provider-video-model-file-must-export-model-class",
+          "use": "aisdk/provider-video-model-file-must-have-matching-model-options-file",
           "excludeFiles": ["packages/gateway/src/gateway-video-model.ts"]
         },
         "aisdk/provider-language-model-file-must-import-workflow-serialization",
@@ -201,6 +218,18 @@
           "if": { "hasFile": "bridge/index.ts" },
           "must": {
             "haveFiles": ["${harnessId}-bridge-protocol.ts"],
+            "exportTypes": [
+              {
+                "name": "${harnessId.toPascalCase()}HarnessSettings",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "port": { "type": "number" },
+                    "startupTimeoutMs": { "type": "number" }
+                  }
+                }
+              }
+            ],
             "declareConstants": [
               "${harnessId.toCamelCase()}BridgeCoordsSchema",
               "${harnessId.toCamelCase()}ResumeStateSchema"
@@ -282,10 +311,15 @@
           "description": "Every harness bridge index file must declare and use the relevant symbols.",
           "for": { "files": ["bridge/index.ts"] },
           "must": {
+            "haveFiles": ["create-emit-stream-event.ts"],
             "import": [
               {
                 "name": "runBridge",
                 "from": "@ai-sdk/harness/bridge"
+              },
+              {
+                "name": "createEmitStreamEvent",
+                "from": "./create-emit-stream-event"
               }
             ],
             "importTypes": [
@@ -309,6 +343,14 @@
                 "returnValueOfType": "Promise<void>"
               }
             ]
+          }
+        },
+        {
+          "name": "harness-stream-event-emitter-must-export-factory",
+          "description": "Every harness stream event emitter file must export its factory function.",
+          "for": { "files": ["bridge/create-emit-stream-event.ts"] },
+          "must": {
+            "exportFunctions": ["createEmitStreamEvent"]
           }
         },
         {
@@ -375,6 +417,21 @@
           }
         }
       ]
+    },
+    {
+      "name": "harness-bridge-must-not-import-core-ai-sdk-packages",
+      "description": "Harness bridge code must not import AI SDK packages that are unavailable in the isolated bridge runtime.",
+      "paths": ["packages/harness-*/src/bridge/**/*.ts"],
+      "mustNot": {
+        "importFrom": [
+          "ai",
+          "ai/*",
+          "@ai-sdk/provider",
+          "@ai-sdk/provider/*",
+          "@ai-sdk/provider-utils",
+          "@ai-sdk/provider-utils/*"
+        ]
+      }
     }
   ],
   "kebabToPascalMap": {
@@ -388,6 +445,7 @@
     "huggingface": "HuggingFace",
     "klingai": "KlingAI",
     "lmnt": "LMNT",
+    "minimax": "MiniMax",
     "moonshotai": "MoonshotAI",
     "openai": "OpenAI",
     "openai-compatible": "OpenAICompatible",
@@ -396,6 +454,7 @@
     "togetherai": "TogetherAI"
   },
   "kebabToCamelMap": {
-    "lmnt": "lmnt"
+    "lmnt": "lmnt",
+    "minimax": "minimax"
   }
 }

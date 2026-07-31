@@ -1,5 +1,24 @@
 # @ai-sdk/devtools
 
+## 1.0.9
+
+### Patch Changes
+
+- d09a5fd: Add safe image, audio, and video previews for media parts in DevTools prompts and tool inputs and outputs.
+
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+
+## 1.0.7
+
+### Patch Changes
+
+- 1c53b40: feat(devtools): add a persistent light theme to the viewer
+
 ## 1.0.6
 
 ### Patch Changes

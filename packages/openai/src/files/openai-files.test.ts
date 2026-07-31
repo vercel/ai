@@ -114,7 +114,7 @@ describe('OpenAI Files - uploadFile', () => {
     });
   });
 
-  it('should pass expires_after when provided', async () => {
+  it('should pass expires_after as bracketed multipart fields', async () => {
     prepareFileResponse();
 
     const provider = createOpenAI({ apiKey: 'test-api-key' });
@@ -129,7 +129,30 @@ describe('OpenAI Files - uploadFile', () => {
     });
 
     const multipart = await server.calls[0].requestBodyMultipart;
-    expect(multipart!.expires_after).toBe('3600');
+    expect(multipart).toMatchObject({
+      'expires_after[anchor]': 'created_at',
+      'expires_after[seconds]': '3600',
+    });
+    expect(multipart).not.toHaveProperty('expires_after');
+  });
+
+  it('should omit expires_after fields when no expiry is requested', async () => {
+    prepareFileResponse();
+
+    const provider = createOpenAI({ apiKey: 'test-api-key' });
+    const files = provider.files();
+
+    await files.uploadFile({
+      data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
+      mediaType: 'application/octet-stream',
+      providerOptions: {
+        openai: { purpose: 'assistants' },
+      },
+    });
+
+    const multipart = await server.calls[0].requestBodyMultipart;
+    expect(multipart).not.toHaveProperty('expires_after[anchor]');
+    expect(multipart).not.toHaveProperty('expires_after[seconds]');
   });
 
   it('should pass auth headers', async () => {

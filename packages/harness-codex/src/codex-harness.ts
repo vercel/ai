@@ -57,15 +57,16 @@ type WriteSkillsResult = {
 };
 
 /*
- * The model the adapter pins when the consumer configures none. The Codex SDK
- * does not report the model it resolves to at runtime (no model field on any
- * event), and exposes no default-model constant, so we pin the latest
- * codex-specialized model available for the bundled `@openai/codex@0.130.0`
- * (published 2026-05-08): `gpt-5.3-codex` (released 2026-02). Keep this in sync
- * when bumping the codex SDK/binary. Passing it explicitly makes the resolved
- * model deterministic and the telemetry (`gen_ai.request.model`) accurate.
+ * This intentionally is not the latest Codex model. Newer GPT-5.6 models use
+ * Responses Lite, which does not expose their code-mode tools as callable
+ * through the custom model provider used by the harness. Keep GPT-5.5 as the
+ * default until the upstream bug is resolved:
+ * https://github.com/openai/codex/issues/31894
+ *
+ * Passing the model explicitly keeps the runtime behavior deterministic and
+ * the telemetry (`gen_ai.request.model`) accurate.
  */
-const DEFAULT_CODEX_MODEL = 'gpt-5.3-codex';
+const DEFAULT_CODEX_MODEL = 'gpt-5.5';
 
 /**
  * Value to use in User-Agent and `x-client-app` headers.
@@ -125,9 +126,9 @@ const CODEX_BUILTIN_TOOLS = {
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
 /*
- * Bootstrap lives in /tmp because it's pure derived state — the harness can
- * reinstall the CLI and bridge files on any fresh sandbox from the recipe.
- * Persistence comes from the sandbox provider's snapshot, not the path.
+ * Bootstrap is derived state stored under the sandbox's default working
+ * directory so snapshot-capable providers can preserve the installed CLI,
+ * bridge, and recipe marker without requiring root filesystem access.
  *
  * The session work dir (`startOpts.sessionWorkDir`) lives under the sandbox's
  * default working directory — the provider's persistent mount — so any files
@@ -135,7 +136,7 @@ const CODEX_BUILTIN_TOOLS = {
  * cycles. Harness infra derived from `sandboxSession.defaultWorkingDirectory`
  * lives under `.agent-runs`, outside the agent workdir.
  */
-const BOOTSTRAP_DIR = '/tmp/harness/codex';
+const BOOTSTRAP_DIR = '.harness-bootstrap/codex';
 
 /**
  * Live bridge coordinates returned by `doDetach()` and `doSuspendTurn()`. A
@@ -177,11 +178,10 @@ export function createCodex(
     lifecycleStateSchema: codexResumeStateSchema,
     getBootstrap: async () => {
       if (cachedBootstrap != null) return cachedBootstrap;
-      const [pkg, lock, bridge, hostToolMcp] = await Promise.all([
+      const [pkg, lock, bridge] = await Promise.all([
         readBridgeAsset('package.json'),
         readBridgeAsset('pnpm-lock.yaml'),
         readBridgeAsset('index.mjs'),
-        readBridgeAsset('host-tool-mcp.mjs'),
       ]);
       cachedBootstrap = {
         harnessId: 'codex',
@@ -190,15 +190,10 @@ export function createCodex(
           { path: `${BOOTSTRAP_DIR}/package.json`, content: pkg },
           { path: `${BOOTSTRAP_DIR}/pnpm-lock.yaml`, content: lock },
           { path: `${BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
-          {
-            path: `${BOOTSTRAP_DIR}/host-tool-mcp.mjs`,
-            content: hostToolMcp,
-          },
         ],
         commands: [
-          { command: `mkdir -p ${BOOTSTRAP_DIR}` },
           {
-            command: `pnpm --dir ${BOOTSTRAP_DIR} install --frozen-lockfile --store-dir ${BOOTSTRAP_DIR}/.pnpm-store`,
+            command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
           },
         ],
       };
@@ -225,6 +220,10 @@ export function createCodex(
       const sandboxSession = startOpts.sandboxSession;
       const session = sandboxSession.restricted();
       const sandboxId = sandboxSession.id;
+      const bootstrapDir = path.posix.resolve(
+        sandboxSession.defaultWorkingDirectory,
+        BOOTSTRAP_DIR,
+      );
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
       const isContinue = startOpts.continueFrom != null;
@@ -378,7 +377,7 @@ export function createCodex(
       });
 
       const proc = await session.spawn({
-        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(BOOTSTRAP_DIR)} --cli-shim-dir ${shellQuote(cliShimDir)}`,
+        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --cli-shim-dir ${shellQuote(cliShimDir)}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
@@ -830,7 +829,7 @@ function createSession({
        *
        * rerun: the bridge was respawned with no in-flight turn to attach to, so
        * re-drive codex's own thread via `resumeThreadId`. Lossy — work in flight
-       * at the interruption is recomputed. This is the rare bridge-died
+       * at the suspension is recomputed. This is the rare bridge-died
        * fallback; the common slice path is `attach`.
        */
       if (rerunContinue) {
@@ -1016,16 +1015,13 @@ function createSession({
       }
       stopped = true;
       /*
-       * First ask the runtime to interrupt the active model turn, then freeze
-       * the host at a precise cursor. `channel.suspend` stops processing
-       * inbound frames (the cursor stops advancing exactly at the last
-       * delivered event), drains what was already dispatched, then closes the
-       * host socket with reason `'suspended'` — which `wireTurn`'s `onClose`
-       * treats as a clean turn end. The bridge keeps the turn running and
-       * accumulates events past the cursor for the next slice to replay. The
-       * sandbox process is deliberately left alive (no `shutdown`/`detach`).
+       * Freeze the host at a precise cursor without stopping the active model
+       * turn. `channel.suspend` stops processing inbound frames, drains what
+       * was already dispatched, then closes the host socket with reason
+       * `'suspended'`. The bridge keeps the turn running and accumulates events
+       * past the cursor for the next slice to replay. The sandbox process is
+       * deliberately left alive.
        */
-      await channel.interrupt();
       const lastSeenEventId = await channel.suspend();
       const payload: HarnessV1ContinueTurnState = {
         type: 'continue-turn',

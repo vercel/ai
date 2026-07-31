@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   commonTool,
@@ -367,13 +368,16 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       metadata: z.object({ source: z.string().optional() }).optional(),
     }),
   }),
-  Skill: tool({
-    description: 'Activate a skill by name',
-    inputSchema: z.object({
-      skill: z.string(),
-      args: z.string().optional(),
+  Skill: {
+    ...tool({
+      description: 'Activate a skill by name',
+      inputSchema: z.object({
+        skill: z.string(),
+        args: z.string().optional(),
+      }),
     }),
-  }),
+    toolUseKind: 'readonly',
+  },
   ToolSearch: tool({
     description:
       'Search deferred MCP / catalog tools so the model can load them on demand',
@@ -385,9 +389,9 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
 /*
- * Bootstrap lives in /tmp because it's pure derived state — the harness can
- * reinstall the CLI and bridge files on any fresh sandbox from the recipe.
- * Persistence comes from the sandbox provider's snapshot, not the path.
+ * Bootstrap is derived state stored under the sandbox's default working
+ * directory so snapshot-capable providers can preserve the installed CLI,
+ * bridge, and recipe marker without requiring root filesystem access.
  *
  * The session work dir (`startOpts.sessionWorkDir`) and the bridge-state dir
  * derived from `sandboxSession.defaultWorkingDirectory` both live under the sandbox's
@@ -396,7 +400,7 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
  * history is keyed by working directory) and the bridge state files survive
  * both detach -> attach/replay and stop -> snapshot -> resume cycles.
  */
-const BOOTSTRAP_DIR = '/tmp/harness/claude-code';
+const BOOTSTRAP_DIR = '.harness-bootstrap/claude-code';
 
 /**
  * Live bridge coordinates returned by `doDetach()` and `doSuspendTurn()`. A
@@ -457,12 +461,12 @@ export function createClaudeCode(
           { path: `${BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
         ],
         commands: [
-          { command: `mkdir -p ${BOOTSTRAP_DIR}` },
           {
-            command: `pnpm --dir ${BOOTSTRAP_DIR} install --frozen-lockfile --store-dir ${BOOTSTRAP_DIR}/.pnpm-store`,
+            command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
           },
           {
-            command: `cd ${BOOTSTRAP_DIR} && if [ -f node_modules/@anthropic-ai/claude-code/install.cjs ]; then node node_modules/@anthropic-ai/claude-code/install.cjs; fi && ./node_modules/.bin/claude --version`,
+            command:
+              'if [ -f node_modules/@anthropic-ai/claude-code/install.cjs ]; then node node_modules/@anthropic-ai/claude-code/install.cjs; fi && ./node_modules/.bin/claude --version',
           },
         ],
       };
@@ -472,6 +476,10 @@ export function createClaudeCode(
       const sandboxSession = startOpts.sandboxSession;
       const session = sandboxSession.restricted();
       const sandboxId = sandboxSession.id;
+      const bootstrapDir = posix.resolve(
+        sandboxSession.defaultWorkingDirectory,
+        BOOTSTRAP_DIR,
+      );
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
       const isContinue = startOpts.continueFrom != null;
@@ -641,7 +649,7 @@ export function createClaudeCode(
       });
 
       const proc = await session.spawn({
-        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)}`,
+        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
@@ -1187,7 +1195,7 @@ function createSession({
        *
        * rerun: the bridge was respawned with no in-flight turn to attach to, so
        * re-drive the runtime's own thread from the workdir snapshot via
-       * `continue: true`. Lossy — work in flight at the interruption is
+       * `continue: true`. Lossy — work in flight at the suspension is
        * recomputed. This is the rare bridge-died fallback; the common slice path
        * is `attach`.
        */
@@ -1375,16 +1383,13 @@ function createSession({
       }
       stopped = true;
       /*
-       * First ask the runtime to interrupt the active model turn, then freeze
-       * the host at a precise cursor. `channel.suspend` stops processing
-       * inbound frames (the cursor stops advancing exactly at the last
-       * delivered event), drains what was already dispatched, then closes the
-       * host socket with reason `'suspended'` — which `wireTurn`'s `onClose`
-       * treats as a clean turn end. The bridge keeps the turn running and
-       * accumulates events past the cursor for the next slice to replay. The
-       * sandbox process is deliberately left alive (no `shutdown`/`detach`).
+       * Freeze the host at a precise cursor without stopping the active model
+       * turn. `channel.suspend` stops processing inbound frames, drains what
+       * was already dispatched, then closes the host socket with reason
+       * `'suspended'`. The bridge keeps the turn running and accumulates events
+       * past the cursor for the next slice to replay. The sandbox process is
+       * deliberately left alive.
        */
-      await channel.interrupt();
       const lastSeenEventId = await channel.suspend();
       const payload: HarnessV1ContinueTurnState = {
         type: 'continue-turn',

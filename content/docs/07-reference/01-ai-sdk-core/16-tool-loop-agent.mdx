@@ -112,6 +112,13 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
         "Approval configuration for the agent. Pass a `GenericToolApprovalFunction` to handle all tool calls in one callback with `toolCall`, `tools`, `toolsContext`, `messages`, and `runtimeContext`, or pass a per-tool object where each key can be a status (`'not-applicable'`, `'approved'`, `'denied'`, or `'user-approval'`), an object form such as `{ type: 'denied', reason: 'blocked by policy' }`, or a `SingleToolApprovalFunction` that receives the tool input and options `toolCallId`, `messages`, `toolContext`, and `runtimeContext` (same shape as tool execution options without `abortSignal`, with `context` renamed to `toolContext`). The `RUNTIME_CONTEXT` type parameter matches the agent's `runtimeContext`. A `GenericToolApprovalFunction` or `SingleToolApprovalFunction` may return `undefined` for the same effect as `'not-applicable'`. `'not-applicable'` is the default execution path and runs the tool without approval metadata. Use `'approved'`, `'denied'`, or their object forms when you want explicit automatic approval request/response parts in the output. Automatic approvals and denials can include a `reason`, which is forwarded to the emitted approval response. This setting takes precedence over a tool's `needsApproval` default.",
     },
     {
+      name: 'experimental_toolCallers',
+      type: 'Experimental_ToolCallers<TOOLS>',
+      isOptional: true,
+      description:
+        "Configures which caller tools may invoke each tool. The callback receives typed references for caller-capable tools in the agent's `tools` set and returns an object keyed by callee tool name. Include `'direct'` to keep a configured tool directly callable by the model. Local-only callees are hidden from direct model calls and bound to their local caller for each agent step. Provider caller references are translated to provider-native allowed-caller options.",
+    },
+    {
       name: 'output',
       type: 'Output',
       isOptional: true,
@@ -123,7 +130,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'PrepareStepFunction',
       isOptional: true,
       description:
-        'Optional function to mutate step settings or inject state for each agent step.',
+        'Optional function to mutate step settings or inject state for each agent step, including per-step model call settings such as temperature, maxOutputTokens, sampling controls, penalties, stop sequences, seed, and reasoning. Model call setting overrides apply only to the current step.',
     },
     {
       name: 'include',
@@ -246,8 +253,9 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             },
             {
               name: 'timeout',
-              type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number } | undefined',
-              description: 'Timeout configuration for the generation.',
+              type: 'number | { totalMs?: number; stepMs?: number; firstChunkMs?: number; chunkMs?: number } | undefined',
+              description:
+                'Timeout configuration for the generation. firstChunkMs and chunkMs are only enforced by stream().',
             },
             {
               name: 'headers',
@@ -360,8 +368,9 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             },
             {
               name: 'timeout',
-              type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number } | undefined',
-              description: 'Timeout configuration for the generation.',
+              type: 'number | { totalMs?: number; stepMs?: number; firstChunkMs?: number; chunkMs?: number } | undefined',
+              description:
+                'Timeout configuration for the generation. firstChunkMs and chunkMs are only enforced by stream().',
             },
             {
               name: 'headers',
@@ -712,10 +721,10 @@ const result = await agent.generate({
     },
     {
       name: 'timeout',
-      type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number }',
+      type: 'number | { totalMs?: number; stepMs?: number; firstChunkMs?: number; chunkMs?: number }',
       isOptional: true,
       description:
-        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, and/or chunkMs properties. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, firstChunkMs, and/or chunkMs properties. firstChunkMs and chunkMs have no effect on generate(); they are streaming-only and are enforced by stream(). Can be used alongside abortSignal.',
     },
     {
       name: 'experimental_sandbox',
@@ -828,10 +837,10 @@ for await (const chunk of stream.textStream) {
     },
     {
       name: 'timeout',
-      type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number }',
+      type: 'number | { totalMs?: number; stepMs?: number; firstChunkMs?: number; chunkMs?: number }',
       isOptional: true,
       description:
-        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, and/or chunkMs properties. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, firstChunkMs, and/or chunkMs properties. firstChunkMs limits the wait for the first content-bearing output in each model-call step. chunkMs limits gaps between later content-bearing output chunks. Can be used alongside abortSignal.',
     },
     {
       name: 'experimental_sandbox',

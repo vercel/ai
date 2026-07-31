@@ -1,5 +1,6 @@
 import type { HarnessV1StreamPart } from '@ai-sdk/harness';
 import { mapUsage } from './opencode-usage';
+import { asOpenCodeObject } from './opencode-types';
 
 type FinishStepEvent = Extract<HarnessV1StreamPart, { type: 'finish-step' }>;
 
@@ -19,9 +20,16 @@ export function mapOpenCodeFinishReason(
 export function legacyStepFinishPartToFinishStep(
   part: unknown,
 ): FinishStepEvent | undefined {
-  if (!isRecord(part) || part.type !== 'step-finish') return undefined;
+  return translateLegacyStepFinishPart(part)?.event;
+}
+
+export function translateLegacyStepFinishPart(
+  value: unknown,
+): { event: FinishStepEvent; partId?: string } | undefined {
+  const part = asOpenCodeObject(value);
+  if (!part || part.type !== 'step-finish') return undefined;
   const rawFinish = typeof part.reason === 'string' ? part.reason : 'stop';
-  return {
+  const event: FinishStepEvent = {
     type: 'finish-step',
     finishReason: {
       unified: mapOpenCodeFinishReason(rawFinish),
@@ -32,8 +40,8 @@ export function legacyStepFinishPartToFinishStep(
       ? { harnessMetadata: { opencode: { cost: part.cost } } }
       : {}),
   };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+  return {
+    event,
+    ...(typeof part.id === 'string' ? { partId: part.id } : {}),
+  };
 }

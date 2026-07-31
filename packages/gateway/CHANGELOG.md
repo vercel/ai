@@ -1,5 +1,100 @@
 # @ai-sdk/gateway
 
+## 4.0.36
+
+### Patch Changes
+
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+
+## 4.0.35
+
+### Patch Changes
+
+- 4f2e064: chore(provider/gateway): update gateway model settings files
+
+## 4.0.34
+
+### Patch Changes
+
+- Updated dependencies [fa95504]
+  - @ai-sdk/provider-utils@5.0.17
+
+## 4.0.33
+
+### Patch Changes
+
+- af3f400: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+
+## 4.0.32
+
+### Patch Changes
+
+- 0012529: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+
+## 4.0.31
+
+### Patch Changes
+
+- bf216b3: chore(provider/gateway): update gateway model settings files
+
+## 4.0.30
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+
+## 4.0.29
+
+### Patch Changes
+
+- d9d2a11: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/provider-utils@5.0.13
+
+## 4.0.28
+
+### Patch Changes
+
+- 0a7c7f4: chore(provider/gateway): update gateway model settings files
+
+## 4.0.27
+
+### Patch Changes
+
+- 2112ff1: chore(provider/gateway): update gateway model settings files
+
+## 4.0.26
+
+### Patch Changes
+
+- 7c16f21: feat(google): add `gemini-3.6-flash` and `gemini-3.5-flash-lite` models
+
+## 4.0.25
+
+### Patch Changes
+
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+
+## 4.0.24
+
+### Patch Changes
+
+- cefa3b1: chore(provider/gateway): remove `hipaaCompliant` provider option
+- 8fbb89c: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.23
 
 ### Patch Changes

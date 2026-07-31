@@ -9,6 +9,8 @@ export { convertAsyncIteratorToReadableStream } from './convert-async-iterator-t
 export { convertInlineFileDataToUint8Array } from './convert-inline-file-data-to-uint8-array';
 export { convertImageModelFileToDataUri } from './convert-image-model-file-to-data-uri';
 export { convertToFormData } from './convert-to-form-data';
+export { createLanguageModelResponseMetadata } from './create-language-model-response-metadata';
+export { createNullLanguageModelUsage } from './create-null-language-model-usage';
 export {
   createToolNameMapping,
   type ToolNameMapping,
@@ -39,6 +41,7 @@ export { isBuffer } from './is-buffer';
 export { isSameOrigin } from './is-same-origin';
 export { isNonNullable } from './is-non-nullable';
 export { isProviderReference } from './is-provider-reference';
+export { isRecord } from './is-record';
 export { isUrlSupported } from './is-url-supported';
 export * from './load-api-key';
 export { loadOptionalSetting } from './load-optional-setting';
@@ -88,6 +91,7 @@ export {
   type ValidationResult,
 } from './schema';
 export { serializeModelOptions } from './serialize-model-options';
+export { SerializationError } from './serialization-error';
 export { secureJsonParse } from './secure-json-parse';
 export {
   StreamingToolCallTracker,

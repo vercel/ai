@@ -96,8 +96,9 @@ const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
  * - 'enum': The output is an enum.
  * - 'no-schema': The output is not a schema.
  *
- * @param experimental_repairText - A function that attempts to repair the raw output of the model
+ * @param repairText - A function that attempts to repair the raw output of the model
  * to enable JSON parsing.
+ * @param experimental_repairText - Deprecated alias for `repairText`.
  *
  * @param telemetry - Optional telemetry configuration.
  *
@@ -168,6 +169,14 @@ export async function generateObject<
       /**
        * A function that attempts to repair the raw output of the model
        * to enable JSON parsing.
+       */
+      repairText?: RepairTextFunction;
+
+      /**
+       * A function that attempts to repair the raw output of the model
+       * to enable JSON parsing.
+       *
+       * @deprecated Use `repairText` instead.
        */
       experimental_repairText?: RepairTextFunction;
 
@@ -265,7 +274,8 @@ export async function generateObject<
     maxRetries: maxRetriesArg,
     abortSignal,
     headers,
-    experimental_repairText: repairText,
+    experimental_repairText,
+    repairText = experimental_repairText,
     experimental_telemetry,
     telemetry = experimental_telemetry,
     experimental_download: download,

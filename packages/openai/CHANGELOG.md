@@ -1,5 +1,93 @@
 # @ai-sdk/openai
 
+## 4.0.27
+
+### Patch Changes
+
+- 5fc7da5: chore: centralize empty language model usage creation in provider utilities.
+- 93b2acd: chore: centralize response metadata conversion
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+
+## 4.0.26
+
+### Patch Changes
+
+- f7c4a38: Serialize file upload expiry settings in the multipart field shape accepted by OpenAI.
+- Updated dependencies [fa95504]
+  - @ai-sdk/provider-utils@5.0.17
+
+## 4.0.25
+
+### Patch Changes
+
+- beaecb3: fix(provider/openai): resolve responses doStream at response.in_progress instead of first output token
+
+  The early-stream-error peek treated `response.in_progress` as an unknown chunk, so `doStream` did not resolve until the first output item arrived — delaying stream availability (and downstream TTFB for proxies/gateways) by the model's full time-to-first-token. `response.in_progress` is now modeled in the chunk schema and marks the request as accepted: the peek keeps watching for error frames for a short grace window (50ms) so quota/rate-limit errors flushed alongside `response.in_progress` still throw as retryable `APICallError`s, while healthy streams become available right after upstream acknowledges the request.
+
+- b192878: feat: add experimental_toolCaller routing to generateText for code mode
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+
+## 4.0.24
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+
+## 4.0.23
+
+### Patch Changes
+
+- 96a237d: Add blocked domain filters to the OpenAI and Azure Responses API web search tools.
+
+## 4.0.22
+
+### Patch Changes
+
+- c49380c: feat: add experimental streaming speech translation models (`openai.translation('gpt-realtime-translate')` over the OpenAI Realtime translations WebSocket and `google.translation('gemini-3.5-live-translate-preview')` over the Gemini Live API). `connectToWebSocket` in `@ai-sdk/provider-utils` now passes close code and reason to `onClose` (additive, optional parameter).
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+
+## 4.0.21
+
+### Patch Changes
+
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/provider-utils@5.0.13
+
+## 4.0.20
+
+### Patch Changes
+
+- 1f6dd3a: Add OpenAI Responses Programmatic Tool Calling with hosted program tools, function caller controls, structured output schemas, and multi-step continuation support.
+
+## 4.0.19
+
+### Patch Changes
+
+- 34c53c0: Apply reasoning, service tier, and image defaults to recognizable future OpenAI model family versions.
+
+## 4.0.18
+
+### Patch Changes
+
+- bc43dc2: Preserve stored tool search output item IDs from provider metadata.
+
+## 4.0.17
+
+### Patch Changes
+
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+
 ## 4.0.16
 
 ### Patch Changes

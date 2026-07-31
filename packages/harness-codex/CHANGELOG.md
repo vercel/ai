@@ -1,5 +1,144 @@
 # @ai-sdk/harness-codex
 
+## 1.0.55
+
+### Patch Changes
+
+- bdde5d9: fix(harness): avoid placing harness bootstrap files in `/tmp` and instead use sandbox working directory
+- c28816b: fix(harness-codex): set default model back to `gpt-5.5` due to upstream SDK issue with newer models
+- Updated dependencies [5fc7da5]
+- Updated dependencies [bdde5d9]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+  - @ai-sdk/harness@1.0.53
+
+## 1.0.54
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.52
+
+## 1.0.53
+
+### Patch Changes
+
+- Updated dependencies [fa95504]
+- Updated dependencies [226a679]
+  - @ai-sdk/provider-utils@5.0.17
+  - @ai-sdk/harness@1.0.51
+
+## 1.0.52
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.50
+
+## 1.0.51
+
+### Patch Changes
+
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+  - @ai-sdk/harness@1.0.49
+
+## 1.0.50
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+  - @ai-sdk/harness@1.0.48
+
+## 1.0.49
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.47
+
+## 1.0.48
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.46
+
+## 1.0.47
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+  - @ai-sdk/harness@1.0.45
+
+## 1.0.46
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.44
+- @ai-sdk/provider-utils@5.0.13
+
+## 1.0.45
+
+### Patch Changes
+
+- ea3063f: fix(harness): remove broken bridge `channel.interrupt()` layer and its usage
+- Updated dependencies [a9a22e1]
+- Updated dependencies [9e4e816]
+- Updated dependencies [ea3063f]
+  - @ai-sdk/harness@1.0.43
+
+## 1.0.44
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.42
+
+## 1.0.43
+
+### Patch Changes
+
+- 07c977a: chore(harness): refactor bridge code to break out stream event emission from launcher to make it testable
+- 560db3a: fix(harness-codex): fix obsolete default Codex model ID
+- Updated dependencies [a94425b]
+- Updated dependencies [2de0611]
+  - @ai-sdk/harness@1.0.41
+
+## 1.0.42
+
+### Patch Changes
+
+- Updated dependencies [59a2306]
+- Updated dependencies [5f65e61]
+  - @ai-sdk/harness@1.0.40
+
+## 1.0.41
+
+### Patch Changes
+
+- b2f553b: fix(harness-codex): route Codex host tools through the CLI relay only instead of registering them as MCP tools
+- Updated dependencies [86a84c9]
+  - @ai-sdk/harness@1.0.39
+
+## 1.0.40
+
+### Patch Changes
+
+- f5cdb2d: chore(harness): update primary SDK dependencies
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+  - @ai-sdk/harness@1.0.38
+
+## 1.0.39
+
+### Patch Changes
+
+- Updated dependencies [b460541]
+- Updated dependencies [079591e]
+  - @ai-sdk/harness@1.0.37
+
 ## 1.0.38
 
 ### Patch Changes
