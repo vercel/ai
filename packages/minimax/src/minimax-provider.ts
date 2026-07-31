@@ -1,6 +1,6 @@
 import {
   NoSuchModelError,
-  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4,
   type LanguageModelV4,
   type ProviderV4,
 } from '@ai-sdk/provider';
@@ -63,12 +63,12 @@ export interface MiniMaxProvider extends ProviderV4 {
   /**
    * Creates a MiniMax video model for video generation.
    */
-  video(modelId: MiniMaxVideoModelId): VideoModelV4;
+  video(modelId: MiniMaxVideoModelId): Experimental_VideoModelV4;
 
   /**
    * Creates a MiniMax video model for video generation.
    */
-  videoModel(modelId: MiniMaxVideoModelId): VideoModelV4;
+  videoModel(modelId: MiniMaxVideoModelId): Experimental_VideoModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.

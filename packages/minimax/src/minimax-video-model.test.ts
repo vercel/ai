@@ -1,7 +1,7 @@
 import type {
   JSONValue,
   SharedV4ProviderOptions,
-  Experimental_VideoModelV4File as VideoModelV4File,
+  Experimental_VideoModelV4File,
 } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
@@ -104,7 +104,7 @@ const imageUrlFile = {
   mediaType: 'image/png',
 };
 
-const videoUrlFile: VideoModelV4File = {
+const videoUrlFile: Experimental_VideoModelV4File = {
   type: 'url',
   url: 'https://cdn.example.com/clip.mp4',
   mediaType: 'video/mp4',
