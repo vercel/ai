@@ -38,6 +38,7 @@ interface XaiVideoModelConfig {
 }
 
 const RESOLUTION_MAP: Record<string, string> = {
+  '1920x1080': '1080p',
   '1280x720': '720p',
   '854x480': '480p',
   '640x480': '480p',
@@ -345,6 +346,44 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
       if (referenceImages != null) {
         body.reference_images = referenceImages;
       }
+
+      // Optional reference audio (max 1).
+      if (
+        xaiOptions?.referenceAudioUrls != null &&
+        xaiOptions.referenceAudioUrls.length > 0
+      ) {
+        body.reference_audios = xaiOptions.referenceAudioUrls.map(url => ({
+          url,
+        }));
+      }
+
+      // Reference-to-video is capped at 720p; downgrade a 1080p request.
+      if (body.resolution === '1080p') {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'resolution',
+          details:
+            'xAI reference-to-video is limited to 720p. The request was ' +
+            'downgraded from 1080p to 720p.',
+        });
+        body.resolution = '720p';
+      }
+    }
+
+    // Warn when reference audio was provided but cannot be used in the resolved
+    // mode (reference audio is only supported for reference-to-video).
+    if (
+      xaiOptions?.referenceAudioUrls != null &&
+      xaiOptions.referenceAudioUrls.length > 0 &&
+      !hasReferenceImages
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'referenceAudioUrls',
+        details:
+          'xAI only supports reference audio for reference-to-video ' +
+          'generation. The reference audio was ignored.',
+      });
     }
 
     // Warn when reference images were provided but cannot be used in the
@@ -378,6 +417,7 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
             'videoUrl',
             'referenceImageUrls',
             'user',
+            'referenceAudioUrls',
           ].includes(key)
         ) {
           body[key] = value;

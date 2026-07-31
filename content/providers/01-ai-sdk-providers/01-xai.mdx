@@ -1156,6 +1156,34 @@ const { video } = await generateVideo({
 
 Use `<IMAGE_1>`, `<IMAGE_2>`, etc. in your prompt to reference specific images. Up to 7 reference images are supported per request.
 
+With the `grok-imagine-video-1.5` model you can also provide a single reference audio track via `referenceAudioUrls`. Tag the speaker with `<AUDIO_0>` in the prompt so the model knows which voice to use:
+
+```ts
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: xai.video('grok-imagine-video-1.5'),
+  prompt:
+    'The creator from <IMAGE_0> holds the product from <IMAGE_1> and talks ' +
+    'about it in the voice from <AUDIO_0>. Casual phone-camera framing.',
+  duration: 10,
+  aspectRatio: '9:16',
+  providerOptions: {
+    xai: {
+      mode: 'reference-to-video',
+      resolution: '720p', // reference-to-video is capped at 720p
+      referenceImageUrls: [
+        'https://example.com/creator.jpg',
+        'https://example.com/product.jpg',
+      ],
+      referenceAudioUrls: ['https://example.com/voice.mp3'],
+      pollTimeoutMs: 600000,
+    } satisfies XaiVideoModelOptions,
+  },
+});
+```
+
 Alternatively, use the provider-agnostic top-level `inputReferences` option. Providing it automatically selects reference-to-video mode, and it accepts file data (e.g. a `Buffer`) or `{ type: 'url', url }` objects:
 
 ```ts
@@ -1187,7 +1215,9 @@ const { video } = await generateVideo({
   `mode` to select the operation — each mode is mutually exclusive. When both
   are provided, `frameImages` takes precedence over `inputReferences`, and
   `inputReferences` takes precedence over the legacy `referenceImageUrls`
-  provider option. Reference-to-video requires the `grok-imagine-video` model.
+  provider option. Reference-to-video is supported by the `grok-imagine-video`
+  and `grok-imagine-video-1.5` models; optional reference audio
+  (`referenceAudioUrls`) and native 1080p require `grok-imagine-video-1.5`.
 </Note>
 
 ### Video Provider Options
@@ -1203,11 +1233,14 @@ You can validate the provider options using the `XaiVideoModelOptions` type.
 
   Maximum wait time in milliseconds for video generation. Defaults to 600000 (10 minutes).
 
-- **resolution** _'480p' | '720p'_
+- **resolution** _'480p' | '720p' | '1080p'_
 
   Video resolution. When using the SDK's standard `resolution` parameter,
-  `1280x720` maps to `720p` and `854x480` maps to `480p`.
-  Use this provider option to pass the native format directly.
+  `1920x1080` maps to `1080p`, `1280x720` maps to `720p`, and `854x480` maps
+  to `480p`. Use this provider option to pass the native format directly.
+  `1080p` requires the `grok-imagine-video-1.5` model and is available for
+  text-to-video and image-to-video; reference-to-video is capped at `720p`
+  (a `1080p` request is downgraded with a warning).
 
 - **user** _string_
 
@@ -1239,6 +1272,13 @@ You can validate the provider options using the `XaiVideoModelOptions` type.
   `<IMAGE_1>`, `<IMAGE_2>`, etc. in the prompt to reference specific
   images. Used with `mode: 'reference-to-video'`.
 
+- **referenceAudioUrls** _string[]_
+
+  Optional reference audio URL (max 1) for reference-to-video (R2V)
+  generation, supported by the `grok-imagine-video-1.5` model. Include
+  `<AUDIO_0>` in the prompt so the model knows which speaker should talk.
+  Used with `mode: 'reference-to-video'`.
+
 <Note>
   Video generation is an asynchronous process that can take several minutes.
   Consider setting `pollTimeoutMs` to at least 10 minutes (600000ms) for
@@ -1249,7 +1289,9 @@ You can validate the provider options using the `XaiVideoModelOptions` type.
 ### Aspect Ratio and Resolution
 
 For **text-to-video**, you can specify both `aspectRatio` and `resolution`.
-The default aspect ratio is `16:9` and the default resolution is `480p`.
+The default aspect ratio is `16:9` and the default resolution is `480p`. The
+`grok-imagine-video-1.5` model additionally supports native `1080p` for
+text-to-video and image-to-video.
 
 For **image-to-video**, the output defaults to the input image's aspect ratio.
 If you specify `aspectRatio`, it will override this and stretch the image to the

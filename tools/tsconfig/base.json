@@ -16,7 +16,7 @@
     "preserveWatchOutput": true,
     "skipLibCheck": true,
     "strict": true,
-    "types": ["@types/node"],
+    "types": ["@types/node"]
   },
   "exclude": ["node_modules"]
 }
