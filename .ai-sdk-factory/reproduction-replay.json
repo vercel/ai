@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 18254,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/harness-approved-tool-result.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/harness-approved-tool-result.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #18254: approved host tool result was submitted, but continued fullStream emitted 0 final tool-result events; part types: start, tool-approval-response, finish"
+  }
+}
