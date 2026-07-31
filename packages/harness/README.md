@@ -114,9 +114,7 @@ Implement the `HarnessV1` factory and a `HarnessV1Session` whose `doPromptTurn` 
 Bootstrap recipe paths may be absolute or relative. Relative `bootstrapDir` and
 file paths are resolved against `sandboxSession.defaultWorkingDirectory`.
 The framework creates `bootstrapDir` before writing files, and bootstrap
-commands run from that directory by default. A relative command
-`workingDirectory` override is resolved against the sandbox's default working
-directory. Prefer a relative directory such as
+commands always run from that directory. Prefer a relative directory such as
 `.harness-bootstrap/my-harness` so bootstrap assets are kept with the sandbox's
 snapshot-persistent working tree.
 
