@@ -1,5 +1,13 @@
 # @ai-sdk/openai
 
+## 4.0.26
+
+### Patch Changes
+
+- f7c4a38: Serialize file upload expiry settings in the multipart field shape accepted by OpenAI.
+- Updated dependencies [fa95504]
+  - @ai-sdk/provider-utils@5.0.17
+
 ## 4.0.25
 
 ### Patch Changes
