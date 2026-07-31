@@ -154,9 +154,14 @@ export interface RunBridgeOptions<TStart extends { type: 'start' }> {
   bridgeStateDir: string;
   /** Drive one prompt turn. Rejections surface to the host as an `error` event. */
   onStart(start: TStart, turn: BridgeTurn): Promise<void>;
-  /** Produce the adapter-defined runtime resume data for `stop`. Defaults to `{}`. */
+  /**
+   * Produce the adapter-defined runtime resume data for `stop`. Defaults to
+   * `{}`.
+   */
   onStop?(): unknown | Promise<unknown>;
-  /** Perform adapter-defined destruction before the bridge exits. */
+  /**
+   * Perform adapter-defined destruction before the bridge exits.
+   */
   onDestroy?(): void | Promise<void>;
   /** WS port. Defaults to `BRIDGE_WS_PORT` env (0 = OS-assigned). */
   port?: number;

@@ -39,7 +39,7 @@ import {
  *     member schemas from `harness-v1-stream-part.ts`), because the part type is
  *     compile-time only and the frames need runtime validation at the boundary.
  *  2. The transport/control frames that are NOT consumer events — `bridge-hello`
- *     (handshake), `bridge-stop` (resume payload), `bridge-thread` (a resume
+ *     (handshake), `bridge-stop` (runtime resume data), `bridge-thread` (a resume
  *     coordinate some runtimes announce). These ride the same socket.
  *  3. The INBOUND command vocabulary the host sends back: the shared commands
  *     live here; the per-adapter `start` payload extends
