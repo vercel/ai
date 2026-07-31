@@ -6607,6 +6607,88 @@ describe('generateText', () => {
   });
 
   describe('options.timeout', () => {
+    it.each([
+      {
+        timeout: { firstChunkMs: 5000 },
+        warning: {
+          type: 'unsupported',
+          feature: 'timeout.firstChunkMs',
+          details:
+            'The firstChunkMs timeout is only supported by streaming functions.',
+        },
+      },
+      {
+        timeout: { chunkMs: 5000 },
+        warning: {
+          type: 'unsupported',
+          feature: 'timeout.chunkMs',
+          details:
+            'The chunkMs timeout is only supported by streaming functions.',
+        },
+      },
+    ] as const)(
+      'should warn before the model responds when $warning.feature is configured',
+      async ({ timeout, warning }) => {
+        const delayedPromise = new DelayedPromise<void>();
+
+        const generatePromise = generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => {
+              await delayedPromise.promise;
+              return {
+                ...dummyResponseValues,
+                content: [{ type: 'text', text: 'Hello, world!' }],
+              };
+            },
+          }),
+          prompt: 'test-input',
+          timeout,
+        });
+
+        expect(logWarningsSpy).toHaveBeenCalledOnce();
+        expect(logWarningsSpy).toHaveBeenCalledWith({
+          warnings: [warning],
+          provider: 'mock-provider',
+          model: 'mock-model-id',
+        });
+
+        delayedPromise.resolve();
+        await generatePromise;
+      },
+    );
+
+    it('should warn about both streaming-only timeouts in one call', async () => {
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+          },
+        }),
+        prompt: 'test-input',
+        timeout: { firstChunkMs: 5000, chunkMs: 5000 },
+      });
+
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(1, {
+        warnings: [
+          {
+            type: 'unsupported',
+            feature: 'timeout.firstChunkMs',
+            details:
+              'The firstChunkMs timeout is only supported by streaming functions.',
+          },
+          {
+            type: 'unsupported',
+            feature: 'timeout.chunkMs',
+            details:
+              'The chunkMs timeout is only supported by streaming functions.',
+          },
+        ],
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
+    });
+
     it('should forward timeout as abort signal to model', async () => {
       let receivedAbortSignal: AbortSignal | undefined;
 

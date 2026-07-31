@@ -30,6 +30,8 @@ import { prepareToolChoice } from '../prompt/prepare-tool-choice';
 import { prepareTools } from '../prompt/prepare-tools';
 import type { Prompt } from '../prompt/prompt';
 import {
+  getChunkTimeoutMs,
+  getFirstChunkTimeoutMs,
   getStepTimeoutMs,
   getTotalTimeoutMs,
   type RequestOptions,
@@ -43,6 +45,7 @@ import type {
   LanguageModel,
   LanguageModelRequestMetadata,
   ToolChoice,
+  Warning,
 } from '../types';
 import {
   addLanguageModelUsage,
@@ -587,6 +590,33 @@ export async function generateText<
   const resolvedOnToolExecutionEnd =
     onToolExecutionEnd ?? experimental_onToolCallFinish;
   const resolvedOnStepEnd = onStepEnd ?? onStepFinish;
+
+  const unsupportedTimeoutWarnings: Warning[] = [];
+
+  if (getFirstChunkTimeoutMs(timeout) != null) {
+    unsupportedTimeoutWarnings.push({
+      type: 'unsupported',
+      feature: 'timeout.firstChunkMs',
+      details:
+        'The firstChunkMs timeout is only supported by streaming functions.',
+    });
+  }
+
+  if (getChunkTimeoutMs(timeout) != null) {
+    unsupportedTimeoutWarnings.push({
+      type: 'unsupported',
+      feature: 'timeout.chunkMs',
+      details: 'The chunkMs timeout is only supported by streaming functions.',
+    });
+  }
+
+  if (unsupportedTimeoutWarnings.length > 0) {
+    logWarnings({
+      warnings: unsupportedTimeoutWarnings,
+      provider: model.provider,
+      model: model.modelId,
+    });
+  }
 
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
