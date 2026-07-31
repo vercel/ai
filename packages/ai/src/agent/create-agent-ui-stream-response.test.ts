@@ -127,10 +127,13 @@ describe('createAgentUIStreamResponse', () => {
     });
 
     it('should have a single call that contains the tool result as text', () => {
-      expect(recordedInputs).toMatchInlineSnapshot(`
+      expect(recordedInputs).toMatchInlineSnapshot(
+        [{ experimental_session: expect.any(Object) }],
+        `
         [
           {
             "abortSignal": undefined,
+            "experimental_session": Any<Object>,
             "frequencyPenalty": undefined,
             "headers": {
               "user-agent": "ai-sdk-agent/tool-loop",
@@ -221,7 +224,8 @@ describe('createAgentUIStreamResponse', () => {
             "topP": undefined,
           },
         ]
-      `);
+      `,
+      );
     });
 
     it('should return the UI message stream response', () => {

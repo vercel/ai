@@ -1,4 +1,5 @@
 import {
+  APICallError,
   InvalidPromptError,
   type LanguageModelV4CallOptions,
   type LanguageModelV4FunctionTool,
@@ -87,14 +88,19 @@ describe('abort signal handling', () => {
   it('should reject when the abort signal fires during tool execution', async () => {
     const abortController = new AbortController();
     const abortError = new DOMException('tool execution aborted', 'AbortError');
+    const cleanup = vi.fn();
     let modelCallCount = 0;
 
     const result = generateText({
       model: new MockLanguageModelV4({
-        doGenerate: async () => {
+        doGenerate: async options => {
           modelCallCount++;
 
           if (modelCallCount === 1) {
+            options.experimental_session!.getOrSet('resource', () => 'value', {
+              onDestroy: cleanup,
+            });
+
             return {
               ...dummyResponseValues,
               content: [
@@ -135,6 +141,7 @@ describe('abort signal handling', () => {
       `[AbortError: tool execution aborted]`,
     );
     expect(modelCallCount).toBe(1);
+    expect(cleanup).toHaveBeenCalledExactlyOnceWith('value');
   });
 
   it('should reject before another model call when a tool completes after cancellation', async () => {
@@ -390,6 +397,288 @@ describe('generateText', () => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
     logWarningsSpy.mockRestore();
+  });
+
+  describe('session lifecycle', () => {
+    type Session = NonNullable<
+      LanguageModelV4CallOptions['experimental_session']
+    >;
+
+    it('should preserve the session across retries and destroy it before onEnd', async () => {
+      const sessions: Session[] = [];
+      const events: string[] = [];
+      let attempt = 0;
+
+      const resultPromise = generateText({
+        ...defaultSettings(),
+        model: new MockLanguageModelV4({
+          doGenerate: async options => {
+            const session = options.experimental_session!;
+            sessions.push(session);
+
+            const retryState = session.getOrSet(
+              'retry-state',
+              () => 'available',
+              {
+                onDestroy: () => {
+                  events.push('destroy');
+                },
+              },
+            );
+
+            if (attempt++ === 0) {
+              throw new APICallError({
+                message: 'Internal Server Error',
+                url: 'https://example.com',
+                requestBodyValues: {},
+                statusCode: 500,
+                responseHeaders: { 'retry-after-ms': '1' },
+              });
+            }
+
+            expect(retryState).toBe('available');
+
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'Hello, world!' }],
+            };
+          },
+        }),
+        maxRetries: 1,
+        onEnd: () => {
+          events.push('onEnd');
+        },
+      });
+
+      await vi.advanceTimersByTimeAsync(1);
+      await resultPromise;
+
+      expect(sessions).toHaveLength(2);
+      expect(sessions[1]).toBe(sessions[0]);
+      expect(events).toEqual(['destroy', 'onEnd']);
+    });
+
+    it('should preserve the session across steps and model changes', async () => {
+      const sessions: Session[] = [];
+      const events: string[] = [];
+
+      const firstModel = new MockLanguageModelV4({
+        doGenerate: async options => {
+          const session = options.experimental_session!;
+          sessions.push(session);
+          session.getOrSet('step-state', () => 'available', {
+            onDestroy: () => {
+              events.push('destroy');
+            },
+          });
+
+          return {
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: `{ "value": "value" }`,
+              },
+            ],
+          };
+        },
+      });
+      const secondModel = new MockLanguageModelV4({
+        doGenerate: async options => {
+          const session = options.experimental_session!;
+          sessions.push(session);
+          expect(session.get<string>('step-state')).toBe('available');
+
+          return {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+          };
+        },
+      });
+
+      await generateText({
+        ...defaultSettings(),
+        model: firstModel,
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result',
+          },
+        },
+        stopWhen: isStepCount(2),
+        prepareStep: ({ stepNumber }) =>
+          stepNumber === 1 ? { model: secondModel } : undefined,
+        onEnd: () => {
+          events.push('onEnd');
+        },
+      });
+
+      expect(sessions).toHaveLength(2);
+      expect(sessions[1]).toBe(sessions[0]);
+      expect(events).toEqual(['destroy', 'onEnd']);
+    });
+
+    it('should create distinct sessions for concurrent generations', async () => {
+      const sessions: Session[] = [];
+      const model = new MockLanguageModelV4({
+        doGenerate: async options => {
+          sessions.push(options.experimental_session!);
+
+          return {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+          };
+        },
+      });
+
+      await Promise.all([
+        generateText({ ...defaultSettings(), model }),
+        generateText({ ...defaultSettings(), model }),
+      ]);
+
+      expect(sessions).toHaveLength(2);
+      expect(sessions[1]).not.toBe(sessions[0]);
+    });
+
+    it('should destroy the session when generation fails', async () => {
+      const operationError = new Error('generation failed');
+      const events: string[] = [];
+
+      await expect(
+        generateText({
+          ...defaultSettings(),
+          model: new MockLanguageModelV4({
+            doGenerate: async options => {
+              options.experimental_session!.getOrSet(
+                'resource',
+                () => 'value',
+                {
+                  onDestroy: () => {
+                    events.push('destroy');
+                  },
+                },
+              );
+              throw operationError;
+            },
+          }),
+          maxRetries: 0,
+        }),
+      ).rejects.toBe(operationError);
+
+      expect(events).toEqual(['destroy']);
+    });
+
+    it('should fail with the cleanup error before onEnd', async () => {
+      const cleanupError = new Error('cleanup failed');
+      const onEnd = vi.fn();
+
+      await expect(
+        generateText({
+          ...defaultSettings(),
+          model: new MockLanguageModelV4({
+            doGenerate: async options => {
+              options.experimental_session!.getOrSet(
+                'resource',
+                () => 'value',
+                {
+                  onDestroy: async () => {
+                    throw cleanupError;
+                  },
+                },
+              );
+
+              return {
+                ...dummyResponseValues,
+                content: [{ type: 'text', text: 'Hello, world!' }],
+              };
+            },
+          }),
+          onEnd,
+        }),
+      ).rejects.toBe(cleanupError);
+
+      expect(onEnd).not.toHaveBeenCalled();
+    });
+
+    it('should aggregate generation and cleanup errors', async () => {
+      const operationError = new Error('generation failed');
+      const cleanupError = new Error('cleanup failed');
+
+      const error = await generateText({
+        ...defaultSettings(),
+        model: new MockLanguageModelV4({
+          doGenerate: async options => {
+            options.experimental_session!.getOrSet('resource', () => 'value', {
+              onDestroy: () => {
+                throw cleanupError;
+              },
+            });
+            throw operationError;
+          },
+        }),
+        maxRetries: 0,
+      }).catch(error => error);
+
+      expect(error).toBeInstanceOf(AggregateError);
+      expect((error as AggregateError).errors).toEqual([
+        operationError,
+        cleanupError,
+      ]);
+    });
+
+    it('should destroy the session when preparing the next step fails', async () => {
+      const setupError = new Error('step setup failed');
+      const cleanup = vi.fn();
+
+      await expect(
+        generateText({
+          ...defaultSettings(),
+          model: new MockLanguageModelV4({
+            doGenerate: async options => {
+              options.experimental_session!.getOrSet(
+                'resource',
+                () => 'value',
+                {
+                  onDestroy: cleanup,
+                },
+              );
+
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    input: '{}',
+                  },
+                ],
+              };
+            },
+          }),
+          tools: {
+            tool1: {
+              inputSchema: z.object({}),
+              execute: async () => 'result',
+            },
+          },
+          stopWhen: isStepCount(2),
+          prepareStep: ({ stepNumber }) => {
+            if (stepNumber === 1) {
+              throw setupError;
+            }
+
+            return undefined;
+          },
+        }),
+      ).rejects.toBe(setupError);
+
+      expect(cleanup).toHaveBeenCalledExactlyOnceWith('value');
+    });
   });
 
   it('should not synthesize a client tool error for an invalid provider-executed tool call', async () => {
@@ -6898,11 +7187,15 @@ describe('generateText', () => {
     it('should abort when step timeout expires', async () => {
       let receivedAbortSignal: AbortSignal | undefined;
       const delayedPromise = new DelayedPromise<void>();
+      const cleanup = vi.fn();
 
       const generatePromise = generateText({
         model: new MockLanguageModelV4({
-          doGenerate: async ({ abortSignal }) => {
+          doGenerate: async ({ abortSignal, experimental_session }) => {
             receivedAbortSignal = abortSignal;
+            experimental_session!.getOrSet('resource', () => 'value', {
+              onDestroy: cleanup,
+            });
             await delayedPromise.promise;
             return {
               ...dummyResponseValues,
@@ -6925,6 +7218,7 @@ describe('generateText', () => {
 
       expect(receivedAbortSignal?.aborted).toBe(true);
       expect((receivedAbortSignal?.reason as Error)?.name).toBe('TimeoutError');
+      expect(cleanup).toHaveBeenCalledExactlyOnceWith('value');
     });
   });
 
@@ -7557,9 +7851,14 @@ describe('generateText', () => {
           output: Output.text(),
         });
 
-        expect(callOptions!).toMatchInlineSnapshot(`
+        expect(callOptions!).toMatchInlineSnapshot(
+          {
+            experimental_session: expect.any(Object),
+          },
+          `
           {
             "abortSignal": undefined,
+            "experimental_session": Any<Object>,
             "frequencyPenalty": undefined,
             "headers": {
               "user-agent": "ai/0.0.0-test",
@@ -7593,7 +7892,8 @@ describe('generateText', () => {
             "topK": undefined,
             "topP": undefined,
           }
-        `);
+        `,
+        );
       });
     });
 
@@ -7634,9 +7934,14 @@ describe('generateText', () => {
           }),
         });
 
-        expect(callOptions!).toMatchInlineSnapshot(`
+        expect(callOptions!).toMatchInlineSnapshot(
+          {
+            experimental_session: expect.any(Object),
+          },
+          `
           {
             "abortSignal": undefined,
+            "experimental_session": Any<Object>,
             "frequencyPenalty": undefined,
             "headers": {
               "user-agent": "ai/0.0.0-test",
@@ -7683,7 +7988,8 @@ describe('generateText', () => {
             "topK": undefined,
             "topP": undefined,
           }
-        `);
+        `,
+        );
       });
     });
 
@@ -12846,10 +13152,13 @@ describe('generateText', () => {
         ]
       `);
 
-      expect(languageModelCalls).toMatchInlineSnapshot(`
+      expect(languageModelCalls).toMatchInlineSnapshot(
+        [{ experimental_session: expect.any(Object) }],
+        `
         [
           {
             "abortSignal": undefined,
+            "experimental_session": Any<Object>,
             "frequencyPenalty": undefined,
             "headers": {
               "user-agent": "ai/0.0.0-test",
@@ -12898,7 +13207,8 @@ describe('generateText', () => {
             "topP": undefined,
           },
         ]
-      `);
+      `,
+      );
 
       expect(result.text).toBe('response from without-image-url-support');
     });

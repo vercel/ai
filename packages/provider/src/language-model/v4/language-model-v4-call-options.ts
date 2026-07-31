@@ -1,5 +1,6 @@
 import type { JSONSchema7 } from 'json-schema';
 import type { SharedV4ProviderOptions } from '../../shared/v4/shared-v4-provider-options';
+import type { SharedV4Session } from '../../shared/v4/shared-v4-session';
 import type { LanguageModelV4FunctionTool } from './language-model-v4-function-tool';
 import type { LanguageModelV4Prompt } from './language-model-v4-prompt';
 import type { LanguageModelV4ProviderTool } from './language-model-v4-provider-tool';
@@ -109,6 +110,12 @@ export type LanguageModelV4CallOptions = {
    * Abort signal for cancelling the operation.
    */
   abortSignal?: AbortSignal;
+
+  /**
+   * Session state that is shared across language model calls in the same
+   * lifecycle.
+   */
+  experimental_session?: SharedV4Session;
 
   /**
    * Additional HTTP headers to be sent with the request.

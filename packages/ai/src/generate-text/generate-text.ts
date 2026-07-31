@@ -62,6 +62,7 @@ import type { ActiveTools } from './active-tools';
 import { calculateTokensPerSecond } from './calculate-tokens-per-second';
 import { collectToolApprovals } from './collect-tool-approvals';
 import type { ContentPart } from './content-part';
+import { createSession } from './create-session';
 import { executeToolCall } from './execute-tool-call';
 import {
   filterActiveTools,
@@ -670,6 +671,8 @@ export async function generateText<
       callbacks: [resolvedOnStart, telemetryDispatcher.onStart],
     });
 
+    const session = createSession();
+
     try {
       const initialMessages = initialPrompt.messages;
       const initialResponseMessages: Array<ResponseMessage> = [];
@@ -990,6 +993,7 @@ export async function generateText<
                         providerOptions: stepProviderOptions,
                         abortSignal: mergedAbortSignal,
                         headers: headersWithUserAgent,
+                        experimental_session: session,
                       }),
                   },
                 );
@@ -1408,6 +1412,8 @@ export async function generateText<
         !(await isStopConditionMet({ stopConditions, steps }))
       );
 
+      await session.destroy();
+
       const lastStep = steps[steps.length - 1];
 
       const totalUsage = steps.reduce(
@@ -1500,8 +1506,21 @@ export async function generateText<
         output: resolvedOutput,
       });
     } catch (error) {
-      await telemetryDispatcher.onError?.({ callId, error });
-      throw wrapGatewayError(error);
+      let finalError = error;
+
+      try {
+        await session.destroy();
+      } catch (cleanupError) {
+        if (cleanupError !== error) {
+          finalError = new AggregateError(
+            [error, cleanupError],
+            'Generation failed and session cleanup also failed.',
+          );
+        }
+      }
+
+      await telemetryDispatcher.onError?.({ callId, error: finalError });
+      throw wrapGatewayError(finalError);
     }
   };
 

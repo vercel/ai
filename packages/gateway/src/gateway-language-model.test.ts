@@ -1,4 +1,5 @@
 import type {
+  LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
   LanguageModelV4FilePart,
 } from '@ai-sdk/provider';
@@ -139,6 +140,20 @@ describe('GatewayLanguageModel', () => {
 
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody).not.toHaveProperty('abortSignal');
+    });
+
+    it('should remove experimental_session from the request body', async () => {
+      prepareJsonResponse({ content: { type: 'text', text: 'Test response' } });
+
+      await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        experimental_session: {} as NonNullable<
+          LanguageModelV4CallOptions['experimental_session']
+        >,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).not.toHaveProperty('experimental_session');
     });
 
     it('should pass abortSignal to fetch when provided', async () => {
@@ -686,6 +701,23 @@ describe('GatewayLanguageModel', () => {
 
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody).not.toHaveProperty('abortSignal');
+    });
+
+    it('should remove experimental_session from the streaming request body', async () => {
+      prepareStreamResponse({
+        content: ['Test content'],
+      });
+
+      await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        experimental_session: {} as NonNullable<
+          LanguageModelV4CallOptions['experimental_session']
+        >,
+        includeRawChunks: false,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).not.toHaveProperty('experimental_session');
     });
 
     it('should pass abortSignal to fetch when provided for streaming', async () => {
