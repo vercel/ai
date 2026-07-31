@@ -1,7 +1,7 @@
 import { type AlibabaVideoModelOptions, alibaba } from '@ai-sdk/alibaba';
 import { experimental_generateVideo as generateVideo } from 'ai';
-import { presentVideos } from '../lib/present-video';
-import { run } from '../lib/run';
+import { presentVideos } from '../../lib/present-video';
+import { run } from '../../lib/run';
 
 run(async () => {
   process.stdout.write('Generating video ...');

@@ -1,8 +1,8 @@
 import { type AlibabaVideoModelOptions, alibaba } from '@ai-sdk/alibaba';
 import { experimental_generateVideo as generateVideo } from 'ai';
-import { presentVideos } from '../lib/present-video';
-import { run } from '../lib/run';
-import { withSpinner } from '../lib/spinner';
+import { presentVideos } from '../../lib/present-video';
+import { run } from '../../lib/run';
+import { withSpinner } from '../../lib/spinner';
 
 // Note: Alibaba does not support webhooks natively. The SDK will log an
 // unsupported-webhook warning and automatically fall back to polling.

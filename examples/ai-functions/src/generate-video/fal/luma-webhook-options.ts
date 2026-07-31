@@ -1,9 +1,9 @@
 import { type FalVideoModelOptions, fal } from '@ai-sdk/fal';
 import { experimental_generateVideo } from 'ai';
-import { presentVideos } from '../lib/present-video';
-import { run } from '../lib/run';
-import { createWebhook } from '../lib/create-webhook';
-import { withSpinner } from '../lib/spinner';
+import { createWebhook } from '../../lib/create-webhook';
+import { presentVideos } from '../../lib/present-video';
+import { run } from '../../lib/run';
+import { withSpinner } from '../../lib/spinner';
 
 run(async () => {
   const { videos, warnings } = await withSpinner('Generating video...', () =>

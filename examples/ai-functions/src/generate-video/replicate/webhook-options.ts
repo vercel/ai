@@ -1,9 +1,9 @@
 import { type ReplicateVideoModelOptions, replicate } from '@ai-sdk/replicate';
 import { experimental_generateVideo } from 'ai';
-import { presentVideos } from '../lib/present-video';
-import { run } from '../lib/run';
-import { createWebhook } from '../lib/create-webhook';
-import { withSpinner } from '../lib/spinner';
+import { createWebhook } from '../../lib/create-webhook';
+import { presentVideos } from '../../lib/present-video';
+import { run } from '../../lib/run';
+import { withSpinner } from '../../lib/spinner';
 
 run(async () => {
   const { video, warnings } = await withSpinner('Generating video...', () =>

@@ -1,24 +1,25 @@
-import { type XaiVideoModelOptions, xai } from '@ai-sdk/xai';
+import { type KlingAIVideoModelOptions, klingai } from '@ai-sdk/klingai';
 import { experimental_generateVideo as generateVideo } from 'ai';
-import { presentVideos } from '../lib/present-video';
-import { run } from '../lib/run';
+import { presentVideos } from '../../lib/present-video';
+import { run } from '../../lib/run';
 
 run(async () => {
   process.stdout.write('Generating video ...');
   const startTime = Date.now();
   const { videos } = await generateVideo({
-    model: xai.video('grok-imagine-video'),
-    prompt: 'A yorkie among dandelions at Crissy Field in San Francisco.',
+    model: klingai.video('kling-v2.6-t2v'),
+    prompt: 'A chicken flying into the sunset in the style of 90s anime.',
     aspectRatio: '16:9',
     duration: 5,
     providerOptions: {
-      xai: {
+      klingai: {
+        mode: 'std',
         pollTimeoutMs: 600000, // 10 minutes
-      } satisfies XaiVideoModelOptions,
+      } satisfies KlingAIVideoModelOptions,
     },
     poll: {
       intervalMs: 1000,
-      timeoutMs: 60_000,
+      timeoutMs: 600_000,
     },
   });
 

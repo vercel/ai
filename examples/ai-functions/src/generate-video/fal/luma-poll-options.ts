@@ -1,7 +1,7 @@
 import { type FalVideoModelOptions, fal } from '@ai-sdk/fal';
 import { experimental_generateVideo } from 'ai';
-import { presentVideos } from '../lib/present-video';
-import { run } from '../lib/run';
+import { presentVideos } from '../../lib/present-video';
+import { run } from '../../lib/run';
 
 run(async () => {
   process.stdout.write('Generating video ...');

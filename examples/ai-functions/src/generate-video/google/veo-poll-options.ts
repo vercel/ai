@@ -1,23 +1,24 @@
-import { type ReplicateVideoModelOptions, replicate } from '@ai-sdk/replicate';
+import { type GoogleVideoModelOptions, google } from '@ai-sdk/google';
 import { experimental_generateVideo } from 'ai';
-import { presentVideos } from '../lib/present-video';
-import { run } from '../lib/run';
+import { presentVideos } from '../../lib/present-video';
+import { run } from '../../lib/run';
 
 run(async () => {
   process.stdout.write('Generating video ...');
   const startTime = Date.now();
   const { video } = await experimental_generateVideo({
-    model: replicate.video('minimax/video-01'),
-    prompt: 'A bumblebee on a dandelion in Bali surrounded by pollen dust.',
+    model: google.video('veo-3.1-generate-preview'),
+    prompt: 'A Bedlington Terrier leaping at Crissy Field at sunset.',
     aspectRatio: '16:9',
+    duration: 6,
     providerOptions: {
-      replicate: {
+      google: {
         pollTimeoutMs: 600000, // 10 minutes
-      } satisfies ReplicateVideoModelOptions,
+      } satisfies GoogleVideoModelOptions,
     },
     poll: {
       intervalMs: 1000,
-      timeoutMs: 600_000,
+      timeoutMs: 60_000,
     },
   });
 
