@@ -6,7 +6,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  convertUint8ArrayToBase64,
+  convertImageModelFileToDataUri,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   delay,
@@ -14,13 +14,14 @@ import {
   getTopLevelMediaType,
   parseProviderOptions,
   postJsonToApi,
+  resolve,
   type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
   minimaxVideoModelOptionsSchema,
   minimaxVideoRatios,
-  minimaxVideoResolutions,
   type MiniMaxVideoModelOptions,
 } from './minimax-video-model-options';
 import type { MiniMaxVideoModelId } from './minimax-video-settings';
@@ -29,7 +30,7 @@ interface MiniMaxVideoModelConfig {
   provider: string;
   // API root without a version suffix, e.g. `https://api.minimax.io`.
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
@@ -48,11 +49,10 @@ const MAX_REFERENCE_VIDEOS = 3;
 const MAX_REFERENCE_AUDIOS = 3;
 
 const allowedRatios = new Set<string>(minimaxVideoRatios);
-const allowedResolutions = new Set<string>(minimaxVideoResolutions);
 
-// The API takes a named resolution tier rather than pixel dimensions, so map
-// the canonical 2K frame sizes onto the single tier H3 supports. Anything else
-// can't be honored and warns.
+// The top-level `resolution` is `{width}x{height}`, but the API takes a named
+// tier, so map the canonical 2K frame sizes onto the single tier H3 supports.
+// Anything else can't be honored and warns.
 const RESOLUTION_MAP: Record<string, string> = {
   // Square
   '2048x2048': '2K',
@@ -62,32 +62,10 @@ const RESOLUTION_MAP: Record<string, string> = {
   '1440x2560': '2K',
 };
 
-// A top-level `resolution` is accepted as either a named tier ('2K', matched
-// case insensitively) or a `{width}x{height}` value mapped onto one.
-function resolveTopLevelResolution(resolution: string): string | undefined {
-  const named = resolution.toUpperCase();
-  return allowedResolutions.has(named) ? named : RESOLUTION_MAP[resolution];
-}
-
 function isVideoFile(file: VideoModelV4File): boolean {
   return (
     file.mediaType != null && getTopLevelMediaType(file.mediaType) === 'video'
   );
-}
-
-// Converts a video-model file into a MiniMax content URL. Passes through `url`
-// files unchanged (so `https://…` and `mm_file://…` references work as-is) and
-// encodes inline file data as a data URI.
-function fileToUrl(file: VideoModelV4File): string {
-  if (file.type === 'url') {
-    return file.url;
-  }
-
-  const base64Data =
-    typeof file.data === 'string'
-      ? file.data
-      : convertUint8ArrayToBase64(file.data);
-  return `data:${file.mediaType};base64,${base64Data}`;
 }
 
 export class MiniMaxVideoModel implements VideoModelV4 {
@@ -140,21 +118,31 @@ export class MiniMaxVideoModel implements VideoModelV4 {
       });
     }
 
-    if (options.generateAudio === false) {
+    if (options.generateAudio != null) {
       warnings.push({
         type: 'unsupported',
         feature: 'generateAudio',
         details:
-          'MiniMax-H3 always generates native audio; it cannot be disabled.',
+          'The MiniMax-H3 API does not expose an audio parameter. The generateAudio option was ignored.',
       });
     }
 
     // Resolution: the API takes a named tier, so an explicit provider option
     // wins and a top-level value is resolved to a tier.
     let resolution: string | undefined = minimaxOptions?.resolution;
-    if (resolution == null && options.resolution != null) {
-      const mapped = resolveTopLevelResolution(options.resolution);
-      if (mapped != null) {
+    if (options.resolution != null) {
+      const mapped = RESOLUTION_MAP[options.resolution];
+      if (resolution != null) {
+        if (mapped !== resolution) {
+          warnings.push({
+            type: 'unsupported',
+            feature: 'resolution',
+            details:
+              `The resolution "${options.resolution}" was ignored because ` +
+              `providerOptions.minimax.resolution ("${resolution}") takes precedence.`,
+          });
+        }
+      } else if (mapped != null) {
         resolution = mapped;
       } else {
         warnings.push({
@@ -168,6 +156,12 @@ export class MiniMaxVideoModel implements VideoModelV4 {
     }
     resolution ??= DEFAULT_RESOLUTION;
 
+    // `convertImageModelFileToDataUri` passes `url` files through unchanged and
+    // encodes inline data as a data URI. MiniMax `mm_file://…` handles survive
+    // that pass-through, but not the core `generateVideo` path: it base64-decodes
+    // any string that is not `http(s)://` or `data:`, so `mm_file://` only
+    // reaches the API through `providerOptions.minimax.referenceAudio`, which is
+    // forwarded raw — not through `image`, `frameImages`, or `inputReferences`.
     const content: Array<Record<string, unknown>> = [
       { type: 'text', text: options.prompt ?? '' },
     ];
@@ -181,33 +175,36 @@ export class MiniMaxVideoModel implements VideoModelV4 {
     const sentReferenceVideoUrls: string[] = [];
 
     // Resolve first/last frame inputs. A standalone `image` is treated as the
-    // first frame (image-to-video).
-    const firstFrame =
-      options.frameImages?.find(frame => frame.frameType === 'first_frame')
-        ?.image ?? options.image;
+    // first frame (image-to-video). The core sets `image` to the `first_frame`
+    // frame image when there is one, so the frame-image entry is tracked
+    // separately to report which input a warning came from.
+    const firstFrameImage = options.frameImages?.find(
+      frame => frame.frameType === 'first_frame',
+    )?.image;
+    const firstFrame = firstFrameImage ?? options.image;
     const lastFrame = options.frameImages?.find(
       frame => frame.frameType === 'last_frame',
     )?.image;
     const usesFrameImages = firstFrame != null || lastFrame != null;
 
     const referenceFiles = options.inputReferences ?? [];
-    const referenceAudioUrls = minimaxOptions?.referenceAudioUrls ?? [];
+    const referenceAudio = minimaxOptions?.referenceAudio ?? [];
     const usesReferences =
-      referenceFiles.length > 0 || referenceAudioUrls.length > 0;
+      referenceFiles.length > 0 || referenceAudio.length > 0;
 
     if (usesFrameImages) {
       if (firstFrame != null) {
         if (isVideoFile(firstFrame)) {
           warnings.push({
             type: 'unsupported',
-            feature: options.image != null ? 'image' : 'frameImages',
+            feature: firstFrameImage != null ? 'frameImages' : 'image',
             details:
               'MiniMax-H3 does not accept a video as a frame image. The video was ignored.',
           });
         } else {
           content.push({
             type: 'image_url',
-            image_url: { url: fileToUrl(firstFrame) },
+            image_url: { url: convertImageModelFileToDataUri(firstFrame) },
             role: 'first_frame',
           });
           sentImageCount++;
@@ -232,7 +229,7 @@ export class MiniMaxVideoModel implements VideoModelV4 {
         } else {
           content.push({
             type: 'image_url',
-            image_url: { url: fileToUrl(lastFrame) },
+            image_url: { url: convertImageModelFileToDataUri(lastFrame) },
             role: 'last_frame',
           });
           sentImageCount++;
@@ -281,7 +278,7 @@ export class MiniMaxVideoModel implements VideoModelV4 {
             details:
               `MiniMax-H3 only accepts image and video references; the "${file.mediaType}" ` +
               'reference was ignored. Pass reference audio via ' +
-              'providerOptions.minimax.referenceAudioUrls.',
+              'providerOptions.minimax.referenceAudio.',
           });
         }
       }
@@ -289,7 +286,7 @@ export class MiniMaxVideoModel implements VideoModelV4 {
       for (const image of referenceImages.slice(0, MAX_REFERENCE_IMAGES)) {
         content.push({
           type: 'image_url',
-          image_url: { url: fileToUrl(image) },
+          image_url: { url: convertImageModelFileToDataUri(image) },
           role: 'reference_image',
         });
         sentImageCount++;
@@ -303,7 +300,7 @@ export class MiniMaxVideoModel implements VideoModelV4 {
       }
 
       for (const video of referenceVideos.slice(0, MAX_REFERENCE_VIDEOS)) {
-        const url = fileToUrl(video);
+        const url = convertImageModelFileToDataUri(video);
         content.push({
           type: 'video_url',
           video_url: { url },
@@ -323,26 +320,26 @@ export class MiniMaxVideoModel implements VideoModelV4 {
       }
 
       // Reference audio must accompany at least one reference image or video.
-      if (referenceAudioUrls.length > 0) {
+      if (referenceAudio.length > 0) {
         if (referenceImages.length === 0 && referenceVideos.length === 0) {
           warnings.push({
             type: 'unsupported',
-            feature: 'referenceAudioUrls',
+            feature: 'referenceAudio',
             details:
               'MiniMax-H3 reference audio must be paired with at least one reference image or video. The audio was ignored.',
           });
         } else {
-          for (const url of referenceAudioUrls.slice(0, MAX_REFERENCE_AUDIOS)) {
+          for (const url of referenceAudio.slice(0, MAX_REFERENCE_AUDIOS)) {
             content.push({
               type: 'audio_url',
               audio_url: { url },
               role: 'reference_audio',
             });
           }
-          if (referenceAudioUrls.length > MAX_REFERENCE_AUDIOS) {
+          if (referenceAudio.length > MAX_REFERENCE_AUDIOS) {
             warnings.push({
               type: 'unsupported',
-              feature: 'referenceAudioUrls',
+              feature: 'referenceAudio',
               details: `MiniMax-H3 accepts at most ${MAX_REFERENCE_AUDIOS} reference audios. Extra audios were ignored.`,
             });
           }
@@ -413,7 +410,10 @@ export class MiniMaxVideoModel implements VideoModelV4 {
 
     const { value: createResponse } = await postJsonToApi({
       url: `${baseURL}/v2/video_generation`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: minimaxVideoFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -452,7 +452,10 @@ export class MiniMaxVideoModel implements VideoModelV4 {
         await getFromApi({
           url: `${baseURL}/v2/query/video_generation/${taskId}`,
           validateUrl: false,
-          headers: combineHeaders(this.config.headers(), options.headers),
+          headers: combineHeaders(
+            await resolve(this.config.headers),
+            options.headers,
+          ),
           successfulResponseHandler: createJsonResponseHandler(
             minimaxVideoStatusResponseSchema,
           ),
@@ -502,7 +505,15 @@ export class MiniMaxVideoModel implements VideoModelV4 {
                 ...(task.resolution != null
                   ? { resolution: task.resolution }
                   : {}),
-                ...(task.usage != null ? { usage: task.usage } : {}),
+                ...(task.usage != null
+                  ? {
+                      usage: {
+                        totalSeconds: task.usage.total_seconds,
+                        inputSeconds: task.usage.input_seconds,
+                        outputSeconds: task.usage.output_seconds,
+                      },
+                    }
+                  : {}),
               },
             },
           };

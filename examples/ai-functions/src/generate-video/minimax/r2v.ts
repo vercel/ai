@@ -14,7 +14,7 @@ import { withSpinner } from '../../lib/spinner';
 //
 // `inputReferences` are routed by media type: images -> reference_image
 // (up to 9), videos -> reference_video (up to 3). Reference audio is passed via
-// `providerOptions.minimax.referenceAudioUrls` (up to 3).
+// `providerOptions.minimax.referenceAudio` (up to 3).
 run(async () => {
   const { video, warnings, providerMetadata } = await withSpinner(
     'Generating MiniMax reference-to-video (image + video + audio refs)...',
@@ -43,7 +43,7 @@ run(async () => {
             // Optional reference audio. Each clip must be 2-15s and reachable
             // by MiniMax (public URL or `mm_file://` handle). Add "sync to
             // Audio 1" to the prompt when you enable it:
-            // referenceAudioUrls: ['https://example.com/voice-under-15s.mp3'],
+            // referenceAudio: ['https://example.com/voice-under-15s.mp3'],
             pollTimeoutMs: 600000, // 10 minutes
           } satisfies MiniMaxVideoModelOptions,
         },

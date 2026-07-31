@@ -249,7 +249,7 @@ describe('MiniMaxVideoModel', () => {
         warnings.some(
           w => w.type === 'unsupported' && w.feature === 'resolution',
         ),
-      ).toBe(false);
+      ).toBe(true);
     });
 
     it('should send first/last frame images with roles and ignore ratio', async () => {
@@ -313,7 +313,7 @@ describe('MiniMaxVideoModel', () => {
           minimax: {
             pollIntervalMs: 10,
             pollTimeoutMs: 5000,
-            referenceAudioUrls: ['https://cdn.example.com/ref.wav'],
+            referenceAudio: ['https://cdn.example.com/ref.wav'],
           },
         },
       });
@@ -410,7 +410,7 @@ describe('MiniMaxVideoModel', () => {
         details:
           'MiniMax-H3 only accepts image and video references; the "audio/mp3" ' +
           'reference was ignored. Pass reference audio via ' +
-          'providerOptions.minimax.referenceAudioUrls.',
+          'providerOptions.minimax.referenceAudio.',
       });
     });
 

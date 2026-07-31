@@ -7,7 +7,7 @@ description: Learn how to use MiniMax models with the AI SDK.
 
 The [MiniMax](https://www.minimax.io) provider offers access to the MiniMax-M
 series of language models through the MiniMax API, including models with
-reasoning capabilities.
+reasoning capabilities, as well as video generation with the MiniMax-H series.
 
 API keys can be obtained from the [MiniMax Platform](https://platform.minimax.io).
 
@@ -138,14 +138,19 @@ You can generate videos with the MiniMax-H3 model using the
 function:
 
 ```ts
-import { minimax } from '@ai-sdk/minimax';
+import { minimax, type MiniMaxVideoModelOptions } from '@ai-sdk/minimax';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
-  model: minimax.video('minimax-h3'),
+  model: minimax.video('MiniMax-H3'),
   prompt: 'A white kitten chases a butterfly across a sunlit garden.',
   aspectRatio: '16:9',
   duration: 5,
+  providerOptions: {
+    minimax: {
+      pollTimeoutMs: 600000, // 10 minutes
+    } satisfies MiniMaxVideoModelOptions,
+  },
 });
 ```
 
@@ -185,7 +190,7 @@ The following optional provider options are available for MiniMax video models:
 
   Aspect ratio of the generated video. Overrides the top-level `aspectRatio`.
 
-- **referenceAudioUrls** _string[]_
+- **referenceAudio** _string[]_
 
   Reference audio URLs (or `mm_file://` handles) for reference-to-video
   generation. Must be paired with at least one reference image or video. Up to 3.
@@ -201,6 +206,52 @@ The following optional provider options are available for MiniMax video models:
 - **pollTimeoutMs** _number_
 
   Maximum time in milliseconds to poll before timing out. Default: `600000`.
+
+<Note>
+  MiniMax `mm_file://` handles are only forwarded as-is for `referenceAudio`.
+  They cannot be used for `image`, `frameImages`, or `inputReferences`: those
+  inputs go through the AI SDK's file handling, which base64-decodes any string
+  that is not an `http(s)://` or `data:` URL. Pass those inputs as public URLs,
+  data URIs, or binary data instead.
+</Note>
+
+### Video Provider Metadata
+
+MiniMax video results include `providerMetadata.minimax`:
+
+- **taskId** _string_
+
+  ID of the MiniMax generation task.
+
+- **videoUrl** _string_
+
+  The MiniMax-hosted MP4 URL (the same URL as `video`). Time-limited.
+
+- **resolvedInputs** _object_
+
+  The inputs that were actually sent, after the caps and rejections H3 imposes
+  (warnings report that an input was dropped, but not how many survived).
+  - **imageCount** _number_ — number of images sent (frame images or reference
+    images).
+  - **referenceVideoUrls** _string[]_ — the URLs of the reference videos sent.
+    Inline video data is omitted, since it is sent as a data URI.
+
+- **duration** _number_
+
+  Duration of the generated video in seconds, when reported by the API.
+
+- **ratio** _string_
+
+  Aspect ratio of the generated video, when reported by the API.
+
+- **resolution** _string_
+
+  Resolution tier of the generated video, when reported by the API.
+
+- **usage** _object_
+
+  Billed seconds, when reported by the API: `totalSeconds`, `inputSeconds`,
+  and `outputSeconds`.
 
 ## Model Capabilities
 
