@@ -10,6 +10,7 @@ export { convertInlineFileDataToUint8Array } from './convert-inline-file-data-to
 export { convertImageModelFileToDataUri } from './convert-image-model-file-to-data-uri';
 export { convertToFormData } from './convert-to-form-data';
 export { createLanguageModelResponseMetadata } from './create-language-model-response-metadata';
+export { createNullLanguageModelUsage } from './create-null-language-model-usage';
 export {
   createToolNameMapping,
   type ToolNameMapping,
