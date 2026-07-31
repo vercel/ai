@@ -136,6 +136,25 @@ describe('OpenAI Files - uploadFile', () => {
     expect(multipart).not.toHaveProperty('expires_after');
   });
 
+  it('should omit expires_after fields when no expiry is requested', async () => {
+    prepareFileResponse();
+
+    const provider = createOpenAI({ apiKey: 'test-api-key' });
+    const files = provider.files();
+
+    await files.uploadFile({
+      data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
+      mediaType: 'application/octet-stream',
+      providerOptions: {
+        openai: { purpose: 'assistants' },
+      },
+    });
+
+    const multipart = await server.calls[0].requestBodyMultipart;
+    expect(multipart).not.toHaveProperty('expires_after[anchor]');
+    expect(multipart).not.toHaveProperty('expires_after[seconds]');
+  });
+
   it('should pass auth headers', async () => {
     prepareFileResponse();
 
