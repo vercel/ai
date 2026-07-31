@@ -1575,6 +1575,219 @@ describe('XaiResponsesLanguageModel', () => {
       });
     });
 
+    describe('image_generation tool', () => {
+      it('should handle image_generation tool call from response fixture', async () => {
+        prepareJsonFixtureResponse('xai-image-generation-tool.1');
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.image_generation',
+              name: 'image_generation',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{}",
+              "providerExecuted": true,
+              "toolCallId": "ig_00000000-0000-4000-8000-000000000001_call-00000000-0000-4000-8000-00000000000a-0",
+              "toolName": "image_generation",
+              "type": "tool-call",
+            },
+            {
+              "result": {
+                "prompt": "A cute robot holding a flower, adorable design with big friendly eyes, shiny metallic body with soft rounded edges, holding a colorful flower in its hand, cheerful expression, simple clean background, high quality digital art",
+                "result": "ZmFrZUltYWdlQmFzZTY0RGF0YQ==",
+              },
+              "toolCallId": "ig_00000000-0000-4000-8000-000000000001_call-00000000-0000-4000-8000-00000000000a-0",
+              "toolName": "image_generation",
+              "type": "tool-result",
+            },
+            {
+              "text": "Here's a cute robot holding a flower! 🌸🤖",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should include image_generation tool call and result with providerExecuted true', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast-non-reasoning',
+          output: [
+            {
+              type: 'image_generation_call',
+              id: 'ig_123',
+              status: 'completed',
+              prompt:
+                'A corgi surfing a big wave, Japanese woodblock print style',
+              result: 'base64imagedata',
+            },
+            {
+              type: 'message',
+              id: 'msg_123',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Here is your image of a corgi surfing.',
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          usage: { input_tokens: 100, output_tokens: 20 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.image_generation',
+              name: 'image_generation',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{}",
+              "providerExecuted": true,
+              "toolCallId": "ig_123",
+              "toolName": "image_generation",
+              "type": "tool-call",
+            },
+            {
+              "result": {
+                "prompt": "A corgi surfing a big wave, Japanese woodblock print style",
+                "result": "base64imagedata",
+              },
+              "toolCallId": "ig_123",
+              "toolName": "image_generation",
+              "type": "tool-result",
+            },
+            {
+              "text": "Here is your image of a corgi surfing.",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should emit an error tool result for image_generation calls without result', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast-non-reasoning',
+          output: [
+            {
+              type: 'image_generation_call',
+              id: 'ig_456',
+              status: 'failed',
+            },
+          ],
+          usage: { input_tokens: 100, output_tokens: 20 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.image_generation',
+              name: 'image_generation',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{}",
+              "providerExecuted": true,
+              "toolCallId": "ig_456",
+              "toolName": "image_generation",
+              "type": "tool-call",
+            },
+            {
+              "isError": true,
+              "result": "Image generation failed (status: failed).",
+              "toolCallId": "ig_456",
+              "toolName": "image_generation",
+              "type": "tool-result",
+            },
+          ]
+        `);
+      });
+
+      it('should use the custom tool name for image_generation calls', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast-non-reasoning',
+          output: [
+            {
+              type: 'image_generation_call',
+              id: 'ig_123',
+              status: 'completed',
+              prompt: 'A hot air balloon over the desert',
+              result: 'base64imagedata',
+            },
+          ],
+          usage: { input_tokens: 100, output_tokens: 20 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.image_generation',
+              name: 'generateImage',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{}",
+              "providerExecuted": true,
+              "toolCallId": "ig_123",
+              "toolName": "generateImage",
+              "type": "tool-call",
+            },
+            {
+              "result": {
+                "prompt": "A hot air balloon over the desert",
+                "result": "base64imagedata",
+              },
+              "toolCallId": "ig_123",
+              "toolName": "generateImage",
+              "type": "tool-result",
+            },
+          ]
+        `);
+      });
+    });
+
     describe('function tools', () => {
       it('should include function tool calls without providerExecuted', async () => {
         prepareJsonResponse({
@@ -2884,6 +3097,503 @@ describe('XaiResponsesLanguageModel', () => {
           toolCallId: 'ws_123',
           toolName: 'web_search',
           result: {},
+        });
+      });
+
+      it('should stream image_generation tool calls from chunks fixture', async () => {
+        prepareChunksFixtureResponse('xai-image-generation-tool.1');
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.image_generation',
+              name: 'image_generation',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toMatchInlineSnapshot(`
+          [
+            {
+              "type": "stream-start",
+              "warnings": [],
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000002",
+              "modelId": "grok-4.5",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+              "type": "response-metadata",
+            },
+            {
+              "id": "ig_00000000-0000-4000-8000-000000000002_call-00000000-0000-4000-8000-00000000000b-0",
+              "toolName": "image_generation",
+              "type": "tool-input-start",
+            },
+            {
+              "delta": "{}",
+              "id": "ig_00000000-0000-4000-8000-000000000002_call-00000000-0000-4000-8000-00000000000b-0",
+              "type": "tool-input-delta",
+            },
+            {
+              "id": "ig_00000000-0000-4000-8000-000000000002_call-00000000-0000-4000-8000-00000000000b-0",
+              "type": "tool-input-end",
+            },
+            {
+              "input": "{}",
+              "providerExecuted": true,
+              "toolCallId": "ig_00000000-0000-4000-8000-000000000002_call-00000000-0000-4000-8000-00000000000b-0",
+              "toolName": "image_generation",
+              "type": "tool-call",
+            },
+            {
+              "result": {
+                "prompt": "A delicate origami paper boat sailing gently on a tranquil pond covered with floating green lily pads and autumn leaves, soft sunlight filtering through trees, peaceful nature scene, highly detailed, realistic style",
+                "result": "ZmFrZUltYWdlQmFzZTY0RGF0YQ==",
+              },
+              "toolCallId": "ig_00000000-0000-4000-8000-000000000002_call-00000000-0000-4000-8000-00000000000b-0",
+              "toolName": "image_generation",
+              "type": "tool-result",
+            },
+            {
+              "id": "text-msg_00000000-0000-4000-8000-000000000002",
+              "type": "text-start",
+            },
+            {
+              "delta": "Here's",
+              "id": "text-msg_00000000-0000-4000-8000-000000000002",
+              "type": "text-delta",
+            },
+            {
+              "delta": " a",
+              "id": "text-msg_00000000-0000-4000-8000-000000000002",
+              "type": "text-delta",
+            },
+            {
+              "delta": " serene",
+              "id": "text-msg_00000000-0000-4000-8000-000000000002",
+              "type": "text-delta",
+            },
+            {
+              "delta": " image",
+              "id": "text-msg_00000000-0000-4000-8000-000000000002",
+              "type": "text-delta",
+            },
+            {
+              "delta": " of",
+              "id": "text-msg_00000000-0000-4000-8000-000000000002",
+              "type": "text-delta",
+            },
+            {
+              "delta": " a",
+              "id": "text-msg_00000000-0000-4000-8000-000000000002",
+              "type": "text-delta",
+            },
+            {
+              "delta": " paper",
+              "id": "text-msg_00000000-0000-4000-8000-000000000002",
+              "type": "text-delta",
+            },
+            {
+              "delta": " boat",
+              "id": "text-msg_00000000-0000-4000-8000-000000000002",
+              "type": "text-delta",
+            },
+            {
+              "delta": " sailing",
+              "id": "text-msg_00000000-0000-4000-8000-000000000002",
+              "type": "text-delta",
+            },
+            {
+              "delta": " on",
+              "id": "text-msg_00000000-0000-4000-8000-000000000002",
+              "type": "text-delta",
+            },
+            {
+              "delta": " a",
+              "id": "text-msg_00000000-0000-4000-8000-000000000002",
+              "type": "text-delta",
+            },
+            {
+              "delta": " leaf",
+              "id": "text-msg_00000000-0000-4000-8000-000000000002",
+              "type": "text-delta",
+            },
+            {
+              "delta": "-",
+              "id": "text-msg_00000000-0000-4000-8000-000000000002",
+              "type": "text-delta",
+            },
+            {
+              "delta": "covered",
+              "id": "text-msg_00000000-0000-4000-8000-000000000002",
+              "type": "text-delta",
+            },
+            {
+              "delta": " pond",
+              "id": "text-msg_00000000-0000-4000-8000-000000000002",
+              "type": "text-delta",
+            },
+            {
+              "delta": ":",
+              "id": "text-msg_00000000-0000-4000-8000-000000000002",
+              "type": "text-delta",
+            },
+            {
+              "id": "text-msg_00000000-0000-4000-8000-000000000002",
+              "type": "text-end",
+            },
+            {
+              "finishReason": {
+                "raw": "completed",
+                "unified": "stop",
+              },
+              "providerMetadata": {
+                "xai": {
+                  "costInUsdTicks": 123456,
+                },
+              },
+              "type": "finish",
+              "usage": {
+                "inputTokens": {
+                  "cacheRead": 20,
+                  "cacheWrite": undefined,
+                  "noCache": 80,
+                  "total": 100,
+                },
+                "outputTokens": {
+                  "reasoning": 30,
+                  "text": 20,
+                  "total": 50,
+                },
+                "raw": {
+                  "cost_in_usd_ticks": 123456,
+                  "input_tokens": 100,
+                  "input_tokens_details": {
+                    "cached_tokens": 20,
+                  },
+                  "num_server_side_tools_used": 1,
+                  "num_sources_used": 0,
+                  "output_tokens": 50,
+                  "output_tokens_details": {
+                    "reasoning_tokens": 30,
+                  },
+                  "total_tokens": 150,
+                },
+              },
+            },
+          ]
+        `);
+      });
+
+      it('should stream image_generation tool calls with progress events', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.image_generation_call.in_progress',
+            item_id: 'ig_123',
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.image_generation_call.generating',
+            item_id: 'ig_123',
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.image_generation_call.completed',
+            item_id: 'ig_123',
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'image_generation_call',
+              id: 'ig_123',
+              status: 'completed',
+              prompt: 'An origami fox in a paper forest',
+              result: 'base64imagedata',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            item_id: 'msg_123',
+            output_index: 1,
+            content_index: 0,
+            delta: 'Here is your origami fox.',
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.image_generation',
+              name: 'image_generation',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toMatchInlineSnapshot(`
+          [
+            {
+              "type": "stream-start",
+              "warnings": [],
+            },
+            {
+              "id": "resp_123",
+              "modelId": "grok-4-fast-non-reasoning",
+              "timestamp": undefined,
+              "type": "response-metadata",
+            },
+            {
+              "id": "ig_123",
+              "toolName": "image_generation",
+              "type": "tool-input-start",
+            },
+            {
+              "delta": "{}",
+              "id": "ig_123",
+              "type": "tool-input-delta",
+            },
+            {
+              "id": "ig_123",
+              "type": "tool-input-end",
+            },
+            {
+              "input": "{}",
+              "providerExecuted": true,
+              "toolCallId": "ig_123",
+              "toolName": "image_generation",
+              "type": "tool-call",
+            },
+            {
+              "result": {
+                "prompt": "An origami fox in a paper forest",
+                "result": "base64imagedata",
+              },
+              "toolCallId": "ig_123",
+              "toolName": "image_generation",
+              "type": "tool-result",
+            },
+            {
+              "id": "text-msg_123",
+              "type": "text-start",
+            },
+            {
+              "delta": "Here is your origami fox.",
+              "id": "text-msg_123",
+              "type": "text-delta",
+            },
+            {
+              "id": "text-msg_123",
+              "type": "text-end",
+            },
+            {
+              "finishReason": {
+                "raw": "completed",
+                "unified": "stop",
+              },
+              "type": "finish",
+              "usage": {
+                "inputTokens": {
+                  "cacheRead": 0,
+                  "cacheWrite": undefined,
+                  "noCache": 10,
+                  "total": 10,
+                },
+                "outputTokens": {
+                  "reasoning": 0,
+                  "text": 5,
+                  "total": 5,
+                },
+                "raw": {
+                  "input_tokens": 10,
+                  "output_tokens": 5,
+                },
+              },
+            },
+          ]
+        `);
+      });
+
+      it('should stream image_generation tool calls when only output items are emitted', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'image_generation_call',
+              id: 'ig_123',
+              status: 'in_progress',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'image_generation_call',
+              id: 'ig_123',
+              status: 'completed',
+              prompt: 'An origami fox in a paper forest',
+              result: 'base64imagedata',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.image_generation',
+              name: 'image_generation',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-input-start',
+          id: 'ig_123',
+          toolName: 'image_generation',
+        });
+        expect(parts).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'ig_123',
+          toolName: 'image_generation',
+          input: '{}',
+          providerExecuted: true,
+        });
+        expect(parts).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'ig_123',
+          toolName: 'image_generation',
+          result: {
+            result: 'base64imagedata',
+            prompt: 'An origami fox in a paper forest',
+          },
+        });
+
+        expect(
+          parts.filter(part => part.type === 'tool-input-start'),
+        ).toHaveLength(1);
+      });
+
+      it('should stream an error tool result for failed image_generation calls', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.image_generation_call.in_progress',
+            item_id: 'ig_123',
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'image_generation_call',
+              id: 'ig_123',
+              status: 'failed',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.image_generation',
+              name: 'image_generation',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'ig_123',
+          toolName: 'image_generation',
+          input: '{}',
+          providerExecuted: true,
+        });
+        expect(parts).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'ig_123',
+          toolName: 'image_generation',
+          isError: true,
+          result: 'Image generation failed (status: failed).',
         });
       });
 

@@ -369,6 +369,47 @@ const { text } = await generateText({
 });
 ```
 
+### Image Generation Tool
+
+The image generation tool lets the model create and edit images with Grok Imagine as part of a conversation. The model decides when to call the tool, writes the image prompt, and returns the finished image alongside its text response:
+
+```ts
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: xai.responses('grok-4.5'),
+  prompt:
+    'Generate an image of a corgi surfing a big wave, in the style of a Japanese woodblock print',
+  tools: {
+    image_generation: xai.tools.imageGeneration(),
+  },
+});
+
+for (const toolResult of result.staticToolResults) {
+  if (toolResult.toolName === 'image_generation') {
+    const base64Image = toolResult.output.result;
+  }
+}
+```
+
+The tool result also contains the prompt that the model wrote for the image model, which is useful for understanding and debugging what was generated.
+
+#### Image Generation Parameters
+
+- **action** _'auto' | 'generate' | 'edit'_
+
+  Restricts what the tool can do. Defaults to `'auto'`.
+  - `'auto'`: the model can generate and edit images.
+  - `'generate'`: text-to-image generation only.
+  - `'edit'`: image editing only (edits images already in the conversation, including images the model generated earlier).
+
+<Note>
+  The tool takes no size or format parameters; the model picks an aspect ratio
+  for each call. To control it, ask in your prompt (e.g. "in a 9:16 vertical
+  aspect ratio").
+</Note>
+
 ### MCP Server Tool
 
 The MCP server tool enables the model to connect to remote [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) servers and use their tools:

@@ -149,6 +149,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       tool => tool.type === 'provider' && tool.id === 'xai.file_search',
     )?.name;
 
+    const imageGenerationToolName = tools?.find(
+      tool => tool.type === 'provider' && tool.id === 'xai.image_generation',
+    )?.name;
+
     const { input, inputWarnings } = await convertToXaiResponsesInput({
       prompt,
       store: options.store ?? true,
@@ -269,6 +273,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       codeExecutionToolName,
       mcpToolName,
       fileSearchToolName,
+      imageGenerationToolName,
     };
   }
 
@@ -283,6 +288,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       codeExecutionToolName,
       mcpToolName,
       fileSearchToolName,
+      imageGenerationToolName,
     } = await this.getArgs(options);
 
     const {
@@ -343,6 +349,40 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
               })) ?? null,
           },
         });
+
+        continue;
+      }
+
+      if (part.type === 'image_generation_call') {
+        const toolName = imageGenerationToolName ?? 'image_generation';
+
+        content.push({
+          type: 'tool-call',
+          toolCallId: part.id,
+          toolName,
+          input: '{}',
+          providerExecuted: true,
+        });
+
+        if (part.result != null) {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName,
+            result: {
+              result: part.result,
+              ...(part.prompt != null && { prompt: part.prompt }),
+            },
+          });
+        } else {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName,
+            isError: true,
+            result: `Image generation failed (status: ${part.status}).`,
+          });
+        }
 
         continue;
       }
@@ -514,6 +554,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       codeExecutionToolName,
       mcpToolName,
       fileSearchToolName,
+      imageGenerationToolName,
     } = await this.getArgs(options);
     const body = {
       ...args,
@@ -802,6 +843,45 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             }
 
             if (
+              event.type === 'response.image_generation_call.in_progress' ||
+              event.type === 'response.image_generation_call.generating' ||
+              event.type === 'response.image_generation_call.completed'
+            ) {
+              if (!seenToolCalls.has(event.item_id)) {
+                seenToolCalls.add(event.item_id);
+
+                const toolName = imageGenerationToolName ?? 'image_generation';
+
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  id: event.item_id,
+                  toolName,
+                });
+
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: event.item_id,
+                  delta: '{}',
+                });
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: event.item_id,
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: event.item_id,
+                  toolName,
+                  input: '{}',
+                  providerExecuted: true,
+                });
+              }
+
+              return;
+            }
+
+            if (
               event.type === 'response.output_item.added' ||
               event.type === 'response.output_item.done'
             ) {
@@ -890,6 +970,63 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                         })) ?? null,
                     },
                   });
+                }
+
+                return;
+              }
+
+              if (part.type === 'image_generation_call') {
+                const toolName = imageGenerationToolName ?? 'image_generation';
+
+                if (!seenToolCalls.has(part.id)) {
+                  seenToolCalls.add(part.id);
+
+                  controller.enqueue({
+                    type: 'tool-input-start',
+                    id: part.id,
+                    toolName,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: part.id,
+                    delta: '{}',
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: part.id,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId: part.id,
+                    toolName,
+                    input: '{}',
+                    providerExecuted: true,
+                  });
+                }
+
+                if (event.type === 'response.output_item.done') {
+                  if (part.result != null) {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.id,
+                      toolName,
+                      result: {
+                        result: part.result,
+                        ...(part.prompt != null && { prompt: part.prompt }),
+                      },
+                    });
+                  } else {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.id,
+                      toolName,
+                      isError: true,
+                      result: `Image generation failed (status: ${part.status}).`,
+                    });
+                  }
                 }
 
                 return;
