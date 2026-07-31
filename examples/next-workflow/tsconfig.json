@@ -59,7 +59,7 @@
       "path": "../../packages/workflow"
     },
     {
-      "path": "../../packages/xai"
+      "path": "../../packages/fal"
     }
   ]
 }

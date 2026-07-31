@@ -1220,6 +1220,41 @@ describe('experimental_generateVideo', () => {
       expect(diff).toBeGreaterThanOrEqual(30);
     });
 
+    it('should use a custom delay for polling', async () => {
+      const delay = vi.fn(async () => {});
+
+      await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: undefined,
+          doStart: async () => ({
+            operation: 'op-custom-delay',
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          }),
+          doStatus: async () => ({
+            status: 'completed' as const,
+            videos: [
+              { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+            ],
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          }),
+        }),
+        prompt,
+        poll: { delay },
+      });
+
+      expect(delay).toHaveBeenCalledWith(5000, { abortSignal: undefined });
+    });
+
     it('should throw timeout error when polling exceeds timeoutMs', async () => {
       await expect(
         experimental_generateVideo({
@@ -1414,6 +1449,51 @@ describe('experimental_generateVideo', () => {
 
       expect(webhookUrlCapture).toBe('https://example.com/webhook');
       expect(result.videos.length).toBe(1);
+    });
+
+    it('should use a custom delay for the webhook timeout', async () => {
+      const delay = vi.fn(() => new Promise<void>(() => {}));
+
+      const model = new MockVideoModelV4({
+        doGenerate: undefined,
+        handleWebhookOption: async ({ webhook }) => {
+          const { url, received } = await webhook();
+          return { webhookUrl: url, received };
+        },
+        doStart: async () => ({
+          operation: 'op-custom-delay',
+          warnings: [],
+          response: {
+            timestamp: new Date(),
+            modelId: 'test-model-id',
+            headers: {},
+          },
+        }),
+        doStatus: async () => ({
+          status: 'completed' as const,
+          videos: [{ type: 'base64', data: mp4Base64, mediaType: 'video/mp4' }],
+          warnings: [],
+          response: {
+            timestamp: new Date(),
+            modelId: 'test-model-id',
+            headers: {},
+          },
+        }),
+      });
+
+      await experimental_generateVideo({
+        model,
+        prompt,
+        poll: { delay },
+        webhook: async () => ({
+          url: 'https://example.com/webhook',
+          received: Promise.resolve({ headers: {}, body: {} }),
+        }),
+      });
+
+      expect(delay).toHaveBeenCalledWith(600_000, {
+        abortSignal: expect.any(AbortSignal),
+      });
     });
 
     it('should use webhook over poll when both are provided', async () => {

@@ -313,6 +313,10 @@ support, `poll.timeoutMs` limits how long the SDK waits for the notification.
 If the model does not support webhooks, the SDK falls back to polling with the
 provided interval and timeout.
 
+For durable workflows that provide their own sleep primitive, pass it as
+`poll.delay`. The custom delay is used for both polling intervals and webhook
+timeouts.
+
 ### Custom Headers
 
 `experimental_generateVideo` accepts an optional `headers` parameter of type `Record<string, string>`

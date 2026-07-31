@@ -12,7 +12,7 @@ import type {
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
-  delay,
+  delay as defaultDelay,
   withUserAgentSuffix,
   type DataContent,
   detectMediaType,
@@ -64,6 +64,17 @@ export type GenerateVideoPollOptions = {
    * @default 600000 (10 minutes)
    */
   timeoutMs?: number;
+
+  /**
+   * Custom delay implementation for polling intervals and webhook timeouts.
+   * This can be used with durable workflow sleep functions.
+   *
+   * @default the built-in timer-based delay
+   */
+  delay?: (
+    delayInMs: number,
+    options?: { abortSignal?: AbortSignal },
+  ) => PromiseLike<void>;
 };
 
 /**
@@ -571,6 +582,7 @@ async function executeStartStatusFlow({
       received: webhookReceived,
       timeoutMs: pollConfig?.timeoutMs ?? 600_000,
       abortSignal,
+      delay: pollConfig?.delay ?? defaultDelay,
     });
 
     const statusResult = await retry(() =>
@@ -631,10 +643,15 @@ async function waitForWebhook({
   received,
   timeoutMs,
   abortSignal,
+  delay,
 }: {
   received: PromiseLike<Experimental_VideoModelV4OperationWebhook>;
   timeoutMs: number;
   abortSignal?: AbortSignal;
+  delay: (
+    delayInMs: number,
+    options?: { abortSignal?: AbortSignal },
+  ) => PromiseLike<void>;
 }) {
   // Cancel the timeout delay once the webhook arrives (or we abort/time out),
   // so its timer does not keep the event loop alive on the success path.
@@ -722,6 +739,7 @@ async function pollUntilComplete({
 }> {
   const intervalMs = pollConfig?.intervalMs ?? 5000;
   const timeoutMs = pollConfig?.timeoutMs ?? 600_000;
+  const delay = pollConfig?.delay ?? defaultDelay;
 
   const warnings: Experimental_VideoModelV4Result['warnings'] = [];
   let providerMetadata: SharedV4ProviderMetadata | undefined;

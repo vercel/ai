@@ -1,6 +1,11 @@
-import { type XaiVideoModelOptions, xai } from '@ai-sdk/xai';
+import { type FalVideoModelOptions, fal } from '@ai-sdk/fal';
 import { experimental_generateVideo as generateVideo } from 'ai';
-import { getWritable } from 'workflow';
+import {
+  createWebhook,
+  fetch as workflowFetch,
+  getWritable,
+  sleep,
+} from 'workflow';
 
 const MAX_GITHUB_SEARCH_PAGES = 10;
 const MAX_AVATAR_BYTES = 10 * 1024 * 1024;
@@ -285,10 +290,10 @@ async function downloadAvatar(
 async function generateMaintainerVideo(
   maintainer: DownloadedMaintainer,
 ): Promise<{ videoUrl: string; warnings: string[] }> {
-  'use step';
+  using webhook = createWebhook();
 
   const result = await generateVideo({
-    model: xai.video('grok-imagine-video'),
+    model: fal.video('luma-dream-machine/ray-2'),
     prompt: {
       image: maintainer.image,
       text:
@@ -299,35 +304,42 @@ async function generateMaintainerVideo(
     duration: 5,
     aspectRatio: '1:1',
     providerOptions: {
-      xai: {
-        resolution: '480p',
-      } satisfies XaiVideoModelOptions,
+      fal: {
+        resolution: '540p',
+      } satisfies FalVideoModelOptions,
     },
+    maxRetries: 0,
     poll: {
-      intervalMs: 5_000,
+      delay: sleep,
       timeoutMs: 10 * 60 * 1000,
     },
-    // xAI implements the new async start/status API but does not expose a
-    // native completion webhook. Passing this option intentionally exercises
-    // the SDK's unsupported-webhook warning and automatic polling fallback.
-    // The factory must not be invoked unless xAI adds native webhook support.
-    webhook: async () => {
-      throw new Error(
-        'xAI unexpectedly requested a webhook URL without native webhook support.',
-      );
-    },
+    webhook: async () => ({
+      url: webhook.url,
+      received: webhook.then(async request => ({
+        body: await request.text(),
+        headers: Object.fromEntries(request.headers),
+      })),
+    }),
   });
 
-  const xaiMetadata = result.providerMetadata.xai;
+  const falMetadata = result.providerMetadata.fal;
+  const falVideos =
+    falMetadata != null &&
+    typeof falMetadata === 'object' &&
+    'videos' in falMetadata &&
+    Array.isArray(falMetadata.videos)
+      ? falMetadata.videos
+      : undefined;
+  const firstVideo = falVideos?.[0];
   const videoUrl =
-    xaiMetadata != null &&
-    typeof xaiMetadata === 'object' &&
-    'videoUrl' in xaiMetadata &&
-    typeof xaiMetadata.videoUrl === 'string'
-      ? xaiMetadata.videoUrl
+    firstVideo != null &&
+    typeof firstVideo === 'object' &&
+    'url' in firstVideo &&
+    typeof firstVideo.url === 'string'
+      ? firstVideo.url
       : undefined;
   if (videoUrl == null) {
-    throw new Error(`xAI did not return a video URL for @${maintainer.login}.`);
+    throw new Error(`FAL did not return a video URL for @${maintainer.login}.`);
   }
 
   return {
@@ -338,6 +350,8 @@ async function generateMaintainerVideo(
 
 export async function createMaintainerVideos(repositoryUrl: string) {
   'use workflow';
+
+  globalThis.fetch = workflowFetch;
 
   try {
     await writeProgress({

@@ -11,10 +11,10 @@
   "dependencies": {
     "@ai-sdk/anthropic": "workspace:*",
     "@ai-sdk/devtools": "workspace:*",
+    "@ai-sdk/fal": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
     "@ai-sdk/react": "workspace:*",
     "@ai-sdk/workflow": "workspace:*",
-    "@ai-sdk/xai": "workspace:*",
     "ai": "workspace:*",
     "next": "^15.5.21",
     "react": "^18.3.1",

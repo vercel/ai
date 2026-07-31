@@ -192,6 +192,13 @@ console.log(videos);
               description:
                 'Maximum time to wait for completion in milliseconds, including while waiting for a webhook notification. Default: 600000 (10 minutes).',
             },
+            {
+              name: 'delay',
+              type: '(delayInMs: number, options?: { abortSignal?: AbortSignal }) => PromiseLike<void>',
+              isOptional: true,
+              description:
+                'Custom delay implementation for polling intervals and webhook timeouts. Useful for durable workflow sleep functions. Default: built-in timer-based delay.',
+            },
           ],
         },
       ],

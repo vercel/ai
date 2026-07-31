@@ -20,7 +20,8 @@ Adds an asynchronous start/status flow to the experimental video model
 interface (`VideoModelV4`): models may now implement `doStart`, `doStatus`,
 and `handleWebhookOption` instead of (or in addition to) `doGenerate`, and
 `experimental_generateVideo` accepts `poll` and `webhook` options to
-orchestrate completion via polling or webhooks.
+orchestrate completion via polling or webhooks. Polling configuration can use
+a custom delay implementation for durable workflow compatibility.
 
 Uses tree-shakeable Zod factory imports in AI SDK core, provider utils, and
 Gateway to avoid bundling unused locale definitions.

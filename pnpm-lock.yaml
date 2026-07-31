@@ -1507,6 +1507,9 @@ importers:
       '@ai-sdk/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
+      '@ai-sdk/fal':
+        specifier: workspace:*
+        version: link:../../packages/fal
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../../packages/provider-utils
@@ -1516,9 +1519,6 @@ importers:
       '@ai-sdk/workflow':
         specifier: workspace:*
         version: link:../../packages/workflow
-      '@ai-sdk/xai':
-        specifier: workspace:*
-        version: link:../../packages/xai
       ai:
         specifier: workspace:*
         version: link:../../packages/ai

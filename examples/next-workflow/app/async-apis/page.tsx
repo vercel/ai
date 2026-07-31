@@ -182,15 +182,15 @@ export default function AsyncApisPage() {
             </div>
             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
               Find the people merging a repository&apos;s pull requests, then
-              turn their GitHub portraits into short, friendly xAI videos.
+              turn their GitHub portraits into short, friendly FAL videos.
             </p>
           </div>
 
           <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
             <div className="font-medium">Webhook-aware</div>
             <div className="mt-1 max-w-xs text-xs leading-5 text-amber-100/70">
-              xAI uses async start/status. Since it has no native webhook, the
-              SDK reports the fallback and polls automatically.
+              FAL calls a durable workflow webhook when each video is ready, so
+              the workflow can suspend instead of polling.
             </div>
           </div>
         </header>
@@ -284,7 +284,7 @@ export default function AsyncApisPage() {
                   {maintainer.videoStatus === 'generating' && (
                     <div className="absolute inset-0 grid place-items-center">
                       <div className="rounded-full border border-white/20 bg-slate-950/70 px-4 py-2 text-sm backdrop-blur">
-                        xAI is animating…
+                        FAL is animating…
                       </div>
                     </div>
                   )}
@@ -385,7 +385,7 @@ function describeUpdate(update: AsyncApisProgressUpdate): string {
         : `Downloaded @${update.maintainer.login}'s profile image.`;
     case 'video':
       return update.status === 'generating'
-        ? `Generating @${update.maintainer.login}'s wave with grok-imagine-video…`
+        ? `Generating @${update.maintainer.login}'s wave with FAL and waiting for its webhook…`
         : `@${update.maintainer.login}'s video is ready.`;
     case 'complete':
       return `Workflow complete with ${update.videoCount} videos.`;
