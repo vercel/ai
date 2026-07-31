@@ -1,3 +1,4 @@
+import { anthropic } from '@ai-sdk/anthropic';
 import { WorkflowAgent, type ModelCallStreamPart } from '@ai-sdk/workflow';
 import {
   convertToModelMessages,
@@ -151,13 +152,6 @@ export async function chat(messages: UIMessage[], request: ChatRequestContext) {
   // applies to fresh tool results. Without this, earlier-turn tool results would
   // fall back to default `json`/`text` serialization, diverging across turns.
   const modelMessages = await convertToModelMessages(messages, { tools });
-  const { createAnthropic } = await import('@ai-sdk/anthropic');
-  const anthropicBaseURL = process.env.ANTHROPIC_BASE_URL?.trim();
-  const anthropic = createAnthropic({
-    // An empty ANTHROPIC_BASE_URL is common in shared example env files. Treat
-    // it as unset here while preserving support for a configured proxy.
-    baseURL: anthropicBaseURL || 'https://api.anthropic.com/v1',
-  });
 
   const agent = new WorkflowAgent({
     model: anthropic('claude-sonnet-4-20250514'),
