@@ -1,7 +1,7 @@
 import type {
   JSONValue,
-  SharedV4ProviderOptions,
-  Experimental_VideoModelV4File,
+  SharedV3ProviderOptions,
+  Experimental_VideoModelV3File,
 } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
@@ -56,7 +56,7 @@ function errorEnvelope(message: string, httpCode: number) {
  */
 function minimaxOptions(
   options: Record<string, JSONValue> = {},
-): SharedV4ProviderOptions {
+): SharedV3ProviderOptions {
   return {
     minimax: { pollIntervalMs: 10, pollTimeoutMs: 5000, ...options },
   };
@@ -104,7 +104,7 @@ const imageUrlFile = {
   mediaType: 'image/png',
 };
 
-const videoUrlFile: Experimental_VideoModelV4File = {
+const videoUrlFile: Experimental_VideoModelV3File = {
   type: 'url',
   url: 'https://cdn.example.com/clip.mp4',
   mediaType: 'video/mp4',
@@ -126,7 +126,7 @@ describe('MiniMaxVideoModel', () => {
 
       expect(model.provider).toBe('minimax.video');
       expect(model.modelId).toBe('MiniMax-H3');
-      expect(model.specificationVersion).toBe('v4');
+      expect(model.specificationVersion).toBe('v3');
       expect(model.maxVideosPerCall).toBe(1);
     });
   });

@@ -5,13 +5,9 @@ import { AnthropicMessagesLanguageModel } from '@ai-sdk/anthropic/internal';
 import { createMiniMax } from './minimax-provider';
 import { MiniMaxVideoModel } from './minimax-video-model';
 
-<<<<<<< HEAD
 const AnthropicMessagesLanguageModelMock =
   AnthropicMessagesLanguageModel as unknown as Mock;
-=======
-const AnthropicLanguageModelMock = AnthropicLanguageModel as unknown as Mock;
 const MiniMaxVideoModelMock = MiniMaxVideoModel as unknown as Mock;
->>>>>>> 1d36c72f32 (feat(minimax): add video model support (MiniMax-H3) (#18286))
 
 vi.mock('@ai-sdk/anthropic/internal', () => {
   const mockConstructor = vi.fn().mockImplementation(function (

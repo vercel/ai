@@ -1,8 +1,8 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV4,
-  type Experimental_VideoModelV4File,
-  type SharedV4Warning,
+  type Experimental_VideoModelV3,
+  type Experimental_VideoModelV3File,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -11,7 +11,6 @@ import {
   createJsonResponseHandler,
   delay,
   getFromApi,
-  getTopLevelMediaType,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -39,7 +38,7 @@ interface MiniMaxVideoModelConfig {
 }
 
 type MiniMaxVideoDoGenerateOptions = Parameters<
-  Experimental_VideoModelV4['doGenerate']
+  Experimental_VideoModelV3['doGenerate']
 >[0];
 
 const DEFAULT_RESOLUTION = '2K';
@@ -80,13 +79,19 @@ function resolveTopLevelResolution(resolution: string): string | undefined {
   return allowedResolutions.has(named) ? named : RESOLUTION_MAP[resolution];
 }
 
+// The `type` half of a `type/subtype` media type, e.g. `image` for `image/png`.
+function getTopLevelMediaType(mediaType: string): string {
+  const slashIndex = mediaType.indexOf('/');
+  return slashIndex === -1 ? mediaType : mediaType.substring(0, slashIndex);
+}
+
 // Frame images must be images. Returns the offending top-level media type when
 // a frame is something else, so it can be rejected the way a reference input of
 // the wrong kind is. A frame with no media type is left alone: the core emits
 // URL inputs without one, and unlike a reference there is no routing decision
 // riding on it.
 function nonImageFrameMediaType(
-  file: Experimental_VideoModelV4File,
+  file: Experimental_VideoModelV3File,
 ): string | undefined {
   if (file.mediaType == null) {
     return undefined;
@@ -96,8 +101,8 @@ function nonImageFrameMediaType(
   return topLevelMediaType === 'image' ? undefined : topLevelMediaType;
 }
 
-export class MiniMaxVideoModel implements Experimental_VideoModelV4 {
-  readonly specificationVersion = 'v4';
+export class MiniMaxVideoModel implements Experimental_VideoModelV3 {
+  readonly specificationVersion = 'v3';
   readonly maxVideosPerCall = 1;
 
   get provider(): string {
@@ -111,9 +116,9 @@ export class MiniMaxVideoModel implements Experimental_VideoModelV4 {
 
   async doGenerate(
     options: MiniMaxVideoDoGenerateOptions,
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
+  ): Promise<Awaited<ReturnType<Experimental_VideoModelV3['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const warnings: SharedV4Warning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     const minimaxOptions = (await parseProviderOptions({
       provider: 'minimax',
@@ -293,8 +298,8 @@ export class MiniMaxVideoModel implements Experimental_VideoModelV4 {
         });
       }
     } else if (usesReferences) {
-      const referenceImages: Experimental_VideoModelV4File[] = [];
-      const referenceVideos: Experimental_VideoModelV4File[] = [];
+      const referenceImages: Experimental_VideoModelV3File[] = [];
+      const referenceVideos: Experimental_VideoModelV3File[] = [];
 
       for (const file of referenceFiles) {
         const topLevelMediaType =
@@ -508,7 +513,6 @@ export class MiniMaxVideoModel implements Experimental_VideoModelV4 {
       const { value: statusResponse, responseHeaders: pollHeaders } =
         await getFromApi({
           url: `${baseURL}/v2/query/video_generation/${taskId}`,
-          validateUrl: false,
           headers: combineHeaders(
             await resolve(this.config.headers),
             options.headers,
