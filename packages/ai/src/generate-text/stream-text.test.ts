@@ -21108,9 +21108,9 @@ describe('streamText', () => {
             execute: async ({ sku }) => ({ sku, availableUnits: 42 }),
           }),
         },
-        experimental_toolCallers: ({ code_mode }) => ({
-          getInventory: [code_mode],
-        }),
+        experimental_toolCallers: {
+          getInventory: ['code_mode'],
+        },
         prompt: 'Check inventory.',
       });
 
@@ -21165,9 +21165,9 @@ describe('streamText', () => {
             execute: async ({ sku }) => ({ sku }),
           }),
         },
-        experimental_toolCallers: ({ programmatic }) => ({
-          getDemand: ['direct', programmatic],
-        }),
+        experimental_toolCallers: {
+          getDemand: [Symbol('direct'), 'programmatic'],
+        },
         prompt: 'Check demand.',
       });
 

@@ -1,3 +1,4 @@
+export { direct } from './direct.js';
 export {
   codeModeTool as experimental_codeModeTool,
   createCodeModeTool as experimental_createCodeModeTool,

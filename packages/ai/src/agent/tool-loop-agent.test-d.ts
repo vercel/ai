@@ -171,14 +171,8 @@ describe('ToolLoopAgent', () => {
       new ToolLoopAgent({
         model: new MockLanguageModelV4(),
         tools,
-        experimental_toolCallers: callers => {
-          expectTypeOf(callers.code_mode.toolName).toEqualTypeOf<'code_mode'>();
-          // @ts-expect-error regular tools are not caller references
-          callers.getInventory;
-
-          return {
-            getInventory: [callers.code_mode],
-          };
+        experimental_toolCallers: {
+          getInventory: ['code_mode'],
         },
         prepareCall: options => {
           expectTypeOf(options.experimental_toolCallers).toEqualTypeOf<

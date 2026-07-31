@@ -80,10 +80,7 @@ export type {
   ToolApprovalConfiguration,
   ToolApprovalStatus,
 } from './tool-approval-configuration';
-export type {
-  Experimental_ToolCallerReference,
-  Experimental_ToolCallers,
-} from './tool-caller-configuration';
+export type { Experimental_ToolCallers } from './tool-caller-configuration';
 export { detectToolDrift, fingerprintTools } from './tool-fingerprint';
 export type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 export type { ToolApprovalResponseOutput } from './tool-approval-response-output';

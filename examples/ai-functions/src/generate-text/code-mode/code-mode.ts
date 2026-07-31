@@ -48,10 +48,10 @@ run(async () => {
   const result = await generateText({
     model: 'moonshotai/kimi-k3',
     tools,
-    experimental_toolCallers: ({ code_mode }) => ({
-      getInventory: [code_mode],
-      getDemand: [code_mode],
-    }),
+    experimental_toolCallers: {
+      getInventory: ['code_mode'],
+      getDemand: ['code_mode'],
+    },
     stopWhen: isStepCount(20),
     prompt: 'compare inventory and demand for product sku_123.',
     include: {

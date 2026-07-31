@@ -24,7 +24,7 @@ import type { StepResult } from './step-result';
 
 describe('streamText types', () => {
   describe('experimental_toolCallers', () => {
-    it('should expose only caller-capable tools as references', () => {
+    it('should accept caller-capable tool names', () => {
       const codeMode = experimental_toolCaller(
         tool({
           inputSchema: z.object({}),
@@ -50,14 +50,8 @@ describe('streamText types', () => {
             execute: async ({ sku }) => ({ sku }),
           }),
         },
-        experimental_toolCallers: callers => {
-          expectTypeOf(callers.code_mode.toolName).toEqualTypeOf<'code_mode'>();
-          // @ts-expect-error regular tools are not caller references
-          callers.getInventory;
-
-          return {
-            getInventory: ['direct', callers.code_mode],
-          };
+        experimental_toolCallers: {
+          getInventory: [Symbol('direct'), 'code_mode'],
         },
       });
     });
