@@ -1,5 +1,12 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.53
+
+### Patch Changes
+
+- 2d9c434: fix(harness-opencode): avoid bridge import from provider-utils and rely on more granular types
+  - @ai-sdk/harness@1.0.52
+
 ## 1.0.52
 
 ### Patch Changes
