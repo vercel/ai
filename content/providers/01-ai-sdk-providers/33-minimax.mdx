@@ -42,6 +42,12 @@ You can use the following optional settings to customize the MiniMax provider in
   Use a different URL prefix for API calls.
   The default prefix is `https://api.minimax.io/v1`
 
+- **videoBaseURL** _string_
+
+  Use a different URL prefix for video generation API calls. The video API uses
+  the MiniMax V2 native endpoint (not the Anthropic-compatible endpoint).
+  The default prefix is `https://api.minimax.io`.
+
 - **apiKey** _string_
 
   API key that is being sent using the `Authorization` header. It defaults to

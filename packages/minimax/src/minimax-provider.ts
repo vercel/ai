@@ -29,6 +29,11 @@ export interface MiniMaxProviderSettings {
    */
   baseURL?: string;
   /**
+   * Use a different URL prefix for video generation API calls.
+   * The default prefix is `https://api.minimax.io`.
+   */
+  videoBaseURL?: string;
+  /**
    * Custom headers to include in the requests.
    */
   headers?: Record<string, string>;
@@ -72,12 +77,16 @@ export interface MiniMaxProvider extends ProviderV4 {
 }
 
 const defaultBaseURL = 'https://api.minimax.io/anthropic/v1';
+const defaultVideoBaseURL = 'https://api.minimax.io';
 
 export function createMiniMax(
   options: MiniMaxProviderSettings = {},
 ): MiniMaxProvider {
   const baseURL =
     withoutTrailingSlash(options.baseURL ?? defaultBaseURL) ?? defaultBaseURL;
+
+  const videoBaseURL =
+    withoutTrailingSlash(options.videoBaseURL) ?? defaultVideoBaseURL;
 
   const getHeaders = () =>
     withUserAgentSuffix(
@@ -103,9 +112,6 @@ export function createMiniMax(
       supportedUrls: () => ({}),
     });
 
-  const videoBaseURL = baseURL
-    .replace(/\/anthropic\/v1$/, '')
-    .replace(/\/v1$/, '');
   const getVideoHeaders = () =>
     withUserAgentSuffix(
       {
