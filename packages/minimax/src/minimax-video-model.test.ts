@@ -343,6 +343,77 @@ describe('MiniMaxVideoModel', () => {
       });
     });
 
+    it('should treat a URL reference without a mediaType as an image and warn', async () => {
+      const model = createModel();
+
+      const { warnings } = await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          { type: 'url', url: 'https://cdn.example.com/ref.mp4' },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'MiniMax-H3',
+        content: [
+          { type: 'text', text: prompt },
+          {
+            type: 'image_url',
+            image_url: { url: 'https://cdn.example.com/ref.mp4' },
+            role: 'reference_image',
+          },
+        ],
+        resolution: '2K',
+        duration: 5,
+      });
+      expect(warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'inputReferences',
+        details:
+          'MiniMax-H3 requires an explicit mediaType to route URL references as ' +
+          'video or image. Pass { data: url, mediaType: "video/mp4" } for video ' +
+          'references. The reference was treated as an image.',
+      });
+    });
+
+    it('should ignore a reference that is neither an image nor a video and warn', async () => {
+      const model = createModel();
+
+      const { warnings } = await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          imageUrlFile,
+          {
+            type: 'url',
+            url: 'https://cdn.example.com/ref.mp3',
+            mediaType: 'audio/mp3',
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'MiniMax-H3',
+        content: [
+          { type: 'text', text: prompt },
+          {
+            type: 'image_url',
+            image_url: { url: 'https://cdn.example.com/first.png' },
+            role: 'reference_image',
+          },
+        ],
+        resolution: '2K',
+        duration: 5,
+      });
+      expect(warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'inputReferences',
+        details:
+          'MiniMax-H3 only accepts image and video references; the "audio/mp3" ' +
+          'reference was ignored. Pass reference audio via ' +
+          'providerOptions.minimax.referenceAudioUrls.',
+      });
+    });
+
     it('should warn about unsupported fps, seed, and n', async () => {
       const model = createModel();
 

@@ -249,8 +249,42 @@ export class MiniMaxVideoModel implements VideoModelV4 {
         });
       }
     } else if (usesReferences) {
-      const referenceImages = referenceFiles.filter(file => !isVideoFile(file));
-      const referenceVideos = referenceFiles.filter(file => isVideoFile(file));
+      const referenceImages: VideoModelV4File[] = [];
+      const referenceVideos: VideoModelV4File[] = [];
+
+      for (const file of referenceFiles) {
+        const topLevelMediaType =
+          file.mediaType != null
+            ? getTopLevelMediaType(file.mediaType)
+            : undefined;
+
+        if (topLevelMediaType === 'video') {
+          referenceVideos.push(file);
+        } else if (topLevelMediaType === 'image') {
+          referenceImages.push(file);
+        } else if (topLevelMediaType == null) {
+          // Only URL references can omit a media type.
+          // Fall back to an image and warn
+          warnings.push({
+            type: 'unsupported',
+            feature: 'inputReferences',
+            details:
+              'MiniMax-H3 requires an explicit mediaType to route URL references as ' +
+              'video or image. Pass { data: url, mediaType: "video/mp4" } for video ' +
+              'references. The reference was treated as an image.',
+          });
+          referenceImages.push(file);
+        } else {
+          warnings.push({
+            type: 'unsupported',
+            feature: 'inputReferences',
+            details:
+              `MiniMax-H3 only accepts image and video references; the "${file.mediaType}" ` +
+              'reference was ignored. Pass reference audio via ' +
+              'providerOptions.minimax.referenceAudioUrls.',
+          });
+        }
+      }
 
       for (const image of referenceImages.slice(0, MAX_REFERENCE_IMAGES)) {
         content.push({
