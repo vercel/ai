@@ -3,9 +3,10 @@ import { experimental_generateVideo as generateVideo } from 'ai';
 import { createWebhook, getWritable, sleep } from 'workflow';
 
 const MAX_GITHUB_SEARCH_PAGES = 10;
+const MAX_MAINTAINERS = 3;
 const MAX_AVATAR_BYTES = 10 * 1024 * 1024;
 const FAL_WEBHOOK_TIMEOUT_MS = 10 * 60 * 1000;
-const FAL_VIDEO_MODEL_ID = 'luma-dream-machine/ray-2' as const;
+const FAL_VIDEO_MODEL_ID = 'luma-dream-machine/ray-2/image-to-video' as const;
 const fal = createFal();
 
 export interface AsyncApisMaintainer {
@@ -237,11 +238,13 @@ async function findMaintainers(repositoryUrl: string): Promise<{
     throw new Error(`GitHub repository ${owner}/${name} was not found.`);
   }
 
-  const rankedMaintainers = Array.from(maintainers.values()).sort(
-    (a, b) =>
-      b.mergedPullRequests - a.mergedPullRequests ||
-      a.login.localeCompare(b.login),
-  );
+  const rankedMaintainers = Array.from(maintainers.values())
+    .sort(
+      (a, b) =>
+        b.mergedPullRequests - a.mergedPullRequests ||
+        a.login.localeCompare(b.login),
+    )
+    .slice(0, MAX_MAINTAINERS);
 
   if (rankedMaintainers.length === 0) {
     throw new Error(

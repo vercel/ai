@@ -181,8 +181,9 @@ export default function AsyncApisPage() {
               </span>
             </div>
             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
-              Find the people merging a repository&apos;s pull requests, then
-              turn their GitHub portraits into short, friendly FAL videos.
+              Find the top three people merging a repository&apos;s pull
+              requests, then turn their GitHub portraits into short, friendly
+              FAL videos.
             </p>
           </div>
 

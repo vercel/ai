@@ -62,9 +62,9 @@ Open http://localhost:3000/sandbox to run a deterministic WorkflowAgent `experim
 
 Open http://localhost:3000/async-apis and submit a GitHub repository URL. The
 workflow queries merged pull requests from the last 30 days, ranks the human
-users who merged them, downloads their avatars, and generates a five-second
-image-to-video clip for each maintainer with FAL's
-`luma-dream-machine/ray-2` model.
+users who merged them, downloads the top three avatars, and generates a
+five-second image-to-video clip for each maintainer with FAL's
+`luma-dream-machine/ray-2/image-to-video` model.
 
 The workflow passes the new `webhook` option to `experimental_generateVideo`.
 It uses Workflow DevKit's `createWebhook()` to give FAL a durable callback URL.
