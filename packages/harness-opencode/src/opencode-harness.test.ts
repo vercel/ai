@@ -241,6 +241,12 @@ describe('createOpenCode adapter', () => {
       'ai-sdk/harness-opencode/0.0.0-test',
     );
     expect(spawns.at(-1)?.command).toContain(
+      "node '/workspace/.harness-bootstrap/opencode/bridge.mjs'",
+    );
+    expect(spawns.at(-1)?.command).toContain(
+      "--bootstrap-dir '/workspace/.harness-bootstrap/opencode'",
+    );
+    expect(spawns.at(-1)?.command).toContain(
       "--skills-dir '/home/vercel-sandbox/.agents/skills'",
     );
   });
@@ -313,7 +319,7 @@ describe('createOpenCode adapter', () => {
       expect(harness.getBootstrap).toBeDefined();
       const recipe = await harness.getBootstrap!();
       expect(recipe.harnessId).toBe('opencode');
-      expect(recipe.bootstrapDir).toBe('/tmp/harness/opencode');
+      expect(recipe.bootstrapDir).toBe('.harness-bootstrap/opencode');
     });
 
     it('includes bridge assets under the bootstrap dir', async () => {
@@ -321,10 +327,10 @@ describe('createOpenCode adapter', () => {
       const recipe = await harness.getBootstrap!();
       const paths = recipe.files.map(file => file.path).sort();
       expect(paths).toEqual([
-        '/tmp/harness/opencode/bridge.mjs',
-        '/tmp/harness/opencode/host-tool-mcp.mjs',
-        '/tmp/harness/opencode/package.json',
-        '/tmp/harness/opencode/pnpm-lock.yaml',
+        '.harness-bootstrap/opencode/bridge.mjs',
+        '.harness-bootstrap/opencode/host-tool-mcp.mjs',
+        '.harness-bootstrap/opencode/package.json',
+        '.harness-bootstrap/opencode/pnpm-lock.yaml',
       ]);
       for (const file of recipe.files) {
         expect(file.content.length).toBeGreaterThan(0);
@@ -334,9 +340,12 @@ describe('createOpenCode adapter', () => {
     it('runs the OpenCode CLI postinstall during bootstrap', async () => {
       const harness = createOpenCode();
       const recipe = await harness.getBootstrap!();
+      expect(recipe.commands[0]).toEqual({
+        command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
+      });
       expect(recipe.commands).toContainEqual({
         command:
-          'cd /tmp/harness/opencode && node node_modules/opencode-ai/postinstall.mjs && ./node_modules/.bin/opencode --version',
+          'node node_modules/opencode-ai/postinstall.mjs && ./node_modules/.bin/opencode --version',
       });
     });
   });

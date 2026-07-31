@@ -125,9 +125,9 @@ const CODEX_BUILTIN_TOOLS = {
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
 /*
- * Bootstrap lives in /tmp because it's pure derived state — the harness can
- * reinstall the CLI and bridge files on any fresh sandbox from the recipe.
- * Persistence comes from the sandbox provider's snapshot, not the path.
+ * Bootstrap is derived state stored under the sandbox's default working
+ * directory so snapshot-capable providers can preserve the installed CLI,
+ * bridge, and recipe marker without requiring root filesystem access.
  *
  * The session work dir (`startOpts.sessionWorkDir`) lives under the sandbox's
  * default working directory — the provider's persistent mount — so any files
@@ -135,7 +135,7 @@ const CODEX_BUILTIN_TOOLS = {
  * cycles. Harness infra derived from `sandboxSession.defaultWorkingDirectory`
  * lives under `.agent-runs`, outside the agent workdir.
  */
-const BOOTSTRAP_DIR = '/tmp/harness/codex';
+const BOOTSTRAP_DIR = '.harness-bootstrap/codex';
 
 /**
  * Live bridge coordinates returned by `doDetach()` and `doSuspendTurn()`. A
@@ -191,9 +191,8 @@ export function createCodex(
           { path: `${BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
         ],
         commands: [
-          { command: `mkdir -p ${BOOTSTRAP_DIR}` },
           {
-            command: `pnpm --dir ${BOOTSTRAP_DIR} install --frozen-lockfile --store-dir ${BOOTSTRAP_DIR}/.pnpm-store`,
+            command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
           },
         ],
       };
@@ -220,6 +219,10 @@ export function createCodex(
       const sandboxSession = startOpts.sandboxSession;
       const session = sandboxSession.restricted();
       const sandboxId = sandboxSession.id;
+      const bootstrapDir = path.posix.resolve(
+        sandboxSession.defaultWorkingDirectory,
+        BOOTSTRAP_DIR,
+      );
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
       const isContinue = startOpts.continueFrom != null;
@@ -373,7 +376,7 @@ export function createCodex(
       });
 
       const proc = await session.spawn({
-        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --cli-shim-dir ${shellQuote(cliShimDir)}`,
+        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --cli-shim-dir ${shellQuote(cliShimDir)}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
