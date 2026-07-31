@@ -3,11 +3,9 @@ import type {
   Experimental_VideoModelV4CallOptions,
   Experimental_VideoModelV4File,
   Experimental_VideoModelV4Result,
-  Experimental_VideoModelV4OperationStatusResult,
   Experimental_VideoModelV4OperationWebhook,
   Experimental_VideoModelV4FrameImage,
   Experimental_VideoModelV4FrameType,
-  JSONValue,
   SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
@@ -409,8 +407,6 @@ export async function experimental_generateVideo({
           callOptions,
           poll,
           webhook,
-          abortSignal,
-          headers: headersWithUserAgent,
           retry,
         });
       }
@@ -422,7 +418,7 @@ export async function experimental_generateVideo({
   // collect result videos, warnings, and response metadata
   const videos: Array<GeneratedFile> = [];
   const responses: Array<VideoModelResponseMetadata> = [];
-  let providerMetadata: SharedV4ProviderMetadata = {};
+  const providerMetadata: SharedV4ProviderMetadata = {};
 
   for (const result of results) {
     for (const videoData of result.videos) {
@@ -494,8 +490,9 @@ export async function experimental_generateVideo({
       providerMetadata: result.providerMetadata,
     });
 
-    providerMetadata =
-      mergeProviderMetadata(providerMetadata, result.providerMetadata) ?? {};
+    if (result.providerMetadata != null) {
+      mergeProviderMetadata(providerMetadata, result.providerMetadata);
+    }
   }
 
   if (videos.length === 0) {
@@ -524,16 +521,12 @@ async function executeStartStatusFlow({
   callOptions,
   poll: pollConfig,
   webhook: webhookFactory,
-  abortSignal,
-  headers,
   retry,
 }: {
   model: Experimental_VideoModelV4;
   callOptions: Experimental_VideoModelV4CallOptions;
   poll?: GenerateVideoPollOptions;
   webhook?: GenerateVideoWebhookFactory;
-  abortSignal?: AbortSignal;
-  headers?: Record<string, string | undefined>;
   retry: <OUTPUT>(fn: () => PromiseLike<OUTPUT>) => PromiseLike<OUTPUT>;
 }): Promise<Experimental_VideoModelV4Result> {
   // 1. If webhook and provider supports it, set up the webhook
@@ -569,27 +562,45 @@ async function executeStartStatusFlow({
   );
 
   const allWarnings = [...earlyWarnings, ...startResult.warnings];
-  let operationProviderMetadata = startResult.providerMetadata;
-
-  let completedResult: Extract<
-    Experimental_VideoModelV4OperationStatusResult,
-    { status: 'completed' }
-  >;
+  let operationProviderMetadata =
+    startResult.providerMetadata == null
+      ? undefined
+      : { ...startResult.providerMetadata };
+  const intervalMs = pollConfig?.intervalMs ?? 5000;
+  const timeoutMs = pollConfig?.timeoutMs ?? 600_000;
+  const delay = pollConfig?.delay ?? defaultDelay;
+  const startTime = Date.now();
 
   if (webhookReceived != null) {
     // 3a. Webhook flow: wait for webhook, then get final status
     await waitForWebhook({
       received: webhookReceived,
-      timeoutMs: pollConfig?.timeoutMs ?? 600_000,
-      abortSignal,
-      delay: pollConfig?.delay ?? defaultDelay,
+      timeoutMs,
+      abortSignal: callOptions.abortSignal,
+      delay,
     });
+  }
+
+  while (true) {
+    if (webhookReceived == null) {
+      // 3b. Polling flow (also used when webhooks are not supported)
+      const elapsedMs = Date.now() - startTime;
+      if (elapsedMs >= timeoutMs) {
+        throw new Error(`Video generation timed out after ${timeoutMs}ms.`);
+      }
+      await delay(Math.min(intervalMs, timeoutMs - elapsedMs), {
+        abortSignal: callOptions.abortSignal,
+      });
+      if (Date.now() - startTime >= timeoutMs) {
+        throw new Error(`Video generation timed out after ${timeoutMs}ms.`);
+      }
+    }
 
     const statusResult = await retry(() =>
       model.doStatus!({
         operation: startResult.operation,
-        abortSignal,
-        headers,
+        abortSignal: callOptions.abortSignal,
+        headers: callOptions.headers,
       }),
     );
 
@@ -600,43 +611,29 @@ async function executeStartStatusFlow({
     if (statusResult.warnings != null) {
       allWarnings.push(...statusResult.warnings);
     }
-    operationProviderMetadata = mergeProviderMetadata(
-      operationProviderMetadata,
-      statusResult.providerMetadata,
-    );
+    if (statusResult.providerMetadata != null) {
+      operationProviderMetadata ??= {};
+      mergeProviderMetadata(
+        operationProviderMetadata,
+        statusResult.providerMetadata,
+      );
+    }
 
-    if (statusResult.status !== 'completed') {
+    if (statusResult.status === 'completed') {
+      return {
+        videos: statusResult.videos,
+        warnings: allWarnings,
+        providerMetadata: operationProviderMetadata,
+        response: statusResult.response,
+      };
+    }
+
+    if (webhookReceived != null) {
       throw new Error(
         'Video generation did not complete after webhook notification.',
       );
     }
-
-    completedResult = statusResult;
-  } else {
-    // 3b. Polling flow (also used as fallback when webhook not supported)
-    const pollResult = await pollUntilComplete({
-      model,
-      operation: startResult.operation,
-      pollConfig,
-      abortSignal,
-      headers,
-      retry,
-    });
-
-    completedResult = pollResult.result;
-    allWarnings.push(...pollResult.warnings);
-    operationProviderMetadata = mergeProviderMetadata(
-      operationProviderMetadata,
-      pollResult.providerMetadata,
-    );
   }
-
-  return {
-    videos: completedResult.videos,
-    warnings: allWarnings,
-    providerMetadata: operationProviderMetadata,
-    response: completedResult.response,
-  };
 }
 
 async function waitForWebhook({
@@ -677,119 +674,35 @@ async function waitForWebhook({
 }
 
 function mergeProviderMetadata(
-  ...metadataList: Array<SharedV4ProviderMetadata | undefined>
-): SharedV4ProviderMetadata | undefined {
-  let merged: SharedV4ProviderMetadata | undefined;
-
-  for (const metadata of metadataList) {
-    if (metadata == null) {
-      continue;
-    }
-
-    merged ??= {};
-
-    for (const [providerName, metadataValue] of Object.entries(metadata)) {
-      const existingMetadata = merged[providerName];
-      if (
-        existingMetadata != null &&
-        typeof existingMetadata === 'object' &&
-        metadataValue != null &&
-        typeof metadataValue === 'object'
-      ) {
-        merged[providerName] = {
-          ...existingMetadata,
-          ...metadataValue,
-        };
-
-        if (
-          'videos' in existingMetadata &&
-          Array.isArray(existingMetadata.videos) &&
-          'videos' in metadataValue &&
-          Array.isArray(metadataValue.videos)
-        ) {
-          (merged[providerName] as { videos: unknown[] }).videos = [
-            ...existingMetadata.videos,
-            ...metadataValue.videos,
-          ];
-        }
-      } else {
-        merged[providerName] = metadataValue;
-      }
-    }
-  }
-
-  return merged;
-}
-
-async function pollUntilComplete({
-  model,
-  operation,
-  pollConfig,
-  abortSignal,
-  headers,
-  retry,
-}: {
-  model: Experimental_VideoModelV4;
-  operation: JSONValue;
-  pollConfig?: GenerateVideoPollOptions;
-  abortSignal?: AbortSignal;
-  headers?: Record<string, string | undefined>;
-  retry: <OUTPUT>(fn: () => PromiseLike<OUTPUT>) => PromiseLike<OUTPUT>;
-}): Promise<{
-  result: Extract<
-    Experimental_VideoModelV4OperationStatusResult,
-    { status: 'completed' }
-  >;
-  warnings: Experimental_VideoModelV4Result['warnings'];
-  providerMetadata?: SharedV4ProviderMetadata;
-}> {
-  const intervalMs = pollConfig?.intervalMs ?? 5000;
-  const timeoutMs = pollConfig?.timeoutMs ?? 600_000;
-  const delay = pollConfig?.delay ?? defaultDelay;
-
-  const warnings: Experimental_VideoModelV4Result['warnings'] = [];
-  let providerMetadata: SharedV4ProviderMetadata | undefined;
-  const startTime = Date.now();
-
-  while (true) {
-    const elapsedMs = Date.now() - startTime;
-
-    if (elapsedMs >= timeoutMs) {
-      throw new Error(`Video generation timed out after ${timeoutMs}ms.`);
-    }
-
-    await delay(Math.min(intervalMs, timeoutMs - elapsedMs), { abortSignal });
-
-    if (Date.now() - startTime >= timeoutMs) {
-      throw new Error(`Video generation timed out after ${timeoutMs}ms.`);
-    }
-
-    const statusResult = await retry(() =>
-      model.doStatus!({
-        operation,
-        abortSignal,
-        headers,
-      }),
-    );
-
-    if (statusResult.status === 'error') {
-      throw new Error(statusResult.error);
-    }
-
-    if (statusResult.warnings != null) {
-      warnings.push(...statusResult.warnings);
-    }
-    providerMetadata = mergeProviderMetadata(
-      providerMetadata,
-      statusResult.providerMetadata,
-    );
-
-    if (statusResult.status === 'completed') {
-      return {
-        result: statusResult,
-        warnings,
-        providerMetadata,
+  target: SharedV4ProviderMetadata,
+  source: SharedV4ProviderMetadata,
+): void {
+  for (const [providerName, metadataValue] of Object.entries(source)) {
+    const existingMetadata = target[providerName];
+    if (
+      existingMetadata != null &&
+      typeof existingMetadata === 'object' &&
+      metadataValue != null &&
+      typeof metadataValue === 'object'
+    ) {
+      target[providerName] = {
+        ...existingMetadata,
+        ...metadataValue,
       };
+
+      if (
+        'videos' in existingMetadata &&
+        Array.isArray(existingMetadata.videos) &&
+        'videos' in metadataValue &&
+        Array.isArray(metadataValue.videos)
+      ) {
+        (target[providerName] as { videos: unknown[] }).videos = [
+          ...existingMetadata.videos,
+          ...metadataValue.videos,
+        ];
+      }
+    } else {
+      target[providerName] = metadataValue;
     }
   }
 }
