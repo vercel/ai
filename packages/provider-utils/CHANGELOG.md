@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 5.0.17
+
+### Patch Changes
+
+- fa95504: feat(ai): support experimental tool callers in ToolLoopAgent
+
 ## 5.0.16
 
 ### Patch Changes

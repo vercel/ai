@@ -261,7 +261,7 @@ describe('createClaudeCode adapter', () => {
       "mkdir -p '/vercel/sandbox/claude-code-s1; env > /tmp/workdir-leak #' '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/bridge'",
     );
     expect(spawns).toEqual([
-      "node /tmp/harness/claude-code/bridge.mjs --workdir '/vercel/sandbox/claude-code-s1; env > /tmp/workdir-leak #' --bridge-state-dir '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/bridge'",
+      "node '/vercel/sandbox/.harness-bootstrap/claude-code/bridge.mjs' --workdir '/vercel/sandbox/claude-code-s1; env > /tmp/workdir-leak #' --bridge-state-dir '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/bridge'",
     ]);
     expect(spawnEnvs.at(0)?.CLAUDE_AGENT_SDK_CLIENT_APP).toBe(
       'ai-sdk/harness-claude-code/0.0.0-test',
@@ -477,7 +477,7 @@ describe('createClaudeCode adapter', () => {
       expect(harness.getBootstrap).toBeDefined();
       const recipe = await harness.getBootstrap!();
       expect(recipe.harnessId).toBe('claude-code');
-      expect(recipe.bootstrapDir).toBe('/tmp/harness/claude-code');
+      expect(recipe.bootstrapDir).toBe('.harness-bootstrap/claude-code');
     });
 
     it('includes bridge.mjs, package.json, and pnpm-lock.yaml under the bootstrap dir', async () => {
@@ -485,23 +485,25 @@ describe('createClaudeCode adapter', () => {
       const recipe = await harness.getBootstrap!();
       const paths = recipe.files.map(f => f.path).sort();
       expect(paths).toEqual([
-        '/tmp/harness/claude-code/bridge.mjs',
-        '/tmp/harness/claude-code/package.json',
-        '/tmp/harness/claude-code/pnpm-lock.yaml',
+        '.harness-bootstrap/claude-code/bridge.mjs',
+        '.harness-bootstrap/claude-code/package.json',
+        '.harness-bootstrap/claude-code/pnpm-lock.yaml',
       ]);
       for (const file of recipe.files) {
         expect(file.content.length).toBeGreaterThan(0);
       }
     });
 
-    it('declares mkdir, pnpm install, and claude post-install commands', async () => {
+    it('declares pnpm install and claude post-install commands for the bootstrap cwd', async () => {
       const harness = createClaudeCode();
       const recipe = await harness.getBootstrap!();
       const commands = recipe.commands.map(c => c.command);
-      expect(commands[0]).toContain('mkdir -p /tmp/harness/claude-code');
-      expect(commands[1]).toContain('pnpm');
-      expect(commands[1]).toContain('install --frozen-lockfile');
-      expect(commands[2]).toContain('claude --version');
+      expect(commands).toHaveLength(2);
+      expect(commands[0]).toBe(
+        'pnpm install --frozen-lockfile --store-dir .pnpm-store',
+      );
+      expect(commands[1]).toContain('claude --version');
+      expect(commands[1]).not.toContain('cd ');
     });
 
     it('caches the recipe across calls', async () => {

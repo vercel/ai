@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/code-mode",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "QuickJS-backed code mode tool for AI SDK",
   "keywords": [
     "ai",
