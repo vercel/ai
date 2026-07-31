@@ -53,19 +53,33 @@ const allowedRatios = new Set<string>(minimaxVideoRatios);
 // The top-level `resolution` is `{width}x{height}`, but the API takes a named
 // tier, so map the canonical 2K frame sizes onto the single tier H3 supports.
 // Anything else can't be honored and warns.
+// One canonical frame size per ratio H3 supports, so a caller who pairs a
+// resolution with any supported ratio resolves to the tier instead of being
+// told 2K is unsupported.
 const RESOLUTION_MAP: Record<string, string> = {
   // Square
   '2048x2048': '2K',
   // Landscape
+  '2560x1080': '2K',
   '2560x1440': '2K',
+  '2048x1536': '2K',
   // Portrait
   '1440x2560': '2K',
+  '1536x2048': '2K',
 };
 
-function isVideoFile(file: VideoModelV4File): boolean {
-  return (
-    file.mediaType != null && getTopLevelMediaType(file.mediaType) === 'video'
-  );
+// Frame images must be images. Returns the offending top-level media type when
+// a frame is something else, so it can be rejected the way a reference input of
+// the wrong kind is. A frame with no media type is left alone: the core emits
+// URL inputs without one, and unlike a reference there is no routing decision
+// riding on it.
+function nonImageFrameMediaType(file: VideoModelV4File): string | undefined {
+  if (file.mediaType == null) {
+    return undefined;
+  }
+
+  const topLevelMediaType = getTopLevelMediaType(file.mediaType);
+  return topLevelMediaType === 'image' ? undefined : topLevelMediaType;
 }
 
 export class MiniMaxVideoModel implements VideoModelV4 {
@@ -133,13 +147,15 @@ export class MiniMaxVideoModel implements VideoModelV4 {
     if (options.resolution != null) {
       const mapped = RESOLUTION_MAP[options.resolution];
       if (resolution != null) {
-        if (mapped !== resolution) {
+        // The provider option is already a tier, so the only way the two can
+        // disagree is a top-level value that maps to no tier at all.
+        if (mapped == null) {
           warnings.push({
             type: 'unsupported',
             feature: 'resolution',
             details:
-              `The resolution "${options.resolution}" was ignored because ` +
-              `providerOptions.minimax.resolution ("${resolution}") takes precedence.`,
+              `Unrecognized resolution "${options.resolution}". MiniMax-H3 only supports "2K", ` +
+              `so providerOptions.minimax.resolution ("${resolution}") was used instead.`,
           });
         }
       } else if (mapped != null) {
@@ -187,12 +203,16 @@ export class MiniMaxVideoModel implements VideoModelV4 {
     )?.image;
 
     // Reject unusable frames before deciding the generation mode.
-    if (firstFrame != null && isVideoFile(firstFrame)) {
+    const firstFrameMediaType =
+      firstFrame != null ? nonImageFrameMediaType(firstFrame) : undefined;
+    if (firstFrame != null && firstFrameMediaType != null) {
       warnings.push({
         type: 'unsupported',
         feature: firstFrameImage != null ? 'frameImages' : 'image',
         details:
-          'MiniMax-H3 does not accept a video as a frame image. The video was ignored.',
+          firstFrameMediaType === 'video'
+            ? 'MiniMax-H3 does not accept a video as a frame image. The video was ignored.'
+            : `MiniMax-H3 only accepts an image as a frame image; the "${firstFrame.mediaType}" file was ignored.`,
       });
       firstFrame = undefined;
     }
@@ -206,14 +226,19 @@ export class MiniMaxVideoModel implements VideoModelV4 {
             'MiniMax-H3 requires a first_frame when a last_frame is provided. The last_frame was ignored.',
         });
         lastFrame = undefined;
-      } else if (isVideoFile(lastFrame)) {
-        warnings.push({
-          type: 'unsupported',
-          feature: 'frameImages',
-          details:
-            'MiniMax-H3 does not accept a video as a frame image. The last_frame video was ignored.',
-        });
-        lastFrame = undefined;
+      } else {
+        const lastFrameMediaType = nonImageFrameMediaType(lastFrame);
+        if (lastFrameMediaType != null) {
+          warnings.push({
+            type: 'unsupported',
+            feature: 'frameImages',
+            details:
+              lastFrameMediaType === 'video'
+                ? 'MiniMax-H3 does not accept a video as a frame image. The last_frame video was ignored.'
+                : `MiniMax-H3 only accepts an image as a frame image; the "${lastFrame.mediaType}" last_frame was ignored.`,
+          });
+          lastFrame = undefined;
+        }
       }
     }
 
@@ -380,24 +405,34 @@ export class MiniMaxVideoModel implements VideoModelV4 {
       ratio = undefined;
     }
 
+    // H3 takes an integer between 5 and 15, so round before clamping: a
+    // fractional duration is rejected by the API just as an out-of-range one is.
     let duration = options.duration ?? MIN_DURATION_SECONDS;
-    if (options.duration != null && options.duration > MAX_DURATION_SECONDS) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'duration',
-        details: `${options.duration} exceeds the MiniMax-H3 maximum of ${MAX_DURATION_SECONDS} seconds. clamped to ${MAX_DURATION_SECONDS}`,
-      });
-      duration = MAX_DURATION_SECONDS;
-    } else if (
-      options.duration != null &&
-      options.duration < MIN_DURATION_SECONDS
-    ) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'duration',
-        details: `${options.duration} is below the MiniMax-H3 minimum of ${MIN_DURATION_SECONDS} seconds. clamped to ${MIN_DURATION_SECONDS}`,
-      });
-      duration = MIN_DURATION_SECONDS;
+    if (options.duration != null) {
+      if (!Number.isInteger(duration)) {
+        duration = Math.round(duration);
+        warnings.push({
+          type: 'unsupported',
+          feature: 'duration',
+          details: `MiniMax-H3 requires a whole number of seconds. The requested duration of ${options.duration} was rounded to ${duration}.`,
+        });
+      }
+
+      if (duration > MAX_DURATION_SECONDS) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'duration',
+          details: `MiniMax-H3 supports at most ${MAX_DURATION_SECONDS} seconds. The requested duration of ${options.duration} was clamped to ${MAX_DURATION_SECONDS}.`,
+        });
+        duration = MAX_DURATION_SECONDS;
+      } else if (duration < MIN_DURATION_SECONDS) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'duration',
+          details: `MiniMax-H3 requires at least ${MIN_DURATION_SECONDS} seconds. The requested duration of ${options.duration} was clamped to ${MIN_DURATION_SECONDS}.`,
+        });
+        duration = MIN_DURATION_SECONDS;
+      }
     }
 
     const body: Record<string, unknown> = {
@@ -451,7 +486,7 @@ export class MiniMaxVideoModel implements VideoModelV4 {
       if (Date.now() - startTime > pollTimeoutMs) {
         throw new AISDKError({
           name: 'MINIMAX_VIDEO_GENERATION_TIMEOUT',
-          message: `MiniMax video generation timed out after ${pollTimeoutMs}ms`,
+          message: `MiniMax video generation timed out after ${pollTimeoutMs}ms. Task ID: ${taskId}`,
         });
       }
 
@@ -480,8 +515,7 @@ export class MiniMaxVideoModel implements VideoModelV4 {
           if (!url) {
             throw new AISDKError({
               name: 'MINIMAX_VIDEO_GENERATION_ERROR',
-              message:
-                'MiniMax video generation completed but no video URL was returned.',
+              message: `MiniMax video generation completed but no video URL was returned. Task ID: ${taskId}`,
             });
           }
 
@@ -531,21 +565,21 @@ export class MiniMaxVideoModel implements VideoModelV4 {
             name: 'MINIMAX_VIDEO_GENERATION_FAILED',
             message: `MiniMax video generation failed${
               task.error?.message ? `: ${task.error.message}` : ''
-            }${task.error?.code != null ? ` (${task.error.code})` : ''}`,
+            }${task.error?.code != null ? ` (${task.error.code})` : ''}. Task ID: ${taskId}`,
           });
         }
 
         case 'cancelled': {
           throw new AISDKError({
             name: 'MINIMAX_VIDEO_GENERATION_CANCELLED',
-            message: 'MiniMax video generation was cancelled.',
+            message: `MiniMax video generation was cancelled. Task ID: ${taskId}`,
           });
         }
 
         case 'expired': {
           throw new AISDKError({
             name: 'MINIMAX_VIDEO_GENERATION_EXPIRED',
-            message: 'MiniMax video generation request expired.',
+            message: `MiniMax video generation request expired. Task ID: ${taskId}`,
           });
         }
 

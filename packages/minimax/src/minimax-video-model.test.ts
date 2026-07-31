@@ -200,7 +200,7 @@ describe('MiniMaxVideoModel', () => {
         type: 'unsupported',
         feature: 'duration',
         details:
-          '20 exceeds the MiniMax-H3 maximum of 15 seconds. clamped to 15',
+          'MiniMax-H3 supports at most 15 seconds. The requested duration of 20 was clamped to 15.',
       });
     });
 
@@ -221,16 +221,41 @@ describe('MiniMaxVideoModel', () => {
       expect(warnings).toContainEqual({
         type: 'unsupported',
         feature: 'duration',
-        details: '3 is below the MiniMax-H3 minimum of 5 seconds. clamped to 5',
+        details:
+          'MiniMax-H3 requires at least 5 seconds. The requested duration of 3 was clamped to 5.',
       });
     });
 
-    it('should map a top-level resolution onto the named tier', async () => {
+    // H3 takes an integer, so a fractional duration is as invalid as an
+    // out-of-range one and must not reach the API verbatim.
+    it('should round a fractional duration and warn', async () => {
       const model = createModel();
 
       const { warnings } = await model.doGenerate({
         ...defaultOptions,
-        resolution: '2560x1440',
+        duration: 7.5,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'MiniMax-H3',
+        content: [{ type: 'text', text: prompt }],
+        resolution: '2K',
+        duration: 8,
+      });
+      expect(warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'duration',
+        details:
+          'MiniMax-H3 requires a whole number of seconds. The requested duration of 7.5 was rounded to 8.',
+      });
+    });
+
+    it('should round and then clamp a fractional out-of-range duration', async () => {
+      const model = createModel();
+
+      const { warnings } = await model.doGenerate({
+        ...defaultOptions,
+        duration: 3.2,
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -240,11 +265,46 @@ describe('MiniMaxVideoModel', () => {
         duration: 5,
       });
       expect(
-        warnings.some(
-          w => w.type === 'unsupported' && w.feature === 'resolution',
-        ),
-      ).toBe(false);
+        warnings
+          .filter(warning => warning.type === 'unsupported')
+          .map(warning => warning.feature),
+      ).toStrictEqual(['duration', 'duration']);
     });
+
+    // One frame size per ratio H3 supports, so pairing a resolution with any
+    // supported aspectRatio resolves to the tier rather than warning.
+    it.each([
+      ['2048x2048', '1:1'],
+      ['2560x1080', '21:9'],
+      ['2560x1440', '16:9'],
+      ['2048x1536', '4:3'],
+      ['1440x2560', '9:16'],
+      ['1536x2048', '3:4'],
+    ] as const)(
+      'should map the top-level resolution %s (%s) onto the named tier',
+      async (resolution, aspectRatio) => {
+        const model = createModel();
+
+        const { warnings } = await model.doGenerate({
+          ...defaultOptions,
+          resolution,
+          aspectRatio,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'MiniMax-H3',
+          content: [{ type: 'text', text: prompt }],
+          resolution: '2K',
+          duration: 5,
+          ratio: aspectRatio,
+        });
+        expect(
+          warnings.some(
+            w => w.type === 'unsupported' && w.feature === 'resolution',
+          ),
+        ).toBe(false);
+      },
+    );
 
     it('should warn and use the default for an unrecognized resolution', async () => {
       const model = createModel();
@@ -871,7 +931,7 @@ describe('MiniMaxVideoModel', () => {
       },
     );
 
-    it('should warn on a resolution conflict with providerOptions.minimax.resolution', async () => {
+    it('should warn when an unrecognized resolution is passed alongside providerOptions.minimax.resolution', async () => {
       const model = createModel();
 
       const { warnings } = await model.doGenerate({
@@ -884,9 +944,28 @@ describe('MiniMaxVideoModel', () => {
         type: 'unsupported',
         feature: 'resolution',
         details:
-          'The resolution "1280x720" was ignored because ' +
-          'providerOptions.minimax.resolution ("2K") takes precedence.',
+          'Unrecognized resolution "1280x720". MiniMax-H3 only supports "2K", ' +
+          'so providerOptions.minimax.resolution ("2K") was used instead.',
       });
+    });
+
+    // The provider option can only be '2K' and a recognized top-level value can
+    // only map to '2K', so a recognized pair is not a conflict and must not warn.
+    it('should not warn when a recognized resolution agrees with the provider option', async () => {
+      const model = createModel();
+
+      const { warnings } = await model.doGenerate({
+        ...defaultOptions,
+        resolution: '2048x1536',
+        providerOptions: minimaxOptions({ resolution: '2K' }),
+      });
+
+      expect(
+        warnings.filter(
+          warning =>
+            warning.type === 'unsupported' && warning.feature === 'resolution',
+        ),
+      ).toStrictEqual([]);
     });
 
     it('should drop reference audio that is not paired with an image or video reference', async () => {
@@ -1148,6 +1227,96 @@ describe('MiniMaxVideoModel', () => {
       ).toStrictEqual([]);
     });
 
+    // The reference path rejects anything that is not an image or video, so a
+    // frame image should not be held to a looser standard.
+    it('should reject a frame image whose media type is neither image nor video', async () => {
+      const model = createModel();
+
+      const { warnings } = await model.doGenerate({
+        ...defaultOptions,
+        frameImages: [
+          {
+            image: {
+              type: 'url',
+              url: 'https://cdn.example.com/voice.mp3',
+              mediaType: 'audio/mpeg',
+            },
+            frameType: 'first_frame',
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'MiniMax-H3',
+        content: [{ type: 'text', text: prompt }],
+        resolution: '2K',
+        duration: 5,
+      });
+      expect(warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'frameImages',
+        details:
+          'MiniMax-H3 only accepts an image as a frame image; the "audio/mpeg" file was ignored.',
+      });
+    });
+
+    it('should reject a last_frame whose media type is neither image nor video', async () => {
+      const model = createModel();
+
+      const { warnings } = await model.doGenerate({
+        ...defaultOptions,
+        frameImages: [
+          { image: imageUrlFile, frameType: 'first_frame' },
+          {
+            image: {
+              type: 'url',
+              url: 'https://cdn.example.com/doc.pdf',
+              mediaType: 'application/pdf',
+            },
+            frameType: 'last_frame',
+          },
+        ],
+      });
+
+      expect(warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'frameImages',
+        details:
+          'MiniMax-H3 only accepts an image as a frame image; the "application/pdf" last_frame was ignored.',
+      });
+    });
+
+    // The core emits URL inputs without a media type, so that must stay valid.
+    it('should accept a frame image that has no media type', async () => {
+      const model = createModel();
+
+      const { warnings } = await model.doGenerate({
+        ...defaultOptions,
+        image: { type: 'url', url: 'https://cdn.example.com/first.png' },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'MiniMax-H3',
+        content: [
+          { type: 'text', text: prompt },
+          {
+            type: 'image_url',
+            image_url: { url: 'https://cdn.example.com/first.png' },
+            role: 'first_frame',
+          },
+        ],
+        resolution: '2K',
+        duration: 5,
+      });
+      expect(
+        warnings.filter(
+          warning =>
+            warning.type === 'unsupported' &&
+            (warning.feature === 'image' || warning.feature === 'frameImages'),
+        ),
+      ).toStrictEqual([]);
+    });
+
     it('should attribute a video standalone image to the image feature', async () => {
       const model = createModel();
 
@@ -1383,7 +1552,7 @@ describe('MiniMaxVideoModel', () => {
         }),
       ).rejects.toMatchObject({
         name: 'MINIMAX_VIDEO_GENERATION_TIMEOUT',
-        message: 'MiniMax video generation timed out after 30ms',
+        message: `MiniMax video generation timed out after 30ms. Task ID: ${TASK_ID}`,
       });
     });
   });
@@ -1473,8 +1642,7 @@ describe('MiniMaxVideoModel', () => {
         model.doGenerate({ ...defaultOptions }),
       ).rejects.toMatchObject({
         name: 'MINIMAX_VIDEO_GENERATION_FAILED',
-        message:
-          'MiniMax video generation failed: Content policy violation (1027)',
+        message: `MiniMax video generation failed: Content policy violation (1027). Task ID: ${TASK_ID}`,
       });
     });
 
@@ -1490,7 +1658,7 @@ describe('MiniMaxVideoModel', () => {
         model.doGenerate({ ...defaultOptions }),
       ).rejects.toMatchObject({
         name: 'MINIMAX_VIDEO_GENERATION_FAILED',
-        message: 'MiniMax video generation failed',
+        message: `MiniMax video generation failed. Task ID: ${TASK_ID}`,
       });
     });
 
@@ -1506,7 +1674,7 @@ describe('MiniMaxVideoModel', () => {
         model.doGenerate({ ...defaultOptions }),
       ).rejects.toMatchObject({
         name: 'MINIMAX_VIDEO_GENERATION_CANCELLED',
-        message: 'MiniMax video generation was cancelled.',
+        message: `MiniMax video generation was cancelled. Task ID: ${TASK_ID}`,
       });
     });
 
@@ -1522,7 +1690,7 @@ describe('MiniMaxVideoModel', () => {
         model.doGenerate({ ...defaultOptions }),
       ).rejects.toMatchObject({
         name: 'MINIMAX_VIDEO_GENERATION_EXPIRED',
-        message: 'MiniMax video generation request expired.',
+        message: `MiniMax video generation request expired. Task ID: ${TASK_ID}`,
       });
     });
 
@@ -1538,8 +1706,7 @@ describe('MiniMaxVideoModel', () => {
         model.doGenerate({ ...defaultOptions }),
       ).rejects.toMatchObject({
         name: 'MINIMAX_VIDEO_GENERATION_ERROR',
-        message:
-          'MiniMax video generation completed but no video URL was returned.',
+        message: `MiniMax video generation completed but no video URL was returned. Task ID: ${TASK_ID}`,
       });
     });
 

@@ -86,7 +86,8 @@ export function createMiniMax(
     withoutTrailingSlash(options.baseURL ?? defaultBaseURL) ?? defaultBaseURL;
 
   const videoBaseURL =
-    withoutTrailingSlash(options.videoBaseURL) ?? defaultVideoBaseURL;
+    withoutTrailingSlash(options.videoBaseURL ?? defaultVideoBaseURL) ??
+    defaultVideoBaseURL;
 
   const getHeaders = () =>
     withUserAgentSuffix(

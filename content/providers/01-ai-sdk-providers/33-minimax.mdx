@@ -39,8 +39,10 @@ You can use the following optional settings to customize the MiniMax provider in
 
 - **baseURL** _string_
 
-  Use a different URL prefix for API calls.
-  The default prefix is `https://api.minimax.io/v1`
+  Use a different URL prefix for API calls. This provider speaks MiniMax's
+  Anthropic-compatible protocol, so the default prefix is
+  `https://api.minimax.io/anthropic/v1` — not the OpenAI-compatible
+  `https://api.minimax.io/v1`.
 
 - **videoBaseURL** _string_
 
@@ -50,8 +52,10 @@ You can use the following optional settings to customize the MiniMax provider in
 
 - **apiKey** _string_
 
-  API key that is being sent using the `Authorization` header. It defaults to
-  the `MINIMAX_API_KEY` environment variable
+  API key for the MiniMax API. It defaults to the `MINIMAX_API_KEY` environment
+  variable. Language models send it in the `x-api-key` header (the
+  Anthropic-compatible protocol); video models send it as
+  `Authorization: Bearer`.
 
 - **headers** _Record&lt;string,string&gt;_
 
@@ -156,6 +160,10 @@ const { video } = await generateVideo({
 
 MiniMax-H3 generates one video per call. Generation is asynchronous — the model
 creates a task and polls until it completes, then returns the resulting MP4 URL.
+
+`duration` accepts a whole number of seconds from 5 to 15, and defaults to 5. A
+fractional value is rounded and an out-of-range value is clamped, each with a
+warning. The only supported output resolution is `2K`.
 
 <Note>
   Result URLs are time-limited. Download and persist the video to your own

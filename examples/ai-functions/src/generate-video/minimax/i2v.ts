@@ -22,7 +22,8 @@ run(async () => {
             frameType: 'first_frame',
           },
         ],
-        aspectRatio: '16:9',
+        // No `aspectRatio`: in frame-image mode H3 derives the ratio from the
+        // supplied image, and an explicit ratio is dropped with a warning.
         duration: 5,
         providerOptions: {
           minimax: {
