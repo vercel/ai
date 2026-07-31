@@ -292,6 +292,91 @@ const result = await streamText({
 
 The signature binds the approval to the exact tool name, tool call ID, and input arguments. Changing any of these after signing invalidates the approval.
 
+### Binding approvals to side-effect boundaries
+
+For tools that create external side effects, it can be useful to record an
+approval object before execution and pass it to an internal policy service or
+external governance checkpoint. The checkpoint should review the intended
+action, not only the natural-language conversation that led to it.
+
+```ts
+import { createHash } from 'node:crypto';
+import { type GenericToolApprovalFunction } from 'ai';
+
+type CheckpointVerdict = 'allow' | 'require_approval' | 'deny';
+
+const stableJson = (value: unknown): string => {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableJson).join(',')}]`;
+  }
+
+  if (value && typeof value === 'object') {
+    return `{${Object.entries(value)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, nestedValue]) => `${JSON.stringify(key)}:${stableJson(nestedValue)}`)
+      .join(',')}}`;
+  }
+
+  return JSON.stringify(value) ?? 'null';
+};
+
+const reviewAction = async (action: {
+  toolName: string;
+  toolCallId: string;
+  input: unknown;
+  risk: 'low' | 'medium' | 'high';
+}): Promise<CheckpointVerdict> => {
+  const actionRef = createHash('sha256')
+    .update(stableJson(action))
+    .digest('hex');
+
+  const response = await fetch('https://governance.example.com/review', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ ...action, actionRef }),
+  });
+
+  if (!response.ok) {
+    return 'require_approval';
+  }
+
+  const result = await response.json();
+  if (
+    result.verdict === 'allow' ||
+    result.verdict === 'require_approval' ||
+    result.verdict === 'deny'
+  ) {
+    return result.verdict;
+  }
+
+  return 'require_approval';
+};
+
+const toolApproval: GenericToolApprovalFunction = async ({ toolCall }) => {
+  const verdict = await reviewAction({
+    toolName: toolCall.toolName,
+    toolCallId: toolCall.toolCallId,
+    input: toolCall.input,
+    risk: toolCall.toolName === 'sendEmail' ? 'medium' : 'low',
+  });
+
+  if (verdict === 'allow') {
+    return { type: 'approved', reason: 'Approved by governance checkpoint' };
+  }
+
+  if (verdict === 'deny') {
+    return { type: 'denied', reason: 'Denied by governance checkpoint' };
+  }
+
+  return 'user-approval';
+};
+```
+
+This pattern keeps the approval decision tied to a concrete tool call and
+lets you store a replayable record next to your audit logs. Use
+`experimental_toolApprovalSecret` together with this pattern when approval
+responses come back through client-controlled message history.
+
 **Setting up the secret:**
 
 1. Generate a high-entropy random string (at least 32 bytes):
