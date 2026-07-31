@@ -578,6 +578,31 @@ describe('OpenTelemetry', () => {
       `);
     });
 
+    it('sets system_instructions on the language model span', () => {
+      integration.onStart!(
+        makeOnStartEvent({ instructions: 'You are helpful' }),
+      );
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(
+        makeLanguageModelCallStartEvent({
+          instructions: 'You are helpful',
+        }),
+      );
+
+      const attrs = getStartSpanAttributes(tracer, 2);
+      expect(parseJsonAttributes(attrs, 'gen_ai.system_instructions'))
+        .toMatchInlineSnapshot(`
+        {
+          "gen_ai.system_instructions": [
+            {
+              "content": "You are helpful",
+              "type": "text",
+            },
+          ],
+        }
+      `);
+    });
+
     it('sets gen_ai.tool.definitions when tools provided', () => {
       const tools = [
         { type: 'function', name: 'get_weather', description: 'Get weather' },
