@@ -13,11 +13,11 @@ import {
   type ToolResultOutput,
   type ToolResultPart,
 } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 import { jsonValueSchema } from '../types/json-value';
 import { providerMetadataSchema } from '../types/provider-metadata';
-import { z, type ZodType } from '../util/zod';
 
-const fileInlineDataSchema: ZodType<DataContent> = z.union([
+const fileInlineDataSchema: z.ZodType<DataContent> = z.union([
   z.string(),
   z.instanceof(Uint8Array),
   z.instanceof(ArrayBuffer),
@@ -29,7 +29,7 @@ const providerReferenceSchema = z.record(z.string(), z.string());
 /**
  * @internal
  */
-export const textPartSchema: ZodType<TextPart> = z.object({
+export const textPartSchema: z.ZodType<TextPart> = z.object({
   type: z.literal('text'),
   text: z.string(),
   providerOptions: providerMetadataSchema.optional(),
@@ -40,7 +40,7 @@ export const textPartSchema: ZodType<TextPart> = z.object({
  * @deprecated Use `filePartSchema` with `mediaType: 'image'` instead:
  * `{ type: 'file', mediaType: 'image', data: { type: 'data', data } }`.
  */
-export const imagePartSchema: ZodType<ImagePart> = z.object({
+export const imagePartSchema: z.ZodType<ImagePart> = z.object({
   type: z.literal('image'),
   image: z.union([
     fileInlineDataSchema,
@@ -69,7 +69,7 @@ const taggedReasoningFileDataSchema = z.discriminatedUnion('type', [
 /**
  * @internal
  */
-export const filePartSchema: ZodType<FilePart> = z.object({
+export const filePartSchema: z.ZodType<FilePart> = z.object({
   type: z.literal('file'),
   data: z.union([
     taggedFileDataSchema,
@@ -85,7 +85,7 @@ export const filePartSchema: ZodType<FilePart> = z.object({
 /**
  * @internal
  */
-export const reasoningPartSchema: ZodType<ReasoningPart> = z.object({
+export const reasoningPartSchema: z.ZodType<ReasoningPart> = z.object({
   type: z.literal('reasoning'),
   text: z.string(),
   providerOptions: providerMetadataSchema.optional(),
@@ -94,7 +94,7 @@ export const reasoningPartSchema: ZodType<ReasoningPart> = z.object({
 /**
  * @internal
  */
-export const customPartSchema: ZodType<CustomPart> = z.object({
+export const customPartSchema: z.ZodType<CustomPart> = z.object({
   type: z.literal('custom'),
   kind: z.string().transform(value => value as `${string}.${string}`),
   providerOptions: providerMetadataSchema.optional(),
@@ -103,7 +103,7 @@ export const customPartSchema: ZodType<CustomPart> = z.object({
 /**
  * @internal
  */
-export const reasoningFilePartSchema: ZodType<ReasoningFilePart> = z.object({
+export const reasoningFilePartSchema: z.ZodType<ReasoningFilePart> = z.object({
   type: z.literal('reasoning-file'),
   data: z.union([
     taggedReasoningFileDataSchema,
@@ -146,19 +146,19 @@ export interface ToolCallPart {
 /**
  * @internal
  */
-export const toolCallPartSchema: ZodType<ToolCallPart> = z.object({
+export const toolCallPartSchema: z.ZodType<ToolCallPart> = z.object({
   type: z.literal('tool-call'),
   toolCallId: z.string(),
   toolName: z.string(),
   input: z.unknown(),
   providerOptions: providerMetadataSchema.optional(),
   providerExecuted: z.boolean().optional(),
-}) as ZodType<ToolCallPart>; // necessary bc input is optional on Zod type
+}) as z.ZodType<ToolCallPart>; // necessary bc input is optional on Zod type
 
 /**
  * @internal
  */
-export const outputSchema: ZodType<ToolResultOutput> = z.discriminatedUnion(
+export const outputSchema: z.ZodType<ToolResultOutput> = z.discriminatedUnion(
   'type',
   [
     z.object({
@@ -267,29 +267,28 @@ export const outputSchema: ZodType<ToolResultOutput> = z.discriminatedUnion(
 /**
  * @internal
  */
-export const toolResultPartSchema: ZodType<ToolResultPart> = z.object({
+export const toolResultPartSchema: z.ZodType<ToolResultPart> = z.object({
   type: z.literal('tool-result'),
   toolCallId: z.string(),
   toolName: z.string(),
   output: outputSchema,
   providerOptions: providerMetadataSchema.optional(),
-}) as ZodType<ToolResultPart>; // necessary bc result is optional on Zod type
+}) as z.ZodType<ToolResultPart>; // necessary bc result is optional on Zod type
 
 /**
  * @internal
  */
-export const toolApprovalRequestSchema: ZodType<ToolApprovalRequest> = z.object(
-  {
+export const toolApprovalRequestSchema: z.ZodType<ToolApprovalRequest> =
+  z.object({
     type: z.literal('tool-approval-request'),
     approvalId: z.string(),
     toolCallId: z.string(),
-  },
-);
+  });
 
 /**
  * @internal
  */
-export const toolApprovalResponseSchema: ZodType<ToolApprovalResponse> =
+export const toolApprovalResponseSchema: z.ZodType<ToolApprovalResponse> =
   z.object({
     type: z.literal('tool-approval-response'),
     approvalId: z.string(),
