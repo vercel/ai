@@ -22,6 +22,7 @@ import { z } from 'zod/v4';
 import {
   minimaxVideoModelOptionsSchema,
   minimaxVideoRatios,
+  minimaxVideoResolutions,
   type MiniMaxVideoModelOptions,
 } from './minimax-video-model-options';
 import type { MiniMaxVideoModelId } from './minimax-video-settings';
@@ -49,6 +50,7 @@ const MAX_REFERENCE_VIDEOS = 3;
 const MAX_REFERENCE_AUDIOS = 3;
 
 const allowedRatios = new Set<string>(minimaxVideoRatios);
+const allowedResolutions = new Set<string>(minimaxVideoResolutions);
 
 // The top-level `resolution` is `{width}x{height}`, but the API takes a named
 // tier, so map the canonical 2K frame sizes onto the single tier H3 supports.
@@ -67,6 +69,14 @@ const RESOLUTION_MAP: Record<string, string> = {
   '1440x2560': '2K',
   '1536x2048': '2K',
 };
+
+// A caller may pass the named tier itself rather than a frame size — `2K` is
+// what the MiniMax API takes, so it is the natural thing to send. Accept it
+// case-insensitively instead of reporting it as unrecognized.
+function resolveTopLevelResolution(resolution: string): string | undefined {
+  const named = resolution.toUpperCase();
+  return allowedResolutions.has(named) ? named : RESOLUTION_MAP[resolution];
+}
 
 // Frame images must be images. Returns the offending top-level media type when
 // a frame is something else, so it can be rejected the way a reference input of
@@ -145,7 +155,7 @@ export class MiniMaxVideoModel implements VideoModelV4 {
     // wins and a top-level value is resolved to a tier.
     let resolution: string | undefined = minimaxOptions?.resolution;
     if (options.resolution != null) {
-      const mapped = RESOLUTION_MAP[options.resolution];
+      const mapped = resolveTopLevelResolution(options.resolution);
       if (resolution != null) {
         // The provider option is already a tier, so the only way the two can
         // disagree is a top-level value that maps to no tier at all.
@@ -176,8 +186,9 @@ export class MiniMaxVideoModel implements VideoModelV4 {
     // encodes inline data as a data URI. MiniMax `mm_file://…` handles survive
     // that pass-through, but not the core `generateVideo` path: it base64-decodes
     // any string that is not `http(s)://` or `data:`, so `mm_file://` only
-    // reaches the API through `providerOptions.minimax.referenceAudio`, which is
-    // forwarded raw — not through `image`, `frameImages`, or `inputReferences`.
+    // reaches the API through `providerOptions.minimax.referenceAudioUrls`,
+    // which is forwarded raw — not through `image`, `frameImages`, or
+    // `inputReferences`.
     const content: Array<Record<string, unknown>> = [
       { type: 'text', text: options.prompt ?? '' },
     ];
@@ -245,9 +256,9 @@ export class MiniMaxVideoModel implements VideoModelV4 {
     const usesFrameImages = firstFrame != null || lastFrame != null;
 
     const referenceFiles = options.inputReferences ?? [];
-    const referenceAudio = minimaxOptions?.referenceAudio ?? [];
+    const referenceAudioUrls = minimaxOptions?.referenceAudioUrls ?? [];
     const usesReferences =
-      referenceFiles.length > 0 || referenceAudio.length > 0;
+      referenceFiles.length > 0 || referenceAudioUrls.length > 0;
 
     if (usesFrameImages) {
       if (firstFrame != null) {
@@ -310,7 +321,7 @@ export class MiniMaxVideoModel implements VideoModelV4 {
             details:
               `MiniMax-H3 only accepts image and video references; the "${file.mediaType}" ` +
               'reference was ignored. Pass reference audio via ' +
-              'providerOptions.minimax.referenceAudio.',
+              'providerOptions.minimax.referenceAudioUrls.',
           });
         }
       }
@@ -352,26 +363,26 @@ export class MiniMaxVideoModel implements VideoModelV4 {
       }
 
       // Reference audio must accompany at least one reference image or video.
-      if (referenceAudio.length > 0) {
+      if (referenceAudioUrls.length > 0) {
         if (referenceImages.length === 0 && referenceVideos.length === 0) {
           warnings.push({
             type: 'unsupported',
-            feature: 'referenceAudio',
+            feature: 'referenceAudioUrls',
             details:
               'MiniMax-H3 reference audio must be paired with at least one reference image or video. The audio was ignored.',
           });
         } else {
-          for (const url of referenceAudio.slice(0, MAX_REFERENCE_AUDIOS)) {
+          for (const url of referenceAudioUrls.slice(0, MAX_REFERENCE_AUDIOS)) {
             content.push({
               type: 'audio_url',
               audio_url: { url },
               role: 'reference_audio',
             });
           }
-          if (referenceAudio.length > MAX_REFERENCE_AUDIOS) {
+          if (referenceAudioUrls.length > MAX_REFERENCE_AUDIOS) {
             warnings.push({
               type: 'unsupported',
-              feature: 'referenceAudio',
+              feature: 'referenceAudioUrls',
               details: `MiniMax-H3 accepts at most ${MAX_REFERENCE_AUDIOS} reference audios. Extra audios were ignored.`,
             });
           }

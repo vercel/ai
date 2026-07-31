@@ -416,7 +416,7 @@ describe('MiniMaxVideoModel', () => {
           minimax: {
             pollIntervalMs: 10,
             pollTimeoutMs: 5000,
-            referenceAudio: ['https://cdn.example.com/ref.wav'],
+            referenceAudioUrls: ['https://cdn.example.com/ref.wav'],
           },
         },
       });
@@ -513,7 +513,7 @@ describe('MiniMaxVideoModel', () => {
         details:
           'MiniMax-H3 only accepts image and video references; the "audio/mp3" ' +
           'reference was ignored. Pass reference audio via ' +
-          'providerOptions.minimax.referenceAudio.',
+          'providerOptions.minimax.referenceAudioUrls.',
       });
     });
 
@@ -968,13 +968,40 @@ describe('MiniMaxVideoModel', () => {
       ).toStrictEqual([]);
     });
 
+    // `2K` is what the MiniMax API itself takes, so it is the natural thing to
+    // send. The call option is typed `{width}x{height}`, but untyped callers
+    // reach the model too — the AI Gateway forwards `resolution` verbatim — and
+    // the tier must not be reported as unrecognized when it arrives.
+    it.each(['2K', '2k'])(
+      'should accept the named resolution tier %s without warning',
+      async resolution => {
+        const model = createModel();
+
+        const { warnings } = await model.doGenerate({
+          ...defaultOptions,
+          resolution: resolution as `${number}x${number}`,
+        });
+
+        expect(
+          warnings.filter(
+            warning =>
+              warning.type === 'unsupported' &&
+              warning.feature === 'resolution',
+          ),
+        ).toStrictEqual([]);
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          resolution: '2K',
+        });
+      },
+    );
+
     it('should drop reference audio that is not paired with an image or video reference', async () => {
       const model = createModel();
 
       const { warnings } = await model.doGenerate({
         ...defaultOptions,
         providerOptions: minimaxOptions({
-          referenceAudio: ['https://cdn.example.com/ref.wav'],
+          referenceAudioUrls: ['https://cdn.example.com/ref.wav'],
         }),
       });
 
@@ -986,7 +1013,7 @@ describe('MiniMaxVideoModel', () => {
       });
       expect(warnings).toContainEqual({
         type: 'unsupported',
-        feature: 'referenceAudio',
+        feature: 'referenceAudioUrls',
         details:
           'MiniMax-H3 reference audio must be paired with at least one reference image or video. The audio was ignored.',
       });
@@ -999,7 +1026,7 @@ describe('MiniMaxVideoModel', () => {
         ...defaultOptions,
         inputReferences: [imageUrlFile],
         providerOptions: minimaxOptions({
-          referenceAudio: [
+          referenceAudioUrls: [
             'https://cdn.example.com/a1.wav',
             'https://cdn.example.com/a2.wav',
             'https://cdn.example.com/a3.wav',
@@ -1038,7 +1065,7 @@ describe('MiniMaxVideoModel', () => {
       });
       expect(warnings).toContainEqual({
         type: 'unsupported',
-        feature: 'referenceAudio',
+        feature: 'referenceAudioUrls',
         details:
           'MiniMax-H3 accepts at most 3 reference audios. Extra audios were ignored.',
       });
@@ -1125,7 +1152,7 @@ describe('MiniMaxVideoModel', () => {
         frameImages: [{ image: imageUrlFile, frameType: 'first_frame' }],
         inputReferences: [videoUrlFile],
         providerOptions: minimaxOptions({
-          referenceAudio: ['https://cdn.example.com/ref.wav'],
+          referenceAudioUrls: ['https://cdn.example.com/ref.wav'],
         }),
       });
 

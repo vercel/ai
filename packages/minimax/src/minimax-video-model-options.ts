@@ -36,7 +36,7 @@ export const minimaxVideoProviderOptions = z.object({
   /**
    * Reference audio URLs for reference-to-video generation.
    */
-  referenceAudio: z.array(z.string()).optional(),
+  referenceAudioUrls: z.array(z.string()).optional(),
 
   /**
    * Whether to embed an AIGC watermark in the output. Defaults to `false`.

@@ -198,7 +198,7 @@ The following optional provider options are available for MiniMax video models:
 
   Aspect ratio of the generated video. Overrides the top-level `aspectRatio`.
 
-- **referenceAudio** _string[]_
+- **referenceAudioUrls** _string[]_
 
   Reference audio URLs (or `mm_file://` handles) for reference-to-video
   generation. Must be paired with at least one reference image or video. Up to 3.
@@ -216,11 +216,11 @@ The following optional provider options are available for MiniMax video models:
   Maximum time in milliseconds to poll before timing out. Default: `600000`.
 
 <Note>
-  MiniMax `mm_file://` handles are only forwarded as-is for `referenceAudio`.
-  They cannot be used for `image`, `frameImages`, or `inputReferences`: those
-  inputs go through the AI SDK's file handling, which base64-decodes any string
-  that is not an `http(s)://` or `data:` URL. Pass those inputs as public URLs,
-  data URIs, or binary data instead.
+  MiniMax `mm_file://` handles are only forwarded as-is for
+  `referenceAudioUrls`. They cannot be used for `image`, `frameImages`, or
+  `inputReferences`: those inputs go through the AI SDK's file handling, which
+  base64-decodes any string that is not an `http(s)://` or `data:` URL. Pass
+  those inputs as public URLs, data URIs, or binary data instead.
 </Note>
 
 ### Video Provider Metadata
