@@ -57,15 +57,16 @@ type WriteSkillsResult = {
 };
 
 /*
- * The model the adapter pins when the consumer configures none. The Codex SDK
- * does not report the model it resolves to at runtime (no model field on any
- * event), and exposes no default-model constant, so we pin the latest
- * default model resolved by the bundled `@openai/codex@0.144.5`:
- * `gpt-5.6-sol`. Keep this in sync when bumping the codex SDK/binary. Passing
- * it explicitly makes the resolved model deterministic and the telemetry
- * (`gen_ai.request.model`) accurate.
+ * This intentionally is not the latest Codex model. Newer GPT-5.6 models use
+ * Responses Lite, which does not expose their code-mode tools as callable
+ * through the custom model provider used by the harness. Keep GPT-5.5 as the
+ * default until the upstream bug is resolved:
+ * https://github.com/openai/codex/issues/31894
+ *
+ * Passing the model explicitly keeps the runtime behavior deterministic and
+ * the telemetry (`gen_ai.request.model`) accurate.
  */
-const DEFAULT_CODEX_MODEL = 'gpt-5.6-sol';
+const DEFAULT_CODEX_MODEL = 'gpt-5.5';
 
 /**
  * Value to use in User-Agent and `x-client-app` headers.
