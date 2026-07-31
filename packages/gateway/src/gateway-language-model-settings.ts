@@ -176,6 +176,7 @@ export type GatewayModelId =
   | 'stepfun/step-3.7-flash'
   | 'tencent/hy3'
   | 'thinkingmachines/inkling'
+  | 'thinkingmachines/inkling-small'
   | 'xai/grok-4.1-fast-non-reasoning'
   | 'xai/grok-4.1-fast-reasoning'
   | 'xai/grok-4.20-multi-agent'
