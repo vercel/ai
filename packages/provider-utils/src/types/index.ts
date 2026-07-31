@@ -52,7 +52,7 @@ export {
   getToolCaller as experimental_getToolCaller,
   toolCaller as experimental_toolCaller,
   type ToolCallerDefinition as Experimental_ToolCallerDefinition,
-  type ToolCallerTool as Experimental_ToolCallerTool,
+  type ToolWithCaller as Experimental_ToolWithCaller,
 } from './tool-caller';
 export type {
   ToolExecuteFunction,

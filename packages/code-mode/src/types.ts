@@ -1,5 +1,11 @@
 import type { ModelMessage, Tool } from 'ai';
 
+type CodeModeResolvedApprovalStatus =
+  | { type: 'not-applicable'; reason?: never }
+  | { type: 'approved'; reason?: string }
+  | { type: 'denied'; reason?: string }
+  | { type: 'user-approval'; reason?: never };
+
 /**
  * Host tools made available to sandboxed code through the global `tools` object.
  */
@@ -195,6 +201,14 @@ export interface CodeModeOptions {
     onApprovalRequired?: (
       request: CodeModeApprovalRequest,
     ) => Promise<ApprovalDecision> | ApprovalDecision;
+    /**
+     * Approval resolver injected by the surrounding AI SDK tool-caller runtime.
+     *
+     * @internal
+     */
+    resolve?: (
+      request: CodeModeApprovalRequest,
+    ) => Promise<CodeModeResolvedApprovalStatus>;
   };
 }
 

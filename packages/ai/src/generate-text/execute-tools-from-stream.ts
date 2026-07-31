@@ -15,6 +15,7 @@ import { resolveToolApproval } from './resolve-tool-approval';
 import type { LanguageModelStreamPart } from './stream-language-model-call';
 import { maybeSignApproval } from './tool-approval-signature';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
+import { getToolCallerApprovalRequest } from './tool-caller-configuration';
 import type { TypedToolCall } from './tool-call';
 import type {
   OnToolExecutionEndCallback,
@@ -227,6 +228,35 @@ export function executeToolsFromStream<
                       toolExecutionMs: result.toolExecutionMs,
                     });
                     controller.enqueue(result.output);
+
+                    if (result.output.type === 'tool-result') {
+                      const callerApproval = getToolCallerApprovalRequest({
+                        callerToolName: result.output.toolName,
+                        output: result.output.output,
+                        tools,
+                      });
+                      if (callerApproval !== undefined) {
+                        const nestedToolCall = {
+                          type: 'tool-call' as const,
+                          ...callerApproval.toolCall,
+                          dynamic: false as const,
+                        } as TypedToolCall<TOOLS>;
+                        const signature = await maybeSignApproval({
+                          secret: toolApprovalSecret,
+                          approvalId: callerApproval.approvalId,
+                          toolCallId: nestedToolCall.toolCallId,
+                          toolName: nestedToolCall.toolName,
+                          input: nestedToolCall.input,
+                        });
+                        controller.enqueue(nestedToolCall);
+                        controller.enqueue({
+                          type: 'tool-approval-request',
+                          approvalId: callerApproval.approvalId,
+                          toolCall: nestedToolCall,
+                          ...(signature != null ? { signature } : {}),
+                        });
+                      }
+                    }
                   }
                 } catch (error) {
                   controller.enqueue({

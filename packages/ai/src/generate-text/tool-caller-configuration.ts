@@ -1,15 +1,32 @@
 import {
   experimental_getToolCaller,
-  type Experimental_ToolCallerTool,
+  experimental_toolCaller,
+  type Experimental_ToolCallerDefinition,
+  type Experimental_ToolWithCaller,
   type Tool,
+  type ToolCall,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 
 const DIRECT_TOOL_CALL = 'AI_SDK_DIRECT_TOOL_CALL';
 
+type LocalToolCallerDefinition = Extract<
+  Experimental_ToolCallerDefinition,
+  { type: 'local' }
+>;
+type LocalToolCallerApprovalStatus = Awaited<
+  ReturnType<
+    Parameters<LocalToolCallerDefinition['bind']>[1]['resolveToolApproval']
+  >
+>;
+type LocalToolCallerApprovalRequest = Exclude<
+  ReturnType<NonNullable<LocalToolCallerDefinition['getApprovalRequest']>>,
+  undefined
+>;
+
 type ToolCallerName<TOOLS extends ToolSet> = {
-  [NAME in keyof TOOLS]: TOOLS[NAME] extends Experimental_ToolCallerTool
+  [NAME in keyof TOOLS]: TOOLS[NAME] extends Experimental_ToolWithCaller
     ? NAME
     : never;
 }[keyof TOOLS] &
@@ -80,9 +97,13 @@ export function resolveToolCallerConfiguration<TOOLS extends ToolSet>({
 export function prepareToolsForToolCallers({
   tools,
   toolCallers,
+  resolveToolApproval,
 }: {
   tools: ToolSet | undefined;
   toolCallers: ResolvedToolCallers | undefined;
+  resolveToolApproval?: (
+    toolCall: ToolCall<string, unknown>,
+  ) => Promise<LocalToolCallerApprovalStatus>;
 }): {
   executionTools: ToolSet | undefined;
   modelTools: ToolSet | undefined;
@@ -146,7 +167,14 @@ export function prepareToolsForToolCallers({
       continue;
     }
 
-    const boundCaller = caller.bind(localToolsByCaller.get(callerName) ?? {});
+    const boundCaller = experimental_toolCaller(
+      caller.bind(localToolsByCaller.get(callerName) ?? {}, {
+        resolveToolApproval:
+          resolveToolApproval ??
+          (async () => ({ type: 'not-applicable' as const })),
+      }),
+      caller,
+    );
     executionTools[callerName] = boundCaller;
 
     if (Object.prototype.hasOwnProperty.call(modelTools, callerName)) {
@@ -155,4 +183,40 @@ export function prepareToolsForToolCallers({
   }
 
   return { executionTools, modelTools };
+}
+
+export function getToolCallerApprovalRequest({
+  callerToolName,
+  output,
+  tools,
+}: {
+  callerToolName: string;
+  output: unknown;
+  tools: ToolSet | undefined;
+}): LocalToolCallerApprovalRequest | undefined {
+  const caller = experimental_getToolCaller(tools?.[callerToolName]);
+  return caller?.type === 'local'
+    ? caller.getApprovalRequest?.(output)
+    : undefined;
+}
+
+export function getLocalToolsForCaller({
+  callerName,
+  tools,
+  toolCallers,
+}: {
+  callerName: string;
+  tools: ToolSet;
+  toolCallers: ResolvedToolCallers | undefined;
+}): ToolSet {
+  if (toolCallers == null) {
+    return {};
+  }
+  const localTools: ToolSet = {};
+  for (const [toolName, callers] of Object.entries(toolCallers)) {
+    if (callers.includes(callerName) && tools[toolName] != null) {
+      localTools[toolName] = tools[toolName];
+    }
+  }
+  return localTools;
 }

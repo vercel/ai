@@ -84,6 +84,10 @@ import { prepareRetries } from '../util/prepare-retries';
 import { setAbortTimeout } from '../util/set-abort-timeout';
 import type { ActiveTools } from './active-tools';
 import { collectToolApprovals } from './collect-tool-approvals';
+import {
+  continueToolCallerApprovals,
+  normalizeToolCallerApprovalMessages,
+} from './continue-tool-caller-approvals';
 import type { ContentPart } from './content-part';
 import {
   executeToolsFromStream,
@@ -135,6 +139,7 @@ import type {
   UIMessageStreamOptions,
 } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
+import { resolveToolApproval } from './resolve-tool-approval';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
 import {
   prepareToolsForToolCallers,
@@ -1668,7 +1673,11 @@ class DefaultStreamTextResult<
         callbacks: [onStart, telemetryDispatcher.onStart],
       });
 
-      const initialMessages = initialPrompt.messages;
+      let initialMessages = normalizeToolCallerApprovalMessages({
+        messages: initialPrompt.messages,
+        tools,
+      });
+      const callerContinuationResponseMessages: Array<ResponseMessage> = [];
       let instructionsForNextStep = initialPrompt.instructions;
 
       const { approvedToolApprovals, deniedToolApprovals } =
@@ -1676,7 +1685,7 @@ class DefaultStreamTextResult<
 
       // initial tool execution step stream
       if (deniedToolApprovals.length > 0 || approvedToolApprovals.length > 0) {
-        const {
+        let {
           approvedToolApprovals: localApprovedToolApprovals,
           deniedToolApprovals: revalidationDeniedToolApprovals,
         } = await validateApprovedToolApprovals<TOOLS, RUNTIME_CONTEXT>({
@@ -1691,16 +1700,60 @@ class DefaultStreamTextResult<
           toolApprovalSecret: experimental_toolApprovalSecret,
         });
 
-        const localDeniedToolApprovals = [
+        let localDeniedToolApprovals = [
           ...deniedToolApprovals.filter(
             toolApproval => !toolApproval.toolCall.providerExecuted,
           ),
           ...revalidationDeniedToolApprovals,
         ];
-        const localDeniedToolApprovalsWithoutResults =
+        let localDeniedToolApprovalsWithoutResults =
           localDeniedToolApprovals.filter(
             toolApproval => toolApproval.existingToolResult == null,
           );
+
+        if (tools != null) {
+          const continuedApprovals = await continueToolCallerApprovals({
+            approvals: [
+              ...localApprovedToolApprovals,
+              ...localDeniedToolApprovalsWithoutResults,
+            ],
+            messages: initialMessages,
+            tools,
+            toolCallers: resolvedToolCallers,
+            toolsContext,
+            abortSignal,
+          });
+          if (continuedApprovals.continued.length > 0) {
+            initialMessages = continuedApprovals.messages;
+            callerContinuationResponseMessages.push(
+              ...continuedApprovals.continued.map(
+                continuation => continuation.responseMessage,
+              ),
+            );
+            initialResponseMessages.push(...callerContinuationResponseMessages);
+            const continuedApprovalIds = new Set(
+              continuedApprovals.continued.map(
+                continuation =>
+                  continuation.approval.approvalRequest.approvalId,
+              ),
+            );
+            localApprovedToolApprovals = localApprovedToolApprovals.filter(
+              approval =>
+                !continuedApprovalIds.has(approval.approvalRequest.approvalId),
+            );
+            localDeniedToolApprovals = localDeniedToolApprovals.filter(
+              approval =>
+                !continuedApprovalIds.has(approval.approvalRequest.approvalId),
+            );
+            localDeniedToolApprovalsWithoutResults =
+              localDeniedToolApprovalsWithoutResults.filter(
+                approval =>
+                  !continuedApprovalIds.has(
+                    approval.approvalRequest.approvalId,
+                  ),
+              );
+          }
+        }
 
         const deniedProviderExecutedToolApprovals = deniedToolApprovals.filter(
           toolApproval => toolApproval.toolCall.providerExecuted,
@@ -1925,7 +1978,9 @@ class DefaultStreamTextResult<
           ];
           const stepInputMessages = stepMessagesForNextStep ?? [
             ...initialMessages,
-            ...initialResponseMessages,
+            ...initialResponseMessages.filter(
+              message => !callerContinuationResponseMessages.includes(message),
+            ),
           ];
 
           const prepareStepResult = await prepareStep?.({
@@ -1956,12 +2011,26 @@ class DefaultStreamTextResult<
             tools,
             activeTools: prepareStepResult?.activeTools ?? activeTools,
           });
+          const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
           const {
             executionTools: stepExecutionTools,
             modelTools: stepModelTools,
           } = prepareToolsForToolCallers({
             tools: stepActiveTools,
             toolCallers: resolvedToolCallers,
+            resolveToolApproval: async toolCall =>
+              await resolveToolApproval({
+                tools: stepActiveTools as TOOLS,
+                toolCall: {
+                  type: 'tool-call',
+                  ...toolCall,
+                  dynamic: false,
+                } as TypedToolCall<TOOLS>,
+                toolApproval,
+                messages: stepMessages,
+                toolsContext,
+                runtimeContext,
+              }),
           });
           const stepToolOrder = prepareStepResult?.toolOrder ?? toolOrder;
 
@@ -1984,7 +2053,6 @@ class DefaultStreamTextResult<
             toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
           });
 
-          const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
           currentStepMessages = stepMessages;
           const stepInstructions =
             prepareStepResult?.instructions ??

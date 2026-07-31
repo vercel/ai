@@ -64,6 +64,10 @@ import { VERSION } from '../version';
 import type { ActiveTools } from './active-tools';
 import { calculateTokensPerSecond } from './calculate-tokens-per-second';
 import { collectToolApprovals } from './collect-tool-approvals';
+import {
+  continueToolCallerApprovals,
+  normalizeToolCallerApprovalMessages,
+} from './continue-tool-caller-approvals';
 import type { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
 import {
@@ -108,6 +112,7 @@ import type { ToolApprovalConfiguration } from './tool-approval-configuration';
 import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import type { ToolApprovalResponseOutput } from './tool-approval-response-output';
 import {
+  getToolCallerApprovalRequest,
   prepareToolsForToolCallers,
   resolveToolCallerConfiguration,
   type Experimental_ToolCallers,
@@ -701,15 +706,19 @@ export async function generateText<
     });
 
     try {
-      const initialMessages = initialPrompt.messages;
+      let initialMessages = normalizeToolCallerApprovalMessages({
+        messages: initialPrompt.messages,
+        tools,
+      });
       const initialResponseMessages: Array<ResponseMessage> = [];
+      const callerContinuationResponseMessages: Array<ResponseMessage> = [];
 
       const {
         approvedToolApprovals,
         deniedToolApprovals: collectedDeniedToolApprovals,
       } = collectToolApprovals<TOOLS>({ messages: initialMessages });
 
-      const {
+      let {
         approvedToolApprovals: localApprovedToolApprovals,
         deniedToolApprovals: revalidationDeniedToolApprovals,
       } = await validateApprovedToolApprovals<TOOLS, RUNTIME_CONTEXT>({
@@ -724,13 +733,54 @@ export async function generateText<
         toolApprovalSecret: experimental_toolApprovalSecret,
       });
 
-      const deniedToolApprovals = [
+      let deniedToolApprovals = [
         ...collectedDeniedToolApprovals,
         ...revalidationDeniedToolApprovals,
       ];
-      const deniedToolApprovalsWithoutResults = deniedToolApprovals.filter(
+      let deniedToolApprovalsWithoutResults = deniedToolApprovals.filter(
         toolApproval => toolApproval.existingToolResult == null,
       );
+
+      if (tools != null) {
+        const continuedApprovals = await continueToolCallerApprovals({
+          approvals: [
+            ...localApprovedToolApprovals,
+            ...deniedToolApprovalsWithoutResults,
+          ],
+          messages: initialMessages,
+          tools,
+          toolCallers: resolvedToolCallers,
+          toolsContext,
+          abortSignal: mergedAbortSignal,
+        });
+        if (continuedApprovals.continued.length > 0) {
+          initialMessages = continuedApprovals.messages;
+          callerContinuationResponseMessages.push(
+            ...continuedApprovals.continued.map(
+              continuation => continuation.responseMessage,
+            ),
+          );
+          initialResponseMessages.push(...callerContinuationResponseMessages);
+          const continuedApprovalIds = new Set(
+            continuedApprovals.continued.map(
+              continuation => continuation.approval.approvalRequest.approvalId,
+            ),
+          );
+          localApprovedToolApprovals = localApprovedToolApprovals.filter(
+            approval =>
+              !continuedApprovalIds.has(approval.approvalRequest.approvalId),
+          );
+          deniedToolApprovals = deniedToolApprovals.filter(
+            approval =>
+              !continuedApprovalIds.has(approval.approvalRequest.approvalId),
+          );
+          deniedToolApprovalsWithoutResults =
+            deniedToolApprovalsWithoutResults.filter(
+              approval =>
+                !continuedApprovalIds.has(approval.approvalRequest.approvalId),
+            );
+        }
+      }
 
       if (
         deniedToolApprovalsWithoutResults.length > 0 ||
@@ -832,7 +882,9 @@ export async function generateText<
       let instructionsForNextStep = initialPrompt.instructions;
       let messagesForNextStep = [
         ...initialMessages,
-        ...initialResponseMessages,
+        ...initialResponseMessages.filter(
+          message => !callerContinuationResponseMessages.includes(message),
+        ),
       ];
 
       // Track provider-executed tool calls that support deferred results
@@ -908,12 +960,27 @@ export async function generateText<
                 tools,
                 activeTools: prepareStepResult?.activeTools ?? activeTools,
               });
+              const stepMessages =
+                prepareStepResult?.messages ?? stepInputMessages;
               const {
                 executionTools: stepExecutionTools,
                 modelTools: stepModelTools,
               } = prepareToolsForToolCallers({
                 tools: stepActiveTools,
                 toolCallers: resolvedToolCallers,
+                resolveToolApproval: async toolCall =>
+                  await resolveToolApproval({
+                    tools: stepActiveTools as TOOLS,
+                    toolCall: {
+                      type: 'tool-call',
+                      ...toolCall,
+                      dynamic: false,
+                    } as TypedToolCall<TOOLS>,
+                    toolApproval,
+                    messages: stepMessages,
+                    toolsContext,
+                    runtimeContext,
+                  }),
               });
               const stepToolOrder = prepareStepResult?.toolOrder ?? toolOrder;
 
@@ -935,9 +1002,6 @@ export async function generateText<
               const stepToolChoice = prepareToolChoice({
                 toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
               });
-
-              const stepMessages =
-                prepareStepResult?.messages ?? stepInputMessages;
 
               const stepProviderOptions = mergeObjects(
                 providerOptions,
@@ -1293,6 +1357,39 @@ export async function generateText<
                   toolExecutionMs[result.output.toolCallId] =
                     result.toolExecutionMs;
                   clientToolOutputs.push(result.output);
+
+                  if (result.output.type !== 'tool-result') {
+                    continue;
+                  }
+                  const callerApproval = getToolCallerApprovalRequest({
+                    callerToolName: result.output.toolName,
+                    output: result.output.output,
+                    tools: stepExecutionTools,
+                  });
+                  if (callerApproval === undefined) {
+                    continue;
+                  }
+
+                  const nestedToolCall = {
+                    type: 'tool-call' as const,
+                    ...callerApproval.toolCall,
+                    dynamic: false as const,
+                  } as TypedToolCall<TOOLS>;
+                  const signature = await maybeSignApproval({
+                    secret: experimental_toolApprovalSecret,
+                    approvalId: callerApproval.approvalId,
+                    toolCallId: nestedToolCall.toolCallId,
+                    toolName: nestedToolCall.toolName,
+                    input: nestedToolCall.input,
+                  });
+                  stepToolCalls.push(nestedToolCall);
+                  clientToolCalls.push(nestedToolCall);
+                  toolApprovalRequests[nestedToolCall.toolCallId] = {
+                    type: 'tool-approval-request',
+                    approvalId: callerApproval.approvalId,
+                    toolCall: nestedToolCall,
+                    ...(signature != null ? { signature } : {}),
+                  };
                 }
               }
 

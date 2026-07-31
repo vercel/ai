@@ -87,14 +87,39 @@ export async function invokeHostTool({
     ...(codeModeInterrupt !== undefined ? { codeModeInterrupt } : {}),
   };
 
-  const needsApproval =
+  const approvalRequest = {
+    toolName,
+    input: validation.value,
+    toolCallId,
+  };
+  const injectedApprovalStatus =
+    !skipApproval && codeModeOptions.approval?.resolve != null
+      ? await raceAgainstAbort(
+          codeModeOptions.approval.resolve(approvalRequest),
+          executionOptions.abortSignal,
+        )
+      : undefined;
+  const needsStandaloneApproval =
     !skipApproval &&
+    injectedApprovalStatus === undefined &&
     (await raceAgainstAbort(
       requiresApproval(hostTool, validation.value, executionOptions),
       executionOptions.abortSignal,
     ));
 
-  if (needsApproval) {
+  if (injectedApprovalStatus?.type === 'denied') {
+    throw new CodeModeToolApprovalDeniedError(
+      toolName,
+      validation.value,
+      toolCallId,
+      injectedApprovalStatus.reason,
+    );
+  }
+
+  if (
+    injectedApprovalStatus?.type === 'user-approval' ||
+    needsStandaloneApproval
+  ) {
     if (codeModeOptions.approval?.mode === 'interrupt') {
       return {
         type: 'interrupted',
@@ -107,11 +132,7 @@ export async function invokeHostTool({
 
     const approval = await raceAgainstAbort(
       Promise.resolve(
-        codeModeOptions.approval?.onApprovalRequired?.({
-          toolName,
-          input: validation.value,
-          toolCallId,
-        }),
+        codeModeOptions.approval?.onApprovalRequired?.(approvalRequest),
       ),
       baseExecutionOptions.abortSignal,
     );
