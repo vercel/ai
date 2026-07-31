@@ -19,7 +19,7 @@ This package runs on the server and requires Node.js 22 or newer.
 ## Usage
 
 ```ts
-import { experimental_createCodeModeTool as createCodeModeTool } from '@ai-sdk/code-mode';
+import { experimental_codeModeTool as codeModeTool } from '@ai-sdk/code-mode';
 import { generateText, isStepCount, tool } from 'ai';
 import { z } from 'zod';
 
@@ -49,14 +49,23 @@ const getDemand = tool({
   }),
 });
 
-const codeMode = createCodeModeTool({
+const tools = {
+  code_mode: codeModeTool({
+    executionPolicy: {
+      timeoutMs: 30_000,
+    },
+  }),
   getInventory,
   getDemand,
-});
+} as const;
 
 const result = await generateText({
   model,
-  tools: { codeMode },
+  tools,
+  experimental_toolCallers: ({ code_mode }) => ({
+    getInventory: [code_mode],
+    getDemand: [code_mode],
+  }),
   stopWhen: isStepCount(10),
   prompt: 'Compare inventory and demand for product sku_123.',
 });

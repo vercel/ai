@@ -1,5 +1,11 @@
 # @ai-sdk/test-server
 
+## 2.0.1
+
+### Patch Changes
+
+- beaecb3: fix(test-server): swallow controller.error rejection in the controlled-stream abort listener when the writer is already closed
+
 ## 2.0.0
 
 ### Major Changes

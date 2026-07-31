@@ -1,5 +1,6 @@
 import { experimental_codeModeTool as codeModeTool } from '@ai-sdk/code-mode';
 import { generateText, isStepCount, tool } from 'ai';
+import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -42,14 +43,15 @@ const tools = {
   }),
   getInventory,
   getDemand,
+  programmatic: openai.tools.programmaticToolCalling(),
 } as const;
 
 run(async () => {
   const result = await generateText({
-    model: 'moonshotai/kimi-k3',
+    model: openai('gpt-5.6-sol'),
     tools,
-    experimental_toolCallers: ({ code_mode }) => ({
-      getInventory: [code_mode],
+    experimental_toolCallers: ({ code_mode, programmatic }) => ({
+      getInventory: [programmatic],
       getDemand: [code_mode],
     }),
     stopWhen: isStepCount(20),

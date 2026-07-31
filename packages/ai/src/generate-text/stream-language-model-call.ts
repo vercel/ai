@@ -422,6 +422,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   const textPartIndexes = new Map<string, number>();
   const reasoningPartIndexes = new Map<string, number>();
   let responseId = generateId();
+  let responseModelId = modelId;
   let timeToFirstOutputMs: number | undefined;
   let previousOutputChunkTimestampMs: number | undefined;
   const timeBetweenOutputChunksMs: number[] = [];
@@ -590,7 +591,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             event: {
               callId,
               provider,
-              modelId,
+              modelId: responseModelId,
               finishReason: chunk.finishReason.unified,
               usage,
               content: modelCallContent,
@@ -739,6 +740,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
 
         case 'response-metadata': {
           responseId = chunk.id ?? responseId;
+          responseModelId = chunk.modelId ?? responseModelId;
 
           controller.enqueue({
             type: 'model-call-response-metadata',
