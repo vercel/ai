@@ -1,5 +1,4 @@
 import type { JSONObject } from '@ai-sdk/provider';
-import { z } from 'zod/v4';
 import {
   providerMetadataSchema,
   type ProviderMetadata,
@@ -13,9 +12,10 @@ import type {
   UIMessage,
 } from '../ui/ui-messages';
 import type { ValueOf } from '../util/value-of';
+import { z, type ZodType } from '../util/zod';
 import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 
-const toolMetadataSchema: z.ZodType<JSONObject> = z.record(
+const toolMetadataSchema: ZodType<JSONObject> = z.record(
   z.string(),
   jsonValueSchema.optional(),
 );
