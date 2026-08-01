@@ -134,6 +134,135 @@ describe('FireworksProvider', () => {
       const config = OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
       expect(config.includeUsage).toBe(true);
     });
+
+    // Fireworks rejects unknown fields outright ("Extra inputs are not
+    // permitted, field: 'promptCacheKey'") rather than ignoring them, so any
+    // option left in camelCase fails the whole request.
+    describe('transformRequestBody', () => {
+      const getTransform = () => {
+        const provider = createFireworks();
+        provider.chatModel('test-model');
+        return OpenAICompatibleChatLanguageModelMock.mock.calls[0][1]
+          .transformRequestBody;
+      };
+
+      it('should pass transformRequestBody that converts thinking options', () => {
+        const result = getTransform()({
+          model: 'test-model',
+          messages: [],
+          thinking: { type: 'enabled', budgetTokens: 2048 },
+          reasoningHistory: 'interleaved',
+        });
+
+        expect(result).toEqual({
+          model: 'test-model',
+          messages: [],
+          thinking: { type: 'enabled', budget_tokens: 2048 },
+          reasoning_history: 'interleaved',
+        });
+      });
+
+      it('should handle thinking without budgetTokens', () => {
+        const result = getTransform()({
+          model: 'test-model',
+          messages: [],
+          thinking: { type: 'enabled' },
+        });
+
+        expect(result).toEqual({
+          model: 'test-model',
+          messages: [],
+          thinking: { type: 'enabled' },
+        });
+      });
+
+      it('should map promptCacheKey to prompt_cache_key', () => {
+        const result = getTransform()({
+          model: 'test-model',
+          messages: [],
+          promptCacheKey: 'session-123',
+        });
+
+        expect(result).toEqual({
+          model: 'test-model',
+          messages: [],
+          prompt_cache_key: 'session-123',
+        });
+        expect(result).not.toHaveProperty('promptCacheKey');
+      });
+
+      it('should prefer promptCacheKey over raw prompt_cache_key', () => {
+        const result = getTransform()({
+          model: 'test-model',
+          messages: [],
+          prompt_cache_key: 'raw-session',
+          promptCacheKey: 'typed-session',
+        });
+
+        expect(result).toEqual({
+          model: 'test-model',
+          messages: [],
+          prompt_cache_key: 'typed-session',
+        });
+      });
+
+      it('should map serviceTier to service_tier', () => {
+        const result = getTransform()({
+          model: 'test-model',
+          messages: [],
+          serviceTier: 'priority',
+        });
+
+        expect(result).toEqual({
+          model: 'test-model',
+          messages: [],
+          service_tier: 'priority',
+        });
+        expect(result).not.toHaveProperty('serviceTier');
+      });
+
+      it('should prefer serviceTier over raw service_tier', () => {
+        const result = getTransform()({
+          model: 'test-model',
+          messages: [],
+          service_tier: 'standard',
+          serviceTier: 'priority',
+        });
+
+        expect(result).toEqual({
+          model: 'test-model',
+          messages: [],
+          service_tier: 'priority',
+        });
+      });
+
+      it('should map reasoningHistory to reasoning_history', () => {
+        const result = getTransform()({
+          model: 'test-model',
+          messages: [],
+          reasoningHistory: 'interleaved',
+        });
+
+        expect(result).toEqual({
+          model: 'test-model',
+          messages: [],
+          reasoning_history: 'interleaved',
+        });
+        expect(result).not.toHaveProperty('reasoningHistory');
+      });
+
+      it('should handle request without thinking options', () => {
+        const result = getTransform()({
+          model: 'test-model',
+          messages: [],
+        });
+
+        expect(result).toEqual({
+          model: 'test-model',
+          messages: [],
+        });
+      });
+    });
   });
 
   describe('completionModel', () => {
