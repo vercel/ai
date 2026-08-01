@@ -17,9 +17,9 @@ export type GatewayProviderOptions = {
 
   /**
    * Restrict routing to models that have all of the given capabilities.
-   * Currently supports `'implicit-caching'`.
+   * Currently supports `'implicit-caching'` and `'vision'` (image input).
    */
-  has?: Array<'implicit-caching'>;
+  has?: Array<'implicit-caching' | 'vision'>;
 
   /** Array of model slugs specifying fallback models to use in order. */
   models?: string[];
