@@ -1354,7 +1354,9 @@ You can validate the provider options using the `XaiVideoModelOptions` type.
   so it does not require `referenceImageUrls` alongside it. Reference audio
   must accompany at least one reference image; on its own it is ignored with
   a warning. An audio reference passed through `inputReferences` takes
-  precedence over this option.
+  precedence over this option. Passing more than one URL here is rejected as
+  an invalid argument, whereas extra audio references supplied through
+  `inputReferences` are truncated to the first one with a warning.
 
 <Note>
   Video generation is an asynchronous process that can take several minutes.
