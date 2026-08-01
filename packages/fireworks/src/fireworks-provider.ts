@@ -27,12 +27,30 @@ import { VERSION } from './version';
 export type FireworksErrorData = z.infer<typeof fireworksErrorSchema>;
 
 const fireworksErrorSchema = z.object({
-  error: z.string(),
+  // Fireworks returns an object, e.g.
+  //   {"error":{"object":"error","type":"invalid_request_error",
+  //             "code":"invalid_request_error","message":"…"}}
+  // The bare-string form is kept as a fallback so that a shape we have not
+  // seen cannot fail the parse: on failure the message silently degrades to
+  // the HTTP reason phrase, which is empty over HTTP/2.
+  error: z.union([
+    z.string(),
+    z.object({
+      message: z.string(),
+
+      // Handled loosely, as for other OpenAI-compatible providers.
+      object: z.string().nullish(),
+      type: z.string().nullish(),
+      param: z.any().nullish(),
+      code: z.union([z.string(), z.number()]).nullish(),
+    }),
+  ]),
 });
 
 const fireworksErrorStructure: ProviderErrorStructure<FireworksErrorData> = {
   errorSchema: fireworksErrorSchema,
-  errorToMessage: data => data.error,
+  errorToMessage: data =>
+    typeof data.error === 'string' ? data.error : data.error.message,
 };
 
 export interface FireworksProviderSettings {
