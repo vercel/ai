@@ -39,7 +39,7 @@ run(async () => {
           streamError = error;
         },
       });
-      result.consumeStream();
+      await result.consumeStream();
       if (streamError) throw streamError;
       console.log(`\n${testCase.name}  unexpectedly succeeded`);
     } catch (error) {
