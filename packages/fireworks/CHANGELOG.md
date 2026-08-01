@@ -1,5 +1,11 @@
 # @ai-sdk/fireworks
 
+## 1.0.50
+
+### Patch Changes
+
+- 537970a: Send `promptCacheKey`, `serviceTier`, `reasoningHistory` and `thinking.budgetTokens` under the snake_case names the Fireworks API defines. Fireworks rejects unknown fields outright, so previously any of these provider options failed the whole request with `400 Extra inputs are not permitted`.
+
 ## 1.0.49
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.124
+
+### Patch Changes
+
+- 8ea0ce4: feat(provider/gateway): add `has` provider option for model capability filtering, supporting `'implicit-caching'` and `'vision'` (image input)
+
 ## 2.0.123
 
 ### Patch Changes
