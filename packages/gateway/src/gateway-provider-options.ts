@@ -111,58 +111,21 @@ const gatewayProviderOptions = lazySchema(() =>
        * automatically. Leave unset to pass requests through unmodified.
        */
       caching: z.literal('auto').optional(),
+      /**
+       * Restrict routing to provider models that have all of the given
+       * capabilities:
+       *
+       * - `'implicit-caching'`: models that perform automatic (implicit)
+       *   prompt caching
+       * - `'vision'`: models that accept image input
+       *
+       * The capability is a property of the model, so the filter applies to
+       * both BYOK and system credentials. If no provider model for the
+       * requested model satisfies the capabilities, the request fails.
+       */
+      has: z.array(z.enum(['implicit-caching', 'vision'])).optional(),
     }),
   ),
 );
 
-<<<<<<< HEAD
 export type GatewayProviderOptions = InferSchema<typeof gatewayProviderOptions>;
-=======
-  /** Request-scoped BYOK credentials to use instead of cached credentials. */
-  byok?: Record<string, Array<Record<string, unknown>>>;
-
-  /** Enables automatic caching behavior when supported by the Gateway. */
-  caching?: 'auto';
-
-  /** Filter to providers that do not train on prompt data. */
-  disallowPromptTraining?: boolean;
-
-  /**
-   * Restrict routing to models that have all of the given capabilities.
-   * Currently supports `'implicit-caching'` and `'vision'` (image input).
-   */
-  has?: Array<'implicit-caching' | 'vision'>;
-
-  /** Array of model slugs specifying fallback models to use in order. */
-  models?: string[];
-
-  /** Array of provider slugs that are the only ones allowed to be used. */
-  only?: string[];
-
-  /** Array of provider slugs specifying the provider attempt order. */
-  order?: string[];
-
-  /** Per-provider timeouts for BYOK credentials in milliseconds. */
-  providerTimeouts?: {
-    byok?: Record<string, number>;
-  };
-
-  /** Entity identifier against which quota is tracked. */
-  quotaEntityId?: string;
-
-  /** Unified service tier intent. */
-  serviceTier?: 'flex' | 'priority';
-
-  /** Sort providers by a performance or cost metric before routing. */
-  sort?: 'cost' | 'tps' | 'ttft';
-
-  /** User-specified tags for reporting and filtering usage. */
-  tags?: string[];
-
-  /** End-user identifier for spend tracking and attribution. */
-  user?: string;
-
-  /** Filter to providers with zero data retention agreements. */
-  zeroDataRetention?: boolean;
-};
->>>>>>> bdd5e289df (feat(provider/gateway): support `vision` in `has` model filtering (#18305))
