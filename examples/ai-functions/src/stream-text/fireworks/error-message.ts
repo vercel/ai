@@ -3,23 +3,6 @@ import { APICallError } from '@ai-sdk/provider';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
-/**
- * Checks that a Fireworks error message survives to the caller.
- *
- * Fireworks returns errors as `{"error":{"object","type","code","message"}}`.
- * When the provider's error schema does not match that shape the parse fails
- * and the message falls back to the HTTP reason phrase — "Bad Request" over
- * HTTP/1.1, and the empty string over HTTP/2, where there is no reason phrase.
- * Either way the actual cause is lost.
- *
- * Each case below provokes a different error. The printed message should be
- * Fireworks' own text, not a bare status phrase:
- *
- *   unknown field  400  Extra inputs are not permitted, field: 'notARealField'
- *   unknown model  404  Model not found, inaccessible, and/or not deployed
- *   bad api key    401  invalid api key
- */
-
 const MODEL = 'accounts/fireworks/models/kimi-k3';
 
 const CASES = [
@@ -43,8 +26,6 @@ const CASES = [
 
 run(async () => {
   for (const testCase of CASES) {
-    // streamText's default onError writes the whole error object to stderr,
-    // which buries the summary; capture it and report it ourselves.
     let streamError: unknown;
     try {
       const result = streamText({
@@ -58,9 +39,7 @@ run(async () => {
           streamError = error;
         },
       });
-      for await (const _ of result.textStream) {
-        // drain; a request-time rejection surfaces here
-      }
+      result.consumeStream();
       if (streamError) throw streamError;
       console.log(`\n${testCase.name}  unexpectedly succeeded`);
     } catch (error) {
