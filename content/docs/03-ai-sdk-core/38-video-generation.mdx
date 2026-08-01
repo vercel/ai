@@ -308,14 +308,43 @@ const { video } = await generateVideo({
 });
 ```
 
+For durable workflows that provide their own sleep primitive, pass it as
+`poll.delay`. The custom delay is used for both polling intervals and webhook
+timeouts.
+
+### Webhooks
+
+For models with native webhook support, pass a `webhook` factory that returns a
+public URL and a promise that resolves when your application receives the
+webhook request:
+
+```tsx highlight={"8-15"}
+import { fal } from '@ai-sdk/fal';
+import { experimental_generateVideo as generateVideo } from 'ai';
+import { createWebhook } from './create-webhook';
+
+const { video } = await generateVideo({
+  model: fal.video('luma-dream-machine/ray-2'),
+  prompt: 'A cinematic timelapse of a city from dawn to dusk',
+  poll: {
+    timeoutMs: 600000, // Wait up to 10 minutes for the webhook
+  },
+  webhook: async () => {
+    const { url, received } = await createWebhook();
+    return { url, received };
+  },
+});
+```
+
+`createWebhook` is an application-specific helper that registers a webhook
+listener before returning. Its `received` promise must resolve with the request
+`headers` and `body`. The SDK sends `url` to the provider, waits for `received`,
+and then retrieves the completed video.
+
 You can provide `poll` together with `webhook`. For models with native webhook
 support, `poll.timeoutMs` limits how long the SDK waits for the notification.
 If the model does not support webhooks, the SDK falls back to polling with the
 provided interval and timeout.
-
-For durable workflows that provide their own sleep primitive, pass it as
-`poll.delay`. The custom delay is used for both polling intervals and webhook
-timeouts.
 
 ### Custom Headers
 
