@@ -71,11 +71,10 @@ function resolveStartImage(
 const isVideoFile = (file: VideoModelV4File): boolean =>
   file.mediaType != null && getTopLevelMediaType(file.mediaType) === 'video';
 
-const isAudioFile = (file: VideoModelV4File): boolean =>
-  file.mediaType != null && getTopLevelMediaType(file.mediaType) === 'audio';
-
-// xAI accepts a single reference audio track per request.
-const MAX_REFERENCE_AUDIOS = 1;
+// References without a media type (only possible for URLs) are treated as
+// images, matching the legacy `referenceImageUrls` behavior.
+const isImageReference = (file: VideoModelV4File): boolean =>
+  file.mediaType == null || getTopLevelMediaType(file.mediaType) === 'image';
 
 function fileToXaiUrl(file: VideoModelV4File): string {
   if (file.type === 'url') {
@@ -89,44 +88,34 @@ function fileToXaiUrl(file: VideoModelV4File): string {
   return `data:${file.mediaType};base64,${base64Data}`;
 }
 
-// Resolves the reference images and audio for R2V generation. First-class
-// `inputReferences` win over the legacy `referenceImageUrls` and
-// `referenceAudioUrls` provider options. Video references are not supported for
-// reference-to-video and are skipped with a warning. References without a media
-// type (only possible for URLs) are treated as images.
+// Resolves the reference images for R2V generation. First-class
+// `inputReferences` win over the legacy `referenceImageUrls` provider option.
+// Non-image references (video or audio) are not supported for
+// reference-to-video and are skipped with a warning.
 function resolveReferences(
   options: XaiVideoCallOptions,
   xaiOptions: XaiParsedVideoModelOptions | undefined,
   warnings: SharedV4Warning[],
 ): {
   images: Array<{ url: string }> | undefined;
-  audios: Array<{ url: string }> | undefined;
-  // Which option the audio came from, so warnings name what the caller wrote.
-  audioSource: 'inputReferences' | 'referenceAudioUrls' | undefined;
 } {
   let images: Array<{ url: string }> | undefined;
-  let audios: Array<{ url: string }> | undefined;
-  let audioSource: 'inputReferences' | 'referenceAudioUrls' | undefined;
 
   if (options.inputReferences != null && options.inputReferences.length > 0) {
     const imageFiles: VideoModelV4File[] = [];
-    const audioFiles: VideoModelV4File[] = [];
 
     for (const reference of options.inputReferences) {
-      if (isVideoFile(reference)) {
+      if (!isImageReference(reference)) {
         warnings.push({
           type: 'unsupported',
           feature: 'inputReferences',
-          details:
-            'xAI reference-to-video accepts image and audio references only. ' +
-            'The video reference was ignored. Use providerOptions.xai.mode ' +
-            '"extend-video" to continue from a video.',
+          details: isVideoFile(reference)
+            ? 'xAI reference-to-video accepts image references only. The ' +
+              'video reference was ignored. Use providerOptions.xai.mode ' +
+              '"extend-video" to continue from a video.'
+            : 'xAI reference-to-video accepts image references only. The ' +
+              'non-image reference was ignored.',
         });
-        continue;
-      }
-
-      if (isAudioFile(reference)) {
-        audioFiles.push(reference);
         continue;
       }
 
@@ -140,23 +129,6 @@ function resolveReferences(
       imageFiles.length > 0
         ? imageFiles.map(reference => ({ url: fileToXaiUrl(reference) }))
         : undefined;
-
-    if (audioFiles.length > 0) {
-      audios = audioFiles
-        .slice(0, MAX_REFERENCE_AUDIOS)
-        .map(reference => ({ url: fileToXaiUrl(reference) }));
-      audioSource = 'inputReferences';
-
-      if (audioFiles.length > MAX_REFERENCE_AUDIOS) {
-        warnings.push({
-          type: 'unsupported',
-          feature: 'inputReferences',
-          details:
-            `xAI accepts at most ${MAX_REFERENCE_AUDIOS} reference audio ` +
-            'track. The extra audio references were ignored.',
-        });
-      }
-    }
   } else if (
     xaiOptions?.referenceImageUrls != null &&
     xaiOptions.referenceImageUrls.length > 0
@@ -164,29 +136,13 @@ function resolveReferences(
     images = xaiOptions.referenceImageUrls.map(url => ({ url }));
   }
 
-  // The provider option supplies audio whenever `inputReferences` carried none,
-  // so reference images can come from `inputReferences` while the audio comes
-  // from `referenceAudioUrls`.
-  if (
-    audios == null &&
-    xaiOptions?.referenceAudioUrls != null &&
-    xaiOptions.referenceAudioUrls.length > 0
-  ) {
-    audios = xaiOptions.referenceAudioUrls.map(url => ({ url }));
-    audioSource = 'referenceAudioUrls';
-  }
-
-  return { images, audios, audioSource };
+  return { images };
 }
 
 // True when at least one reference would survive as an image. Audio-only or
 // video-only references cannot drive reference-to-video on their own.
 function hasImageInputReference(options: XaiVideoCallOptions): boolean {
-  return (
-    options.inputReferences?.some(
-      reference => !isVideoFile(reference) && !isAudioFile(reference),
-    ) ?? false
-  );
+  return options.inputReferences?.some(isImageReference) ?? false;
 }
 
 function resolveVideoMode(
@@ -412,31 +368,16 @@ export class XaiVideoModel implements VideoModelV4 {
       });
     }
 
-    // Reference images and audio for R2V (reference-to-video) generation
+    // Reference images for R2V (reference-to-video) generation
     if (hasReferenceImages) {
-      const {
-        images: referenceImages,
-        audios: referenceAudios,
-        audioSource,
-      } = resolveReferences(options, xaiOptions, warnings);
+      const { images: referenceImages } = resolveReferences(
+        options,
+        xaiOptions,
+        warnings,
+      );
 
       if (referenceImages != null) {
         body.reference_images = referenceImages;
-      }
-
-      // Optional reference audio (max 1).
-      if (referenceAudios != null) {
-        if (referenceImages == null) {
-          warnings.push({
-            type: 'unsupported',
-            feature: audioSource ?? 'referenceAudioUrls',
-            details:
-              'xAI reference audio must be paired with at least one reference ' +
-              'image. The reference audio was ignored.',
-          });
-        } else {
-          body.reference_audios = referenceAudios;
-        }
       }
 
       // Reference-to-video is capped at 720p; downgrade a 1080p request.
@@ -450,22 +391,6 @@ export class XaiVideoModel implements VideoModelV4 {
         });
         body.resolution = '720p';
       }
-    }
-
-    // Warn when reference audio was provided but cannot be used in the resolved
-    // mode (reference audio is only supported for reference-to-video).
-    if (
-      xaiOptions?.referenceAudioUrls != null &&
-      xaiOptions.referenceAudioUrls.length > 0 &&
-      !hasReferenceImages
-    ) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'referenceAudioUrls',
-        details:
-          'xAI only supports reference audio for reference-to-video ' +
-          'generation. The reference audio was ignored.',
-      });
     }
 
     // Warn when references were provided but cannot be used in the resolved
@@ -502,7 +427,6 @@ export class XaiVideoModel implements VideoModelV4 {
             'videoUrl',
             'referenceImageUrls',
             'user',
-            'referenceAudioUrls',
           ].includes(key)
         ) {
           body[key] = value;
