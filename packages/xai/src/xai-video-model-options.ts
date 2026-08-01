@@ -48,20 +48,6 @@ interface XaiVideoReferenceToVideoOptions
   mode: 'reference-to-video';
   /** Reference image URLs (1-7) for R2V generation. */
   referenceImageUrls: string[];
-  /** Reference audio URL (max 1) for R2V generation. */
-  referenceAudioUrls?: string[];
-}
-
-/**
- * Reference-to-video where the reference images come from the top-level
- * `inputReferences` option instead of `referenceImageUrls`, leaving reference
- * audio as the only provider-option payload.
- */
-interface XaiVideoReferenceAudioToVideoOptions
-  extends XaiVideoSharedOptions, XaiVideoUserOptions {
-  mode: 'reference-to-video';
-  referenceImageUrls?: undefined;
-  referenceAudioUrls: string[];
 }
 
 interface XaiVideoGenerationOptions
@@ -69,7 +55,6 @@ interface XaiVideoGenerationOptions
   mode?: undefined;
   videoUrl?: undefined;
   referenceImageUrls?: undefined;
-  referenceAudioUrls?: string[];
 }
 
 interface XaiLegacyEditVideoOptions
@@ -90,8 +75,6 @@ interface XaiLegacyReferenceToVideoOptions
    */
   mode?: undefined;
   referenceImageUrls: string[];
-  /** Reference audio URL (max 1) for R2V generation. */
-  referenceAudioUrls?: string[];
 }
 
 /**
@@ -105,8 +88,7 @@ interface XaiLegacyReferenceToVideoOptions
  * - no `mode`                                     -- standard generation from text prompts or image input
  *
  * Reference images may also come from the top-level `inputReferences` option
- * instead of `referenceImageUrls`, so `referenceAudioUrls` does not require
- * `referenceImageUrls` alongside it.
+ * instead of `referenceImageUrls`.
  *
  * Runtime remains backward compatible with legacy auto-detected provider
  * options, but the public TypeScript type is intentionally explicit so editors
@@ -117,7 +99,6 @@ export type XaiVideoModelOptions =
   | XaiVideoEditModeOptions
   | XaiVideoExtendModeOptions
   | XaiVideoReferenceToVideoOptions
-  | XaiVideoReferenceAudioToVideoOptions
   | XaiLegacyEditVideoOptions
   | XaiLegacyReferenceToVideoOptions;
 
@@ -128,16 +109,11 @@ const baseFields = {
   resolution: resolutionSchema.nullish(),
 };
 
-// xAI accepts at most one reference audio track. An empty array is allowed and
-// means "no reference audio", matching the API's 0-1 range.
-const referenceAudioUrlsSchema = z.array(nonEmptyStringSchema).max(1);
-
 const runtimeSchema = z.looseObject({
   mode: modeSchema.optional(),
   videoUrl: nonEmptyStringSchema.optional(),
   referenceImageUrls: z.array(nonEmptyStringSchema).min(1).max(7).optional(),
   user: z.string().optional(),
-  referenceAudioUrls: referenceAudioUrlsSchema.optional(),
   ...baseFields,
 });
 
