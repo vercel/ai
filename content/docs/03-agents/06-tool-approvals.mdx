@@ -301,7 +301,7 @@ action, not only the natural-language conversation that led to it.
 
 ```ts
 import { createHash } from 'node:crypto';
-import { type GenericToolApprovalFunction } from 'ai';
+import { type ToolApprovalConfiguration, type ToolSet } from 'ai';
 
 type CheckpointVerdict = 'allow' | 'require_approval' | 'deny';
 
@@ -352,7 +352,7 @@ const reviewAction = async (action: {
   return 'require_approval';
 };
 
-const toolApproval: GenericToolApprovalFunction = async ({ toolCall }) => {
+const toolApproval: ToolApprovalConfiguration<ToolSet, unknown> = async ({ toolCall }) => {
   const verdict = await reviewAction({
     toolName: toolCall.toolName,
     toolCallId: toolCall.toolCallId,
