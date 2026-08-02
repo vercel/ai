@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.37
+
+### Patch Changes
+
+- bdd5e28: feat(provider/gateway): support `'vision'` (image input) in the `has` provider option
+
 ## 4.0.36
 
 ### Patch Changes
