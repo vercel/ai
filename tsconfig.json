@@ -178,6 +178,9 @@
       "path": "packages/rsc"
     },
     {
+      "path": "packages/run"
+    },
+    {
       "path": "packages/sandbox-just-bash"
     },
     {

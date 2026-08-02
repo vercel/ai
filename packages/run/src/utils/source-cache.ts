@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { stripTypeScriptTypes } from 'node:module';
-import { CodeModeSourceTooLargeError } from '../errors.js';
+import { RunSourceTooLargeError } from '../errors.js';
 
 const MAX_CACHE_ENTRIES = 256;
 const MAX_CACHE_BYTES = 4 * 1024 * 1024;
@@ -17,7 +17,7 @@ let transformedSourceCacheBytes = 0;
 export function assertSourceSize(source: string, maxSourceBytes: number): void {
   const bytes = byteLength(source);
   if (bytes > maxSourceBytes) {
-    throw new CodeModeSourceTooLargeError(bytes, maxSourceBytes);
+    throw new RunSourceTooLargeError(bytes, maxSourceBytes);
   }
 }
 
@@ -62,9 +62,17 @@ export function clearTransformedSourceCache(): void {
 }
 
 function stripSnippetTypes(source: string): string {
-  const prefix = 'async function __codeModeUser__(){\n';
+  const prefix = 'async function __runUser__(){\n';
   const suffix = '\n}';
-  const stripped = stripTypeScriptTypes(`${prefix}${source}${suffix}`);
+  let stripped: string;
+  try {
+    stripped = stripTypeScriptTypes(`${prefix}${source}${suffix}`);
+  } catch {
+    // Let QuickJS report syntax failures. Its diagnostics use the same source
+    // filename and coordinates as runtime failures and do not expose the host
+    // TypeScript transform or its wrapper.
+    return source;
+  }
   if (!stripped.startsWith(prefix) || !stripped.endsWith(suffix)) {
     return source;
   }

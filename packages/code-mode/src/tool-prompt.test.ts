@@ -5,7 +5,7 @@ import { experimental_createCodeModeTool as createCodeModeTool } from '../dist/i
 
 const BASE_RULES = `Execute code-mode TypeScript in an isolated sandbox.
 
-Put the full program in \`js\`; top-level \`await\`/\`return\` work. Return a JSON-serializable result.
+Put the full program in \`js\`; top-level \`await\`/\`return\` work. Return a serializable JavaScript value.
 Call host tools only as async \`tools.name(input)\`; await each or use \`Promise.all\` for independent calls.
 Use exact names/types below. \`JSON.parse\`/\`JSON.stringify\` are available.`;
 

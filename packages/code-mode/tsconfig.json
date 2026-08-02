@@ -18,5 +18,5 @@
     "src/**/*.test.ts",
     "src/utils/test-helpers.ts"
   ],
-  "references": [{ "path": "../ai" }]
+  "references": [{ "path": "../ai" }, { "path": "../run" }]
 }

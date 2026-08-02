@@ -6,7 +6,7 @@ const DEFAULT_WORKER_OVERHEAD_BYTES = 48 * 1024 * 1024;
 let configuredMaxWorkers: number | undefined;
 
 /**
- * Sets the process-global maximum number of active code-mode workers.
+ * Sets the process-global maximum number of active run workers.
  *
  * Pass `undefined` or call without an argument to restore the dynamic
  * memory-based default. The default admits at least one invocation and admits

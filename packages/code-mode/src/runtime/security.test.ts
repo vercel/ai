@@ -193,11 +193,13 @@ describe('security hardening', () => {
     await expect(
       runCodeMode({
         js: `
-          try { globalThis.__codeModeSerializeJsonPayload = () => '"hacked"'; } catch {}
-          return 1n;
+          const serdeType = typeof globalThis.__runSerdeBundle;
+          try { globalThis.__runSerializeJsonPayload = () => '"hacked"'; } catch {}
+          try { globalThis.__runSerdeBundle = { serializeRunValue: () => '"hacked"' }; } catch {}
+          return { exact: 1n, serdeType };
         `,
         tools: {},
       }),
-    ).rejects.toThrow(/JSON-serializable|bigint/i);
+    ).resolves.toEqual({ exact: 1n, serdeType: 'undefined' });
   });
 });

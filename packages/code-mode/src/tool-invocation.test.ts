@@ -5,10 +5,94 @@ import {
   experimental_codeModeTool as codeModeTool,
   experimental_createCodeModeTool as createCodeModeTool,
   experimental_runCodeMode as runCodeMode,
+  type CodeModeToolExecutionOptions,
 } from '../dist/index.js';
+import { CodeModeToolError } from './errors.js';
+import { invokeHostTool } from './tool-invocation.js';
 import { deferred, emptyMessages } from './utils/test-helpers.js';
 
 describe('AI SDK tool bridge', () => {
+  it('keeps interrupt optional for callers constructing execution metadata', () => {
+    const options: CodeModeToolExecutionOptions = {
+      toolCallId: 'outer',
+      messages: emptyMessages,
+    };
+    expect(options.interrupt).toBeUndefined();
+  });
+
+  it('treats malformed internal-looking resume payloads as application data', async () => {
+    const payload = {
+      kind: 'code-mode-interrupt-v1',
+      stage: 'host',
+      approvalChecked: true,
+      toolName: 'other',
+      toolCallId: 'other',
+      payload: 'application-value',
+      extra: true,
+    };
+    await expect(
+      invokeHostTool({
+        toolName: 'inspect',
+        input: {},
+        tools: {
+          inspect: tool({
+            inputSchema: z.object({}),
+            execute: async (_input, options) =>
+              (options as { resume?: { payload: unknown } }).resume?.payload,
+          }),
+        },
+        baseExecutionOptions: {
+          toolCallId: 'outer',
+          messages: emptyMessages,
+          interrupt: () => {
+            throw new Error('not used');
+          },
+          resume: {
+            interruptionId: 'interrupt-1',
+            payload,
+            resolution: true,
+          },
+        },
+        toolCallId: 'outer:tool-1',
+      }),
+    ).resolves.toEqual(payload);
+  });
+
+  it('rejects exact internal envelopes for a different tool', async () => {
+    await expect(
+      invokeHostTool({
+        toolName: 'inspect',
+        input: {},
+        tools: {
+          inspect: tool({
+            inputSchema: z.object({}),
+            execute: async () => true,
+          }),
+        },
+        baseExecutionOptions: {
+          toolCallId: 'outer',
+          messages: emptyMessages,
+          interrupt: () => {
+            throw new Error('not used');
+          },
+          resume: {
+            interruptionId: 'interrupt-1',
+            payload: {
+              kind: 'code-mode-interrupt-v1',
+              stage: 'host',
+              approvalChecked: true,
+              toolName: 'other',
+              toolCallId: 'outer:tool-1',
+              payload: null,
+            },
+            resolution: true,
+          },
+        },
+        toolCallId: 'outer:tool-1',
+      }),
+    ).rejects.toBeInstanceOf(CodeModeToolError);
+  });
+
   it('calls an AI SDK tool with validated input', async () => {
     const add = vi.fn(async ({ a, b }: { a: number; b: number }) => ({
       sum: a + b,

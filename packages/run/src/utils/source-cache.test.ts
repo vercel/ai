@@ -1,8 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import {
-  CodeModeSourceTooLargeError,
-  experimental_runCodeMode as runCodeMode,
-} from '../../dist/index.js';
+import { RunSourceTooLargeError, run } from '../../dist/index.js';
 import {
   clearTransformedSourceCache,
   getTransformedSourceCacheStats,
@@ -16,35 +13,35 @@ describe('source limits and transform cache', () => {
 
   it('rejects oversized source before sandbox execution', async () => {
     await expect(
-      runCodeMode({
-        js: "return 'too large';",
-        tools: {},
-        options: { executionPolicy: { maxSourceBytes: 8 } },
+      run({
+        source: "return 'too large';",
+        bindings: {},
+        limits: { maxSourceBytes: 8 },
       }),
-    ).rejects.toBeInstanceOf(CodeModeSourceTooLargeError);
+    ).rejects.toBeInstanceOf(RunSourceTooLargeError);
   });
 
   it('rejects oversized source before type stripping', async () => {
     await expect(
-      runCodeMode({
-        js: 'const value = 1; return value;',
-        tools: {},
-        options: { executionPolicy: { maxSourceBytes: 8 } },
+      run({
+        source: 'const value = 1; return value;',
+        bindings: {},
+        limits: { maxSourceBytes: 8 },
       }),
-    ).rejects.toBeInstanceOf(CodeModeSourceTooLargeError);
+    ).rejects.toBeInstanceOf(RunSourceTooLargeError);
   });
 
   it('allows source exactly at the byte limit', async () => {
-    const js = 'return 1;';
-    const maxSourceBytes = new TextEncoder().encode(js).byteLength;
+    const source = 'return 1;';
+    const maxSourceBytes = new TextEncoder().encode(source).byteLength;
 
     await expect(
-      runCodeMode({
-        js,
-        tools: {},
-        options: { executionPolicy: { maxSourceBytes } },
+      run({
+        source,
+        bindings: {},
+        limits: { maxSourceBytes },
       }),
-    ).resolves.toBe(1);
+    ).resolves.toEqual({ status: 'completed', value: 1 });
   });
 
   it('does not cache transformed sources above the per-entry byte limit', () => {

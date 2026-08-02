@@ -1,32 +1,26 @@
 import { asSchema } from 'ai';
 import { CodeModeToolError } from './errors.js';
 import type { CodeModeToolExecutionOptions, CodeModeToolSet } from './types.js';
-import {
-  assertJsonSerializable,
-  toJsonPayload,
-} from './utils/serialization.js';
 
 export async function invokeHostTool({
   toolName,
-  inputJson,
+  input,
   tools,
   baseExecutionOptions,
-  maxToolInputBytes,
-  maxToolOutputBytes,
   toolCallId,
 }: {
   toolName: string;
-  inputJson: string;
+  input: unknown;
   tools: CodeModeToolSet;
-  baseExecutionOptions: CodeModeToolExecutionOptions;
-  maxToolInputBytes: number;
-  maxToolOutputBytes: number;
+  baseExecutionOptions: CodeModeToolExecutionOptions & {
+    interrupt(payload: unknown): never;
+  };
   toolCallId: string;
-}): Promise<string> {
+}): Promise<unknown> {
   throwIfAborted(baseExecutionOptions.abortSignal);
 
-  const hostTool = tools[toolName];
-  if (!hostTool) {
+  const hostTool = Object.hasOwn(tools, toolName) ? tools[toolName] : undefined;
+  if (hostTool === undefined) {
     throw new CodeModeToolError(`Unknown tool: ${toolName}`, {
       toolName,
       availableTools: Object.keys(tools),
@@ -37,9 +31,6 @@ export async function invokeHostTool({
       toolName,
     });
   }
-
-  const input = inputJson === '' ? undefined : JSON.parse(inputJson);
-  assertJsonSerializable(input, maxToolInputBytes, `Tool "${toolName}" input`);
 
   const validation = await raceAgainstAbort(
     validateToolInput(hostTool.inputSchema, input),
@@ -52,22 +43,81 @@ export async function invokeHostTool({
     );
   }
 
-  const executionOptions: CodeModeToolExecutionOptions = {
+  const executionOptions: CodeModeToolExecutionOptions & {
+    interrupt(payload: unknown): never;
+  } = {
     ...baseExecutionOptions,
     toolCallId,
   };
+  const originalInterrupt = executionOptions.interrupt;
+  const originalResume = executionOptions.resume;
+  const resumePayload = originalResume?.payload;
+  let resumeStage: 'approval' | 'host' | undefined;
+  let approvalChecked = false;
 
-  if (
-    await raceAgainstAbort(
-      requiresApproval(hostTool, validation.value, executionOptions),
-      executionOptions.abortSignal,
-    )
-  ) {
-    throw new CodeModeToolError(
-      `Tool "${toolName}" requires approval, which code mode does not support yet.`,
-      { toolName, input: validation.value, toolCallId },
-    );
+  if (isHostInterruptEnvelope(resumePayload)) {
+    if (
+      resumePayload.toolName !== toolName ||
+      resumePayload.toolCallId !== toolCallId
+    ) {
+      throw new CodeModeToolError(
+        `Interruption does not match tool "${toolName}".`,
+        { toolName, toolCallId },
+      );
+    }
+    resumeStage = resumePayload.stage;
+    approvalChecked = resumePayload.approvalChecked;
+    executionOptions.resume = {
+      ...executionOptions.resume!,
+      payload: resumePayload.payload,
+    };
   }
+
+  if (resumeStage === 'approval') {
+    if (originalResume?.resolution !== true) {
+      throw new CodeModeToolError(`Tool "${toolName}" approval was denied.`, {
+        toolName,
+        input: validation.value,
+        toolCallId,
+      });
+    }
+    approvalChecked = true;
+    delete executionOptions.resume;
+  } else if (!approvalChecked) {
+    if (
+      await raceAgainstAbort(
+        requiresApproval(hostTool, validation.value, executionOptions),
+        executionOptions.abortSignal,
+      )
+    ) {
+      originalInterrupt(
+        createInterruptEnvelope({
+          stage: 'approval',
+          approvalChecked: false,
+          toolName,
+          toolCallId,
+          payload: {
+            kind: 'tool-approval',
+            toolName,
+            input: validation.value,
+            toolCallId,
+          },
+        }),
+      );
+    }
+    approvalChecked = true;
+  }
+
+  executionOptions.interrupt = payload =>
+    originalInterrupt(
+      createInterruptEnvelope({
+        stage: 'host',
+        approvalChecked,
+        toolName,
+        toolCallId,
+        payload,
+      }),
+    );
 
   const output = await raceAgainstAbort(
     executeHostTool(hostTool.execute.bind(hostTool), {
@@ -76,7 +126,64 @@ export async function invokeHostTool({
     }),
     executionOptions.abortSignal,
   );
-  return toJsonPayload(output, maxToolOutputBytes, `Tool "${toolName}" output`);
+  return output;
+}
+
+export function unwrapCodeModeInterruptPayload(value: unknown): unknown {
+  return isHostInterruptEnvelope(value) ? value.payload : value;
+}
+
+function isHostInterruptEnvelope(value: unknown): value is {
+  kind: 'code-mode-interrupt-v1';
+  stage: 'approval' | 'host';
+  approvalChecked: boolean;
+  toolName: string;
+  toolCallId: string;
+  payload: unknown;
+} {
+  return (
+    isPlainRecord(value) &&
+    hasExactKeys(value, [
+      'approvalChecked',
+      'kind',
+      'payload',
+      'stage',
+      'toolCallId',
+      'toolName',
+    ]) &&
+    value.kind === 'code-mode-interrupt-v1' &&
+    (value.stage === 'approval' || value.stage === 'host') &&
+    typeof value.approvalChecked === 'boolean' &&
+    typeof value.toolName === 'string' &&
+    typeof value.toolCallId === 'string'
+  );
+}
+
+function createInterruptEnvelope(input: {
+  stage: 'approval' | 'host';
+  approvalChecked: boolean;
+  toolName: string;
+  toolCallId: string;
+  payload: unknown;
+}) {
+  return { kind: 'code-mode-interrupt-v1' as const, ...input };
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false;
+  }
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function hasExactKeys(value: Record<string, unknown>, expected: string[]) {
+  const actual = Object.keys(value).sort();
+  const sortedExpected = [...expected].sort();
+  return (
+    actual.length === sortedExpected.length &&
+    actual.every((key, index) => key === sortedExpected[index])
+  );
 }
 
 async function requiresApproval(
