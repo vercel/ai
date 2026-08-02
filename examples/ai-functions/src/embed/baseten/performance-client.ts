@@ -17,7 +17,7 @@ import { run } from '../../lib/run';
  */
 
 run(async () => {
-  const EMBEDDING_MODEL_ID = '<model-id>'; // e.g. 03y7n6e3
+  const EMBEDDING_MODEL_ID = process.env.EMBEDDING_MODEL_ID; // e.g. 03y7n6e3
   const EMBEDDING_MODEL_URL = `https://model-${EMBEDDING_MODEL_ID}.api.baseten.co/environments/production/sync`;
 
   const baseten = createBaseten({

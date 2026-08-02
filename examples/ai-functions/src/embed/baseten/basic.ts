@@ -6,7 +6,7 @@ run(async () => {
   // Embeddings need a dedicated BEI deployment, which is OpenAI-compatible, so
   // this goes over plain HTTP. Requires a /sync or /sync/v1 endpoint.
   // See ./performance-client.ts for the optional native client.
-  const EMBEDDING_MODEL_ID = '<model-id>'; // e.g. 03y7n6e3
+  const EMBEDDING_MODEL_ID = process.env.EMBEDDING_MODEL_ID; // e.g. 03y7n6e3
   const EMBEDDING_MODEL_URL = `https://model-${EMBEDDING_MODEL_ID}.api.baseten.co/environments/production/sync`;
 
   const baseten = createBaseten({

@@ -6,7 +6,7 @@ run(async () => {
   // Chat against a dedicated deployment. Requires a /sync/v1 endpoint, which
   // OpenAI-compatible servers (vLLM, SGLang, TensorRT-LLM) expose; a plain
   // Truss custom model only offers /predict and will 404 here.
-  const CHAT_MODEL_ID = '<model-id>'; // e.g. 6wg17egw
+  const CHAT_MODEL_ID = process.env.CHAT_MODEL_ID; // e.g. 6wg17egw
   const CHAT_MODEL_URL = `https://model-${CHAT_MODEL_ID}.api.baseten.co/environments/production/sync/v1`;
 
   // Must match the name the server advertises — for vLLM that is

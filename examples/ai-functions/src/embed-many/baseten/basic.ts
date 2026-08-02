@@ -6,7 +6,7 @@ run(async () => {
   // Plain HTTP against a dedicated BEI deployment. `embedMany` splits inputs
   // into chunks of 128 and runs them in parallel, so the list below could be
   // arbitrarily long.
-  const EMBEDDING_MODEL_ID = '<model-id>'; // e.g. 03y7n6e3
+  const EMBEDDING_MODEL_ID = process.env.EMBEDDING_MODEL_ID; // e.g. 03y7n6e3
   const EMBEDDING_MODEL_URL = `https://model-${EMBEDDING_MODEL_ID}.api.baseten.co/environments/production/sync`;
 
   const baseten = createBaseten({
