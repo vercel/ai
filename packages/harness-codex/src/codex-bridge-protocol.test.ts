@@ -71,6 +71,7 @@ describe('inboundMessageSchema', () => {
         tools: [{ name: 'deploy' }],
         model: 'gpt-5.1',
         reasoningEffort: 'high',
+        reasoningSummary: 'detailed',
         webSearch: true,
       }),
     ).not.toThrow();

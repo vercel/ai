@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-type CodexOptions = { config?: { mcp_servers?: unknown } };
+type CodexOptions = {
+  config?: {
+    mcp_servers?: unknown;
+    model_reasoning_summary?: unknown;
+  };
+};
 const CODEX_ENV_KEYS = [
   'AI_GATEWAY_API_KEY',
   'AI_GATEWAY_BASE_URL',
@@ -55,6 +60,7 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
             inputSchema: { type: 'object' },
           },
         ],
+        reasoningSummary: 'detailed',
       },
       {
         emit: () => {},
@@ -108,5 +114,14 @@ describe('Codex bridge config', () => {
 
     expect(state.codexOptions).toHaveLength(1);
     expect(state.codexOptions[0]?.config?.mcp_servers).toBeUndefined();
+  });
+
+  test('forwards reasoning summary to Codex config', async () => {
+    await import('./index');
+
+    expect(state.codexOptions).toHaveLength(1);
+    expect(state.codexOptions[0]?.config?.model_reasoning_summary).toBe(
+      'detailed',
+    );
   });
 });

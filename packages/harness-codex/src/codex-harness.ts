@@ -86,6 +86,11 @@ export type CodexHarnessSettings = {
    */
   readonly reasoningEffort?: 'low' | 'medium' | 'high';
   /**
+   * Reasoning summary detail emitted by Codex. Leaving this unset defers to
+   * the CLI's default.
+   */
+  readonly reasoningSummary?: 'auto' | 'concise' | 'detailed' | 'none';
+  /**
    * When `true`, allow the underlying runtime to use live web search.
    */
   readonly webSearch?: boolean;
@@ -297,6 +302,7 @@ export function createCodex(
             proc: undefined,
             model: settings.model ?? DEFAULT_CODEX_MODEL,
             reasoningEffort: settings.reasoningEffort,
+            reasoningSummary: settings.reasoningSummary,
             webSearch: settings.webSearch,
             resumeThreadId: resumeThreadIdString,
             isResume: true,
@@ -444,6 +450,7 @@ export function createCodex(
         proc,
         model: settings.model ?? DEFAULT_CODEX_MODEL,
         reasoningEffort: settings.reasoningEffort,
+        reasoningSummary: settings.reasoningSummary,
         webSearch: settings.webSearch,
         resumeThreadId: resumeThreadIdString,
         isResume: respawnStrategy !== undefined,
@@ -547,6 +554,7 @@ function createSession({
   proc,
   model,
   reasoningEffort,
+  reasoningSummary,
   webSearch,
   resumeThreadId,
   isResume,
@@ -565,6 +573,7 @@ function createSession({
   proc: Experimental_SandboxProcess | undefined;
   model: string | undefined;
   reasoningEffort: 'low' | 'medium' | 'high' | undefined;
+  reasoningSummary: 'auto' | 'concise' | 'detailed' | 'none' | undefined;
   webSearch: boolean | undefined;
   resumeThreadId: string | undefined;
   isResume: boolean;
@@ -802,6 +811,7 @@ function createSession({
         tools,
         model,
         reasoningEffort,
+        reasoningSummary,
         webSearch,
         ...(permissionMode ? { permissionMode } : {}),
         ...(pendingResumeThreadId
@@ -853,6 +863,7 @@ function createSession({
             })),
             model,
             reasoningEffort,
+            reasoningSummary,
             webSearch,
             ...(permissionMode ? { permissionMode } : {}),
             ...(threadId ? { resumeThreadId: threadId } : {}),
