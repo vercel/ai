@@ -21,8 +21,10 @@ import type { BasetenEmbeddingModelId } from './baseten-embedding-options';
 import { VERSION } from './version';
 
 /**
- * Baseten's per-request embedding input limit. `embedMany` splits larger inputs
- * into chunks of this size and runs them in parallel.
+ * Baseten's per-request embedding input limit: larger batches are rejected with
+ * `413 batch size N > maximum allowed batch size 128`. It is also the native
+ * performance client's own default `batchSize`. `embedMany` splits larger
+ * inputs into chunks of this size and runs them in parallel.
  */
 const MAX_EMBEDDINGS_PER_CALL = 128;
 
