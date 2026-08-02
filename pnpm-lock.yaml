@@ -481,8 +481,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/xai
       '@basetenlabs/performance-client':
-        specifier: ^0.0.10
-        version: 0.0.10
+        specifier: ^0.1.2
+        version: 0.1.2
       '@google/generative-ai':
         specifier: 0.21.0
         version: 0.21.0
@@ -5537,6 +5537,10 @@ packages:
 
   '@basetenlabs/performance-client@0.0.10':
     resolution: {integrity: sha512-H6bpd1JcDbuJsOS2dNft+CCGLzBqHJO/ST/4mMKhLAW641J6PpVJUw1szYsk/dTetdedbWxHpMkvFObOKeP8nw==}
+    engines: {node: '>= 10'}
+
+  '@basetenlabs/performance-client@0.1.2':
+    resolution: {integrity: sha512-j5oHP0AjWagr0mM4qt+7BO3Pzps+9l0W5qZxLpw1w8OtYaqibJ8ege7llMgyxOl98YpuLt9gNNCKQVtcXBtL5w==}
     engines: {node: '>= 10'}
 
   '@bcoe/v8-coverage@0.2.3':
@@ -25995,6 +25999,8 @@ snapshots:
       '@basetenlabs/performance-client-win32-arm64-msvc': 0.0.10
       '@basetenlabs/performance-client-win32-ia32-msvc': 0.0.10
       '@basetenlabs/performance-client-win32-x64-msvc': 0.0.10
+
+  '@basetenlabs/performance-client@0.1.2': {}
 
   '@bcoe/v8-coverage@0.2.3': {}
 

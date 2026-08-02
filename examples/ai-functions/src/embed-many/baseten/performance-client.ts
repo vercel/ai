@@ -1,6 +1,6 @@
 import { createBaseten } from '@ai-sdk/baseten';
 import { PerformanceClient } from '@basetenlabs/performance-client';
-import { embed } from 'ai';
+import { embedMany } from 'ai';
 import { run } from '../../lib/run';
 
 /**
@@ -25,13 +25,19 @@ run(async () => {
     performanceClient: PerformanceClient,
   });
 
-  const { embedding, usage, warnings } = await embed({
+  const { embeddings, usage, warnings } = await embedMany({
     model: baseten.embeddingModel(),
-    value: 'sunny day at the beach',
+    values: [
+      'sunny day at the beach',
+      'rainy afternoon in the city',
+      'snowy mountain peak',
+      'foggy morning in the forest',
+    ],
   });
 
-  console.log('Embedding dimension:', embedding.length);
-  console.log('First 5 values:', embedding.slice(0, 5));
+  console.log('Number of embeddings:', embeddings.length);
+  console.log('Embedding dimension:', embeddings[0].length);
+  console.log('First embedding (first 5 values):', embeddings[0].slice(0, 5));
   console.log('Usage:', usage);
   console.log('Warnings:', warnings);
 });
