@@ -21,16 +21,16 @@ run(async () => {
     modelURL: CHAT_MODEL_URL,
   });
 
-  const { text, usage, finalStep } = await generateText({
+  const result = await generateText({
     model: baseten.languageModel(CHAT_MODEL_NAME),
     prompt: 'Explain quantum computing in simple terms.',
   });
 
-  console.log(text);
+  console.log(result.text);
   console.log();
-  console.log('Usage:', usage);
+  console.log('Usage:', result.usage);
   console.log(
-    'Final Step:',
-    JSON.stringify(finalStep.providerMetadata, null, 2),
+    'Provider metadata:',
+    JSON.stringify(result.finalStep.providerMetadata, null, 2),
   );
 });
