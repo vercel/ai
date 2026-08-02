@@ -39,8 +39,6 @@ run(async () => {
           streamError = error;
         },
       });
-      // Must be awaited: streamText reports failures through onError, and
-      // without this the check below runs before the stream has even started.
       await result.consumeStream();
       if (streamError) throw streamError;
       console.log(`\n${testCase.name}  unexpectedly succeeded`);
