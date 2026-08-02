@@ -3,8 +3,9 @@ import { embed } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
-  // Using Performance Client with custom model URL for embeddings
-  // Performance Client requires /sync endpoints and handles batching automatically
+  // Embeddings need a dedicated BEI deployment, which is OpenAI-compatible, so
+  // this goes over plain HTTP. Requires a /sync or /sync/v1 endpoint.
+  // See ./performance-client.ts for the optional native client.
   const EMBEDDING_MODEL_ID = '<model-id>'; // e.g. 03y7n6e3
   const EMBEDDING_MODEL_URL = `https://model-${EMBEDDING_MODEL_ID}.api.baseten.co/environments/production/sync`;
 

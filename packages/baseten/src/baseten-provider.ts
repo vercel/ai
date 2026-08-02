@@ -18,8 +18,33 @@ import {
 import { z } from 'zod/v4';
 import type { BasetenChatModelId } from './baseten-chat-options';
 import type { BasetenEmbeddingModelId } from './baseten-embedding-options';
-import { PerformanceClient } from '@basetenlabs/performance-client';
 import { VERSION } from './version';
+
+/**
+ * Baseten's per-request embedding input limit. `embedMany` splits larger inputs
+ * into chunks of this size and runs them in parallel.
+ */
+const MAX_EMBEDDINGS_PER_CALL = 128;
+
+/**
+ * The part of `@basetenlabs/performance-client`'s `PerformanceClient` this
+ * provider uses. Declared structurally so that package — a native addon — stays
+ * out of this one's dependency and type graph entirely.
+ */
+export type BasetenPerformanceClient = {
+  embed(
+    input: string[],
+    model: string,
+  ): Promise<{
+    data: { embedding: number[] }[];
+    usage?: { total_tokens?: number };
+  }>;
+};
+
+export type BasetenPerformanceClientConstructor = new (
+  baseUrl: string,
+  apiKey?: string,
+) => BasetenPerformanceClient;
 
 export type BasetenErrorData = z.infer<typeof basetenErrorSchema>;
 
@@ -59,6 +84,25 @@ export interface BasetenProviderSettings {
    * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /**
+   * Opt in to Baseten's native performance client for embeddings, for
+   * client-side batching and request hedging. Pass the `PerformanceClient`
+   * constructor from `@basetenlabs/performance-client`, which you install
+   * yourself:
+   *
+   * ```ts
+   * import { PerformanceClient } from '@basetenlabs/performance-client';
+   *
+   * const baseten = createBaseten({ modelURL, performanceClient: PerformanceClient });
+   * ```
+   *
+   * When omitted, embeddings go over plain HTTP to Baseten's OpenAI-compatible
+   * endpoint. That is the default because the native client is a NAPI addon: it
+   * cannot load in edge runtimes and bundlers cannot resolve its platform
+   * binaries.
+   */
+  performanceClient?: BasetenPerformanceClientConstructor;
 }
 
 export interface BasetenProvider extends ProviderV4 {
@@ -172,63 +216,71 @@ export function createBaseten(
       );
     }
 
-    // Check if this is a /sync or /sync/v1 endpoint (OpenAI-compatible)
-    // We support both /sync and /sync/v1, stripping /v1 before passing to Performance Client, as Performance Client adds /v1 itself
+    // Both /sync and /sync/v1 are OpenAI-compatible; getCommonModelConfig
+    // appends the missing /v1 for the bare /sync form.
     const isOpenAICompatible = customURL.includes('/sync');
 
-    if (isOpenAICompatible) {
-      // Create the model using OpenAICompatibleEmbeddingModel and override doEmbed
-      const model = new OpenAICompatibleEmbeddingModel(
-        modelId ?? 'embeddings',
-        {
-          ...getCommonModelConfig('embedding', customURL),
-          errorStructure: basetenErrorStructure,
-        },
-      );
-
-      // Strip /v1 from URL if present before passing to Performance Client to avoid double /v1
-      const performanceClientURL = customURL.replace('/sync/v1', '/sync');
-
-      // Initialize the B10 Performance Client once for reuse
-      const performanceClient = new PerformanceClient(
-        performanceClientURL,
-        loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'BASETEN_API_KEY',
-          description: 'Baseten API key',
-        }),
-      );
-
-      // Override the doEmbed method to use the pre-created Performance Client
-      model.doEmbed = async params => {
-        if (!params.values || !Array.isArray(params.values)) {
-          throw new Error('params.values must be an array of strings');
-        }
-
-        // Performance Client handles batching internally, so we don't need to limit in 128 here
-        const response = await performanceClient.embed(
-          params.values,
-          modelId ?? 'embeddings', // model_id is for Model APIs, we don't use it here for dedicated
-        );
-        // Transform the response to match the expected format
-        const embeddings = response.data.map((item: any) => item.embedding);
-
-        return {
-          embeddings,
-          usage: response.usage
-            ? { tokens: response.usage.total_tokens }
-            : undefined,
-          response: { headers: {}, body: response },
-          warnings: [],
-        };
-      };
-
-      return model;
-    } else {
+    if (!isOpenAICompatible) {
       throw new Error(
         'Not supported. You must use a /sync or /sync/v1 endpoint for embeddings.',
       );
     }
+
+    const PerformanceClient = options.performanceClient;
+
+    // BEI embedding deployments are OpenAI-compatible with no extra settings, so
+    // plain HTTP is the default and needs no override.
+    const model = new OpenAICompatibleEmbeddingModel(modelId ?? 'embeddings', {
+      ...getCommonModelConfig('embedding', customURL),
+      errorStructure: basetenErrorStructure,
+      // Over HTTP, cap each request and let `embedMany` split and parallelise.
+      // The native client does its own batching, so let it take everything at
+      // once — `embedMany` treats Infinity as "one call".
+      maxEmbeddingsPerCall: PerformanceClient
+        ? Number.POSITIVE_INFINITY
+        : MAX_EMBEDDINGS_PER_CALL,
+    });
+
+    if (!PerformanceClient) {
+      return model;
+    }
+
+    // Opted in to the native client. It appends /v1 itself, so hand it the bare
+    // /sync form.
+    const performanceClient = new PerformanceClient(
+      customURL.replace('/sync/v1', '/sync'),
+      loadApiKey({
+        apiKey: options.apiKey,
+        environmentVariableName: 'BASETEN_API_KEY',
+        description: 'Baseten API key',
+      }),
+    );
+
+    model.doEmbed = async params => {
+      if (!params.values || !Array.isArray(params.values)) {
+        throw new Error('params.values must be an array of strings');
+      }
+
+      const response = await performanceClient.embed(
+        params.values,
+        // model_id is for Model APIs; dedicated deployments ignore it.
+        modelId ?? 'embeddings',
+      );
+
+      return {
+        embeddings: response.data.map(item => item.embedding),
+        // The native client types its response as `any`; only report usage when
+        // a token count is actually present rather than `{ tokens: undefined }`.
+        usage:
+          typeof response.usage?.total_tokens === 'number'
+            ? { tokens: response.usage.total_tokens }
+            : undefined,
+        response: { headers: {}, body: response },
+        warnings: [],
+      };
+    };
+
+    return model;
   };
 
   const provider = (modelId?: BasetenChatModelId) => createChatModel(modelId);

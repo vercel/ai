@@ -64,6 +64,7 @@
     "@ai-sdk/vercel": "workspace:*",
     "@ai-sdk/voyage": "workspace:*",
     "@ai-sdk/xai": "workspace:*",
+    "@basetenlabs/performance-client": "^0.0.10",
     "@google/generative-ai": "0.21.0",
     "@langchain/core": "^1.1.46",
     "@langfuse/otel": "^4.6.1",
