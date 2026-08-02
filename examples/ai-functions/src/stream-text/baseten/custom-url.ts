@@ -1,5 +1,5 @@
 import { createBaseten } from '@ai-sdk/baseten';
-import { generateText } from 'ai';
+import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
@@ -21,16 +21,17 @@ run(async () => {
     modelURL: CHAT_MODEL_URL,
   });
 
-  const { text, usage, finalStep } = await generateText({
-    model: baseten.languageModel(CHAT_MODEL_NAME),
-    prompt: 'Explain quantum computing in simple terms.',
+  const result = streamText({
+    model: baseten(CHAT_MODEL_NAME),
+    prompt: 'Give me a poem about life',
   });
 
-  console.log(text);
+  for await (const textPart of result.textStream) {
+    process.stdout.write(textPart);
+  }
+
   console.log();
-  console.log('Usage:', usage);
-  console.log(
-    'Final Step:',
-    JSON.stringify(finalStep.providerMetadata, null, 2),
-  );
+  console.log('Token usage:', await result.usage);
+  console.log('Finish reason:', await result.finishReason);
+  console.log('Final Step:', JSON.stringify(await result.finalStep, null, 2));
 });

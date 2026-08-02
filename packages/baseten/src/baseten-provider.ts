@@ -192,6 +192,9 @@ export function createBaseten(
         return new OpenAICompatibleChatLanguageModel(modelId ?? 'placeholder', {
           ...getCommonModelConfig('chat', customURL),
           errorStructure: basetenErrorStructure,
+          // Without stream_options.include_usage, an OpenAI-compatible server
+          // omits usage from streamed responses entirely.
+          includeUsage: true,
         });
       } else if (customURL.includes('/predict')) {
         throw new Error(
@@ -204,6 +207,7 @@ export function createBaseten(
     return new OpenAICompatibleChatLanguageModel(modelId ?? 'chat', {
       ...getCommonModelConfig('chat'),
       errorStructure: basetenErrorStructure,
+      includeUsage: true,
     });
   };
 

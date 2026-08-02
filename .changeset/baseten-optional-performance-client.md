@@ -20,3 +20,5 @@ The default path now supports things the previous implementation silently droppe
 `usage.tokens` now comes from `prompt_tokens` rather than `total_tokens`, matching the `EmbeddingModelV4` contract ("we only have input tokens for embeddings") and the other providers. The values are normally identical for embeddings.
 
 One behaviour change to be aware of: each request now sends at most 128 values. `embedMany` splits and parallelises above that, so only a direct `doEmbed` call with more than 128 values is affected — it throws `TooManyEmbeddingValuesForCallError`. The opt-in native path is unchanged and still receives everything in one call.
+
+Separately, report token usage for streamed chat completions. The provider never set `includeUsage`, so `stream_options.include_usage` was omitted from requests and OpenAI-compatible servers returned no usage at all for streams — `streamText` reported `inputTokens`/`outputTokens`/`totalTokens` as `undefined` while `generateText` on the same model reported them correctly. This affected both the Model APIs and dedicated-deployment paths.

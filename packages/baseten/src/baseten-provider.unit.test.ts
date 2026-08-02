@@ -153,6 +153,29 @@ describe('BasetenProvider', () => {
       );
     });
 
+    // An OpenAI-compatible server omits usage from streamed responses unless
+    // `stream_options.include_usage` is set, which is what `includeUsage`
+    // controls. Non-streaming responses carry usage regardless, so a miss here
+    // only shows up on streams.
+    describe('includeUsage', () => {
+      it('should be set for the default Model APIs path', () => {
+        createBaseten().chatModel('deepseek-ai/DeepSeek-V3-0324');
+
+        const config = OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
+        expect(config.includeUsage).toBe(true);
+      });
+
+      it('should be set for a dedicated /sync/v1 deployment', () => {
+        createBaseten({
+          modelURL:
+            'https://model-123.api.baseten.co/environments/production/sync/v1',
+        }).chatModel();
+
+        const config = OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
+        expect(config.includeUsage).toBe(true);
+      });
+    });
+
     it('should construct a chat model with optional modelId', () => {
       const provider = createBaseten();
 
