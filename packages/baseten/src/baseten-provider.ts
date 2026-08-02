@@ -27,9 +27,8 @@ import { VERSION } from './version';
 const MAX_EMBEDDINGS_PER_CALL = 128;
 
 /**
- * The part of `@basetenlabs/performance-client`'s `PerformanceClient` this
- * provider uses. Declared structurally so that package — a native addon — stays
- * out of this one's dependency and type graph entirely.
+ * The part of `@basetenlabs/performance-client` we use, declared structurally to
+ * keep that native addon out of our dependency and type graph.
  */
 export type BasetenPerformanceClient = {
   embed(
@@ -98,9 +97,8 @@ export interface BasetenProviderSettings {
    * ```
    *
    * When omitted, embeddings go over plain HTTP to Baseten's OpenAI-compatible
-   * endpoint. That is the default because the native client is a NAPI addon: it
-   * cannot load in edge runtimes and bundlers cannot resolve its platform
-   * binaries.
+   * endpoint — the default, since this NAPI addon cannot load in edge runtimes
+   * and bundlers cannot resolve its platform binaries.
    */
   performanceClient?: BasetenPerformanceClientConstructor;
 }
@@ -180,20 +178,13 @@ export function createBaseten(
   });
 
   const createChatModel = (modelId?: BasetenChatModelId) => {
-    // Use modelURL if provided, otherwise use default Model APIs
     const customURL = options.modelURL;
-
     if (customURL) {
-      // Check if this is a /sync/v1 endpoint (OpenAI-compatible) or /predict endpoint (custom)
-      const isOpenAICompatible = customURL.includes('/sync/v1');
-
-      if (isOpenAICompatible) {
-        // For /sync/v1 endpoints, use standard OpenAI-compatible format
+      if (customURL.includes('/sync/v1')) {
         return new OpenAICompatibleChatLanguageModel(modelId ?? 'placeholder', {
           ...getCommonModelConfig('chat', customURL),
           errorStructure: basetenErrorStructure,
-          // Without stream_options.include_usage, an OpenAI-compatible server
-          // omits usage from streamed responses entirely.
+          // Or stream_options.include_usage is omitted and streams report no usage.
           includeUsage: true,
         });
       } else if (customURL.includes('/predict')) {
@@ -203,7 +194,6 @@ export function createBaseten(
       }
     }
 
-    // Use default OpenAI-compatible format for Model APIs
     return new OpenAICompatibleChatLanguageModel(modelId ?? 'chat', {
       ...getCommonModelConfig('chat'),
       errorStructure: basetenErrorStructure,
@@ -212,7 +202,6 @@ export function createBaseten(
   };
 
   const createEmbeddingModel = (modelId?: BasetenEmbeddingModelId) => {
-    // Use modelURL if provided
     const customURL = options.modelURL;
     if (!customURL) {
       throw new Error(
@@ -220,17 +209,11 @@ export function createBaseten(
       );
     }
 
-    // Both /sync and /sync/v1 are OpenAI-compatible; getCommonModelConfig
-    // appends the missing /v1 for the bare /sync form.
-    const isOpenAICompatible = customURL.includes('/sync');
-
-    if (!isOpenAICompatible) {
+    if (!customURL.includes('/sync')) {
       throw new Error(
         'Not supported. You must use a /sync or /sync/v1 endpoint for embeddings.',
       );
     }
-
-    const PerformanceClient = options.performanceClient;
 
     // BEI embedding deployments are OpenAI-compatible with no extra settings, so
     // plain HTTP is the default and needs no override.
@@ -240,18 +223,18 @@ export function createBaseten(
       // Over HTTP, cap each request and let `embedMany` split and parallelise.
       // The native client does its own batching, so let it take everything at
       // once — `embedMany` treats Infinity as "one call".
-      maxEmbeddingsPerCall: PerformanceClient
+      maxEmbeddingsPerCall: options.performanceClient
         ? Number.POSITIVE_INFINITY
         : MAX_EMBEDDINGS_PER_CALL,
     });
 
-    if (!PerformanceClient) {
+    if (!options.performanceClient) {
       return model;
     }
 
     // Opted in to the native client. It appends /v1 itself, so hand it the bare
     // /sync form.
-    const performanceClient = new PerformanceClient(
+    const performanceClient = new options.performanceClient(
       customURL.replace('/sync/v1', '/sync'),
       loadApiKey({
         apiKey: options.apiKey,
