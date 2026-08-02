@@ -459,6 +459,97 @@ describe('user messages', () => {
     ).toThrow("'file part media type video/mp4' functionality not supported");
   });
 
+  it('should convert video parts to video_url when supportsVideo is enabled', async () => {
+    const result = convertToOpenAICompatibleChatMessages(
+      [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Describe this video' },
+            {
+              type: 'file',
+              data: {
+                type: 'data' as const,
+                data: new Uint8Array([0, 1, 2, 3]),
+              },
+              mediaType: 'video/mp4',
+            },
+          ],
+        },
+      ],
+      { supportsVideo: true },
+    );
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Describe this video' },
+          {
+            type: 'video_url',
+            video_url: { url: 'data:video/mp4;base64,AAECAw==' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should pass through video URLs when supportsVideo is enabled', async () => {
+    const result = convertToOpenAICompatibleChatMessages(
+      [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'url' as const,
+                url: new URL('https://example.com/video.mp4'),
+              },
+              mediaType: 'video/*',
+            },
+          ],
+        },
+      ],
+      { supportsVideo: true },
+    );
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'video_url',
+            video_url: { url: 'https://example.com/video.mp4' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should throw error for video parts when supportsVideo is disabled', async () => {
+    expect(() =>
+      convertToOpenAICompatibleChatMessages(
+        [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: {
+                  type: 'data' as const,
+                  data: new Uint8Array([0, 1, 2, 3]),
+                },
+                mediaType: 'video/mp4',
+              },
+            ],
+          },
+        ],
+        { supportsVideo: false },
+      ),
+    ).toThrow("'file part media type video/mp4' functionality not supported");
+  });
+
   it('should throw error for file parts with provider references', async () => {
     expect(() =>
       convertToOpenAICompatibleChatMessages([

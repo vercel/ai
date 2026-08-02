@@ -73,6 +73,12 @@ export type OpenAICompatibleChatConfig = {
   supportsStructuredOutputs?: boolean;
 
   /**
+   * Whether the model supports video input (`video_url` content parts).
+   * Defaults to false: video file parts throw UnsupportedFunctionalityError.
+   */
+  supportsVideo?: boolean;
+
+  /**
    * The supported URLs for the model.
    */
   supportedUrls?: () => LanguageModelV4['supportedUrls'];
@@ -314,7 +320,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         verbosity: compatibleOptions.textVerbosity,
 
         // messages:
-        messages: convertToOpenAICompatibleChatMessages(prompt),
+        messages: convertToOpenAICompatibleChatMessages(prompt, {
+          supportsVideo: this.config.supportsVideo,
+        }),
 
         // tools:
         tools: openaiTools,

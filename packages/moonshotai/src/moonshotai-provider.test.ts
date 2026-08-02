@@ -93,6 +93,16 @@ describe('MoonshotAIProvider', () => {
       expect(model).toBeInstanceOf(MoonshotAIChatLanguageModel);
     });
 
+    it('should enable video input support', () => {
+      const provider = createMoonshotAI();
+      provider.chatModel('kimi-k3');
+
+      const constructorCall = MoonshotAIChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+
+      expect(config.supportsVideo).toBe(true);
+    });
+
     it('should pass transformRequestBody that converts thinking options', () => {
       const provider = createMoonshotAI();
       provider.chatModel('kimi-k2-thinking');

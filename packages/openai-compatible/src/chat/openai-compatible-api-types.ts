@@ -28,12 +28,18 @@ export interface OpenAICompatibleUserMessage extends JsonRecord<OpenAICompatible
 export type OpenAICompatibleContentPart =
   | OpenAICompatibleContentPartText
   | OpenAICompatibleContentPartImage
+  | OpenAICompatibleContentPartVideo
   | OpenAICompatibleContentPartInputAudio
   | OpenAICompatibleContentPartFile;
 
 export interface OpenAICompatibleContentPartText extends JsonRecord {
   type: 'text';
   text: string;
+}
+
+export interface OpenAICompatibleContentPartVideo extends JsonRecord {
+  type: 'video_url';
+  video_url: { url: string };
 }
 
 export interface OpenAICompatibleContentPartImage extends JsonRecord {

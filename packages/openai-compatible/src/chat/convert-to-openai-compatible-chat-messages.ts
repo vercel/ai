@@ -31,6 +31,7 @@ function getAudioFormat(mediaType: string): 'wav' | 'mp3' | null {
 
 export function convertToOpenAICompatibleChatMessages(
   prompt: LanguageModelV4Prompt,
+  options?: { supportsVideo?: boolean },
 ): OpenAICompatibleChatPrompt {
   const messages: OpenAICompatibleChatPrompt = [];
   for (const { role, content, ...message } of prompt) {
@@ -79,6 +80,19 @@ export function convertToOpenAICompatibleChatMessages(
                       return {
                         type: 'image_url',
                         image_url: {
+                          url:
+                            part.data.type === 'url'
+                              ? part.data.url.toString()
+                              : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
+                        },
+                        ...partMetadata,
+                      };
+                    }
+
+                    if (topLevel === 'video' && options?.supportsVideo) {
+                      return {
+                        type: 'video_url',
+                        video_url: {
                           url:
                             part.data.type === 'url'
                               ? part.data.url.toString()

@@ -113,6 +113,7 @@ export function createMoonshotAI(
       includeUsage: true,
       errorStructure: moonshotaiErrorStructure,
       supportsStructuredOutputs: getModelStructuredOutputSupport(modelId),
+      supportsVideo: true,
       transformRequestBody: (args: Record<string, any>) => {
         const thinking = args.thinking as
           | { type?: string; budgetTokens?: number }
