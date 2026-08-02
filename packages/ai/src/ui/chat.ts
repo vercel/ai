@@ -646,6 +646,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.setStatus({ status: 'submitted', error: undefined });
 
     const lastMessage = this.lastMessage;
+    const lastMessageForResponse =
+      trigger === 'regenerate-message' ? undefined : lastMessage;
 
     let isAbort = false;
     let isDisconnect = false;
@@ -655,7 +657,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     try {
       const response = {
         state: createStreamingUIMessageState({
-          lastMessage: this.state.snapshot(lastMessage),
+          lastMessage: this.state.snapshot(lastMessageForResponse),
           messageId: this.generateId(),
         }),
         abortController: new AbortController(),
