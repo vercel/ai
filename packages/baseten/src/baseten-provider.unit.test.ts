@@ -176,6 +176,79 @@ describe('BasetenProvider', () => {
       });
     });
 
+    // Baseten sends a bare string from the Model APIs but lets dedicated
+    // deployments pass through their server's OpenAI-shaped object, so the
+    // schema has to accept both. A failed parse degrades the message to the
+    // HTTP reason phrase — "Not Found" over HTTP/1.1, "" over HTTP/2.
+    describe('errorStructure', () => {
+      const getErrorStructure = () => {
+        createBaseten().chatModel('test-model');
+        return OpenAICompatibleChatLanguageModelMock.mock.calls[0][1]
+          .errorStructure;
+      };
+
+      it('should parse the string envelope the Model APIs return', () => {
+        const { errorSchema, errorToMessage } = getErrorStructure();
+
+        const parsed = errorSchema.parse({
+          error: 'please check the model you provided',
+        });
+
+        expect(errorToMessage(parsed)).toBe(
+          'please check the model you provided',
+        );
+      });
+
+      it('should parse the object envelope a dedicated deployment returns', () => {
+        const { errorSchema, errorToMessage } = getErrorStructure();
+
+        const parsed = errorSchema.parse({
+          error: {
+            code: 404,
+            message: 'The model `not-a-real-model` does not exist.',
+            param: 'model',
+            type: 'NotFoundError',
+          },
+        });
+
+        expect(errorToMessage(parsed)).toBe(
+          'The model `not-a-real-model` does not exist.',
+        );
+      });
+
+      it('should parse an error object with a null param and string code', () => {
+        const { errorSchema, errorToMessage } = getErrorStructure();
+
+        const parsed = errorSchema.parse({
+          error: {
+            message: 'Invalid value for `temperature`.',
+            param: null,
+            code: 'invalid_request_error',
+            type: 'BadRequestError',
+          },
+        });
+
+        expect(errorToMessage(parsed)).toBe('Invalid value for `temperature`.');
+      });
+
+      it('should ignore unknown keys alongside the error', () => {
+        const { errorSchema, errorToMessage } = getErrorStructure();
+
+        const parsed = errorSchema.parse({
+          error: { message: 'Model not found' },
+          request_id: 'chatcmpl-abc123',
+        });
+
+        expect(errorToMessage(parsed)).toBe('Model not found');
+      });
+
+      it('should reject an error object without a message', () => {
+        const { errorSchema } = getErrorStructure();
+
+        expect(() => errorSchema.parse({ error: { code: 404 } })).toThrow();
+      });
+    });
+
     it('should construct a chat model with optional modelId', () => {
       const provider = createBaseten();
 

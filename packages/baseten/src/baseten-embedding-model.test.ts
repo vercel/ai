@@ -184,10 +184,12 @@ describe('doEmbed', () => {
     });
   });
 
-  // Baseten returns `{"error": "..."}` with error as a bare string, not the
-  // usual OpenAI `{"error": {"message": ...}}` object. If the schema stops
-  // matching, the message silently degrades to the HTTP reason phrase — empty
-  // over HTTP/2, which has none.
+  // Baseten sends `error` as a bare string from the Model APIs but lets
+  // dedicated deployments pass through their server's OpenAI-shaped object.
+  // Embeddings require a `modelURL`, so they always talk to a dedicated
+  // deployment and the object form is the likelier one here. If the schema
+  // stops matching either, the message silently degrades to the HTTP reason
+  // phrase — empty over HTTP/2, which has none.
   it('should surface Baseten string-shaped error messages', async () => {
     server.urls[EMBEDDINGS_URL].response = {
       type: 'error',
@@ -201,6 +203,29 @@ describe('doEmbed', () => {
 
     await expect(model.doEmbed({ values: testValues })).rejects.toThrow(
       'please check the api-key you provided',
+    );
+  });
+
+  it('should surface object-shaped error messages from a dedicated deployment', async () => {
+    server.urls[EMBEDDINGS_URL].response = {
+      type: 'error',
+      status: 404,
+      body: JSON.stringify({
+        error: {
+          code: 404,
+          message: 'The model `not-a-real-model` does not exist.',
+          param: 'model',
+          type: 'NotFoundError',
+        },
+      }),
+    };
+    const model = createBaseten({
+      apiKey: 'test-api-key',
+      modelURL: SYNC_URL,
+    }).embeddingModel();
+
+    await expect(model.doEmbed({ values: testValues })).rejects.toThrow(
+      'The model `not-a-real-model` does not exist.',
     );
   });
 });
