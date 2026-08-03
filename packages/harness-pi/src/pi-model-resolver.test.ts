@@ -42,6 +42,22 @@ const defaultGatewayModel: PiModel = {
   baseUrl: 'https://ai-gateway.vercel.sh',
 };
 
+const xaiModel: PiModel = {
+  ...sampleModel,
+  id: 'grok-4.3',
+  name: 'Grok 4.3',
+  provider: 'xai',
+  baseUrl: 'https://api.x.ai',
+};
+
+const xaiProxiedThroughGateway: PiModel = {
+  ...sampleModel,
+  id: 'xai/grok-4.3',
+  name: 'Grok 4.3 (gateway)',
+  provider: 'vercel-ai-gateway',
+  baseUrl: 'https://ai-gateway.vercel.sh',
+};
+
 describe('createPiModelResolver', () => {
   it('returns matching model by id', async () => {
     const resolve = createPiModelResolver({
@@ -101,5 +117,83 @@ describe('createPiModelResolver', () => {
       env: { AI_GATEWAY_API_KEY: 'sk-test' },
     });
     expect(resolve(undefined)).toBeUndefined();
+  });
+
+  it('resolves a compound provider/id reference to the entry under that provider', async () => {
+    const resolve = createPiModelResolver({
+      modelRegistry: await makeRegistry([xaiModel]),
+      env: {},
+    });
+    expect(resolve('xai/grok-4.3')).toEqual(xaiModel);
+  });
+
+  it('resolves a compound provider/name reference', async () => {
+    const resolve = createPiModelResolver({
+      modelRegistry: await makeRegistry([xaiModel]),
+      env: {},
+    });
+    expect(resolve('xai/Grok 4.3')).toEqual(xaiModel);
+  });
+
+  it('prefers the scoped provider match over a proxy entry whose flat id collides', async () => {
+    const resolve = createPiModelResolver({
+      modelRegistry: await makeRegistry([xaiModel, xaiProxiedThroughGateway]),
+      env: {},
+    });
+    expect(resolve('xai/grok-4.3')).toEqual(xaiModel);
+  });
+
+  it('prefers the scoped provider match over a proxy entry regardless of catalog order', async () => {
+    const resolve = createPiModelResolver({
+      modelRegistry: await makeRegistry([xaiProxiedThroughGateway, xaiModel]),
+      env: {},
+    });
+    expect(resolve('xai/grok-4.3')).toEqual(xaiModel);
+  });
+
+  it('prefers the gateway entry over the scoped native provider when gateway creds are present', async () => {
+    const resolve = createPiModelResolver({
+      modelRegistry: await makeRegistry([xaiModel, xaiProxiedThroughGateway]),
+      env: { AI_GATEWAY_API_KEY: 'sk-test' },
+    });
+    expect(resolve('xai/grok-4.3')).toEqual(xaiProxiedThroughGateway);
+  });
+
+  it('prefers the gateway entry over the scoped native provider regardless of catalog order', async () => {
+    const resolve = createPiModelResolver({
+      modelRegistry: await makeRegistry([xaiProxiedThroughGateway, xaiModel]),
+      env: { AI_GATEWAY_API_KEY: 'sk-test' },
+    });
+    expect(resolve('xai/grok-4.3')).toEqual(xaiProxiedThroughGateway);
+  });
+
+  it('falls back to the scoped native provider when gateway creds are present but the gateway carries nothing for it', async () => {
+    const resolve = createPiModelResolver({
+      modelRegistry: await makeRegistry([xaiModel]),
+      env: { AI_GATEWAY_API_KEY: 'sk-test' },
+    });
+    expect(resolve('xai/grok-4.3')).toEqual(xaiModel);
+  });
+
+  it('falls through to flat matching when the id prefix is not a known provider', async () => {
+    const resolve = createPiModelResolver({
+      modelRegistry: await makeRegistry([xaiProxiedThroughGateway]),
+      env: {},
+    });
+    // "xai" is not a provider in this catalog, so "xai/grok-4.3" cannot be
+    // scoped-matched and must fall back to a flat id match instead.
+    expect(resolve('xai/grok-4.3')).toEqual(xaiProxiedThroughGateway);
+  });
+
+  it('still prefers the gateway entry over other flat matches when there is no scoped match', async () => {
+    const openrouterModel: PiModel = {
+      ...defaultGatewayModel,
+      provider: 'openrouter',
+    };
+    const resolve = createPiModelResolver({
+      modelRegistry: await makeRegistry([openrouterModel, defaultGatewayModel]),
+      env: { AI_GATEWAY_API_KEY: 'sk-test' },
+    });
+    expect(resolve(DEFAULT_PI_GATEWAY_MODEL_ID)).toEqual(defaultGatewayModel);
   });
 });

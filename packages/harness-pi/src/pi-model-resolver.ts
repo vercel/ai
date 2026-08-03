@@ -11,6 +11,28 @@ type PiModel = ReturnType<ModelRegistry['getAll']>[number];
  */
 export const DEFAULT_PI_GATEWAY_MODEL_ID = 'anthropic/claude-sonnet-4.6';
 
+// A `"<provider>/<id>"` reference must resolve under that provider, not any
+// entry whose flat `id` happens to equal the whole string. Routing proxies
+// (`vercel-ai-gateway`, `openrouter`) can carry another provider's id
+// verbatim as their own flat `id` (e.g. `id: "xai/grok-4.3"`), so this tier
+// must win over flat matching. It still runs after the gateway-preference
+// tier below: when gateway creds are present, a gateway entry carrying
+// another provider's id verbatim is exactly what the user asked to route
+// through, not a collision to avoid.
+const findScopedMatch = (
+  effectiveId: string,
+  models: PiModel[],
+): PiModel | undefined => {
+  const slashIndex = effectiveId.indexOf('/');
+  if (slashIndex === -1) return undefined;
+
+  const prefix = effectiveId.slice(0, slashIndex);
+  const bareId = effectiveId.slice(slashIndex + 1);
+  return models.find(
+    m => m.provider === prefix && (m.id === bareId || m.name === bareId),
+  );
+};
+
 export function createPiModelResolver({
   modelRegistry,
   env = process.env,
@@ -50,6 +72,7 @@ export function createPiModelResolver({
     return (
       (useGateway &&
         models.find(m => m.provider === 'vercel-ai-gateway' && matches(m))) ||
+      findScopedMatch(effectiveId, models) ||
       models.find(matches)
     );
   };
