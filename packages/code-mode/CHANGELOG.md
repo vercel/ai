@@ -1,5 +1,15 @@
 # @ai-sdk/code-mode
 
+## 1.0.7
+
+### Patch Changes
+
+- 8b7f805: feat(code-mode): add signed interruption continuations and deterministic nested tool replay
+- da64b51: feat(code-mode): simplify tool caller configuration
+- Updated dependencies [79e133c]
+- Updated dependencies [da64b51]
+  - ai@7.0.50
+
 ## 1.0.6
 
 ### Patch Changes
