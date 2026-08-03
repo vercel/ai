@@ -21166,7 +21166,7 @@ describe('streamText', () => {
           }),
         },
         experimental_toolCallers: {
-          getDemand: [Symbol('direct'), 'programmatic'],
+          getDemand: ['AI_SDK_DIRECT_TOOL_CALL', 'programmatic'],
         },
         prompt: 'Check demand.',
       });

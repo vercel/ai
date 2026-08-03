@@ -10,8 +10,9 @@ import {
 import { deferred, emptyMessages } from './utils/test-helpers.js';
 
 describe('AI SDK tool bridge', () => {
-  it('exports the direct tool call marker', () => {
-    expect(typeof DIRECT_TOOL_CALL).toBe('symbol');
+  it('exports a serializable direct tool call marker', () => {
+    expect(DIRECT_TOOL_CALL).toBe('AI_SDK_DIRECT_TOOL_CALL');
+    expect(JSON.stringify(DIRECT_TOOL_CALL)).toBe('"AI_SDK_DIRECT_TOOL_CALL"');
   });
 
   it('calls an AI SDK tool with validated input', async () => {

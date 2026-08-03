@@ -49,7 +49,7 @@ describe('generateText types', () => {
         }),
       } as const;
       const toolCallers = {
-        getInventory: [Symbol('direct'), 'code_mode'],
+        getInventory: ['AI_SDK_DIRECT_TOOL_CALL', 'code_mode'],
       } as const;
 
       generateText({

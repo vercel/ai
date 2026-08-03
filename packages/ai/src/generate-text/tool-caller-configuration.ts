@@ -6,6 +6,8 @@ import {
 } from '@ai-sdk/provider-utils';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 
+const DIRECT_TOOL_CALL = 'AI_SDK_DIRECT_TOOL_CALL';
+
 type ToolCallerName<TOOLS extends ToolSet> = {
   [NAME in keyof TOOLS]: TOOLS[NAME] extends Experimental_ToolCallerTool
     ? NAME
@@ -14,13 +16,12 @@ type ToolCallerName<TOOLS extends ToolSet> = {
   string;
 
 export type Experimental_ToolCallers<TOOLS extends ToolSet> = {
-  [NAME in keyof TOOLS]?: ReadonlyArray<symbol | ToolCallerName<TOOLS>>;
+  [NAME in keyof TOOLS]?: ReadonlyArray<
+    'AI_SDK_DIRECT_TOOL_CALL' | ToolCallerName<TOOLS>
+  >;
 };
 
-export type ResolvedToolCallers = Record<
-  string,
-  ReadonlyArray<symbol | string>
->;
+export type ResolvedToolCallers = Record<string, ReadonlyArray<string>>;
 
 export function resolveToolCallerConfiguration<TOOLS extends ToolSet>({
   tools,
@@ -53,7 +54,7 @@ export function resolveToolCallerConfiguration<TOOLS extends ToolSet>({
     }
 
     resolved[toolName] = callers.map(caller => {
-      if (typeof caller === 'symbol') {
+      if (caller === DIRECT_TOOL_CALL) {
         return caller;
       }
 
@@ -105,7 +106,7 @@ export function prepareToolsForToolCallers({
     let preparedTool: Tool = tool;
 
     for (const callerName of callerNames) {
-      if (typeof callerName === 'symbol') {
+      if (callerName === DIRECT_TOOL_CALL) {
         availableDirectly = true;
         continue;
       }

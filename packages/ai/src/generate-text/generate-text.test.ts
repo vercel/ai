@@ -280,7 +280,7 @@ describe('experimental_toolCallers', () => {
         }),
       },
       experimental_toolCallers: {
-        getDemand: [Symbol('direct'), 'programmatic'],
+        getDemand: ['AI_SDK_DIRECT_TOOL_CALL', 'programmatic'],
       },
       prompt: 'Check demand.',
     });
@@ -292,7 +292,7 @@ describe('experimental_toolCallers', () => {
     });
   });
 
-  it('distinguishes the direct symbol from a caller named direct', async () => {
+  it('distinguishes the direct marker from a caller named direct', async () => {
     let modelTools: LanguageModelV4CallOptions['tools'];
 
     const directCaller = experimental_toolCaller(
@@ -337,7 +337,7 @@ describe('experimental_toolCallers', () => {
         }),
       },
       experimental_toolCallers: {
-        getInventory: ['direct', Symbol('direct')],
+        getInventory: ['direct', 'AI_SDK_DIRECT_TOOL_CALL'],
       },
       prompt: 'Check inventory.',
     });
