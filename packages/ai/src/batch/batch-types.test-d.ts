@@ -35,6 +35,9 @@ it('keeps creation non-retrying', () => {
   expectTypeOf<'maxRetries'>().not.toMatchTypeOf<
     keyof CreateTextBatchOptions
   >();
+  expectTypeOf<CreateTextBatchOptions['timeout']>().toEqualTypeOf<
+    number | { totalMs?: number } | undefined
+  >();
 });
 
 it('uses serializable response timestamps', () => {

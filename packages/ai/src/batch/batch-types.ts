@@ -3,13 +3,11 @@ import type {
   Experimental_BatchV4Error as BatchV4Error,
   Experimental_BatchV4ItemResult as BatchV4ItemResult,
   Experimental_BatchV4Status as BatchV4Status,
+  JSONValue,
 } from '@ai-sdk/provider';
 import type { ProviderOptions, ToolSet } from '@ai-sdk/provider-utils';
-import type { ContentPart } from '../generate-text/content-part';
-import type { TypedToolCall } from '../generate-text/tool-call';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import type { Prompt } from '../prompt/prompt';
-import type { RequestOptions } from '../prompt/request-options';
 import type {
   FinishReason,
   LanguageModel,
@@ -57,6 +55,12 @@ export type TextBatchRequest = Prompt &
     providerOptions?: ProviderOptions;
   };
 
+type BatchRequestOptions = {
+  abortSignal?: AbortSignal;
+  headers?: Record<string, string | undefined>;
+  timeout?: number | { totalMs?: number };
+};
+
 /**
  * Options for creating a text batch.
  */
@@ -64,7 +68,7 @@ export type CreateTextBatchOptions = {
   model: LanguageModel;
   requests: ReadonlyArray<TextBatchRequest>;
   providerOptions?: ProviderOptions;
-} & Omit<RequestOptions, 'maxRetries'>;
+} & BatchRequestOptions;
 
 /**
  * The acknowledged text batch and warnings produced while creating it.
@@ -80,15 +84,23 @@ export type BatchOperationOptions = {
   model: LanguageModel;
   batch: BatchReference;
   providerOptions?: ProviderOptions;
-} & RequestOptions;
+  maxRetries?: number;
+} & BatchRequestOptions;
 
 /**
  * A normalized result for a successful text batch item.
  */
 export type TextBatchGenerationResult = {
-  readonly content: Array<ContentPart<ToolSet>>;
   readonly text: string;
-  readonly toolCalls: Array<TypedToolCall<ToolSet>>;
+  readonly toolCalls: Array<{
+    readonly type: 'tool-call';
+    readonly toolCallId: string;
+    readonly toolName: string;
+    readonly input: JSONValue;
+    readonly providerExecuted?: boolean;
+    readonly dynamic?: boolean;
+    readonly providerMetadata?: ProviderMetadata;
+  }>;
   readonly finishReason: FinishReason;
   readonly rawFinishReason?: string;
   readonly usage: LanguageModelUsage;
