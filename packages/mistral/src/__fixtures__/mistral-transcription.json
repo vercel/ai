@@ -1,0 +1,42 @@
+{
+  "model": "voxtral-mini-latest",
+  "text": "Galileo was an American robotic space program that studied the planet Jupiter and its moons, as well as several other solar system bodies. Named after the Italian astronomer Galileo Galilei, the Galileo spacecraft consisted of an orbiter and an atmospheric entry probe. It was delivered into Earth orbit on October 18, 1989, by Space Shuttle Atlantis on the STS-34 mission, and arrived at Jupiter on December 7, 1995, after gravity assist flybys of Venus and Earth, and became the first spacecraft to orbit Jupiter.",
+  "language": null,
+  "segments": [
+    {
+      "type": "transcription_segment",
+      "text": "Galileo was an American robotic space program that studied the planet Jupiter and its moons, as well as several other solar system bodies.",
+      "start": 0.1,
+      "end": 8.2,
+      "speaker_id": "speaker_1"
+    },
+    {
+      "type": "transcription_segment",
+      "text": " Named after the Italian astronomer Galileo Galilei, the Galileo spacecraft consisted of an orbiter and an atmospheric entry probe.",
+      "start": 9.1,
+      "end": 17.3,
+      "speaker_id": "speaker_1"
+    },
+    {
+      "type": "transcription_segment",
+      "text": " It was delivered into Earth orbit on October 18, 1989, by Space Shuttle Atlantis on the STS-34 mission, and arrived at Jupiter on December 7, 1995,",
+      "start": 18.1,
+      "end": 29.9,
+      "speaker_id": "speaker_1"
+    },
+    {
+      "type": "transcription_segment",
+      "text": " after gravity assist flybys of Venus and Earth, and became the first spacecraft to orbit Jupiter.",
+      "start": 30.2,
+      "end": 35.9,
+      "speaker_id": "speaker_1"
+    }
+  ],
+  "usage": {
+    "prompt_audio_seconds": 36,
+    "prompt_tokens": 13,
+    "completion_tokens": 151,
+    "total_tokens": 164,
+    "request_count": 1
+  }
+}

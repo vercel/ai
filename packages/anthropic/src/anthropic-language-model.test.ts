@@ -320,7 +320,7 @@ describe('AnthropicLanguageModel', () => {
 
         const requestBody = await server.calls[0].requestBodyJson;
         expect(requestBody).toMatchObject({
-          thinking: { type: 'adaptive' },
+          thinking: { type: 'adaptive', display: 'summarized' },
           output_config: { effort: 'low' },
         });
         expect(result.warnings).toEqual([]);
@@ -336,7 +336,7 @@ describe('AnthropicLanguageModel', () => {
 
         const requestBody = await server.calls[0].requestBodyJson;
         expect(requestBody).toMatchObject({
-          thinking: { type: 'adaptive' },
+          thinking: { type: 'adaptive', display: 'summarized' },
           output_config: { effort: 'medium' },
         });
         expect(result.warnings).toEqual([]);
@@ -352,7 +352,7 @@ describe('AnthropicLanguageModel', () => {
 
         const requestBody = await server.calls[0].requestBodyJson;
         expect(requestBody).toMatchObject({
-          thinking: { type: 'adaptive' },
+          thinking: { type: 'adaptive', display: 'summarized' },
           output_config: { effort: 'high' },
         });
         expect(result.warnings).toEqual([]);
@@ -368,7 +368,7 @@ describe('AnthropicLanguageModel', () => {
 
         const requestBody = await server.calls[0].requestBodyJson;
         expect(requestBody).toMatchObject({
-          thinking: { type: 'adaptive' },
+          thinking: { type: 'adaptive', display: 'summarized' },
           output_config: { effort: 'max' },
         });
         expect(result.warnings).toContainEqual({
@@ -389,7 +389,7 @@ describe('AnthropicLanguageModel', () => {
 
         const requestBody = await server.calls[0].requestBodyJson;
         expect(requestBody).toMatchObject({
-          thinking: { type: 'adaptive' },
+          thinking: { type: 'adaptive', display: 'summarized' },
           output_config: { effort: 'low' },
         });
         expect(result.warnings).toContainEqual({
@@ -592,7 +592,10 @@ describe('AnthropicLanguageModel', () => {
         });
 
         const requestBody = await server.calls[0].requestBodyJson;
-        expect(requestBody.thinking).toEqual({ type: 'adaptive' });
+        expect(requestBody.thinking).toEqual({
+          type: 'adaptive',
+          display: 'summarized',
+        });
         expect(requestBody.thinking.budget_tokens).toBeUndefined();
         expect(requestBody.output_config).toEqual({ effort: 'xhigh' });
         expect(result.warnings).toEqual([]);

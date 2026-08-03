@@ -4,6 +4,7 @@ import {
   type LanguageModelV4,
   type ProviderV4,
   type SpeechModelV4,
+  type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -17,6 +18,8 @@ import { MistralEmbeddingModel } from './mistral-embedding-model';
 import type { MistralEmbeddingModelId } from './mistral-embedding-model-options';
 import { MistralSpeechModel } from './mistral-speech-model';
 import type { MistralSpeechModelId } from './mistral-speech-model-options';
+import { MistralTranscriptionModel } from './mistral-transcription-model';
+import type { MistralTranscriptionModelId } from './mistral-transcription-model-options';
 import { VERSION } from './version';
 
 export interface MistralProvider extends ProviderV4 {
@@ -51,6 +54,18 @@ export interface MistralProvider extends ProviderV4 {
    * Creates a model for speech generation (text-to-speech).
    */
   speechModel(modelId: MistralSpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a model for audio transcription.
+   */
+  transcription(modelId: MistralTranscriptionModelId): TranscriptionModelV4;
+
+  /**
+   * Creates a model for audio transcription.
+   */
+  transcriptionModel(
+    modelId: MistralTranscriptionModelId,
+  ): TranscriptionModelV4;
 
   /**
    * @deprecated Use `embedding` instead.
@@ -137,6 +152,14 @@ export function createMistral(
       fetch: options.fetch,
     });
 
+  const createTranscriptionModel = (modelId: MistralTranscriptionModelId) =>
+    new MistralTranscriptionModel(modelId, {
+      provider: 'mistral.transcription',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (modelId: MistralChatModelId) {
     if (new.target) {
       throw new Error(
@@ -156,6 +179,8 @@ export function createMistral(
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
+  provider.transcription = createTranscriptionModel;
+  provider.transcriptionModel = createTranscriptionModel;
 
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });

@@ -1,5 +1,62 @@
 # @ai-sdk/harness-codex
 
+## 1.0.56
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.54
+
+## 1.0.55
+
+### Patch Changes
+
+- bdde5d9: fix(harness): avoid placing harness bootstrap files in `/tmp` and instead use sandbox working directory
+- c28816b: fix(harness-codex): set default model back to `gpt-5.5` due to upstream SDK issue with newer models
+- Updated dependencies [5fc7da5]
+- Updated dependencies [bdde5d9]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+  - @ai-sdk/harness@1.0.53
+
+## 1.0.54
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.52
+
+## 1.0.53
+
+### Patch Changes
+
+- Updated dependencies [fa95504]
+- Updated dependencies [226a679]
+  - @ai-sdk/provider-utils@5.0.17
+  - @ai-sdk/harness@1.0.51
+
+## 1.0.52
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.50
+
+## 1.0.51
+
+### Patch Changes
+
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+  - @ai-sdk/harness@1.0.49
+
+## 1.0.50
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+  - @ai-sdk/harness@1.0.48
+
 ## 1.0.49
 
 ### Patch Changes

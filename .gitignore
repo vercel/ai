@@ -21,3 +21,4 @@ tsconfig.vitest-temp.json
 *.tsbuildinfo
 packages/ai/docs
 .vercel
+.devtools
