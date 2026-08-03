@@ -14,12 +14,14 @@ import {
 } from '@/components/docs/generative-ui-preview';
 import {
   Card,
-  CommunityModelCards,
-  OfficialModelCards,
   QuickstartFrameworkCards,
   Support,
   Templates,
 } from '@/components/docs/marketing-cards';
+import {
+  CommunityModelCards,
+  OfficialModelCards,
+} from '@/components/docs/model-cards';
 import { MDXImage } from '@/components/docs/mdx-image';
 import { ButtonLink, GithubLink } from '@/components/docs/misc';
 import { Note } from '@/components/docs/note';
