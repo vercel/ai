@@ -39,3 +39,10 @@ Ask AI, feedback, and edit-source links remain disabled until their routes and
 source-path mapping are ready. Provider, cookbook, and example links continue
 to the existing production site while those route families remain outside this
 application.
+
+## Third-party logos
+
+`public/images/icons/` contains third-party provider logos used nominatively
+on the provider index pages (ported from the previous ai-sdk.dev app). The
+marks belong to their respective owners and are not covered by this
+repository's license.
