@@ -1,5 +1,13 @@
 # @ai-sdk/harness-codex
 
+## 1.0.58
+
+### Patch Changes
+
+- 7e73f9e: fix(harness-codex): ensure reasoning summaries are emitted including when using AI Gateway
+  - @ai-sdk/harness@1.0.56
+  - @ai-sdk/provider-utils@5.0.19
+
 ## 1.0.57
 
 ### Patch Changes
