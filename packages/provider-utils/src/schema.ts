@@ -4,7 +4,8 @@ import type {
   StandardJSONSchemaV1,
 } from '@standard-schema/spec';
 import type * as z3 from 'zod/v3';
-import { safeParseAsync, toJSONSchema, type $ZodType } from 'zod/v4/core';
+import { safeParseAsync } from 'zod/v4';
+import { toJSONSchema, type $ZodType } from 'zod/v4/core';
 import { addAdditionalPropertiesToJsonSchema } from './add-additional-properties-to-json-schema';
 import { zod3ToJsonSchema } from './to-json-schema/zod3-to-json-schema';
 
