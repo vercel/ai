@@ -5,23 +5,21 @@ description: Learn how to use Tako with the AI SDK.
 
 # Tako
 
-[Tako](https://tako.com) is a live-data search engine. A single call searches both the live web
-and Tako's own structured data, returning web results alongside knowledge cards — charts and
-metrics that carry their sources and freshness metadata. The
+[Tako](https://tako.com) is the knowledge layer for agents, grounding your AI with the most
+accurate proprietary data and web content. The
 [`@takoviz/ai-sdk`](https://www.npmjs.com/package/@takoviz/ai-sdk) package integrates Tako with
 the AI SDK as a set of tools.
 
-It covers what a web search tool covers, and adds a structured layer on top. For a question
-that turns on a number, you get the value, the source it came from, how current it is, and a
-chart you can render — instead of prose to parse. That layer is deepest in:
+Tako grounds your agent in two kinds of knowledge at once: proprietary structured data from
+trusted providers, and full web search. One API returns typed values with named sources when
+curated data exists, and agent-ready web results and page text for everything else.
 
-- Finance and markets, company KPIs, and earnings
-- Macroeconomics — inflation, unemployment, GDP, policy rates
-- Website and app traffic, demographics, energy, real estate, health
-- Sports, weather, elections, and prediction markets
+Domains Tako covers with proprietary data: finance and markets, company KPIs and earnings,
+macroeconomics (inflation, unemployment, GDP, policy rates), website and app traffic, sports,
+weather, elections, prediction markets, demographics, energy, and real estate.
 
-Both surfaces are configurable per call, so you can search the web, the structured data, or
-both. Learn more in the [Tako documentation](https://docs.tako.com).
+Both surfaces are configurable per call, so you can search the curated data, the web, or both.
+Learn more in the [Tako documentation](https://docs.tako.com).
 
 ## Setup
 
@@ -42,11 +40,11 @@ You can get an API key from the [Tako developer console](https://tako.com/consol
 The package exports three tools. Each is a factory that takes optional configuration and
 returns an AI SDK tool.
 
-| Tool             | What it does                                                       |
-| ---------------- | ------------------------------------------------------------------ |
-| `takoSearch()`   | Retrieval: Tako knowledge cards plus web results, no synthesis     |
-| `takoAnswer()`   | Retrieval plus an LLM-synthesized, cited answer                    |
-| `takoContents()` | Downloads the data behind a result — a card's rows or a page's text |
+| Tool             | What it does                                                             |
+| ---------------- | ------------------------------------------------------------------------ |
+| `takoSearch()`   | Knowledge cards plus web results for a query, no synthesis               |
+| `takoAnswer()`   | The same retrieval, blended into a synthesized, source-attributed answer |
+| `takoContents()` | The data behind a result: a card's rows, or a page's full text           |
 
 The model supplies only the dynamic input: `{ query }` for `takoSearch` and `takoAnswer`, and
 `{ url }` for `takoContents`. Everything else is configured in your code, not chosen by the
@@ -64,7 +62,7 @@ import { openai } from '@ai-sdk/openai';
 import { takoAnswer } from '@takoviz/ai-sdk';
 
 const { text } = await generateText({
-  model: openai('gpt-4o-mini'),
+  model: openai('gpt-5.6-sol'),
   prompt: 'Did AMD or Nvidia grow headcount faster over the last decade?',
   tools: {
     tako_answer: takoAnswer(),
@@ -86,7 +84,7 @@ import { openai } from '@ai-sdk/openai';
 import { takoSearch, takoAnswer, takoContents } from '@takoviz/ai-sdk';
 
 const result = streamText({
-  model: openai('gpt-4o'),
+  model: openai('gpt-5.6-sol'),
   prompt: 'Compare monthly visits for openai.com and anthropic.com over the past year.',
   tools: {
     tako_search: takoSearch(),
