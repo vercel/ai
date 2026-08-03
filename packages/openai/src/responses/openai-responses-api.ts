@@ -799,6 +799,15 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         }),
       }),
       z.object({
+        type: z.literal('response.in_progress'),
+        response: z.object({
+          id: z.string(),
+          created_at: z.number(),
+          model: z.string(),
+          service_tier: z.string().nullish(),
+        }),
+      }),
+      z.object({
         type: z.literal('response.output_item.added'),
         output_index: z.number(),
         item: z.discriminatedUnion('type', [

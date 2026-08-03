@@ -243,6 +243,74 @@ class HangingToolCallTransport implements MCPTransport {
   }
 }
 
+class SignalAwareHangingRequestTransport implements MCPTransport {
+  requestSignal?: AbortSignal;
+  requestAborted = false;
+
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+
+  async start(): Promise<void> {}
+
+  async close(): Promise<void> {
+    this.onclose?.();
+  }
+
+  async send(
+    message: JSONRPCMessage,
+    options?: { signal?: AbortSignal },
+  ): Promise<void> {
+    if (!('method' in message) || !('id' in message)) {
+      return;
+    }
+
+    if (message.method === 'initialize') {
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          protocolVersion: LATEST_PROTOCOL_VERSION,
+          serverInfo: { name: 'signal-aware-server', version: '1.0.0' },
+          capabilities: { tools: {} },
+        },
+      });
+      return;
+    }
+
+    if (message.method === 'tools/list') {
+      this.requestSignal = options?.signal;
+      await new Promise<void>((_, reject) => {
+        options?.signal?.addEventListener(
+          'abort',
+          () => {
+            this.requestAborted = true;
+            reject(options.signal?.reason);
+          },
+          { once: true },
+        );
+      });
+    }
+  }
+}
+
+class HangingInitializationTransport implements MCPTransport {
+  closeCalled = false;
+
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+
+  async start(): Promise<void> {}
+
+  async close(): Promise<void> {
+    this.closeCalled = true;
+    this.onclose?.();
+  }
+
+  async send(_message: JSONRPCMessage): Promise<void> {}
+}
+
 vi.mock('./mcp-transport.ts', async importOriginal => {
   const actual = await importOriginal<typeof McpTransportModule>();
   return {
@@ -1675,6 +1743,91 @@ describe('MCPClient', () => {
     });
     await client.close();
     expect(closeSpy).toHaveBeenCalled();
+  });
+
+  it('should time out initialization and close the transport', async () => {
+    vi.useFakeTimers();
+    const transport = new HangingInitializationTransport();
+    const clientPromise = createMCPClient({
+      transport,
+      initializationOptions: { timeout: 100 },
+    });
+    const rejection = expect(clientPromise).rejects.toSatisfy(
+      error =>
+        MCPClientError.isInstance(error) &&
+        error.message === 'MCP client initialization timed out after 100ms',
+    );
+
+    await vi.advanceTimersByTimeAsync(100);
+
+    await rejection;
+    expect(transport.closeCalled).toBe(true);
+  });
+
+  it('should abort initialization and close the transport', async () => {
+    const transport = new HangingInitializationTransport();
+    const abortController = new AbortController();
+    const abortReason = new Error('stop initialization');
+    const clientPromise = createMCPClient({
+      transport,
+      initializationOptions: { signal: abortController.signal },
+    });
+
+    abortController.abort(abortReason);
+
+    await expect(clientPromise).rejects.toSatisfy(
+      error =>
+        MCPClientError.isInstance(error) &&
+        error.message === 'MCP client initialization was aborted' &&
+        error.cause === abortReason,
+    );
+    expect(transport.closeCalled).toBe(true);
+  });
+
+  it.each([
+    ['timeout', { timeout: 100 }],
+    ['maximum total timeout', { maxTotalTimeout: 100 }],
+  ])('should reject a request at its %s', async (_, options) => {
+    vi.useFakeTimers();
+    const transport = new HangingToolCallTransport();
+    client = await createMCPClient({ transport });
+    const requestPromise = client.listTools({ options });
+    const rejection = expect(requestPromise).rejects.toSatisfy(
+      error =>
+        MCPClientError.isInstance(error) &&
+        error.message === 'Request timed out after 100ms',
+    );
+
+    await vi.advanceTimersByTimeAsync(100);
+
+    await rejection;
+    expect(
+      (
+        client as unknown as {
+          responseHandlers: Map<number, unknown>;
+        }
+      ).responseHandlers.size,
+    ).toBe(0);
+  });
+
+  it('should pass request deadline signals to custom transports', async () => {
+    vi.useFakeTimers();
+    const transport = new SignalAwareHangingRequestTransport();
+    client = await createMCPClient({ transport });
+    const requestPromise = client.listTools({ options: { timeout: 100 } });
+    const rejection = expect(requestPromise).rejects.toSatisfy(
+      error =>
+        MCPClientError.isInstance(error) &&
+        error.message === 'Request timed out after 100ms',
+    );
+
+    expect(transport.requestSignal).toBeDefined();
+
+    await vi.advanceTimersByTimeAsync(100);
+
+    await rejection;
+    expect(transport.requestSignal?.aborted).toBe(true);
+    expect(transport.requestAborted).toBe(true);
   });
 
   it('should throw Abort Error if tool call request is aborted', async () => {

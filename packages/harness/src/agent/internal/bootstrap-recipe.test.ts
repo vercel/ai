@@ -15,8 +15,9 @@ const baseRecipe: HarnessV1Bootstrap = {
     { path: '/tmp/harness/demo/a.txt', content: 'one' },
     { path: '/tmp/harness/demo/b.txt', content: 'two' },
   ],
-  commands: [{ command: 'mkdir -p /tmp/harness/demo' }, { command: 'echo ok' }],
+  commands: [{ command: 'echo first' }, { command: 'echo second' }],
 };
+const defaultWorkingDirectory = '/work';
 
 describe('hashHarnessBootstrap', () => {
   it('produces a deterministic 16-char hex id for the same recipe', async () => {
@@ -79,9 +80,26 @@ describe('hashHarnessBootstrap', () => {
 
 describe('bootstrapMarkerPath', () => {
   it('embeds the identity in the filename under bootstrapDir', () => {
-    expect(bootstrapMarkerPath(baseRecipe, 'abc1234567890def')).toBe(
-      '/tmp/harness/demo/.bootstrap-abc1234567890def.ok',
-    );
+    expect(
+      bootstrapMarkerPath({
+        recipe: baseRecipe,
+        identity: 'abc1234567890def',
+        defaultWorkingDirectory,
+      }),
+    ).toBe('/tmp/harness/demo/.bootstrap-abc1234567890def.ok');
+  });
+
+  it('resolves a relative bootstrapDir against the default working directory', () => {
+    expect(
+      bootstrapMarkerPath({
+        recipe: {
+          ...baseRecipe,
+          bootstrapDir: '.harness-bootstrap/demo',
+        },
+        identity: 'abc1234567890def',
+        defaultWorkingDirectory,
+      }),
+    ).toBe('/work/.harness-bootstrap/demo/.bootstrap-abc1234567890def.ok');
   });
 });
 
@@ -90,6 +108,7 @@ describe('applyBootstrapRecipe', () => {
 
   function makeMockSession(opts?: {
     markerExists?: boolean;
+    directoryExitCode?: number;
     commandExitCode?: number;
     runFailureMessage?: string;
   }): {
@@ -98,17 +117,33 @@ describe('applyBootstrapRecipe', () => {
     writeTextFile: ReturnType<typeof vi.fn>;
     run: ReturnType<typeof vi.fn>;
   } {
-    const markerPath = bootstrapMarkerPath(baseRecipe, identity);
+    const markerPath = bootstrapMarkerPath({
+      recipe: baseRecipe,
+      identity,
+      defaultWorkingDirectory,
+    });
     const readTextFile = vi.fn(async (args: { path: string }) => {
       if (args.path === markerPath && opts?.markerExists) return '';
       return null;
     });
-    const writeTextFile = vi.fn(async () => {});
-    const run = vi.fn(async () => ({
-      exitCode: opts?.commandExitCode ?? 0,
-      stdout: 'ok',
-      stderr: opts?.runFailureMessage ?? '',
-    }));
+    const writeTextFile = vi.fn(async (_args: { path: string }) => {});
+    const run = vi.fn(
+      async (args: {
+        command: string;
+        workingDirectory?: string;
+        env?: Record<string, string>;
+      }) => {
+        const isDirectoryCreation =
+          args.command === 'mkdir -p "$BOOTSTRAP_DIR"';
+        return {
+          exitCode: isDirectoryCreation
+            ? (opts?.directoryExitCode ?? 0)
+            : (opts?.commandExitCode ?? 0),
+          stdout: 'ok',
+          stderr: opts?.runFailureMessage ?? '',
+        };
+      },
+    );
     const session = {
       description: 'mock',
       readTextFile,
@@ -122,21 +157,92 @@ describe('applyBootstrapRecipe', () => {
     const { session, readTextFile, writeTextFile, run } = makeMockSession({
       markerExists: true,
     });
-    await applyBootstrapRecipe(session, baseRecipe, identity);
+    await applyBootstrapRecipe({
+      session,
+      recipe: baseRecipe,
+      identity,
+      defaultWorkingDirectory,
+    });
     expect(readTextFile).toHaveBeenCalledTimes(1);
     expect(writeTextFile).not.toHaveBeenCalled();
     expect(run).not.toHaveBeenCalled();
   });
 
-  it('writes files, runs commands, and writes the marker on cold run', async () => {
+  it('creates the bootstrap directory, writes files, runs commands there, and writes the marker', async () => {
     const { session, writeTextFile, run } = makeMockSession();
-    await applyBootstrapRecipe(session, baseRecipe, identity);
+    await applyBootstrapRecipe({
+      session,
+      recipe: baseRecipe,
+      identity,
+      defaultWorkingDirectory,
+    });
     expect(writeTextFile).toHaveBeenCalledTimes(
       baseRecipe.files.length + 1, // recipe files + marker
     );
-    expect(run).toHaveBeenCalledTimes(baseRecipe.commands.length);
+    expect(run).toHaveBeenCalledTimes(baseRecipe.commands.length + 1);
+    expect(run).toHaveBeenNthCalledWith(1, {
+      command: 'mkdir -p "$BOOTSTRAP_DIR"',
+      workingDirectory: defaultWorkingDirectory,
+      env: { BOOTSTRAP_DIR: '/tmp/harness/demo' },
+      abortSignal: undefined,
+    });
+    expect(run.mock.calls.map(([args]) => args.workingDirectory)).toEqual([
+      defaultWorkingDirectory,
+      '/tmp/harness/demo',
+      '/tmp/harness/demo',
+    ]);
+    expect(run.mock.invocationCallOrder[0]!).toBeLessThan(
+      writeTextFile.mock.invocationCallOrder[0]!,
+    );
     const lastWrite = writeTextFile.mock.calls.at(-1)![0];
-    expect(lastWrite.path).toBe(bootstrapMarkerPath(baseRecipe, identity));
+    expect(lastWrite.path).toBe(
+      bootstrapMarkerPath({
+        recipe: baseRecipe,
+        identity,
+        defaultWorkingDirectory,
+      }),
+    );
+  });
+
+  it('resolves relative file paths and command working directories', async () => {
+    const relativeRecipe: HarnessV1Bootstrap = {
+      harnessId: 'demo',
+      bootstrapDir: '.harness-bootstrap/demo',
+      files: [
+        {
+          path: '.harness-bootstrap/demo/file.txt',
+          content: 'content',
+        },
+      ],
+      commands: [
+        { command: 'echo default' },
+        { command: 'echo relative', workingDirectory: 'tools' },
+        { command: 'echo absolute', workingDirectory: '/opt/tools' },
+      ],
+    };
+    const { session, readTextFile, writeTextFile, run } = makeMockSession();
+
+    await applyBootstrapRecipe({
+      session,
+      recipe: relativeRecipe,
+      identity,
+      defaultWorkingDirectory,
+    });
+
+    expect(readTextFile).toHaveBeenCalledWith({
+      path: '/work/.harness-bootstrap/demo/.bootstrap-idtest1234567890.ok',
+      abortSignal: undefined,
+    });
+    expect(writeTextFile.mock.calls.map(([args]) => args.path)).toEqual([
+      '/work/.harness-bootstrap/demo/file.txt',
+      '/work/.harness-bootstrap/demo/.bootstrap-idtest1234567890.ok',
+    ]);
+    expect(run.mock.calls.map(([args]) => args.workingDirectory)).toEqual([
+      '/work',
+      '/work/.harness-bootstrap/demo',
+      '/work/tools',
+      '/opt/tools',
+    ]);
   });
 
   it('throws when a command exits non-zero and skips the marker write', async () => {
@@ -145,13 +251,44 @@ describe('applyBootstrapRecipe', () => {
       runFailureMessage: 'boom',
     });
     await expect(
-      applyBootstrapRecipe(session, baseRecipe, identity),
+      applyBootstrapRecipe({
+        session,
+        recipe: baseRecipe,
+        identity,
+        defaultWorkingDirectory,
+      }),
     ).rejects.toThrow(/Bootstrap command failed.*exit 7.*boom/s);
-    expect(run).toHaveBeenCalledTimes(1);
+    expect(run).toHaveBeenCalledTimes(2);
     const markerWrites = writeTextFile.mock.calls.filter(
-      ([args]) => args.path === bootstrapMarkerPath(baseRecipe, identity),
+      ([args]) =>
+        args.path ===
+        bootstrapMarkerPath({
+          recipe: baseRecipe,
+          identity,
+          defaultWorkingDirectory,
+        }),
     );
     expect(markerWrites).toHaveLength(0);
+  });
+
+  it('stops before writing files when bootstrap directory creation fails', async () => {
+    const { session, writeTextFile, run } = makeMockSession({
+      directoryExitCode: 9,
+      runFailureMessage: 'mkdir failed',
+    });
+
+    await expect(
+      applyBootstrapRecipe({
+        session,
+        recipe: baseRecipe,
+        identity,
+        defaultWorkingDirectory,
+      }),
+    ).rejects.toThrow(
+      /Failed to create bootstrap directory.*exit 9.*mkdir failed/s,
+    );
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(writeTextFile).not.toHaveBeenCalled();
   });
 });
 

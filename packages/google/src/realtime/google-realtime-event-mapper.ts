@@ -5,7 +5,7 @@ import type {
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
 } from '@ai-sdk/provider';
-import { safeParseJSON } from '@ai-sdk/provider-utils';
+import { isRecord, safeParseJSON } from '@ai-sdk/provider-utils';
 import { convertJSONSchemaToOpenAPISchema } from '../convert-json-schema-to-openapi-schema';
 import { getModelPath } from '../get-model-path';
 import type { GoogleRealtimeModelOptions } from './google-realtime-model-options';
@@ -45,10 +45,6 @@ type GoogleRealtimeWireEvent = {
     lastConsumedClientMessageIndex?: string;
   };
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value != null && typeof value === 'object' && !Array.isArray(value);
-}
 
 /**
  * Stateful event mapper for Google's Gemini Live API.

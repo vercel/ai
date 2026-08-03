@@ -399,6 +399,41 @@ export function runPrompt<
         isError: continuation.isError,
       });
     };
+    const enqueueHostToolOutcome = (options: {
+      toolCall: HarnessAgentToolApprovalContinuation['toolCall'];
+      outcome: HostToolOutcome;
+    }): void => {
+      if (options.outcome.ok) {
+        const stripped = stripWorkDir(
+          {
+            type: 'tool-result',
+            toolCallId: options.toolCall.toolCallId,
+            toolName: options.toolCall.toolName,
+            result: options.outcome.output as Extract<
+              HarnessV1StreamPart,
+              { type: 'tool-result' }
+            >['result'],
+          },
+          input.sessionWorkDir,
+        ) as Extract<HarnessV1StreamPart, { type: 'tool-result' }>;
+        result.enqueueContinuation({
+          type: 'tool-result',
+          toolCallId: options.toolCall.toolCallId,
+          toolName: options.toolCall.toolName,
+          input: options.toolCall.input,
+          output: stripped.result,
+        } as TextStreamPart<TOOLS>);
+        return;
+      }
+
+      result.enqueueContinuation({
+        type: 'tool-error',
+        toolCallId: options.toolCall.toolCallId,
+        toolName: options.toolCall.toolName,
+        input: options.toolCall.input,
+        error: options.outcome.error,
+      } as TextStreamPart<TOOLS>);
+    };
     const processPendingApprovalContinuation = async (
       approval: HarnessV1PendingToolApproval,
       continuation: HarnessAgentToolApprovalContinuation,
@@ -484,6 +519,10 @@ export function runPrompt<
         await finishForHostInputPause({ completeCurrentStep: false });
         return 'awaiting-tool-result';
       }
+      enqueueHostToolOutcome({
+        toolCall: continuation.toolCall,
+        outcome: execution.outcome,
+      });
       await telemetry.toolEnd(rawToolCall.toolCallId, execution.outcome);
       return 'continued';
     };
