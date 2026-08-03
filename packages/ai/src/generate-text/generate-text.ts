@@ -1996,8 +1996,20 @@ function asContent<TOOLS extends ToolSet>({
     }
   }
 
+  const existingToolCallIds = new Set(
+    contentParts
+      .filter(part => part.type === 'tool-call')
+      .map(part => part.toolCallId),
+  );
+
+  // for code mode execution, when inner tools require approval, we need to surface the tool call along with the approval request for AI SDK core
+  const nestedToolCallsRequiringApproval = toolApprovalRequests
+    .map(request => request.toolCall)
+    .filter(toolCall => !existingToolCallIds.has(toolCall.toolCallId));
+
   return [
     ...contentParts,
+    ...nestedToolCallsRequiringApproval,
     ...toolOutputsWithoutApprovalResponses,
     ...toolApprovalRequests,
     ...toolApprovalResponses,

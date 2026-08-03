@@ -248,6 +248,8 @@ export function executeToolsFromStream<
                           toolName: nestedToolCall.toolName,
                           input: nestedToolCall.input,
                         });
+
+                        // for code mode execution, when inner tools require approval, we need to surface the tool call along with the approval request for AI SDK core
                         controller.enqueue(nestedToolCall);
                         controller.enqueue({
                           type: 'tool-approval-request',
