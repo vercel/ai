@@ -1679,6 +1679,24 @@ class DefaultStreamTextResult<
       });
       const callerContinuationResponseMessages: Array<ResponseMessage> = [];
       let instructionsForNextStep = initialPrompt.instructions;
+      const { executionTools: initialExecutionTools } =
+        prepareToolsForToolCallers({
+          tools,
+          toolCallers: resolvedToolCallers,
+          resolveToolApproval: async toolCall =>
+            await resolveToolApproval({
+              tools,
+              toolCall: {
+                type: 'tool-call',
+                ...toolCall,
+                dynamic: false,
+              } as TypedToolCall<TOOLS>,
+              toolApproval,
+              messages: initialMessages,
+              toolsContext,
+              runtimeContext,
+            }),
+        });
 
       const { approvedToolApprovals, deniedToolApprovals } =
         collectToolApprovals<TOOLS>({ messages: initialMessages });
@@ -1692,7 +1710,7 @@ class DefaultStreamTextResult<
           approvedToolApprovals: approvedToolApprovals.filter(
             toolApproval => !toolApproval.toolCall.providerExecuted,
           ),
-          tools,
+          tools: initialExecutionTools,
           toolApproval,
           messages: initialMessages,
           toolsContext,
@@ -1790,7 +1808,7 @@ class DefaultStreamTextResult<
             localApprovedToolApprovals.map(async toolApproval => {
               const result = await executeToolCall({
                 toolCall: toolApproval.toolCall,
-                tools,
+                tools: initialExecutionTools,
                 callId,
                 messages: initialMessages,
                 abortSignal,
@@ -1835,7 +1853,7 @@ class DefaultStreamTextResult<
                 output: await createToolModelOutput({
                   toolCallId: output.toolCallId,
                   input: output.input,
-                  tool: getOwn(tools, output.toolName),
+                  tool: getOwn(initialExecutionTools, output.toolName),
                   output:
                     output.type === 'tool-result'
                       ? output.output

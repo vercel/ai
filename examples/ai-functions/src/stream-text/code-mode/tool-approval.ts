@@ -66,6 +66,7 @@ run(async () => {
           purchaseProduct: [code_mode],
         }),
         toolApproval: {
+          code_mode: 'user-approval',
           purchaseProduct: 'user-approval',
         },
         stopWhen: isStepCount(10),
@@ -80,13 +81,10 @@ run(async () => {
           process.stdout.write(chunk.text);
         } else if (
           chunk.type === 'tool-approval-request' &&
-          chunk.toolCall.toolName === 'purchaseProduct' &&
-          !chunk.toolCall.dynamic &&
           !chunk.isAutomatic
         ) {
-          const { productId, quantity, total } = chunk.toolCall.input;
           const answer = await terminal.question(
-            `\nApprove purchasing ${quantity} units of ${productId} for $${total} (y/n)? `,
+            `\nApprove ${chunk.toolCall.toolName} with this input?\n\n${JSON.stringify(chunk.toolCall.input, null, 2)}\n\n(y/n)? `,
           );
           approvals.push({
             type: 'tool-approval-response',

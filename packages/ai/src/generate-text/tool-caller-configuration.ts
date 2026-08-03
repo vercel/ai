@@ -94,19 +94,19 @@ export function resolveToolCallerConfiguration<TOOLS extends ToolSet>({
   return resolved;
 }
 
-export function prepareToolsForToolCallers({
+export function prepareToolsForToolCallers<TOOLS extends ToolSet>({
   tools,
   toolCallers,
   resolveToolApproval,
 }: {
-  tools: ToolSet | undefined;
+  tools: TOOLS | undefined;
   toolCallers: ResolvedToolCallers | undefined;
   resolveToolApproval?: (
     toolCall: ToolCall<string, unknown>,
   ) => Promise<LocalToolCallerApprovalStatus>;
 }): {
-  executionTools: ToolSet | undefined;
-  modelTools: ToolSet | undefined;
+  executionTools: TOOLS | undefined;
+  modelTools: TOOLS | undefined;
 } {
   if (tools == null || toolCallers == null) {
     return { executionTools: tools, modelTools: tools };
@@ -182,7 +182,10 @@ export function prepareToolsForToolCallers({
     }
   }
 
-  return { executionTools, modelTools };
+  return {
+    executionTools: executionTools as TOOLS,
+    modelTools: modelTools as TOOLS,
+  };
 }
 
 export function getToolCallerApprovalRequest({

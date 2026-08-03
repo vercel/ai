@@ -712,6 +712,24 @@ export async function generateText<
       });
       const initialResponseMessages: Array<ResponseMessage> = [];
       const callerContinuationResponseMessages: Array<ResponseMessage> = [];
+      const { executionTools: initialExecutionTools } =
+        prepareToolsForToolCallers({
+          tools,
+          toolCallers: resolvedToolCallers,
+          resolveToolApproval: async toolCall =>
+            await resolveToolApproval({
+              tools,
+              toolCall: {
+                type: 'tool-call',
+                ...toolCall,
+                dynamic: false,
+              } as TypedToolCall<TOOLS>,
+              toolApproval,
+              messages: initialMessages,
+              toolsContext,
+              runtimeContext,
+            }),
+        });
 
       const {
         approvedToolApprovals,
@@ -725,7 +743,7 @@ export async function generateText<
         approvedToolApprovals: approvedToolApprovals.filter(
           toolApproval => !toolApproval.toolCall.providerExecuted,
         ),
-        tools,
+        tools: initialExecutionTools,
         toolApproval,
         messages: initialMessages,
         toolsContext,
@@ -783,14 +801,15 @@ export async function generateText<
       }
 
       if (
-        deniedToolApprovalsWithoutResults.length > 0 ||
-        localApprovedToolApprovals.length > 0
+        initialExecutionTools != null &&
+        (deniedToolApprovalsWithoutResults.length > 0 ||
+          localApprovedToolApprovals.length > 0)
       ) {
         const toolResults = await executeTools({
           toolCalls: localApprovedToolApprovals.map(
             toolApproval => toolApproval.toolCall,
           ),
-          tools: tools as TOOLS,
+          tools: initialExecutionTools,
           callId,
           messages: initialMessages,
           abortSignal: mergedAbortSignal,
@@ -825,7 +844,7 @@ export async function generateText<
           const modelOutput = await createToolModelOutput({
             toolCallId: output.toolCallId,
             input: output.input,
-            tool: getOwn(tools, output.toolName),
+            tool: getOwn(initialExecutionTools, output.toolName),
             output:
               output.type === 'tool-result' ? output.output : output.error,
             errorMode: output.type === 'tool-error' ? 'text' : 'none',

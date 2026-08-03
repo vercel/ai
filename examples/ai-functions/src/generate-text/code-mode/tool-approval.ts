@@ -66,6 +66,7 @@ run(async () => {
           purchaseProduct: [code_mode],
         }),
         toolApproval: {
+          code_mode: 'user-approval',
           purchaseProduct: 'user-approval',
         },
         stopWhen: isStepCount(10),
@@ -81,15 +82,9 @@ run(async () => {
           process.stdout.write(`\nAssistant:\n${part.text}\n`);
         }
 
-        if (
-          part.type === 'tool-approval-request' &&
-          part.toolCall.toolName === 'purchaseProduct' &&
-          !part.toolCall.dynamic &&
-          !part.isAutomatic
-        ) {
-          const { productId, quantity, total } = part.toolCall.input;
+        if (part.type === 'tool-approval-request' && !part.isAutomatic) {
           const answer = await terminal.question(
-            `Approve purchasing ${quantity} units of ${productId} for $${total} (y/n)? `,
+            `Approve ${part.toolCall.toolName} with this input?\n\n${JSON.stringify(part.toolCall.input, null, 2)}\n\n(y/n)? `,
           );
           approvals.push({
             type: 'tool-approval-response',
