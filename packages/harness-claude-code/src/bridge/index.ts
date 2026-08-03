@@ -183,7 +183,7 @@ await runBridge<StartMessage>({
   onStart: runTurn,
   // Claude Code's session state lives in the workdir on the sandbox filesystem
   // (captured by the sandbox snapshot on stop); the resume payload is empty.
-  onDetach: () => ({}),
+  onStop: () => ({}),
 });
 
 type Emit = (msg: Record<string, unknown>) => void;
