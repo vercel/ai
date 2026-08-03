@@ -118,9 +118,6 @@ function resolveReferences(
       imageFiles.push(reference);
     }
 
-    // Every reference may have been filtered out (audio- or video-only input),
-    // so collapse an empty list to undefined rather than sending an empty
-    // `reference_images` array.
     return imageFiles.length > 0
       ? imageFiles.map(reference => ({ url: fileToXaiUrl(reference) }))
       : undefined;
@@ -136,8 +133,7 @@ function resolveReferences(
   return undefined;
 }
 
-// True when at least one reference would survive as an image. Audio-only or
-// video-only references cannot drive reference-to-video on their own.
+// True when at least one reference would survive as an image.
 function hasImageInputReference(options: XaiVideoCallOptions): boolean {
   return options.inputReferences?.some(isImageReference) ?? false;
 }
