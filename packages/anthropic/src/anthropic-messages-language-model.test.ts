@@ -9113,7 +9113,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         ).toMatchSnapshot();
       });
 
-      it('should omit the synthetic code execution type when replaying streamed output', async () => {
+      it('should preserve the complete code execution transcript when replaying streamed output', async () => {
         prepareChunksFixtureResponse(
           'anthropic-code-execution-20260120-cache-replay',
         );
@@ -9131,22 +9131,25 @@ describe('AnthropicMessagesLanguageModel', () => {
           tools,
         });
         const parts = await convertReadableStreamToArray(liveResult.stream);
-        const toolCall = parts.find(
-          part =>
+        const toolCalls = parts.filter(
+          (part): part is LanguageModelV3StreamPart & { type: 'tool-call' } =>
             part.type === 'tool-call' && part.toolName === 'code_execution',
         );
-        const toolResult = parts.find(
-          part =>
+        const toolResults = parts.filter(
+          (part): part is LanguageModelV3StreamPart & { type: 'tool-result' } =>
             part.type === 'tool-result' && part.toolName === 'code_execution',
         );
+        const text = parts
+          .filter(part => part.type === 'text-delta')
+          .map(part => (part.type === 'text-delta' ? part.delta : ''))
+          .join('');
 
-        expect(toolCall?.type).toBe('tool-call');
-        expect(toolResult?.type).toBe('tool-result');
-        if (
-          toolCall?.type !== 'tool-call' ||
-          toolResult?.type !== 'tool-result'
-        ) {
-          throw new Error('Live fixture did not contain code execution blocks');
+        expect(toolCalls).toHaveLength(2);
+        expect(toolResults).toHaveLength(2);
+        if (toolCalls.length !== 2 || toolResults.length !== 2) {
+          throw new Error(
+            'Live fixture did not contain the complete code execution transcript',
+          );
         }
 
         prepareChunksFixtureResponse('anthropic-refusal');
@@ -9158,20 +9161,37 @@ describe('AnthropicMessagesLanguageModel', () => {
               content: [
                 {
                   type: 'tool-call',
-                  toolCallId: toolCall.toolCallId,
-                  toolName: toolCall.toolName,
-                  input: JSON.parse(toolCall.input),
+                  toolCallId: toolCalls[0].toolCallId,
+                  toolName: toolCalls[0].toolName,
+                  input: JSON.parse(toolCalls[0].input),
                   providerExecuted: true,
                 },
                 {
                   type: 'tool-result',
-                  toolCallId: toolResult.toolCallId,
-                  toolName: toolResult.toolName,
+                  toolCallId: toolResults[0].toolCallId,
+                  toolName: toolResults[0].toolName,
                   output: {
                     type: 'json',
-                    value: toolResult.result,
+                    value: toolResults[0].result,
                   },
                 },
+                {
+                  type: 'tool-call',
+                  toolCallId: toolCalls[1].toolCallId,
+                  toolName: toolCalls[1].toolName,
+                  input: JSON.parse(toolCalls[1].input),
+                  providerExecuted: true,
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: toolResults[1].toolCallId,
+                  toolName: toolResults[1].toolName,
+                  output: {
+                    type: 'json',
+                    value: toolResults[1].result,
+                  },
+                },
+                { type: 'text', text },
               ],
             },
           ],
@@ -9180,14 +9200,58 @@ describe('AnthropicMessagesLanguageModel', () => {
         await convertReadableStreamToArray(replayResult.stream);
 
         const replayRequest = await server.calls[1].requestBodyJson;
-        expect(replayRequest.messages[1].content[0]).toEqual({
-          type: 'server_tool_use',
-          id: 'srvtoolu_01G1TEN1tmE12onHPBoUZXyz',
-          name: 'bash_code_execution',
-          input: {
-            command: 'for n in $(seq 1 12); do echo "$n: $((n*n))"; done',
+        const expectedTranscript = [
+          {
+            type: 'server_tool_use',
+            id: 'srvtoolu_01G1TEN1tmE12onHPBoUZXyz',
+            name: 'bash_code_execution',
+            input: {
+              command: 'for n in $(seq 1 12); do echo "$n: $((n*n))"; done',
+            },
           },
-        });
+          {
+            type: 'bash_code_execution_tool_result',
+            tool_use_id: 'srvtoolu_01G1TEN1tmE12onHPBoUZXyz',
+            content: {
+              type: 'bash_code_execution_result',
+              stdout:
+                '1: 1\n2: 4\n3: 9\n4: 16\n5: 25\n6: 36\n7: 49\n8: 64\n9: 81\n10: 100\n11: 121\n12: 144\n',
+              stderr: '',
+              return_code: 0,
+              content: [],
+            },
+          },
+          {
+            type: 'server_tool_use',
+            id: 'srvtoolu_01RVGDngrjBVGaN4p46X6hcq',
+            name: 'bash_code_execution',
+            input: {
+              command:
+                'sum=0; for n in $(seq 1 12); do sum=$((sum+n*n)); done; echo "Sum: $sum"',
+            },
+          },
+          {
+            type: 'bash_code_execution_tool_result',
+            tool_use_id: 'srvtoolu_01RVGDngrjBVGaN4p46X6hcq',
+            content: {
+              type: 'bash_code_execution_result',
+              stdout: 'Sum: 650\n',
+              stderr: '',
+              return_code: 0,
+              content: [],
+            },
+          },
+          {
+            type: 'text',
+            text: 'The sum of the squares of the integers from 1 to 12 is **650**.',
+          },
+        ];
+        const replayedTranscript = replayRequest.messages[1].content;
+
+        expect(replayedTranscript).toEqual(expectedTranscript);
+        expect(JSON.stringify(replayedTranscript)).toBe(
+          JSON.stringify(expectedTranscript),
+        );
       });
     });
 
