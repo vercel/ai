@@ -50,6 +50,7 @@ import type {
 import {
   addLanguageModelUsage,
   asLanguageModelUsage,
+  createNullLanguageModelUsage,
   type LanguageModelUsage,
 } from '../types/usage';
 import type { DownloadFunction } from '../util/download/download-function';
@@ -112,6 +113,7 @@ import type { ToolApprovalConfiguration } from './tool-approval-configuration';
 import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import type { ToolApprovalResponseOutput } from './tool-approval-response-output';
 import {
+  createToolCallerApprovalRequestOutput,
   getToolCallerApprovalRequest,
   prepareToolsForToolCallers,
   resolveToolCallerConfiguration,
@@ -712,6 +714,9 @@ export async function generateText<
       });
       const initialResponseMessages: Array<ResponseMessage> = [];
       const callerContinuationResponseMessages: Array<ResponseMessage> = [];
+      const pendingToolCallerApprovals: Array<
+        ToolApprovalRequestOutput<TOOLS>
+      > = [];
       const { executionTools: initialExecutionTools } =
         prepareToolsForToolCallers({
           tools,
@@ -771,6 +776,16 @@ export async function generateText<
           toolsContext,
           abortSignal: mergedAbortSignal,
         });
+        for (const continuation of continuedApprovals.continued) {
+          if (continuation.nextApprovalRequest !== undefined) {
+            pendingToolCallerApprovals.push(
+              await createToolCallerApprovalRequestOutput({
+                request: continuation.nextApprovalRequest,
+                toolApprovalSecret: experimental_toolApprovalSecret,
+              }),
+            );
+          }
+        }
         if (continuedApprovals.continued.length > 0) {
           initialMessages = continuedApprovals.messages;
           callerContinuationResponseMessages.push(
@@ -841,6 +856,22 @@ export async function generateText<
         // add regular tool results for approved tool calls:
         for (const result of toolResults) {
           const output = result.output;
+          if (output.type === 'tool-result') {
+            const callerApproval = getToolCallerApprovalRequest({
+              callerToolName: output.toolName,
+              output: output.output,
+              tools: initialExecutionTools,
+            });
+            if (callerApproval !== undefined) {
+              pendingToolCallerApprovals.push(
+                await createToolCallerApprovalRequestOutput({
+                  request: callerApproval,
+                  toolApprovalSecret: experimental_toolApprovalSecret,
+                }),
+              );
+            }
+          }
+
           const modelOutput = await createToolModelOutput({
             toolCallId: output.toolCallId,
             input: output.input,
@@ -905,13 +936,31 @@ export async function generateText<
           message => !callerContinuationResponseMessages.includes(message),
         ),
       ];
+      if (pendingToolCallerApprovals.length > 0) {
+        const pendingApprovalStep = await createToolCallerApprovalStep({
+          callId,
+          provider: model.provider,
+          modelId: model.modelId,
+          runtimeContext,
+          toolsContext,
+          approvalRequests: pendingToolCallerApprovals,
+          tools,
+          generateId,
+        });
+        steps.push(pendingApprovalStep);
+        await notify({
+          event: pendingApprovalStep,
+          callbacks: [resolvedOnStepEnd, telemetryDispatcher.onStepEnd],
+        });
+      }
 
       // Track provider-executed tool calls that support deferred results
       // (e.g., code_execution in programmatic tool calling scenarios).
       // These tools may not return their results in the same turn as their call.
       const pendingDeferredToolCalls = new Map<string, { toolName: string }>();
 
-      do {
+      let continueSteps = pendingToolCallerApprovals.length === 0;
+      while (continueSteps) {
         if (steps.length > 0) {
           mergedAbortSignal?.throwIfAborted();
         }
@@ -1389,26 +1438,16 @@ export async function generateText<
                     continue;
                   }
 
-                  const nestedToolCall = {
-                    type: 'tool-call' as const,
-                    ...callerApproval.toolCall,
-                    dynamic: false as const,
-                  } as TypedToolCall<TOOLS>;
-                  const signature = await maybeSignApproval({
-                    secret: experimental_toolApprovalSecret,
-                    approvalId: callerApproval.approvalId,
-                    toolCallId: nestedToolCall.toolCallId,
-                    toolName: nestedToolCall.toolName,
-                    input: nestedToolCall.input,
-                  });
+                  const approvalRequest =
+                    await createToolCallerApprovalRequestOutput<TOOLS>({
+                      request: callerApproval,
+                      toolApprovalSecret: experimental_toolApprovalSecret,
+                    });
+                  const nestedToolCall = approvalRequest.toolCall;
                   stepToolCalls.push(nestedToolCall);
                   clientToolCalls.push(nestedToolCall);
-                  toolApprovalRequests[nestedToolCall.toolCallId] = {
-                    type: 'tool-approval-request',
-                    approvalId: callerApproval.approvalId,
-                    toolCall: nestedToolCall,
-                    ...(signature != null ? { signature } : {}),
-                  };
+                  toolApprovalRequests[nestedToolCall.toolCallId] =
+                    approvalRequest;
                 }
               }
 
@@ -1542,17 +1581,17 @@ export async function generateText<
             clearTimeout(stepTimeoutId);
           }
         }
-      } while (
-        // Continue if:
-        // 1. There are client tool calls that have all been executed or denied, OR
-        // 2. There are pending deferred results from provider-executed tools
-        ((clientToolCalls.length > 0 &&
-          clientToolOutputs.length + deniedToolApprovalResponses.length ===
-            clientToolCalls.length) ||
-          pendingDeferredToolCalls.size > 0) &&
-        // continue until a stop condition is met:
-        !(await isStopConditionMet({ stopConditions, steps }))
-      );
+        continueSteps =
+          // Continue if:
+          // 1. There are client tool calls that have all been executed or denied, OR
+          // 2. There are pending deferred results from provider-executed tools
+          ((clientToolCalls.length > 0 &&
+            clientToolOutputs.length + deniedToolApprovalResponses.length ===
+              clientToolCalls.length) ||
+            pendingDeferredToolCalls.size > 0) &&
+          // continue until a stop condition is met:
+          !(await isStopConditionMet({ stopConditions, steps }));
+      }
 
       const lastStep = steps[steps.length - 1];
 
@@ -1655,6 +1694,67 @@ export async function generateText<
     type: 'generateText',
     event: generateTextStartEvent,
     execute: executeGenerateText,
+  });
+}
+
+async function createToolCallerApprovalStep<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context,
+>({
+  callId,
+  provider,
+  modelId,
+  runtimeContext,
+  toolsContext,
+  approvalRequests,
+  tools,
+  generateId,
+}: {
+  callId: string;
+  provider: string;
+  modelId: string;
+  runtimeContext: RUNTIME_CONTEXT;
+  toolsContext: InferToolSetContext<TOOLS>;
+  approvalRequests: Array<ToolApprovalRequestOutput<TOOLS>>;
+  tools: TOOLS | undefined;
+  generateId: IdGenerator;
+}): Promise<StepResult<TOOLS, RUNTIME_CONTEXT>> {
+  const content: Array<ContentPart<TOOLS>> = [];
+  for (const approvalRequest of approvalRequests) {
+    content.push(approvalRequest.toolCall, approvalRequest);
+  }
+  const responseMessages = await toResponseMessages({ content, tools });
+
+  return new DefaultStepResult({
+    callId,
+    stepNumber: 0,
+    provider,
+    modelId,
+    runtimeContext,
+    toolsContext,
+    content,
+    finishReason: 'tool-calls',
+    rawFinishReason: undefined,
+    usage: createNullLanguageModelUsage(),
+    performance: {
+      effectiveOutputTokensPerSecond: 0,
+      outputTokensPerSecond: undefined,
+      inputTokensPerSecond: undefined,
+      effectiveTotalTokensPerSecond: 0,
+      stepTimeMs: 0,
+      responseTimeMs: 0,
+      toolExecutionMs: {},
+      timeToFirstOutputMs: undefined,
+    },
+    warnings: [],
+    request: {},
+    response: {
+      id: generateId(),
+      timestamp: new Date(),
+      modelId,
+      messages: cloneModelMessages(responseMessages),
+    },
+    providerMetadata: undefined,
   });
 }
 

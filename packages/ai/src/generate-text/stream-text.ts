@@ -141,7 +141,10 @@ import type {
 import { toResponseMessages } from './to-response-messages';
 import { resolveToolApproval } from './resolve-tool-approval';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
+import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import {
+  createToolCallerApprovalRequestOutput,
+  getToolCallerApprovalRequest,
   prepareToolsForToolCallers,
   resolveToolCallerConfiguration,
   type Experimental_ToolCallers,
@@ -1678,6 +1681,9 @@ class DefaultStreamTextResult<
         tools,
       });
       const callerContinuationResponseMessages: Array<ResponseMessage> = [];
+      const pendingToolCallerApprovals: Array<
+        ToolApprovalRequestOutput<TOOLS>
+      > = [];
       let instructionsForNextStep = initialPrompt.instructions;
       const { executionTools: initialExecutionTools } =
         prepareToolsForToolCallers({
@@ -1741,6 +1747,16 @@ class DefaultStreamTextResult<
             toolsContext,
             abortSignal,
           });
+          for (const continuation of continuedApprovals.continued) {
+            if (continuation.nextApprovalRequest !== undefined) {
+              pendingToolCallerApprovals.push(
+                await createToolCallerApprovalRequestOutput({
+                  request: continuation.nextApprovalRequest,
+                  toolApprovalSecret: experimental_toolApprovalSecret,
+                }),
+              );
+            }
+          }
           if (continuedApprovals.continued.length > 0) {
             initialMessages = continuedApprovals.messages;
             callerContinuationResponseMessages.push(
@@ -1831,6 +1847,22 @@ class DefaultStreamTextResult<
               });
 
               if (result != null) {
+                if (result.output.type === 'tool-result') {
+                  const callerApproval = getToolCallerApprovalRequest({
+                    callerToolName: result.output.toolName,
+                    output: result.output.output,
+                    tools: initialExecutionTools,
+                  });
+                  if (callerApproval !== undefined) {
+                    pendingToolCallerApprovals.push(
+                      await createToolCallerApprovalRequestOutput({
+                        request: callerApproval,
+                        toolApprovalSecret: experimental_toolApprovalSecret,
+                      }),
+                    );
+                  }
+                }
+
                 toolExecutionStepStreamController?.enqueue(result.output);
                 toolOutputs.push(result.output);
               }
@@ -1887,6 +1919,55 @@ class DefaultStreamTextResult<
       }
 
       self._initialResponseMessages.resolve(initialResponseMessages);
+      if (pendingToolCallerApprovals.length > 0) {
+        const usage = createNullLanguageModelUsage();
+        self.addStream(
+          new ReadableStream<TextStreamPart<TOOLS>>({
+            start(controller) {
+              controller.enqueue({
+                type: 'start-step',
+                request: {},
+                warnings: [],
+              });
+              for (const approvalRequest of pendingToolCallerApprovals) {
+                controller.enqueue(approvalRequest.toolCall);
+                controller.enqueue(approvalRequest);
+              }
+              controller.enqueue({
+                type: 'finish-step',
+                finishReason: 'tool-calls',
+                rawFinishReason: undefined,
+                usage,
+                performance: {
+                  effectiveOutputTokensPerSecond: 0,
+                  outputTokensPerSecond: undefined,
+                  inputTokensPerSecond: undefined,
+                  effectiveTotalTokensPerSecond: 0,
+                  stepTimeMs: 0,
+                  responseTimeMs: 0,
+                  toolExecutionMs: {},
+                  timeToFirstOutputMs: undefined,
+                },
+                providerMetadata: undefined,
+                response: {
+                  id: generateId(),
+                  timestamp: new Date(),
+                  modelId: model.modelId,
+                },
+              });
+              controller.enqueue({
+                type: 'finish',
+                finishReason: 'tool-calls',
+                rawFinishReason: undefined,
+                totalUsage: usage,
+              });
+              controller.close();
+            },
+          }),
+        );
+        self.closeStream();
+        return;
+      }
 
       async function streamStep({
         currentStep,

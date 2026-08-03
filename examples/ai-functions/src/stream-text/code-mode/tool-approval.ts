@@ -68,6 +68,7 @@ run(async () => {
         toolApproval: {
           code_mode: 'user-approval',
           purchaseProduct: 'user-approval',
+          getProductPrice: 'user-approval',
         },
         stopWhen: isStepCount(10),
         messages,

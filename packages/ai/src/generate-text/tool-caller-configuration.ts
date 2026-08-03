@@ -8,6 +8,9 @@ import {
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
+import { maybeSignApproval } from './tool-approval-signature';
+import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
+import type { TypedToolCall } from './tool-call';
 
 const DIRECT_TOOL_CALL = 'AI_SDK_DIRECT_TOOL_CALL';
 
@@ -20,7 +23,7 @@ type LocalToolCallerApprovalStatus = Awaited<
     Parameters<LocalToolCallerDefinition['bind']>[1]['resolveToolApproval']
   >
 >;
-type LocalToolCallerApprovalRequest = Exclude<
+export type LocalToolCallerApprovalRequest = Exclude<
   ReturnType<NonNullable<LocalToolCallerDefinition['getApprovalRequest']>>,
   undefined
 >;
@@ -201,6 +204,35 @@ export function getToolCallerApprovalRequest({
   return caller?.type === 'local'
     ? caller.getApprovalRequest?.(output)
     : undefined;
+}
+
+export async function createToolCallerApprovalRequestOutput<
+  TOOLS extends ToolSet,
+>({
+  request,
+  toolApprovalSecret,
+}: {
+  request: LocalToolCallerApprovalRequest;
+  toolApprovalSecret: string | Uint8Array | undefined;
+}): Promise<ToolApprovalRequestOutput<TOOLS>> {
+  const toolCall = {
+    type: 'tool-call' as const,
+    ...request.toolCall,
+    dynamic: false as const,
+  } as TypedToolCall<TOOLS>;
+  const signature = await maybeSignApproval({
+    secret: toolApprovalSecret,
+    approvalId: request.approvalId,
+    toolCallId: toolCall.toolCallId,
+    toolName: toolCall.toolName,
+    input: toolCall.input,
+  });
+  return {
+    type: 'tool-approval-request',
+    approvalId: request.approvalId,
+    toolCall,
+    ...(signature != null ? { signature } : {}),
+  };
 }
 
 export function getLocalToolsForCaller({

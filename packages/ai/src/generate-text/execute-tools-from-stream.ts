@@ -15,7 +15,10 @@ import { resolveToolApproval } from './resolve-tool-approval';
 import type { LanguageModelStreamPart } from './stream-language-model-call';
 import { maybeSignApproval } from './tool-approval-signature';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
-import { getToolCallerApprovalRequest } from './tool-caller-configuration';
+import {
+  createToolCallerApprovalRequestOutput,
+  getToolCallerApprovalRequest,
+} from './tool-caller-configuration';
 import type { TypedToolCall } from './tool-call';
 import type {
   OnToolExecutionEndCallback,
@@ -236,27 +239,14 @@ export function executeToolsFromStream<
                         tools,
                       });
                       if (callerApproval !== undefined) {
-                        const nestedToolCall = {
-                          type: 'tool-call' as const,
-                          ...callerApproval.toolCall,
-                          dynamic: false as const,
-                        } as TypedToolCall<TOOLS>;
-                        const signature = await maybeSignApproval({
-                          secret: toolApprovalSecret,
-                          approvalId: callerApproval.approvalId,
-                          toolCallId: nestedToolCall.toolCallId,
-                          toolName: nestedToolCall.toolName,
-                          input: nestedToolCall.input,
-                        });
+                        const approvalRequest =
+                          await createToolCallerApprovalRequestOutput<TOOLS>({
+                            request: callerApproval,
+                            toolApprovalSecret,
+                          });
 
-                        // for code mode execution, when inner tools require approval, we need to surface the tool call along with the approval request for AI SDK core
-                        controller.enqueue(nestedToolCall);
-                        controller.enqueue({
-                          type: 'tool-approval-request',
-                          approvalId: callerApproval.approvalId,
-                          toolCall: nestedToolCall,
-                          ...(signature != null ? { signature } : {}),
-                        });
+                        controller.enqueue(approvalRequest.toolCall);
+                        controller.enqueue(approvalRequest);
                       }
                     }
                   }

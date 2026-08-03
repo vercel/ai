@@ -248,6 +248,158 @@ describe('experimental_toolCallers', () => {
     expect(result.toolResults[0]?.output).toEqual(['getInventory']);
   });
 
+  it('resumes chained caller approvals before returning to the model', async () => {
+    const readStage = (output: unknown): 'first' | 'second' | undefined => {
+      if (
+        typeof output === 'object' &&
+        output !== null &&
+        'type' in output &&
+        (output as { type?: unknown }).type === 'json' &&
+        'value' in output
+      ) {
+        return readStage((output as { value: unknown }).value);
+      }
+      return typeof output === 'object' && output !== null && 'stage' in output
+        ? ((output as { stage?: 'first' | 'second' }).stage ?? undefined)
+        : undefined;
+    };
+    const localCaller = experimental_toolCaller(
+      tool({
+        inputSchema: z.object({}),
+        execute: async () => undefined,
+      }),
+      {
+        type: 'local',
+        bind: () =>
+          tool({
+            inputSchema: z.object({}),
+            execute: async () => ({ stage: 'first' }),
+          }),
+        getApprovalRequest: output => {
+          const stage = readStage(output);
+          return stage === undefined
+            ? undefined
+            : {
+                approvalId: `${stage}-approval`,
+                callerToolCallId: 'outer-call',
+                toolCall: {
+                  toolCallId: `${stage}-call`,
+                  toolName: stage,
+                  input: {},
+                },
+              };
+        },
+        continueApproval: async ({ output, approvalResponse }) => {
+          expect(approvalResponse.approved).toBe(true);
+          return readStage(output) === 'first'
+            ? { stage: 'second' }
+            : { completed: true };
+        },
+      },
+    );
+    const doGenerate = vi.fn(async () => ({
+      ...dummyResponseValues,
+      content: [{ type: 'text' as const, text: 'complete' }],
+    }));
+    const tools = {
+      code_mode: localCaller,
+      first: tool({
+        inputSchema: z.object({}),
+        execute: async () => 'first',
+      }),
+      second: tool({
+        inputSchema: z.object({}),
+        execute: async () => 'second',
+      }),
+    };
+    const messages: ModelMessage[] = [
+      { role: 'user', content: 'Run the program.' },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'outer-call',
+            toolName: 'code_mode',
+            input: {},
+          },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'outer-approval',
+            toolCallId: 'outer-call',
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-approval-response',
+            approvalId: 'outer-approval',
+            approved: true,
+          },
+        ],
+      },
+    ];
+    const generate = async () =>
+      await generateText({
+        model: new MockLanguageModelV4({ doGenerate }),
+        tools,
+        experimental_toolCallers: ({ code_mode }) => ({
+          first: [code_mode],
+          second: [code_mode],
+        }),
+        toolApproval: {
+          code_mode: 'user-approval',
+          first: 'user-approval',
+          second: 'user-approval',
+        },
+        messages,
+      });
+
+    const firstResult = await generate();
+    expect(doGenerate).not.toHaveBeenCalled();
+    expect(firstResult.content).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-approval-request',
+        approvalId: 'first-approval',
+      }),
+    );
+    messages.push(...firstResult.responseMessages, {
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-approval-response',
+          approvalId: 'first-approval',
+          approved: true,
+        },
+      ],
+    });
+
+    const secondResult = await generate();
+    expect(doGenerate).not.toHaveBeenCalled();
+    expect(secondResult.content).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-approval-request',
+        approvalId: 'second-approval',
+      }),
+    );
+    messages.push(...secondResult.responseMessages, {
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-approval-response',
+          approvalId: 'second-approval',
+          approved: true,
+        },
+      ],
+    });
+
+    const finalResult = await generate();
+    expect(doGenerate).toHaveBeenCalledTimes(1);
+    expect(finalResult.text).toBe('complete');
+  });
+
   it('adds provider caller options while preserving direct access', async () => {
     let modelTools: LanguageModelV4CallOptions['tools'];
 

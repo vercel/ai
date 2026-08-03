@@ -21126,6 +21126,147 @@ describe('streamText', () => {
       );
     });
 
+    it('streams chained caller approvals before returning to the model', async () => {
+      const readStage = (output: unknown): 'first' | 'second' | undefined => {
+        if (
+          typeof output === 'object' &&
+          output !== null &&
+          'type' in output &&
+          (output as { type?: unknown }).type === 'json' &&
+          'value' in output
+        ) {
+          return readStage((output as { value: unknown }).value);
+        }
+        return typeof output === 'object' &&
+          output !== null &&
+          'stage' in output
+          ? ((output as { stage?: 'first' | 'second' }).stage ?? undefined)
+          : undefined;
+      };
+      const localCaller = experimental_toolCaller(
+        tool({
+          inputSchema: z.object({}),
+          execute: async () => undefined,
+        }),
+        {
+          type: 'local',
+          bind: () =>
+            tool({
+              inputSchema: z.object({}),
+              execute: async () => ({ stage: 'first' }),
+            }),
+          getApprovalRequest: output => {
+            const stage = readStage(output);
+            return stage === undefined
+              ? undefined
+              : {
+                  approvalId: `${stage}-approval`,
+                  callerToolCallId: 'outer-call',
+                  toolCall: {
+                    toolCallId: `${stage}-call`,
+                    toolName: stage,
+                    input: {},
+                  },
+                };
+          },
+          continueApproval: async ({ output }) =>
+            readStage(output) === 'first'
+              ? { stage: 'second' }
+              : { completed: true },
+        },
+      );
+      const doStream = vi.fn(async (): Promise<never> => {
+        throw new Error('The model must not run while approval is pending.');
+      });
+      const tools = {
+        code_mode: localCaller,
+        first: tool({
+          inputSchema: z.object({}),
+          execute: async () => 'first',
+        }),
+        second: tool({
+          inputSchema: z.object({}),
+          execute: async () => 'second',
+        }),
+      };
+      const messages: ModelMessage[] = [
+        { role: 'user', content: 'Run the program.' },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'outer-call',
+              toolName: 'code_mode',
+              input: {},
+            },
+            {
+              type: 'tool-approval-request',
+              approvalId: 'outer-approval',
+              toolCallId: 'outer-call',
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-approval-response',
+              approvalId: 'outer-approval',
+              approved: true,
+            },
+          ],
+        },
+      ];
+      const stream = () =>
+        streamText({
+          model: new MockLanguageModelV4({ doStream }),
+          tools,
+          experimental_toolCallers: ({ code_mode }) => ({
+            first: [code_mode],
+            second: [code_mode],
+          }),
+          toolApproval: {
+            code_mode: 'user-approval',
+            first: 'user-approval',
+            second: 'user-approval',
+          },
+          messages,
+        });
+
+      const firstResult = stream();
+      const firstParts = await convertAsyncIterableToArray(firstResult.stream);
+      expect(doStream).not.toHaveBeenCalled();
+      expect(firstParts).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-approval-request',
+          approvalId: 'first-approval',
+        }),
+      );
+      messages.push(...(await firstResult.responseMessages), {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-approval-response',
+            approvalId: 'first-approval',
+            approved: true,
+          },
+        ],
+      });
+
+      const secondResult = stream();
+      const secondParts = await convertAsyncIterableToArray(
+        secondResult.stream,
+      );
+      expect(doStream).not.toHaveBeenCalled();
+      expect(secondParts).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-approval-request',
+          approvalId: 'second-approval',
+        }),
+      );
+    });
+
     it('adds provider caller options while preserving direct access', async () => {
       let modelTools: LanguageModelV4CallOptions['tools'];
 

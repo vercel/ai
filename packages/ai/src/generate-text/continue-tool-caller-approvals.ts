@@ -13,6 +13,7 @@ import type { CollectedToolApprovals } from './collect-tool-approvals';
 import {
   getLocalToolsForCaller,
   getToolCallerApprovalRequest,
+  type LocalToolCallerApprovalRequest,
   type ResolvedToolCallers,
 } from './tool-caller-configuration';
 
@@ -20,6 +21,7 @@ export type ContinuedToolCallerApproval<TOOLS extends ToolSet> = {
   approval: CollectedToolApprovals<TOOLS>;
   messages: ModelMessage[];
   responseMessage: ToolModelMessage;
+  nextApprovalRequest: LocalToolCallerApprovalRequest | undefined;
 };
 
 export function normalizeToolCallerApprovalMessages({
@@ -164,7 +166,19 @@ export async function continueToolCallerApprovals<TOOLS extends ToolSet>({
         },
       ],
     };
-    continued.push({ approval, messages: currentMessages, responseMessage });
+    continued.push({
+      approval,
+      messages: currentMessages,
+      responseMessage,
+      nextApprovalRequest:
+        error === undefined
+          ? getToolCallerApprovalRequest({
+              callerToolName: match.callerName,
+              output,
+              tools,
+            })
+          : undefined,
+    });
   }
 
   return { continued, remaining, messages: currentMessages };
