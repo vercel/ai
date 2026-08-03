@@ -214,7 +214,7 @@ describe('getBatchStatus', () => {
 });
 
 describe('getBatchResults', () => {
-  it('opens lazily and streams normalized item results', async () => {
+  it('opens eagerly and streams normalized item results', async () => {
     let callCount = 0;
     const generateResult: LanguageModelV4GenerateResult = {
       content: [
@@ -256,14 +256,13 @@ describe('getBatchResults', () => {
       maxRetries: 0,
     });
 
-    expect(callCount).toBe(0);
+    await vi.waitFor(() => expect(callCount).toBe(1));
 
     const items = [];
     for await (const item of stream) {
       items.push(item);
     }
 
-    expect(callCount).toBe(1);
     expect(items).toMatchObject([
       {
         id: 'request-1',
@@ -276,7 +275,6 @@ describe('getBatchResults', () => {
               toolCallId: 'tool-call-1',
               toolName: 'lookup',
               input: { city: 'Paris' },
-              dynamic: false,
             },
           ],
           finishReason: 'tool-calls',
