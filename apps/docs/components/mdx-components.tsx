@@ -14,6 +14,7 @@ import {
 } from '@/components/docs/generative-ui-preview';
 import {
   Card,
+  CommunityModelCards,
   OfficialModelCards,
   QuickstartFrameworkCards,
   Support,
@@ -52,7 +53,6 @@ const stubNames = [
   'FeatureCard',
   'ModelCard',
   'LogoOpenAi',
-  'CommunityModelCards',
   'CompatibilityModelCards',
   'FrameworkCard',
   'ExampleCards',
@@ -101,7 +101,12 @@ export const getMdxComponents = ({
     WeatherSearch,
     Card,
     Templates,
-    OfficialModelCards,
+    OfficialModelCards: props => (
+      <OfficialModelCards {...props} resolveHref={resolveVersionedHref} />
+    ),
+    CommunityModelCards: props => (
+      <CommunityModelCards {...props} resolveHref={resolveVersionedHref} />
+    ),
     PreviewSwitchProviders,
     QuickstartFrameworkCards: props => (
       <QuickstartFrameworkCards {...props} resolveHref={resolveVersionedHref} />

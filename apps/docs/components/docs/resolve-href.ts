@@ -1,5 +1,6 @@
+const versionedFamilies = ['/docs', '/providers'];
+
 const externalFamilies = [
-  '/providers',
   '/cookbook',
   '/resources',
   '/playground',
@@ -10,7 +11,7 @@ const externalFamilies = [
 ];
 
 export const resolveDocsHref = (href: string, versionPrefix: string) => {
-  if (href.startsWith('/docs')) {
+  if (versionedFamilies.some(family => href.startsWith(family))) {
     return `${versionPrefix}${href}`;
   }
   if (externalFamilies.some(family => href.startsWith(family))) {

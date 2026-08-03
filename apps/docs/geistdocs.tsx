@@ -8,6 +8,7 @@ export const Logo = () => (
 
 export const nav: NonNullable<GeistdocsConfig['nav']> = [
   { label: 'Docs', href: '/docs' },
+  { label: 'Providers', href: '/providers' },
 ];
 
 export const content: NonNullable<GeistdocsConfig['content']> = [
@@ -17,6 +18,18 @@ export const content: NonNullable<GeistdocsConfig['content']> = [
     label: 'v7',
     dir: 'content/v7/docs',
     route: '/v7/docs',
+  },
+  {
+    id: 'providers-v6',
+    label: 'Providers (v6)',
+    dir: 'content/v6/providers',
+    route: '/providers',
+  },
+  {
+    id: 'providers-v7',
+    label: 'Providers (v7)',
+    dir: 'content/v7/providers',
+    route: '/v7/providers',
   },
 ];
 

@@ -76,6 +76,17 @@ const providers = [
   ['Azure', '/providers/ai-sdk-providers/azure'],
 ] as const;
 
+const communityProviders = [
+  ['Ollama', '/providers/community-providers/ollama'],
+  ['Anthropic Vertex', '/providers/community-providers/anthropic-vertex-ai'],
+  ['Portkey', '/providers/community-providers/portkey'],
+  [
+    'Cloudflare Workers AI',
+    '/providers/community-providers/cloudflare-workers-ai',
+  ],
+  ['Write your own', '/providers/community-providers/custom-providers'],
+] as const;
+
 const quickstarts = [
   ['Next.js App Router', '/docs/getting-started/nextjs-app-router'],
   ['Next.js Pages Router', '/docs/getting-started/nextjs-pages-router'],
@@ -142,10 +153,26 @@ export const Templates = ({
   </div>
 );
 
-export const OfficialModelCards = () => (
+export const OfficialModelCards = ({
+  resolveHref = href => href,
+}: {
+  resolveHref?: ResolveHref;
+}) => (
   <div className="not-prose grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
     {providers.map(([title, path]) => (
-      <CardLink href={`https://ai-sdk.dev${path}`} key={title} title={title} />
+      <CardLink href={resolveHref(path)} key={title} title={title} />
+    ))}
+  </div>
+);
+
+export const CommunityModelCards = ({
+  resolveHref = href => href,
+}: {
+  resolveHref?: ResolveHref;
+}) => (
+  <div className="not-prose grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    {communityProviders.map(([title, path]) => (
+      <CardLink href={resolveHref(path)} key={title} title={title} />
     ))}
   </div>
 );

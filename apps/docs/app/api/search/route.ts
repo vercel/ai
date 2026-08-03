@@ -1,9 +1,9 @@
 import { createSearchRoute } from '@vercel/geistdocs/routes/search';
 import { config } from '@/lib/geistdocs/config';
-import { v6Source, v7Source } from '@/lib/geistdocs/source';
+import { v6Sources, v7Sources } from '@/lib/geistdocs/source';
 
-const v6Search = createSearchRoute({ config, source: v6Source });
-const v7Search = createSearchRoute({ config, source: v7Source });
+const v6Search = createSearchRoute({ config, sources: v6Sources });
+const v7Search = createSearchRoute({ config, sources: v7Sources });
 
 export const GET = async (request: Request) => {
   const referer = request.headers.get('referer');

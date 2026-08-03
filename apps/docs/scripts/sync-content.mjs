@@ -37,8 +37,8 @@ const versions = [
   { id: "v6", ref: "31e168b16f71a2abc03a1fae69176886577337f4" },
 ];
 
-/** Content families to sync. Phase 1: docs only. */
-const families = ["docs"];
+/** Content families to sync. */
+const families = ["docs", "providers"];
 
 const log = (msg) => console.log(`[sync-content] ${msg}`);
 

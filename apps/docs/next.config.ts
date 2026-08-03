@@ -51,6 +51,16 @@ const config: NextConfig = {
       permanent: false,
     },
     {
+      source: '/providers',
+      destination: '/providers/ai-sdk-providers',
+      permanent: false,
+    },
+    {
+      source: '/v7/providers',
+      destination: '/v7/providers/ai-sdk-providers',
+      permanent: false,
+    },
+    {
       source: '/docs/ai-sdk-core/prompts',
       destination: '/docs/foundations/prompts',
       permanent: true,
