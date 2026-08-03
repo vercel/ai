@@ -366,6 +366,9 @@ importers:
       '@ai-sdk/fireworks':
         specifier: workspace:*
         version: link:../../packages/fireworks
+      '@ai-sdk/fish-audio':
+        specifier: workspace:*
+        version: link:../../packages/fish-audio
       '@ai-sdk/gateway':
         specifier: workspace:*
         version: link:../../packages/gateway
