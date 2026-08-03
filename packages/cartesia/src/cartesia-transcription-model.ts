@@ -221,6 +221,29 @@ export class CartesiaTranscriptionModel implements TranscriptionModelV4 {
       });
     }
 
+    // Always validate the declared media type — an explicit
+    // `streaming.encoding` override must not bypass the allowlist.
+    const inferredEncoding = cartesiaEncodingFromInputAudioFormat(
+      options.inputAudioFormat.type,
+    );
+    const encoding = cartesiaOptions?.streaming?.encoding ?? inferredEncoding;
+    // `audio/pcm` is generic linear PCM, so widening its default 16-bit
+    // interpretation is the intended use of the option. Overriding a G.711
+    // media type (or turning generic PCM into G.711) contradicts the declared
+    // format; surface that instead of sending it silently.
+    if (
+      encoding !== inferredEncoding &&
+      !(
+        inferredEncoding === 'pcm_s16le' &&
+        LINEAR_PCM_STREAMING_ENCODINGS.has(encoding)
+      )
+    ) {
+      warnings.push({
+        type: 'other',
+        message: `providerOptions.cartesia.streaming.encoding '${encoding}' contradicts inputAudioFormat.type '${options.inputAudioFormat.type}' (inferred '${inferredEncoding}'); sending '${encoding}'.`,
+      });
+    }
+
     const token = await this.createStreamingAccessToken(options);
     const useTurnDetection =
       cartesiaOptions?.streaming?.turnDetection !== false;
@@ -228,6 +251,7 @@ export class CartesiaTranscriptionModel implements TranscriptionModelV4 {
       baseURL: this.config.url({ path: '/', modelId: this.modelId }),
       version: this.config.version ?? '2026-03-01',
       modelId: this.modelId,
+      encoding,
       inputAudioFormat: options.inputAudioFormat,
       providerOptions: cartesiaOptions,
       token,
@@ -465,10 +489,19 @@ function createCartesiaStreamingTranscriptionStream({
   });
 }
 
+/** Linear PCM encodings that legitimately widen generic `audio/pcm` input. */
+const LINEAR_PCM_STREAMING_ENCODINGS: ReadonlySet<string> = new Set([
+  'pcm_s16le',
+  'pcm_s32le',
+  'pcm_f16le',
+  'pcm_f32le',
+]);
+
 function buildCartesiaStreamingTranscriptionUrl({
   baseURL,
   version,
   modelId,
+  encoding,
   inputAudioFormat,
   providerOptions,
   token,
@@ -477,6 +510,7 @@ function buildCartesiaStreamingTranscriptionUrl({
   baseURL: string;
   version: string;
   modelId: string;
+  encoding: string;
   inputAudioFormat: TranscriptionModelV4StreamOptions['inputAudioFormat'];
   providerOptions: CartesiaTranscriptionModelOptions | undefined;
   token: string;
@@ -489,11 +523,7 @@ function buildCartesiaStreamingTranscriptionUrl({
     ),
   );
   url.searchParams.set('model', modelId);
-  url.searchParams.set(
-    'encoding',
-    providerOptions?.streaming?.encoding ??
-      cartesiaEncodingFromInputAudioFormat(inputAudioFormat.type),
-  );
+  url.searchParams.set('encoding', encoding);
   url.searchParams.set('sample_rate', String(inputAudioFormat.rate ?? 24000));
   url.searchParams.set('cartesia_version', version);
   url.searchParams.set('access_token', token);
