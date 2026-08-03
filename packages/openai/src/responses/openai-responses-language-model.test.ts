@@ -5562,7 +5562,6 @@ describe('OpenAIResponsesLanguageModel', () => {
         user: null,
         metadata: {},
       };
-
       it('should use "azure" as providerMetadata key when provider includes "azure"', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'json-value',
@@ -6062,6 +6061,58 @@ describe('OpenAIResponsesLanguageModel', () => {
           });
         }
       });
+    });
+
+    it('should not crash when reasoning summary events arrive without response.output_item.added', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"type":"response.created","response":{"id":"resp_reasoning","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"o3-mini-2025-01-31","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"low","summary":"auto"},"store":true,"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.reasoning_summary_part.added","item_id":"rs_reasoning_item","summary_index":0}\n\n`,
+          `data:{"type":"response.reasoning_summary_text.delta","item_id":"rs_reasoning_item","summary_index":0,"delta":"thinking through the steps"}\n\n`,
+          `data:{"type":"response.reasoning_summary_part.done","item_id":"rs_reasoning_item","summary_index":0}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"rs_reasoning_item","type":"reasoning","summary":[{"type":"summary_text","text":"thinking through the steps"}]}}\n\n`,
+          `data:{"type":"response.completed","response":{"id":"resp_reasoning","object":"response","created_at":1741269019,"status":"completed","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"o3-mini-2025-01-31","output":[{"id":"rs_reasoning_item","type":"reasoning","summary":[{"type":"summary_text","text":"thinking through the steps"}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"low","summary":"auto"},"store":true,"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"truncation":"disabled","usage":{"input_tokens":10,"input_tokens_details":{"cached_tokens":0},"output_tokens":20,"output_tokens_details":{"reasoning_tokens":20},"total_tokens":30},"user":null,"metadata":{}}}\n\n`,
+        ],
+      };
+
+      const model = new OpenAIResponsesLanguageModel('o3-mini', {
+        provider: 'azure.responses',
+        url: ({ path }) => `https://api.openai.com/v1${path}`,
+        headers: () => ({ Authorization: `Bearer APIKEY` }),
+      });
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      const reasoningStart = events.find(
+        event => event.type === 'reasoning-start',
+      );
+      expect(reasoningStart?.type === 'reasoning-start').toBe(true);
+      if (reasoningStart?.type === 'reasoning-start') {
+        expect(reasoningStart.providerMetadata).toHaveProperty('azure');
+        expect(reasoningStart.providerMetadata).not.toHaveProperty('openai');
+        expect(reasoningStart.providerMetadata?.azure).toMatchObject({
+          itemId: 'rs_reasoning_item',
+          reasoningEncryptedContent: null,
+        });
+      }
+
+      const reasoningDelta = events.find(
+        event => event.type === 'reasoning-delta',
+      );
+      expect(reasoningDelta?.type === 'reasoning-delta').toBe(true);
+      if (reasoningDelta?.type === 'reasoning-delta') {
+        expect(reasoningDelta.providerMetadata).toHaveProperty('azure');
+        expect(reasoningDelta.providerMetadata).not.toHaveProperty('openai');
+        expect(reasoningDelta.providerMetadata?.azure).toMatchObject({
+          itemId: 'rs_reasoning_item',
+        });
+      }
     });
 
     it('should send finish reason for incomplete response', async () => {
