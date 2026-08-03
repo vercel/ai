@@ -1039,6 +1039,8 @@ export async function convertToAnthropicPrompt({
                         type: 'bash_code_execution_tool_result',
                         tool_use_id: part.toolCallId,
                         cache_control: cacheControl,
+                        // Prompt caching requires stable key ordering:
+                        // https://platform.claude.com/docs/en/build-with-claude/prompt-caching#troubleshooting-common-issues
                         content:
                           codeExecutionOutput.type ===
                           'bash_code_execution_result'
