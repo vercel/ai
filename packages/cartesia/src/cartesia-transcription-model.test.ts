@@ -440,6 +440,42 @@ describe('doStream', () => {
     await reader.cancel();
   });
 
+  it('warns when generic audio/pcm is overridden to a G.711 encoding', async () => {
+    const provider = createCartesia({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    });
+    const result = await provider.transcription('ink-2').doStream!({
+      audio: convertArrayToReadableStream([]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 8000 },
+      providerOptions: {
+        cartesia: {
+          streaming: { encoding: 'pcm_mulaw' },
+        },
+      },
+    });
+
+    // Only linear PCM widths widen `audio/pcm` silently — G.711 contradicts it.
+    const ws = MockWebSocket.instances[0];
+    expect(new URL(ws.url).searchParams.get('encoding')).toBe('pcm_mulaw');
+
+    const reader = result.stream.getReader();
+    ws.open();
+    await flush();
+    const first = await reader.read();
+    expect(first.value).toEqual({
+      type: 'stream-start',
+      warnings: [
+        {
+          type: 'other',
+          message:
+            "providerOptions.cartesia.streaming.encoding 'pcm_mulaw' contradicts inputAudioFormat.type 'audio/pcm' (inferred 'pcm_s16le'); sending 'pcm_mulaw'.",
+        },
+      ],
+    });
+    await reader.cancel();
+  });
+
   it('rejects unsupported model operations and Ink 2 languages', async () => {
     const provider = createCartesia({
       apiKey: 'test-api-key',

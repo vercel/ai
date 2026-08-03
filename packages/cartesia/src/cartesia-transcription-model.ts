@@ -28,6 +28,7 @@ import { z } from 'zod/v4';
 import type { CartesiaConfig } from './cartesia-config';
 import { cartesiaFailedResponseHandler } from './cartesia-error';
 import {
+  cartesiaStreamingEncodingSchema,
   cartesiaTranscriptionModelOptionsSchema,
   type CartesiaTranscriptionModelOptions,
 } from './cartesia-transcription-model-options';
@@ -489,13 +490,23 @@ function createCartesiaStreamingTranscriptionStream({
   });
 }
 
-/** Linear PCM encodings that legitimately widen generic `audio/pcm` input. */
-const LINEAR_PCM_STREAMING_ENCODINGS: ReadonlySet<string> = new Set([
-  'pcm_s16le',
-  'pcm_s32le',
-  'pcm_f16le',
-  'pcm_f32le',
+/** G.711 companding laws — the only non-linear members of the encoding enum. */
+const G711_STREAMING_ENCODINGS: ReadonlySet<string> = new Set([
+  'pcm_mulaw',
+  'pcm_alaw',
 ]);
+
+/**
+ * Linear PCM encodings that legitimately widen generic `audio/pcm` input.
+ * Derived from the option enum so a future linear encoding added there is
+ * treated as widening-compatible by default; G.711 is a closed set (the
+ * standard defines exactly two companding laws), so it is the hardcoded half.
+ */
+const LINEAR_PCM_STREAMING_ENCODINGS: ReadonlySet<string> = new Set(
+  cartesiaStreamingEncodingSchema.options.filter(
+    encoding => !G711_STREAMING_ENCODINGS.has(encoding),
+  ),
+);
 
 function buildCartesiaStreamingTranscriptionUrl({
   baseURL,
