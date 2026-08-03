@@ -1,5 +1,25 @@
 # @ai-sdk/gateway
 
+## 4.0.37
+
+### Patch Changes
+
+- bdd5e28: feat(provider/gateway): support `'vision'` (image input) in the `has` provider option
+
+## 4.0.36
+
+### Patch Changes
+
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+
+## 4.0.35
+
+### Patch Changes
+
+- 4f2e064: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.34
 
 ### Patch Changes

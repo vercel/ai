@@ -1,17 +1,21 @@
 import type { BridgeTurn } from '@ai-sdk/harness/bridge';
-import { isRecord } from '@ai-sdk/provider-utils';
 import {
   emitLegacyPartDelta,
   emitLegacyTextPartUpdate,
   emitMissingFinalDelta,
-  type OpenCodeEvent,
+  openCodeMessageInfoFromValue,
   type TranslationState,
 } from './opencode-events';
 import {
-  legacyStepFinishPartToFinishStep,
   mapOpenCodeFinishReason,
+  translateLegacyStepFinishPart,
 } from './opencode-finish-step';
 import { mapUsage } from './opencode-usage';
+import {
+  asOpenCodeObject,
+  type OpenCodeEvent,
+  type OpenCodeEventProperties,
+} from './opencode-types';
 
 type Emit = (message: Record<string, unknown>) => void;
 
@@ -52,8 +56,8 @@ export function createEmitStreamEvent({
     const props = event.properties ?? {};
 
     if (type === 'message.updated') {
-      const info = props.info;
-      if (isRecord(info)) {
+      const info = openCodeMessageInfoFromValue(props.info);
+      if (info) {
         const id = stringValue(info.id);
         const role = stringValue(info.role);
         if (id && role) state.messageRoles.set(id, role);
@@ -238,7 +242,7 @@ export function createEmitStreamEvent({
     }
     if (type === 'session.next.retried') {
       const error = props.error ?? event;
-      if (isRecord(error) && error.isRetryable === false) {
+      if (openCodeErrorFromValue(error)?.isRetryable === false) {
         emitError({
           error,
           message: 'OpenCode session retry failed',
@@ -326,9 +330,9 @@ function emitLegacyStepFinishPart({
   state: TranslationState;
   emit: Emit;
 }): boolean {
-  const event = legacyStepFinishPartToFinishStep(part);
-  if (!event) return false;
-  const id = isRecord(part) ? stringValue(part.id) : undefined;
+  const translated = translateLegacyStepFinishPart(part);
+  if (!translated) return false;
+  const { event, partId: id } = translated;
   if (id) {
     if (state.legacyStepFinishPartIds.has(id)) return true;
     state.legacyStepFinishPartIds.add(id);
@@ -365,17 +369,10 @@ function emitLegacyToolPart({
     input: unknown;
   }) => void;
 }): void {
-  if (!part || typeof part !== 'object') return;
-  const toolPart = part as Record<string, any>;
-  if (toolPart.type !== 'tool') return;
-  const status = legacyToolPartStatus(toolPart);
+  const toolPart = legacyToolPartFromValue(part);
+  if (!toolPart) return;
+  const status = toolPart.status;
   if (status !== 'running' && status !== 'completed' && status !== 'error') {
-    return;
-  }
-  if (
-    typeof toolPart.tool !== 'string' ||
-    typeof toolPart.callID !== 'string'
-  ) {
     return;
   }
   const callID = toolPart.callID;
@@ -402,8 +399,8 @@ function emitLegacyToolPart({
       ...nativeNameField({ nativeName: rawToolName, toolName }),
       input: JSON.stringify(legacyToolPartInput(toolPart)),
       providerExecuted: true,
-      ...(toolPart.provider?.metadata
-        ? { providerMetadata: toolPart.provider.metadata }
+      ...(toolPart.providerMetadata
+        ? { providerMetadata: toolPart.providerMetadata }
         : {}),
     });
   }
@@ -422,33 +419,16 @@ function emitLegacyToolPart({
   }
 }
 
-function legacyToolPartStatus(part: Record<string, any>): string | undefined {
-  return typeof part.state === 'string'
-    ? part.state
-    : typeof part.state === 'object' && part.state !== null
-      ? String(part.state.status ?? '')
-      : undefined;
-}
-
-function legacyToolPartInput(
-  part: Record<string, any>,
-): Record<string, unknown> {
-  const state =
-    typeof part.state === 'object' && part.state !== null
-      ? (part.state as Record<string, any>)
-      : undefined;
+function legacyToolPartInput(part: LegacyToolPart): Record<string, unknown> {
   return {
-    ...(isRecord(part.metadata) ? part.metadata : {}),
-    ...(isRecord(state?.metadata) ? state.metadata : {}),
-    ...(isRecord(state?.input) ? state.input : {}),
+    ...(part.metadata ?? {}),
+    ...(part.state?.metadata ?? {}),
+    ...(part.state?.input ?? {}),
   };
 }
 
-function legacyToolPartOutput(part: Record<string, any>): unknown {
-  const state =
-    typeof part.state === 'object' && part.state !== null
-      ? (part.state as Record<string, any>)
-      : undefined;
+function legacyToolPartOutput(part: LegacyToolPart): unknown {
+  const state = part.state;
   if (state?.status === 'error') {
     return state.error ?? part.error ?? state.result ?? 'tool failed';
   }
@@ -463,7 +443,7 @@ function legacyToolPartOutput(part: Record<string, any>): unknown {
 
 function parseToolInput(
   state: TranslationState,
-  props: Record<string, any>,
+  props: OpenCodeEventProperties,
 ): unknown {
   const text = state.toolInputs.get(String(props.callID ?? ''));
   if (!text) return {};
@@ -487,11 +467,12 @@ function nextRetryEventMessage({
     details.push(`attempt ${props.attempt}`);
   }
   const error = props.error;
-  if (isRecord(error)) {
+  const errorDetails = openCodeErrorFromValue(error);
+  if (errorDetails) {
     const message =
-      stringValue(error.message) ??
-      (isRecord(error.data) ? stringValue(error.data.message) : undefined);
-    const statusCode = error.statusCode;
+      stringValue(errorDetails.message) ??
+      stringValue(errorDetails.data?.message);
+    const statusCode = errorDetails.statusCode;
     if (typeof statusCode === 'number') {
       details.push(`HTTP ${statusCode}`);
     }
@@ -506,4 +487,88 @@ function nextRetryEventMessage({
 
 export function stringValue(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+type LegacyToolState = {
+  status?: string;
+  input?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+  output?: unknown;
+  result?: unknown;
+  structured?: unknown;
+  content?: unknown;
+  error?: unknown;
+};
+
+type LegacyToolPart = {
+  type: 'tool';
+  callID: string;
+  tool: string;
+  status?: string;
+  state?: LegacyToolState;
+  metadata?: Record<string, unknown>;
+  providerMetadata?: unknown;
+  error?: unknown;
+};
+
+function legacyToolPartFromValue(value: unknown): LegacyToolPart | undefined {
+  const part = asOpenCodeObject(value);
+  if (
+    !part ||
+    part.type !== 'tool' ||
+    typeof part.tool !== 'string' ||
+    typeof part.callID !== 'string'
+  ) {
+    return undefined;
+  }
+
+  const stateObject = asOpenCodeObject(part.state);
+  const provider = asOpenCodeObject(part.provider);
+  const state = stateObject
+    ? {
+        status: stringValue(stateObject.status),
+        input: asOpenCodeObject(stateObject.input),
+        metadata: asOpenCodeObject(stateObject.metadata),
+        output: stateObject.output,
+        result: stateObject.result,
+        structured: stateObject.structured,
+        content: stateObject.content,
+        error: stateObject.error,
+      }
+    : undefined;
+
+  return {
+    type: 'tool',
+    callID: part.callID,
+    tool: part.tool,
+    status:
+      typeof part.state === 'string'
+        ? part.state
+        : (state?.status ?? undefined),
+    state,
+    metadata: asOpenCodeObject(part.metadata),
+    providerMetadata: provider?.metadata,
+    error: part.error,
+  };
+}
+
+type OpenCodeErrorDetails = {
+  isRetryable?: unknown;
+  message?: unknown;
+  statusCode?: unknown;
+  data?: { message?: unknown };
+};
+
+function openCodeErrorFromValue(
+  value: unknown,
+): OpenCodeErrorDetails | undefined {
+  const error = asOpenCodeObject(value);
+  if (!error) return undefined;
+  const data = asOpenCodeObject(error.data);
+  return {
+    isRetryable: error.isRetryable,
+    message: error.message,
+    statusCode: error.statusCode,
+    data: data ? { message: data.message } : undefined,
+  };
 }

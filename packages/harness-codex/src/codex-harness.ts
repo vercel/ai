@@ -57,15 +57,16 @@ type WriteSkillsResult = {
 };
 
 /*
- * The model the adapter pins when the consumer configures none. The Codex SDK
- * does not report the model it resolves to at runtime (no model field on any
- * event), and exposes no default-model constant, so we pin the latest
- * default model resolved by the bundled `@openai/codex@0.144.5`:
- * `gpt-5.6-sol`. Keep this in sync when bumping the codex SDK/binary. Passing
- * it explicitly makes the resolved model deterministic and the telemetry
- * (`gen_ai.request.model`) accurate.
+ * This intentionally is not the latest Codex model. Newer GPT-5.6 models use
+ * Responses Lite, which does not expose their code-mode tools as callable
+ * through the custom model provider used by the harness. Keep GPT-5.5 as the
+ * default until the upstream bug is resolved:
+ * https://github.com/openai/codex/issues/31894
+ *
+ * Passing the model explicitly keeps the runtime behavior deterministic and
+ * the telemetry (`gen_ai.request.model`) accurate.
  */
-const DEFAULT_CODEX_MODEL = 'gpt-5.6-sol';
+const DEFAULT_CODEX_MODEL = 'gpt-5.5';
 
 /**
  * Value to use in User-Agent and `x-client-app` headers.
@@ -125,9 +126,9 @@ const CODEX_BUILTIN_TOOLS = {
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
 /*
- * Bootstrap lives in /tmp because it's pure derived state — the harness can
- * reinstall the CLI and bridge files on any fresh sandbox from the recipe.
- * Persistence comes from the sandbox provider's snapshot, not the path.
+ * Bootstrap is derived state stored under the sandbox's default working
+ * directory so snapshot-capable providers can preserve the installed CLI,
+ * bridge, and recipe marker without requiring root filesystem access.
  *
  * The session work dir (`startOpts.sessionWorkDir`) lives under the sandbox's
  * default working directory — the provider's persistent mount — so any files
@@ -135,7 +136,7 @@ const CODEX_BUILTIN_TOOLS = {
  * cycles. Harness infra derived from `sandboxSession.defaultWorkingDirectory`
  * lives under `.agent-runs`, outside the agent workdir.
  */
-const BOOTSTRAP_DIR = '/tmp/harness/codex';
+const BOOTSTRAP_DIR = '.harness-bootstrap/codex';
 
 /**
  * Live bridge coordinates returned by `doDetach()` and `doSuspendTurn()`. A
@@ -191,9 +192,8 @@ export function createCodex(
           { path: `${BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
         ],
         commands: [
-          { command: `mkdir -p ${BOOTSTRAP_DIR}` },
           {
-            command: `pnpm --dir ${BOOTSTRAP_DIR} install --frozen-lockfile --store-dir ${BOOTSTRAP_DIR}/.pnpm-store`,
+            command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
           },
         ],
       };
@@ -220,6 +220,10 @@ export function createCodex(
       const sandboxSession = startOpts.sandboxSession;
       const session = sandboxSession.restricted();
       const sandboxId = sandboxSession.id;
+      const bootstrapDir = path.posix.resolve(
+        sandboxSession.defaultWorkingDirectory,
+        BOOTSTRAP_DIR,
+      );
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
       const isContinue = startOpts.continueFrom != null;
@@ -373,7 +377,7 @@ export function createCodex(
       });
 
       const proc = await session.spawn({
-        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --cli-shim-dir ${shellQuote(cliShimDir)}`,
+        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --cli-shim-dir ${shellQuote(cliShimDir)}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
@@ -906,7 +910,7 @@ function createSession({
         channel.beginClose();
         try {
           if (!channel.isClosed()) {
-            channel.send({ type: 'shutdown' });
+            channel.send({ type: 'destroy' });
           }
         } catch {}
         let stopTimer: ReturnType<typeof setTimeout> | undefined;
@@ -939,7 +943,7 @@ function createSession({
       stopped = true;
       /*
        * If the bridge's channel already closed (e.g. mid-turn WS drop)
-       * there is no one to ack a `detach` message. Synthesize an empty
+       * there is no one to acknowledge a `stop` message. Synthesize an empty
        * payload — the workdir is still captured by the sandbox snapshot
        * during the subsequent `sandboxSession.stop()`, so the next turn can
        * resume the filesystem state. The trade-off: we lose
@@ -947,7 +951,7 @@ function createSession({
        * preserved workdir rather than resuming the prior conversation
        * inside Codex's runtime. Ability to continue beats throwing.
        */
-      // Tell the channel we are tearing down so the bridge's post-detach
+      // Tell the channel we are tearing down so the bridge's post-stop
       // socket close finalises instead of triggering a reconnect.
       channel.beginClose();
       const data: unknown = channel.isClosed()
@@ -957,18 +961,18 @@ function createSession({
               unsub();
               reject(
                 new Error(
-                  `codex session ${sessionId} did not reply to detach within 5s.`,
+                  `codex session ${sessionId} did not reply to stop within 5s.`,
                 ),
               );
             }, 5000);
             timer.unref?.();
-            const unsub = channel.on('bridge-detach', msg => {
+            const unsub = channel.on('bridge-stop', msg => {
               clearTimeout(timer);
               unsub();
               resolve(msg.data);
             });
             try {
-              channel.send({ type: 'detach' });
+              channel.send({ type: 'stop' });
             } catch (err) {
               clearTimeout(timer);
               unsub();
