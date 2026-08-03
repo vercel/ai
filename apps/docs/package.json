@@ -14,11 +14,11 @@
   },
   "dependencies": {
     "@shikijs/transformers": "3.23.0",
-    "@vercel/geistdocs": "1.15.5",
+    "@vercel/geistdocs": "1.19.2",
     "fumadocs-core": "16.2.2",
     "fumadocs-mdx": "14.0.4",
     "fumadocs-ui": "16.2.2",
-    "next": "16.2.6",
+    "next": "16.2.12",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "shiki": "3.23.0",
