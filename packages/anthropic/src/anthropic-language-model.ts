@@ -1,5 +1,6 @@
 import {
   APICallError,
+  InvalidResponseDataError,
   type JSONObject,
   type LanguageModelV4,
   type LanguageModelV4CallOptions,
@@ -1609,6 +1610,17 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
     const generateId = this.generateId;
 
+    // Multiple message_start/message_stop sequences are valid in one
+    // stream (e.g. programmatic tool calling), and some gateways send a
+    // duplicated message_start frame for the same message, which is
+    // ignored. A message_start with a different id while the previous
+    // message is still open means an intermediary spliced two generations
+    // into the same stream. Earlier blocks may already have been emitted
+    // downstream, so the stream is failed explicitly instead of merging
+    // the generations.
+    let openMessageId: string | null = null;
+    let isStreamCorrupted = false;
+
     const transformedStream = response.pipeThrough(
       new TransformStream<
         ParseResult<InferSchema<typeof anthropicChunkSchema>>,
@@ -1621,6 +1633,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         transform(chunk, controller) {
           if (options.includeRawChunks) {
             controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
+          }
+
+          // drop all events after the stream was marked corrupted:
+          if (isStreamCorrupted) {
+            return;
           }
 
           if (!chunk.success) {
@@ -2405,6 +2422,28 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             }
 
             case 'message_start': {
+              if (openMessageId != null) {
+                // duplicated frame for the message that is already open:
+                if ((value.message.id ?? '') === openMessageId) {
+                  return;
+                }
+                isStreamCorrupted = true;
+                controller.enqueue({
+                  type: 'error',
+                  error: new InvalidResponseDataError({
+                    data: value,
+                    message:
+                      'Received a message_start event for a different ' +
+                      'message while the previous message was still open. ' +
+                      'The stream contains spliced generations (e.g. an ' +
+                      'intermediary retried its upstream connection ' +
+                      'mid-response) and cannot be processed safely.',
+                  }),
+                });
+                return;
+              }
+              openMessageId = value.message.id ?? '';
+
               usage.input_tokens = value.message.usage.input_tokens;
               usage.cache_read_input_tokens =
                 value.message.usage.cache_read_input_tokens ?? 0;
@@ -2559,6 +2598,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             }
 
             case 'message_stop': {
+              openMessageId = null;
+
               const anthropicMetadata = {
                 usage: (rawUsage as JSONObject) ?? null,
                 stopSequence,

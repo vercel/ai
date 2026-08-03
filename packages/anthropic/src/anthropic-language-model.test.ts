@@ -7386,6 +7386,186 @@ describe('AnthropicLanguageModel', () => {
       `);
     });
 
+    it('should ignore a duplicated message_start frame for the same message', async () => {
+      // some gateways duplicate the message_start frame of a single
+      // response (same message id) on their Anthropic passthrough.
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_dup","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"message_start","message":{"id":"msg_dup","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello, World!"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "msg_dup",
+            "modelId": "claude-3-haiku-20240307",
+            "type": "response-metadata",
+          },
+          {
+            "id": "0",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello, World!",
+            "id": "0",
+            "type": "text-delta",
+          },
+          {
+            "id": "0",
+            "type": "text-end",
+          },
+          {
+            "finishReason": {
+              "raw": "end_turn",
+              "unified": "stop",
+            },
+            "providerMetadata": {
+              "anthropic": {
+                "container": null,
+                "contextManagement": null,
+                "iterations": null,
+                "stopSequence": null,
+                "usage": {
+                  "input_tokens": 17,
+                  "output_tokens": 227,
+                },
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "noCache": 17,
+                "total": 17,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": undefined,
+                "total": 227,
+              },
+              "raw": {
+                "input_tokens": 17,
+                "output_tokens": 227,
+              },
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should fail the stream when a message_start for a different message arrives while the previous message is open', async () => {
+      // two generations spliced into one stream: the first generation is
+      // cut mid tool input, then an intermediary retried upstream and the
+      // second generation's events continue on the same response.
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_first","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"thinking","thinking":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"I will call the tool."}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"signature_delta","signature":"sig-first"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"toolu_first","name":"test-tool","input":{}}}\n\n`,
+          `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\\"value\\":\\"Spark"}}\n\n`,
+          `data: {"type":"message_start","message":{"id":"msg_second","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"thinking","thinking":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"Let me call the tool."}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"signature_delta","signature":"sig-second"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"toolu_second","name":"test-tool","input":{}}}\n\n`,
+          `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\\"value\\":\\"Sparkle Day\\"}"}}\n\n`,
+          `data: {"type":"content_block_stop","index":1}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":65}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            inputSchema: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "msg_first",
+            "modelId": "claude-3-haiku-20240307",
+            "type": "response-metadata",
+          },
+          {
+            "id": "0",
+            "type": "reasoning-start",
+          },
+          {
+            "delta": "I will call the tool.",
+            "id": "0",
+            "type": "reasoning-delta",
+          },
+          {
+            "delta": "",
+            "id": "0",
+            "providerMetadata": {
+              "anthropic": {
+                "signature": "sig-first",
+              },
+            },
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "0",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "toolu_first",
+            "toolName": "test-tool",
+            "type": "tool-input-start",
+          },
+          {
+            "delta": "{"value":"Spark",
+            "id": "toolu_first",
+            "type": "tool-input-delta",
+          },
+          {
+            "error": [AI_InvalidResponseDataError: Received a message_start event for a different message while the previous message was still open. The stream contains spliced generations (e.g. an intermediary retried its upstream connection mid-response) and cannot be processed safely.],
+            "type": "error",
+          },
+        ]
+      `);
+    });
+
     it('should stream redacted reasoning', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
