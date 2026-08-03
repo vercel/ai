@@ -1921,6 +1921,7 @@ class DefaultStreamTextResult<
       self._initialResponseMessages.resolve(initialResponseMessages);
       if (pendingToolCallerApprovals.length > 0) {
         const usage = createNullLanguageModelUsage();
+        stepFinish = new DelayedPromise<void>();
         self.addStream(
           new ReadableStream<TextStreamPart<TOOLS>>({
             start(controller) {
