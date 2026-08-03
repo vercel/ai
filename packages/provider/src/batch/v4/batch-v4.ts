@@ -29,7 +29,6 @@ export type BatchV4Status = {
     readonly expired?: number;
   };
   readonly error?: BatchV4Error;
-  readonly retryAfterMs?: number;
   readonly createdAt?: string;
   readonly expiresAt?: string;
   readonly providerMetadata?: SharedV4ProviderMetadata;
