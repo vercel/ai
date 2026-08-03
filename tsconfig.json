@@ -181,6 +181,9 @@
       "path": "packages/sandbox-just-bash"
     },
     {
+      "path": "packages/sandbox-local-workspace"
+    },
+    {
       "path": "packages/sandbox-vercel"
     },
     {
