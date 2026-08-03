@@ -16,6 +16,7 @@ export type GatewayVideoModelId =
   | 'google/veo-3.0-generate-001'
   | 'google/veo-3.1-fast-generate-001'
   | 'google/veo-3.1-generate-001'
+  | 'google/veo-3.1-lite-generate-001'
   | 'klingai/kling-v2.5-turbo-i2v'
   | 'klingai/kling-v2.5-turbo-t2v'
   | 'klingai/kling-v2.6-i2v'

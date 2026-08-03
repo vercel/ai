@@ -1,5 +1,15 @@
 # @ai-sdk/minimax
 
+## 3.0.2
+
+### Patch Changes
+
+- 1d36c72: Add video model support to the MiniMax provider (`minimax.video`) for the MiniMax-H3 model, including text-to-video, first/last-frame, and reference-to-video generation.
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+  - @ai-sdk/anthropic@4.0.27
+
 ## 3.0.1
 
 ### Patch Changes

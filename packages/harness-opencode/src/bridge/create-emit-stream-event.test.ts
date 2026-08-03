@@ -176,6 +176,47 @@ describe('createEmitStreamEvent', () => {
     `);
   });
 
+  it('normalizes legacy tool parts before translating them', () => {
+    const { emitted, emitStreamEvent } = createEmitter();
+
+    emitStreamEvent({
+      type: 'message.part.updated',
+      properties: {
+        part: {
+          type: 'tool',
+          callID: 'tool-legacy',
+          tool: 'view',
+          metadata: ['ignored'],
+          state: {
+            status: 'completed',
+            input: { file: 'README.md' },
+            metadata: 'ignored',
+            output: 'contents',
+          },
+        },
+      },
+    });
+
+    expect(emitted).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{\"file\":\"README.md\"}",
+          "nativeName": "view",
+          "providerExecuted": true,
+          "toolCallId": "tool-legacy",
+          "toolName": "read",
+          "type": "tool-call",
+        },
+        {
+          "result": "contents",
+          "toolCallId": "tool-legacy",
+          "toolName": "read",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
+
   it('preserves retry, error, compaction, and file events', () => {
     const { emitted, warnings, errors, emitStreamEvent } = createEmitter();
 

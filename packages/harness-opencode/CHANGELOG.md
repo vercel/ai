@@ -1,5 +1,29 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.55
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.54
+
+## 1.0.54
+
+### Patch Changes
+
+- bdde5d9: fix(harness): avoid placing harness bootstrap files in `/tmp` and instead use sandbox working directory
+- Updated dependencies [5fc7da5]
+- Updated dependencies [bdde5d9]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+  - @ai-sdk/harness@1.0.53
+
+## 1.0.53
+
+### Patch Changes
+
+- 2d9c434: fix(harness-opencode): avoid bridge import from provider-utils and rely on more granular types
+  - @ai-sdk/harness@1.0.52
+
 ## 1.0.52
 
 ### Patch Changes
