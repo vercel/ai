@@ -1154,14 +1154,7 @@ const { video } = await generateVideo({
 });
 ```
 
-Use `<IMAGE_1>`, `<IMAGE_2>`, etc. in your prompt to reference specific images, in the order the images are passed. Up to 7 reference images are supported per request.
-
-<Note>
-  Tag numbering differs by model. xAI's `grok-imagine-video` reference-to-video
-  examples tag images starting at `<IMAGE_1>`, while `grok-imagine-video-1.5`
-  documents zero-indexed tags (`<IMAGE_0>` … `<IMAGE_N>`). Follow the
-  convention for the model you are calling.
-</Note>
+Use `<IMAGE_1>`, `<IMAGE_2>`, etc. in your prompt to reference specific images. Up to 7 reference images are supported per request.
 
 Alternatively, use the provider-agnostic top-level `inputReferences` option. Providing it automatically selects reference-to-video mode, and it accepts file data (e.g. a `Buffer`) or `{ type: 'url', url }` objects:
 
@@ -1298,9 +1291,8 @@ You can validate the provider options using the `XaiVideoModelOptions` type.
   Array of reference image URLs (1–7 images) or base64 data URIs for
   reference-to-video (R2V) generation. The model incorporates visual
   elements from these images without using them as the first frame. Use
-  `<IMAGE_N>` tags in the prompt to reference specific images — see the
-  reference-to-video section above for per-model tag numbering. Used with
-  `mode: 'reference-to-video'`.
+  `<IMAGE_1>`, `<IMAGE_2>`, etc. in the prompt to reference specific
+  images. Used with `mode: 'reference-to-video'`.
 
 - **referenceVoiceIds** _string[]_
 
