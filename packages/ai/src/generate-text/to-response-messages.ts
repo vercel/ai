@@ -108,9 +108,6 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
         content.push({
           type: 'tool-result',
           toolCallId: part.toolCallId,
-          ...(part.callerToolCallId != null
-            ? { callerToolCallId: part.callerToolCallId }
-            : {}),
           toolName: part.toolName,
           output,
           providerOptions: part.providerMetadata,

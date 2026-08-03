@@ -11,7 +11,6 @@ export type StaticToolResult<TOOLS extends ToolSet> = ValueOf<{
   [NAME in keyof TOOLS]: {
     type: 'tool-result';
     toolCallId: string;
-    callerToolCallId?: string;
     toolName: NAME & string;
     input: InferToolInput<TOOLS[NAME]>;
     output: InferToolOutput<TOOLS[NAME]>;
@@ -27,7 +26,6 @@ export type StaticToolResult<TOOLS extends ToolSet> = ValueOf<{
 export type DynamicToolResult = {
   type: 'tool-result';
   toolCallId: string;
-  callerToolCallId?: string;
   toolName: string;
   input: unknown;
   output: unknown;

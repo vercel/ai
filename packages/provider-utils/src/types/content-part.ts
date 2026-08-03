@@ -229,11 +229,6 @@ export interface ToolResultPart {
   toolCallId: string;
 
   /**
-   * ID of the local caller tool call that owns this nested tool result.
-   */
-  callerToolCallId?: string;
-
-  /**
    * Name of the tool that generated this result.
    */
   toolName: string;

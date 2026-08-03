@@ -1,5 +1,4 @@
 import type { ProviderOptions } from './provider-options';
-import type { ModelMessage } from './model-message';
 import type { Tool } from './tool';
 import type { ToolApprovalResponse } from './tool-approval-response';
 import type { ToolCall } from './tool-call';
@@ -35,7 +34,6 @@ export type ToolCallerDefinition =
         output: unknown;
         approvalResponse: ToolApprovalResponse;
         tools: ToolSet;
-        messages: ModelMessage[];
         toolExecutionOptions: Partial<ToolExecutionOptions<unknown>>;
         resolveToolApproval: ToolCallerBindContext['resolveToolApproval'];
       }) => Promise<unknown>;

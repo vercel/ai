@@ -10,11 +10,6 @@ export type ToolApprovalResponse = {
   approvalId: string;
 
   /**
-   * ID of the local caller tool call that owns this nested approval.
-   */
-  callerToolCallId?: string;
-
-  /**
    * Flag indicating whether the approval was granted or denied.
    */
   approved: boolean;

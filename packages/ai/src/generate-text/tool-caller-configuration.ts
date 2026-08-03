@@ -104,7 +104,7 @@ export function prepareToolsForToolCallers<TOOLS extends ToolSet>({
 }: {
   tools: TOOLS | undefined;
   toolCallers: ResolvedToolCallers | undefined;
-  resolveToolApproval?: (
+  resolveToolApproval: (
     toolCall: ToolCall<string, unknown>,
   ) => Promise<LocalToolCallerApprovalStatus>;
 }): {
@@ -172,9 +172,7 @@ export function prepareToolsForToolCallers<TOOLS extends ToolSet>({
 
     const boundCaller = experimental_toolCaller(
       caller.bind(localToolsByCaller.get(callerName) ?? {}, {
-        resolveToolApproval:
-          resolveToolApproval ??
-          (async () => ({ type: 'not-applicable' as const })),
+        resolveToolApproval,
       }),
       caller,
     );

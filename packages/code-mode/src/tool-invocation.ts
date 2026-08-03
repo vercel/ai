@@ -92,34 +92,30 @@ export async function invokeHostTool({
     input: validation.value,
     toolCallId,
   };
-  const injectedApprovalStatus =
-    !skipApproval && codeModeOptions.approval?.resolve != null
+  const approvalStatus = skipApproval
+    ? { type: 'not-applicable' as const }
+    : codeModeOptions.approval?.resolve != null
       ? await raceAgainstAbort(
           codeModeOptions.approval.resolve(approvalRequest),
           executionOptions.abortSignal,
         )
-      : undefined;
-  const needsStandaloneApproval =
-    !skipApproval &&
-    injectedApprovalStatus === undefined &&
-    (await raceAgainstAbort(
-      requiresApproval(hostTool, validation.value, executionOptions),
-      executionOptions.abortSignal,
-    ));
+      : (await raceAgainstAbort(
+            requiresApproval(hostTool, validation.value, executionOptions),
+            executionOptions.abortSignal,
+          ))
+        ? { type: 'user-approval' as const }
+        : { type: 'not-applicable' as const };
 
-  if (injectedApprovalStatus?.type === 'denied') {
+  if (approvalStatus.type === 'denied') {
     throw new CodeModeToolApprovalDeniedError(
       toolName,
       validation.value,
       toolCallId,
-      injectedApprovalStatus.reason,
+      approvalStatus.reason,
     );
   }
 
-  if (
-    injectedApprovalStatus?.type === 'user-approval' ||
-    needsStandaloneApproval
-  ) {
+  if (approvalStatus.type === 'user-approval') {
     if (codeModeOptions.approval?.mode === 'interrupt') {
       return {
         type: 'interrupted',

@@ -21,8 +21,6 @@ import {
 import type { ToolOutput } from './tool-output';
 
 export type ContinuedToolCallerApproval<TOOLS extends ToolSet> = {
-  approval: CollectedToolApprovals<TOOLS>;
-  messages: ModelMessage[];
   responseMessage: ToolModelMessage;
   toolOutput: ToolOutput<TOOLS>;
   nextApprovalRequest: LocalToolCallerApprovalRequest | undefined;
@@ -33,7 +31,9 @@ export function normalizeToolCallerApprovalMessages({
 }: {
   messages: ModelMessage[];
 }): ModelMessage[] {
-  const callerApprovalIds = new Map<string, string>();
+  const callerApprovalIds = new Set<string>();
+  const callerToolCallIds = new Set<string>();
+  const nestedToolCallIds = new Set<string>();
   for (const message of messages) {
     if (message.role !== 'assistant' || typeof message.content === 'string') {
       continue;
@@ -43,7 +43,9 @@ export function normalizeToolCallerApprovalMessages({
         part.type === 'tool-approval-request' &&
         part.callerToolCallId != null
       ) {
-        callerApprovalIds.set(part.approvalId, part.callerToolCallId);
+        callerApprovalIds.add(part.approvalId);
+        callerToolCallIds.add(part.callerToolCallId);
+        nestedToolCallIds.add(part.toolCallId);
       }
     }
   }
@@ -58,7 +60,10 @@ export function normalizeToolCallerApprovalMessages({
       continue;
     }
     for (const part of message.content) {
-      if (part.type === 'tool-result') {
+      if (
+        part.type === 'tool-result' &&
+        callerToolCallIds.has(part.toolCallId)
+      ) {
         latestToolResults.set(part.toolCallId, part);
       }
     }
@@ -69,7 +74,16 @@ export function normalizeToolCallerApprovalMessages({
       return [message];
     }
     const content = message.content.filter(part => {
-      if ('callerToolCallId' in part && part.callerToolCallId != null) {
+      if (
+        (part.type === 'tool-call' || part.type === 'tool-result') &&
+        nestedToolCallIds.has(part.toolCallId)
+      ) {
+        return false;
+      }
+      if (
+        part.type === 'tool-approval-request' &&
+        part.callerToolCallId != null
+      ) {
         return false;
       }
       if (
@@ -81,7 +95,10 @@ export function normalizeToolCallerApprovalMessages({
       if (part.type !== 'tool-result') {
         return true;
       }
-      return latestToolResults.get(part.toolCallId) === part;
+      return (
+        !callerToolCallIds.has(part.toolCallId) ||
+        latestToolResults.get(part.toolCallId) === part
+      );
     });
     return content.length === 0
       ? []
@@ -118,15 +135,17 @@ export async function continueToolCallerApprovals<TOOLS extends ToolSet>({
   let currentMessages = messages;
 
   for (const approval of approvals) {
+    if (approval.approvalRequest.callerToolCallId == null) {
+      remaining.push(approval);
+      continue;
+    }
+
     const match = findToolCallerApproval({
       approval,
       messages: currentMessages,
       tools,
     });
     if (match === undefined) {
-      if (approval.approvalRequest.callerToolCallId == null) {
-        remaining.push(approval);
-      }
       continue;
     }
 
@@ -143,7 +162,6 @@ export async function continueToolCallerApprovals<TOOLS extends ToolSet>({
         output: match.outerToolResult.output,
         approvalResponse: approval.approvalResponse,
         tools: localTools,
-        messages: currentMessages,
         resolveToolApproval: toolCall =>
           resolveToolApproval(toolCall, currentMessages),
         toolExecutionOptions: {
@@ -189,8 +207,6 @@ export async function continueToolCallerApprovals<TOOLS extends ToolSet>({
       dynamic: false,
     } as ToolOutput<TOOLS>;
     continued.push({
-      approval,
-      messages: currentMessages,
       responseMessage,
       toolOutput,
       nextApprovalRequest:
@@ -243,40 +259,35 @@ function findToolCallerApproval<TOOLS extends ToolSet>({
   }
 
   const callerToolCallId = approval.approvalRequest.callerToolCallId;
-  const candidateResults =
-    callerToolCallId == null
-      ? latestToolResults.values()
-      : [latestToolResults.get(callerToolCallId)].filter(
-          (result): result is ToolResultPart => result != null,
-        );
-
-  for (const outerToolResult of candidateResults) {
-    const callerName = outerToolResult.toolName;
-    const caller = experimental_getToolCaller(getOwn(tools, callerName));
-    if (caller?.type !== 'local' || caller.continueApproval === undefined) {
-      continue;
-    }
-    const outerToolCall = latestToolCalls.get(outerToolResult.toolCallId);
-    if (outerToolCall === undefined) {
-      continue;
-    }
-    const request = getToolCallerApprovalRequest({
-      callerToolName: callerName,
-      output: outerToolResult.output,
-      tools,
-    });
-    if (
-      request?.approvalId === approval.approvalRequest.approvalId &&
-      request.callerToolCallId === outerToolResult.toolCallId
-    ) {
-      return {
-        callerName,
-        caller,
-        outerToolCall,
-        outerToolResult,
-        request,
-      };
-    }
+  if (callerToolCallId == null) {
+    return undefined;
+  }
+  const outerToolResult = latestToolResults.get(callerToolCallId);
+  const outerToolCall = latestToolCalls.get(callerToolCallId);
+  if (outerToolResult === undefined || outerToolCall === undefined) {
+    return undefined;
+  }
+  const callerName = outerToolResult.toolName;
+  const caller = experimental_getToolCaller(getOwn(tools, callerName));
+  if (caller?.type !== 'local' || caller.continueApproval === undefined) {
+    return undefined;
+  }
+  const request = getToolCallerApprovalRequest({
+    callerToolName: callerName,
+    output: outerToolResult.output,
+    tools,
+  });
+  if (
+    request?.approvalId === approval.approvalRequest.approvalId &&
+    request.callerToolCallId === callerToolCallId
+  ) {
+    return {
+      callerName,
+      caller,
+      outerToolCall,
+      outerToolResult,
+      request,
+    };
   }
   return undefined;
 }
