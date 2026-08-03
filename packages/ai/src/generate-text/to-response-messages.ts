@@ -87,7 +87,9 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
         content.push({
           type: 'tool-call',
           toolCallId: part.toolCallId,
-          callerToolCallId: part.callerToolCallId,
+          ...(part.callerToolCallId != null
+            ? { callerToolCallId: part.callerToolCallId }
+            : {}),
           toolName: part.toolName,
           input:
             part.invalid && typeof part.input !== 'object' ? {} : part.input,
@@ -106,7 +108,9 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
         content.push({
           type: 'tool-result',
           toolCallId: part.toolCallId,
-          callerToolCallId: part.callerToolCallId,
+          ...(part.callerToolCallId != null
+            ? { callerToolCallId: part.callerToolCallId }
+            : {}),
           toolName: part.toolName,
           output,
           providerOptions: part.providerMetadata,
@@ -135,7 +139,9 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
           type: 'tool-approval-request',
           approvalId: part.approvalId,
           toolCallId: part.toolCall.toolCallId,
-          callerToolCallId: part.callerToolCallId,
+          ...(part.callerToolCallId != null
+            ? { callerToolCallId: part.callerToolCallId }
+            : {}),
           isAutomatic: part.isAutomatic,
           ...(part.signature != null ? { signature: part.signature } : {}),
         });

@@ -21258,6 +21258,7 @@ describe('streamText', () => {
       ).toMatchInlineSnapshot(`
         [
           {
+            "callerToolCallId": "outer-call",
             "dynamic": false,
             "input": {},
             "toolCallId": "first-call",
@@ -21266,7 +21267,9 @@ describe('streamText', () => {
           },
           {
             "approvalId": "first-approval",
+            "callerToolCallId": "outer-call",
             "toolCall": {
+              "callerToolCallId": "outer-call",
               "dynamic": false,
               "input": {},
               "toolCallId": "first-call",
@@ -21301,6 +21304,7 @@ describe('streamText', () => {
       ).toMatchInlineSnapshot(`
         [
           {
+            "callerToolCallId": "outer-call",
             "dynamic": false,
             "input": {},
             "toolCallId": "second-call",
@@ -21309,7 +21313,9 @@ describe('streamText', () => {
           },
           {
             "approvalId": "second-approval",
+            "callerToolCallId": "outer-call",
             "toolCall": {
+              "callerToolCallId": "outer-call",
               "dynamic": false,
               "input": {},
               "toolCallId": "second-call",

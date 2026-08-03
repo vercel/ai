@@ -378,6 +378,7 @@ describe('experimental_toolCallers', () => {
     expect(firstResult.content).toMatchInlineSnapshot(`
       [
         {
+          "callerToolCallId": "outer-call",
           "dynamic": false,
           "input": {},
           "toolCallId": "first-call",
@@ -386,7 +387,9 @@ describe('experimental_toolCallers', () => {
         },
         {
           "approvalId": "first-approval",
+          "callerToolCallId": "outer-call",
           "toolCall": {
+            "callerToolCallId": "outer-call",
             "dynamic": false,
             "input": {},
             "toolCallId": "first-call",
@@ -413,6 +416,7 @@ describe('experimental_toolCallers', () => {
     expect(secondResult.content).toMatchInlineSnapshot(`
       [
         {
+          "callerToolCallId": "outer-call",
           "dynamic": false,
           "input": {},
           "toolCallId": "second-call",
@@ -421,7 +425,9 @@ describe('experimental_toolCallers', () => {
         },
         {
           "approvalId": "second-approval",
+          "callerToolCallId": "outer-call",
           "toolCall": {
+            "callerToolCallId": "outer-call",
             "dynamic": false,
             "input": {},
             "toolCallId": "second-call",

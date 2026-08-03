@@ -740,45 +740,45 @@ describe('convertToModelMessages', () => {
         ]);
 
         expect(result).toMatchInlineSnapshot(`
-        [
-          {
-            "content": [
-              {
-                "text": "Let me calculate that for you.",
-                "type": "text",
-              },
-              {
-                "input": {
-                  "numbers": [
-                    1,
-                    2,
-                  ],
-                  "operation": "add",
+          [
+            {
+              "content": [
+                {
+                  "text": "Let me calculate that for you.",
+                  "type": "text",
                 },
-                "providerExecuted": undefined,
-                "toolCallId": "call1",
-                "toolName": "calculator",
-                "type": "tool-call",
-              },
-            ],
-            "role": "assistant",
-          },
-          {
-            "content": [
-              {
-                "output": {
-                  "type": "error-text",
-                  "value": "Error: Invalid input",
+                {
+                  "input": {
+                    "numbers": [
+                      1,
+                      2,
+                    ],
+                    "operation": "add",
+                  },
+                  "providerExecuted": undefined,
+                  "toolCallId": "call1",
+                  "toolName": "calculator",
+                  "type": "tool-call",
                 },
-                "toolCallId": "call1",
-                "toolName": "calculator",
-                "type": "tool-result",
-              },
-            ],
-            "role": "tool",
-          },
-        ]
-      `);
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "output": {
+                    "type": "error-text",
+                    "value": "Error: Invalid input",
+                  },
+                  "toolCallId": "call1",
+                  "toolName": "calculator",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
+            },
+          ]
+        `);
       });
 
       it('should handle assistant message with tool output error that has no raw input', async () => {
@@ -804,45 +804,45 @@ describe('convertToModelMessages', () => {
         ]);
 
         expect(result).toMatchInlineSnapshot(`
-        [
-          {
-            "content": [
-              {
-                "text": "Let me calculate that for you.",
-                "type": "text",
-              },
-              {
-                "input": {
-                  "numbers": [
-                    1,
-                    2,
-                  ],
-                  "operation": "add",
+          [
+            {
+              "content": [
+                {
+                  "text": "Let me calculate that for you.",
+                  "type": "text",
                 },
-                "providerExecuted": undefined,
-                "toolCallId": "call1",
-                "toolName": "calculator",
-                "type": "tool-call",
-              },
-            ],
-            "role": "assistant",
-          },
-          {
-            "content": [
-              {
-                "output": {
-                  "type": "error-text",
-                  "value": "Error: Invalid input",
+                {
+                  "input": {
+                    "numbers": [
+                      1,
+                      2,
+                    ],
+                    "operation": "add",
+                  },
+                  "providerExecuted": undefined,
+                  "toolCallId": "call1",
+                  "toolName": "calculator",
+                  "type": "tool-call",
                 },
-                "toolCallId": "call1",
-                "toolName": "calculator",
-                "type": "tool-result",
-              },
-            ],
-            "role": "tool",
-          },
-        ]
-      `);
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "output": {
+                    "type": "error-text",
+                    "value": "Error: Invalid input",
+                  },
+                  "toolCallId": "call1",
+                  "toolName": "calculator",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
+            },
+          ]
+        `);
       });
     });
 
