@@ -78,14 +78,19 @@ export function asAsyncIterableStream<T>(
           return { done: true, value: undefined };
         }
 
-        const { done, value } = await reader.read();
+        try {
+          const { done, value } = await reader.read();
 
-        if (done) {
-          await cleanup(true);
-          return { done: true, value: undefined };
+          if (done) {
+            await cleanup(true);
+            return { done: true, value: undefined };
+          }
+
+          return { done: false, value };
+        } catch (error) {
+          await cleanup(false);
+          throw error;
         }
-
-        return { done: false, value };
       },
 
       /**
