@@ -3,13 +3,25 @@ import type {
   Experimental_BatchV4Error as BatchV4Error,
   Experimental_BatchV4ItemResult as BatchV4ItemResult,
   Experimental_BatchV4Status as BatchV4Status,
+  Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
 } from '@ai-sdk/provider';
 import type { ProviderOptions } from '@ai-sdk/provider-utils';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import type { Prompt } from '../prompt/prompt';
-import type { FinishReason, LanguageModel } from '../types/language-model';
+import type {
+  FinishReason,
+  GlobalProviderModelId,
+} from '../types/language-model';
 import type { ProviderMetadata } from '../types/provider-metadata';
 import type { LanguageModelUsage } from '../types/usage';
+
+/**
+ * Language model input that can be used for durable batch processing.
+ *
+ * String model IDs are resolved through the global provider and checked for
+ * batch support at runtime.
+ */
+export type BatchLanguageModel = GlobalProviderModelId | BatchLanguageModelV4;
 
 /**
  * The persisted reference for a text batch.
@@ -63,7 +75,7 @@ type BatchRequestOptions = {
  * Options for creating a text batch.
  */
 export type CreateTextBatchOptions = {
-  model: LanguageModel;
+  model: BatchLanguageModel;
   requests: ReadonlyArray<TextBatchRequest>;
   providerOptions?: ProviderOptions;
 } & BatchRequestOptions;
@@ -79,7 +91,7 @@ export type CreateTextBatchResult = TextBatch & {
  * Options shared by batch status and result retrieval operations.
  */
 export type BatchOperationOptions = {
-  model: LanguageModel;
+  model: BatchLanguageModel;
   batch: BatchReference;
   providerOptions?: ProviderOptions;
   maxRetries?: number;

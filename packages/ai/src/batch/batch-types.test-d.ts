@@ -12,6 +12,7 @@ import {
   experimental_getBatchResults as getBatchResults,
   experimental_getBatchStatus as getBatchStatus,
   type Experimental_BatchError as BatchError,
+  type Experimental_BatchLanguageModel as BatchLanguageModel,
   type Experimental_BatchOperationOptions as BatchOperationOptions,
   type Experimental_BatchReference as BatchReference,
   type Experimental_BatchStatus as BatchStatus,
@@ -64,6 +65,14 @@ it('reuses modality-neutral provider batch primitives', () => {
 
 it('defines batch support as an experimental LanguageModelV4 capability', () => {
   expectTypeOf<BatchLanguageModelV4>().toMatchTypeOf<LanguageModelV4>();
+  expectTypeOf<BatchLanguageModelV4>().toMatchTypeOf<BatchLanguageModel>();
+  expectTypeOf<LanguageModelV4>().not.toMatchTypeOf<BatchLanguageModel>();
+  expectTypeOf<
+    CreateTextBatchOptions['model']
+  >().toEqualTypeOf<BatchLanguageModel>();
+  expectTypeOf<
+    BatchOperationOptions['model']
+  >().toEqualTypeOf<BatchLanguageModel>();
   expectTypeOf<BatchV4Status['status']>().toEqualTypeOf<
     'pending' | 'completed' | 'failed'
   >();

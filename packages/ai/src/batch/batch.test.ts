@@ -149,7 +149,7 @@ describe('createTextBatch', () => {
   it('rejects models without batch support', async () => {
     await expect(
       createTextBatch({
-        model: new MockLanguageModelV4(),
+        model: new MockLanguageModelV4() as unknown as BatchLanguageModelV4,
         requests: [{ id: 'request-1', prompt: 'hello' }],
       }),
     ).rejects.toBeInstanceOf(UnsupportedFunctionalityError);
