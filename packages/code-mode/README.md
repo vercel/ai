@@ -20,7 +20,7 @@ This package runs on the server and requires Node.js 22 or newer.
 
 ```ts
 import {
-  direct,
+  DIRECT_TOOL_CALL,
   experimental_codeModeTool as codeModeTool,
 } from '@ai-sdk/code-mode';
 import { generateText, isStepCount, tool } from 'ai';
@@ -66,7 +66,7 @@ const result = await generateText({
   model,
   tools,
   experimental_toolCallers: {
-    getInventory: ['code_mode', direct],
+    getInventory: ['code_mode', DIRECT_TOOL_CALL],
     getDemand: ['code_mode'],
   },
   stopWhen: isStepCount(10),

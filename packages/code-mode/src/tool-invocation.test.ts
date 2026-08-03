@@ -2,7 +2,7 @@ import { generateText, tool } from 'ai';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import {
-  direct,
+  DIRECT_TOOL_CALL,
   experimental_codeModeTool as codeModeTool,
   experimental_createCodeModeTool as createCodeModeTool,
   experimental_runCodeMode as runCodeMode,
@@ -10,8 +10,8 @@ import {
 import { deferred, emptyMessages } from './utils/test-helpers.js';
 
 describe('AI SDK tool bridge', () => {
-  it('exports the direct caller marker', () => {
-    expect(typeof direct).toBe('symbol');
+  it('exports the direct tool call marker', () => {
+    expect(typeof DIRECT_TOOL_CALL).toBe('symbol');
   });
 
   it('calls an AI SDK tool with validated input', async () => {

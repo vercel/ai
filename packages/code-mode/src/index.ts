@@ -1,4 +1,4 @@
-export { direct } from './direct.js';
+export { DIRECT_TOOL_CALL } from './direct-tool-call.js';
 export {
   codeModeTool as experimental_codeModeTool,
   createCodeModeTool as experimental_createCodeModeTool,

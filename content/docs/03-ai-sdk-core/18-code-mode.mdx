@@ -35,7 +35,7 @@ which tools code mode can call:
 
 ```ts
 import {
-  direct,
+  DIRECT_TOOL_CALL,
   experimental_codeModeTool as codeModeTool,
 } from '@ai-sdk/code-mode';
 import { generateText, isStepCount, tool } from 'ai';
@@ -96,12 +96,12 @@ const result = await generateText({
 The keys in `experimental_toolCallers` are the tools being governed.
 The values identify their allowed callers. In this example, `getInventory` and
 `getDemand` are available through `code_mode`, but they are not exposed to the
-model as directly callable tools. Include `direct` when a tool should also be
-callable directly:
+model as directly callable tools. Include `DIRECT_TOOL_CALL` when a tool should
+also be callable directly:
 
 ```ts
 experimental_toolCallers: {
-  getInventory: ['code_mode', direct],
+  getInventory: ['code_mode', DIRECT_TOOL_CALL],
 };
 ```
 

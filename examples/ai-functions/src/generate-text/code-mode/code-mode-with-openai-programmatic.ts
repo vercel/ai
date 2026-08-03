@@ -1,5 +1,5 @@
 import {
-  direct,
+  DIRECT_TOOL_CALL,
   experimental_codeModeTool as codeModeTool,
 } from '@ai-sdk/code-mode';
 import { generateText, isStepCount, tool } from 'ai';
@@ -54,7 +54,7 @@ run(async () => {
     model: openai('gpt-5.6-sol'),
     tools,
     experimental_toolCallers: {
-      getInventory: ['programmatic', direct],
+      getInventory: ['programmatic', DIRECT_TOOL_CALL],
       getDemand: ['code_mode'],
     },
     stopWhen: isStepCount(20),

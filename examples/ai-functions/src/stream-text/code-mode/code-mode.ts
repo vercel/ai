@@ -1,6 +1,6 @@
 import {
+  DIRECT_TOOL_CALL,
   experimental_codeModeTool as codeModeTool,
-  direct,
 } from '@ai-sdk/code-mode';
 import { isStepCount, streamText, tool } from 'ai';
 import { z } from 'zod';
@@ -47,7 +47,7 @@ run(async () => {
       }),
     },
     experimental_toolCallers: {
-      getInventory: [direct],
+      getInventory: [DIRECT_TOOL_CALL],
       getDemand: ['code_mode'],
     },
     stopWhen: isStepCount(20),
