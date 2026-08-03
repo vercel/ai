@@ -1235,6 +1235,51 @@ media type (for example a video or audio clip) is ignored with a warning, and a
 reference with no media type is treated as an image. If no image reference
 remains, reference-to-video is not selected and no reference images are sent.
 
+#### Reference Audio
+
+Reference-to-video can also give the subject a voice. `referenceVoiceIds` takes
+up to 3 xAI **preset** voice ids — you cannot upload your own audio clips.
+Reference the voices from the prompt with `<AUDIO_0>`, `<AUDIO_1>`, and
+`<AUDIO_2>`, in the order the voices are passed.
+
+```ts
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: xai.video('grok-imagine-video-1.5'),
+  prompt:
+    'The person from <IMAGE_0> stands in the room from <IMAGE_1> and speaks ' +
+    'to the camera with the voice from <AUDIO_0>.',
+  aspectRatio: '9:16',
+  duration: 10,
+  providerOptions: {
+    xai: {
+      mode: 'reference-to-video',
+      referenceImageUrls: [
+        'https://example.com/person.png',
+        'https://example.com/room.png',
+      ],
+      referenceVoiceIds: ['eve'],
+      resolution: '720p',
+      pollTimeoutMs: 600000,
+    } satisfies XaiVideoModelOptions,
+  },
+});
+```
+
+Valid voice ids come from the xAI
+[text-to-speech voice roster](https://docs.x.ai/developers/model-capabilities/audio/text-to-speech#voices).
+Ids are case-insensitive, and an unknown id returns a `400` response listing the
+available voices. `referenceVoiceIds` is ignored with a warning when the
+resolved operation is not reference-to-video.
+
+<Note>
+  xAI documents reference audio as available in the United States only, for
+  trusted partners. Requests from accounts without access are rejected by the
+  xAI API.
+</Note>
+
 <Note>
   Reference-to-video supports `duration`, `aspectRatio`, and `resolution`. Use
   `mode` to select the operation — each mode is mutually exclusive. When both
@@ -1297,6 +1342,17 @@ You can validate the provider options using the `XaiVideoModelOptions` type.
   `<IMAGE_N>` tags in the prompt to reference specific images — see the
   reference-to-video section above for per-model tag numbering. Used with
   `mode: 'reference-to-video'`.
+
+- **referenceVoiceIds** _string[]_
+
+  Up to 3 xAI preset voice ids that give the subject a voice in
+  reference-to-video (R2V) generation. Preset voices only — audio clips
+  cannot be uploaded. Ids are case-insensitive and come from the
+  [text-to-speech voice roster](https://docs.x.ai/developers/model-capabilities/audio/text-to-speech#voices);
+  an unknown id returns a `400` listing the available voices. Use `<AUDIO_0>`,
+  `<AUDIO_1>`, and `<AUDIO_2>` tags in the prompt to reference the voices.
+  Ignored with a warning outside reference-to-video. Reference audio is
+  documented as US-only and limited to trusted partners.
 
 <Note>
   Video generation is an asynchronous process that can take several minutes.

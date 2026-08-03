@@ -383,6 +383,13 @@ export class XaiVideoModel implements VideoModelV4 {
         });
       }
 
+      const referenceVoiceIds = xaiOptions?.referenceVoiceIds;
+      if (referenceVoiceIds != null && referenceVoiceIds.length > 0) {
+        body.reference_audios = referenceVoiceIds.map(voiceId => ({
+          voice_id: voiceId,
+        }));
+      }
+
       // Reference-to-video is capped at 720p; downgrade a 1080p request.
       if (body.resolution === '1080p') {
         warnings.push({
@@ -428,6 +435,21 @@ export class XaiVideoModel implements VideoModelV4 {
       });
     }
 
+    // Preset reference voices only apply to reference-to-video generation.
+    if (
+      xaiOptions?.referenceVoiceIds != null &&
+      xaiOptions.referenceVoiceIds.length > 0 &&
+      !hasReferenceImages
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'referenceVoiceIds',
+        details:
+          'xAI only supports reference voices for reference-to-video ' +
+          'generation. The reference voices were ignored.',
+      });
+    }
+
     if (!isExtension && xaiOptions?.user !== undefined) {
       body.user = xaiOptions.user;
     }
@@ -442,6 +464,7 @@ export class XaiVideoModel implements VideoModelV4 {
             'resolution',
             'videoUrl',
             'referenceImageUrls',
+            'referenceVoiceIds',
             'user',
           ].includes(key)
         ) {
