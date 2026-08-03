@@ -61,10 +61,10 @@ run(async () => {
       const result = streamText({
         model: 'moonshotai/kimi-k3',
         tools,
-        experimental_toolCallers: ({ code_mode }) => ({
-          getProductPrice: [code_mode],
-          purchaseProduct: [code_mode],
-        }),
+        experimental_toolCallers: {
+          getProductPrice: ['code_mode'],
+          purchaseProduct: ['code_mode'],
+        },
         toolApproval: {
           code_mode: 'user-approval',
           purchaseProduct: 'user-approval',

@@ -53,10 +53,10 @@ export const codeModeToolApprovalAgent = new ToolLoopAgent({
   onStepEnd: result => {
     console.log(JSON.stringify(result.content, null, 2));
   },
-  experimental_toolCallers: ({ codeMode }) => ({
-    getProductPrice: [codeMode],
-    purchaseProduct: [codeMode],
-  }),
+  experimental_toolCallers: {
+    getProductPrice: ['codeMode'],
+    purchaseProduct: ['codeMode'],
+  },
   toolApproval: {
     codeMode: 'user-approval',
     getProductPrice: 'user-approval',

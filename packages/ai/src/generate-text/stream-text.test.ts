@@ -21235,10 +21235,10 @@ describe('streamText', () => {
         streamText({
           model: new MockLanguageModelV4({ doStream }),
           tools,
-          experimental_toolCallers: ({ code_mode }) => ({
-            first: [code_mode],
-            second: [code_mode],
-          }),
+          experimental_toolCallers: {
+            first: ['code_mode'],
+            second: ['code_mode'],
+          },
           toolApproval: {
             code_mode: 'user-approval',
             first: 'user-approval',
