@@ -111,6 +111,46 @@ This is intentional: it keeps generated content out of your repository's working
 it never shows up in `git status`. Delete the directory to force a clean re-bootstrap.
 The same applies to `.harness-local/`, which holds one-time-setup markers.
 
+Because the bootstrap directory is derived from the project's location, **each new project
+directory pays for its own bootstrap** — roughly 40 seconds and a full `node_modules` for
+Claude Code. Point several agents at the same project, or reuse project directories, to
+avoid repeating it.
+
+## Harnesses write to your real home directory
+
+Inheriting the user's environment cuts both ways. A harness that persists state in `$HOME`
+does so for real, permanently, outside anything this provider scopes. Observed with the
+Codex adapter, which appends a trust entry to the user's global `~/.codex/config.toml` for
+every project path it is pointed at:
+
+```toml
+[projects."/private/var/folders/.../T/lws-e2e-iIapOt/myapp"]
+trust_level = "trusted"
+```
+
+With a hosted sandbox those writes land in a disposable VM. Here they accumulate in your
+real config, including entries for directories that no longer exist. Prune them
+periodically if you drive many short-lived projects.
+
+## Host-runtime harnesses patch `node:fs` while a session is live
+
+Host-runtime adapters such as Pi install a global `node:fs` shim so the model's file tools
+resolve through their own workspace view. It is scoped to the workspace and reverted when
+the session is destroyed, but while a session is **active** any other in-process code that
+calls `node:fs` sees that view rather than the disk:
+
+```ts
+const session = await agent.createSession();
+existsSync(join(projectPath, 'README.md')); // false, even though it is on disk
+await session.destroy();
+existsSync(join(projectPath, 'README.md')); // true again
+```
+
+This provider is immune — it captures its `node:fs` bindings at module load, so the
+model's writes reach the real disk and survive the session. Your own code is not. If you
+need to inspect the workspace while a session is live, do it out of process, or capture
+your bindings before the adapter loads.
+
 ## Limits
 
 > `@ai-sdk/sandbox-local-workspace` provides **no isolation**. It runs each harness as the
