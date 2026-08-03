@@ -5,11 +5,13 @@ const withMDX = createMDX();
 
 const config: NextConfig = {
   experimental: {
-    // Upper bound Turbopack attempts to stay under. With both content
-    // families (docs + providers, two versions each) the unbounded compile
-    // exceeds the Vercel build container's 16 GB and gets SIGKILLed; the
-    // limit makes Turbopack drop caches instead of ballooning.
-    turbopackMemoryLimit: 8 * 1024 * 1024 * 1024,
+    // With both content families (docs + providers, two versions each) the
+    // unbounded in-memory Turbopack compile exceeds the Vercel build
+    // container's 16 GB and gets SIGKILLed. Bound the memory Turbopack
+    // attempts to stay under, and give it a filesystem cache so shed
+    // artifacts are cheap to recover.
+    turbopackMemoryLimit: 6 * 1024 * 1024 * 1024,
+    turbopackFileSystemCacheForBuild: true,
   },
   images: {
     remotePatterns: [
