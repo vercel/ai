@@ -392,6 +392,42 @@ describe('StreamingToolCallTracker', () => {
       // No events should be emitted since tool call was already finished
       expect(parts).toEqual([]);
     });
+
+    // Failing regression test for #18333: a provider/gateway whose
+    // tool_calls[].index does not start at 0 leaves earlier slots as array
+    // holes. flush() iterates with for...of, which yields `undefined` for holes
+    // (unlike forEach), so it throws
+    // `Cannot read properties of undefined (reading 'hasFinished')` instead of
+    // finalizing the tracked call.
+    //
+    // Marked `it.fails` so it captures the bug without breaking CI: it passes
+    // while the crash exists and turns red once the tracker handles the gap,
+    // prompting whoever fixes it to drop `.fails` and assert the emitted call.
+    it.fails('should finalize a tool call whose index does not start at zero (#18333)', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        index: 2,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'fn', arguments: '{}' },
+      });
+
+      parts.length = 0;
+
+      tracker.flush();
+
+      expect(parts).toEqual([
+        { type: 'tool-input-end', id: 'call_1' },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'fn',
+          input: '{}',
+        },
+      ]);
+    });
   });
 
   describe('metadata', () => {
