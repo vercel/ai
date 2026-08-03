@@ -1039,7 +1039,17 @@ export async function convertToAnthropicPrompt({
                         type: 'bash_code_execution_tool_result',
                         tool_use_id: part.toolCallId,
                         cache_control: cacheControl,
-                        content: codeExecutionOutput,
+                        content:
+                          codeExecutionOutput.type ===
+                          'bash_code_execution_result'
+                            ? {
+                                type: codeExecutionOutput.type,
+                                stdout: codeExecutionOutput.stdout,
+                                stderr: codeExecutionOutput.stderr,
+                                return_code: codeExecutionOutput.return_code,
+                                content: codeExecutionOutput.content,
+                              }
+                            : codeExecutionOutput,
                       });
                     } else {
                       anthropicContent.push({

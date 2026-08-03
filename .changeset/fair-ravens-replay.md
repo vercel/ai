@@ -2,4 +2,4 @@
 '@ai-sdk/anthropic': patch
 ---
 
-Preserve Anthropic code execution server tool input when replaying assistant messages for prompt caching.
+Preserve Anthropic prompt-cache matches by replaying complete code-execution transcripts in their original wire shape.
