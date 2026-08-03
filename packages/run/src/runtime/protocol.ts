@@ -1,24 +1,38 @@
-import type { NormalizedCodeModeOptions, SerializableError } from '../types.js';
+import type {
+  NormalizedRunOptions,
+  RunDeterminismState,
+  SerializableError,
+} from '../types.js';
 
 export interface WorkerRunMessage {
   type: 'run';
   invocationId: string;
-  js: string;
+  source: string;
+  bindingNamespaces: string[];
+  determinism: RunDeterminismState;
   options: Pick<
-    NormalizedCodeModeOptions,
+    NormalizedRunOptions,
     | 'timeoutMs'
     | 'memoryLimitBytes'
     | 'maxStackSizeBytes'
     | 'maxResultBytes'
     | 'maxConsoleOutputBytes'
-  >;
+    | 'maxBindingInputBytes'
+  > & {
+    executionTimeoutMs: number;
+  };
 }
 
-export interface WorkerToolRequest {
-  type: 'tool-request';
+export interface WorkerCancelMessage {
+  type: 'cancel';
+  invocationId: string;
+}
+
+export interface WorkerBindingRequest {
+  type: 'binding-request';
   invocationId: string;
   requestId: string;
-  toolName: string;
+  bindingName: string;
   inputJson: string;
 }
 
@@ -27,6 +41,7 @@ export interface WorkerBridgeResponse {
   invocationId: string;
   requestId: string;
   success: boolean;
+  dateNowMs: number;
   valueJson?: string;
   error?: SerializableError;
 }
@@ -44,9 +59,19 @@ export interface WorkerReadyMessage {
   invocationId: string;
 }
 
+export interface WorkerBridgeIdleMessage {
+  type: 'bridge-idle';
+  invocationId: string;
+  requestCount: number;
+}
+
 export type WorkerToMainMessage =
-  | WorkerToolRequest
+  | WorkerBindingRequest
+  | WorkerBridgeIdleMessage
   | WorkerResultMessage
   | WorkerReadyMessage;
 
-export type MainToWorkerMessage = WorkerRunMessage | WorkerBridgeResponse;
+export type MainToWorkerMessage =
+  | WorkerRunMessage
+  | WorkerCancelMessage
+  | WorkerBridgeResponse;

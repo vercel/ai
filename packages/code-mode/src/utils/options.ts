@@ -10,6 +10,7 @@ const DEFAULT_MAX_TOOL_INPUT_BYTES = 1024 * 1024;
 const DEFAULT_MAX_TOOL_OUTPUT_BYTES = 4 * 1024 * 1024;
 const DEFAULT_MAX_BRIDGE_REQUESTS = 256;
 const DEFAULT_MAX_IN_FLIGHT_BRIDGE_REQUESTS = 32;
+const DEFAULT_MAX_CONTINUATION_BYTES = 32 * 1024 * 1024;
 
 export function normalizeOptions(
   options: CodeModeOptions = {},
@@ -66,6 +67,11 @@ export function normalizeOptions(
       executionPolicy.maxInFlightBridgeRequests,
       DEFAULT_MAX_IN_FLIGHT_BRIDGE_REQUESTS,
       'executionPolicy.maxInFlightBridgeRequests',
+    ),
+    maxContinuationBytes: positiveInteger(
+      executionPolicy.maxContinuationBytes,
+      DEFAULT_MAX_CONTINUATION_BYTES,
+      'executionPolicy.maxContinuationBytes',
     ),
   };
 }

@@ -37,13 +37,17 @@
     "README.md"
   ],
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json && node scripts/embed-inline-worker.mjs",
+    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "clean": "del-cli build dist *.tsbuildinfo",
-    "type-check": "tsc --build && tsc -p src/tsconfig.json",
+    "type-check": "tsc -p tsconfig.build.json --noEmit && tsc -p src/tsconfig.json",
     "test": "pnpm test:node",
     "test:watch": "vitest --config vitest.node.config.js",
     "test:node": "vitest --config vitest.node.config.js --run",
-    "test:e2e": "pnpm build && vitest --config vitest.e2e.config.ts --run"
+    "test:e2e": "pnpm build && vitest --config vitest.e2e.config.ts --run",
+    "verify:package": "pnpm --filter @ai-sdk/code-mode... build && node scripts/verify-package.mjs"
+  },
+  "dependencies": {
+    "run": "workspace:*"
   },
   "peerDependencies": {
     "ai": "workspace:*"
@@ -52,14 +56,12 @@
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
     "ai": "workspace:*",
-    "esbuild": "^0.28.1",
-    "quickjs-emscripten": "^0.32.0",
     "tsup": "^8.5.1",
     "typescript": "5.8.3",
     "zod": "3.25.76"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.13.0"
   },
   "publishConfig": {
     "access": "public",

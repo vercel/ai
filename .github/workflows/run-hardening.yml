@@ -1,0 +1,124 @@
+name: Run package hardening
+
+on:
+  pull_request:
+    paths:
+      - 'packages/run/**'
+      - 'packages/code-mode/**'
+      - 'packages/ai/package.json'
+      - 'packages/gateway/package.json'
+      - 'packages/provider/package.json'
+      - 'packages/provider-utils/package.json'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig.json'
+      - 'tools/tsconfig/**'
+      - '.github/workflows/run-hardening.yml'
+  schedule:
+    - cron: '17 8 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compatibility:
+    name: '${{ matrix.os }} / Node ${{ matrix.node-version }}'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            node-version: 22.13.0
+          - os: ubuntu-latest
+            node-version: 24
+          - os: ubuntu-latest
+            node-version: 26
+          - os: macos-latest
+            node-version: 22.13.0
+          - os: windows-latest
+            node-version: 22.13.0
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Test hardened runtime
+        run: pnpm --filter run test:hardening
+
+      - name: Verify embedded dependency inventory
+        working-directory: packages/run
+        run: pnpm verify:dependencies
+
+      - name: Test code-mode adapter
+        run: |
+          pnpm --filter @ai-sdk/code-mode... build
+          pnpm --filter @ai-sdk/code-mode test:node
+
+      - name: Verify npm package
+        working-directory: packages/run
+        run: pnpm verify:package
+
+      - name: Verify packed run and code-mode consumers
+        working-directory: packages/code-mode
+        run: pnpm verify:package
+
+  scheduled-campaigns:
+    name: Scheduled fuzz, soak, and benchmark
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+
+      - name: Use oldest supported Node.js 22
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22.13.0
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build run
+        run: pnpm --filter run build
+
+      - name: Run deterministic fuzz campaigns
+        working-directory: packages/run
+        run: node scripts/hardening-fuzz.mjs
+
+      - name: Run 10,000-invocation lifecycle soak
+        working-directory: packages/run
+        run: node --expose-gc scripts/hardening-soak.mjs
+
+      - name: Run performance budgets
+        working-directory: packages/run
+        run: node scripts/benchmark.mjs > benchmark.json
+
+      - name: Generate embedded dependency inventory
+        working-directory: packages/run
+        run: node scripts/verify-dependencies.mjs > dependency-inventory.json
+
+      - name: Upload hardening evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: run-hardening-${{ github.run_id }}
+          path: |
+            packages/run/benchmark.json
+            packages/run/dependency-inventory.json

@@ -22,3 +22,5 @@ tsconfig.vitest-temp.json
 packages/ai/docs
 .vercel
 .devtools
+/.plans/
+/packages/run/.plans/

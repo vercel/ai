@@ -1,4 +1,9 @@
 import type { ModelMessage, Tool } from 'ai';
+import type {
+  BindingResumeContext,
+  ContinuationCodec,
+  RunResolution,
+} from 'run';
 
 /**
  * Host tools made available to sandboxed code through the global `tools` object.
@@ -14,6 +19,10 @@ export interface CodeModeToolExecutionOptions {
   abortSignal?: AbortSignal;
   experimental_context?: unknown;
   context?: unknown;
+  /** Suspends code mode from inside a nested host tool. */
+  interrupt?(payload: unknown): never;
+  /** Present when a previously interrupted tool is resumed. */
+  resume?: BindingResumeContext;
 }
 
 /**
@@ -60,6 +69,8 @@ export interface CodeModeExecutionPolicy {
   maxBridgeRequests?: number;
   /** @defaultValue `32` */
   maxInFlightBridgeRequests?: number;
+  /** @defaultValue `32 * 1024 * 1024` */
+  maxContinuationBytes?: number;
 }
 
 /**
@@ -67,6 +78,9 @@ export interface CodeModeExecutionPolicy {
  */
 export interface CodeModeOptions {
   executionPolicy?: CodeModeExecutionPolicy;
+  /** HMAC key used for signed continuations. Cannot be combined with continuationCodec. */
+  continuationSecret?: string | Uint8Array;
+  continuationCodec?: ContinuationCodec;
 }
 
 /**
@@ -77,6 +91,10 @@ export interface RunCodeModeInput {
   tools: CodeModeToolSet;
   toolExecutionOptions?: Partial<CodeModeToolExecutionOptions>;
   options?: CodeModeOptions;
+  continuation?: unknown;
+  resolutions?: RunResolution[];
+  /** Serializable tenant, principal, or authorization policy scope. */
+  continuationContext?: unknown;
 }
 
 /**
@@ -95,6 +113,7 @@ export interface NormalizedCodeModeOptions {
   maxToolOutputBytes: number;
   maxBridgeRequests: number;
   maxInFlightBridgeRequests: number;
+  maxContinuationBytes: number;
 }
 
 /**

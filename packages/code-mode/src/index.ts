@@ -14,7 +14,8 @@ export {
   CodeModeToolError,
 } from './errors.js';
 export { runCodeMode as experimental_runCodeMode } from './run-code-mode.js';
-export { setMaxWorkers as experimental_setMaxWorkers } from './runtime/max-workers.js';
+export { isRunInterruptedResult as experimental_isCodeModeInterrupted } from 'run';
+export { setMaxWorkers as experimental_setMaxWorkers } from 'run';
 export type {
   CodeModeExecutionPolicy,
   CodeModeOptions,
