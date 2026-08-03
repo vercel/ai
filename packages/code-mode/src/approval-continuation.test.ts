@@ -1,8 +1,9 @@
-import { tool } from 'ai';
+import { tool, type Experimental_ToolWithCaller } from 'ai';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import {
   CodeModeToolApprovalDeniedError,
+  experimental_codeModeTool as codeModeTool,
   experimental_continueCodeModeApproval as continueCodeModeApproval,
   experimental_continueCodeModeInterrupt as continueCodeModeInterrupt,
   experimental_isCodeModeApprovalInterrupt as isCodeModeApprovalInterrupt,
@@ -199,6 +200,112 @@ describe('code-mode approval continuations', () => {
     ).resolves.toEqual({ first: 'first', second: 'second' });
     expect(first).toHaveBeenCalledTimes(1);
     expect(second).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses the core approval resolver for new tools after resuming', async () => {
+    const first = vi.fn(async () => 'first');
+    const second = vi.fn(async () => 'second');
+    const tools = {
+      first: tool({
+        inputSchema: z.object({}),
+        execute: first,
+      }),
+      second: tool({
+        inputSchema: z.object({}),
+        execute: second,
+      }),
+    };
+    const callerTool = codeModeTool() as Experimental_ToolWithCaller;
+    const caller = callerTool.experimental_toolCaller;
+    if (caller.type !== 'local') {
+      throw new Error('Expected a local tool caller.');
+    }
+    const boundTool = caller.bind(tools, {
+      resolveToolApproval: async () => ({ type: 'user-approval' }),
+    });
+    const execute = boundTool.execute as unknown as (
+      input: { js: string },
+      options: { toolCallId: string; messages: []; context: {} },
+    ) => Promise<unknown>;
+    const firstPending = await execute(
+      {
+        js: `
+          const first = await tools.first({});
+          const second = await tools.second({});
+          return { first, second };
+        `,
+      },
+      { toolCallId: 'outer', messages: [], context: {} },
+    );
+    expect(
+      isCodeModeApprovalInterrupt(firstPending)
+        ? {
+            type: firstPending.type,
+            toolName: firstPending.toolName,
+            toolCallId: firstPending.toolCallId,
+          }
+        : undefined,
+    ).toMatchInlineSnapshot(`
+      {
+        "toolCallId": "outer:tool-1",
+        "toolName": "first",
+        "type": "code-mode-interrupt",
+      }
+    `);
+
+    const secondPending = await caller.continueApproval!({
+      output: firstPending,
+      approvalResponse: {
+        type: 'tool-approval-response',
+        approvalId: (firstPending as CodeModeApprovalInterrupt).interruptId,
+        approved: true,
+      },
+      tools,
+      messages: [],
+      toolExecutionOptions: { toolCallId: 'outer', messages: [] },
+      resolveToolApproval: async (toolCall: { toolName: string }) =>
+        toolCall.toolName === 'second'
+          ? { type: 'user-approval' }
+          : { type: 'not-applicable' },
+    } as never);
+    expect(
+      isCodeModeApprovalInterrupt(secondPending)
+        ? {
+            type: secondPending.type,
+            toolName: secondPending.toolName,
+            toolCallId: secondPending.toolCallId,
+          }
+        : undefined,
+    ).toMatchInlineSnapshot(`
+      {
+        "toolCallId": "outer:tool-2",
+        "toolName": "second",
+        "type": "code-mode-interrupt",
+      }
+    `);
+    expect(first).toHaveBeenCalledOnce();
+    expect(second).not.toHaveBeenCalled();
+
+    const completed = await caller.continueApproval!({
+      output: secondPending,
+      approvalResponse: {
+        type: 'tool-approval-response',
+        approvalId: (secondPending as CodeModeApprovalInterrupt).interruptId,
+        approved: true,
+      },
+      tools,
+      messages: [],
+      toolExecutionOptions: { toolCallId: 'outer', messages: [] },
+      resolveToolApproval: async () => ({ type: 'not-applicable' }),
+    } as never);
+    expect(completed).toMatchInlineSnapshot(`
+      {
+        "first": "first",
+        "second": "second",
+      }
+    `);
+    expect(first).toHaveBeenCalledOnce();
+    expect(second).toHaveBeenCalledOnce();
   });
 
   it('supports generic host interruptions', async () => {

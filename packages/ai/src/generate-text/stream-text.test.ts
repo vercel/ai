@@ -21169,10 +21169,23 @@ describe('streamText', () => {
                   },
                 };
           },
-          continueApproval: async ({ output }) =>
-            readStage(output) === 'first'
-              ? { stage: 'second' }
-              : { completed: true },
+          continueApproval: async ({ output, resolveToolApproval }) => {
+            if (readStage(output) === 'first') {
+              await expect(
+                resolveToolApproval({
+                  toolCallId: 'second-call',
+                  toolName: 'second',
+                  input: {},
+                }),
+              ).resolves.toMatchInlineSnapshot(`
+                {
+                  "type": "user-approval",
+                }
+              `);
+              return { stage: 'second' };
+            }
+            return { completed: true };
+          },
         },
       );
       const doStream = vi.fn(async (): Promise<never> => {
@@ -21237,12 +21250,33 @@ describe('streamText', () => {
       const firstResult = stream();
       const firstParts = await convertAsyncIterableToArray(firstResult.stream);
       expect(doStream).not.toHaveBeenCalled();
-      expect(firstParts).toContainEqual(
-        expect.objectContaining({
-          type: 'tool-approval-request',
-          approvalId: 'first-approval',
-        }),
-      );
+      expect(
+        firstParts.filter(
+          part =>
+            part.type === 'tool-call' || part.type === 'tool-approval-request',
+        ),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "dynamic": false,
+            "input": {},
+            "toolCallId": "first-call",
+            "toolName": "first",
+            "type": "tool-call",
+          },
+          {
+            "approvalId": "first-approval",
+            "toolCall": {
+              "dynamic": false,
+              "input": {},
+              "toolCallId": "first-call",
+              "toolName": "first",
+              "type": "tool-call",
+            },
+            "type": "tool-approval-request",
+          },
+        ]
+      `);
       messages.push(...(await firstResult.responseMessages), {
         role: 'tool',
         content: [
@@ -21259,12 +21293,33 @@ describe('streamText', () => {
         secondResult.stream,
       );
       expect(doStream).not.toHaveBeenCalled();
-      expect(secondParts).toContainEqual(
-        expect.objectContaining({
-          type: 'tool-approval-request',
-          approvalId: 'second-approval',
-        }),
-      );
+      expect(
+        secondParts.filter(
+          part =>
+            part.type === 'tool-call' || part.type === 'tool-approval-request',
+        ),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "dynamic": false,
+            "input": {},
+            "toolCallId": "second-call",
+            "toolName": "second",
+            "type": "tool-call",
+          },
+          {
+            "approvalId": "second-approval",
+            "toolCall": {
+              "dynamic": false,
+              "input": {},
+              "toolCallId": "second-call",
+              "toolName": "second",
+              "type": "tool-call",
+            },
+            "type": "tool-approval-request",
+          },
+        ]
+      `);
     });
 
     it('adds provider caller options while preserving direct access', async () => {

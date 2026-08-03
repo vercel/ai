@@ -289,11 +289,27 @@ describe('experimental_toolCallers', () => {
                 },
               };
         },
-        continueApproval: async ({ output, approvalResponse }) => {
-          expect(approvalResponse.approved).toBe(true);
-          return readStage(output) === 'first'
-            ? { stage: 'second' }
-            : { completed: true };
+        continueApproval: async ({
+          output,
+          approvalResponse,
+          resolveToolApproval,
+        }) => {
+          expect(approvalResponse.approved).toMatchInlineSnapshot(`true`);
+          if (readStage(output) === 'first') {
+            await expect(
+              resolveToolApproval({
+                toolCallId: 'second-call',
+                toolName: 'second',
+                input: {},
+              }),
+            ).resolves.toMatchInlineSnapshot(`
+              {
+                "type": "user-approval",
+              }
+            `);
+            return { stage: 'second' };
+          }
+          return { completed: true };
         },
       },
     );
@@ -359,12 +375,28 @@ describe('experimental_toolCallers', () => {
 
     const firstResult = await generate();
     expect(doGenerate).not.toHaveBeenCalled();
-    expect(firstResult.content).toContainEqual(
-      expect.objectContaining({
-        type: 'tool-approval-request',
-        approvalId: 'first-approval',
-      }),
-    );
+    expect(firstResult.content).toMatchInlineSnapshot(`
+      [
+        {
+          "dynamic": false,
+          "input": {},
+          "toolCallId": "first-call",
+          "toolName": "first",
+          "type": "tool-call",
+        },
+        {
+          "approvalId": "first-approval",
+          "toolCall": {
+            "dynamic": false,
+            "input": {},
+            "toolCallId": "first-call",
+            "toolName": "first",
+            "type": "tool-call",
+          },
+          "type": "tool-approval-request",
+        },
+      ]
+    `);
     messages.push(...firstResult.responseMessages, {
       role: 'tool',
       content: [
@@ -378,12 +410,28 @@ describe('experimental_toolCallers', () => {
 
     const secondResult = await generate();
     expect(doGenerate).not.toHaveBeenCalled();
-    expect(secondResult.content).toContainEqual(
-      expect.objectContaining({
-        type: 'tool-approval-request',
-        approvalId: 'second-approval',
-      }),
-    );
+    expect(secondResult.content).toMatchInlineSnapshot(`
+      [
+        {
+          "dynamic": false,
+          "input": {},
+          "toolCallId": "second-call",
+          "toolName": "second",
+          "type": "tool-call",
+        },
+        {
+          "approvalId": "second-approval",
+          "toolCall": {
+            "dynamic": false,
+            "input": {},
+            "toolCallId": "second-call",
+            "toolName": "second",
+            "type": "tool-call",
+          },
+          "type": "tool-approval-request",
+        },
+      ]
+    `);
     messages.push(...secondResult.responseMessages, {
       role: 'tool',
       content: [
@@ -397,7 +445,7 @@ describe('experimental_toolCallers', () => {
 
     const finalResult = await generate();
     expect(doGenerate).toHaveBeenCalledTimes(1);
-    expect(finalResult.text).toBe('complete');
+    expect(finalResult.text).toMatchInlineSnapshot(`"complete"`);
   });
 
   it('adds provider caller options while preserving direct access', async () => {
