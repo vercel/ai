@@ -52,6 +52,8 @@ export type {
 } from '../src/agent/observability/types';
 export { HarnessError } from '../src/errors/harness-error';
 export { HarnessCapabilityUnsupportedError } from '../src/errors/harness-capability-unsupported-error';
+export { HarnessSandboxAuthenticationError } from '../src/errors/harness-sandbox-authentication-error';
+export { getHarnessErrorMessage } from '../src/agent/get-harness-error-message';
 export {
   createFileReporter,
   createTraceTreeReporter,

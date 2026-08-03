@@ -1,5 +1,11 @@
 # @ai-sdk/cartesia
 
+## 3.0.13
+
+### Patch Changes
+
+- a53ecad: feat(provider/cartesia): support additional Ink 2 streaming PCM encodings
+
 ## 3.0.12
 
 ### Patch Changes

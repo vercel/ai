@@ -1,5 +1,15 @@
 # @ai-sdk/sandbox-vercel
 
+## 1.0.55
+
+### Patch Changes
+
+- 861d423: feat(harness): improve harness sandbox auth error handling and expose `getHarnessErrorMessage()` helper
+- Updated dependencies [2c0a8aa]
+- Updated dependencies [861d423]
+- Updated dependencies [8f10600]
+  - @ai-sdk/harness@1.0.55
+
 ## 1.0.54
 
 ### Patch Changes

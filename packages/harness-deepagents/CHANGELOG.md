@@ -1,5 +1,15 @@
 # @ai-sdk/harness-deepagents
 
+## 1.0.54
+
+### Patch Changes
+
+- 8f10600: fix(harness): rename harness bridge `detach` to `stop` and `shutdown` to `destroy` for clarity
+- Updated dependencies [2c0a8aa]
+- Updated dependencies [861d423]
+- Updated dependencies [8f10600]
+  - @ai-sdk/harness@1.0.55
+
 ## 1.0.53
 
 ### Patch Changes
