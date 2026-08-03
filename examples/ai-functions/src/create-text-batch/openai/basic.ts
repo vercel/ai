@@ -28,10 +28,10 @@ run(async () => {
   print('Created batch:', batch);
 
   while (true) {
-    const status = await getBatchStatus({ model, batch });
+    const { status } = await getBatchStatus({ model, batch });
     print('Batch status:', status);
 
-    if (status.status !== 'pending') {
+    if (status !== 'pending') {
       break;
     }
 
