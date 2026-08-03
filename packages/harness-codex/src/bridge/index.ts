@@ -65,14 +65,14 @@ const HARNESS_CLIENT_APP = procEnv.AI_SDK_HARNESS_CLIENT_APP;
 const codexSdk = codexSdkModule as any;
 
 // Codex thread id — survives across turns within this bridge process and is
-// returned to the host on `detach` so a future process can resume the thread.
+// returned to the host on `stop` so a future process can resume the thread.
 const threadState: { id: string | undefined } = { id: undefined };
 
 await runBridge<StartMessage>({
   bridgeType: 'codex',
   bridgeStateDir,
   onStart: runTurn,
-  onDetach: () => (threadState.id ? { threadId: threadState.id } : {}),
+  onStop: () => (threadState.id ? { threadId: threadState.id } : {}),
 });
 
 type Emit = (msg: Record<string, unknown>) => void;
@@ -80,7 +80,7 @@ type Emit = (msg: Record<string, unknown>) => void;
 async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const emit: Emit = msg => turn.emit(msg as BridgeEvent);
 
-  // Cross-process resume: the host carries the threadId we returned on detach.
+  // Cross-process resume: the host carries the threadId we returned on stop.
   // Seed `threadState.id` so the codex SDK call below takes the `resumeThread`
   // branch.
   if (
@@ -120,7 +120,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     );
   }
 
-  const codexConfig: Record<string, unknown> = {};
+  const codexConfig: Record<string, unknown> = {
+    model_reasoning_summary: 'detailed',
+  };
 
   const gatewayBaseUrl = procEnv.AI_GATEWAY_BASE_URL;
   const hasGatewayAuth = Boolean(procEnv.AI_GATEWAY_API_KEY || gatewayBaseUrl);
@@ -130,6 +132,19 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     );
   }
   const apiBaseUrl = hasGatewayAuth ? gatewayBaseUrl : procEnv.OPENAI_BASE_URL;
+  const codexModel =
+    start.model && hasGatewayAuth && !start.model.includes('/')
+      ? `openai/${start.model}`
+      : start.model;
+  /*
+   * AI Gateway only returns populated reasoning summaries for its
+   * creator-qualified model IDs. Codex treats qualified IDs as custom model
+   * metadata, so its reasoning-summary capability must also be forced on for
+   * the OpenAI Gateway route.
+   */
+  if (hasGatewayAuth && codexModel?.startsWith('openai/')) {
+    codexConfig.model_supports_reasoning_summaries = true;
+  }
   if (apiBaseUrl) {
     codexConfig.preferred_auth_method = 'apikey';
     codexConfig.model_provider = 'agent_bridge_openai';
@@ -168,7 +183,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   });
 
   const threadOptions = {
-    ...(start.model ? { model: start.model } : {}),
+    ...(codexModel ? { model: codexModel } : {}),
     sandboxMode: 'danger-full-access',
     approvalPolicy: 'never',
     workingDirectory: workdir,

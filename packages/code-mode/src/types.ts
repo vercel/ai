@@ -14,6 +14,7 @@ export interface CodeModeToolExecutionOptions {
   abortSignal?: AbortSignal;
   experimental_context?: unknown;
   context?: unknown;
+  codeModeInterrupt?: CodeModeInterruptExecutionContext;
 }
 
 /**
@@ -35,6 +36,124 @@ export interface CodeModeToolInput {
    */
   js: string;
 }
+
+export type ApprovalDecision =
+  | 'approved'
+  | 'denied'
+  | { approved: boolean; reason?: string };
+
+export interface CodeModeApprovalRequest {
+  toolName: string;
+  input: unknown;
+  toolCallId: string;
+}
+
+export interface CodeModeApprovalResponse {
+  approvalId: string;
+  approved: boolean;
+  reason?: string;
+}
+
+export interface CodeModeApprovalResolution {
+  approved: boolean;
+  reason?: string;
+}
+
+export interface CodeModeInterruptPayload {
+  kind: string;
+  [key: string]: unknown;
+}
+
+export interface CodeModeInterruptResolution<TResolution = unknown> {
+  interruptId: string;
+  resolution: TResolution;
+}
+
+export interface CodeModeInterruptExecutionContext<
+  TPayload extends CodeModeInterruptPayload = CodeModeInterruptPayload,
+  TResolution = unknown,
+> {
+  interruptId: string;
+  payload: TPayload;
+  resolution: TResolution;
+}
+
+export type CodeModeContinuationLedgerEntry =
+  | {
+      kind: 'tool';
+      name: string;
+      inputJson: string;
+      toolCallId: string;
+      status: 'fulfilled';
+      dateNowMs: number;
+      valueJson: string;
+    }
+  | {
+      kind: 'tool';
+      name: string;
+      inputJson: string;
+      toolCallId: string;
+      status: 'rejected';
+      dateNowMs: number;
+      error: SerializableError;
+    }
+  | {
+      kind: 'tool';
+      name: string;
+      inputJson: string;
+      toolCallId: string;
+      interruptId: string;
+      interruptPayload: CodeModeInterruptPayload;
+      status: 'interrupted';
+    };
+
+export interface CodeModeDeterminismState {
+  dateNowMs: number;
+  randomSeed: string;
+}
+
+export interface CodeModeContinuationAuth {
+  alg: 'HMAC-SHA256';
+  nonce: string;
+  issuedAtMs: number;
+  expiresAtMs: number;
+  signature: string;
+}
+
+export interface CodeModeContinuation {
+  version: 1;
+  js: string;
+  outerToolCallId: string;
+  determinism: CodeModeDeterminismState;
+  ledger: CodeModeContinuationLedgerEntry[];
+  auth: CodeModeContinuationAuth;
+}
+
+export type UnsignedCodeModeContinuation = Omit<CodeModeContinuation, 'auth'>;
+
+export interface CodeModeInterrupt<
+  TPayload extends CodeModeInterruptPayload = CodeModeInterruptPayload,
+> {
+  type: 'code-mode-interrupt';
+  interruptId: string;
+  toolName: string;
+  toolCallId: string;
+  outerToolCallId: string;
+  input: unknown;
+  payload: TPayload;
+  continuation: CodeModeContinuation;
+}
+
+export type CodeModeUnwrappedResult =
+  | { status: 'completed'; output: unknown }
+  | { status: 'interrupted'; interrupt: CodeModeInterrupt };
+
+export interface CodeModeApprovalInterruptPayload extends CodeModeInterruptPayload {
+  kind: 'ai-sdk-code-mode/tool-approval';
+}
+
+export type CodeModeApprovalInterrupt =
+  CodeModeInterrupt<CodeModeApprovalInterruptPayload>;
 
 /**
  * Execution limits applied to each sandbox invocation.
@@ -67,6 +186,24 @@ export interface CodeModeExecutionPolicy {
  */
 export interface CodeModeOptions {
   executionPolicy?: CodeModeExecutionPolicy;
+  continuationSecurity?: CodeModeContinuationSecurityOptions;
+  approval?: {
+    /**
+     * @defaultValue `'callback'`
+     */
+    mode?: 'callback' | 'interrupt';
+    onApprovalRequired?: (
+      request: CodeModeApprovalRequest,
+    ) => Promise<ApprovalDecision> | ApprovalDecision;
+  };
+}
+
+export interface CodeModeContinuationSecurityOptions {
+  signingKey?: string | Uint8Array;
+  /**
+   * @defaultValue `60 * 60 * 1000`
+   */
+  maxAgeMs?: number;
 }
 
 /**
@@ -77,6 +214,8 @@ export interface RunCodeModeInput {
   tools: CodeModeToolSet;
   toolExecutionOptions?: Partial<CodeModeToolExecutionOptions>;
   options?: CodeModeOptions;
+  continuation?: CodeModeContinuation;
+  interruptResolution?: CodeModeInterruptResolution;
 }
 
 /**
