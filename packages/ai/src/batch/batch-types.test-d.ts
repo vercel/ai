@@ -7,16 +7,21 @@ import type {
   LanguageModelV4,
 } from '@ai-sdk/provider';
 import { expectTypeOf, it } from 'vitest';
-import type {
-  Experimental_BatchError as BatchError,
-  Experimental_BatchOperationOptions as BatchOperationOptions,
-  Experimental_BatchReference as BatchReference,
-  Experimental_CreateTextBatchOptions as CreateTextBatchOptions,
-  Experimental_TextBatch as TextBatch,
-  Experimental_TextBatchGenerationResult as TextBatchGenerationResult,
-  Experimental_TextBatchItemResult as TextBatchItemResult,
-  Experimental_TextBatchReference as TextBatchReference,
+import {
+  experimental_createTextBatch as createTextBatch,
+  experimental_getBatchResults as getBatchResults,
+  experimental_getBatchStatus as getBatchStatus,
+  type Experimental_BatchError as BatchError,
+  type Experimental_BatchOperationOptions as BatchOperationOptions,
+  type Experimental_BatchReference as BatchReference,
+  type Experimental_CreateTextBatchOptions as CreateTextBatchOptions,
+  type Experimental_CreateTextBatchResult as CreateTextBatchResult,
+  type Experimental_TextBatch as TextBatch,
+  type Experimental_TextBatchGenerationResult as TextBatchGenerationResult,
+  type Experimental_TextBatchItemResult as TextBatchItemResult,
+  type Experimental_TextBatchReference as TextBatchReference,
 } from '../index';
+import type { AsyncIterableStream } from '../util/async-iterable-stream';
 
 it('keeps text batch references as the current batch reference variant', () => {
   expectTypeOf<BatchReference>().toEqualTypeOf<TextBatchReference>();
@@ -56,5 +61,15 @@ it('defines batch support as an experimental LanguageModelV4 capability', () => 
     PromiseLike<
       ReadableStream<BatchV4ItemResult<LanguageModelV4GenerateResult>>
     >
+  >();
+});
+
+it('exports the experimental batch functions with the public result types', () => {
+  expectTypeOf(
+    createTextBatch,
+  ).returns.resolves.toEqualTypeOf<CreateTextBatchResult>();
+  expectTypeOf(getBatchStatus).returns.resolves.toEqualTypeOf<TextBatch>();
+  expectTypeOf(getBatchResults).returns.toEqualTypeOf<
+    AsyncIterableStream<TextBatchItemResult>
   >();
 });
