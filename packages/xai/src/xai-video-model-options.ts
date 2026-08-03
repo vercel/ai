@@ -87,9 +87,6 @@ interface XaiLegacyReferenceToVideoOptions
  * - `'reference-to-video'` + `referenceImageUrls` -- R2V generation  (`POST /v1/videos/generations`)
  * - no `mode`                                     -- standard generation from text prompts or image input
  *
- * Reference images may also come from the top-level `inputReferences` option
- * instead of `referenceImageUrls`.
- *
  * Runtime remains backward compatible with legacy auto-detected provider
  * options, but the public TypeScript type is intentionally explicit so editors
  * can suggest valid modes and flag invalid field combinations.
