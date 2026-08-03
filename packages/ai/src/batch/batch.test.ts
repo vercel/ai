@@ -68,7 +68,7 @@ describe('createTextBatch', () => {
           batchId: 'batch-456',
           status: 'pending',
           rawStatus: 'validating',
-          requestCounts: { total: 1, pending: 1 },
+          requestCounts: { total: 1, pending: 1, completed: 0, failed: 0 },
           createdAt: '2026-08-03T12:00:00.000Z',
           warnings: [],
         };
@@ -97,7 +97,7 @@ describe('createTextBatch', () => {
       modelId: 'mock-model-id',
       status: 'pending',
       rawStatus: 'validating',
-      requestCounts: { total: 1, pending: 1 },
+      requestCounts: { total: 1, pending: 1, completed: 0, failed: 0 },
       createdAt: '2026-08-03T12:00:00.000Z',
       warnings: [],
     });
@@ -165,7 +165,7 @@ describe('getBatchStatus', () => {
         return {
           status: 'completed',
           rawStatus: 'ended',
-          requestCounts: { total: 2, succeeded: 1, failed: 1 },
+          requestCounts: { total: 2, pending: 0, completed: 1, failed: 1 },
         };
       },
     });
@@ -187,7 +187,7 @@ describe('getBatchStatus', () => {
     expect(result).toEqual({
       status: 'completed',
       rawStatus: 'ended',
-      requestCounts: { total: 2, succeeded: 1, failed: 1 },
+      requestCounts: { total: 2, pending: 0, completed: 1, failed: 1 },
     });
     expect(calls).toEqual([
       {

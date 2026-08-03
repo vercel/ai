@@ -21,12 +21,10 @@ export type BatchV4Status = {
   readonly status: 'pending' | 'completed' | 'failed';
   readonly rawStatus?: string;
   readonly requestCounts?: {
-    readonly total?: number;
-    readonly pending?: number;
-    readonly succeeded?: number;
-    readonly failed?: number;
-    readonly cancelled?: number;
-    readonly expired?: number;
+    readonly total: number;
+    readonly pending: number;
+    readonly completed: number;
+    readonly failed: number;
   };
   readonly error?: BatchV4Error;
   readonly createdAt?: string;
