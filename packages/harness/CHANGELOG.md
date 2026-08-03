@@ -1,5 +1,14 @@
 # @ai-sdk/harness
 
+## 1.0.55
+
+### Patch Changes
+
+- 2c0a8aa: fix(harness): remove unused and unnecessary `workingDirectory` property from `HarnessV1BootstrapCommand`
+- 861d423: feat(harness): improve harness sandbox auth error handling and expose `getHarnessErrorMessage()` helper
+- 8f10600: fix(harness): rename harness bridge `detach` to `stop` and `shutdown` to `destroy` for clarity
+  - ai@7.0.49
+
 ## 1.0.54
 
 ### Patch Changes
