@@ -9112,6 +9112,83 @@ describe('AnthropicMessagesLanguageModel', () => {
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
       });
+
+      it('should replay live code execution blocks byte-for-byte for prompt caching', async () => {
+        prepareChunksFixtureResponse(
+          'anthropic-code-execution-20260120-cache-replay',
+        );
+
+        const tools = [
+          {
+            type: 'provider' as const,
+            id: 'anthropic.code_execution_20260120' as const,
+            name: 'code_execution',
+            args: {},
+          },
+        ];
+        const liveResult = await provider('claude-sonnet-5').doStream({
+          prompt: TEST_PROMPT,
+          tools,
+        });
+        const parts = await convertReadableStreamToArray(liveResult.stream);
+        const toolCall = parts.find(
+          part =>
+            part.type === 'tool-call' && part.toolName === 'code_execution',
+        );
+        const toolResult = parts.find(
+          part =>
+            part.type === 'tool-result' && part.toolName === 'code_execution',
+        );
+
+        expect(toolCall?.type).toBe('tool-call');
+        expect(toolResult?.type).toBe('tool-result');
+        if (
+          toolCall?.type !== 'tool-call' ||
+          toolResult?.type !== 'tool-result'
+        ) {
+          throw new Error('Live fixture did not contain code execution blocks');
+        }
+
+        prepareChunksFixtureResponse('anthropic-refusal');
+        const replayResult = await provider('claude-sonnet-5').doStream({
+          prompt: [
+            ...TEST_PROMPT,
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: toolCall.toolCallId,
+                  toolName: toolCall.toolName,
+                  input: JSON.parse(toolCall.input),
+                  providerExecuted: true,
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: toolResult.toolCallId,
+                  toolName: toolResult.toolName,
+                  output: {
+                    type: 'json',
+                    value: toolResult.result,
+                  },
+                },
+              ],
+            },
+          ],
+          tools,
+        });
+        await convertReadableStreamToArray(replayResult.stream);
+
+        const replayRequest = await server.calls[1].requestBodyJson;
+        expect(replayRequest.messages[1].content[0]).toEqual({
+          type: 'server_tool_use',
+          id: 'srvtoolu_01G1TEN1tmE12onHPBoUZXyz',
+          name: 'bash_code_execution',
+          input: {
+            command: 'for n in $(seq 1 12); do echo "$n: $((n*n))"; done',
+          },
+        });
+      });
     });
 
     describe('web fetch tool', () => {
