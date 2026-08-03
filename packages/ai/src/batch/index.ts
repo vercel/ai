@@ -1,3 +1,8 @@
+export {
+  createTextBatch as experimental_createTextBatch,
+  getBatchResults as experimental_getBatchResults,
+  getBatchStatus as experimental_getBatchStatus,
+} from './batch';
 export type {
   BatchError as Experimental_BatchError,
   BatchOperationOptions as Experimental_BatchOperationOptions,
