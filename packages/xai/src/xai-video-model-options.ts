@@ -2,7 +2,7 @@ import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 const nonEmptyStringSchema = z.string().min(1);
-const resolutionSchema = z.enum(['480p', '720p']);
+const resolutionSchema = z.enum(['480p', '720p', '1080p']);
 const modeSchema = z.enum(['edit-video', 'extend-video', 'reference-to-video']);
 
 export type XaiVideoMode = z.infer<typeof modeSchema>;
@@ -105,48 +105,6 @@ const baseFields = {
   pollTimeoutMs: z.number().positive().nullish(),
   resolution: resolutionSchema.nullish(),
 };
-
-const userField = {
-  user: z.string().optional(),
-};
-
-const editVideoSchema = z.object({
-  ...baseFields,
-  ...userField,
-  mode: z.literal('edit-video'),
-  videoUrl: nonEmptyStringSchema,
-  referenceImageUrls: z.undefined().optional(),
-});
-
-const extendVideoSchema = z.object({
-  ...baseFields,
-  mode: z.literal('extend-video'),
-  videoUrl: nonEmptyStringSchema,
-  referenceImageUrls: z.undefined().optional(),
-});
-
-const referenceToVideoSchema = z.object({
-  ...baseFields,
-  ...userField,
-  mode: z.literal('reference-to-video'),
-  referenceImageUrls: z.array(nonEmptyStringSchema).min(1).max(7),
-  videoUrl: z.undefined().optional(),
-});
-
-const autoDetectSchema = z.object({
-  ...baseFields,
-  ...userField,
-  mode: z.undefined().optional(),
-  videoUrl: nonEmptyStringSchema.optional(),
-  referenceImageUrls: z.array(nonEmptyStringSchema).min(1).max(7).optional(),
-});
-
-export const xaiVideoModelOptions = z.union([
-  editVideoSchema,
-  extendVideoSchema,
-  referenceToVideoSchema,
-  autoDetectSchema,
-]);
 
 const runtimeSchema = z.looseObject({
   mode: modeSchema.optional(),

@@ -38,6 +38,7 @@ interface XaiVideoModelConfig {
 }
 
 const RESOLUTION_MAP: Record<string, string> = {
+  '1920x1080': '1080p',
   '1280x720': '720p',
   '854x480': '480p',
   '640x480': '480p',
@@ -70,7 +71,12 @@ function resolveStartImage(
 const isVideoFile = (file: Experimental_VideoModelV4File): boolean =>
   file.mediaType != null && getTopLevelMediaType(file.mediaType) === 'video';
 
-function fileToXaiImageUrl(file: Experimental_VideoModelV4File): string {
+// References without a media type (only possible for URLs) are treated as
+// images, matching the legacy `referenceImageUrls` behavior.
+const isImageReference = (file: Experimental_VideoModelV4File): boolean =>
+  file.mediaType == null || getTopLevelMediaType(file.mediaType) === 'image';
+
+function fileToXaiUrl(file: Experimental_VideoModelV4File): string {
   if (file.type === 'url') {
     return file.url;
   }
@@ -84,42 +90,55 @@ function fileToXaiImageUrl(file: Experimental_VideoModelV4File): string {
 
 // Resolves the reference images for R2V generation. First-class
 // `inputReferences` win over the legacy `referenceImageUrls` provider option.
-// Video references are not supported for reference-to-video and are skipped
-// with a warning.
-function resolveReferenceImages(
+// Non-image references (video or audio) are not supported for
+// reference-to-video and are skipped with a warning.
+function resolveReferences(
   options: XaiVideoDoGenerateOptions,
   xaiOptions: XaiParsedVideoModelOptions | undefined,
   warnings: SharedV4Warning[],
-): Array<{ url: string }> | undefined {
+): {
+  images: Array<{ url: string }> | undefined;
+} {
+  let images: Array<{ url: string }> | undefined;
+
   if (options.inputReferences != null && options.inputReferences.length > 0) {
-    const imageReferences = options.inputReferences.filter(reference => {
-      if (isVideoFile(reference)) {
+    const imageFiles: Experimental_VideoModelV4File[] = [];
+
+    for (const reference of options.inputReferences) {
+      if (!isImageReference(reference)) {
         warnings.push({
           type: 'unsupported',
           feature: 'inputReferences',
-          details:
-            'xAI reference-to-video accepts image references only. The video ' +
-            'reference was ignored. Use providerOptions.xai.mode ' +
-            '"extend-video" to continue from a video.',
+          details: isVideoFile(reference)
+            ? 'xAI reference-to-video accepts image references only. The ' +
+              'video reference was ignored. Use providerOptions.xai.mode ' +
+              '"extend-video" to continue from a video.'
+            : 'xAI reference-to-video accepts image references only. The ' +
+              'non-image reference was ignored.',
         });
-        return false;
+        continue;
       }
-      return true;
-    });
 
-    return imageReferences.map(reference => ({
-      url: fileToXaiImageUrl(reference),
-    }));
-  }
+      imageFiles.push(reference);
+    }
 
-  if (
+    images =
+      imageFiles.length > 0
+        ? imageFiles.map(reference => ({ url: fileToXaiUrl(reference) }))
+        : undefined;
+  } else if (
     xaiOptions?.referenceImageUrls != null &&
     xaiOptions.referenceImageUrls.length > 0
   ) {
-    return xaiOptions.referenceImageUrls.map(url => ({ url }));
+    images = xaiOptions.referenceImageUrls.map(url => ({ url }));
   }
 
-  return undefined;
+  return { images };
+}
+
+// True when at least one reference would survive as an image.
+function hasImageInputReference(options: XaiVideoDoGenerateOptions): boolean {
+  return options.inputReferences?.some(isImageReference) ?? false;
 }
 
 function resolveVideoMode(
@@ -138,13 +157,17 @@ function resolveVideoMode(
   // only auto-select reference-to-video when no frame images are provided.
   const hasFrameImages =
     options.frameImages != null && options.frameImages.length > 0;
-  const hasInputReferences =
-    options.inputReferences != null && options.inputReferences.length > 0;
   const hasLegacyReferenceUrls =
     xaiOptions?.referenceImageUrls != null &&
     xaiOptions.referenceImageUrls.length > 0;
 
-  if (!hasFrameImages && (hasInputReferences || hasLegacyReferenceUrls)) {
+  // Reference-to-video needs at least one image reference. An audio-only (or
+  // video-only) `inputReferences` array must not flip a text- or
+  // image-to-video request into R2V.
+  if (
+    !hasFrameImages &&
+    (hasImageInputReference(options) || hasLegacyReferenceUrls)
+  ) {
     return 'reference-to-video';
   }
 
@@ -285,7 +308,8 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
           feature: 'resolution',
           details:
             `Unrecognized resolution "${options.resolution}". ` +
-            'Use providerOptions.xai.resolution with "480p" or "720p" instead.',
+            'Use providerOptions.xai.resolution with "480p", "720p", or ' +
+            '"1080p" instead.',
         });
       }
     }
@@ -315,7 +339,7 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
             'continue from a video instead.',
         });
       } else {
-        body.image = { url: fileToXaiImageUrl(startImage) };
+        body.image = { url: fileToXaiUrl(startImage) };
       }
     }
 
@@ -337,18 +361,32 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
 
     // Reference images for R2V (reference-to-video) generation
     if (hasReferenceImages) {
-      const referenceImages = resolveReferenceImages(
+      const { images: referenceImages } = resolveReferences(
         options,
         xaiOptions,
         warnings,
       );
+
       if (referenceImages != null) {
         body.reference_images = referenceImages;
       }
+
+      // Reference-to-video is capped at 720p; downgrade a 1080p request.
+      if (body.resolution === '1080p') {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'resolution',
+          details:
+            'xAI reference-to-video is limited to 720p. The request was ' +
+            'downgraded from 1080p to 720p.',
+        });
+        body.resolution = '720p';
+      }
     }
 
-    // Warn when reference images were provided but cannot be used in the
-    // resolved mode (e.g. alongside frameImages, or in edit/extend modes).
+    // Warn when references were provided but cannot be used in the resolved
+    // mode (e.g. alongside frameImages, in edit/extend modes, or when the
+    // references carried no usable image to drive reference-to-video).
     if (
       options.inputReferences != null &&
       options.inputReferences.length > 0 &&
@@ -357,9 +395,11 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
       warnings.push({
         type: 'unsupported',
         feature: 'inputReferences',
-        details:
-          'xAI only supports inputReferences for reference-to-video ' +
-          'generation. The reference images were ignored.',
+        details: hasImageInputReference(options)
+          ? 'xAI only supports inputReferences for reference-to-video ' +
+            'generation. The reference images were ignored.'
+          : 'xAI reference-to-video requires at least one image reference. ' +
+            'The references were ignored.',
       });
     }
 
