@@ -16,8 +16,8 @@ import {
   Card,
   QuickstartFrameworkCards,
   Support,
-  Templates,
 } from '@/components/docs/marketing-cards';
+import { Templates } from '@/components/docs/templates';
 import {
   CommunityModelCards,
   OfficialModelCards,

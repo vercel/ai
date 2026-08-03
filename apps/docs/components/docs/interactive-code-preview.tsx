@@ -996,7 +996,7 @@ export const InteractiveCodePreview = ({
               aria-controls={`${id}-panel`}
               aria-selected={activeTab === tab.id}
               className={cx(
-                'flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700',
+                'flex items-center gap-1.5 border-b-2 px-3 py-4 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700',
                 activeTab === tab.id
                   ? 'border-gray-1000 font-medium text-gray-1000'
                   : 'border-transparent text-gray-900 hover:text-gray-1000',
@@ -1018,7 +1018,7 @@ export const InteractiveCodePreview = ({
           ))}
         </div>
 
-        <div className="hidden py-1.5 sm:block">
+        <div className="hidden py-2.5 sm:block">
           {activeTab === 'custom' ? (
             <Link
               aria-label="Custom provider documentation"

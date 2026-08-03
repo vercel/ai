@@ -91,6 +91,9 @@ importers:
       fumadocs-ui:
         specifier: 16.2.2
         version: 16.2.2(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(algoliasearch@5.35.0)(lucide-react@0.555.0(react@19.2.6))(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(tailwindcss@4.3.0)
+      lucide-react:
+        specifier: ^0.555.0
+        version: 0.555.0(react@19.2.6)
       next:
         specifier: 16.2.12
         version: 16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0)
