@@ -1048,7 +1048,7 @@ export const InteractiveCodePreview = ({
         role="tabpanel"
       >
         <CodeBlock
-          className="shiki geist rounded-none border-0 bg-transparent"
+          className="shiki geist line-numbers rounded-none border-0 bg-transparent py-4"
           tabIndex={0}
         >
           {highlightedHtml ? (
