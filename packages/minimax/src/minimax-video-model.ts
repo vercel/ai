@@ -397,7 +397,7 @@ export class MiniMaxVideoModel implements Experimental_VideoModelV4 {
 
     // Aspect ratio. In frame-image mode the ratio follows the supplied image,
     // so an explicit ratio is ignored.
-    const isTextToVideo = !usesFrameImages && !usesReferences;
+    const isTextToVideo = content.length === 1;
     let ratio = minimaxOptions?.ratio as string | undefined;
     if (ratio == null && options.aspectRatio != null) {
       if (allowedRatios.has(options.aspectRatio)) {
