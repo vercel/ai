@@ -76,6 +76,9 @@ importers:
 
   apps/docs:
     dependencies:
+      '@shikijs/langs':
+        specifier: 3.23.0
+        version: 3.23.0
       '@shikijs/transformers':
         specifier: 3.23.0
         version: 3.23.0

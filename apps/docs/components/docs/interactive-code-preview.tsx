@@ -16,7 +16,7 @@ import {
 } from '@vercel/geistdocs/components/dropdown-menu';
 import { geistShikiTheme } from '@vercel/geistdocs/shiki-theme';
 import Link from 'next/link';
-import type { codeToHtml as ShikiCodeToHtml } from 'shiki';
+import type { HighlighterCore as ShikiHighlighter } from 'shiki/core';
 import {
   type KeyboardEvent,
   type ReactNode,
@@ -386,17 +386,29 @@ function parseModels(data: GatewayResponse | null): ModelOption[] {
 }
 
 /**
- * Lazy module-level shiki singleton. The dynamic import keeps shiki out of
- * the initial client bundle; the plain-text fallback renders until the
- * highlighter resolves.
+ * Lazy module-level shiki singleton. Uses the fine-grained core API with a
+ * single grammar instead of the full `shiki` bundle: importing the bundle
+ * puts all ~350 grammars into the client compile graph, which blows past
+ * the Vercel build container's memory. The dynamic imports also keep the
+ * highlighter out of the initial client bundle; the plain-text fallback
+ * renders until it resolves.
  */
-type ShikiModule = { codeToHtml: typeof ShikiCodeToHtml };
+let highlighterPromise: Promise<ShikiHighlighter> | null = null;
 
-let shikiModulePromise: Promise<ShikiModule> | null = null;
-
-const loadShiki = (): Promise<ShikiModule> => {
-  shikiModulePromise ??= import('shiki');
-  return shikiModulePromise;
+const loadHighlighter = (): Promise<ShikiHighlighter> => {
+  highlighterPromise ??= (async () => {
+    const [{ createHighlighterCore }, { createJavaScriptRegexEngine }] =
+      await Promise.all([
+        import('shiki/core'),
+        import('shiki/engine/javascript'),
+      ]);
+    return createHighlighterCore({
+      engine: createJavaScriptRegexEngine(),
+      langs: [import('@shikijs/langs/typescript')],
+      themes: [geistShikiTheme],
+    });
+  })();
+  return highlighterPromise;
 };
 
 /**
@@ -410,8 +422,8 @@ const highlightCode = async (
   code: string,
   highlightedLines: number[],
 ): Promise<string> => {
-  const { codeToHtml } = await loadShiki();
-  const html = await codeToHtml(code, {
+  const highlighter = await loadHighlighter();
+  const html = highlighter.codeToHtml(code, {
     lang: 'typescript',
     theme: geistShikiTheme,
     transformers: [
