@@ -53,6 +53,12 @@
       "path": "../../packages/harness-codex"
     },
     {
+      "path": "../../packages/harness-deepagents"
+    },
+    {
+      "path": "../../packages/harness-opencode"
+    },
+    {
       "path": "../../packages/harness-pi"
     },
     {

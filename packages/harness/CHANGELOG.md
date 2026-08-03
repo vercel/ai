@@ -1,5 +1,81 @@
 # @ai-sdk/harness
 
+## 1.0.55
+
+### Patch Changes
+
+- 2c0a8aa: fix(harness): remove unused and unnecessary `workingDirectory` property from `HarnessV1BootstrapCommand`
+- 861d423: feat(harness): improve harness sandbox auth error handling and expose `getHarnessErrorMessage()` helper
+- 8f10600: fix(harness): rename harness bridge `detach` to `stop` and `shutdown` to `destroy` for clarity
+  - ai@7.0.49
+
+## 1.0.54
+
+### Patch Changes
+
+- ai@7.0.48
+
+## 1.0.53
+
+### Patch Changes
+
+- bdde5d9: fix(harness): avoid placing harness bootstrap files in `/tmp` and instead use sandbox working directory
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+  - ai@7.0.47
+
+## 1.0.52
+
+### Patch Changes
+
+- ai@7.0.46
+
+## 1.0.51
+
+### Patch Changes
+
+- 226a679: fix(harness): emit the final result or error after an approved host tool continuation executes.
+- Updated dependencies [d6ce0ee]
+- Updated dependencies [fa95504]
+- Updated dependencies [349afe7]
+  - ai@7.0.45
+  - @ai-sdk/provider-utils@5.0.17
+
+## 1.0.50
+
+### Patch Changes
+
+- Updated dependencies [015acb4]
+  - ai@7.0.44
+
+## 1.0.49
+
+### Patch Changes
+
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+  - ai@7.0.43
+
+## 1.0.48
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [60f97f6]
+- Updated dependencies [6a5bdff]
+- Updated dependencies [6de2ec1]
+  - @ai-sdk/provider-utils@5.0.15
+  - ai@7.0.42
+
+## 1.0.47
+
+### Patch Changes
+
+- Updated dependencies [2e2224b]
+  - ai@7.0.41
+
 ## 1.0.46
 
 ### Patch Changes

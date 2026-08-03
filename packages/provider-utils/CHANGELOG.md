@@ -1,5 +1,32 @@
 # @ai-sdk/provider-utils
 
+## 5.0.18
+
+### Patch Changes
+
+- 5fc7da5: chore: centralize empty language model usage creation in provider utilities.
+- 93b2acd: chore: centralize response metadata conversion
+
+## 5.0.17
+
+### Patch Changes
+
+- fa95504: feat(ai): support experimental tool callers in ToolLoopAgent
+
+## 5.0.16
+
+### Patch Changes
+
+- d8210b6: chore: centralize record type guards in provider-utils
+- b192878: feat: add experimental_toolCaller routing to generateText for code mode
+
+## 5.0.15
+
+### Patch Changes
+
+- 1659cd5: Prevent validated downloads on Node.js from reaching private or internal services through DNS aliases or DNS rebinding by validating and pinning every resolved address at connection time.
+- 6a5bdff: Fix validated Node.js downloads when the HTTP connector requests a single DNS address.
+
 ## 5.0.14
 
 ### Patch Changes

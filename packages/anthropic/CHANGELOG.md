@@ -1,5 +1,39 @@
 # @ai-sdk/anthropic
 
+## 4.0.27
+
+### Patch Changes
+
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+
+## 4.0.26
+
+### Patch Changes
+
+- dc0c28e: Return visible summarized reasoning when generic reasoning enables adaptive thinking.
+- Updated dependencies [fa95504]
+  - @ai-sdk/provider-utils@5.0.17
+
+## 4.0.25
+
+### Patch Changes
+
+- d8210b6: chore: centralize record type guards in provider-utils
+- b192878: feat: add experimental_toolCaller routing to generateText for code mode
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+
+## 4.0.24
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+
 ## 4.0.23
 
 ### Patch Changes

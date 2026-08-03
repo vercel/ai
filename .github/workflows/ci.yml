@@ -6,9 +6,6 @@ on:
       - main
       - release-v*
   pull_request:
-    branches:
-      - main
-      - release-v*
 
 permissions:
   contents: read

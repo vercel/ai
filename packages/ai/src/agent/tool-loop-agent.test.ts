@@ -1,5 +1,6 @@
 import type { LanguageModelV4CallOptions } from '@ai-sdk/provider';
 import {
+  experimental_toolCaller,
   tool,
   type Experimental_SandboxSession as SandboxSession,
 } from '@ai-sdk/provider-utils';
@@ -100,6 +101,42 @@ describe('ToolLoopAgent', () => {
           },
         }
       `);
+    });
+
+    it('should forward experimental_toolCallers to generateText', async () => {
+      const codeMode = experimental_toolCaller(
+        tool({
+          inputSchema: z.object({}),
+          execute: async () => undefined,
+        }),
+        {
+          type: 'local',
+          bind: tools =>
+            tool({
+              inputSchema: z.object({}),
+              execute: async () => Object.keys(tools),
+            }),
+        },
+      );
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        tools: {
+          code_mode: codeMode,
+          getInventory: tool({
+            inputSchema: z.object({ sku: z.string() }),
+            execute: async ({ sku }) => ({ sku }),
+          }),
+        },
+        experimental_toolCallers: ({ code_mode }) => ({
+          getInventory: [code_mode],
+        }),
+      });
+
+      await agent.generate({ prompt: 'Hello, world!' });
+
+      expect(doGenerateOptions?.tools?.map(tool => tool.name)).toEqual([
+        'code_mode',
+      ]);
     });
 
     it('should tag the user-agent with the agent identifier', async () => {
@@ -779,6 +816,43 @@ describe('ToolLoopAgent', () => {
         }
       `,
       );
+    });
+
+    it('should forward experimental_toolCallers to streamText', async () => {
+      const codeMode = experimental_toolCaller(
+        tool({
+          inputSchema: z.object({}),
+          execute: async () => undefined,
+        }),
+        {
+          type: 'local',
+          bind: tools =>
+            tool({
+              inputSchema: z.object({}),
+              execute: async () => Object.keys(tools),
+            }),
+        },
+      );
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        tools: {
+          code_mode: codeMode,
+          getInventory: tool({
+            inputSchema: z.object({ sku: z.string() }),
+            execute: async ({ sku }) => ({ sku }),
+          }),
+        },
+        experimental_toolCallers: ({ code_mode }) => ({
+          getInventory: [code_mode],
+        }),
+      });
+
+      const result = await agent.stream({ prompt: 'Hello, world!' });
+      await result.consumeStream();
+
+      expect(doStreamOptions?.tools?.map(tool => tool.name)).toEqual([
+        'code_mode',
+      ]);
     });
 
     it('should forward toolOrder to streamText', async () => {

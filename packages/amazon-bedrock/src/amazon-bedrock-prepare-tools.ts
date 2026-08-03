@@ -137,6 +137,14 @@ export async function prepareTools({
   const supportsStrictOnTools = supportsStrictTools(modelId);
 
   for (const tool of filteredFunctionTools) {
+    if (!supportsStrictOnTools && tool.strict != null) {
+      toolWarnings.push({
+        type: 'unsupported',
+        feature: 'strict',
+        details: `Tool '${tool.name}' has strict: ${tool.strict}, but strict mode is not supported by this model on Amazon Bedrock. The strict property will be ignored.`,
+      });
+    }
+
     amazonBedrockTools.push({
       toolSpec: {
         name: tool.name,
