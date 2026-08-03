@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.114
+
+### Patch Changes
+
+- 5d0c5f4: fix(xai): video generation no longer hangs while polling status
+
 ## 3.0.113
 
 ### Patch Changes
