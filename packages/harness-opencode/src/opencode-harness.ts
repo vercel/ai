@@ -182,7 +182,7 @@ const OPENCODE_BUILTIN_TOOLS = {
   }),
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
-const BOOTSTRAP_DIR = '/tmp/harness/opencode';
+const BOOTSTRAP_DIR = '.harness-bootstrap/opencode';
 
 const openCodeBridgeCoordsSchema = z.object({
   port: z.number(),
@@ -230,12 +230,12 @@ export function createOpenCode(
           },
         ],
         commands: [
-          { command: `mkdir -p ${BOOTSTRAP_DIR}` },
           {
-            command: `pnpm --dir ${BOOTSTRAP_DIR} install --frozen-lockfile --store-dir ${BOOTSTRAP_DIR}/.pnpm-store`,
+            command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
           },
           {
-            command: `cd ${BOOTSTRAP_DIR} && node node_modules/opencode-ai/postinstall.mjs && ./node_modules/.bin/opencode --version`,
+            command:
+              'node node_modules/opencode-ai/postinstall.mjs && ./node_modules/.bin/opencode --version',
           },
         ],
       };
@@ -245,6 +245,10 @@ export function createOpenCode(
       const sandboxSession = startOpts.sandboxSession;
       const session = sandboxSession.restricted();
       const sandboxId = sandboxSession.id;
+      const bootstrapDir = path.posix.resolve(
+        sandboxSession.defaultWorkingDirectory,
+        BOOTSTRAP_DIR,
+      );
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
       const isContinue = startOpts.continueFrom != null;
@@ -388,7 +392,7 @@ export function createOpenCode(
       });
 
       const proc = await session.spawn({
-        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(BOOTSTRAP_DIR)}${skillSetup ? ` --skills-dir ${shellQuote(skillSetup.skillsDir)}` : ''}`,
+        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(bootstrapDir)}${skillSetup ? ` --skills-dir ${shellQuote(skillSetup.skillsDir)}` : ''}`,
         env,
         abortSignal: startOpts.abortSignal,
       });

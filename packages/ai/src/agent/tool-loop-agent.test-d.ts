@@ -1,9 +1,14 @@
-import { tool, type Context } from '@ai-sdk/provider-utils';
+import {
+  experimental_toolCaller,
+  tool,
+  type Context,
+} from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod/v4';
 import {
   Output,
   type GenerateTextOnEndCallback,
+  type Experimental_ToolCallers,
   type ToolApprovalConfiguration,
   type ToolInputRefinement,
 } from '../generate-text';
@@ -130,6 +135,54 @@ describe('ToolLoopAgent', () => {
           >();
           expectTypeOf(options.experimental_refineToolInput).toEqualTypeOf<
             ToolInputRefinement<typeof tools> | undefined
+          >();
+
+          return {
+            ...options,
+            prompt: 'Hello, world!',
+          };
+        },
+      });
+    });
+
+    it('should type experimental_toolCallers in settings and prepareCall', () => {
+      const codeMode = experimental_toolCaller(
+        tool({
+          inputSchema: z.object({}),
+          execute: async () => undefined,
+        }),
+        {
+          type: 'local',
+          bind: () =>
+            tool({
+              inputSchema: z.object({}),
+              execute: async () => undefined,
+            }),
+        },
+      );
+      const tools = {
+        code_mode: codeMode,
+        getInventory: tool({
+          inputSchema: z.object({ sku: z.string() }),
+          execute: async ({ sku }) => ({ sku }),
+        }),
+      };
+
+      new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        tools,
+        experimental_toolCallers: callers => {
+          expectTypeOf(callers.code_mode.toolName).toEqualTypeOf<'code_mode'>();
+          // @ts-expect-error regular tools are not caller references
+          callers.getInventory;
+
+          return {
+            getInventory: [callers.code_mode],
+          };
+        },
+        prepareCall: options => {
+          expectTypeOf(options.experimental_toolCallers).toEqualTypeOf<
+            Experimental_ToolCallers<typeof tools> | undefined
           >();
 
           return {
@@ -462,6 +515,23 @@ describe('ToolLoopAgent', () => {
             }>();
             expectTypeOf(toolsContext).toEqualTypeOf<{}>();
           },
+        });
+      });
+
+      it('should accept model call setting overrides', () => {
+        new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          prepareStep: () => ({
+            maxOutputTokens: 100,
+            temperature: 0,
+            topP: 0.9,
+            topK: 40,
+            presencePenalty: 0,
+            frequencyPenalty: 0,
+            stopSequences: ['stop'],
+            seed: 0,
+            reasoning: 'high',
+          }),
         });
       });
     });

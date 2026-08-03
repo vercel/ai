@@ -18,15 +18,10 @@ import {
   emitOpenCodeStreamStart,
   getOpenCodeEventSessionId,
   isStepSettlementEvent,
-  type OpenCodeEvent,
   type TranslationState,
   unwrapOpenCodeEvent,
 } from './opencode-events';
-import {
-  createEmitStreamEvent,
-  isRecord,
-  stringValue,
-} from './create-emit-stream-event';
+import { createEmitStreamEvent, stringValue } from './create-emit-stream-event';
 import { mapOpenCodeFinishReason } from './opencode-finish-step';
 import { prependOpenCodeBinToPath } from './opencode-path';
 import {
@@ -38,6 +33,11 @@ import {
   type HarnessUsage,
   type OpenCodeTokenUsage,
 } from './opencode-usage';
+import {
+  asOpenCodeObject,
+  type OpenCodeEvent,
+  type OpenCodeObject,
+} from './opencode-types';
 import { startAuthorizedToolRelay, type ToolRelay } from './tool-relay';
 
 type Emit = (msg: Record<string, unknown>) => void;
@@ -837,12 +837,7 @@ async function handlePermissionV2({
       ? props.resources.map(String)
       : [],
     requestID,
-    toolCallId:
-      typeof props.source === 'object' &&
-      props.source !== null &&
-      'callID' in props.source
-        ? String((props.source as { callID?: unknown }).callID)
-        : requestID,
+    toolCallId: String(props.source?.callID ?? requestID),
     permissionMode,
     builtinToolFiltering,
     turn,
@@ -876,16 +871,12 @@ async function handlePermission({
   const props = event.properties ?? {};
   const requestID = String(props.id ?? '');
   if (!requestID) return;
+  const tool = asOpenCodeObject(props.tool);
   const reply = await selectPermissionReply({
     action: String(props.permission ?? ''),
     resources: Array.isArray(props.patterns) ? props.patterns.map(String) : [],
     requestID,
-    toolCallId:
-      typeof props.tool === 'object' &&
-      props.tool !== null &&
-      'callID' in props.tool
-        ? String((props.tool as { callID?: unknown }).callID)
-        : requestID,
+    toolCallId: String(tool?.callID ?? requestID),
     permissionMode,
     builtinToolFiltering,
     turn,
@@ -1305,15 +1296,13 @@ function modelRefFromAssistantSnapshot(
   const direct = modelRefFromValue(assistant);
   if (direct) return direct;
 
-  if (isRecord(assistant.metadata)) {
-    return modelRefFromValue(assistant.metadata.assistant);
-  }
-  return undefined;
+  return modelRefFromValue(asOpenCodeObject(assistant.metadata)?.assistant);
 }
 
 function modelRefFromSessionInfo(data: unknown): OpenCodeModelRef | undefined {
-  if (!isRecord(data)) return undefined;
-  return modelRefFromValue(data.model) ?? modelRefFromValue(data);
+  const session = asOpenCodeObject(data);
+  if (!session) return undefined;
+  return modelRefFromValue(session.model) ?? modelRefFromObject(session);
 }
 
 function modelRefFromStart(start: StartMessage): OpenCodeModelRef | undefined {
@@ -1327,7 +1316,13 @@ function modelRefFromStart(start: StartMessage): OpenCodeModelRef | undefined {
 }
 
 function modelRefFromValue(value: unknown): OpenCodeModelRef | undefined {
-  if (!isRecord(value)) return undefined;
+  const model = asOpenCodeObject(value);
+  return model ? modelRefFromObject(model) : undefined;
+}
+
+function modelRefFromObject(
+  value: OpenCodeObject,
+): OpenCodeModelRef | undefined {
   const providerID = stringValue(value.providerID);
   const modelID = stringValue(value.modelID ?? value.id);
   if (!providerID || !modelID) return undefined;
