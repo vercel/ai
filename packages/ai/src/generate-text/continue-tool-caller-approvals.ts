@@ -43,8 +43,11 @@ export function normalizeToolCallerApprovalMessages({
         part.type === 'tool-approval-request' &&
         part.callerToolCallId != null
       ) {
+        // Track the nested approval so its request and response can be removed.
         callerApprovalIds.add(part.approvalId);
+        // Track the outer caller so only its latest result remains.
         callerToolCallIds.add(part.callerToolCallId);
+        // Track the nested host tool so its call and result can be removed.
         nestedToolCallIds.add(part.toolCallId);
       }
     }
