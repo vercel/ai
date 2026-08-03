@@ -39,7 +39,7 @@ interface MiniMaxVideoModelConfig {
 }
 
 type MiniMaxVideoDoGenerateOptions = Parameters<
-  Experimental_VideoModelV4['doGenerate']
+  NonNullable<Experimental_VideoModelV4['doGenerate']>
 >[0];
 
 const DEFAULT_RESOLUTION = '2K';
@@ -112,7 +112,9 @@ export class MiniMaxVideoModel implements Experimental_VideoModelV4 {
 
   async doGenerate(
     options: MiniMaxVideoDoGenerateOptions,
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
+  ): Promise<
+    Awaited<ReturnType<NonNullable<Experimental_VideoModelV4['doGenerate']>>>
+  > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
 
