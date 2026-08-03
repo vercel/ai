@@ -37,6 +37,7 @@ export type ToolCallerDefinition =
         tools: ToolSet;
         messages: ModelMessage[];
         toolExecutionOptions: Partial<ToolExecutionOptions<unknown>>;
+        resolveToolApproval: ToolCallerBindContext['resolveToolApproval'];
       }) => Promise<unknown>;
     }
   | {

@@ -1746,6 +1746,19 @@ class DefaultStreamTextResult<
             toolCallers: resolvedToolCallers,
             toolsContext,
             abortSignal,
+            resolveToolApproval: async (toolCall, messages) =>
+              await resolveToolApproval({
+                tools,
+                toolCall: {
+                  type: 'tool-call',
+                  ...toolCall,
+                  dynamic: false,
+                } as TypedToolCall<TOOLS>,
+                toolApproval,
+                messages,
+                toolsContext,
+                runtimeContext,
+              }),
           });
           for (const continuation of continuedApprovals.continued) {
             if (continuation.nextApprovalRequest !== undefined) {

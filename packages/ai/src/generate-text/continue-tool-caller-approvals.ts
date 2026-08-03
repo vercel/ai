@@ -4,6 +4,7 @@ import {
   getErrorMessage,
   type InferToolSetContext,
   type ModelMessage,
+  type ToolCall,
   type ToolModelMessage,
   type ToolResultPart,
   type ToolSet,
@@ -14,6 +15,7 @@ import {
   getLocalToolsForCaller,
   getToolCallerApprovalRequest,
   type LocalToolCallerApprovalRequest,
+  type LocalToolCallerApprovalStatus,
   type ResolvedToolCallers,
 } from './tool-caller-configuration';
 
@@ -90,6 +92,7 @@ export async function continueToolCallerApprovals<TOOLS extends ToolSet>({
   toolCallers,
   toolsContext,
   abortSignal,
+  resolveToolApproval,
 }: {
   approvals: Array<CollectedToolApprovals<TOOLS>>;
   messages: ModelMessage[];
@@ -97,6 +100,10 @@ export async function continueToolCallerApprovals<TOOLS extends ToolSet>({
   toolCallers: ResolvedToolCallers | undefined;
   toolsContext: InferToolSetContext<TOOLS>;
   abortSignal: AbortSignal | undefined;
+  resolveToolApproval: (
+    toolCall: ToolCall<string, unknown>,
+    messages: ModelMessage[],
+  ) => Promise<LocalToolCallerApprovalStatus>;
 }): Promise<{
   continued: Array<ContinuedToolCallerApproval<TOOLS>>;
   remaining: Array<CollectedToolApprovals<TOOLS>>;
@@ -131,6 +138,8 @@ export async function continueToolCallerApprovals<TOOLS extends ToolSet>({
         approvalResponse: approval.approvalResponse,
         tools: localTools,
         messages: currentMessages,
+        resolveToolApproval: toolCall =>
+          resolveToolApproval(toolCall, currentMessages),
         toolExecutionOptions: {
           toolCallId: match.request.callerToolCallId,
           messages: currentMessages,

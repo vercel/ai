@@ -18,7 +18,7 @@ type LocalToolCallerDefinition = Extract<
   Experimental_ToolCallerDefinition,
   { type: 'local' }
 >;
-type LocalToolCallerApprovalStatus = Awaited<
+export type LocalToolCallerApprovalStatus = Awaited<
   ReturnType<
     Parameters<LocalToolCallerDefinition['bind']>[1]['resolveToolApproval']
   >

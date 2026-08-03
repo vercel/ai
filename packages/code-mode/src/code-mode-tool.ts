@@ -93,6 +93,7 @@ export function codeModeTool(
       approvalResponse,
       tools,
       toolExecutionOptions,
+      resolveToolApproval,
     }) => {
       const interrupt = getCodeModeInterrupt(
         output,
@@ -109,7 +110,13 @@ export function codeModeTool(
         interrupt,
         approvalResponse,
         tools: tools as CodeModeToolSet,
-        options,
+        options: {
+          ...options,
+          approval: {
+            ...options.approval,
+            resolve: resolveToolApproval,
+          },
+        },
         toolExecutionOptions,
       });
     },
