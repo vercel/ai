@@ -261,6 +261,12 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
       prompt: options.prompt,
     };
 
+    if (xaiOptions?.output?.uploadUrl != null) {
+      body.output = {
+        upload_url: xaiOptions.output.uploadUrl,
+      };
+    }
+
     const allowDuration = !isEdit;
     const allowAspectRatio = !isEdit && !isExtension;
     const allowResolution = !isEdit && !isExtension;
@@ -378,6 +384,7 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
             'videoUrl',
             'referenceImageUrls',
             'user',
+            'output',
           ].includes(key)
         ) {
           body[key] = value;
@@ -421,6 +428,7 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
     // Step 2: Poll for completion
     const pollIntervalMs = xaiOptions?.pollIntervalMs ?? 5000;
     const pollTimeoutMs = xaiOptions?.pollTimeoutMs ?? 600000;
+    const hasUploadUrl = xaiOptions?.output?.uploadUrl != null;
     const startTime = Date.now();
     let responseHeaders: Record<string, string> | undefined;
 
@@ -459,7 +467,7 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
           });
         }
 
-        if (!statusResponse.video?.url) {
+        if (!hasUploadUrl && !statusResponse.video?.url) {
           throw new AISDKError({
             name: 'XAI_VIDEO_GENERATION_ERROR',
             message:
@@ -468,13 +476,15 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
         }
 
         return {
-          videos: [
-            {
-              type: 'url' as const,
-              url: statusResponse.video.url,
-              mediaType: 'video/mp4',
-            },
-          ],
+          videos: statusResponse.video?.url
+            ? [
+                {
+                  type: 'url' as const,
+                  url: statusResponse.video.url,
+                  mediaType: 'video/mp4',
+                },
+              ]
+            : [],
           warnings,
           response: {
             timestamp: currentDate,
@@ -484,8 +494,10 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
           providerMetadata: {
             xai: {
               requestId,
-              videoUrl: statusResponse.video.url,
-              ...(statusResponse.video.duration != null
+              ...(statusResponse.video?.url
+                ? { videoUrl: statusResponse.video.url }
+                : {}),
+              ...(statusResponse.video?.duration != null
                 ? { duration: statusResponse.video.duration }
                 : {}),
               ...(statusResponse.usage?.cost_in_usd_ticks != null
@@ -526,7 +538,7 @@ const xaiVideoStatusResponseSchema = z.object({
   status: z.string().nullish(),
   video: z
     .object({
-      url: z.string(),
+      url: z.string().nullish(),
       duration: z.number().nullish(),
       respect_moderation: z.boolean().nullish(),
     })

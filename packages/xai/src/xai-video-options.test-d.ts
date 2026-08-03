@@ -221,4 +221,25 @@ describe('XaiVideoModelOptions type', () => {
 
     options;
   });
+
+  it('should allow output options with uploadUrl', () => {
+    const options = {
+      output: {
+        uploadUrl: 'https://example.com/upload',
+      },
+    } satisfies XaiVideoModelOptions;
+
+    expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
+  });
+
+  it('should require output.uploadUrl to be a string', () => {
+    const options: XaiVideoModelOptions = {
+      output: {
+        // @ts-expect-error - uploadUrl must be a string
+        uploadUrl: 123,
+      },
+    };
+
+    options;
+  });
 });

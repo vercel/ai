@@ -12,6 +12,9 @@ interface XaiVideoSharedOptions {
   pollIntervalMs?: number | null;
   pollTimeoutMs?: number | null;
   resolution?: XaiVideoResolution | null;
+  output?: {
+    uploadUrl: string;
+  } | null;
 }
 
 interface XaiVideoUserOptions {
@@ -104,6 +107,11 @@ const baseFields = {
   pollIntervalMs: z.number().positive().nullish(),
   pollTimeoutMs: z.number().positive().nullish(),
   resolution: resolutionSchema.nullish(),
+  output: z
+    .object({
+      uploadUrl: z.string().min(1),
+    })
+    .nullish(),
 };
 
 const userField = {

@@ -1209,6 +1209,12 @@ You can validate the provider options using the `XaiVideoModelOptions` type.
   `1280x720` maps to `720p` and `854x480` maps to `480p`.
   Use this provider option to pass the native format directly.
 
+- **output** _object_
+  Configure delivery settings. Currently supports direct upload to a user-managed destination (like an S3 presigned URL). When configured, the video is uploaded via HTTP PUT to the target destination, and the final response completes successfully without returning a downloadable video URL.
+
+- **uploadUrl** _string_ (required)
+  The signed URL where the completed video will be uploaded.
+
 - **user** _string_
 
   Optional identifier for the end user responsible for the request. xAI uses

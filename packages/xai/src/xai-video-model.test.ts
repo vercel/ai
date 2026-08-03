@@ -1905,5 +1905,98 @@ describe('XaiVideoModel', () => {
         expect.objectContaining({ feature: 'aspectRatio' }),
       );
     });
+
+    it('should send output.upload_url in request body', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            output: {
+              uploadUrl: 'https://example.com/dest.mp4',
+            },
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        output: { upload_url: 'https://example.com/dest.mp4' },
+      });
+    });
+
+    it('should complete successfully without video URL when output.uploadUrl is configured', async () => {
+      const model = createModel();
+
+      // Mock status poll response to not have a video object
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: {
+          status: 'done',
+          video: null,
+          model: 'grok-imagine-video',
+          progress: 100,
+        },
+      };
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            output: {
+              uploadUrl: 'https://example.com/dest.mp4',
+            },
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(result.videos).toStrictEqual([]);
+
+      // Restore standard response
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
+
+    it('should throw error if video URL is missing and output.uploadUrl is NOT configured', async () => {
+      const model = createModel();
+
+      // Mock status poll response to not have a video object
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: {
+          status: 'done',
+          video: null,
+          model: 'grok-imagine-video',
+          progress: 100,
+        },
+      };
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          providerOptions: {
+            xai: {
+              pollIntervalMs: 10,
+              pollTimeoutMs: 5000,
+            },
+          },
+        }),
+      ).rejects.toThrow(
+        /Video generation completed but no video URL was returned/,
+      );
+
+      // Restore standard response
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
   });
 });
