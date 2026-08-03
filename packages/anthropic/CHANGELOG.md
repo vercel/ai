@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.93
+
+### Patch Changes
+
+- 950eec8: Preserve Anthropic prompt-cache matches by replaying complete code-execution transcripts in their original wire shape.
+
 ## 2.0.92
 
 ### Patch Changes
