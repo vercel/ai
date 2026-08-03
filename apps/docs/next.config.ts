@@ -4,6 +4,13 @@ import type { NextConfig } from 'next';
 const withMDX = createMDX();
 
 const config: NextConfig = {
+  experimental: {
+    // Upper bound Turbopack attempts to stay under. With both content
+    // families (docs + providers, two versions each) the unbounded compile
+    // exceeds the Vercel build container's 16 GB and gets SIGKILLed; the
+    // limit makes Turbopack drop caches instead of ballooning.
+    turbopackMemoryLimit: 8 * 1024 * 1024 * 1024,
+  },
   images: {
     remotePatterns: [
       {
