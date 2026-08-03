@@ -14,6 +14,7 @@ import {
   type Experimental_BatchError as BatchError,
   type Experimental_BatchOperationOptions as BatchOperationOptions,
   type Experimental_BatchReference as BatchReference,
+  type Experimental_BatchStatus as BatchStatus,
   type Experimental_CreateTextBatchOptions as CreateTextBatchOptions,
   type Experimental_CreateTextBatchResult as CreateTextBatchResult,
   type Experimental_TextBatch as TextBatch,
@@ -55,6 +56,7 @@ it('uses serializable response timestamps', () => {
 
 it('reuses modality-neutral provider batch primitives', () => {
   expectTypeOf<BatchError>().toEqualTypeOf<BatchV4Error>();
+  expectTypeOf<BatchStatus>().toEqualTypeOf<BatchV4Status>();
   expectTypeOf<TextBatchItemResult>().toEqualTypeOf<
     BatchV4ItemResult<TextBatchGenerationResult>
   >();
@@ -78,7 +80,7 @@ it('exports the experimental batch functions with the public result types', () =
   expectTypeOf(
     createTextBatch,
   ).returns.resolves.toEqualTypeOf<CreateTextBatchResult>();
-  expectTypeOf(getBatchStatus).returns.resolves.toEqualTypeOf<TextBatch>();
+  expectTypeOf(getBatchStatus).returns.resolves.toEqualTypeOf<BatchStatus>();
   expectTypeOf(getBatchResults).returns.toEqualTypeOf<
     AsyncIterableStream<TextBatchItemResult>
   >();

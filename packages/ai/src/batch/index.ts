@@ -7,6 +7,7 @@ export type {
   BatchError as Experimental_BatchError,
   BatchOperationOptions as Experimental_BatchOperationOptions,
   BatchReference as Experimental_BatchReference,
+  BatchStatus as Experimental_BatchStatus,
   CreateTextBatchOptions as Experimental_CreateTextBatchOptions,
   CreateTextBatchResult as Experimental_CreateTextBatchResult,
   TextBatch as Experimental_TextBatch,

@@ -22,9 +22,9 @@ import { VERSION } from '../version';
 import type {
   BatchOperationOptions,
   BatchReference,
+  BatchStatus,
   CreateTextBatchOptions,
   CreateTextBatchResult,
-  TextBatch,
   TextBatchGenerationResult,
   TextBatchItemResult,
   TextBatchRequest,
@@ -115,7 +115,7 @@ export async function getBatchStatus({
   abortSignal,
   headers,
   timeout,
-}: BatchOperationOptions): Promise<TextBatch> {
+}: BatchOperationOptions): Promise<BatchStatus> {
   const model = resolveBatchLanguageModel(modelArg);
   validateBatchReference({ model, batch });
 
@@ -138,7 +138,7 @@ export async function getBatchStatus({
       }),
     );
 
-    return asTextBatch({ batch, status });
+    return status;
   } catch (error) {
     throw wrapGatewayError(error);
   }
@@ -292,23 +292,6 @@ function validateBatchReference({
         `batch ${batch.provider}:${batch.modelId}`,
     });
   }
-}
-
-function asTextBatch({
-  batch,
-  status,
-}: {
-  batch: BatchReference;
-  status: Omit<TextBatch, keyof BatchReference>;
-}): TextBatch {
-  return {
-    version: batch.version,
-    type: batch.type,
-    id: batch.id,
-    provider: batch.provider,
-    modelId: batch.modelId,
-    ...status,
-  };
 }
 
 function convertBatchItemResult(

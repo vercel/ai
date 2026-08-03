@@ -157,7 +157,7 @@ describe('createTextBatch', () => {
 });
 
 describe('getBatchStatus', () => {
-  it('returns a refreshed batch without retaining stale creation fields', async () => {
+  it('returns the latest status without the batch reference', async () => {
     const calls: BatchV4OperationOptions[] = [];
     const model = createBatchModel({
       doGetBatchStatus: async options => {
@@ -185,7 +185,6 @@ describe('getBatchStatus', () => {
     });
 
     expect(result).toEqual({
-      ...batchReference,
       status: 'completed',
       rawStatus: 'ended',
       requestCounts: { total: 2, succeeded: 1, failed: 1 },

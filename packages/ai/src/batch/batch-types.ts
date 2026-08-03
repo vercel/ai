@@ -35,9 +35,14 @@ export type BatchReference = TextBatchReference;
 export type BatchError = BatchV4Error;
 
 /**
+ * The latest normalized lifecycle status for a batch.
+ */
+export type BatchStatus = BatchV4Status;
+
+/**
  * A text batch and its latest normalized lifecycle status.
  */
-export type TextBatch = TextBatchReference & BatchV4Status;
+export type TextBatch = TextBatchReference & BatchStatus;
 
 /**
  * One text generation request within a batch.
