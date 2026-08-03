@@ -1,4 +1,7 @@
-import { experimental_codeModeTool as codeModeTool } from '@ai-sdk/code-mode';
+import {
+  DIRECT_TOOL_CALL,
+  experimental_codeModeTool as codeModeTool,
+} from '@ai-sdk/code-mode';
 import { generateText, isStepCount, tool } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
@@ -50,10 +53,10 @@ run(async () => {
   const result = await generateText({
     model: openai('gpt-5.6-sol'),
     tools,
-    experimental_toolCallers: ({ code_mode, programmatic }) => ({
-      getInventory: [programmatic],
-      getDemand: [code_mode],
-    }),
+    experimental_toolCallers: {
+      getInventory: ['programmatic', DIRECT_TOOL_CALL],
+      getDemand: ['code_mode'],
+    },
     stopWhen: isStepCount(20),
     prompt: 'compare inventory and demand for product sku_123.',
     include: {
