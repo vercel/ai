@@ -3,16 +3,11 @@ import type {
   Experimental_BatchV4Error as BatchV4Error,
   Experimental_BatchV4ItemResult as BatchV4ItemResult,
   Experimental_BatchV4Status as BatchV4Status,
-  JSONValue,
 } from '@ai-sdk/provider';
-import type { ProviderOptions, ToolSet } from '@ai-sdk/provider-utils';
+import type { ProviderOptions } from '@ai-sdk/provider-utils';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import type { Prompt } from '../prompt/prompt';
-import type {
-  FinishReason,
-  LanguageModel,
-  ToolChoice,
-} from '../types/language-model';
+import type { FinishReason, LanguageModel } from '../types/language-model';
 import type { ProviderMetadata } from '../types/provider-metadata';
 import type { LanguageModelUsage } from '../types/usage';
 
@@ -50,8 +45,6 @@ export type TextBatch = TextBatchReference & BatchV4Status;
 export type TextBatchRequest = Prompt &
   LanguageModelCallOptions & {
     id: string;
-    tools?: ToolSet;
-    toolChoice?: ToolChoice<ToolSet>;
     providerOptions?: ProviderOptions;
   };
 
@@ -92,15 +85,6 @@ export type BatchOperationOptions = {
  */
 export type TextBatchGenerationResult = {
   readonly text: string;
-  readonly toolCalls: Array<{
-    readonly type: 'tool-call';
-    readonly toolCallId: string;
-    readonly toolName: string;
-    readonly input: JSONValue;
-    readonly providerExecuted?: boolean;
-    readonly dynamic?: boolean;
-    readonly providerMetadata?: ProviderMetadata;
-  }>;
   readonly finishReason: FinishReason;
   readonly rawFinishReason?: string;
   readonly usage: LanguageModelUsage;

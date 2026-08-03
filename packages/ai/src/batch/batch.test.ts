@@ -116,7 +116,6 @@ describe('createTextBatch', () => {
               },
             ],
             temperature: 0,
-            toolChoice: { type: 'auto' },
             providerOptions: { mock: { perRequest: true } },
           },
         },
@@ -217,16 +216,8 @@ describe('getBatchResults', () => {
   it('opens eagerly and streams normalized item results', async () => {
     let callCount = 0;
     const generateResult: LanguageModelV4GenerateResult = {
-      content: [
-        { type: 'text', text: 'Paris' },
-        {
-          type: 'tool-call',
-          toolCallId: 'tool-call-1',
-          toolName: 'lookup',
-          input: '{"city":"Paris"}',
-        },
-      ],
-      finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+      content: [{ type: 'text', text: 'Paris' }],
+      finishReason: { unified: 'stop', raw: 'stop' },
       usage: testUsage,
       warnings: [],
       response: {
@@ -269,16 +260,8 @@ describe('getBatchResults', () => {
         status: 'succeeded',
         result: {
           text: 'Paris',
-          toolCalls: [
-            {
-              type: 'tool-call',
-              toolCallId: 'tool-call-1',
-              toolName: 'lookup',
-              input: { city: 'Paris' },
-            },
-          ],
-          finishReason: 'tool-calls',
-          rawFinishReason: 'tool_calls',
+          finishReason: 'stop',
+          rawFinishReason: 'stop',
           usage: {
             inputTokens: 3,
             outputTokens: 5,

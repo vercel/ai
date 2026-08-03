@@ -20,6 +20,7 @@ import {
   type Experimental_TextBatchGenerationResult as TextBatchGenerationResult,
   type Experimental_TextBatchItemResult as TextBatchItemResult,
   type Experimental_TextBatchReference as TextBatchReference,
+  type Experimental_TextBatchRequest as TextBatchRequest,
 } from '../index';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
 
@@ -38,6 +39,12 @@ it('keeps creation non-retrying', () => {
   expectTypeOf<CreateTextBatchOptions['timeout']>().toEqualTypeOf<
     number | { totalMs?: number } | undefined
   >();
+});
+
+it('excludes Core orchestration and tool execution from batch items', () => {
+  expectTypeOf<'tools'>().not.toMatchTypeOf<keyof TextBatchRequest>();
+  expectTypeOf<'toolChoice'>().not.toMatchTypeOf<keyof TextBatchRequest>();
+  expectTypeOf<'stopWhen'>().not.toMatchTypeOf<keyof TextBatchRequest>();
 });
 
 it('uses serializable response timestamps', () => {
