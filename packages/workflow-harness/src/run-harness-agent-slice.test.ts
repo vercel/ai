@@ -474,11 +474,12 @@ describe('runHarnessAgentTimeSlice', () => {
     ]);
   });
 
-  test('continued slice replays pending tool input before tool output', async () => {
+  test('continued slice emits a pending tool input only once across the time-slice boundary', async () => {
     const firstSession = fakeSession();
     const { result: firstResult, closeForSuspend } = streamResult({
       chunks: [
         { type: 'start' },
+        { type: 'start-step' },
         {
           type: 'tool-input-available',
           toolCallId: 'call_1',
@@ -506,17 +507,19 @@ describe('runHarnessAgentTimeSlice', () => {
       }),
     };
 
+    const firstWritable = collectingWritable();
     const readyForNextStep = await runHarnessAgentTimeSlice({
       agent: firstAgent,
       state: createHarnessWorkflowState({ prompt: 'hi', sessionId: 'ses_1' }),
       timeSliceSeconds: 0.05,
-      writable: collectingWritable().writable,
+      writable: firstWritable.writable,
     });
 
     const secondSession = fakeSession();
     const { result: secondResult } = streamResult({
       chunks: [
         { type: 'start' },
+        { type: 'start-step' },
         {
           type: 'tool-output-available',
           toolCallId: 'call_1',
@@ -541,7 +544,9 @@ describe('runHarnessAgentTimeSlice', () => {
     });
 
     expect(finished.status).toBe('finished');
-    expect(secondWritable.chunks).toEqual([
+    expect([...firstWritable.chunks, ...secondWritable.chunks]).toEqual([
+      { type: 'start' },
+      { type: 'start-step' },
       {
         type: 'tool-input-available',
         toolCallId: 'call_1',
@@ -549,6 +554,7 @@ describe('runHarnessAgentTimeSlice', () => {
         input: { path: 'app/page.tsx' },
         providerExecuted: true,
       },
+      { type: 'start-step' },
       {
         type: 'tool-output-available',
         toolCallId: 'call_1',
