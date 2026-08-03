@@ -295,6 +295,7 @@ export type UIMessageChunk<
       type: 'tool-approval-request';
       approvalId: string;
       toolCallId: string;
+      callerToolCallId?: string;
       isAutomatic?: boolean;
       signature?: string;
     }

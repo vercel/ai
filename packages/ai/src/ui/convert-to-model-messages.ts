@@ -213,6 +213,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   content.push({
                     type: 'tool-call' as const,
                     toolCallId: part.toolCallId,
+                    callerToolCallId: part.approval?.callerToolCallId,
                     toolName,
                     input:
                       part.state === 'output-error'
@@ -230,6 +231,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       type: 'tool-approval-request' as const,
                       approvalId: part.approval.id,
                       toolCallId: part.toolCallId,
+                      callerToolCallId: part.approval.callerToolCallId,
                       isAutomatic: part.approval.isAutomatic,
                       ...(part.approval.signature != null
                         ? { signature: part.approval.signature }
@@ -311,6 +313,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                     content.push({
                       type: 'tool-approval-response' as const,
                       approvalId: toolPart.approval.id,
+                      callerToolCallId: toolPart.approval.callerToolCallId,
                       approved: toolPart.approval.approved,
                       reason: toolPart.approval.reason,
                       providerExecuted: toolPart.providerExecuted,
@@ -325,6 +328,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                     content.push({
                       type: 'tool-result',
                       toolCallId: toolPart.toolCallId,
+                      callerToolCallId: toolPart.approval.callerToolCallId,
                       toolName: getToolName(toolPart),
                       output: {
                         type: 'execution-denied' as const,
@@ -348,6 +352,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       content.push({
                         type: 'tool-result',
                         toolCallId: toolPart.toolCallId,
+                        callerToolCallId: toolPart.approval.callerToolCallId,
                         toolName: getToolName(toolPart),
                         output: {
                           type: 'error-text' as const,
@@ -368,6 +373,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       content.push({
                         type: 'tool-result',
                         toolCallId: toolPart.toolCallId,
+                        callerToolCallId: toolPart.approval?.callerToolCallId,
                         toolName,
                         output: await createToolModelOutput({
                           toolCallId: toolPart.toolCallId,

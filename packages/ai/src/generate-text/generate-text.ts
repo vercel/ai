@@ -708,10 +708,7 @@ export async function generateText<
     });
 
     try {
-      let initialMessages = normalizeToolCallerApprovalMessages({
-        messages: initialPrompt.messages,
-        tools,
-      });
+      let initialMessages = initialPrompt.messages;
       const initialResponseMessages: Array<ResponseMessage> = [];
       const callerContinuationResponseMessages: Array<ResponseMessage> = [];
       const pendingToolCallerApprovals: Array<
@@ -807,25 +804,19 @@ export async function generateText<
             ),
           );
           initialResponseMessages.push(...callerContinuationResponseMessages);
-          const continuedApprovalIds = new Set(
-            continuedApprovals.continued.map(
-              continuation => continuation.approval.approvalRequest.approvalId,
-            ),
-          );
-          localApprovedToolApprovals = localApprovedToolApprovals.filter(
-            approval =>
-              !continuedApprovalIds.has(approval.approvalRequest.approvalId),
-          );
-          deniedToolApprovals = deniedToolApprovals.filter(
-            approval =>
-              !continuedApprovalIds.has(approval.approvalRequest.approvalId),
-          );
-          deniedToolApprovalsWithoutResults =
-            deniedToolApprovalsWithoutResults.filter(
-              approval =>
-                !continuedApprovalIds.has(approval.approvalRequest.approvalId),
-            );
         }
+        localApprovedToolApprovals = localApprovedToolApprovals.filter(
+          approval => continuedApprovals.remaining.includes(approval),
+        );
+        deniedToolApprovals = deniedToolApprovals.filter(
+          approval =>
+            approval.existingToolResult != null ||
+            continuedApprovals.remaining.includes(approval),
+        );
+        deniedToolApprovalsWithoutResults =
+          deniedToolApprovalsWithoutResults.filter(approval =>
+            continuedApprovals.remaining.includes(approval),
+          );
       }
 
       if (
@@ -943,6 +934,9 @@ export async function generateText<
       const steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'] =
         [];
       let instructionsForNextStep = initialPrompt.instructions;
+      initialMessages = normalizeToolCallerApprovalMessages({
+        messages: initialMessages,
+      });
       let messagesForNextStep = [
         ...initialMessages,
         ...initialResponseMessages.filter(

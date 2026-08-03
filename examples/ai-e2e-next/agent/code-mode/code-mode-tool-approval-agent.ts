@@ -50,6 +50,9 @@ export const codeModeToolApprovalAgent = new ToolLoopAgent({
     'You are a purchasing assistant. Use code mode to coordinate the available tools. ' +
     'When the user asks to buy a product, look up its price, calculate the total, and purchase it. ',
   tools,
+  onStepEnd: result => {
+    console.log(JSON.stringify(result.content, null, 2));
+  },
   experimental_toolCallers: ({ codeMode }) => ({
     getProductPrice: [codeMode],
     purchaseProduct: [codeMode],

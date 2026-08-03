@@ -18,71 +18,75 @@ import {
   type LocalToolCallerApprovalStatus,
   type ResolvedToolCallers,
 } from './tool-caller-configuration';
+import type { ToolOutput } from './tool-output';
 
 export type ContinuedToolCallerApproval<TOOLS extends ToolSet> = {
   approval: CollectedToolApprovals<TOOLS>;
   messages: ModelMessage[];
   responseMessage: ToolModelMessage;
+  toolOutput: ToolOutput<TOOLS>;
   nextApprovalRequest: LocalToolCallerApprovalRequest | undefined;
 };
 
 export function normalizeToolCallerApprovalMessages({
   messages,
-  tools,
 }: {
   messages: ModelMessage[];
-  tools: ToolSet | undefined;
 }): ModelMessage[] {
-  if (tools == null) {
+  const callerApprovalIds = new Map<string, string>();
+  for (const message of messages) {
+    if (message.role !== 'assistant' || typeof message.content === 'string') {
+      continue;
+    }
+    for (const part of message.content) {
+      if (
+        part.type === 'tool-approval-request' &&
+        part.callerToolCallId != null
+      ) {
+        callerApprovalIds.set(part.approvalId, part.callerToolCallId);
+      }
+    }
+  }
+
+  if (callerApprovalIds.size === 0) {
     return messages;
   }
 
-  const resultsByToolCallId = new Map<string, ToolResultPart[]>();
+  const latestToolResults = new Map<string, ToolResultPart>();
   for (const message of messages) {
     if (message.role !== 'tool') {
       continue;
     }
     for (const part of message.content) {
       if (part.type === 'tool-result') {
-        const results = resultsByToolCallId.get(part.toolCallId) ?? [];
-        results.push(part);
-        resultsByToolCallId.set(part.toolCallId, results);
+        latestToolResults.set(part.toolCallId, part);
       }
     }
   }
 
-  let normalized = messages;
-  for (const results of resultsByToolCallId.values()) {
-    const interruptedResult = results.find(part =>
-      getToolCallerApprovalRequest({
-        callerToolName: part.toolName,
-        output: part.output,
-        tools,
-      }),
-    );
-    if (interruptedResult === undefined) {
-      continue;
+  return messages.flatMap(message => {
+    if (typeof message.content === 'string') {
+      return [message];
     }
-    const request = getToolCallerApprovalRequest({
-      callerToolName: interruptedResult.toolName,
-      output: interruptedResult.output,
-      tools,
+    const content = message.content.filter(part => {
+      if ('callerToolCallId' in part && part.callerToolCallId != null) {
+        return false;
+      }
+      if (
+        part.type === 'tool-approval-response' &&
+        callerApprovalIds.has(part.approvalId)
+      ) {
+        return false;
+      }
+      if (part.type !== 'tool-result') {
+        return true;
+      }
+      return latestToolResults.get(part.toolCallId) === part;
     });
-    const latestResult = results.at(-1);
-    if (
-      request === undefined ||
-      latestResult === undefined ||
-      latestResult === interruptedResult
-    ) {
-      continue;
-    }
-    normalized = collapseResolvedApprovalMessages({
-      messages: normalized,
-      request,
-      replacementOutput: latestResult.output,
-    });
-  }
-  return normalized;
+    return content.length === 0
+      ? []
+      : [{ ...message, content } as ModelMessage];
+  });
 }
 
 export async function continueToolCallerApprovals<TOOLS extends ToolSet>({
@@ -120,7 +124,9 @@ export async function continueToolCallerApprovals<TOOLS extends ToolSet>({
       tools,
     });
     if (match === undefined) {
-      remaining.push(approval);
+      if (approval.approvalRequest.callerToolCallId == null) {
+        remaining.push(approval);
+      }
       continue;
     }
 
@@ -160,7 +166,6 @@ export async function continueToolCallerApprovals<TOOLS extends ToolSet>({
           };
     currentMessages = replaceApprovalMessages({
       messages: currentMessages,
-      approval,
       outerToolCallId: match.request.callerToolCallId,
       replacementOutput,
     });
@@ -175,10 +180,19 @@ export async function continueToolCallerApprovals<TOOLS extends ToolSet>({
         },
       ],
     };
+    const toolOutput = {
+      type: error === undefined ? 'tool-result' : 'tool-error',
+      toolCallId: match.request.callerToolCallId,
+      toolName: match.callerName,
+      input: match.outerToolCall.input,
+      ...(error === undefined ? { output } : { error }),
+      dynamic: false,
+    } as ToolOutput<TOOLS>;
     continued.push({
       approval,
       messages: currentMessages,
       responseMessage,
+      toolOutput,
       nextApprovalRequest:
         error === undefined
           ? getToolCallerApprovalRequest({
@@ -208,26 +222,42 @@ function findToolCallerApproval<TOOLS extends ToolSet>({
         NonNullable<ReturnType<typeof experimental_getToolCaller>>,
         { type: 'local' }
       >;
+      outerToolCall: ToolCall<string, unknown>;
       outerToolResult: ToolResultPart;
       request: NonNullable<ReturnType<typeof getToolCallerApprovalRequest>>;
     }
   | undefined {
+  const latestToolCalls = new Map<string, ToolCall<string, unknown>>();
   const latestToolResults = new Map<string, ToolResultPart>();
   for (const message of messages) {
-    if (message.role !== 'tool') {
+    if (typeof message.content === 'string') {
       continue;
     }
     for (const part of message.content) {
-      if (part.type === 'tool-result') {
+      if (part.type === 'tool-call') {
+        latestToolCalls.set(part.toolCallId, part);
+      } else if (part.type === 'tool-result') {
         latestToolResults.set(part.toolCallId, part);
       }
     }
   }
 
-  for (const outerToolResult of latestToolResults.values()) {
+  const callerToolCallId = approval.approvalRequest.callerToolCallId;
+  const candidateResults =
+    callerToolCallId == null
+      ? latestToolResults.values()
+      : [latestToolResults.get(callerToolCallId)].filter(
+          (result): result is ToolResultPart => result != null,
+        );
+
+  for (const outerToolResult of candidateResults) {
     const callerName = outerToolResult.toolName;
     const caller = experimental_getToolCaller(getOwn(tools, callerName));
     if (caller?.type !== 'local' || caller.continueApproval === undefined) {
+      continue;
+    }
+    const outerToolCall = latestToolCalls.get(outerToolResult.toolCallId);
+    if (outerToolCall === undefined) {
       continue;
     }
     const request = getToolCallerApprovalRequest({
@@ -235,134 +265,44 @@ function findToolCallerApproval<TOOLS extends ToolSet>({
       output: outerToolResult.output,
       tools,
     });
-    if (request?.approvalId === approval.approvalRequest.approvalId) {
-      return { callerName, caller, outerToolResult, request };
+    if (
+      request?.approvalId === approval.approvalRequest.approvalId &&
+      request.callerToolCallId === outerToolResult.toolCallId
+    ) {
+      return {
+        callerName,
+        caller,
+        outerToolCall,
+        outerToolResult,
+        request,
+      };
     }
   }
   return undefined;
 }
 
-function replaceApprovalMessages<TOOLS extends ToolSet>({
+function replaceApprovalMessages({
   messages,
-  approval,
   outerToolCallId,
   replacementOutput,
 }: {
   messages: ModelMessage[];
-  approval: CollectedToolApprovals<TOOLS>;
   outerToolCallId: string;
   replacementOutput: ToolResultPart['output'];
 }): ModelMessage[] {
-  const nextMessages: ModelMessage[] = [];
-  for (const message of messages) {
+  return messages.map(message => {
     if (typeof message.content === 'string') {
-      nextMessages.push(message);
-      continue;
+      return message;
     }
-
-    const content = message.content
-      .map(part => {
-        if (
-          part.type === 'tool-result' &&
-          part.toolCallId === outerToolCallId
-        ) {
-          return { ...part, output: replacementOutput };
-        }
-        return part;
-      })
-      .filter(part => {
-        if (
-          part.type === 'tool-call' &&
-          part.toolCallId === approval.toolCall.toolCallId
-        ) {
-          return false;
-        }
-        if (
-          part.type === 'tool-approval-request' &&
-          part.approvalId === approval.approvalRequest.approvalId
-        ) {
-          return false;
-        }
-        if (
-          part.type === 'tool-approval-response' &&
-          part.approvalId === approval.approvalResponse.approvalId
-        ) {
-          return false;
-        }
-        return !(
-          part.type === 'tool-result' &&
-          part.toolCallId === approval.toolCall.toolCallId
-        );
-      });
-    if (content.length > 0) {
-      nextMessages.push({ ...message, content } as ModelMessage);
-    }
-  }
-  return nextMessages;
-}
-
-function collapseResolvedApprovalMessages({
-  messages,
-  request,
-  replacementOutput,
-}: {
-  messages: ModelMessage[];
-  request: NonNullable<ReturnType<typeof getToolCallerApprovalRequest>>;
-  replacementOutput: ToolResultPart['output'];
-}): ModelMessage[] {
-  const nextMessages: ModelMessage[] = [];
-  let keptOuterResult = false;
-  for (const message of messages) {
-    if (typeof message.content === 'string') {
-      nextMessages.push(message);
-      continue;
-    }
-    const content = message.content
-      .map(part => {
-        if (
-          part.type === 'tool-result' &&
-          part.toolCallId === request.callerToolCallId
-        ) {
-          if (keptOuterResult) {
-            return undefined;
-          }
-          keptOuterResult = true;
-          return { ...part, output: replacementOutput };
-        }
-        return part;
-      })
-      .filter(part => {
-        if (part === undefined) {
-          return false;
-        }
-        if (
-          part.type === 'tool-call' &&
-          part.toolCallId === request.toolCall.toolCallId
-        ) {
-          return false;
-        }
-        if (
-          part.type === 'tool-approval-request' &&
-          part.approvalId === request.approvalId
-        ) {
-          return false;
-        }
-        if (
-          part.type === 'tool-approval-response' &&
-          part.approvalId === request.approvalId
-        ) {
-          return false;
-        }
-        return !(
-          part.type === 'tool-result' &&
-          part.toolCallId === request.toolCall.toolCallId
-        );
-      });
-    if (content.length > 0) {
-      nextMessages.push({ ...message, content } as ModelMessage);
-    }
-  }
-  return nextMessages;
+    return {
+      ...message,
+      content: message.content.map(part =>
+        part.type === 'tool-result' && part.toolCallId === outerToolCallId
+          ? { ...part, output: replacementOutput }
+          : part,
+      ),
+    } as ModelMessage;
+  });
 }
 
 function toModelToolOutput(value: unknown): ToolResultPart['output'] {
