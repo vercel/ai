@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 18370,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-18370-async-iterable-stream-read-error.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-18370-async-iterable-stream-read-error.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #18370 reproduced: AsyncIterableStream stays locked after source stream errors"
+  }
+}
