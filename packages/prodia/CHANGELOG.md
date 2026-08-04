@@ -1,5 +1,12 @@
 # @ai-sdk/prodia
 
+## 2.0.21
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+
 ## 2.0.20
 
 ### Patch Changes
