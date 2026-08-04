@@ -74,6 +74,41 @@ describe('createLocalWorkspaceSandbox', () => {
         /must not be the home directory/,
       );
     });
+
+    // The constructor cannot follow symlinks, because the provider contract
+    // forbids I/O at construction. `createSession` re-checks once the path is
+    // resolved, otherwise a symlink walks straight past the guard.
+    it('refuses a symlink pointing at the filesystem root', async () => {
+      const { root } = await createTempProject();
+      const link = join(root, 'link-to-root');
+      symlinkSync(parse(process.cwd()).root, link);
+
+      const provider = createLocalWorkspaceSandbox({ path: link });
+      await expect(provider.createSession()).rejects.toThrow(
+        /must not be the filesystem root/,
+      );
+    });
+
+    it('refuses a symlink pointing at the home directory', async () => {
+      const { root } = await createTempProject();
+      const link = join(root, 'link-to-home');
+      symlinkSync(homedir(), link);
+
+      const provider = createLocalWorkspaceSandbox({ path: link });
+      await expect(provider.createSession()).rejects.toThrow(
+        /must not be the home directory/,
+      );
+    });
+
+    it('names both spellings when a symlink is rejected', async () => {
+      const { root } = await createTempProject();
+      const link = join(root, 'link-home-2');
+      symlinkSync(homedir(), link);
+
+      await expect(
+        createLocalWorkspaceSandbox({ path: link }).createSession(),
+      ).rejects.toThrow(new RegExp(`resolved from .*${'link-home-2'}`));
+    });
   });
 });
 
@@ -434,12 +469,39 @@ describe('ports', () => {
     expect(new Set(session.ports).size).toBe(3);
   });
 
-  it('throws for a port outside the pool', async () => {
+  // `ports` is what was allocated for the bridge to bind, not a list of what is
+  // addressable. Rejecting anything else breaks reattach: a detached bridge's
+  // persisted port is never in the resumed session's fresh pool, adapters read
+  // the failure as "bridge unreachable", and they silently respawn and orphan
+  // the original.
+  it('resolves a URL for a port outside the pool, so reattach can work', async () => {
     const { projectPath } = await createTempProject();
     const session = await startSession({ path: projectPath });
-    await expect(session.getPortUrl({ port: 1 })).rejects.toThrow(
-      /not in this session's loopback pool/,
+
+    expect(session.ports).not.toContain(54_321);
+    expect(await session.getPortUrl({ port: 54_321, protocol: 'ws' })).toBe(
+      'ws://127.0.0.1:54321',
     );
+  });
+
+  it('resolves a port from a previous session, as reattach does', async () => {
+    const { projectPath } = await createTempProject();
+    const provider = createLocalWorkspaceSandbox({ path: projectPath });
+
+    const first = await provider.createSession();
+    sessionsToStop.push(first);
+    const detachedPort = first.ports[0];
+    await first.stop();
+
+    const resumed = await provider.resumeSession?.({ sessionId: 'resumed' });
+    expect(resumed).toBeDefined();
+    sessionsToStop.push(resumed!);
+
+    // Fresh pool, but the persisted port still resolves.
+    expect(resumed!.ports).not.toContain(detachedPort);
+    expect(
+      await resumed!.getPortUrl({ port: detachedPort, protocol: 'ws' }),
+    ).toBe(`ws://127.0.0.1:${detachedPort}`);
   });
 
   it('omits setNetworkPolicy and setPorts rather than stubbing them', async () => {
@@ -502,6 +564,68 @@ describe('onFirstCreate', () => {
     });
     sessionsToStop.push(second);
     expect(calls).toBe(1);
+  });
+
+  // A marker file alone is not enough. Two concurrent sessions both see it
+  // missing and both run the hook, which for a bridge-backed adapter means two
+  // `pnpm install` processes writing the same `node_modules`.
+  it('runs once even when two sessions race with the same identity', async () => {
+    const { projectPath } = await createTempProject();
+    const provider = createLocalWorkspaceSandbox({ path: projectPath });
+
+    let concurrent = 0;
+    let peakConcurrent = 0;
+    let calls = 0;
+    const onFirstCreate = async () => {
+      calls++;
+      concurrent++;
+      peakConcurrent = Math.max(peakConcurrent, concurrent);
+      await new Promise(done => setTimeout(done, 50));
+      concurrent--;
+    };
+
+    const sessions = await Promise.all([
+      provider.createSession({ identity: 'raced', onFirstCreate }),
+      provider.createSession({ identity: 'raced', onFirstCreate }),
+      provider.createSession({ identity: 'raced', onFirstCreate }),
+    ]);
+    sessionsToStop.push(...sessions);
+
+    expect(peakConcurrent).toBe(1);
+    expect(calls).toBe(1);
+  });
+
+  // A failed bootstrap must not be remembered as done.
+  it('does not record the marker when the hook throws, and retries next time', async () => {
+    const { root, projectPath } = await createTempProject();
+    const provider = createLocalWorkspaceSandbox({ path: projectPath });
+
+    let calls = 0;
+    const failing = async () => {
+      calls++;
+      throw new Error('bootstrap blew up');
+    };
+
+    await expect(
+      provider.createSession({ identity: 'flaky', onFirstCreate: failing }),
+    ).rejects.toThrow(/bootstrap blew up/);
+    expect(existsSync(join(root, '.harness-local/first-create-flaky'))).toBe(
+      false,
+    );
+
+    const succeeding = async () => {
+      calls++;
+    };
+    sessionsToStop.push(
+      await provider.createSession({
+        identity: 'flaky',
+        onFirstCreate: succeeding,
+      }),
+    );
+    expect(calls).toBe(2);
+    expect(existsSync(join(root, '.harness-local/first-create-flaky'))).toBe(
+      true,
+    );
   });
 
   it('runs again for a different identity', async () => {

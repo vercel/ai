@@ -57,21 +57,28 @@ export class LocalWorkspaceNetworkSandboxSession
     return this.context.workingDirectory;
   }
 
+  /**
+   * Resolve any loopback port to a URL.
+   *
+   * Deliberately does not check {@link ports}. That list is the set of free
+   * ports allocated for this session's bridge to *bind*; it is not a list of
+   * what is addressable. Everything on `127.0.0.1` is addressable, whether or
+   * not this session allocated it.
+   *
+   * Rejecting unknown ports here breaks detach and reattach. A detached
+   * bridge's coordinates carry the port it is still listening on, and a resumed
+   * session allocates a fresh pool, so the persisted port would never be in it.
+   * Adapters treat a failed `getPortUrl` as "bridge unreachable" and silently
+   * respawn, which orphans the original bridge and throws away the live session
+   * that detaching was meant to preserve.
+   */
   getPortUrl = async ({
     port,
     protocol = 'http',
   }: {
     port: number;
     protocol?: 'http' | 'https' | 'ws';
-  }): Promise<string> => {
-    if (!this.ports.includes(port)) {
-      throw new Error(
-        `Port ${port} is not in this session's loopback pool [${this.ports.join(', ')}]. ` +
-          'Increase `portCount` if the harness needs more than one port.',
-      );
-    }
-    return `${protocol}://127.0.0.1:${port}`;
-  };
+  }): Promise<string> => `${protocol}://127.0.0.1:${port}`;
 
   /**
    * Kill every process this session spawned. Idempotent.

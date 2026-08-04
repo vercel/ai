@@ -107,8 +107,16 @@ tree.
 
 Each session allocates real free TCP ports on `127.0.0.1`, so bridge-backed adapters
 (Claude Code, Codex, OpenCode, DeepAgents) work. `getPortUrl()` returns
-`http://127.0.0.1:<port>` or `ws://127.0.0.1:<port>`, and throws for a port outside the
-session's pool.
+`http://127.0.0.1:<port>` or `ws://127.0.0.1:<port>`.
+
+`ports` is the set of free ports allocated for this session's bridge to bind. It is not a
+list of what `getPortUrl()` accepts, which is any loopback port, because everything on
+`127.0.0.1` is addressable whether or not this session allocated it. That matters for
+`session.detach()`: the persisted bridge coordinates name a port the previous session
+allocated, and a resumed session has a fresh pool, so rejecting unknown ports would make
+every reattach fail. Adapters read a failed `getPortUrl()` as "bridge unreachable" and
+quietly respawn, which orphans the running bridge and discards the live session that
+detaching existed to preserve.
 
 Note that harness bridges bind `0.0.0.0` rather than loopback. That is upstream behaviour
 and not configurable from here; they rely on a per-start random token for access control.

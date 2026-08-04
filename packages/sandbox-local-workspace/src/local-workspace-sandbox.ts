@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { homedir } from 'node:os';
 import { basename, dirname, join, parse, resolve } from 'node:path';
@@ -136,23 +136,24 @@ export class LocalWorkspaceSandboxProvider implements HarnessV1SandboxProvider {
   private readonly portCount: number;
   private readonly env: Record<string, string>;
 
+  /**
+   * In-flight `onFirstCreate` runs, keyed by identity.
+   *
+   * A marker file alone is not enough: two concurrent `createSession()` calls
+   * both see it missing and both run the hook, which for a bridge-backed
+   * adapter means two `pnpm install` processes writing the same
+   * `node_modules`. Sessions on sibling projects share a parent, so they share
+   * an identity and hit this readily.
+   */
+  private readonly firstCreateRuns = new Map<string, Promise<void>>();
+
   constructor(settings: LocalWorkspaceSandboxSettings) {
     const projectPath = resolve(settings.path);
 
-    // Cheap guard against catastrophic scoping mistakes. Rooting a harness at
-    // `/` or at the user's home directory is never intended, and because the
-    // sandbox root is the *parent*, both would hand it an enormous tree.
-    if (projectPath === parse(projectPath).root) {
-      throw new Error(
-        'createLocalWorkspaceSandbox: `path` must not be the filesystem root.',
-      );
-    }
-    if (projectPath === resolve(homedir())) {
-      throw new Error(
-        'createLocalWorkspaceSandbox: `path` must not be the home directory. ' +
-          'Point it at a specific project directory.',
-      );
-    }
+    // Fails fast on the obvious mistake. The provider contract forbids I/O at
+    // construction, so this cannot follow symlinks; `createSession` repeats the
+    // check once the path has been resolved.
+    assertUsableProjectPath(projectPath);
 
     this.projectPath = projectPath;
     this.parentPath = dirname(projectPath);
@@ -180,6 +181,15 @@ export class LocalWorkspaceSandboxProvider implements HarnessV1SandboxProvider {
     // under `/tmp` resolves to `/private/tmp` and the comparison fails without
     // this.
     const workingDirectory = await realpathAllowingMissing(this.parentPath);
+
+    // Now that symlinks are resolved, re-run the guard the constructor could
+    // only approximate. A `path` that points at a symlink to `/` or to the home
+    // directory passes the unresolved check but is exactly what that check
+    // exists to catch.
+    assertUsableProjectPath(
+      await realpathAllowingMissing(this.projectPath),
+      settings => `${settings} (resolved from \`${this.projectPath}\`)`,
+    );
 
     const session = new LocalWorkspaceNetworkSandboxSession({
       id: options?.sessionId ?? `local-workspace-${randomUUID()}`,
@@ -255,6 +265,13 @@ export class LocalWorkspaceSandboxProvider implements HarnessV1SandboxProvider {
       return;
     }
 
+    // Concurrent callers wait on the first run instead of starting their own.
+    const inFlight = this.firstCreateRuns.get(identity);
+    if (inFlight != null) {
+      await inFlight;
+      return;
+    }
+
     const markerPath = join(
       workingDirectory,
       FIRST_CREATE_MARKER_DIR,
@@ -262,12 +279,61 @@ export class LocalWorkspaceSandboxProvider implements HarnessV1SandboxProvider {
     );
     if (existsSync(markerPath)) return;
 
-    await onFirstCreate(session.restricted(), {
-      ...(abortSignal != null ? { abortSignal } : {}),
-    });
+    const run = (async () => {
+      await onFirstCreate(session.restricted(), {
+        ...(abortSignal != null ? { abortSignal } : {}),
+      });
 
-    mkdirSync(dirname(markerPath), { recursive: true });
-    writeFileSync(markerPath, new Date().toISOString());
+      mkdirSync(dirname(markerPath), { recursive: true });
+      try {
+        // `wx` so a racing process cannot be told the work is done before it
+        // is. Losing the race is harmless: both ran the same hook.
+        writeFileSync(markerPath, new Date().toISOString(), { flag: 'wx' });
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+      }
+    })();
+
+    this.firstCreateRuns.set(identity, run);
+    try {
+      await run;
+    } catch (error) {
+      // A failed bootstrap must not be remembered as done, by this provider or
+      // by the next process to look at the marker.
+      this.firstCreateRuns.delete(identity);
+      rmSync(markerPath, { force: true });
+      throw error;
+    }
+  }
+}
+
+/**
+ * Reject paths that are never a deliberate choice of project directory.
+ *
+ * This is a guard against a scoping mistake, not a security boundary. The
+ * package provides no isolation, and every harness ships a shell tool that can
+ * reach anywhere the user can. What it prevents is handing the sandbox an
+ * enormous tree by accident, which matters here because the sandbox root is the
+ * project's *parent*.
+ */
+function assertUsableProjectPath(
+  projectPath: string,
+  describe: (message: string) => string = message => message,
+): void {
+  if (projectPath === parse(projectPath).root) {
+    throw new Error(
+      describe(
+        'createLocalWorkspaceSandbox: `path` must not be the filesystem root',
+      ),
+    );
+  }
+  if (projectPath === resolve(homedir())) {
+    throw new Error(
+      describe(
+        'createLocalWorkspaceSandbox: `path` must not be the home directory. ' +
+          'Point it at a specific project directory',
+      ),
+    );
   }
 }
 
