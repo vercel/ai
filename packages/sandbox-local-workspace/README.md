@@ -6,9 +6,9 @@ _This package is **experimental**._
 machine**, against a project directory they nominate.
 
 Unlike the other sandbox providers, this one creates nothing. It binds to a directory
-that already exists, runs processes as the current user, and inherits the environment —
-so each harness finds the CLI, credentials, skills and configuration the user already
-has installed.
+that already exists, runs processes as the current user, and inherits the environment, so
+each harness finds the CLI, credentials, skills and configuration the user already has
+installed.
 
 ## Setup
 
@@ -18,32 +18,39 @@ npm i @ai-sdk/sandbox-local-workspace
 
 ## Usage
 
-The factory is synchronous and does no filesystem or process work; the session is created
-when `provider.createSession()` is called.
+`localWorkspace()` returns both the provider and the `sandboxConfig` that goes with it,
+so spread it into your agent:
 
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createClaudeCode } from '@ai-sdk/harness-claude-code';
-import {
-  createLocalWorkspaceSandbox,
-  localWorkspaceWorkDir,
-} from '@ai-sdk/sandbox-local-workspace';
-
-const projectPath = '/Users/me/repos/myapp';
+import { localWorkspace } from '@ai-sdk/sandbox-local-workspace';
 
 const agent = new HarnessAgent({
   harness: createClaudeCode(),
-  sandbox: createLocalWorkspaceSandbox({ path: projectPath }),
-  sandboxConfig: { workDir: localWorkspaceWorkDir(projectPath) },
-  instructions: `Your working directory is ${projectPath}.`,
+  ...localWorkspace({ path: '/Users/me/repos/myapp' }),
 });
 ```
 
-You can also use it standalone, to hand an AI SDK tool a local
+If you need more of `sandboxConfig`, merge it:
+
+```ts
+const workspace = localWorkspace({ path: '/Users/me/repos/myapp' });
+
+const agent = new HarnessAgent({
+  harness: createClaudeCode(),
+  sandbox: workspace.sandbox,
+  sandboxConfig: { ...workspace.sandboxConfig, onSession },
+});
+```
+
+You can also use the provider standalone, to hand an AI SDK tool a local
 `Experimental_SandboxSession`:
 
 ```ts
-const provider = createLocalWorkspaceSandbox({ path: projectPath });
+import { createLocalWorkspaceSandbox } from '@ai-sdk/sandbox-local-workspace';
+
+const provider = createLocalWorkspaceSandbox({ path: '/Users/me/repos/myapp' });
 const networkSandboxSession = await provider.createSession();
 const sandboxSession = networkSandboxSession.restricted();
 
@@ -52,18 +59,6 @@ const { stdout } = await sandboxSession.run({ command: 'cat myapp/hello.txt' });
 
 await networkSandboxSession.stop();
 ```
-
-## `workDir` is required
-
-`HarnessAgent` composes each session's working directory as
-`<defaultWorkingDirectory>/<workDir>` and rejects a `workDir` of `'.'`. This provider
-therefore roots the sandbox at the project's **parent** and enters the project through
-`sandboxConfig.workDir`.
-
-Always derive that value with `localWorkspaceWorkDir(path)` rather than calling
-`basename()` yourself — the helper applies the same normalisation the provider applies
-internally, so the two cannot disagree. If they disagree, the harness silently runs in an
-empty sibling directory and reports that the project is empty.
 
 ## Settings
 
@@ -75,6 +70,30 @@ empty sibling directory and reports that the project is empty.
 
 `path` may not be the filesystem root or the home directory.
 
+## Why the provider roots itself one level above your project
+
+`HarnessAgent` composes each session's working directory as
+`<sandbox.defaultWorkingDirectory>/<sandboxConfig.workDir>`. This provider reports the
+**parent** of `path` as its default working directory, and names the project itself in
+`workDir`. Two things follow from that, and both are deliberate:
+
+1. Adapter bootstrap stays out of your repository. Bridge-backed adapters declare a
+   relative bootstrap directory (`.harness-bootstrap/<harnessId>`) that the framework
+   resolves against the sandbox default working directory. Rooting at the parent puts a
+   full `node_modules` **beside** your project rather than inside it, so it never appears
+   in `git status`.
+2. `workDir` and `path` have to agree. Deriving `workDir` by hand is easy to get subtly
+   wrong, and a mismatch is silent: the harness runs in an empty sibling directory and
+   reports that the project is empty. `localWorkspace()` returns both together so that
+   cannot happen.
+
+The alternative, rooting at the project itself and passing `workDir: '.'`, is not
+available: `normalizeSandboxWorkDir` rejects `'.'` alongside `'..'` and absolute paths.
+That looks stricter than necessary, since `'.'` does not escape the default working
+directory, and it is worth raising upstream. It would not change this package's default
+though, because rooting at the project is what would drag bootstrap into your working
+tree.
+
 ## Ports
 
 Each session allocates real free TCP ports on `127.0.0.1`, so bridge-backed adapters
@@ -82,9 +101,8 @@ Each session allocates real free TCP ports on `127.0.0.1`, so bridge-backed adap
 `http://127.0.0.1:<port>` or `ws://127.0.0.1:<port>`, and throws for a port outside the
 session's pool.
 
-Note that harness bridges bind `0.0.0.0` rather than loopback — that is upstream
-behaviour and not configurable from here. They rely on a per-start random token for
-access control.
+Note that harness bridges bind `0.0.0.0` rather than loopback. That is upstream behaviour
+and not configurable from here; they rely on a per-start random token for access control.
 
 `setNetworkPolicy` and `setPorts` are deliberately **not implemented**. There is no local
 enforcement primitive, and a no-op stub would be a claim the framework would act on.
@@ -101,20 +119,15 @@ different package.
 
 ## Bootstrap files land beside your project
 
-Bridge-backed adapters declare a bootstrap recipe with a relative directory
-(`.harness-bootstrap/<harnessId>`), which the harness framework resolves against the
-sandbox's default working directory. Because this provider roots the sandbox at the
-project's parent, that bootstrap — recipe files plus a full `pnpm install`, potentially
-hundreds of megabytes — is written to `.harness-bootstrap/` **beside** your project.
+As described above, bridge-backed adapters bootstrap into `.harness-bootstrap/` next to
+your project directory. Delete it to force a clean re-bootstrap. The same applies to
+`.harness-local/`, which holds one-time-setup markers.
 
-This is intentional: it keeps generated content out of your repository's working tree, so
-it never shows up in `git status`. Delete the directory to force a clean re-bootstrap.
-The same applies to `.harness-local/`, which holds one-time-setup markers.
-
-Because the bootstrap directory is derived from the project's location, **each new project
-directory pays for its own bootstrap** — roughly 40 seconds and a full `node_modules` for
-Claude Code. Point several agents at the same project, or reuse project directories, to
-avoid repeating it.
+The bootstrap is keyed to that parent directory, so **projects that are siblings share
+one bootstrap**, and a project under a fresh parent pays for its own: roughly 40 seconds
+and a full `node_modules` for Claude Code. Keeping your projects under a common parent,
+the usual `~/repos/<project>` layout, means you pay that once per harness rather than once
+per project.
 
 ## Harnesses write to your real home directory
 
@@ -146,7 +159,7 @@ await session.destroy();
 existsSync(join(projectPath, 'README.md')); // true again
 ```
 
-This provider is immune — it captures its `node:fs` bindings at module load, so the
+This provider is immune, because it captures its `node:fs` bindings at module load, so the
 model's writes reach the real disk and survive the session. Your own code is not. If you
 need to inspect the workspace while a session is live, do it out of process, or capture
 your bindings before the adapter loads.
@@ -154,7 +167,7 @@ your bindings before the adapter loads.
 ## Limits
 
 > `@ai-sdk/sandbox-local-workspace` provides **no isolation**. It runs each harness as the
-> current user, with exactly the permissions that user already has — the same trust level
+> current user, with exactly the permissions that user already has, the same trust level
 > as running `claude`, `codex` or `pi` in a terminal. The `path` option scopes where the
 > harness _works_ (its `cwd` and `sandboxConfig.workDir`); it does not limit what the
 > harness can _reach_. Bridge-backed harnesses (Claude Code, Codex) execute their
@@ -164,24 +177,20 @@ your bindings before the adapter loads.
 > input or untrusted output, use `@ai-sdk/sandbox-vercel`.
 >
 > It also writes outside `path`: bridge-backed harnesses bootstrap themselves into
-> `.harness-bootstrap/<harnessId>/` **beside** your project directory — recipe files plus
+> `.harness-bootstrap/<harnessId>/` **beside** your project directory, recipe files plus
 > a full `pnpm install`, which can be hundreds of megabytes. This keeps the bootstrap out
 > of your repository's working tree, at the cost of a sibling directory you did not ask
 > for. Delete it to force a clean re-bootstrap.
 
-This package deliberately has no path allowlist. One was implemented and removed after
-testing: bridge-backed harnesses never route their built-in tools through the provider's
-file API, host-runtime harnesses enforce their own workspace check first, and every
-harness ships a shell tool that bypasses the file API entirely. It constrained nothing
-while breaking adapter bootstrap.
-
 ## Choosing a sandbox provider
 
-| Provider                          | Processes             | Ports          | Isolation |
-| --------------------------------- | --------------------- | -------------- | --------- |
-| `@ai-sdk/sandbox-vercel`          | remote microVM        | yes            | yes       |
-| `@ai-sdk/sandbox-local-workspace` | the user's machine    | yes (loopback) | **none**  |
-| `@ai-sdk/sandbox-just-bash`       | in-process virtual FS | no             | n/a       |
+| Provider                          | Runs commands in               | Ports         | Filesystem the harness sees    |
+| --------------------------------- | ------------------------------ | ------------- | ------------------------------ |
+| `@ai-sdk/sandbox-vercel`          | a remote microVM               | yes           | isolated, disposable           |
+| `@ai-sdk/sandbox-local-workspace` | the user's machine             | yes, loopback | the real one, unrestricted     |
+| `@ai-sdk/sandbox-just-bash`       | an in-process bash interpreter | no            | a virtual in-memory filesystem |
 
+`sandbox-just-bash` is isolated in the sense that its filesystem is virtual and discarded
+with the process, but it cannot expose a port, so bridge-backed harnesses cannot use it.
 Bridge-backed harnesses need a provider that can spawn processes **and** expose a
-reachable port: `sandbox-vercel` or `sandbox-local-workspace`. `sandbox-just-bash` cannot.
+reachable port: `sandbox-vercel` or `sandbox-local-workspace`.

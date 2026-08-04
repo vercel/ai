@@ -1,6 +1,6 @@
 export {
   createLocalWorkspaceSandbox,
-  localWorkspaceWorkDir,
+  localWorkspace,
   LocalWorkspaceSandboxProvider,
   type LocalWorkspaceSandboxSettings,
 } from './local-workspace-sandbox';

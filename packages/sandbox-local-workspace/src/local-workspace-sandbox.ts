@@ -12,27 +12,19 @@ import { LocalWorkspaceNetworkSandboxSession } from './local-workspace-network-s
 import { realpathAllowingMissing } from './local-workspace-sandbox-session';
 
 /**
- * Settings for {@link createLocalWorkspaceSandbox}.
+ * Settings for {@link localWorkspace} and {@link createLocalWorkspaceSandbox}.
  *
  * Deliberately small. This provider's job is to get out of the way of the
  * harness: it supplies no tools, no tool filtering, and no permission-mode
- * opinions, so that each harness keeps its own optimized tools, skills and
- * user configuration.
- *
- * There are no `read`/`write` path allowlists, and none should be added. They
- * were implemented and removed after testing: bridge-backed harnesses never
- * route their built-in tools through this provider's file API, host-runtime
- * harnesses enforce their own workspace check first, and every harness ships a
- * shell tool that bypasses the file API entirely. The allowlist constrained
- * nothing while breaking adapter bootstrap.
+ * opinions, so each harness keeps its own optimized tools, skills and user
+ * configuration.
  */
 export type LocalWorkspaceSandboxSettings = {
   /**
    * Project directory the harness works in. Resolved to an absolute path.
    * Created if it does not exist.
    *
-   * This scopes where the harness *works* — its `cwd` and the
-   * `sandboxConfig.workDir` you should pair with it — not what it can reach.
+   * This scopes where the harness *works*, not what it can reach.
    */
   path: string;
 
@@ -48,37 +40,50 @@ export type LocalWorkspaceSandboxSettings = {
    * Overlay applied on top of the inherited process environment.
    *
    * The inherited environment is the credential and configuration reuse
-   * mechanism — `HOME`, `PATH`, and every harness's own config file are found
-   * through it — so it is never filtered. Use this for additions such as
+   * mechanism, since `HOME`, `PATH`, and every harness's own config file are
+   * found through it, so it is never filtered. Use this for additions such as
    * registry pins or proxy settings.
    */
   env?: Record<string, string>;
 };
 
 /**
- * The `sandboxConfig.workDir` to pair with a given project path.
- *
- * `HarnessAgent` composes each session's working directory as
- * `<defaultWorkingDirectory>/<workDir>`, and rejects a `workDir` of `'.'`. This
- * provider therefore roots the sandbox at the project's *parent* and enters the
- * project through `workDir`.
- *
- * Use this helper rather than calling `basename()` yourself: it applies the
- * same `resolve` the provider applies internally, so the two cannot disagree
- * about which directory the harness enters. A mismatch is silent — the harness
- * runs in an empty sibling directory and reports that the project is empty.
+ * Everything `HarnessAgent` needs in order to work in a local project
+ * directory. This is the recommended entry point.
  *
  * ```ts
- * const projectPath = '/Users/me/repos/myapp';
+ * const agent = new HarnessAgent({
+ *   harness: createClaudeCode(),
+ *   ...localWorkspace({ path: '/Users/me/repos/myapp' }),
+ * });
+ * ```
+ *
+ * `sandbox` and `sandboxConfig.workDir` have to agree, and deriving the second
+ * by hand is easy to get subtly wrong: `HarnessAgent` composes each session's
+ * directory as `<defaultWorkingDirectory>/<workDir>`, so a `workDir` that does
+ * not match the provider's own resolution of `path` silently runs the harness
+ * in an empty sibling directory. Returning both together makes that
+ * unrepresentable.
+ *
+ * Merge into `sandboxConfig` if you need more of it:
+ *
+ * ```ts
+ * const workspace = localWorkspace({ path });
  * new HarnessAgent({
- *   sandbox: createLocalWorkspaceSandbox({ path: projectPath }),
- *   sandboxConfig: { workDir: localWorkspaceWorkDir(projectPath) },
- *   // …
+ *   harness,
+ *   sandbox: workspace.sandbox,
+ *   sandboxConfig: { ...workspace.sandboxConfig, onSession },
  * });
  * ```
  */
-export function localWorkspaceWorkDir(projectPath: string): string {
-  return basename(resolve(projectPath));
+export function localWorkspace(settings: LocalWorkspaceSandboxSettings): {
+  readonly sandbox: HarnessV1SandboxProvider;
+  readonly sandboxConfig: { readonly workDir: string };
+} {
+  return {
+    sandbox: createLocalWorkspaceSandbox(settings),
+    sandboxConfig: { workDir: basename(resolve(settings.path)) },
+  };
 }
 
 const LOCAL_WORKSPACE_PROVIDER_ID = 'local-workspace-sandbox';
@@ -92,6 +97,10 @@ const FIRST_CREATE_MARKER_DIR = '.harness-local';
 /**
  * Create a `HarnessV1SandboxProvider` that runs harnesses on the local machine,
  * scoped to a project directory.
+ *
+ * Prefer {@link localWorkspace}, which also supplies the matching
+ * `sandboxConfig.workDir`. Use this directly only when you are wiring the
+ * provider into something other than `HarnessAgent`.
  *
  * The provider is stable and synchronous; no filesystem or process work happens
  * until `createSession()` is called.
@@ -265,7 +274,7 @@ export class LocalWorkspaceSandboxProvider implements HarnessV1SandboxProvider {
  * Allocating up front and letting the kernel choose removes a whole class of
  * conflict bugs that a caller-supplied port list would reintroduce. Ports are
  * bound, read, and released, so there is a small race window before the harness
- * binds them for real — acceptable, and the same approach every local dev
+ * binds them for real. That is acceptable, and the same approach every local dev
  * server uses.
  */
 async function allocateLoopbackPorts(

@@ -50,7 +50,7 @@ export type LocalWorkspaceSessionContext = {
  * Kill a process and everything it spawned.
  *
  * Bridge-backed adapters spawn a bridge that spawns a CLI that spawns more
- * processes, so killing the direct child is not enough — an aborted
+ * processes, so killing the direct child is not enough: an aborted
  * orchestrator was observed leaving a bridge alive for twelve minutes.
  * Children are spawned `detached`, which puts each one in its own process
  * group, so a negative pid signals the entire group.
@@ -77,7 +77,7 @@ export function killProcessTree(
  * real files, real processes, the user's own environment.
  *
  * This is the tool-safe surface returned by
- * `LocalWorkspaceNetworkSandboxSession.restricted()` — not constructed directly
+ * `LocalWorkspaceNetworkSandboxSession.restricted()`, not constructed directly
  * by consumers.
  *
  * It applies **no path containment**. See the package README: bridge-backed

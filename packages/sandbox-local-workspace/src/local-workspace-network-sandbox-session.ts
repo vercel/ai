@@ -76,7 +76,7 @@ export class LocalWorkspaceNetworkSandboxSession
   /**
    * Kill every process this session spawned. Idempotent.
    *
-   * There is no machine to shut down — the "sandbox" is the user's own
+   * There is no machine to shut down. The "sandbox" is the user's own
    * filesystem, which outlives the session by design. Leaving processes behind
    * is never a supported mode, so this is unconditional.
    */

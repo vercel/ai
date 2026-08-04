@@ -8,7 +8,7 @@ import { basename, dirname, join, parse } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   createLocalWorkspaceSandbox,
-  localWorkspaceWorkDir,
+  localWorkspace,
   LocalWorkspaceSandboxProvider,
 } from './local-workspace-sandbox';
 
@@ -77,21 +77,26 @@ describe('createLocalWorkspaceSandbox', () => {
   });
 });
 
-describe('localWorkspaceWorkDir', () => {
-  it('is the final segment of the project path', () => {
-    expect(localWorkspaceWorkDir('/Users/me/repos/myapp')).toBe('myapp');
+describe('localWorkspace', () => {
+  it('returns a provider and the matching workDir', () => {
+    const workspace = localWorkspace({ path: '/Users/me/repos/myapp' });
+    expect(workspace.sandbox).toBeInstanceOf(LocalWorkspaceSandboxProvider);
+    expect(workspace.sandboxConfig).toEqual({ workDir: 'myapp' });
   });
 
   it('normalises trailing slashes and relative segments', () => {
-    expect(localWorkspaceWorkDir('/Users/me/repos/myapp/')).toBe('myapp');
-    expect(localWorkspaceWorkDir('/Users/me/repos/other/../myapp')).toBe(
-      'myapp',
-    );
+    expect(
+      localWorkspace({ path: '/Users/me/repos/myapp/' }).sandboxConfig.workDir,
+    ).toBe('myapp');
+    expect(
+      localWorkspace({ path: '/Users/me/repos/other/../myapp' }).sandboxConfig
+        .workDir,
+    ).toBe('myapp');
   });
 
-  // The invariant that makes the helper worth exporting: whatever the caller
-  // passes as `path`, the helper names the directory the provider actually
-  // enters. A mismatch would silently run the harness in an empty sibling.
+  // The reason the helper exists: whatever spelling of `path` the caller uses,
+  // the returned workDir names the directory the provider actually enters.
+  // A mismatch would silently run the harness in an empty sibling directory.
   it('agrees with the directory the provider actually roots at', async () => {
     const { projectPath } = await createTempProject();
     for (const spelling of [
@@ -99,11 +104,21 @@ describe('localWorkspaceWorkDir', () => {
       `${projectPath}/`,
       join(projectPath, 'sub', '..'),
     ]) {
-      const session = await startSession({ path: spelling });
-      expect(
-        join(session.defaultWorkingDirectory, localWorkspaceWorkDir(spelling)),
-      ).toBe(projectPath);
+      const { sandbox, sandboxConfig } = localWorkspace({ path: spelling });
+      const session = await sandbox.createSession();
+      sessionsToStop.push(session);
+      expect(join(session.defaultWorkingDirectory, sandboxConfig.workDir)).toBe(
+        projectPath,
+      );
     }
+  });
+
+  it('forwards the remaining settings to the provider', async () => {
+    const { projectPath } = await createTempProject();
+    const { sandbox } = localWorkspace({ path: projectPath, portCount: 2 });
+    const session = await sandbox.createSession();
+    sessionsToStop.push(session);
+    expect(session.ports).toHaveLength(2);
   });
 });
 
@@ -113,7 +128,9 @@ describe('working directory rooting', () => {
     const session = await startSession({ path: projectPath });
     expect(session.defaultWorkingDirectory).toBe(root);
     expect(session.defaultWorkingDirectory).toBe(dirname(projectPath));
-    expect(localWorkspaceWorkDir(projectPath)).toBe(basename(projectPath));
+    expect(localWorkspace({ path: projectPath }).sandboxConfig.workDir).toBe(
+      basename(projectPath),
+    );
   });
 
   // Invariant 1. Adapters compare a spawned process's `pwd` against

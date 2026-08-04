@@ -6,7 +6,7 @@
  *
  * Setup:
  * - `claude` configured (`~/.claude/settings.json` or `ANTHROPIC_AUTH_TOKEN`)
- * - `codex` configured, and a **fully qualified** model id — the harness bridge
+ * - `codex` configured, and a **fully qualified** model id, because the bridge
  *   injects its own `model_providers` block and ignores `~/.codex/config.toml`,
  *   so a bare id that works in the CLI silently drops Codex's filesystem tools
  * - `pi` authenticated (`~/.pi/agent/auth.json`)
@@ -18,10 +18,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { afterAll, describe, expect, it } from 'vitest';
-import {
-  createLocalWorkspaceSandbox,
-  localWorkspaceWorkDir,
-} from './local-workspace-sandbox';
+import { localWorkspace } from './local-workspace-sandbox';
 
 const e2eEnabled = process.env.HARNESS_LOCAL_WORKSPACE_E2E === '1';
 const describeE2E = e2eEnabled ? describe : describe.skip;
@@ -61,7 +58,7 @@ const harnessCases: ReadonlyArray<HarnessCase> = [
     createHarness: async () => {
       const { createCodex } = await import('@ai-sdk/harness-codex');
       return {
-        // Fully qualified on purpose — see the file header.
+        // Fully qualified on purpose. See the file header.
         harness: createCodex({ model: 'openai/gpt-5.6-sol' }),
         bridgeBacked: true,
       };
@@ -73,24 +70,37 @@ function homeDir(): string {
   return process.env.HOME ?? '';
 }
 
+/**
+ * One shared parent directory for every project in this suite.
+ *
+ * Bootstrap is keyed to the sandbox root, which is the project's parent, so
+ * sibling projects share a single `.harness-bootstrap/`. Giving every scenario
+ * its own parent would mean a cold bridge bootstrap per scenario: minutes of
+ * runtime and a fresh `pnpm install` against the network each time. Sharing
+ * one root pays that once per harness, and mirrors how a real user's `~/repos`
+ * looks.
+ */
+let sharedRoot: string | undefined;
+let projectCounter = 0;
+
 async function createProject(): Promise<{
   root: string;
   projectPath: string;
 }> {
-  const root = await mkdtemp(join(await realpath(tmpdir()), 'lws-e2e-'));
-  const projectPath = join(root, 'myapp');
+  sharedRoot ??= await mkdtemp(join(await realpath(tmpdir()), 'lws-e2e-'));
+  const projectPath = join(sharedRoot, `myapp-${++projectCounter}`);
   mkdirSync(projectPath, { recursive: true });
   writeFileSync(
     join(projectPath, 'README.md'),
     '# Widget Service\n\nA tiny service that renders widgets for downstream consumers.\n',
   );
-  return { root, projectPath };
+  return { root: sharedRoot, projectPath };
 }
 
 /**
  * Check the real filesystem, out of process.
  *
- * Host-runtime adapters patch `node:fs` for the lifetime of a session — Pi's
+ * Host-runtime adapters patch `node:fs` for the lifetime of a session. Pi's
  * VFS makes `existsSync` return `false` for files that demonstrably exist on
  * disk, scoped to the workspace, until the session is destroyed. In-process
  * `node:fs` is therefore not a trustworthy oracle inside these tests, even
@@ -145,8 +155,7 @@ describeE2E('local workspace provider, driven by real harnesses', () => {
           const agent = new HarnessAgent({
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             harness: harness as any,
-            sandbox: createLocalWorkspaceSandbox({ path: projectPath }),
-            sandboxConfig: { workDir: localWorkspaceWorkDir(projectPath) },
+            ...localWorkspace({ path: projectPath }),
             instructions: `Your working directory is ${projectPath}.`,
           });
 
@@ -217,8 +226,7 @@ describeE2E('local workspace provider, driven by real harnesses', () => {
         const agent = new HarnessAgent({
           // biome-ignore lint/suspicious/noExplicitAny: adapters are structurally compatible
           harness: harness as any,
-          sandbox: createLocalWorkspaceSandbox({ path: projectPath }),
-          sandboxConfig: { workDir: localWorkspaceWorkDir(projectPath) },
+          ...localWorkspace({ path: projectPath }),
           instructions: `Your working directory is ${projectPath}.`,
         });
 
@@ -257,8 +265,7 @@ describeE2E('local workspace provider, driven by real harnesses', () => {
         const agent = new HarnessAgent({
           // biome-ignore lint/suspicious/noExplicitAny: adapters are structurally compatible
           harness: harness as any,
-          sandbox: createLocalWorkspaceSandbox({ path: projectPath }),
-          sandboxConfig: { workDir: localWorkspaceWorkDir(projectPath) },
+          ...localWorkspace({ path: projectPath }),
           instructions: `Your working directory is ${projectPath}.`,
         });
 
@@ -306,8 +313,7 @@ describeE2E('local workspace provider, driven by real harnesses', () => {
       const makeAgent = (projectPath: string) =>
         new HarnessAgent({
           harness: createPi({ agentDir: join(homeDir(), '.pi', 'agent') }),
-          sandbox: createLocalWorkspaceSandbox({ path: projectPath }),
-          sandboxConfig: { workDir: localWorkspaceWorkDir(projectPath) },
+          ...localWorkspace({ path: projectPath }),
           instructions: `Your working directory is ${projectPath}.`,
         });
 
@@ -363,8 +369,7 @@ describeE2E('local workspace provider, driven by real harnesses', () => {
       try {
         const agent = new HarnessAgent({
           harness: createPi({ agentDir: join(homeDir(), '.pi', 'agent') }),
-          sandbox: createLocalWorkspaceSandbox({ path: projectPath }),
-          sandboxConfig: { workDir: localWorkspaceWorkDir(projectPath) },
+          ...localWorkspace({ path: projectPath }),
           instructions: `Your working directory is ${projectPath}.`,
         });
 
