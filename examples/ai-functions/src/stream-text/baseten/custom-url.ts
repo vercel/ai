@@ -1,5 +1,5 @@
 import { createBaseten } from '@ai-sdk/baseten';
-import { generateText } from 'ai';
+import { streamText } from 'ai';
 import { requireEnv } from '../../lib/require-env';
 import { run } from '../../lib/run';
 
@@ -22,16 +22,20 @@ run(async () => {
     modelURL: CHAT_MODEL_URL,
   });
 
-  const result = await generateText({
-    model: baseten.languageModel(CHAT_MODEL_NAME),
-    prompt: 'Explain quantum computing in simple terms.',
+  const result = streamText({
+    model: baseten(CHAT_MODEL_NAME),
+    prompt: 'Give me a poem about life',
   });
 
-  console.log(result.text);
+  for await (const textPart of result.textStream) {
+    process.stdout.write(textPart);
+  }
+
   console.log();
-  console.log('Usage:', result.usage);
+  console.log('Token usage:', await result.usage);
+  console.log('Finish reason:', await result.finishReason);
   console.log(
     'Provider metadata:',
-    JSON.stringify(result.finalStep.providerMetadata, null, 2),
+    JSON.stringify((await result.finalStep).providerMetadata, null, 2),
   );
 });
