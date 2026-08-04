@@ -13,7 +13,10 @@ import type * as NodeModuleModule from 'node:module';
 import { homedir, tmpdir } from 'node:os';
 import { basename, dirname, join, parse } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { createLocalSandbox, LocalSandboxProvider } from './local-sandbox';
+import {
+  createLocalWorkspaceSandbox,
+  LocalWorkspaceSandboxProvider,
+} from './local-workspace-sandbox';
 
 const sessionsToStop: Array<{ stop: () => PromiseLike<void> }> = [];
 
@@ -31,29 +34,29 @@ async function createTempProject(name = 'myapp') {
 }
 
 async function startSession(
-  settings: Parameters<typeof createLocalSandbox>[0],
+  settings: Parameters<typeof createLocalWorkspaceSandbox>[0],
   options?: Parameters<
-    ReturnType<typeof createLocalSandbox>['createSession']
+    ReturnType<typeof createLocalWorkspaceSandbox>['createSession']
   >[0],
 ) {
-  const provider = createLocalSandbox(settings);
+  const provider = createLocalWorkspaceSandbox(settings);
   const session = await provider.createSession(options);
   sessionsToStop.push(session);
   return session;
 }
 
-describe('createLocalSandbox', () => {
-  it('returns a LocalSandboxProvider with the conventional id', () => {
-    const provider = createLocalSandbox({ path: '/tmp/does-not-yet' });
-    expect(provider).toBeInstanceOf(LocalSandboxProvider);
-    expect(provider.providerId).toBe('local-sandbox');
+describe('createLocalWorkspaceSandbox', () => {
+  it('returns a LocalWorkspaceSandboxProvider with the conventional id', () => {
+    const provider = createLocalWorkspaceSandbox({ path: '/tmp/does-not-yet' });
+    expect(provider).toBeInstanceOf(LocalWorkspaceSandboxProvider);
+    expect(provider.providerId).toBe('local-workspace-sandbox');
     expect(provider.specificationVersion).toBe('harness-sandbox-v1');
   });
 
   it('does no filesystem work until createSession is called', async () => {
     const { root } = await createTempProject();
     const projectPath = join(root, 'not-created-yet');
-    createLocalSandbox({ path: projectPath });
+    createLocalWorkspaceSandbox({ path: projectPath });
     expect(existsSync(projectPath)).toBe(false);
   });
 
@@ -67,13 +70,13 @@ describe('createLocalSandbox', () => {
   describe('constructor guards', () => {
     it('refuses the filesystem root', () => {
       const root = parse(process.cwd()).root;
-      expect(() => createLocalSandbox({ path: root })).toThrow(
+      expect(() => createLocalWorkspaceSandbox({ path: root })).toThrow(
         /must not be the filesystem root/,
       );
     });
 
     it('refuses the home directory', () => {
-      expect(() => createLocalSandbox({ path: homedir() })).toThrow(
+      expect(() => createLocalWorkspaceSandbox({ path: homedir() })).toThrow(
         /must not be the home directory/,
       );
     });
@@ -83,7 +86,7 @@ describe('createLocalSandbox', () => {
       const link = join(root, 'link-to-root');
       symlinkSync(parse(process.cwd()).root, link);
 
-      const provider = createLocalSandbox({ path: link });
+      const provider = createLocalWorkspaceSandbox({ path: link });
       await expect(provider.createSession()).rejects.toThrow(
         /must not be the filesystem root/,
       );
@@ -94,7 +97,7 @@ describe('createLocalSandbox', () => {
       const link = join(root, 'link-to-home');
       symlinkSync(homedir(), link);
 
-      const createSession = createLocalSandbox({
+      const createSession = createLocalWorkspaceSandbox({
         path: link,
       }).createSession();
       await expect(createSession).rejects.toThrow(
@@ -115,7 +118,7 @@ describe('working directory rooting', () => {
   });
 
   it('defaults to the current working directory', async () => {
-    const provider = createLocalSandbox();
+    const provider = createLocalWorkspaceSandbox();
     const session = await provider.createSession();
     sessionsToStop.push(session);
     expect(session.defaultWorkingDirectory).toBe(await realpath(process.cwd()));
@@ -381,7 +384,7 @@ describe('processes', () => {
   // tree, not just the direct child.
   it('kills the entire process tree on stop', async () => {
     const { projectPath } = await createTempProject();
-    const provider = createLocalSandbox({ path: projectPath });
+    const provider = createLocalWorkspaceSandbox({ path: projectPath });
     const session = await provider.createSession();
 
     const marker = join(projectPath, 'grandchild.pid');
@@ -405,7 +408,7 @@ describe('processes', () => {
 
   it('registers a single exit handler no matter how many sessions exist', async () => {
     const { projectPath } = await createTempProject();
-    const provider = createLocalSandbox({ path: projectPath });
+    const provider = createLocalWorkspaceSandbox({ path: projectPath });
 
     const before = process.listenerCount('exit');
     const sessions = await Promise.all(
@@ -418,7 +421,7 @@ describe('processes', () => {
 
   it('is idempotent on stop and destroy', async () => {
     const { projectPath } = await createTempProject();
-    const provider = createLocalSandbox({ path: projectPath });
+    const provider = createLocalWorkspaceSandbox({ path: projectPath });
     const session = await provider.createSession();
     await session.stop();
     await session.stop();
@@ -443,7 +446,7 @@ describe('ports', () => {
 
   it('gives every session its own port', async () => {
     const { projectPath } = await createTempProject();
-    const provider = createLocalSandbox({ path: projectPath });
+    const provider = createLocalWorkspaceSandbox({ path: projectPath });
     const sessions = await Promise.all([
       provider.createSession(),
       provider.createSession(),
@@ -455,7 +458,7 @@ describe('ports', () => {
 
   it('resolves a port from a previous session, as reattach does', async () => {
     const { projectPath } = await createTempProject();
-    const provider = createLocalSandbox({ path: projectPath });
+    const provider = createLocalWorkspaceSandbox({ path: projectPath });
 
     const first = await provider.createSession();
     sessionsToStop.push(first);
@@ -514,7 +517,7 @@ describe('restricted()', () => {
 describe('onFirstCreate', () => {
   it('runs once per identity and is skipped on later sessions', async () => {
     const { projectPath } = await createTempProject();
-    const provider = createLocalSandbox({ path: projectPath });
+    const provider = createLocalWorkspaceSandbox({ path: projectPath });
 
     let calls = 0;
     const onFirstCreate = async () => {
@@ -538,7 +541,7 @@ describe('onFirstCreate', () => {
 
   it('runs once even when two sessions race with the same identity', async () => {
     const { projectPath } = await createTempProject();
-    const provider = createLocalSandbox({ path: projectPath });
+    const provider = createLocalWorkspaceSandbox({ path: projectPath });
 
     let concurrent = 0;
     let peakConcurrent = 0;
@@ -565,7 +568,7 @@ describe('onFirstCreate', () => {
   // A failed bootstrap must not be remembered as done.
   it('does not record the marker when the hook throws, and retries next time', async () => {
     const { root, projectPath } = await createTempProject();
-    const provider = createLocalSandbox({ path: projectPath });
+    const provider = createLocalWorkspaceSandbox({ path: projectPath });
 
     let calls = 0;
     const failing = async () => {
@@ -597,7 +600,7 @@ describe('onFirstCreate', () => {
 
   it('runs again for a different identity', async () => {
     const { projectPath } = await createTempProject();
-    const provider = createLocalSandbox({ path: projectPath });
+    const provider = createLocalWorkspaceSandbox({ path: projectPath });
 
     let calls = 0;
     const onFirstCreate = async () => {
@@ -616,7 +619,7 @@ describe('onFirstCreate', () => {
   // No identity means no cache key, so skipping would be wrong.
   it('runs every time when no identity is supplied', async () => {
     const { projectPath } = await createTempProject();
-    const provider = createLocalSandbox({ path: projectPath });
+    const provider = createLocalWorkspaceSandbox({ path: projectPath });
 
     let calls = 0;
     const onFirstCreate = async () => {
@@ -630,7 +633,7 @@ describe('onFirstCreate', () => {
 
   it('receives the restricted surface', async () => {
     const { projectPath } = await createTempProject();
-    const provider = createLocalSandbox({ path: projectPath });
+    const provider = createLocalWorkspaceSandbox({ path: projectPath });
 
     let received: Record<string, unknown> | undefined;
     sessionsToStop.push(
@@ -648,7 +651,7 @@ describe('onFirstCreate', () => {
 
   it('re-runs after the marker is deleted', async () => {
     const { root, projectPath } = await createTempProject();
-    const provider = createLocalSandbox({ path: projectPath });
+    const provider = createLocalWorkspaceSandbox({ path: projectPath });
 
     let calls = 0;
     const onFirstCreate = async () => {
@@ -672,8 +675,8 @@ describe('onFirstCreate', () => {
 
   it('serialises across separate provider instances on the same root', async () => {
     const { projectPath } = await createTempProject();
-    const first = createLocalSandbox({ path: projectPath });
-    const second = createLocalSandbox({ path: projectPath });
+    const first = createLocalWorkspaceSandbox({ path: projectPath });
+    const second = createLocalWorkspaceSandbox({ path: projectPath });
 
     let concurrent = 0;
     let peakConcurrent = 0;
@@ -706,11 +709,11 @@ describe('onFirstCreate', () => {
     };
 
     const sessions = await Promise.all([
-      createLocalSandbox({ path: alpha.projectPath }).createSession({
+      createLocalWorkspaceSandbox({ path: alpha.projectPath }).createSession({
         identity: 'same-id',
         onFirstCreate,
       }),
-      createLocalSandbox({ path: beta.projectPath }).createSession({
+      createLocalWorkspaceSandbox({ path: beta.projectPath }).createSession({
         identity: 'same-id',
         onFirstCreate,
       }),
@@ -723,7 +726,7 @@ describe('onFirstCreate', () => {
 
   it('keeps its marker in a directory git ignores', async () => {
     const { projectPath } = await createTempProject();
-    const provider = createLocalSandbox({ path: projectPath });
+    const provider = createLocalWorkspaceSandbox({ path: projectPath });
     sessionsToStop.push(
       await provider.createSession({
         identity: 'marker',
@@ -758,7 +761,7 @@ describe('sessions', () => {
 
   it('rebinds to the same root on resumeSession', async () => {
     const { projectPath } = await createTempProject();
-    const provider = createLocalSandbox({ path: projectPath });
+    const provider = createLocalWorkspaceSandbox({ path: projectPath });
 
     const first = await provider.createSession({ sessionId: 's-2' });
     sessionsToStop.push(first);
@@ -783,7 +786,7 @@ describe('sessions', () => {
 
   it('gives concurrent sessions distinct ports and independent child sets', async () => {
     const { projectPath } = await createTempProject();
-    const provider = createLocalSandbox({ path: projectPath });
+    const provider = createLocalWorkspaceSandbox({ path: projectPath });
 
     const first = await provider.createSession();
     const second = await provider.createSession();

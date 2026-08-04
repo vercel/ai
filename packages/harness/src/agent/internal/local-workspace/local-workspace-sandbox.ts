@@ -8,18 +8,18 @@ import type {
   HarnessV1SandboxProvider,
 } from '../../../v1';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
-import { LocalNetworkSandboxSession } from './local-network-sandbox-session';
-import { realpathAllowingMissing } from './local-sandbox-session';
+import { LocalWorkspaceNetworkSandboxSession } from './local-workspace-network-sandbox-session';
+import { realpathAllowingMissing } from './local-workspace-sandbox-session';
 
 /**
- * Settings for {@link createLocalSandbox}.
+ * Settings for {@link createLocalWorkspaceSandbox}.
  *
  * Deliberately small. This provider's job is to get out of the way of the
  * harness: it supplies no tools, no tool filtering, and no permission-mode
  * opinions, so each harness keeps its own optimized tools, skills and user
  * configuration.
  */
-export type LocalSandboxSettings = {
+export type LocalWorkspaceSandboxSettings = {
   /**
    * Project directory the harness works in. Defaults to `process.cwd()`.
    * Resolved to an absolute path, and created if it does not exist.
@@ -39,7 +39,7 @@ export type LocalSandboxSettings = {
   env?: Record<string, string>;
 };
 
-const LOCAL_SANDBOX_PROVIDER_ID = 'local-sandbox';
+const LOCAL_WORKSPACE_PROVIDER_ID = 'local-workspace-sandbox';
 
 /**
  * Directory holding the one-time-setup markers that stand in for the snapshots
@@ -104,10 +104,10 @@ const firstCreateRuns = new Map<string, Promise<void>>();
  *
  * **This provides no isolation.** See the package README.
  */
-export function createLocalSandbox(
-  settings: LocalSandboxSettings = {},
+export function createLocalWorkspaceSandbox(
+  settings: LocalWorkspaceSandboxSettings = {},
 ): HarnessV1SandboxProvider {
-  return new LocalSandboxProvider(settings);
+  return new LocalWorkspaceSandboxProvider(settings);
 }
 
 /**
@@ -117,14 +117,14 @@ export function createLocalSandbox(
  * directory that already exists and outlives them. `resumeSession` therefore
  * just rebinds to the same root.
  */
-export class LocalSandboxProvider implements HarnessV1SandboxProvider {
+export class LocalWorkspaceSandboxProvider implements HarnessV1SandboxProvider {
   readonly specificationVersion = 'harness-sandbox-v1' as const;
-  readonly providerId = LOCAL_SANDBOX_PROVIDER_ID;
+  readonly providerId = LOCAL_WORKSPACE_PROVIDER_ID;
 
   private readonly projectPath: string;
   private readonly env: Record<string, string>;
 
-  constructor(settings: LocalSandboxSettings = {}) {
+  constructor(settings: LocalWorkspaceSandboxSettings = {}) {
     const projectPath = resolve(settings.path ?? process.cwd());
 
     // Fails fast on the obvious mistake. The provider contract forbids I/O at
@@ -169,8 +169,8 @@ export class LocalSandboxProvider implements HarnessV1SandboxProvider {
       hideFromGit(join(workingDirectory, generated));
     }
 
-    const session = new LocalNetworkSandboxSession({
-      id: options?.sessionId ?? `local-${randomUUID()}`,
+    const session = new LocalWorkspaceNetworkSandboxSession({
+      id: options?.sessionId ?? `local-workspace-${randomUUID()}`,
       ports: [await allocateLoopbackPort()],
       context: {
         workingDirectory,
@@ -228,7 +228,7 @@ export class LocalSandboxProvider implements HarnessV1SandboxProvider {
     onFirstCreate,
     abortSignal,
   }: {
-    session: LocalNetworkSandboxSession;
+    session: LocalWorkspaceNetworkSandboxSession;
     workingDirectory: string;
     identity?: string;
     onFirstCreate?: (
@@ -308,13 +308,15 @@ function assertUsableProjectPath(
 ): void {
   if (projectPath === parse(projectPath).root) {
     throw new Error(
-      describe('createLocalSandbox: `path` must not be the filesystem root'),
+      describe(
+        'createLocalWorkspaceSandbox: `path` must not be the filesystem root',
+      ),
     );
   }
   if (projectPath === resolve(homedir())) {
     throw new Error(
       describe(
-        'createLocalSandbox: `path` must not be the home directory. ' +
+        'createLocalWorkspaceSandbox: `path` must not be the home directory. ' +
           'Point it at a specific project directory',
       ),
     );

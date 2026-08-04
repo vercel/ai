@@ -2,15 +2,15 @@ import type { HarnessV1NetworkSandboxSession } from '../../../v1';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import {
   killProcessTree,
-  LocalSandboxSession,
-  type LocalSandboxSessionContext,
+  LocalWorkspaceSandboxSession,
+  type LocalWorkspaceSessionContext,
   reapChildSetOnExit,
   stopReapingChildSet,
-} from './local-sandbox-session';
+} from './local-workspace-sandbox-session';
 
 /**
  * `HarnessV1NetworkSandboxSession` backed by the local machine. Extends
- * {@link LocalSandboxSession} with the infra surface the harness
+ * {@link LocalWorkspaceSandboxSession} with the infra surface the harness
  * framework needs: an id, a working directory, loopback ports, and lifecycle.
  *
  * Ports are real free TCP ports on `127.0.0.1`, allocated when the session is
@@ -19,8 +19,8 @@ import {
  * enforcement primitive, and a no-op implementation would be a lie the
  * framework acts on.
  */
-export class LocalNetworkSandboxSession
-  extends LocalSandboxSession
+export class LocalWorkspaceNetworkSandboxSession
+  extends LocalWorkspaceSandboxSession
   implements HarnessV1NetworkSandboxSession
 {
   readonly id: string;
@@ -29,7 +29,7 @@ export class LocalNetworkSandboxSession
   constructor(input: {
     id: string;
     ports: ReadonlyArray<number>;
-    context: LocalSandboxSessionContext;
+    context: LocalWorkspaceSessionContext;
   }) {
     super(input.context);
     this.id = input.id;
@@ -83,6 +83,6 @@ export class LocalNetworkSandboxSession
   };
 
   restricted(): SandboxSession {
-    return new LocalSandboxSession(this.context);
+    return new LocalWorkspaceSandboxSession(this.context);
   }
 }

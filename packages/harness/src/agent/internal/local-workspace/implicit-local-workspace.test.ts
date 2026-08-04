@@ -4,23 +4,23 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolveSessionWorkDir } from '../sandbox-bootstrap';
-import { createLocalSandbox } from './local-sandbox';
+import { createLocalWorkspaceSandbox } from './local-workspace-sandbox';
 import {
   resetMissingSandboxWarning,
   warnAboutMissingSandbox,
 } from './warn-no-sandbox';
 
-describe('resolveSessionWorkDir with runInRoot', () => {
+describe('resolveSessionWorkDir with runInCwd', () => {
   // A hosted sandbox is fresh, so a per-session subdirectory is right. The
   // implicit local sandbox is rooted at the user's own directory, where a
   // subdirectory would run the harness in an empty folder beside their files.
-  it('uses the root itself when runInRoot is set', () => {
+  it('uses the working directory itself when runInCwd is set', () => {
     expect(
       resolveSessionWorkDir({
         defaultWorkingDirectory: '/repo',
         harnessId: 'claude-code',
         sessionId: 's1',
-        runInRoot: true,
+        runInCwd: true,
       }),
     ).toBe('/repo');
   });
@@ -35,14 +35,14 @@ describe('resolveSessionWorkDir with runInRoot', () => {
     ).toBe('/sandbox/claude-code-s1');
   });
 
-  it('lets an explicit workDir win over runInRoot', () => {
+  it('lets an explicit workDir win over runInCwd', () => {
     expect(
       resolveSessionWorkDir({
         defaultWorkingDirectory: '/repo',
         harnessId: 'claude-code',
         sessionId: 's1',
         workDir: 'sub',
-        runInRoot: true,
+        runInCwd: true,
       }),
     ).toBe('/repo/sub');
   });
@@ -101,9 +101,9 @@ describe('missing-sandbox warning', () => {
 });
 
 describe('the implicit provider', () => {
-  it('runs the session in the root it was given, not a subdirectory', async () => {
+  it('runs the session in the directory it was given, not a subdirectory', async () => {
     const projectPath = await mkdtemp(join(await realpath(tmpdir()), 'imp-'));
-    const provider = createLocalSandbox({ path: projectPath });
+    const provider = createLocalWorkspaceSandbox({ path: projectPath });
     const session = await provider.createSession();
 
     try {
@@ -111,7 +111,7 @@ describe('the implicit provider', () => {
         defaultWorkingDirectory: session.defaultWorkingDirectory,
         harnessId: 'claude-code',
         sessionId: 'abc',
-        runInRoot: true,
+        runInCwd: true,
       });
 
       expect(sessionWorkDir).toBe(projectPath);

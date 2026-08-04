@@ -32,11 +32,11 @@ const nodeFs = {
 
 /**
  * Everything a session needs to operate. Constructed by the provider and
- * shared by reference between a {@link LocalNetworkSandboxSession} and
+ * shared by reference between a {@link LocalWorkspaceNetworkSandboxSession} and
  * the reduced session its `restricted()` returns, so both observe the same
  * child-process set.
  */
-export type LocalSandboxSessionContext = {
+export type LocalWorkspaceSessionContext = {
   /** Sandbox root, which is the project directory. Already realpath'd. */
   readonly workingDirectory: string;
   /** Inherited process environment plus the caller's overlay. */
@@ -113,15 +113,15 @@ export function killProcessTree(
  * real files, real processes, the user's own environment.
  *
  * This is the tool-safe surface returned by
- * `LocalNetworkSandboxSession.restricted()`, not constructed directly
+ * `LocalWorkspaceNetworkSandboxSession.restricted()`, not constructed directly
  * by consumers.
  *
  * It applies **no path containment**. A guard here would constrain nothing:
  * bridge-backed harnesses never route their built-in tools through this API,
  * and every harness ships a shell tool. See the package README.
  */
-export class LocalSandboxSession implements SandboxSession {
-  constructor(protected readonly context: LocalSandboxSessionContext) {}
+export class LocalWorkspaceSandboxSession implements SandboxSession {
+  constructor(protected readonly context: LocalWorkspaceSessionContext) {}
 
   /**
    * Consumers put this in the model's instructions, so it has to say where

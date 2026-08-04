@@ -67,27 +67,29 @@ export function normalizeSandboxWorkDir(workDir: string): string {
 /**
  * Where the harness runs for this session.
  *
- * Normally a per-session subdirectory of the sandbox root, since a hosted
- * sandbox is fresh and its root is not itself a workspace. `runInRoot` is for
- * providers whose root *is* the workspace, such as the implicit local sandbox
- * rooted at `process.cwd()`: putting the session in a subdirectory there would
- * run the harness in an empty folder beside the user's files. An explicit
- * `workDir` still wins.
+ * Normally a per-session subdirectory of the sandbox's default working
+ * directory, since a hosted sandbox is freshly provisioned and that directory is
+ * not itself a workspace.
+ *
+ * `runInCwd` is for the implicit local workspace, whose default working
+ * directory *is* the user's `process.cwd()`. Putting the session in a
+ * subdirectory there would run the harness in an empty folder beside the user's
+ * own files. An explicit `workDir` still wins.
  */
 export function resolveSessionWorkDir({
   defaultWorkingDirectory,
   harnessId,
   sessionId,
   workDir,
-  runInRoot = false,
+  runInCwd = false,
 }: {
-  readonly runInRoot?: boolean;
+  readonly runInCwd?: boolean;
   readonly defaultWorkingDirectory: string;
   readonly harnessId: string;
   readonly sessionId: string;
   readonly workDir?: string;
 }): string {
-  if (workDir == null && runInRoot) return defaultWorkingDirectory;
+  if (workDir == null && runInCwd) return defaultWorkingDirectory;
   return joinSandboxPath({
     base: defaultWorkingDirectory,
     path: workDir ?? `${harnessId}-${sessionId}`,
