@@ -580,7 +580,9 @@ describe('onFirstCreate', () => {
       provider.createSession({ identity: 'flaky', onFirstCreate: failing }),
     ).rejects.toThrow(/bootstrap blew up/);
     expect(
-      existsSync(join(projectPath, '.harness-local/first-create-flaky')),
+      existsSync(
+        join(projectPath, '.harness-bootstrap/.first-create-flaky.ok'),
+      ),
     ).toBe(false);
 
     const succeeding = async () => {
@@ -594,7 +596,9 @@ describe('onFirstCreate', () => {
     );
     expect(calls).toBe(2);
     expect(
-      existsSync(join(projectPath, '.harness-local/first-create-flaky')),
+      existsSync(
+        join(projectPath, '.harness-bootstrap/.first-create-flaky.ok'),
+      ),
     ).toBe(true);
   });
 
@@ -663,7 +667,7 @@ describe('onFirstCreate', () => {
     );
     expect(calls).toBe(1);
 
-    rmSync(join(projectPath, '.harness-local/first-create-redo'), {
+    rmSync(join(projectPath, '.harness-bootstrap/.first-create-redo.ok'), {
       force: true,
     });
 
@@ -724,7 +728,7 @@ describe('onFirstCreate', () => {
     expect(calls).toBe(2);
   });
 
-  it('keeps its marker in a directory git ignores', async () => {
+  it('keeps its marker beside the framework markers, in a directory git ignores', async () => {
     const { projectPath } = await createTempProject();
     const provider = createLocalWorkspaceSandbox({ path: projectPath });
     sessionsToStop.push(
@@ -735,10 +739,12 @@ describe('onFirstCreate', () => {
     );
 
     expect(
-      existsSync(join(projectPath, '.harness-local/first-create-marker')),
+      existsSync(
+        join(projectPath, '.harness-bootstrap/.first-create-marker.ok'),
+      ),
     ).toBe(true);
     expect(
-      readFileSync(join(projectPath, '.harness-local/.gitignore'), 'utf8'),
+      readFileSync(join(projectPath, '.harness-bootstrap/.gitignore'), 'utf8'),
     ).toBe('*\n');
   });
 });
@@ -834,15 +840,15 @@ describe('git invisibility', () => {
     const { projectPath } = await createTempProject();
     await startSession({ path: projectPath });
 
-    for (const generated of [
-      '.harness-bootstrap',
-      '.harness-local',
-      '.agent-runs',
-    ]) {
+    for (const generated of ['.harness-bootstrap', '.agent-runs']) {
       expect(
         readFileSync(join(projectPath, generated, '.gitignore'), 'utf8'),
       ).toBe('*\n');
     }
+
+    // One fewer directory than before: the setup markers moved in beside the
+    // framework's own, rather than getting a directory to themselves.
+    expect(existsSync(join(projectPath, '.harness-local'))).toBe(false);
   });
 
   it('leaves an existing .gitignore alone', async () => {

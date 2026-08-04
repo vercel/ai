@@ -85,7 +85,7 @@ Use `session.detach()` to park a bridge-backed session for later attach, `sessio
 
 `sandbox` is an optional `HarnessV1SandboxProvider` — the agent calls `provider.createSession()` when a session starts.
 
-When omitted, the harness runs on the local machine in `process.cwd()` as the current user, reusing the CLI configuration and credentials already there. That is convenient for local development but provides **no isolation**: the harness has every permission the current user has, and each one ships a shell tool. A warning is emitted once per process, suppressible by setting the `AI_SDK_LOG_WARNINGS` global to `false` or to your own logger. Harness state generated in the working directory (`.harness-bootstrap/`, `.agent-runs/`, `.harness-local/`) is given a `.gitignore` so it stays out of `git status`; your own `.gitignore` is not modified.
+When omitted, the harness runs on the local machine in `process.cwd()` as the current user, reusing the CLI configuration and credentials already there. That is convenient for local development but provides **no isolation**: the harness has every permission the current user has, and each one ships a shell tool. A warning is emitted once per process, suppressible by setting the `AI_SDK_LOG_WARNINGS` global to `false` or to your own logger. Harness state generated in the working directory (`.harness-bootstrap/` and `.agent-runs/`) is given a `.gitignore` so it stays out of `git status`; your own `.gitignore` is not modified.
 
 Use `sandboxConfig` for agent specific sandbox configuration that works independently from the sandbox provider that is used:
 

@@ -42,28 +42,29 @@ export type LocalWorkspaceSandboxSettings = {
 const LOCAL_WORKSPACE_PROVIDER_ID = 'local-workspace-sandbox';
 
 /**
- * Directory holding the one-time-setup markers that stand in for the snapshots
- * a hosted provider would use.
+ * Directory adapters bootstrap into, and where this provider keeps its
+ * one-time-setup markers alongside the framework's own recipe markers.
  */
-const FIRST_CREATE_MARKER_DIR = '.harness-local';
+const BOOTSTRAP_DIR = '.harness-bootstrap';
 
 /**
  * Directories the harness machinery generates inside the sandbox root.
  *
- * Adapters resolve these against `defaultWorkingDirectory` themselves, so the
+ * Adapters compute these from `defaultWorkingDirectory` themselves, so the
  * names are duplicated here only to make them invisible to git before anything
  * lands in them. For a hosted sandbox the root is a throwaway machine and none
  * of this matters; here the root is the user's own project.
  *
  * - `.harness-bootstrap` holds bridge recipes and their `node_modules`, which
- *   runs to hundreds of megabytes.
- * - `.harness-local` holds this provider's one-time-setup markers.
- * - `.agent-runs` holds per-session adapter state. Every bridge-backed adapter
- *   writes it, and the codex adapter describes it as living "outside the agent
- *   workdir", which held only while the sandbox root and the session directory
- *   differed. They are the same directory here.
+ *   runs to hundreds of megabytes, plus the framework's `.bootstrap-*.ok`
+ *   markers and this provider's `.first-create-*.ok` markers.
+ * - `.agent-runs` holds per-session adapter state, including the event log a
+ *   suspended turn is replayed from. Named by the adapters rather than here, so
+ *   it does not carry the `.harness-` prefix; renaming it would mean changing
+ *   four published adapter packages and would strand session state written by
+ *   an older version.
  */
-const GENERATED_DIRS = ['.harness-bootstrap', '.harness-local', '.agent-runs'];
+const GENERATED_DIRS = [BOOTSTRAP_DIR, '.agent-runs'];
 
 /**
  * Hide a generated directory from git without touching a file the user owns.
@@ -250,8 +251,8 @@ export class LocalWorkspaceSandboxProvider implements HarnessV1SandboxProvider {
 
     const markerPath = join(
       workingDirectory,
-      FIRST_CREATE_MARKER_DIR,
-      `first-create-${identity}`,
+      BOOTSTRAP_DIR,
+      `.first-create-${identity}.ok`,
     );
 
     // Keyed by marker path, so providers on unrelated roots never block.
@@ -287,8 +288,8 @@ export class LocalWorkspaceSandboxProvider implements HarnessV1SandboxProvider {
       rmSync(markerPath, { force: true });
       throw error;
     } finally {
-      // The marker is the durable record. Holding the settled promise would
-      // mean deleting `.harness-local` no longer forces a re-bootstrap.
+      // The marker file is the durable record. Holding the settled promise
+      // would mean deleting it no longer forces a re-bootstrap.
       firstCreateRuns.delete(markerPath);
     }
   }

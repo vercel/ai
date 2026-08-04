@@ -48,19 +48,18 @@ warnings, by setting the `AI_SDK_LOG_WARNINGS` global to `false` or to your own 
 
 ### Generated directories
 
-Running in your working directory means the harness generates state there. Three
-directories may appear:
+Running in your working directory means the harness generates state there. Two directories
+may appear:
 
-| Directory             | Contents                                                                                                |
-| --------------------- | ------------------------------------------------------------------------------------------------------- |
-| `.harness-bootstrap/` | Bridge dependencies for bridge-backed harnesses. Hundreds of megabytes; Claude Code's is around 785 MB. |
-| `.agent-runs/`        | Per-session adapter state, written by every bridge-backed harness.                                      |
-| `.harness-local/`     | One-time setup markers, standing in for the snapshots a hosted sandbox would use.                       |
+| Directory             | Contents                                                                                                                    |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `.harness-bootstrap/` | Bridge dependencies for bridge-backed harnesses, plus setup markers. Hundreds of megabytes; Claude Code's is around 785 MB. |
+| `.agent-runs/`        | Per-session harness state, including the event log a suspended turn is replayed from.                                       |
 
 Each is given a `.gitignore` of `*` when the session starts, so they never appear in
 `git status` and cannot be committed by accident. Your own `.gitignore` is left untouched,
-and this works whether or not the directory is a git repository. Delete any of them to
-force that part to be regenerated.
+and this works whether or not the directory is a git repository. Delete either to force that
+part to be regenerated.
 
 Because the bootstrap is keyed to the working directory, each new directory you run in pays
 for its own bridge install. Reusing a directory keeps that to once.
