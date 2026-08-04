@@ -12,7 +12,12 @@ import {
   InMemorySpanExporter,
   SimpleSpanProcessor,
 } from '@opentelemetry/sdk-trace-base';
-import { streamText, type GenerateTextEndEvent, type Telemetry } from 'ai';
+import {
+  generateText,
+  streamText,
+  type GenerateTextEndEvent,
+  type Telemetry,
+} from 'ai';
 import { MockLanguageModelV4 } from 'ai/test';
 import { OpenTelemetry, type EnrichSpan } from './open-telemetry';
 
@@ -572,6 +577,29 @@ describe('OpenTelemetry', () => {
                 },
               ],
               "role": "user",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('sets gen_ai.system_instructions when instructions are provided', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(
+        makeLanguageModelCallStartEvent({
+          instructions: 'You are helpful',
+        }),
+      );
+
+      const attrs = getStartSpanAttributes(tracer, 2);
+      expect(parseJsonAttributes(attrs, 'gen_ai.system_instructions'))
+        .toMatchInlineSnapshot(`
+        {
+          "gen_ai.system_instructions": [
+            {
+              "content": "You are helpful",
+              "type": "text",
             },
           ],
         }
@@ -1639,6 +1667,72 @@ describe('OpenTelemetry', () => {
             },
           },
         ]
+      `);
+    });
+  });
+
+  describe('generateText integration', () => {
+    it('records system instructions on the chat span', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          provider: 'openai.chat',
+          modelId: 'gpt-4',
+          doGenerate: {
+            content: [{ type: 'text', text: 'Hello' }],
+            finishReason: { raw: undefined, unified: 'stop' },
+            usage: {
+              inputTokens: {
+                total: 2,
+                noCache: 2,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 1,
+                text: 1,
+                reasoning: undefined,
+              },
+            },
+            warnings: [],
+          },
+        }),
+        system: 'You are helpful',
+        prompt: 'Hello',
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      const chatSpan = getExportedSpan(sdkTrace.exporter, 'chat gpt-4');
+      expect(
+        parseJsonAttributes(
+          chatSpan.attributes,
+          'gen_ai.system_instructions',
+          'gen_ai.input.messages',
+        ),
+      ).toMatchInlineSnapshot(`
+        {
+          "gen_ai.input.messages": [
+            {
+              "parts": [
+                {
+                  "content": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "gen_ai.system_instructions": [
+            {
+              "content": "You are helpful",
+              "type": "text",
+            },
+          ],
+        }
       `);
     });
   });

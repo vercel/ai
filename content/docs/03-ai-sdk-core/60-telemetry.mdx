@@ -448,6 +448,7 @@ For `generateText` and `streamText`, the integration records 3 types of spans:
   - `gen_ai.provider.name`: the provider
   - `gen_ai.request.model`: the requested model ID
   - `gen_ai.request.temperature`, `gen_ai.request.max_tokens`, `gen_ai.request.top_p`, `gen_ai.request.top_k`, `gen_ai.request.frequency_penalty`, `gen_ai.request.presence_penalty`, `gen_ai.request.stop_sequences`: request parameters
+  - `gen_ai.system_instructions`: the system instructions for this model call, formatted as a JSON array of parts (when `recordInputs` is enabled)
   - `gen_ai.input.messages`: the prompt messages in [GenAI SemConv message format](#genai-message-format) (when `recordInputs` is enabled)
   - `gen_ai.tool.definitions`: the tool definitions as stringified JSON (when `recordInputs` is enabled)
 
