@@ -1,0 +1,146 @@
+import type { HarnessV1 } from '@ai-sdk/harness';
+import type { ToolSet } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
+import {
+  createACPAuthenticationProfileIdentity,
+  resolveACPProviderAuthenticationCompatibility,
+  type ACPAuthenticationProfileIdentity,
+} from './acp-auth';
+import { createACPV1, type ACPV1Settings } from './v1';
+import { createImplementationIdentity } from './v1/acquisition';
+import {
+  acpColdSessionStateSchema,
+  acpRecoveryStartSchema,
+  type ACPColdSessionState,
+  type ACPRecoveryStart,
+} from './v1/acp-v1-bridge-protocol';
+import { VERSION } from './version';
+
+const ACP_CLIENT_APP = `ai-sdk/harness-acp/${VERSION}`;
+
+export type ACPVersion = 'v1';
+
+export type ACPHarnessSettings<TBuiltinTools extends ToolSet = {}> =
+  ACPV1Settings<TBuiltinTools>;
+
+/**
+ * @deprecated Use `ACPHarnessSettings` instead.
+ */
+export type ACPSettings<TBuiltinTools extends ToolSet = {}> =
+  ACPHarnessSettings<TBuiltinTools>;
+
+const ACP_BUILTIN_TOOLS = {} as const satisfies ToolSet;
+
+const acpBridgeCoordsSchema = z.object({
+  port: z.number(),
+  token: z.string(),
+  lastSeenEventId: z.number(),
+  sandboxId: z.string().optional(),
+  stateDir: z.string().optional(),
+});
+
+const acpResumeStateSchema = z.object({
+  implementationIdentity: z.string(),
+  authenticationProfile: z
+    .object({
+      digest: z.string(),
+      acpMethodId: z.string().optional(),
+      providerKind: z.enum(['implementation-default', 'direct', 'ai-gateway']),
+      providerMode: z.enum(['auto', 'direct', 'ai-gateway']).optional(),
+      gatewayRouteKind: z
+        .enum(['auth-method', 'provider-method', 'launch', 'session'])
+        .optional(),
+      gatewayCredentialSource: z
+        .enum(['AI_GATEWAY_API_KEY', 'VERCEL_OIDC_TOKEN'])
+        .nullable()
+        .optional(),
+    })
+    .optional(),
+  acpSessionId: z.string().optional(),
+  bridge: acpBridgeCoordsSchema.optional(),
+  coldSession: acpColdSessionStateSchema.optional(),
+  recoveryStart: acpRecoveryStartSchema.optional(),
+  recovery: z
+    .object({
+      mode: z.enum(['disk-replay', 'lossy-rerun']),
+      reason: z.string(),
+    })
+    .optional(),
+  restoration: z
+    .object({
+      method: z.enum(['resume', 'load']),
+    })
+    .optional(),
+  initialGuidanceApplied: z.boolean().optional(),
+  skillsMaterialized: z.boolean().optional(),
+  skillsFingerprint: z.string().optional(),
+});
+
+type ACPBridgeCoords = z.infer<typeof acpBridgeCoordsSchema>;
+
+export function createACP<TBuiltinTools extends ToolSet = {}>(
+  settings: ACPHarnessSettings<TBuiltinTools>,
+): HarnessV1<TBuiltinTools> {
+  const version = (settings as { readonly version?: string }).version ?? 'v1';
+  switch (version) {
+    case 'v1': {
+      const providerAuthenticationCompatibility =
+        resolveACPProviderAuthenticationCompatibility({
+          auth: settings.auth,
+          providerAuthentication: settings.providerAuthentication,
+          env: process.env,
+        });
+      const implementationIdentity = createImplementationIdentity({
+        harnessId: settings.harnessId,
+        acpVersion: version,
+        implementation: settings.implementation,
+        providerAuthentication: providerAuthenticationCompatibility,
+        permissionModeMapping: settings.permissionModeMapping,
+      });
+      const authenticationProfile = createACPAuthenticationProfileIdentity({
+        authentication: settings.authentication,
+        providerAuthenticationCompatibility,
+      });
+      const lifecycleStateSchema: z.ZodType<{
+        readonly implementationIdentity: string;
+        readonly authenticationProfile?: ACPAuthenticationProfileIdentity;
+        readonly acpSessionId?: string;
+        readonly bridge?: ACPBridgeCoords;
+        readonly coldSession?: ACPColdSessionState;
+        readonly recoveryStart?: ACPRecoveryStart;
+        readonly recovery?: {
+          readonly mode: 'disk-replay' | 'lossy-rerun';
+          readonly reason: string;
+        };
+        readonly restoration?: {
+          readonly method: 'resume' | 'load';
+        };
+        readonly initialGuidanceApplied?: boolean;
+        readonly skillsMaterialized?: boolean;
+        readonly skillsFingerprint?: string;
+      }> = acpResumeStateSchema.extend({
+        implementationIdentity: z.literal(implementationIdentity),
+        authenticationProfile: acpResumeStateSchema.shape.authenticationProfile
+          .unwrap()
+          .extend({
+            digest: z.literal(authenticationProfile.digest),
+          })
+          .optional(),
+      });
+      return createACPV1({
+        settings,
+        builtinTools:
+          settings.builtinTools ?? (ACP_BUILTIN_TOOLS as TBuiltinTools),
+        clientApp: ACP_CLIENT_APP,
+        implementationIdentity,
+        authenticationProfile,
+        providerAuthenticationCompatibility,
+        lifecycleStateSchema,
+      });
+    }
+    default:
+      throw new Error(
+        `Unsupported ACP protocol version ${JSON.stringify(version)}. Supported versions: "v1".`,
+      );
+  }
+}

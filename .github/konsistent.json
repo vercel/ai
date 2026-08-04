@@ -157,7 +157,6 @@
                 "from": "./version"
               }
             ],
-            "exportConstants": ["${harnessId.toCamelCase()}"],
             "exportTypes": [
               {
                 "name": "${harnessId.toPascalCase()}HarnessSettings",
@@ -165,6 +164,14 @@
               }
             ],
             "haveFiles": ["${harnessId}-harness.ts", "version.ts"]
+          }
+        },
+        {
+          "name": "harness-package-must-export-default-instance",
+          "description": "Every fixed-runtime harness package must export its default instance.",
+          "excludeFiles": ["packages/harness-acp/src/index.ts"],
+          "must": {
+            "exportConstants": ["${harnessId.toCamelCase()}"]
           }
         },
         {
@@ -407,6 +414,7 @@
     }
   ],
   "kebabToPascalMap": {
+    "acp": "ACP",
     "assemblyai": "AssemblyAI",
     "bytedance": "ByteDance",
     "cartesia": "Cartesia",
@@ -425,6 +433,7 @@
     "togetherai": "TogetherAI"
   },
   "kebabToCamelMap": {
+    "acp": "acp",
     "lmnt": "lmnt"
   }
 }

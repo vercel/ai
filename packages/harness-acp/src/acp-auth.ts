@@ -1,0 +1,277 @@
+import { createHash } from 'node:crypto';
+import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
+import type {
+  ACPAuthentication,
+  ACPProviderAuthentication,
+  ACPProviderAuthenticationMode,
+} from './v1';
+import type { ACPResolvedProviderAuthentication } from './v1/acp-v1-bridge-environment';
+
+const DEFAULT_AI_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh';
+
+export type ACPAuthOptions = ACPProviderAuthenticationMode;
+
+type ACPAuthResolutionOptions = {
+  readonly mode?: ACPAuthOptions;
+  readonly providerAuthentication: ACPProviderAuthentication | undefined;
+  readonly clientApp: string;
+};
+
+type ACPGatewayCredentialSource = 'AI_GATEWAY_API_KEY' | 'VERCEL_OIDC_TOKEN';
+
+export type ACPProviderAuthenticationCompatibility =
+  | {
+      readonly type: 'direct';
+      readonly mode: 'auto' | 'direct';
+    }
+  | {
+      readonly type: 'ai-gateway';
+      readonly mode: 'auto' | 'ai-gateway';
+      readonly route: NonNullable<
+        ACPProviderAuthentication['gateway']
+      >['route'];
+      readonly credentialSource: ACPGatewayCredentialSource | null;
+      readonly baseUrl: string;
+    };
+
+export type ACPAuthenticationProfileIdentity = {
+  readonly digest: string;
+  readonly acpMethodId?: string;
+  readonly providerKind: 'implementation-default' | 'direct' | 'ai-gateway';
+  readonly providerMode?: 'auto' | 'direct' | 'ai-gateway';
+  readonly gatewayRouteKind?:
+    | 'auth-method'
+    | 'provider-method'
+    | 'launch'
+    | 'session';
+  readonly gatewayCredentialSource?:
+    | 'AI_GATEWAY_API_KEY'
+    | 'VERCEL_OIDC_TOKEN'
+    | null;
+};
+
+export function createACPAuthenticationProfileIdentity({
+  authentication,
+  providerAuthenticationCompatibility,
+}: {
+  authentication: ACPAuthentication | undefined;
+  providerAuthenticationCompatibility:
+    | ACPProviderAuthenticationCompatibility
+    | undefined;
+}): ACPAuthenticationProfileIdentity {
+  const providerKind =
+    providerAuthenticationCompatibility?.type ?? 'implementation-default';
+  const digest = createHash('sha256')
+    .update(
+      stableStringify({
+        value: {
+          authentication: authentication ?? null,
+          providerAuthentication: providerAuthenticationCompatibility ?? null,
+        },
+      }),
+    )
+    .digest('hex');
+  return {
+    digest,
+    ...(authentication == null ? {} : { acpMethodId: authentication.methodId }),
+    providerKind,
+    ...(providerAuthenticationCompatibility == null
+      ? {}
+      : { providerMode: providerAuthenticationCompatibility.mode }),
+    ...(providerAuthenticationCompatibility?.type === 'ai-gateway'
+      ? {
+          gatewayRouteKind: providerAuthenticationCompatibility.route.type,
+          gatewayCredentialSource:
+            providerAuthenticationCompatibility.credentialSource,
+        }
+      : {}),
+  };
+}
+
+export function resolveACPProviderAuthentication({
+  auth,
+  env,
+  compatibility,
+}: {
+  auth: ACPAuthResolutionOptions;
+  env: Record<string, string | undefined>;
+  compatibility?: ACPProviderAuthenticationCompatibility;
+}): {
+  readonly providerAuthentication:
+    | ACPResolvedProviderAuthentication
+    | undefined;
+  readonly env: Record<string, string>;
+} {
+  const providerAuthentication = auth.providerAuthentication;
+  if (providerAuthentication == null) {
+    return { providerAuthentication: undefined, env: {} };
+  }
+
+  if (compatibility?.type === 'direct') {
+    return {
+      providerAuthentication: { type: 'direct' },
+      env: {},
+    };
+  }
+
+  const mode = auth.mode ?? 'auto';
+  if (mode === 'direct') {
+    return {
+      providerAuthentication: { type: 'direct' },
+      env: {},
+    };
+  }
+
+  const gateway =
+    compatibility?.type === 'ai-gateway'
+      ? {
+          apiKey: resolveGatewayCredential({
+            env,
+            credentialSource: compatibility.credentialSource,
+          }),
+          baseUrl: compatibility.baseUrl,
+        }
+      : resolveGateway({
+          providerAuthentication,
+          env,
+        });
+  const apiKey = gateway.apiKey;
+  if (compatibility == null && mode === 'auto' && apiKey == null) {
+    return {
+      providerAuthentication: { type: 'direct' },
+      env: {},
+    };
+  }
+  if (apiKey == null) {
+    throw new Error(
+      'AI Gateway authentication was selected, but neither AI_GATEWAY_API_KEY nor VERCEL_OIDC_TOKEN is set.',
+    );
+  }
+
+  return {
+    providerAuthentication: {
+      type: 'ai-gateway',
+      route:
+        compatibility?.type === 'ai-gateway'
+          ? compatibility.route
+          : providerAuthentication.gateway.route,
+    },
+    env: {
+      AI_SDK_ACP_GATEWAY_API_KEY: apiKey,
+      AI_SDK_ACP_GATEWAY_BASE_URL: gateway.baseUrl,
+      AI_SDK_ACP_CLIENT_APP: auth.clientApp,
+    },
+  };
+}
+
+export function resolveACPProviderAuthenticationCompatibility({
+  auth = 'auto',
+  providerAuthentication,
+  env,
+}: {
+  auth?: ACPProviderAuthenticationMode;
+  providerAuthentication: ACPProviderAuthentication | undefined;
+  env: Record<string, string | undefined>;
+}): ACPProviderAuthenticationCompatibility | undefined {
+  if (providerAuthentication == null) return undefined;
+
+  const mode = auth;
+  if (mode === 'direct') {
+    return { type: 'direct', mode };
+  }
+
+  const credentialSource = resolveGatewayCredentialSource({
+    env,
+  });
+  if (mode === 'auto' && credentialSource == null) {
+    return { type: 'direct', mode };
+  }
+
+  return {
+    type: 'ai-gateway',
+    mode,
+    route: providerAuthentication.gateway.route,
+    credentialSource,
+    baseUrl:
+      providerAuthentication.gateway.baseUrl ??
+      env.AI_GATEWAY_BASE_URL ??
+      DEFAULT_AI_GATEWAY_BASE_URL,
+  };
+}
+
+export function resolveACPEnv({
+  auth,
+  env,
+}: {
+  auth: ACPAuthResolutionOptions;
+  env: Record<string, string | undefined>;
+}): Record<string, string> {
+  return resolveACPProviderAuthentication({ auth, env }).env;
+}
+
+function resolveGateway({
+  providerAuthentication,
+  env,
+}: {
+  providerAuthentication: ACPProviderAuthentication;
+  env: Record<string, string | undefined>;
+}): {
+  readonly apiKey: string | undefined;
+  readonly baseUrl: string;
+} {
+  const gatewayFromEnv = getAiGatewayAuthFromEnv({ env });
+  return {
+    apiKey: gatewayFromEnv.apiKey,
+    baseUrl: providerAuthentication.gateway.baseUrl ?? gatewayFromEnv.baseUrl,
+  };
+}
+
+function resolveGatewayCredentialSource({
+  env,
+}: {
+  env: Record<string, string | undefined>;
+}): ACPGatewayCredentialSource | null {
+  return env.AI_GATEWAY_API_KEY
+    ? 'AI_GATEWAY_API_KEY'
+    : env.VERCEL_OIDC_TOKEN
+      ? 'VERCEL_OIDC_TOKEN'
+      : null;
+}
+
+function resolveGatewayCredential({
+  env,
+  credentialSource,
+}: {
+  env: Record<string, string | undefined>;
+  credentialSource: ACPGatewayCredentialSource | null;
+}): string | undefined {
+  const gatewayFromEnv = getAiGatewayAuthFromEnv({ env });
+  switch (credentialSource) {
+    case 'AI_GATEWAY_API_KEY':
+      return env.AI_GATEWAY_API_KEY == null ? undefined : gatewayFromEnv.apiKey;
+    case 'VERCEL_OIDC_TOKEN':
+      return getAiGatewayAuthFromEnv({
+        env: { VERCEL_OIDC_TOKEN: env.VERCEL_OIDC_TOKEN },
+      }).apiKey;
+    case null:
+      return undefined;
+  }
+}
+
+function stableStringify({ value }: { value: unknown }): string {
+  return JSON.stringify(sortIdentityValue({ value }));
+}
+
+function sortIdentityValue({ value }: { value: unknown }): unknown {
+  if (Array.isArray(value)) {
+    return value.map(item => sortIdentityValue({ value: item }));
+  }
+  if (value != null && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value)
+        .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+        .map(([key, entry]) => [key, sortIdentityValue({ value: entry })]),
+    );
+  }
+  return value;
+}

@@ -1,0 +1,361 @@
+import { describe, expect, it } from 'vitest';
+import {
+  createACPAuthenticationProfileIdentity,
+  resolveACPEnv,
+  resolveACPProviderAuthentication,
+  resolveACPProviderAuthenticationCompatibility,
+} from './acp-auth';
+import type { ACPGatewayRoute, ACPProviderAuthenticationMode } from './v1';
+
+const clientApp = 'ai-sdk/harness-acp/0.0.0-test';
+
+const route = {
+  type: 'auth-method',
+  methodId: 'gateway',
+  clientCapabilities: {
+    auth: { _meta: { gateway: true } },
+  },
+  meta: {
+    gateway: {
+      baseUrl: { $source: 'gateway-base-url' },
+      headers: {
+        Authorization: { $source: 'gateway-authorization' },
+      },
+    },
+  },
+} as const satisfies ACPGatewayRoute;
+
+function resolve({
+  mode,
+  baseUrl,
+  env,
+}: {
+  mode?: ACPProviderAuthenticationMode;
+  baseUrl?: string;
+  env: Record<string, string | undefined>;
+}) {
+  return resolveACPProviderAuthentication({
+    auth: {
+      mode,
+      providerAuthentication: {
+        gateway: {
+          route,
+          ...(baseUrl == null ? {} : { baseUrl }),
+        },
+      },
+      clientApp,
+    },
+    env,
+  });
+}
+
+describe('resolveACPProviderAuthentication', () => {
+  it('selects AI Gateway automatically for AI_GATEWAY_API_KEY', () => {
+    expect(
+      resolve({
+        env: {
+          AI_GATEWAY_API_KEY: 'gateway-key',
+          AI_GATEWAY_BASE_URL: 'https://gateway.example',
+        },
+      }),
+    ).toEqual({
+      providerAuthentication: { type: 'ai-gateway', route },
+      env: {
+        AI_SDK_ACP_GATEWAY_API_KEY: 'gateway-key',
+        AI_SDK_ACP_GATEWAY_BASE_URL: 'https://gateway.example',
+        AI_SDK_ACP_CLIENT_APP: clientApp,
+      },
+    });
+  });
+
+  it('selects AI Gateway automatically for VERCEL_OIDC_TOKEN', () => {
+    expect(resolve({ env: { VERCEL_OIDC_TOKEN: 'oidc-token' } })).toEqual({
+      providerAuthentication: { type: 'ai-gateway', route },
+      env: {
+        AI_SDK_ACP_GATEWAY_API_KEY: 'oidc-token',
+        AI_SDK_ACP_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
+        AI_SDK_ACP_CLIENT_APP: clientApp,
+      },
+    });
+  });
+
+  it('selects direct authentication automatically without Gateway credentials', () => {
+    expect(resolve({ env: { DIRECT_PROVIDER_KEY: 'direct-key' } })).toEqual({
+      providerAuthentication: { type: 'direct' },
+      env: {},
+    });
+  });
+
+  it('keeps explicit direct authentication when Gateway credentials are ambient', () => {
+    expect(
+      resolve({
+        mode: 'direct',
+        env: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+      }),
+    ).toEqual({
+      providerAuthentication: { type: 'direct' },
+      env: {},
+    });
+  });
+
+  it('uses an explicit Gateway base URL with ambient credentials', () => {
+    expect(
+      resolve({
+        mode: 'ai-gateway',
+        baseUrl: 'https://configured.example',
+        env: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+      }).env,
+    ).toEqual({
+      AI_SDK_ACP_GATEWAY_API_KEY: 'ambient-gateway-key',
+      AI_SDK_ACP_GATEWAY_BASE_URL: 'https://configured.example',
+      AI_SDK_ACP_CLIENT_APP: clientApp,
+    });
+  });
+
+  it('fails explicit Gateway selection without credentials', () => {
+    expect(() => resolve({ mode: 'ai-gateway', env: {} })).toThrow(
+      'neither AI_GATEWAY_API_KEY nor VERCEL_OIDC_TOKEN is set',
+    );
+  });
+});
+
+describe('resolveACPEnv', () => {
+  it('returns the environment for the resolved selection', () => {
+    expect(
+      resolveACPEnv({
+        auth: {
+          mode: 'ai-gateway',
+          providerAuthentication: {
+            gateway: {
+              route,
+            },
+          },
+          clientApp,
+        },
+        env: { AI_GATEWAY_API_KEY: 'gateway-key' },
+      }),
+    ).toEqual({
+      AI_SDK_ACP_GATEWAY_API_KEY: 'gateway-key',
+      AI_SDK_ACP_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
+      AI_SDK_ACP_CLIENT_APP: clientApp,
+    });
+  });
+});
+
+describe('resolveACPProviderAuthenticationCompatibility', () => {
+  it('records credential source identity without credential values', () => {
+    const first = resolveACPProviderAuthenticationCompatibility({
+      providerAuthentication: {
+        gateway: { route },
+      },
+      env: {
+        AI_GATEWAY_API_KEY: 'first-secret',
+        AI_GATEWAY_BASE_URL: 'https://gateway.example',
+      },
+    });
+    const rotated = resolveACPProviderAuthenticationCompatibility({
+      providerAuthentication: {
+        gateway: { route },
+      },
+      env: {
+        AI_GATEWAY_API_KEY: 'rotated-secret',
+        AI_GATEWAY_BASE_URL: 'https://gateway.example',
+      },
+    });
+    const oidc = resolveACPProviderAuthenticationCompatibility({
+      providerAuthentication: {
+        gateway: { route },
+      },
+      env: {
+        VERCEL_OIDC_TOKEN: 'oidc-secret',
+        AI_GATEWAY_BASE_URL: 'https://gateway.example',
+      },
+    });
+
+    expect(first).toEqual(rotated);
+    expect(first).toMatchObject({
+      type: 'ai-gateway',
+      credentialSource: 'AI_GATEWAY_API_KEY',
+      baseUrl: 'https://gateway.example',
+    });
+    expect(oidc).toMatchObject({
+      type: 'ai-gateway',
+      credentialSource: 'VERCEL_OIDC_TOKEN',
+    });
+    expect(JSON.stringify(first)).not.toContain('first-secret');
+    expect(JSON.stringify(oidc)).not.toContain('oidc-secret');
+  });
+
+  it('records the environment Gateway source and effective base URL', () => {
+    const configured = resolveACPProviderAuthenticationCompatibility({
+      auth: 'ai-gateway',
+      providerAuthentication: {
+        gateway: {
+          route,
+          baseUrl: 'https://configured.example',
+        },
+      },
+      env: {
+        AI_GATEWAY_API_KEY: 'ambient-secret',
+        AI_GATEWAY_BASE_URL: 'https://ambient.example',
+      },
+    });
+
+    expect(configured).toMatchObject({
+      type: 'ai-gateway',
+      credentialSource: 'AI_GATEWAY_API_KEY',
+      baseUrl: 'https://configured.example',
+    });
+    expect(JSON.stringify(configured)).not.toContain('ambient-secret');
+  });
+
+  it('pins selection, source, and base URL while allowing secret rotation', () => {
+    const compatibility = resolveACPProviderAuthenticationCompatibility({
+      providerAuthentication: {
+        gateway: { route },
+      },
+      env: {
+        AI_GATEWAY_API_KEY: 'first-secret',
+        AI_GATEWAY_BASE_URL: 'https://first.example',
+      },
+    });
+    expect(compatibility?.type).toBe('ai-gateway');
+
+    expect(
+      resolveACPProviderAuthentication({
+        auth: {
+          providerAuthentication: {
+            gateway: { route },
+          },
+          clientApp,
+        },
+        env: {
+          AI_GATEWAY_API_KEY: 'rotated-secret',
+          AI_GATEWAY_BASE_URL: 'https://changed.example',
+        },
+        compatibility,
+      }),
+    ).toEqual({
+      providerAuthentication: { type: 'ai-gateway', route },
+      env: {
+        AI_SDK_ACP_GATEWAY_API_KEY: 'rotated-secret',
+        AI_SDK_ACP_GATEWAY_BASE_URL: 'https://first.example',
+        AI_SDK_ACP_CLIENT_APP: clientApp,
+      },
+    });
+    expect(() =>
+      resolveACPProviderAuthentication({
+        auth: {
+          providerAuthentication: {
+            gateway: { route },
+          },
+          clientApp,
+        },
+        env: {
+          VERCEL_OIDC_TOKEN: 'different-source-secret',
+        },
+        compatibility,
+      }),
+    ).toThrow('AI Gateway authentication was selected');
+  });
+
+  it('does not change an auto-direct identity when credentials appear later', () => {
+    const compatibility = resolveACPProviderAuthenticationCompatibility({
+      providerAuthentication: {
+        gateway: { route },
+      },
+      env: {},
+    });
+
+    expect(
+      resolveACPProviderAuthentication({
+        auth: {
+          providerAuthentication: {
+            gateway: { route },
+          },
+          clientApp,
+        },
+        env: {
+          AI_GATEWAY_API_KEY: 'late-secret',
+        },
+        compatibility,
+      }),
+    ).toEqual({
+      providerAuthentication: { type: 'direct' },
+      env: {},
+    });
+  });
+});
+
+describe('createACPAuthenticationProfileIdentity', () => {
+  it('persists only named selection facts and a digest', () => {
+    const compatibility = resolveACPProviderAuthenticationCompatibility({
+      auth: 'ai-gateway',
+      providerAuthentication: {
+        gateway: {
+          route: {
+            ...route,
+            meta: {
+              gateway: {
+                headers: {
+                  Authorization: 'authenticated-header-secret',
+                },
+              },
+            },
+          },
+        },
+      },
+      env: {
+        VERCEL_OIDC_TOKEN: 'resolved-oidc-secret',
+      },
+    });
+    const identity = createACPAuthenticationProfileIdentity({
+      authentication: {
+        methodId: 'api-key',
+        meta: { token: 'acp-authentication-secret' },
+        clientCapabilities: {
+          headers: { Authorization: 'client-capability-secret' },
+        },
+      },
+      providerAuthenticationCompatibility: compatibility,
+    });
+    const serialized = JSON.stringify(identity);
+
+    expect(identity).toMatchObject({
+      digest: expect.stringMatching(/^[a-f0-9]{64}$/),
+      acpMethodId: 'api-key',
+      providerKind: 'ai-gateway',
+      providerMode: 'ai-gateway',
+      gatewayRouteKind: 'auth-method',
+      gatewayCredentialSource: 'VERCEL_OIDC_TOKEN',
+    });
+    expect(serialized).not.toContain('resolved-oidc-secret');
+    expect(serialized).not.toContain('authenticated-header-secret');
+    expect(serialized).not.toContain('acp-authentication-secret');
+    expect(serialized).not.toContain('client-capability-secret');
+    expect(serialized).not.toContain('Authorization');
+  });
+
+  it('keeps its digest stable across secret rotation at the same source', () => {
+    const firstCompatibility = resolveACPProviderAuthenticationCompatibility({
+      providerAuthentication: { gateway: { route } },
+      env: { AI_GATEWAY_API_KEY: 'first-secret' },
+    });
+    const rotatedCompatibility = resolveACPProviderAuthenticationCompatibility({
+      providerAuthentication: { gateway: { route } },
+      env: { AI_GATEWAY_API_KEY: 'rotated-secret' },
+    });
+
+    expect(
+      createACPAuthenticationProfileIdentity({
+        authentication: { methodId: 'api-key' },
+        providerAuthenticationCompatibility: firstCompatibility,
+      }),
+    ).toEqual(
+      createACPAuthenticationProfileIdentity({
+        authentication: { methodId: 'api-key' },
+        providerAuthenticationCompatibility: rotatedCompatibility,
+      }),
+    );
+  });
+});

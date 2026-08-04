@@ -1,0 +1,695 @@
+import type { HarnessV1StreamPart } from '@ai-sdk/harness';
+import type { PromptResponse, SessionUpdate } from '@agentclientprotocol/sdk';
+
+type HarnessUsage = Extract<
+  HarnessV1StreamPart,
+  { readonly type: 'finish' }
+>['totalUsage'];
+type HarnessToolResult = Extract<
+  HarnessV1StreamPart,
+  { readonly type: 'tool-result' }
+>['result'];
+type JSONValue =
+  | null
+  | string
+  | number
+  | boolean
+  | Array<JSONValue>
+  | { [key: string]: JSONValue };
+
+type ToolState = {
+  readonly toolCallId: string;
+  readonly values: Record<string, unknown>;
+  readonly emittedFilePaths: Set<string>;
+  emittedCall: boolean;
+  emittedResult: boolean;
+  toolName?: string;
+  nativeName?: string;
+  dynamic?: boolean;
+};
+
+export type ACPBuiltinTool = {
+  readonly toolName: string;
+  readonly nativeName?: string;
+};
+
+export type ACPSessionUpdate = SessionUpdate;
+export type ACPPromptResponse = PromptResponse;
+
+export function createACPStreamTranslator({
+  emit,
+  builtinTools = [],
+}: {
+  emit: (event: HarnessV1StreamPart) => void;
+  builtinTools?: ReadonlyArray<ACPBuiltinTool>;
+}): {
+  update: (
+    options:
+      | ACPSessionUpdate
+      | {
+          update: ACPSessionUpdate;
+          rawUpdate?: unknown;
+          preserveRaw?: boolean;
+        },
+  ) => void;
+  raw: (options: { rawValue: unknown }) => void;
+  close: () => void;
+  finish: (response: ACPPromptResponse) => void;
+  hostToolCall: (options: {
+    toolCallId: string;
+    toolName: string;
+    input: Readonly<Record<string, unknown>>;
+  }) => void;
+  hostToolResult: (options: {
+    toolCallId: string;
+    toolName: string;
+    output: unknown;
+    isError?: boolean;
+  }) => void;
+} {
+  let openBlock:
+    | {
+        readonly type: 'text' | 'reasoning';
+        readonly id: string;
+        readonly messageId: string | null;
+      }
+    | undefined;
+  let blockCounter = 0;
+  let stepOpen = false;
+  let completedToolStepEligible = false;
+  let finished = false;
+  const blockIdCounts = new Map<string, number>();
+  const toolStates = new Map<string, ToolState>();
+  const pendingToolCallIds = new Set<string>();
+  const builtinToolsByName = indexBuiltinTools({ builtinTools });
+
+  const closeBlock = () => {
+    if (openBlock == null) return;
+    emit({
+      type: openBlock.type === 'text' ? 'text-end' : 'reasoning-end',
+      id: openBlock.id,
+    });
+    openBlock = undefined;
+  };
+
+  const createBlockId = ({
+    type,
+    messageId,
+  }: {
+    type: 'text' | 'reasoning';
+    messageId: string | null;
+  }): string => {
+    const base = messageId ?? `acp-${type}-${++blockCounter}`;
+    const count = (blockIdCounts.get(base) ?? 0) + 1;
+    blockIdCounts.set(base, count);
+    return count === 1 ? base : `${base}-${count}`;
+  };
+
+  const emitContent = ({
+    type,
+    text,
+    messageId,
+  }: {
+    type: 'text' | 'reasoning';
+    text: string;
+    messageId?: string | null;
+  }) => {
+    const normalizedMessageId = messageId ?? null;
+    if (
+      openBlock == null ||
+      openBlock.type !== type ||
+      openBlock.messageId !== normalizedMessageId
+    ) {
+      closeBlock();
+      const id = createBlockId({ type, messageId: normalizedMessageId });
+      emit({
+        type: type === 'text' ? 'text-start' : 'reasoning-start',
+        id,
+      });
+      openBlock = { type, id, messageId: normalizedMessageId };
+    }
+    emit({
+      type: type === 'text' ? 'text-delta' : 'reasoning-delta',
+      id: openBlock.id,
+      delta: text,
+    });
+    stepOpen = true;
+  };
+
+  const emitInferredStep = ({
+    finishReason,
+  }: {
+    finishReason: Extract<
+      HarnessV1StreamPart,
+      { readonly type: 'finish-step' }
+    >['finishReason'];
+  }) => {
+    closeBlock();
+    emit({
+      type: 'finish-step',
+      finishReason,
+      usage: unknownUsage(),
+      harnessMetadata: { acp: { inferredStep: true } },
+    });
+    stepOpen = false;
+    completedToolStepEligible = false;
+  };
+
+  const flushCompletedToolStep = () => {
+    if (
+      !stepOpen ||
+      !completedToolStepEligible ||
+      pendingToolCallIds.size > 0
+    ) {
+      return;
+    }
+    emitInferredStep({
+      finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+    });
+  };
+
+  const emitToolUpdate = ({
+    update,
+    rawUpdate,
+  }: {
+    update: Extract<
+      ACPSessionUpdate,
+      { sessionUpdate: 'tool_call' | 'tool_call_update' }
+    >;
+    rawUpdate: unknown;
+  }) => {
+    closeBlock();
+    const state =
+      toolStates.get(update.toolCallId) ??
+      ({
+        toolCallId: update.toolCallId,
+        values: {},
+        emittedFilePaths: new Set(),
+        emittedCall: false,
+        emittedResult: false,
+      } satisfies ToolState);
+    toolStates.set(update.toolCallId, state);
+    mergeToolUpdate({ state, update, rawUpdate });
+
+    if (!state.emittedCall) {
+      const programmaticName = getStringProperty({
+        value: state.values,
+        property: 'name',
+      });
+      const builtin =
+        programmaticName == null
+          ? undefined
+          : builtinToolsByName.get(programmaticName);
+      if (builtin != null) {
+        state.toolName = builtin.toolName;
+        state.nativeName =
+          builtin.nativeName === programmaticName &&
+          builtin.toolName !== programmaticName
+            ? programmaticName
+            : undefined;
+        state.dynamic = false;
+      } else {
+        state.toolName = createDynamicToolName({
+          programmaticName,
+          toolCallId: state.toolCallId,
+        });
+        state.dynamic = true;
+      }
+      emit({
+        type: 'tool-call',
+        toolCallId: state.toolCallId,
+        toolName: state.toolName,
+        input: stringifyToolInput({ input: state.values.rawInput }),
+        providerExecuted: true,
+        ...(state.dynamic ? { dynamic: true } : {}),
+        ...(state.nativeName == null ? {} : { nativeName: state.nativeName }),
+      });
+      state.emittedCall = true;
+      stepOpen = true;
+      pendingToolCallIds.add(state.toolCallId);
+      completedToolStepEligible = false;
+    }
+
+    emitFileChanges({ state, emit });
+
+    if (
+      !state.emittedResult &&
+      (state.values.status === 'completed' || state.values.status === 'failed')
+    ) {
+      emit({
+        type: 'tool-result',
+        toolCallId: state.toolCallId,
+        toolName: state.toolName!,
+        result: createToolResult({ state }),
+        ...(state.values.status === 'failed' ? { isError: true } : {}),
+        ...(state.dynamic ? { dynamic: true } : {}),
+      });
+      state.emittedResult = true;
+      pendingToolCallIds.delete(state.toolCallId);
+      completedToolStepEligible = pendingToolCallIds.size === 0;
+    }
+  };
+
+  const hostToolCall = ({
+    toolCallId,
+    toolName,
+    input,
+  }: {
+    toolCallId: string;
+    toolName: string;
+    input: Readonly<Record<string, unknown>>;
+  }) => {
+    closeBlock();
+    emit({
+      type: 'tool-call',
+      toolCallId,
+      toolName,
+      input: stringifyToolInput({ input }),
+      providerExecuted: false,
+    });
+    stepOpen = true;
+    pendingToolCallIds.add(toolCallId);
+    completedToolStepEligible = false;
+  };
+
+  const hostToolResult = ({
+    toolCallId,
+    toolName,
+    output,
+    isError,
+  }: {
+    toolCallId: string;
+    toolName: string;
+    output: unknown;
+    isError?: boolean;
+  }) => {
+    closeBlock();
+    emit({
+      type: 'tool-result',
+      toolCallId,
+      toolName,
+      result: toSafeJSONValue({ value: output, fallback: {} }) ?? {},
+      ...(isError ? { isError: true } : {}),
+    });
+    pendingToolCallIds.delete(toolCallId);
+    completedToolStepEligible = pendingToolCallIds.size === 0;
+  };
+
+  return {
+    update: options => {
+      const { update, rawUpdate, preserveRaw } =
+        'update' in options
+          ? {
+              update: options.update,
+              rawUpdate: options.rawUpdate,
+              preserveRaw: options.preserveRaw,
+            }
+          : { update: options, rawUpdate: options, preserveRaw: true };
+      const preservedUpdate = rawUpdate === undefined ? update : rawUpdate;
+      if (preserveRaw !== false) {
+        emit({ type: 'raw', rawValue: preservedUpdate });
+      }
+      if (
+        update.sessionUpdate === 'agent_message_chunk' &&
+        update.content?.type === 'text' &&
+        typeof update.content.text === 'string'
+      ) {
+        flushCompletedToolStep();
+        emitContent({
+          type: 'text',
+          text: update.content.text,
+          messageId: update.messageId,
+        });
+        return;
+      }
+      if (
+        update.sessionUpdate === 'agent_thought_chunk' &&
+        update.content?.type === 'text' &&
+        typeof update.content.text === 'string'
+      ) {
+        flushCompletedToolStep();
+        emitContent({
+          type: 'reasoning',
+          text: update.content.text,
+          messageId: update.messageId,
+        });
+        return;
+      }
+      if (
+        update.sessionUpdate === 'agent_message_chunk' ||
+        update.sessionUpdate === 'agent_thought_chunk'
+      ) {
+        closeBlock();
+        return;
+      }
+      if (
+        update.sessionUpdate === 'tool_call' ||
+        update.sessionUpdate === 'tool_call_update'
+      ) {
+        emitToolUpdate({ update, rawUpdate: preservedUpdate });
+      }
+    },
+    raw: ({ rawValue }) => {
+      emit({ type: 'raw', rawValue });
+    },
+    close: closeBlock,
+    hostToolCall,
+    hostToolResult,
+    finish: response => {
+      if (finished) return;
+      finished = true;
+      emit({ type: 'raw', rawValue: response });
+      const finishReason = mapACPFinishReason({
+        stopReason: response.stopReason,
+      });
+      const usageMetadata =
+        response.usage == null
+          ? undefined
+          : mapACPUsageMetadata({ usage: response.usage });
+      if (stepOpen) {
+        emitInferredStep({ finishReason });
+      } else {
+        closeBlock();
+      }
+      emit({
+        type: 'finish',
+        finishReason,
+        totalUsage: mapACPUsage({ usage: response.usage }),
+        harnessMetadata: {
+          acp: {
+            stopReason: response.stopReason,
+            ...(usageMetadata == null ? {} : { usage: usageMetadata }),
+          },
+        },
+      });
+    },
+  };
+}
+
+export function mapACPFinishReason({ stopReason }: { stopReason: string }): {
+  unified:
+    | 'stop'
+    | 'length'
+    | 'content-filter'
+    | 'tool-calls'
+    | 'error'
+    | 'other';
+  raw: string;
+} {
+  switch (stopReason) {
+    case 'end_turn':
+      return { unified: 'stop', raw: stopReason };
+    case 'max_tokens':
+    case 'max_turn_requests':
+      return { unified: 'length', raw: stopReason };
+    case 'refusal':
+      return { unified: 'content-filter', raw: stopReason };
+    default:
+      return { unified: 'other', raw: stopReason };
+  }
+}
+
+function indexBuiltinTools({
+  builtinTools,
+}: {
+  builtinTools: ReadonlyArray<ACPBuiltinTool>;
+}): ReadonlyMap<string, ACPBuiltinTool> {
+  const matches = new Map<string, ACPBuiltinTool | null>();
+  for (const builtinTool of builtinTools) {
+    addBuiltinToolMatch({
+      matches,
+      name: builtinTool.toolName,
+      builtinTool,
+    });
+    if (builtinTool.nativeName != null) {
+      addBuiltinToolMatch({
+        matches,
+        name: builtinTool.nativeName,
+        builtinTool,
+      });
+    }
+  }
+  return new Map(
+    [...matches].filter(
+      (entry): entry is [string, ACPBuiltinTool] => entry[1] != null,
+    ),
+  );
+}
+
+function addBuiltinToolMatch({
+  matches,
+  name,
+  builtinTool,
+}: {
+  matches: Map<string, ACPBuiltinTool | null>;
+  name: string;
+  builtinTool: ACPBuiltinTool;
+}): void {
+  if (!matches.has(name)) {
+    matches.set(name, builtinTool);
+    return;
+  }
+  if (matches.get(name)?.toolName !== builtinTool.toolName) {
+    matches.set(name, null);
+  }
+}
+
+function mergeToolUpdate({
+  state,
+  update,
+  rawUpdate,
+}: {
+  state: ToolState;
+  update: Extract<
+    ACPSessionUpdate,
+    { sessionUpdate: 'tool_call' | 'tool_call_update' }
+  >;
+  rawUpdate: unknown;
+}): void {
+  const parsed = update as unknown as Record<string, unknown>;
+  for (const property of [
+    'title',
+    'kind',
+    'status',
+    'content',
+    'locations',
+    'rawInput',
+    'rawOutput',
+    '_meta',
+  ]) {
+    if (
+      Object.prototype.hasOwnProperty.call(parsed, property) &&
+      parsed[property] !== undefined
+    ) {
+      state.values[property] = parsed[property];
+    }
+  }
+  const programmaticName = getStringProperty({
+    value: rawUpdate,
+    property: 'name',
+  });
+  if (programmaticName != null) state.values.name = programmaticName;
+}
+
+function emitFileChanges({
+  state,
+  emit,
+}: {
+  state: ToolState;
+  emit: (event: HarnessV1StreamPart) => void;
+}): void {
+  const content = Array.isArray(state.values.content)
+    ? state.values.content
+    : [];
+  for (const item of content) {
+    if (!isRecord(item) || item.type !== 'diff') continue;
+    const path = getStringProperty({ value: item, property: 'path' });
+    const newText = getStringProperty({ value: item, property: 'newText' });
+    if (path == null || newText == null) continue;
+    const oldText = item.oldText;
+    const event = oldText == null ? 'create' : 'modify';
+    emitFileChange({ state, emit, path, event });
+  }
+
+  if (state.values.kind !== 'edit') return;
+  const locations = Array.isArray(state.values.locations)
+    ? state.values.locations
+    : [];
+  for (const location of locations) {
+    const path = getStringProperty({ value: location, property: 'path' });
+    if (path != null) {
+      emitFileChange({ state, emit, path, event: 'modify' });
+    }
+  }
+}
+
+function emitFileChange({
+  state,
+  emit,
+  path,
+  event,
+}: {
+  state: ToolState;
+  emit: (event: HarnessV1StreamPart) => void;
+  path: string;
+  event: 'create' | 'modify' | 'delete';
+}): void {
+  if (state.emittedFilePaths.has(path)) return;
+  state.emittedFilePaths.add(path);
+  emit({
+    type: 'file-change',
+    path,
+    event,
+    harnessMetadata: {
+      acp: {
+        toolCallId: state.toolCallId,
+      },
+    },
+  });
+}
+
+function createDynamicToolName({
+  programmaticName,
+  toolCallId,
+}: {
+  programmaticName: string | undefined;
+  toolCallId: string;
+}): string {
+  const source = programmaticName ?? `acp_tool_${toolCallId}`;
+  const normalized = source
+    .replace(/[^A-Za-z0-9_-]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 128);
+  if (normalized.length === 0) return 'acp_tool';
+  return /^[A-Za-z_]/.test(normalized) ? normalized : `acp_${normalized}`;
+}
+
+function stringifyToolInput({ input }: { input: unknown }): string {
+  return JSON.stringify(toSafeJSONValue({ value: input, fallback: {} }));
+}
+
+function createToolResult({ state }: { state: ToolState }): HarnessToolResult {
+  const value =
+    state.values.rawOutput != null
+      ? state.values.rawOutput
+      : state.values.content != null
+        ? state.values.content
+        : {};
+  return toSafeJSONValue({ value, fallback: {} }) ?? {};
+}
+
+function toSafeJSONValue({
+  value,
+  fallback,
+  seen = new Set(),
+}: {
+  value: unknown;
+  fallback: JSONValue;
+  seen?: Set<object>;
+}): JSONValue {
+  if (value == null) return fallback;
+  if (typeof value === 'string' || typeof value === 'boolean') return value;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'bigint') return value.toString();
+  if (typeof value !== 'object') return fallback;
+  if (seen.has(value)) return '[Circular]';
+  seen.add(value);
+  if (Array.isArray(value)) {
+    const result = value.map(item =>
+      toSafeJSONValue({ value: item, fallback: null, seen }),
+    );
+    seen.delete(value);
+    return result;
+  }
+  const result = Object.create(null) as Record<string, JSONValue>;
+  try {
+    for (const [key, item] of Object.entries(value)) {
+      result[key] = toSafeJSONValue({
+        value: item,
+        fallback: null,
+        seen,
+      });
+    }
+  } catch {
+    seen.delete(value);
+    return fallback;
+  }
+  seen.delete(value);
+  return result;
+}
+
+function getStringProperty({
+  value,
+  property,
+}: {
+  value: unknown;
+  property: string;
+}): string | undefined {
+  if (!isRecord(value)) return undefined;
+  const propertyValue = value[property];
+  return typeof propertyValue === 'string' ? propertyValue : undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function mapACPUsage({
+  usage,
+}: {
+  usage: ACPPromptResponse['usage'];
+}): HarnessUsage {
+  if (usage == null) return unknownUsage();
+  const raw = mapACPUsageMetadata({ usage });
+  return {
+    inputTokens: {
+      total: usage.inputTokens,
+      noCache: undefined,
+      cacheRead: usage.cachedReadTokens ?? undefined,
+      cacheWrite: usage.cachedWriteTokens ?? undefined,
+    },
+    outputTokens: {
+      total: usage.outputTokens,
+      text: undefined,
+      reasoning: usage.thoughtTokens ?? undefined,
+    },
+    raw,
+  };
+}
+
+function mapACPUsageMetadata({
+  usage,
+}: {
+  usage: NonNullable<ACPPromptResponse['usage']>;
+}) {
+  return {
+    totalTokens: usage.totalTokens,
+    inputTokens: usage.inputTokens,
+    outputTokens: usage.outputTokens,
+    ...(usage.thoughtTokens == null
+      ? {}
+      : { thoughtTokens: usage.thoughtTokens }),
+    ...(usage.cachedReadTokens == null
+      ? {}
+      : { cachedReadTokens: usage.cachedReadTokens }),
+    ...(usage.cachedWriteTokens == null
+      ? {}
+      : { cachedWriteTokens: usage.cachedWriteTokens }),
+  };
+}
+
+function unknownUsage(): HarnessUsage {
+  return {
+    inputTokens: {
+      total: undefined,
+      noCache: undefined,
+      cacheRead: undefined,
+      cacheWrite: undefined,
+    },
+    outputTokens: {
+      total: undefined,
+      text: undefined,
+      reasoning: undefined,
+    },
+  };
+}
