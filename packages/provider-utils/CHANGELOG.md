@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 5.0.20
+
+### Patch Changes
+
+- 160ccdb: Reduce bundle size by removing the runtime Zod 3 dependency.
+
 ## 5.0.19
 
 ### Patch Changes
