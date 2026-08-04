@@ -112,8 +112,12 @@ describe('BlackForestLabsVideoModel', () => {
     });
 
     it('should support workflow serialization', () => {
-      const serialized =
-        BlackForestLabsVideoModel[WORKFLOW_SERIALIZE](createModel());
+      const serialized = BlackForestLabsVideoModel[WORKFLOW_SERIALIZE](
+        createModel({
+          currentDate: () => new Date(0),
+          fetch: async () => new Response(),
+        }),
+      );
 
       expect(serialized).toEqual({
         modelId: 'flux-3-video',
