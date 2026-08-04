@@ -1,5 +1,6 @@
 import type {
   EmbeddingModelV4,
+  Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
   FilesV4,
   ImageModelV4,
   LanguageModelV4,
@@ -30,8 +31,8 @@ import type { OpenAIEmbeddingModelId } from './embedding/openai-embedding-model-
 import { OpenAIImageModel } from './image/openai-image-model';
 import type { OpenAIImageModelId } from './image/openai-image-model-options';
 import { openaiTools } from './openai-tools';
+import { OpenAIResponsesBatchLanguageModel } from './openai-batch-language-model';
 import { OpenAIRealtimeModel } from './realtime/openai-realtime-model';
-import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
 import type { OpenAIResponsesModelId } from './responses/openai-responses-language-model-options';
 import { OpenAISpeechModel } from './speech/openai-speech-model';
 import type { OpenAISpeechModelId } from './speech/openai-speech-model-options';
@@ -43,12 +44,12 @@ import { OpenAISkills } from './skills/openai-skills';
 import { VERSION } from './version';
 
 export interface OpenAIProvider extends ProviderV4 {
-  (modelId: OpenAIResponsesModelId): LanguageModelV4;
+  (modelId: OpenAIResponsesModelId): BatchLanguageModelV4;
 
   /**
    * Creates an OpenAI model for text generation.
    */
-  languageModel(modelId: OpenAIResponsesModelId): LanguageModelV4;
+  languageModel(modelId: OpenAIResponsesModelId): BatchLanguageModelV4;
 
   /**
    * Creates an OpenAI chat model for text generation.
@@ -58,7 +59,7 @@ export interface OpenAIProvider extends ProviderV4 {
   /**
    * Creates an OpenAI responses API model for text generation.
    */
-  responses(modelId: OpenAIResponsesModelId): LanguageModelV4;
+  responses(modelId: OpenAIResponsesModelId): BatchLanguageModelV4;
 
   /**
    * Creates an OpenAI completion model for text generation.
@@ -301,7 +302,7 @@ export function createOpenAI(
   };
 
   const createResponsesModel = (modelId: OpenAIResponsesModelId) => {
-    return new OpenAIResponsesLanguageModel(modelId, {
+    return new OpenAIResponsesBatchLanguageModel(modelId, {
       provider: `${providerName}.responses`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
