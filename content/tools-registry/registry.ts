@@ -368,7 +368,7 @@ import { generateText, isStepCount } from 'ai';
 
 const { text } = await generateText({
   model: 'openai/gpt-5.2',
-  prompt: 'Chart Nvidia vs AMD revenue since 2015',
+  prompt: "What are today's top performing stocks?",
   tools: {
     takoSearch: takoSearch(),
     takoAnswer: takoAnswer(),
