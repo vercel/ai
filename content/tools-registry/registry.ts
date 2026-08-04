@@ -355,7 +355,7 @@ console.log(text);`,
     slug: 'tako-search',
     name: 'Tako Search',
     description:
-      'Ground answers in real data. Search Tako for charts and metrics plus web results, ask for one citation-backed answer, or download the rows behind any result. Covers finance, economics, company KPIs, sports, demographics, weather and elections.',
+      'Tako grounds your agent in two kinds of knowledge at once: curated structured data from trusted providers, and live web search. Search returns typed knowledge cards, values with named sources and methodology, plus web results. Answer synthesizes one citation-backed response. Contents returns the rows behind a card or the full text of a page, so your agent never crawls one. Covers finance, macroeconomics, geopolitics, sports and weather.',
     packageName: '@takoviz/ai-sdk',
     installCommand: {
       pnpm: 'pnpm install @takoviz/ai-sdk',
