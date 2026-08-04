@@ -4,6 +4,13 @@
 
 ### Patch Changes
 
+- Updated dependencies [3836a85]
+  - ai@7.0.52
+
+## 0.0.1
+
+### Patch Changes
+
 - ai@7.0.51
 
 ## 0.0.1
