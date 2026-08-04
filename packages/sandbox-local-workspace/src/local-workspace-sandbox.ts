@@ -48,33 +48,36 @@ export type LocalWorkspaceSandboxSettings = {
 };
 
 /**
- * Everything `HarnessAgent` needs in order to work in a local project
- * directory. This is the recommended entry point.
+ * The provider and the `sandboxConfig` that has to accompany it.
  *
  * ```ts
+ * const workspace = localWorkspace({ path: '/Users/me/repos/myapp' });
+ *
  * const agent = new HarnessAgent({
  *   harness: createClaudeCode(),
- *   ...localWorkspace({ path: '/Users/me/repos/myapp' }),
+ *   sandbox: workspace.sandbox,
+ *   sandboxConfig: workspace.sandboxConfig,
  * });
  * ```
  *
- * `sandbox` and `sandboxConfig.workDir` have to agree, and deriving the second
- * by hand is easy to get subtly wrong: `HarnessAgent` composes each session's
- * directory as `<defaultWorkingDirectory>/<workDir>`, so a `workDir` that does
- * not match the provider's own resolution of `path` silently runs the harness
- * in an empty sibling directory. Returning both together makes that
- * unrepresentable.
+ * Unlike other sandbox providers, this one cannot be configured by
+ * `sandbox:` alone. `HarnessAgent` composes each session's directory as
+ * `<defaultWorkingDirectory>/<workDir>`, and this provider reports the
+ * project's parent as its default working directory, so it needs `workDir` to
+ * name the project. Deriving that by hand is easy to get subtly wrong, and a
+ * mismatch is silent: the harness runs in an empty sibling directory and
+ * reports that the project is empty. Returning both from one call keeps them
+ * in agreement.
  *
- * Merge into `sandboxConfig` if you need more of it:
+ * Add to `sandboxConfig` by merging, never by replacing:
  *
  * ```ts
- * const workspace = localWorkspace({ path });
- * new HarnessAgent({
- *   harness,
- *   sandbox: workspace.sandbox,
- *   sandboxConfig: { ...workspace.sandboxConfig, onSession },
- * });
+ * sandboxConfig: { ...workspace.sandboxConfig, onSession },
  * ```
+ *
+ * Do **not** spread this into the agent settings. `{ ...localWorkspace(...),
+ * sandboxConfig: { onSession } }` silently discards `workDir` and reintroduces
+ * exactly the failure this helper exists to prevent.
  */
 export function localWorkspace(settings: LocalWorkspaceSandboxSettings): {
   readonly sandbox: HarnessV1SandboxProvider;

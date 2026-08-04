@@ -152,10 +152,12 @@ describeE2E('local workspace provider, driven by real harnesses', () => {
           const { root, projectPath } = await createProject();
           const { harness, bridgeBacked } = await harnessCase.createHarness();
 
+          const workspace = localWorkspace({ path: projectPath });
           const agent = new HarnessAgent({
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            // biome-ignore lint/suspicious/noExplicitAny: adapters are structurally compatible
             harness: harness as any,
-            ...localWorkspace({ path: projectPath }),
+            sandbox: workspace.sandbox,
+            sandboxConfig: workspace.sandboxConfig,
             instructions: `Your working directory is ${projectPath}.`,
           });
 
@@ -223,10 +225,12 @@ describeE2E('local workspace provider, driven by real harnesses', () => {
         const { projectPath } = await createProject();
         const { harness } = await harnessCase.createHarness();
 
+        const workspace = localWorkspace({ path: projectPath });
         const agent = new HarnessAgent({
           // biome-ignore lint/suspicious/noExplicitAny: adapters are structurally compatible
           harness: harness as any,
-          ...localWorkspace({ path: projectPath }),
+          sandbox: workspace.sandbox,
+          sandboxConfig: workspace.sandboxConfig,
           instructions: `Your working directory is ${projectPath}.`,
         });
 
@@ -262,10 +266,12 @@ describeE2E('local workspace provider, driven by real harnesses', () => {
         const { projectPath } = await createProject();
         const { harness } = await harnessCase.createHarness();
 
+        const workspace = localWorkspace({ path: projectPath });
         const agent = new HarnessAgent({
           // biome-ignore lint/suspicious/noExplicitAny: adapters are structurally compatible
           harness: harness as any,
-          ...localWorkspace({ path: projectPath }),
+          sandbox: workspace.sandbox,
+          sandboxConfig: workspace.sandboxConfig,
           instructions: `Your working directory is ${projectPath}.`,
         });
 
@@ -310,12 +316,15 @@ describeE2E('local workspace provider, driven by real harnesses', () => {
       const alpha = await createProject();
       const beta = await createProject();
 
-      const makeAgent = (projectPath: string) =>
-        new HarnessAgent({
+      const makeAgent = (projectPath: string) => {
+        const workspace = localWorkspace({ path: projectPath });
+        return new HarnessAgent({
           harness: createPi({ agentDir: join(homeDir(), '.pi', 'agent') }),
-          ...localWorkspace({ path: projectPath }),
+          sandbox: workspace.sandbox,
+          sandboxConfig: workspace.sandboxConfig,
           instructions: `Your working directory is ${projectPath}.`,
         });
+      };
 
       const alphaAgent = makeAgent(alpha.projectPath);
       const betaAgent = makeAgent(beta.projectPath);
@@ -367,9 +376,11 @@ describeE2E('local workspace provider, driven by real harnesses', () => {
       for (const name of credentialVars) delete process.env[name];
 
       try {
+        const workspace = localWorkspace({ path: projectPath });
         const agent = new HarnessAgent({
           harness: createPi({ agentDir: join(homeDir(), '.pi', 'agent') }),
-          ...localWorkspace({ path: projectPath }),
+          sandbox: workspace.sandbox,
+          sandboxConfig: workspace.sandboxConfig,
           instructions: `Your working directory is ${projectPath}.`,
         });
 

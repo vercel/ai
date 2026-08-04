@@ -113,6 +113,28 @@ describe('localWorkspace', () => {
     }
   });
 
+  // Documents why the README tells callers to assign `sandbox` and
+  // `sandboxConfig` explicitly instead of spreading. Spreading looks tidier
+  // but any later `sandboxConfig` key silently replaces the whole object,
+  // dropping `workDir` and reintroducing the empty-sibling-directory failure.
+  it('loses workDir if spread and then overridden, which is why we do not document that', () => {
+    const workspace = localWorkspace({ path: '/Users/me/repos/myapp' });
+
+    const spreadThenOverridden = {
+      ...workspace,
+      sandboxConfig: { onSession: () => {} },
+    };
+    expect(
+      (spreadThenOverridden.sandboxConfig as { workDir?: string }).workDir,
+    ).toBeUndefined();
+
+    const merged = {
+      sandbox: workspace.sandbox,
+      sandboxConfig: { ...workspace.sandboxConfig, onSession: () => {} },
+    };
+    expect(merged.sandboxConfig.workDir).toBe('myapp');
+  });
+
   it('forwards the remaining settings to the provider', async () => {
     const { projectPath } = await createTempProject();
     const { sandbox } = localWorkspace({ path: projectPath, portCount: 2 });

@@ -18,31 +18,40 @@ npm i @ai-sdk/sandbox-local-workspace
 
 ## Usage
 
-`localWorkspace()` returns both the provider and the `sandboxConfig` that goes with it,
-so spread it into your agent:
-
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createClaudeCode } from '@ai-sdk/harness-claude-code';
 import { localWorkspace } from '@ai-sdk/sandbox-local-workspace';
 
-const agent = new HarnessAgent({
-  harness: createClaudeCode(),
-  ...localWorkspace({ path: '/Users/me/repos/myapp' }),
-});
-```
-
-If you need more of `sandboxConfig`, merge it:
-
-```ts
 const workspace = localWorkspace({ path: '/Users/me/repos/myapp' });
 
 const agent = new HarnessAgent({
   harness: createClaudeCode(),
   sandbox: workspace.sandbox,
-  sandboxConfig: { ...workspace.sandboxConfig, onSession },
+  sandboxConfig: workspace.sandboxConfig,
 });
 ```
+
+If you need more of `sandboxConfig`, merge rather than replace:
+
+```ts
+sandboxConfig: { ...workspace.sandboxConfig, onSession },
+```
+
+### Why this needs `sandboxConfig` when other providers do not
+
+`@ai-sdk/sandbox-vercel` and `@ai-sdk/sandbox-just-bash` are configured by `sandbox:`
+alone. This one is not, and that is a genuine wart rather than a style choice.
+
+`HarnessAgent` composes each session's directory as
+`<sandbox.defaultWorkingDirectory>/<sandboxConfig.workDir>`. A hosted provider owns a
+fresh machine, so it is happy for the framework to invent a per-session subdirectory. This
+provider has to land the session on a directory that already exists and that the framework
+has no way to name, so `workDir` has to come from the caller.
+
+`localWorkspace()` exists to keep the two halves in agreement. See
+[Why the provider roots itself one level above your project](#why-the-provider-roots-itself-one-level-above-your-project)
+for why the parent directory, rather than the project, is the sandbox root.
 
 You can also use the provider standalone, to hand an AI SDK tool a local
 `Experimental_SandboxSession`:
