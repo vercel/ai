@@ -36,6 +36,6 @@ run(async () => {
   console.log('Finish reason:', await result.finishReason);
   console.log(
     'Provider metadata:',
-    JSON.stringify((await result.finalStep).providerMetadata, null, 2),
+    JSON.stringify(await result.providerMetadata, null, 2),
   );
 });

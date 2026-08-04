@@ -14,6 +14,6 @@ run(async () => {
   console.log('Usage:', result.usage);
   console.log(
     'Provider metadata:',
-    JSON.stringify(result.finalStep.providerMetadata, null, 2),
+    JSON.stringify(result.providerMetadata, null, 2),
   );
 });

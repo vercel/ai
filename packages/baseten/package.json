@@ -47,12 +47,8 @@
     "@ai-sdk/provider-utils": "workspace:*"
   },
   "devDependencies": {
-<<<<<<< HEAD
-    "@types/node": "20.17.24",
-=======
     "@ai-sdk/test-server": "workspace:*",
-    "@types/node": "22.19.19",
->>>>>>> 11f00aa49b (fix(provider/baseten): opt-in native performance client, streamed usage, error envelopes (#18317))
+    "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
     "typescript": "5.8.3",
