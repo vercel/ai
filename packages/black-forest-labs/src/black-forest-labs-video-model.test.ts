@@ -585,26 +585,25 @@ describe('BlackForestLabsVideoModel', () => {
       expect(server.calls).toHaveLength(0);
     });
 
-    it('should warn when 3 or more untimed keyframes are sent without a duration', async () => {
-      const result = await createModel().doGenerate({
-        ...defaultOptions,
-        providerOptions: {
-          blackForestLabs: {
-            keyframes: [
-              'https://cdn.example.com/a.png',
-              'https://cdn.example.com/b.png',
-              'https://cdn.example.com/c.png',
-            ],
+    it('should reject 3 or more untimed keyframes without a duration', async () => {
+      await expect(
+        createModel().doGenerate({
+          ...defaultOptions,
+          providerOptions: {
+            blackForestLabs: {
+              keyframes: [
+                'https://cdn.example.com/a.png',
+                'https://cdn.example.com/b.png',
+                'https://cdn.example.com/c.png',
+              ],
+            },
           },
-        },
-      });
+        }),
+      ).rejects.toThrow(
+        'FLUX 3 video requires an explicit duration when 3 or more keyframes are sent without a timestamp.',
+      );
 
-      expect(result.warnings).toContainEqual({
-        type: 'other',
-        message:
-          'FLUX 3 video requires an explicit duration when 3 or more keyframes are sent without a timestamp. ' +
-          'The request will be rejected unless a duration is set.',
-      });
+      expect(server.calls).toHaveLength(0);
     });
 
     it('should not warn about duration when the keyframes are timed', async () => {

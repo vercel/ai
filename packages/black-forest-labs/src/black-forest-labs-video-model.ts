@@ -1,5 +1,6 @@
 import {
   AISDKError,
+  InvalidArgumentError,
   type Experimental_VideoModelV4 as VideoModelV4,
   type Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
   type Experimental_VideoModelV4File as VideoModelV4File,
@@ -508,11 +509,11 @@ export class BlackForestLabsVideoModel implements VideoModelV4 {
       duration == null &&
       untimedKeyframeCount >= UNTIMED_KEYFRAMES_NEEDING_DURATION
     ) {
-      warnings.push({
-        type: 'other',
+      throw new InvalidArgumentError({
+        argument: 'duration',
         message:
           `FLUX 3 video requires an explicit duration when ${UNTIMED_KEYFRAMES_NEEDING_DURATION} or more ` +
-          'keyframes are sent without a timestamp. The request will be rejected unless a duration is set.',
+          'keyframes are sent without a timestamp.',
       });
     }
 
