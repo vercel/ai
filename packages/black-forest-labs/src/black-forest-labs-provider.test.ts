@@ -29,7 +29,40 @@ const server = createTestServer({
       body: Buffer.from([1, 2, 3]),
     },
   },
+  'https://api.example.com/v1/flux-3-video': {
+    response: {
+      type: 'json-value',
+      body: {
+        id: 'video-req-123',
+        polling_url: 'https://api.example.com/video-poll',
+      },
+    },
+  },
+  'https://api.example.com/video-poll': {
+    response: {
+      type: 'json-value',
+      body: {
+        status: 'Ready',
+        result: { sample: 'https://api.example.com/video.mp4' },
+      },
+    },
+  },
 });
+
+const videoCallOptions = {
+  prompt: 'A white kitten chases a butterfly across a sunlit garden.',
+  n: 1,
+  aspectRatio: undefined,
+  resolution: undefined,
+  duration: undefined,
+  fps: undefined,
+  seed: undefined,
+  image: undefined,
+  frameImages: undefined,
+  inputReferences: undefined,
+  generateAudio: undefined,
+  providerOptions: {},
+} as const;
 
 describe('BlackForestLabs provider', () => {
   it('creates image models via .image and .imageModel', () => {
@@ -124,6 +157,54 @@ describe('BlackForestLabs provider', () => {
         c.requestUrl.startsWith('https://api.example.com/poll'),
     );
     expect(pollCalls.length).toBe(3);
+  });
+
+  it('creates video models via .video and .videoModel', () => {
+    const provider = createBlackForestLabs();
+
+    const videoModel = provider.video('flux-3-video');
+    const videoModel2 = provider.videoModel('flux-3-video');
+
+    expect(videoModel.provider).toBe('black-forest-labs.video');
+    expect(videoModel.modelId).toBe('flux-3-video');
+    expect(videoModel.specificationVersion).toBe('v3');
+    expect(videoModel.maxVideosPerCall).toBe(1);
+    expect(videoModel2.provider).toBe('black-forest-labs.video');
+  });
+
+  it('configures baseURL and headers correctly for video models', async () => {
+    const provider = createBlackForestLabs({
+      apiKey: 'test-api-key',
+      baseURL: 'https://api.example.com/v1',
+      headers: { 'x-extra-header': 'extra' },
+      pollIntervalMillis: 1,
+    });
+
+    const result = await provider
+      .video('flux-3-video')
+      .doGenerate(videoCallOptions);
+
+    expect(server.calls[0].requestUrl).toBe(
+      'https://api.example.com/v1/flux-3-video',
+    );
+    expect(server.calls[0].requestMethod).toBe('POST');
+    expect(server.calls[0].requestHeaders['x-key']).toBe('test-api-key');
+    expect(server.calls[0].requestHeaders['x-extra-header']).toBe('extra');
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      mode: 't2v',
+      prompt: videoCallOptions.prompt,
+    });
+    expect(server.calls[0].requestUserAgent).toContain(
+      'ai-sdk/black-forest-labs/',
+    );
+    expect(server.calls).toHaveLength(2);
+    expect(result.videos).toStrictEqual([
+      {
+        type: 'url',
+        url: 'https://api.example.com/video.mp4',
+        mediaType: 'video/mp4',
+      },
+    ]);
   });
 
   it('throws NoSuchModelError for unsupported model types', () => {
