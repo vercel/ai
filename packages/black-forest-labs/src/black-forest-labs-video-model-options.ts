@@ -9,13 +9,25 @@ import {
   blackForestLabsVideoResolutions,
 } from './black-forest-labs-video-settings';
 
-/**
- * A single FLUX 3 keyframe: either an image on its own, or an
- * `[seconds, image]` pair that pins the image to that second of the clip.
- */
-export const blackForestLabsVideoKeyframeSchema = z.union([
+const blackForestLabsTimedVideoKeyframeSchema = z.tuple([
+  z.number().min(0).max(20),
   z.string(),
-  z.tuple([z.number(), z.string()]),
+]);
+
+export const blackForestLabsVideoKeyframesSchema = z.union([
+  z.array(z.string()).min(1).max(10),
+  z
+    .array(blackForestLabsTimedVideoKeyframeSchema)
+    .min(1)
+    .max(10)
+    .refine(
+      keyframes =>
+        keyframes.every(
+          (keyframe, index) =>
+            index === 0 || keyframe[0] > keyframes[index - 1][0],
+        ),
+      { message: 'Timed keyframes must be in chronological order.' },
+    ),
 ]);
 
 export const blackForestLabsVideoProviderOptions = z.object({
@@ -40,7 +52,7 @@ export const blackForestLabsVideoProviderOptions = z.object({
    * are spaced evenly in between. Three or more plain images require an
    * explicit `duration`.
    */
-  keyframes: z.array(blackForestLabsVideoKeyframeSchema).optional(),
+  keyframes: blackForestLabsVideoKeyframesSchema.optional(),
 
   /**
    * Moderation strictness from 0 (strictest) to 4. Defaults to 2. Sexual

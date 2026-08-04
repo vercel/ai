@@ -40,8 +40,6 @@ const DEFAULT_POLL_INTERVAL_MILLIS = 2_000;
 const DEFAULT_POLL_TIMEOUT_MILLIS = 600_000;
 const MIN_DURATION_SECONDS = 5;
 const MAX_DURATION_SECONDS = 20;
-const MAX_KEYFRAMES = 10;
-
 /** Keyframe counts above this need an explicit duration when untimed. */
 const UNTIMED_KEYFRAMES_NEEDING_DURATION = 3;
 
@@ -409,15 +407,6 @@ export class BlackForestLabsVideoModel implements VideoModelV4 {
       if (lastFrame != null) {
         keyframes.push(toBlackForestLabsFile(lastFrame));
       }
-    }
-
-    if (keyframes != null && keyframes.length > MAX_KEYFRAMES) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'keyframes',
-        details: `FLUX 3 video accepts at most ${MAX_KEYFRAMES} keyframes. Extra keyframes were ignored.`,
-      });
-      keyframes = keyframes.slice(0, MAX_KEYFRAMES);
     }
 
     // Video continuation. FLUX 3 takes a single `start_video` and has no

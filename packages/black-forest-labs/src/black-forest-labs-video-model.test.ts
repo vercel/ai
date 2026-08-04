@@ -540,26 +540,49 @@ describe('BlackForestLabsVideoModel', () => {
       });
     });
 
-    it('should cap keyframes at 10 and warn', async () => {
+    it('should reject more than 10 keyframes', async () => {
       const keyframes = Array.from(
         { length: 12 },
         (_, index) => `https://cdn.example.com/${index}.png`,
       );
 
-      const result = await createModel().doGenerate({
-        ...defaultOptions,
-        duration: 10,
-        providerOptions: { blackForestLabs: { keyframes } },
-      });
+      await expect(
+        createModel().doGenerate({
+          ...defaultOptions,
+          duration: 10,
+          providerOptions: { blackForestLabs: { keyframes } },
+        }),
+      ).rejects.toThrow('invalid blackForestLabs provider options');
 
-      const body = (await requestBody()) as { keyframes: string[] };
-      expect(body.keyframes).toHaveLength(10);
-      expect(result.warnings).toContainEqual({
-        type: 'unsupported',
-        feature: 'keyframes',
-        details:
-          'FLUX 3 video accepts at most 10 keyframes. Extra keyframes were ignored.',
-      });
+      expect(server.calls).toHaveLength(0);
+    });
+
+    it.each([
+      ['an empty array', []],
+      [
+        'mixed timed and untimed entries',
+        [
+          'https://cdn.example.com/a.png',
+          [3, 'https://cdn.example.com/b.png'],
+        ],
+      ],
+      [
+        'out-of-order timed entries',
+        [
+          [3, 'https://cdn.example.com/a.png'],
+          [2, 'https://cdn.example.com/b.png'],
+        ],
+      ],
+      ['a timestamp outside the video range', [[21, 'data']]],
+    ])('should reject %s', async (_name, keyframes) => {
+      await expect(
+        createModel().doGenerate({
+          ...defaultOptions,
+          providerOptions: { blackForestLabs: { keyframes } },
+        }),
+      ).rejects.toThrow('invalid blackForestLabs provider options');
+
+      expect(server.calls).toHaveLength(0);
     });
 
     it('should warn when 3 or more untimed keyframes are sent without a duration', async () => {
