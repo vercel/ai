@@ -32,11 +32,9 @@ function createModel(fixtureName: string) {
   })('claude-3-haiku-20240307');
 }
 
-describe('issue #18331', () => {
+describe('Anthropic message lifecycle', () => {
   it('fails when a different message starts while the previous message is open', async () => {
-    const { stream } = await createModel(
-      'issue-18331-spliced-generations',
-    ).doStream({
+    const { stream } = await createModel('spliced-message-start').doStream({
       prompt,
       tools: [
         {
@@ -54,18 +52,27 @@ describe('issue #18331', () => {
 
     const parts = await convertReadableStreamToArray(stream);
     const errorParts = parts.filter(part => part.type === 'error');
+    const responseIds = parts
+      .filter(part => part.type === 'response-metadata')
+      .map(part => part.id);
 
     expect(errorParts).toHaveLength(1);
     expect(
       InvalidResponseDataError.isInstance(errorParts[0]?.error),
     ).toBeTruthy();
+    expect(responseIds).toEqual(['msg_first']);
+    expect(
+      parts.some(
+        part => part.type === 'tool-call' && part.toolCallId === 'toolu_second',
+      ),
+    ).toBeFalsy();
     expect(parts.some(part => part.type === 'finish')).toBeFalsy();
   });
 
   it('ignores a duplicate message_start for the already-open message', async () => {
-    const { stream } = await createModel(
-      'issue-18331-duplicate-message-start',
-    ).doStream({ prompt });
+    const { stream } = await createModel('duplicate-message-start').doStream({
+      prompt,
+    });
 
     const parts = await convertReadableStreamToArray(stream);
     const responseMetadata = parts.filter(
