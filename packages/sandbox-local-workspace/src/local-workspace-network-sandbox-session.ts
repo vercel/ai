@@ -34,9 +34,6 @@ export class LocalWorkspaceNetworkSandboxSession
     super(input.context);
     this.id = input.id;
     this.ports = input.ports;
-
-    // Shared handler rather than one per session: detach never calls `stop()`,
-    // so per-session handlers accumulated and tripped Node's listener warning.
     reapChildSetOnExit(this.context.children);
   }
 
@@ -55,17 +52,14 @@ export class LocalWorkspaceNetworkSandboxSession
   /**
    * Resolve any loopback port to a URL.
    *
-   * Deliberately does not check {@link ports}. That list is the set of free
-   * ports allocated for this session's bridge to *bind*; it is not a list of
-   * what is addressable. Everything on `127.0.0.1` is addressable, whether or
-   * not this session allocated it.
+   * Deliberately does not check {@link ports}, which lists the free ports
+   * allocated for this session's bridge to *bind*, not what is addressable.
+   * Everything on `127.0.0.1` is.
    *
-   * Rejecting unknown ports here breaks detach and reattach. A detached
-   * bridge's coordinates carry the port it is still listening on, and a resumed
-   * session allocates a fresh pool, so the persisted port would never be in it.
-   * Adapters treat a failed `getPortUrl` as "bridge unreachable" and silently
-   * respawn, which orphans the original bridge and throws away the live session
-   * that detaching was meant to preserve.
+   * Rejecting unknown ports breaks reattach: a detached bridge's coordinates
+   * name the port it is still listening on, and a resumed session has a fresh
+   * pool. Adapters read the failure as "bridge unreachable" and quietly
+   * respawn, orphaning the bridge that detaching meant to preserve.
    */
   getPortUrl = async ({
     port,
@@ -78,9 +72,8 @@ export class LocalWorkspaceNetworkSandboxSession
   /**
    * Kill every process this session spawned. Idempotent.
    *
-   * There is no machine to shut down. The "sandbox" is the user's own
-   * filesystem, which outlives the session by design. Leaving processes behind
-   * is never a supported mode, so this is unconditional.
+   * There is no machine to shut down: the "sandbox" is the user's own
+   * filesystem, which outlives the session by design.
    */
   stop = async (): Promise<void> => {
     for (const child of this.context.children) killProcessTree(child);

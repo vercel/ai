@@ -81,9 +81,6 @@ describe('createLocalWorkspaceSandbox', () => {
       );
     });
 
-    // The constructor cannot follow symlinks, because the provider contract
-    // forbids I/O at construction. `createSession` re-checks once the path is
-    // resolved, otherwise a symlink walks straight past the guard.
     it('refuses a symlink pointing at the filesystem root', async () => {
       const { root } = await createTempProject();
       const link = join(root, 'link-to-root');
@@ -154,10 +151,6 @@ describe('localWorkspace', () => {
     }
   });
 
-  // Documents why the README tells callers to assign `sandbox` and
-  // `sandboxConfig` explicitly instead of spreading. Spreading looks tidier
-  // but any later `sandboxConfig` key silently replaces the whole object,
-  // dropping `workDir` and reintroducing the empty-sibling-directory failure.
   it('loses workDir if spread and then overridden, which is why we do not document that', () => {
     const workspace = localWorkspace({ path: '/Users/me/repos/myapp' });
 
@@ -196,7 +189,7 @@ describe('working directory rooting', () => {
     );
   });
 
-  // Invariant 1. Adapters compare a spawned process's `pwd` against
+  // Adapters compare a spawned process's `pwd` against
   // `defaultWorkingDirectory`; on macOS /tmp -> /private/tmp, so a raw
   // `dirname()` would not match.
   it('resolves symlinked roots so a spawned pwd matches defaultWorkingDirectory', async () => {
@@ -215,7 +208,7 @@ describe('working directory rooting', () => {
     expect(stdout.trim()).toBe(session.defaultWorkingDirectory);
   });
 
-  // Invariant 3. Adapter bootstrap recipes use a relative bootstrapDir
+  // Adapter bootstrap recipes use a relative bootstrapDir
   // (`.harness-bootstrap/<harnessId>`) resolved against
   // `defaultWorkingDirectory`, so it lands beside the project, never inside it.
   it('places a relative bootstrap dir beside the project, not inside it', async () => {
@@ -304,9 +297,9 @@ describe('file operations', () => {
     expect(Buffer.concat(chunks)).toEqual(Buffer.from(bytes));
   });
 
-  // Invariant 2. Pi installs a global node:fs patch via syncBuiltinESMExports.
-  // Because this package destructures its bindings at module load, writes must
-  // still hit the real disk after the namespace is mutated.
+  // Pi installs a global node:fs patch via syncBuiltinESMExports. Because this
+  // package destructures its bindings at module load, writes must still hit the
+  // real disk after the namespace is mutated.
   it('is immune to a node:fs monkey-patch installed after import', async () => {
     const { projectPath } = await createTempProject();
     const session = await startSession({ path: projectPath });
@@ -418,8 +411,8 @@ describe('processes', () => {
     ).rejects.toThrow();
   });
 
-  // Invariant 5. Bridges spawn CLIs that spawn more processes, so stop() must
-  // reap the whole tree, not just the direct child.
+  // Bridges spawn CLIs that spawn more processes, so stop() must reap the whole
+  // tree, not just the direct child.
   it('kills the entire process tree on stop', async () => {
     const { projectPath } = await createTempProject();
     const provider = createLocalWorkspaceSandbox({ path: projectPath });
@@ -444,9 +437,6 @@ describe('processes', () => {
     expect(isProcessAlive(grandchildPid)).toBe(false);
   });
 
-  // One handler per session tripped Node's MaxListenersExceededWarning at
-  // eleven concurrent sessions, and detach never calls stop(), so they
-  // accumulated for the life of the process.
   it('registers a single exit handler no matter how many sessions exist', async () => {
     const { projectPath } = await createTempProject();
     const provider = createLocalWorkspaceSandbox({ path: projectPath });
@@ -491,11 +481,6 @@ describe('ports', () => {
     expect(new Set(session.ports).size).toBe(3);
   });
 
-  // `ports` is what was allocated for the bridge to bind, not a list of what is
-  // addressable. Rejecting anything else breaks reattach: a detached bridge's
-  // persisted port is never in the resumed session's fresh pool, adapters read
-  // the failure as "bridge unreachable", and they silently respawn and orphan
-  // the original.
   it('resolves a URL for a port outside the pool, so reattach can work', async () => {
     const { projectPath } = await createTempProject();
     const session = await startSession({ path: projectPath });
@@ -588,9 +573,6 @@ describe('onFirstCreate', () => {
     expect(calls).toBe(1);
   });
 
-  // A marker file alone is not enough. Two concurrent sessions both see it
-  // missing and both run the hook, which for a bridge-backed adapter means two
-  // `pnpm install` processes writing the same `node_modules`.
   it('runs once even when two sessions race with the same identity', async () => {
     const { projectPath } = await createTempProject();
     const provider = createLocalWorkspaceSandbox({ path: projectPath });
@@ -701,8 +683,6 @@ describe('onFirstCreate', () => {
     expect(received?.stop).toBeUndefined();
   });
 
-  // The marker file is the durable record. Caching the settled promise would
-  // mean deleting `.harness-local` no longer forces a re-bootstrap.
   it('re-runs after the marker is deleted', async () => {
     const { root, projectPath } = await createTempProject();
     const provider = createLocalWorkspaceSandbox({ path: projectPath });
@@ -725,8 +705,6 @@ describe('onFirstCreate', () => {
     expect(calls).toBe(2);
   });
 
-  // Callers are told to build one provider per project, so sibling projects
-  // mean two providers sharing a parent and therefore a marker.
   it('serialises across separate provider instances on the same root', async () => {
     const { projectPath } = await createTempProject();
     const first = createLocalWorkspaceSandbox({ path: projectPath });
@@ -852,9 +830,8 @@ describe('sessions', () => {
     expect(isProcessAlive(child.pid!)).toBe(true);
   });
 
-  // `description` is meant to be pasted into the model's instructions, so a
-  // wrong claim about relative paths sends the model's files into the sibling
-  // directory. Pin the text against what the session actually does.
+  // Pin the text against what the session actually does: a wrong claim here
+  // sends the model's files into the sibling directory.
   it('describes where relative paths actually resolve', async () => {
     const { root, projectPath } = await createTempProject();
     const session = await startSession({ path: projectPath });

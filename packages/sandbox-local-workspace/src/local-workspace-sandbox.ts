@@ -60,24 +60,19 @@ export type LocalWorkspaceSandboxSettings = {
  * });
  * ```
  *
- * Unlike other sandbox providers, this one cannot be configured by
- * `sandbox:` alone. `HarnessAgent` composes each session's directory as
- * `<defaultWorkingDirectory>/<workDir>`, and this provider reports the
- * project's parent as its default working directory, so it needs `workDir` to
- * name the project. Deriving that by hand is easy to get subtly wrong, and a
- * mismatch is silent: the harness runs in an empty sibling directory and
- * reports that the project is empty. Returning both from one call keeps them
- * in agreement.
+ * Unlike other sandbox providers, this one cannot be configured by `sandbox:`
+ * alone: it reports the project's *parent* as its default working directory, so
+ * `workDir` is what names the project. A hand-derived `workDir` that disagrees
+ * fails silently, running the harness in an empty sibling directory, so the two
+ * are returned together.
  *
- * Add to `sandboxConfig` by merging, never by replacing:
+ * Merge into `sandboxConfig`, never replace it. Spreading this into the agent
+ * settings and then assigning `sandboxConfig` discards `workDir` and
+ * reintroduces exactly that failure.
  *
  * ```ts
  * sandboxConfig: { ...workspace.sandboxConfig, onSession },
  * ```
- *
- * Do **not** spread this into the agent settings. `{ ...localWorkspace(...),
- * sandboxConfig: { onSession } }` silently discards `workDir` and reintroduces
- * exactly the failure this helper exists to prevent.
  */
 export function localWorkspace(settings: LocalWorkspaceSandboxSettings): {
   readonly sandbox: HarnessV1SandboxProvider;
@@ -100,15 +95,14 @@ const FIRST_CREATE_MARKER_DIR = '.harness-local';
 /**
  * `onFirstCreate` runs currently in flight, keyed by marker path.
  *
- * Module scope, not per provider: callers are encouraged to build one provider
- * per project, so two sibling projects mean two providers sharing a parent and
- * therefore a marker. A per-instance map would let them bootstrap on top of
- * each other.
+ * Module scope, not per provider: callers build one provider per project, so
+ * sibling projects share a parent and therefore a marker, and a per-instance
+ * map would let them bootstrap on top of each other. Entries are dropped once
+ * settled, leaving the marker file as the durable record.
  *
- * Entries are removed once settled, which leaves the marker file as the durable
- * record and keeps this purely a concurrency guard. Separate *processes* are
- * still not coordinated; that needs a lock file with staleness detection, which
- * the harness framework's own recipe application does not attempt either.
+ * Separate processes are not coordinated. That needs a lock file with staleness
+ * detection, which the framework's own recipe application does not attempt
+ * either.
  */
 const firstCreateRuns = new Map<string, Promise<void>>();
 
@@ -134,9 +128,8 @@ export function createLocalWorkspaceSandbox(
 /**
  * `HarnessV1SandboxProvider` implementation backed by the user's own machine.
  *
- * Construct one via {@link createLocalWorkspaceSandbox} and pass it to a
- * `HarnessAgent`, together with
- * `sandboxConfig: { workDir: localWorkspaceWorkDir(path) }`.
+ * Prefer {@link localWorkspace}, which pairs this with the `sandboxConfig` it
+ * requires.
  *
  * Unlike hosted providers there is no machine to create: sessions bind to a
  * directory that already exists and outlives them. `resumeSession` therefore
@@ -162,7 +155,6 @@ export class LocalWorkspaceSandboxProvider implements HarnessV1SandboxProvider {
     this.projectPath = projectPath;
     this.parentPath = dirname(projectPath);
     this.portCount = settings.portCount ?? 1;
-    // Inheriting the user's environment IS the credential reuse mechanism.
     this.env = { ...process.env, ...settings.env } as Record<string, string>;
   }
 
@@ -186,10 +178,8 @@ export class LocalWorkspaceSandboxProvider implements HarnessV1SandboxProvider {
     // this.
     const workingDirectory = await realpathAllowingMissing(this.parentPath);
 
-    // Now that symlinks are resolved, re-run the guard the constructor could
-    // only approximate. A `path` that points at a symlink to `/` or to the home
-    // directory passes the unresolved check but is exactly what that check
-    // exists to catch.
+    // A symlink to `/` or to the home directory passes the constructor's
+    // unresolved check, and is exactly what that check exists to catch.
     assertUsableProjectPath(
       await realpathAllowingMissing(this.projectPath),
       settings => `${settings} (resolved from \`${this.projectPath}\`)`,
@@ -223,13 +213,12 @@ export class LocalWorkspaceSandboxProvider implements HarnessV1SandboxProvider {
    * The local filesystem is the durable resource, so there is nothing to
    * rehydrate.
    *
-   * Resuming within the same process reattaches to a bridge that is still
-   * running, which is what makes `detach()` worthwhile. Resuming from a *new*
-   * process does not: sessions reap their processes when the host exits, so the
-   * bridge is gone and the adapter falls back to respawning it. That is a
-   * deliberate trade. Leaving stray bridges behind on a developer's machine is
-   * never a supported mode, and unlike a hosted sandbox there is no separate
-   * machine here for a parked session to live on.
+   * Within one process this reattaches to a still-running bridge, which is what
+   * makes `detach()` worthwhile. From a new process it does not: sessions reap
+   * their processes on exit, so the adapter respawns. That trade is deliberate.
+   * Stray bridges on a developer's machine are never a supported mode, and
+   * unlike a hosted sandbox there is no separate machine for a parked session
+   * to live on.
    */
   resumeSession = async (options: {
     sessionId: string;
@@ -243,11 +232,11 @@ export class LocalWorkspaceSandboxProvider implements HarnessV1SandboxProvider {
     });
 
   /**
-   * Run `onFirstCreate` at most once per identity, guarded by a marker file.
+   * Run `onFirstCreate` at most once per identity.
    *
-   * Snapshot-capable providers bake this hook's side effects into a reusable
-   * image. There are no snapshots locally, so the hook runs inline and a marker
-   * file records that it already ran.
+   * Snapshot-capable providers bake the hook's side effects into a reusable
+   * image. There are no snapshots locally, so it runs inline and a marker file
+   * records that it did.
    */
   private async runFirstCreateOnce({
     session,
@@ -282,8 +271,7 @@ export class LocalWorkspaceSandboxProvider implements HarnessV1SandboxProvider {
       `first-create-${identity}`,
     );
 
-    // Concurrent callers wait on the first run instead of starting their own.
-    // Keyed by marker path so providers on unrelated roots never block.
+    // Keyed by marker path, so providers on unrelated roots never block.
     const inFlight = firstCreateRuns.get(markerPath);
     if (inFlight != null) {
       await inFlight;
@@ -326,11 +314,10 @@ export class LocalWorkspaceSandboxProvider implements HarnessV1SandboxProvider {
 /**
  * Reject paths that are never a deliberate choice of project directory.
  *
- * This is a guard against a scoping mistake, not a security boundary. The
- * package provides no isolation, and every harness ships a shell tool that can
- * reach anywhere the user can. What it prevents is handing the sandbox an
- * enormous tree by accident, which matters here because the sandbox root is the
- * project's *parent*.
+ * A guard against a scoping mistake, not a security boundary: the package
+ * provides no isolation, and every harness ships a shell tool that reaches
+ * anywhere the user can. It prevents handing the sandbox an enormous tree by
+ * accident, which matters because the sandbox root is the project's *parent*.
  */
 function assertUsableProjectPath(
   projectPath: string,
@@ -356,11 +343,9 @@ function assertUsableProjectPath(
 /**
  * Ask the OS for free loopback ports.
  *
- * Allocating up front and letting the kernel choose removes a whole class of
- * conflict bugs that a caller-supplied port list would reintroduce. Ports are
- * bound, read, and released, so there is a small race window before the harness
- * binds them for real. That is acceptable, and the same approach every local dev
- * server uses.
+ * Letting the kernel choose removes a class of conflict bugs that a
+ * caller-supplied port list would reintroduce. Ports are bound, read and
+ * released, leaving a small race window before the harness binds them for real.
  */
 async function allocateLoopbackPorts(
   count: number,

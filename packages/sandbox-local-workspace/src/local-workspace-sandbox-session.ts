@@ -2,12 +2,11 @@ import { spawn as spawnChildProcess } from 'node:child_process';
 import { createReadStream } from 'node:fs';
 // Captured at module load, never accessed as namespace properties.
 //
-// Host-runtime harness adapters patch `node:fs` at runtime: Pi installs a
-// global VFS shim (`pi-workspace-vfs.ts` + `syncBuiltinESMExports`) that
-// redirects file operations into its own host mirror. A provider that called
-// `fs.writeFile(...)` through the namespace would resolve through that shim at
-// call time, so writes would land in the mirror and vanish with the session.
-// Destructuring here binds the real implementations before any adapter loads.
+// Host-runtime adapters patch `node:fs` at runtime: Pi installs a global VFS
+// shim via `syncBuiltinESMExports` that redirects file operations into its own
+// host mirror. Resolving through the namespace at call time would send writes
+// into that mirror, where they vanish with the session. Destructuring binds the
+// real implementations before any adapter loads.
 import {
   mkdir as mkdirAsync,
   readFile as readFileAsync,
@@ -54,10 +53,10 @@ export type LocalWorkspaceSessionContext = {
 /**
  * Child sets belonging to sessions that have not been stopped.
  *
- * Shared so that one exit handler covers every session. Registering one handler
- * per session tripped Node's `MaxListenersExceededWarning` at eleven concurrent
- * sessions, and detach never calls `stop()`, so those handlers accumulated for
- * the life of the process.
+ * Shared so one exit handler covers every session. One handler per session
+ * tripped Node's `MaxListenersExceededWarning` at eleven concurrent sessions,
+ * and detach never calls `stop()`, so they accumulated for the life of the
+ * process.
  */
 const unstoppedChildSets = new Set<Set<ReturnType<typeof spawnChildProcess>>>();
 let exitReaperInstalled = false;
@@ -109,7 +108,7 @@ export function killProcessTree(
     try {
       child.kill('SIGKILL');
     } catch {
-      // Already exited.
+      // Already gone.
     }
   }
 }
@@ -122,20 +121,18 @@ export function killProcessTree(
  * `LocalWorkspaceNetworkSandboxSession.restricted()`, not constructed directly
  * by consumers.
  *
- * It applies **no path containment**. See the package README: bridge-backed
- * harnesses never route their built-in tools through this API, and every
- * harness ships a shell tool, so a guard here would constrain nothing while
- * breaking adapter bootstrap.
+ * It applies **no path containment**. A guard here would constrain nothing:
+ * bridge-backed harnesses never route their built-in tools through this API,
+ * and every harness ships a shell tool. See the package README.
  */
 export class LocalWorkspaceSandboxSession implements SandboxSession {
   constructor(protected readonly context: LocalWorkspaceSessionContext) {}
 
   /**
-   * Consumers put this in the model's instructions, so it has to describe where
-   * relative paths actually land. The workspace root is the *parent* of the
-   * project, so `NOTES.md` resolves beside the project and
-   * `<project>/NOTES.md` resolves inside it. Saying otherwise would send the
-   * model's files into a sibling directory.
+   * Consumers put this in the model's instructions, so it has to say where
+   * relative paths actually land. The root is the project's *parent*, so
+   * `NOTES.md` resolves beside the project rather than inside it. Claiming
+   * otherwise would send the model's files to the wrong directory.
    */
   get description(): string {
     const projectDirectoryName = basename(this.context.projectPath);
