@@ -6,11 +6,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 
-export interface Experimental_ToolCallerReference<
-  NAME extends string = string,
-> {
-  readonly toolName: NAME;
-}
+const DIRECT_TOOL_CALL = 'AI_SDK_DIRECT_TOOL_CALL';
 
 type ToolCallerName<TOOLS extends ToolSet> = {
   [NAME in keyof TOOLS]: TOOLS[NAME] extends Experimental_ToolCallerTool
@@ -19,22 +15,13 @@ type ToolCallerName<TOOLS extends ToolSet> = {
 }[keyof TOOLS] &
   string;
 
-type ToolCallerReferenceUnion<TOOLS extends ToolSet> = {
-  [NAME in ToolCallerName<TOOLS>]: Experimental_ToolCallerReference<NAME>;
-}[ToolCallerName<TOOLS>];
-
-export type Experimental_ToolCallers<TOOLS extends ToolSet> = (callers: {
-  [NAME in ToolCallerName<TOOLS>]: Experimental_ToolCallerReference<NAME>;
-}) => {
+export type Experimental_ToolCallers<TOOLS extends ToolSet> = {
   [NAME in keyof TOOLS]?: ReadonlyArray<
-    'direct' | ToolCallerReferenceUnion<TOOLS>
+    'AI_SDK_DIRECT_TOOL_CALL' | ToolCallerName<TOOLS>
   >;
 };
 
-export type ResolvedToolCallers = Record<
-  string,
-  ReadonlyArray<'direct' | string>
->;
+export type ResolvedToolCallers = Record<string, ReadonlyArray<string>>;
 
 export function resolveToolCallerConfiguration<TOOLS extends ToolSet>({
   tools,
@@ -47,27 +34,13 @@ export function resolveToolCallerConfiguration<TOOLS extends ToolSet>({
     return undefined;
   }
 
-  const namesByReference = new WeakMap<object, string>();
-  const callerReferences: Record<string, Experimental_ToolCallerReference> = {};
-
-  for (const [toolName, tool] of Object.entries(tools)) {
-    if (experimental_getToolCaller(tool) == null) {
-      continue;
-    }
-
-    const reference = Object.freeze({ toolName });
-    namesByReference.set(reference, toolName);
-    callerReferences[toolName] = reference;
-  }
-
-  const configuration = toolCallers(callerReferences as never);
   const resolved: ResolvedToolCallers = {};
 
-  for (const [toolName, callers] of Object.entries(configuration)) {
+  for (const [toolName, callers] of Object.entries(toolCallers)) {
     if (!Object.prototype.hasOwnProperty.call(tools, toolName)) {
       throw new InvalidArgumentError({
         parameter: 'experimental_toolCallers',
-        value: configuration,
+        value: toolCallers,
         message: `unknown tool "${toolName}".`,
       });
     }
@@ -75,30 +48,29 @@ export function resolveToolCallerConfiguration<TOOLS extends ToolSet>({
     if (!Array.isArray(callers)) {
       throw new InvalidArgumentError({
         parameter: 'experimental_toolCallers',
-        value: configuration,
+        value: toolCallers,
         message: `callers for tool "${toolName}" must be an array.`,
       });
     }
 
     resolved[toolName] = callers.map(caller => {
-      if (caller === 'direct') {
+      if (caller === DIRECT_TOOL_CALL) {
         return caller;
       }
 
-      const callerName =
-        caller != null && typeof caller === 'object'
-          ? namesByReference.get(caller)
-          : undefined;
-
-      if (callerName == null) {
+      if (
+        typeof caller !== 'string' ||
+        !Object.prototype.hasOwnProperty.call(tools, caller) ||
+        experimental_getToolCaller(tools[caller]) == null
+      ) {
         throw new InvalidArgumentError({
           parameter: 'experimental_toolCallers',
-          value: configuration,
-          message: `tool "${toolName}" contains an invalid caller reference.`,
+          value: toolCallers,
+          message: `tool "${toolName}" contains an invalid caller.`,
         });
       }
 
-      return callerName;
+      return caller;
     });
   }
 
@@ -134,7 +106,7 @@ export function prepareToolsForToolCallers({
     let preparedTool: Tool = tool;
 
     for (const callerName of callerNames) {
-      if (callerName === 'direct') {
+      if (callerName === DIRECT_TOOL_CALL) {
         availableDirectly = true;
         continue;
       }

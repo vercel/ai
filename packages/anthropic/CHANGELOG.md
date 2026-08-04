@@ -1,5 +1,21 @@
 # @ai-sdk/anthropic
 
+## 4.0.29
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+
+## 4.0.28
+
+### Patch Changes
+
+- 9337ecd: Preserve Anthropic prompt-cache matches by replaying complete code-execution transcripts in their original wire shape.
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+  - @ai-sdk/provider-utils@5.0.19
+
 ## 4.0.27
 
 ### Patch Changes
