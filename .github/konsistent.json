@@ -437,18 +437,15 @@
         "importValuesFrom": [
           "ai",
           "ai/*",
-          "@ai-sdk/provider",
-          "@ai-sdk/provider/*",
-          "@ai-sdk/provider-utils",
-          "@ai-sdk/provider-utils/*"
+          "@ai-sdk/*",
+          "!@ai-sdk/harness/bridge"
         ],
         "importTypesFrom": [
           "ai",
           "ai/*",
-          "@ai-sdk/provider",
-          "@ai-sdk/provider/*",
-          "@ai-sdk/provider-utils",
-          "@ai-sdk/provider-utils/*"
+          "@ai-sdk/*",
+          "!@ai-sdk/harness",
+          "!@ai-sdk/harness/bridge"
         ]
       }
     }
