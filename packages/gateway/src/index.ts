@@ -1,3 +1,5 @@
+export type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
+export type { GatewayImageModelId } from './gateway-image-model-settings';
 export type { GatewayModelId } from './gateway-language-model-settings';
 export type { GatewayRerankingModelId } from './gateway-reranking-model-settings';
 export type { GatewaySpeechModelId } from './gateway-speech-model-settings';
