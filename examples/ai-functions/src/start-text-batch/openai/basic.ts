@@ -7,10 +7,9 @@ import {
 import { setTimeout } from 'node:timers/promises';
 import { print } from '../../lib/print';
 import { run } from '../../lib/run';
-import type { Experimental_BatchLanguageModelV4 } from '@ai-sdk/provider';
 
 run(async () => {
-  const model = openai('gpt-5.6') as Experimental_BatchLanguageModelV4;
+  const model = openai('gpt-5.6');
 
   const batch = await startTextBatch({
     model,
