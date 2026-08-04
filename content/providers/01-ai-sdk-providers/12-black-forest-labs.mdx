@@ -297,8 +297,9 @@ aspect ratio.
 
 The top-level `resolution` option is `{width}x{height}`, so it is mapped onto a
 tier by its shorter side — `1280x720` becomes `hd` and `1920x1080` becomes `fhd`.
-Any other value still maps to the nearer tier, with a warning reporting the snap.
-Use `providerOptions.blackForestLabs.resolution` to set the tier directly.
+Other values map to `hd` when the shorter side is at most 720 pixels, and to
+`fhd` above 720, with a warning reporting the mapping. Use
+`providerOptions.blackForestLabs.resolution` to set the tier directly.
 
 `aspectRatio` accepts `21:9`, `2:1`, `16:9`, `4:3`, `1:1`, `3:4`, and `9:16`. The
 API default is `auto`, which infers the ratio from the prompt and any
