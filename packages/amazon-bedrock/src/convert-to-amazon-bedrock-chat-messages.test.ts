@@ -1587,6 +1587,239 @@ describe('assistant messages', () => {
       system: [],
     });
   });
+
+  it('should convert provider-executed tool results into toolResult blocks in user messages', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Add 2+2 and 3+3.' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          { type: 'text', text: 'Running the additions.' },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'add',
+            input: { a: 2, b: 2 },
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'add',
+            output: { type: 'json', value: { sum: 4 } },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-2',
+            toolName: 'add',
+            input: { a: 3, b: 3 },
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-2',
+            toolName: 'add',
+            output: { type: 'json', value: { sum: 6 } },
+          },
+          { type: 'text', text: 'The sums are 4 and 6.' },
+        ],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Now add those two sums.' }],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Add 2+2 and 3+3.' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            { text: 'Running the additions.' },
+            {
+              toolUse: {
+                toolUseId: 'call-1',
+                name: 'add',
+                input: { a: 2, b: 2 },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              toolResult: {
+                toolUseId: 'call-1',
+                content: [{ text: '{"sum":4}' }],
+              },
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              toolUse: {
+                toolUseId: 'call-2',
+                name: 'add',
+                input: { a: 3, b: 3 },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              toolResult: {
+                toolUseId: 'call-2',
+                content: [{ text: '{"sum":6}' }],
+              },
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [{ text: 'The sums are 4 and 6.' }],
+        },
+        {
+          role: 'user',
+          content: [{ text: 'Now add those two sums.' }],
+        },
+      ],
+      system: [],
+    });
+  });
+
+  it('should combine trailing provider-executed tool results with the next user message', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Search for cats.' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'webSearch',
+            input: { query: 'cats' },
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'webSearch',
+            output: { type: 'json', value: { results: ['cats are great'] } },
+          },
+        ],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Summarize the results.' }],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Search for cats.' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              toolUse: {
+                toolUseId: 'call-1',
+                name: 'webSearch',
+                input: { query: 'cats' },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              toolResult: {
+                toolUseId: 'call-1',
+                content: [{ text: '{"results":["cats are great"]}' }],
+              },
+            },
+            { text: 'Summarize the results.' },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
+  it('should convert provider-executed tool error results', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'webSearch',
+            input: { query: 'cats' },
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'webSearch',
+            output: { type: 'error-text', value: 'search unavailable' },
+          },
+          { type: 'text', text: 'The search failed.' },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              toolUse: {
+                toolUseId: 'call-1',
+                name: 'webSearch',
+                input: { query: 'cats' },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              toolResult: {
+                toolUseId: 'call-1',
+                content: [{ text: 'search unavailable' }],
+              },
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [{ text: 'The search failed.' }],
+        },
+      ],
+      system: [],
+    });
+  });
 });
 
 describe('tool messages', () => {
