@@ -1735,6 +1735,73 @@ describe('OpenTelemetry', () => {
         }
       `);
     });
+
+    it('records allowed system messages as chat span instructions', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          provider: 'openai.chat',
+          modelId: 'gpt-4',
+          doGenerate: {
+            content: [{ type: 'text', text: 'Hello' }],
+            finishReason: { raw: undefined, unified: 'stop' },
+            usage: {
+              inputTokens: {
+                total: 2,
+                noCache: 2,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 1,
+                text: 1,
+                reasoning: undefined,
+              },
+            },
+            warnings: [],
+          },
+        }),
+        messages: [
+          { role: 'system', content: 'You are helpful' },
+          { role: 'user', content: 'Hello' },
+        ],
+        allowSystemInMessages: true,
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      const chatSpan = getExportedSpan(sdkTrace.exporter, 'chat gpt-4');
+      expect(
+        parseJsonAttributes(
+          chatSpan.attributes,
+          'gen_ai.system_instructions',
+          'gen_ai.input.messages',
+        ),
+      ).toMatchInlineSnapshot(`
+        {
+          "gen_ai.input.messages": [
+            {
+              "parts": [
+                {
+                  "content": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "gen_ai.system_instructions": [
+            {
+              "content": "You are helpful",
+              "type": "text",
+            },
+          ],
+        }
+      `);
+    });
   });
 
   describe('abort', () => {

@@ -105,6 +105,19 @@ function getGenAIClientPerformanceAttributes(
   };
 }
 
+function formatLanguageModelCallSystemInstructions(
+  event: Pick<LanguageModelCallStartEvent, 'instructions' | 'messages'>,
+) {
+  return [
+    ...(event.instructions == null
+      ? []
+      : formatSystemInstructions(event.instructions)),
+    ...formatSystemInstructions(
+      event.messages.filter(message => message.role === 'system'),
+    ),
+  ];
+}
+
 export class OpenTelemetry implements Telemetry {
   private readonly callStates = new Map<string, CallState>();
 
@@ -665,6 +678,9 @@ export class OpenTelemetry implements Telemetry {
 
     const { telemetry } = state;
     const providerName = mapProviderName(event.provider);
+    const hasSystemInstructions =
+      event.instructions != null ||
+      event.messages.some(message => message.role === 'system');
 
     const inferenceAttributes = selectAttributes(telemetry, {
       'gen_ai.operation.name': 'chat',
@@ -687,10 +703,10 @@ export class OpenTelemetry implements Telemetry {
         | undefined,
       'gen_ai.request.top_k': state.settings.topK as number | undefined,
       'gen_ai.request.top_p': state.settings.topP as number | undefined,
-      'gen_ai.system_instructions': event.instructions
+      'gen_ai.system_instructions': hasSystemInstructions
         ? {
             input: () =>
-              JSON.stringify(formatSystemInstructions(event.instructions!)),
+              JSON.stringify(formatLanguageModelCallSystemInstructions(event)),
           }
         : undefined,
       'gen_ai.input.messages': {
