@@ -1,9 +1,9 @@
 import {
   AISDKError,
   NoSuchModelError,
-  type Experimental_VideoModelV4,
+  type Experimental_VideoModelV4 as VideoModelV4,
   type Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
-  type Experimental_VideoModelV4File,
+  type Experimental_VideoModelV4File as VideoModelV4File,
   type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
   type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
   type SharedV4Warning,
@@ -28,10 +28,9 @@ import {
 } from './klingai-video-model-options';
 import type { KlingAIVideoModelId } from './klingai-video-settings';
 
-type VideoModelV4 = Experimental_VideoModelV4;
 type KlingAIVideoMode = 't2v' | 'i2v' | 'mi2v' | 'motion-control';
 
-function fileToImageString(file: Experimental_VideoModelV4File): string {
+function fileToImageString(file: VideoModelV4File): string {
   if (file.type === 'url') {
     return file.url;
   }
@@ -44,13 +43,13 @@ function fileToImageString(file: Experimental_VideoModelV4File): string {
  * KlingAI does not support video reference inputs. This detects whether a file
  * is a video so it can be guarded against and excluded.
  */
-const isVideoFile = (file: Experimental_VideoModelV4File): boolean =>
+const isVideoFile = (file: VideoModelV4File): boolean =>
   file.mediaType != null && getTopLevelMediaType(file.mediaType) === 'video';
 
 function getReferenceImages(
   options: VideoModelV4CallOptions,
   warnings: SharedV4Warning[],
-): Array<Experimental_VideoModelV4File> | undefined {
+): Array<VideoModelV4File> | undefined {
   if (options.frameImages != null && options.frameImages.length > 0) {
     return undefined;
   }
@@ -78,7 +77,7 @@ function getReferenceImages(
 
 function getFirstFrameImage(
   options: VideoModelV4CallOptions,
-): Experimental_VideoModelV4File | undefined {
+): VideoModelV4File | undefined {
   return options.frameImages?.find(frame => frame.frameType === 'first_frame')
     ?.image;
 }
@@ -86,7 +85,7 @@ function getFirstFrameImage(
 function resolveStartImage(
   options: VideoModelV4CallOptions,
   warnings: SharedV4Warning[],
-): Experimental_VideoModelV4File | undefined {
+): VideoModelV4File | undefined {
   const startImage = getFirstFrameImage(options) ?? options.image;
 
   if (startImage != null && isVideoFile(startImage)) {
@@ -204,7 +203,7 @@ interface KlingAIVideoModelConfig {
   };
 }
 
-export class KlingAIVideoModel implements Experimental_VideoModelV4 {
+export class KlingAIVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
@@ -660,7 +659,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV4 {
   private buildMultiImageBody(
     options: VideoModelV4CallOptions,
     klingaiOptions: KlingAIVideoModelOptions | undefined,
-    referenceImages: Array<Experimental_VideoModelV4File>,
+    referenceImages: Array<VideoModelV4File>,
     warnings: SharedV4Warning[],
   ): Record<string, unknown> {
     const body: Record<string, unknown> = {

@@ -1,8 +1,8 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV4,
-  type Experimental_VideoModelV4CallOptions,
-  type Experimental_VideoModelV4File,
+  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
+  type Experimental_VideoModelV4File as VideoModelV4File,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -90,23 +90,23 @@ interface ByteDanceVideoModelConfig extends ByteDanceConfig {
 }
 
 function getFirstFrameImage(
-  options: Experimental_VideoModelV4CallOptions,
-): Experimental_VideoModelV4File | undefined {
+  options: VideoModelV4CallOptions,
+): VideoModelV4File | undefined {
   return options.frameImages?.find(frame => frame.frameType === 'first_frame')
     ?.image;
 }
 
 function resolveStartImage(
-  options: Experimental_VideoModelV4CallOptions,
-): Experimental_VideoModelV4File | undefined {
+  options: VideoModelV4CallOptions,
+): VideoModelV4File | undefined {
   return getFirstFrameImage(options) ?? options.image;
 }
 
-const isVideoFile = (f: Experimental_VideoModelV4File) =>
+const isVideoFile = (f: VideoModelV4File) =>
   f.mediaType != null && getTopLevelMediaType(f.mediaType) === 'video';
 
 function resolveReferenceContent(
-  options: Experimental_VideoModelV4CallOptions,
+  options: VideoModelV4CallOptions,
   byteDanceOptions: ByteDanceVideoModelOptions | undefined,
   warnings: SharedV4Warning[],
 ): Array<Record<string, unknown>> {
@@ -158,7 +158,7 @@ function resolveReferenceContent(
 }
 
 function resolveLastFrameImage(
-  options: Experimental_VideoModelV4CallOptions,
+  options: VideoModelV4CallOptions,
   byteDanceOptions: ByteDanceVideoModelOptions | undefined,
 ): string | undefined {
   const lastFrame = options.frameImages?.find(
@@ -172,7 +172,7 @@ function resolveLastFrameImage(
   return byteDanceOptions?.lastFrameImage ?? undefined;
 }
 
-export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
+export class ByteDanceVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
@@ -186,12 +186,8 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
   ) {}
 
   async doGenerate(
-    options: Parameters<
-      NonNullable<Experimental_VideoModelV4['doGenerate']>
-    >[0],
-  ): Promise<
-    Awaited<ReturnType<NonNullable<Experimental_VideoModelV4['doGenerate']>>>
-  > {
+    options: Parameters<NonNullable<VideoModelV4['doGenerate']>>[0],
+  ): Promise<Awaited<ReturnType<NonNullable<VideoModelV4['doGenerate']>>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
 

@@ -1,5 +1,13 @@
 # ai
 
+## 7.0.51
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+  - @ai-sdk/gateway@4.0.40
+
 ## 7.0.50
 
 ### Patch Changes
