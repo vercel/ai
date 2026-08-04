@@ -50,6 +50,22 @@ export const blackForestLabsVideoProviderOptions = z.object({
   safetyTolerance: z.number().int().min(0).max(4).optional(),
 
   /**
+   * Render a fast, lower-quality preview instead of the finished video.
+   * Defaults to `false`.
+   */
+  draft: z.boolean().optional(),
+
+  /**
+   * Encrypted draft-cache bundle from a prior `draft` generation, which
+   * switches the request to draft-enhance mode: the bundle is replayed at full
+   * quality.
+   *
+   * Either the base64-encoded `.bin` downloaded from the draft's `draftCache`
+   * URL, or that URL itself while it is still in its expiry window.
+   */
+  draftCache: z.string().optional(),
+
+  /**
    * Model version to pin. Only `latest` is available today.
    */
   version: z.string().optional(),

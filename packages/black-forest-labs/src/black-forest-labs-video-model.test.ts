@@ -569,6 +569,240 @@ describe('BlackForestLabsVideoModel', () => {
     });
   });
 
+  describe('draft', () => {
+    it('should request a draft preview', async () => {
+      await createModel().doGenerate({
+        ...defaultOptions,
+        providerOptions: { blackForestLabs: { draft: true } },
+      });
+
+      expect(await requestBody()).toStrictEqual({
+        mode: 't2v',
+        prompt,
+        draft: true,
+      });
+    });
+
+    it('should send draft when it is explicitly disabled', async () => {
+      await createModel().doGenerate({
+        ...defaultOptions,
+        providerOptions: { blackForestLabs: { draft: false } },
+      });
+
+      expect(await requestBody()).toMatchObject({ draft: false });
+    });
+
+    it('should omit draft when unset', async () => {
+      await createModel().doGenerate({ ...defaultOptions });
+
+      expect(await requestBody()).not.toHaveProperty('draft');
+    });
+
+    it('should report the draft_cache download URL in providerMetadata', async () => {
+      server.urls[POLL_URL].response = {
+        type: 'json-value',
+        body: {
+          status: 'Ready',
+          result: {
+            sample: VIDEO_URL,
+            draft_cache: 'https://api.example.com/draft/bundle.bin',
+          },
+        },
+      };
+
+      const result = await createModel().doGenerate({
+        ...defaultOptions,
+        providerOptions: { blackForestLabs: { draft: true } },
+      });
+
+      expect(result.providerMetadata?.blackForestLabs?.videos).toStrictEqual([
+        {
+          id: REQUEST_ID,
+          videoUrl: VIDEO_URL,
+          draftCache: 'https://api.example.com/draft/bundle.bin',
+          cost: 0.42,
+          inputMegapixels: 1.23,
+          outputMegapixels: 4.56,
+        },
+      ]);
+    });
+
+    it('should omit draftCache when the result has none', async () => {
+      const result = await createModel().doGenerate({ ...defaultOptions });
+
+      expect(
+        result.providerMetadata?.blackForestLabs?.videos,
+      ).not.toHaveProperty('0.draftCache');
+    });
+  });
+
+  describe('draft enhance', () => {
+    it('should replay a bundle with only mode and draft_cache', async () => {
+      await createModel().doGenerate({
+        ...defaultOptions,
+        prompt: '',
+        providerOptions: { blackForestLabs: { draftCache: 'YmluYXJ5' } },
+      });
+
+      expect(await requestBody()).toStrictEqual({
+        mode: 'draft_enhance',
+        draft_cache: 'YmluYXJ5',
+      });
+    });
+
+    it('should accept the draft_cache download URL as the bundle', async () => {
+      await createModel().doGenerate({
+        ...defaultOptions,
+        prompt: '',
+        providerOptions: {
+          blackForestLabs: {
+            draftCache: 'https://api.example.com/draft/bundle.bin',
+          },
+        },
+      });
+
+      expect(await requestBody()).toMatchObject({
+        draft_cache: 'https://api.example.com/draft/bundle.bin',
+      });
+    });
+
+    it('should keep safetyTolerance, the one field enhance still honors', async () => {
+      await createModel().doGenerate({
+        ...defaultOptions,
+        prompt: '',
+        providerOptions: {
+          blackForestLabs: { draftCache: 'YmluYXJ5', safetyTolerance: 1 },
+        },
+      });
+
+      expect(await requestBody()).toStrictEqual({
+        mode: 'draft_enhance',
+        draft_cache: 'YmluYXJ5',
+        safety_tolerance: 1,
+      });
+    });
+
+    it('should not warn when only the required empty prompt is passed', async () => {
+      const result = await createModel().doGenerate({
+        ...defaultOptions,
+        prompt: '',
+        providerOptions: { blackForestLabs: { draftCache: 'YmluYXJ5' } },
+      });
+
+      expect(result.warnings).toStrictEqual([]);
+    });
+
+    it('should warn that a prompt carrying text is pinned in the bundle', async () => {
+      const result = await createModel().doGenerate({
+        ...defaultOptions,
+        providerOptions: { blackForestLabs: { draftCache: 'YmluYXJ5' } },
+      });
+
+      expect(result.warnings).toStrictEqual([
+        {
+          type: 'unsupported',
+          feature: 'prompt',
+          details:
+            'FLUX 3 draft enhance replays the draft bundle as it was generated, so "prompt" was ignored. ' +
+            'Set it on the original draft request instead.',
+        },
+      ]);
+    });
+
+    it('should warn about every generation option the bundle pins', async () => {
+      const result = await createModel().doGenerate({
+        ...defaultOptions,
+        prompt: '',
+        aspectRatio: '16:9',
+        resolution: '1920x1080',
+        duration: 10,
+        fps: 24,
+        seed: 5,
+        generateAudio: true,
+        image: imageUrlFile,
+        inputReferences: [videoUrlFile],
+        providerOptions: {
+          blackForestLabs: {
+            draftCache: 'YmluYXJ5',
+            version: 'latest',
+            keyframes: ['https://cdn.example.com/a.png'],
+          },
+        },
+      });
+
+      // Still a bare replay: none of the above reaches the API.
+      expect(await requestBody()).toStrictEqual({
+        mode: 'draft_enhance',
+        draft_cache: 'YmluYXJ5',
+      });
+      const features = result.warnings.map(warning =>
+        'feature' in warning ? warning.feature : warning.type,
+      );
+      // `prompt` is empty here, so it is the one pinned field not reported.
+      expect(features).toStrictEqual([
+        'aspectRatio',
+        'resolution',
+        'duration',
+        'fps',
+        'seed',
+        'generateAudio',
+        'image',
+        'inputReferences',
+        'keyframes',
+        'version',
+      ]);
+    });
+
+    it('should warn that draft is meaningless while enhancing', async () => {
+      const result = await createModel().doGenerate({
+        ...defaultOptions,
+        prompt: '',
+        providerOptions: {
+          blackForestLabs: { draftCache: 'YmluYXJ5', draft: true },
+        },
+      });
+
+      expect(result.warnings).toStrictEqual([
+        {
+          type: 'unsupported',
+          feature: 'draft',
+          details:
+            'FLUX 3 draft enhance always renders at full quality. The draft option was ignored.',
+        },
+      ]);
+    });
+
+    it('should warn about n above 1', async () => {
+      const result = await createModel().doGenerate({
+        ...defaultOptions,
+        prompt: '',
+        n: 3,
+        providerOptions: { blackForestLabs: { draftCache: 'YmluYXJ5' } },
+      });
+
+      expect(result.warnings).toStrictEqual([
+        {
+          type: 'unsupported',
+          feature: 'n',
+          details:
+            'FLUX 3 video generates a single video per call. Only 1 video will be generated.',
+        },
+      ]);
+    });
+
+    it('should return the full-quality video from the replay', async () => {
+      const result = await createModel().doGenerate({
+        ...defaultOptions,
+        prompt: '',
+        providerOptions: { blackForestLabs: { draftCache: 'YmluYXJ5' } },
+      });
+
+      expect(result.videos).toStrictEqual([
+        { type: 'url', url: VIDEO_URL, mediaType: 'video/mp4' },
+      ]);
+    });
+  });
+
   describe('video continuation', () => {
     it('should continue from a video reference', async () => {
       await createModel().doGenerate({

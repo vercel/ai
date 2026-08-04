@@ -109,6 +109,78 @@ function nonImageFrameMediaType(
 }
 
 /**
+ * Draft-enhance replays an encrypted bundle from a prior `draft` generation at
+ * full quality. The bundle pins the original mode, prompt, seed, and
+ * conditioning media, and the API accepts nothing alongside it but
+ * `safety_tolerance` — so this is a separate body rather than one more field,
+ * and everything else the caller set is reported as dropped.
+ */
+function getDraftEnhanceArgs(
+  options: BlackForestLabsVideoDoGenerateOptions,
+  bflOptions: BlackForestLabsVideoModelOptions,
+) {
+  const warnings: Array<SharedV4Warning> = [];
+
+  const pinnedByBundle: Array<[feature: string, isSet: boolean]> = [
+    ['prompt', (options.prompt?.trim().length ?? 0) > 0],
+    [
+      'aspectRatio',
+      options.aspectRatio != null || bflOptions.aspectRatio != null,
+    ],
+    ['resolution', options.resolution != null || bflOptions.resolution != null],
+    ['duration', options.duration != null],
+    ['fps', options.fps != null],
+    ['seed', options.seed != null],
+    ['generateAudio', options.generateAudio != null],
+    ['image', options.image != null],
+    ['frameImages', (options.frameImages?.length ?? 0) > 0],
+    ['inputReferences', (options.inputReferences?.length ?? 0) > 0],
+    ['keyframes', (bflOptions.keyframes?.length ?? 0) > 0],
+    ['version', bflOptions.version != null],
+  ];
+
+  for (const [feature, isSet] of pinnedByBundle) {
+    if (isSet) {
+      warnings.push({
+        type: 'unsupported',
+        feature,
+        details:
+          `FLUX 3 draft enhance replays the draft bundle as it was generated, so "${feature}" ` +
+          'was ignored. Set it on the original draft request instead.',
+      });
+    }
+  }
+
+  if (bflOptions.draft != null) {
+    warnings.push({
+      type: 'unsupported',
+      feature: 'draft',
+      details:
+        'FLUX 3 draft enhance always renders at full quality. The draft option was ignored.',
+    });
+  }
+
+  if (options.n != null && options.n > 1) {
+    warnings.push({
+      type: 'unsupported',
+      feature: 'n',
+      details:
+        'FLUX 3 video generates a single video per call. Only 1 video will be generated.',
+    });
+  }
+
+  return {
+    body: {
+      mode: 'draft_enhance',
+      draft_cache: bflOptions.draftCache,
+      safety_tolerance: bflOptions.safetyTolerance,
+    } as Record<string, unknown>,
+    warnings,
+    bflOptions,
+  };
+}
+
+/**
  * A failed poll carries a `details` payload that is a plain string for
  * moderation refusals and an object for everything else.
  */
@@ -165,6 +237,10 @@ export class BlackForestLabsVideoModel implements Experimental_VideoModelV4 {
       providerOptions: options.providerOptions,
       schema: blackForestLabsVideoModelOptionsSchema,
     })) as BlackForestLabsVideoModelOptions | undefined;
+
+    if (bflOptions?.draftCache != null) {
+      return getDraftEnhanceArgs(options, bflOptions);
+    }
 
     if (options.fps != null) {
       warnings.push({
@@ -448,6 +524,7 @@ export class BlackForestLabsVideoModel implements Experimental_VideoModelV4 {
       version: bflOptions?.version,
       generate_audio: options.generateAudio,
       safety_tolerance: bflOptions?.safetyTolerance,
+      draft: bflOptions?.draft,
       ...(mode === 'i2v' && { keyframes }),
       ...(mode === 'v2v' && { start_video: startVideo }),
     };
@@ -513,6 +590,9 @@ export class BlackForestLabsVideoModel implements Experimental_VideoModelV4 {
               }),
               ...(result.end_time != null && { end_time: result.end_time }),
               ...(result.duration != null && { duration: result.duration }),
+              ...(result.draft_cache != null && {
+                draftCache: result.draft_cache,
+              }),
               ...(submit.value.cost != null && { cost: submit.value.cost }),
               ...(submit.value.input_mp != null && {
                 inputMegapixels: submit.value.input_mp,
@@ -642,6 +722,7 @@ const bflVideoResultSchema = z.object({
   start_time: z.number().nullish(),
   end_time: z.number().nullish(),
   duration: z.number().nullish(),
+  draft_cache: z.string().nullish(),
 });
 
 const bflVideoPollSchema = z
