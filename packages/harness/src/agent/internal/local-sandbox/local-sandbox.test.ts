@@ -831,7 +831,11 @@ describe('git invisibility', () => {
     const { projectPath } = await createTempProject();
     await startSession({ path: projectPath });
 
-    for (const generated of ['.harness-bootstrap', '.harness-local']) {
+    for (const generated of [
+      '.harness-bootstrap',
+      '.harness-local',
+      '.agent-runs',
+    ]) {
       expect(
         readFileSync(join(projectPath, generated, '.gitignore'), 'utf8'),
       ).toBe('*\n');

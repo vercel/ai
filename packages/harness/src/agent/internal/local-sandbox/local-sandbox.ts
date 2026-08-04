@@ -48,14 +48,22 @@ const LOCAL_SANDBOX_PROVIDER_ID = 'local-sandbox';
 const FIRST_CREATE_MARKER_DIR = '.harness-local';
 
 /**
- * Directory adapter bootstrap recipes write into.
+ * Directories the harness machinery generates inside the sandbox root.
  *
- * Recipes declare this as a relative `bootstrapDir`, which both the framework
- * and the adapters resolve against the sandbox's default working directory. The
- * name is duplicated here only so the directory can be made invisible to git
- * before anything lands in it.
+ * Adapters resolve these against `defaultWorkingDirectory` themselves, so the
+ * names are duplicated here only to make them invisible to git before anything
+ * lands in them. For a hosted sandbox the root is a throwaway machine and none
+ * of this matters; here the root is the user's own project.
+ *
+ * - `.harness-bootstrap` holds bridge recipes and their `node_modules`, which
+ *   runs to hundreds of megabytes.
+ * - `.harness-local` holds this provider's one-time-setup markers.
+ * - `.agent-runs` holds per-session adapter state. Every bridge-backed adapter
+ *   writes it, and the codex adapter describes it as living "outside the agent
+ *   workdir", which held only while the sandbox root and the session directory
+ *   differed. They are the same directory here.
  */
-const BOOTSTRAP_DIR = '.harness-bootstrap';
+const GENERATED_DIRS = ['.harness-bootstrap', '.harness-local', '.agent-runs'];
 
 /**
  * Hide a generated directory from git without touching a file the user owns.
@@ -155,10 +163,11 @@ export class LocalSandboxProvider implements HarnessV1SandboxProvider {
       settings => `${settings} (resolved from \`${this.projectPath}\`)`,
     );
 
-    // Before anything writes into them, so a bootstrap can never surface in the
-    // user's `git status`.
-    hideFromGit(join(workingDirectory, BOOTSTRAP_DIR));
-    hideFromGit(join(workingDirectory, FIRST_CREATE_MARKER_DIR));
+    // Before anything writes into them, so generated state can never surface in
+    // the user's `git status`.
+    for (const generated of GENERATED_DIRS) {
+      hideFromGit(join(workingDirectory, generated));
+    }
 
     const session = new LocalNetworkSandboxSession({
       id: options?.sessionId ?? `local-${randomUUID()}`,
