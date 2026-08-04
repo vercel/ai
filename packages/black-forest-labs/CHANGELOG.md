@@ -1,5 +1,11 @@
 # @ai-sdk/black-forest-labs
 
+## 1.0.50
+
+### Patch Changes
+
+- ec89d78: Add FLUX 3 video support to the Black Forest Labs provider, including text-to-video, image-to-video keyframes, video continuation, draft enhancement, and polling.
+
 ## 1.0.49
 
 ### Patch Changes
