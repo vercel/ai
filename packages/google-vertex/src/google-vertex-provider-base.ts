@@ -32,6 +32,7 @@ import type { GoogleVertexEmbeddingModelId } from './google-vertex-embedding-mod
 import { GoogleVertexImageModel } from './google-vertex-image-model';
 import type { GoogleVertexImageModelId } from './google-vertex-image-settings';
 import type { GoogleVertexModelId } from './google-vertex-options';
+import { GoogleVertexCloudTTSSpeechModel } from './google-vertex-cloud-tts-speech-model';
 import { googleVertexTools } from './google-vertex-tools';
 import { GoogleVertexTranscriptionModel } from './google-vertex-transcription-model';
 import type { GoogleVertexTranscriptionModelId } from './google-vertex-transcription-model-options';
@@ -327,8 +328,21 @@ export function createGoogleVertex(
       generateId: options.generateId ?? generateId,
     });
 
-  const createSpeechModel = (modelId: GoogleVertexSpeechModelId) =>
-    new GoogleSpeechModel(modelId, createConfig('speech'));
+  // Chirp 3: HD voices are served by the Cloud Text-to-Speech API
+  // (`text:synthesize`) instead of the Vertex Gemini `generateContent`
+  // endpoint, reusing the Vertex auth headers from createConfig.
+  const createSpeechModel = (modelId: GoogleVertexSpeechModelId) => {
+    if (modelId.startsWith('chirp')) {
+      const config = createConfig('speech');
+      return new GoogleVertexCloudTTSSpeechModel(modelId, {
+        provider: config.provider,
+        headers: config.headers,
+        fetch: config.fetch,
+      });
+    }
+
+    return new GoogleSpeechModel(modelId, createConfig('speech'));
+  };
 
   // Cloud Speech-to-Text reuses the Vertex auth headers from createConfig, but
   // targets the Speech-to-Text API.
