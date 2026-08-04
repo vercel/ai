@@ -414,6 +414,59 @@ describe('OpenAI batch language models', () => {
     ]);
   });
 
+  it.each([
+    {
+      type: 'function_call',
+      id: 'function-call',
+      call_id: 'call-123',
+      name: 'get_weather',
+      arguments: '{"city":"Paris"}',
+      namespace: null,
+      caller: null,
+    },
+    {
+      type: 'custom_tool_call',
+      id: 'custom-tool-call',
+      call_id: 'call-123',
+      name: 'shell',
+      input: 'echo Paris',
+    },
+  ])('fails a batch item containing a $type', async toolCall => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse({ output_file_id: 'file-output' }),
+    };
+    server.urls[urls.output].response = {
+      type: 'stream-chunks',
+      chunks: [
+        resultLine({
+          id: 'france',
+          body: {
+            ...responsesResultBody(''),
+            output: [toolCall],
+          },
+        }),
+      ],
+    };
+    const model = createOpenAI({ apiKey: 'test-api-key' })('gpt-5.6');
+
+    const stream = await model.experimental_doGetBatchResults({
+      batchId: 'batch_123',
+    });
+
+    await expect(convertReadableStreamToArray(stream)).resolves.toEqual([
+      {
+        id: 'france',
+        status: 'failed',
+        error: {
+          message:
+            'OpenAI returned a tool call, but tool calls are not supported in AI SDK text batches.',
+          code: 'unsupported_tool_call',
+        },
+      },
+    ]);
+  });
+
   it('forwards the abort signal when retrieving results', async () => {
     server.urls[urls.batch].response = {
       type: 'json-value',

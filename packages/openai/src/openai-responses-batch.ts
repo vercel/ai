@@ -550,7 +550,6 @@ async function convertOpenAIResponsesBatchResponse(
 
   const content: LanguageModelV4GenerateResult['content'] = [];
   const logprobs: Array<NonNullable<OpenAIResponsesLogprobs>> = [];
-  let hasFunctionCall = false;
 
   for (const part of response.output) {
     if (part.type === 'message') {
@@ -564,7 +563,14 @@ async function convertOpenAIResponsesBatchResponse(
       part.type === 'function_call' ||
       part.type === 'custom_tool_call'
     ) {
-      hasFunctionCall = true;
+      return {
+        success: false,
+        error: {
+          message:
+            'OpenAI returned a tool call, but tool calls are not supported in AI SDK text batches.',
+          code: 'unsupported_tool_call',
+        },
+      };
     }
   }
 
@@ -588,7 +594,7 @@ async function convertOpenAIResponsesBatchResponse(
       finishReason: {
         unified: mapOpenAIResponseFinishReason({
           finishReason: response.incomplete_details?.reason,
-          hasFunctionCall,
+          hasFunctionCall: false,
         }),
         raw: response.incomplete_details?.reason ?? undefined,
       },
