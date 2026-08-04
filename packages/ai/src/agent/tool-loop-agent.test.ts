@@ -127,9 +127,9 @@ describe('ToolLoopAgent', () => {
             execute: async ({ sku }) => ({ sku }),
           }),
         },
-        experimental_toolCallers: ({ code_mode }) => ({
-          getInventory: [code_mode],
-        }),
+        experimental_toolCallers: {
+          getInventory: ['code_mode'],
+        },
       });
 
       await agent.generate({ prompt: 'Hello, world!' });
@@ -842,9 +842,9 @@ describe('ToolLoopAgent', () => {
             execute: async ({ sku }) => ({ sku }),
           }),
         },
-        experimental_toolCallers: ({ code_mode }) => ({
-          getInventory: [code_mode],
-        }),
+        experimental_toolCallers: {
+          getInventory: ['code_mode'],
+        },
       });
 
       const result = await agent.stream({ prompt: 'Hello, world!' });

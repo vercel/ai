@@ -148,13 +148,7 @@ export async function applyBootstrapRecipe({
   for (const cmd of recipe.commands) {
     const result = await session.run({
       command: cmd.command,
-      workingDirectory:
-        cmd.workingDirectory == null
-          ? bootstrapDir
-          : resolveBootstrapPath({
-              path: cmd.workingDirectory,
-              defaultWorkingDirectory,
-            }),
+      workingDirectory: bootstrapDir,
       abortSignal,
     });
     if (result.exitCode !== 0) {

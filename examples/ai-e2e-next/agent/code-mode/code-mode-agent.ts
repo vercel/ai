@@ -48,10 +48,10 @@ export const codeModeAgent = new ToolLoopAgent({
   instructions:
     'You are an inventory planning assistant. Use code mode to coordinate the available tools when answering inventory questions. Call independent tools in parallel when possible, and explain the result clearly. Use prior messages to answer follow-up questions.',
   tools,
-  experimental_toolCallers: ({ codeMode }) => ({
-    getInventory: [codeMode],
-    getDemand: [codeMode],
-  }),
+  experimental_toolCallers: {
+    getInventory: ['codeMode'],
+    getDemand: ['codeMode'],
+  },
 });
 
 export type CodeModeMessage = InferAgentUIMessage<typeof codeModeAgent>;

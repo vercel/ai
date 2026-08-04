@@ -1,5 +1,31 @@
 # @ai-sdk/harness-codex
 
+## 1.0.59
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+  - @ai-sdk/harness@1.0.57
+
+## 1.0.58
+
+### Patch Changes
+
+- 7e73f9e: fix(harness-codex): ensure reasoning summaries are emitted including when using AI Gateway
+  - @ai-sdk/harness@1.0.56
+  - @ai-sdk/provider-utils@5.0.19
+
+## 1.0.57
+
+### Patch Changes
+
+- 8f10600: fix(harness): rename harness bridge `detach` to `stop` and `shutdown` to `destroy` for clarity
+- Updated dependencies [2c0a8aa]
+- Updated dependencies [861d423]
+- Updated dependencies [8f10600]
+  - @ai-sdk/harness@1.0.55
+
 ## 1.0.56
 
 ### Patch Changes
