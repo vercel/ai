@@ -2420,6 +2420,71 @@ describe('doStream', () => {
     `);
   });
 
+  it('should stream tool calls with irregular indexes', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-irregular-indexes","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":1,"id":"call_1","type":"function","function":{"name":"test-tool","arguments":"{\\"value\\":"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-irregular-indexes","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":1,"function":{"arguments":"\\"first\\"}"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-irregular-indexes","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":3,"id":"call_2","type":"function","function":{"name":"test-tool","arguments":"{\\"value\\":\\"second\\"}"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-irregular-indexes","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":3,"id":"call_3","type":"function","function":{"name":"test-tool","arguments":"{\\"value\\":"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-irregular-indexes","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"function":{"arguments":"\\"third\\"}"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-irregular-indexes","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'call_1',
+        toolName: 'test-tool',
+        input: '{"value":"first"}',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'call_2',
+        toolName: 'test-tool',
+        input: '{"value":"second"}',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'call_3',
+        toolName: 'test-tool',
+        input: '{"value":"third"}',
+      },
+    ]);
+    expect(parts.at(-1)?.type).toBe('finish');
+  });
+
   it('should error when streamed tool call never receives a function.name', async () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
