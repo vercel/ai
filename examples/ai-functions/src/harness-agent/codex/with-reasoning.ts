@@ -21,8 +21,7 @@ run(async () => {
     const result = await agent.stream({
       session,
       prompt:
-        'Plan a multi-step path from A to B where A=(0,0) and B=(3,4) on a grid, moving only N/S/E/W. ' +
-        'Explain your reasoning, then give the final path.',
+        'Solve this step by step: if f(x) = x^3 - 6x^2 + 11x - 6, find all roots and prove they are correct.',
     });
     await printFullStream({ result });
   } catch (err) {

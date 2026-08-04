@@ -23,6 +23,12 @@ export interface HarnessV1SandboxProvider {
    */
   readonly bridgePorts?: ReadonlyArray<number>;
 
+  /**
+   * Providers should throw `HarnessSandboxAuthenticationError` when sandbox
+   * acquisition fails because credentials are missing, invalid, or not
+   * authorized. This lets framework integrations distinguish configuration
+   * failures from general sandbox infrastructure errors.
+   */
   readonly createSession: (options?: {
     /**
      * Stable per-session identifier. When supplied, the provider names the
