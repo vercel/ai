@@ -1059,7 +1059,8 @@ import { generateText } from 'ai';
 
 const result = await generateText({
   model: anthropic('claude-sonnet-4-6'),
-  system: 'You have access to an `advisor` tool backed by a stronger reviewer model.'
+  system:
+    'You have access to an `advisor` tool backed by a stronger reviewer model.',
   prompt:
     'Build a concurrent worker pool in Go with graceful shutdown. Outline the design first.',
   tools: {
@@ -1091,7 +1092,7 @@ The advisor tool supports the following configuration options:
 
 - **maxTokens** _number_
 
-  Optional. Maximum number of tokens the advisor can generate per call, including thinking and text. The minimum is `1024`, and Anthropic recommends starting with `2048`. This limit applies independently to each advisor call and is separate from the request-level `maxOutputTokens`, which controls executor output. Values above the selected advisor model's output limit result in an Anthropic `400` error.
+  Optional. Maximum number of tokens the advisor can generate per call, including thinking and text. The minimum is `1024`, and Anthropic recommends starting with `2048`. This limit applies independently to each advisor call and is separate from the request-level `maxOutputTokens`, which controls executor output. Values above the selected advisor model's output limit result in an Anthropic `400` error. When configured, successful advisor results include `stopReason`; check for `stopReason === 'max_tokens'` to detect truncated advice. The field is available on both plaintext and redacted advisor result variants and is preserved across follow-up turns.
 
 - **caching** _object_
 

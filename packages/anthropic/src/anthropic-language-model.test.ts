@@ -4342,6 +4342,48 @@ describe('AnthropicLanguageModel', () => {
         });
       });
 
+      it('should expose stopReason for plaintext and redacted advisor results', async () => {
+        prepareJsonFixtureResponse('anthropic-advisor-stop-reasons');
+
+        const result = await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.advisor_20260301',
+              name: 'advisor',
+              args: { model: 'claude-opus-4-7', maxTokens: 2048 },
+            },
+          ],
+        });
+
+        expect(result.content.filter(part => part.type === 'tool-result'))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "result": {
+                "stopReason": "max_tokens",
+                "text": "Partial plaintext advice.",
+                "type": "advisor_result",
+              },
+              "toolCallId": "srvtoolu_advisor_plaintext",
+              "toolName": "advisor",
+              "type": "tool-result",
+            },
+            {
+              "result": {
+                "encryptedContent": "opaque-encrypted-advice",
+                "stopReason": "end_turn",
+                "type": "advisor_redacted_result",
+              },
+              "toolCallId": "srvtoolu_advisor_redacted",
+              "toolName": "advisor",
+              "type": "tool-result",
+            },
+          ]
+        `);
+      });
+
       it('should emit a tool-call for the advisor server_tool_use so it round-trips on follow-up turns', async () => {
         server.urls['https://api.anthropic.com/v1/messages'].response = {
           type: 'json-value',
@@ -9967,6 +10009,49 @@ describe('AnthropicLanguageModel', () => {
               },
             ]
           `);
+      });
+
+      it('should stream stopReason for plaintext and redacted advisor results', async () => {
+        prepareChunksFixtureResponse('anthropic-advisor-stop-reasons');
+
+        const result = await provider('claude-sonnet-4-6').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.advisor_20260301',
+              name: 'advisor',
+              args: { model: 'claude-opus-4-7', maxTokens: 2048 },
+            },
+          ],
+        });
+        const resultParts = await convertReadableStreamToArray(result.stream);
+
+        expect(resultParts.filter(part => part.type === 'tool-result'))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "result": {
+                "stopReason": "max_tokens",
+                "text": "Partial plaintext advice.",
+                "type": "advisor_result",
+              },
+              "toolCallId": "srvtoolu_advisor_plaintext",
+              "toolName": "advisor",
+              "type": "tool-result",
+            },
+            {
+              "result": {
+                "encryptedContent": "opaque-encrypted-advice",
+                "stopReason": "end_turn",
+                "type": "advisor_redacted_result",
+              },
+              "toolCallId": "srvtoolu_advisor_redacted",
+              "toolName": "advisor",
+              "type": "tool-result",
+            },
+          ]
+        `);
       });
     });
 

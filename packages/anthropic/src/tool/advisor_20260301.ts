@@ -27,10 +27,12 @@ export const advisor_20260301OutputSchema = lazySchema(() =>
       z.object({
         type: z.literal('advisor_result'),
         text: z.string(),
+        stopReason: z.string().optional(),
       }),
       z.object({
         type: z.literal('advisor_redacted_result'),
         encryptedContent: z.string(),
+        stopReason: z.string().optional(),
       }),
       z.object({
         type: z.literal('advisor_tool_result_error'),
@@ -55,6 +57,12 @@ const factory = createProviderExecutedToolFactory<
        * Plaintext advice from the advisor model.
        */
       text: string;
+
+      /**
+       * The advisor sub-inference stop reason when `maxTokens` is configured.
+       * A value of `"max_tokens"` indicates that the advice was truncated.
+       */
+      stopReason?: string;
     }
   | {
       type: 'advisor_redacted_result';
@@ -65,6 +73,12 @@ const factory = createProviderExecutedToolFactory<
        * advice into the executor's prompt.
        */
       encryptedContent: string;
+
+      /**
+       * The advisor sub-inference stop reason when `maxTokens` is configured.
+       * A value of `"max_tokens"` indicates that the advice was truncated.
+       */
+      stopReason?: string;
     }
   | {
       type: 'advisor_tool_result_error';

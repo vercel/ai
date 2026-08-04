@@ -358,10 +358,12 @@ export interface AnthropicAdvisorToolResultContent {
     | {
         type: 'advisor_result';
         text: string;
+        stop_reason?: string;
       }
     | {
         type: 'advisor_redacted_result';
         encrypted_content: string;
+        stop_reason?: string;
       }
     | {
         type: 'advisor_tool_result_error';
@@ -925,10 +927,12 @@ export const anthropicResponseSchema = lazySchema(() =>
               z.object({
                 type: z.literal('advisor_result'),
                 text: z.string(),
+                stop_reason: z.string().nullish(),
               }),
               z.object({
                 type: z.literal('advisor_redacted_result'),
                 encrypted_content: z.string(),
+                stop_reason: z.string().nullish(),
               }),
               z.object({
                 type: z.literal('advisor_tool_result_error'),
@@ -1322,10 +1326,12 @@ export const anthropicChunkSchema = lazySchema(() =>
               z.object({
                 type: z.literal('advisor_result'),
                 text: z.string(),
+                stop_reason: z.string().nullish(),
               }),
               z.object({
                 type: z.literal('advisor_redacted_result'),
                 encrypted_content: z.string(),
+                stop_reason: z.string().nullish(),
               }),
               z.object({
                 type: z.literal('advisor_tool_result_error'),
