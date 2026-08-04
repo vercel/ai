@@ -47,6 +47,9 @@ export default function ChatCodeModeToolApproval() {
                 return <Response key={index}>{part.text}</Response>;
               case 'tool-codeMode':
               case 'tool-getProductPrice':
+              case 'tool-checkProductInventory':
+              case 'tool-getCustomerDiscount':
+              case 'tool-getShippingCost':
               case 'tool-purchaseProduct':
                 return (
                   <CodeModeToolApprovalView

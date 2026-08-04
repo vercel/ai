@@ -4,13 +4,22 @@ import type { ChatAddToolApproveResponseFunction } from 'ai';
 type CodeModeApprovalToolPart = Extract<
   CodeModeToolApprovalMessage['parts'][number],
   {
-    type: 'tool-codeMode' | 'tool-getProductPrice' | 'tool-purchaseProduct';
+    type:
+      | 'tool-codeMode'
+      | 'tool-getProductPrice'
+      | 'tool-checkProductInventory'
+      | 'tool-getCustomerDiscount'
+      | 'tool-getShippingCost'
+      | 'tool-purchaseProduct';
   }
 >;
 
 const toolTitles: Record<CodeModeApprovalToolPart['type'], string> = {
   'tool-codeMode': 'Code Mode',
   'tool-getProductPrice': 'Get Product Price',
+  'tool-checkProductInventory': 'Check Product Inventory',
+  'tool-getCustomerDiscount': 'Get Customer Discount',
+  'tool-getShippingCost': 'Get Shipping Cost',
   'tool-purchaseProduct': 'Purchase Product',
 };
 
