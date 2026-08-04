@@ -148,7 +148,7 @@
           "name": "harness-package-must-export-harness-creator-and-settings",
           "description": "Every harness package must export a harness creator function and settings from its index.ts file.",
           "must": {
-            "export": [
+            "exportValues": [
               {
                 "name": "create${harnessId.toPascalCase()}",
                 "from": "./${harnessId}-harness"
@@ -258,7 +258,7 @@
           "description": "Every harness auth file must export the relevant symbols.",
           "for": { "files": ["${harnessId}-auth.ts"] },
           "must": {
-            "import": [
+            "importValues": [
               {
                 "name": "getAiGatewayAuthFromEnv",
                 "from": "@ai-sdk/harness/utils"
@@ -312,7 +312,7 @@
           "for": { "files": ["bridge/index.ts"] },
           "must": {
             "haveFiles": ["create-emit-stream-event.ts"],
-            "import": [
+            "importValues": [
               {
                 "name": "runBridge",
                 "from": "@ai-sdk/harness/bridge"
@@ -358,7 +358,7 @@
           "description": "Every harness bridge file must not use parent imports, only local and external imports.",
           "for": { "files": ["bridge/*.ts"] },
           "mustNot": {
-            "importFromParents": true
+            "importValuesFromParents": true
           }
         }
       ]
@@ -372,7 +372,7 @@
           "name": "sandbox-package-must-export-sandbox-creator-and-settings",
           "description": "Every sandbox package must export a sandbox creator function and settings from its index.ts file.",
           "must": {
-            "export": [
+            "exportValues": [
               {
                 "name": "create${sandboxId.toPascalCase()}Sandbox",
                 "from": "./${sandboxId}-sandbox"
@@ -423,7 +423,15 @@
       "description": "Harness bridge code must not import AI SDK packages that are unavailable in the isolated bridge runtime.",
       "paths": ["packages/harness-*/src/bridge/**/*.ts"],
       "mustNot": {
-        "importFrom": [
+        "importValuesFrom": [
+          "ai",
+          "ai/*",
+          "@ai-sdk/provider",
+          "@ai-sdk/provider/*",
+          "@ai-sdk/provider-utils",
+          "@ai-sdk/provider-utils/*"
+        ],
+        "importTypesFrom": [
           "ai",
           "ai/*",
           "@ai-sdk/provider",

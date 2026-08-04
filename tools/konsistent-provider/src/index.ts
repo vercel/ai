@@ -35,7 +35,8 @@ export const conventions = defineConventions([
     name: 'package-must-import-zod-from-v4',
     description: 'Every package that uses zod must import from zod/v4.',
     mustNot: {
-      importFrom: 'zod',
+      importValuesFrom: 'zod',
+      importTypesFrom: 'zod',
     },
   },
   {
@@ -43,7 +44,7 @@ export const conventions = defineConventions([
     description:
       'Every provider package must export a provider type, creator function, and settings from its index.ts file.',
     must: {
-      export: ['create${providerId.toPascalCase()}', 'VERSION'],
+      exportValues: ['create${providerId.toPascalCase()}', 'VERSION'],
       exportTypes: [
         {
           name: '${providerId.toPascalCase()}Provider',
@@ -65,7 +66,7 @@ export const conventions = defineConventions([
       placeholderSatisfies: 'providerId:matches(^[a-z]+ai$)',
     },
     must: {
-      export: ['${providerId.toFlatCase()}'],
+      exportValues: ['${providerId.toFlatCase()}'],
     },
   },
   {
@@ -76,7 +77,7 @@ export const conventions = defineConventions([
       placeholderSatisfies: 'providerId:matches(^(?!^[a-z]+ai$).*$)',
     },
     must: {
-      export: ['${providerId.toCamelCase()}'],
+      exportValues: ['${providerId.toCamelCase()}'],
     },
   },
   {
@@ -260,7 +261,7 @@ export const conventions = defineConventions([
       ],
     },
     must: {
-      import: [
+      importValues: [
         {
           name: 'serializeModelOptions',
           from: '@ai-sdk/provider-utils',
