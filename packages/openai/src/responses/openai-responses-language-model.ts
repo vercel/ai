@@ -2333,9 +2333,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   activeReasoningPart.summaryParts,
                 )) {
                   if (
-                    summaryIndex !== String(value.summary_index) &&
                     activeReasoningPart.summaryParts[summaryIndex] ===
-                      'can-conclude'
+                    'can-conclude'
                   ) {
                     controller.enqueue({
                       type: 'reasoning-end',
