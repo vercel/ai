@@ -46,6 +46,7 @@ import { OpenAIResponsesLanguageModel } from './responses/openai-responses-langu
 import type { OpenAIResponsesModelId } from './responses/openai-responses-language-model-options';
 
 const openaiBatchEndpoint = '/v1/responses';
+const openaiBatchInputFileExpiresAfterSeconds = 48 * 60 * 60;
 
 type OpenAIBatchRequest = Parameters<
   BatchLanguageModelV4['experimental_doCreateBatch']
@@ -161,6 +162,11 @@ class OpenAIResponsesBatch {
     const formData = new FormData();
     formData.append('file', file, filename);
     formData.append('purpose', 'batch');
+    formData.append('expires_after[anchor]', 'created_at');
+    formData.append(
+      'expires_after[seconds]',
+      String(openaiBatchInputFileExpiresAfterSeconds),
+    );
 
     const { value: uploadedFile } = await postToApi({
       url: this.getUrl('/files'),
@@ -169,6 +175,10 @@ class OpenAIResponsesBatch {
         content: formData,
         values: {
           purpose: 'batch',
+          'expires_after[anchor]': 'created_at',
+          'expires_after[seconds]': String(
+            openaiBatchInputFileExpiresAfterSeconds,
+          ),
           file: {
             name: filename,
             type: file.type,

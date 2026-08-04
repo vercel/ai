@@ -174,6 +174,8 @@ describe('OpenAI batch language models', () => {
     const multipart = await server.calls[0].requestBodyMultipart;
     const file = multipart?.file as File;
     expect(multipart?.purpose).toBe('batch');
+    expect(multipart?.['expires_after[anchor]']).toBe('created_at');
+    expect(multipart?.['expires_after[seconds]']).toBe('172800');
     expect(file.name).toBe('batch.jsonl');
     expect(file.type).toBe('application/jsonl');
 
