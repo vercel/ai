@@ -256,6 +256,38 @@ describe('file operations', () => {
     expect(await session.readFile({ path: 'nope.txt' })).toBeNull();
   });
 
+  it('resolves to null when the path is a directory', async () => {
+    const { projectPath } = await createTempProject();
+    const session = await startSession({ path: projectPath });
+    expect(await session.readFile({ path: basename(projectPath) })).toBeNull();
+  });
+
+  // readFile is the streaming primitive, so obtaining the stream must not pull
+  // the file into memory. Deciding null-vs-stream by reading the bytes first
+  // buffered the whole file, twice, before the consumer saw a chunk.
+  it('does not buffer the file when handing back a stream', async () => {
+    const { projectPath } = await createTempProject();
+    const session = await startSession({ path: projectPath });
+
+    const megabytes = 32;
+    await session.writeBinaryFile({
+      path: `${basename(projectPath)}/big.bin`,
+      content: new Uint8Array(megabytes * 1024 * 1024),
+    });
+
+    const before = process.memoryUsage().arrayBuffers;
+    const stream = await session.readFile({
+      path: `${basename(projectPath)}/big.bin`,
+    });
+    const grewByMb =
+      (process.memoryUsage().arrayBuffers - before) / 1024 / 1024;
+
+    expect(stream).not.toBeNull();
+    expect(grewByMb).toBeLessThan(megabytes / 2);
+
+    await stream?.cancel();
+  });
+
   it('applies 1-based inclusive line ranges', async () => {
     const { projectPath } = await createTempProject();
     const session = await startSession({ path: projectPath });

@@ -11,6 +11,7 @@ import {
   mkdir as mkdirAsync,
   readFile as readFileAsync,
   realpath as realpathAsync,
+  stat as statAsync,
   writeFile as writeFileAsync,
 } from 'node:fs/promises';
 import { dirname, isAbsolute, join, resolve as resolvePath } from 'node:path';
@@ -25,6 +26,7 @@ const nodeFs = {
   mkdir: mkdirAsync,
   readFile: readFileAsync,
   realpath: realpathAsync,
+  stat: statAsync,
   writeFile: writeFileAsync,
 };
 
@@ -151,6 +153,13 @@ export class LocalWorkspaceSandboxSession implements SandboxSession {
       : resolvePath(this.context.workingDirectory, path);
   }
 
+  /**
+   * Stat rather than read to decide whether the file exists.
+   *
+   * This is the streaming primitive, so it must not buffer. Reading the bytes
+   * first just to return `null` for a missing file pulled the whole file into
+   * memory, twice, before the consumer saw a single chunk.
+   */
   readFile = async ({
     path,
     abortSignal,
@@ -159,10 +168,15 @@ export class LocalWorkspaceSandboxSession implements SandboxSession {
     abortSignal?: AbortSignal;
   }): Promise<ReadableStream<Uint8Array> | null> => {
     abortSignal?.throwIfAborted();
-    const bytes = await this.readBinaryFile({ path, abortSignal });
-    if (bytes == null) return null;
+    const absolutePath = this.resolveAgainstWorkingDirectory(path);
+    try {
+      if (!(await nodeFs.stat(absolutePath)).isFile()) return null;
+    } catch (error) {
+      if (isMissingFileError(error)) return null;
+      throw error;
+    }
     return Readable.toWeb(
-      createReadStream(this.resolveAgainstWorkingDirectory(path)),
+      createReadStream(absolutePath),
     ) as ReadableStream<Uint8Array>;
   };
 
@@ -315,11 +329,11 @@ export class LocalWorkspaceSandboxSession implements SandboxSession {
     env?: Record<string, string>;
     abortSignal?: AbortSignal;
   }): Promise<{ exitCode: number; stdout: string; stderr: string }> => {
-    const process = await this.spawn(options);
+    const child = await this.spawn(options);
     const [stdout, stderr, { exitCode }] = await Promise.all([
-      collectStream(process.stdout),
-      collectStream(process.stderr),
-      process.wait(),
+      collectStream(child.stdout),
+      collectStream(child.stderr),
+      child.wait(),
     ]);
     return { exitCode, stdout, stderr };
   };

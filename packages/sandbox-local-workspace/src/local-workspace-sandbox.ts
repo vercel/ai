@@ -346,15 +346,13 @@ function assertUsableProjectPath(
  * Letting the kernel choose removes a class of conflict bugs that a
  * caller-supplied port list would reintroduce. Ports are bound, read and
  * released, leaving a small race window before the harness binds them for real.
+ *
+ * Allocated in parallel so every socket is bound at once and the kernel has to
+ * hand out distinct ports. Allocating in sequence frees each port before asking
+ * for the next, which may return the same one twice.
  */
-async function allocateLoopbackPorts(
-  count: number,
-): Promise<ReadonlyArray<number>> {
-  const ports: number[] = [];
-  for (let index = 0; index < count; index++) {
-    ports.push(await allocateLoopbackPort());
-  }
-  return ports;
+function allocateLoopbackPorts(count: number): Promise<ReadonlyArray<number>> {
+  return Promise.all(Array.from({ length: count }, allocateLoopbackPort));
 }
 
 function allocateLoopbackPort(): Promise<number> {
