@@ -530,6 +530,7 @@ export type AnthropicTool =
       name: 'advisor';
       model: string;
       max_uses?: number;
+      max_tokens?: number;
       caching?: {
         type: 'ephemeral';
         ttl: '5m' | '1h';

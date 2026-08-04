@@ -1066,6 +1066,7 @@ const result = await generateText({
     advisor: anthropic.tools.advisor_20260301({
       model: 'claude-opus-4-8',
       maxUses: 3,
+      maxTokens: 2048,
     }),
   },
 });
@@ -1087,6 +1088,10 @@ The advisor tool supports the following configuration options:
 - **maxUses** _number_
 
   Optional. Maximum number of advisor calls allowed in a single request. Once the executor reaches this cap, further advisor calls return an `advisor_tool_result_error` with `errorCode: 'max_uses_exceeded'`, and the executor continues without further advice.
+
+- **maxTokens** _number_
+
+  Optional. Maximum number of tokens the advisor can generate per call, including thinking and text. The minimum is `1024`, and Anthropic recommends starting with `2048`. This limit applies independently to each advisor call and is separate from the request-level `maxOutputTokens`, which controls executor output. Values above the selected advisor model's output limit result in an Anthropic `400` error.
 
 - **caching** _object_
 

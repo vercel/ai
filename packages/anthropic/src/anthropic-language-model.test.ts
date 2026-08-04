@@ -4252,7 +4252,10 @@ describe('AnthropicLanguageModel', () => {
                 type: 'provider',
                 id: 'anthropic.advisor_20260301',
                 name: 'advisor',
-                args: { model: 'claude-opus-4-7' },
+                args: {
+                  model: 'claude-opus-4-7',
+                  maxTokens: 2048,
+                },
               },
             ],
           });
@@ -4276,6 +4279,7 @@ describe('AnthropicLanguageModel', () => {
               "model": "claude-sonnet-4-6",
               "tools": [
                 {
+                  "max_tokens": 2048,
                   "model": "claude-opus-4-7",
                   "name": "advisor",
                   "type": "advisor_20260301",
