@@ -1,6 +1,6 @@
 import {
   InvalidArgumentError,
-  type Experimental_SpeechTranslationModelV4 as TranslationModelV4,
+  type Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
   type Experimental_SpeechTranslationModelV4StreamOptions as SpeechTranslationModelV4StreamOptions,
   type Experimental_SpeechTranslationModelV4StreamPart as SpeechTranslationModelV4StreamPart,
   type Experimental_SpeechTranslationModelV4Usage as SpeechTranslationModelV4Usage,
@@ -24,10 +24,10 @@ import {
 import { getModelPath } from '../get-model-path';
 import { getRealtimeWebSocketURL } from '../get-realtime-base-url';
 import {
-  googleTranslationModelOptions,
-  type GoogleTranslationModelId,
-  type GoogleTranslationModelOptions,
-} from './google-translation-model-options';
+  googleSpeechTranslationModelOptions,
+  type GoogleSpeechTranslationModelId,
+  type GoogleSpeechTranslationModelOptions,
+} from './google-speech-translation-model-options';
 
 const liveWebSocketPath =
   'google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
@@ -71,7 +71,7 @@ type GoogleLiveServerMessage = {
   error?: { message?: string };
 };
 
-export type GoogleTranslationModelConfig = {
+export type GoogleSpeechTranslationModelConfig = {
   provider: string;
   baseURL: string;
   headers: () => Record<string, string | undefined>;
@@ -82,13 +82,13 @@ export type GoogleTranslationModelConfig = {
   };
 };
 
-export class GoogleTranslationModel implements TranslationModelV4 {
+export class GoogleSpeechTranslationModel implements SpeechTranslationModelV4 {
   readonly specificationVersion = 'v4';
-  readonly modelId: GoogleTranslationModelId;
+  readonly modelId: GoogleSpeechTranslationModelId;
 
-  private readonly config: GoogleTranslationModelConfig;
+  private readonly config: GoogleSpeechTranslationModelConfig;
 
-  static [WORKFLOW_SERIALIZE](model: GoogleTranslationModel) {
+  static [WORKFLOW_SERIALIZE](model: GoogleSpeechTranslationModel) {
     return serializeModelOptions({
       modelId: model.modelId,
       config: model.config,
@@ -96,10 +96,10 @@ export class GoogleTranslationModel implements TranslationModelV4 {
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
-    modelId: GoogleTranslationModelId;
-    config: GoogleTranslationModelConfig;
+    modelId: GoogleSpeechTranslationModelId;
+    config: GoogleSpeechTranslationModelConfig;
   }) {
-    return new GoogleTranslationModel(options.modelId, options.config);
+    return new GoogleSpeechTranslationModel(options.modelId, options.config);
   }
 
   get provider(): string {
@@ -107,8 +107,8 @@ export class GoogleTranslationModel implements TranslationModelV4 {
   }
 
   constructor(
-    modelId: GoogleTranslationModelId,
-    config: GoogleTranslationModelConfig,
+    modelId: GoogleSpeechTranslationModelId,
+    config: GoogleSpeechTranslationModelConfig,
   ) {
     this.modelId = modelId;
     this.config = config;
@@ -116,7 +116,7 @@ export class GoogleTranslationModel implements TranslationModelV4 {
 
   async doStream(
     options: SpeechTranslationModelV4StreamOptions,
-  ): Promise<Awaited<ReturnType<TranslationModelV4['doStream']>>> {
+  ): Promise<Awaited<ReturnType<SpeechTranslationModelV4['doStream']>>> {
     if (options.targetLanguage == null) {
       throw new InvalidArgumentError({
         argument: 'targetLanguage',
@@ -128,11 +128,11 @@ export class GoogleTranslationModel implements TranslationModelV4 {
     const googleOptions = await parseProviderOptions({
       provider: 'google',
       providerOptions: options.providerOptions,
-      schema: googleTranslationModelOptions,
+      schema: googleSpeechTranslationModelOptions,
     });
     const warnings: SharedV4Warning[] = [];
 
-    validateGoogleTranslationInputAudioFormat(options.inputAudioFormat);
+    validateGoogleSpeechTranslationInputAudioFormat(options.inputAudioFormat);
 
     if (options.sourceLanguage != null) {
       warnings.push({
@@ -172,7 +172,7 @@ export class GoogleTranslationModel implements TranslationModelV4 {
       ),
     );
 
-    const setup = buildGoogleLiveTranslationSetup({
+    const setup = buildGoogleLiveSpeechTranslationSetup({
       modelId: this.modelId,
       targetLanguage: options.targetLanguage,
       providerOptions: googleOptions,
@@ -184,7 +184,7 @@ export class GoogleTranslationModel implements TranslationModelV4 {
         timestamp: currentDate,
         modelId: this.modelId,
       },
-      stream: createGoogleLiveTranslationStream({
+      stream: createGoogleLiveSpeechTranslationStream({
         webSocket: this.config.webSocket,
         url: getLiveWebSocketURL(this.config.baseURL, apiKey),
         headers: webSocketHeaders,
@@ -201,7 +201,7 @@ export class GoogleTranslationModel implements TranslationModelV4 {
   }
 }
 
-function createGoogleLiveTranslationStream({
+function createGoogleLiveSpeechTranslationStream({
   webSocket,
   url,
   headers,
@@ -571,14 +571,14 @@ function getPcm16SilenceDurationMs(audio: string): number | undefined {
   return (sampleCount / googleLiveOutputAudioRate) * 1000;
 }
 
-function buildGoogleLiveTranslationSetup({
+function buildGoogleLiveSpeechTranslationSetup({
   modelId,
   targetLanguage,
   providerOptions,
 }: {
   modelId: string;
   targetLanguage: string;
-  providerOptions: GoogleTranslationModelOptions | undefined;
+  providerOptions: GoogleSpeechTranslationModelOptions | undefined;
 }) {
   return {
     model: getModelPath(modelId),
@@ -596,7 +596,7 @@ function buildGoogleLiveTranslationSetup({
   };
 }
 
-function validateGoogleTranslationInputAudioFormat(
+function validateGoogleSpeechTranslationInputAudioFormat(
   inputAudioFormat: SpeechTranslationModelV4StreamOptions['inputAudioFormat'],
 ) {
   if (

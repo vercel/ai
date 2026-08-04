@@ -37,8 +37,8 @@ import { OpenAISpeechModel } from './speech/openai-speech-model';
 import type { OpenAISpeechModelId } from './speech/openai-speech-model-options';
 import { OpenAITranscriptionModel } from './transcription/openai-transcription-model';
 import type { OpenAITranscriptionModelId } from './transcription/openai-transcription-model-options';
-import { OpenAITranslationModel } from './translation/openai-translation-model';
-import type { OpenAITranslationModelId } from './translation/openai-translation-model-options';
+import { OpenAISpeechTranslationModel } from './speech-translation/openai-speech-translation-model';
+import type { OpenAISpeechTranslationModelId } from './speech-translation/openai-speech-translation-model-options';
 import { OpenAISkills } from './skills/openai-skills';
 import { VERSION } from './version';
 
@@ -103,13 +103,15 @@ export interface OpenAIProvider extends ProviderV4 {
   /**
    * Creates an experimental model for streaming speech translation.
    */
-  translation(modelId: OpenAITranslationModelId): SpeechTranslationModelV4;
+  translation(
+    modelId: OpenAISpeechTranslationModelId,
+  ): SpeechTranslationModelV4;
 
   /**
    * Creates an experimental model for streaming speech translation.
    */
   speechTranslationModel(
-    modelId: OpenAITranslationModelId,
+    modelId: OpenAISpeechTranslationModelId,
   ): SpeechTranslationModelV4;
 
   /**
@@ -257,9 +259,11 @@ export function createOpenAI(
       webSocket: options.webSocket,
     });
 
-  const createTranslationModel = (modelId: OpenAITranslationModelId) =>
-    new OpenAITranslationModel(modelId, {
-      provider: `${providerName}.translation`,
+  const createSpeechTranslationModel = (
+    modelId: OpenAISpeechTranslationModelId,
+  ) =>
+    new OpenAISpeechTranslationModel(modelId, {
+      provider: `${providerName}.speech-translation`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
@@ -358,8 +362,8 @@ export function createOpenAI(
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 
-  provider.translation = createTranslationModel;
-  provider.speechTranslationModel = createTranslationModel;
+  provider.translation = createSpeechTranslationModel;
+  provider.speechTranslationModel = createSpeechTranslationModel;
 
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;

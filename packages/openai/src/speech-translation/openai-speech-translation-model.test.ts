@@ -6,7 +6,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { describe, it, expect, vi } from 'vitest';
 import { createOpenAI } from '../openai-provider';
-import { OpenAITranslationModel } from './openai-translation-model';
+import { OpenAISpeechTranslationModel } from './openai-speech-translation-model';
 
 vi.mock('../version', () => ({
   VERSION: '0.0.0-test',
@@ -52,7 +52,7 @@ const flush = () => new Promise(resolve => setTimeout(resolve, 0));
 
 function readFixture(filename: string) {
   return fs
-    .readFileSync(`src/translation/__fixtures__/${filename}`, 'utf8')
+    .readFileSync(`src/speech-translation/__fixtures__/${filename}`, 'utf8')
     .split('\n')
     .filter(line => line.trim().length > 0)
     .map(line => JSON.parse(line));
@@ -64,7 +64,7 @@ function createModel(
     currentDate: () => Date;
   }> = {},
 ) {
-  return new OpenAITranslationModel('gpt-realtime-translate', {
+  return new OpenAISpeechTranslationModel('gpt-realtime-translate', {
     provider: 'test-provider',
     url: ({ path }) => `https://api.openai.com/v1${path}`,
     headers:
@@ -234,7 +234,7 @@ describe('doStream', () => {
     await flush();
 
     for (const message of readFixture(
-      'openai-realtime-translation.chunks.txt',
+      'openai-realtime-speech-translation.chunks.txt',
     )) {
       ws.message(message);
     }
@@ -433,7 +433,7 @@ describe('doStream', () => {
         audioCancelled = true;
       },
     });
-    const model = new OpenAITranslationModel('gpt-realtime-translate', {
+    const model = new OpenAISpeechTranslationModel('gpt-realtime-translate', {
       provider: 'test-provider',
       url: ({ path }) => `https://api.openai.com/v1${path}`,
       headers: () => ({ Authorization: 'Bearer test-api-key' }),
@@ -530,7 +530,7 @@ describe('doStream', () => {
     });
 
     const model = provider.translation('gpt-realtime-translate');
-    expect(model.provider).toBe('openai.translation');
+    expect(model.provider).toBe('openai.speech-translation');
     expect(model.modelId).toBe('gpt-realtime-translate');
 
     const result = await model.doStream({
