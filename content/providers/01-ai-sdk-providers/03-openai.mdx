@@ -1864,7 +1864,7 @@ The metadata includes the following fields:
   Text batch APIs are experimental and may change in future releases.
 </Note>
 
-The OpenAI provider supports text batches through the Responses API.
+The OpenAI provider supports the [Batch API](https://developers.openai.com/api/docs/guides/batch) for text generation.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
@@ -1874,7 +1874,7 @@ import {
   experimental_getBatchStatus as getBatchStatus,
 } from 'ai';
 
-const model = openai('gpt-5.6');
+const model = openai('gpt-4.1-nano');
 
 const batch = await createTextBatch({
   model,
