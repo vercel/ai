@@ -2,13 +2,15 @@ import type { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
-  createJsonErrorResponseHandler,
   createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
   delay,
   getFromApi,
+<<<<<<< HEAD
   isSameOrigin,
   lazySchema,
+=======
+>>>>>>> 53f1bc41ed (feat(black-forest-labs): add video model support (FLUX 3) (#18417))
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -19,8 +21,18 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
+<<<<<<< HEAD
   type BlackForestLabsAspectRatio,
   type BlackForestLabsImageModelId,
+=======
+  bflFailedResponseHandler,
+  isTrustedUrl,
+} from './black-forest-labs-api';
+import { blackForestLabsImageModelOptionsSchema } from './black-forest-labs-image-model-options';
+import type {
+  BlackForestLabsAspectRatio,
+  BlackForestLabsImageModelId,
+>>>>>>> 53f1bc41ed (feat(black-forest-labs): add video model support (FLUX 3) (#18417))
 } from './black-forest-labs-image-settings';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;
@@ -342,6 +354,7 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
   }
 }
 
+<<<<<<< HEAD
 /**
  * Black Forest Labs returns response-supplied URLs (polling and delivery) on
  * sibling cluster hosts of the API origin (e.g. `api.us1.bfl.ai` for a base
@@ -410,6 +423,8 @@ export type BlackForestLabsImageModelOptions = InferSchema<
   typeof blackForestLabsImageModelOptionsSchema
 >;
 
+=======
+>>>>>>> 53f1bc41ed (feat(black-forest-labs): add video model support (FLUX 3) (#18417))
 function convertSizeToAspectRatio(
   size: string,
 ): BlackForestLabsAspectRatio | undefined {
@@ -477,29 +492,3 @@ const bflPollSchema = z
     status: (v.status ?? v.state)!,
     result: v.result,
   }));
-
-const bflErrorSchema = z.object({
-  message: z.string().optional(),
-  detail: z.any().optional(),
-});
-
-const bflFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: bflErrorSchema,
-  errorToMessage: error =>
-    bflErrorToMessage(error) ?? 'Unknown Black Forest Labs error',
-});
-
-function bflErrorToMessage(error: unknown): string | undefined {
-  const parsed = bflErrorSchema.safeParse(error);
-  if (!parsed.success) return undefined;
-  const { message, detail } = parsed.data;
-  if (typeof detail === 'string') return detail;
-  if (detail != null) {
-    try {
-      return JSON.stringify(detail);
-    } catch {
-      // ignore
-    }
-  }
-  return message;
-}
