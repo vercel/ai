@@ -390,4 +390,20 @@ export const conventions = defineConventions([
       ],
     },
   },
+  {
+    name: 'provider-speech-translation-model-options-file-must-export-model-options-type',
+    description:
+      "Every provider's model options file must export a model options type.",
+    for: {
+      files: [
+        '${providerId}-speech-translation-model-options.ts',
+        '*/${providerId}-speech-translation-model-options.ts',
+      ],
+    },
+    must: {
+      exportTypes: [
+        '${providerId.toPascalCase()}SpeechTranslationModelOptions',
+      ],
+    },
+  },
 ] as const);

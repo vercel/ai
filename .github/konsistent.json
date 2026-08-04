@@ -154,7 +154,11 @@
         },
         "aisdk/provider-language-model-file-must-import-workflow-serialization",
         "aisdk/provider-model-options-file-must-export-model-options-type",
-        "aisdk/provider-model-options-file-with-subtype-must-export-model-options-type"
+        {
+          "use": "aisdk/provider-model-options-file-with-subtype-must-export-model-options-type",
+          "excludeFiles": ["${providerId}-speech-translation-model-options.ts"]
+        },
+        "aisdk/provider-speech-translation-model-options-file-must-export-model-options-type"
       ]
     },
     {
