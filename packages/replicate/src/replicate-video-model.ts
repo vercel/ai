@@ -1,6 +1,6 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV4,
+  type Experimental_VideoModelV4 as VideoModelV4,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -33,7 +33,7 @@ interface ReplicateVideoModelConfig {
   };
 }
 
-export class ReplicateVideoModel implements Experimental_VideoModelV4 {
+export class ReplicateVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1; // Replicate video models support 1 video at a time
 
@@ -47,8 +47,8 @@ export class ReplicateVideoModel implements Experimental_VideoModelV4 {
   ) {}
 
   async doGenerate(
-    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
+    options: Parameters<VideoModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<VideoModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
 

@@ -1,7 +1,7 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV4,
-  type Experimental_VideoModelV4File,
+  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4File as VideoModelV4File,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -37,28 +37,28 @@ interface GoogleVideoModelConfig {
 }
 
 function getFirstFrameImage(
-  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-): Experimental_VideoModelV4File | undefined {
+  options: Parameters<VideoModelV4['doGenerate']>[0],
+): VideoModelV4File | undefined {
   return options.frameImages?.find(frame => frame.frameType === 'first_frame')
     ?.image;
 }
 
 function resolveStartImage(
-  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-): Experimental_VideoModelV4File | undefined {
+  options: Parameters<VideoModelV4['doGenerate']>[0],
+): VideoModelV4File | undefined {
   return getFirstFrameImage(options) ?? options.image;
 }
 
 function getLastFrameImage(
-  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-): Experimental_VideoModelV4File | undefined {
+  options: Parameters<VideoModelV4['doGenerate']>[0],
+): VideoModelV4File | undefined {
   return options.frameImages?.find(frame => frame.frameType === 'last_frame')
     ?.image;
 }
 
 function getInputReferences(
-  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-): Array<Experimental_VideoModelV4File> | undefined {
+  options: Parameters<VideoModelV4['doGenerate']>[0],
+): Array<VideoModelV4File> | undefined {
   if (options.frameImages != null && options.frameImages.length > 0) {
     return undefined;
   }
@@ -69,7 +69,7 @@ function getInputReferences(
 }
 
 function convertFileToGoogleImage(
-  file: Experimental_VideoModelV4File,
+  file: VideoModelV4File,
   warnings: SharedV4Warning[],
 ): Record<string, unknown> | undefined {
   if (file.type === 'url') {
@@ -129,14 +129,14 @@ function convertProviderReferenceImage(
 }
 
 function convertInputReferenceImage(
-  file: Experimental_VideoModelV4File,
+  file: VideoModelV4File,
   warnings: SharedV4Warning[],
 ): Record<string, unknown> | undefined {
   const image = convertFileToGoogleImage(file, warnings);
   return image != null ? { image, referenceType: 'asset' } : undefined;
 }
 
-export class GoogleVideoModel implements Experimental_VideoModelV4 {
+export class GoogleVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
 
   get provider(): string {
@@ -154,8 +154,8 @@ export class GoogleVideoModel implements Experimental_VideoModelV4 {
   ) {}
 
   async doGenerate(
-    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
+    options: Parameters<VideoModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<VideoModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
 

@@ -267,12 +267,13 @@ export const conventions = defineConventions([
         {
           name: 'Experimental_VideoModelV4',
           from: '@ai-sdk/provider',
+          alias: 'VideoModelV4',
         },
       ],
       exportClasses: [
         {
           name: '${providerId.toPascalCase()}VideoModel',
-          implement: ['Experimental_VideoModelV4'],
+          implement: ['VideoModelV4'],
         },
       ],
     },

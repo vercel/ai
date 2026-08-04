@@ -1,8 +1,8 @@
 import {
   AISDKError,
   APICallError,
-  type Experimental_VideoModelV4,
-  type Experimental_VideoModelV4File,
+  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4File as VideoModelV4File,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -43,34 +43,32 @@ const RESOLUTION_MAP: Record<string, string> = {
   '640x480': '480p',
 };
 
-type XaiVideoDoGenerateOptions = Parameters<
-  Experimental_VideoModelV4['doGenerate']
->[0];
+type XaiVideoDoGenerateOptions = Parameters<VideoModelV4['doGenerate']>[0];
 
 function getFirstFrameImage(
   options: XaiVideoDoGenerateOptions,
-): Experimental_VideoModelV4File | undefined {
+): VideoModelV4File | undefined {
   return options.frameImages?.find(frame => frame.frameType === 'first_frame')
     ?.image;
 }
 
 function getLastFrameImage(
   options: XaiVideoDoGenerateOptions,
-): Experimental_VideoModelV4File | undefined {
+): VideoModelV4File | undefined {
   return options.frameImages?.find(frame => frame.frameType === 'last_frame')
     ?.image;
 }
 
 function resolveStartImage(
   options: XaiVideoDoGenerateOptions,
-): Experimental_VideoModelV4File | undefined {
+): VideoModelV4File | undefined {
   return getFirstFrameImage(options) ?? options.image;
 }
 
-const isVideoFile = (file: Experimental_VideoModelV4File): boolean =>
+const isVideoFile = (file: VideoModelV4File): boolean =>
   file.mediaType != null && getTopLevelMediaType(file.mediaType) === 'video';
 
-function fileToXaiImageUrl(file: Experimental_VideoModelV4File): string {
+function fileToXaiImageUrl(file: VideoModelV4File): string {
   if (file.type === 'url') {
     return file.url;
   }
@@ -151,7 +149,7 @@ function resolveVideoMode(
   return undefined;
 }
 
-export class XaiVideoModel implements Experimental_VideoModelV4 {
+export class XaiVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
@@ -165,8 +163,8 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
   ) {}
 
   async doGenerate(
-    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
+    options: Parameters<VideoModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<VideoModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
 

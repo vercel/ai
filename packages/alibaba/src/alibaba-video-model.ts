@@ -1,7 +1,7 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV4,
-  type Experimental_VideoModelV4File,
+  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4File as VideoModelV4File,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -140,7 +140,7 @@ function deriveRatioFromResolution(
   return supportedRatios.has(ratio) ? ratio : undefined;
 }
 
-function fileToImageString(file: Experimental_VideoModelV4File): string {
+function fileToImageString(file: VideoModelV4File): string {
   if (file.type === 'url') {
     return file.url;
   }
@@ -150,15 +150,15 @@ function fileToImageString(file: Experimental_VideoModelV4File): string {
 }
 
 function getFirstFrameImage(
-  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-): Experimental_VideoModelV4File | undefined {
+  options: Parameters<VideoModelV4['doGenerate']>[0],
+): VideoModelV4File | undefined {
   return options.frameImages?.find(frame => frame.frameType === 'first_frame')
     ?.image;
 }
 
 function resolveStartImage(
-  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-): Experimental_VideoModelV4File | undefined {
+  options: Parameters<VideoModelV4['doGenerate']>[0],
+): VideoModelV4File | undefined {
   return getFirstFrameImage(options) ?? options.image;
 }
 
@@ -168,7 +168,7 @@ function isVideoUrl(url: string): boolean {
 
 // Builds the wan2.7 input.media array from inputReferences and frameImages.
 function resolveMedia(
-  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+  options: Parameters<VideoModelV4['doGenerate']>[0],
   alibabaOptions: AlibabaVideoModelOptions | undefined,
   warnings: SharedV4Warning[],
 ): Array<Record<string, unknown>> | undefined {
@@ -218,7 +218,7 @@ function resolveMedia(
 }
 
 function resolveReferenceUrls(
-  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+  options: Parameters<VideoModelV4['doGenerate']>[0],
   alibabaOptions: AlibabaVideoModelOptions | undefined,
   warnings: SharedV4Warning[],
 ): string[] | undefined {
@@ -249,7 +249,7 @@ function resolveReferenceUrls(
   return alibabaOptions?.referenceUrls ?? undefined;
 }
 
-export class AlibabaVideoModel implements Experimental_VideoModelV4 {
+export class AlibabaVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
@@ -263,8 +263,8 @@ export class AlibabaVideoModel implements Experimental_VideoModelV4 {
   ) {}
 
   async doGenerate(
-    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
+    options: Parameters<VideoModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<VideoModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
     const mode = detectMode(this.modelId);
