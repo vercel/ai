@@ -14,11 +14,21 @@ export type LanguageModelV4BatchRequest = {
   readonly id: string;
 
   /**
-   * Normalized language model call options for the request.
+   * Normalized text-generation options for the request.
    */
-  readonly options: Omit<
+  readonly options: Pick<
     LanguageModelV4CallOptions,
-    'abortSignal' | 'headers' | 'includeRawChunks'
+    | 'prompt'
+    | 'maxOutputTokens'
+    | 'temperature'
+    | 'stopSequences'
+    | 'topP'
+    | 'topK'
+    | 'presencePenalty'
+    | 'frequencyPenalty'
+    | 'seed'
+    | 'reasoning'
+    | 'providerOptions'
   >;
 };
 

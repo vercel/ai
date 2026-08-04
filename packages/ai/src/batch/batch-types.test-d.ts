@@ -3,6 +3,8 @@ import type {
   Experimental_BatchV4ItemResult as BatchV4ItemResult,
   Experimental_BatchV4Status as BatchV4Status,
   Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
+  Experimental_LanguageModelV4BatchRequest as LanguageModelV4BatchRequest,
+  LanguageModelV4CallOptions,
   LanguageModelV4GenerateResult,
   LanguageModelV4,
 } from '@ai-sdk/provider';
@@ -47,6 +49,37 @@ it('excludes Core orchestration and tool execution from batch items', () => {
   expectTypeOf<'tools'>().not.toMatchTypeOf<keyof TextBatchRequest>();
   expectTypeOf<'toolChoice'>().not.toMatchTypeOf<keyof TextBatchRequest>();
   expectTypeOf<'stopWhen'>().not.toMatchTypeOf<keyof TextBatchRequest>();
+});
+
+it('only exposes text-generation call options to batch providers', () => {
+  type BatchCallOptions = LanguageModelV4BatchRequest['options'];
+  type ExpectedBatchCallOptions = Pick<
+    LanguageModelV4CallOptions,
+    | 'prompt'
+    | 'maxOutputTokens'
+    | 'temperature'
+    | 'stopSequences'
+    | 'topP'
+    | 'topK'
+    | 'presencePenalty'
+    | 'frequencyPenalty'
+    | 'seed'
+    | 'reasoning'
+    | 'providerOptions'
+  >;
+
+  expectTypeOf<BatchCallOptions>().toEqualTypeOf<ExpectedBatchCallOptions>();
+  expectTypeOf<
+    Extract<
+      keyof BatchCallOptions,
+      | 'responseFormat'
+      | 'tools'
+      | 'toolChoice'
+      | 'includeRawChunks'
+      | 'abortSignal'
+      | 'headers'
+    >
+  >().toEqualTypeOf<never>();
 });
 
 it('uses serializable response timestamps', () => {

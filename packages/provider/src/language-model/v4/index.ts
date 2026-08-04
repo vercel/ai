@@ -20,4 +20,7 @@ export * from './language-model-v4-tool-call';
 export * from './language-model-v4-tool-choice';
 export * from './language-model-v4-tool-result';
 export * from './language-model-v4-usage';
-export type { BatchLanguageModelV4 as Experimental_BatchLanguageModelV4 } from './language-model-v4-batch';
+export type {
+  BatchLanguageModelV4 as Experimental_BatchLanguageModelV4,
+  LanguageModelV4BatchRequest as Experimental_LanguageModelV4BatchRequest,
+} from './language-model-v4-batch';
