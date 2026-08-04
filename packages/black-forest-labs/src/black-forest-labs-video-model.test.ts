@@ -112,9 +112,8 @@ describe('BlackForestLabsVideoModel', () => {
     });
 
     it('should support workflow serialization', () => {
-      const serialized = BlackForestLabsVideoModel[WORKFLOW_SERIALIZE](
-        createModel(),
-      );
+      const serialized =
+        BlackForestLabsVideoModel[WORKFLOW_SERIALIZE](createModel());
 
       expect(serialized).toEqual({
         modelId: 'flux-3-video',
@@ -561,10 +560,7 @@ describe('BlackForestLabsVideoModel', () => {
       ['an empty array', []],
       [
         'mixed timed and untimed entries',
-        [
-          'https://cdn.example.com/a.png',
-          [3, 'https://cdn.example.com/b.png'],
-        ],
+        ['https://cdn.example.com/a.png', [3, 'https://cdn.example.com/b.png']],
       ],
       [
         'out-of-order timed entries',
