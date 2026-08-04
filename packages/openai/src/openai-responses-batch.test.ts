@@ -4,7 +4,7 @@ import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
 import { OpenAIChatLanguageModel } from './chat/openai-chat-language-model';
-import { OpenAIResponsesBatchLanguageModel } from './openai-batch-language-model';
+import { OpenAIResponsesBatchLanguageModel } from './openai-responses-batch';
 import { createOpenAI } from './openai-provider';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
 

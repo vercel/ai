@@ -31,7 +31,7 @@ import type { OpenAIEmbeddingModelId } from './embedding/openai-embedding-model-
 import { OpenAIImageModel } from './image/openai-image-model';
 import type { OpenAIImageModelId } from './image/openai-image-model-options';
 import { openaiTools } from './openai-tools';
-import { OpenAIResponsesBatchLanguageModel } from './openai-batch-language-model';
+import { OpenAIResponsesBatchLanguageModel } from './openai-responses-batch';
 import { OpenAIRealtimeModel } from './realtime/openai-realtime-model';
 import type { OpenAIResponsesModelId } from './responses/openai-responses-language-model-options';
 import { OpenAISpeechModel } from './speech/openai-speech-model';
