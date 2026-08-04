@@ -92,25 +92,20 @@ describe('createLocalWorkspaceSandbox', () => {
       );
     });
 
-    it('refuses a symlink pointing at the home directory', async () => {
+    it('refuses a symlink pointing at the home directory, naming both spellings', async () => {
       const { root } = await createTempProject();
       const link = join(root, 'link-to-home');
       symlinkSync(homedir(), link);
 
-      const provider = createLocalWorkspaceSandbox({ path: link });
-      await expect(provider.createSession()).rejects.toThrow(
+      const createSession = createLocalWorkspaceSandbox({
+        path: link,
+      }).createSession();
+      await expect(createSession).rejects.toThrow(
         /must not be the home directory/,
       );
-    });
-
-    it('names both spellings when a symlink is rejected', async () => {
-      const { root } = await createTempProject();
-      const link = join(root, 'link-home-2');
-      symlinkSync(homedir(), link);
-
-      await expect(
-        createLocalWorkspaceSandbox({ path: link }).createSession(),
-      ).rejects.toThrow(new RegExp(`resolved from .*${'link-home-2'}`));
+      await expect(createSession).rejects.toThrow(
+        /resolved from .*link-to-home/,
+      );
     });
   });
 });
@@ -513,16 +508,6 @@ describe('ports', () => {
     expect(new Set(session.ports).size).toBe(3);
   });
 
-  it('resolves a URL for a port outside the pool, so reattach can work', async () => {
-    const { projectPath } = await createTempProject();
-    const session = await startSession({ path: projectPath });
-
-    expect(session.ports).not.toContain(54_321);
-    expect(await session.getPortUrl({ port: 54_321, protocol: 'ws' })).toBe(
-      'ws://127.0.0.1:54321',
-    );
-  });
-
   it('resolves a port from a previous session, as reattach does', async () => {
     const { projectPath } = await createTempProject();
     const provider = createLocalWorkspaceSandbox({ path: projectPath });
@@ -536,7 +521,8 @@ describe('ports', () => {
     expect(resumed).toBeDefined();
     sessionsToStop.push(resumed!);
 
-    // Fresh pool, but the persisted port still resolves.
+    // Fresh pool, but the persisted port still resolves. Rejecting it is what
+    // made every reattach respawn and orphan the running bridge.
     expect(resumed!.ports).not.toContain(detachedPort);
     expect(
       await resumed!.getPortUrl({ port: detachedPort, protocol: 'ws' }),
