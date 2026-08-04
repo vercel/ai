@@ -198,6 +198,27 @@ export class HarnessAgent<
   }
 
   /**
+   * Sandbox provider used when the consumer did not supply one: the local
+   * machine, rooted at `process.cwd()`.
+   *
+   * Imported lazily and cached, so that requiring `HarnessAgent` does not pull
+   * `node:child_process` and `node:net` into the module graph of consumers who
+   * always pass their own provider.
+   */
+  private localSandboxProvider: HarnessV1SandboxProvider | undefined;
+
+  private async resolveLocalSandboxProvider(): Promise<HarnessV1SandboxProvider> {
+    if (this.localSandboxProvider != null) return this.localSandboxProvider;
+    const { createLocalSandbox } =
+      await import('./internal/local-sandbox/local-sandbox');
+    const { warnAboutMissingSandbox } =
+      await import('./internal/local-sandbox/warn-no-sandbox');
+    warnAboutMissingSandbox();
+    this.localSandboxProvider = createLocalSandbox();
+    return this.localSandboxProvider;
+  }
+
+  /**
    * Start a fresh session, or resume from state previously returned by
    * `session.detach()` or `session.stop()`. The returned
    * `HarnessAgentSession` must be passed to subsequent `generate` / `stream`
@@ -232,7 +253,8 @@ export class HarnessAgent<
     const continueFrom = options?.continueFrom;
     const abortSignal = options?.abortSignal;
     const harness = this.settings.harness;
-    const sandboxProvider = this.settings.sandbox;
+    const sandboxProvider =
+      this.settings.sandbox ?? (await this.resolveLocalSandboxProvider());
 
     if (resumeFrom != null && continueFrom != null) {
       throw new Error(
@@ -298,6 +320,9 @@ export class HarnessAgent<
       harnessId: harness.harnessId,
       sessionId,
       workDir: sandboxBootstrapPlan.workDir,
+      // The implicit local sandbox is rooted at the user's own working
+      // directory, so the session belongs there rather than in a subdirectory.
+      runInRoot: this.settings.sandbox == null,
     });
 
     try {

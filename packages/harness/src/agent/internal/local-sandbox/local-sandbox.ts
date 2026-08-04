@@ -2,39 +2,31 @@ import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { homedir } from 'node:os';
-import { basename, dirname, join, parse, resolve } from 'node:path';
+import { dirname, join, parse, resolve } from 'node:path';
 import type {
   HarnessV1NetworkSandboxSession,
   HarnessV1SandboxProvider,
-} from '@ai-sdk/harness';
+} from '../../../v1';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
-import { LocalWorkspaceNetworkSandboxSession } from './local-workspace-network-sandbox-session';
-import { realpathAllowingMissing } from './local-workspace-sandbox-session';
+import { LocalNetworkSandboxSession } from './local-network-sandbox-session';
+import { realpathAllowingMissing } from './local-sandbox-session';
 
 /**
- * Settings for {@link localWorkspace} and {@link createLocalWorkspaceSandbox}.
+ * Settings for {@link createLocalSandbox}.
  *
  * Deliberately small. This provider's job is to get out of the way of the
  * harness: it supplies no tools, no tool filtering, and no permission-mode
  * opinions, so each harness keeps its own optimized tools, skills and user
  * configuration.
  */
-export type LocalWorkspaceSandboxSettings = {
+export type LocalSandboxSettings = {
   /**
-   * Project directory the harness works in. Resolved to an absolute path.
-   * Created if it does not exist.
+   * Project directory the harness works in. Defaults to `process.cwd()`.
+   * Resolved to an absolute path, and created if it does not exist.
    *
    * This scopes where the harness *works*, not what it can reach.
    */
-  path: string;
-
-  /**
-   * Number of loopback ports to allocate for the session. Defaults to 1.
-   *
-   * Bridge-backed adapters take `ports[0]`. Raise this only if you need
-   * several concurrent sessions against one provider instance.
-   */
-  portCount?: number;
+  path?: string;
 
   /**
    * Overlay applied on top of the inherited process environment.
@@ -47,50 +39,39 @@ export type LocalWorkspaceSandboxSettings = {
   env?: Record<string, string>;
 };
 
-/**
- * The provider and the `sandboxConfig` that has to accompany it.
- *
- * ```ts
- * const workspace = localWorkspace({ path: '/Users/me/repos/myapp' });
- *
- * const agent = new HarnessAgent({
- *   harness: createClaudeCode(),
- *   sandbox: workspace.sandbox,
- *   sandboxConfig: workspace.sandboxConfig,
- * });
- * ```
- *
- * Unlike other sandbox providers, this one cannot be configured by `sandbox:`
- * alone: it reports the project's *parent* as its default working directory, so
- * `workDir` is what names the project. A hand-derived `workDir` that disagrees
- * fails silently, running the harness in an empty sibling directory, so the two
- * are returned together.
- *
- * Merge into `sandboxConfig`, never replace it. Spreading this into the agent
- * settings and then assigning `sandboxConfig` discards `workDir` and
- * reintroduces exactly that failure.
- *
- * ```ts
- * sandboxConfig: { ...workspace.sandboxConfig, onSession },
- * ```
- */
-export function localWorkspace(settings: LocalWorkspaceSandboxSettings): {
-  readonly sandbox: HarnessV1SandboxProvider;
-  readonly sandboxConfig: { readonly workDir: string };
-} {
-  return {
-    sandbox: createLocalWorkspaceSandbox(settings),
-    sandboxConfig: { workDir: basename(resolve(settings.path)) },
-  };
-}
-
-const LOCAL_WORKSPACE_PROVIDER_ID = 'local-workspace-sandbox';
+const LOCAL_SANDBOX_PROVIDER_ID = 'local-sandbox';
 
 /**
  * Directory holding the one-time-setup markers that stand in for the snapshots
- * a hosted provider would use. Lives beside the project, never inside it.
+ * a hosted provider would use.
  */
 const FIRST_CREATE_MARKER_DIR = '.harness-local';
+
+/**
+ * Directory adapter bootstrap recipes write into.
+ *
+ * Recipes declare this as a relative `bootstrapDir`, which both the framework
+ * and the adapters resolve against the sandbox's default working directory. The
+ * name is duplicated here only so the directory can be made invisible to git
+ * before anything lands in it.
+ */
+const BOOTSTRAP_DIR = '.harness-bootstrap';
+
+/**
+ * Hide a generated directory from git without touching a file the user owns.
+ *
+ * The sandbox root is the user's project, so a bridge bootstrap drops a full
+ * `node_modules` inside it. A `.gitignore` of `*` placed in the directory
+ * ignores its own contents and itself, so `git status` stays clean, nothing can
+ * be committed by accident, and we never edit the project's `.gitignore`. Works
+ * whether or not the project is a git repository.
+ */
+function hideFromGit(directory: string): void {
+  mkdirSync(directory, { recursive: true });
+  const ignoreFile = join(directory, '.gitignore');
+  if (existsSync(ignoreFile)) return;
+  writeFileSync(ignoreFile, '*\n');
+}
 
 /**
  * `onFirstCreate` runs currently in flight, keyed by marker path.
@@ -110,42 +91,33 @@ const firstCreateRuns = new Map<string, Promise<void>>();
  * Create a `HarnessV1SandboxProvider` that runs harnesses on the local machine,
  * scoped to a project directory.
  *
- * Prefer {@link localWorkspace}, which also supplies the matching
- * `sandboxConfig.workDir`. Use this directly only when you are wiring the
- * provider into something other than `HarnessAgent`.
- *
  * The provider is stable and synchronous; no filesystem or process work happens
  * until `createSession()` is called.
  *
  * **This provides no isolation.** See the package README.
  */
-export function createLocalWorkspaceSandbox(
-  settings: LocalWorkspaceSandboxSettings,
+export function createLocalSandbox(
+  settings: LocalSandboxSettings = {},
 ): HarnessV1SandboxProvider {
-  return new LocalWorkspaceSandboxProvider(settings);
+  return new LocalSandboxProvider(settings);
 }
 
 /**
  * `HarnessV1SandboxProvider` implementation backed by the user's own machine.
  *
- * Prefer {@link localWorkspace}, which pairs this with the `sandboxConfig` it
- * requires.
- *
  * Unlike hosted providers there is no machine to create: sessions bind to a
  * directory that already exists and outlives them. `resumeSession` therefore
  * just rebinds to the same root.
  */
-export class LocalWorkspaceSandboxProvider implements HarnessV1SandboxProvider {
+export class LocalSandboxProvider implements HarnessV1SandboxProvider {
   readonly specificationVersion = 'harness-sandbox-v1' as const;
-  readonly providerId = LOCAL_WORKSPACE_PROVIDER_ID;
+  readonly providerId = LOCAL_SANDBOX_PROVIDER_ID;
 
   private readonly projectPath: string;
-  private readonly parentPath: string;
-  private readonly portCount: number;
   private readonly env: Record<string, string>;
 
-  constructor(settings: LocalWorkspaceSandboxSettings) {
-    const projectPath = resolve(settings.path);
+  constructor(settings: LocalSandboxSettings = {}) {
+    const projectPath = resolve(settings.path ?? process.cwd());
 
     // Fails fast on the obvious mistake. The provider contract forbids I/O at
     // construction, so this cannot follow symlinks; `createSession` repeats the
@@ -153,8 +125,6 @@ export class LocalWorkspaceSandboxProvider implements HarnessV1SandboxProvider {
     assertUsableProjectPath(projectPath);
 
     this.projectPath = projectPath;
-    this.parentPath = dirname(projectPath);
-    this.portCount = settings.portCount ?? 1;
     this.env = { ...process.env, ...settings.env } as Record<string, string>;
   }
 
@@ -176,7 +146,7 @@ export class LocalWorkspaceSandboxProvider implements HarnessV1SandboxProvider {
     // process's `pwd` against `defaultWorkingDirectory`; on macOS a project
     // under `/tmp` resolves to `/private/tmp` and the comparison fails without
     // this.
-    const workingDirectory = await realpathAllowingMissing(this.parentPath);
+    const workingDirectory = await realpathAllowingMissing(this.projectPath);
 
     // A symlink to `/` or to the home directory passes the constructor's
     // unresolved check, and is exactly what that check exists to catch.
@@ -185,12 +155,16 @@ export class LocalWorkspaceSandboxProvider implements HarnessV1SandboxProvider {
       settings => `${settings} (resolved from \`${this.projectPath}\`)`,
     );
 
-    const session = new LocalWorkspaceNetworkSandboxSession({
-      id: options?.sessionId ?? `local-workspace-${randomUUID()}`,
-      ports: await allocateLoopbackPorts(this.portCount),
+    // Before anything writes into them, so a bootstrap can never surface in the
+    // user's `git status`.
+    hideFromGit(join(workingDirectory, BOOTSTRAP_DIR));
+    hideFromGit(join(workingDirectory, FIRST_CREATE_MARKER_DIR));
+
+    const session = new LocalNetworkSandboxSession({
+      id: options?.sessionId ?? `local-${randomUUID()}`,
+      ports: [await allocateLoopbackPort()],
       context: {
         workingDirectory,
-        projectDirectoryName: basename(this.projectPath),
         env: this.env,
         children: new Set(),
       },
@@ -245,7 +219,7 @@ export class LocalWorkspaceSandboxProvider implements HarnessV1SandboxProvider {
     onFirstCreate,
     abortSignal,
   }: {
-    session: LocalWorkspaceNetworkSandboxSession;
+    session: LocalNetworkSandboxSession;
     workingDirectory: string;
     identity?: string;
     onFirstCreate?: (
@@ -325,34 +299,17 @@ function assertUsableProjectPath(
 ): void {
   if (projectPath === parse(projectPath).root) {
     throw new Error(
-      describe(
-        'createLocalWorkspaceSandbox: `path` must not be the filesystem root',
-      ),
+      describe('createLocalSandbox: `path` must not be the filesystem root'),
     );
   }
   if (projectPath === resolve(homedir())) {
     throw new Error(
       describe(
-        'createLocalWorkspaceSandbox: `path` must not be the home directory. ' +
+        'createLocalSandbox: `path` must not be the home directory. ' +
           'Point it at a specific project directory',
       ),
     );
   }
-}
-
-/**
- * Ask the OS for free loopback ports.
- *
- * Letting the kernel choose removes a class of conflict bugs that a
- * caller-supplied port list would reintroduce. Ports are bound, read and
- * released, leaving a small race window before the harness binds them for real.
- *
- * Allocated in parallel so every socket is bound at once and the kernel has to
- * hand out distinct ports. Allocating in sequence frees each port before asking
- * for the next, which may return the same one twice.
- */
-function allocateLoopbackPorts(count: number): Promise<ReadonlyArray<number>> {
-  return Promise.all(Array.from({ length: count }, allocateLoopbackPort));
 }
 
 function allocateLoopbackPort(): Promise<number> {

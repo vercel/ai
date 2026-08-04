@@ -14,7 +14,7 @@ import {
   stat as statAsync,
   writeFile as writeFileAsync,
 } from 'node:fs/promises';
-import { dirname, isAbsolute, join, resolve as resolvePath } from 'node:path';
+import { dirname, isAbsolute, resolve as resolvePath } from 'node:path';
 import { Readable } from 'node:stream';
 import {
   extractLines,
@@ -32,21 +32,13 @@ const nodeFs = {
 
 /**
  * Everything a session needs to operate. Constructed by the provider and
- * shared by reference between a {@link LocalWorkspaceNetworkSandboxSession} and
+ * shared by reference between a {@link LocalNetworkSandboxSession} and
  * the reduced session its `restricted()` returns, so both observe the same
  * child-process set.
  */
-export type LocalWorkspaceSessionContext = {
-  /** Sandbox root: the parent of the project directory. Already realpath'd. */
+export type LocalSandboxSessionContext = {
+  /** Sandbox root, which is the project directory. Already realpath'd. */
   readonly workingDirectory: string;
-  /**
-   * Name of the project directory within {@link workingDirectory}.
-   *
-   * Stored as a name rather than a full path so the two cannot disagree. Both
-   * spellings of a symlinked project would otherwise appear side by side, and
-   * `join(workingDirectory, name)` would not produce the stated project path.
-   */
-  readonly projectDirectoryName: string;
   /** Inherited process environment plus the caller's overlay. */
   readonly env: Record<string, string>;
   /** Live children, so `stop()` can reap the whole tree. */
@@ -121,28 +113,24 @@ export function killProcessTree(
  * real files, real processes, the user's own environment.
  *
  * This is the tool-safe surface returned by
- * `LocalWorkspaceNetworkSandboxSession.restricted()`, not constructed directly
+ * `LocalNetworkSandboxSession.restricted()`, not constructed directly
  * by consumers.
  *
  * It applies **no path containment**. A guard here would constrain nothing:
  * bridge-backed harnesses never route their built-in tools through this API,
  * and every harness ships a shell tool. See the package README.
  */
-export class LocalWorkspaceSandboxSession implements SandboxSession {
-  constructor(protected readonly context: LocalWorkspaceSessionContext) {}
+export class LocalSandboxSession implements SandboxSession {
+  constructor(protected readonly context: LocalSandboxSessionContext) {}
 
   /**
    * Consumers put this in the model's instructions, so it has to say where
-   * relative paths actually land. The root is the project's *parent*, so
-   * `NOTES.md` resolves beside the project rather than inside it. Claiming
-   * otherwise would send the model's files to the wrong directory.
+   * relative paths actually land.
    */
   get description(): string {
-    const { workingDirectory, projectDirectoryName } = this.context;
     return [
-      `Local machine workspace rooted at ${workingDirectory}.`,
-      `The project directory is ${join(workingDirectory, projectDirectoryName)}.`,
-      `Relative paths and commands resolve against the workspace root, so paths inside the project start with "${projectDirectoryName}/".`,
+      `Local machine project directory: ${this.context.workingDirectory}.`,
+      'Relative paths and commands resolve against that directory.',
       'Commands run as a normal OS process on the host, as the current user.',
     ].join('\n');
   }

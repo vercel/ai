@@ -1,16 +1,16 @@
-import type { HarnessV1NetworkSandboxSession } from '@ai-sdk/harness';
+import type { HarnessV1NetworkSandboxSession } from '../../../v1';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import {
   killProcessTree,
-  LocalWorkspaceSandboxSession,
-  type LocalWorkspaceSessionContext,
+  LocalSandboxSession,
+  type LocalSandboxSessionContext,
   reapChildSetOnExit,
   stopReapingChildSet,
-} from './local-workspace-sandbox-session';
+} from './local-sandbox-session';
 
 /**
  * `HarnessV1NetworkSandboxSession` backed by the local machine. Extends
- * {@link LocalWorkspaceSandboxSession} with the infra surface the harness
+ * {@link LocalSandboxSession} with the infra surface the harness
  * framework needs: an id, a working directory, loopback ports, and lifecycle.
  *
  * Ports are real free TCP ports on `127.0.0.1`, allocated when the session is
@@ -19,8 +19,8 @@ import {
  * enforcement primitive, and a no-op implementation would be a lie the
  * framework acts on.
  */
-export class LocalWorkspaceNetworkSandboxSession
-  extends LocalWorkspaceSandboxSession
+export class LocalNetworkSandboxSession
+  extends LocalSandboxSession
   implements HarnessV1NetworkSandboxSession
 {
   readonly id: string;
@@ -29,7 +29,7 @@ export class LocalWorkspaceNetworkSandboxSession
   constructor(input: {
     id: string;
     ports: ReadonlyArray<number>;
-    context: LocalWorkspaceSessionContext;
+    context: LocalSandboxSessionContext;
   }) {
     super(input.context);
     this.id = input.id;
@@ -37,14 +37,7 @@ export class LocalWorkspaceNetworkSandboxSession
     reapChildSetOnExit(this.context.children);
   }
 
-  /**
-   * The parent of the project directory, not the project itself.
-   *
-   * `HarnessAgent` composes every session's work directory underneath this
-   * path, and `normalizeSandboxWorkDir` rejects `'.'`, so rooting here is what
-   * lets `sandboxConfig.workDir` name the project. Already realpath'd by the
-   * provider.
-   */
+  /** The project directory. Already realpath'd by the provider. */
   get defaultWorkingDirectory(): string {
     return this.context.workingDirectory;
   }
@@ -90,6 +83,6 @@ export class LocalWorkspaceNetworkSandboxSession
   };
 
   restricted(): SandboxSession {
-    return new LocalWorkspaceSandboxSession(this.context);
+    return new LocalSandboxSession(this.context);
   }
 }

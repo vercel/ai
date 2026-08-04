@@ -4,6 +4,7 @@ import {
   readFileSync,
   rmSync,
   symlinkSync,
+  writeFileSync,
 } from 'node:fs';
 import { mkdtemp, readFile, realpath } from 'node:fs/promises';
 import type * as NodeFsModule from 'node:fs';
@@ -12,11 +13,7 @@ import type * as NodeModuleModule from 'node:module';
 import { homedir, tmpdir } from 'node:os';
 import { basename, dirname, join, parse } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import {
-  createLocalWorkspaceSandbox,
-  localWorkspace,
-  LocalWorkspaceSandboxProvider,
-} from './local-workspace-sandbox';
+import { createLocalSandbox, LocalSandboxProvider } from './local-sandbox';
 
 const sessionsToStop: Array<{ stop: () => PromiseLike<void> }> = [];
 
@@ -34,29 +31,29 @@ async function createTempProject(name = 'myapp') {
 }
 
 async function startSession(
-  settings: Parameters<typeof createLocalWorkspaceSandbox>[0],
+  settings: Parameters<typeof createLocalSandbox>[0],
   options?: Parameters<
-    ReturnType<typeof createLocalWorkspaceSandbox>['createSession']
+    ReturnType<typeof createLocalSandbox>['createSession']
   >[0],
 ) {
-  const provider = createLocalWorkspaceSandbox(settings);
+  const provider = createLocalSandbox(settings);
   const session = await provider.createSession(options);
   sessionsToStop.push(session);
   return session;
 }
 
-describe('createLocalWorkspaceSandbox', () => {
-  it('returns a LocalWorkspaceSandboxProvider with the conventional id', () => {
-    const provider = createLocalWorkspaceSandbox({ path: '/tmp/does-not-yet' });
-    expect(provider).toBeInstanceOf(LocalWorkspaceSandboxProvider);
-    expect(provider.providerId).toBe('local-workspace-sandbox');
+describe('createLocalSandbox', () => {
+  it('returns a LocalSandboxProvider with the conventional id', () => {
+    const provider = createLocalSandbox({ path: '/tmp/does-not-yet' });
+    expect(provider).toBeInstanceOf(LocalSandboxProvider);
+    expect(provider.providerId).toBe('local-sandbox');
     expect(provider.specificationVersion).toBe('harness-sandbox-v1');
   });
 
   it('does no filesystem work until createSession is called', async () => {
     const { root } = await createTempProject();
     const projectPath = join(root, 'not-created-yet');
-    createLocalWorkspaceSandbox({ path: projectPath });
+    createLocalSandbox({ path: projectPath });
     expect(existsSync(projectPath)).toBe(false);
   });
 
@@ -70,13 +67,13 @@ describe('createLocalWorkspaceSandbox', () => {
   describe('constructor guards', () => {
     it('refuses the filesystem root', () => {
       const root = parse(process.cwd()).root;
-      expect(() => createLocalWorkspaceSandbox({ path: root })).toThrow(
+      expect(() => createLocalSandbox({ path: root })).toThrow(
         /must not be the filesystem root/,
       );
     });
 
     it('refuses the home directory', () => {
-      expect(() => createLocalWorkspaceSandbox({ path: homedir() })).toThrow(
+      expect(() => createLocalSandbox({ path: homedir() })).toThrow(
         /must not be the home directory/,
       );
     });
@@ -86,7 +83,7 @@ describe('createLocalWorkspaceSandbox', () => {
       const link = join(root, 'link-to-root');
       symlinkSync(parse(process.cwd()).root, link);
 
-      const provider = createLocalWorkspaceSandbox({ path: link });
+      const provider = createLocalSandbox({ path: link });
       await expect(provider.createSession()).rejects.toThrow(
         /must not be the filesystem root/,
       );
@@ -97,7 +94,7 @@ describe('createLocalWorkspaceSandbox', () => {
       const link = join(root, 'link-to-home');
       symlinkSync(homedir(), link);
 
-      const createSession = createLocalWorkspaceSandbox({
+      const createSession = createLocalSandbox({
         path: link,
       }).createSession();
       await expect(createSession).rejects.toThrow(
@@ -110,78 +107,18 @@ describe('createLocalWorkspaceSandbox', () => {
   });
 });
 
-describe('localWorkspace', () => {
-  it('returns a provider and the matching workDir', () => {
-    const workspace = localWorkspace({ path: '/Users/me/repos/myapp' });
-    expect(workspace.sandbox).toBeInstanceOf(LocalWorkspaceSandboxProvider);
-    expect(workspace.sandboxConfig).toEqual({ workDir: 'myapp' });
-  });
-
-  it('normalises trailing slashes and relative segments', () => {
-    expect(
-      localWorkspace({ path: '/Users/me/repos/myapp/' }).sandboxConfig.workDir,
-    ).toBe('myapp');
-    expect(
-      localWorkspace({ path: '/Users/me/repos/other/../myapp' }).sandboxConfig
-        .workDir,
-    ).toBe('myapp');
-  });
-
-  // The reason the helper exists: whatever spelling of `path` the caller uses,
-  // the returned workDir names the directory the provider actually enters.
-  // A mismatch would silently run the harness in an empty sibling directory.
-  it('agrees with the directory the provider actually roots at', async () => {
-    const { projectPath } = await createTempProject();
-    for (const spelling of [
-      projectPath,
-      `${projectPath}/`,
-      join(projectPath, 'sub', '..'),
-    ]) {
-      const { sandbox, sandboxConfig } = localWorkspace({ path: spelling });
-      const session = await sandbox.createSession();
-      sessionsToStop.push(session);
-      expect(join(session.defaultWorkingDirectory, sandboxConfig.workDir)).toBe(
-        projectPath,
-      );
-    }
-  });
-
-  it('loses workDir if spread and then overridden, which is why we do not document that', () => {
-    const workspace = localWorkspace({ path: '/Users/me/repos/myapp' });
-
-    const spreadThenOverridden = {
-      ...workspace,
-      sandboxConfig: { onSession: () => {} },
-    };
-    expect(
-      (spreadThenOverridden.sandboxConfig as { workDir?: string }).workDir,
-    ).toBeUndefined();
-
-    const merged = {
-      sandbox: workspace.sandbox,
-      sandboxConfig: { ...workspace.sandboxConfig, onSession: () => {} },
-    };
-    expect(merged.sandboxConfig.workDir).toBe('myapp');
-  });
-
-  it('forwards the remaining settings to the provider', async () => {
-    const { projectPath } = await createTempProject();
-    const { sandbox } = localWorkspace({ path: projectPath, portCount: 2 });
-    const session = await sandbox.createSession();
-    sessionsToStop.push(session);
-    expect(session.ports).toHaveLength(2);
-  });
-});
-
 describe('working directory rooting', () => {
-  it('roots defaultWorkingDirectory at the project parent, not the project', async () => {
-    const { root, projectPath } = await createTempProject();
+  it('roots defaultWorkingDirectory at the project itself', async () => {
+    const { projectPath } = await createTempProject();
     const session = await startSession({ path: projectPath });
-    expect(session.defaultWorkingDirectory).toBe(root);
-    expect(session.defaultWorkingDirectory).toBe(dirname(projectPath));
-    expect(localWorkspace({ path: projectPath }).sandboxConfig.workDir).toBe(
-      basename(projectPath),
-    );
+    expect(session.defaultWorkingDirectory).toBe(projectPath);
+  });
+
+  it('defaults to the current working directory', async () => {
+    const provider = createLocalSandbox();
+    const session = await provider.createSession();
+    sessionsToStop.push(session);
+    expect(session.defaultWorkingDirectory).toBe(await realpath(process.cwd()));
   });
 
   // Adapters compare a spawned process's `pwd` against
@@ -196,7 +133,7 @@ describe('working directory rooting', () => {
       path: join(linkRoot, basename(projectPath)),
     });
 
-    expect(session.defaultWorkingDirectory).toBe(root);
+    expect(session.defaultWorkingDirectory).toBe(projectPath);
 
     const { stdout, exitCode } = await session.run({ command: 'pwd -P' });
     expect(exitCode).toBe(0);
@@ -205,9 +142,9 @@ describe('working directory rooting', () => {
 
   // Adapter bootstrap recipes use a relative bootstrapDir
   // (`.harness-bootstrap/<harnessId>`) resolved against
-  // `defaultWorkingDirectory`, so it lands beside the project, never inside it.
-  it('places a relative bootstrap dir beside the project, not inside it', async () => {
-    const { root, projectPath } = await createTempProject();
+  // `defaultWorkingDirectory`, which is the project, so it lands inside it.
+  it('resolves a relative bootstrap dir inside the project', async () => {
+    const { projectPath } = await createTempProject();
     const session = await startSession({ path: projectPath });
 
     await session.writeTextFile({
@@ -216,9 +153,10 @@ describe('working directory rooting', () => {
     });
 
     expect(
-      existsSync(join(root, '.harness-bootstrap/claude-code/package.json')),
+      existsSync(
+        join(projectPath, '.harness-bootstrap/claude-code/package.json'),
+      ),
     ).toBe(true);
-    expect(existsSync(join(projectPath, '.harness-bootstrap'))).toBe(false);
   });
 });
 
@@ -227,19 +165,19 @@ describe('file operations', () => {
     const { root, projectPath } = await createTempProject();
     const session = await startSession({ path: projectPath });
 
-    await session.writeTextFile({ path: 'myapp/hello.txt', content: 'hi' });
+    await session.writeTextFile({ path: 'hello.txt', content: 'hi' });
 
     expect(await readFile(join(projectPath, 'hello.txt'), 'utf8')).toBe('hi');
-    expect(await session.readTextFile({ path: 'myapp/hello.txt' })).toBe('hi');
+    expect(await session.readTextFile({ path: 'hello.txt' })).toBe('hi');
     expect(
-      await session.readTextFile({ path: join(root, 'myapp/hello.txt') }),
+      await session.readTextFile({ path: join(projectPath, 'hello.txt') }),
     ).toBe('hi');
   });
 
   it('creates parent directories on write', async () => {
     const { projectPath } = await createTempProject();
     const session = await startSession({ path: projectPath });
-    await session.writeTextFile({ path: 'myapp/a/b/c.txt', content: 'deep' });
+    await session.writeTextFile({ path: 'a/b/c.txt', content: 'deep' });
     expect(await readFile(join(projectPath, 'a/b/c.txt'), 'utf8')).toBe('deep');
   });
 
@@ -266,13 +204,13 @@ describe('file operations', () => {
 
     const megabytes = 32;
     await session.writeBinaryFile({
-      path: `${basename(projectPath)}/big.bin`,
+      path: 'big.bin',
       content: new Uint8Array(megabytes * 1024 * 1024),
     });
 
     const before = process.memoryUsage().arrayBuffers;
     const stream = await session.readFile({
-      path: `${basename(projectPath)}/big.bin`,
+      path: 'big.bin',
     });
     const grewByMb =
       (process.memoryUsage().arrayBuffers - before) / 1024 / 1024;
@@ -287,13 +225,13 @@ describe('file operations', () => {
     const { projectPath } = await createTempProject();
     const session = await startSession({ path: projectPath });
     await session.writeTextFile({
-      path: 'myapp/lines.txt',
+      path: 'lines.txt',
       content: 'one\ntwo\nthree\nfour',
     });
 
     expect(
       await session.readTextFile({
-        path: 'myapp/lines.txt',
+        path: 'lines.txt',
         startLine: 2,
         endLine: 3,
       }),
@@ -301,7 +239,7 @@ describe('file operations', () => {
     // endLine past EOF reads through EOF without error.
     expect(
       await session.readTextFile({
-        path: 'myapp/lines.txt',
+        path: 'lines.txt',
         startLine: 3,
         endLine: 99,
       }),
@@ -313,10 +251,10 @@ describe('file operations', () => {
     const session = await startSession({ path: projectPath });
     const bytes = new Uint8Array([0, 1, 2, 250]);
 
-    await session.writeBinaryFile({ path: 'myapp/bin', content: bytes });
-    expect(await session.readBinaryFile({ path: 'myapp/bin' })).toEqual(bytes);
+    await session.writeBinaryFile({ path: 'bin', content: bytes });
+    expect(await session.readBinaryFile({ path: 'bin' })).toEqual(bytes);
 
-    const stream = await session.readFile({ path: 'myapp/bin' });
+    const stream = await session.readFile({ path: 'bin' });
     const chunks: Uint8Array[] = [];
     for await (const chunk of stream as unknown as AsyncIterable<Uint8Array>) {
       chunks.push(chunk);
@@ -346,7 +284,7 @@ describe('file operations', () => {
 
     try {
       await session.writeTextFile({
-        path: 'myapp/REL.md',
+        path: 'REL.md',
         content: 'must reach disk',
       });
     } finally {
@@ -378,11 +316,12 @@ describe('processes', () => {
   it('runs in a workingDirectory relative to the sandbox root', async () => {
     const { projectPath } = await createTempProject();
     const session = await startSession({ path: projectPath });
+    await session.writeTextFile({ path: 'nested/keep.txt', content: 'x' });
     const { stdout } = await session.run({
       command: 'pwd -P',
-      workingDirectory: 'myapp',
+      workingDirectory: 'nested',
     });
-    expect(stdout.trim()).toBe(projectPath);
+    expect(stdout.trim()).toBe(join(projectPath, 'nested'));
   });
 
   it('merges the inherited environment with settings.env and per-call env', async () => {
@@ -442,7 +381,7 @@ describe('processes', () => {
   // tree, not just the direct child.
   it('kills the entire process tree on stop', async () => {
     const { projectPath } = await createTempProject();
-    const provider = createLocalWorkspaceSandbox({ path: projectPath });
+    const provider = createLocalSandbox({ path: projectPath });
     const session = await provider.createSession();
 
     const marker = join(projectPath, 'grandchild.pid');
@@ -466,7 +405,7 @@ describe('processes', () => {
 
   it('registers a single exit handler no matter how many sessions exist', async () => {
     const { projectPath } = await createTempProject();
-    const provider = createLocalWorkspaceSandbox({ path: projectPath });
+    const provider = createLocalSandbox({ path: projectPath });
 
     const before = process.listenerCount('exit');
     const sessions = await Promise.all(
@@ -479,7 +418,7 @@ describe('processes', () => {
 
   it('is idempotent on stop and destroy', async () => {
     const { projectPath } = await createTempProject();
-    const provider = createLocalWorkspaceSandbox({ path: projectPath });
+    const provider = createLocalSandbox({ path: projectPath });
     const session = await provider.createSession();
     await session.stop();
     await session.stop();
@@ -502,15 +441,21 @@ describe('ports', () => {
     expect(await session.getPortUrl({ port })).toBe(`http://127.0.0.1:${port}`);
   });
 
-  it('allocates distinct ports when portCount > 1', async () => {
+  it('gives every session its own port', async () => {
     const { projectPath } = await createTempProject();
-    const session = await startSession({ path: projectPath, portCount: 3 });
-    expect(new Set(session.ports).size).toBe(3);
+    const provider = createLocalSandbox({ path: projectPath });
+    const sessions = await Promise.all([
+      provider.createSession(),
+      provider.createSession(),
+      provider.createSession(),
+    ]);
+    sessionsToStop.push(...sessions);
+    expect(new Set(sessions.map(session => session.ports[0])).size).toBe(3);
   });
 
   it('resolves a port from a previous session, as reattach does', async () => {
     const { projectPath } = await createTempProject();
-    const provider = createLocalWorkspaceSandbox({ path: projectPath });
+    const provider = createLocalSandbox({ path: projectPath });
 
     const first = await provider.createSession();
     sessionsToStop.push(first);
@@ -557,19 +502,19 @@ describe('restricted()', () => {
     const session = await startSession({ path: projectPath });
 
     await session.restricted().writeTextFile({
-      path: 'myapp/from-restricted.txt',
+      path: 'from-restricted.txt',
       content: 'same box',
     });
-    expect(
-      await session.readTextFile({ path: 'myapp/from-restricted.txt' }),
-    ).toBe('same box');
+    expect(await session.readTextFile({ path: 'from-restricted.txt' })).toBe(
+      'same box',
+    );
   });
 });
 
 describe('onFirstCreate', () => {
   it('runs once per identity and is skipped on later sessions', async () => {
     const { projectPath } = await createTempProject();
-    const provider = createLocalWorkspaceSandbox({ path: projectPath });
+    const provider = createLocalSandbox({ path: projectPath });
 
     let calls = 0;
     const onFirstCreate = async () => {
@@ -593,7 +538,7 @@ describe('onFirstCreate', () => {
 
   it('runs once even when two sessions race with the same identity', async () => {
     const { projectPath } = await createTempProject();
-    const provider = createLocalWorkspaceSandbox({ path: projectPath });
+    const provider = createLocalSandbox({ path: projectPath });
 
     let concurrent = 0;
     let peakConcurrent = 0;
@@ -620,7 +565,7 @@ describe('onFirstCreate', () => {
   // A failed bootstrap must not be remembered as done.
   it('does not record the marker when the hook throws, and retries next time', async () => {
     const { root, projectPath } = await createTempProject();
-    const provider = createLocalWorkspaceSandbox({ path: projectPath });
+    const provider = createLocalSandbox({ path: projectPath });
 
     let calls = 0;
     const failing = async () => {
@@ -631,9 +576,9 @@ describe('onFirstCreate', () => {
     await expect(
       provider.createSession({ identity: 'flaky', onFirstCreate: failing }),
     ).rejects.toThrow(/bootstrap blew up/);
-    expect(existsSync(join(root, '.harness-local/first-create-flaky'))).toBe(
-      false,
-    );
+    expect(
+      existsSync(join(projectPath, '.harness-local/first-create-flaky')),
+    ).toBe(false);
 
     const succeeding = async () => {
       calls++;
@@ -645,14 +590,14 @@ describe('onFirstCreate', () => {
       }),
     );
     expect(calls).toBe(2);
-    expect(existsSync(join(root, '.harness-local/first-create-flaky'))).toBe(
-      true,
-    );
+    expect(
+      existsSync(join(projectPath, '.harness-local/first-create-flaky')),
+    ).toBe(true);
   });
 
   it('runs again for a different identity', async () => {
     const { projectPath } = await createTempProject();
-    const provider = createLocalWorkspaceSandbox({ path: projectPath });
+    const provider = createLocalSandbox({ path: projectPath });
 
     let calls = 0;
     const onFirstCreate = async () => {
@@ -671,7 +616,7 @@ describe('onFirstCreate', () => {
   // No identity means no cache key, so skipping would be wrong.
   it('runs every time when no identity is supplied', async () => {
     const { projectPath } = await createTempProject();
-    const provider = createLocalWorkspaceSandbox({ path: projectPath });
+    const provider = createLocalSandbox({ path: projectPath });
 
     let calls = 0;
     const onFirstCreate = async () => {
@@ -685,7 +630,7 @@ describe('onFirstCreate', () => {
 
   it('receives the restricted surface', async () => {
     const { projectPath } = await createTempProject();
-    const provider = createLocalWorkspaceSandbox({ path: projectPath });
+    const provider = createLocalSandbox({ path: projectPath });
 
     let received: Record<string, unknown> | undefined;
     sessionsToStop.push(
@@ -703,7 +648,7 @@ describe('onFirstCreate', () => {
 
   it('re-runs after the marker is deleted', async () => {
     const { root, projectPath } = await createTempProject();
-    const provider = createLocalWorkspaceSandbox({ path: projectPath });
+    const provider = createLocalSandbox({ path: projectPath });
 
     let calls = 0;
     const onFirstCreate = async () => {
@@ -715,7 +660,9 @@ describe('onFirstCreate', () => {
     );
     expect(calls).toBe(1);
 
-    rmSync(join(root, '.harness-local/first-create-redo'), { force: true });
+    rmSync(join(projectPath, '.harness-local/first-create-redo'), {
+      force: true,
+    });
 
     sessionsToStop.push(
       await provider.createSession({ identity: 'redo', onFirstCreate }),
@@ -725,8 +672,8 @@ describe('onFirstCreate', () => {
 
   it('serialises across separate provider instances on the same root', async () => {
     const { projectPath } = await createTempProject();
-    const first = createLocalWorkspaceSandbox({ path: projectPath });
-    const second = createLocalWorkspaceSandbox({ path: projectPath });
+    const first = createLocalSandbox({ path: projectPath });
+    const second = createLocalSandbox({ path: projectPath });
 
     let concurrent = 0;
     let peakConcurrent = 0;
@@ -759,11 +706,11 @@ describe('onFirstCreate', () => {
     };
 
     const sessions = await Promise.all([
-      createLocalWorkspaceSandbox({ path: alpha.projectPath }).createSession({
+      createLocalSandbox({ path: alpha.projectPath }).createSession({
         identity: 'same-id',
         onFirstCreate,
       }),
-      createLocalWorkspaceSandbox({ path: beta.projectPath }).createSession({
+      createLocalSandbox({ path: beta.projectPath }).createSession({
         identity: 'same-id',
         onFirstCreate,
       }),
@@ -774,9 +721,9 @@ describe('onFirstCreate', () => {
     expect(calls).toBe(2);
   });
 
-  it('keeps its marker beside the project, not inside it', async () => {
-    const { root, projectPath } = await createTempProject();
-    const provider = createLocalWorkspaceSandbox({ path: projectPath });
+  it('keeps its marker in a directory git ignores', async () => {
+    const { projectPath } = await createTempProject();
+    const provider = createLocalSandbox({ path: projectPath });
     sessionsToStop.push(
       await provider.createSession({
         identity: 'marker',
@@ -784,10 +731,12 @@ describe('onFirstCreate', () => {
       }),
     );
 
-    expect(existsSync(join(root, '.harness-local/first-create-marker'))).toBe(
-      true,
-    );
-    expect(existsSync(join(projectPath, '.harness-local'))).toBe(false);
+    expect(
+      existsSync(join(projectPath, '.harness-local/first-create-marker')),
+    ).toBe(true);
+    expect(
+      readFileSync(join(projectPath, '.harness-local/.gitignore'), 'utf8'),
+    ).toBe('*\n');
   });
 });
 
@@ -804,17 +753,17 @@ describe('sessions', () => {
   it('mints an id when none is supplied', async () => {
     const { projectPath } = await createTempProject();
     const session = await startSession({ path: projectPath });
-    expect(session.id).toMatch(/^local-workspace-/);
+    expect(session.id).toMatch(/^local-/);
   });
 
   it('rebinds to the same root on resumeSession', async () => {
     const { projectPath } = await createTempProject();
-    const provider = createLocalWorkspaceSandbox({ path: projectPath });
+    const provider = createLocalSandbox({ path: projectPath });
 
     const first = await provider.createSession({ sessionId: 's-2' });
     sessionsToStop.push(first);
     await first.writeTextFile({
-      path: 'myapp/state.txt',
+      path: 'state.txt',
       content: 'persisted',
     });
     await first.stop();
@@ -827,14 +776,14 @@ describe('sessions', () => {
     expect(resumed!.defaultWorkingDirectory).toBe(
       first.defaultWorkingDirectory,
     );
-    expect(await resumed!.readTextFile({ path: 'myapp/state.txt' })).toBe(
+    expect(await resumed!.readTextFile({ path: 'state.txt' })).toBe(
       'persisted',
     );
   });
 
   it('gives concurrent sessions distinct ports and independent child sets', async () => {
     const { projectPath } = await createTempProject();
-    const provider = createLocalWorkspaceSandbox({ path: projectPath });
+    const provider = createLocalSandbox({ path: projectPath });
 
     const first = await provider.createSession();
     const second = await provider.createSession();
@@ -851,52 +800,17 @@ describe('sessions', () => {
   // Pin the text against what the session actually does: a wrong claim here
   // sends the model's files into the sibling directory.
   it('describes where relative paths actually resolve', async () => {
-    const { root, projectPath } = await createTempProject();
+    const { projectPath } = await createTempProject();
     const session = await startSession({ path: projectPath });
 
-    expect(session.description).toContain(root);
     expect(session.description).toContain(projectPath);
 
-    // The claim: relative paths resolve against the workspace root, so a path
-    // inside the project is prefixed with the project directory name.
-    expect(session.description).toContain(`${basename(projectPath)}/`);
-
     // The behaviour, verified rather than assumed.
-    await session.writeTextFile({ path: 'at-root.txt', content: 'root' });
-    expect(existsSync(join(root, 'at-root.txt'))).toBe(true);
-    expect(existsSync(join(projectPath, 'at-root.txt'))).toBe(false);
-
-    await session.writeTextFile({
-      path: `${basename(projectPath)}/in-project.txt`,
-      content: 'project',
-    });
+    await session.writeTextFile({ path: 'in-project.txt', content: 'project' });
     expect(existsSync(join(projectPath, 'in-project.txt'))).toBe(true);
 
     const { stdout } = await session.run({ command: 'pwd -P' });
-    expect(stdout.trim()).toBe(root);
-  });
-
-  // The description states a root and a project path. If those are spelled
-  // differently, joining the stated root with the project name does not reach
-  // the stated project, and the model is following two incompatible facts.
-  it('states a root and project path that agree, even through a symlink', async () => {
-    const { root, projectPath } = await createTempProject();
-    const linkRoot = `${root}-desc-link`;
-    symlinkSync(root, linkRoot);
-
-    const session = await startSession({
-      path: join(linkRoot, basename(projectPath)),
-    });
-
-    const [rootLine, projectLine] = session.description.split('\n');
-    const statedRoot = rootLine.replace(/^.*rooted at /, '').replace(/\.$/, '');
-    const statedProject = projectLine
-      .replace(/^.*project directory is /, '')
-      .replace(/\.$/, '');
-
-    expect(join(statedRoot, basename(projectPath))).toBe(statedProject);
-    expect(statedRoot).toBe(session.defaultWorkingDirectory);
-    expect(statedProject).toBe(projectPath);
+    expect(stdout.trim()).toBe(projectPath);
   });
 });
 
@@ -908,3 +822,42 @@ function isProcessAlive(pid: number): boolean {
     return false;
   }
 }
+
+describe('git invisibility', () => {
+  // The sandbox root is the user's project, so a bridge bootstrap drops a full
+  // node_modules inside it. A `.gitignore` of `*` in the generated directories
+  // keeps them out of `git status` without editing a file the user owns.
+  it('hides the generated directories from git', async () => {
+    const { projectPath } = await createTempProject();
+    await startSession({ path: projectPath });
+
+    for (const generated of ['.harness-bootstrap', '.harness-local']) {
+      expect(
+        readFileSync(join(projectPath, generated, '.gitignore'), 'utf8'),
+      ).toBe('*\n');
+    }
+  });
+
+  it('leaves an existing .gitignore alone', async () => {
+    const { projectPath } = await createTempProject();
+    mkdirSync(join(projectPath, '.harness-bootstrap'), { recursive: true });
+    writeFileSync(join(projectPath, '.harness-bootstrap/.gitignore'), 'mine\n');
+
+    await startSession({ path: projectPath });
+
+    expect(
+      readFileSync(join(projectPath, '.harness-bootstrap/.gitignore'), 'utf8'),
+    ).toBe('mine\n');
+  });
+
+  it('does not touch the project .gitignore', async () => {
+    const { projectPath } = await createTempProject();
+    writeFileSync(join(projectPath, '.gitignore'), 'node_modules\n');
+
+    await startSession({ path: projectPath });
+
+    expect(readFileSync(join(projectPath, '.gitignore'), 'utf8')).toBe(
+      'node_modules\n',
+    );
+  });
+});
