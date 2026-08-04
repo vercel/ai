@@ -473,7 +473,7 @@ describe('OpenAI batch language models', () => {
     await expect(reader.read()).rejects.toThrow(JSONParseError);
   });
 
-  it('streams output and error files and reuses terminal status metadata', async () => {
+  it('streams output and error files after retrieving fresh batch metadata', async () => {
     server.urls[urls.batch].response = {
       type: 'json-value',
       body: batchResponse({
@@ -558,6 +558,7 @@ describe('OpenAI batch language models', () => {
       },
     ]);
     expect(server.calls.map(call => call.requestUrl)).toEqual([
+      urls.batch,
       urls.batch,
       urls.output,
       urls.errors,

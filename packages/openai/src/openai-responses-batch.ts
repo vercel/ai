@@ -118,12 +118,6 @@ const openaiBatchResultLineSchema = lazySchema(() =>
 type OpenAIBatchResultLine = InferSchema<typeof openaiBatchResultLineSchema>;
 
 class OpenAIResponsesBatch {
-  // Best-effort one-entry optimization for a status check immediately followed
-  // by result retrieval. Correctness never depends on this in-memory cache.
-  private latestTerminalBatch:
-    | { batchId: string; response: OpenAIBatchResponse }
-    | undefined;
-
   constructor(
     private readonly options: {
       modelId: string;
@@ -206,8 +200,6 @@ class OpenAIResponsesBatch {
       fetch: this.options.config.fetch,
     });
 
-    this.cacheIfTerminal(batch);
-
     return {
       batchId: batch.id,
       ...convertOpenAIBatchStatus(batch),
@@ -219,16 +211,13 @@ class OpenAIResponsesBatch {
     options: BatchV4OperationOptions,
   ): Promise<BatchV4Status> {
     const batch = await this.retrieveBatch(options);
-    this.cacheIfTerminal(batch);
     return convertOpenAIBatchStatus(batch);
   }
 
   async getBatchResults(
     options: BatchV4OperationOptions,
   ): Promise<ReadableStream<BatchV4ItemResult<LanguageModelV4GenerateResult>>> {
-    const batch =
-      this.takeCachedTerminalBatch(options.batchId) ??
-      (await this.retrieveBatch(options));
+    const batch = await this.retrieveBatch(options);
 
     if (convertOpenAIBatchStatus(batch).status === 'pending') {
       throw new InvalidArgumentError({
@@ -349,24 +338,6 @@ class OpenAIResponsesBatch {
       status: 'succeeded',
       result: conversion.result,
     };
-  }
-
-  private cacheIfTerminal(batch: OpenAIBatchResponse) {
-    if (convertOpenAIBatchStatus(batch).status !== 'pending') {
-      this.latestTerminalBatch = { batchId: batch.id, response: batch };
-    }
-  }
-
-  private takeCachedTerminalBatch(
-    batchId: string,
-  ): OpenAIBatchResponse | undefined {
-    if (this.latestTerminalBatch?.batchId !== batchId) {
-      return undefined;
-    }
-
-    const response = this.latestTerminalBatch.response;
-    this.latestTerminalBatch = undefined;
-    return response;
   }
 
   private getUrl(path: string) {
