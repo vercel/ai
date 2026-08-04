@@ -1751,6 +1751,59 @@ describe('GatewayLanguageModel', () => {
       });
     });
 
+    it('should convert execution-denied tool results to text', async () => {
+      prepareResponse();
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call_1',
+              toolName: 'weather',
+              output: {
+                type: 'execution-denied',
+                reason: 'User denied the request.',
+              },
+            },
+          ],
+        },
+      ];
+
+      await createTestModel().doGenerate({ prompt });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.prompt[0].content[0].output).toEqual({
+        type: 'text',
+        value: 'User denied the request.',
+      });
+    });
+
+    it('should provide a default message for execution-denied tool results', async () => {
+      prepareResponse();
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call_1',
+              toolName: 'weather',
+              output: { type: 'execution-denied' },
+            },
+          ],
+        },
+      ];
+
+      await createTestModel().doGenerate({ prompt });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.prompt[0].content[0].output).toEqual({
+        type: 'text',
+        value: 'Tool call execution denied.',
+      });
+    });
+
     it('should not modify reasoning-file data that is a URL', async () => {
       prepareResponse();
       const prompt: LanguageModelV4Prompt = [
