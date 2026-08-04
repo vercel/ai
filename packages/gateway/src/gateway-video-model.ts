@@ -183,6 +183,11 @@ export class GatewayVideoModel implements VideoModelV4 {
     },
   ): Promise<VideoModelV4OperationStartResult> {
     const { headers, abortSignal, webhookUrl } = options;
+    // `doStart` creates a billable generation, and core retries it. Core builds
+    // the options object once outside its retry closure, so one key per object
+    // identity is stable across those retries and the gateway dedupes instead of
+    // starting a second generation after a lost response.
+    const idempotencyKey = startIdempotencyKey(options);
     const resolvedHeaders = this.config.headers
       ? await resolve(this.config.headers)
       : undefined;
@@ -194,6 +199,7 @@ export class GatewayVideoModel implements VideoModelV4 {
           headers ?? {},
           this.getModelConfigHeaders(),
           await resolve(this.config.o11yHeaders),
+          { 'idempotency-key': idempotencyKey },
         ),
         body: {
           ...this.buildRequestBody(options),
@@ -483,3 +489,18 @@ const gatewayVideoStatusResponseSchema = z.discriminatedUnion('status', [
       .optional(),
   }),
 ]);
+
+/**
+ * One idempotency key per `doStart` options object, so core's retries of the
+ * same call reuse it while a genuinely new call gets a fresh one. A WeakMap
+ * keeps this from retaining anything.
+ */
+const startIdempotencyKeys = new WeakMap<object, string>();
+
+function startIdempotencyKey(options: object): string {
+  const existing = startIdempotencyKeys.get(options);
+  if (existing !== undefined) return existing;
+  const key = `gw_vid_${crypto.randomUUID()}`;
+  startIdempotencyKeys.set(options, key);
+  return key;
+}

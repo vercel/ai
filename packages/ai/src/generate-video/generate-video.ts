@@ -553,13 +553,15 @@ async function executeStartStatusFlow({
     }
   }
 
-  // 2. Start the generation
-  const startResult = await retry(() =>
-    model.doStart!({
-      ...callOptions,
-      webhookUrl,
-    }),
-  );
+  // 2. Start the generation.
+  //
+  // The options object is built ONCE, outside the retry closure, so every
+  // attempt receives the identical reference. `doStart` has a side effect the
+  // caller pays for, and a retry after a lost response would otherwise create a
+  // second generation; a provider (or the Vercel AI Gateway) can key
+  // deduplication off this identity without a spec change.
+  const startCallOptions = { ...callOptions, webhookUrl };
+  const startResult = await retry(() => model.doStart!(startCallOptions));
 
   const allWarnings = [...earlyWarnings, ...startResult.warnings];
   let operationProviderMetadata =

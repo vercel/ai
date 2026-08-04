@@ -1279,6 +1279,40 @@ describe('GatewayVideoModel', () => {
         createTestModel().doStart(baseCallOptions),
       ).rejects.toThrow();
     });
+
+    it('should reuse one idempotency key when retried with the same options', async () => {
+      server.urls['https://api.test.com/video-model/start'].response = {
+        type: 'json-value',
+        body: { operation: { gatewayJobId: 'job_123' } },
+      };
+
+      // `generateVideo` builds the options object once outside its retry
+      // closure, so a retry after a lost response must not start a second
+      // billable generation.
+      const model = createTestModel();
+      await model.doStart(baseCallOptions);
+      await model.doStart(baseCallOptions);
+
+      const first = server.calls[0].requestHeaders['idempotency-key'];
+      const second = server.calls[1].requestHeaders['idempotency-key'];
+      expect(first).toBeDefined();
+      expect(second).toBe(first);
+    });
+
+    it('should use a distinct idempotency key for a distinct call', async () => {
+      server.urls['https://api.test.com/video-model/start'].response = {
+        type: 'json-value',
+        body: { operation: { gatewayJobId: 'job_123' } },
+      };
+
+      const model = createTestModel();
+      await model.doStart({ ...baseCallOptions });
+      await model.doStart({ ...baseCallOptions });
+
+      expect(server.calls[1].requestHeaders['idempotency-key']).not.toBe(
+        server.calls[0].requestHeaders['idempotency-key'],
+      );
+    });
   });
 
   describe('doStatus', () => {
