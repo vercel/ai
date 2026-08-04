@@ -1858,6 +1858,44 @@ The metadata includes the following fields:
 - **itemId** _string_ — The ID of the compaction item in the Responses API
 - **encryptedContent** _string_ (optional) — The encrypted compaction state. This is automatically sent back to the API when the message is included in subsequent requests.
 
+### Text Batches
+
+<Note type="warning">
+  Text batch APIs are experimental and may change in future releases.
+</Note>
+
+The OpenAI provider supports text batches through the Responses API.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import {
+  experimental_createTextBatch as createTextBatch,
+  experimental_getBatchResults as getBatchResults,
+  experimental_getBatchStatus as getBatchStatus,
+} from 'ai';
+
+const model = openai('gpt-5.6');
+
+const batch = await createTextBatch({
+  model,
+  requests: [
+    { id: 'france', prompt: 'What is the capital of France?' },
+    { id: 'germany', prompt: 'What is the capital of Germany?' },
+  ],
+});
+
+// Persist `batch` and check its status later, or poll for status updates.
+const { status } = await getBatchStatus({ model, batch });
+
+if (status !== 'pending') {
+  for await (const result of getBatchResults({ model, batch })) {
+    console.log(result);
+  }
+}
+```
+
+Creating a batch returns a serializable reference that can be persisted and used to retrieve the batch results later, or poll for status updates.
+
 ### Chat Models
 
 You can create models that call the [OpenAI chat API](https://platform.openai.com/docs/api-reference/chat) using the `.chat()` factory method.
