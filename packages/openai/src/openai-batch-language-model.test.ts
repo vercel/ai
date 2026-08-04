@@ -1,3 +1,4 @@
+import { JSONParseError } from '@ai-sdk/provider';
 import { WORKFLOW_DESERIALIZE } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
@@ -217,6 +218,27 @@ describe('OpenAI batch language models', () => {
     });
   });
 
+  it('forwards the abort signal to file upload and batch creation', async () => {
+    prepareCreateResponse();
+    const mockFetch = vi.fn().mockImplementation(globalThis.fetch);
+    const abortController = new AbortController();
+    const model = createOpenAI({
+      apiKey: 'test-api-key',
+      fetch: mockFetch,
+    })('gpt-5.6');
+
+    await model.experimental_doCreateBatch({
+      requests: [
+        { id: 'france', ...request('What is the capital of France?') },
+      ],
+      abortSignal: abortController.signal,
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(mockFetch.mock.calls[0][1].signal).toBe(abortController.signal);
+    expect(mockFetch.mock.calls[1][1].signal).toBe(abortController.signal);
+  });
+
   it.each([
     ['validating', 'pending'],
     ['in_progress', 'pending'],
@@ -272,6 +294,27 @@ describe('OpenAI batch language models', () => {
     });
   });
 
+  it('accepts incomplete batch error details', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse({
+        status: 'failed',
+        errors: { data: [{ code: 'invalid_request' }] },
+      }),
+    };
+    const model = createOpenAI({ apiKey: 'test-api-key' })('gpt-5.6');
+
+    await expect(
+      model.experimental_doGetBatchStatus({ batchId: 'batch_123' }),
+    ).resolves.toMatchObject({
+      status: 'failed',
+      error: {
+        code: 'invalid_request',
+        message: 'OpenAI batch failed.',
+      },
+    });
+  });
+
   it('rejects result retrieval while the batch is pending', async () => {
     server.urls[urls.batch].response = {
       type: 'json-value',
@@ -290,6 +333,21 @@ describe('OpenAI batch language models', () => {
       argument: 'batchId',
       message: 'OpenAI batch "batch_123" is not complete.',
     });
+  });
+
+  it('returns an empty stream for a terminal batch without result files', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse(),
+    };
+    const model = createOpenAI({ apiKey: 'test-api-key' })('gpt-5.6');
+
+    const stream = await model.experimental_doGetBatchResults({
+      batchId: 'batch_123',
+    });
+
+    await expect(convertReadableStreamToArray(stream)).resolves.toEqual([]);
+    expect(server.calls.map(call => call.requestUrl)).toEqual([urls.batch]);
   });
 
   it('incrementally parses Responses results across chunk boundaries', async () => {
@@ -352,6 +410,67 @@ describe('OpenAI batch language models', () => {
       urls.batch,
       urls.output,
     ]);
+  });
+
+  it('forwards the abort signal when retrieving results', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse({ output_file_id: 'file-output' }),
+    };
+    server.urls[urls.output].response = {
+      type: 'stream-chunks',
+      chunks: [
+        resultLine({
+          id: 'france',
+          body: responsesResultBody('Paris'),
+        }),
+      ],
+    };
+    const mockFetch = vi.fn().mockImplementation(globalThis.fetch);
+    const abortController = new AbortController();
+    const model = createOpenAI({
+      apiKey: 'test-api-key',
+      fetch: mockFetch,
+    })('gpt-5.6');
+
+    const stream = await model.experimental_doGetBatchResults({
+      batchId: 'batch_123',
+      abortSignal: abortController.signal,
+    });
+    await convertReadableStreamToArray(stream);
+
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(mockFetch.mock.calls[0][1].signal).toBe(abortController.signal);
+    expect(mockFetch.mock.calls[1][1].signal).toBe(abortController.signal);
+  });
+
+  it('errors the result stream when a JSONL line is malformed', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse({ output_file_id: 'file-output' }),
+    };
+    server.urls[urls.output].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `${resultLine({
+          id: 'france',
+          body: responsesResultBody('Paris'),
+        })}\n`,
+        '{not json}\n',
+      ],
+    };
+    const model = createOpenAI({ apiKey: 'test-api-key' })('gpt-5.6');
+
+    const stream = await model.experimental_doGetBatchResults({
+      batchId: 'batch_123',
+    });
+    const reader = stream.getReader();
+
+    await expect(reader.read()).resolves.toMatchObject({
+      done: false,
+      value: { id: 'france', status: 'succeeded' },
+    });
+    await expect(reader.read()).rejects.toThrow(JSONParseError);
   });
 
   it('streams output and error files and reuses terminal status metadata', async () => {
