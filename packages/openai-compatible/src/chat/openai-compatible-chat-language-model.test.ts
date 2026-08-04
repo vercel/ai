@@ -55,6 +55,13 @@ function prepareChunksFixtureResponse(
   };
 }
 
+function prepareSseFixtureResponse(filename: string) {
+  server.urls['https://my.api.com/v1/chat/completions'].response = {
+    type: 'stream-chunks',
+    chunks: [fs.readFileSync(`src/chat/__fixtures__/${filename}.sse`, 'utf8')],
+  };
+}
+
 describe('config', () => {
   it('should extract base name from provider string', () => {
     const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
@@ -2420,39 +2427,17 @@ describe('doStream', () => {
     `);
   });
 
-  it('should stream tool calls with irregular indexes', async () => {
-    server.urls['https://my.api.com/v1/chat/completions'].response = {
-      type: 'stream-chunks',
-      chunks: [
-        `data: {"id":"chatcmpl-irregular-indexes","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
-          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":1,"id":"call_1","type":"function","function":{"name":"test-tool","arguments":"{\\"value\\":"}}]},` +
-          `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-irregular-indexes","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
-          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":1,"function":{"arguments":"\\"first\\"}"}}]},` +
-          `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-irregular-indexes","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
-          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":3,"id":"call_2","type":"function","function":{"name":"test-tool","arguments":"{\\"value\\":\\"second\\"}"}}]},` +
-          `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-irregular-indexes","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
-          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":3,"id":"call_3","type":"function","function":{"name":"test-tool","arguments":"{\\"value\\":"}}]},` +
-          `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-irregular-indexes","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
-          `"choices":[{"index":0,"delta":{"tool_calls":[{"function":{"arguments":"\\"third\\"}"}}]},` +
-          `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-irregular-indexes","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
-          `"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}\n\n`,
-        'data: [DONE]\n\n',
-      ],
-    };
+  it('should stream a tool call whose index starts at one', async () => {
+    prepareSseFixtureResponse('anthropic-fallback-tool-call');
 
     const { stream } = await model.doStream({
       tools: [
         {
           type: 'function',
-          name: 'test-tool',
+          name: 'read_file',
           inputSchema: {
             type: 'object',
-            properties: { value: { type: 'string' } },
+            properties: { path: { type: 'string' } },
           },
         },
       ],
@@ -2462,24 +2447,18 @@ describe('doStream', () => {
 
     const parts = await convertReadableStreamToArray(stream);
 
+    expect(
+      parts
+        .filter(part => part.type === 'text-delta')
+        .map(part => part.delta)
+        .join(''),
+    ).toBe('Reading it.');
     expect(parts.filter(part => part.type === 'tool-call')).toEqual([
       {
         type: 'tool-call',
-        toolCallId: 'call_1',
-        toolName: 'test-tool',
-        input: '{"value":"first"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'call_2',
-        toolName: 'test-tool',
-        input: '{"value":"second"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'call_3',
-        toolName: 'test-tool',
-        input: '{"value":"third"}',
+        toolCallId: 'toolu_sanitized',
+        toolName: 'read_file',
+        input: '{"path": "a.txt"}',
       },
     ]);
     expect(parts.at(-1)?.type).toBe('finish');
