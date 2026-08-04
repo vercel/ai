@@ -262,10 +262,13 @@ const { video } = await generateVideo({
   prompt: 'A white kitten chases a butterfly across a sunlit garden.',
   aspectRatio: '16:9',
   duration: 8,
+  poll: {
+    intervalMs: 2000,
+    timeoutMs: 600000, // 10 minutes
+  },
   providerOptions: {
     blackForestLabs: {
       resolution: 'fhd',
-      pollTimeoutMillis: 600000, // 10 minutes
     } satisfies BlackForestLabsVideoModelOptions,
   },
 });
@@ -276,6 +279,10 @@ submits a job and polls until it completes, then passes the signed MP4 URL to AI
 SDK Core. `generateVideo` downloads it before resolving, so `video` is a
 `GeneratedFile`. The signed URL remains available in
 `providerMetadata.blackForestLabs.videos[0].videoUrl`.
+
+Use the top-level `poll` option to have AI SDK Core orchestrate polling and set
+the interval and timeout. The FLUX 3 video API does not currently expose a
+webhook callback input, so a top-level `webhook` falls back to polling.
 
 `duration` accepts a whole number of seconds from 5 to 20. A fractional value is
 rounded and an out-of-range value is clamped, each with a warning. Omit it to let
@@ -461,15 +468,6 @@ The following optional provider options are available for FLUX 3 video:
 - **version** _string_
 
   Model version to pin. Only `latest` is available today.
-
-- **pollIntervalMillis** _number_
-
-  Interval in milliseconds between status polls. Defaults to 2000.
-
-- **pollTimeoutMillis** _number_
-
-  Overall timeout in milliseconds for polling before giving up. Defaults to
-  600000 (10 minutes).
 
 ### Video Provider Metadata
 

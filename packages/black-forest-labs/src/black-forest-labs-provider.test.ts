@@ -171,6 +171,8 @@ describe('BlackForestLabs provider', () => {
     expect(videoModel.modelId).toBe('flux-3-video');
     expect(videoModel.specificationVersion).toBe('v4');
     expect(videoModel.maxVideosPerCall).toBe(1);
+    expect(videoModel.doStart).toBeTypeOf('function');
+    expect(videoModel.doStatus).toBeTypeOf('function');
     expect(videoModel2.provider).toBe('black-forest-labs.video');
   });
 

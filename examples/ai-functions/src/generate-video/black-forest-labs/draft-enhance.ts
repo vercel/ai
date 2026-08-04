@@ -22,10 +22,10 @@ run(async () => {
       prompt,
       aspectRatio: '16:9',
       duration: 6,
+      poll: { timeoutMs: 600_000 }, // 10 minutes
       providerOptions: {
         blackForestLabs: {
           draft: true,
-          pollTimeoutMillis: 600_000, // 10 minutes
         } satisfies BlackForestLabsVideoModelOptions,
       },
     }),
@@ -60,11 +60,11 @@ run(async () => {
       generateVideo({
         model: blackForestLabs.video('flux-3-video'),
         prompt: '',
+        poll: { timeoutMs: 600_000 }, // 10 minutes
         providerOptions: {
           blackForestLabs: {
             draftCache: bundle,
             safetyTolerance: 2,
-            pollTimeoutMillis: 600_000, // 10 minutes
           } satisfies BlackForestLabsVideoModelOptions,
         },
       }),

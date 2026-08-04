@@ -1,7 +1,4 @@
-import {
-  blackForestLabs,
-  type BlackForestLabsVideoModelOptions,
-} from '@ai-sdk/black-forest-labs';
+import { blackForestLabs } from '@ai-sdk/black-forest-labs';
 import { experimental_generateVideo as generateVideo } from 'ai';
 import fs from 'node:fs';
 import { presentVideos } from '../../lib/present-video';
@@ -30,11 +27,7 @@ run(async () => {
           },
         ],
         duration: 6,
-        providerOptions: {
-          blackForestLabs: {
-            pollTimeoutMillis: 600_000, // 10 minutes
-          } satisfies BlackForestLabsVideoModelOptions,
-        },
+        poll: { timeoutMs: 600_000 }, // 10 minutes
       }),
   );
 

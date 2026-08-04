@@ -81,17 +81,6 @@ export const blackForestLabsVideoProviderOptions = z.object({
    * Model version to pin. Only `latest` is available today.
    */
   version: z.literal('latest').optional(),
-
-  /**
-   * Interval in milliseconds between status polls. Defaults to 2000.
-   */
-  pollIntervalMillis: z.number().int().positive().optional(),
-
-  /**
-   * Overall timeout in milliseconds for polling before giving up. Defaults to
-   * 600000 (10 minutes).
-   */
-  pollTimeoutMillis: z.number().int().positive().optional(),
 });
 
 export const blackForestLabsVideoModelOptionsSchema = lazySchema(() =>

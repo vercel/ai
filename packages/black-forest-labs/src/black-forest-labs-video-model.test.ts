@@ -1035,6 +1035,86 @@ describe('BlackForestLabsVideoModel', () => {
   });
 
   describe('polling', () => {
+    it('should expose a serializable operation from doStart', async () => {
+      const result = await createModel().doStart({ ...defaultOptions });
+
+      expect(result.operation).toStrictEqual({
+        requestId: REQUEST_ID,
+        pollingUrl: POLL_URL,
+        cost: 0.42,
+        inputMegapixels: 1.23,
+        outputMegapixels: 4.56,
+      });
+      expect(result.warnings).toStrictEqual([]);
+      expect(server.calls).toHaveLength(1);
+    });
+
+    it('should return pending from a single doStatus check', async () => {
+      server.urls[POLL_URL].response = {
+        type: 'json-value',
+        body: { status: 'Generating' },
+      };
+
+      const result = await createModel().doStatus({
+        operation: { requestId: REQUEST_ID, pollingUrl: POLL_URL },
+      });
+
+      expect(result).toMatchObject({ status: 'pending' });
+      expect(server.calls).toHaveLength(1);
+      expect(server.calls[0].requestUrl).toBe(`${POLL_URL}?id=${REQUEST_ID}`);
+    });
+
+    it('should return a completed video from doStatus', async () => {
+      const result = await createModel().doStatus({
+        operation: {
+          requestId: REQUEST_ID,
+          pollingUrl: POLL_URL,
+          cost: 0.42,
+          inputMegapixels: 1.23,
+          outputMegapixels: 4.56,
+        },
+      });
+
+      expect(result).toMatchObject({
+        status: 'completed',
+        videos: [{ type: 'url', url: VIDEO_URL, mediaType: 'video/mp4' }],
+        providerMetadata: {
+          blackForestLabs: {
+            videos: [
+              {
+                id: REQUEST_ID,
+                videoUrl: VIDEO_URL,
+                seed: 7,
+                duration: 8,
+                cost: 0.42,
+                inputMegapixels: 1.23,
+                outputMegapixels: 4.56,
+              },
+            ],
+          },
+        },
+      });
+      expect(server.calls).toHaveLength(1);
+    });
+
+    it('should return an error from doStatus for terminal failures', async () => {
+      server.urls[POLL_URL].response = {
+        type: 'json-value',
+        body: { status: 'Content Moderated', details: 'blocked by policy' },
+      };
+
+      const result = await createModel().doStatus({
+        operation: { requestId: REQUEST_ID, pollingUrl: POLL_URL },
+      });
+
+      expect(result).toMatchObject({
+        status: 'error',
+        error:
+          'Black Forest Labs video generation failed with status "Content Moderated": blocked by policy. Request id: req-123',
+      });
+      expect(server.calls).toHaveLength(1);
+    });
+
     it('should keep polling through non-terminal statuses', async () => {
       let callNumber = 0;
       server.urls[POLL_URL].response = () => {
@@ -1121,27 +1201,6 @@ describe('BlackForestLabsVideoModel', () => {
           pollIntervalMillis: 10,
           pollTimeoutMillis: 25,
         }).doGenerate({ ...defaultOptions }),
-      ).rejects.toThrow(
-        'Black Forest Labs video generation timed out after 25ms. Request id: req-123',
-      );
-    });
-
-    it('should honor poll settings from provider options', async () => {
-      server.urls[POLL_URL].response = {
-        type: 'json-value',
-        body: { status: 'Generating' },
-      };
-
-      await expect(
-        createModel({ pollTimeoutMillis: 60_000 }).doGenerate({
-          ...defaultOptions,
-          providerOptions: {
-            blackForestLabs: {
-              pollIntervalMillis: 10,
-              pollTimeoutMillis: 25,
-            },
-          },
-        }),
       ).rejects.toThrow(
         'Black Forest Labs video generation timed out after 25ms. Request id: req-123',
       );

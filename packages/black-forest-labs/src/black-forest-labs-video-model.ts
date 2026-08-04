@@ -4,6 +4,8 @@ import {
   type Experimental_VideoModelV4 as VideoModelV4,
   type Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
   type Experimental_VideoModelV4File as VideoModelV4File,
+  type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
+  type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
   type Experimental_VideoModelV4Result as VideoModelV4Result,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
@@ -71,6 +73,14 @@ interface BlackForestLabsVideoModelConfig {
     currentDate?: () => Date;
   };
 }
+
+type BlackForestLabsVideoOperation = {
+  requestId: string;
+  pollingUrl: string;
+  cost?: number;
+  inputMegapixels?: number;
+  outputMegapixels?: number;
+};
 
 type BlackForestLabsVideoDoGenerateOptions = VideoModelV4CallOptions;
 
@@ -175,7 +185,6 @@ function getDraftEnhanceArgs(
       safety_tolerance: bflOptions.safetyTolerance,
     } as Record<string, unknown>,
     warnings,
-    bflOptions,
   };
 }
 
@@ -533,13 +542,13 @@ export class BlackForestLabsVideoModel implements VideoModelV4 {
       ...(mode === 'v2v' && { start_video: startVideo }),
     };
 
-    return { body, warnings, bflOptions };
+    return { body, warnings };
   }
 
-  async doGenerate(
-    options: BlackForestLabsVideoDoGenerateOptions,
-  ): Promise<VideoModelV4Result> {
-    const { body, warnings, bflOptions } = await this.getArgs(options);
+  async doStart(
+    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+  ): Promise<VideoModelV4OperationStartResult> {
+    const { body, warnings } = await this.getArgs(options);
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const combinedHeaders = combineHeaders(
@@ -547,7 +556,7 @@ export class BlackForestLabsVideoModel implements VideoModelV4 {
       options.headers,
     );
 
-    const submit = await postJsonToApi({
+    const { value: submit, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/${this.modelId}`,
       headers: combinedHeaders,
       body,
@@ -558,56 +567,19 @@ export class BlackForestLabsVideoModel implements VideoModelV4 {
       fetch: this.config.fetch,
     });
 
-    const requestId = submit.value.id;
-
-    const { result, responseHeaders } = await this.pollForVideoUrl({
-      pollUrl: submit.value.polling_url,
-      requestId,
-      headers: combinedHeaders,
-      abortSignal: options.abortSignal,
-      pollOverrides: {
-        pollIntervalMillis: bflOptions?.pollIntervalMillis,
-        pollTimeoutMillis: bflOptions?.pollTimeoutMillis,
-      },
-    });
-
     return {
-      // The generated video is delivered from a signed URL rather than
-      // downloaded: a full-HD 20s clip is far too large to buffer here.
-      videos: [
-        {
-          type: 'url' as const,
-          url: result.sample,
-          mediaType: 'video/mp4',
-        },
-      ],
+      operation: {
+        requestId: submit.id,
+        pollingUrl: submit.polling_url,
+        ...(submit.cost != null && { cost: submit.cost }),
+        ...(submit.input_mp != null && {
+          inputMegapixels: submit.input_mp,
+        }),
+        ...(submit.output_mp != null && {
+          outputMegapixels: submit.output_mp,
+        }),
+      } satisfies BlackForestLabsVideoOperation,
       warnings,
-      providerMetadata: {
-        blackForestLabs: {
-          videos: [
-            {
-              id: requestId,
-              videoUrl: result.sample,
-              ...(result.seed != null && { seed: result.seed }),
-              ...(result.start_time != null && {
-                start_time: result.start_time,
-              }),
-              ...(result.end_time != null && { end_time: result.end_time }),
-              ...(result.duration != null && { duration: result.duration }),
-              ...(result.draft_cache != null && {
-                draftCache: result.draft_cache,
-              }),
-              ...(submit.value.cost != null && { cost: submit.value.cost }),
-              ...(submit.value.input_mp != null && {
-                inputMegapixels: submit.value.input_mp,
-              }),
-              ...(submit.value.output_mp != null && {
-                outputMegapixels: submit.value.output_mp,
-              }),
-            },
-          ],
-        },
-      },
       response: {
         modelId: this.modelId,
         timestamp: currentDate,
@@ -616,98 +588,158 @@ export class BlackForestLabsVideoModel implements VideoModelV4 {
     };
   }
 
-  private async pollForVideoUrl({
-    pollUrl,
-    requestId,
-    headers,
-    abortSignal,
-    pollOverrides,
-  }: {
-    pollUrl: string;
-    requestId: string;
-    headers: Record<string, string | undefined>;
-    abortSignal: AbortSignal | undefined;
-    pollOverrides?: {
-      pollIntervalMillis?: number;
-      pollTimeoutMillis?: number;
-    };
-  }): Promise<{
-    result: z.infer<typeof bflVideoResultSchema>;
-    responseHeaders: Record<string, string> | undefined;
-  }> {
-    const pollIntervalMillis =
-      pollOverrides?.pollIntervalMillis ??
-      this.config.pollIntervalMillis ??
-      DEFAULT_POLL_INTERVAL_MILLIS;
-    const pollTimeoutMillis =
-      pollOverrides?.pollTimeoutMillis ??
-      this.config.pollTimeoutMillis ??
-      DEFAULT_POLL_TIMEOUT_MILLIS;
-
-    const startTime = Date.now();
-
-    const url = new URL(pollUrl);
+  async doStatus(
+    options: Parameters<NonNullable<VideoModelV4['doStatus']>>[0],
+  ): Promise<VideoModelV4OperationStatusResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const operation = options.operation as BlackForestLabsVideoOperation;
+    const url = new URL(operation.pollingUrl);
     if (!url.searchParams.has('id')) {
-      url.searchParams.set('id', requestId);
+      url.searchParams.set('id', operation.requestId);
     }
 
+    const combinedHeaders = combineHeaders(
+      await resolve(this.config.headers),
+      options.headers,
+    );
+
+    const { value, responseHeaders } = await getFromApi({
+      url: url.toString(),
+      // The polling URL comes from the provider response; validate it.
+      validateUrl: true,
+      trustedOrigin: this.config.baseURL,
+      // Only send credentials when it stays on a trusted provider host.
+      headers: isTrustedUrl(url.toString(), this.config.baseURL)
+        ? combinedHeaders
+        : undefined,
+      failedResponseHandler: bflFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(bflVideoPollSchema),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    const response = {
+      modelId: this.modelId,
+      timestamp: currentDate,
+      headers: responseHeaders,
+    };
+    const { status, result } = value;
+
+    if (status === 'Ready') {
+      const parsed = bflVideoResultSchema.safeParse(result);
+      if (!parsed.success) {
+        throw new AISDKError({
+          name: 'BLACK_FOREST_LABS_VIDEO_GENERATION_ERROR',
+          message:
+            'Black Forest Labs reported the video as Ready but returned no result.sample URL. ' +
+            `Request id: ${operation.requestId}`,
+        });
+      }
+
+      return {
+        status: 'completed',
+        videos: [
+          {
+            type: 'url',
+            url: parsed.data.sample,
+            mediaType: 'video/mp4',
+          },
+        ],
+        warnings: [],
+        providerMetadata: {
+          blackForestLabs: {
+            videos: [
+              {
+                id: operation.requestId,
+                videoUrl: parsed.data.sample,
+                ...(parsed.data.seed != null && { seed: parsed.data.seed }),
+                ...(parsed.data.start_time != null && {
+                  start_time: parsed.data.start_time,
+                }),
+                ...(parsed.data.end_time != null && {
+                  end_time: parsed.data.end_time,
+                }),
+                ...(parsed.data.duration != null && {
+                  duration: parsed.data.duration,
+                }),
+                ...(parsed.data.draft_cache != null && {
+                  draftCache: parsed.data.draft_cache,
+                }),
+                ...(operation.cost != null && { cost: operation.cost }),
+                ...(operation.inputMegapixels != null && {
+                  inputMegapixels: operation.inputMegapixels,
+                }),
+                ...(operation.outputMegapixels != null && {
+                  outputMegapixels: operation.outputMegapixels,
+                }),
+              },
+            ],
+          },
+        },
+        response,
+      };
+    }
+
+    if (TERMINAL_FAILURE_STATUSES.has(status)) {
+      const detail = describePollDetails(value.details);
+      return {
+        status: 'error',
+        error:
+          `Black Forest Labs video generation failed with status "${status}"` +
+          `${detail != null ? `: ${detail}` : ''}. Request id: ${operation.requestId}`,
+        response,
+      };
+    }
+
+    return { status: 'pending', response };
+  }
+
+  async doGenerate(
+    options: BlackForestLabsVideoDoGenerateOptions,
+  ): Promise<VideoModelV4Result> {
+    const startResult = await this.doStart(options);
+    const operation = startResult.operation as BlackForestLabsVideoOperation;
+    const pollIntervalMillis =
+      this.config.pollIntervalMillis ?? DEFAULT_POLL_INTERVAL_MILLIS;
+    const pollTimeoutMillis =
+      this.config.pollTimeoutMillis ?? DEFAULT_POLL_TIMEOUT_MILLIS;
+    const startTime = Date.now();
+
     while (true) {
-      // A video takes minutes, so wait before the first check rather than
-      // spending a request on a job that cannot be ready yet.
-      await delay(pollIntervalMillis, { abortSignal });
+      await delay(pollIntervalMillis, { abortSignal: options.abortSignal });
 
       if (Date.now() - startTime > pollTimeoutMillis) {
         throw new AISDKError({
           name: 'BLACK_FOREST_LABS_VIDEO_GENERATION_TIMEOUT',
           message:
             `Black Forest Labs video generation timed out after ${pollTimeoutMillis}ms. ` +
-            `Request id: ${requestId}`,
+            `Request id: ${operation.requestId}`,
         });
       }
 
-      const { value, responseHeaders } = await getFromApi({
-        url: url.toString(),
-        // The polling URL comes from the provider response; validate it.
-        validateUrl: true,
-        trustedOrigin: this.config.baseURL,
-        // Only send credentials when it stays on a trusted provider host.
-        headers: isTrustedUrl(url.toString(), this.config.baseURL)
-          ? headers
-          : undefined,
-        failedResponseHandler: bflFailedResponseHandler,
-        successfulResponseHandler:
-          createJsonResponseHandler(bflVideoPollSchema),
-        abortSignal,
-        fetch: this.config.fetch,
+      const statusResult = await this.doStatus({
+        operation,
+        headers: options.headers,
+        abortSignal: options.abortSignal,
       });
 
-      const { status, result } = value;
-
-      if (status === 'Ready') {
-        const parsed = bflVideoResultSchema.safeParse(result);
-        if (!parsed.success) {
-          throw new AISDKError({
-            name: 'BLACK_FOREST_LABS_VIDEO_GENERATION_ERROR',
-            message:
-              'Black Forest Labs reported the video as Ready but returned no result.sample URL. ' +
-              `Request id: ${requestId}`,
-          });
-        }
-        return { result: parsed.data, responseHeaders };
+      if (statusResult.status === 'pending') {
+        continue;
       }
 
-      if (TERMINAL_FAILURE_STATUSES.has(status)) {
-        const detail = describePollDetails(value.details);
+      if (statusResult.status === 'error') {
         throw new AISDKError({
           name: 'BLACK_FOREST_LABS_VIDEO_GENERATION_FAILED',
-          message:
-            `Black Forest Labs video generation failed with status "${status}"` +
-            `${detail != null ? `: ${detail}` : ''}. Request id: ${requestId}`,
+          message: statusResult.error,
         });
       }
 
-      // `Pending`, `Reasoning`, `Generating`, or a status added after this was
-      // written — keep polling.
+      return {
+        videos: statusResult.videos,
+        warnings: [...startResult.warnings, ...statusResult.warnings],
+        providerMetadata: statusResult.providerMetadata,
+        response: statusResult.response,
+      };
     }
   }
 }

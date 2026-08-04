@@ -28,9 +28,9 @@ run(async () => {
               [4.5, asBase64('data/comic-dog.png')],
               [9, asBase64('data/comic-owl.png')],
             ],
-            pollTimeoutMillis: 600_000, // 10 minutes
           } satisfies BlackForestLabsVideoModelOptions,
         },
+        poll: { timeoutMs: 600_000 }, // 10 minutes
       }),
   );
 

@@ -20,13 +20,13 @@ run(async () => {
         aspectRatio: '16:9',
         duration: 8,
         generateAudio: true,
+        poll: { timeoutMs: 600_000 }, // 10 minutes
         providerOptions: {
           blackForestLabs: {
             // The API takes a named tier rather than pixel dimensions. The
             // top-level `resolution` also works — '1920x1080' maps to 'fhd' —
             // but only the provider option can say it directly.
             resolution: 'fhd',
-            pollTimeoutMillis: 600_000, // 10 minutes
           } satisfies BlackForestLabsVideoModelOptions,
         },
       }),
