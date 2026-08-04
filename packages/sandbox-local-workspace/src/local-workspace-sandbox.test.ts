@@ -1,4 +1,10 @@
-import { existsSync, mkdirSync, readFileSync, symlinkSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+} from 'node:fs';
 import { mkdtemp, readFile, realpath } from 'node:fs/promises';
 import type * as NodeFsModule from 'node:fs';
 import { createRequire } from 'node:module';
@@ -438,6 +444,22 @@ describe('processes', () => {
     expect(isProcessAlive(grandchildPid)).toBe(false);
   });
 
+  // One handler per session tripped Node's MaxListenersExceededWarning at
+  // eleven concurrent sessions, and detach never calls stop(), so they
+  // accumulated for the life of the process.
+  it('registers a single exit handler no matter how many sessions exist', async () => {
+    const { projectPath } = await createTempProject();
+    const provider = createLocalWorkspaceSandbox({ path: projectPath });
+
+    const before = process.listenerCount('exit');
+    const sessions = await Promise.all(
+      Array.from({ length: 12 }, () => provider.createSession()),
+    );
+    sessionsToStop.push(...sessions);
+
+    expect(process.listenerCount('exit')).toBeLessThanOrEqual(before + 1);
+  });
+
   it('is idempotent on stop and destroy', async () => {
     const { projectPath } = await createTempProject();
     const provider = createLocalWorkspaceSandbox({ path: projectPath });
@@ -677,6 +699,83 @@ describe('onFirstCreate', () => {
 
     expect(typeof received?.writeTextFile).toBe('function');
     expect(received?.stop).toBeUndefined();
+  });
+
+  // The marker file is the durable record. Caching the settled promise would
+  // mean deleting `.harness-local` no longer forces a re-bootstrap.
+  it('re-runs after the marker is deleted', async () => {
+    const { root, projectPath } = await createTempProject();
+    const provider = createLocalWorkspaceSandbox({ path: projectPath });
+
+    let calls = 0;
+    const onFirstCreate = async () => {
+      calls++;
+    };
+
+    sessionsToStop.push(
+      await provider.createSession({ identity: 'redo', onFirstCreate }),
+    );
+    expect(calls).toBe(1);
+
+    rmSync(join(root, '.harness-local/first-create-redo'), { force: true });
+
+    sessionsToStop.push(
+      await provider.createSession({ identity: 'redo', onFirstCreate }),
+    );
+    expect(calls).toBe(2);
+  });
+
+  // Callers are told to build one provider per project, so sibling projects
+  // mean two providers sharing a parent and therefore a marker.
+  it('serialises across separate provider instances on the same root', async () => {
+    const { projectPath } = await createTempProject();
+    const first = createLocalWorkspaceSandbox({ path: projectPath });
+    const second = createLocalWorkspaceSandbox({ path: projectPath });
+
+    let concurrent = 0;
+    let peakConcurrent = 0;
+    let calls = 0;
+    const onFirstCreate = async () => {
+      calls++;
+      concurrent++;
+      peakConcurrent = Math.max(peakConcurrent, concurrent);
+      await new Promise(done => setTimeout(done, 50));
+      concurrent--;
+    };
+
+    const sessions = await Promise.all([
+      first.createSession({ identity: 'cross-provider', onFirstCreate }),
+      second.createSession({ identity: 'cross-provider', onFirstCreate }),
+    ]);
+    sessionsToStop.push(...sessions);
+
+    expect(peakConcurrent).toBe(1);
+    expect(calls).toBe(1);
+  });
+
+  it('does not block providers rooted somewhere else', async () => {
+    const alpha = await createTempProject();
+    const beta = await createTempProject();
+
+    let calls = 0;
+    const onFirstCreate = async () => {
+      calls++;
+    };
+
+    const sessions = await Promise.all([
+      createLocalWorkspaceSandbox({ path: alpha.projectPath }).createSession({
+        identity: 'same-id',
+        onFirstCreate,
+      }),
+      createLocalWorkspaceSandbox({ path: beta.projectPath }).createSession({
+        identity: 'same-id',
+        onFirstCreate,
+      }),
+    ]);
+    sessionsToStop.push(...sessions);
+
+    // Same identity, unrelated roots: both must bootstrap.
+    expect(calls).toBe(2);
   });
 
   it('keeps its marker beside the project, not inside it', async () => {

@@ -98,6 +98,21 @@ const LOCAL_WORKSPACE_PROVIDER_ID = 'local-workspace-sandbox';
 const FIRST_CREATE_MARKER_DIR = '.harness-local';
 
 /**
+ * `onFirstCreate` runs currently in flight, keyed by marker path.
+ *
+ * Module scope, not per provider: callers are encouraged to build one provider
+ * per project, so two sibling projects mean two providers sharing a parent and
+ * therefore a marker. A per-instance map would let them bootstrap on top of
+ * each other.
+ *
+ * Entries are removed once settled, which leaves the marker file as the durable
+ * record and keeps this purely a concurrency guard. Separate *processes* are
+ * still not coordinated; that needs a lock file with staleness detection, which
+ * the harness framework's own recipe application does not attempt either.
+ */
+const firstCreateRuns = new Map<string, Promise<void>>();
+
+/**
  * Create a `HarnessV1SandboxProvider` that runs harnesses on the local machine,
  * scoped to a project directory.
  *
@@ -135,17 +150,6 @@ export class LocalWorkspaceSandboxProvider implements HarnessV1SandboxProvider {
   private readonly parentPath: string;
   private readonly portCount: number;
   private readonly env: Record<string, string>;
-
-  /**
-   * In-flight `onFirstCreate` runs, keyed by identity.
-   *
-   * A marker file alone is not enough: two concurrent `createSession()` calls
-   * both see it missing and both run the hook, which for a bridge-backed
-   * adapter means two `pnpm install` processes writing the same
-   * `node_modules`. Sessions on sibling projects share a parent, so they share
-   * an identity and hit this readily.
-   */
-  private readonly firstCreateRuns = new Map<string, Promise<void>>();
 
   constructor(settings: LocalWorkspaceSandboxSettings) {
     const projectPath = resolve(settings.path);
@@ -217,8 +221,15 @@ export class LocalWorkspaceSandboxProvider implements HarnessV1SandboxProvider {
    * Rebind to the same project directory.
    *
    * The local filesystem is the durable resource, so there is nothing to
-   * rehydrate. Note that cross-process resume of a *bridge-backed* session
-   * additionally requires the bridge process to have outlived the orchestrator.
+   * rehydrate.
+   *
+   * Resuming within the same process reattaches to a bridge that is still
+   * running, which is what makes `detach()` worthwhile. Resuming from a *new*
+   * process does not: sessions reap their processes when the host exits, so the
+   * bridge is gone and the adapter falls back to respawning it. That is a
+   * deliberate trade. Leaving stray bridges behind on a developer's machine is
+   * never a supported mode, and unlike a hosted sandbox there is no separate
+   * machine here for a parked session to live on.
    */
   resumeSession = async (options: {
     sessionId: string;
@@ -265,18 +276,20 @@ export class LocalWorkspaceSandboxProvider implements HarnessV1SandboxProvider {
       return;
     }
 
-    // Concurrent callers wait on the first run instead of starting their own.
-    const inFlight = this.firstCreateRuns.get(identity);
-    if (inFlight != null) {
-      await inFlight;
-      return;
-    }
-
     const markerPath = join(
       workingDirectory,
       FIRST_CREATE_MARKER_DIR,
       `first-create-${identity}`,
     );
+
+    // Concurrent callers wait on the first run instead of starting their own.
+    // Keyed by marker path so providers on unrelated roots never block.
+    const inFlight = firstCreateRuns.get(markerPath);
+    if (inFlight != null) {
+      await inFlight;
+      return;
+    }
+
     if (existsSync(markerPath)) return;
 
     const run = (async () => {
@@ -294,15 +307,18 @@ export class LocalWorkspaceSandboxProvider implements HarnessV1SandboxProvider {
       }
     })();
 
-    this.firstCreateRuns.set(identity, run);
+    firstCreateRuns.set(markerPath, run);
     try {
       await run;
     } catch (error) {
-      // A failed bootstrap must not be remembered as done, by this provider or
-      // by the next process to look at the marker.
-      this.firstCreateRuns.delete(identity);
+      // A failed bootstrap must not be remembered as done, by this process or
+      // by the next one to look at the marker.
       rmSync(markerPath, { force: true });
       throw error;
+    } finally {
+      // The marker is the durable record. Holding the settled promise would
+      // mean deleting `.harness-local` no longer forces a re-bootstrap.
+      firstCreateRuns.delete(markerPath);
     }
   }
 }

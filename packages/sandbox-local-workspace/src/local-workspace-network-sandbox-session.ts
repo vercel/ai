@@ -4,6 +4,8 @@ import {
   killProcessTree,
   LocalWorkspaceSandboxSession,
   type LocalWorkspaceSessionContext,
+  reapChildSetOnExit,
+  stopReapingChildSet,
 } from './local-workspace-sandbox-session';
 
 /**
@@ -24,12 +26,6 @@ export class LocalWorkspaceNetworkSandboxSession
   readonly id: string;
   readonly ports: ReadonlyArray<number>;
 
-  /**
-   * Reaps any surviving children if the orchestrator exits without calling
-   * `stop()`. Retained so `stop()` can deregister it.
-   */
-  private readonly reapOnExit: () => void;
-
   constructor(input: {
     id: string;
     ports: ReadonlyArray<number>;
@@ -39,10 +35,9 @@ export class LocalWorkspaceNetworkSandboxSession
     this.id = input.id;
     this.ports = input.ports;
 
-    this.reapOnExit = () => {
-      for (const child of this.context.children) killProcessTree(child);
-    };
-    process.once('exit', this.reapOnExit);
+    // Shared handler rather than one per session: detach never calls `stop()`,
+    // so per-session handlers accumulated and tripped Node's listener warning.
+    reapChildSetOnExit(this.context.children);
   }
 
   /**
@@ -90,7 +85,7 @@ export class LocalWorkspaceNetworkSandboxSession
   stop = async (): Promise<void> => {
     for (const child of this.context.children) killProcessTree(child);
     this.context.children.clear();
-    process.off('exit', this.reapOnExit);
+    stopReapingChildSet(this.context.children);
   };
 
   /**

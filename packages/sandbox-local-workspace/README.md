@@ -118,6 +118,14 @@ every reattach fail. Adapters read a failed `getPortUrl()` as "bridge unreachabl
 quietly respawn, which orphans the running bridge and discards the live session that
 detaching existed to preserve.
 
+`session.detach()` and a later `createSession({ sessionId, resumeFrom })` reattach to the
+still-running bridge **within the same process**. Across processes they do not: a session
+reaps the processes it started when the host exits, so the bridge is gone and the adapter
+falls back to respawning it. Sessions still resume correctly, they just pay for a restart.
+That is deliberate. Leaving stray bridges on a developer's machine is never a supported
+mode, and unlike a hosted sandbox there is no separate machine here for a parked session
+to live on.
+
 Note that harness bridges bind `0.0.0.0` rather than loopback. That is upstream behaviour
 and not configurable from here; they rely on a per-start random token for access control.
 

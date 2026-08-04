@@ -52,6 +52,43 @@ export type LocalWorkspaceSessionContext = {
 };
 
 /**
+ * Child sets belonging to sessions that have not been stopped.
+ *
+ * Shared so that one exit handler covers every session. Registering one handler
+ * per session tripped Node's `MaxListenersExceededWarning` at eleven concurrent
+ * sessions, and detach never calls `stop()`, so those handlers accumulated for
+ * the life of the process.
+ */
+const unstoppedChildSets = new Set<Set<ReturnType<typeof spawnChildProcess>>>();
+let exitReaperInstalled = false;
+
+/**
+ * Reap this session's processes if the host exits without stopping it.
+ *
+ * Leaving processes behind is never a supported mode, so this fires even for
+ * sessions that were detached rather than stopped.
+ */
+export function reapChildSetOnExit(
+  children: Set<ReturnType<typeof spawnChildProcess>>,
+): void {
+  unstoppedChildSets.add(children);
+  if (exitReaperInstalled) return;
+  exitReaperInstalled = true;
+  process.once('exit', () => {
+    for (const childSet of unstoppedChildSets) {
+      for (const child of childSet) killProcessTree(child);
+    }
+  });
+}
+
+/** Stop reaping a session's processes, once it has cleaned up after itself. */
+export function stopReapingChildSet(
+  children: Set<ReturnType<typeof spawnChildProcess>>,
+): void {
+  unstoppedChildSets.delete(children);
+}
+
+/**
  * Kill a process and everything it spawned.
  *
  * Bridge-backed adapters spawn a bridge that spawns a CLI that spawns more
