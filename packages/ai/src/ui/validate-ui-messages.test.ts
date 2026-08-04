@@ -966,7 +966,7 @@ describe('validateUIMessages', () => {
       `);
     });
 
-    it('should validate tool input and output when state is output-available', async () => {
+    it('should not re-validate tool input when state is output-available', async () => {
       const messages = await validateUIMessages<TestMessage>({
         messages: [
           {
@@ -977,7 +977,7 @@ describe('validateUIMessages', () => {
                 type: 'tool-foo',
                 toolCallId: '1',
                 state: 'output-available',
-                input: { foo: 'bar' },
+                input: {} as { foo: string },
                 output: { result: 'success' },
               },
             ],
@@ -995,9 +995,7 @@ describe('validateUIMessages', () => {
             "id": "1",
             "parts": [
               {
-                "input": {
-                  "foo": "bar",
-                },
+                "input": {},
                 "output": {
                   "result": "success",
                 },
@@ -1012,7 +1010,121 @@ describe('validateUIMessages', () => {
       `);
     });
 
+<<<<<<< HEAD
     it('should validate tool input when state is output-error', async () => {
+=======
+    it('should validate tool output when state is output-available', async () => {
+      await expect(
+        validateUIMessages<TestMessage>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-foo',
+                  toolCallId: '1',
+                  state: 'output-available',
+                  input: {} as { foo: string },
+                  output: {} as { result: string },
+                },
+              ],
+            },
+          ],
+          tools: {
+            foo: testTool,
+          },
+        }),
+      ).rejects.toThrowError(
+        'Type validation failed for messages[0].parts[0].output',
+      );
+    });
+
+    it('should preserve result provider metadata when state is output-available', async () => {
+      const messages = await validateUIMessages<TestMessage>({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-foo',
+                toolCallId: '1',
+                state: 'output-available',
+                input: { foo: 'bar' },
+                output: { result: 'success' },
+                resultProviderMetadata: {
+                  testProvider: { itemId: 'result-item' },
+                },
+              },
+            ],
+          },
+        ],
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expect(messages[0].parts[0]).toMatchObject({
+        type: 'tool-foo',
+        state: 'output-available',
+        resultProviderMetadata: {
+          testProvider: { itemId: 'result-item' },
+        },
+      });
+    });
+
+    it('should not re-validate tool input when state is output-error', async () => {
+      // A tool call that failed with an invalid-input error keeps its (invalid)
+      // input. Re-validating it on replay would throw a TypeValidationError and
+      // crash follow-up messages, so output-error input is intentionally skipped.
+      const messages = await validateUIMessages<TestMessage>({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-foo',
+                toolCallId: '1',
+                state: 'output-error',
+                input: { foo: 123 } as unknown as { foo: string },
+                errorText: 'AI_InvalidToolInputError',
+                providerExecuted: false,
+              },
+            ],
+          },
+        ],
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<TestMessage>>();
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "errorText": "AI_InvalidToolInputError",
+                "input": {
+                  "foo": 123,
+                },
+                "providerExecuted": false,
+                "state": "output-error",
+                "toolCallId": "1",
+                "type": "tool-foo",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should preserve result provider metadata when state is output-error', async () => {
+>>>>>>> 3836a85d64 (fix: prevent aborted tool history from blocking follow-up messages (#18433))
       const messages = await validateUIMessages<TestMessage>({
         messages: [
           {
