@@ -210,10 +210,8 @@ export class HarnessAgent<
   private async resolveLocalWorkspaceProvider(): Promise<HarnessV1SandboxProvider> {
     const existing = this.localWorkspaceProvider;
     if (existing != null) return existing;
-    const { createLocalWorkspaceSandbox } =
-      await import('./internal/local-workspace/local-workspace-sandbox');
-    const { warnAboutMissingSandbox } =
-      await import('./internal/local-workspace/warn-no-sandbox');
+    const { createLocalWorkspaceSandbox, warnAboutMissingSandbox } =
+      await import('./internal/sandbox-local-workspace');
     warnAboutMissingSandbox();
     const provider = createLocalWorkspaceSandbox();
     this.localWorkspaceProvider = provider;
