@@ -348,11 +348,11 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
             };
           }
 
-          if (
-            toolPart.state === 'input-available' ||
-            toolPart.state === 'output-available' ||
-            toolPart.state === 'output-error'
-          ) {
+          // Tool input validation
+          // Note: input is intentionally not re-validated for terminal states.
+          // Terminal tool calls can keep invalid or incomplete input, and
+          // re-validating it on replay would crash follow-up messages.
+          if (toolPart.state === 'input-available') {
             await validateTypes({
               value: toolPart.input,
               schema: tool.inputSchema,
