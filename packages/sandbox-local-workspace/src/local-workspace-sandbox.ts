@@ -190,7 +190,7 @@ export class LocalWorkspaceSandboxProvider implements HarnessV1SandboxProvider {
       ports: await allocateLoopbackPorts(this.portCount),
       context: {
         workingDirectory,
-        projectPath: this.projectPath,
+        projectDirectoryName: basename(this.projectPath),
         env: this.env,
         children: new Set(),
       },

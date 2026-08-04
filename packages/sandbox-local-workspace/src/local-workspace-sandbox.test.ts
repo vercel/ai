@@ -857,6 +857,29 @@ describe('sessions', () => {
     const { stdout } = await session.run({ command: 'pwd -P' });
     expect(stdout.trim()).toBe(root);
   });
+
+  // The description states a root and a project path. If those are spelled
+  // differently, joining the stated root with the project name does not reach
+  // the stated project, and the model is following two incompatible facts.
+  it('states a root and project path that agree, even through a symlink', async () => {
+    const { root, projectPath } = await createTempProject();
+    const linkRoot = `${root}-desc-link`;
+    symlinkSync(root, linkRoot);
+
+    const session = await startSession({
+      path: join(linkRoot, basename(projectPath)),
+    });
+
+    const [rootLine, projectLine] = session.description.split('\n');
+    const statedRoot = rootLine.replace(/^.*rooted at /, '').replace(/\.$/, '');
+    const statedProject = projectLine
+      .replace(/^.*project directory is /, '')
+      .replace(/\.$/, '');
+
+    expect(join(statedRoot, basename(projectPath))).toBe(statedProject);
+    expect(statedRoot).toBe(session.defaultWorkingDirectory);
+    expect(statedProject).toBe(projectPath);
+  });
 });
 
 function isProcessAlive(pid: number): boolean {

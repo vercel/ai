@@ -13,12 +13,7 @@ import {
   realpath as realpathAsync,
   writeFile as writeFileAsync,
 } from 'node:fs/promises';
-import {
-  basename,
-  dirname,
-  isAbsolute,
-  resolve as resolvePath,
-} from 'node:path';
+import { dirname, isAbsolute, join, resolve as resolvePath } from 'node:path';
 import { Readable } from 'node:stream';
 import {
   extractLines,
@@ -42,8 +37,14 @@ const nodeFs = {
 export type LocalWorkspaceSessionContext = {
   /** Sandbox root: the parent of the project directory. Already realpath'd. */
   readonly workingDirectory: string;
-  /** The project directory the harness works in. Already resolved. */
-  readonly projectPath: string;
+  /**
+   * Name of the project directory within {@link workingDirectory}.
+   *
+   * Stored as a name rather than a full path so the two cannot disagree. Both
+   * spellings of a symlinked project would otherwise appear side by side, and
+   * `join(workingDirectory, name)` would not produce the stated project path.
+   */
+  readonly projectDirectoryName: string;
   /** Inherited process environment plus the caller's overlay. */
   readonly env: Record<string, string>;
   /** Live children, so `stop()` can reap the whole tree. */
@@ -135,10 +136,10 @@ export class LocalWorkspaceSandboxSession implements SandboxSession {
    * otherwise would send the model's files to the wrong directory.
    */
   get description(): string {
-    const projectDirectoryName = basename(this.context.projectPath);
+    const { workingDirectory, projectDirectoryName } = this.context;
     return [
-      `Local machine workspace rooted at ${this.context.workingDirectory}.`,
-      `The project directory is ${this.context.projectPath}.`,
+      `Local machine workspace rooted at ${workingDirectory}.`,
+      `The project directory is ${join(workingDirectory, projectDirectoryName)}.`,
       `Relative paths and commands resolve against the workspace root, so paths inside the project start with "${projectDirectoryName}/".`,
       'Commands run as a normal OS process on the host, as the current user.',
     ].join('\n');
