@@ -714,6 +714,358 @@ describe('experimental_toolCallers', () => {
     expect(JSON.stringify(modelPrompt)).toContain('nested execution denied');
   });
 
+  it('does not replay a completed nested caller approval', async () => {
+    const isPending = (output: unknown): boolean => {
+      if (
+        typeof output === 'object' &&
+        output !== null &&
+        'type' in output &&
+        output.type === 'json' &&
+        'value' in output
+      ) {
+        return isPending(output.value);
+      }
+      return (
+        typeof output === 'object' &&
+        output !== null &&
+        'stage' in output &&
+        output.stage === 'pending'
+      );
+    };
+    const continueApproval = vi.fn(async () => ({ completed: true }));
+    const localCaller = experimental_toolCaller(
+      tool({
+        inputSchema: z.object({}),
+        execute: async () => undefined,
+      }),
+      {
+        type: 'local',
+        bind: () =>
+          tool({
+            inputSchema: z.object({}),
+            execute: async () => undefined,
+          }),
+        getApprovalRequest: output =>
+          isPending(output)
+            ? {
+                approvalId: 'nested-approval',
+                callerToolCallId: 'outer-call',
+                toolCall: {
+                  toolCallId: 'nested-call',
+                  toolName: 'sensitive',
+                  input: {},
+                },
+              }
+            : undefined,
+        continueApproval,
+      },
+    );
+    const tools = {
+      code_mode: localCaller,
+      sensitive: tool({
+        inputSchema: z.object({}),
+        execute: async () => 'executed',
+      }),
+    };
+    const messages: ModelMessage[] = [
+      { role: 'user', content: 'Run the program.' },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'outer-call',
+            toolName: 'code_mode',
+            input: {},
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'outer-call',
+            toolName: 'code_mode',
+            output: {
+              type: 'json',
+              value: { stage: 'pending' },
+            },
+          },
+        ],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'nested-call',
+            callerToolCallId: 'outer-call',
+            toolName: 'sensitive',
+            input: {},
+          },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'nested-approval',
+            toolCallId: 'nested-call',
+            callerToolCallId: 'outer-call',
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-approval-response',
+            approvalId: 'nested-approval',
+            approved: true,
+          },
+        ],
+      },
+    ];
+    const generate = async () =>
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'complete' }],
+          }),
+        }),
+        tools,
+        experimental_toolCallers: {
+          sensitive: ['code_mode'],
+        },
+        toolApproval: {
+          sensitive: 'user-approval',
+        },
+        messages,
+      });
+
+    const firstResult = await generate();
+    expect(continueApproval).toHaveBeenCalledOnce();
+
+    messages.push(...firstResult.responseMessages, {
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-approval-response',
+          approvalId: 'nested-approval',
+          approved: true,
+        },
+      ],
+    });
+
+    await generate();
+
+    expect(continueApproval).toHaveBeenCalledOnce();
+  });
+
+  it('signs nested caller approvals and rejects tampered inputs or signatures', async () => {
+    const secret = 'nested-approval-test-secret';
+    const originalInput = { value: 'original' };
+    const isPending = (output: unknown): boolean => {
+      if (
+        typeof output === 'object' &&
+        output !== null &&
+        'type' in output &&
+        output.type === 'json' &&
+        'value' in output
+      ) {
+        return isPending(output.value);
+      }
+      return (
+        typeof output === 'object' &&
+        output !== null &&
+        'stage' in output &&
+        output.stage === 'pending'
+      );
+    };
+    const continueApproval = vi.fn(async () => ({ completed: true }));
+    const localCaller = experimental_toolCaller(
+      tool({
+        inputSchema: z.object({}),
+        execute: async () => undefined,
+      }),
+      {
+        type: 'local',
+        bind: () =>
+          tool({
+            inputSchema: z.object({}),
+            execute: async () => ({ stage: 'pending' }),
+          }),
+        getApprovalRequest: output =>
+          isPending(output)
+            ? {
+                approvalId: 'nested-approval',
+                callerToolCallId: 'outer-call',
+                toolCall: {
+                  toolCallId: 'nested-call',
+                  toolName: 'sensitive',
+                  input: originalInput,
+                },
+              }
+            : undefined,
+        continueApproval,
+      },
+    );
+    const tools = {
+      code_mode: localCaller,
+      sensitive: tool({
+        inputSchema: z.object({ value: z.string() }),
+        execute: async () => 'executed',
+      }),
+    };
+
+    const initialResult = await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+          content: [
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'outer-call',
+              toolName: 'code_mode',
+              input: '{}',
+            },
+          ],
+        }),
+      }),
+      tools,
+      experimental_toolCallers: {
+        sensitive: ['code_mode'],
+      },
+      toolApproval: {
+        sensitive: 'user-approval',
+      },
+      experimental_toolApprovalSecret: secret,
+      prompt: 'Run the program.',
+    });
+    const approvalRequest = initialResult.content.find(
+      part => part.type === 'tool-approval-request',
+    );
+    assert(approvalRequest?.type === 'tool-approval-request');
+    assert(approvalRequest.signature != null);
+    const signature = approvalRequest.signature;
+
+    const createMessages = ({
+      input,
+      signature,
+    }: {
+      input: { value: string };
+      signature: string;
+    }): ModelMessage[] => [
+      { role: 'user', content: 'Run the program.' },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'outer-call',
+            toolName: 'code_mode',
+            input: {},
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'outer-call',
+            toolName: 'code_mode',
+            output: {
+              type: 'json',
+              value: { stage: 'pending' },
+            },
+          },
+        ],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'nested-call',
+            callerToolCallId: 'outer-call',
+            toolName: 'sensitive',
+            input,
+          },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'nested-approval',
+            toolCallId: 'nested-call',
+            callerToolCallId: 'outer-call',
+            signature,
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-approval-response',
+            approvalId: 'nested-approval',
+            approved: true,
+          },
+        ],
+      },
+    ];
+    const model = new MockLanguageModelV4({
+      doGenerate: async () => ({
+        ...dummyResponseValues,
+        content: [{ type: 'text', text: 'complete' }],
+      }),
+    });
+    const generate = async (messages: ModelMessage[]) =>
+      await generateText({
+        model,
+        tools,
+        experimental_toolCallers: {
+          sensitive: ['code_mode'],
+        },
+        toolApproval: {
+          sensitive: 'user-approval',
+        },
+        experimental_toolApprovalSecret: secret,
+        messages,
+      });
+
+    await expect(
+      generate(
+        createMessages({
+          input: { value: 'tampered' },
+          signature,
+        }),
+      ),
+    ).rejects.toThrowError(/invalid signature/);
+
+    const tamperedSignature = `${signature.slice(0, -1)}${
+      signature.endsWith('A') ? 'B' : 'A'
+    }`;
+    await expect(
+      generate(
+        createMessages({
+          input: originalInput,
+          signature: tamperedSignature,
+        }),
+      ),
+    ).rejects.toThrowError(/invalid signature/);
+
+    expect(continueApproval).not.toHaveBeenCalled();
+
+    await expect(
+      generate(
+        createMessages({
+          input: originalInput,
+          signature,
+        }),
+      ),
+    ).resolves.toMatchObject({ text: 'complete' });
+    expect(continueApproval).toHaveBeenCalledOnce();
+  });
+
   it('adds provider caller options while preserving direct access', async () => {
     let modelTools: LanguageModelV4CallOptions['tools'];
 
