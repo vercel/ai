@@ -629,10 +629,33 @@ describe('sessions', () => {
     expect(isProcessAlive(child.pid!)).toBe(true);
   });
 
-  it('describes the workspace root in `description`', async () => {
-    const { projectPath } = await createTempProject();
+  // `description` is meant to be pasted into the model's instructions, so a
+  // wrong claim about relative paths sends the model's files into the sibling
+  // directory. Pin the text against what the session actually does.
+  it('describes where relative paths actually resolve', async () => {
+    const { root, projectPath } = await createTempProject();
     const session = await startSession({ path: projectPath });
+
+    expect(session.description).toContain(root);
     expect(session.description).toContain(projectPath);
+
+    // The claim: relative paths resolve against the workspace root, so a path
+    // inside the project is prefixed with the project directory name.
+    expect(session.description).toContain(`${basename(projectPath)}/`);
+
+    // The behaviour, verified rather than assumed.
+    await session.writeTextFile({ path: 'at-root.txt', content: 'root' });
+    expect(existsSync(join(root, 'at-root.txt'))).toBe(true);
+    expect(existsSync(join(projectPath, 'at-root.txt'))).toBe(false);
+
+    await session.writeTextFile({
+      path: `${basename(projectPath)}/in-project.txt`,
+      content: 'project',
+    });
+    expect(existsSync(join(projectPath, 'in-project.txt'))).toBe(true);
+
+    const { stdout } = await session.run({ command: 'pwd -P' });
+    expect(stdout.trim()).toBe(root);
   });
 });
 

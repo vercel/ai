@@ -14,7 +14,12 @@ import {
   realpath as realpathAsync,
   writeFile as writeFileAsync,
 } from 'node:fs/promises';
-import { dirname, isAbsolute, resolve as resolvePath } from 'node:path';
+import {
+  basename,
+  dirname,
+  isAbsolute,
+  resolve as resolvePath,
+} from 'node:path';
 import { Readable } from 'node:stream';
 import {
   extractLines,
@@ -88,10 +93,19 @@ export function killProcessTree(
 export class LocalWorkspaceSandboxSession implements SandboxSession {
   constructor(protected readonly context: LocalWorkspaceSessionContext) {}
 
+  /**
+   * Consumers put this in the model's instructions, so it has to describe where
+   * relative paths actually land. The workspace root is the *parent* of the
+   * project, so `NOTES.md` resolves beside the project and
+   * `<project>/NOTES.md` resolves inside it. Saying otherwise would send the
+   * model's files into a sibling directory.
+   */
   get description(): string {
+    const projectDirectoryName = basename(this.context.projectPath);
     return [
-      `Local machine workspace rooted at ${this.context.projectPath}.`,
-      'Relative paths resolve against that directory.',
+      `Local machine workspace rooted at ${this.context.workingDirectory}.`,
+      `The project directory is ${this.context.projectPath}.`,
+      `Relative paths and commands resolve against the workspace root, so paths inside the project start with "${projectDirectoryName}/".`,
       'Commands run as a normal OS process on the host, as the current user.',
     ].join('\n');
   }
