@@ -1,5 +1,76 @@
 # @ai-sdk/sandbox-vercel
 
+## 1.0.57
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+  - @ai-sdk/harness@1.0.57
+
+## 1.0.56
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.56
+- @ai-sdk/provider-utils@5.0.19
+
+## 1.0.55
+
+### Patch Changes
+
+- 861d423: feat(harness): improve harness sandbox auth error handling and expose `getHarnessErrorMessage()` helper
+- Updated dependencies [2c0a8aa]
+- Updated dependencies [861d423]
+- Updated dependencies [8f10600]
+  - @ai-sdk/harness@1.0.55
+
+## 1.0.54
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.54
+
+## 1.0.53
+
+### Patch Changes
+
+- Updated dependencies [5fc7da5]
+- Updated dependencies [bdde5d9]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+  - @ai-sdk/harness@1.0.53
+
+## 1.0.52
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.52
+
+## 1.0.51
+
+### Patch Changes
+
+- Updated dependencies [fa95504]
+- Updated dependencies [226a679]
+  - @ai-sdk/provider-utils@5.0.17
+  - @ai-sdk/harness@1.0.51
+
+## 1.0.50
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.50
+
+## 1.0.49
+
+### Patch Changes
+
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+  - @ai-sdk/harness@1.0.49
+
 ## 1.0.48
 
 ### Patch Changes

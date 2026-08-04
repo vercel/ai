@@ -48,6 +48,7 @@
         "packages/{providerId}/src/index.ts",
         "!packages/ai",
         "!packages/angular",
+        "!packages/code-mode",
         "!packages/codemod",
         "!packages/devtools",
         "!packages/harness",
@@ -416,6 +417,21 @@
           }
         }
       ]
+    },
+    {
+      "name": "harness-bridge-must-not-import-core-ai-sdk-packages",
+      "description": "Harness bridge code must not import AI SDK packages that are unavailable in the isolated bridge runtime.",
+      "paths": ["packages/harness-*/src/bridge/**/*.ts"],
+      "mustNot": {
+        "importFrom": [
+          "ai",
+          "ai/*",
+          "@ai-sdk/provider",
+          "@ai-sdk/provider/*",
+          "@ai-sdk/provider-utils",
+          "@ai-sdk/provider-utils/*"
+        ]
+      }
     }
   ],
   "kebabToPascalMap": {
@@ -429,6 +445,7 @@
     "huggingface": "HuggingFace",
     "klingai": "KlingAI",
     "lmnt": "LMNT",
+    "minimax": "MiniMax",
     "moonshotai": "MoonshotAI",
     "openai": "OpenAI",
     "openai-compatible": "OpenAICompatible",
@@ -437,6 +454,7 @@
     "togetherai": "TogetherAI"
   },
   "kebabToCamelMap": {
-    "lmnt": "lmnt"
+    "lmnt": "lmnt",
+    "minimax": "minimax"
   }
 }

@@ -2872,7 +2872,10 @@ function resolveAnthropicReasoningConfig({
       },
       warnings,
     });
-    return { thinking: { type: 'adaptive' }, effort };
+    return {
+      thinking: { type: 'adaptive', display: 'summarized' },
+      effort,
+    };
   }
 
   const budgetTokens = mapReasoningToProviderBudget({

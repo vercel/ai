@@ -1316,6 +1316,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
           ? chunk
           : undefined,
       isOutputChunk: isResponseOutputChunk,
+      isAcceptedChunk: isResponseInProgressChunk,
       url,
       requestBodyValues: body,
       responseHeaders,
@@ -2674,9 +2675,16 @@ function isErrorChunk(
   return chunk.type === 'error';
 }
 
+function isResponseInProgressChunk(
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.in_progress' } {
+  return chunk.type === 'response.in_progress';
+}
+
 function isResponseOutputChunk(chunk: OpenAIResponsesChunk): boolean {
   return !(
     chunk.type === 'response.created' ||
+    chunk.type === 'response.in_progress' ||
     chunk.type === 'response.failed' ||
     chunk.type === 'error' ||
     chunk.type === 'unknown_chunk'
