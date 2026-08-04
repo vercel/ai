@@ -216,6 +216,46 @@ export const conventions = defineConventions([
     },
   },
   {
+    name: 'provider-realtime-model-file-must-export-model-class',
+    description:
+      "Every provider's realtime model file must export a model class (separated only because RealtimeModelV4 type is experimental).",
+    for: {
+      files: [
+        '${providerId}-realtime-model.ts',
+        '*/${providerId}-realtime-model.ts',
+      ],
+    },
+    must: {
+      importTypes: [
+        {
+          name: 'Experimental_RealtimeModelV4',
+          from: '@ai-sdk/provider',
+          alias: 'RealtimeModelV4',
+        },
+      ],
+      exportClasses: [
+        {
+          name: '${providerId.toPascalCase()}RealtimeModel',
+          implement: ['RealtimeModelV4'],
+        },
+      ],
+    },
+  },
+  {
+    name: 'provider-realtime-model-file-must-have-matching-model-options-file',
+    description:
+      "Every provider's realtime model file must have a matching model options file (separated only because RealtimeModelV4 type is experimental).",
+    for: {
+      files: [
+        '${providerId}-realtime-model.ts',
+        '*/${providerId}-realtime-model.ts',
+      ],
+    },
+    must: {
+      haveFiles: ['${providerId}-realtime-model-options.ts'],
+    },
+  },
+  {
     name: 'provider-video-model-file-must-export-model-class',
     description:
       "Every provider's video model file must export a model class (separated only because VideoModelV4 type is experimental).",
