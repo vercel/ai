@@ -1,5 +1,8 @@
-import type { Sandbox } from '@vercel/sandbox';
-import { HarnessSandboxAuthenticationError } from '@ai-sdk/harness';
+import type { NetworkPolicy, Sandbox } from '@vercel/sandbox';
+import {
+  HarnessSandboxAuthenticationError,
+  type HarnessV1NetworkSandboxSession,
+} from '@ai-sdk/harness';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createVercelSandbox } from './vercel-sandbox';
 
@@ -24,6 +27,7 @@ type MockSpies = {
   stop: ReturnType<typeof vi.fn>;
   delete: ReturnType<typeof vi.fn>;
   routes: Array<{ port: number }>;
+  networkPolicy: NetworkPolicy | undefined;
 };
 
 function makeMockSandbox(overrides: Partial<MockSpies> = {}) {
@@ -33,6 +37,7 @@ function makeMockSandbox(overrides: Partial<MockSpies> = {}) {
   const stop = overrides.stop ?? vi.fn(async () => {});
   const deleteSandbox = overrides.delete ?? vi.fn(async () => {});
   const routes: Array<{ port: number }> = overrides.routes ?? [{ port: 4000 }];
+  const networkPolicy = overrides.networkPolicy;
   const sandbox = {
     name: 'sbx_harness',
     domain,
@@ -41,12 +46,33 @@ function makeMockSandbox(overrides: Partial<MockSpies> = {}) {
     stop,
     delete: deleteSandbox,
     routes,
+    networkPolicy,
     currentSession: () => ({ cwd: '/vercel/sandbox' }),
   } as unknown as Sandbox;
   return {
     sandbox,
-    spies: { domain, update, runCommand, stop, delete: deleteSandbox, routes },
+    spies: {
+      domain,
+      update,
+      runCommand,
+      stop,
+      delete: deleteSandbox,
+      routes,
+      networkPolicy,
+    },
   };
+}
+
+function getSetRequestTransformations(
+  session: HarnessV1NetworkSandboxSession,
+): NonNullable<HarnessV1NetworkSandboxSession['setRequestTransformations']> {
+  const setRequestTransformations = session.setRequestTransformations;
+  if (setRequestTransformations == null) {
+    throw new Error(
+      'Expected Vercel Sandbox to support request transformations.',
+    );
+  }
+  return setRequestTransformations;
 }
 
 async function captureError(promise: PromiseLike<unknown>): Promise<unknown> {
@@ -203,6 +229,134 @@ describe('createVercelSandbox (wrap existing)', () => {
         networkPolicy: {
           subnets: { allow: ['10.0.0.0/8'], deny: ['10.5.0.0/16'] },
         },
+      });
+    });
+  });
+
+  describe('setRequestTransformations', () => {
+    const credentialTransformation = {
+      match: {
+        host: 'ai-gateway.vercel.sh',
+        method: ['POST'],
+        path: { startsWith: '/v1/' },
+      },
+      transform: {
+        headers: { authorization: 'Bearer host-only-credential' },
+      },
+    } as const;
+
+    it('preserves allow-all when only request transformations are configured', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      const handle = await createVercelSandbox({ sandbox }).createSession();
+      await getSetRequestTransformations(handle)([credentialTransformation]);
+      expect(spies.update).toHaveBeenCalledWith({
+        networkPolicy: {
+          allow: {
+            'ai-gateway.vercel.sh': [
+              {
+                match: {
+                  method: ['POST'],
+                  path: { startsWith: '/v1/' },
+                },
+                transform: [
+                  {
+                    headers: {
+                      authorization: 'Bearer host-only-credential',
+                    },
+                  },
+                ],
+              },
+            ],
+            '*': [],
+          },
+        },
+      });
+    });
+
+    it('groups several request transformations for the same host', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      const handle = await createVercelSandbox({ sandbox }).createSession();
+      await getSetRequestTransformations(handle)([
+        credentialTransformation,
+        {
+          match: { host: 'ai-gateway.vercel.sh', path: { exact: '/models' } },
+          transform: { headers: { 'x-api-key': 'second-credential' } },
+        },
+      ]);
+      const update = spies.update.mock.calls.at(-1)?.[0];
+      expect(
+        (
+          update?.networkPolicy as
+            | {
+                allow: Record<string, ReadonlyArray<unknown>>;
+              }
+            | undefined
+        )?.allow['ai-gateway.vercel.sh'],
+      ).toHaveLength(2);
+    });
+
+    it('merges access policies and request transformations regardless of setter order', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      const handle = await createVercelSandbox({ sandbox }).createSession();
+      await getSetRequestTransformations(handle)([credentialTransformation]);
+      await handle.setNetworkPolicy!({
+        mode: 'custom',
+        allowedHosts: ['registry.npmjs.org'],
+        deniedCIDRs: ['169.254.169.254/32'],
+      });
+      expect(spies.update).toHaveBeenLastCalledWith({
+        networkPolicy: {
+          allow: {
+            'registry.npmjs.org': [],
+            'ai-gateway.vercel.sh': [
+              {
+                match: {
+                  method: ['POST'],
+                  path: { startsWith: '/v1/' },
+                },
+                transform: [
+                  {
+                    headers: {
+                      authorization: 'Bearer host-only-credential',
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+          subnets: { deny: ['169.254.169.254/32'] },
+        },
+      });
+    });
+
+    it('merges request transformations with the sandbox initial network policy', async () => {
+      const { sandbox, spies } = makeMockSandbox({
+        networkPolicy: { allow: ['registry.npmjs.org'] },
+      });
+      const handle = await createVercelSandbox({ sandbox }).createSession();
+      await getSetRequestTransformations(handle)([credentialTransformation]);
+      expect(spies.update).toHaveBeenLastCalledWith({
+        networkPolicy: {
+          allow: {
+            'registry.npmjs.org': [],
+            'ai-gateway.vercel.sh': expect.any(Array),
+          },
+        },
+      });
+    });
+
+    it('restores the access policy when request transformations are cleared', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      const handle = await createVercelSandbox({ sandbox }).createSession();
+      await handle.setNetworkPolicy!({
+        mode: 'custom',
+        allowedHosts: ['registry.npmjs.org'],
+      });
+      const setRequestTransformations = getSetRequestTransformations(handle);
+      await setRequestTransformations([credentialTransformation]);
+      await setRequestTransformations([]);
+      expect(spies.update).toHaveBeenLastCalledWith({
+        networkPolicy: { allow: ['registry.npmjs.org'] },
       });
     });
   });

@@ -78,8 +78,9 @@ export type HarnessV1StartOptions = {
    * Network sandbox session the adapter operates against. It is owned and
    * lifecycled by `HarnessAgent`. Adapters call `restricted()` for the
    * tool-safe filesystem/exec/spawn surface, and use the infra methods
-   * (`getPortUrl`, `ports`, `setNetworkPolicy`) for bridge wiring. Adapters
-   * must not call `stop()` themselves; the agent does that during cleanup.
+   * (`getPortUrl`, `ports`, `setNetworkPolicy`,
+   * `setRequestTransformations`) for bridge wiring. Adapters must not call
+   * `stop()` themselves; the agent does that during cleanup.
    */
   readonly sandboxSession: HarnessV1NetworkSandboxSession;
 

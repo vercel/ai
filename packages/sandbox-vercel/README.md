@@ -45,7 +45,7 @@ Credential resolution failures throw
 `HarnessSandboxAuthenticationError` from `@ai-sdk/harness` and preserve the
 underlying Vercel SDK error as `cause`.
 
-`networkSandboxSession.restricted()` is typed as `Experimental_SandboxSession`, so it's safe to pass to AI SDK tools that accept `experimental_sandbox`. The network sandbox session itself carries the infra surface (`ports`, `getPortUrl`, `setNetworkPolicy`, `stop`) that only the harness should reach for.
+`networkSandboxSession.restricted()` is typed as `Experimental_SandboxSession`, so it's safe to pass to AI SDK tools that accept `experimental_sandbox`. The network sandbox session itself carries the infra surface (`ports`, `getPortUrl`, `setNetworkPolicy`, `setRequestTransformations`, `stop`) that only the harness should reach for.
 
 The flat-field settings are aliased directly from `@vercel/sandbox`'s `Sandbox.create` parameters, so every option Vercel supports — including its native `NetworkPolicy` — is available without re-declaration:
 
@@ -85,3 +85,32 @@ await networkSandboxSession.setNetworkPolicy?.({
 ```
 
 `HarnessV1NetworkPolicy` is the harness-level abstraction used here. The provider translates it to `@vercel/sandbox`'s native `NetworkPolicy` for enforcement.
+
+### Request transformations and credential brokering
+
+Request transformations are separate from network access policies. They modify
+matching HTTPS requests after those requests leave the sandbox, so credentials
+never enter the sandbox VM:
+
+```ts
+await networkSandboxSession.setRequestTransformations([
+  {
+    match: {
+      host: 'ai-gateway.vercel.sh',
+      method: ['POST'],
+      path: { startsWith: '/v1/' },
+    },
+    transform: {
+      headers: {
+        authorization: `Bearer ${process.env.AI_GATEWAY_API_KEY}`,
+      },
+    },
+  },
+]);
+```
+
+`setRequestTransformations()` has full-replacement semantics. The Vercel
+implementation combines the transformations with the current
+`HarnessV1NetworkPolicy`. When no access policy is configured, it preserves the
+Vercel Sandbox default of allow-all by adding the `'*': []` rule alongside the
+transformed hosts.
