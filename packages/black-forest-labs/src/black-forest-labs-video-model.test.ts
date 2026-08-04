@@ -989,6 +989,19 @@ describe('BlackForestLabsVideoModel', () => {
         version: 'latest',
       });
     });
+
+    it('should reject an unavailable version', async () => {
+      await expect(
+        createModel().doGenerate({
+          ...defaultOptions,
+          providerOptions: {
+            blackForestLabs: { version: '2026-08-01' },
+          },
+        }),
+      ).rejects.toThrow('invalid blackForestLabs provider options');
+
+      expect(server.calls).toHaveLength(0);
+    });
   });
 
   describe('unsupported call options', () => {

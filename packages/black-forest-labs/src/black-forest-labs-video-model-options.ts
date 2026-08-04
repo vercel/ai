@@ -80,7 +80,7 @@ export const blackForestLabsVideoProviderOptions = z.object({
   /**
    * Model version to pin. Only `latest` is available today.
    */
-  version: z.string().optional(),
+  version: z.literal('latest').optional(),
 
   /**
    * Interval in milliseconds between status polls. Defaults to 2000.
