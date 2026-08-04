@@ -2,7 +2,11 @@ import type {
   Experimental_VideoModelV4CallOptions,
   Experimental_VideoModelV4File,
 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
+import {
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
+  type FetchFunction,
+} from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { BlackForestLabsVideoModel } from './black-forest-labs-video-model';
@@ -105,6 +109,35 @@ describe('BlackForestLabsVideoModel', () => {
       expect(model.modelId).toBe('flux-3-video');
       expect(model.specificationVersion).toBe('v4');
       expect(model.maxVideosPerCall).toBe(1);
+    });
+
+    it('should support workflow serialization', () => {
+      const serialized = BlackForestLabsVideoModel[WORKFLOW_SERIALIZE](
+        createModel(),
+      );
+
+      expect(serialized).toEqual({
+        modelId: 'flux-3-video',
+        config: {
+          provider: 'black-forest-labs.video',
+          baseURL: TEST_BASE_URL,
+          headers: { 'x-key': 'test-key' },
+          pollIntervalMillis: 1,
+          pollTimeoutMillis: 5000,
+        },
+      });
+
+      const model = BlackForestLabsVideoModel[WORKFLOW_DESERIALIZE]({
+        modelId: 'flux-3-video',
+        config: serialized.config as {
+          provider: string;
+          baseURL: string;
+          headers: Record<string, string>;
+        },
+      });
+
+      expect(model.provider).toBe('black-forest-labs.video');
+      expect(model.modelId).toBe('flux-3-video');
     });
   });
 

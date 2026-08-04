@@ -15,6 +15,9 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  serializeModelOptions,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
   type FetchFunction,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
@@ -219,6 +222,20 @@ export class BlackForestLabsVideoModel implements VideoModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: BlackForestLabsVideoModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: BlackForestLabsVideoModelId;
+    config: BlackForestLabsVideoModelConfig;
+  }) {
+    return new BlackForestLabsVideoModel(options.modelId, options.config);
   }
 
   constructor(
