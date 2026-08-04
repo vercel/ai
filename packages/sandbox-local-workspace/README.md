@@ -146,7 +146,7 @@ Codex adapter, which appends a trust entry to the user's global `~/.codex/config
 every project path it is pointed at:
 
 ```toml
-[projects."/private/var/folders/.../T/lws-e2e-iIapOt/myapp"]
+[projects."/Users/me/repos/myapp"]
 trust_level = "trusted"
 ```
 

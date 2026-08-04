@@ -3742,15 +3742,6 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
-      '@ai-sdk/harness-claude-code':
-        specifier: workspace:*
-        version: link:../harness-claude-code
-      '@ai-sdk/harness-codex':
-        specifier: workspace:*
-        version: link:../harness-codex
-      '@ai-sdk/harness-pi':
-        specifier: workspace:*
-        version: link:../harness-pi
       '@types/node':
         specifier: 22.19.19
         version: 22.19.19
