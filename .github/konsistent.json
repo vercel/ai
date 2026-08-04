@@ -101,6 +101,8 @@
         {
           "use": "aisdk/provider-model-file-must-export-model-class",
           "excludeFiles": [
+            "packages/google/src/translation/google-translation-model.ts",
+            "packages/openai/src/translation/openai-translation-model.ts",
             "${providerId}-realtime-model.ts",
             "${providerId}-video-model.ts"
           ]
