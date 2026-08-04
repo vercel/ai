@@ -48,6 +48,7 @@
     "@ai-sdk/vercel": "workspace:*",
     "@ai-sdk/voyage": "workspace:*",
     "@ai-sdk/xai": "workspace:*",
+    "@basetenlabs/performance-client": "0.0.10",
     "@google/generative-ai": "0.21.0",
     "@langfuse/otel": "^4.5.0",
     "@opentelemetry/auto-instrumentations-node": "0.54.0",
