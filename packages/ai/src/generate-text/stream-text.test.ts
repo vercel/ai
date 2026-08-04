@@ -21126,6 +21126,114 @@ describe('streamText', () => {
       );
     });
 
+    it('streams an initial nested caller approval in the model step', async () => {
+      const localCaller = experimental_toolCaller(
+        tool({
+          inputSchema: z.object({}),
+          execute: async () => undefined,
+        }),
+        {
+          type: 'local',
+          bind: () =>
+            tool({
+              inputSchema: z.object({}),
+              execute: async () => ({ stage: 'pending' }),
+            }),
+          getApprovalRequest: output =>
+            typeof output === 'object' &&
+            output !== null &&
+            'stage' in output &&
+            output.stage === 'pending'
+              ? {
+                  approvalId: 'nested-approval',
+                  callerToolCallId: 'outer-call',
+                  toolCall: {
+                    toolCallId: 'nested-call',
+                    toolName: 'sensitive',
+                    input: { value: 42 },
+                  },
+                }
+              : undefined,
+        },
+      );
+      const sensitive = vi.fn(async () => 'executed');
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call',
+                toolCallId: 'outer-call',
+                toolName: 'code_mode',
+                input: '{}',
+              },
+              {
+                type: 'finish',
+                finishReason: {
+                  unified: 'tool-calls',
+                  raw: 'tool_calls',
+                },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          code_mode: localCaller,
+          sensitive: tool({
+            inputSchema: z.object({ value: z.number() }),
+            execute: sensitive,
+          }),
+        },
+        experimental_toolCallers: {
+          sensitive: ['code_mode'],
+        },
+        toolApproval: {
+          sensitive: 'user-approval',
+        },
+        prompt: 'Run the program.',
+      });
+
+      const parts = await convertAsyncIterableToArray(result.stream);
+
+      expect(sensitive).not.toHaveBeenCalled();
+      expect(
+        parts.filter(
+          part =>
+            (part.type === 'tool-call' && part.toolCallId === 'nested-call') ||
+            part.type === 'tool-approval-request',
+        ),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "callerToolCallId": "outer-call",
+            "dynamic": false,
+            "input": {
+              "value": 42,
+            },
+            "toolCallId": "nested-call",
+            "toolName": "sensitive",
+            "type": "tool-call",
+          },
+          {
+            "approvalId": "nested-approval",
+            "callerToolCallId": "outer-call",
+            "toolCall": {
+              "callerToolCallId": "outer-call",
+              "dynamic": false,
+              "input": {
+                "value": 42,
+              },
+              "toolCallId": "nested-call",
+              "toolName": "sensitive",
+              "type": "tool-call",
+            },
+            "type": "tool-approval-request",
+          },
+        ]
+      `);
+    });
+
     it('streams chained caller approvals before returning to the model', async () => {
       const readStage = (output: unknown): 'first' | 'second' | undefined => {
         if (
@@ -21250,6 +21358,27 @@ describe('streamText', () => {
       const firstResult = stream();
       const firstParts = await convertAsyncIterableToArray(firstResult.stream);
       expect(doStream).not.toHaveBeenCalled();
+      expect(firstParts.slice(-5).map(part => part.type)).toEqual([
+        'start-step',
+        'tool-call',
+        'tool-approval-request',
+        'finish-step',
+        'finish',
+      ]);
+      expect(firstParts.at(-2)).toMatchObject({
+        type: 'finish-step',
+        finishReason: 'tool-calls',
+        usage: {
+          totalTokens: undefined,
+        },
+      });
+      expect(firstParts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: 'tool-calls',
+        totalUsage: {
+          totalTokens: undefined,
+        },
+      });
       expect(
         firstParts.filter(
           part =>
@@ -21296,6 +21425,13 @@ describe('streamText', () => {
         secondResult.stream,
       );
       expect(doStream).not.toHaveBeenCalled();
+      expect(secondParts.slice(-5).map(part => part.type)).toEqual([
+        'start-step',
+        'tool-call',
+        'tool-approval-request',
+        'finish-step',
+        'finish',
+      ]);
       expect(
         secondParts.filter(
           part =>

@@ -596,6 +596,7 @@ describe('toUIMessageChunk', () => {
       toUIMessageChunk<Tools>({
         type: 'tool-approval-request',
         approvalId: 'approval-1',
+        callerToolCallId: 'caller-call',
         toolCall: {
           type: 'tool-call',
           toolCallId: 'call-5',
@@ -608,6 +609,7 @@ describe('toUIMessageChunk', () => {
       type: 'tool-approval-request',
       approvalId: 'approval-1',
       toolCallId: 'call-5',
+      callerToolCallId: 'caller-call',
       isAutomatic: true,
     });
 

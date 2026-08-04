@@ -1704,6 +1704,55 @@ describe('convertToModelMessages', () => {
   });
 
   describe('when converting tool approval request responses', () => {
+    it('round-trips a nested caller approval from UI chunks to model messages', async () => {
+      const recordedMessage = await recordAssistantMessageFromChunks([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'nested-call',
+          toolName: 'weather',
+          input: { city: 'Tokyo' },
+        },
+        {
+          type: 'tool-approval-request',
+          approvalId: 'nested-approval',
+          toolCallId: 'nested-call',
+          callerToolCallId: 'outer-call',
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      expect(await convertToModelMessages([recordedMessage]))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "callerToolCallId": "outer-call",
+                  "input": {
+                    "city": "Tokyo",
+                  },
+                  "providerExecuted": undefined,
+                  "toolCallId": "nested-call",
+                  "toolName": "weather",
+                  "type": "tool-call",
+                },
+                {
+                  "approvalId": "nested-approval",
+                  "callerToolCallId": "outer-call",
+                  "isAutomatic": undefined,
+                  "toolCallId": "nested-call",
+                  "type": "tool-approval-request",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+    });
+
     it('should convert an approved tool approval request (static tool)', async () => {
       const result = await convertToModelMessages([
         {
