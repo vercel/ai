@@ -1,9 +1,9 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV4,
-  type Experimental_VideoModelV4CallOptions,
-  type Experimental_VideoModelV4File,
-  type Experimental_VideoModelV4Result,
+  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
+  type Experimental_VideoModelV4File as VideoModelV4File,
+  type Experimental_VideoModelV4Result as VideoModelV4Result,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -70,8 +70,7 @@ interface BlackForestLabsVideoModelConfig {
   };
 }
 
-type BlackForestLabsVideoDoGenerateOptions =
-  Experimental_VideoModelV4CallOptions;
+type BlackForestLabsVideoDoGenerateOptions = VideoModelV4CallOptions;
 
 /**
  * The API takes a named tier (`hd`/`fhd`) while the top-level `resolution` is
@@ -97,9 +96,7 @@ function resolveTopLevelResolution(
   };
 }
 
-function nonImageFrameMediaType(
-  file: Experimental_VideoModelV4File,
-): string | undefined {
+function nonImageFrameMediaType(file: VideoModelV4File): string | undefined {
   if (file.mediaType == null) {
     return undefined;
   }
@@ -204,7 +201,7 @@ function describePollDetails(details: unknown): string | undefined {
  * The API takes conditioning media as an http(s) URL or a bare base64 string —
  * not a data URI.
  */
-function toBlackForestLabsFile(file: Experimental_VideoModelV4File): string {
+function toBlackForestLabsFile(file: VideoModelV4File): string {
   if (file.type === 'url') {
     return file.url;
   }
@@ -216,7 +213,7 @@ function toBlackForestLabsFile(file: Experimental_VideoModelV4File): string {
   return Buffer.from(file.data).toString('base64');
 }
 
-export class BlackForestLabsVideoModel implements Experimental_VideoModelV4 {
+export class BlackForestLabsVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
@@ -410,7 +407,7 @@ export class BlackForestLabsVideoModel implements Experimental_VideoModelV4 {
     // reference-image concept, so image references cannot be honored.
     let startVideo: string | undefined;
     const referenceFiles = options.inputReferences ?? [];
-    const referenceVideos: Experimental_VideoModelV4File[] = [];
+    const referenceVideos: VideoModelV4File[] = [];
 
     for (const file of referenceFiles) {
       const topLevelMediaType =
@@ -534,7 +531,7 @@ export class BlackForestLabsVideoModel implements Experimental_VideoModelV4 {
 
   async doGenerate(
     options: BlackForestLabsVideoDoGenerateOptions,
-  ): Promise<Experimental_VideoModelV4Result> {
+  ): Promise<VideoModelV4Result> {
     const { body, warnings, bflOptions } = await this.getArgs(options);
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
