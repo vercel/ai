@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 3.0.164
+
+### Patch Changes
+
+- f615718: Export `GatewayEmbeddingModelId` and `GatewayImageModelId` from the package entry point.
+- 48d5dff: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 3.0.163
 
 ### Patch Changes
