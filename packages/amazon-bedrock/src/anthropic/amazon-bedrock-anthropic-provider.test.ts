@@ -366,7 +366,7 @@ describe('amazon-bedrock-anthropic-provider', () => {
     expect(transformedBody).toHaveProperty('anthropic_version');
   });
 
-  it('should strip disable_parallel_tool_use from tool_choice', () => {
+  it('should preserve disable_parallel_tool_use in tool_choice', () => {
     const provider = createAmazonBedrockAnthropic({
       region: 'us-east-1',
       accessKeyId: 'test-key',
@@ -392,10 +392,10 @@ describe('amazon-bedrock-anthropic-provider', () => {
       new Set(),
     );
 
-    expect(transformedBody?.tool_choice).toEqual({ type: 'auto' });
-    expect(transformedBody?.tool_choice).not.toHaveProperty(
-      'disable_parallel_tool_use',
-    );
+    expect(transformedBody?.tool_choice).toEqual({
+      type: 'auto',
+      disable_parallel_tool_use: true,
+    });
   });
 
   it('should preserve tool_choice name when present', () => {
@@ -428,6 +428,7 @@ describe('amazon-bedrock-anthropic-provider', () => {
     expect(transformedBody?.tool_choice).toEqual({
       type: 'tool',
       name: 'my_tool',
+      disable_parallel_tool_use: true,
     });
   });
 
