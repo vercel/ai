@@ -18,6 +18,11 @@ describe('canonicalJSON', () => {
     expect(canonicalJSON('x')).toBe('"x"');
     expect(canonicalJSON(42)).toBe('42');
   });
+
+  it('serializes undefined array elements as null', () => {
+    expect(canonicalJSON([undefined])).toBe('[null]');
+    expect(canonicalJSON([1, undefined, 2])).toBe('[1,null,2]');
+  });
 });
 
 describe('hashCanonical', () => {
@@ -37,5 +42,9 @@ describe('hashCanonical', () => {
     expect(await hashCanonical({ a: 1 })).not.toBe(
       await hashCanonical({ a: 2 }),
     );
+  });
+
+  it('distinguishes empty arrays from arrays containing undefined', async () => {
+    expect(await hashCanonical([])).not.toBe(await hashCanonical([undefined]));
   });
 });
