@@ -524,14 +524,14 @@ describe('createACP', () => {
 
     expect(second).toBe(first);
     expect(first.harnessId).toBe('codex-acp');
-    expect(first.bootstrapDir).toBe('/tmp/harness/codex-acp');
+    expect(first.bootstrapDir).toBe('.harness-bootstrap/codex-acp');
     expect(first.files.map(file => file.path).sort()).toEqual([
-      '/tmp/harness/codex-acp/bridge/bridge.mjs',
-      '/tmp/harness/codex-acp/bridge/host-tool-mcp.mjs',
-      '/tmp/harness/codex-acp/bridge/package.json',
-      '/tmp/harness/codex-acp/bridge/pnpm-lock.yaml',
-      '/tmp/harness/codex-acp/implementation/implementation.json',
-      '/tmp/harness/codex-acp/implementation/package.json',
+      '.harness-bootstrap/codex-acp/bridge/bridge.mjs',
+      '.harness-bootstrap/codex-acp/bridge/host-tool-mcp.mjs',
+      '.harness-bootstrap/codex-acp/bridge/package.json',
+      '.harness-bootstrap/codex-acp/bridge/pnpm-lock.yaml',
+      '.harness-bootstrap/codex-acp/implementation/implementation.json',
+      '.harness-bootstrap/codex-acp/implementation/package.json',
     ]);
     expect(
       first.files.find(file => file.path.endsWith('/package.json'))?.content,
@@ -547,13 +547,12 @@ describe('createACP', () => {
       )?.content,
     ).toContain('"executable": "codex-acp"');
     expect(first.commands.map(command => command.command)).toEqual([
-      'mkdir -p /tmp/harness/codex-acp/bridge /tmp/harness/codex-acp/implementation',
-      'pnpm --dir /tmp/harness/codex-acp/bridge install --frozen-lockfile --prod --store-dir /tmp/harness/codex-acp/.pnpm-store',
-      'pnpm --dir /tmp/harness/codex-acp/implementation install --prod --store-dir /tmp/harness/codex-acp/.pnpm-store',
+      'pnpm --dir bridge install --frozen-lockfile --prod --store-dir ../.pnpm-store',
+      'pnpm --dir implementation install --prod --store-dir ../.pnpm-store',
     ]);
     expect(
       first.files.every(file =>
-        file.path.startsWith('/tmp/harness/codex-acp/'),
+        file.path.startsWith('.harness-bootstrap/codex-acp/'),
       ),
     ).toBe(true);
     expect(
@@ -576,8 +575,8 @@ describe('createACP', () => {
     expect(await firstHarness.getBootstrap!()).toBe(firstBootstrap);
     expect(await secondHarness.getBootstrap!()).toBe(secondBootstrap);
     expect(firstBootstrap).not.toBe(secondBootstrap);
-    expect(firstBootstrap.bootstrapDir).toBe('/tmp/harness/first-acp');
-    expect(secondBootstrap.bootstrapDir).toBe('/tmp/harness/second-acp');
+    expect(firstBootstrap.bootstrapDir).toBe('.harness-bootstrap/first-acp');
+    expect(secondBootstrap.bootstrapDir).toBe('.harness-bootstrap/second-acp');
   });
 
   it('uses caller-provided artifacts for locked frozen acquisition', async () => {
@@ -597,18 +596,18 @@ describe('createACP', () => {
       bootstrap.files.find(
         file =>
           file.path ===
-          '/tmp/harness/codex-acp-locked/implementation/package.json',
+          '.harness-bootstrap/codex-acp-locked/implementation/package.json',
       )?.content,
     ).toBe(lockedPackageJson);
     expect(
       bootstrap.files.find(
         file =>
           file.path ===
-          '/tmp/harness/codex-acp-locked/implementation/pnpm-lock.yaml',
+          '.harness-bootstrap/codex-acp-locked/implementation/pnpm-lock.yaml',
       )?.content,
     ).toBe(lockedPnpmLockYaml);
     expect(bootstrap.commands.map(command => command.command)).toContain(
-      'pnpm --dir /tmp/harness/codex-acp-locked/implementation install --frozen-lockfile --prod --store-dir /tmp/harness/codex-acp-locked/.pnpm-store',
+      'pnpm --dir implementation install --frozen-lockfile --prod --store-dir ../.pnpm-store',
     );
   });
 
@@ -665,6 +664,12 @@ describe('createACP', () => {
     );
     expect(runs[1]).not.toContain("'/workspace/user-project/.ai-sdk");
     expect(spawns[0].command).toContain("--workdir '/workspace/user-project'");
+    expect(spawns[0].command).toContain(
+      "node '/workspace/.harness-bootstrap/codex-acp/bridge/bridge.mjs'",
+    );
+    expect(spawns[0].command).toContain(
+      "--implementation-dir '/workspace/.harness-bootstrap/codex-acp/implementation'",
+    );
     expect(spawns[0].env.CODEX_API_KEY).toBe('test-key');
     expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).not.toBe('test-key');

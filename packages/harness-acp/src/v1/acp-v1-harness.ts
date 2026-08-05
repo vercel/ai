@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   HarnessCapabilityUnsupportedError,
@@ -129,7 +130,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
     implementation: settings.implementation,
   });
 
-  const bootstrapDir = `/tmp/harness/${settings.harnessId}`;
+  const bootstrapDir = `.harness-bootstrap/${settings.harnessId}`;
   const bridgeDir = `${bootstrapDir}/bridge`;
   const implementationDir = `${bootstrapDir}/implementation`;
   let cachedBootstrap: HarnessV1Bootstrap | undefined;
@@ -199,15 +200,13 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         ],
         commands: [
           {
-            command: `mkdir -p ${bridgeDir} ${implementationDir}`,
-          },
-          {
-            command: `pnpm --dir ${bridgeDir} install --frozen-lockfile --prod --store-dir ${bootstrapDir}/.pnpm-store`,
+            command:
+              'pnpm --dir bridge install --frozen-lockfile --prod --store-dir ../.pnpm-store',
           },
           {
             command: createImplementationInstallCommand({
-              implementationDir,
-              bootstrapDir,
+              implementationDir: 'implementation',
+              storeDir: '../.pnpm-store',
               implementation: settings.implementation,
             }),
           },
@@ -244,6 +243,12 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       });
       const sandboxSession = startOptions.sandboxSession;
       const sandbox = sandboxSession.restricted();
+      const resolvedBootstrapDir = posix.resolve(
+        sandboxSession.defaultWorkingDirectory,
+        bootstrapDir,
+      );
+      const resolvedBridgeDir = `${resolvedBootstrapDir}/bridge`;
+      const resolvedImplementationDir = `${resolvedBootstrapDir}/implementation`;
       const workDir = startOptions.sessionWorkDir;
       const sandboxHomeDir = await resolveSandboxHomeDir({
         sandbox,
@@ -469,10 +474,10 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
 
       const proc = await sandbox.spawn({
         command:
-          `node ${bridgeDir}/bridge.mjs` +
+          `node ${shellQuote(`${resolvedBridgeDir}/bridge.mjs`)}` +
           ` --workdir ${shellQuote(workDir)}` +
           ` --bridge-state-dir ${shellQuote(bridgeStateDir)}` +
-          ` --implementation-dir ${shellQuote(implementationDir)}` +
+          ` --implementation-dir ${shellQuote(resolvedImplementationDir)}` +
           ` --bridge-type ${shellQuote(settings.harnessId)}`,
         env: {
           ...resolveImplementationEnvironment({

@@ -103,7 +103,7 @@ await runBridge<StartMessage>({
   bridgeType,
   bridgeStateDir,
   onStart: runTurn,
-  onDetach: () => (session == null ? {} : { sessionId: session.sessionId }),
+  onStop: () => (session == null ? {} : { sessionId: session.sessionId }),
   onExit: () => {
     let exited = false;
     const finish = () => {
@@ -221,8 +221,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       rejectCancellationFailure(cancellationFailureError);
     }
   };
-  turn.onInterrupt(cancel);
-
   turn.emit({ type: 'stream-start' });
   const emitStreamEvent = createEmitStreamEvent({
     emit: event => turn.emit(event as BridgeEvent),

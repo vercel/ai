@@ -99,7 +99,7 @@ describe('ACP npm acquisition', () => {
     expect(
       createImplementationInstallCommand({
         implementationDir: '/tmp/harness/example/implementation',
-        bootstrapDir: '/tmp/harness/example',
+        storeDir: '/tmp/harness/example/.pnpm-store',
         implementation: simpleImplementation,
       }),
     ).toBe(
@@ -126,7 +126,7 @@ describe('ACP npm acquisition', () => {
     expect(
       createImplementationInstallCommand({
         implementationDir: '/tmp/harness/example/implementation',
-        bootstrapDir: '/tmp/harness/example',
+        storeDir: '/tmp/harness/example/.pnpm-store',
         implementation: lockedImplementation,
       }),
     ).toBe(

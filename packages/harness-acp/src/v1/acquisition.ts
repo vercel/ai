@@ -169,17 +169,17 @@ export function createImplementationIdentity({
 
 export function createImplementationInstallCommand({
   implementationDir,
-  bootstrapDir,
+  storeDir,
   implementation,
 }: {
   implementationDir: string;
-  bootstrapDir: string;
+  storeDir: string;
   implementation: ACPNpmImplementation;
 }): string {
   return (
     `pnpm --dir ${implementationDir} install` +
     (isLockedImplementation(implementation) ? ' --frozen-lockfile' : '') +
-    ` --prod --store-dir ${bootstrapDir}/.pnpm-store`
+    ` --prod --store-dir ${storeDir}`
   );
 }
 
