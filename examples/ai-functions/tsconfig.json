@@ -184,6 +184,9 @@
       "path": "../../packages/sandbox-just-bash"
     },
     {
+      "path": "../../packages/sandbox-tensorlake"
+    },
+    {
       "path": "../../packages/sandbox-vercel"
     },
     {
