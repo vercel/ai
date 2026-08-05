@@ -1,0 +1,12 @@
+{
+  "recordedAt": "2026-08-05",
+  "modelId": "us.amazon.nova-2-lite-v1:0",
+  "status": 400,
+  "headers": {
+    "content-type": "application/json",
+    "x-amzn-errortype": "ValidationException:http://internal.amazon.com/coral/com.amazon.bedrock/"
+  },
+  "body": {
+    "message": "The content field in the Message object at messages.1 is empty. Add a ContentBlock object to the content field and try again."
+  }
+}

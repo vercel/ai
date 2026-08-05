@@ -3514,6 +3514,63 @@ describe('doStream', () => {
 });
 
 describe('doGenerate', () => {
+  it('should not send an empty assistant message after omitting unsigned reasoning', async () => {
+    const validationError = JSON.parse(
+      fs.readFileSync(
+        'src/__fixtures__/amazon-bedrock-empty-message-validation-error.json',
+        'utf8',
+      ),
+    );
+    const successResponse = JSON.parse(
+      fs.readFileSync('src/__fixtures__/amazon-bedrock-text.json', 'utf8'),
+    );
+
+    const model = new AmazonBedrockChatLanguageModel(novaModelId, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      fetch: async (_url, init) => {
+        const requestBody = JSON.parse(String(init?.body));
+        const hasEmptyMessage = requestBody.messages.some(
+          (message: { content: unknown[] }) => message.content.length === 0,
+        );
+
+        return hasEmptyMessage
+          ? new Response(JSON.stringify(validationError.body), {
+              status: validationError.status,
+              headers: validationError.headers,
+            })
+          : Response.json(successResponse);
+      },
+      generateId: () => 'test-id',
+    });
+
+    await expect(
+      model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'think hard then answer' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'Let me consider the options',
+              },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'hello?' }],
+          },
+        ],
+      }),
+    ).resolves.toMatchObject({
+      content: [{ type: 'text' }],
+    });
+  });
+
   describe('text', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('amazon-bedrock-text');
