@@ -109,10 +109,10 @@ export function createFishAudio(
       fetch: options.fetch,
     });
 
-  // `/v1/asr` has no model selector, so the model ID is synthetic and
-  // defaults to `default`.
+  // `/v1/asr` has no model selector, so the model ID is a routing label and
+  // defaults to `transcribe-1`.
   const createTranscriptionModel = (
-    modelId: FishAudioTranscriptionModelId = 'default',
+    modelId: FishAudioTranscriptionModelId = 'transcribe-1',
   ) =>
     new FishAudioTranscriptionModel(modelId, {
       provider: 'fish-audio.transcription',

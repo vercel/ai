@@ -5,9 +5,10 @@ export const fishAudioTranscriptionModelOptionsSchema = z.object({
   /**
    * Language of the audio.
    *
-   * Treat this as a hint only: Fish Audio detects the language regardless, and
-   * setting this has been observed not to override that detection. The
-   * detected language is reported as `result.language`.
+   * A hint only. Fish Audio passes it to the model, but auto-detection is
+   * authoritative and overrides it, so this changes neither the transcript nor
+   * the reported language. The detected language is reported as
+   * `result.language`.
    */
   language: z.string().optional(),
 

@@ -156,7 +156,9 @@ The following provider options are available:
 
 - **normalizeLoudness** _boolean_
 
-  Loudness normalization. Documented as S2-Pro only.
+  Loudness normalization. Supported by the S2 family (`s2-pro` and
+  `s2.1-pro`). Fish Audio accepts it on `s1` but ignores it, so the provider
+  drops it and emits a warning in that case.
   Optional.
 
 - **temperature** _number_
@@ -244,12 +246,12 @@ value falls back to `mp3` and produces a warning.
 
 ### Model Capabilities
 
-| Model           | Multi-Speaker       | Notes                                       |
-| --------------- | ------------------- | ------------------------------------------- |
-| `s1`            |                     |                                             |
-| `s2-pro`        | <Check size={18} /> | Supports `normalizeLoudness`                |
-| `s2.1-pro`      | <Check size={18} /> |                                             |
-| `s2.1-pro-free` |                     | Free developer tier; the Fish Audio default |
+| Model           | Multi-Speaker       | Notes                                                                     |
+| --------------- | ------------------- | ------------------------------------------------------------------------- |
+| `s1`            |                     | Ignores `normalizeLoudness`                                               |
+| `s2-pro`        | <Check size={18} /> | Supports `normalizeLoudness`                                              |
+| `s2.1-pro`      | <Check size={18} /> | Recommended default; supports `normalizeLoudness`                         |
+| `s2.1-pro-free` |                     | Free developer tier; no time-to-first-audio or data-processing guarantees |
 
 <Note>
   Streaming text-to-speech (Fish Audio's TTS-live WebSocket and timestamped
@@ -275,8 +277,11 @@ const result = await transcribe({
 });
 ```
 
-The Fish Audio speech-to-text endpoint exposes no model selector, so the model
-ID is optional and defaults to the synthetic value `'default'`.
+The Fish Audio speech-to-text endpoint currently exposes no model selector and
+serves a single model, so the model ID is optional and defaults to
+`'transcribe-1'`. It is a routing label and is not sent to the API. Fish Audio
+expects to add more ASR models and to select them with the `model` HTTP header,
+matching the text-to-speech endpoint.
 
 ### Provider Options
 
@@ -284,9 +289,9 @@ The following provider options are available:
 
 - **language** _string_
 
-  Language of the audio. Treat this as a hint only: Fish Audio detects the
-  language regardless, and setting this has been observed not to override that
-  detection.
+  Language of the audio. A hint only: Fish Audio passes it to the model, but
+  auto-detection is authoritative and overrides it, so it changes neither the
+  transcript nor the reported language.
   Optional.
 
 - **ignoreTimestamps** _boolean_
@@ -312,6 +317,9 @@ const result = await transcribe({
 ```
 
 `result.language` reports the detected language as an ISO-639-1 code (e.g. `en`).
+It is always a two-letter code, never a locale such as `en-US`, and is
+`undefined` when Fish Audio detects no language.
+
 The human-readable language name (e.g. `English`) is available as provider
 metadata:
 
@@ -321,12 +329,18 @@ console.log(result.providerMetadata?.fishAudio?.language); // 'English'
 ```
 
 <Note>
+  The provider metadata `language` is a display name intended for presentation.
+  Its exact form is not guaranteed, so avoid matching or branching on it — use
+  `result.language` for anything programmatic.
+</Note>
+
+<Note>
   Setting `ignoreTimestamps` to `true` makes Fish Audio return an empty
   `segments` array. The provider therefore requests timestamps by default.
 </Note>
 
 ### Model Capabilities
 
-| Model     | Transcription       | Duration            | Segments            | Language            |
-| --------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `default` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model          | Transcription       | Duration            | Segments            | Language            |
+| -------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `transcribe-1` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

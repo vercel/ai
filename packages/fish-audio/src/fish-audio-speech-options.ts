@@ -1,9 +1,9 @@
 /**
  * Fish Audio TTS model IDs, sent via the `model` HTTP header.
  *
- * Note that the TTS-live WebSocket endpoint supports only `s1` and `s2-pro`,
- * while the HTTP endpoints additionally support `s2.1-pro` and
- * `s2.1-pro-free`.
+ * `s2.1-pro` is the model Fish Audio recommends by default. `s2.1-pro-free` is
+ * a free developer tier with no time-to-first-audio or data-processing
+ * guarantees, so prefer `s2.1-pro` for production use.
  *
  * https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech
  */

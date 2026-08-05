@@ -84,6 +84,6 @@ run(async () => {
 
   console.log(
     'Pass one of the `voice` values above to generateSpeech, e.g.\n' +
-      `  generateSpeech({ model: fishAudio.speech('s1'), text: '...', voice: '${items[0]?._id ?? '<voice-id>'}' })`,
+      `  generateSpeech({ model: fishAudio.speech('s2.1-pro'), text: '...', voice: '${items[0]?._id ?? '<voice-id>'}' })`,
   );
 });

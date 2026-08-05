@@ -23,15 +23,15 @@ describe('createFishAudio', () => {
     expect(provider.transcription()).toBeInstanceOf(
       FishAudioTranscriptionModel,
     );
-    expect(provider.transcriptionModel('default')).toBeInstanceOf(
+    expect(provider.transcriptionModel('transcribe-1')).toBeInstanceOf(
       FishAudioTranscriptionModel,
     );
   });
 
-  it('should default the transcription model id to `default`', () => {
+  it('should default the transcription model id to `transcribe-1`', () => {
     const provider = createFishAudio({ apiKey: 'test-api-key' });
 
-    expect(provider.transcription().modelId).toBe('default');
+    expect(provider.transcription().modelId).toBe('transcribe-1');
   });
 
   it('should expose the speech model id and provider', () => {

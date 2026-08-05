@@ -5,7 +5,7 @@ import { saveAudioFile } from '../../lib/save-audio';
 
 run(async () => {
   const result = await generateSpeech({
-    model: fishAudio.speech('s1'),
+    model: fishAudio.speech('s2.1-pro'),
     text: 'Hello, welcome to Fish Audio! This is a test of the text-to-speech API.',
   });
 

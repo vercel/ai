@@ -217,7 +217,7 @@ describe('FishAudioTranscriptionModel', () => {
     prepareJsonResponse({ headers: { 'x-request-id': 'test-request-id' } });
     const testDate = new Date(2024, 0, 1);
 
-    const customModel = new FishAudioTranscriptionModel('default', {
+    const customModel = new FishAudioTranscriptionModel('transcribe-1', {
       provider: 'fish-audio.transcription',
       url: ({ path }) => `https://api.fish.audio${path}`,
       headers: () => ({ Authorization: 'Bearer test-api-key' }),
@@ -230,7 +230,7 @@ describe('FishAudioTranscriptionModel', () => {
     });
 
     expect(result.response.timestamp).toStrictEqual(testDate);
-    expect(result.response.modelId).toBe('default');
+    expect(result.response.modelId).toBe('transcribe-1');
     expect(result.response.headers).toMatchObject({
       'x-request-id': 'test-request-id',
     });

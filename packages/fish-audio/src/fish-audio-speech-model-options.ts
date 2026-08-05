@@ -51,7 +51,9 @@ export const fishAudioSpeechModelOptionsSchema = z.object({
   volume: z.number().optional(),
 
   /**
-   * Loudness normalization. Documented as S2-Pro only.
+   * Loudness normalization. Supported by the S2 family (`s2-pro` and
+   * `s2.1-pro`). Fish Audio accepts it on `s1` but ignores it, so the provider
+   * emits a warning in that case.
    */
   normalizeLoudness: z.boolean().optional(),
 

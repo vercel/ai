@@ -14,7 +14,7 @@ const JAPANESE_VOICE = '0089dce5fefb4c6ba9b9f2f0debe1ddc';
 
 run(async () => {
   const speech = await generateSpeech({
-    model: fishAudio.speech('s1'),
+    model: fishAudio.speech('s2.1-pro'),
     text: 'こんにちは。今日はいい天気ですね。これは音声認識のテストです。',
     voice: JAPANESE_VOICE,
   });

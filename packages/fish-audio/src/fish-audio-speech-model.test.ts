@@ -168,7 +168,8 @@ describe('FishAudioSpeechModel', () => {
     it('should merge volume and normalizeLoudness into prosody', async () => {
       prepareAudioResponse();
 
-      await model.doGenerate({
+      const s2 = provider.speech('s2-pro');
+      const result = await s2.doGenerate({
         text: 'Hello, world!',
         speed: 1.2,
         providerOptions: {
@@ -179,6 +180,42 @@ describe('FishAudioSpeechModel', () => {
       expect(await server.calls[0].requestBodyJson).toMatchObject({
         prosody: { speed: 1.2, volume: -3, normalize_loudness: false },
       });
+      expect(result.warnings).toStrictEqual([]);
+    });
+
+    it('should send normalizeLoudness for the s2.1-pro model', async () => {
+      prepareAudioResponse();
+
+      const result = await provider.speech('s2.1-pro').doGenerate({
+        text: 'Hello, world!',
+        providerOptions: { fishAudio: { normalizeLoudness: true } },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        prosody: { normalize_loudness: true },
+      });
+      expect(result.warnings).toStrictEqual([]);
+    });
+
+    it('should warn and drop normalizeLoudness on s1, which ignores it', async () => {
+      prepareAudioResponse();
+
+      const result = await provider.speech('s1').doGenerate({
+        text: 'Hello, world!',
+        providerOptions: { fishAudio: { normalizeLoudness: true } },
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'prosody',
+      );
+      expect(result.warnings).toStrictEqual([
+        {
+          type: 'unsupported',
+          feature: 'providerOptions.fishAudio.normalizeLoudness',
+          details:
+            'Fish Audio ignores normalizeLoudness on s1. It is supported by the S2 family (s2-pro, s2.1-pro).',
+        },
+      ]);
     });
 
     it('should warn for language and instructions', async () => {

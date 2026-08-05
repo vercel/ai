@@ -135,7 +135,9 @@ export class FishAudioTranscriptionModel implements TranscriptionModelV4 {
       ...(response.language != null && {
         providerMetadata: {
           fishAudio: {
-            // Human-readable language name, e.g. `English`.
+            // Human-readable display name, e.g. `English`. Its exact form is
+            // not guaranteed, so `language` above (the ISO-639-1 code) is the
+            // value to branch on.
             language: response.language,
           },
         },

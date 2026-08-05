@@ -139,7 +139,19 @@ export class FishAudioSpeechModel implements SpeechModelV4 {
     }
 
     if (fishAudioOptions?.normalizeLoudness != null) {
-      prosody.normalize_loudness = fishAudioOptions.normalizeLoudness;
+      // Fish Audio accepts `normalize_loudness` on s1 but ignores it, so warn
+      // rather than let it silently do nothing. Only s1 is known to ignore it;
+      // unrecognized model IDs are left alone.
+      if (this.modelId === 's1') {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'providerOptions.fishAudio.normalizeLoudness',
+          details:
+            'Fish Audio ignores normalizeLoudness on s1. It is supported by the S2 family (s2-pro, s2.1-pro).',
+        });
+      } else {
+        prosody.normalize_loudness = fishAudioOptions.normalizeLoudness;
+      }
     }
 
     if (Object.keys(prosody).length > 0) {
