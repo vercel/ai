@@ -33,12 +33,6 @@ export type ACPHarnessSettings<TBuiltinTools extends ToolSet = {}> = {
   readonly session?: ACPV1Settings['session'];
 };
 
-/**
- * @deprecated Use `ACPHarnessSettings` instead.
- */
-export type ACPSettings<TBuiltinTools extends ToolSet = {}> =
-  ACPHarnessSettings<TBuiltinTools>;
-
 const ACP_BUILTIN_TOOLS = {} as const satisfies ToolSet;
 
 const acpBridgeCoordsSchema = z.object({

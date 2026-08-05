@@ -1,16 +1,11 @@
 import { commonTool } from '@ai-sdk/harness';
 import { describe, expectTypeOf, test } from 'vitest';
 import { z } from 'zod/v4';
-import {
-  createACP,
-  type ACPHarnessSettings,
-  type ACPSettings,
-} from './acp-harness';
+import { createACP, type ACPHarnessSettings } from './acp-harness';
 import type { ACPV1Settings } from './v1';
 
 describe('createACP built-in tool inference', () => {
-  test('uses ACPHarnessSettings as the canonical settings type', () => {
-    expectTypeOf<ACPSettings>().toEqualTypeOf<ACPHarnessSettings>();
+  test('separates version-independent settings from ACP v1 settings', () => {
     expectTypeOf<
       Extract<keyof ACPV1Settings, 'builtinTools' | 'port' | 'startupTimeoutMs'>
     >().toEqualTypeOf<never>();

@@ -1,6 +1,6 @@
 export { createACP } from './acp-harness';
 export type { ACPAuthOptions } from './acp-auth';
-export type { ACPHarnessSettings, ACPSettings } from './acp-harness';
+export type { ACPHarnessSettings } from './acp-harness';
 export type {
   ACPAuthentication,
   ACPEnvironmentVariableSource,
