@@ -1,5 +1,25 @@
 # @ai-sdk/harness
 
+## 1.0.59
+
+### Patch Changes
+
+- 81bcf2e: feat(harness): add `HarnessBridgeCapabilityUnsupportedError` for bridge code that needs to flag missing capability
+- Updated dependencies [cd0177b]
+- Updated dependencies [2b60826]
+- Updated dependencies [a09fdef]
+  - ai@7.0.53
+  - @ai-sdk/provider-utils@5.0.22
+
+## 1.0.58
+
+### Patch Changes
+
+- Updated dependencies [3836a85]
+- Updated dependencies [1bec07d]
+  - ai@7.0.52
+  - @ai-sdk/provider-utils@5.0.21
+
 ## 1.0.57
 
 ### Patch Changes

@@ -1,5 +1,27 @@
 # ai
 
+## 7.0.53
+
+### Patch Changes
+
+- cd0177b: Filter unresolved tool approval requests and tool parts without state when ignoring incomplete tool calls.
+- a09fdef: Release async iterable stream reader locks when source reads fail.
+- Updated dependencies [7aeab10]
+- Updated dependencies [2b60826]
+  - @ai-sdk/gateway@4.0.42
+  - @ai-sdk/provider-utils@5.0.22
+
+## 7.0.52
+
+### Patch Changes
+
+- 3836a85: Skip re-validating tool input for terminal output-available UI message parts.
+- Updated dependencies [1bec07d]
+- Updated dependencies [53c326e]
+- Updated dependencies [d765f82]
+  - @ai-sdk/provider-utils@5.0.21
+  - @ai-sdk/gateway@4.0.41
+
 ## 7.0.51
 
 ### Patch Changes

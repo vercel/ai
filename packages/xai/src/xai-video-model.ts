@@ -1,9 +1,9 @@
 import {
   AISDKError,
   APICallError,
-  type Experimental_VideoModelV4,
+  type Experimental_VideoModelV4 as VideoModelV4,
   type Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
-  type Experimental_VideoModelV4File,
+  type Experimental_VideoModelV4File as VideoModelV4File,
   type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
   type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
   type SharedV4Warning,
@@ -29,8 +29,6 @@ import {
 } from './xai-video-model-options';
 import type { XaiVideoModelId } from './xai-video-settings';
 
-type VideoModelV4 = Experimental_VideoModelV4;
-
 interface XaiVideoModelConfig {
   provider: string;
   baseURL: string | undefined;
@@ -51,28 +49,28 @@ type XaiVideoCallOptions = VideoModelV4CallOptions;
 
 function getFirstFrameImage(
   options: XaiVideoCallOptions,
-): Experimental_VideoModelV4File | undefined {
+): VideoModelV4File | undefined {
   return options.frameImages?.find(frame => frame.frameType === 'first_frame')
     ?.image;
 }
 
 function getLastFrameImage(
   options: XaiVideoCallOptions,
-): Experimental_VideoModelV4File | undefined {
+): VideoModelV4File | undefined {
   return options.frameImages?.find(frame => frame.frameType === 'last_frame')
     ?.image;
 }
 
 function resolveStartImage(
   options: XaiVideoCallOptions,
-): Experimental_VideoModelV4File | undefined {
+): VideoModelV4File | undefined {
   return getFirstFrameImage(options) ?? options.image;
 }
 
-const isVideoFile = (file: Experimental_VideoModelV4File): boolean =>
+const isVideoFile = (file: VideoModelV4File): boolean =>
   file.mediaType != null && getTopLevelMediaType(file.mediaType) === 'video';
 
-function fileToXaiImageUrl(file: Experimental_VideoModelV4File): string {
+function fileToXaiImageUrl(file: VideoModelV4File): string {
   if (file.type === 'url') {
     return file.url;
   }
@@ -153,7 +151,7 @@ function resolveVideoMode(
   return undefined;
 }
 
-export class XaiVideoModel implements Experimental_VideoModelV4 {
+export class XaiVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
