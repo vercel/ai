@@ -1,5 +1,11 @@
 # @ai-sdk/black-forest-labs
 
+## 1.0.51
+
+### Patch Changes
+
+- 129101d: Report the settled cost for FLUX 3 video generations. The submit response can only estimate, and returns no cost when the price depends on the finished video; the result endpoint answers with `SettledCostResultResponse`, whose cost was being dropped.
+
 ## 1.0.50
 
 ### Patch Changes
