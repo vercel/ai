@@ -526,12 +526,12 @@ describe('createACP', () => {
     expect(first.harnessId).toBe('codex-acp');
     expect(first.bootstrapDir).toBe('.harness-bootstrap/codex-acp');
     expect(first.files.map(file => file.path).sort()).toEqual([
-      '.harness-bootstrap/codex-acp/bridge/bridge.mjs',
-      '.harness-bootstrap/codex-acp/bridge/host-tool-mcp.mjs',
-      '.harness-bootstrap/codex-acp/bridge/package.json',
-      '.harness-bootstrap/codex-acp/bridge/pnpm-lock.yaml',
+      '.harness-bootstrap/codex-acp/bridge.mjs',
+      '.harness-bootstrap/codex-acp/host-tool-mcp.mjs',
       '.harness-bootstrap/codex-acp/implementation/implementation.json',
       '.harness-bootstrap/codex-acp/implementation/package.json',
+      '.harness-bootstrap/codex-acp/package.json',
+      '.harness-bootstrap/codex-acp/pnpm-lock.yaml',
     ]);
     expect(
       first.files.find(file => file.path.endsWith('/package.json'))?.content,
@@ -547,7 +547,7 @@ describe('createACP', () => {
       )?.content,
     ).toContain('"executable": "codex-acp"');
     expect(first.commands.map(command => command.command)).toEqual([
-      'pnpm --dir bridge install --frozen-lockfile --prod --store-dir ../.pnpm-store',
+      'pnpm install --frozen-lockfile --store-dir .pnpm-store',
       'pnpm --dir implementation install --prod --store-dir ../.pnpm-store',
     ]);
     expect(
@@ -665,7 +665,7 @@ describe('createACP', () => {
     expect(runs[1]).not.toContain("'/workspace/user-project/.ai-sdk");
     expect(spawns[0].command).toContain("--workdir '/workspace/user-project'");
     expect(spawns[0].command).toContain(
-      "node '/workspace/.harness-bootstrap/codex-acp/bridge/bridge.mjs'",
+      "node '/workspace/.harness-bootstrap/codex-acp/bridge.mjs'",
     );
     expect(spawns[0].command).toContain(
       "--implementation-dir '/workspace/.harness-bootstrap/codex-acp/implementation'",

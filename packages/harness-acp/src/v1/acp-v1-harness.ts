@@ -130,9 +130,8 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
     implementation: settings.implementation,
   });
 
-  const bootstrapDir = `.harness-bootstrap/${settings.harnessId}`;
-  const bridgeDir = `${bootstrapDir}/bridge`;
-  const implementationDir = `${bootstrapDir}/implementation`;
+  const bridgeDir = `.harness-bootstrap/${settings.harnessId}`;
+  const implementationDir = `${bridgeDir}/implementation`;
   let cachedBootstrap: HarnessV1Bootstrap | undefined;
   const permissionModeMapping = isCompletePermissionModeMapping({
     value: settings.permissionModeMapping,
@@ -161,7 +160,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       });
       cachedBootstrap = {
         harnessId: settings.harnessId,
-        bootstrapDir,
+        bootstrapDir: bridgeDir,
         files: [
           {
             path: `${bridgeDir}/package.json`,
@@ -200,8 +199,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         ],
         commands: [
           {
-            command:
-              'pnpm --dir bridge install --frozen-lockfile --prod --store-dir ../.pnpm-store',
+            command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
           },
           {
             command: createImplementationInstallCommand({
@@ -243,12 +241,11 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       });
       const sandboxSession = startOptions.sandboxSession;
       const sandbox = sandboxSession.restricted();
-      const resolvedBootstrapDir = posix.resolve(
+      const resolvedBridgeDir = posix.resolve(
         sandboxSession.defaultWorkingDirectory,
-        bootstrapDir,
+        bridgeDir,
       );
-      const resolvedBridgeDir = `${resolvedBootstrapDir}/bridge`;
-      const resolvedImplementationDir = `${resolvedBootstrapDir}/implementation`;
+      const resolvedImplementationDir = `${resolvedBridgeDir}/implementation`;
       const workDir = startOptions.sessionWorkDir;
       const sandboxHomeDir = await resolveSandboxHomeDir({
         sandbox,
