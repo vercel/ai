@@ -97,6 +97,14 @@ const TEMPLATES: TTemplate[] = [
     link: 'https://vercel.com/templates/next.js/nextjs-ai-chatbot',
   },
   {
+    title: 'eve Chat',
+    description:
+      'A persisted AI SDK chat app powered by eve with durable agent sessions, tools, and integrations.',
+    logos: [NextIcon, Sparkles],
+    type: 'starter-kits',
+    link: 'https://vercel.com/templates/eve/eve-chat-template',
+  },
+  {
     title: 'Internal Knowledge Base (RAG)',
     description:
       'Uses AI SDK Language Model Middleware for RAG and enforcing guardrails.',
