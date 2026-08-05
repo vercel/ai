@@ -1,0 +1,11 @@
+{
+  "name": "@example/ai-functions",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "ai": "link:../../packages/ai"
+  },
+  "devDependencies": {
+    "tsx": "link:../ai-core/node_modules/tsx"
+  }
+}
