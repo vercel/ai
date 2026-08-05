@@ -1546,6 +1546,55 @@ describe('Chat', () => {
     }
   });
 
+  it('should abort resume-stream when stop is called', async () => {
+    let isAborted = false;
+    let resumeController!: ReadableStreamDefaultController<UIMessageChunk>;
+    const resumeStream = new ReadableStream<UIMessageChunk>({
+      start(controller) {
+        resumeController = controller;
+        controller.enqueue({ type: 'start' });
+        controller.enqueue({ type: 'start-step' });
+        controller.enqueue({ type: 'text-start', id: 'text-1' });
+        controller.enqueue({
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'resumed',
+        });
+      },
+    });
+
+    const chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => {
+          throw new Error('should not be called');
+        },
+        reconnectToStream: async options => {
+          options.abortSignal?.addEventListener('abort', () => {
+            isAborted = true;
+            resumeController.error(new DOMException('Aborted', 'AbortError'));
+          });
+          return resumeStream;
+        },
+      },
+      onFinish: () => {},
+    });
+
+    const resumePromise = chat.resumeStream();
+
+    while ((chat.messages[0]?.parts[1] as any)?.text !== 'resumed') {
+      await vi.advanceTimersByTimeAsync(0);
+    }
+
+    await chat.stop();
+
+    await resumePromise;
+
+    expect(isAborted).toBe(true);
+    expect(chat.status).toBe('ready');
+  });
+
   describe('sendAutomaticallyWhen', () => {
     it('should delay tool output submission until the stream is finished', async () => {
       const controller1 = new TestResponseController();

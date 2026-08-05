@@ -78,6 +78,8 @@ export interface ChatTransport<UI_MESSAGE extends UIMessage> {
     options: {
       /** Unique identifier for the chat session to reconnect to */
       chatId: string;
+      /** Abort signal to cancel the request */
+      abortSignal?: AbortSignal;
     } & ChatRequestOptions,
   ) => Promise<ReadableStream<UIMessageChunk> | null>;
 }
