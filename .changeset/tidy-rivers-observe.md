@@ -2,4 +2,4 @@
 '@ai-sdk/otel': patch
 ---
 
-Record system instructions on OpenTelemetry chat spans.
+Record separately supplied system instructions on OpenTelemetry chat spans and preserve system messages in chat history order.

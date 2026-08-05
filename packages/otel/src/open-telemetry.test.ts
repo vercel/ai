@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
+  convertArrayToReadableStream,
+  convertAsyncIterableToArray,
+} from '@ai-sdk/provider-utils/test';
+import {
   context,
   trace,
   type Attributes,
@@ -12,8 +16,11 @@ import {
   InMemorySpanExporter,
   SimpleSpanProcessor,
 } from '@opentelemetry/sdk-trace-base';
+import { z } from 'zod/v4';
 import {
+  generateObject,
   generateText,
+  streamObject,
   streamText,
   type GenerateTextEndEvent,
   type Telemetry,
@@ -1736,7 +1743,7 @@ describe('OpenTelemetry', () => {
       `);
     });
 
-    it('records allowed system messages as chat span instructions', async () => {
+    it('preserves allowed system messages in chat history order', async () => {
       const sdkTrace = createSdkTracer();
       integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
 
@@ -1764,10 +1771,90 @@ describe('OpenTelemetry', () => {
           },
         }),
         messages: [
-          { role: 'system', content: 'You are helpful' },
-          { role: 'user', content: 'Hello' },
+          { role: 'user', content: 'First' },
+          { role: 'system', content: 'Apply this to the next request' },
+          { role: 'user', content: 'Second' },
         ],
         allowSystemInMessages: true,
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      const chatSpan = getExportedSpan(sdkTrace.exporter, 'chat gpt-4');
+      expect(
+        parseJsonAttributes(
+          chatSpan.attributes,
+          'gen_ai.system_instructions',
+          'gen_ai.input.messages',
+        ),
+      ).toMatchInlineSnapshot(`
+        {
+          "gen_ai.input.messages": [
+            {
+              "parts": [
+                {
+                  "content": "First",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "parts": [
+                {
+                  "content": "Apply this to the next request",
+                  "type": "text",
+                },
+              ],
+              "role": "system",
+            },
+            {
+              "parts": [
+                {
+                  "content": "Second",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+        }
+      `);
+    });
+  });
+
+  describe('object generation integrations', () => {
+    it('records generateObject instructions on the chat span', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+
+      await generateObject({
+        model: new MockLanguageModelV4({
+          provider: 'openai.chat',
+          modelId: 'gpt-4',
+          doGenerate: {
+            content: [{ type: 'text', text: '{"answer":"Hello"}' }],
+            finishReason: { raw: undefined, unified: 'stop' },
+            usage: {
+              inputTokens: {
+                total: 2,
+                noCache: 2,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 1,
+                text: 1,
+                reasoning: undefined,
+              },
+            },
+            warnings: [],
+          },
+        }),
+        instructions: 'Return a greeting',
+        prompt: 'Hello',
+        schema: z.object({ answer: z.string() }),
         telemetry: {
           integrations: integration,
         },
@@ -1795,7 +1882,85 @@ describe('OpenTelemetry', () => {
           ],
           "gen_ai.system_instructions": [
             {
-              "content": "You are helpful",
+              "content": "Return a greeting",
+              "type": "text",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('records streamObject instructions on the chat span', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+
+      const result = streamObject({
+        model: new MockLanguageModelV4({
+          provider: 'openai.chat',
+          modelId: 'gpt-4',
+          doStream: {
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{"answer":"Hello"}',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { raw: undefined, unified: 'stop' },
+                usage: {
+                  inputTokens: {
+                    total: 2,
+                    noCache: 2,
+                    cacheRead: undefined,
+                    cacheWrite: undefined,
+                  },
+                  outputTokens: {
+                    total: 1,
+                    text: 1,
+                    reasoning: undefined,
+                  },
+                },
+              },
+            ]),
+          },
+        }),
+        instructions: 'Return a greeting',
+        prompt: 'Hello',
+        schema: z.object({ answer: z.string() }),
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      await convertAsyncIterableToArray(result.partialObjectStream);
+
+      const chatSpan = getExportedSpan(sdkTrace.exporter, 'chat gpt-4');
+      expect(
+        parseJsonAttributes(
+          chatSpan.attributes,
+          'gen_ai.system_instructions',
+          'gen_ai.input.messages',
+        ),
+      ).toMatchInlineSnapshot(`
+        {
+          "gen_ai.input.messages": [
+            {
+              "parts": [
+                {
+                  "content": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "gen_ai.system_instructions": [
+            {
+              "content": "Return a greeting",
               "type": "text",
             },
           ],
