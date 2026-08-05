@@ -21,6 +21,27 @@ export type RerankingModelV4 = {
   readonly modelId: string;
 
   /**
+   * Limit of how many documents can be reranked in a single API call.
+   *
+   * Use Infinity for models that do not have a limit. When omitted, the
+   * document set is sent in a single call. `rerankMany` uses this to split
+   * larger document sets across multiple calls.
+   */
+  readonly maxDocumentsPerCall?:
+    | PromiseLike<number | undefined>
+    | number
+    | undefined;
+
+  /**
+   * True if the model can handle multiple reranking calls in parallel.
+   *
+   * `rerankMany` uses this to decide whether the document windows produced by
+   * `maxDocumentsPerCall` may be sent concurrently. When omitted, the windows
+   * are sent sequentially.
+   */
+  readonly supportsParallelCalls?: PromiseLike<boolean> | boolean;
+
+  /**
    * Reranking a list of documents using the query.
    */
   // Naming: "do" prefix to prevent accidental direct usage of the method by the user.
