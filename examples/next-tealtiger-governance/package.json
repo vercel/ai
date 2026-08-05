@@ -1,0 +1,20 @@
+{
+  "name": "next-tealtiger-governance",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Governance middleware example using tealtiger-ai-sdk",
+  "scripts": {
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "ai": "workspace:*",
+    "@ai-sdk/openai": "workspace:*",
+    "tealtiger-ai-sdk": "^0.1.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}
