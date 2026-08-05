@@ -223,10 +223,20 @@ export async function generateImage({
         if (providerName === 'gateway') {
           const currentEntry = providerMetadata[providerName];
           if (currentEntry != null && typeof currentEntry === 'object') {
-            providerMetadata[providerName] = {
-              ...(currentEntry as object),
-              ...metadata,
-            } as ImageModelV4ProviderMetadata[string];
+            const merged = { ...(currentEntry as object), ...metadata };
+            const currentObj = currentEntry as Record<string, unknown>;
+            const metadataObj = metadata as Record<string, unknown>;
+            const mergedObj = merged as Record<string, unknown>;
+            if (
+              'cost' in currentObj &&
+              'cost' in metadataObj &&
+              typeof currentObj.cost === 'number' &&
+              typeof metadataObj.cost === 'number'
+            ) {
+              mergedObj.cost = currentObj.cost + metadataObj.cost;
+            }
+            providerMetadata[providerName] =
+              merged as ImageModelV4ProviderMetadata[string];
           } else {
             providerMetadata[providerName] =
               metadata as ImageModelV4ProviderMetadata[string];
