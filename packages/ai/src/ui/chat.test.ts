@@ -904,6 +904,69 @@ describe('Chat', () => {
     });
   });
 
+  it('should stop updating messages when a resumed stream is stopped', async () => {
+    const nextChunk = createResolvablePromise<void>();
+    let reconnectAbortSignal: AbortSignal | undefined;
+    let isCancelled = false;
+
+    const resumeStream = new ReadableStream<UIMessageChunk>({
+      start(controller) {
+        controller.enqueue({ type: 'start' });
+        controller.enqueue({ type: 'start-step' });
+        controller.enqueue({ type: 'text-start', id: 'text-1' });
+        controller.enqueue({
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'before stop',
+        });
+      },
+      async pull(controller) {
+        await nextChunk.promise;
+
+        try {
+          controller.enqueue({
+            type: 'text-delta',
+            id: 'text-1',
+            delta: ' after stop',
+          });
+          controller.close();
+        } catch {
+          // the stream was cancelled while the pull was pending
+        }
+      },
+      cancel() {
+        isCancelled = true;
+      },
+    });
+
+    const chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => new ReadableStream(),
+        reconnectToStream: async options => {
+          reconnectAbortSignal = options.abortSignal;
+          return resumeStream;
+        },
+      },
+      onFinish: () => {},
+    });
+
+    const resumePromise = chat.resumeStream();
+
+    while ((chat.messages[0]?.parts[1] as any)?.text !== 'before stop') {
+      await vi.advanceTimersByTimeAsync(0);
+    }
+
+    await chat.stop();
+    nextChunk.resolve();
+    await resumePromise;
+
+    expect(reconnectAbortSignal?.aborted).toBe(true);
+    expect(isCancelled).toBe(true);
+    expect((chat.messages[0]?.parts[1] as any)?.text).toBe('before stop');
+  });
+
   it('should include the metadata of text message', async () => {
     server.urls['http://localhost:3000/api/chat'].response = {
       type: 'stream-chunks',
