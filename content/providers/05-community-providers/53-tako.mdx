@@ -1,0 +1,263 @@
+---
+title: Tako
+description: Learn how to use Tako with the AI SDK.
+---
+
+# Tako
+
+[Tako](https://tako.com) is the knowledge layer for agents, grounding your AI with the most
+accurate proprietary data and web content. The
+[`@takoviz/ai-sdk`](https://www.npmjs.com/package/@takoviz/ai-sdk) package integrates Tako with
+the AI SDK as a set of tools.
+
+Tako grounds your agent in two kinds of knowledge at once: proprietary structured data from
+trusted providers, and full web search. One API returns typed values with named sources when
+curated data exists, and agent-ready web results and page text for everything else.
+
+Domains Tako covers with proprietary data: finance and markets, company KPIs and earnings,
+macroeconomics (inflation, unemployment, GDP, policy rates), website and app traffic, sports,
+weather, elections, prediction markets, demographics, energy, and real estate.
+
+Both surfaces are configurable per call, so you can search the curated data, the web, or both.
+Learn more in the [Tako documentation](https://docs.tako.com).
+
+## Setup
+
+The Tako adapter is available in the `@takoviz/ai-sdk` package. You can install it with:
+
+<InstallPackages packages="@takoviz/ai-sdk" />
+
+Set your Tako API key:
+
+```bash
+export TAKO_API_KEY=your_api_key
+```
+
+You can get an API key from the [Tako developer console](https://tako.com/console/api-keys).
+
+## Tools
+
+The package exports three tools. Each is a factory that takes optional configuration and
+returns an AI SDK tool.
+
+| Tool             | What it does                                                             |
+| ---------------- | ------------------------------------------------------------------------ |
+| `takoSearch()`   | Knowledge cards plus web results for a query, no synthesis               |
+| `takoAnswer()`   | The same retrieval, blended into a synthesized, source-attributed answer |
+| `takoContents()` | The data behind a result: a card's rows, or a page's full text           |
+
+The model supplies only the dynamic input: `{ query }` for `takoSearch` and `takoAnswer`, and
+`{ url }` for `takoContents`. Everything else is configured in your code, not chosen by the
+model.
+
+## Tool Usage
+
+### `generateText`
+
+Use `takoAnswer` when you want one cited figure synthesized into the response:
+
+```ts
+import { generateText, isStepCount } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { takoAnswer } from '@takoviz/ai-sdk';
+
+const { text } = await generateText({
+  model: openai('gpt-5.6-sol'),
+  prompt: 'Did AMD or Nvidia grow headcount faster over the last decade?',
+  tools: {
+    tako_answer: takoAnswer(),
+  },
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);
+```
+
+### `streamText`
+
+Give the agent the full toolset so it can search for breadth, answer for a specific figure,
+and drill into the underlying rows:
+
+```ts
+import { streamText, isStepCount } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { takoSearch, takoAnswer, takoContents } from '@takoviz/ai-sdk';
+
+const result = streamText({
+  model: openai('gpt-5.6-sol'),
+  prompt: 'Compare monthly visits for openai.com and anthropic.com over the past year.',
+  tools: {
+    tako_search: takoSearch(),
+    tako_answer: takoAnswer(),
+    tako_contents: takoContents({ mode: 'inline' }),
+  },
+  stopWhen: isStepCount(8),
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'text-delta') {
+    process.stdout.write(part.text);
+  }
+}
+```
+
+### With AI Gateway models
+
+Tako's tools are executed by the AI SDK in your own process, so they compose with any model —
+including a bare model string routed through [AI Gateway](/providers/ai-sdk-providers/ai-gateway).
+No extra configuration is needed:
+
+```ts
+import { generateText, isStepCount } from 'ai';
+import { takoSearch, takoAnswer } from '@takoviz/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5.6-sol', // routed through AI Gateway
+  prompt: 'How has Nvidia revenue tracked against AMD since 2020?',
+  tools: {
+    tako_search: takoSearch(),
+    tako_answer: takoAnswer(),
+  },
+  stopWhen: isStepCount(5),
+});
+```
+
+You need a Tako API key for the tools and a Gateway credential for the model; the two are
+independent.
+
+## Configuration
+
+### `takoSearch` and `takoAnswer`
+
+Both take the same configuration object:
+
+```ts
+import { takoSearch } from '@takoviz/ai-sdk';
+
+const tool = takoSearch({
+  apiKey: process.env.TAKO_API_KEY,
+  baseUrl: 'https://tako.com',
+  effort: 'fast',
+  sources: {
+    data: { count: 5, includeContents: false },
+    web: { count: 5, includeContents: false },
+  },
+  countryCode: 'US',
+  locale: 'en-US',
+  timezone: 'America/New_York',
+  outputSettings: {
+    imageDarkMode: false,
+    forceRefresh: false,
+  },
+});
+```
+
+- **apiKey** _string_
+
+  API key sent with the request. Defaults to the `TAKO_API_KEY` environment variable.
+
+- **baseUrl** _string_
+
+  Base URL of the Tako API. Defaults to `https://tako.com`.
+
+- **effort** _'instant' | 'fast' | 'deep'_
+
+  Retrieval depth. Defaults to `'fast'`. `'instant'` trades recall for latency; `'deep'`
+  searches more broadly.
+
+- **sources** _object_
+
+  Which surfaces to search. A source is searched only if its key is present; omit `sources`
+  entirely to search both. `data` is Tako's proprietary data, `web` is the live web. Each
+  takes `count` (how many results) and `includeContents` (inline the underlying data with
+  the result).
+
+- **countryCode** _string_
+
+  ISO 3166-1 alpha-2 country code for regional results. Defaults to `'US'`.
+
+- **locale** _string_
+
+  Locale for result formatting. Defaults to `'en-US'`.
+
+- **timezone** _string_
+
+  IANA timezone name, such as `'America/New_York'`, used to resolve relative dates in queries.
+
+- **outputSettings** _object_
+
+  `imageDarkMode` renders card images for dark backgrounds. `forceRefresh` bypasses cached
+  data and applies to `'instant'` effort only.
+
+### `takoContents`
+
+```ts
+import { takoContents } from '@takoviz/ai-sdk';
+
+const tool = takoContents({
+  apiKey: process.env.TAKO_API_KEY,
+  baseUrl: 'https://tako.com',
+  mode: 'url',
+});
+```
+
+- **mode** _'url' | 'inline'_
+
+  How content is delivered. Defaults to `'url'`, which returns a short-lived presigned
+  download link — use this when you want to hand a download to a user. `'inline'` returns the
+  content in the response body so the model can read and compute over the numbers directly.
+
+  The tool description the model reads changes with this setting, so the model knows whether
+  to expect a link or data.
+
+## Results
+
+`takoSearch` resolves to:
+
+```ts
+{
+  cards: TakoCard[];            // knowledge cards: title, description, image_url, embed_url, sources
+  web_results: TakoWebResult[];
+  request_id: string;
+  usage?: TakoUsage | null;
+}
+```
+
+`takoAnswer` returns the same shape plus `answer: string`, with the lead card at `cards[0]`.
+`takoContents` resolves to `{ contents: TakoContentItem[]; request_id: string; usage? }`.
+
+The API's contract permits omitting empty collections, so the tools normalize the results:
+`cards`, `web_results`, and `contents` are always arrays.
+
+Two card fields are worth knowing about:
+
+- **`exportable`** — whether `takoContents` can download that card's rows. When `false`, the
+  call returns 403 and retrying will not help; use the card's chart or ask `takoAnswer` for
+  the figures instead.
+- **`data_freshness`** — `{ data_as_of, last_updated }`, so the model can state how current a
+  number is.
+
+On each contents item, `content_format` names the serialization: absent or `null` for web page
+text (in `data`), `'csv'` for card data (in `data`), `'json_records'` (in `records`), or
+`'json_compact'` (in `dataset`). `total_rows` and `truncated` tell you whether a card had more
+rows than were returned.
+
+## TypeScript
+
+Full type definitions ship with the package:
+
+```ts
+import type {
+  TakoRetrievalConfig,
+  TakoContentsConfig,
+  TakoSearchResult,
+  TakoAnswerResult,
+  TakoContentsResult,
+  TakoCard,
+  TakoWebResult,
+  TakoContentItem,
+  TakoDataset,
+} from '@takoviz/ai-sdk';
+```
+
+The types mirror Tako's published OpenAPI document and are contract-tested against it.
