@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 10781,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-10781.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-10781.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #10781 REPRODUCED (anthropic): duplicate text-start/text-end IDs across steps"
+  }
+}
