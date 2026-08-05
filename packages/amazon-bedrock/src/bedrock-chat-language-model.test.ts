@@ -101,6 +101,11 @@ const openaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   openaiModelId,
 )}/converse`;
 
+const issue9967OpenaiModelId = 'openai.gpt-oss-20b-1:0';
+const issue9967OpenaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  issue9967OpenaiModelId,
+)}/converse`;
+
 const newerAnthropicModelId = 'anthropic.claude-sonnet-4-6-v1';
 const newerAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   newerAnthropicModelId,
@@ -135,6 +140,7 @@ const server = createTestServer({
   [futureAnthropicGenerateUrl]: {},
   [novaGenerateUrl]: {},
   [openaiGenerateUrl]: {},
+  [issue9967OpenaiGenerateUrl]: {},
   [newerAnthropicGenerateUrl]: {},
   [opusAnthropicGenerateUrl]: {},
   [opus5AnthropicGenerateUrl]: {},
@@ -228,6 +234,16 @@ const openaiModel = new BedrockChatLanguageModel(openaiModelId, {
   fetch: fakeFetchWithAuth,
   generateId: () => 'test-id',
 });
+
+const issue9967OpenaiModel = new BedrockChatLanguageModel(
+  issue9967OpenaiModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
 
 const legacyAnthropic35Model = new BedrockChatLanguageModel(anthropicModelId, {
   baseUrl: () => baseUrl,
@@ -3375,6 +3391,56 @@ describe('doStream', () => {
     const toolCallPart = result.find(part => part.type === 'tool-call');
     expect(toolCallPart).toBeDefined();
     expect(toolCallPart?.input).toBe('{}');
+  });
+});
+
+describe('issue #9967', () => {
+  it('should map a GPT OSS JSON tool call with a channel suffix to object text', async () => {
+    server.urls[issue9967OpenaiGenerateUrl].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(
+          'src/__fixtures__/issue-9967-gpt-oss-json-tool-name-channel.json',
+          'utf8',
+        ),
+      ),
+    };
+
+    const result = await issue9967OpenaiModel.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Extract product information from: Pizza, $12, Large',
+            },
+          ],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            price: { type: 'number' },
+            size: { type: 'string' },
+          },
+          required: ['name', 'price', 'size'],
+          additionalProperties: false,
+        },
+      },
+    });
+
+    expect(result.content).toContainEqual({
+      type: 'text',
+      text: '{"name":"Pizza","size":"Large","price":12}',
+    });
+    expect(result.finishReason).toEqual({
+      unified: 'stop',
+      raw: 'tool_use',
+    });
   });
 });
 
