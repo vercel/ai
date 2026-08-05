@@ -1,5 +1,7 @@
 const versionedFamilies = ['/docs', '/providers'];
 
+export type ResolveHref = (href: string) => string;
+
 const externalFamilies = [
   '/cookbook',
   '/resources',

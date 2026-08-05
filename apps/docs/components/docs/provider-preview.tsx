@@ -5,6 +5,7 @@ import {
   FIRST_PARTY_PROVIDERS,
   InteractiveCodePreview,
 } from './interactive-code-preview';
+import { resolveDocsHref } from './resolve-href';
 
 const CODE_TEMPLATE = `import { generateText } from "ai";
 __PROVIDER_IMPORT__;
@@ -42,8 +43,13 @@ const RESPONSES = [
   'Love is the emotional glue that binds families, friendships, and romantic partnerships together across time and distance.',
 ];
 
-export const PreviewSwitchProviders = () => {
+export const PreviewSwitchProviders = ({
+  versionPrefix = '',
+}: {
+  versionPrefix?: string;
+}) => {
   const [responseIndex, setResponseIndex] = useState(0);
+  const resolveHref = (href: string) => resolveDocsHref(href, versionPrefix);
 
   const handleModelChange = () => {
     setResponseIndex(prev => (prev + 1) % RESPONSES.length);
@@ -59,6 +65,7 @@ export const PreviewSwitchProviders = () => {
         highlightedLinesWithImport={HIGHLIGHTED_LINES_WITH_IMPORT}
         language="typescript"
         onModelChange={handleModelChange}
+        resolveHref={resolveHref}
       >
         <div className="rounded-md border border-gray-alpha-400 p-2 px-4 font-mono text-gray-1000 text-sm leading-5 md:leading-6">
           {RESPONSES[responseIndex]}

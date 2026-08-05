@@ -3,6 +3,86 @@ import type { ReactNode } from 'react';
 
 type ResolveHref = (href: string) => string;
 
+const templates = [
+  {
+    title: 'Chatbot Starter',
+    description:
+      'A production-ready Next.js chatbot with persistence and tools.',
+    type: 'starter-kits',
+    href: 'https://vercel.com/templates/next.js/nextjs-ai-chatbot',
+  },
+  {
+    title: 'eve Chat',
+    description:
+      'A persisted AI SDK chat app powered by eve with durable agent sessions, tools, and integrations.',
+    type: 'starter-kits',
+    href: 'https://vercel.com/templates/eve/eve-chat-template',
+  },
+  {
+    title: 'Internal Knowledge Base',
+    description: 'A retrieval-augmented generation starter with guardrails.',
+    type: 'starter-kits',
+    href: 'https://vercel.com/templates/next.js/ai-sdk-internal-knowledge-base',
+  },
+  {
+    title: 'Structured Object Streaming',
+    description: 'Stream typed objects into a responsive interface.',
+    type: 'feature-exploration',
+    href: 'https://vercel.com/templates/next.js/use-object',
+  },
+  {
+    title: 'Multi-Step Tools',
+    description: 'Run multiple model and tool steps automatically.',
+    type: 'feature-exploration',
+    href: 'https://vercel.com/templates/next.js/ai-sdk-roundtrips',
+  },
+  {
+    title: 'Next.js App Router',
+    description: 'Build an AI application with the Next.js App Router.',
+    type: 'frameworks',
+    href: 'https://ai-sdk.dev/docs/getting-started/nextjs-app-router',
+  },
+  {
+    title: 'SvelteKit OpenAI Starter',
+    description: 'Use AI SDK with OpenAI and SvelteKit.',
+    type: 'frameworks',
+    href: 'https://github.com/vercel/ai/tree/main/examples/sveltekit-openai',
+  },
+  {
+    title: 'Gemini Chatbot',
+    description: 'A generative chat interface built with Gemini and Next.js.',
+    type: 'generative-ui',
+    href: 'https://vercel.com/templates/next.js/gemini-ai-chatbot',
+  },
+  {
+    title: 'Generative UI with RSC',
+    description: 'Stream React Server Components from model tool calls.',
+    type: 'generative-ui',
+    href: 'https://vercel.com/templates/next.js/rsc-genui',
+  },
+  {
+    title: 'Bot Protection',
+    description: 'Protect an AI application from automated abuse.',
+    type: 'security',
+    href: 'https://vercel.com/templates/next.js/advanced-ai-bot-protection',
+  },
+  {
+    title: 'Rate Limiting',
+    description: 'Add per-user limits to an AI SDK application.',
+    type: 'security',
+    href: 'https://github.com/vercel/ai/tree/main/examples/next-openai-upstash-rate-limits',
+  },
+] as const;
+
+const providers = [
+  ['AI Gateway', '/providers/ai-sdk-providers/ai-gateway'],
+  ['OpenAI', '/providers/ai-sdk-providers/openai'],
+  ['Anthropic', '/providers/ai-sdk-providers/anthropic'],
+  ['Google', '/providers/ai-sdk-providers/google'],
+  ['Amazon Bedrock', '/providers/ai-sdk-providers/amazon-bedrock'],
+  ['Azure', '/providers/ai-sdk-providers/azure'],
+] as const;
+
 const quickstarts = [
   ['Next.js App Router', '/docs/getting-started/nextjs-app-router'],
   ['Next.js Pages Router', '/docs/getting-started/nextjs-pages-router'],
@@ -53,6 +133,28 @@ const CardLink = ({
       <span className="text-gray-900 text-sm leading-5">{description}</span>
     ) : null}
   </Link>
+);
+
+export const Templates = ({
+  type,
+}: {
+  type: (typeof templates)[number]['type'];
+}) => (
+  <div className="not-prose grid grid-cols-1 gap-4 sm:grid-cols-2">
+    {templates
+      .filter(template => template.type === type)
+      .map(template => (
+        <CardLink key={template.title} {...template} />
+      ))}
+  </div>
+);
+
+export const OfficialModelCards = () => (
+  <div className="not-prose grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    {providers.map(([title, path]) => (
+      <CardLink href={`https://ai-sdk.dev${path}`} key={title} title={title} />
+    ))}
+  </div>
 );
 
 export const QuickstartFrameworkCards = ({

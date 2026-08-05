@@ -1,7 +1,7 @@
-import { v6Sources, v7Sources } from './source';
+import { v5Sources, v6Sources, v7Sources } from './source';
 
 const collect = (
-  bundles: typeof v6Sources,
+  bundles: typeof v7Sources,
   stripPrefix: RegExp | null,
 ): Set<string> => {
   const paths = new Set<string>();
@@ -13,10 +13,13 @@ const collect = (
   return paths;
 };
 
-const v6Paths = collect(v6Sources, null);
-const v7Paths = collect(v7Sources, /^\/v7/);
+const v7Paths = collect(v7Sources, null);
+const v6Paths = collect(v6Sources, /^\/v6/);
+const v5Paths = collect(v5Sources, /^\/v5/);
+const allPaths = new Set([...v7Paths, ...v6Paths, ...v5Paths]);
 
 export const missingVersionPaths = {
-  v6: [...v7Paths].filter(path => !v6Paths.has(path)),
-  v7: [...v6Paths].filter(path => !v7Paths.has(path)),
+  v7: [...allPaths].filter(path => !v7Paths.has(path)),
+  v6: [...allPaths].filter(path => !v6Paths.has(path)),
+  v5: [...allPaths].filter(path => !v5Paths.has(path)),
 };

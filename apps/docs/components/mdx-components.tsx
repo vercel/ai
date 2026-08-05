@@ -104,12 +104,22 @@ export const getMdxComponents = ({
     Card,
     Templates,
     OfficialModelCards: props => (
-      <OfficialModelCards {...props} resolveHref={resolveVersionedHref} />
+      <OfficialModelCards
+        {...props}
+        resolveHref={resolveVersionedHref}
+        versionPrefix={versionPrefix}
+      />
     ),
     CommunityModelCards: props => (
-      <CommunityModelCards {...props} resolveHref={resolveVersionedHref} />
+      <CommunityModelCards
+        {...props}
+        resolveHref={resolveVersionedHref}
+        versionPrefix={versionPrefix}
+      />
     ),
-    PreviewSwitchProviders,
+    PreviewSwitchProviders: props => (
+      <PreviewSwitchProviders {...props} versionPrefix={versionPrefix} />
+    ),
     QuickstartFrameworkCards: props => (
       <QuickstartFrameworkCards {...props} resolveHref={resolveVersionedHref} />
     ),

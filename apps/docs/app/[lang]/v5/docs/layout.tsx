@@ -2,10 +2,10 @@ import { GeistdocsDocsLayout } from '@vercel/geistdocs/layout';
 import type { ReactNode } from 'react';
 import { VersionSelect } from '@/components/docs/version-select';
 import { config } from '@/lib/geistdocs/config';
-import { providersV7Source } from '@/lib/geistdocs/source';
+import { v5Source } from '@/lib/geistdocs/source';
 import { missingVersionPaths } from '@/lib/geistdocs/version-paths';
 
-const ProvidersLayout = async ({
+const DocsLayout = async ({
   children,
   params,
 }: {
@@ -23,18 +23,18 @@ const ProvidersLayout = async ({
         config.versions ? (
           <div className="mb-4">
             <VersionSelect
-              current="v7"
+              current="v5"
               missingPaths={missingVersionPaths}
               versions={config.versions.items}
             />
           </div>
         ) : null
       }
-      tree={providersV7Source.source.pageTree[lang]}
+      tree={v5Source.source.pageTree[lang]}
     >
       {children}
     </GeistdocsDocsLayout>
   );
 };
 
-export default ProvidersLayout;
+export default DocsLayout;

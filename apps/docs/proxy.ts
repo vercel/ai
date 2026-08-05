@@ -5,11 +5,16 @@ const proxy = createProxy({
   config: geistdocsConfig,
   markdownRoutes: [
     { from: '/docs/*path', to: '/[lang]/llms.mdx/*path' },
-    { from: '/v7/docs/*path', to: '/[lang]/v7/llms.mdx/*path' },
+    { from: '/v6/docs/*path', to: '/[lang]/v6/llms.mdx/*path' },
+    { from: '/v5/docs/*path', to: '/[lang]/v5/llms.mdx/*path' },
     { from: '/providers/*path', to: '/[lang]/providers-llms.mdx/*path' },
     {
-      from: '/v7/providers/*path',
-      to: '/[lang]/v7/providers-llms.mdx/*path',
+      from: '/v6/providers/*path',
+      to: '/[lang]/v6/providers-llms.mdx/*path',
+    },
+    {
+      from: '/v5/providers/*path',
+      to: '/[lang]/v5/providers-llms.mdx/*path',
     },
   ],
 });

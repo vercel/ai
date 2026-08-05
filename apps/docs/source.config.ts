@@ -22,8 +22,10 @@ const createDocsCollection = (dir: string) =>
     },
   });
 
+export const docsV5 = createDocsCollection('content/v5/docs');
 export const docsV6 = createDocsCollection('content/v6/docs');
 export const docsV7 = createDocsCollection('content/v7/docs');
+export const providersV5 = createDocsCollection('content/v5/providers');
 export const providersV6 = createDocsCollection('content/v6/providers');
 export const providersV7 = createDocsCollection('content/v7/providers');
 

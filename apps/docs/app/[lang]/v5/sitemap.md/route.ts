@@ -1,14 +1,14 @@
 import { createSitemapMarkdownRoute } from '@vercel/geistdocs/routes/sitemap';
 import { config } from '@/lib/geistdocs/config';
-import { providersV7Source, v7Source } from '@/lib/geistdocs/source';
+import { providersV5Source, v5Source } from '@/lib/geistdocs/source';
 
 const sitemapRoute = createSitemapMarkdownRoute({
   config,
   sources: [
-    { source: v7Source, title: 'Documentation' },
-    { source: providersV7Source, title: 'Providers' },
+    { source: v5Source, title: 'Documentation' },
+    { source: providersV5Source, title: 'Providers' },
   ],
-  title: 'AI SDK documentation',
+  title: 'AI SDK v5 documentation',
 });
 
 export const GET = sitemapRoute.GET;

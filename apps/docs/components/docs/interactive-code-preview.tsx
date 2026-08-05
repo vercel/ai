@@ -26,6 +26,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import type { ResolveHref } from '@/components/docs/resolve-href';
 
 /**
  * Faithful port of production ai-sdk.dev's InteractiveCodePreview
@@ -42,6 +43,8 @@ type ModelKind = 'text' | 'image' | 'video';
 
 const cx = (...classes: (string | false | null | undefined)[]): string =>
   classes.filter(Boolean).join(' ');
+
+const identityHref: ResolveHref = href => href;
 
 const STORAGE_KEY = 'ai-sdk-code-preview';
 
@@ -613,6 +616,8 @@ type InteractiveCodePreviewProps = {
   excludedModelIds?: string[];
   /** Callback when the model selection changes */
   onModelChange?: () => void;
+  /** Resolves links that must retain the active documentation version. */
+  resolveHref?: ResolveHref;
   /** Content to render below the code block */
   children?: ReactNode;
 };
@@ -627,6 +632,7 @@ export const InteractiveCodePreview = ({
   allowedProviders,
   excludedModelIds = EXCLUDED_MODEL_IDS,
   onModelChange,
+  resolveHref = identityHref,
   children,
 }: InteractiveCodePreviewProps) => {
   const id = useId();
@@ -1035,7 +1041,9 @@ export const InteractiveCodePreview = ({
             <Link
               aria-label="Custom provider documentation"
               className="flex size-8 items-center justify-center rounded-md text-gray-900 transition-colors hover:bg-gray-100 hover:text-gray-1000"
-              href="/providers/community-providers/custom-providers"
+              href={resolveHref(
+                '/providers/community-providers/custom-providers',
+              )}
             >
               <IconArrowUpRight size={16} />
             </Link>

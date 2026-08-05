@@ -9,8 +9,7 @@ import {
 } from '@vercel/geistdocs/assets/icons';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-
-type ResolveHref = (href: string) => string;
+import type { ResolveHref } from '@/components/docs/resolve-href';
 
 /**
  * Capability flags shown as badges on a provider card. Mirrors the
@@ -39,6 +38,8 @@ interface ModelCardData {
   /** Inline logo component (used when no static asset exists). */
   logoIcon?: (props: { size?: number }) => ReactNode;
   title: string;
+  /** Provider paths that differ in specific documentation versions. */
+  versionedHrefs?: Record<string, string>;
 }
 
 const FEATURE_BADGES: [
@@ -212,7 +213,11 @@ const OFFICIAL_MODELS: ModelCardData[] = [
   {
     title: 'Google Generative AI',
     logo: { src: '/images/icons/google.svg' },
-    href: '/providers/ai-sdk-providers/google-generative-ai',
+    href: '/providers/ai-sdk-providers/google',
+    versionedHrefs: {
+      '/v5': '/providers/ai-sdk-providers/google-generative-ai',
+      '/v6': '/providers/ai-sdk-providers/google-generative-ai',
+    },
     color: '00ff33',
     features: { image: true, object: true, tool: true, stream: true },
   },
@@ -389,25 +394,46 @@ const COMMUNITY_MODELS: ModelCardData[] = [
 const CardGrid = ({
   models,
   resolveHref = href => href,
+  versionPrefix = '',
 }: {
   models: ModelCardData[];
   resolveHref?: ResolveHref;
+  versionPrefix?: string;
 }) => (
   <div className="not-prose grid w-full grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fit,_minmax(300px,1fr))]">
-    {models.map(model => (
-      <ModelCard {...model} href={resolveHref(model.href)} key={model.title} />
-    ))}
+    {models.map(model => {
+      const href = model.versionedHrefs?.[versionPrefix] ?? model.href;
+      return (
+        <ModelCard {...model} href={resolveHref(href)} key={model.title} />
+      );
+    })}
   </div>
 );
 
 export const OfficialModelCards = ({
   resolveHref,
+  versionPrefix,
 }: {
   resolveHref?: ResolveHref;
-}) => <CardGrid models={OFFICIAL_MODELS} resolveHref={resolveHref} />;
+  versionPrefix?: string;
+}) => (
+  <CardGrid
+    models={OFFICIAL_MODELS}
+    resolveHref={resolveHref}
+    versionPrefix={versionPrefix}
+  />
+);
 
 export const CommunityModelCards = ({
   resolveHref,
+  versionPrefix,
 }: {
   resolveHref?: ResolveHref;
-}) => <CardGrid models={COMMUNITY_MODELS} resolveHref={resolveHref} />;
+  versionPrefix?: string;
+}) => (
+  <CardGrid
+    models={COMMUNITY_MODELS}
+    resolveHref={resolveHref}
+    versionPrefix={versionPrefix}
+  />
+);
