@@ -1,0 +1,8 @@
+{
+  "type": "error",
+  "error": {
+    "type": "invalid_request_error",
+    "message": "messages.1: `tool_use` ids were found without `tool_result` blocks immediately after: toolu_issue8112_custom. Each `tool_use` block must have a corresponding `tool_result` block in the next message."
+  },
+  "request_id": "req_011CdKG2NtAD16XZmtMKXVQr"
+}

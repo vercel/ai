@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 8112,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-8112-anthropic-parallel-tools.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-8112-anthropic-parallel-tools.ts",
+    "examples/ai-functions/package.json",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_8112_REPRODUCED: messages.1: `tool_use` ids were found without `tool_result` blocks immediately after: toolu_issue8112_custom."
+  }
+}
