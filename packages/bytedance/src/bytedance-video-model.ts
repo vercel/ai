@@ -426,6 +426,9 @@ export class ByteDanceVideoModel implements VideoModelV4 {
         bytedance: {
           taskId,
           usage: response.usage,
+          ...(response.content?.last_frame_url != null && {
+            lastFrameUrl: response.content.last_frame_url,
+          }),
         },
       },
     };
@@ -445,6 +448,7 @@ const byteDanceStatusResponseSchema = z.object({
   content: z
     .object({
       video_url: z.string().nullish(),
+      last_frame_url: z.string().nullish(),
     })
     .nullish(),
   usage: z

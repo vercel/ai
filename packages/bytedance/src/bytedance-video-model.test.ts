@@ -366,6 +366,40 @@ describe('ByteDanceVideoModel', () => {
         },
       });
     });
+
+    it('should include lastFrameUrl when the response contains last_frame_url', async () => {
+      server.urls[
+        'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/test-task-id-123'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'test-task-id-123',
+          model: 'seedance-1-0-pro-250528',
+          status: 'succeeded',
+          content: {
+            video_url: 'https://bytedance.cdn/files/video-output.mp4',
+            last_frame_url: 'https://bytedance.cdn/files/last-frame.jpeg',
+          },
+          usage: {
+            completion_tokens: 100,
+          },
+        },
+      };
+
+      const model = createBasicModel();
+
+      const result = await model.doGenerate({ ...defaultOptions });
+
+      expect(result.providerMetadata).toStrictEqual({
+        bytedance: {
+          taskId: 'test-task-id-123',
+          usage: {
+            completion_tokens: 100,
+          },
+          lastFrameUrl: 'https://bytedance.cdn/files/last-frame.jpeg',
+        },
+      });
+    });
   });
 
   describe('Image-to-Video', () => {
