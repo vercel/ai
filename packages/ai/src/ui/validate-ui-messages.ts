@@ -348,11 +348,7 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
             };
           }
 
-          if (
-            toolPart.state === 'input-available' ||
-            toolPart.state === 'output-available' ||
-            toolPart.state === 'output-error'
-          ) {
+          if (toolPart.state === 'input-available') {
             await validateTypes({
               value: toolPart.input,
               schema: tool.inputSchema,

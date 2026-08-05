@@ -966,7 +966,7 @@ describe('validateUIMessages', () => {
       `);
     });
 
-    it('should validate tool input and output when state is output-available', async () => {
+    it('should not re-validate tool input when state is output-available', async () => {
       const messages = await validateUIMessages<TestMessage>({
         messages: [
           {
@@ -977,7 +977,7 @@ describe('validateUIMessages', () => {
                 type: 'tool-foo',
                 toolCallId: '1',
                 state: 'output-available',
-                input: { foo: 'bar' },
+                input: {} as { foo: string },
                 output: { result: 'success' },
               },
             ],
@@ -995,9 +995,7 @@ describe('validateUIMessages', () => {
             "id": "1",
             "parts": [
               {
-                "input": {
-                  "foo": "bar",
-                },
+                "input": {},
                 "output": {
                   "result": "success",
                 },
@@ -1012,7 +1010,32 @@ describe('validateUIMessages', () => {
       `);
     });
 
-    it('should validate tool input when state is output-error', async () => {
+    it('should validate tool output when state is output-available', async () => {
+      await expect(
+        validateUIMessages<TestMessage>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-foo',
+                  toolCallId: '1',
+                  state: 'output-available',
+                  input: {} as { foo: string },
+                  output: {} as { result: string },
+                },
+              ],
+            },
+          ],
+          tools: {
+            foo: testTool,
+          },
+        }),
+      ).rejects.toThrowError('Type validation failed');
+    });
+
+    it('should not re-validate tool input when state is output-error', async () => {
       const messages = await validateUIMessages<TestMessage>({
         messages: [
           {
@@ -1023,9 +1046,9 @@ describe('validateUIMessages', () => {
                 type: 'tool-foo',
                 toolCallId: '1',
                 state: 'output-error',
-                input: { foo: 'bar' },
-                errorText: 'Tool execution failed',
-                providerExecuted: true,
+                input: { foo: 123 } as unknown as { foo: string },
+                errorText: 'AI_InvalidToolInputError',
+                providerExecuted: false,
               },
             ],
           },
@@ -1042,11 +1065,11 @@ describe('validateUIMessages', () => {
             "id": "1",
             "parts": [
               {
-                "errorText": "Tool execution failed",
+                "errorText": "AI_InvalidToolInputError",
                 "input": {
-                  "foo": "bar",
+                  "foo": 123,
                 },
-                "providerExecuted": true,
+                "providerExecuted": false,
                 "state": "output-error",
                 "toolCallId": "1",
                 "type": "tool-foo",
