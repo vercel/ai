@@ -48,11 +48,6 @@ export interface FishAudioProvider extends ProviderV4 {
   transcriptionModel(
     modelId?: FishAudioTranscriptionModelId,
   ): TranscriptionModelV4;
-
-  /**
-   * @deprecated Use `embeddingModel` instead.
-   */
-  textEmbeddingModel(modelId: string): never;
 }
 
 export interface FishAudioProviderSettings {

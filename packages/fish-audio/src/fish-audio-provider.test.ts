@@ -56,7 +56,6 @@ describe('createFishAudio', () => {
 
     expect(() => provider.languageModel('s1')).toThrow(NoSuchModelError);
     expect(() => provider.embeddingModel('s1')).toThrow(NoSuchModelError);
-    expect(() => provider.textEmbeddingModel('s1')).toThrow(NoSuchModelError);
     expect(() => provider.imageModel('s1')).toThrow(NoSuchModelError);
   });
 
