@@ -2388,6 +2388,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 type: 'response-metadata',
                 id: value.message.id ?? undefined,
                 modelId: value.message.model ?? undefined,
+                usage: convertAnthropicMessagesUsage({
+                  usage: value.message.usage,
+                  rawUsage,
+                }),
               });
 
               // Programmatic tool calling: process pre-populated content blocks
