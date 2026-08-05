@@ -33,9 +33,9 @@ export type BatchV4Status = {
 };
 
 /**
- * Options for creating a batch.
+ * Options for starting a batch.
  */
-export type BatchV4CreateOptions<REQUEST> = {
+export type BatchV4StartOptions<REQUEST> = {
   readonly requests: ReadonlyArray<REQUEST>;
   readonly providerOptions?: SharedV4ProviderOptions;
   readonly abortSignal?: AbortSignal;
@@ -43,9 +43,9 @@ export type BatchV4CreateOptions<REQUEST> = {
 };
 
 /**
- * Result of creating a batch.
+ * Result of starting a batch.
  */
-export type BatchV4CreateResult = BatchV4Status & {
+export type BatchV4StartResult = BatchV4Status & {
   readonly batchId: string;
   readonly warnings: Array<{
     readonly requestId?: string;
@@ -90,9 +90,9 @@ export type BatchV4ItemResult<RESULT> =
  * processing.
  */
 export type BatchModelV4<REQUEST, RESULT> = {
-  experimental_doCreateBatch(
-    options: BatchV4CreateOptions<REQUEST>,
-  ): PromiseLike<BatchV4CreateResult>;
+  experimental_doStartBatch(
+    options: BatchV4StartOptions<REQUEST>,
+  ): PromiseLike<BatchV4StartResult>;
 
   experimental_doGetBatchStatus(
     options: BatchV4OperationOptions,

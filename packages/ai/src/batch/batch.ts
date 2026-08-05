@@ -23,24 +23,24 @@ import type {
   BatchOperationOptions,
   BatchReference,
   BatchStatus,
-  CreateTextBatchOptions,
-  CreateTextBatchResult,
+  StartTextBatchOptions,
+  StartTextBatchResult,
   TextBatchGenerationResult,
   TextBatchItemResult,
   TextBatchRequest,
 } from './batch-types';
 
 /**
- * Creates a durable text-generation batch.
+ * Starts a durable text-generation batch.
  */
-export async function createTextBatch({
+export async function startTextBatch({
   model: modelArg,
   requests,
   providerOptions,
   abortSignal,
   headers,
   timeout,
-}: CreateTextBatchOptions): Promise<CreateTextBatchResult> {
+}: StartTextBatchOptions): Promise<StartTextBatchResult> {
   validateRequests(requests);
 
   const model = resolveBatchLanguageModel(modelArg);
@@ -76,7 +76,7 @@ export async function createTextBatch({
     `ai/${VERSION}`,
   );
   try {
-    const result = await model.experimental_doCreateBatch({
+    const result = await model.experimental_doStartBatch({
       requests: normalizedRequests,
       providerOptions,
       abortSignal: operationAbortSignal,
@@ -211,7 +211,7 @@ export function getBatchResults({
 }
 
 function resolveBatchLanguageModel(
-  modelArg: CreateTextBatchOptions['model'],
+  modelArg: StartTextBatchOptions['model'],
 ): BatchLanguageModelV4 {
   const model = resolveLanguageModel(modelArg);
 
@@ -230,7 +230,7 @@ function isBatchLanguageModel(
 ): model is BatchLanguageModelV4 {
   const candidate = model as Partial<BatchLanguageModelV4>;
   return (
-    typeof candidate.experimental_doCreateBatch === 'function' &&
+    typeof candidate.experimental_doStartBatch === 'function' &&
     typeof candidate.experimental_doGetBatchStatus === 'function' &&
     typeof candidate.experimental_doGetBatchResults === 'function'
   );
@@ -304,7 +304,7 @@ function convertBatchItemResult(
   return {
     id: item.id,
     status: 'succeeded',
-    result: convertGenerateResult(item.result),
+    ...convertGenerateResult(item.result),
   };
 }
 

@@ -10,16 +10,16 @@ import type {
 } from '@ai-sdk/provider';
 import { expectTypeOf, it } from 'vitest';
 import {
-  experimental_createTextBatch as createTextBatch,
   experimental_getBatchResults as getBatchResults,
   experimental_getBatchStatus as getBatchStatus,
+  experimental_startTextBatch as startTextBatch,
   type Experimental_BatchError as BatchError,
   type Experimental_BatchLanguageModel as BatchLanguageModel,
   type Experimental_BatchOperationOptions as BatchOperationOptions,
   type Experimental_BatchReference as BatchReference,
   type Experimental_BatchStatus as BatchStatus,
-  type Experimental_CreateTextBatchOptions as CreateTextBatchOptions,
-  type Experimental_CreateTextBatchResult as CreateTextBatchResult,
+  type Experimental_StartTextBatchOptions as StartTextBatchOptions,
+  type Experimental_StartTextBatchResult as StartTextBatchResult,
   type Experimental_TextBatch as TextBatch,
   type Experimental_TextBatchGenerationResult as TextBatchGenerationResult,
   type Experimental_TextBatchItemResult as TextBatchItemResult,
@@ -36,11 +36,9 @@ it('keeps text batch references as the current batch reference variant', () => {
   >().toEqualTypeOf<BatchReference>();
 });
 
-it('keeps creation non-retrying', () => {
-  expectTypeOf<'maxRetries'>().not.toMatchTypeOf<
-    keyof CreateTextBatchOptions
-  >();
-  expectTypeOf<CreateTextBatchOptions['timeout']>().toEqualTypeOf<
+it('keeps batch start non-retrying', () => {
+  expectTypeOf<'maxRetries'>().not.toMatchTypeOf<keyof StartTextBatchOptions>();
+  expectTypeOf<StartTextBatchOptions['timeout']>().toEqualTypeOf<
     number | { totalMs?: number } | undefined
   >();
 });
@@ -88,12 +86,17 @@ it('uses serializable response timestamps', () => {
   >().toEqualTypeOf<string | undefined>();
 });
 
-it('reuses modality-neutral provider batch primitives', () => {
+it('flattens successful Core items while reusing provider status and errors', () => {
   expectTypeOf<BatchError>().toEqualTypeOf<BatchV4Error>();
   expectTypeOf<BatchStatus>().toEqualTypeOf<BatchV4Status>();
-  expectTypeOf<TextBatchItemResult>().toEqualTypeOf<
-    BatchV4ItemResult<TextBatchGenerationResult>
+  type SucceededItem = Extract<TextBatchItemResult, { status: 'succeeded' }>;
+  expectTypeOf<SucceededItem>().toEqualTypeOf<
+    TextBatchGenerationResult & {
+      readonly id: string;
+      readonly status: 'succeeded';
+    }
   >();
+  expectTypeOf<'result'>().not.toMatchTypeOf<keyof SucceededItem>();
 });
 
 it('defines batch support as an experimental LanguageModelV4 capability', () => {
@@ -101,7 +104,7 @@ it('defines batch support as an experimental LanguageModelV4 capability', () => 
   expectTypeOf<BatchLanguageModelV4>().toMatchTypeOf<BatchLanguageModel>();
   expectTypeOf<LanguageModelV4>().not.toMatchTypeOf<BatchLanguageModel>();
   expectTypeOf<
-    CreateTextBatchOptions['model']
+    StartTextBatchOptions['model']
   >().toEqualTypeOf<BatchLanguageModel>();
   expectTypeOf<
     BatchOperationOptions['model']
@@ -120,8 +123,8 @@ it('defines batch support as an experimental LanguageModelV4 capability', () => 
 
 it('exports the experimental batch functions with the public result types', () => {
   expectTypeOf(
-    createTextBatch,
-  ).returns.resolves.toEqualTypeOf<CreateTextBatchResult>();
+    startTextBatch,
+  ).returns.resolves.toEqualTypeOf<StartTextBatchResult>();
   expectTypeOf(getBatchStatus).returns.resolves.toEqualTypeOf<BatchStatus>();
   expectTypeOf(getBatchResults).returns.toEqualTypeOf<
     AsyncIterableStream<TextBatchItemResult>

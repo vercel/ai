@@ -9,7 +9,7 @@ import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it, vi } from 'vitest';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
-import { createTextBatch, getBatchResults, getBatchStatus } from './batch';
+import { getBatchResults, getBatchStatus, startTextBatch } from './batch';
 import type { TextBatchReference } from './batch-types';
 
 vi.mock('../version', () => ({ VERSION: '0.0.0-test' }));
@@ -36,8 +36,8 @@ const batchReference: TextBatchReference = {
   modelId: 'mock-model-id',
 };
 
-function createBatchModel({
-  doCreateBatch = async () => ({
+function createMockBatchModel({
+  doStartBatch = async () => ({
     batchId: 'batch-123',
     status: 'pending' as const,
     warnings: [],
@@ -45,24 +45,24 @@ function createBatchModel({
   doGetBatchStatus = async () => ({ status: 'pending' as const }),
   doGetBatchResults = async () => convertArrayToReadableStream([]),
 }: {
-  doCreateBatch?: BatchLanguageModelV4['experimental_doCreateBatch'];
+  doStartBatch?: BatchLanguageModelV4['experimental_doStartBatch'];
   doGetBatchStatus?: BatchLanguageModelV4['experimental_doGetBatchStatus'];
   doGetBatchResults?: BatchLanguageModelV4['experimental_doGetBatchResults'];
 } = {}): BatchLanguageModelV4 {
   return Object.assign(new MockLanguageModelV4(), {
-    experimental_doCreateBatch: doCreateBatch,
+    experimental_doStartBatch: doStartBatch,
     experimental_doGetBatchStatus: doGetBatchStatus,
     experimental_doGetBatchResults: doGetBatchResults,
   });
 }
 
-describe('createTextBatch', () => {
+describe('startTextBatch', () => {
   it('normalizes requests and returns the acknowledged batch', async () => {
     const calls: Array<
-      Parameters<BatchLanguageModelV4['experimental_doCreateBatch']>[0]
+      Parameters<BatchLanguageModelV4['experimental_doStartBatch']>[0]
     > = [];
-    const model = createBatchModel({
-      doCreateBatch: async options => {
+    const model = createMockBatchModel({
+      doStartBatch: async options => {
         calls.push(options);
         return {
           batchId: 'batch-456',
@@ -75,7 +75,7 @@ describe('createTextBatch', () => {
       },
     });
 
-    const result = await createTextBatch({
+    const result = await startTextBatch({
       model,
       requests: [
         {
@@ -145,14 +145,14 @@ describe('createTextBatch', () => {
   });
 
   it('rejects empty and duplicate request IDs', async () => {
-    const model = createBatchModel();
+    const model = createMockBatchModel();
 
     await expect(
-      createTextBatch({ model, requests: [] }),
+      startTextBatch({ model, requests: [] }),
     ).rejects.toBeInstanceOf(InvalidArgumentError);
 
     await expect(
-      createTextBatch({
+      startTextBatch({
         model,
         requests: [
           { id: 'duplicate', prompt: 'one' },
@@ -164,7 +164,7 @@ describe('createTextBatch', () => {
 
   it('rejects models without batch support', async () => {
     await expect(
-      createTextBatch({
+      startTextBatch({
         model: new MockLanguageModelV4() as unknown as BatchLanguageModelV4,
         requests: [{ id: 'request-1', prompt: 'hello' }],
       }),
@@ -175,7 +175,7 @@ describe('createTextBatch', () => {
 describe('getBatchStatus', () => {
   it('returns the latest status without the batch reference', async () => {
     const calls: BatchV4OperationOptions[] = [];
-    const model = createBatchModel({
+    const model = createMockBatchModel({
       doGetBatchStatus: async options => {
         calls.push(options);
         return {
@@ -216,7 +216,7 @@ describe('getBatchStatus', () => {
   });
 
   it('rejects an incompatible model', async () => {
-    const model = createBatchModel();
+    const model = createMockBatchModel();
 
     await expect(
       getBatchStatus({
@@ -242,7 +242,7 @@ describe('getBatchResults', () => {
       },
       providerMetadata: { mock: { result: true } },
     };
-    const model = createBatchModel({
+    const model = createMockBatchModel({
       doGetBatchResults: async () => {
         callCount++;
         return convertArrayToReadableStream([
@@ -273,22 +273,20 @@ describe('getBatchResults', () => {
       {
         id: 'request-1',
         status: 'succeeded',
-        result: {
-          text: 'Paris',
-          finishReason: 'stop',
-          rawFinishReason: 'stop',
-          usage: {
-            inputTokens: 3,
-            outputTokens: 5,
-            totalTokens: 8,
-          },
-          response: {
-            id: 'response-1',
-            timestamp: '2026-08-03T12:00:00.000Z',
-            modelId: 'provider-model-id',
-          },
-          providerMetadata: { mock: { result: true } },
+        text: 'Paris',
+        finishReason: 'stop',
+        rawFinishReason: 'stop',
+        usage: {
+          inputTokens: 3,
+          outputTokens: 5,
+          totalTokens: 8,
         },
+        response: {
+          id: 'response-1',
+          timestamp: '2026-08-03T12:00:00.000Z',
+          modelId: 'provider-model-id',
+        },
+        providerMetadata: { mock: { result: true } },
       },
       {
         id: 'request-2',

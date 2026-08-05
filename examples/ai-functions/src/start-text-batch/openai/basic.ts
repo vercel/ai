@@ -1,8 +1,8 @@
 import { openai } from '@ai-sdk/openai';
 import {
-  experimental_createTextBatch as createTextBatch,
   experimental_getBatchResults as getBatchResults,
   experimental_getBatchStatus as getBatchStatus,
+  experimental_startTextBatch as startTextBatch,
 } from 'ai';
 import { setTimeout } from 'node:timers/promises';
 import { print } from '../../lib/print';
@@ -12,7 +12,7 @@ import type { Experimental_BatchLanguageModelV4 } from '@ai-sdk/provider';
 run(async () => {
   const model = openai('gpt-5.6') as Experimental_BatchLanguageModelV4;
 
-  const batch = await createTextBatch({
+  const batch = await startTextBatch({
     model,
     requests: [
       {
@@ -26,7 +26,7 @@ run(async () => {
     ],
   });
 
-  print('Created batch:', batch);
+  print('Started batch:', batch);
 
   while (true) {
     const { status } = await getBatchStatus({ model, batch });
@@ -39,7 +39,11 @@ run(async () => {
     await setTimeout(60_000);
   }
 
-  for await (const result of getBatchResults({ model, batch })) {
-    print('Result:', result);
+  for await (const item of getBatchResults({ model, batch })) {
+    if (item.status === 'succeeded') {
+      print('Result:', { id: item.id, text: item.text });
+    } else {
+      print('Error:', { id: item.id, error: item.error });
+    }
   }
 });

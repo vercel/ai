@@ -1,5 +1,5 @@
 export {
-  createTextBatch as experimental_createTextBatch,
+  startTextBatch as experimental_startTextBatch,
   getBatchResults as experimental_getBatchResults,
   getBatchStatus as experimental_getBatchStatus,
 } from './batch';
@@ -9,8 +9,8 @@ export type {
   BatchOperationOptions as Experimental_BatchOperationOptions,
   BatchReference as Experimental_BatchReference,
   BatchStatus as Experimental_BatchStatus,
-  CreateTextBatchOptions as Experimental_CreateTextBatchOptions,
-  CreateTextBatchResult as Experimental_CreateTextBatchResult,
+  StartTextBatchOptions as Experimental_StartTextBatchOptions,
+  StartTextBatchResult as Experimental_StartTextBatchResult,
   TextBatch as Experimental_TextBatch,
   TextBatchGenerationResult as Experimental_TextBatchGenerationResult,
   TextBatchItemResult as Experimental_TextBatchItemResult,

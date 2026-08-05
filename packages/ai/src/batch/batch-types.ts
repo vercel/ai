@@ -1,7 +1,6 @@
 import type {
-  Experimental_BatchV4CreateResult as BatchV4CreateResult,
   Experimental_BatchV4Error as BatchV4Error,
-  Experimental_BatchV4ItemResult as BatchV4ItemResult,
+  Experimental_BatchV4StartResult as BatchV4StartResult,
   Experimental_BatchV4Status as BatchV4Status,
   Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
 } from '@ai-sdk/provider';
@@ -72,19 +71,19 @@ type BatchRequestOptions = {
 };
 
 /**
- * Options for creating a text batch.
+ * Options for starting a text batch.
  */
-export type CreateTextBatchOptions = {
+export type StartTextBatchOptions = {
   model: BatchLanguageModel;
   requests: ReadonlyArray<TextBatchRequest>;
   providerOptions?: ProviderOptions;
 } & BatchRequestOptions;
 
 /**
- * The acknowledged text batch and warnings produced while creating it.
+ * The acknowledged text batch and warnings produced while starting it.
  */
-export type CreateTextBatchResult = TextBatch & {
-  readonly warnings: BatchV4CreateResult['warnings'];
+export type StartTextBatchResult = TextBatch & {
+  readonly warnings: BatchV4StartResult['warnings'];
 };
 
 /**
@@ -116,4 +115,20 @@ export type TextBatchGenerationResult = {
 /**
  * A complete terminal result for one request in a text batch.
  */
-export type TextBatchItemResult = BatchV4ItemResult<TextBatchGenerationResult>;
+export type TextBatchItemResult =
+  | (TextBatchGenerationResult & {
+      readonly id: string;
+      readonly status: 'succeeded';
+    })
+  | {
+      readonly id: string;
+      readonly status: 'failed';
+      readonly error: BatchError;
+      readonly providerMetadata?: ProviderMetadata;
+    }
+  | {
+      readonly id: string;
+      readonly status: 'cancelled' | 'expired';
+      readonly error?: BatchError;
+      readonly providerMetadata?: ProviderMetadata;
+    };
