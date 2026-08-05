@@ -1,0 +1,40 @@
+{
+  "id": "6f23a5ac0e2d4ca3a1ccee9c2215fb63",
+  "created": 1784737086,
+  "model": "mistral-small-latest",
+  "usage": {
+    "prompt_tokens": 28,
+    "total_tokens": 122,
+    "completion_tokens": 94,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "object": "chat.completion",
+  "choices": [
+    {
+      "index": 0,
+      "finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "tool_calls": null,
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": [
+              {
+                "type": "text",
+                "text": "Okay, the user is asking for the product of 17 and 23. Let me calculate that.\n\nFirst, I recall that 17 times 20 is 340. Then, 17 times 3 is 51. Adding those together gives 340 + 51 = 391.\n\nSo, 17 multiplied by 23 equals 391."
+              }
+            ],
+            "closed": true
+          },
+          {
+            "type": "text",
+            "text": "391"
+          }
+        ]
+      }
+    }
+  ]
+}
