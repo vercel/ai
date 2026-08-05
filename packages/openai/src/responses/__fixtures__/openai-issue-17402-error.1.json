@@ -1,0 +1,8 @@
+{
+  "error": {
+    "message": "Missing required parameter: 'input[1].arguments'.",
+    "type": "invalid_request_error",
+    "param": "input[1].arguments",
+    "code": "missing_required_parameter"
+  }
+}
