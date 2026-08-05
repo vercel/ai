@@ -265,7 +265,7 @@ export async function POST(req) {
     },
   });
 
-  return result.toAIStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
 ```
 
@@ -273,25 +273,37 @@ export async function POST(req) {
 
 ```javascript
 // components/Chat.jsx
-import { useChat } from 'ai/react';
+import { useState } from 'react';
+import { DefaultChatTransport } from 'ai';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat({
-    api: '/api/chat',
+  const [input, setInput] = useState('');
+  const { messages, sendMessage } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
   });
+
+  const handleSubmit = event => {
+    event.preventDefault();
+    sendMessage({ text: input });
+    setInput('');
+  };
 
   return (
     <div>
       {messages.map(m => (
         <div key={m.id}>
-          <strong>{m.role}:</strong> {m.content}
+          <strong>{m.role}:</strong>{' '}
+          {m.parts.map(part => (part.type === 'text' ? part.text : null))}
         </div>
       ))}
 
       <form onSubmit={handleSubmit}>
         <input
           value={input}
-          onChange={handleInputChange}
+          onChange={event => setInput(event.target.value)}
           placeholder="Say something..."
         />
         <button type="submit">Send</button>
