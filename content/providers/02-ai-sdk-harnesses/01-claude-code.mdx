@@ -98,6 +98,46 @@ Settings:
   `{ type: 'adaptive', display: 'summarized' }`.
 - `port`: bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the bridge to start.
+- `systemExecutable`: whether to drive a `claude` executable already present in
+  the sandbox instead of installing one. See below.
+
+### Reusing an installed Claude Code
+
+The bridge normally installs its own copy of Claude Code. Both
+`@anthropic-ai/claude-agent-sdk` and `@anthropic-ai/claude-code` ship the
+executable as a platform-specific optional dependency, so that is two copies and
+around 470MB of the 785MB the bootstrap writes.
+
+When the sandbox already has a working `claude`, the bootstrap skips those and
+points the SDK at it instead:
+
+|                                  | cold start | bootstrap size |
+| -------------------------------- | ---------- | -------------- |
+| Installing the pinned executable | ~22s       | 785MB          |
+| Reusing one already present      | ~2.5s      | 78MB           |
+
+This is the default, and it changes nothing for a hosted sandbox, which has no
+`claude` and so takes the full install. It pays off when the sandbox is the
+developer's own machine, such as `HarnessAgent` running without a `sandbox`.
+
+The install only takes the reuse branch if the executable actually runs, not
+merely if it is on `PATH`, and falls back to a full install otherwise. If it
+later disappears or moves, the adapter looks for a replacement before failing
+with a message explaining how to recover.
+
+```ts
+// Always install the pinned executable.
+createClaudeCode({ systemExecutable: false });
+
+// Use a specific one. A bad path fails rather than silently installing.
+createClaudeCode({ systemExecutable: '/opt/homebrew/bin/claude' });
+```
+
+<Note>
+  A reused executable is whatever version the machine has, which may differ from
+  the version the bridge pins. Set `systemExecutable: false` if you need the
+  pinned pairing.
+</Note>
 
 ## Authentication
 

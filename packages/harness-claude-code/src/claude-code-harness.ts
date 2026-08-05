@@ -87,6 +87,28 @@ export type ClaudeCodeHarnessSettings = {
   readonly port?: number;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
+  /**
+   * Whether to drive a `claude` executable that already exists in the sandbox
+   * instead of installing the pinned one.
+   *
+   * The bootstrap otherwise downloads two copies of the Claude Code binary,
+   * around 470MB of the 785MB it writes, because both
+   * `@anthropic-ai/claude-agent-sdk` and `@anthropic-ai/claude-code` ship it as
+   * a platform-specific optional dependency. Where a usable executable is
+   * already present, skipping those leaves roughly 40MB of JavaScript.
+   *
+   * - `'auto'` (default): use one if the sandbox has it, otherwise install.
+   *   A hosted sandbox is empty, so this changes nothing there; it pays off
+   *   when the sandbox is the user's own machine.
+   * - `false`: always install the pinned executable.
+   * - a string: an absolute path to use, failing the session if it does not
+   *   work rather than silently installing.
+   *
+   * Under `'auto'` the adapter falls back to a full install if the bridge does
+   * not come up, so an incompatible executable costs a retry rather than a
+   * failed session.
+   */
+  readonly systemExecutable?: 'auto' | false | string;
 };
 
 /*
@@ -403,6 +425,49 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
 const BOOTSTRAP_DIR = '.harness-bootstrap/claude-code';
 
 /**
+ * Marker the install writes when it skipped the bundled platform binaries.
+ * Its presence tells `doStart` the bridge must be pointed at an executable in
+ * the sandbox, since the SDK has none of its own to fall back on.
+ */
+const REUSED_EXECUTABLE_MARKER_NAME = '.reused-executable';
+const REUSED_EXECUTABLE_MARKER = `${BOOTSTRAP_DIR}/${REUSED_EXECUTABLE_MARKER_NAME}`;
+
+/**
+ * The bootstrap install, which decides inside the sandbox whether to download
+ * the Claude Code binary.
+ *
+ * The decision cannot be made when the recipe is built, because that happens
+ * before any sandbox exists and the recipe is hashed into the identity used for
+ * snapshot reuse. Doing it in the shell keeps one recipe, one identity, and one
+ * cached snapshot whichever branch runs.
+ *
+ * `--no-optional` skips `@anthropic-ai/claude-{agent-sdk,code}-<platform>`,
+ * which are two copies of the same executable and around 470MB of the 785MB a
+ * full install writes. A hosted sandbox has no `claude`, so it takes the full
+ * branch and nothing changes there.
+ *
+ * The reuse branch is guarded by actually running the executable, not just
+ * finding it on `PATH`, and falls through to a full install if that fails. This
+ * is the last point where falling back is cheap: the bridge only passes the
+ * path to the SDK when a turn runs, so a broken executable would otherwise
+ * surface as a failed turn rather than a failed startup.
+ */
+function installCommand(reuseSystemExecutable: boolean): string {
+  const install = 'pnpm install --frozen-lockfile --store-dir .pnpm-store';
+  const fullInstall = `${install} && if [ -f node_modules/@anthropic-ai/claude-code/install.cjs ]; then node node_modules/@anthropic-ai/claude-code/install.cjs; fi && ./node_modules/.bin/claude --version`;
+
+  if (!reuseSystemExecutable) return fullInstall;
+
+  return [
+    'if command -v claude >/dev/null 2>&1 && claude --version >/dev/null 2>&1; then',
+    `  ${install} --no-optional && command -v claude > ${REUSED_EXECUTABLE_MARKER_NAME}`,
+    'else',
+    `  ${fullInstall}`,
+    'fi',
+  ].join('\n');
+}
+
+/**
  * Live bridge coordinates returned by `doDetach()` and `doSuspendTurn()`. A
  * future process uses them to reopen a socket to the still-running bridge
  * (`attach`) instead of re-spawning it. Absent on a `doStop()` payload.
@@ -437,6 +502,8 @@ export function createClaudeCode(
     type: 'adaptive',
     display: 'summarized',
   };
+  const systemExecutable = settings.systemExecutable ?? 'auto';
+  const reuseSystemExecutable = systemExecutable !== false;
 
   return {
     specificationVersion: 'harness-v1',
@@ -460,15 +527,7 @@ export function createClaudeCode(
           { path: `${BOOTSTRAP_DIR}/pnpm-lock.yaml`, content: lock },
           { path: `${BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
         ],
-        commands: [
-          {
-            command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
-          },
-          {
-            command:
-              'if [ -f node_modules/@anthropic-ai/claude-code/install.cjs ]; then node node_modules/@anthropic-ai/claude-code/install.cjs; fi && ./node_modules/.bin/claude --version',
-          },
-        ],
+        commands: [{ command: installCommand(reuseSystemExecutable) }],
       };
       return cachedBootstrap;
     },
@@ -560,6 +619,17 @@ export function createClaudeCode(
             permissionMode: startOpts.permissionMode,
             builtinToolFiltering: startOpts.builtinToolFiltering,
             skills: startOpts.skills ?? [],
+            claudeExecutablePath: await resolveClaudeExecutable({
+              setting: systemExecutable,
+              session,
+              markerPath: posix.resolve(
+                sandboxSession.defaultWorkingDirectory,
+                REUSED_EXECUTABLE_MARKER,
+              ),
+              ...(startOpts.abortSignal
+                ? { abortSignal: startOpts.abortSignal }
+                : {}),
+            }),
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -598,6 +668,15 @@ export function createClaudeCode(
             })
           : undefined;
       const port = resolveBridgePort(sandboxSession, settings.port);
+      const claudeExecutablePath = await resolveClaudeExecutable({
+        setting: systemExecutable,
+        session,
+        markerPath: posix.resolve(
+          sandboxSession.defaultWorkingDirectory,
+          REUSED_EXECUTABLE_MARKER,
+        ),
+        abortSignal: startOpts.abortSignal,
+      });
       const token = randomBytes(32).toString('hex');
       const env = {
         ...resolveClaudeCodeEnv(settings.auth),
@@ -727,6 +806,7 @@ export function createClaudeCode(
         permissionMode: startOpts.permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
         skills: startOpts.skills ?? [],
+        claudeExecutablePath,
       });
     },
   };
@@ -947,6 +1027,87 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
+/**
+ * The `claude` executable the bridge should drive, or `undefined` to let the
+ * SDK use the one it bundles.
+ *
+ * An explicit path is taken at face value, so a wrong one fails loudly instead
+ * of quietly costing a 470MB download. Otherwise this reads the marker the
+ * bootstrap writes when it skipped the bundled binaries: if the install chose
+ * the reuse branch, the SDK has no executable of its own and must be pointed at
+ * one. No marker means a full install ran and there is nothing to override.
+ *
+ * The recorded path is re-checked rather than trusted. The bootstrap does not
+ * run again once its own marker exists, so an executable removed or moved after
+ * a successful bootstrap would otherwise be handed to the SDK and fail at the
+ * first turn.
+ */
+export async function resolveClaudeExecutable({
+  setting,
+  session,
+  markerPath,
+  abortSignal,
+}: {
+  setting: 'auto' | false | string;
+  session: Experimental_SandboxSession;
+  markerPath: string;
+  abortSignal?: AbortSignal;
+}): Promise<string | undefined> {
+  if (setting === false) return undefined;
+  // Checked before the general string case: 'auto' is itself a string, and
+  // treating it as a path hands the SDK the literal word.
+  if (setting !== 'auto') return setting;
+
+  const marker = await Promise.resolve(
+    session.readTextFile({
+      path: markerPath,
+      ...(abortSignal ? { abortSignal } : {}),
+    }),
+  ).catch(() => null);
+
+  const recorded = marker?.trim();
+  if (recorded == null || recorded.length === 0) return undefined;
+
+  if (await canExecute({ session, path: recorded, abortSignal }))
+    return recorded;
+
+  const rediscovered = await Promise.resolve(
+    session.run({
+      command: 'command -v claude',
+      ...(abortSignal ? { abortSignal } : {}),
+    }),
+  ).catch(() => null);
+  const found = rediscovered?.exitCode === 0 ? rediscovered.stdout.trim() : '';
+  if (found.length > 0) return found;
+
+  // Neither the recorded executable nor a replacement is present, and the
+  // bootstrap skipped the bundled one, so there is nothing left to run.
+  throw new Error(
+    `claude-code: the executable recorded at bootstrap (${recorded}) is no longer ` +
+      'usable and no replacement is on PATH. Reinstall Claude Code, delete the ' +
+      '`.harness-bootstrap` directory to bootstrap again, or pass ' +
+      '`systemExecutable: false` to install a pinned copy.',
+  );
+}
+
+async function canExecute({
+  session,
+  path,
+  abortSignal,
+}: {
+  session: Experimental_SandboxSession;
+  path: string;
+  abortSignal?: AbortSignal;
+}): Promise<boolean> {
+  const result = await Promise.resolve(
+    session.run({
+      command: `test -x ${shellQuote(path)}`,
+      ...(abortSignal ? { abortSignal } : {}),
+    }),
+  ).catch(() => null);
+  return result?.exitCode === 0;
+}
+
 function formatUnknownError(error: unknown): string {
   if (error instanceof Error) return error.message;
   return String(error);
@@ -969,11 +1130,14 @@ function createSession({
   permissionMode,
   builtinToolFiltering,
   skills,
+  claudeExecutablePath,
 }: {
   sessionId: string;
   channel: ClaudeCodeChannel;
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
+  /** Set when the bootstrap skipped the bundled binaries. */
+  claudeExecutablePath: string | undefined;
   model: string | undefined;
   maxTurns: number | undefined;
   thinking: ClaudeCodeThinkingConfig;
@@ -1174,6 +1338,7 @@ function createSession({
         ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
         ...(debug ? { debug } : {}),
         ...(pendingResumeFlag ? { continue: true } : {}),
+        ...(claudeExecutablePath ? { claudeExecutablePath } : {}),
       };
       pendingResumeFlag = false;
       channel.send(startMessage);
@@ -1225,6 +1390,7 @@ function createSession({
           ...(permissionMode ? { permissionMode } : {}),
           ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
           ...(debug ? { debug } : {}),
+          ...(claudeExecutablePath ? { claudeExecutablePath } : {}),
           continue: true,
         });
       }

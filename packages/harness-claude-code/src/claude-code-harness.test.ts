@@ -494,16 +494,43 @@ describe('createClaudeCode adapter', () => {
       }
     });
 
-    it('declares pnpm install and claude post-install commands for the bootstrap cwd', async () => {
+    // The install picks its branch inside the sandbox rather than here, so one
+    // recipe hashes to one identity and one cached snapshot either way.
+    it('installs without the bundled binaries when the sandbox already has claude', async () => {
       const harness = createClaudeCode();
       const recipe = await harness.getBootstrap!();
       const commands = recipe.commands.map(c => c.command);
-      expect(commands).toHaveLength(2);
-      expect(commands[0]).toBe(
+
+      expect(commands).toHaveLength(1);
+      expect(commands[0]).toContain('command -v claude');
+      expect(commands[0]).toContain('--no-optional');
+      // The fallback branch still does a full install and verifies it.
+      expect(commands[0]).toContain('claude --version');
+      expect(commands[0]).not.toContain('cd ');
+    });
+
+    it('always installs the pinned binaries when reuse is disabled', async () => {
+      const harness = createClaudeCode({ systemExecutable: false });
+      const recipe = await harness.getBootstrap!();
+      const commands = recipe.commands.map(c => c.command);
+
+      expect(commands).toHaveLength(1);
+      expect(commands[0]).toContain(
         'pnpm install --frozen-lockfile --store-dir .pnpm-store',
       );
-      expect(commands[1]).toContain('claude --version');
-      expect(commands[1]).not.toContain('cd ');
+      expect(commands[0]).not.toContain('--no-optional');
+      expect(commands[0]).not.toContain('command -v claude');
+      expect(commands[0]).toContain('claude --version');
+    });
+
+    // Different install behaviour has to mean a different snapshot.
+    it('hashes to a different recipe when reuse is disabled', async () => {
+      const auto = await createClaudeCode().getBootstrap!();
+      const pinned = await createClaudeCode({
+        systemExecutable: false,
+      }).getBootstrap!();
+
+      expect(auto.commands).not.toEqual(pinned.commands);
     });
 
     it('caches the recipe across calls', async () => {
