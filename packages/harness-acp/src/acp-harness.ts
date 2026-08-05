@@ -18,8 +18,6 @@ import { VERSION } from './version';
 
 const ACP_CLIENT_APP = `ai-sdk/harness-acp/${VERSION}`;
 
-export type ACPVersion = 'v1';
-
 export type ACPHarnessSettings<TBuiltinTools extends ToolSet = {}> = {
   readonly builtinTools?: TBuiltinTools;
   readonly port?: number;
