@@ -4,8 +4,14 @@ import {
   createTestServer,
   mockId,
   TestResponseController,
+<<<<<<< HEAD
 } from '@ai-sdk/provider-utils/test';
 import { screen, waitFor } from '@testing-library/react';
+=======
+} from '@ai-sdk/test-server/with-vitest';
+import { mockId } from '@ai-sdk/provider-utils/test';
+import { cleanup, screen, waitFor, render } from '@testing-library/react';
+>>>>>>> 1a0240bb8e ([v6.0] fix(react): use the latest transport in useChat instead of a stale one (#16806))
 import userEvent from '@testing-library/user-event';
 import {
   type FinishReason,
@@ -820,6 +826,56 @@ describe('onToolCall', () => {
           'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
       });
     });
+  });
+});
+
+describe('stale transport', () => {
+  afterEach(cleanup);
+
+  it('should use the latest transport body after a state change (no stale closure)', async () => {
+    const Test = () => {
+      const [subagent, setSubagent] = React.useState('todos-agent');
+      const { sendMessage } = useChat({
+        transport: new DefaultChatTransport({
+          body: { subagent },
+        }),
+      });
+
+      return (
+        <div>
+          <button
+            data-testid="change-subagent"
+            onClick={() => setSubagent('research-agent')}
+          />
+          <button
+            data-testid="do-send"
+            onClick={() => {
+              sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
+            }}
+          />
+        </div>
+      );
+    };
+
+    render(<Test />);
+
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        formatChunk({ type: 'text-start', id: '0' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatChunk({ type: 'text-end', id: '0' }),
+      ],
+    };
+
+    await userEvent.click(screen.getByTestId('change-subagent'));
+    await userEvent.click(screen.getByTestId('do-send'));
+
+    await vi.waitUntil(() => server.calls.length > 0, { timeout: 2000 });
+
+    expect((await server.calls[0].requestBodyJson).subagent).toBe(
+      'research-agent',
+    );
   });
 });
 
