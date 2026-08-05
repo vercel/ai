@@ -1,5 +1,13 @@
 # @ai-sdk/openai
 
+## 4.0.30
+
+### Patch Changes
+
+- 1bec07d: Fix streamed tool calls with non-zero, non-contiguous, reused, or missing indexes.
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+
 ## 4.0.29
 
 ### Patch Changes

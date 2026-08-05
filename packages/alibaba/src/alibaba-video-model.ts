@@ -1,8 +1,8 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV4,
+  type Experimental_VideoModelV4 as VideoModelV4,
   type Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
-  type Experimental_VideoModelV4File,
+  type Experimental_VideoModelV4File as VideoModelV4File,
   type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
   type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
   type SharedV4ProviderMetadata,
@@ -27,8 +27,6 @@ import {
   type AlibabaVideoModelOptions,
 } from './alibaba-video-model-options';
 import type { AlibabaVideoModelId } from './alibaba-video-settings';
-
-type VideoModelV4 = Experimental_VideoModelV4;
 
 interface AlibabaVideoModelConfig {
   provider: string;
@@ -145,7 +143,7 @@ function deriveRatioFromResolution(
   return supportedRatios.has(ratio) ? ratio : undefined;
 }
 
-function fileToImageString(file: Experimental_VideoModelV4File): string {
+function fileToImageString(file: VideoModelV4File): string {
   if (file.type === 'url') {
     return file.url;
   }
@@ -156,14 +154,14 @@ function fileToImageString(file: Experimental_VideoModelV4File): string {
 
 function getFirstFrameImage(
   options: VideoModelV4CallOptions,
-): Experimental_VideoModelV4File | undefined {
+): VideoModelV4File | undefined {
   return options.frameImages?.find(frame => frame.frameType === 'first_frame')
     ?.image;
 }
 
 function resolveStartImage(
   options: VideoModelV4CallOptions,
-): Experimental_VideoModelV4File | undefined {
+): VideoModelV4File | undefined {
   return getFirstFrameImage(options) ?? options.image;
 }
 
@@ -254,7 +252,7 @@ function resolveReferenceUrls(
   return alibabaOptions?.referenceUrls ?? undefined;
 }
 
-export class AlibabaVideoModel implements Experimental_VideoModelV4 {
+export class AlibabaVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
