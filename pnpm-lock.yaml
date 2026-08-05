@@ -2462,9 +2462,6 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
-      msw:
-        specifier: 2.7.0
-        version: 2.7.0(@types/node@20.17.24)(typescript@5.8.3)
       tsup:
         specifier: ^8
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.8.3)(yaml@2.7.0)
@@ -2493,6 +2490,9 @@ importers:
         specifier: 2.1.0
         version: 2.1.0
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@testing-library/jest-dom':
         specifier: ^6.6.3
         version: 6.9.1
