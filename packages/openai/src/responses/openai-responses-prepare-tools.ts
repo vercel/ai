@@ -301,6 +301,7 @@ export async function prepareResponsesTools({
               require_approval: requireApprovalParam ?? 'never',
               server_description: args.serverDescription,
               server_url: args.serverUrl,
+              tunnel_id: args.tunnelId,
             });
 
             break;
