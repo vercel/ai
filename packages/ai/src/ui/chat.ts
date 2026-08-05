@@ -329,7 +329,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
    * Appends or replaces a user message to the chat list. This triggers the API call to fetch
    * the assistant's response.
    *
-   * If a messageId is provided, the message will be replaced.
+   * If a messageId is provided, the message will be replaced. The replacement
+   * keeps `messageId` as its id unless the message specifies its own `id`.
    */
   sendMessage = async (
     message?:
@@ -339,6 +340,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           messageId?: string;
         })
       | {
+          id?: string;
           text: string;
           files?: FileList | FileUIPart[];
           metadata?: InferUIMessageMetadata<UI_MESSAGE>;
@@ -346,6 +348,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           messageId?: string;
         }
       | {
+          id?: string;
           files: FileList | FileUIPart[];
           metadata?: InferUIMessageMetadata<UI_MESSAGE>;
           parts?: never;
@@ -370,6 +373,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         : await convertFileListToFileUIParts(message.files);
 
       uiMessage = {
+        id: message.id,
         parts: [
           ...fileParts,
           ...('text' in message && message.text != null
@@ -402,7 +406,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       // update the message with the new content
       this.state.replaceMessage(messageIndex, {
         ...uiMessage,
-        id: message.messageId,
+        id: uiMessage.id ?? message.messageId,
         role: uiMessage.role ?? 'user',
         metadata: message.metadata,
       } as UI_MESSAGE);
