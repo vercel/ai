@@ -14,7 +14,10 @@ run(async () => {
           type: 'session-mode',
           modeId: 'obsolete-read-only',
         },
-        'allow-edits': { type: 'session-mode', modeId: 'agent' },
+        'allow-edits': {
+          type: 'session-mode',
+          modeId: 'agent-full-access',
+        },
         'allow-all': {
           type: 'session-mode',
           modeId: 'agent-full-access',

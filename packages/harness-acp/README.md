@@ -31,9 +31,11 @@ const harness = createACP({
     envSources: {
       CODEX_API_KEY: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
     },
-    env: {
-      INITIAL_AGENT_MODE: 'agent-full-access',
-    },
+  },
+  permissionModeMapping: {
+    'allow-reads': { type: 'session-mode', modeId: 'read-only' },
+    'allow-edits': { type: 'session-mode', modeId: 'agent-full-access' },
+    'allow-all': { type: 'session-mode', modeId: 'agent-full-access' },
   },
   authentication: {
     methodId: 'api-key',
@@ -59,11 +61,6 @@ try {
   await session.destroy();
 }
 ```
-
-`INITIAL_AGENT_MODE` is a Codex ACP runtime option, not generic ACP
-configuration. This profile uses `agent-full-access` because `HarnessAgent`
-already isolates Codex inside Vercel Sandbox; leaving Codex's default nested
-sandbox enabled prevents its shell and file tools from starting there.
 
 `authentication` selects an authentication method advertised by the ACP agent.
 `auth` separately selects `auto`, `direct`, or `ai-gateway` authentication for
@@ -139,7 +136,7 @@ client opts into it:
 
 ```ts
 const harness = createACP({
-  harnessId: 'codex-acp-gateway',
+  harnessId: 'codex-acp',
   implementation: {
     type: 'npm',
     packageName: '@agentclientprotocol/codex-acp',
@@ -148,6 +145,14 @@ const harness = createACP({
     envSources: {
       CODEX_API_KEY: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
     },
+  },
+  permissionModeMapping: {
+    'allow-reads': { type: 'session-mode', modeId: 'read-only' },
+    'allow-edits': { type: 'session-mode', modeId: 'agent-full-access' },
+    'allow-all': { type: 'session-mode', modeId: 'agent-full-access' },
+  },
+  authentication: {
+    methodId: 'api-key',
   },
   providerAuthentication: {
     gateway: {
@@ -290,11 +295,15 @@ const harness = createACP({
   // implementation and authentication settings
   permissionModeMapping: {
     'allow-reads': { type: 'session-mode', modeId: 'read-only' },
-    'allow-edits': { type: 'session-mode', modeId: 'agent' },
+    'allow-edits': { type: 'session-mode', modeId: 'agent-full-access' },
     'allow-all': { type: 'session-mode', modeId: 'agent-full-access' },
   },
 });
 ```
+
+Both write-capable Harness modes use `agent-full-access` because the outer
+Vercel Sandbox provides the isolation. Codex's `agent` mode would attempt to
+start a nested workspace sandbox inside it.
 
 Each target can instead use
 `{ type: 'session-config-option', configId, value }`, where `value` is an

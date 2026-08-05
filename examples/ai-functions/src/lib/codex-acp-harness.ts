@@ -76,7 +76,6 @@ export function createCodexACP({
       },
       env: {
         CODEX_CONFIG: JSON.stringify(codexConfig),
-        INITIAL_AGENT_MODE: 'agent-full-access',
       },
     },
     builtinTools: CODEX_ACP_BUILTIN_TOOLS,

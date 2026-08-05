@@ -21,7 +21,6 @@ export const codexACPHarness = createACP({
     },
     env: {
       CODEX_CONFIG: JSON.stringify(codexConfig),
-      INITIAL_AGENT_MODE: 'agent-full-access',
     },
   },
   permissionModeMapping: {
