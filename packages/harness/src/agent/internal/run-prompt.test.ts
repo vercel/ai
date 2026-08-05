@@ -467,6 +467,71 @@ describe('runPrompt step accounting', () => {
     await expect(result.steps).resolves.toHaveLength(1);
   });
 
+  test('closes a deliberately suspended mid-step stream without failing the turn', async () => {
+    const onTurnFailed = vi.fn();
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'text-start', id: 't1' },
+        { type: 'text-delta', id: 't1', delta: 'partial' },
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      isTurnSuspending: () => true,
+      onTurnFailed,
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(parts.some(part => part.type === 'error')).toBe(false);
+    expect(parts).toContainEqual(
+      expect.objectContaining({ type: 'text-delta', text: 'partial' }),
+    );
+    expect(onTurnFailed).not.toHaveBeenCalled();
+    await expect(result.steps).resolves.toEqual([]);
+  });
+
+  test('fails a mid-step stream that closes without an intentional suspension', async () => {
+    const onTurnFailed = vi.fn();
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'text-start', id: 't1' },
+        { type: 'text-delta', id: 't1', delta: 'partial' },
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      onTurnFailed,
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(parts).toContainEqual({
+      type: 'error',
+      error: expect.objectContaining({
+        message: expect.stringContaining('unclosed step content'),
+      }),
+    });
+    expect(onTurnFailed).toHaveBeenCalledTimes(1);
+    await expect(result.steps).rejects.toThrow(/unclosed step content/);
+  });
+
   test('fails when terminal finish receives unclosed step content', async () => {
     const { result, done } = runPrompt({
       harness,
@@ -852,7 +917,7 @@ describe('runPrompt host tool generator results', () => {
     ]);
   });
 
-  test('executes an approved pending custom tool continuation', async () => {
+  test('emits one final result after approved pending custom tool execution', async () => {
     const submitted: SubmittedResult[] = [];
     const settled: string[] = [];
     const telemetryEvents: string[] = [];
@@ -881,7 +946,17 @@ describe('runPrompt host tool generator results', () => {
 
     const { result, done } = runPrompt({
       harness,
-      session: fakeSession([], input => submitted.push(input)),
+      session: fakeSession(
+        [
+          {
+            type: 'tool-result',
+            toolCallId: 'c1',
+            toolName: 'weather',
+            result: { city: 'SF', temperature: 72 },
+          },
+        ],
+        input => submitted.push(input),
+      ),
       mode: 'continue',
       instructions: undefined,
       tools: { weather } as ToolSet,
@@ -941,8 +1016,85 @@ describe('runPrompt host tool generator results', () => {
         approved: true,
       }),
     );
+    expect(toolResultParts(parts)).toEqual([
+      expect.objectContaining({
+        toolCallId: 'c1',
+        toolName: 'weather',
+        output: { city: 'SF', temperature: 72 },
+      }),
+    ]);
     expect(parts.map(part => part.type)).not.toContain('error');
     await expect(result.steps).resolves.toEqual([]);
+  });
+
+  test('emits an error after approved pending custom tool execution fails', async () => {
+    const submitted: SubmittedResult[] = [];
+    const weather = tool({
+      description: 'Get weather',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async (): Promise<{ temperature: number }> => {
+        throw new Error('weather unavailable');
+      },
+    });
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([], input => submitted.push(input)),
+      mode: 'continue',
+      instructions: undefined,
+      tools: { weather } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      pendingToolApprovals: [
+        {
+          approvalId: 'approval-1',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'SF' }),
+          kind: 'custom',
+          providerExecuted: false,
+        },
+      ],
+      toolApprovalContinuations: [
+        {
+          approvalResponse: {
+            type: 'tool-approval-response',
+            approvalId: 'approval-1',
+            approved: true,
+          },
+          toolCall: {
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'weather',
+            input: { city: 'SF' },
+            providerExecuted: false,
+          },
+        },
+      ],
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(submitted).toEqual([
+      {
+        toolCallId: 'c1',
+        output: { error: 'Error: weather unavailable' },
+        isError: true,
+      },
+    ]);
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-error',
+        toolCallId: 'c1',
+        toolName: 'weather',
+        error: expect.objectContaining({ message: 'weather unavailable' }),
+      }),
+    );
   });
 
   test('does not reuse a consumed approval for replayed custom tool calls', async () => {
@@ -1294,6 +1446,94 @@ describe('runPrompt host tool generator results', () => {
     expect(results).toHaveLength(1);
     expect(results[0].preliminary).toBe(true);
     expect(results[0].output).toEqual({ path: 'src/foo.ts' });
+  });
+});
+
+describe('runPrompt suspension lifecycle', () => {
+  function suspendingRun(options: {
+    script: HarnessV1StreamPart[];
+    abortSignal?: AbortSignal;
+  }) {
+    const onTurnFinished = vi.fn();
+    const onTurnFailed = vi.fn();
+    return {
+      ...runPrompt({
+        harness,
+        session: fakeSession(options.script),
+        prompt: 'go',
+        instructions: undefined,
+        tools: {} as ToolSet,
+        toolSpecs: [],
+        sandboxSession,
+        sessionWorkDir: WORK_DIR,
+        runtimeContext: {} as never,
+        abortSignal: options.abortSignal,
+        onTurnFinished,
+        onTurnFailed,
+        isTurnSuspending: () => true,
+      }),
+      onTurnFinished,
+      onTurnFailed,
+    };
+  }
+
+  test('settles a result with a terminal finish without finishing the suspended turn', async () => {
+    const { result, done, onTurnFinished, onTurnFailed } = suspendingRun({
+      script: finishEvents,
+    });
+
+    await result.consumeStream();
+    await done;
+
+    await expect(result.finishReason).resolves.toBe('stop');
+    expect(onTurnFinished).not.toHaveBeenCalled();
+    expect(onTurnFailed).not.toHaveBeenCalled();
+  });
+
+  test('settles a cleanly closed result without failing the suspended turn', async () => {
+    const { result, done, onTurnFinished, onTurnFailed } = suspendingRun({
+      script: [],
+    });
+
+    await result.consumeStream();
+    await done;
+
+    expect(onTurnFinished).not.toHaveBeenCalled();
+    expect(onTurnFailed).not.toHaveBeenCalled();
+  });
+
+  test('preserves error result semantics without failing the suspended turn', async () => {
+    const { result, done, onTurnFinished, onTurnFailed } = suspendingRun({
+      script: [{ type: 'error', error: 'boom' }],
+    });
+
+    await result.consumeStream();
+    await done;
+
+    await expect(result.finishReason).rejects.toBeDefined();
+    expect(onTurnFinished).not.toHaveBeenCalled();
+    expect(onTurnFailed).not.toHaveBeenCalled();
+  });
+
+  test('preserves abort result semantics without failing the suspended turn', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const { result, done, onTurnFinished, onTurnFailed } = suspendingRun({
+      script: [
+        { type: 'error', error: 'AbortError: This operation was aborted' },
+      ],
+      abortSignal: controller.signal,
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(parts.filter(part => part.type === 'error')).toHaveLength(0);
+    expect(parts[parts.length - 1]!.type).toBe('abort');
+    await expect(result.finishReason).rejects.toBeDefined();
+    expect(onTurnFinished).not.toHaveBeenCalled();
+    expect(onTurnFailed).not.toHaveBeenCalled();
   });
 });
 

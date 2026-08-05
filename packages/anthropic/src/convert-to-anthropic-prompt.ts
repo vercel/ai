@@ -23,12 +23,18 @@ import {
   anthropicReasoningMetadataSchema,
   type AnthropicAssistantMessage,
   type AnthropicPrompt,
+  type AnthropicSystemMessage,
+  type AnthropicTextContent,
+  type AnthropicToolChangeContent,
   type AnthropicToolResultContent,
   type AnthropicUserMessage,
   type AnthropicWebFetchToolResultContent,
   type Citation,
 } from './anthropic-api';
-import { anthropicFilePartProviderOptions } from './anthropic-language-model-options';
+import {
+  anthropicFilePartProviderOptions,
+  anthropicSystemMessageProviderOptions,
+} from './anthropic-language-model-options';
 import { CacheControlValidator } from './get-cache-control';
 import { advisor_20260301OutputSchema } from './tool/advisor_20260301';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
@@ -137,20 +143,66 @@ export async function convertToAnthropicPrompt({
 
     switch (type) {
       case 'system': {
-        const content = block.messages.map(({ content, providerOptions }) => ({
-          type: 'text' as const,
-          text: content,
-          cache_control: validator.getCacheControl(providerOptions, {
-            type: 'system message',
-            canCache: true,
-          }),
-        }));
+        const content: AnthropicSystemMessage['content'] = [];
+        let toolChangeCount = 0;
 
-        if (system == null) {
-          system = content;
+        for (const { content: text, providerOptions } of block.messages) {
+          const systemMessageOptions = await parseProviderOptions({
+            provider: 'anthropic',
+            providerOptions,
+            schema: anthropicSystemMessageProviderOptions,
+          });
+          const toolChanges = systemMessageOptions?.toolChanges ?? [];
+
+          // A system message that only carries tool changes may have empty
+          // text; do not emit an empty text block for it.
+          if (text !== '' || toolChanges.length === 0) {
+            content.push({
+              type: 'text' as const,
+              text,
+              cache_control: validator.getCacheControl(providerOptions, {
+                type: 'system message',
+                canCache: true,
+              }),
+            });
+          }
+
+          for (const toolChange of toolChanges) {
+            toolChangeCount++;
+            content.push({
+              type: toolChange.type,
+              tool: {
+                type: 'tool_reference',
+                name: toolNameMapping.toProviderToolName(toolChange.toolName),
+              },
+            } satisfies AnthropicToolChangeContent);
+          }
+        }
+
+        // The first block becomes the top-level system prompt. Later system
+        // blocks are sent as inline system messages — always when they carry
+        // tool changes (which are only valid mid-conversation), and otherwise
+        // only when a top-level system prompt already exists (preserving the
+        // existing hoisting behavior for plain text).
+        if (i === 0 || (system == null && toolChangeCount === 0)) {
+          if (toolChangeCount > 0) {
+            warnings.push({
+              type: 'other',
+              message:
+                'tool changes on the initial system message are not supported by Anthropic. ' +
+                'Configure the initial tool set via the tools option instead. ' +
+                'The tool changes have been ignored.',
+            });
+          }
+          system = content.filter(
+            (part): part is AnthropicTextContent => part.type === 'text',
+          );
         } else {
           messages.push({ role: 'system', content });
           betas.add('mid-conversation-system-2026-04-07');
+          if (toolChangeCount > 0) {
+            betas.add('mid-conversation-tool-changes-2026-07-01');
+          }
         }
 
         break;
@@ -702,7 +754,7 @@ export async function convertToAnthropicPrompt({
                       cache_control: cacheControl,
                     });
                   } else if (
-                    // code execution 20250825:
+                    // code execution subtools:
                     providerToolName === 'code_execution' &&
                     part.input != null &&
                     typeof part.input === 'object' &&
@@ -711,11 +763,14 @@ export async function convertToAnthropicPrompt({
                     (part.input.type === 'bash_code_execution' ||
                       part.input.type === 'text_editor_code_execution')
                   ) {
+                    const { type: codeExecutionType, ...inputWithoutType } =
+                      part.input;
+
                     anthropicContent.push({
                       type: 'server_tool_use',
                       id: part.toolCallId,
-                      name: part.input.type, // map back to subtool name
-                      input: part.input,
+                      name: codeExecutionType, // map back to subtool name
+                      input: inputWithoutType,
                       cache_control: cacheControl,
                     });
                   } else if (
@@ -984,7 +1039,19 @@ export async function convertToAnthropicPrompt({
                         type: 'bash_code_execution_tool_result',
                         tool_use_id: part.toolCallId,
                         cache_control: cacheControl,
-                        content: codeExecutionOutput,
+                        // Prompt caching requires stable key ordering:
+                        // https://platform.claude.com/docs/en/build-with-claude/prompt-caching#troubleshooting-common-issues
+                        content:
+                          codeExecutionOutput.type ===
+                          'bash_code_execution_result'
+                            ? {
+                                type: codeExecutionOutput.type,
+                                stdout: codeExecutionOutput.stdout,
+                                stderr: codeExecutionOutput.stderr,
+                                return_code: codeExecutionOutput.return_code,
+                                content: codeExecutionOutput.content,
+                              }
+                            : codeExecutionOutput,
                       });
                     } else {
                       anthropicContent.push({

@@ -76,6 +76,7 @@ function appendToolResultParts(
     { type: 'content' }
   >['value'],
   toolCallId?: string,
+  includeFunctionCallIds = true,
 ): void {
   const functionResponseParts: GoogleFunctionResponsePart[] = [];
   const responseTextParts: string[] = [];
@@ -118,7 +119,9 @@ function appendToolResultParts(
 
   parts.push({
     functionResponse: {
-      ...(toolCallId != null ? { id: toolCallId } : {}),
+      ...(includeFunctionCallIds && toolCallId != null
+        ? { id: toolCallId }
+        : {}),
       name: toolName,
       response: {
         name: toolName,
@@ -147,13 +150,16 @@ function appendLegacyToolResultParts(
     { type: 'content' }
   >['value'],
   toolCallId?: string,
+  includeFunctionCallIds = true,
 ): void {
   for (const contentPart of outputValue) {
     switch (contentPart.type) {
       case 'text':
         parts.push({
           functionResponse: {
-            ...(toolCallId != null ? { id: toolCallId } : {}),
+            ...(includeFunctionCallIds && toolCallId != null
+              ? { id: toolCallId }
+              : {}),
             name: toolName,
             response: {
               name: toolName,
@@ -206,6 +212,7 @@ export function convertToGoogleMessages(
      */
     providerOptionsNames?: readonly string[];
     supportsFunctionResponseParts?: boolean;
+    includeFunctionCallIds?: boolean;
   },
 ): GooglePrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
@@ -218,6 +225,7 @@ export function convertToGoogleMessages(
   const isVertexLike = !providerOptionsNames.includes('google');
   const supportsFunctionResponseParts =
     options?.supportsFunctionResponseParts ?? true;
+  const includeFunctionCallIds = options?.includeFunctionCallIds ?? true;
 
   let sentinelInjected = false;
   const missingSignatureToolNames: string[] = [];
@@ -497,7 +505,7 @@ export function convertToGoogleMessages(
 
                   return {
                     functionCall: {
-                      ...(part.toolCallId != null
+                      ...(includeFunctionCallIds && part.toolCallId != null
                         ? { id: part.toolCallId }
                         : {}),
                       name: part.toolName,
@@ -591,6 +599,7 @@ export function convertToGoogleMessages(
                 part.toolName,
                 output.value,
                 part.toolCallId,
+                includeFunctionCallIds,
               );
             } else {
               appendLegacyToolResultParts(
@@ -598,12 +607,15 @@ export function convertToGoogleMessages(
                 part.toolName,
                 output.value,
                 part.toolCallId,
+                includeFunctionCallIds,
               );
             }
           } else {
             parts.push({
               functionResponse: {
-                ...(part.toolCallId != null ? { id: part.toolCallId } : {}),
+                ...(includeFunctionCallIds && part.toolCallId != null
+                  ? { id: part.toolCallId }
+                  : {}),
                 name: part.toolName,
                 response: {
                   name: part.toolName,

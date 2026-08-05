@@ -183,7 +183,7 @@ await runBridge<StartMessage>({
   onStart: runTurn,
   // Claude Code's session state lives in the workdir on the sandbox filesystem
   // (captured by the sandbox snapshot on stop); the resume payload is empty.
-  onDetach: () => ({}),
+  onStop: () => ({}),
 });
 
 type Emit = (msg: Record<string, unknown>) => void;
@@ -426,8 +426,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       abortSignal: abortCtl.signal,
     },
   });
-  turn.onInterrupt(() => q.interrupt());
-
   let turnUsage: Record<string, unknown> | undefined;
   let totalCostUsd: number | undefined;
   let emittedTerminalError = false;

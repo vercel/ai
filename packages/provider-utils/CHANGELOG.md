@@ -1,5 +1,65 @@
 # @ai-sdk/provider-utils
 
+## 5.0.21
+
+### Patch Changes
+
+- 1bec07d: Fix streamed tool calls with non-zero, non-contiguous, reused, or missing indexes.
+
+## 5.0.20
+
+### Patch Changes
+
+- 160ccdb: Reduce bundle size by removing the runtime Zod 3 dependency.
+
+## 5.0.19
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+
+## 5.0.18
+
+### Patch Changes
+
+- 5fc7da5: chore: centralize empty language model usage creation in provider utilities.
+- 93b2acd: chore: centralize response metadata conversion
+
+## 5.0.17
+
+### Patch Changes
+
+- fa95504: feat(ai): support experimental tool callers in ToolLoopAgent
+
+## 5.0.16
+
+### Patch Changes
+
+- d8210b6: chore: centralize record type guards in provider-utils
+- b192878: feat: add experimental_toolCaller routing to generateText for code mode
+
+## 5.0.15
+
+### Patch Changes
+
+- 1659cd5: Prevent validated downloads on Node.js from reaching private or internal services through DNS aliases or DNS rebinding by validating and pinning every resolved address at connection time.
+- 6a5bdff: Fix validated Node.js downloads when the HTTP connector requests a single DNS address.
+
+## 5.0.14
+
+### Patch Changes
+
+- 0c464d9: feat(provider-utils): add a typed serialization error
+- c49380c: feat: add experimental streaming speech translation models (`openai.translation('gpt-realtime-translate')` over the OpenAI Realtime translations WebSocket and `google.translation('gemini-3.5-live-translate-preview')` over the Gemini Live API). `connectToWebSocket` in `@ai-sdk/provider-utils` now passes close code and reason to `onClose` (additive, optional parameter).
+
+## 5.0.13
+
+### Patch Changes
+
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+
 ## 5.0.12
 
 ### Patch Changes

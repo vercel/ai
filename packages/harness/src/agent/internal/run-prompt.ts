@@ -103,6 +103,11 @@ export function runPrompt<
   onToolResultSettled?: (toolCallId: string) => void;
   onTurnFinished?: () => void;
   onTurnFailed?: () => void;
+  /**
+   * Reports that the adapter stream closed because the host intentionally
+   * suspended the still-running turn at a workflow slice boundary.
+   */
+  isTurnSuspending?: () => boolean;
   onStopConditionMet?: () => Promise<void>;
 }): {
   result: HarnessStreamTextResult<TOOLS, RUNTIME_CONTEXT>;
@@ -140,10 +145,13 @@ export function runPrompt<
    * `toUIMessageStream` consumers observe an `abort` chunk and
    * `isAborted: true` instead of a spurious `onError`. Every other failure
    * stays a real `error` part. Both outcomes notify `onTurnFailed` so the
-   * session's turn tracking returns to idle and the session stays usable.
+   * session's turn tracking returns to idle and the session stays usable,
+   * unless the turn is being suspended for a future continuation.
    */
   const settleFailure = (err: unknown) => {
-    input.onTurnFailed?.();
+    if (!input.isTurnSuspending?.()) {
+      input.onTurnFailed?.();
+    }
     if (input.abortSignal?.aborted) {
       result.abort({
         error: err,
@@ -391,6 +399,41 @@ export function runPrompt<
         isError: continuation.isError,
       });
     };
+    const enqueueHostToolOutcome = (options: {
+      toolCall: HarnessAgentToolApprovalContinuation['toolCall'];
+      outcome: HostToolOutcome;
+    }): void => {
+      if (options.outcome.ok) {
+        const stripped = stripWorkDir(
+          {
+            type: 'tool-result',
+            toolCallId: options.toolCall.toolCallId,
+            toolName: options.toolCall.toolName,
+            result: options.outcome.output as Extract<
+              HarnessV1StreamPart,
+              { type: 'tool-result' }
+            >['result'],
+          },
+          input.sessionWorkDir,
+        ) as Extract<HarnessV1StreamPart, { type: 'tool-result' }>;
+        result.enqueueContinuation({
+          type: 'tool-result',
+          toolCallId: options.toolCall.toolCallId,
+          toolName: options.toolCall.toolName,
+          input: options.toolCall.input,
+          output: stripped.result,
+        } as TextStreamPart<TOOLS>);
+        return;
+      }
+
+      result.enqueueContinuation({
+        type: 'tool-error',
+        toolCallId: options.toolCall.toolCallId,
+        toolName: options.toolCall.toolName,
+        input: options.toolCall.input,
+        error: options.outcome.error,
+      } as TextStreamPart<TOOLS>);
+    };
     const processPendingApprovalContinuation = async (
       approval: HarnessV1PendingToolApproval,
       continuation: HarnessAgentToolApprovalContinuation,
@@ -476,6 +519,10 @@ export function runPrompt<
         await finishForHostInputPause({ completeCurrentStep: false });
         return 'awaiting-tool-result';
       }
+      enqueueHostToolOutcome({
+        toolCall: continuation.toolCall,
+        outcome: execution.outcome,
+      });
       await telemetry.toolEnd(rawToolCall.toolCallId, execution.outcome);
       return 'continued';
     };
@@ -908,7 +955,18 @@ export function runPrompt<
           await telemetry.toolEnd(toolCall.toolCallId, execution.outcome);
         }
       }
-      if (finalFinish != null) {
+      const isTurnSuspending = input.isTurnSuspending?.() === true;
+      if (isTurnSuspending) {
+        if (finalFinish == null) {
+          /*
+           * A timed slice may stop in the middle of a model step. Its partial
+           * content remains in the bridge replay log for the next slice, but it
+           * cannot form a valid StepResult in this slice because no finish-step
+           * has arrived yet.
+           */
+          result.discardCurrentStepContent();
+        }
+      } else if (finalFinish != null) {
         input.onTurnFinished?.();
       } else {
         input.onTurnFailed?.();

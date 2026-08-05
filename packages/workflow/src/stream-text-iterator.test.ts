@@ -14,6 +14,7 @@ import type {
 } from '@ai-sdk/provider';
 import type {
   Experimental_LanguageModelStreamPart,
+  ModelMessage,
   StepResult,
   ToolSet,
 } from 'ai';
@@ -103,7 +104,69 @@ describe('streamTextIterator', () => {
     vi.clearAllMocks();
   });
 
+  describe('generation settings', () => {
+    it('merges defined prepareStep overrides', async () => {
+      vi.mocked(doStreamStep).mockResolvedValue(createMockDoStreamStepResult());
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {},
+        model: vi.fn() as any,
+        generationSettings: {
+          temperature: 0.2,
+          topP: 0.5,
+        },
+        prepareStep: () => ({
+          temperature: undefined,
+          topP: 0.9,
+          maxOutputTokens: 256,
+        }),
+      });
+
+      await iterator.next();
+
+      expect(vi.mocked(doStreamStep).mock.calls[0]?.[4]).toMatchObject({
+        temperature: 0.2,
+        topP: 0.9,
+        maxOutputTokens: 256,
+      });
+    });
+  });
+
   describe('conversation prompt', () => {
+    it('passes initial instructions and messages to prepareStep', async () => {
+      vi.mocked(doStreamStep).mockResolvedValueOnce(
+        createMockDoStreamStepResult(),
+      );
+      const initialMessages: ModelMessage[] = [
+        { role: 'user', content: 'initial message' },
+      ];
+      const prepareStep = vi.fn(() => ({}));
+
+      const iterator = streamTextIterator({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'initial message' }],
+          },
+        ],
+        initialInstructions: 'initial instructions',
+        initialMessages,
+        tools: {},
+        model: vi.fn() as any,
+        prepareStep,
+      });
+
+      await iterator.next();
+
+      expect(prepareStep).toHaveBeenCalledWith(
+        expect.objectContaining({
+          initialInstructions: 'initial instructions',
+          initialMessages,
+        }),
+      );
+    });
+
     it('preserves assistant text alongside tool calls for the next step', async () => {
       let capturedPrompt: LanguageModelV4Prompt | undefined;
 

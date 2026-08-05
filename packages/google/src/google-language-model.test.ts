@@ -610,6 +610,64 @@ describe('doGenerate', () => {
     };
   };
 
+  it('should omit function call IDs from Vertex requests', async () => {
+    prepareJsonResponse({ content: 'done' });
+
+    const vertexModel = new GoogleLanguageModel('gemini-pro', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+    });
+
+    await vertexModel.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Look up the answer.' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call_repro_1',
+              toolName: 'lookup',
+              input: { query: 'vertex function id repro' },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call_repro_1',
+              toolName: 'lookup',
+              output: {
+                type: 'json',
+                value: { answer: 'known' },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.contents[1].parts[0].functionCall).toEqual({
+      name: 'lookup',
+      args: { query: 'vertex function id repro' },
+    });
+    expect(requestBody.contents[2].parts[0].functionResponse).toEqual({
+      name: 'lookup',
+      response: {
+        name: 'lookup',
+        content: { answer: 'known' },
+      },
+    });
+  });
+
   it('should send PDF tool result data as inlineData for Gemini 2.5 legacy tool results', async () => {
     server.urls[TEST_URL_GEMINI_2_5_FLASH_LITE].response = {
       type: 'json-value',

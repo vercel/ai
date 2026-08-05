@@ -1,5 +1,119 @@
 # @ai-sdk/langchain
 
+## 3.0.52
+
+### Patch Changes
+
+- Updated dependencies [3836a85]
+  - ai@7.0.52
+
+## 3.0.51
+
+### Patch Changes
+
+- ai@7.0.51
+
+## 3.0.50
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+- Updated dependencies [da64b51]
+  - ai@7.0.50
+
+## 3.0.49
+
+### Patch Changes
+
+- ai@7.0.49
+
+## 3.0.48
+
+### Patch Changes
+
+- ai@7.0.48
+
+## 3.0.47
+
+### Patch Changes
+
+- ai@7.0.47
+
+## 3.0.46
+
+### Patch Changes
+
+- ai@7.0.46
+
+## 3.0.45
+
+### Patch Changes
+
+- Updated dependencies [d6ce0ee]
+- Updated dependencies [fa95504]
+- Updated dependencies [349afe7]
+  - ai@7.0.45
+
+## 3.0.44
+
+### Patch Changes
+
+- Updated dependencies [015acb4]
+  - ai@7.0.44
+
+## 3.0.43
+
+### Patch Changes
+
+- Updated dependencies [b192878]
+  - ai@7.0.43
+
+## 3.0.42
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [60f97f6]
+- Updated dependencies [6a5bdff]
+- Updated dependencies [6de2ec1]
+  - ai@7.0.42
+
+## 3.0.41
+
+### Patch Changes
+
+- 092928a: Fix missing text deltas when LangChain AI message chunks come from a different module build.
+- Updated dependencies [2e2224b]
+  - ai@7.0.41
+
+## 3.0.40
+
+### Patch Changes
+
+- Updated dependencies [c3782a6]
+  - ai@7.0.40
+
+## 3.0.39
+
+### Patch Changes
+
+- Updated dependencies [09a52cb]
+  - ai@7.0.39
+
+## 3.0.38
+
+### Patch Changes
+
+- Updated dependencies [7bd6bdd]
+- Updated dependencies [1e2f324]
+  - ai@7.0.38
+
+## 3.0.37
+
+### Patch Changes
+
+- ai@7.0.37
+
 ## 3.0.36
 
 ### Patch Changes
