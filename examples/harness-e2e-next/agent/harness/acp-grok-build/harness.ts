@@ -1,4 +1,4 @@
-import { createACP, VERSION } from '@ai-sdk/harness-acp';
+import { createACP } from '@ai-sdk/harness-acp';
 
 const harnessId = 'acp-grok-build';
 
@@ -14,10 +14,6 @@ export const grokBuildACPHarness = createACP({
     envSources: {
       XAI_API_KEY: 'XAI_API_KEY',
     },
-    env: {
-      GROK_CLIENT_NAME: 'ai-sdk/harness-acp',
-      GROK_CLIENT_VERSION: VERSION,
-    },
   },
   providerAuthentication: {
     gateway: {
@@ -25,6 +21,8 @@ export const grokBuildACPHarness = createACP({
         type: 'launch',
         env: {
           GROK_DEFAULT_MODEL: 'openai/gpt-5.4',
+          GROK_CLIENT_NAME: { $source: 'client-app-name' },
+          GROK_CLIENT_VERSION: { $source: 'client-app-version' },
           XAI_API_KEY: { $source: 'gateway-api-key' },
           GROK_XAI_API_BASE_URL: {
             $source: 'gateway-base-url',

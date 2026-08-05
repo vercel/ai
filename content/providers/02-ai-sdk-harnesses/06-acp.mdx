@@ -85,6 +85,9 @@ try {
   creation and restoration.
 - `port`: exposed bridge port override.
 - `startupTimeoutMs`: bridge startup timeout. The default is 120 seconds.
+- `clientApp`: optional client attribution with `name` and `version`. It
+  defaults to the installed `ai-sdk/harness-acp/<version>` identity and is
+  available to Gateway route placeholders.
 
 Runtime-specific package names, environment variables, modes, and session
 metadata belong in the inline profile, not in the generic adapter.
@@ -157,8 +160,11 @@ Prefer an advertised ACP mechanism when the runtime exposes one:
 If the runtime does not advertise a suitable method but documents a supported
 launch environment or session metadata path, use `launch` or `session`.
 Profile values such as `gateway-api-key`, `gateway-base-url`,
-`gateway-authorization`, and `client-app` are placeholders that the adapter
-resolves only after Gateway authentication has been selected.
+`gateway-authorization`, `client-app`, `client-app-name`, and
+`client-app-version` are placeholders that the adapter resolves only after
+Gateway authentication has been selected. The three client-app placeholders
+resolve to the combined `name/version` identifier, its name, and its version,
+respectively.
 
 Only declare a fallback route that the specific ACP implementation supports.
 If a requested advertised method or capability is missing, the adapter fails
@@ -228,11 +234,7 @@ Claude Code accepts the Anthropic-compatible Gateway root URL without `/v1`.
 This profile uses the runtime's supported launch environment:
 
 ```ts
-import {
-  createACP,
-  type ACPPermissionModeMapping,
-  VERSION,
-} from '@ai-sdk/harness-acp';
+import { createACP, type ACPPermissionModeMapping } from '@ai-sdk/harness-acp';
 
 export const claudeCodeACPHarness = createACP({
   harnessId: 'acp-claude-code',
@@ -247,7 +249,6 @@ export const claudeCodeACPHarness = createACP({
       ANTHROPIC_AUTH_TOKEN: 'ANTHROPIC_AUTH_TOKEN',
     },
     env: {
-      CLAUDE_AGENT_SDK_CLIENT_APP: `ai-sdk/harness-acp/${VERSION}`,
       IS_SANDBOX: '1',
     },
   },
@@ -274,9 +275,9 @@ export const claudeCodeACPHarness = createACP({
 
 Without Gateway credentials, this profile uses direct
 `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN` authentication. The
-`CLAUDE_AGENT_SDK_CLIENT_APP` value supplies the same versioned attribution
-through Claude's supported runtime setting. `IS_SANDBOX` allows Claude Code ACP
-to advertise `bypassPermissions` when the sandbox process runs as root.
+Gateway route supplies versioned attribution through Claude's supported
+`CLAUDE_AGENT_SDK_CLIENT_APP` setting. `IS_SANDBOX` allows Claude Code ACP to
+advertise `bypassPermissions` when the sandbox process runs as root.
 
 ### Codex ACP
 
@@ -364,7 +365,7 @@ advertise ACP session modes for its permission behavior, so this profile omits
 `permissionModeMapping`:
 
 ```ts
-import { createACP, VERSION } from '@ai-sdk/harness-acp';
+import { createACP } from '@ai-sdk/harness-acp';
 
 export const grokBuildACPHarness = createACP({
   harnessId: 'acp-grok-build',
@@ -378,10 +379,6 @@ export const grokBuildACPHarness = createACP({
     envSources: {
       XAI_API_KEY: 'XAI_API_KEY',
     },
-    env: {
-      GROK_CLIENT_NAME: 'ai-sdk/harness-acp',
-      GROK_CLIENT_VERSION: VERSION,
-    },
   },
   providerAuthentication: {
     gateway: {
@@ -389,6 +386,8 @@ export const grokBuildACPHarness = createACP({
         type: 'launch',
         env: {
           GROK_DEFAULT_MODEL: 'openai/gpt-5.4',
+          GROK_CLIENT_NAME: { $source: 'client-app-name' },
+          GROK_CLIENT_VERSION: { $source: 'client-app-version' },
           XAI_API_KEY: { $source: 'gateway-api-key' },
           GROK_XAI_API_BASE_URL: {
             $source: 'gateway-base-url',
@@ -406,10 +405,10 @@ export const grokBuildACPHarness = createACP({
 ```
 
 Without Gateway credentials, this profile uses direct `XAI_API_KEY`
-authentication. Grok Build handles its built-in safe operations internally.
-For permission requests sent through ACP, the adapter applies the configured
-Harness `permissionMode` by tool kind and requests explicit approval for the
-rest.
+authentication. The Gateway route supplies client name and version attribution.
+Grok Build handles its built-in safe operations internally. For permission
+requests sent through ACP, the adapter applies the configured Harness
+`permissionMode` by tool kind and requests explicit approval for the rest.
 
 ## Known Limitations
 

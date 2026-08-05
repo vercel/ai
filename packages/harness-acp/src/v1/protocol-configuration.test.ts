@@ -11,7 +11,8 @@ import {
 const gateway = {
   apiKey: 'gateway-key',
   baseUrl: 'https://gateway.example',
-  clientApp: 'ai-sdk/harness-acp/0.0.0-test',
+  clientAppName: 'ai-sdk/harness-acp',
+  clientAppVersion: '0.0.0-test',
 };
 
 describe('ACP protocol configuration', () => {

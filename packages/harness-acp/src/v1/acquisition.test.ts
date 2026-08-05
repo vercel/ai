@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { ACPProviderAuthenticationCompatibility } from '../acp-auth';
+import type {
+  ACPClientApp,
+  ACPProviderAuthenticationCompatibility,
+} from '../acp-auth';
 import type {
   ACPNpmImplementation,
   ACPPermissionModeMapping,
@@ -61,14 +64,21 @@ const lockedImplementation = {
   },
 } as const satisfies ACPNpmImplementation;
 
+const clientApp = {
+  name: 'ai-sdk/harness-acp',
+  version: '0.0.0-test',
+} as const satisfies ACPClientApp;
+
 function identity({
   implementation = simpleImplementation,
   harnessId = 'example-acp',
+  clientApp: clientAppOverride = clientApp,
   providerAuthentication,
   permissionModeMapping,
 }: {
   implementation?: ACPNpmImplementation;
   harnessId?: string;
+  clientApp?: ACPClientApp;
   providerAuthentication?: ACPProviderAuthenticationCompatibility;
   permissionModeMapping?: ACPPermissionModeMapping;
 } = {}): string {
@@ -76,6 +86,7 @@ function identity({
     harnessId,
     acpVersion: 'v1',
     implementation,
+    clientApp: clientAppOverride,
     providerAuthentication,
     permissionModeMapping,
   });
@@ -326,6 +337,11 @@ describe('ACP npm acquisition', () => {
       }),
     ).not.toBe(baseIdentity);
     expect(identity({ harnessId: 'other-acp' })).not.toBe(baseIdentity);
+    expect(
+      identity({
+        clientApp: { name: 'custom-client', version: '4.5.6' },
+      }),
+    ).not.toBe(baseIdentity);
     expect(
       identity({
         permissionModeMapping: {

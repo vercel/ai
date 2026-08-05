@@ -685,6 +685,8 @@ describe('createACP', () => {
     expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).not.toBe('test-key');
     expect(spawns[0].env.AI_SDK_ACP_GATEWAY_API_KEY).toBeUndefined();
+    expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_NAME).toBeUndefined();
+    expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_VERSION).toBeUndefined();
     expect(session.modelId).toBeUndefined();
     expect(stop).not.toHaveBeenCalled();
 
@@ -1144,9 +1146,10 @@ describe('createACP', () => {
     expect(spawns[1]?.env.AI_SDK_ACP_GATEWAY_BASE_URL).toBe(
       'https://gateway.example/custom',
     );
-    expect(spawns[1]?.env.AI_SDK_ACP_CLIENT_APP).toBe(
-      'ai-sdk/harness-acp/0.0.0-test',
+    expect(spawns[1]?.env.AI_SDK_ACP_CLIENT_APP_NAME).toBe(
+      'ai-sdk/harness-acp',
     );
+    expect(spawns[1]?.env.AI_SDK_ACP_CLIENT_APP_VERSION).toBe('0.0.0-test');
     expect(writes).toHaveLength(writeCount);
 
     emitColdRestoration({
@@ -2559,6 +2562,7 @@ describe('createACP', () => {
     const harness = createACP({
       harnessId: 'codex-acp-gateway',
       auth: 'ai-gateway',
+      clientApp: { name: 'custom-client', version: '1.2.3' },
       implementation: {
         ...implementation,
         envSources: {},
@@ -2589,9 +2593,8 @@ describe('createACP', () => {
     expect(spawns[0].env.AI_SDK_ACP_GATEWAY_BASE_URL).toBe(
       'https://gateway.example/custom',
     );
-    expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP).toBe(
-      'ai-sdk/harness-acp/0.0.0-test',
-    );
+    expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_NAME).toBe('custom-client');
+    expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_VERSION).toBe('1.2.3');
     expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).not.toBe('gateway-key');
     expect(spawns[0].env.CODEX_API_KEY).toBeUndefined();
 

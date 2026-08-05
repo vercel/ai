@@ -21,6 +21,9 @@ describe('ACP bridge environment', () => {
           env: {
             AI_GATEWAY_API_KEY: { $source: 'gateway-api-key' },
             AI_GATEWAY_BASE_URL: { $source: 'gateway-base-url' },
+            CLIENT_APP: { $source: 'client-app' },
+            CLIENT_APP_NAME: { $source: 'client-app-name' },
+            CLIENT_APP_VERSION: { $source: 'client-app-version' },
           },
         },
       },

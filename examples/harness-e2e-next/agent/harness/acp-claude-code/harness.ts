@@ -1,8 +1,4 @@
-import {
-  createACP,
-  type ACPPermissionModeMapping,
-  VERSION,
-} from '@ai-sdk/harness-acp';
+import { createACP, type ACPPermissionModeMapping } from '@ai-sdk/harness-acp';
 
 const harnessId = 'acp-claude-code';
 
@@ -17,9 +13,6 @@ export const claudeCodeACPHarness = createACP({
     envSources: {
       ANTHROPIC_API_KEY: 'ANTHROPIC_API_KEY',
       ANTHROPIC_AUTH_TOKEN: 'ANTHROPIC_AUTH_TOKEN',
-    },
-    env: {
-      CLAUDE_AGENT_SDK_CLIENT_APP: `ai-sdk/harness-acp/${VERSION}`,
     },
   },
   permissionModeMapping: {

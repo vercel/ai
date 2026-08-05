@@ -30,5 +30,5 @@ binary exposes `XAI_API_KEY` for direct authentication,
 `GROK_XAI_API_BASE_URL` and `GROK_MODELS_BASE_URL` for its
 OpenAI-compatible inference and model endpoints, and `GROK_CLIENT_NAME` plus
 `GROK_CLIENT_VERSION` for attribution. The Gateway launch route maps both
-endpoints to the configured Gateway URL ending in `/v1`, while direct mode
-leaves them untouched.
+endpoints to the configured Gateway URL ending in `/v1` and supplies the client
+attribution, while direct mode leaves those values untouched.

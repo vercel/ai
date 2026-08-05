@@ -4,7 +4,8 @@ import { resolveACPProfileValue } from './profile-values';
 const gateway = {
   apiKey: 'gateway-key',
   baseUrl: 'https://gateway.example',
-  clientApp: 'ai-sdk/harness-acp/1.2.3',
+  clientAppName: 'ai-sdk/harness-acp',
+  clientAppVersion: '1.2.3',
 };
 
 describe('resolveACPProfileValue', () => {
@@ -17,6 +18,8 @@ describe('resolveACPProfileValue', () => {
             headers: {
               Authorization: { $source: 'gateway-authorization' },
               'x-client-app': { $source: 'client-app' },
+              'x-client-app-name': { $source: 'client-app-name' },
+              'x-client-app-version': { $source: 'client-app-version' },
             },
           },
         },
@@ -28,6 +31,8 @@ describe('resolveACPProfileValue', () => {
         headers: {
           Authorization: 'Bearer gateway-key',
           'x-client-app': 'ai-sdk/harness-acp/1.2.3',
+          'x-client-app-name': 'ai-sdk/harness-acp',
+          'x-client-app-version': '1.2.3',
         },
       },
     });

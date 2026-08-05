@@ -5,6 +5,7 @@ import {
   createACPAuthenticationProfileIdentity,
   resolveACPProviderAuthenticationCompatibility,
   type ACPAuthenticationProfileIdentity,
+  type ACPClientApp,
 } from './acp-auth';
 import { createACPV1, type ACPV1Settings } from './v1';
 import { createImplementationIdentity } from './v1/acquisition';
@@ -16,12 +17,16 @@ import {
 } from './v1/acp-v1-bridge-protocol';
 import { VERSION } from './version';
 
-const ACP_CLIENT_APP = `ai-sdk/harness-acp/${VERSION}`;
+const DEFAULT_ACP_CLIENT_APP = {
+  name: 'ai-sdk/harness-acp',
+  version: VERSION,
+} as const satisfies ACPClientApp;
 
 export type ACPHarnessSettings<TBuiltinTools extends ToolSet = {}> = {
   readonly builtinTools?: TBuiltinTools;
   readonly port?: number;
   readonly startupTimeoutMs?: number;
+  readonly clientApp?: ACPClientApp;
   readonly version?: ACPV1Settings['version'];
   readonly harnessId: ACPV1Settings['harnessId'];
   readonly auth?: ACPV1Settings['auth'];
@@ -88,6 +93,7 @@ export function createACP<TBuiltinTools extends ToolSet = {}>(
   const version = (settings as { readonly version?: string }).version ?? 'v1';
   switch (version) {
     case 'v1': {
+      const clientApp = settings.clientApp ?? DEFAULT_ACP_CLIENT_APP;
       const providerAuthenticationCompatibility =
         resolveACPProviderAuthenticationCompatibility({
           auth: settings.auth,
@@ -98,6 +104,7 @@ export function createACP<TBuiltinTools extends ToolSet = {}>(
         harnessId: settings.harnessId,
         acpVersion: version,
         implementation: settings.implementation,
+        clientApp,
         providerAuthentication: providerAuthenticationCompatibility,
         permissionModeMapping: settings.permissionModeMapping,
       });
@@ -137,7 +144,7 @@ export function createACP<TBuiltinTools extends ToolSet = {}>(
           settings.builtinTools ?? (ACP_BUILTIN_TOOLS as TBuiltinTools),
         port: settings.port,
         startupTimeoutMs: settings.startupTimeoutMs,
-        clientApp: ACP_CLIENT_APP,
+        clientApp,
         implementationIdentity,
         authenticationProfile,
         providerAuthenticationCompatibility,

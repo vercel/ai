@@ -663,13 +663,19 @@ async function configureProviderAuthentication({
 function resolveGatewayValues(): ACPGatewayValues {
   const apiKey = processEnv.AI_SDK_ACP_GATEWAY_API_KEY;
   const baseUrl = processEnv.AI_SDK_ACP_GATEWAY_BASE_URL;
-  const clientApp = processEnv.AI_SDK_ACP_CLIENT_APP;
-  if (apiKey == null || baseUrl == null || clientApp == null) {
+  const clientAppName = processEnv.AI_SDK_ACP_CLIENT_APP_NAME;
+  const clientAppVersion = processEnv.AI_SDK_ACP_CLIENT_APP_VERSION;
+  if (
+    apiKey == null ||
+    baseUrl == null ||
+    clientAppName == null ||
+    clientAppVersion == null
+  ) {
     throw new Error(
       'AI Gateway profile values were not supplied to the ACP bridge.',
     );
   }
-  return { apiKey, baseUrl, clientApp };
+  return { apiKey, baseUrl, clientAppName, clientAppVersion };
 }
 
 function createChildEnvironment({
@@ -682,7 +688,8 @@ function createChildEnvironment({
     'BRIDGE_WS_PORT',
     'AI_SDK_ACP_GATEWAY_API_KEY',
     'AI_SDK_ACP_GATEWAY_BASE_URL',
-    'AI_SDK_ACP_CLIENT_APP',
+    'AI_SDK_ACP_CLIENT_APP_NAME',
+    'AI_SDK_ACP_CLIENT_APP_VERSION',
     ACP_BRIDGE_CONFIGURATION_ENV,
   ]);
   return {

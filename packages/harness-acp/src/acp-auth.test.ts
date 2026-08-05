@@ -7,7 +7,10 @@ import {
 } from './acp-auth';
 import type { ACPGatewayRoute, ACPProviderAuthenticationMode } from './v1';
 
-const clientApp = 'ai-sdk/harness-acp/0.0.0-test';
+const clientApp = {
+  name: 'ai-sdk/harness-acp',
+  version: '0.0.0-test',
+} as const;
 
 const route = {
   type: 'auth-method',
@@ -63,7 +66,8 @@ describe('resolveACPProviderAuthentication', () => {
       env: {
         AI_SDK_ACP_GATEWAY_API_KEY: 'gateway-key',
         AI_SDK_ACP_GATEWAY_BASE_URL: 'https://gateway.example',
-        AI_SDK_ACP_CLIENT_APP: clientApp,
+        AI_SDK_ACP_CLIENT_APP_NAME: clientApp.name,
+        AI_SDK_ACP_CLIENT_APP_VERSION: clientApp.version,
       },
     });
   });
@@ -74,7 +78,8 @@ describe('resolveACPProviderAuthentication', () => {
       env: {
         AI_SDK_ACP_GATEWAY_API_KEY: 'oidc-token',
         AI_SDK_ACP_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
-        AI_SDK_ACP_CLIENT_APP: clientApp,
+        AI_SDK_ACP_CLIENT_APP_NAME: clientApp.name,
+        AI_SDK_ACP_CLIENT_APP_VERSION: clientApp.version,
       },
     });
   });
@@ -108,7 +113,8 @@ describe('resolveACPProviderAuthentication', () => {
     ).toEqual({
       AI_SDK_ACP_GATEWAY_API_KEY: 'ambient-gateway-key',
       AI_SDK_ACP_GATEWAY_BASE_URL: 'https://configured.example',
-      AI_SDK_ACP_CLIENT_APP: clientApp,
+      AI_SDK_ACP_CLIENT_APP_NAME: clientApp.name,
+      AI_SDK_ACP_CLIENT_APP_VERSION: clientApp.version,
     });
   });
 
@@ -137,7 +143,8 @@ describe('resolveACPEnv', () => {
     ).toEqual({
       AI_SDK_ACP_GATEWAY_API_KEY: 'gateway-key',
       AI_SDK_ACP_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
-      AI_SDK_ACP_CLIENT_APP: clientApp,
+      AI_SDK_ACP_CLIENT_APP_NAME: clientApp.name,
+      AI_SDK_ACP_CLIENT_APP_VERSION: clientApp.version,
     });
   });
 });
@@ -240,7 +247,8 @@ describe('resolveACPProviderAuthenticationCompatibility', () => {
       env: {
         AI_SDK_ACP_GATEWAY_API_KEY: 'rotated-secret',
         AI_SDK_ACP_GATEWAY_BASE_URL: 'https://first.example',
-        AI_SDK_ACP_CLIENT_APP: clientApp,
+        AI_SDK_ACP_CLIENT_APP_NAME: clientApp.name,
+        AI_SDK_ACP_CLIENT_APP_VERSION: clientApp.version,
       },
     });
     expect(() =>

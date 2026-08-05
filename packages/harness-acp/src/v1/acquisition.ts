@@ -1,5 +1,8 @@
 import { createHash } from 'node:crypto';
-import type { ACPProviderAuthenticationCompatibility } from '../acp-auth';
+import type {
+  ACPClientApp,
+  ACPProviderAuthenticationCompatibility,
+} from '../acp-auth';
 import type {
   ACPNpmImplementation,
   ACPPermissionModeMapping,
@@ -116,12 +119,14 @@ export function createImplementationIdentity({
   harnessId,
   acpVersion,
   implementation,
+  clientApp,
   providerAuthentication,
   permissionModeMapping,
 }: {
   harnessId: string;
   acpVersion: 'v1';
   implementation: ACPNpmImplementation;
+  clientApp: ACPClientApp;
   providerAuthentication: ACPProviderAuthenticationCompatibility | undefined;
   permissionModeMapping?: ACPPermissionModeMapping;
 }): string {
@@ -155,6 +160,7 @@ export function createImplementationIdentity({
     acquisition,
     executable: implementation.executable,
     args: implementation.args ?? [],
+    clientApp,
     environment: {
       ...sensitiveEnvironment,
       ...literalEnvironment,

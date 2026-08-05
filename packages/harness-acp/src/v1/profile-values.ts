@@ -3,7 +3,8 @@ import type { ACPProfileValue, ACPSerializableValue } from './acp-v1-settings';
 export type ACPGatewayValues = {
   readonly apiKey: string;
   readonly baseUrl: string;
-  readonly clientApp: string;
+  readonly clientAppName: string;
+  readonly clientAppVersion: string;
 };
 
 export function resolveACPProfileValue({
@@ -42,7 +43,9 @@ function isValueSource(value: object): value is {
     | 'gateway-api-key'
     | 'gateway-base-url'
     | 'gateway-authorization'
-    | 'client-app';
+    | 'client-app'
+    | 'client-app-name'
+    | 'client-app-version';
   readonly prefix?: string;
   readonly suffix?: string;
   readonly ensureSuffix?: string;
@@ -72,7 +75,9 @@ function resolveSource({
     | 'gateway-api-key'
     | 'gateway-base-url'
     | 'gateway-authorization'
-    | 'client-app';
+    | 'client-app'
+    | 'client-app-name'
+    | 'client-app-version';
   gateway: ACPGatewayValues;
 }): string {
   switch (source) {
@@ -83,6 +88,10 @@ function resolveSource({
     case 'gateway-authorization':
       return `Bearer ${gateway.apiKey}`;
     case 'client-app':
-      return gateway.clientApp;
+      return `${gateway.clientAppName}/${gateway.clientAppVersion}`;
+    case 'client-app-name':
+      return gateway.clientAppName;
+    case 'client-app-version':
+      return gateway.clientAppVersion;
   }
 }

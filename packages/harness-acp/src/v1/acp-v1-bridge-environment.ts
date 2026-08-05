@@ -22,6 +22,8 @@ const profileValueSchema: z.ZodType<ACPProfileValue> = z.lazy(() =>
         'gateway-base-url',
         'gateway-authorization',
         'client-app',
+        'client-app-name',
+        'client-app-version',
       ]),
       prefix: z.string().optional(),
       suffix: z.string().optional(),

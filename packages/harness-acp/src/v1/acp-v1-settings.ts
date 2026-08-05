@@ -12,7 +12,9 @@ export type ACPValueSource = {
     | 'gateway-api-key'
     | 'gateway-base-url'
     | 'gateway-authorization'
-    | 'client-app';
+    | 'client-app'
+    | 'client-app-name'
+    | 'client-app-version';
   readonly prefix?: string;
   readonly suffix?: string;
   readonly ensureSuffix?: string;

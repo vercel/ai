@@ -11,10 +11,15 @@ const DEFAULT_AI_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh';
 
 export type ACPAuthOptions = ACPProviderAuthenticationMode;
 
+export type ACPClientApp = {
+  readonly name: string;
+  readonly version: string;
+};
+
 type ACPAuthResolutionOptions = {
   readonly mode?: ACPAuthOptions;
   readonly providerAuthentication: ACPProviderAuthentication | undefined;
-  readonly clientApp: string;
+  readonly clientApp: ACPClientApp;
 };
 
 type ACPGatewayCredentialSource = 'AI_GATEWAY_API_KEY' | 'VERCEL_OIDC_TOKEN';
@@ -159,7 +164,8 @@ export function resolveACPProviderAuthentication({
     env: {
       AI_SDK_ACP_GATEWAY_API_KEY: apiKey,
       AI_SDK_ACP_GATEWAY_BASE_URL: gateway.baseUrl,
-      AI_SDK_ACP_CLIENT_APP: auth.clientApp,
+      AI_SDK_ACP_CLIENT_APP_NAME: auth.clientApp.name,
+      AI_SDK_ACP_CLIENT_APP_VERSION: auth.clientApp.version,
     },
   };
 }

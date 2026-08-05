@@ -34,6 +34,7 @@ import { WebSocket } from 'ws';
 import {
   resolveACPProviderAuthentication,
   type ACPAuthenticationProfileIdentity,
+  type ACPClientApp,
   type ACPProviderAuthenticationCompatibility,
 } from '../acp-auth';
 import {
@@ -115,7 +116,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
   builtinTools: TBuiltinTools;
   port?: number;
   startupTimeoutMs?: number;
-  clientApp: string;
+  clientApp: ACPClientApp;
   implementationIdentity: string;
   authenticationProfile: ACPAuthenticationProfileIdentity;
   providerAuthenticationCompatibility:
@@ -129,6 +130,8 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
     harnessId: settings.harnessId,
     implementation: settings.implementation,
   });
+
+  const clientAppValue = `${clientApp.name}/${clientApp.version}`;
 
   const BOOTSTRAP_DIR = `.harness-bootstrap/${settings.harnessId}`;
 
@@ -346,7 +349,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               implementationIdentity,
               authenticationProfile,
               providerAuthenticationCompatibility,
-              clientApp,
+              clientApp: clientAppValue,
               builtinTools: builtinToolCatalog,
               permissionMode,
               permissionModeMapping,
@@ -399,7 +402,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
                   recoveryStart,
                   authenticationProfile,
                   providerAuthenticationCompatibility,
-                  clientApp,
+                  clientApp: clientAppValue,
                   sessionMeta: settings.session?.meta,
                   builtinTools: builtinToolCatalog,
                   permissionModeMapping,
@@ -430,7 +433,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
             permissionMode,
             authenticationProfile,
             providerAuthenticationCompatibility,
-            clientApp,
+            clientApp: clientAppValue,
             sessionMeta: settings.session?.meta,
             builtinTools: builtinToolCatalog,
             permissionModeMapping,
@@ -588,7 +591,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         implementationIdentity,
         authenticationProfile,
         providerAuthenticationCompatibility,
-        clientApp,
+        clientApp: clientAppValue,
         builtinTools: builtinToolCatalog,
         permissionMode,
         permissionModeMapping,

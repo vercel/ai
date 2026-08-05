@@ -7,10 +7,16 @@ import type { ACPV1Settings } from './v1';
 describe('createACP built-in tool inference', () => {
   test('separates version-independent settings from ACP v1 settings', () => {
     expectTypeOf<
-      Extract<keyof ACPV1Settings, 'builtinTools' | 'port' | 'startupTimeoutMs'>
+      Extract<
+        keyof ACPV1Settings,
+        'builtinTools' | 'port' | 'startupTimeoutMs' | 'clientApp'
+      >
     >().toEqualTypeOf<never>();
     expectTypeOf<
-      Omit<ACPHarnessSettings, 'builtinTools' | 'port' | 'startupTimeoutMs'>
+      Omit<
+        ACPHarnessSettings,
+        'builtinTools' | 'port' | 'startupTimeoutMs' | 'clientApp'
+      >
     >().toEqualTypeOf<ACPV1Settings>();
   });
 
@@ -29,6 +35,7 @@ describe('createACP built-in tool inference', () => {
         executable: 'codex-acp',
       },
       builtinTools: { bash },
+      clientApp: { name: 'example-app', version: '1.2.3' },
     });
 
     expectTypeOf(harness.builtinTools).toEqualTypeOf<{ bash: typeof bash }>();
