@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 11197,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-11197-bedrock-nonstandard-region.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-11197-bedrock-nonstandard-region.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue #11197 reproduced: Bedrock Runtime selected incorrect endpoints."
+  }
+}
