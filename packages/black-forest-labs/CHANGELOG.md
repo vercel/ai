@@ -1,5 +1,13 @@
 # @ai-sdk/black-forest-labs
 
+## 2.0.21
+
+### Patch Changes
+
+- 53f1bc4: Add video model support to the Black Forest Labs provider (`blackForestLabs.video`) for the FLUX 3 video model, including text-to-video, image-to-video keyframes, video continuation, draft/draft-enhance generation, and AI SDK Core polling.
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+
 ## 2.0.20
 
 ### Patch Changes

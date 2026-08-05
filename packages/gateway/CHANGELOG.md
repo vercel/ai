@@ -1,5 +1,14 @@
 # @ai-sdk/gateway
 
+## 4.0.41
+
+### Patch Changes
+
+- 53c326e: chore(provider/gateway): update gateway model settings files
+- d765f82: Export the Gateway embedding and image model ID types.
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+
 ## 4.0.40
 
 ### Patch Changes

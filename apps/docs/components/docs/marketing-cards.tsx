@@ -12,6 +12,13 @@ const templates = [
     href: 'https://vercel.com/templates/next.js/nextjs-ai-chatbot',
   },
   {
+    title: 'eve Chat',
+    description:
+      'A persisted AI SDK chat app powered by eve with durable agent sessions, tools, and integrations.',
+    type: 'starter-kits',
+    href: 'https://vercel.com/templates/eve/eve-chat-template',
+  },
+  {
     title: 'Internal Knowledge Base',
     description: 'A retrieval-augmented generation starter with guardrails.',
     type: 'starter-kits',
