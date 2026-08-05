@@ -62,12 +62,12 @@ const harnessUtilsMocks = vi.hoisted(() => {
       this.sent.push(message);
       if (message == null || typeof message !== 'object') return;
       const type = Reflect.get(message, 'type');
-      if (type === 'shutdown') {
+      if (type === 'destroy') {
         queueMicrotask(() => this.emitClose({ reason: type }));
       }
-      if (type === 'detach') {
+      if (type === 'stop') {
         queueMicrotask(() => {
-          this.emit({ type: 'bridge-detach', data: {} });
+          this.emit({ type: 'bridge-stop', data: {} });
           this.emitClose({ reason: type });
         });
       }
@@ -1057,7 +1057,7 @@ describe('createACP', () => {
       'Remember the private phrase cedar-lantern.',
     );
     expect(serializedStopped).not.toContain('gateway-key-before-stop');
-    expect(firstChannel.sent.at(-1)).toEqual({ type: 'detach' });
+    expect(firstChannel.sent.at(-1)).toEqual({ type: 'stop' });
     expect(stop).not.toHaveBeenCalled();
     const writeCount = writes.length;
 
@@ -1255,7 +1255,7 @@ describe('createACP', () => {
     replacementChannel.emit({
       type: 'error',
       error: {
-        name: 'AI_HarnessCapabilityUnsupportedError',
+        name: 'AI_HarnessBridgeCapabilityUnsupportedError',
         message:
           'Cold ACP session restoration requires the agent to advertise sessionCapabilities.resume or loadSession; a fresh unrelated ACP session will not be created.',
       },
@@ -1272,7 +1272,7 @@ describe('createACP', () => {
           acpSessionId: 'acp-session-1',
         },
       }),
-      { type: 'shutdown' },
+      { type: 'destroy' },
     ]);
     expect(kills).toHaveLength(2);
     expect(stop).not.toHaveBeenCalled();
@@ -1368,9 +1368,9 @@ describe('createACP', () => {
     expect(secondStop).toEqual(firstStop);
     expect(
       stopChannel.sent.filter(message =>
-        isMessageType({ message, type: 'detach' }),
+        isMessageType({ message, type: 'stop' }),
       ),
-    ).toEqual([{ type: 'detach' }]);
+    ).toEqual([{ type: 'stop' }]);
 
     const destroyedSession = await harness.doStart({
       sessionId: 'session-destroy',
@@ -1396,9 +1396,9 @@ describe('createACP', () => {
     await destroyedSession.doDestroy();
     expect(
       destroyChannel.sent.filter(message =>
-        isMessageType({ message, type: 'shutdown' }),
+        isMessageType({ message, type: 'destroy' }),
       ),
-    ).toEqual([{ type: 'shutdown' }]);
+    ).toEqual([{ type: 'destroy' }]);
     expect(kills).toHaveLength(2);
     expect(stop).not.toHaveBeenCalled();
   });
@@ -2236,7 +2236,7 @@ describe('createACP', () => {
     channel.emit({
       type: 'error',
       error: {
-        name: 'AI_HarnessCapabilityUnsupportedError',
+        name: 'AI_HarnessBridgeCapabilityUnsupportedError',
         message: 'The catalog was not refreshed.',
       },
     });

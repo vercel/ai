@@ -1,4 +1,4 @@
-import { HarnessCapabilityUnsupportedError } from '@ai-sdk/harness';
+import { HarnessBridgeCapabilityUnsupportedError } from '@ai-sdk/harness/bridge';
 import type * as acp from '@agentclientprotocol/sdk';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -17,7 +17,7 @@ describe('ACP recovered session', () => {
         },
         harnessId: 'codex-acp',
       }),
-    ).toThrow(HarnessCapabilityUnsupportedError);
+    ).toThrow(HarnessBridgeCapabilityUnsupportedError);
     expect(() =>
       assertACPResumeCapability({
         initialization: {

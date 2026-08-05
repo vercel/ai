@@ -1,7 +1,5 @@
-import {
-  HarnessCapabilityUnsupportedError,
-  type HarnessV1BridgeToolWire,
-} from '@ai-sdk/harness';
+import type { HarnessV1BridgeToolWire } from '@ai-sdk/harness';
+import { HarnessBridgeCapabilityUnsupportedError } from '@ai-sdk/harness/bridge';
 import type { HostToolRelay } from './host-tool-relay';
 
 export async function refreshHostToolCatalog({
@@ -25,7 +23,7 @@ export async function refreshHostToolCatalog({
   ) {
     return;
   }
-  throw new HarnessCapabilityUnsupportedError({
+  throw new HarnessBridgeCapabilityUnsupportedError({
     harnessId,
     message:
       'The ACP implementation did not load the active harness-owned MCP ' +

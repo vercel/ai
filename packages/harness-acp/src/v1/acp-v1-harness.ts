@@ -12,6 +12,7 @@ import {
   type HarnessV1Session,
   type HarnessV1StreamPart,
 } from '@ai-sdk/harness';
+import { HarnessBridgeCapabilityUnsupportedError } from '@ai-sdk/harness/bridge';
 import {
   createBridgeErrorHandler,
   createBridgeStartupError,
@@ -567,7 +568,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           channel.beginClose();
           try {
             if (!channel.isClosed()) {
-              channel.send({ type: 'shutdown' });
+              channel.send({ type: 'destroy' });
             }
           } catch {}
           try {
@@ -1017,7 +1018,7 @@ function createSession({
   const terminateBridge = async ({
     command,
   }: {
-    command: 'detach' | 'shutdown';
+    command: 'stop' | 'destroy';
   }) => {
     if (stopped) return;
     stopped = true;
@@ -1027,9 +1028,7 @@ function createSession({
     });
     try {
       if (!channel.isClosed()) {
-        channel.send(
-          command === 'detach' ? { type: 'detach' } : { type: 'shutdown' },
-        );
+        channel.send({ type: command });
       }
     } catch {}
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -1246,7 +1245,7 @@ function createSession({
     },
     doStop: async () => {
       const data = createLifecycleData({ includeRecoveryStart: false });
-      await terminateBridge({ command: 'detach' });
+      await terminateBridge({ command: 'stop' });
       return {
         type: 'resume-session',
         harnessId,
@@ -1255,7 +1254,7 @@ function createSession({
       };
     },
     doDestroy: async () => {
-      await terminateBridge({ command: 'shutdown' });
+      await terminateBridge({ command: 'destroy' });
     },
   };
 }
@@ -1449,14 +1448,7 @@ function deserializeBridgeError({
   error: unknown;
   harnessId: string;
 }): unknown {
-  if (
-    error != null &&
-    typeof error === 'object' &&
-    'name' in error &&
-    error.name === 'AI_HarnessCapabilityUnsupportedError' &&
-    'message' in error &&
-    typeof error.message === 'string'
-  ) {
+  if (HarnessBridgeCapabilityUnsupportedError.isInstance(error)) {
     return unsupported({ harnessId, message: error.message });
   }
   return error;

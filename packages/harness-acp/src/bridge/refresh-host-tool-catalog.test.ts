@@ -1,4 +1,4 @@
-import { HarnessCapabilityUnsupportedError } from '@ai-sdk/harness';
+import { HarnessBridgeCapabilityUnsupportedError } from '@ai-sdk/harness/bridge';
 import { describe, expect, it, vi } from 'vitest';
 import { refreshHostToolCatalog } from './refresh-host-tool-catalog';
 
@@ -69,9 +69,11 @@ describe('refreshHostToolCatalog', () => {
     });
 
     await expect(promise).rejects.toSatisfy(error => {
-      expect(HarnessCapabilityUnsupportedError.isInstance(error)).toBe(true);
+      expect(HarnessBridgeCapabilityUnsupportedError.isInstance(error)).toBe(
+        true,
+      );
       expect(error).toMatchObject({
-        name: 'AI_HarnessCapabilityUnsupportedError',
+        name: 'AI_HarnessBridgeCapabilityUnsupportedError',
         harnessId: 'generic-acp',
         message:
           'The ACP implementation did not load the active harness-owned MCP tool catalog to revision 6 before the next prompt, so host tools cannot be exposed safely.',

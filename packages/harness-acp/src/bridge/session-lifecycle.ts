@@ -1,4 +1,4 @@
-import { HarnessCapabilityUnsupportedError } from '@ai-sdk/harness';
+import { HarnessBridgeCapabilityUnsupportedError } from '@ai-sdk/harness/bridge';
 import * as acp from '@agentclientprotocol/sdk';
 import type { ACPInitializeResult } from './v1';
 
@@ -22,7 +22,7 @@ export function resolveACPSessionRestorationMethod({
   if (initialization.agentCapabilities?.loadSession === true) {
     return 'load';
   }
-  throw new HarnessCapabilityUnsupportedError({
+  throw new HarnessBridgeCapabilityUnsupportedError({
     harnessId,
     message:
       'Cold ACP session restoration requires the agent to advertise sessionCapabilities.resume or loadSession; a fresh unrelated ACP session will not be created.',

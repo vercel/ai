@@ -1,4 +1,7 @@
-export { runBridge } from '../src/bridge';
+export {
+  HarnessBridgeCapabilityUnsupportedError,
+  runBridge,
+} from '../src/bridge';
 export type {
   RunBridgeOptions,
   BridgeTurn,

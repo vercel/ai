@@ -1,7 +1,5 @@
-import {
-  HarnessCapabilityUnsupportedError,
-  type HarnessV1PermissionMode,
-} from '@ai-sdk/harness';
+import type { HarnessV1PermissionMode } from '@ai-sdk/harness';
+import { HarnessBridgeCapabilityUnsupportedError } from '@ai-sdk/harness/bridge';
 import * as acp from '@agentclientprotocol/sdk';
 import type {
   ACPPermissionModeMapping,
@@ -146,6 +144,6 @@ function unsupported({
 }: {
   harnessId: string;
   message: string;
-}): HarnessCapabilityUnsupportedError {
-  return new HarnessCapabilityUnsupportedError({ harnessId, message });
+}): HarnessBridgeCapabilityUnsupportedError {
+  return new HarnessBridgeCapabilityUnsupportedError({ harnessId, message });
 }

@@ -1,4 +1,4 @@
-import { HarnessCapabilityUnsupportedError } from '@ai-sdk/harness';
+import { HarnessBridgeCapabilityUnsupportedError } from '@ai-sdk/harness/bridge';
 import * as acp from '@agentclientprotocol/sdk';
 import type { ACPInitializeResult } from './v1';
 
@@ -23,7 +23,7 @@ export function assertACPResumeCapability({
     sessionCapabilities?.resume == null ||
     sessionCapabilities.resume === false
   ) {
-    throw new HarnessCapabilityUnsupportedError({
+    throw new HarnessBridgeCapabilityUnsupportedError({
       harnessId,
       message:
         'ACP process-loss rerun requires the agent to advertise sessionCapabilities.resume; a fresh unrelated ACP session will not be created.',

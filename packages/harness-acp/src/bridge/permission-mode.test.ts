@@ -1,4 +1,4 @@
-import { HarnessCapabilityUnsupportedError } from '@ai-sdk/harness';
+import { HarnessBridgeCapabilityUnsupportedError } from '@ai-sdk/harness/bridge';
 import * as acp from '@agentclientprotocol/sdk';
 import { describe, expect, it, vi } from 'vitest';
 import type { ACPPermissionModeMapping } from '../v1/acp-v1-settings';
@@ -257,7 +257,9 @@ describe('ACP permission mode configuration', () => {
       });
       throw new Error('Expected permission validation to fail.');
     } catch (error) {
-      expect(HarnessCapabilityUnsupportedError.isInstance(error)).toBe(true);
+      expect(HarnessBridgeCapabilityUnsupportedError.isInstance(error)).toBe(
+        true,
+      );
       expect(error).toMatchObject({
         harnessId: 'example-acp',
         message: expect.stringContaining(

@@ -1,9 +1,9 @@
 import {
+  HarnessBridgeCapabilityUnsupportedError,
   runBridge,
   type BridgeEvent,
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
-import { HarnessCapabilityUnsupportedError } from '@ai-sdk/harness';
 import * as acp from '@agentclientprotocol/sdk';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -91,7 +91,7 @@ let sessionConfigurationFingerprint: string | undefined;
 let streamCapture: ACPStreamCapture | undefined;
 let initializationDiagnostic: Record<string, unknown> | undefined;
 let hostToolRelay: HostToolRelay | undefined;
-let catalogRefreshError: HarnessCapabilityUnsupportedError | undefined;
+let catalogRefreshError: HarnessBridgeCapabilityUnsupportedError | undefined;
 let sessionConfigurationFailure: { readonly error: unknown } | undefined;
 let historicalUpdatesSuppressed = false;
 let coldRestorationMethod: ACPSessionRestorationMethod | undefined;
@@ -131,7 +131,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   try {
     await ensureSession({ start, turn });
   } catch (error) {
-    if (HarnessCapabilityUnsupportedError.isInstance(error)) throw error;
+    if (HarnessBridgeCapabilityUnsupportedError.isInstance(error)) throw error;
     throw createACPBridgeError({
       stage: 'session initialization',
       cause: error,
@@ -335,7 +335,7 @@ async function ensureSession({
         timeoutMs: CATALOG_REFRESH_TIMEOUT_MS,
       });
     } catch (error) {
-      if (HarnessCapabilityUnsupportedError.isInstance(error)) {
+      if (HarnessBridgeCapabilityUnsupportedError.isInstance(error)) {
         catalogRefreshError = error;
       }
       throw error;
@@ -561,7 +561,7 @@ async function ensureSession({
     }
   } catch (error) {
     createdSession.dispose();
-    if (HarnessCapabilityUnsupportedError.isInstance(error)) {
+    if (HarnessBridgeCapabilityUnsupportedError.isInstance(error)) {
       catalogRefreshError = error;
     }
     sessionConfigurationFailure = { error };
