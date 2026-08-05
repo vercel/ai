@@ -2,4 +2,4 @@
 '@ai-sdk/provider-utils': patch
 ---
 
-Support Blob request bodies in postToApi.
+feat(provider-utils): support Blob request bodies in postToApi
