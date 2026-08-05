@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 2.0.126
+
+### Patch Changes
+
+- 1ce55ef: Export gateway embedding and image model ID types.
+- f50dc31: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 2.0.125
 
 ### Patch Changes

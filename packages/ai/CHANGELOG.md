@@ -1,5 +1,14 @@
 # ai
 
+## 5.0.227
+
+### Patch Changes
+
+- 212d793: Skip re-validating tool input for terminal output-available UI message parts.
+- Updated dependencies [1ce55ef]
+- Updated dependencies [f50dc31]
+  - @ai-sdk/gateway@2.0.126
+
 ## 5.0.226
 
 ### Patch Changes
