@@ -23,6 +23,7 @@ export interface StreamingToolCallTrackerOptions<
 > {
   /**
    * ID generator function for tool call IDs.
+   * Blank or repeated outputs are converted to usable unique IDs.
    * Defaults to the standard generateId.
    */
   generateId?: () => string;
@@ -194,6 +195,13 @@ export class StreamingToolCallTracker<
         return indexedToolCall;
       }
 
+      // A named delta with a distinct index starts a new call even when its
+      // wire ID and function name repeat. Providers may reuse IDs across
+      // parallel calls, so the ID/name pair cannot override index evidence.
+      if (index != null && name != null) {
+        return undefined;
+      }
+
       if (name != null) {
         const matchingToolCalls = [...toolCallsWithId].filter(
           toolCall => toolCall.function.name === name,
@@ -327,23 +335,36 @@ export class StreamingToolCallTracker<
       return wireId;
     }
 
-    let generatedId: string;
-    do {
-      generatedId = this._generateId();
-    } while (
-      generatedId.trim().length === 0 ||
-      this.usedToolCallIds.has(generatedId)
-    );
+    const generatedId =
+      this.getNonBlankString(this._generateId()) ?? 'tool-call';
 
-    this.usedToolCallIds.add(generatedId);
-    return generatedId;
+    if (!this.usedToolCallIds.has(generatedId)) {
+      this.usedToolCallIds.add(generatedId);
+      return generatedId;
+    }
+
+    // At most usedToolCallIds.size candidates can already be occupied, so
+    // checking one more suffix guarantees a unique ID without repeatedly
+    // invoking a potentially deterministic custom generator.
+    const maximumSuffix = this.usedToolCallIds.size + 1;
+    for (let suffix = 1; suffix <= maximumSuffix; suffix++) {
+      const suffixedId = `${generatedId}-${suffix}`;
+      if (!this.usedToolCallIds.has(suffixedId)) {
+        this.usedToolCallIds.add(suffixedId);
+        return suffixedId;
+      }
+    }
+
+    // The bounded search above is guaranteed to return by the pigeonhole
+    // principle. This guards against future changes invalidating that
+    // invariant without restoring an unbounded retry loop.
+    throw new Error('Failed to create a unique tool call ID.');
   }
 
   private getNonBlankString(
     value: string | null | undefined,
   ): string | undefined {
-    const trimmedValue = value?.trim();
-    return trimmedValue || undefined;
+    return value != null && value.trim().length > 0 ? value : undefined;
   }
 
   private processExistingToolCall(

@@ -540,6 +540,131 @@ describe('StreamingToolCallTracker', () => {
       ]);
     });
 
+    it('should keep same-name calls with repeated ids and distinct indices separate', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller, {
+        generateId: () => 'generated-id',
+      });
+
+      tracker.processDelta({
+        index: 0,
+        id: 'dup',
+        type: 'function',
+        function: { name: 'same_tool', arguments: '{"value":0}' },
+      });
+      tracker.processDelta({
+        index: 1,
+        id: 'dup',
+        type: 'function',
+        function: { name: 'same_tool', arguments: '{"value":1}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'dup',
+          toolName: 'same_tool',
+          input: '{"value":0}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'generated-id',
+          toolName: 'same_tool',
+          input: '{"value":1}',
+        },
+      ]);
+    });
+
+    it('should preserve nonblank ids and function names exactly', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        index: 0,
+        id: ' spaced ',
+        type: 'function',
+        function: { name: ' same_tool ', arguments: '{"value":' },
+      });
+      tracker.processDelta({
+        index: 0,
+        id: ' spaced ',
+        function: { arguments: '0}' },
+      });
+      tracker.processDelta({
+        index: 1,
+        id: 'spaced',
+        type: 'function',
+        function: { name: ' same_tool ', arguments: '{"value":1}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: ' spaced ',
+          toolName: ' same_tool ',
+          input: '{"value":0}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'spaced',
+          toolName: ' same_tool ',
+          input: '{"value":1}',
+        },
+      ]);
+    });
+
+    it('should create bounded unique ids when generateId returns duplicates', () => {
+      const { parts, controller } = createCollector();
+      const generateId = vi.fn<() => string>().mockReturnValue('generated-id');
+      const tracker = new StreamingToolCallTracker(controller, { generateId });
+
+      tracker.processDelta({
+        index: 0,
+        type: 'function',
+        function: { name: 'first', arguments: '{}' },
+      });
+      tracker.processDelta({
+        index: 1,
+        type: 'function',
+        function: { name: 'second', arguments: '{}' },
+      });
+      tracker.flush();
+
+      expect(generateId).toHaveBeenCalledTimes(2);
+      expect(
+        parts
+          .filter(part => part.type === 'tool-call')
+          .map(part => part.toolCallId),
+      ).toEqual(['generated-id', 'generated-id-1']);
+    });
+
+    it('should create usable ids when generateId returns blank values', () => {
+      const { parts, controller } = createCollector();
+      const generateId = vi.fn<() => string>().mockReturnValue('   ');
+      const tracker = new StreamingToolCallTracker(controller, { generateId });
+
+      tracker.processDelta({
+        index: 0,
+        type: 'function',
+        function: { name: 'first', arguments: '{}' },
+      });
+      tracker.processDelta({
+        index: 1,
+        type: 'function',
+        function: { name: 'second', arguments: '{}' },
+      });
+      tracker.flush();
+
+      expect(generateId).toHaveBeenCalledTimes(2);
+      expect(
+        parts
+          .filter(part => part.type === 'tool-call')
+          .map(part => part.toolCallId),
+      ).toEqual(['tool-call', 'tool-call-1']);
+    });
+
     it('should ignore unattributable deltas when multiple calls are active', () => {
       const { parts, controller } = createCollector();
       const tracker = new StreamingToolCallTracker(controller);
