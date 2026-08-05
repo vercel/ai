@@ -1388,6 +1388,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               result: {
                 type: 'advisor_result',
                 text: part.content.text,
+                ...(part.content.stop_reason != null && {
+                  stopReason: part.content.stop_reason,
+                }),
               },
             });
           } else if (part.content.type === 'advisor_redacted_result') {
@@ -1398,6 +1401,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               result: {
                 type: 'advisor_redacted_result',
                 encryptedContent: part.content.encrypted_content,
+                ...(part.content.stop_reason != null && {
+                  stopReason: part.content.stop_reason,
+                }),
               },
             });
           } else {
@@ -2097,6 +2103,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       result: {
                         type: 'advisor_result',
                         text: part.content.text,
+                        ...(part.content.stop_reason != null && {
+                          stopReason: part.content.stop_reason,
+                        }),
                       },
                     });
                   } else if (part.content.type === 'advisor_redacted_result') {
@@ -2107,6 +2116,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       result: {
                         type: 'advisor_redacted_result',
                         encryptedContent: part.content.encrypted_content,
+                        ...(part.content.stop_reason != null && {
+                          stopReason: part.content.stop_reason,
+                        }),
                       },
                     });
                   } else {
