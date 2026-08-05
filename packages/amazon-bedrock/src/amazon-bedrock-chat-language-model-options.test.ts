@@ -31,13 +31,26 @@ describe('amazonBedrockLanguageModelChatOptions', () => {
     });
   });
 
+  describe('userProfileId', () => {
+    it('accepts a user profile ID', () => {
+      const result = amazonBedrockLanguageModelChatOptions.safeParse({
+        userProfileId: 'uprof_123',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data?.userProfileId).toBe('uprof_123');
+    });
+  });
+
   describe('type inference', () => {
     it('infers AmazonBedrockLanguageModelChatOptions type correctly', () => {
       const options: AmazonBedrockLanguageModelChatOptions = {
         serviceTier: 'priority',
+        userProfileId: 'uprof_123',
       };
 
       expect(options.serviceTier).toBe('priority');
+      expect(options.userProfileId).toBe('uprof_123');
     });
   });
 });

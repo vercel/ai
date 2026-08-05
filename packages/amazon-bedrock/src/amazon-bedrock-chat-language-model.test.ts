@@ -4339,6 +4339,89 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should include user_profile_id in additionalModelRequestFields for Anthropic models', async () => {
+    server.urls[anthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'test response' }],
+          },
+        },
+        usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
+        stopReason: 'stop',
+      },
+    };
+
+    const anthropicModel = new AmazonBedrockChatLanguageModel(
+      anthropicModelId,
+      {
+        baseUrl: () => baseUrl,
+        headers: {},
+        generateId: () => 'test-id',
+      },
+    );
+
+    await anthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        amazonBedrock: {
+          userProfileId: 'uprof_123',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.additionalModelRequestFields).toEqual({
+      user_profile_id: 'uprof_123',
+    });
+  });
+
+  it('should warn and ignore userProfileId for non-Anthropic models', async () => {
+    server.urls[novaGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'test response' }],
+          },
+        },
+        usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
+        stopReason: 'stop',
+      },
+    };
+
+    const novaModel = new AmazonBedrockChatLanguageModel(novaModelId, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      generateId: () => 'test-id',
+    });
+
+    const result = await novaModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        amazonBedrock: {
+          userProfileId: 'uprof_123',
+        },
+      },
+    });
+
+    expect(result.warnings).toContainEqual({
+      type: 'unsupported',
+      feature: 'userProfileId',
+      details:
+        'userProfileId applies only to Anthropic models on Bedrock and will be ignored for this model.',
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(
+      requestBody.additionalModelRequestFields?.user_profile_id,
+    ).toBeUndefined();
+  });
+
   it('should not include anthropic-beta in HTTP headers', async () => {
     server.urls[anthropicGenerateUrl].response = {
       type: 'json-value',

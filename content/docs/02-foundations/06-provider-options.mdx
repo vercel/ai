@@ -249,6 +249,25 @@ const { text } = await generateText({
 });
 ```
 
+### User Profile Attribution
+
+For Anthropic User Profile attribution, pass a stored profile ID with `userProfileId`:
+
+```ts
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  prompt: 'Write a welcome email.',
+  providerOptions: {
+    anthropic: {
+      userProfileId: 'uprof_01HqRxK2mN8vT3wY',
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+```
+
 ---
 
 ## Combining Options
