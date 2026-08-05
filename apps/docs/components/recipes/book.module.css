@@ -6,7 +6,8 @@
   --book-default-width: 196;
   --book-depth: 29cqw;
   --book-border-radius: 6px 4px 4px 6px;
-  --bg-shadow: linear-gradient(
+  --bg-shadow:
+    linear-gradient(
       90deg,
       rgba(255, 255, 255, 0) 0%,
       rgba(255, 255, 255, 0) 12%,
@@ -69,7 +70,7 @@
 }
 
 .book::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   border: 1px solid var(--ds-gray-alpha-400);
