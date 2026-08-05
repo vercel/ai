@@ -305,12 +305,26 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   // Local controller for the Claude query. Aborted either by the host (via the
   // shared runtime's `turn.abortSignal`) or by us on a terminal error.
   const abortCtl = new AbortController();
+  // A host abort prefers the SDK's graceful `interrupt()` — Esc semantics: the
+  // in-flight turn is persisted to the session transcript and settles with an
+  // interrupted result, so a later resume (including the user's own
+  // `claude --resume`) still sees the work done before the interrupt. The hard
+  // abort kills the CLI process and loses that turn's records, so it is only
+  // the fallback — armed unconditionally, because aborting an already-settled
+  // query is a no-op — and the immediate path when the abort arrives before
+  // the query exists.
+  let gracefulAbort: (() => void) | undefined;
+  const onHostAbort = (): void => {
+    if (gracefulAbort) {
+      gracefulAbort();
+    } else {
+      abortCtl.abort();
+    }
+  };
   if (turn.abortSignal.aborted) {
     abortCtl.abort();
   } else {
-    turn.abortSignal.addEventListener('abort', () => abortCtl.abort(), {
-      once: true,
-    });
+    turn.abortSignal.addEventListener('abort', onHostAbort, { once: true });
   }
 
   const streamEventState = createClaudeStreamEventState();
@@ -431,6 +445,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       abortSignal: abortCtl.signal,
     },
   });
+
+  gracefulAbort = () => {
+    setTimeout(() => abortCtl.abort(), 5000);
+    void Promise.resolve()
+      .then(() => q.interrupt())
+      .catch(() => abortCtl.abort());
+  };
+
   let turnUsage: Record<string, unknown> | undefined;
   let totalCostUsd: number | undefined;
   let emittedTerminalError = false;

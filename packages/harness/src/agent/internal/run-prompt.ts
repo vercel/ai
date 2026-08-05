@@ -668,12 +668,18 @@ export function runPrompt<
           // paths help debugging); the consumer-facing settle uses the
           // workDir-stripped one, like every other forwarded part.
           await telemetry.error(value.error);
-          logBridgeError({
-            harnessId: input.harness.harnessId,
-            sessionId: input.session.sessionId,
-            context: 'harness stream error',
-            error: value.error,
-          });
+          // A turn the caller itself aborted ends with an error-shaped part by
+          // construction; diagnosing the caller's own signal to stderr reads
+          // as a malfunction. `settleFailure` below still reports it as an
+          // abort to the consumer.
+          if (!input.abortSignal?.aborted) {
+            logBridgeError({
+              harnessId: input.harness.harnessId,
+              sessionId: input.session.sessionId,
+              context: 'harness stream error',
+              error: value.error,
+            });
+          }
           settleFailure(displayValue.error);
           return;
         }
