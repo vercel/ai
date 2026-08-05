@@ -83,7 +83,7 @@
     "image-type": "^5.2.0",
     "just-bash": "^2.14.5",
     "mathjs": "^15.2.0",
-    "sharp": "^0.33.5",
+    "sharp": "^0.35.0",
     "terminal-image": "^2.0.0",
     "undici": "^8.5.0",
     "valibot": "1.1.0",
