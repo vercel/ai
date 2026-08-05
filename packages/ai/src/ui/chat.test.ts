@@ -450,6 +450,73 @@ describe('Chat', () => {
     });
   });
 
+  describe('regenerate', () => {
+    it('preserves a preceding assistant message', async () => {
+      server.urls['http://localhost:3000/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          formatChunk({ type: 'start' }),
+          formatChunk({ type: 'text-start', id: 'text-1' }),
+          formatChunk({
+            type: 'text-delta',
+            id: 'text-1',
+            delta: 'regenerated target',
+          }),
+          formatChunk({ type: 'text-end', id: 'text-1' }),
+          formatChunk({ type: 'finish', finishReason: 'stop' }),
+        ],
+      };
+
+      const initialMessages = [
+        {
+          id: 'user',
+          role: 'user',
+          parts: [{ type: 'text', text: 'prompt' }],
+        },
+        {
+          id: 'assistant-parent',
+          role: 'assistant',
+          parts: [{ type: 'text', text: 'parent' }],
+        },
+        {
+          id: 'assistant-target',
+          role: 'assistant',
+          parts: [{ type: 'text', text: 'target' }],
+        },
+      ] satisfies UIMessage[];
+      const expectedRequestMessages = structuredClone(
+        initialMessages.slice(0, 2),
+      );
+      const expectedAssistantParent = structuredClone(initialMessages[1]);
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        messages: initialMessages,
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+      });
+
+      await chat.regenerate({ messageId: 'assistant-target' });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        trigger: 'regenerate-message',
+        messageId: 'assistant-target',
+        messages: expectedRequestMessages,
+      });
+      expect(chat.messages).toMatchObject([
+        initialMessages[0],
+        expectedAssistantParent,
+        {
+          id: 'id-0',
+          role: 'assistant',
+          parts: [{ type: 'text', text: 'regenerated target' }],
+        },
+      ]);
+    });
+  });
+
   describe('send handle a disconnected response stream', () => {
     let chat: TestChat;
     let letOnFinishArgs: any[] = [];

@@ -618,11 +618,13 @@ function toUsageSummary(
 ): HarnessWorkflowUsageSummary | undefined {
   if (usage == null || typeof usage !== 'object') return undefined;
   const u = usage as {
-    inputTokens?: { total?: number };
-    outputTokens?: { total?: number };
+    inputTokens?: number | { total?: number };
+    outputTokens?: number | { total?: number };
   };
-  const inputTokens = u.inputTokens?.total;
-  const outputTokens = u.outputTokens?.total;
+  const inputTokens =
+    typeof u.inputTokens === 'number' ? u.inputTokens : u.inputTokens?.total;
+  const outputTokens =
+    typeof u.outputTokens === 'number' ? u.outputTokens : u.outputTokens?.total;
   if (inputTokens == null && outputTokens == null) return undefined;
   return {
     ...(inputTokens != null ? { inputTokens } : {}),
