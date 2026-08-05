@@ -2363,6 +2363,10 @@ export class WorkflowAgent<
             // Emit tool-approval-request chunks for tools that need approval
             // so useChat can show the approval UI
             if (options.writable) {
+              if (allToolResults.length > 0) {
+                await writeToolResults(options.writable, allToolResults);
+              }
+
               const approvalToolCalls = pausedToolCalls.filter((_, i) => {
                 const tcIndex = nonProviderToolCalls.indexOf(
                   pausedToolCalls[i],
@@ -2471,7 +2475,7 @@ export class WorkflowAgent<
           // UI can transition tool parts to output-available state and
           // properly separate multi-step model calls in the message history.
           if (options.writable) {
-            await writeToolResultsWithStepBoundary(
+            await writeToolResults(
               options.writable,
               executedToolResults.map(r => ({
                 toolCallId: r.modelResult.toolCallId,
@@ -2481,6 +2485,7 @@ export class WorkflowAgent<
                 )?.input,
                 output: r.rawOutput,
               })),
+              true,
             );
           }
 
@@ -2695,7 +2700,7 @@ async function writeApprovalRequests(
   }
 }
 
-async function writeToolResultsWithStepBoundary(
+async function writeToolResults(
   writable: WritableStream<any>,
   results: Array<{
     toolCallId: string;
@@ -2703,6 +2708,7 @@ async function writeToolResultsWithStepBoundary(
     input: unknown;
     output: unknown;
   }>,
+  writeStepBoundary = false,
 ) {
   'use step';
   const writer = writable.getWriter();
@@ -2716,12 +2722,14 @@ async function writeToolResultsWithStepBoundary(
         output: r.output,
       });
     }
-    // Emit step boundaries so the UI message history properly separates
-    // the tool call step from the subsequent text step. This ensures
-    // convertToModelMessages creates separate assistant messages for
-    // tool calls and text responses.
-    await writer.write({ type: 'finish-step' });
-    await writer.write({ type: 'start-step' });
+    if (writeStepBoundary) {
+      // Emit step boundaries so the UI message history properly separates
+      // the tool call step from the subsequent text step. This ensures
+      // convertToModelMessages creates separate assistant messages for
+      // tool calls and text responses.
+      await writer.write({ type: 'finish-step' });
+      await writer.write({ type: 'start-step' });
+    }
   } finally {
     writer.releaseLock();
   }

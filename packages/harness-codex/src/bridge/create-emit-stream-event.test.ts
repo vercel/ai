@@ -115,6 +115,62 @@ describe('createEmitStreamEvent', () => {
     `);
   });
 
+  it('emits accumulated reasoning summary events', () => {
+    const emitted: Record<string, unknown>[] = [];
+    const stepTracker = {
+      observeEvent: () => {},
+      finishStep: () => {},
+    } as CodexStepTracker;
+    const emitStreamEvent = createEmitStreamEvent({
+      send: event => emitted.push(event),
+      stepTracker,
+      setTurnUsage: () => {},
+      setThreadId: () => {},
+      emitWarning: () => {},
+      emitError: () => {},
+    });
+
+    emitStreamEvent({
+      type: 'item.updated',
+      item: {
+        type: 'reasoning',
+        id: 'reasoning-1',
+        text: 'Planning',
+      },
+    });
+    emitStreamEvent({
+      type: 'item.completed',
+      item: {
+        type: 'reasoning',
+        id: 'reasoning-1',
+        text: 'Planning the solution',
+      },
+    });
+
+    expect(emitted).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "reasoning-1",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "Planning",
+          "id": "reasoning-1",
+          "type": "reasoning-delta",
+        },
+        {
+          "delta": " the solution",
+          "id": "reasoning-1",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "reasoning-1",
+          "type": "reasoning-end",
+        },
+      ]
+    `);
+  });
+
   it('preserves command and MCP result translation', () => {
     const emitted: Record<string, unknown>[] = [];
     const stepTracker = {

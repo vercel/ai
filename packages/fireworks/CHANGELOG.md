@@ -1,5 +1,36 @@
 # @ai-sdk/fireworks
 
+## 3.0.25
+
+### Patch Changes
+
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+  - @ai-sdk/openai-compatible@3.0.23
+
+## 3.0.24
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+  - @ai-sdk/openai-compatible@3.0.22
+
+## 3.0.23
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+  - @ai-sdk/openai-compatible@3.0.21
+  - @ai-sdk/provider-utils@5.0.19
+
+## 3.0.22
+
+### Patch Changes
+
+- 550c127: Parse the object error envelope Fireworks actually returns (`{"error":{"object","type","code","message"}}`) instead of a bare string. The mismatched schema failed to parse, so error messages silently degraded to the HTTP reason phrase — `Bad Request` over HTTP/1.1, and an empty string over HTTP/2, which has no reason phrase. Fireworks' own message now reaches the caller, e.g. `Model not found, inaccessible, and/or not deployed` rather than `Not Found`.
+
 ## 3.0.21
 
 ### Patch Changes

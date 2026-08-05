@@ -1,5 +1,57 @@
 # ai
 
+## 7.0.52
+
+### Patch Changes
+
+- 3836a85: Skip re-validating tool input for terminal output-available UI message parts.
+- Updated dependencies [1bec07d]
+- Updated dependencies [53c326e]
+- Updated dependencies [d765f82]
+  - @ai-sdk/provider-utils@5.0.21
+  - @ai-sdk/gateway@4.0.41
+
+## 7.0.51
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+  - @ai-sdk/gateway@4.0.40
+
+## 7.0.50
+
+### Patch Changes
+
+- 79e133c: async APIs for generateVideo (poll, webhook)
+
+  Adds an asynchronous start/status flow to the experimental video model
+  interface (`VideoModelV4`): models may now implement `doStart`, `doStatus`,
+  and `handleWebhookOption` instead of (or in addition to) `doGenerate`, and
+  `experimental_generateVideo` accepts `poll` and `webhook` options to
+  orchestrate completion via polling or webhooks. Polling configuration can use
+  a custom delay implementation for durable workflow compatibility.
+
+- da64b51: feat(code-mode): simplify tool caller configuration
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+  - @ai-sdk/gateway@4.0.39
+  - @ai-sdk/provider-utils@5.0.19
+
+## 7.0.49
+
+### Patch Changes
+
+- Updated dependencies [fb6d2f8]
+  - @ai-sdk/gateway@4.0.38
+
+## 7.0.48
+
+### Patch Changes
+
+- Updated dependencies [bdd5e28]
+  - @ai-sdk/gateway@4.0.37
+
 ## 7.0.47
 
 ### Patch Changes

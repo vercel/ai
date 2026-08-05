@@ -1,5 +1,24 @@
 # @ai-sdk/provider-utils
 
+## 5.0.21
+
+### Patch Changes
+
+- 1bec07d: Fix streamed tool calls with non-zero, non-contiguous, reused, or missing indexes.
+
+## 5.0.20
+
+### Patch Changes
+
+- 160ccdb: Reduce bundle size by removing the runtime Zod 3 dependency.
+
+## 5.0.19
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+
 ## 5.0.18
 
 ### Patch Changes
