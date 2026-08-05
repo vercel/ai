@@ -1091,6 +1091,39 @@ describe('assistant messages', () => {
     `);
   });
 
+  it('should omit assistant messages that only contain unsigned reasoning', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'First question' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'Unsigned reasoning',
+          },
+          { type: 'text', text: '' },
+        ],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Follow-up question' }],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'First question' }, { text: 'Follow-up question' }],
+        },
+      ],
+      system: [],
+    });
+  });
+
   it('should omit multiple reasoning parts without signatures', async () => {
     const result = await convertToAmazonBedrockChatMessages([
       {
