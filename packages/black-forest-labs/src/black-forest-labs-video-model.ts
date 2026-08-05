@@ -610,6 +610,8 @@ export class BlackForestLabsVideoModel implements VideoModelV3 {
     };
     const { status, result } = value;
 
+    const cost = value.cost ?? operation.cost;
+
     if (status === 'Ready') {
       const parsed = bflVideoResultSchema.safeParse(result);
       if (!parsed.success) {
@@ -650,7 +652,7 @@ export class BlackForestLabsVideoModel implements VideoModelV3 {
                 ...(parsed.data.draft_cache != null && {
                   draftCache: parsed.data.draft_cache,
                 }),
-                ...(operation.cost != null && { cost: operation.cost }),
+                ...(cost != null && { cost }),
                 ...(operation.inputMegapixels != null && {
                   inputMegapixels: operation.inputMegapixels,
                 }),
@@ -752,6 +754,10 @@ const bflVideoPollSchema = z
     state: z.string().optional(),
     details: z.unknown().optional(),
     result: z.unknown().optional(),
+    // `SettledCostResultResponse.cost` — the price actually charged, which the
+    // API can only know once generation finishes. Absent on the plain
+    // `ResultResponse` variant.
+    cost: z.number().nullish(),
   })
   .refine(v => v.status != null || v.state != null, {
     message: 'Missing status in Black Forest Labs poll response',
@@ -760,4 +766,5 @@ const bflVideoPollSchema = z
     status: (v.status ?? v.state)!,
     details: v.details,
     result: v.result,
+    cost: v.cost,
   }));

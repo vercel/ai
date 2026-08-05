@@ -146,6 +146,72 @@ describe('BlackForestLabsVideoModel', () => {
       ]);
     });
 
+    // The submit response can only estimate, and returns null whenever the
+    // price depends on the finished video. `get_result` then answers with the
+    // `SettledCostResultResponse` variant, which carries the real charge.
+    it('should prefer the settled cost from the result over the submit estimate', async () => {
+      server.urls[POLL_URL].response = {
+        type: 'json-value',
+        body: { ...readyResponse, cost: 0.85 },
+      };
+
+      const result = await createModel().doGenerate({ ...defaultOptions });
+
+      expect(result.providerMetadata?.blackForestLabs?.videos).toStrictEqual([
+        {
+          id: REQUEST_ID,
+          videoUrl: VIDEO_URL,
+          seed: 7,
+          duration: 8,
+          cost: 0.85,
+          inputMegapixels: 1.23,
+          outputMegapixels: 4.56,
+        },
+      ]);
+    });
+
+    it('should report the settled cost when the submit response omits one', async () => {
+      server.urls[SUBMIT_URL].response = {
+        type: 'json-value',
+        body: { id: REQUEST_ID, polling_url: POLL_URL },
+      };
+      server.urls[POLL_URL].response = {
+        type: 'json-value',
+        body: { ...readyResponse, cost: 0.85 },
+      };
+
+      const result = await createModel().doGenerate({ ...defaultOptions });
+
+      expect(result.providerMetadata?.blackForestLabs?.videos).toStrictEqual([
+        {
+          id: REQUEST_ID,
+          videoUrl: VIDEO_URL,
+          seed: 7,
+          duration: 8,
+          cost: 0.85,
+        },
+      ]);
+    });
+
+    // The plain `ResultResponse` variant has no cost at all.
+    it('should omit cost entirely when neither response reports one', async () => {
+      server.urls[SUBMIT_URL].response = {
+        type: 'json-value',
+        body: { id: REQUEST_ID, polling_url: POLL_URL },
+      };
+
+      const result = await createModel().doGenerate({ ...defaultOptions });
+
+      expect(result.providerMetadata?.blackForestLabs?.videos).toStrictEqual([
+        {
+          id: REQUEST_ID,
+          videoUrl: VIDEO_URL,
+          seed: 7,
+          duration: 8,
+        },
+      ]);
+    });
+
     it('should send an empty prompt when none is provided', async () => {
       await createModel().doGenerate({ ...defaultOptions, prompt: undefined });
 
