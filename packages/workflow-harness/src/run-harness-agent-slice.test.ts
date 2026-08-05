@@ -389,7 +389,7 @@ describe('runHarnessAgentTimeSlice', () => {
     expect(chunks.map(c => c.type)).toEqual(['text-delta', 'finish']);
   });
 
-  test('continued slice reopens text and reasoning parts that were active at the time-slice boundary', async () => {
+  test('continued slice reopens active parts and preserves aggregate token usage', async () => {
     const firstSession = fakeSession();
     const { result: firstResult, closeForSuspend } = streamResult({
       chunks: [
@@ -446,6 +446,10 @@ describe('runHarnessAgentTimeSlice', () => {
         { type: 'reasoning-delta', id: 'r1', delta: ' more' },
         { type: 'reasoning-end', id: 'r1' },
       ],
+      totalUsage: {
+        inputTokens: 120,
+        outputTokens: 30,
+      },
     });
     const secondAgent: HarnessWorkflowAgent = {
       createSession: vi.fn(async () => secondSession),
@@ -463,6 +467,10 @@ describe('runHarnessAgentTimeSlice', () => {
     });
 
     expect(finished.status).toBe('finished');
+    expect(finished.finalResult?.usage).toEqual({
+      inputTokens: 120,
+      outputTokens: 30,
+    });
     expect(secondWritable.chunks.map(c => c.type)).toEqual([
       'text-start',
       'text-delta',
