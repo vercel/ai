@@ -25,7 +25,6 @@ import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 describe('generateText types', () => {
-<<<<<<< HEAD
   describe('onLanguageModelCallEnd', () => {
     it('should expose provider metadata', async () => {
       await generateText({
@@ -35,7 +34,11 @@ describe('generateText types', () => {
           expectTypeOf(event.providerMetadata).toEqualTypeOf<
             ProviderMetadata | undefined
           >();
-=======
+        },
+      });
+    });
+  });
+
   describe('experimental_toolCallers', () => {
     it('should accept caller-capable tool names', () => {
       const codeMode = experimental_toolCaller(
@@ -77,7 +80,6 @@ describe('generateText types', () => {
         experimental_toolCallers: {
           // @ts-expect-error regular tools are not caller-capable
           getInventory: ['getInventory'],
->>>>>>> origin/main
         },
       });
     });

@@ -24,7 +24,6 @@ import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 describe('streamText types', () => {
-<<<<<<< HEAD
   describe('onLanguageModelCallEnd', () => {
     it('should expose provider metadata', () => {
       streamText({
@@ -34,7 +33,11 @@ describe('streamText types', () => {
           expectTypeOf(event.providerMetadata).toEqualTypeOf<
             ProviderMetadata | undefined
           >();
-=======
+        },
+      });
+    });
+  });
+
   describe('experimental_toolCallers', () => {
     it('should accept caller-capable tool names', () => {
       const codeMode = experimental_toolCaller(
@@ -64,7 +67,6 @@ describe('streamText types', () => {
         },
         experimental_toolCallers: {
           getInventory: ['AI_SDK_DIRECT_TOOL_CALL', 'code_mode'],
->>>>>>> origin/main
         },
       });
     });
