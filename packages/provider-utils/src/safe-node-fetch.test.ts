@@ -4,16 +4,24 @@ import { createSafeLookup } from './safe-node-fetch';
 
 type Address = { address: string; family: number };
 
-function runLookup(addresses: Address[]) {
+function createLookup(addresses: Address[]) {
   const lookup = vi.fn((_hostname, options, callback) => {
     callback(null, addresses);
   });
-  const safeLookup = createSafeLookup(lookup);
+
+  return {
+    lookup,
+    safeLookup: createSafeLookup(lookup),
+  };
+}
+
+function runLookup(addresses: Address[]) {
+  const { lookup, safeLookup } = createLookup(addresses);
 
   return {
     lookup,
     result: new Promise<Address[]>((resolve, reject) => {
-      safeLookup('files.example.com', {}, (error, result) => {
+      safeLookup('files.example.com', { all: true }, (error, result) => {
         if (error) {
           reject(error);
         } else {
@@ -33,6 +41,30 @@ describe('createSafeLookup', () => {
     const { lookup, result } = runLookup(addresses);
 
     await expect(result).resolves.toEqual(addresses);
+    expect(lookup).toHaveBeenCalledWith(
+      'files.example.com',
+      { all: true },
+      expect.any(Function),
+    );
+  });
+
+  it('returns one address when the connector does not request all', async () => {
+    const addresses = [
+      { address: '8.8.8.8', family: 4 },
+      { address: '2606:4700:4700::1111', family: 6 },
+    ];
+    const { lookup, safeLookup } = createLookup(addresses);
+    const result = new Promise<Address>((resolve, reject) => {
+      safeLookup('files.example.com', {}, (error, address, family) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve({ address, family });
+        }
+      });
+    });
+
+    await expect(result).resolves.toEqual(addresses[0]);
     expect(lookup).toHaveBeenCalledWith(
       'files.example.com',
       { all: true },

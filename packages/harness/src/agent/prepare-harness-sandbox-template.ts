@@ -50,14 +50,13 @@ export async function prepareHarnessSandboxTemplate(options: {
 
   try {
     if (bootstrapPlan.recipe != null && bootstrapPlan.recipeIdentity != null) {
-      await applyBootstrapRecipe(
-        sandboxSession.restricted(),
-        bootstrapPlan.recipe,
-        bootstrapPlan.recipeIdentity,
-        {
-          abortSignal: options.abortSignal,
-        },
-      );
+      await applyBootstrapRecipe({
+        session: sandboxSession.restricted(),
+        recipe: bootstrapPlan.recipe,
+        identity: bootstrapPlan.recipeIdentity,
+        defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+        abortSignal: options.abortSignal,
+      });
     }
   } finally {
     await Promise.resolve(sandboxSession.stop()).catch(() => {});

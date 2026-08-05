@@ -30,31 +30,52 @@ type Lookup = (
   ) => void,
 ) => void;
 
-type LookupCallback = (
+type LookupAllCallback = (
   error: NodeJS.ErrnoException | null,
   addresses: LookupAddress[],
 ) => void;
 
+type LookupOneCallback = (
+  error: NodeJS.ErrnoException | null,
+  address: string,
+  family: number,
+) => void;
+
+type SafeLookup = {
+  (
+    hostname: string,
+    options: LookupOptions & { all: true },
+    callback: LookupAllCallback,
+  ): void;
+  (
+    hostname: string,
+    options: LookupOptions & { all?: false },
+    callback: LookupOneCallback,
+  ): void;
+};
+
 /**
  * Creates a DNS lookup hook that validates every returned address before
- * returning those exact addresses to the HTTP connector. Because resolution
- * and validation happen inside the connector, the socket is pinned to the
- * validated result and DNS rebinding cannot introduce a second lookup.
+ * returning the callback shape requested by the HTTP connector. Because
+ * resolution and validation happen inside the connector, the socket is pinned
+ * to the validated result and DNS rebinding cannot introduce a second lookup.
  */
-export function createSafeLookup(lookup: Lookup) {
-  return (
+export function createSafeLookup(lookup: Lookup): SafeLookup {
+  return ((
     hostname: string,
     options: LookupOptions,
-    callback: LookupCallback,
+    callback: LookupAllCallback | LookupOneCallback,
   ): void => {
     lookup(hostname, { ...options, all: true }, (error, addresses) => {
       if (error) {
-        callback(error, []);
+        (callback as (error: Error) => void)(error);
         return;
       }
 
       try {
-        if (addresses.length === 0) {
+        const [firstAddress] = addresses;
+
+        if (firstAddress == null) {
           throw new Error(`Hostname ${hostname} did not resolve to an address`);
         }
 
@@ -62,12 +83,22 @@ export function createSafeLookup(lookup: Lookup) {
           validateDownloadAddress({ address, family, hostname });
         }
 
-        callback(null, addresses);
+        if (options.all === true) {
+          (callback as LookupAllCallback)(null, addresses);
+        } else {
+          (callback as LookupOneCallback)(
+            null,
+            firstAddress.address,
+            firstAddress.family,
+          );
+        }
       } catch (error) {
-        callback(error instanceof Error ? error : new Error(String(error)), []);
+        (callback as (error: Error) => void)(
+          error instanceof Error ? error : new Error(String(error)),
+        );
       }
     });
-  };
+  }) as SafeLookup;
 }
 
 let safeNodeFetchPromise: Promise<FetchFunction> | undefined;
