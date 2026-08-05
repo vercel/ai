@@ -81,6 +81,48 @@ const HARNESSES = [
       'workflow-stepped',
     ],
   },
+  {
+    slug: 'acp-claude-code',
+    label: 'ACP: Claude Code',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+  {
+    slug: 'acp-codex',
+    label: 'ACP: Codex',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+  {
+    slug: 'acp-grok-build',
+    label: 'ACP: Grok Build',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
 ] as const;
 
 const VARIANT_LABELS: Record<string, string> = Object.fromEntries(
