@@ -180,4 +180,23 @@ describe('HttpChatTransport', () => {
       );
     });
   });
+
+  describe('reconnectToStream', () => {
+    it('should encode the chat id in the default request URL', async () => {
+      const requestedUrls: Array<RequestInfo | URL> = [];
+      const transport = new MockHttpChatTransport({
+        api: 'http://localhost/api/chat',
+        fetch: async input => {
+          requestedUrls.push(input);
+          return new Response('');
+        },
+      });
+
+      await transport.reconnectToStream({ chatId: 'chat/../?value=1' });
+
+      expect(requestedUrls).toEqual([
+        'http://localhost/api/chat/chat%2F..%2F%3Fvalue%3D1/stream',
+      ]);
+    });
+  });
 });
