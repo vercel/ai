@@ -25,6 +25,36 @@ describe('getRuntimeEnvironmentUserAgent', () => {
     ).toBe('runtime/test');
   });
 
+  it('should sanitize slashes in userAgent for RFC 9110 compliance', () => {
+    expect(
+      getRuntimeEnvironmentUserAgent({
+        navigator: {
+          userAgent: 'Bun/1.3.9',
+        },
+      }),
+    ).toBe('runtime/bun.1.3.9');
+  });
+
+  it('should sanitize Deno userAgent with multiple slashes', () => {
+    expect(
+      getRuntimeEnvironmentUserAgent({
+        navigator: {
+          userAgent: 'Deno/2.4.0',
+        },
+      }),
+    ).toBe('runtime/deno.2.4.0');
+  });
+
+  it('should handle userAgent with no slashes', () => {
+    expect(
+      getRuntimeEnvironmentUserAgent({
+        navigator: {
+          userAgent: 'node',
+        },
+      }),
+    ).toBe('runtime/node');
+  });
+
   it('should return the correct user agent for Edge Runtime', () => {
     expect(
       getRuntimeEnvironmentUserAgent({
