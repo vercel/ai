@@ -1239,6 +1239,44 @@ describe('experimental_generateVideo', () => {
       expect(seenKeys[1]).not.toBe(seenKeys[0]);
     });
 
+    it('should preserve a caller-supplied idempotency key instead of minting one', async () => {
+      const seenKeys: Array<string | undefined> = [];
+      const model = new MockVideoModelV4({
+        doGenerate: undefined,
+        doStart: async options => {
+          seenKeys.push(options.headers?.['idempotency-key']);
+          return {
+            operation: 'op-1',
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          };
+        },
+        doStatus: async () => ({
+          status: 'completed' as const,
+          videos: [{ type: 'base64', data: mp4Base64, mediaType: 'video/mp4' }],
+          warnings: [],
+          response: {
+            timestamp: new Date(),
+            modelId: 'test-model-id',
+            headers: {},
+          },
+        }),
+      });
+
+      await experimental_generateVideo({
+        model,
+        prompt,
+        headers: { 'idempotency-key': 'caller-key-1' },
+        poll: { intervalMs: 0 },
+      });
+
+      expect(seenKeys).toEqual(['caller-key-1']);
+    });
+
     it('should fall back to doGenerate when poll is provided but model lacks doStart/doStatus', async () => {
       const result = await experimental_generateVideo({
         model: new MockVideoModelV4({

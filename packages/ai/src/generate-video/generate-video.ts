@@ -562,7 +562,11 @@ async function executeStartStatusFlow({
   // so a provider that supports deduplication can key off it. Explicit, rather
   // than inferred from object identity: two unrelated calls that happen to share
   // an options object must never share a token.
-  const startIdempotencyKey = `aisdk_vid_${generateId()}`;
+  // A caller-supplied `idempotency-key` header wins: users implementing their
+  // own dedupe (e.g. an outer retry wrapper with a stable key) must not have
+  // it silently replaced.
+  const startIdempotencyKey =
+    callOptions.headers?.['idempotency-key'] ?? `aisdk_vid_${generateId()}`;
   const startCallOptions = {
     ...callOptions,
     headers: {
