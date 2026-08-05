@@ -100,6 +100,10 @@ or a message-array `prompt`, `HarnessAgent` takes the latest user message as the
 fresh input for the turn. It does not replay the full prior conversation into
 the harness.
 
+A trailing tool message is handled differently: tool approval responses and
+client-provided tool results continue the unfinished harness turn that produced
+the corresponding request or tool call.
+
 This is different from model calls, where the application usually sends the full
 message history. In chat routes, persist and resume the harness session instead
 of relying on message replay.
@@ -116,6 +120,8 @@ End every session explicitly:
   the turn is unfinished, the resume state includes the continuation state.
 - `session.suspendTurn()` is for advanced active-turn continuation across a
   process boundary.
+- `session.hasUnfinishedTurn()` reports whether the current turn must be
+  continued or suspended before the session accepts a new prompt.
 
 Use `destroy()` for one-off scripts and tests. Use `detach()` or `stop()` for
 HTTP routes that need multi-turn continuity.
@@ -165,8 +171,10 @@ For advanced workflows that must hand off an active turn across a process
 boundary, suspend the turn and persist the continuation state:
 
 ```ts
-const continuationState = await session.suspendTurn();
-await persistContinuationState({ chatId, continuationState });
+if (session.hasUnfinishedTurn()) {
+  const continuationState = await session.suspendTurn();
+  await persistContinuationState({ chatId, continuationState });
+}
 ```
 
 When you only have raw continuation state from `suspendTurn()`, resume with
@@ -183,6 +191,46 @@ const result = await agent.continueStream({ session });
 
 Use `continueStream()` for incremental output, or `continueGenerate()` to drain
 the continued turn and return a `GenerateTextResult`.
+
+## Stop After a Harness Step
+
+Use `stopWhen` to opt into semantic step boundaries. Predicates run after real
+harness tool steps that can continue into another model step, and receive the
+completed steps from the current invocation. When a predicate matches, the
+returned result finishes while the underlying turn remains unfinished. A
+terminal text-only step instead consumes the turn's `finish` event and finishes
+naturally.
+
+```ts
+import { isStepCount } from 'ai';
+
+const steppedAgent = new HarnessAgent({
+  harness: claudeCode,
+  sandbox: createVercelSandbox({
+    runtime: 'node24',
+    ports: [4000],
+  }),
+  stopWhen: isStepCount(1),
+});
+
+const session = await steppedAgent.createSession();
+const result = await steppedAgent.generate({
+  session,
+  prompt: 'Create a short TODO.md for this repository.',
+});
+
+if (session.hasUnfinishedTurn()) {
+  const continueFrom = await session.suspendTurn();
+  await persistContinuationState({ chatId, continuationState: continueFrom });
+}
+```
+
+`stopWhen` has no default. When omitted, `HarnessAgent` continues running until
+the turn naturally finishes or pauses for host input, preserving the behavior
+of agents without step control. Pass one predicate or an array; matching any
+predicate finishes the current result slice. Resume a stopped turn with
+`createSession({ continueFrom })` and `continueStream()` or
+`continueGenerate()`.
 
 ## Prepare the Sandbox
 
@@ -317,6 +365,8 @@ console.log(preparation.identity);
 - `sandbox`: a `HarnessV1SandboxProvider`.
 - `id`: optional stable agent identifier.
 - `instructions`: instructions applied once to a fresh session.
+- `stopWhen`: condition(s) for finishing a result slice after a completed
+  harness tool step that can continue into another model step.
 - `tools`: AI SDK tools executed by the host when the harness calls them.
 - `activeTools`: allowlist of built-in and host-executed tools the harness can
   call.

@@ -42,7 +42,6 @@ describe('outboundMessageSchema', () => {
       finishReason: { unified: 'stop', raw: 'stop' },
       totalUsage: usage,
     },
-    { type: 'bridge-interrupted', ok: true },
     { type: 'error', error: 'boom' },
     { type: 'raw', rawValue: { hello: 'world' } },
   ];
@@ -107,12 +106,12 @@ describe('inboundMessageSchema', () => {
     ).not.toThrow();
   });
 
-  it('accepts user-message, abort, interrupt, shutdown', () => {
+  it('accepts user-message, abort, stop, and destroy', () => {
     for (const sample of [
       { type: 'user-message', text: 'hi' },
       { type: 'abort' },
-      { type: 'interrupt' },
-      { type: 'shutdown' },
+      { type: 'stop' },
+      { type: 'destroy' },
     ]) {
       expect(() => inboundMessageSchema.parse(sample)).not.toThrow();
     }

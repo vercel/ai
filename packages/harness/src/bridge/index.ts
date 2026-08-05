@@ -4,12 +4,14 @@
 // transport — the WebSocket server, token auth, single-flight connection
 // replacement, the in-memory event log + monotonic `seq`, resume replay, and
 // the lifecycle/meta files. The adapter supplies only `onStart` (drive its
-// CLI/SDK and translate to wire events) and `onDetach` (its resume payload).
+// CLI/SDK and translate to wire events) and lifecycle-specific cleanup hooks.
 
 import { appendFile, mkdir, writeFile } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import { env as procEnv, pid, stdout } from 'node:process';
 import { WebSocketServer, type WebSocket } from 'ws';
+
+export { HarnessBridgeCapabilityUnsupportedError } from './harness-bridge-capability-unsupported-error';
 
 export type BridgeState = 'init' | 'waiting' | 'running' | 'draining' | 'done';
 
@@ -120,13 +122,6 @@ export interface BridgeTurn {
   /** Aborts when the host sends `abort`. */
   readonly abortSignal: AbortSignal;
 
-  /**
-   * Register the runtime-specific interrupt hook for this active turn. The
-   * shared bridge invokes it when the host sends `interrupt`, then acknowledges
-   * only after the hook settles.
-   */
-  onInterrupt(handler: () => void | Promise<void>): void;
-
   /** True for the first turn since this bridge process started. */
   readonly firstTurn: boolean;
 
@@ -161,8 +156,15 @@ export interface RunBridgeOptions<TStart extends { type: 'start' }> {
   bridgeStateDir: string;
   /** Drive one prompt turn. Rejections surface to the host as an `error` event. */
   onStart(start: TStart, turn: BridgeTurn): Promise<void>;
-  /** Produce the adapter-defined resume payload for a `detach`. Defaults to `{}`. */
-  onDetach?(): unknown | Promise<unknown>;
+  /**
+   * Produce the adapter-defined runtime resume data for `stop`. Defaults to
+   * `{}`.
+   */
+  onStop?(): unknown | Promise<unknown>;
+  /**
+   * Perform adapter-defined destruction before the bridge exits.
+   */
+  onDestroy?(): void | Promise<void>;
   /** WS port. Defaults to `BRIDGE_WS_PORT` env (0 = OS-assigned). */
   port?: number;
   /** Auth token. Defaults to `BRIDGE_CHANNEL_TOKEN` env. */
@@ -170,7 +172,7 @@ export interface RunBridgeOptions<TStart extends { type: 'start' }> {
   /** Called with the bound port once the server is listening. */
   onListening?(port: number): void;
   /**
-   * Tear the process down after a `shutdown` / `detach`. Defaults to closing
+   * Tear the process down after `stop` / `destroy`. Defaults to closing
    * the server and calling `process.exit(0)`. Overridable for tests.
    */
   onExit?(): void;
@@ -191,9 +193,8 @@ type InboundControl =
     }
   | { type: 'user-message'; text: string }
   | { type: 'abort' }
-  | { type: 'interrupt' }
-  | { type: 'shutdown' }
-  | { type: 'detach' }
+  | { type: 'stop' }
+  | { type: 'destroy' }
   | { type: 'resume'; lastSeenEventId: number };
 
 const WS_OPEN = 1;
@@ -202,7 +203,7 @@ const WS_OPEN = 1;
  * Boot the bridge: bind the WebSocket server, announce `bridge-ready`, and
  * service host connections for the lifetime of the process. Resolves once the
  * server is listening; the process then stays alive on the server until a
- * `shutdown` / `detach` exits it.
+ * `stop` / `destroy` exits it.
  */
 export interface BridgeHandle {
   /** The port the WebSocket server bound to. */
@@ -214,7 +215,7 @@ export interface BridgeHandle {
 export async function runBridge<TStart extends { type: 'start' }>(
   options: RunBridgeOptions<TStart>,
 ): Promise<BridgeHandle> {
-  const { bridgeType, bridgeStateDir, onStart, onDetach } = options;
+  const { bridgeType, bridgeStateDir, onStart, onStop, onDestroy } = options;
   const expectedToken = options.token ?? procEnv.BRIDGE_CHANNEL_TOKEN ?? '';
   const bridgeWsPort =
     options.port ?? parseInt(procEnv.BRIDGE_WS_PORT ?? '0', 10);
@@ -234,10 +235,10 @@ export async function runBridge<TStart extends { type: 'start' }>(
   let currentBoundPort = 0;
   let currentTurnState: BridgeState = 'init';
   let activeSocket: WebSocket | undefined;
+  let activeSocketReadyForLiveEvents = false;
   let isFirstTurn = true;
   let turnAbort: AbortController | undefined;
   let currentUserMessages: string[] | undefined;
-  let currentInterruptHandler: (() => void | Promise<void>) | undefined;
 
   // Diagnostics. Resolved per turn from `start.debug` with a sandbox-side
   // env fallback; gates console capture + structured `debug-event`s.
@@ -258,7 +259,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
    * Disk mirror of the in-memory replay log. The in-memory log is lost when the
    * bridge process dies; the on-disk `event-log.ndjson` survives in the sandbox
    * filesystem so a respawned bridge (started with `BRIDGE_REPLAY_FROM_DISK=1`)
-   * can reload the just-interrupted turn and serve a host's resume cursor —
+   * can reload the in-flight turn and serve a host's resume cursor —
    * `replay` recovery. Writes are batched on `setImmediate` (single-flight via
    * `flushPromise`) to keep `emit` off the disk hot path.
    */
@@ -389,7 +390,10 @@ export async function runBridge<TStart extends { type: 'start' }>(
     eventLog.push({ seq, line });
     diskBuffer += `${line}\n`;
     scheduleEventFlush();
-    if (activeSocket?.readyState === WS_OPEN) {
+    if (
+      activeSocketReadyForLiveEvents &&
+      activeSocket?.readyState === WS_OPEN
+    ) {
       try {
         activeSocket.send(line);
       } catch {
@@ -522,6 +526,8 @@ export async function runBridge<TStart extends { type: 'start' }>(
   ): Promise<void> => {
     switch (msg.type) {
       case 'start': {
+        if (activeSocket !== ws) return;
+        activeSocketReadyForLiveEvents = true;
         const firstTurn = isFirstTurn;
         isFirstTurn = false;
         eventLog = []; // clear previous turn; keep seqCounter monotonic
@@ -531,7 +537,6 @@ export async function runBridge<TStart extends { type: 'start' }>(
         void writeFile(eventLogPath, '').catch(() => {});
         turnAbort = new AbortController();
         currentTurnState = 'running';
-        currentInterruptHandler = undefined;
         void writeStartConfig(msg);
         void writeBridgeMeta('running');
         const startDebug = (msg as { debug?: BridgeDebugConfig }).debug;
@@ -559,9 +564,6 @@ export async function runBridge<TStart extends { type: 'start' }>(
             }),
           pendingUserMessages: [],
           abortSignal: turnAbort.signal,
-          onInterrupt: handler => {
-            currentInterruptHandler = handler;
-          },
           firstTurn,
           bridgeLog: input => {
             const level = input.level ?? 'debug';
@@ -586,7 +588,6 @@ export async function runBridge<TStart extends { type: 'start' }>(
         } catch (err) {
           emitError({ error: err, message: 'bridge turn failed' });
         } finally {
-          currentInterruptHandler = undefined;
           currentTurnState = 'waiting';
           void writeBridgeMeta('waiting');
         }
@@ -614,48 +615,23 @@ export async function runBridge<TStart extends { type: 'start' }>(
       case 'abort':
         turnAbort?.abort();
         return;
-      case 'interrupt':
-        try {
-          /*
-           * A bridge waiting for a host tool result or approval is already
-           * paused at a resumable boundary. Interrupting the native runtime at
-           * that point terminates the operation that owns the pending request,
-           * so a later host process cannot satisfy it. Active turns without
-           * pending host input are interrupted before suspension as usual.
-           */
-          if (
-            pendingToolResults.size === 0 &&
-            pendingToolApprovals.size === 0
-          ) {
-            if (currentInterruptHandler) {
-              await currentInterruptHandler();
-            } else {
-              turnAbort?.abort();
-            }
-          }
-          sendControl({ type: 'bridge-interrupted', ok: true });
-        } catch (err) {
-          sendControl({
-            type: 'bridge-interrupted',
-            ok: false,
-            error: serialiseError(err),
-          });
-        }
-        return;
       case 'resume':
+        if (activeSocket !== ws) return;
         replay(ws, msg.lastSeenEventId);
+        activeSocketReadyForLiveEvents = true;
         return;
-      case 'shutdown':
+      case 'destroy':
         currentTurnState = 'done';
         void writeBridgeMeta('done');
-        drainThenExit(ws, 1000, 'shutdown');
+        await onDestroy?.();
+        drainThenExit(ws, 1000, 'destroy');
         return;
-      case 'detach': {
+      case 'stop': {
         currentTurnState = 'done';
         void writeBridgeMeta('done');
-        const data = (await onDetach?.()) ?? {};
-        sendControl({ type: 'bridge-detach', data });
-        drainThenExit(ws, 1000, 'detach');
+        const data = (await onStop?.()) ?? {};
+        sendControl({ type: 'bridge-stop', data });
+        drainThenExit(ws, 1000, 'stop');
         return;
       }
     }
@@ -680,7 +656,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
     const tick = (): void => {
       const drained = ws.bufferedAmount === 0 || ws.readyState !== WS_OPEN;
       if (drained || Date.now() - start >= 5_000) {
-        // Flush the on-disk log so a clean shutdown/detach leaves a complete
+        // Flush the on-disk log so a clean stop/destroy leaves a complete
         // event-log.ndjson for any later replay recovery.
         void flushPendingEventsToDisk().finally(() => {
           try {
@@ -721,6 +697,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
     // (the host reconnecting after a drop). The previous socket's close is a
     // no-op below because it is no longer `activeSocket`.
     activeSocket = ws;
+    activeSocketReadyForLiveEvents = false;
 
     // Announce liveness the instant we accept. Some sandbox runtimes complete
     // the host-side WS handshake before the connection is forwarded here; the
@@ -754,6 +731,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
       // log for replay when the host reconnects.
       if (activeSocket === ws) {
         activeSocket = undefined;
+        activeSocketReadyForLiveEvents = false;
       }
     });
 

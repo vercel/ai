@@ -216,7 +216,7 @@ export type HarnessV1Session = {
   /**
    * Continue the in-flight turn **without a new user prompt**, returning the
    * same control surface as `doPromptTurn`. Used to keep consuming a turn that
-   * was interrupted at a process boundary (the workflow slice loop), after the
+   * was suspended at a process boundary (the workflow slice loop), after the
    * session itself has been resumed via `doStart({ continueFrom })`:
    *
    *  - When the runtime's turn is still live and reachable (bridge `attach` /
@@ -225,7 +225,7 @@ export type HarnessV1Session = {
    *  - When the live turn is gone (bridge respawned `rerun`, or a host-resident
    *    runtime like Pi whose turn cannot survive its process), the adapter
    *    re-drives the runtime's own thread from its persisted state. Lossy: work
-   *    in flight at the interruption is recomputed.
+   *    in flight at the suspension is recomputed.
    *
    * Required on every adapter. The behaviour an adapter can guarantee follows
    * from its architecture; the contract is uniform.

@@ -4,6 +4,7 @@ import {
   type HarnessAgentAdapter,
   type HarnessAgentSandboxConfig,
 } from '@ai-sdk/harness/agent';
+import type { HarnessV1NetworkSandboxSession } from '@ai-sdk/harness';
 import { claudeCode } from '@ai-sdk/harness-claude-code';
 import { codex } from '@ai-sdk/harness-codex';
 import { deepAgents } from '@ai-sdk/harness-deepagents';
@@ -11,6 +12,7 @@ import { openCode } from '@ai-sdk/harness-opencode';
 import { pi } from '@ai-sdk/harness-pi';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { Sandbox } from '@vercel/sandbox';
+import { posix } from 'node:path';
 import { run } from '../lib/run';
 
 const sandboxTimeout = 10 * 60 * 1000;
@@ -77,6 +79,8 @@ async function createPreparedSnapshot(
     console.log('recipe identities:', result.recipeIdentities);
     console.log('skipped harnesses:', result.skippedHarnessIds);
 
+    await assertBootstrapAssets({ session, harnesses });
+
     const stopResult = await preparedSandbox.stop();
     const snapshotId = stopResult.snapshot?.id;
     if (snapshotId == null) {
@@ -103,12 +107,21 @@ async function runHarnessFromSnapshot({
     ports: [bridgePort],
     timeout: sandboxTimeout,
   });
+  const provider = createVercelSandbox({
+    sandbox,
+    bridgePorts: [bridgePort],
+  });
+  const restoredSession = await provider.createSession();
+  await assertBootstrapAssets({
+    session: restoredSession,
+    harnesses: [{ name, harness }],
+  }).catch(async error => {
+    await sandbox.stop().catch(() => {});
+    throw error;
+  });
   const agent = new HarnessAgent({
     harness,
-    sandbox: createVercelSandbox({
-      sandbox,
-      bridgePorts: [bridgePort],
-    }),
+    sandbox: provider,
     sandboxConfig,
   });
   const session = await agent.createSession().catch(async error => {
@@ -125,5 +138,34 @@ async function runHarnessFromSnapshot({
   } finally {
     await session.destroy().catch(() => {});
     await sandbox.stop().catch(() => {});
+  }
+}
+
+async function assertBootstrapAssets({
+  session,
+  harnesses,
+}: {
+  readonly session: HarnessV1NetworkSandboxSession;
+  readonly harnesses: ReadonlyArray<{
+    name: string;
+    harness: HarnessAgentAdapter;
+  }>;
+}): Promise<void> {
+  for (const { name, harness } of harnesses) {
+    const recipe = await harness.getBootstrap?.();
+    if (recipe == null) {
+      continue;
+    }
+
+    for (const file of recipe.files) {
+      const filePath = posix.isAbsolute(file.path)
+        ? file.path
+        : posix.resolve(session.defaultWorkingDirectory, file.path);
+      if ((await session.readTextFile({ path: filePath })) != null) {
+        continue;
+      }
+
+      throw new Error(`Missing ${name} bootstrap asset: ${filePath}`);
+    }
   }
 }

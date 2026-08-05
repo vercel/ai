@@ -344,6 +344,55 @@ describe('GoogleRealtimeEventMapper', () => {
       });
     });
 
+    it('maps goAway to a stable custom lifecycle event', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = { goAway: { timeLeft: '30s' } };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'custom',
+        rawType: 'goAway',
+        raw,
+      });
+    });
+
+    it('maps sessionResumptionUpdate to a stable custom lifecycle event', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = {
+        sessionResumptionUpdate: {
+          newHandle: 'resume-handle',
+          resumable: true,
+          lastConsumedClientMessageIndex: '42',
+        },
+      };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'custom',
+        rawType: 'sessionResumptionUpdate',
+        raw,
+      });
+    });
+
+    it('keeps generationComplete distinct from turnComplete', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = { serverContent: { generationComplete: true } };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'custom',
+        rawType: 'generationComplete',
+        raw,
+      });
+
+      const next = mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: { parts: [{ text: 'still turn zero' }] },
+        },
+      });
+      expect(next).toMatchObject({
+        type: 'text-delta',
+        responseId: 'google-resp-0',
+      });
+    });
+
     it('maps unrecognized top-level key to custom event', () => {
       const mapper = new GoogleRealtimeEventMapper();
       const raw = { somethingNew: { data: 123 } };

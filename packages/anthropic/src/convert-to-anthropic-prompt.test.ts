@@ -72,6 +72,118 @@ describe('system messages', () => {
     });
     expect(result.betas.has('mid-conversation-system-2026-04-07')).toBe(true);
   });
+
+  it('should emit tool change blocks on a mid-conversation system message and add the beta', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        { role: 'system', content: 'initial' },
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        { role: 'assistant', content: [{ type: 'text', text: 'hello' }] },
+        {
+          role: 'system',
+          content: 'tools have changed',
+          providerOptions: {
+            anthropic: {
+              toolChanges: [
+                { type: 'tool_addition', toolName: 'get_forecast' },
+                { type: 'tool_removal', toolName: 'get_weather' },
+              ],
+            },
+          },
+        },
+        { role: 'user', content: [{ type: 'text', text: 'go' }] },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toContainEqual({
+      role: 'system',
+      content: [
+        { type: 'text', text: 'tools have changed' },
+        {
+          type: 'tool_addition',
+          tool: { type: 'tool_reference', name: 'get_forecast' },
+        },
+        {
+          type: 'tool_removal',
+          tool: { type: 'tool_reference', name: 'get_weather' },
+        },
+      ],
+    });
+    expect(result.betas.has('mid-conversation-system-2026-04-07')).toBe(true);
+    expect(result.betas.has('mid-conversation-tool-changes-2026-07-01')).toBe(
+      true,
+    );
+  });
+
+  it('should not emit an empty text block for a system message that only carries tool changes', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        { role: 'system', content: 'initial' },
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        { role: 'assistant', content: [{ type: 'text', text: 'hello' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            anthropic: {
+              toolChanges: [{ type: 'tool_removal', toolName: 'get_weather' }],
+            },
+          },
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toContainEqual({
+      role: 'system',
+      content: [
+        {
+          type: 'tool_removal',
+          tool: { type: 'tool_reference', name: 'get_weather' },
+        },
+      ],
+    });
+  });
+
+  it('should warn and drop tool changes on the initial system message', async () => {
+    const warnings: SharedV4Warning[] = [];
+
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'system',
+          content: 'initial',
+          providerOptions: {
+            anthropic: {
+              toolChanges: [
+                { type: 'tool_addition', toolName: 'get_forecast' },
+              ],
+            },
+          },
+        },
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+      ],
+      sendReasoning: true,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.system).toEqual([{ type: 'text', text: 'initial' }]);
+    expect(result.betas.has('mid-conversation-tool-changes-2026-07-01')).toBe(
+      false,
+    );
+    expect(warnings).toContainEqual(
+      expect.objectContaining({
+        type: 'other',
+        message: expect.stringContaining('initial system message'),
+      }),
+    );
+  });
 });
 
 describe('user messages', () => {
@@ -2629,6 +2741,7 @@ describe('assistant messages', () => {
                   value: {
                     type: 'advisor_result',
                     text: 'Use a channel-based coordination pattern. Close the input channel first, then wait on a WaitGroup.',
+                    stopReason: 'max_tokens',
                   },
                 },
                 toolCallId: 'srvtoolu_advisor_abc123',
@@ -2660,6 +2773,7 @@ describe('assistant messages', () => {
                   {
                     "cache_control": undefined,
                     "content": {
+                      "stop_reason": "max_tokens",
                       "text": "Use a channel-based coordination pattern. Close the input channel first, then wait on a WaitGroup.",
                       "type": "advisor_result",
                     },
@@ -2697,6 +2811,7 @@ describe('assistant messages', () => {
                   value: {
                     type: 'advisor_redacted_result',
                     encryptedContent: 'opaque-encrypted-blob-xyz',
+                    stopReason: 'end_turn',
                   },
                 },
                 toolCallId: 'srvtoolu_advisor_redacted',
@@ -2718,6 +2833,7 @@ describe('assistant messages', () => {
           "cache_control": undefined,
           "content": {
             "encrypted_content": "opaque-encrypted-blob-xyz",
+            "stop_reason": "end_turn",
             "type": "advisor_redacted_result",
           },
           "tool_use_id": "srvtoolu_advisor_redacted",
@@ -3171,7 +3287,6 @@ describe('assistant messages', () => {
                       "command": "create",
                       "file_text": "def..",
                       "path": "/tmp/fibonacci.py",
-                      "type": "text_editor_code_execution",
                     },
                     "name": "text_editor_code_execution",
                     "type": "server_tool_use",
@@ -3190,7 +3305,6 @@ describe('assistant messages', () => {
                     "id": "srvtoolu_0193G3ttnkiTfZASwHQSKc2V",
                     "input": {
                       "command": "python /tmp/fibonacci.py",
-                      "type": "bash_code_execution",
                     },
                     "name": "bash_code_execution",
                     "type": "server_tool_use",
@@ -3221,6 +3335,50 @@ describe('assistant messages', () => {
   });
 
   describe('code_execution 20260120', () => {
+    it('should replay server_tool_use input without the internal discriminator', async () => {
+      const warnings: SharedV4Warning[] = [];
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'srvtoolu_cache_replay',
+                toolName: 'code_execution',
+                input: {
+                  type: 'bash_code_execution',
+                  command: 'echo cache-compatible',
+                },
+                providerExecuted: true,
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.messages).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'server_tool_use',
+              id: 'srvtoolu_cache_replay',
+              name: 'bash_code_execution',
+              input: {
+                command: 'echo cache-compatible',
+              },
+              cache_control: undefined,
+            },
+          ],
+        },
+      ]);
+      expect(warnings).toEqual([]);
+    });
+
     it('should convert anthropic code_execution tool call and result parts', async () => {
       const warnings: SharedV4Warning[] = [];
       const result = await convertToAnthropicPrompt({
@@ -3299,7 +3457,6 @@ describe('assistant messages', () => {
                       "command": "create",
                       "file_text": "def..",
                       "path": "/tmp/fibonacci.py",
-                      "type": "text_editor_code_execution",
                     },
                     "name": "text_editor_code_execution",
                     "type": "server_tool_use",
@@ -3318,7 +3475,6 @@ describe('assistant messages', () => {
                     "id": "srvtoolu_0193G3ttnkiTfZASwHQSKc2V",
                     "input": {
                       "command": "python /tmp/fibonacci.py",
-                      "type": "bash_code_execution",
                     },
                     "name": "bash_code_execution",
                     "type": "server_tool_use",

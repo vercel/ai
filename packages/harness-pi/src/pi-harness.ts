@@ -33,6 +33,13 @@ export type PiHarnessSettings = {
    * `thinkingLevel` option on `createAgentSession`.
    */
   readonly thinkingLevel?: PiThinkingLevel;
+  /**
+   * Directory holding Pi's global agent config (auth.json, models.json,
+   * settings.json). When omitted, a per-session temp dir is used. Pass the
+   * user's agent dir (e.g. `~/.pi/agent/`) to reuse their CLI auth and
+   * model settings.
+   */
+  readonly agentDir?: string;
 };
 
 const PI_BUILTIN_TOOLS = {
@@ -148,6 +155,7 @@ export function createPi(
         ...(startOpts.abortSignal
           ? { abortSignal: startOpts.abortSignal }
           : {}),
+        ...(settings.agentDir ? { agentDir: settings.agentDir } : {}),
       });
     },
   };

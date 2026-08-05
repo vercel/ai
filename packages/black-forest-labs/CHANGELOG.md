@@ -1,5 +1,89 @@
 # @ai-sdk/black-forest-labs
 
+## 2.0.22
+
+### Patch Changes
+
+- ef78f46: Report the settled cost for FLUX 3 video generations. The submit response can only estimate, and returns no cost when the price depends on the finished video; the result endpoint answers with `SettledCostResultResponse`, whose cost was being dropped.
+
+## 2.0.21
+
+### Patch Changes
+
+- 53f1bc4: Add video model support to the Black Forest Labs provider (`blackForestLabs.video`) for the FLUX 3 video model, including text-to-video, image-to-video keyframes, video continuation, draft/draft-enhance generation, and AI SDK Core polling.
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+
+## 2.0.20
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+
+## 2.0.19
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+  - @ai-sdk/provider-utils@5.0.19
+
+## 2.0.18
+
+### Patch Changes
+
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+
+## 2.0.17
+
+### Patch Changes
+
+- Updated dependencies [fa95504]
+  - @ai-sdk/provider-utils@5.0.17
+
+## 2.0.16
+
+### Patch Changes
+
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+
+## 2.0.15
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+
+## 2.0.14
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+
+## 2.0.13
+
+### Patch Changes
+
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/provider-utils@5.0.13
+
+## 2.0.12
+
+### Patch Changes
+
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+
 ## 2.0.11
 
 ### Patch Changes

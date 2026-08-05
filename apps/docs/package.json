@@ -13,12 +13,14 @@
     "validate:site": "pnpm test:site && pnpm build:site"
   },
   "dependencies": {
+    "@shikijs/langs": "3.23.0",
     "@shikijs/transformers": "3.23.0",
-    "@vercel/geistdocs": "1.11.3",
+    "@vercel/geistdocs": "1.19.2",
     "fumadocs-core": "16.2.2",
     "fumadocs-mdx": "14.0.4",
     "fumadocs-ui": "16.2.2",
-    "next": "16.2.6",
+    "lucide-react": "^0.555.0",
+    "next": "16.2.12",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "shiki": "3.23.0",

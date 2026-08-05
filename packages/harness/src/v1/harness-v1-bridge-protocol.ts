@@ -39,7 +39,7 @@ import {
  *     member schemas from `harness-v1-stream-part.ts`), because the part type is
  *     compile-time only and the frames need runtime validation at the boundary.
  *  2. The transport/control frames that are NOT consumer events — `bridge-hello`
- *     (handshake), `bridge-detach` (resume payload), `bridge-thread` (a resume
+ *     (handshake), `bridge-stop` (runtime resume data), `bridge-thread` (a resume
  *     coordinate some runtimes announce). These ride the same socket.
  *  3. The INBOUND command vocabulary the host sends back: the shared commands
  *     live here; the per-adapter `start` payload extends
@@ -123,32 +123,21 @@ export const harnessV1BridgeHelloSchema = z.object({
 });
 
 /**
- * The bridge's reply to an inbound `detach`. Carries the adapter-specific
+ * The bridge's reply to an inbound `stop`. Carries the adapter-specific
  * payload the host serializes into lifecycle state `data`.
  */
-export const harnessV1BridgeDetachSchema = z.object({
-  type: z.literal('bridge-detach'),
+export const harnessV1BridgeStopSchema = z.object({
+  type: z.literal('bridge-stop'),
   data: z.unknown(),
 });
 
 /**
  * A resume coordinate the bridge proactively announces (e.g. Codex's thread id)
- * so the host can cache it for a later resume without waiting for `detach`.
+ * so the host can cache it for a later resume without waiting for `stop`.
  */
 export const harnessV1BridgeThreadSchema = z.object({
   type: z.literal('bridge-thread'),
   threadId: z.string(),
-});
-
-/**
- * Acknowledgement for an inbound `interrupt` command. The host waits for this
- * before freezing its replay cursor so the adapter-specific interrupt has
- * actually reached the underlying runtime.
- */
-export const harnessV1BridgeInterruptedSchema = z.object({
-  type: z.literal('bridge-interrupted'),
-  ok: z.boolean(),
-  error: z.unknown().optional(),
 });
 
 // --- Diagnostics frames (outbound, not consumer events) ---
@@ -209,9 +198,8 @@ export const harnessV1BridgeOutboundMessageSchema = z.discriminatedUnion(
     harnessV1ErrorPartSchema,
     harnessV1RawPartSchema,
     harnessV1BridgeHelloSchema,
-    harnessV1BridgeDetachSchema,
+    harnessV1BridgeStopSchema,
     harnessV1BridgeThreadSchema,
-    harnessV1BridgeInterruptedSchema,
     harnessV1BridgeSandboxLogSchema,
     harnessV1BridgeDebugEventSchema,
   ],
@@ -289,12 +277,8 @@ export const harnessV1BridgeAbortInboundSchema = z.object({
   type: z.literal('abort'),
 });
 
-export const harnessV1BridgeInterruptInboundSchema = z.object({
-  type: z.literal('interrupt'),
-});
-
-export const harnessV1BridgeShutdownInboundSchema = z.object({
-  type: z.literal('shutdown'),
+export const harnessV1BridgeDestroyInboundSchema = z.object({
+  type: z.literal('destroy'),
 });
 
 /**
@@ -307,11 +291,11 @@ export const harnessV1BridgeResumeInboundSchema = z.object({
 });
 
 /**
- * The bridge replies with `bridge-detach` carrying any cached resume payload,
+ * The bridge replies with `bridge-stop` carrying any runtime resume data,
  * then exits.
  */
-export const harnessV1BridgeDetachInboundSchema = z.object({
-  type: z.literal('detach'),
+export const harnessV1BridgeStopInboundSchema = z.object({
+  type: z.literal('stop'),
 });
 
 /**
@@ -324,10 +308,9 @@ export const harnessV1BridgeInboundCommandSchemas = [
   harnessV1BridgeToolApprovalResponseInboundSchema,
   harnessV1BridgeUserMessageInboundSchema,
   harnessV1BridgeAbortInboundSchema,
-  harnessV1BridgeInterruptInboundSchema,
-  harnessV1BridgeShutdownInboundSchema,
+  harnessV1BridgeDestroyInboundSchema,
   harnessV1BridgeResumeInboundSchema,
-  harnessV1BridgeDetachInboundSchema,
+  harnessV1BridgeStopInboundSchema,
 ] as const;
 
 /**

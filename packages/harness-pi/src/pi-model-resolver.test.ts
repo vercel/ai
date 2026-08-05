@@ -1,4 +1,7 @@
-import { AuthStorage, ModelRegistry } from '@earendil-works/pi-coding-agent';
+import { ModelRegistry, ModelRuntime } from '@earendil-works/pi-coding-agent';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 import {
   createPiModelResolver,
@@ -7,9 +10,13 @@ import {
 
 type PiModel = ReturnType<ModelRegistry['getAll']>[number];
 
-function makeRegistry(models: PiModel[] = []) {
-  const authStorage = AuthStorage.inMemory();
-  const registry = ModelRegistry.inMemory(authStorage);
+async function makeRegistry(models: PiModel[] = []) {
+  const modelRuntime = await ModelRuntime.create({
+    authPath: path.join(tmpdir(), `harness-pi-model-${randomUUID()}.json`),
+    modelsPath: null,
+    allowModelNetwork: false,
+  });
+  const registry = new ModelRegistry(modelRuntime);
   vi.spyOn(registry, 'getAll').mockReturnValue(models);
   return registry;
 }
@@ -36,45 +43,62 @@ const defaultGatewayModel: PiModel = {
 };
 
 describe('createPiModelResolver', () => {
-  it('returns matching model by id', () => {
-    const resolve = createPiModelResolver(makeRegistry([sampleModel]), {});
+  it('returns matching model by id', async () => {
+    const resolve = createPiModelResolver({
+      modelRegistry: await makeRegistry([sampleModel]),
+      env: {},
+    });
     expect(resolve('my/model')).toEqual(sampleModel);
   });
 
-  it('returns matching model by name', () => {
-    const resolve = createPiModelResolver(makeRegistry([sampleModel]), {});
+  it('returns matching model by name', async () => {
+    const resolve = createPiModelResolver({
+      modelRegistry: await makeRegistry([sampleModel]),
+      env: {},
+    });
     expect(resolve('My Model')).toEqual(sampleModel);
   });
 
-  it('looks up the gateway default when no id and AI_GATEWAY_API_KEY is set', () => {
-    const resolve = createPiModelResolver(makeRegistry([defaultGatewayModel]), {
-      AI_GATEWAY_API_KEY: 'sk-test',
+  it('looks up the gateway default when no id and AI_GATEWAY_API_KEY is set', async () => {
+    const resolve = createPiModelResolver({
+      modelRegistry: await makeRegistry([defaultGatewayModel]),
+      env: {
+        AI_GATEWAY_API_KEY: 'sk-test',
+      },
     });
     expect(resolve(undefined)).toEqual(defaultGatewayModel);
   });
 
-  it('looks up the gateway default when VERCEL_OIDC_TOKEN is set', () => {
-    const resolve = createPiModelResolver(makeRegistry([defaultGatewayModel]), {
-      VERCEL_OIDC_TOKEN: 'oidc-token',
+  it('looks up the gateway default when VERCEL_OIDC_TOKEN is set', async () => {
+    const resolve = createPiModelResolver({
+      modelRegistry: await makeRegistry([defaultGatewayModel]),
+      env: {
+        VERCEL_OIDC_TOKEN: 'oidc-token',
+      },
     });
     expect(resolve(undefined)).toEqual(defaultGatewayModel);
   });
 
-  it('returns undefined for unknown model id', () => {
-    const resolve = createPiModelResolver(makeRegistry([sampleModel]), {
-      AI_GATEWAY_API_KEY: 'sk-test',
+  it('returns undefined for unknown model id', async () => {
+    const resolve = createPiModelResolver({
+      modelRegistry: await makeRegistry([sampleModel]),
+      env: { AI_GATEWAY_API_KEY: 'sk-test' },
     });
     expect(resolve('unknown')).toBeUndefined();
   });
 
-  it('returns undefined when no model id and no gateway creds', () => {
-    const resolve = createPiModelResolver(makeRegistry([sampleModel]), {});
+  it('returns undefined when no model id and no gateway creds', async () => {
+    const resolve = createPiModelResolver({
+      modelRegistry: await makeRegistry([sampleModel]),
+      env: {},
+    });
     expect(resolve(undefined)).toBeUndefined();
   });
 
-  it('returns undefined when gateway default id is missing from the registry', () => {
-    const resolve = createPiModelResolver(makeRegistry([sampleModel]), {
-      AI_GATEWAY_API_KEY: 'sk-test',
+  it('returns undefined when gateway default id is missing from the registry', async () => {
+    const resolve = createPiModelResolver({
+      modelRegistry: await makeRegistry([sampleModel]),
+      env: { AI_GATEWAY_API_KEY: 'sk-test' },
     });
     expect(resolve(undefined)).toBeUndefined();
   });

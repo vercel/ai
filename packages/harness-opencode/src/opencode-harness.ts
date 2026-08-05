@@ -182,7 +182,7 @@ const OPENCODE_BUILTIN_TOOLS = {
   }),
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
-const BOOTSTRAP_DIR = '/tmp/harness/opencode';
+const BOOTSTRAP_DIR = '.harness-bootstrap/opencode';
 
 const openCodeBridgeCoordsSchema = z.object({
   port: z.number(),
@@ -230,12 +230,12 @@ export function createOpenCode(
           },
         ],
         commands: [
-          { command: `mkdir -p ${BOOTSTRAP_DIR}` },
           {
-            command: `pnpm --dir ${BOOTSTRAP_DIR} install --frozen-lockfile --store-dir ${BOOTSTRAP_DIR}/.pnpm-store`,
+            command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
           },
           {
-            command: `cd ${BOOTSTRAP_DIR} && node node_modules/opencode-ai/postinstall.mjs && ./node_modules/.bin/opencode --version`,
+            command:
+              'node node_modules/opencode-ai/postinstall.mjs && ./node_modules/.bin/opencode --version',
           },
         ],
       };
@@ -245,6 +245,10 @@ export function createOpenCode(
       const sandboxSession = startOpts.sandboxSession;
       const session = sandboxSession.restricted();
       const sandboxId = sandboxSession.id;
+      const bootstrapDir = path.posix.resolve(
+        sandboxSession.defaultWorkingDirectory,
+        BOOTSTRAP_DIR,
+      );
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
       const isContinue = startOpts.continueFrom != null;
@@ -388,7 +392,7 @@ export function createOpenCode(
       });
 
       const proc = await session.spawn({
-        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(BOOTSTRAP_DIR)}${skillSetup ? ` --skills-dir ${shellQuote(skillSetup.skillsDir)}` : ''}`,
+        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(bootstrapDir)}${skillSetup ? ` --skills-dir ${shellQuote(skillSetup.skillsDir)}` : ''}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
@@ -840,7 +844,7 @@ function createSession({
         channel.beginClose();
         try {
           if (!channel.isClosed()) {
-            channel.send({ type: 'shutdown' });
+            channel.send({ type: 'destroy' });
           }
         } catch {}
         let stopTimer: ReturnType<typeof setTimeout> | undefined;
@@ -879,18 +883,18 @@ function createSession({
               unsub();
               reject(
                 new Error(
-                  `OpenCode session ${sessionId} did not reply to detach within 5s.`,
+                  `OpenCode session ${sessionId} did not reply to stop within 5s.`,
                 ),
               );
             }, 5000);
             timer.unref?.();
-            const unsub = channel.on('bridge-detach', msg => {
+            const unsub = channel.on('bridge-stop', msg => {
               clearTimeout(timer);
               unsub();
               resolve(msg.data);
             });
             try {
-              channel.send({ type: 'detach' });
+              channel.send({ type: 'stop' });
             } catch (err) {
               clearTimeout(timer);
               unsub();
@@ -932,7 +936,6 @@ function createSession({
         );
       }
       stopped = true;
-      await channel.interrupt();
       const lastSeenEventId = await channel.suspend();
       const payload: HarnessV1ContinueTurnState = {
         type: 'continue-turn',

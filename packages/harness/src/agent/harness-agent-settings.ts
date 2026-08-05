@@ -9,10 +9,17 @@ import type {
   HarnessAgentSkill,
 } from './harness-agent-types';
 import type {
+  Arrayable,
+  Context,
   Experimental_SandboxSession as SandboxSession,
   ToolSet,
 } from '@ai-sdk/provider-utils';
-import type { ActiveTools, TelemetryOptions, ToolApprovalStatus } from 'ai';
+import type {
+  ActiveTools,
+  StopCondition,
+  TelemetryOptions,
+  ToolApprovalStatus,
+} from 'ai';
 import type { HarnessAllTools } from './harness-agent-tool-types';
 
 export type HarnessAgentToolApprovalConfiguration = Readonly<
@@ -91,6 +98,7 @@ type HarnessAgentToolFilteringSettings<TOOLS extends ToolSet> =
 export type HarnessAgentSettings<
   THarness extends HarnessAgentAdapter<any> = HarnessAgentAdapter,
   TUserTools extends ToolSet = {},
+  RUNTIME_CONTEXT extends Context = Context,
 > = {
   /**
    * The harness adapter driving the underlying agent runtime. Its
@@ -129,6 +137,22 @@ export type HarnessAgentSettings<
    * later turns or when resuming a previously ended session.
    */
   readonly instructions?: string;
+
+  /**
+   * Conditions that stop the current result after a completed harness tool
+   * step that can continue into another model step. The underlying turn remains
+   * unfinished and can be suspended and continued.
+   *
+   * A terminal text-only step finishes naturally and is not stopped early.
+   *
+   * When omitted, the harness runs until the turn naturally finishes or pauses.
+   */
+  readonly stopWhen?: Arrayable<
+    StopCondition<
+      NoInfer<HarnessAllTools<THarness, TUserTools>>,
+      RUNTIME_CONTEXT
+    >
+  >;
 
   /**
    * Built-in tool permission mode. Defaults to `'allow-all'`, preserving the
