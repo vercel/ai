@@ -154,6 +154,34 @@ describe('createOpenAI', () => {
       expect(call[0]).toBe('https://proxy.openai.example/v1/responses');
     });
 
+    it('suggests the Chat Completions API for a custom base URL that does not support Responses', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response('Not Found', {
+          status: 404,
+          statusText: 'Not Found',
+          headers: { 'Content-Type': 'text/plain' },
+        }),
+      );
+      const provider = createOpenAI({
+        apiKey: 'test-api-key',
+        baseURL: 'https://compatible.example/v1',
+        fetch: fetchMock,
+      });
+
+      await expect(
+        provider('custom-model').doGenerate({
+          prompt: [
+            { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+          ],
+        }),
+      ).rejects.toThrow(
+        'The default model factory from createOpenAI uses the Responses API. ' +
+          'If this custom base URL only supports Chat Completions, use ' +
+          'provider.chat(modelId) instead. For third-party OpenAI-compatible ' +
+          'providers, use @ai-sdk/openai-compatible.',
+      );
+    });
+
     it('uses the Chat Completions API for chat models', async () => {
       const fetchMock = vi.fn().mockResolvedValue(
         new Response(JSON.stringify({ error: { message: 'test error' } }), {
