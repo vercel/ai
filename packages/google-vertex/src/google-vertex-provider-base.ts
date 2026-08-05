@@ -328,9 +328,6 @@ export function createGoogleVertex(
       generateId: options.generateId ?? generateId,
     });
 
-  // Chirp 3: HD voices are served by the Cloud Text-to-Speech API
-  // (`text:synthesize`) instead of the Vertex Gemini `generateContent`
-  // endpoint, reusing the Vertex auth headers from createConfig.
   const createSpeechModel = (modelId: GoogleVertexSpeechModelId) => {
     if (modelId.startsWith('chirp')) {
       if (apiKey) {

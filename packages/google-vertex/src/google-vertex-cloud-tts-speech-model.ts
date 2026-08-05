@@ -129,8 +129,6 @@ export class GoogleVertexCloudTTSSpeechModel implements SpeechModelV4 {
       input: { text },
       voice: { languageCode, name: voiceName },
       audioConfig: {
-        // LINEAR16 audio is returned as a WAV (RIFF) file, which is directly
-        // playable and detectable as `audio/wav`.
         audioEncoding: 'LINEAR16',
         ...(speed != null ? { speakingRate: speed } : {}),
       },
@@ -176,7 +174,6 @@ export class GoogleVertexCloudTTSSpeechModel implements SpeechModelV4 {
       },
       providerMetadata: {
         google: {
-          // LINEAR16 audio is returned as a WAV (RIFF) file.
           mimeType: 'audio/wav',
         },
       },
