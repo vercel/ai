@@ -37,22 +37,10 @@ const markerPath = '/wd/.harness-bootstrap/claude-code/.reused-executable';
 const claude = '/opt/homebrew/bin/claude';
 
 describe('resolveClaudeExecutable', () => {
-  // 'auto' is itself a string, so an order-sensitive check hands the SDK the
-  // literal word as a path, which only fails once a turn runs.
-  it('treats auto as a mode, never as a path', async () => {
-    expect(
-      await resolveClaudeExecutable({
-        setting: 'auto',
-        session: sandbox({ marker: null }),
-        markerPath,
-      }),
-    ).toBeUndefined();
-  });
-
   it('uses the recorded executable when it still works', async () => {
     expect(
       await resolveClaudeExecutable({
-        setting: 'auto',
+        reuse: true,
         session: sandbox({ marker: `${claude}\n`, executables: [claude] }),
         markerPath,
       }),
@@ -62,7 +50,7 @@ describe('resolveClaudeExecutable', () => {
   it('lets the SDK use its own binary when no marker exists', async () => {
     expect(
       await resolveClaudeExecutable({
-        setting: 'auto',
+        reuse: true,
         session: sandbox({ marker: '' }),
         markerPath,
       }),
@@ -72,23 +60,11 @@ describe('resolveClaudeExecutable', () => {
   it('never overrides when reuse is disabled, even with a marker present', async () => {
     expect(
       await resolveClaudeExecutable({
-        setting: false,
+        reuse: false,
         session: sandbox({ marker: claude, executables: [claude] }),
         markerPath,
       }),
     ).toBeUndefined();
-  });
-
-  // Taken at face value so a typo fails loudly rather than quietly costing a
-  // 470MB download.
-  it('takes an explicit path without consulting the marker', async () => {
-    expect(
-      await resolveClaudeExecutable({
-        setting: '/custom/claude',
-        session: sandbox({ marker: claude, executables: [claude] }),
-        markerPath,
-      }),
-    ).toBe('/custom/claude');
   });
 
   // The bootstrap does not run again once its own marker exists, so a moved
@@ -96,7 +72,7 @@ describe('resolveClaudeExecutable', () => {
   it('rediscovers the executable when the recorded path has moved', async () => {
     expect(
       await resolveClaudeExecutable({
-        setting: 'auto',
+        reuse: true,
         session: sandbox({
           marker: '/old/path/claude',
           executables: ['/usr/local/bin/claude'],
@@ -112,7 +88,7 @@ describe('resolveClaudeExecutable', () => {
   it('fails with a recoverable message when nothing usable remains', async () => {
     await expect(
       resolveClaudeExecutable({
-        setting: 'auto',
+        reuse: true,
         session: sandbox({ marker: '/gone/claude' }),
         markerPath,
       }),
@@ -127,7 +103,7 @@ describe('resolveClaudeExecutable', () => {
     } as unknown as Session;
     expect(
       await resolveClaudeExecutable({
-        setting: 'auto',
+        reuse: true,
         session: failing,
         markerPath,
       }),
