@@ -9402,8 +9402,8 @@ describe('processUIMessageStream', () => {
               type: 'tool-create_document',
               toolCallId: 'tool-call-14027',
               state: 'input-streaming',
+              // Hydrated lastMessage only has typed `input`, not rawInput.
               input: undefined,
-              rawInput: '{ "title": ',
               title: 'Create document',
             } as any,
           ],
@@ -9415,7 +9415,7 @@ describe('processUIMessageStream', () => {
         {
           type: 'tool-input-delta',
           toolCallId: 'tool-call-14027',
-          inputTextDelta: '"Draft" }',
+          inputTextDelta: '{ "title": "Draft" }',
         },
         {
           type: 'tool-input-available',
@@ -9457,8 +9457,8 @@ describe('processUIMessageStream', () => {
               toolName: 'unknown_tool',
               toolCallId: 'dyn-call-14027',
               state: 'input-streaming',
-              input: undefined,
-              rawInput: '{ "key": ',
+              // Hydrated lastMessage only has typed `input`, not rawInput.
+              input: { key: 'partial' },
             } as any,
           ],
         },
@@ -9466,11 +9466,6 @@ describe('processUIMessageStream', () => {
 
       const stream = createUIMessageStream([
         { type: 'start' },
-        {
-          type: 'tool-input-delta',
-          toolCallId: 'dyn-call-14027',
-          inputTextDelta: '"value" }',
-        },
         {
           type: 'tool-input-available',
           toolCallId: 'dyn-call-14027',

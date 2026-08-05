@@ -88,9 +88,24 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
     toolParts.forEach((part, index) => {
       if (part.state !== 'input-streaming') return;
 
-      const raw = (part as { rawInput?: unknown }).rawInput;
+      // Hydrated UI messages expose partial `input` on input-streaming parts.
+      // Prefer that official field (object or string); only then fall back to any
+      // non-standard `rawInput` buffer some serializers may still attach.
+      const anyPart = part as { input?: unknown; rawInput?: unknown };
       const text =
-        typeof raw === 'string' ? raw : raw != null ? JSON.stringify(raw) : '';
+        typeof anyPart.input === 'string'
+          ? anyPart.input
+          : anyPart.input != null
+            ? (() => {
+                try {
+                  return JSON.stringify(anyPart.input);
+                } catch {
+                  return '';
+                }
+              })()
+            : typeof anyPart.rawInput === 'string'
+              ? anyPart.rawInput
+              : '';
 
       partialToolCalls[part.toolCallId] = {
         text,
