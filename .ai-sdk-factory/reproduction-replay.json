@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 18425,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-18425-validate-ui-messages-aborted-tool.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-18425-validate-ui-messages-aborted-tool.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_18425_REPRODUCED: terminal output-available aborted tool history rejected every follow-up message"
+  }
+}
