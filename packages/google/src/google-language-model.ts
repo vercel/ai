@@ -62,7 +62,7 @@ const configurableSafetySettingCategories = [
   'HARM_CATEGORY_SEXUALLY_EXPLICIT',
 ] as const;
 
-type GoogleConfig = {
+export type GoogleLanguageModelConfig = {
   provider: string;
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
@@ -80,7 +80,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
   readonly modelId: GoogleModelId;
 
-  private readonly config: GoogleConfig;
+  private readonly config: GoogleLanguageModelConfig;
   private readonly generateId: () => string;
 
   static [WORKFLOW_SERIALIZE](model: GoogleLanguageModel) {
@@ -92,12 +92,12 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
-    config: GoogleConfig;
+    config: GoogleLanguageModelConfig;
   }) {
     return new GoogleLanguageModel(options.modelId, options.config);
   }
 
-  constructor(modelId: GoogleModelId, config: GoogleConfig) {
+  constructor(modelId: GoogleModelId, config: GoogleLanguageModelConfig) {
     this.modelId = modelId;
     this.config = config;
     this.generateId = config.generateId ?? generateId;
@@ -111,7 +111,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     return this.config.supportedUrls?.() ?? {};
   }
 
-  private async getArgs(
+  protected async getArgs(
     {
       prompt,
       maxOutputTokens,
@@ -375,38 +375,19 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     };
   }
 
-  async doGenerate(
-    options: LanguageModelV4CallOptions,
-  ): Promise<LanguageModelV4GenerateResult> {
-    const { args, warnings, providerOptionsNames, extraHeaders } =
-      await this.getArgs(options);
+  protected convertGenerateContentResponse({
+    response,
+    warnings,
+    providerOptionsNames,
+  }: {
+    response: InferSchema<typeof responseSchema>;
+    warnings: SharedV4Warning[];
+    providerOptionsNames: readonly string[];
+  }): LanguageModelV4GenerateResult {
     const wrapProviderMetadata = (payload: Record<string, unknown>) =>
       Object.fromEntries(
         providerOptionsNames.map(name => [name, payload]),
       ) as SharedV4ProviderMetadata;
-
-    const mergedHeaders = combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
-      options.headers,
-      extraHeaders,
-    );
-
-    const {
-      responseHeaders,
-      value: response,
-      rawValue: rawResponse,
-    } = await postJsonToApi({
-      url: `${this.config.baseURL}/${getModelPath(
-        this.modelId,
-      )}:generateContent`,
-      headers: mergedHeaders,
-      body: args,
-      failedResponseHandler: googleFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(responseSchema),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
-    });
-
     const candidate = response.candidates[0];
     const content: Array<LanguageModelV4Content> = [];
 
@@ -423,7 +404,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     // Build content array from all parts
     for (const part of parts) {
       if ('executableCode' in part && part.executableCode?.code) {
-        const toolCallId = this.config.generateId();
+        const toolCallId = this.generateId();
         lastCodeExecutionToolCallId = toolCallId;
 
         content.push({
@@ -537,7 +518,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     const sources =
       extractSources({
         groundingMetadata: candidate.groundingMetadata,
-        generateId: this.config.generateId,
+        generateId: this.generateId,
       }) ?? [];
     for (const source of sources) {
       content.push(source);
@@ -566,10 +547,52 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         finishMessage: candidate.finishMessage ?? null,
         serviceTier: usageMetadata?.serviceTier ?? null,
       } satisfies GoogleProviderMetadata),
-      request: { body: args },
       response: {
         // TODO timestamp, model id
         id: response.responseId ?? undefined,
+      },
+    };
+  }
+
+  async doGenerate(
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
+    const { args, warnings, providerOptionsNames, extraHeaders } =
+      await this.getArgs(options);
+
+    const mergedHeaders = combineHeaders(
+      this.config.headers ? await resolve(this.config.headers) : undefined,
+      options.headers,
+      extraHeaders,
+    );
+
+    const {
+      responseHeaders,
+      value: response,
+      rawValue: rawResponse,
+    } = await postJsonToApi({
+      url: `${this.config.baseURL}/${getModelPath(
+        this.modelId,
+      )}:generateContent`,
+      headers: mergedHeaders,
+      body: args,
+      failedResponseHandler: googleFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(responseSchema),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    const result = this.convertGenerateContentResponse({
+      response,
+      warnings,
+      providerOptionsNames,
+    });
+
+    return {
+      ...result,
+      request: { body: args },
+      response: {
+        ...result.response,
         headers: responseHeaders,
         body: rawResponse,
       },
@@ -613,7 +636,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     let lastGroundingMetadata: GroundingMetadataSchema | null = null;
     let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
 
-    const generateId = this.config.generateId;
+    const generateId = this.generateId;
     let hasToolCalls = false;
     let hasEmittedResponseMetadata = false;
 
@@ -1563,7 +1586,7 @@ export const getUrlContextMetadataSchema = () =>
       .nullish(),
   });
 
-const responseSchema = lazySchema(() =>
+export const responseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       responseId: z.string().nullish(),
