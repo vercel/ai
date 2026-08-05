@@ -2,8 +2,8 @@ import {
   EmptyResponseBodyError,
   InvalidArgumentError,
   type Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
-  type Experimental_BatchV4CreateOptions as BatchV4CreateOptions,
-  type Experimental_BatchV4CreateResult as BatchV4CreateResult,
+  type Experimental_BatchV4StartOptions as BatchV4StartOptions,
+  type Experimental_BatchV4StartResult as BatchV4StartResult,
   type Experimental_BatchV4Error as BatchV4Error,
   type Experimental_BatchV4ItemResult as BatchV4ItemResult,
   type Experimental_BatchV4OperationOptions as BatchV4OperationOptions,
@@ -49,7 +49,7 @@ const openaiBatchEndpoint = '/v1/responses';
 const openaiBatchInputFileExpiresAfterSeconds = 48 * 60 * 60;
 
 type OpenAIBatchRequest = Parameters<
-  BatchLanguageModelV4['experimental_doCreateBatch']
+  BatchLanguageModelV4['experimental_doStartBatch']
 >[0]['requests'][number];
 
 type OpenAIBatchPreparedRequest = {
@@ -129,11 +129,11 @@ class OpenAIResponsesBatch {
     },
   ) {}
 
-  async createBatch(
-    options: BatchV4CreateOptions<OpenAIBatchRequest>,
-  ): Promise<BatchV4CreateResult> {
+  async startBatch(
+    options: BatchV4StartOptions<OpenAIBatchRequest>,
+  ): Promise<BatchV4StartResult> {
     const fileParts: string[] = [];
-    const warnings: BatchV4CreateResult['warnings'] = [];
+    const warnings: BatchV4StartResult['warnings'] = [];
 
     for (const request of options.requests) {
       const preparedRequest = await this.options.prepareRequest(request);
@@ -391,10 +391,10 @@ export class OpenAIResponsesBatchLanguageModel
     });
   }
 
-  experimental_doCreateBatch(
-    options: Parameters<BatchLanguageModelV4['experimental_doCreateBatch']>[0],
+  experimental_doStartBatch(
+    options: Parameters<BatchLanguageModelV4['experimental_doStartBatch']>[0],
   ) {
-    return this.batch.createBatch(options);
+    return this.batch.startBatch(options);
   }
 
   experimental_doGetBatchStatus(options: BatchV4OperationOptions) {

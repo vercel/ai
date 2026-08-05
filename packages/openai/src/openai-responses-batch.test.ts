@@ -140,7 +140,7 @@ describe('OpenAI batch language models', () => {
       headers: { 'Provider-Header': 'provider' },
     }).responses('gpt-5.6');
 
-    const result = await model.experimental_doCreateBatch({
+    const result = await model.experimental_doStartBatch({
       requests: [
         { id: 'france', ...request('What is the capital of France?') },
         {
@@ -229,7 +229,7 @@ describe('OpenAI batch language models', () => {
       fetch: mockFetch,
     })('gpt-5.6');
 
-    await model.experimental_doCreateBatch({
+    await model.experimental_doStartBatch({
       requests: [
         { id: 'france', ...request('What is the capital of France?') },
       ],
@@ -624,21 +624,21 @@ describe('OpenAI batch language models', () => {
     const provider = createOpenAI({ apiKey: 'test-api-key' });
 
     for (const model of [provider('gpt-5.6'), provider.responses('gpt-5.6')]) {
-      expect(model.experimental_doCreateBatch).toBeTypeOf('function');
+      expect(model.experimental_doStartBatch).toBeTypeOf('function');
       expect(model.experimental_doGetBatchStatus).toBeTypeOf('function');
       expect(model.experimental_doGetBatchResults).toBeTypeOf('function');
     }
 
     expect(
-      (provider.chat('gpt-5.6') as any).experimental_doCreateBatch,
+      (provider.chat('gpt-5.6') as any).experimental_doStartBatch,
     ).toBeUndefined();
     expect(
       (provider.completion('gpt-3.5-turbo-instruct') as any)
-        .experimental_doCreateBatch,
+        .experimental_doStartBatch,
     ).toBeUndefined();
     expect(
       (new OpenAIResponsesLanguageModel('gpt-5.6', config) as any)
-        .experimental_doCreateBatch,
+        .experimental_doStartBatch,
     ).toBeUndefined();
     expect(
       (
@@ -646,7 +646,7 @@ describe('OpenAI batch language models', () => {
           ...config,
           provider: 'openai.chat',
         }) as any
-      ).experimental_doCreateBatch,
+      ).experimental_doStartBatch,
     ).toBeUndefined();
   });
 
@@ -655,6 +655,6 @@ describe('OpenAI batch language models', () => {
       WORKFLOW_DESERIALIZE
     ]({ modelId: 'gpt-5.6', config });
 
-    expect(responsesModel.experimental_doCreateBatch).toBeTypeOf('function');
+    expect(responsesModel.experimental_doStartBatch).toBeTypeOf('function');
   });
 });

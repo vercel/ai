@@ -1869,14 +1869,14 @@ The OpenAI provider supports the [Batch API](https://developers.openai.com/api/d
 ```ts
 import { openai } from '@ai-sdk/openai';
 import {
-  experimental_createTextBatch as createTextBatch,
+  experimental_startTextBatch as startTextBatch,
   experimental_getBatchResults as getBatchResults,
   experimental_getBatchStatus as getBatchStatus,
 } from 'ai';
 
 const model = openai('gpt-4.1-nano');
 
-const batch = await createTextBatch({
+const batch = await startTextBatch({
   model,
   requests: [
     { id: 'france', prompt: 'What is the capital of France?' },
@@ -1894,7 +1894,7 @@ if (status !== 'pending') {
 }
 ```
 
-Creating a batch returns a serializable reference that can be persisted and used to retrieve the batch results later, or poll for status updates.
+Starting a batch returns a serializable reference that can be persisted and used to retrieve the batch results later, or poll for status updates.
 
 ### Chat Models
 
