@@ -1227,6 +1227,12 @@ exports[`AnthropicMessagesLanguageModel > doStream > json schema response format
     "id": "msg_01KbeodbKEyjf2fLb2Jnkr5s",
     "modelId": "claude-sonnet-4-5-20250929",
     "type": "response-metadata",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 313,
+      "outputTokens": 1,
+      "totalTokens": 314,
+    },
   },
   {
     "id": "0",
@@ -1849,6 +1855,12 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > agent skills >
     "id": "msg_01Bu3u6DZfwcuhDWUQMQJz39",
     "modelId": "claude-sonnet-4-5-20250929",
     "type": "response-metadata",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 2751,
+      "outputTokens": 2,
+      "totalTokens": 2753,
+    },
   },
   {
     "id": "0",
@@ -5575,6 +5587,12 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > code execution
     "id": "msg_01ER9WDtM4ZYgPLrGMbiNZu6",
     "modelId": "claude-sonnet-4-5-20250929",
     "type": "response-metadata",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 2273,
+      "outputTokens": 3,
+      "totalTokens": 2276,
+    },
   },
   {
     "id": "0",
@@ -10628,6 +10646,12 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > code execution
     "id": "msg_01LEsrXVCLpf7xHaFdFTZNEJ",
     "modelId": "claude-sonnet-4-5-20250929",
     "type": "response-metadata",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 2263,
+      "outputTokens": 8,
+      "totalTokens": 2271,
+    },
   },
   {
     "id": "0",
@@ -11924,6 +11948,12 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > code execution
     "id": "msg_01LEsrXVCLpf7xHaFdFTZNEJ",
     "modelId": "claude-sonnet-4-5-20250929",
     "type": "response-metadata",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 2263,
+      "outputTokens": 8,
+      "totalTokens": 2271,
+    },
   },
   {
     "id": "0",
@@ -13220,6 +13250,12 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web fetch tool
     "id": "msg_01GpfwV1W5Ase72fzb8F45bX",
     "modelId": "claude-sonnet-4-20250514",
     "type": "response-metadata",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 868,
+      "outputTokens": 5,
+      "totalTokens": 873,
+    },
   },
   {
     "id": "0",
@@ -13622,6 +13658,12 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "id": "msg_01LHpEgU4KbfgXGVi3UtHQY1",
     "modelId": "claude-sonnet-4-20250514",
     "type": "response-metadata",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 2037,
+      "outputTokens": 1,
+      "totalTokens": 2038,
+    },
   },
   {
     "id": "srvtoolu_01Bj5uzzLcYG5hfueSLcDH8k",
