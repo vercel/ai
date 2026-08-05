@@ -102,14 +102,18 @@ type ACPRespawnStrategy =
 export function createACPV1<TBuiltinTools extends ToolSet = {}>({
   settings,
   builtinTools,
+  port: portOverride,
+  startupTimeoutMs,
   clientApp,
   implementationIdentity,
   authenticationProfile,
   providerAuthenticationCompatibility,
   lifecycleStateSchema,
 }: {
-  settings: ACPV1Settings<TBuiltinTools>;
+  settings: ACPV1Settings;
   builtinTools: TBuiltinTools;
+  port?: number;
+  startupTimeoutMs?: number;
   clientApp: string;
   implementationIdentity: string;
   authenticationProfile: ACPAuthenticationProfileIdentity;
@@ -448,7 +452,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
 
       const port = resolveBridgePort({
         sandboxSession,
-        override: settings.port,
+        override: portOverride,
         harnessId: settings.harnessId,
       });
       const token = randomBytes(32).toString('hex');
@@ -499,7 +503,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         source: settings.harnessId,
         collectTail: stderrTail,
       });
-      const timeoutMs = settings.startupTimeoutMs ?? 120_000;
+      const timeoutMs = startupTimeoutMs ?? 120_000;
       const { port: boundPort } = await waitForBridgeReady({
         proc,
         sandbox,

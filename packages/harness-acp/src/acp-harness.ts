@@ -20,8 +20,20 @@ const ACP_CLIENT_APP = `ai-sdk/harness-acp/${VERSION}`;
 
 export type ACPVersion = 'v1';
 
-export type ACPHarnessSettings<TBuiltinTools extends ToolSet = {}> =
-  ACPV1Settings<TBuiltinTools>;
+export type ACPHarnessSettings<TBuiltinTools extends ToolSet = {}> = {
+  readonly builtinTools?: TBuiltinTools;
+  readonly port?: number;
+  readonly startupTimeoutMs?: number;
+  readonly version?: ACPV1Settings['version'];
+  readonly harnessId: ACPV1Settings['harnessId'];
+  readonly auth?: ACPV1Settings['auth'];
+  readonly implementation: ACPV1Settings['implementation'];
+  readonly authentication?: ACPV1Settings['authentication'];
+  readonly providerAuthentication?: ACPV1Settings['providerAuthentication'];
+  readonly modelId?: ACPV1Settings['modelId'];
+  readonly permissionModeMapping?: ACPV1Settings['permissionModeMapping'];
+  readonly session?: ACPV1Settings['session'];
+};
 
 /**
  * @deprecated Use `ACPHarnessSettings` instead.
@@ -131,6 +143,8 @@ export function createACP<TBuiltinTools extends ToolSet = {}>(
         settings,
         builtinTools:
           settings.builtinTools ?? (ACP_BUILTIN_TOOLS as TBuiltinTools),
+        port: settings.port,
+        startupTimeoutMs: settings.startupTimeoutMs,
         clientApp: ACP_CLIENT_APP,
         implementationIdentity,
         authenticationProfile,

@@ -1,4 +1,3 @@
-import type { ToolSet } from '@ai-sdk/provider-utils';
 import type { HarnessV1PermissionMode } from '@ai-sdk/harness';
 
 export type ACPSerializablePrimitive = string | number | boolean | null;
@@ -123,12 +122,11 @@ export type ACPPermissionModeMapping = Readonly<
   Record<HarnessV1PermissionMode, ACPPermissionModeTarget>
 >;
 
-export type ACPV1Settings<TBuiltinTools extends ToolSet = {}> = {
+export type ACPV1Settings = {
   readonly version?: 'v1';
   readonly harnessId: string;
   readonly auth?: ACPProviderAuthenticationMode;
   readonly implementation: ACPNpmImplementation;
-  readonly builtinTools?: TBuiltinTools;
   readonly authentication?: ACPAuthentication;
   readonly providerAuthentication?: ACPProviderAuthentication;
   readonly modelId?: string;
@@ -136,6 +134,4 @@ export type ACPV1Settings<TBuiltinTools extends ToolSet = {}> = {
   readonly session?: {
     readonly meta?: Readonly<Record<string, ACPSerializableValue>>;
   };
-  readonly port?: number;
-  readonly startupTimeoutMs?: number;
 };

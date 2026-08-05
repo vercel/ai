@@ -6,10 +6,17 @@ import {
   type ACPHarnessSettings,
   type ACPSettings,
 } from './acp-harness';
+import type { ACPV1Settings } from './v1';
 
 describe('createACP built-in tool inference', () => {
   test('uses ACPHarnessSettings as the canonical settings type', () => {
     expectTypeOf<ACPSettings>().toEqualTypeOf<ACPHarnessSettings>();
+    expectTypeOf<
+      Extract<keyof ACPV1Settings, 'builtinTools' | 'port' | 'startupTimeoutMs'>
+    >().toEqualTypeOf<never>();
+    expectTypeOf<
+      Omit<ACPHarnessSettings, 'builtinTools' | 'port' | 'startupTimeoutMs'>
+    >().toEqualTypeOf<ACPV1Settings>();
   });
 
   test('preserves the supplied tool set type', () => {
