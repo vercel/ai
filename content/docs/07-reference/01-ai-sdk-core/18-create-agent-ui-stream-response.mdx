@@ -110,11 +110,18 @@ export async function POST(request: Request) {
         'Deprecated. Use `onStepEnd` instead. This alias is only used as a fallback when `onStepEnd` is not provided.',
     },
     {
-      name: '...UIMessageStreamOptions',
-      type: 'UIMessageStreamOptions',
+      name: 'onUIMessageStepEnd',
+      type: 'UIMessageStreamOnStepEndCallback',
       isRequired: false,
       description:
-        'Other UI message output options—such as `sendSources` and more.',
+        'Callback invoked after each UI message step is assembled. It receives `messages`, `isContinuation`, and the accumulated `responseMessage` for intermediate persistence.',
+    },
+    {
+      name: '...AgentUIMessageStreamOptions',
+      type: 'AgentUIMessageStreamOptions',
+      isRequired: false,
+      description:
+        'Other UI message output options, including message IDs, metadata, final callbacks, sources, and reasoning.',
     },
     {
       name: 'headers',
@@ -147,6 +154,8 @@ export async function POST(request: Request) {
 ## Returns
 
 A `Promise<Response>` whose `body` is a streaming UI message output from the agent. Use this as the return value of API/server handlers in serverless, Next.js, Express, Hono, or edge runtime contexts.
+
+Use `onUIMessageStepEnd` to persist the accumulated UI response after every agent step. The callback is awaited before the corresponding `finish-step` chunk continues. Use idempotent writes and protect model output, reasoning, tool inputs, and tool outputs as sensitive conversation data. The existing `onStepEnd` callback remains the low-level generation callback for usage, finish reasons, and raw step details.
 
 ## Example: Next.js API Route Handler
 

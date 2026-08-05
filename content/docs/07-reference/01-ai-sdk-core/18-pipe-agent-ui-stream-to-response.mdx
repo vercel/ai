@@ -111,7 +111,14 @@ export async function handler(req, res) {
         'Deprecated. Use `onStepEnd` instead. This alias is only used as a fallback when `onStepEnd` is not provided.',
     },
     {
-      name: '...UIMessageStreamResponseInit & UIMessageStreamOptions',
+      name: 'onUIMessageStepEnd',
+      type: 'UIMessageStreamOnStepEndCallback',
+      isRequired: false,
+      description:
+        'Callback invoked after each UI message step is assembled. It receives `messages`, `isContinuation`, and the accumulated `responseMessage` for intermediate persistence.',
+    },
+    {
+      name: '...UIMessageStreamResponseInit & AgentUIMessageStreamOptions',
       type: 'object',
       isRequired: false,
       description:
@@ -123,6 +130,8 @@ export async function handler(req, res) {
 ## Returns
 
 A `Promise<void>`. The function completes when the UI message stream has been fully sent to the provided ServerResponse.
+
+Use `onUIMessageStepEnd` to persist the accumulated UI response after every agent step. It is awaited before the corresponding `finish-step` chunk is piped. Use idempotent writes and protect model output, reasoning, tool inputs, and tool outputs as sensitive conversation data. Use the existing `onStepEnd` callback when you need low-level generation usage, finish reasons, or raw step details instead.
 
 ## Example: Express Route Handler
 

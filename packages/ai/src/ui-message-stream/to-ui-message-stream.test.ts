@@ -253,6 +253,104 @@ describe('toUIMessageStream', () => {
     });
   });
 
+  it('calls onStepEnd with the accumulated UI message', async () => {
+    const parts: TextStreamPart<{}>[] = [
+      { type: 'start' },
+      { type: 'start-step', request: {}, warnings: [] },
+      { type: 'text-start', id: 't1' },
+      { type: 'text-delta', id: 't1', text: 'First' },
+      { type: 'text-end', id: 't1' },
+      {
+        type: 'finish-step',
+        response: { id: 'r1', modelId: 'm', timestamp: new Date(0) },
+        usage: testUsage,
+        performance: {
+          effectiveOutputTokensPerSecond: 0,
+          outputTokensPerSecond: 0,
+          inputTokensPerSecond: 0,
+          effectiveTotalTokensPerSecond: 0,
+          stepTimeMs: 0,
+          responseTimeMs: 0,
+          toolExecutionMs: {},
+          timeToFirstOutputMs: undefined,
+        },
+        finishReason: 'stop',
+        rawFinishReason: 'stop',
+        providerMetadata: undefined,
+      },
+      { type: 'start-step', request: {}, warnings: [] },
+      { type: 'text-start', id: 't2' },
+      { type: 'text-delta', id: 't2', text: 'Second' },
+      { type: 'text-end', id: 't2' },
+      {
+        type: 'finish-step',
+        response: { id: 'r2', modelId: 'm', timestamp: new Date(0) },
+        usage: testUsage,
+        performance: {
+          effectiveOutputTokensPerSecond: 0,
+          outputTokensPerSecond: 0,
+          inputTokensPerSecond: 0,
+          effectiveTotalTokensPerSecond: 0,
+          stepTimeMs: 0,
+          responseTimeMs: 0,
+          toolExecutionMs: {},
+          timeToFirstOutputMs: undefined,
+        },
+        finishReason: 'stop',
+        rawFinishReason: 'stop',
+        providerMetadata: undefined,
+      },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        rawFinishReason: 'stop',
+        totalUsage: testUsage,
+      },
+    ];
+    const originalMessages: UIMessage[] = [
+      {
+        id: 'user-msg-1',
+        role: 'user',
+        parts: [{ type: 'text', text: 'Hi' }],
+      },
+    ];
+    const onStepEnd = vi.fn();
+
+    await convertReadableStreamToArray(
+      toUIMessageStream({
+        stream: convertArrayToReadableStream(parts),
+        tools: undefined,
+        originalMessages,
+        generateMessageId: () => 'assistant-msg-1',
+        onStepEnd,
+      }),
+    );
+
+    expect(onStepEnd).toHaveBeenCalledTimes(2);
+    expect(onStepEnd.mock.calls[0][0]).toMatchObject({
+      isContinuation: false,
+      responseMessage: {
+        id: 'assistant-msg-1',
+        role: 'assistant',
+        parts: [{ type: 'step-start' }, { type: 'text', text: 'First' }],
+      },
+      messages: [
+        originalMessages[0],
+        {
+          id: 'assistant-msg-1',
+          role: 'assistant',
+          parts: [{ type: 'step-start' }, { type: 'text', text: 'First' }],
+        },
+      ],
+    });
+    expect(onStepEnd.mock.calls[1][0].responseMessage.parts).toMatchObject([
+      { type: 'step-start' },
+      { type: 'text', text: 'First' },
+      { type: 'step-start' },
+      { type: 'text', text: 'Second' },
+    ]);
+  });
+
   it('calls onEnd when stream finishes', async () => {
     const parts: TextStreamPart<{}>[] = [
       { type: 'start' },

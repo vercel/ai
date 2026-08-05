@@ -109,11 +109,18 @@ export async function* streamAgent(
         'Deprecated. Use `onStepEnd` instead. This alias is only used as a fallback when `onStepEnd` is not provided.',
     },
     {
-      name: '...UIMessageStreamOptions',
-      type: 'UIMessageStreamOptions',
+      name: 'onUIMessageStepEnd',
+      type: 'UIMessageStreamOnStepEndCallback',
       isRequired: false,
       description:
-        'Additional options to control the output stream, such as including sources or usage data.',
+        'Callback invoked after each UI message step is assembled. It receives `messages`, `isContinuation`, and the accumulated `responseMessage`, making it suitable for persisting intermediate UI message state.',
+    },
+    {
+      name: '...AgentUIMessageStreamOptions',
+      type: 'AgentUIMessageStreamOptions',
+      isRequired: false,
+      description:
+        'Additional options to control the UI message stream, including message IDs, metadata, final callbacks, sources, and reasoning.',
     },
   ]}
 />
@@ -146,6 +153,32 @@ for await (const chunk of stream) {
 // Call controller.abort() to cancel the agent operation early.
 ```
 
+## Persisting the UI Message After Each Step
+
+Use `onUIMessageStepEnd` when you need the accumulated [`UIMessage`](/docs/reference/ai-sdk-core/ui-message) after each agent step:
+
+```ts
+const stream = await createAgentUIStream({
+  agent,
+  uiMessages,
+  onUIMessageStepEnd: async ({ messages, responseMessage, isContinuation }) => {
+    await upsertConversation({
+      messages,
+      responseMessage,
+      isContinuation,
+    });
+  },
+});
+
+for await (const chunk of stream) {
+  // Consume or forward the stream so the callback can run.
+}
+```
+
+`onStepEnd` and `onUIMessageStepEnd` serve different layers. `onStepEnd` receives the low-level generation step result, including usage, finish reason, and tool call details. `onUIMessageStepEnd` runs after that step has been converted to UI message parts and receives the response message accumulated so far.
+
+The callback is awaited before the `finish-step` chunk continues through the stream. If it throws, the error is passed to `onError` and streaming continues. Use idempotent writes because each callback contains a growing snapshot of the same response message. UI messages can contain model output, reasoning, tool inputs, and tool outputs, so apply the same access controls and sensitive-data handling that you use for final conversation persistence.
+
 ## How It Works
 
 1. **UI Message Validation:** The input `uiMessages` array is validated and normalized using the agent's `tools` definition. Any invalid messages cause an error.
@@ -158,7 +191,8 @@ for await (const chunk of stream) {
 - The agent **must** implement the `.stream({ prompt, ... })` method and define its supported `tools` property.
 - This utility returns an async iterable for maximal streaming flexibility. For HTTP responses, see [`createAgentUIStreamResponse`](/docs/reference/ai-sdk-core/create-agent-ui-stream-response) (Web) or [`pipeAgentUIStreamToResponse`](/docs/reference/ai-sdk-core/pipe-agent-ui-stream-to-response) (Node.js).
 - The `uiMessages` parameter is named `uiMessages`, **not** just `messages`.
-- You can provide advanced options via `UIMessageStreamOptions` (for example, to include sources or usage).
+- You can provide advanced options via `AgentUIMessageStreamOptions` (for example, to include sources or message metadata).
+- Use `onUIMessageStepEnd` for per-step UI message persistence. Use `onStepEnd` for low-level generation telemetry and step details.
 - To cancel the stream, pass an [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal) via the `abortSignal` parameter.
 - Pass `experimental_sandbox` when your agent tools need an experimental sandbox environment during execution.
 
