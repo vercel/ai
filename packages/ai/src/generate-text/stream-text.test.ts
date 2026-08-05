@@ -20494,6 +20494,9 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
             },
+            "output": {
+              "value": "Hello, world!",
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "reasoning": [],
