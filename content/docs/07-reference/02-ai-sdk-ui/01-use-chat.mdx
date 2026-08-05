@@ -263,7 +263,7 @@ Allows you to easily create a conversational user interface for your chatbot app
       type: '({toolCall: ToolCall}) => void | Promise<void>',
       isOptional: true,
       description:
-        'Optional callback function that is invoked when a tool call is received. You must call addToolOutput to provide the tool result.',
+        'Optional callback for automatic client-side tool execution. It is invoked once per tool call, when the complete tool input is available (the tool-input-available stream part), and only for tool calls that are not provider-executed. You must call addToolOutput to provide the tool result. It does not fire on tool-input-start, and there is no counterpart callback for tool results. To react to tools that execute on the server, derive the status from the tool parts of the assistant message or stream custom data parts and handle them in onData (see the Chatbot Tool Usage and Streaming Custom Data guides).',
     },
     {
       name: 'sendAutomaticallyWhen',
@@ -490,4 +490,5 @@ Allows you to easily create a conversational user interface for your chatbot app
 
 - [Chatbot](/docs/ai-sdk-ui/chatbot)
 - [Chatbot with Tools](/docs/ai-sdk-ui/chatbot-tool-usage)
+- [Streaming Custom Data](/docs/ai-sdk-ui/streaming-data)
 - [UIMessage](/docs/reference/ai-sdk-core/ui-message)
