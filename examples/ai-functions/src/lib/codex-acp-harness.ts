@@ -8,6 +8,7 @@ import { z } from 'zod';
 
 const CODEX_ACP_IMPLEMENTATION = {
   type: 'npm',
+  mode: 'simple',
   packageName: '@agentclientprotocol/codex-acp',
   version: '1.1.4',
   executable: 'codex-acp',

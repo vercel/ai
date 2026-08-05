@@ -16,6 +16,7 @@ import {
 
 const simpleImplementation = {
   type: 'npm',
+  mode: 'simple',
   packageName: '@example/acp-agent',
   version: '1.2.3',
   executable: 'acp-agent',

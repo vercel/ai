@@ -10,6 +10,7 @@ export const claudeCodeACPHarness = createACP({
   harnessId,
   implementation: {
     type: 'npm',
+    mode: 'simple',
     packageName: '@agentclientprotocol/claude-agent-acp',
     version: '0.61.0',
     executable: 'claude-agent-acp',

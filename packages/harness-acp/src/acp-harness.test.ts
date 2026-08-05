@@ -144,6 +144,7 @@ vi.mock('node:fs/promises', async importOriginal => {
 
 const implementation = {
   type: 'npm',
+  mode: 'simple',
   packageName: '@agentclientprotocol/codex-acp',
   version: '1.1.4',
   executable: 'codex-acp',

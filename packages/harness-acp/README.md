@@ -29,6 +29,7 @@ const codexACP = createACP({
   harnessId: 'acp-codex',
   implementation: {
     type: 'npm',
+    mode: 'simple',
     packageName: '@agentclientprotocol/codex-acp',
     version: '1.1.4',
     executable: 'codex-acp',

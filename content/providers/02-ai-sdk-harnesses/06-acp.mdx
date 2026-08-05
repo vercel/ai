@@ -90,11 +90,12 @@ metadata belong in the inline profile, not in the generic adapter.
 
 ### Implementation acquisition
 
-The default simple NPM acquisition mode requires an exact package version:
+Simple NPM acquisition requires an exact package version:
 
 ```ts
 const implementation = {
   type: 'npm',
+  mode: 'simple',
   packageName: '@agentclientprotocol/codex-acp',
   version: '1.1.4',
   executable: 'codex-acp',
@@ -234,6 +235,7 @@ export const claudeCodeACPHarness = createACP({
   harnessId: 'acp-claude-code',
   implementation: {
     type: 'npm',
+    mode: 'simple',
     packageName: '@agentclientprotocol/claude-agent-acp',
     version: '0.61.0',
     executable: 'claude-agent-acp',
@@ -293,6 +295,7 @@ export const codexACPHarness = createACP({
   harnessId: 'acp-codex',
   implementation: {
     type: 'npm',
+    mode: 'simple',
     packageName: '@agentclientprotocol/codex-acp',
     version: '1.1.4',
     executable: 'codex-acp',
@@ -364,6 +367,7 @@ export const grokBuildACPHarness = createACP({
   harnessId: 'acp-grok-build',
   implementation: {
     type: 'npm',
+    mode: 'simple',
     packageName: '@xai-official/grok',
     version: '0.2.111',
     executable: 'grok',

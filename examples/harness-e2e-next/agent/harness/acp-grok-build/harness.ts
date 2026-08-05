@@ -6,6 +6,7 @@ export const grokBuildACPHarness = createACP({
   harnessId,
   implementation: {
     type: 'npm',
+    mode: 'simple',
     packageName: '@xai-official/grok',
     version: '0.2.111',
     executable: 'grok',

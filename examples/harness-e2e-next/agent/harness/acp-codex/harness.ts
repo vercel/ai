@@ -13,6 +13,7 @@ export const codexACPHarness = createACP({
   harnessId,
   implementation: {
     type: 'npm',
+    mode: 'simple',
     packageName: '@agentclientprotocol/codex-acp',
     version: '1.1.4',
     executable: 'codex-acp',

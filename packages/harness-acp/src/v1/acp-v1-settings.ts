@@ -43,7 +43,7 @@ type ACPNpmLaunchSettings = {
 };
 
 export type ACPSimpleNpmImplementation = ACPNpmLaunchSettings & {
-  readonly mode?: 'simple';
+  readonly mode: 'simple';
   readonly packageName: string;
   readonly version: string;
 };
