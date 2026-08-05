@@ -656,11 +656,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const response = {
         state: createStreamingUIMessageState({
           lastMessage:
-<<<<<<< HEAD
-            trigger === 'resume-stream'
-=======
-            trigger === 'regenerate-message'
->>>>>>> origin/main
+            trigger === 'resume-stream' || trigger === 'regenerate-message'
               ? undefined
               : this.state.snapshot(lastMessage),
           messageId: this.generateId(),
