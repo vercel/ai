@@ -1397,7 +1397,7 @@ describe('HarnessAgent', () => {
     const base = mockHarness({ script: () => [] });
     const recipe: HarnessV1Bootstrap = {
       harnessId: 'mock',
-      bootstrapDir: '/tmp/mock-bootstrap',
+      bootstrapDir: '.harness-bootstrap/mock',
       files: [],
       commands: [],
     };
@@ -1407,7 +1407,11 @@ describe('HarnessAgent', () => {
     };
     const readTextFile = vi.fn(async () => null);
     const writeTextFile = vi.fn(async () => {});
-    const run = vi.fn(async () => ({ exitCode: 0, stdout: '', stderr: '' }));
+    const run = vi.fn(async (args: { command: string }) => ({
+      exitCode: 0,
+      stdout: args.command === 'pwd' ? '/work\n' : '',
+      stderr: '',
+    }));
     const restrictedSession = {
       run,
       readTextFile,
@@ -1446,7 +1450,7 @@ describe('HarnessAgent', () => {
     >;
     const markerWrite = writeCalls.at(-1)?.[0];
     expect(markerWrite?.path).toMatch(
-      /^\/tmp\/mock-bootstrap\/\.bootstrap-[0-9a-f]{16}\.ok$/,
+      /^\/work\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
     );
 
     await session.destroy();

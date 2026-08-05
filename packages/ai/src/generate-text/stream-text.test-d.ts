@@ -1,5 +1,6 @@
 import type { JSONValue } from '@ai-sdk/provider';
 import {
+  experimental_toolCaller,
   tool,
   type Context,
   type ModelMessage,
@@ -22,6 +23,40 @@ import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 describe('streamText types', () => {
+  describe('experimental_toolCallers', () => {
+    it('should accept caller-capable tool names', () => {
+      const codeMode = experimental_toolCaller(
+        tool({
+          inputSchema: z.object({}),
+          execute: async () => undefined,
+        }),
+        {
+          type: 'local',
+          bind: () =>
+            tool({
+              inputSchema: z.object({}),
+              execute: async () => undefined,
+            }),
+        },
+      );
+
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        tools: {
+          code_mode: codeMode,
+          getInventory: tool({
+            inputSchema: z.object({ sku: z.string() }),
+            execute: async ({ sku }) => ({ sku }),
+          }),
+        },
+        experimental_toolCallers: {
+          getInventory: ['AI_SDK_DIRECT_TOOL_CALL', 'code_mode'],
+        },
+      });
+    });
+  });
+
   describe('timeout', () => {
     it('should accept a first chunk timeout', () => {
       streamText({

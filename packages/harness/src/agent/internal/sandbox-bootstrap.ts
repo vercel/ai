@@ -133,6 +133,7 @@ export async function runSandboxBootstrap({
   recipeIdentity,
   workDir,
   onBootstrap,
+  defaultWorkingDirectory,
   abortSignal,
 }: {
   readonly session: SandboxSession;
@@ -140,25 +141,35 @@ export async function runSandboxBootstrap({
   readonly recipeIdentity?: string;
   readonly workDir?: string;
   readonly onBootstrap?: SandboxBootstrapSettings['onBootstrap'];
+  readonly defaultWorkingDirectory?: string;
   readonly abortSignal?: AbortSignal;
 }): Promise<void> {
+  if (recipe == null && onBootstrap == null) return;
+
+  const resolvedDefaultWorkingDirectory =
+    defaultWorkingDirectory ??
+    (await resolveDefaultWorkingDirectory({
+      session,
+      abortSignal,
+    }));
+
   if (recipe != null && recipeIdentity != null) {
-    await applyBootstrapRecipe(session, recipe, recipeIdentity, {
+    await applyBootstrapRecipe({
+      session,
+      recipe,
+      identity: recipeIdentity,
+      defaultWorkingDirectory: resolvedDefaultWorkingDirectory,
       abortSignal,
     });
   }
 
   if (onBootstrap == null) return;
 
-  const defaultWorkingDirectory = await resolveDefaultWorkingDirectory({
-    session,
-    abortSignal,
-  });
   const bootstrapWorkDir =
     workDir == null
-      ? defaultWorkingDirectory
+      ? resolvedDefaultWorkingDirectory
       : joinSandboxPath({
-          base: defaultWorkingDirectory,
+          base: resolvedDefaultWorkingDirectory,
           path: workDir,
         });
 

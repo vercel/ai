@@ -9,6 +9,7 @@ import {
 import {
   DelayedPromise,
   dynamicTool,
+  experimental_toolCaller,
   jsonSchema,
   tool,
   type ModelMessage,
@@ -187,6 +188,183 @@ describe('abort signal handling', () => {
       `[AbortError: tool execution aborted]`,
     );
     expect(modelCallCount).toBe(1);
+  });
+});
+
+describe('experimental_toolCallers', () => {
+  it('late-binds local caller tools and hides local-only callees', async () => {
+    let modelTools: LanguageModelV4CallOptions['tools'];
+
+    const localCaller = experimental_toolCaller(
+      tool({
+        inputSchema: z.object({}),
+        execute: async (): Promise<unknown> => {
+          throw new Error('Caller was not bound.');
+        },
+      }),
+      {
+        type: 'local',
+        bind: tools =>
+          tool({
+            inputSchema: z.object({}),
+            execute: async () => Object.keys(tools),
+          }),
+      },
+    );
+
+    const result = await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async options => {
+          modelTools = options.tools;
+          return {
+            ...dummyResponseValues,
+            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'code_mode',
+                input: '{}',
+              },
+            ],
+          };
+        },
+      }),
+      tools: {
+        code_mode: localCaller,
+        getInventory: tool({
+          inputSchema: z.object({ sku: z.string() }),
+          execute: async ({ sku }) => ({ sku, availableUnits: 42 }),
+        }),
+      },
+      experimental_toolCallers: {
+        getInventory: ['code_mode'],
+      },
+      prompt: 'Check inventory.',
+    });
+
+    expect(modelTools?.map(tool => tool.name)).toEqual(['code_mode']);
+    expect(result.toolResults[0]?.output).toEqual(['getInventory']);
+  });
+
+  it('adds provider caller options while preserving direct access', async () => {
+    let modelTools: LanguageModelV4CallOptions['tools'];
+
+    const providerCaller = experimental_toolCaller(
+      tool({
+        inputSchema: z.object({}),
+        execute: async () => undefined,
+      }),
+      {
+        type: 'provider',
+        prepareProviderOptions: providerOptions => ({
+          ...providerOptions,
+          test: { allowedCallers: ['programmatic'] },
+        }),
+      },
+    );
+
+    await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async options => {
+          modelTools = options.tools;
+          return { ...dummyResponseValues, content: [] };
+        },
+      }),
+      tools: {
+        programmatic: providerCaller,
+        getDemand: tool({
+          inputSchema: z.object({ sku: z.string() }),
+          execute: async ({ sku }) => ({ sku }),
+        }),
+      },
+      experimental_toolCallers: {
+        getDemand: ['AI_SDK_DIRECT_TOOL_CALL', 'programmatic'],
+      },
+      prompt: 'Check demand.',
+    });
+
+    expect(modelTools?.find(tool => tool.name === 'getDemand')).toMatchObject({
+      providerOptions: {
+        test: { allowedCallers: ['programmatic'] },
+      },
+    });
+  });
+
+  it('distinguishes the direct marker from a caller named direct', async () => {
+    let modelTools: LanguageModelV4CallOptions['tools'];
+
+    const directCaller = experimental_toolCaller(
+      tool({
+        inputSchema: z.object({}),
+        execute: async () => undefined,
+      }),
+      {
+        type: 'local',
+        bind: tools =>
+          tool({
+            inputSchema: z.object({}),
+            execute: async () => Object.keys(tools),
+          }),
+      },
+    );
+
+    const result = await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async options => {
+          modelTools = options.tools;
+          return {
+            ...dummyResponseValues,
+            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'direct',
+                input: '{}',
+              },
+            ],
+          };
+        },
+      }),
+      tools: {
+        direct: directCaller,
+        getInventory: tool({
+          inputSchema: z.object({ sku: z.string() }),
+          execute: async ({ sku }) => ({ sku }),
+        }),
+      },
+      experimental_toolCallers: {
+        getInventory: ['direct', 'AI_SDK_DIRECT_TOOL_CALL'],
+      },
+      prompt: 'Check inventory.',
+    });
+
+    expect(modelTools?.map(tool => tool.name)).toEqual([
+      'direct',
+      'getInventory',
+    ]);
+    expect(result.toolResults[0]?.output).toEqual(['getInventory']);
+  });
+
+  it('rejects caller names that are not caller-capable tools', async () => {
+    await expect(
+      generateText({
+        model: new MockLanguageModelV4(),
+        tools: {
+          getInventory: tool({
+            inputSchema: z.object({}),
+            execute: async () => undefined,
+          }),
+        },
+        experimental_toolCallers: {
+          getInventory: ['getInventory'],
+        } as never,
+        prompt: 'Check inventory.',
+      }),
+    ).rejects.toThrow('tool "getInventory" contains an invalid caller.');
   });
 });
 
@@ -3203,7 +3381,7 @@ describe('generateText', () => {
               },
             ],
             "finishReason": "tool-calls",
-            "modelId": "mock-model-id",
+            "modelId": "mock-response-model",
             "performance": {
               "effectiveOutputTokensPerSecond": 0,
               "effectiveTotalTokensPerSecond": 0,
@@ -6504,6 +6682,88 @@ describe('generateText', () => {
   });
 
   describe('options.timeout', () => {
+    it.each([
+      {
+        timeout: { firstChunkMs: 5000 },
+        warning: {
+          type: 'unsupported',
+          feature: 'timeout.firstChunkMs',
+          details:
+            'The firstChunkMs timeout is only supported by streaming functions.',
+        },
+      },
+      {
+        timeout: { chunkMs: 5000 },
+        warning: {
+          type: 'unsupported',
+          feature: 'timeout.chunkMs',
+          details:
+            'The chunkMs timeout is only supported by streaming functions.',
+        },
+      },
+    ] as const)(
+      'should warn before the model responds when $warning.feature is configured',
+      async ({ timeout, warning }) => {
+        const delayedPromise = new DelayedPromise<void>();
+
+        const generatePromise = generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => {
+              await delayedPromise.promise;
+              return {
+                ...dummyResponseValues,
+                content: [{ type: 'text', text: 'Hello, world!' }],
+              };
+            },
+          }),
+          prompt: 'test-input',
+          timeout,
+        });
+
+        expect(logWarningsSpy).toHaveBeenCalledOnce();
+        expect(logWarningsSpy).toHaveBeenCalledWith({
+          warnings: [warning],
+          provider: 'mock-provider',
+          model: 'mock-model-id',
+        });
+
+        delayedPromise.resolve();
+        await generatePromise;
+      },
+    );
+
+    it('should warn about both streaming-only timeouts in one call', async () => {
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+          },
+        }),
+        prompt: 'test-input',
+        timeout: { firstChunkMs: 5000, chunkMs: 5000 },
+      });
+
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(1, {
+        warnings: [
+          {
+            type: 'unsupported',
+            feature: 'timeout.firstChunkMs',
+            details:
+              'The firstChunkMs timeout is only supported by streaming functions.',
+          },
+          {
+            type: 'unsupported',
+            feature: 'timeout.chunkMs',
+            details:
+              'The chunkMs timeout is only supported by streaming functions.',
+          },
+        ],
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
+    });
+
     it('should forward timeout as abort signal to model', async () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
