@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 13703,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-13703-openai-compatible-content-array.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-13703-openai-compatible-content-array.ts",
+    "packages/openai-compatible/src/chat/__fixtures__/issue-13703-mistral-thinking.json",
+    "packages/openai-compatible/src/chat/__fixtures__/issue-13703-mistral-thinking.chunks.txt"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #13703 REPRODUCED: doGenerate and doStream reject array-based chat content instead of normalizing known parts and ignoring unknown parts."
+  }
+}
