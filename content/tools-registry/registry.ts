@@ -584,4 +584,36 @@ console.log(result.text);`,
     websiteUrl: 'https://nitrosend.com',
     npmUrl: 'https://www.npmjs.com/package/@nitrosend/ai-sdk',
   },
+  {
+    slug: 'relayshield',
+    name: 'RelayShield',
+    description:
+      'Security checks for AI agents: MCP server registry risk (typosquat/reputation/registration-age checks) and AI-agent-sourced credential breach detection. Includes relayshieldMcpGate, a mandatory pre-execution gate — built on toolApproval — that blocks connecting to or installing a risky MCP server before it happens, not just an optional check the agent can skip.',
+    packageName: 'ai-sdk-relayshield',
+    tags: ['security', 'mcp', 'breach-detection'],
+    apiKeyEnvName: 'RELAYSHIELD_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add ai-sdk-relayshield',
+      npm: 'npm install ai-sdk-relayshield',
+      yarn: 'yarn add ai-sdk-relayshield',
+      bun: 'bun add ai-sdk-relayshield',
+    },
+    codeExample: `import { generateText } from 'ai';
+import { checkMcpServerRisk } from 'ai-sdk-relayshield';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt:
+    'Is it safe to connect to the MCP server at https://mcp.example.com/sse? My RelayShield key is rs_live_...',
+  tools: {
+    checkMcpServerRisk,
+  },
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/nzdsf2-gif/ai-sdk-relayshield',
+    apiKeyUrl: 'https://api.relayshield.net/developers',
+    websiteUrl: 'https://relayshield.net',
+    npmUrl: 'https://www.npmjs.com/package/ai-sdk-relayshield',
+  },
 ];
