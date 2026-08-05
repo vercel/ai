@@ -130,8 +130,8 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
     implementation: settings.implementation,
   });
 
-  const bridgeDir = `.harness-bootstrap/${settings.harnessId}`;
-  const implementationDir = `${bridgeDir}/implementation`;
+  const BOOTSTRAP_DIR = `.harness-bootstrap/${settings.harnessId}`;
+
   let cachedBootstrap: HarnessV1Bootstrap | undefined;
   const permissionModeMapping = isCompletePermissionModeMapping({
     value: settings.permissionModeMapping,
@@ -160,29 +160,29 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       });
       cachedBootstrap = {
         harnessId: settings.harnessId,
-        bootstrapDir: bridgeDir,
+        bootstrapDir: BOOTSTRAP_DIR,
         files: [
           {
-            path: `${bridgeDir}/package.json`,
+            path: `${BOOTSTRAP_DIR}/package.json`,
             content: bridgePackage,
           },
           {
-            path: `${bridgeDir}/pnpm-lock.yaml`,
+            path: `${BOOTSTRAP_DIR}/pnpm-lock.yaml`,
             content: bridgeLock,
           },
-          { path: `${bridgeDir}/bridge.mjs`, content: bridge },
+          { path: `${BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
           {
-            path: `${bridgeDir}/host-tool-mcp.mjs`,
+            path: `${BOOTSTRAP_DIR}/host-tool-mcp.mjs`,
             content: hostToolMCP,
           },
           {
-            path: `${implementationDir}/package.json`,
+            path: `${BOOTSTRAP_DIR}/implementation/package.json`,
             content: createImplementationManifest({
               implementation: settings.implementation,
             }),
           },
           {
-            path: `${implementationDir}/implementation.json`,
+            path: `${BOOTSTRAP_DIR}/implementation/implementation.json`,
             content: createImplementationDescriptor({
               implementation: settings.implementation,
               implementationIdentity,
@@ -192,7 +192,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
             ? []
             : [
                 {
-                  path: `${implementationDir}/pnpm-lock.yaml`,
+                  path: `${BOOTSTRAP_DIR}/implementation/pnpm-lock.yaml`,
                   content: implementationLock,
                 },
               ]),
@@ -243,7 +243,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       const sandbox = sandboxSession.restricted();
       const resolvedBridgeDir = posix.resolve(
         sandboxSession.defaultWorkingDirectory,
-        bridgeDir,
+        BOOTSTRAP_DIR,
       );
       const resolvedImplementationDir = `${resolvedBridgeDir}/implementation`;
       const workDir = startOptions.sessionWorkDir;
