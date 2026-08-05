@@ -146,6 +146,72 @@ describe('BlackForestLabsVideoModel', () => {
       ]);
     });
 
+    // The submit response can only estimate, and returns null whenever the
+    // price depends on the finished video. `get_result` then answers with the
+    // `SettledCostResultResponse` variant, which carries the real charge.
+    it('should prefer the settled cost from the result over the submit estimate', async () => {
+      server.urls[POLL_URL].response = {
+        type: 'json-value',
+        body: { ...readyResponse, cost: 0.85 },
+      };
+
+      const result = await createModel().doGenerate({ ...defaultOptions });
+
+      expect(result.providerMetadata?.blackForestLabs?.videos).toStrictEqual([
+        {
+          id: REQUEST_ID,
+          videoUrl: VIDEO_URL,
+          seed: 7,
+          duration: 8,
+          cost: 0.85,
+          inputMegapixels: 1.23,
+          outputMegapixels: 4.56,
+        },
+      ]);
+    });
+
+    it('should report the settled cost when the submit response omits one', async () => {
+      server.urls[SUBMIT_URL].response = {
+        type: 'json-value',
+        body: { id: REQUEST_ID, polling_url: POLL_URL },
+      };
+      server.urls[POLL_URL].response = {
+        type: 'json-value',
+        body: { ...readyResponse, cost: 0.85 },
+      };
+
+      const result = await createModel().doGenerate({ ...defaultOptions });
+
+      expect(result.providerMetadata?.blackForestLabs?.videos).toStrictEqual([
+        {
+          id: REQUEST_ID,
+          videoUrl: VIDEO_URL,
+          seed: 7,
+          duration: 8,
+          cost: 0.85,
+        },
+      ]);
+    });
+
+    // The plain `ResultResponse` variant has no cost at all.
+    it('should omit cost entirely when neither response reports one', async () => {
+      server.urls[SUBMIT_URL].response = {
+        type: 'json-value',
+        body: { id: REQUEST_ID, polling_url: POLL_URL },
+      };
+
+      const result = await createModel().doGenerate({ ...defaultOptions });
+
+      expect(result.providerMetadata?.blackForestLabs?.videos).toStrictEqual([
+        {
+          id: REQUEST_ID,
+          videoUrl: VIDEO_URL,
+          seed: 7,
+          duration: 8,
+        },
+      ]);
+    });
+
     it('should send an empty prompt when none is provided', async () => {
       await createModel().doGenerate({ ...defaultOptions, prompt: undefined });
 
@@ -999,6 +1065,113 @@ describe('BlackForestLabsVideoModel', () => {
   });
 
   describe('polling', () => {
+<<<<<<< HEAD
+=======
+    it('should expose a serializable operation from doStart', async () => {
+      const result = await createModel().doStart({ ...defaultOptions });
+
+      expect(result.operation).toStrictEqual({
+        requestId: REQUEST_ID,
+        pollingUrl: POLL_URL,
+        cost: 0.42,
+        inputMegapixels: 1.23,
+        outputMegapixels: 4.56,
+      });
+      expect(result.warnings).toStrictEqual([]);
+      expect(server.calls).toHaveLength(1);
+    });
+
+    it('should return pending from a single doStatus check', async () => {
+      server.urls[POLL_URL].response = {
+        type: 'json-value',
+        body: { status: 'Generating' },
+      };
+
+      const result = await createModel().doStatus({
+        operation: { requestId: REQUEST_ID, pollingUrl: POLL_URL },
+      });
+
+      expect(result).toMatchObject({ status: 'pending' });
+      expect(server.calls).toHaveLength(1);
+      expect(server.calls[0].requestUrl).toBe(`${POLL_URL}?id=${REQUEST_ID}`);
+    });
+
+    it('should return a completed video from doStatus', async () => {
+      const result = await createModel().doStatus({
+        operation: {
+          requestId: REQUEST_ID,
+          pollingUrl: POLL_URL,
+          cost: 0.42,
+          inputMegapixels: 1.23,
+          outputMegapixels: 4.56,
+        },
+      });
+
+      expect(result).toMatchObject({
+        status: 'completed',
+        videos: [{ type: 'url', url: VIDEO_URL, mediaType: 'video/mp4' }],
+        providerMetadata: {
+          blackForestLabs: {
+            videos: [
+              {
+                id: REQUEST_ID,
+                videoUrl: VIDEO_URL,
+                seed: 7,
+                duration: 8,
+                cost: 0.42,
+                inputMegapixels: 1.23,
+                outputMegapixels: 4.56,
+              },
+            ],
+          },
+        },
+      });
+      expect(server.calls).toHaveLength(1);
+    });
+
+    // A resumed operation carries whatever the submit response estimated,
+    // which may be stale or absent by the time the video is ready.
+    it('should prefer the settled cost over the cost carried on the operation', async () => {
+      server.urls[POLL_URL].response = {
+        type: 'json-value',
+        body: { ...readyResponse, cost: 0.85 },
+      };
+
+      const result = await createModel().doStatus({
+        operation: {
+          requestId: REQUEST_ID,
+          pollingUrl: POLL_URL,
+          cost: 0.42,
+        },
+      });
+
+      expect(result).toMatchObject({
+        status: 'completed',
+        providerMetadata: {
+          blackForestLabs: { videos: [{ cost: 0.85 }] },
+        },
+      });
+    });
+
+    it('should return an error from doStatus for terminal failures', async () => {
+      server.urls[POLL_URL].response = {
+        type: 'json-value',
+        body: { status: 'Content Moderated', details: 'blocked by policy' },
+      };
+
+      const result = await createModel().doStatus({
+        operation: { requestId: REQUEST_ID, pollingUrl: POLL_URL },
+      });
+
+      expect(result).toMatchObject({
+        status: 'error',
+        error:
+          'Black Forest Labs video generation failed with status "Content Moderated": blocked by policy. Request id: req-123',
+      });
+      expect(server.calls).toHaveLength(1);
+    });
+
+>>>>>>> ef78f46c20 (fix(black-forest-labs): report the settled cost for FLUX 3 video (#18439))
     it('should keep polling through non-terminal statuses', async () => {
       let callNumber = 0;
       server.urls[POLL_URL].response = () => {
