@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 8943,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-8943-google-2-5-penalties.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-8943-google-2-5-penalties.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #8943: Gemini 2.5 Flash, Flash-Lite, and Pro reject AI SDK frequencyPenalty and presencePenalty requests."
+  }
+}
