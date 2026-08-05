@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 18457,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-18457-resume-stream-duplicates-previous-message.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-18457-resume-stream-duplicates-previous-message.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_18457_REPRODUCED: resumeStream duplicated the previous assistant message"
+  }
+}
