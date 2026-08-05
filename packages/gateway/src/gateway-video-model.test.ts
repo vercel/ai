@@ -1280,38 +1280,36 @@ describe('GatewayVideoModel', () => {
       ).rejects.toThrow();
     });
 
-    it('should reuse one idempotency key when retried with the same options', async () => {
+    it('should forward the caller-supplied idempotency key', async () => {
       server.urls['https://api.test.com/video-model/start'].response = {
         type: 'json-value',
         body: { operation: { gatewayJobId: 'job_123' } },
       };
 
-      // `generateVideo` builds the options object once outside its retry
-      // closure, so a retry after a lost response must not start a second
-      // billable generation.
-      const model = createTestModel();
-      await model.doStart(baseCallOptions);
-      await model.doStart(baseCallOptions);
+      // The key is minted by `generateVideo` once per logical start and passed
+      // down, so a retry of a lost response dedupes at the gateway rather than
+      // starting a second billable generation. The model must not invent one:
+      // inferring retry identity from an options object would collide across
+      // unrelated calls that happen to share it.
+      await createTestModel().doStart({
+        ...baseCallOptions,
+        headers: { 'idempotency-key': 'aisdk_vid_abc123' },
+      });
 
-      const first = server.calls[0].requestHeaders['idempotency-key'];
-      const second = server.calls[1].requestHeaders['idempotency-key'];
-      expect(first).toBeDefined();
-      expect(second).toBe(first);
+      expect(server.calls[0].requestHeaders['idempotency-key']).toBe(
+        'aisdk_vid_abc123',
+      );
     });
 
-    it('should use a distinct idempotency key for a distinct call', async () => {
+    it('should send no idempotency key when the caller supplies none', async () => {
       server.urls['https://api.test.com/video-model/start'].response = {
         type: 'json-value',
         body: { operation: { gatewayJobId: 'job_123' } },
       };
 
-      const model = createTestModel();
-      await model.doStart({ ...baseCallOptions });
-      await model.doStart({ ...baseCallOptions });
+      await createTestModel().doStart(baseCallOptions);
 
-      expect(server.calls[1].requestHeaders['idempotency-key']).not.toBe(
-        server.calls[0].requestHeaders['idempotency-key'],
-      );
+      expect(server.calls[0].requestHeaders['idempotency-key']).toBeUndefined();
     });
   });
 

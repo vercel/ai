@@ -1137,6 +1137,108 @@ describe('experimental_generateVideo', () => {
       expect(result.videos.length).toBe(1);
     });
 
+    it('should send one stable idempotency key across doStart retries', async () => {
+      // `doStart` creates a billable generation, so a retry after a lost
+      // response must dedupe rather than start a second one. The key is minted
+      // once per logical start, not inferred from options identity.
+      const seenKeys: Array<string | undefined> = [];
+      let startCallCount = 0;
+
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: undefined,
+          doStart: async options => {
+            startCallCount++;
+            seenKeys.push(options.headers?.['idempotency-key']);
+            if (startCallCount === 1) {
+              throw new APICallError({
+                message: 'lost response',
+                url: 'https://example.com/start',
+                requestBodyValues: {},
+                statusCode: 500,
+                responseHeaders: { 'retry-after-ms': '0' },
+              });
+            }
+            return {
+              operation: 'op-1',
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            };
+          },
+          doStatus: async () => ({
+            status: 'completed' as const,
+            videos: [
+              { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+            ],
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          }),
+        }),
+        prompt,
+        maxRetries: 1,
+        poll: { intervalMs: 0 },
+      });
+
+      expect(startCallCount).toBe(2);
+      expect(seenKeys[0]).toMatch(/^aisdk_vid_/);
+      expect(seenKeys[1]).toBe(seenKeys[0]);
+      expect(result.videos.length).toBe(1);
+    });
+
+    it('should mint a distinct idempotency key per generateVideo call', async () => {
+      const seenKeys: Array<string | undefined> = [];
+      const model = () =>
+        new MockVideoModelV4({
+          doGenerate: undefined,
+          doStart: async options => {
+            seenKeys.push(options.headers?.['idempotency-key']);
+            return {
+              operation: 'op-1',
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            };
+          },
+          doStatus: async () => ({
+            status: 'completed' as const,
+            videos: [
+              { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+            ],
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          }),
+        });
+
+      await experimental_generateVideo({
+        model: model(),
+        prompt,
+        poll: { intervalMs: 0 },
+      });
+      await experimental_generateVideo({
+        model: model(),
+        prompt,
+        poll: { intervalMs: 0 },
+      });
+
+      expect(seenKeys).toHaveLength(2);
+      expect(seenKeys[1]).not.toBe(seenKeys[0]);
+    });
+
     it('should fall back to doGenerate when poll is provided but model lacks doStart/doStatus', async () => {
       const result = await experimental_generateVideo({
         model: new MockVideoModelV4({

@@ -11,6 +11,7 @@ import type {
 import {
   convertBase64ToUint8Array,
   delay as defaultDelay,
+  generateId,
   withUserAgentSuffix,
   type DataContent,
   detectMediaType,
@@ -555,12 +556,21 @@ async function executeStartStatusFlow({
 
   // 2. Start the generation.
   //
-  // The options object is built ONCE, outside the retry closure, so every
-  // attempt receives the identical reference. `doStart` has a side effect the
-  // caller pays for, and a retry after a lost response would otherwise create a
-  // second generation; a provider (or the Vercel AI Gateway) can key
-  // deduplication off this identity without a spec change.
-  const startCallOptions = { ...callOptions, webhookUrl };
+  // `doStart` has a side effect the caller pays for, so a retry after a lost
+  // response must not create a second generation. Mint ONE idempotency token per
+  // logical start — here, outside the retry closure — and forward it as a header
+  // so a provider that supports deduplication can key off it. Explicit, rather
+  // than inferred from object identity: two unrelated calls that happen to share
+  // an options object must never share a token.
+  const startIdempotencyKey = `aisdk_vid_${generateId()}`;
+  const startCallOptions = {
+    ...callOptions,
+    headers: {
+      ...callOptions.headers,
+      'idempotency-key': startIdempotencyKey,
+    },
+    webhookUrl,
+  };
   const startResult = await retry(() => model.doStart!(startCallOptions));
 
   const allWarnings = [...earlyWarnings, ...startResult.warnings];
