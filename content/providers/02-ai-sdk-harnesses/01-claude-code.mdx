@@ -99,7 +99,7 @@ Settings:
 - `port`: bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the bridge to start.
 - `systemExecutable`: whether to drive a `claude` executable already present in
-  the sandbox instead of installing one. See below.
+  the sandbox instead of installing one. Defaults to `true`. See below.
 
 ### Reusing an installed Claude Code
 
@@ -128,9 +128,6 @@ with a message explaining how to recover.
 ```ts
 // Always install the pinned executable.
 createClaudeCode({ systemExecutable: false });
-
-// Use a specific one. A bad path fails rather than silently installing.
-createClaudeCode({ systemExecutable: '/opt/homebrew/bin/claude' });
 ```
 
 <Note>

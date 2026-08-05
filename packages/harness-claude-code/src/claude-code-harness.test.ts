@@ -507,6 +507,8 @@ describe('createClaudeCode adapter', () => {
       // The fallback branch still does a full install and verifies it.
       expect(commands[0]).toContain('claude --version');
       expect(commands[0]).not.toContain('cd ');
+      // The store is a build artifact; nothing reads it after the install.
+      expect(commands[0]).toContain('rm -rf .pnpm-store');
     });
 
     it('always installs the pinned binaries when reuse is disabled', async () => {
@@ -521,6 +523,7 @@ describe('createClaudeCode adapter', () => {
       expect(commands[0]).not.toContain('--no-optional');
       expect(commands[0]).not.toContain('command -v claude');
       expect(commands[0]).toContain('claude --version');
+      expect(commands[0]).toContain('rm -rf .pnpm-store');
     });
 
     // Different install behaviour has to mean a different snapshot.

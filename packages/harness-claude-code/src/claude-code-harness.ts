@@ -89,26 +89,21 @@ export type ClaudeCodeHarnessSettings = {
   readonly startupTimeoutMs?: number;
   /**
    * Whether to drive a `claude` executable that already exists in the sandbox
-   * instead of installing the pinned one.
+   * rather than installing the pinned one. Defaults to `true`.
    *
    * The bootstrap otherwise downloads two copies of the Claude Code binary,
    * around 470MB of the 785MB it writes, because both
    * `@anthropic-ai/claude-agent-sdk` and `@anthropic-ai/claude-code` ship it as
-   * a platform-specific optional dependency. Where a usable executable is
-   * already present, skipping those leaves roughly 40MB of JavaScript.
+   * a platform-specific optional dependency. Skipping those where a working
+   * executable is already present leaves roughly 40MB of JavaScript.
    *
-   * - `'auto'` (default): use one if the sandbox has it, otherwise install.
-   *   A hosted sandbox is empty, so this changes nothing there; it pays off
-   *   when the sandbox is the user's own machine.
-   * - `false`: always install the pinned executable.
-   * - a string: an absolute path to use, failing the session if it does not
-   *   work rather than silently installing.
-   *
-   * Under `'auto'` the adapter falls back to a full install if the bridge does
-   * not come up, so an incompatible executable costs a retry rather than a
-   * failed session.
+   * A hosted sandbox has no `claude`, so this changes nothing there; the
+   * install falls back to the pinned copy. It pays off when the sandbox is the
+   * user's own machine. Set it to `false` to always install the pinned copy,
+   * for instance to guarantee the executable matches the version the bridge
+   * was built against.
    */
-  readonly systemExecutable?: 'auto' | false | string;
+  readonly systemExecutable?: boolean;
 };
 
 /*
@@ -456,7 +451,15 @@ function installCommand(reuseSystemExecutable: boolean): string {
   const install = 'pnpm install --frozen-lockfile --store-dir .pnpm-store';
   const fullInstall = `${install} && if [ -f node_modules/@anthropic-ai/claude-code/install.cjs ]; then node node_modules/@anthropic-ai/claude-code/install.cjs; fi && ./node_modules/.bin/claude --version`;
 
-  if (!reuseSystemExecutable) return fullInstall;
+  // The store is a build artifact. `--store-dir` keeps pnpm from writing
+  // outside the sandbox working directory during the install, which is what
+  // snapshot-capable providers need, but nothing reads it afterwards: pnpm
+  // copies rather than hardlinks here, so it is a second copy of everything.
+  // Dropping it takes the reuse branch from 78MB to 40MB and a full install
+  // from 785MB to 511MB.
+  const discardStore = 'rm -rf .pnpm-store';
+
+  if (!reuseSystemExecutable) return `${fullInstall} && ${discardStore}`;
 
   return [
     'if command -v claude >/dev/null 2>&1 && claude --version >/dev/null 2>&1; then',
@@ -464,6 +467,7 @@ function installCommand(reuseSystemExecutable: boolean): string {
     'else',
     `  ${fullInstall}`,
     'fi',
+    discardStore,
   ].join('\n');
 }
 
@@ -502,8 +506,7 @@ export function createClaudeCode(
     type: 'adaptive',
     display: 'summarized',
   };
-  const systemExecutable = settings.systemExecutable ?? 'auto';
-  const reuseSystemExecutable = systemExecutable !== false;
+  const reuseSystemExecutable = settings.systemExecutable ?? true;
 
   return {
     specificationVersion: 'harness-v1',
@@ -620,7 +623,7 @@ export function createClaudeCode(
             builtinToolFiltering: startOpts.builtinToolFiltering,
             skills: startOpts.skills ?? [],
             claudeExecutablePath: await resolveClaudeExecutable({
-              setting: systemExecutable,
+              reuse: reuseSystemExecutable,
               session,
               markerPath: posix.resolve(
                 sandboxSession.defaultWorkingDirectory,
@@ -669,7 +672,7 @@ export function createClaudeCode(
           : undefined;
       const port = resolveBridgePort(sandboxSession, settings.port);
       const claudeExecutablePath = await resolveClaudeExecutable({
-        setting: systemExecutable,
+        reuse: reuseSystemExecutable,
         session,
         markerPath: posix.resolve(
           sandboxSession.defaultWorkingDirectory,
@@ -1031,11 +1034,10 @@ function sleep(ms: number): Promise<void> {
  * The `claude` executable the bridge should drive, or `undefined` to let the
  * SDK use the one it bundles.
  *
- * An explicit path is taken at face value, so a wrong one fails loudly instead
- * of quietly costing a 470MB download. Otherwise this reads the marker the
- * bootstrap writes when it skipped the bundled binaries: if the install chose
- * the reuse branch, the SDK has no executable of its own and must be pointed at
- * one. No marker means a full install ran and there is nothing to override.
+ * Reads the marker the bootstrap writes when it skipped the bundled binaries:
+ * if the install chose the reuse branch, the SDK has no executable of its own
+ * and must be pointed at one. No marker means a full install ran and there is
+ * nothing to override.
  *
  * The recorded path is re-checked rather than trusted. The bootstrap does not
  * run again once its own marker exists, so an executable removed or moved after
@@ -1043,20 +1045,17 @@ function sleep(ms: number): Promise<void> {
  * first turn.
  */
 export async function resolveClaudeExecutable({
-  setting,
+  reuse,
   session,
   markerPath,
   abortSignal,
 }: {
-  setting: 'auto' | false | string;
+  reuse: boolean;
   session: Experimental_SandboxSession;
   markerPath: string;
   abortSignal?: AbortSignal;
 }): Promise<string | undefined> {
-  if (setting === false) return undefined;
-  // Checked before the general string case: 'auto' is itself a string, and
-  // treating it as a path hands the SDK the literal word.
-  if (setting !== 'auto') return setting;
+  if (!reuse) return undefined;
 
   const marker = await Promise.resolve(
     session.readTextFile({
