@@ -1,0 +1,13 @@
+{
+  "scenario": {
+    "region": "us-iso-east-1",
+    "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+    "operation": "Converse"
+  },
+  "expectedBaseURL": "https://bedrock-runtime.us-iso-east-1.c2s.ic.gov",
+  "observed": {
+    "url": "https://bedrock-runtime.us-iso-east-1.amazonaws.com/model/anthropic.claude-3-haiku-20240307-v1%3A0/converse",
+    "error": "Cannot connect to API: Request was cancelled.",
+    "statusCode": null
+  }
+}
