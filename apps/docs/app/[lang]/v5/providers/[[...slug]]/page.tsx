@@ -2,11 +2,11 @@ import { MobileDocsBar } from '@vercel/geistdocs/mobile-docs-bar';
 import { createDocsPage } from '@vercel/geistdocs/pages/docs';
 import { getMdxComponents } from '@/components/mdx-components';
 import { config } from '@/lib/geistdocs/config';
-import { v7Source } from '@/lib/geistdocs/source';
+import { providersV5Source } from '@/lib/geistdocs/source';
 
-const docsPage = createDocsPage({
+const providersPage = createDocsPage({
   config,
-  mdx: ({ link }) => getMdxComponents({ link, versionPrefix: '/v7' }),
+  mdx: ({ link }) => getMdxComponents({ link, versionPrefix: '/v5' }),
   metadata: ({ metadata, page }) => ({
     ...metadata,
     alternates: {
@@ -19,12 +19,12 @@ const docsPage = createDocsPage({
     },
   }),
   renderTop: ({ data }) => <MobileDocsBar toc={data.toc} />,
-  source: v7Source,
+  source: providersV5Source,
   tableOfContentPopover: {
     enabled: false,
   },
 });
 
-export const generateMetadata = docsPage.generateMetadata;
-export const generateStaticParams = docsPage.generateStaticParams;
-export default docsPage.Page;
+export const generateMetadata = providersPage.generateMetadata;
+export const generateStaticParams = providersPage.generateStaticParams;
+export default providersPage.Page;

@@ -2,10 +2,10 @@ import { GeistdocsDocsLayout } from '@vercel/geistdocs/layout';
 import type { ReactNode } from 'react';
 import { VersionSelect } from '@/components/docs/version-select';
 import { config } from '@/lib/geistdocs/config';
-import { v7Source } from '@/lib/geistdocs/source';
+import { providersV7Source } from '@/lib/geistdocs/source';
 import { missingVersionPaths } from '@/lib/geistdocs/version-paths';
 
-const DocsLayout = async ({
+const ProvidersLayout = async ({
   children,
   params,
 }: {
@@ -30,11 +30,11 @@ const DocsLayout = async ({
           </div>
         ) : null
       }
-      tree={v7Source.source.pageTree[lang]}
+      tree={providersV7Source.source.pageTree[lang]}
     >
       {children}
     </GeistdocsDocsLayout>
   );
 };
 
-export default DocsLayout;
+export default ProvidersLayout;
