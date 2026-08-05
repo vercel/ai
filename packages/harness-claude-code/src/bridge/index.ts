@@ -391,6 +391,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     options: {
       ...(start.model ? { model: start.model } : {}),
       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
+      // Absent unless the bootstrap skipped the bundled platform binaries
+      // because the sandbox already had a usable executable.
+      ...(start.claudeExecutablePath
+        ? { pathToClaudeCodeExecutable: start.claudeExecutablePath }
+        : {}),
       ...(skillsOption ? { skills: skillsOption } : {}),
       ...(nativeTools !== undefined ? { tools: nativeTools } : {}),
       ...(inactiveNativeTools.length > 0
