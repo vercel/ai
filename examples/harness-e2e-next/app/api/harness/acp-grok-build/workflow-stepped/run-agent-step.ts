@@ -1,16 +1,16 @@
 import {
-  runSteppedHarnessAgent,
-  type SteppedHarnessWorkflowState,
-} from '@/util/stepped-harness-workflow';
+  runHarnessAgentStep,
+  type HarnessWorkflowState,
+} from '@ai-sdk/workflow-harness';
 
 export async function runGrokBuildACPStep(
-  state: SteppedHarnessWorkflowState,
-): Promise<SteppedHarnessWorkflowState> {
+  state: HarnessWorkflowState,
+): Promise<HarnessWorkflowState> {
   'use step';
 
   const { grokBuildACPSteppedWorkflowAgent } =
     await import('@/agent/harness/acp-grok-build/basic-stepped-agent');
-  return runSteppedHarnessAgent({
+  return runHarnessAgentStep({
     agent: grokBuildACPSteppedWorkflowAgent,
     state,
   });

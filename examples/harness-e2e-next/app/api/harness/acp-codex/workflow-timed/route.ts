@@ -1,10 +1,11 @@
-import { latestUserMessage } from '@/util/latest-user-message';
 import {
   convertToModelMessages,
+  createUIMessageStream,
   createUIMessageStreamResponse,
   type UIMessage,
   type UIMessageChunk,
 } from 'ai';
+import { getHarnessE2EErrorMessage } from '@/util/harness-ui-stream';
 import { start } from 'workflow/api';
 import { codexACPTimedWorkflow } from './workflow';
 
@@ -23,16 +24,19 @@ export async function POST(request: Request) {
   if (!body.id) {
     return new Response('Missing chat id', { status: 400 });
   }
-  const prompt = latestUserMessage(await convertToModelMessages(body.messages));
-  if (!prompt) {
-    return new Response('No user message to run', { status: 400 });
-  }
 
-  const run = await start(codexACPTimedWorkflow, [
-    { prompt, sessionId: body.id },
-  ]);
+  const chatId = body.id;
+  const messages = await convertToModelMessages(body.messages);
 
   return createUIMessageStreamResponse({
-    stream: run.readable as ReadableStream<UIMessageChunk>,
+    stream: createUIMessageStream({
+      execute: async ({ writer }) => {
+        const run = await start(codexACPTimedWorkflow, [
+          { messages, sessionId: chatId },
+        ]);
+        writer.merge(run.readable as ReadableStream<UIMessageChunk>);
+      },
+      onError: getHarnessE2EErrorMessage,
+    }),
   });
 }

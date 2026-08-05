@@ -1,16 +1,16 @@
 import {
-  runSteppedHarnessAgent,
-  type SteppedHarnessWorkflowState,
-} from '@/util/stepped-harness-workflow';
+  runHarnessAgentStep,
+  type HarnessWorkflowState,
+} from '@ai-sdk/workflow-harness';
 
 export async function runClaudeCodeACPStep(
-  state: SteppedHarnessWorkflowState,
-): Promise<SteppedHarnessWorkflowState> {
+  state: HarnessWorkflowState,
+): Promise<HarnessWorkflowState> {
   'use step';
 
   const { claudeCodeACPSteppedWorkflowAgent } =
     await import('@/agent/harness/acp-claude-code/basic-stepped-agent');
-  return runSteppedHarnessAgent({
+  return runHarnessAgentStep({
     agent: claudeCodeACPSteppedWorkflowAgent,
     state,
   });

@@ -1,5 +1,5 @@
 import {
-  runHarnessAgentSlice,
+  runHarnessAgentTimeSlice,
   type HarnessWorkflowState,
 } from '@ai-sdk/workflow-harness';
 
@@ -16,7 +16,7 @@ import {
  * recycle); lowered here so a multi-step turn visibly freezes at the slice
  * boundary and the next step reattaches without a long wait.
  */
-const DEMO_SLICE_TIMEOUT_SECONDS = 30;
+const DEMO_TIME_SLICE_SECONDS = 30;
 
 export async function runClaudeCodeACPSlice(
   state: HarnessWorkflowState,
@@ -25,9 +25,9 @@ export async function runClaudeCodeACPSlice(
 
   const { claudeCodeACPHarnessAgent } =
     await import('@/agent/harness/acp-claude-code/basic-agent');
-  return runHarnessAgentSlice({
+  return runHarnessAgentTimeSlice({
     agent: claudeCodeACPHarnessAgent,
     state,
-    sliceTimeoutSeconds: DEMO_SLICE_TIMEOUT_SECONDS,
+    timeSliceSeconds: DEMO_TIME_SLICE_SECONDS,
   });
 }

@@ -1,10 +1,12 @@
 import { claudeCodeACPHarnessAgent } from '@/agent/harness/acp-claude-code/basic-agent';
+import { getHarnessE2EErrorMessage } from '@/util/harness-ui-stream';
 import {
   resumeOrCreateSession,
   stopAndPersist,
 } from '@/util/harness-resume-store';
 import {
   convertToModelMessages,
+  createUIMessageStream,
   createUIMessageStreamResponse,
   toUIMessageStream,
   type UIMessage,
@@ -22,17 +24,26 @@ export async function POST(request: Request) {
   const chatId = body.id;
   const messages = await convertToModelMessages(body.messages);
 
-  const session = await resumeOrCreateSession(
-    claudeCodeACPHarnessAgent,
-    chatId,
-  );
-
-  const result = await claudeCodeACPHarnessAgent.stream({ session, messages });
-
   return createUIMessageStreamResponse({
-    stream: toUIMessageStream({
-      stream: result.stream,
-      onFinish: () => stopAndPersist(chatId, session),
+    stream: createUIMessageStream({
+      execute: async ({ writer }) => {
+        const session = await resumeOrCreateSession(
+          claudeCodeACPHarnessAgent,
+          chatId,
+        );
+        const result = await claudeCodeACPHarnessAgent.stream({
+          session,
+          messages,
+        });
+        writer.merge(
+          toUIMessageStream({
+            stream: result.stream,
+            onError: getHarnessE2EErrorMessage,
+            onFinish: () => stopAndPersist(chatId, session),
+          }),
+        );
+      },
+      onError: getHarnessE2EErrorMessage,
     }),
   });
 }

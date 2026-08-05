@@ -27,15 +27,15 @@ import { runCodexACPSlice } from './run-slice-step';
  * work lives in the step modules (`run-slice-step.ts`, `workflow-resume-steps.ts`).
  */
 export async function codexACPTimedWorkflow(
-  input: Pick<HarnessWorkflowInput, 'prompt' | 'sessionId'>,
+  input: Pick<HarnessWorkflowInput, 'messages' | 'sessionId'>,
 ) {
   'use workflow';
 
   const resumeFrom = await loadResumeStep(input.sessionId);
   let state = createHarnessWorkflowState({ ...input, resumeFrom });
-  while (state.status === 'running' || state.status === 'timed_out') {
+  do {
     state = await runCodexACPSlice(state);
-  }
+  } while (state.status === 'ready_for_next_step');
   await persistResumeStep(state.sessionId, state.resumeFrom);
   return finalizeHarnessWorkflow(state);
 }
