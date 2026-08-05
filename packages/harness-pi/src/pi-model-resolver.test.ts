@@ -102,4 +102,75 @@ describe('createPiModelResolver', () => {
     });
     expect(resolve(undefined)).toBeUndefined();
   });
+
+  describe('customEnv-registered providers', () => {
+    const customProviderConfig = {
+      apiKey: 'sk-test',
+      baseUrl: 'https://my.provider.example/v1',
+      authHeader: true,
+      api: 'openai-completions',
+    } as const;
+
+    it('prefers a registered provider over an unregistered one sharing the model id', async () => {
+      const registeredModel: PiModel = {
+        ...sampleModel,
+        provider: 'my-provider',
+        baseUrl: customProviderConfig.baseUrl,
+      };
+      const modelRegistry = await makeRegistry([sampleModel, registeredModel]);
+      modelRegistry.registerProvider('my-provider', customProviderConfig);
+      const resolve = createPiModelResolver({ modelRegistry, env: {} });
+      expect(resolve('my/model')).toEqual(registeredModel);
+    });
+
+    it('dispatches an uncataloged model id through the single registered custom provider', async () => {
+      const modelRegistry = await makeRegistry([sampleModel]);
+      modelRegistry.registerProvider('my-provider', customProviderConfig);
+      const resolve = createPiModelResolver({ modelRegistry, env: {} });
+      expect(resolve('my-custom-model')).toEqual({
+        id: 'my-custom-model',
+        name: 'my-custom-model',
+        api: 'openai-completions',
+        provider: 'my-provider',
+        baseUrl: customProviderConfig.baseUrl,
+        reasoning: false,
+        input: ['text'],
+        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+        contextWindow: 128_000,
+        maxTokens: 16_384,
+      });
+    });
+
+    it('does not synthesize a model when multiple custom providers are registered', async () => {
+      const modelRegistry = await makeRegistry([sampleModel]);
+      modelRegistry.registerProvider('my-provider', customProviderConfig);
+      modelRegistry.registerProvider('other-provider', {
+        ...customProviderConfig,
+        baseUrl: 'https://other.provider.example/v1',
+      });
+      const resolve = createPiModelResolver({ modelRegistry, env: {} });
+      expect(resolve('my-custom-model')).toBeUndefined();
+    });
+
+    it('does not synthesize a model for providers without a declared api', async () => {
+      const modelRegistry = await makeRegistry([sampleModel]);
+      modelRegistry.registerProvider('my-provider', {
+        apiKey: 'sk-test',
+        baseUrl: customProviderConfig.baseUrl,
+        authHeader: true,
+      });
+      const resolve = createPiModelResolver({ modelRegistry, env: {} });
+      expect(resolve('my-custom-model')).toBeUndefined();
+    });
+
+    it('does not synthesize a model for the gateway default model id', async () => {
+      const modelRegistry = await makeRegistry([sampleModel]);
+      modelRegistry.registerProvider('my-provider', customProviderConfig);
+      const resolve = createPiModelResolver({
+        modelRegistry,
+        env: { AI_GATEWAY_API_KEY: 'sk-test' },
+      });
+      expect(resolve(undefined)).toBeUndefined();
+    });
+  });
 });

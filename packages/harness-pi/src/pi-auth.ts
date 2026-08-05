@@ -26,7 +26,9 @@ export type PiAuthOptions = {
    *  - `ANTHROPIC`  → registers `anthropic` (`ANTHROPIC_AUTH_TOKEN` adds a
    *                   bearer auth header)
    * Any other `<PREFIX>_API_KEY` with a matching `<PREFIX>_BASE_URL` is
-   * registered as the lowercased, dash-separated prefix.
+   * registered as the lowercased, dash-separated prefix. These providers are
+   * assumed to be OpenAI-compatible; a configured model id that is not in
+   * Pi's catalog is dispatched through the registered provider.
    */
   readonly customEnv?: Record<string, string>;
 };
@@ -247,6 +249,11 @@ async function registerCustomProviders({
         apiKey,
         baseUrl,
         authHeader: true,
+        // The `<PREFIX>_API_KEY` / `<PREFIX>_BASE_URL` contract is
+        // OpenAI-compatible. Declaring the wire API lets the model resolver
+        // dispatch model ids that are not in Pi's catalog through this
+        // provider (see `createPiModelResolver`).
+        api: 'openai-completions',
       },
     });
   }
