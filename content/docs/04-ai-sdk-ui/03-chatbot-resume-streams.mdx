@@ -5,7 +5,9 @@ description: Learn how to resume chatbot streams after client disconnects.
 
 # Chatbot Resume Streams
 
-`useChat` supports resuming ongoing streams after page reloads. Use this feature to build applications with long-running generations.
+React's `useChat` hook and Svelte's `Chat` class support resuming ongoing
+streams after page reloads. Use this feature to build applications with
+long-running generations.
 
 <Note type="warning">
   In a resumable stream setup, client-side aborts are treated as disconnects.
@@ -24,7 +26,7 @@ Stream resumption requires persistence for messages and active streams in your a
 
 **The AI SDK provides:**
 
-- A `resume` option in `useChat` that automatically reconnects to active streams
+- A `resume` option in React's `useChat` hook and Svelte's `Chat` class that automatically reconnects to active streams
 - Access to the outgoing stream through the `consumeSseStream` callback
 - Automatic HTTP requests to your resume endpoints
 
@@ -47,7 +49,12 @@ To implement resumable streams in your chat application, you need:
 
 ### 1. Client-side: Enable stream resumption
 
-Use the `resume` option in the `useChat` hook to enable stream resumption. When `resume` is true, the hook automatically attempts to reconnect to any active stream for the chat on mount:
+Use the `resume` option to enable stream resumption. When `resume` is true, the
+React hook or Svelte class automatically attempts to reconnect to any active
+stream for the chat on mount:
+
+<Tabs items={['React', 'Svelte']}>
+<Tab>
 
 ```tsx filename="app/chat/[chatId]/chat.tsx"
 'use client';
@@ -83,12 +90,59 @@ export function Chat({
 }
 ```
 
+</Tab>
+<Tab>
+
+```svelte filename="src/routes/chat/[chatId]/+page.svelte"
+<script lang="ts">
+  import { Chat } from '@ai-sdk/svelte';
+  import { DefaultChatTransport, type UIMessage } from 'ai';
+
+  let {
+    chatData,
+    resume = false,
+  }: {
+    chatData: { id: string; messages: UIMessage[] };
+    resume?: boolean;
+  } = $props();
+
+  const chat = new Chat({
+    id: chatData.id,
+    messages: chatData.messages,
+    resume, // Enable automatic stream resumption
+    transport: new DefaultChatTransport({
+      // You must send the id of the chat
+      prepareSendMessagesRequest: ({ id, messages }) => {
+        return {
+          body: {
+            id,
+            message: messages[messages.length - 1],
+          },
+        };
+      },
+    }),
+  });
+</script>
+
+<!-- Your chat UI -->
+```
+
+</Tab>
+</Tabs>
+
 <Note>
   You must send the chat ID with each request (see
   `prepareSendMessagesRequest`).
 </Note>
 
-When you enable `resume`, the `useChat` hook makes a `GET` request to `/api/chat/[id]/stream` on mount to check for and resume any active streams.
+<Note>
+  The server examples below use Next.js. For SvelteKit, implement equivalent
+  POST and GET handlers that use the same UI message stream protocol and
+  persistence flow.
+</Note>
+
+When you enable `resume`, the React hook or Svelte class makes a `GET` request
+to `/api/chat/[id]/stream` on mount to check for and resume any active streams.
 
 Let's start by creating the POST handler to create the resumable stream.
 
