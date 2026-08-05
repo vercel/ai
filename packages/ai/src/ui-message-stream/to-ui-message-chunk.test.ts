@@ -264,6 +264,37 @@ describe('toUIMessageChunk', () => {
       ),
     ).toEqual({
       type: 'finish',
+      messageMetadata: { model: 'test-model' },
+    });
+
+    expect(
+      toUIMessageChunk(
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          rawFinishReason: 'stop',
+          totalUsage: {
+            inputTokens: 1,
+            outputTokens: 2,
+            totalTokens: 3,
+            inputTokenDetails: {
+              cacheReadTokens: undefined,
+              cacheWriteTokens: undefined,
+              noCacheTokens: undefined,
+            },
+            outputTokenDetails: {
+              reasoningTokens: undefined,
+              textTokens: undefined,
+            },
+          },
+        },
+        {
+          messageMetadata: { model: 'test-model' },
+          sendFinishReason: true,
+        },
+      ),
+    ).toEqual({
+      type: 'finish',
       finishReason: 'stop',
       messageMetadata: { model: 'test-model' },
     });
