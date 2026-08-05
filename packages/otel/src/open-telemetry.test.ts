@@ -641,7 +641,9 @@ describe('OpenTelemetry', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
       integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
-      integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({ modelId: 'response-model' }),
+      );
       integration.onStepFinish!(makeStepFinishEvent());
 
       expect(serializeSpan(tracer.spans[2], tracer)).toMatchInlineSnapshot(`
@@ -662,6 +664,7 @@ describe('OpenTelemetry', () => {
               "stop",
             ],
             "gen_ai.response.id": "test-response-id",
+            "gen_ai.response.model": "response-model",
             "gen_ai.usage.input_tokens": 10,
             "gen_ai.usage.output_tokens": 20,
           },
@@ -1406,6 +1409,7 @@ describe('OpenTelemetry', () => {
                 "stop",
               ],
               "gen_ai.response.id": "test-response-id",
+              "gen_ai.response.model": "gpt-4",
               "gen_ai.usage.cache_creation.input_tokens": 1,
               "gen_ai.usage.cache_read.input_tokens": 2,
               "gen_ai.usage.input_tokens": 10,
@@ -1508,6 +1512,7 @@ describe('OpenTelemetry', () => {
                 "stop",
               ],
               "gen_ai.response.id": "test-response-id",
+              "gen_ai.response.model": "gpt-4",
               "gen_ai.usage.input_tokens": 10,
               "gen_ai.usage.output_tokens": 20,
             },
@@ -1860,6 +1865,7 @@ describe('OpenTelemetry', () => {
                 "stop",
               ],
               "gen_ai.response.id": "test-response-id",
+              "gen_ai.response.model": "gpt-4",
               "gen_ai.usage.input_tokens": 10,
               "gen_ai.usage.output_tokens": 20,
             },
@@ -1949,6 +1955,7 @@ describe('OpenTelemetry', () => {
                 "tool-calls",
               ],
               "gen_ai.response.id": "test-response-id",
+              "gen_ai.response.model": "gpt-4",
               "gen_ai.usage.input_tokens": 10,
               "gen_ai.usage.output_tokens": 20,
             },
@@ -1993,6 +2000,7 @@ describe('OpenTelemetry', () => {
                 "stop",
               ],
               "gen_ai.response.id": "test-response-id",
+              "gen_ai.response.model": "gpt-4",
               "gen_ai.usage.input_tokens": 10,
               "gen_ai.usage.output_tokens": 20,
             },

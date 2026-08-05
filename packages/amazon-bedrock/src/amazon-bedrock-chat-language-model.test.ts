@@ -108,6 +108,11 @@ const opus5AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   opus5AnthropicModelId,
 )}/converse`;
 
+const sonnet5AnthropicModelId = 'us.anthropic.claude-sonnet-5';
+const sonnet5AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  sonnet5AnthropicModelId,
+)}/converse`;
+
 const server = createTestServer({
   [generateUrl]: {},
   [streamUrl]: {
@@ -124,10 +129,11 @@ const server = createTestServer({
   [newerAnthropicGenerateUrl]: {},
   [opusAnthropicGenerateUrl]: {},
   [opus5AnthropicGenerateUrl]: {},
+  [sonnet5AnthropicGenerateUrl]: {},
 });
 
 describe('supportedUrls', () => {
-  it('should support S3 URLs for image parts', () => {
+  it('should support S3 URLs for image and video parts', () => {
     const model = new AmazonBedrockChatLanguageModel(modelId, {
       baseUrl: () => baseUrl,
       generateId: () => 'test-id',
@@ -136,6 +142,7 @@ describe('supportedUrls', () => {
 
     expect(model.supportedUrls).toEqual({
       'image/*': [/^s3:\/\//],
+      'video/*': [/^s3:\/\//],
     });
   });
 });
@@ -5279,53 +5286,65 @@ describe('doGenerate', () => {
     `);
   });
 
-  it('should use JSON instructions instead of a response tool when structured output is combined with tools on models without strict tool support', async () => {
-    server.urls[opusAnthropicGenerateUrl].response = {
-      type: 'json-value',
-      body: {
-        output: {
-          message: {
-            content: [{ text: '```json\n{"name":"Test"}\n```.' }],
-            role: 'assistant',
+  it.each([
+    [opusAnthropicModelId, opusAnthropicGenerateUrl],
+    [sonnet5AnthropicModelId, sonnet5AnthropicGenerateUrl],
+  ])(
+    'should use JSON instructions instead of a response tool when structured output is combined with tools on %s',
+    async (modelId, modelGenerateUrl) => {
+      server.urls[modelGenerateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: {
+              content: [{ text: '```json\n{"name":"Test"}\n```.' }],
+              role: 'assistant',
+            },
           },
+          usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+          stopReason: 'end_turn',
         },
-        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
-        stopReason: 'end_turn',
-      },
-    };
+      };
 
-    const result = await opusAnthropicModel.doGenerate({
-      prompt: [
-        {
-          role: 'user',
-          content: [{ type: 'text', text: 'Look up and generate a name' }],
-        },
-      ],
-      responseFormat: {
-        type: 'json',
-        schema: {
-          type: 'object',
-          properties: {
-            name: { type: 'string' },
+      const unsupportedModel = new AmazonBedrockChatLanguageModel(modelId, {
+        baseUrl: () => baseUrl,
+        headers: {},
+        fetch: fakeFetchWithAuth,
+        generateId: () => 'test-id',
+      });
+
+      const result = await unsupportedModel.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Look up and generate a name' }],
           },
-          required: ['name'],
-        },
-      },
-      tools: [
-        {
-          type: 'function',
-          name: 'lookupName',
-          inputSchema: {
+        ],
+        responseFormat: {
+          type: 'json',
+          schema: {
             type: 'object',
-            properties: {},
+            properties: {
+              name: { type: 'string' },
+            },
+            required: ['name'],
           },
         },
-      ],
-    });
+        tools: [
+          {
+            type: 'function',
+            name: 'lookupName',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+          },
+        ],
+      });
 
-    const requestBody = await server.calls[0].requestBodyJson;
+      const requestBody = await server.calls[0].requestBodyJson;
 
-    expect(requestBody.toolConfig).toMatchInlineSnapshot(`
+      expect(requestBody.toolConfig).toMatchInlineSnapshot(`
       {
         "tools": [
           {
@@ -5342,10 +5361,10 @@ describe('doGenerate', () => {
         ],
       }
     `);
-    expect(
-      requestBody.additionalModelRequestFields?.output_config,
-    ).toMatchInlineSnapshot(`undefined`);
-    expect(requestBody.system).toMatchInlineSnapshot(`
+      expect(
+        requestBody.additionalModelRequestFields?.output_config,
+      ).toMatchInlineSnapshot(`undefined`);
+      expect(requestBody.system).toMatchInlineSnapshot(`
       [
         {
           "text": "JSON schema:
@@ -5354,7 +5373,7 @@ describe('doGenerate', () => {
         },
       ]
     `);
-    expect(result.content).toMatchInlineSnapshot(`
+      expect(result.content).toMatchInlineSnapshot(`
       [
         {
           "text": "{"name":"Test"}",
@@ -5362,7 +5381,8 @@ describe('doGenerate', () => {
         },
       ]
     `);
-  });
+    },
+  );
 
   it('should extract reasoning text with signature', async () => {
     server.urls[generateUrl].response = {
