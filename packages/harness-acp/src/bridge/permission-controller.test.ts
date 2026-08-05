@@ -1,5 +1,8 @@
 import type { BridgeEvent, BridgeTurn } from '@ai-sdk/harness/bridge';
-import type { RequestPermissionRequest } from '@agentclientprotocol/sdk';
+import type {
+  RequestPermissionRequest,
+  ToolCallUpdate,
+} from '@agentclientprotocol/sdk';
 import { describe, expect, it, vi } from 'vitest';
 import { createACPPermissionController } from './permission-controller';
 
@@ -12,16 +15,18 @@ const options: RequestPermissionRequest['options'] = [
 
 function permissionRequest({
   toolCallId,
+  kind = 'execute',
   requestOptions = options,
 }: {
   toolCallId: string;
+  kind?: ToolCallUpdate['kind'];
   requestOptions?: RequestPermissionRequest['options'];
 }): RequestPermissionRequest {
   return {
     sessionId: 'session-1',
     toolCall: {
       toolCallId,
-      kind: 'execute',
+      kind,
       status: 'pending',
       rawInput: { command: 'pwd' },
     },
@@ -85,6 +90,8 @@ describe('ACP permission controller', () => {
       const controller = createACPPermissionController({
         turn: fake.turn,
         sessionId: 'session-1',
+        permissionMode: 'allow-all',
+        hasPermissionModeMapping: true,
         emitToolCall: ({ toolCall }) => {
           order.push(`tool-call:${toolCall.toolCallId}`);
         },
@@ -126,6 +133,8 @@ describe('ACP permission controller', () => {
     const controller = createACPPermissionController({
       turn: fake.turn,
       sessionId: 'session-1',
+      permissionMode: 'allow-all',
+      hasPermissionModeMapping: true,
       emitToolCall,
       claimHostToolPermission,
     });
@@ -159,6 +168,8 @@ describe('ACP permission controller', () => {
     const controller = createACPPermissionController({
       turn: fake.turn,
       sessionId: 'session-1',
+      permissionMode: 'allow-all',
+      hasPermissionModeMapping: true,
       emitToolCall,
       claimHostToolPermission: () => false,
     });
@@ -181,6 +192,8 @@ describe('ACP permission controller', () => {
     const controller = createACPPermissionController({
       turn: fake.turn,
       sessionId: 'session-1',
+      permissionMode: 'allow-all',
+      hasPermissionModeMapping: true,
       emitToolCall: () => {},
       claimHostToolPermission: () => false,
     });
@@ -197,4 +210,98 @@ describe('ACP permission controller', () => {
       { outcome: { outcome: 'cancelled' } },
     ]);
   });
+
+  it.each([
+    { permissionMode: 'allow-all', kind: 'execute' },
+    { permissionMode: 'allow-all', kind: 'other' },
+    { permissionMode: 'allow-edits', kind: 'edit' },
+    { permissionMode: 'allow-edits', kind: 'delete' },
+    { permissionMode: 'allow-edits', kind: 'move' },
+    { permissionMode: 'allow-reads', kind: 'read' },
+    { permissionMode: 'allow-reads', kind: 'search' },
+    { permissionMode: 'allow-reads', kind: 'think' },
+    { permissionMode: 'allow-reads', kind: 'fetch' },
+  ] as const)(
+    'auto-approves $kind for an unmapped $permissionMode implementation',
+    async ({ permissionMode, kind }) => {
+      const fake = createFakeTurn();
+      const emitToolCall = vi.fn();
+      const controller = createACPPermissionController({
+        turn: fake.turn,
+        sessionId: 'session-1',
+        permissionMode,
+        hasPermissionModeMapping: false,
+        emitToolCall,
+        claimHostToolPermission: () => false,
+      });
+
+      await expect(
+        controller.requestPermission(
+          permissionRequest({ toolCallId: 'call-1', kind }),
+        ),
+      ).resolves.toEqual({
+        outcome: { outcome: 'selected', optionId: 'allow-once' },
+      });
+      expect(emitToolCall).not.toHaveBeenCalled();
+      expect(fake.events).toEqual([]);
+    },
+  );
+
+  it.each([
+    { permissionMode: 'allow-reads', kind: 'edit' },
+    { permissionMode: 'allow-reads', kind: 'execute' },
+    { permissionMode: 'allow-edits', kind: 'execute' },
+    { permissionMode: 'allow-edits', kind: 'other' },
+    { permissionMode: 'allow-edits', kind: 'switch_mode' },
+  ] as const)(
+    'requests host approval for $kind with unmapped $permissionMode',
+    async ({ permissionMode, kind }) => {
+      const fake = createFakeTurn();
+      const controller = createACPPermissionController({
+        turn: fake.turn,
+        sessionId: 'session-1',
+        permissionMode,
+        hasPermissionModeMapping: false,
+        emitToolCall: () => {},
+        claimHostToolPermission: () => false,
+      });
+      const request = controller.requestPermission(
+        permissionRequest({ toolCallId: 'call-1', kind }),
+      );
+      const approvalId = getApprovalId({ events: fake.events });
+
+      fake.respond({ approvalId, approved: false });
+      await expect(request).resolves.toEqual({
+        outcome: { outcome: 'selected', optionId: 'reject-once' },
+      });
+    },
+  );
+
+  it.each([
+    { permissionMode: 'allow-reads', kind: 'read' },
+    { permissionMode: 'allow-edits', kind: 'edit' },
+    { permissionMode: 'allow-all', kind: 'execute' },
+  ] as const)(
+    'requests host approval for mapped $permissionMode even for $kind',
+    async ({ permissionMode, kind }) => {
+      const fake = createFakeTurn();
+      const controller = createACPPermissionController({
+        turn: fake.turn,
+        sessionId: 'session-1',
+        permissionMode,
+        hasPermissionModeMapping: true,
+        emitToolCall: () => {},
+        claimHostToolPermission: () => false,
+      });
+      const request = controller.requestPermission(
+        permissionRequest({ toolCallId: 'call-1', kind }),
+      );
+      const approvalId = getApprovalId({ events: fake.events });
+
+      fake.respond({ approvalId, approved: true });
+      await expect(request).resolves.toEqual({
+        outcome: { outcome: 'selected', optionId: 'allow-once' },
+      });
+    },
+  );
 });

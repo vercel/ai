@@ -231,6 +231,8 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const permissionController = createACPPermissionController({
     turn,
     sessionId: activeSession.sessionId,
+    permissionMode: start.permissionMode ?? 'allow-all',
+    hasPermissionModeMapping: start.permissionModeMapping != null,
     emitToolCall: emitStreamEvent.permissionToolCall,
     claimHostToolPermission: emitStreamEvent.claimHostToolPermission,
   });

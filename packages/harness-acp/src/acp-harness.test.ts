@@ -370,7 +370,7 @@ describe('createACP', () => {
     expect(harness.specificationVersion).toBe('harness-v1');
     expect(harness.harnessId).toBe('codex-acp');
     expect(harness.builtinTools).toEqual({});
-    expect(harness.supportsBuiltinToolApprovals).toBe(false);
+    expect(harness.supportsBuiltinToolApprovals).toBe(true);
     expect(harness.supportsBuiltinToolFiltering).toBe(false);
     expect(vi.mocked(fsPromises.readFile)).not.toHaveBeenCalled();
   });
@@ -385,7 +385,7 @@ describe('createACP', () => {
     ).toBe('harness-v1');
   });
 
-  it('advertises approvals only for a complete mapping, independently of filtering', () => {
+  it('advertises approvals with and without a complete mapping', () => {
     const mapped = createACP({
       harnessId: 'codex-acp',
       implementation,
@@ -401,34 +401,44 @@ describe('createACP', () => {
 
     expect(mapped.supportsBuiltinToolApprovals).toBe(true);
     expect(mapped.supportsBuiltinToolFiltering).toBe(false);
-    expect(incomplete.supportsBuiltinToolApprovals).toBe(false);
+    expect(incomplete.supportsBuiltinToolApprovals).toBe(true);
     expect(incomplete.supportsBuiltinToolFiltering).toBe(false);
   });
 
-  it('rejects a restrictive mode when its declarative mapping is incomplete', async () => {
+  it('supports restrictive permission modes without a mapping', async () => {
     const harness = createACP({
-      harnessId: 'codex-acp-incomplete',
+      harnessId: 'grok-build-acp',
       implementation,
-      permissionModeMapping: {
-        'allow-all': permissionModeMapping['allow-all'],
-      } as never,
     });
 
-    await expect(
-      harness.doStart({
-        sessionId: 'session-1',
-        sandboxSession: fakeSandbox({
-          runs: [],
-          spawns: [],
-          stop: async () => {},
-        }),
-        sessionWorkDir: '/workspace/user-project',
-        permissionMode: 'allow-reads',
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        stop: async () => {},
       }),
-    ).rejects.toThrow(
-      'requires a complete permissionModeMapping for "allow-reads", "allow-edits", and "allow-all"',
-    );
-    expect(harnessUtilsMocks.channels).toHaveLength(0);
+      sessionWorkDir: '/workspace/user-project',
+      permissionMode: 'allow-reads',
+    });
+    const control = await session.doPromptTurn({
+      prompt: 'Check permissions.',
+      emit: () => {},
+    });
+    const channel = harnessUtilsMocks.channels[0]!;
+
+    expect(channel.sent[0]).toMatchObject({
+      type: 'start',
+      permissionMode: 'allow-reads',
+    });
+    expect(channel.sent[0]).toHaveProperty('permissionModeMapping', undefined);
+    channel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await control.done;
+    await session.doDestroy();
   });
 
   it('does not claim native filtering when approval mapping is complete', async () => {

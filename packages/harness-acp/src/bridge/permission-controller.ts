@@ -1,3 +1,4 @@
+import type { HarnessV1PermissionMode } from '@ai-sdk/harness';
 import type { BridgeTurn } from '@ai-sdk/harness/bridge';
 import type {
   RequestPermissionRequest,
@@ -14,11 +15,15 @@ let permissionRequestCounter = 0;
 export function createACPPermissionController({
   turn,
   sessionId,
+  permissionMode,
+  hasPermissionModeMapping,
   emitToolCall,
   claimHostToolPermission,
 }: {
   turn: BridgeTurn;
   sessionId: string;
+  permissionMode: HarnessV1PermissionMode;
+  hasPermissionModeMapping: boolean;
   emitToolCall: (options: { toolCall: ToolCallUpdate }) => void;
   claimHostToolPermission: (options: { toolCall: ToolCallUpdate }) => boolean;
 }): {
@@ -65,6 +70,20 @@ export function createACPPermissionController({
           },
         };
       }
+      if (
+        !hasPermissionModeMapping &&
+        shouldAutoApprove({
+          permissionMode,
+          kind: request.toolCall.kind,
+        })
+      ) {
+        return {
+          outcome: {
+            outcome: 'selected',
+            optionId: allowOnce.optionId,
+          },
+        };
+      }
 
       const approvalId = `acp-permission-${++permissionRequestCounter}`;
       let cancelPermission!: () => void;
@@ -104,6 +123,28 @@ export function createACPPermissionController({
       pendingPermissions.clear();
     },
   };
+}
+
+function shouldAutoApprove({
+  permissionMode,
+  kind,
+}: {
+  permissionMode: HarnessV1PermissionMode;
+  kind: ToolCallUpdate['kind'];
+}): boolean {
+  if (permissionMode === 'allow-all') return true;
+  if (
+    kind === 'read' ||
+    kind === 'search' ||
+    kind === 'think' ||
+    kind === 'fetch'
+  ) {
+    return true;
+  }
+  return (
+    permissionMode === 'allow-edits' &&
+    (kind === 'edit' || kind === 'delete' || kind === 'move')
+  );
 }
 
 function cancelled(): RequestPermissionResponse {

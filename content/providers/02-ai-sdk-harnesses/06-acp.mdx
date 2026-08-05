@@ -79,7 +79,8 @@ try {
 - `providerAuthentication`: declarative runtime-specific Gateway route.
 - `modelId`: a known implementation model identifier for Harness metadata.
 - `permissionModeMapping`: mappings from all three Harness permission modes to
-  advertised ACP session modes or configuration options.
+  advertised ACP session modes or configuration options. When omitted, the
+  adapter applies `permissionMode` to ACP permission requests by tool kind.
 - `session.meta`: serializable implementation-specific metadata for session
   creation and restoration.
 - `port`: exposed bridge port override.
@@ -209,9 +210,11 @@ const permissionModeMapping = {
 ```
 
 The adapter validates mapped modes or config options against the session
-response. ACP permission requests become Harness approval requests. A boolean
-approval selects `allow_once` and a rejection selects `reject_once`; persistent
-choices are never inferred. Host-tool approval remains independent.
+response. When a mapping is configured, any ACP permission request that still
+occurs becomes a Harness approval request. Without a mapping, the adapter
+automatically selects `allow_once` for tool kinds allowed by `permissionMode`
+and requests Harness approval for the rest. A rejection selects `reject_once`;
+persistent choices are never inferred. Host-tool approval remains independent.
 
 ## Complete ACP Harness Implementations
 
@@ -356,9 +359,9 @@ selected, so direct runtime configuration remains unchanged.
 
 ### Grok Build ACP
 
-Grok Build exposes ACP directly through `grok agent stdio`. The
-`--always-approve` flag matches the Harness default `permissionMode` of
-`allow-all`:
+Grok Build exposes ACP directly through `grok agent stdio`. It does not
+advertise ACP session modes for its permission behavior, so this profile omits
+`permissionModeMapping`:
 
 ```ts
 import { createACP, VERSION } from '@ai-sdk/harness-acp';
@@ -371,7 +374,7 @@ export const grokBuildACPHarness = createACP({
     packageName: '@xai-official/grok',
     version: '0.2.111',
     executable: 'grok',
-    args: ['agent', '--always-approve', 'stdio'],
+    args: ['agent', 'stdio'],
     envSources: {
       XAI_API_KEY: 'XAI_API_KEY',
     },
@@ -403,9 +406,10 @@ export const grokBuildACPHarness = createACP({
 ```
 
 Without Gateway credentials, this profile uses direct `XAI_API_KEY`
-authentication. Grok Build does not advertise portable permission settings, so
-this profile supports the default `allow-all` mode but not `allow-reads` or
-`allow-edits`.
+authentication. Grok Build handles its built-in safe operations internally.
+For permission requests sent through ACP, the adapter applies the configured
+Harness `permissionMode` by tool kind and requests explicit approval for the
+rest.
 
 ## Known Limitations
 

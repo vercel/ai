@@ -143,7 +143,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
     specificationVersion: 'harness-v1',
     harnessId: settings.harnessId,
     builtinTools,
-    supportsBuiltinToolApprovals: permissionModeMapping != null,
+    supportsBuiltinToolApprovals: true,
     supportsBuiltinToolFiltering: false,
     lifecycleStateSchema,
     getBootstrap: async () => {
@@ -221,14 +221,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         });
       }
       const permissionMode = startOptions.permissionMode ?? 'allow-all';
-      if (permissionMode !== 'allow-all' && permissionModeMapping == null) {
-        throw unsupported({
-          harnessId: settings.harnessId,
-          message:
-            `ACP permission mode ${JSON.stringify(permissionMode)} requires a complete ` +
-            'permissionModeMapping for "allow-reads", "allow-edits", and "allow-all".',
-        });
-      }
 
       const resolvedProviderAuthentication = resolveACPProviderAuthentication({
         auth: {

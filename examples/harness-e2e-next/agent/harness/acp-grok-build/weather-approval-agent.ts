@@ -22,6 +22,7 @@ export const weatherApprovalGrokBuildACPHarnessAgent = new HarnessAgent({
   toolApproval: {
     get_weather: 'user-approval',
   },
+  permissionMode: 'allow-edits',
   sandbox: createVercelSandbox({
     runtime: 'node24',
     ports: [4000],
