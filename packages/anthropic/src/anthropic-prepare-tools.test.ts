@@ -68,6 +68,54 @@ describe('prepareTools', () => {
     expect(result.toolWarnings).toEqual([]);
   });
 
+  it.each(['oneOf', 'anyOf', 'allOf'] as const)(
+    'should reject top-level %s in function tool input schemas',
+    async keyword => {
+      const result = prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: {
+              [keyword]: [{ type: 'object' as const, properties: {} }],
+            },
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+        supportsStrictTools: true,
+      });
+
+      await expect(result).rejects.toMatchObject({
+        name: 'AI_UnsupportedFunctionalityError',
+        functionality: `top-level ${keyword} in tool input schema`,
+        message: `Tool 'testFunction' has an unsupported input schema: Anthropic does not support '${keyword}' at the top level of tool input schemas. Wrap the schema in an object property (for example, \`z.object({ input: schema })\`).`,
+      });
+    },
+  );
+
+  it('should ignore unsupported tool input schemas when tool choice is none', async () => {
+    const result = await prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'testFunction',
+          description: 'A test function',
+          inputSchema: {
+            oneOf: [{ type: 'object', properties: {} }],
+          },
+        },
+      ],
+      toolChoice: { type: 'none' },
+      supportsStructuredOutput: true,
+      supportsStrictTools: true,
+    });
+
+    expect(result.tools).toBeUndefined();
+    expect(result.toolChoice).toBeUndefined();
+  });
+
   it('should correctly preserve tool input examples', async () => {
     const result = await prepareTools({
       tools: [
