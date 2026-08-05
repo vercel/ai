@@ -208,6 +208,18 @@ describe('google-vertex-provider-base', () => {
     expect(GoogleSpeechModel).not.toHaveBeenCalled();
   });
 
+  it('should throw for chirp speech models when an Express Mode API key is set', () => {
+    process.env.GOOGLE_VERTEX_API_KEY = 'test-api-key';
+    const provider = createGoogleVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+
+    expect(() => provider.speech('chirp-3-hd')).toThrow(
+      'Google Vertex Chirp speech models do not support Express Mode API keys. Use standard Google Cloud credentials instead.',
+    );
+  });
+
   it('should keep routing gemini speech models to the Gemini speech model', () => {
     const provider = createGoogleVertex({
       project: 'test-project',

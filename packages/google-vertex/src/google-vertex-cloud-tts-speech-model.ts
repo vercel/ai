@@ -96,10 +96,12 @@ export class GoogleVertexCloudTTSSpeechModel implements SpeechModelV4 {
     let languageCode: string;
     if (voice.includes(CHIRP3_HD_VOICE_INFIX)) {
       voiceName = voice;
-      languageCode =
-        language ??
-        voice.split(`-${CHIRP3_HD_VOICE_INFIX}`)[0] ??
-        DEFAULT_LANGUAGE;
+      // The locale prefix may be missing (e.g. `Chirp3-HD-Kore`), in which
+      // case the extracted prefix is empty and the default language is used.
+      const localePrefix = voice
+        .split(CHIRP3_HD_VOICE_INFIX)[0]
+        .replace(/-$/, '');
+      languageCode = language ?? (localePrefix || DEFAULT_LANGUAGE);
     } else {
       languageCode = language ?? DEFAULT_LANGUAGE;
       voiceName = `${languageCode}-${CHIRP3_HD_VOICE_INFIX}-${voice}`;
@@ -171,6 +173,12 @@ export class GoogleVertexCloudTTSSpeechModel implements SpeechModelV4 {
         modelId: this.modelId,
         headers: responseHeaders,
         body: rawResponse,
+      },
+      providerMetadata: {
+        google: {
+          // LINEAR16 audio is returned as a WAV (RIFF) file.
+          mimeType: 'audio/wav',
+        },
       },
     };
   }

@@ -333,6 +333,12 @@ export function createGoogleVertex(
   // endpoint, reusing the Vertex auth headers from createConfig.
   const createSpeechModel = (modelId: GoogleVertexSpeechModelId) => {
     if (modelId.startsWith('chirp')) {
+      if (apiKey) {
+        throw new Error(
+          'Google Vertex Chirp speech models do not support Express Mode API keys. Use standard Google Cloud credentials instead.',
+        );
+      }
+
       const config = createConfig('speech');
       return new GoogleVertexCloudTTSSpeechModel(modelId, {
         provider: config.provider,

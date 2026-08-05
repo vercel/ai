@@ -85,6 +85,20 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should default the language for a Chirp 3: HD voice name without a locale prefix', async () => {
+    prepareJsonResponse();
+
+    await model.doGenerate({
+      text: 'Hello!',
+      voice: 'Chirp3-HD-Kore',
+    });
+
+    expect((await server.calls[0].requestBodyJson).voice).toStrictEqual({
+      languageCode: 'en-US',
+      name: 'Chirp3-HD-Kore',
+    });
+  });
+
   it('should prefer an explicit language over the voice-name locale', async () => {
     prepareJsonResponse();
 
@@ -106,6 +120,9 @@ describe('doGenerate', () => {
     const result = await model.doGenerate({ text: 'Hello!' });
 
     expect(result.audio).toStrictEqual(audioBytes);
+    expect(result.providerMetadata).toStrictEqual({
+      google: { mimeType: 'audio/wav' },
+    });
   });
 
   it('should map speed to speakingRate', async () => {
