@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 5.0.21
+
+### Patch Changes
+
+- 1bec07d: Fix streamed tool calls with non-zero, non-contiguous, reused, or missing indexes.
+
 ## 5.0.20
 
 ### Patch Changes
