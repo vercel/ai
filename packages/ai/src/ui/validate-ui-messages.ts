@@ -348,86 +348,18 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
             };
           }
 
-          if (
-            toolPart.state === 'input-available' ||
-            toolPart.state === 'output-available' ||
-            toolPart.state === 'output-error'
-          ) {
+          if (toolPart.state === 'input-available') {
             await validateTypes({
               value: toolPart.input,
               schema: tool.inputSchema,
             });
           }
 
-<<<<<<< HEAD
           if (toolPart.state === 'output-available' && tool.outputSchema) {
             await validateTypes({
               value: toolPart.output,
               schema: tool.outputSchema,
             });
-=======
-          // Tool part validation
-          if (tools && part.type.startsWith('tool-')) {
-            const toolPart = part as ToolUIPart<
-              InferUIMessageTools<UI_MESSAGE>
-            >;
-            const toolName = toolPart.type.slice(5);
-            const tool = getOwn(tools, toolName);
-
-            if (
-              !tool &&
-              (toolPart.state === 'output-available' ||
-                toolPart.state === 'output-error' ||
-                toolPart.state === 'output-denied')
-            ) {
-              continue;
-            }
-
-            // TODO support dynamic tools
-            if (!tool) {
-              return {
-                success: false,
-                error: new TypeValidationError({
-                  value: toolPart.input,
-                  cause: `No tool schema found for tool part ${toolName}`,
-                  context: {
-                    field: `messages[${msgIdx}].parts[${partIdx}].input`,
-                    entityName: toolName,
-                    entityId: toolPart.toolCallId,
-                  },
-                }),
-              };
-            }
-
-            // Tool input validation
-            // Note: input is intentionally not re-validated for terminal states.
-            // Terminal tool calls can keep invalid or incomplete input, and
-            // re-validating it on replay would crash follow-up messages.
-            if (toolPart.state === 'input-available') {
-              await validateTypes({
-                value: toolPart.input,
-                schema: tool.inputSchema,
-                context: {
-                  field: `messages[${msgIdx}].parts[${partIdx}].input`,
-                  entityName: toolName,
-                  entityId: toolPart.toolCallId,
-                },
-              });
-            }
-
-            // Tool output validation
-            if (toolPart.state === 'output-available' && tool.outputSchema) {
-              await validateTypes({
-                value: toolPart.output,
-                schema: tool.outputSchema,
-                context: {
-                  field: `messages[${msgIdx}].parts[${partIdx}].output`,
-                  entityName: toolName,
-                  entityId: toolPart.toolCallId,
-                },
-              });
-            }
->>>>>>> 3836a85d64 (fix: prevent aborted tool history from blocking follow-up messages (#18433))
           }
         }
       }
