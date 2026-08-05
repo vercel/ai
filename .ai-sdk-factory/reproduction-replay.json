@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 17871,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/zod-record-additional-properties.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/zod-record-additional-properties.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue #17871 reproduced: AI SDK erased schema-valued additionalProperties for z.record() and object catchall"
+  }
+}
