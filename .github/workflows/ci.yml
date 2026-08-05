@@ -149,6 +149,7 @@ jobs:
             'apps/docs/**' \
             'content/docs/**' \
             'content/providers/**' \
+            'content/cookbook/**' \
             'package.json' \
             'pnpm-lock.yaml' \
             'pnpm-workspace.yaml'; then
