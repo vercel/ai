@@ -1064,6 +1064,48 @@ The following Zod features are known to not work with Google:
   available provider model ID as a string if needed.
 </Note>
 
+### Text Batches
+
+<Note type="warning">
+  Text batch APIs are experimental and may change in future releases.
+</Note>
+
+The Google provider supports the [Gemini Batch API](https://ai.google.dev/gemini-api/docs/batch-api) for text generation.
+
+```ts
+import { google } from '@ai-sdk/google';
+import {
+  experimental_getBatchResults as getBatchResults,
+  experimental_getBatchStatus as getBatchStatus,
+  experimental_startTextBatch as startTextBatch,
+} from 'ai';
+
+const model = google('gemini-3.6-flash');
+
+const batch = await startTextBatch({
+  model,
+  requests: [
+    { id: 'france', prompt: 'What is the capital of France?' },
+    { id: 'germany', prompt: 'What is the capital of Germany?' },
+  ],
+});
+
+// Persist `batch` and check its status later, or poll for status updates.
+const { status } = await getBatchStatus({ model, batch });
+
+if (status !== 'pending') {
+  for await (const item of getBatchResults({ model, batch })) {
+    if (item.status === 'succeeded') {
+      console.log(item.id, item.text);
+    } else {
+      console.error(item.id, item.error);
+    }
+  }
+}
+```
+
+Starting a batch returns a serializable reference that can be persisted and used to retrieve the batch results later, or poll for status updates.
+
 ## Realtime Models
 
 <Note type="warning">Realtime is an experimental feature.</Note>
