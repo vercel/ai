@@ -43,8 +43,8 @@ import {
   createImplementationManifest,
   getImplementationLockfile,
   resolveImplementationEnvironment,
-  validateACPV1Settings,
-} from './acquisition';
+  validateACPV1Implementation,
+} from './implementation';
 import {
   outboundMessageSchema,
   type ACPColdSessionState,
@@ -80,6 +80,8 @@ import {
   materializeACPSkills,
   resolveACPPrivateSessionDirectory,
 } from './acp-v1-skills';
+
+const HARNESS_ID_REGEXP = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 type ACPChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 
@@ -126,10 +128,12 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
     HarnessV1<TBuiltinTools>['lifecycleStateSchema']
   >;
 }): HarnessV1<TBuiltinTools> {
-  validateACPV1Settings({
-    harnessId: settings.harnessId,
-    implementation: settings.implementation,
-  });
+  if (!HARNESS_ID_REGEXP.test(settings.harnessId)) {
+    throw new Error(
+      `ACP harnessId must be a stable kebab-case identifier; received ${JSON.stringify(settings.harnessId)}.`,
+    );
+  }
+  validateACPV1Implementation(settings.implementation);
 
   const clientAppValue = `${clientApp.name}/${clientApp.version}`;
 

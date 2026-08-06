@@ -8,7 +8,7 @@ import {
   type ACPClientApp,
 } from './acp-auth';
 import { createACPV1, type ACPV1Settings } from './v1';
-import { createImplementationIdentity } from './v1/acquisition';
+import { createImplementationIdentity } from './v1/implementation';
 import {
   acpColdSessionStateSchema,
   acpRecoveryStartSchema,

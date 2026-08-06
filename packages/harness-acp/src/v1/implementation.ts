@@ -9,24 +9,16 @@ import type {
   ACPSimpleNpmImplementation,
 } from './acp-v1-settings';
 
-const EXACT_SEMVER =
+const EXACT_SEMVER_REGEXP =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
-const PACKAGE_NAME = /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/;
-const EXECUTABLE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
-const HARNESS_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const PACKAGE_NAME_REGEXP =
+  /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/;
+const EXECUTABLE_NAME_REGEXP = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+const ENVIRONMENT_VARIABLE_NAME_REGEXP = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
-export function validateACPV1Settings({
-  harnessId,
-  implementation,
-}: {
-  harnessId: string;
-  implementation: ACPNpmImplementation;
-}): void {
-  if (!HARNESS_ID.test(harnessId)) {
-    throw new Error(
-      `ACP harnessId must be a stable kebab-case identifier; received ${JSON.stringify(harnessId)}.`,
-    );
-  }
+export function validateACPV1Implementation(
+  implementation: ACPNpmImplementation,
+): void {
   if (isLockedImplementation(implementation)) {
     if (implementation.packageJson.length === 0) {
       throw new Error(
@@ -41,7 +33,7 @@ export function validateACPV1Settings({
   } else {
     validateSimpleImplementation({ implementation });
   }
-  if (!EXECUTABLE_NAME.test(implementation.executable)) {
+  if (!EXECUTABLE_NAME_REGEXP.test(implementation.executable)) {
     throw new Error(
       `ACP executable must be a package bin name without a path; received ${JSON.stringify(implementation.executable)}.`,
     );
@@ -209,12 +201,12 @@ function validateSimpleImplementation({
 }: {
   implementation: ACPSimpleNpmImplementation;
 }): void {
-  if (!PACKAGE_NAME.test(implementation.packageName)) {
+  if (!PACKAGE_NAME_REGEXP.test(implementation.packageName)) {
     throw new Error(
       `ACP npm package name is invalid: ${JSON.stringify(implementation.packageName)}.`,
     );
   }
-  if (!EXACT_SEMVER.test(implementation.version)) {
+  if (!EXACT_SEMVER_REGEXP.test(implementation.version)) {
     throw new Error(
       `ACP npm implementation version must be an exact semantic version; received ${JSON.stringify(implementation.version)}.`,
     );
@@ -227,8 +219,10 @@ function validateEnvironment({
   env: Readonly<Record<string, string>> | undefined;
 }): void {
   for (const [key, value] of Object.entries(env ?? {})) {
-    if (key.length === 0 || key.includes('=') || key.includes('\0')) {
-      throw new Error(`ACP runtime environment key is invalid: ${key}.`);
+    if (!ENVIRONMENT_VARIABLE_NAME_REGEXP.test(key)) {
+      throw new Error(
+        `ACP environment variable name is invalid: ${JSON.stringify(key)}.`,
+      );
     }
     if (value.includes('\0')) {
       throw new Error(`ACP runtime environment value for ${key} contains NUL.`);
@@ -242,9 +236,9 @@ function validateForwardEnvironment({
   forwardEnv: ReadonlyArray<string> | undefined;
 }): void {
   for (const name of forwardEnv ?? []) {
-    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
+    if (!ENVIRONMENT_VARIABLE_NAME_REGEXP.test(name)) {
       throw new Error(
-        `ACP forwarded environment variable name is invalid: ${JSON.stringify(name)}.`,
+        `ACP environment variable name is invalid: ${JSON.stringify(name)}.`,
       );
     }
   }

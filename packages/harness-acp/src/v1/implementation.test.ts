@@ -14,8 +14,8 @@ import {
   createImplementationManifest,
   getImplementationLockfile,
   resolveImplementationEnvironment,
-  validateACPV1Settings,
-} from './acquisition';
+  validateACPV1Implementation,
+} from './implementation';
 
 const simpleImplementation = {
   type: 'npm',
@@ -88,7 +88,7 @@ function identity({
   });
 }
 
-describe('ACP npm acquisition', () => {
+describe('ACP npm implementation', () => {
   it('creates a manifest for a simple exact-version installation', () => {
     expect(
       createImplementationManifest({
@@ -144,31 +144,22 @@ describe('ACP npm acquisition', () => {
 
   it('requires exact versions only for simple acquisition', () => {
     expect(() =>
-      validateACPV1Settings({
-        harnessId: 'example-acp',
-        implementation: {
-          ...simpleImplementation,
-          version: '^1.2.3',
-        },
+      validateACPV1Implementation({
+        ...simpleImplementation,
+        version: '^1.2.3',
       }),
     ).toThrow('must be an exact semantic version');
     expect(() =>
-      validateACPV1Settings({
-        harnessId: 'example-acp',
-        implementation: lockedImplementation,
-      }),
+      validateACPV1Implementation(lockedImplementation),
     ).not.toThrow();
   });
 
   it('rejects overlapping sensitive and non-secret environment keys', () => {
     expect(() =>
-      validateACPV1Settings({
-        harnessId: 'example-acp',
-        implementation: {
-          ...simpleImplementation,
-          env: {
-            PROVIDER_API_KEY: 'not-secret',
-          },
+      validateACPV1Implementation({
+        ...simpleImplementation,
+        env: {
+          PROVIDER_API_KEY: 'not-secret',
         },
       }),
     ).toThrow('cannot be configured in both forwardEnv and env');
@@ -176,14 +167,22 @@ describe('ACP npm acquisition', () => {
 
   it('rejects invalid forwarded environment-variable names', () => {
     expect(() =>
-      validateACPV1Settings({
-        harnessId: 'example-acp',
-        implementation: {
-          ...simpleImplementation,
-          forwardEnv: ['not-an-environment-variable'],
+      validateACPV1Implementation({
+        ...simpleImplementation,
+        forwardEnv: ['not-an-environment-variable'],
+      }),
+    ).toThrow('environment variable name is invalid');
+  });
+
+  it('rejects invalid literal environment-variable names', () => {
+    expect(() =>
+      validateACPV1Implementation({
+        ...simpleImplementation,
+        env: {
+          'not-an-environment-variable': 'value',
         },
       }),
-    ).toThrow('forwarded environment variable name is invalid');
+    ).toThrow('environment variable name is invalid');
   });
 
   it('forwards configured environment variables only for runtime launch', () => {
