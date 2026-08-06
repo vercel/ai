@@ -1,5 +1,32 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.45
+
+### Patch Changes
+
+- Updated dependencies [8b96941]
+  - @ai-sdk/anthropic@4.0.32
+
+## 5.0.44
+
+### Patch Changes
+
+- a4ecd1c: Omit assistant messages that become empty after unsigned reasoning is filtered.
+- Updated dependencies [2b60826]
+- Updated dependencies [7a9da75]
+  - @ai-sdk/provider-utils@5.0.22
+  - @ai-sdk/anthropic@4.0.31
+  - @ai-sdk/openai@4.0.31
+
+## 5.0.43
+
+### Patch Changes
+
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+  - @ai-sdk/openai@4.0.30
+  - @ai-sdk/anthropic@4.0.30
+
 ## 5.0.42
 
 ### Patch Changes

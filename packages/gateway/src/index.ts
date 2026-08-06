@@ -1,3 +1,5 @@
+export type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
+export type { GatewayImageModelId } from './gateway-image-model-settings';
 export type { GatewayModelId } from './gateway-language-model-settings';
 export {
   GATEWAY_AUTH_SUBPROTOCOL_PREFIX,

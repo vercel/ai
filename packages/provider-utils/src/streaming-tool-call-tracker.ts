@@ -77,7 +77,10 @@ type StreamingToolCallTrackerController = Pick<
 export class StreamingToolCallTracker<
   DELTA extends StreamingToolCallDelta = StreamingToolCallDelta,
 > {
-  private toolCalls: TrackedToolCall[] = [];
+  private toolCalls = new Set<TrackedToolCall>();
+  private toolCallsById = new Map<string, TrackedToolCall>();
+  private toolCallsByIndex = new Map<number, TrackedToolCall>();
+  private latestToolCall: TrackedToolCall | undefined;
   private readonly controller: StreamingToolCallTrackerController;
   private readonly _generateId: () => string;
   private readonly typeValidation: 'none' | 'if-present' | 'required';
@@ -105,13 +108,24 @@ export class StreamingToolCallTracker<
    * events as appropriate.
    */
   processDelta(toolCallDelta: DELTA): void {
-    const index = toolCallDelta.index ?? this.toolCalls.length;
+    const { id, index } = toolCallDelta;
+    let toolCall =
+      id != null && id.length > 0
+        ? this.toolCallsById.get(id)
+        : index != null
+          ? this.toolCallsByIndex.get(index)
+          : this.latestToolCall;
 
-    if (this.toolCalls[index] == null) {
-      this.processNewToolCall(index, toolCallDelta);
+    if (toolCall == null) {
+      toolCall = this.processNewToolCall(toolCallDelta);
     } else {
-      this.processExistingToolCall(index, toolCallDelta);
+      this.processExistingToolCall(toolCall, toolCallDelta);
     }
+
+    if (index != null) {
+      this.toolCallsByIndex.set(index, toolCall);
+    }
+    this.latestToolCall = toolCall;
   }
 
   /**
@@ -126,7 +140,7 @@ export class StreamingToolCallTracker<
     }
   }
 
-  private processNewToolCall(index: number, toolCallDelta: DELTA): void {
+  private processNewToolCall(toolCallDelta: DELTA): TrackedToolCall {
     if (this.typeValidation === 'required') {
       if (toolCallDelta.type !== 'function') {
         throw new InvalidResponseDataError({
@@ -165,7 +179,7 @@ export class StreamingToolCallTracker<
 
     const metadata = this.extractMetadata?.(toolCallDelta);
 
-    this.toolCalls[index] = {
+    const toolCall: TrackedToolCall = {
       id: toolCallDelta.id,
       type: 'function',
       function: {
@@ -175,8 +189,10 @@ export class StreamingToolCallTracker<
       hasFinished: false,
       metadata,
     };
-
-    const toolCall = this.toolCalls[index];
+    this.toolCalls.add(toolCall);
+    if (toolCall.id.length > 0) {
+      this.toolCallsById.set(toolCall.id, toolCall);
+    }
 
     // Emit initial delta if arguments already present
     if (toolCall.function.arguments.length > 0) {
@@ -191,11 +207,13 @@ export class StreamingToolCallTracker<
     // argument buffer can still be the prefix of a longer argument string,
     // so acting on it early would use truncated inputs (see #13137).
     // Finalization happens in flush().
+    return toolCall;
   }
 
-  private processExistingToolCall(index: number, toolCallDelta: DELTA): void {
-    const toolCall = this.toolCalls[index];
-
+  private processExistingToolCall(
+    toolCall: TrackedToolCall,
+    toolCallDelta: DELTA,
+  ): void {
     if (toolCall.hasFinished) {
       return;
     }

@@ -56,6 +56,20 @@ hello
   );
 });
 
+test('transformMdx strips stray quotes from fence languages', () => {
+  const input = `---
+title: Example
+---
+
+\`\`\`typescript"
+const a = 1;
+\`\`\`
+`;
+
+  assert.match(transformMdx(input), /```typescript\n/);
+  assert.doesNotMatch(transformMdx(input), /```typescript"/);
+});
+
 test('transformMdx preserves legacy anchors and rewrites stale links', () => {
   const input = `---
 title: streamText

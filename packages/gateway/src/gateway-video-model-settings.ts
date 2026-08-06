@@ -7,6 +7,7 @@ export type GatewayVideoModelId =
   | 'alibaba/wan-v2.6-t2v'
   | 'alibaba/wan-v2.7-r2v'
   | 'alibaba/wan-v2.7-t2v'
+  | 'bfl/flux-3-video'
   | 'bytedance/seedance-2.0'
   | 'bytedance/seedance-2.0-fast'
   | 'bytedance/seedance-v1.0-pro'

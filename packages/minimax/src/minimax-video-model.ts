@@ -1,7 +1,7 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV4,
-  type Experimental_VideoModelV4File,
+  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4File as VideoModelV4File,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -39,7 +39,7 @@ interface MiniMaxVideoModelConfig {
 }
 
 type MiniMaxVideoDoGenerateOptions = Parameters<
-  NonNullable<Experimental_VideoModelV4['doGenerate']>
+  NonNullable<VideoModelV4['doGenerate']>
 >[0];
 
 const DEFAULT_RESOLUTION = '2K';
@@ -86,9 +86,7 @@ function resolveTopLevelResolution(resolution: string): string | undefined {
 // the wrong kind is. A frame with no media type is left alone: the core emits
 // URL inputs without one, and unlike a reference there is no routing decision
 // riding on it.
-function nonImageFrameMediaType(
-  file: Experimental_VideoModelV4File,
-): string | undefined {
+function nonImageFrameMediaType(file: VideoModelV4File): string | undefined {
   if (file.mediaType == null) {
     return undefined;
   }
@@ -97,7 +95,7 @@ function nonImageFrameMediaType(
   return topLevelMediaType === 'image' ? undefined : topLevelMediaType;
 }
 
-export class MiniMaxVideoModel implements Experimental_VideoModelV4 {
+export class MiniMaxVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
@@ -112,9 +110,7 @@ export class MiniMaxVideoModel implements Experimental_VideoModelV4 {
 
   async doGenerate(
     options: MiniMaxVideoDoGenerateOptions,
-  ): Promise<
-    Awaited<ReturnType<NonNullable<Experimental_VideoModelV4['doGenerate']>>>
-  > {
+  ): Promise<Awaited<ReturnType<NonNullable<VideoModelV4['doGenerate']>>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
 
@@ -296,8 +292,8 @@ export class MiniMaxVideoModel implements Experimental_VideoModelV4 {
         });
       }
     } else if (usesReferences) {
-      const referenceImages: Experimental_VideoModelV4File[] = [];
-      const referenceVideos: Experimental_VideoModelV4File[] = [];
+      const referenceImages: VideoModelV4File[] = [];
+      const referenceVideos: VideoModelV4File[] = [];
 
       for (const file of referenceFiles) {
         const topLevelMediaType =

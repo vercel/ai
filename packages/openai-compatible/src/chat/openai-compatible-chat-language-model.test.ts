@@ -55,6 +55,13 @@ function prepareChunksFixtureResponse(
   };
 }
 
+function prepareSseFixtureResponse(filename: string) {
+  server.urls['https://my.api.com/v1/chat/completions'].response = {
+    type: 'stream-chunks',
+    chunks: [fs.readFileSync(`src/chat/__fixtures__/${filename}.sse`, 'utf8')],
+  };
+}
+
 describe('config', () => {
   it('should extract base name from provider string', () => {
     const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
@@ -2418,6 +2425,43 @@ describe('doStream', () => {
         },
       ]
     `);
+  });
+
+  it('should stream a tool call whose index starts at one', async () => {
+    prepareSseFixtureResponse('anthropic-fallback-tool-call');
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'read_file',
+          inputSchema: {
+            type: 'object',
+            properties: { path: { type: 'string' } },
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(
+      parts
+        .filter(part => part.type === 'text-delta')
+        .map(part => part.delta)
+        .join(''),
+    ).toBe('Reading it.');
+    expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'toolu_sanitized',
+        toolName: 'read_file',
+        input: '{"path": "a.txt"}',
+      },
+    ]);
+    expect(parts.at(-1)?.type).toBe('finish');
   });
 
   it('should error when streamed tool call never receives a function.name', async () => {

@@ -2,12 +2,10 @@ import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
-  createJsonErrorResponseHandler,
   createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
   delay,
   getFromApi,
-  isSameOrigin,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -18,6 +16,10 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import {
+  bflFailedResponseHandler,
+  isTrustedUrl,
+} from './black-forest-labs-api';
 import { blackForestLabsImageModelOptionsSchema } from './black-forest-labs-image-model-options';
 import type {
   BlackForestLabsAspectRatio,
@@ -362,29 +364,6 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
   }
 }
 
-/**
- * Black Forest Labs returns response-supplied URLs (polling and delivery) on
- * sibling cluster hosts of the API origin (e.g. `api.us1.bfl.ai` for a base
- * URL on `api.bfl.ai`), so a strict same-origin check against the configured
- * base URL is not enough. Credentials may also be sent to any https host under
- * the official `bfl.ai` domain.
- */
-function isTrustedUrl(url: string, baseUrl: string): boolean {
-  if (isSameOrigin(url, baseUrl)) {
-    return true;
-  }
-
-  try {
-    const { protocol, hostname } = new URL(url);
-    return (
-      protocol === 'https:' &&
-      (hostname === 'bfl.ai' || hostname.endsWith('.bfl.ai'))
-    );
-  } catch {
-    return false;
-  }
-}
-
 function convertSizeToAspectRatio(
   size: string,
 ): BlackForestLabsAspectRatio | undefined {
@@ -452,29 +431,3 @@ const bflPollSchema = z
     status: (v.status ?? v.state)!,
     result: v.result,
   }));
-
-const bflErrorSchema = z.object({
-  message: z.string().optional(),
-  detail: z.any().optional(),
-});
-
-const bflFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: bflErrorSchema,
-  errorToMessage: error =>
-    bflErrorToMessage(error) ?? 'Unknown Black Forest Labs error',
-});
-
-function bflErrorToMessage(error: unknown): string | undefined {
-  const parsed = bflErrorSchema.safeParse(error);
-  if (!parsed.success) return undefined;
-  const { message, detail } = parsed.data;
-  if (typeof detail === 'string') return detail;
-  if (detail != null) {
-    try {
-      return JSON.stringify(detail);
-    } catch {
-      // ignore
-    }
-  }
-  return message;
-}
