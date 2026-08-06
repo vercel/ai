@@ -1,5 +1,12 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.61
+
+### Patch Changes
+
+- 64a0ff2: fix(harness-claude-code): avoid sending custom user-agent for non-AI Gateway requests
+  - @ai-sdk/harness@1.0.60
+
 ## 1.0.60
 
 ### Patch Changes
