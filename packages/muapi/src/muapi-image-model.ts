@@ -1,6 +1,7 @@
 import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  createBinaryResponseHandler,
   createJsonResponseHandler,
   delay,
   getFromApi,
@@ -217,8 +218,22 @@ export class MuApiImageModel implements ImageModelV4 {
       });
 
       if (pollResult.status === 'completed' && pollResult.outputs) {
+        const images = await Promise.all(
+          pollResult.outputs.map(async outputUrl => {
+            const { value } = await getFromApi({
+              url: outputUrl,
+              successfulResponseHandler: createBinaryResponseHandler(),
+              failedResponseHandler: muapiFailedResponseHandler,
+              abortSignal: options.abortSignal,
+              fetch: this.config.fetch,
+            });
+
+            return value;
+          }),
+        );
+
         return {
-          images: pollResult.outputs,
+          images,
           warnings,
           response: {
             timestamp: currentDate,
