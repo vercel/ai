@@ -5583,6 +5583,101 @@ describe('OpenAIResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it('issue #18537 keeps a follow-up client function call paired with its output', async () => {
+      const model = new OpenAIResponsesLanguageModel('gpt-4.1-mini', {
+        provider: 'openai',
+        url: ({ path }) => `https://api.openai.com/v1${path}`,
+        headers: () => ({ Authorization: `Bearer APIKEY` }),
+        generateId: mockId(),
+        fetch: async (_input, init) => {
+          const requestBody = JSON.parse(init?.body as string) as {
+            input: Array<{ type?: string; call_id?: string }>;
+          };
+          const hasMatchingFunctionCall = requestBody.input.some(
+            item =>
+              item.type === 'function_call' &&
+              item.call_id === 'call_dYQhZV1goGU4Rkny0QJvcxUJ',
+          );
+
+          if (!hasMatchingFunctionCall) {
+            return new Response(
+              fs.readFileSync(
+                'src/responses/__fixtures__/openai-issue-18537-error.1.json',
+                'utf8',
+              ),
+              {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+              },
+            );
+          }
+
+          return new Response('data: [DONE]\n\n', {
+            status: 200,
+            headers: { 'Content-Type': 'text/event-stream' },
+          });
+        },
+      });
+
+      await expect(
+        model.doStream({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Now search for blue shoes.' }],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_dYQhZV1goGU4Rkny0QJvcxUJ',
+                  toolName: 'search',
+                  input: { query: 'blue shoes' },
+                  providerOptions: {
+                    openai: { itemId: 'fc_18537' },
+                  },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_dYQhZV1goGU4Rkny0QJvcxUJ',
+                  toolName: 'search',
+                  output: {
+                    type: 'json',
+                    value: { result: 'results for blue shoes' },
+                  },
+                },
+              ],
+            },
+          ],
+          tools: [
+            {
+              type: 'function',
+              name: 'search',
+              description: 'Search for products matching a query.',
+              inputSchema: {
+                type: 'object',
+                properties: { query: { type: 'string' } },
+                required: ['query'],
+                additionalProperties: false,
+              },
+            },
+          ],
+          providerOptions: {
+            openai: {
+              previousResponseId: 'resp_18537',
+              store: true,
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        }),
+      ).resolves.toBeDefined();
+    });
+
     it('should return helpful error when Chat Completions stream is received', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
