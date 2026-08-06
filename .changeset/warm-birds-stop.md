@@ -2,4 +2,5 @@
 'ai': patch
 ---
 
-Stop resumed chat streams when the active response is aborted.
+Stop pending and active resumed chat streams after cancellation, and prevent
+overlapping resumptions from applying stale updates.
