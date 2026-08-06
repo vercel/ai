@@ -1,4 +1,3 @@
-import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type {
   ACPAuthentication,
@@ -88,12 +87,9 @@ export async function readACPBridgeEnvironment({
 }): Promise<ACPBridgeConfiguration> {
   const serialized = env[ACP_BRIDGE_CONFIGURATION_ENV];
   if (serialized == null) return {};
-  const result = await safeParseJSON({
-    text: serialized,
-    schema: bridgeConfigurationSchema,
-  });
-  if (!result.success) {
-    throw new Error('ACP bridge configuration environment is invalid.');
-  }
-  return result.value;
+  try {
+    const result = bridgeConfigurationSchema.safeParse(JSON.parse(serialized));
+    if (result.success) return result.data;
+  } catch {}
+  throw new Error('ACP bridge configuration environment is invalid.');
 }

@@ -27,11 +27,7 @@ export default defineConfig([
     sourcemap: true,
     platform: 'node',
     splitting: false,
-    noExternal: [
-      '@ai-sdk/harness',
-      '@ai-sdk/provider',
-      '@ai-sdk/provider-utils',
-    ],
+    noExternal: ['@ai-sdk/harness'],
     external: [
       '@agentclientprotocol/sdk',
       '@modelcontextprotocol/sdk',

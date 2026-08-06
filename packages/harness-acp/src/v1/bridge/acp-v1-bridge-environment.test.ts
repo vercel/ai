@@ -70,4 +70,19 @@ describe('ACP bridge environment', () => {
     );
     expect(String(error)).not.toContain(secret);
   });
+
+  it('rejects configuration that does not match the schema', async () => {
+    await expect(
+      readACPBridgeEnvironment({
+        env: {
+          [ACP_BRIDGE_CONFIGURATION_ENV]: JSON.stringify({
+            providerAuthentication: {
+              type: 'ai-gateway',
+              env: [],
+            },
+          }),
+        },
+      }),
+    ).rejects.toThrow('ACP bridge configuration environment is invalid.');
+  });
 });
