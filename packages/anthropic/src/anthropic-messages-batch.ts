@@ -1,6 +1,7 @@
 import {
   EmptyResponseBodyError,
   InvalidArgumentError,
+  UnsupportedFunctionalityError,
   type Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
   type Experimental_BatchV4ItemResult as BatchV4ItemResult,
   type Experimental_BatchV4OperationOptions as BatchV4OperationOptions,
@@ -9,7 +10,6 @@ import {
   type JSONObject,
   type LanguageModelV4GenerateResult,
   type SharedV4ProviderMetadata,
-  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -158,16 +158,20 @@ export class AnthropicMessagesBatchLanguageModel
         stream: false,
         userSuppliedBetas: new Set(userSuppliedBetas),
       });
-      const { body, warnings } = prepareAnthropicBatchBody({
-        body: this.transformBatchRequestBody(prepared.args, prepared.betas),
-        warnings: prepared.warnings,
+      const body = this.transformBatchRequestBody(
+        prepared.args,
+        prepared.betas,
+      );
+      validateAnthropicBatchBody({
+        body,
+        requestId: request.id,
       });
 
       preparedRequests.push({ custom_id: request.id, params: body });
       for (const beta of prepared.betas) {
         batchBetas.add(beta);
       }
-      for (const warning of warnings) {
+      for (const warning of prepared.warnings) {
         batchWarnings.push({ requestId: request.id, warning });
       }
     }
@@ -343,51 +347,36 @@ function validateRequestIds(requests: ReadonlyArray<AnthropicBatchRequest>) {
   }
 }
 
-function prepareAnthropicBatchBody({
-  body: inputBody,
-  warnings: inputWarnings,
+function validateAnthropicBatchBody({
+  body,
+  requestId,
 }: {
   body: Record<string, unknown>;
-  warnings: SharedV4Warning[];
+  requestId: string;
 }) {
-  const body = { ...inputBody };
-  const warnings = [...inputWarnings];
-
   if (body.speed != null) {
-    delete body.speed;
-    warnings.push({
-      type: 'unsupported',
-      feature: 'providerOptions.anthropic.speed',
-      details: 'Anthropic Message Batches do not support fast mode.',
+    throw new UnsupportedFunctionalityError({
+      functionality: 'providerOptions.anthropic.speed',
+      message:
+        `Anthropic Message Batches do not support speed ` +
+        `(request "${requestId}").`,
     });
   }
 
-  if (Array.isArray(body.fallbacks)) {
-    let removedFallbackSpeed = false;
-    body.fallbacks = body.fallbacks.map(fallback => {
-      if (
-        fallback == null ||
-        typeof fallback !== 'object' ||
-        !('speed' in fallback)
-      ) {
-        return fallback;
-      }
-
-      const { speed: _speed, ...rest } = fallback;
-      removedFallbackSpeed = true;
-      return rest;
+  if (
+    Array.isArray(body.fallbacks) &&
+    body.fallbacks.some(
+      fallback =>
+        fallback != null && typeof fallback === 'object' && 'speed' in fallback,
+    )
+  ) {
+    throw new UnsupportedFunctionalityError({
+      functionality: 'providerOptions.anthropic.fallbacks[].speed',
+      message:
+        `Anthropic Message Batches do not support fallback speed ` +
+        `(request "${requestId}").`,
     });
-
-    if (removedFallbackSpeed) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'providerOptions.anthropic.fallbacks[].speed',
-        details: 'Anthropic Message Batches do not support fast mode.',
-      });
-    }
   }
-
-  return { body, warnings };
 }
 
 function convertAnthropicBatchStatus(

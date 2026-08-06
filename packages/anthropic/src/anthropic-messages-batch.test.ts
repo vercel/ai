@@ -124,7 +124,6 @@ describe('Anthropic Messages batch language model', () => {
             providerOptions: {
               anthropic: {
                 anthropicBeta: ['request-one-beta'],
-                speed: 'fast',
               } satisfies AnthropicLanguageModelOptions,
             },
           }),
@@ -140,7 +139,6 @@ describe('Anthropic Messages batch language model', () => {
                   {
                     model: 'claude-sonnet-4-5',
                     max_tokens: 150,
-                    speed: 'fast',
                   },
                 ],
               } satisfies AnthropicLanguageModelOptions,
@@ -168,22 +166,6 @@ describe('Anthropic Messages batch language model', () => {
         {
           requestId: 'france',
           warning: { type: 'unsupported', feature: 'frequencyPenalty' },
-        },
-        {
-          requestId: 'france',
-          warning: {
-            type: 'unsupported',
-            feature: 'providerOptions.anthropic.speed',
-            details: 'Anthropic Message Batches do not support fast mode.',
-          },
-        },
-        {
-          requestId: 'germany',
-          warning: {
-            type: 'unsupported',
-            feature: 'providerOptions.anthropic.fallbacks[].speed',
-            details: 'Anthropic Message Batches do not support fast mode.',
-          },
         },
       ],
     });
@@ -248,11 +230,54 @@ describe('Anthropic Messages batch language model', () => {
         'operation-beta',
         'request-one-beta',
         'request-two-beta',
-        'fast-mode-2026-02-01',
         'server-side-fallback-2026-06-01',
       ]),
     );
     expect(new Set(betas).size).toBe(betas.length);
+  });
+
+  it.each([
+    {
+      feature: 'providerOptions.anthropic.speed',
+      options: { speed: 'fast' } satisfies AnthropicLanguageModelOptions,
+      message:
+        'Anthropic Message Batches do not support speed (request "request-1").',
+    },
+    {
+      feature: 'providerOptions.anthropic.fallbacks[].speed',
+      options: {
+        fallbacks: [
+          {
+            model: 'claude-sonnet-4-5',
+            speed: 'standard',
+          },
+        ],
+      } satisfies AnthropicLanguageModelOptions,
+      message:
+        'Anthropic Message Batches do not support fallback speed (request "request-1").',
+    },
+  ])('rejects unsupported $feature', async ({ feature, options, message }) => {
+    const model = createAnthropic({ apiKey: 'test-api-key' })(
+      'claude-3-haiku-20240307',
+    );
+
+    await expect(
+      model.experimental_doStartBatch({
+        requests: [
+          {
+            id: 'request-1',
+            ...request('Hello', {
+              providerOptions: { anthropic: options },
+            }),
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_UnsupportedFunctionalityError',
+      functionality: feature,
+      message,
+    });
+    expect(server.calls).toHaveLength(0);
   });
 
   it('rejects invalid request IDs before making an API request', async () => {
