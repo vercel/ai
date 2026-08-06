@@ -76,6 +76,9 @@ const rewriteLines = mdx => {
           /\bhighlight=(?:\{)?(["'])([^"']+)\1(?:\})?/g,
           '{$2}',
         );
+        // Strip stray quotes attached to the fence language (upstream
+        // content typos such as ```typescript").
+        next = next.replace(/^(\s*```)([a-zA-Z-]+)["']+(\s*)$/, '$1$2$3');
         // Remap fence languages Shiki doesn't bundle.
         next = next.replace(/^(\s*```)prompt\b/, '$1txt');
         next = next.replace(/^(\s*```)env\b/, '$1dotenv');

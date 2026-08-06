@@ -1243,6 +1243,9 @@ export async function convertToAnthropicPrompt({
                       content: {
                         type: 'advisor_result',
                         text: advisorOutput.text,
+                        ...(advisorOutput.stopReason !== undefined && {
+                          stop_reason: advisorOutput.stopReason,
+                        }),
                       },
                       cache_control: cacheControl,
                     });
@@ -1253,6 +1256,9 @@ export async function convertToAnthropicPrompt({
                       content: {
                         type: 'advisor_redacted_result',
                         encrypted_content: advisorOutput.encryptedContent,
+                        ...(advisorOutput.stopReason !== undefined && {
+                          stop_reason: advisorOutput.stopReason,
+                        }),
                       },
                       cache_control: cacheControl,
                     });

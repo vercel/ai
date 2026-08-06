@@ -448,7 +448,8 @@ For `generateText` and `streamText`, the integration records 3 types of spans:
   - `gen_ai.provider.name`: the provider
   - `gen_ai.request.model`: the requested model ID
   - `gen_ai.request.temperature`, `gen_ai.request.max_tokens`, `gen_ai.request.top_p`, `gen_ai.request.top_k`, `gen_ai.request.frequency_penalty`, `gen_ai.request.presence_penalty`, `gen_ai.request.stop_sequences`: request parameters
-  - `gen_ai.input.messages`: the prompt messages in [GenAI SemConv message format](#genai-message-format) (when `recordInputs` is enabled)
+  - `gen_ai.system_instructions`: instructions supplied separately from the chat history, formatted as a JSON array of parts (when `recordInputs` is enabled)
+  - `gen_ai.input.messages`: the prompt messages in [GenAI SemConv message format](#genai-message-format), including system messages that are part of the chat history in their original order (when `recordInputs` is enabled)
   - `gen_ai.tool.definitions`: the tool definitions as stringified JSON (when `recordInputs` is enabled)
 
   Attributes set on finish:
@@ -537,7 +538,7 @@ Messages are JSON arrays of objects with a `role` and a `parts` array. Each part
 
 Output messages also include a `finish_reason` field (e.g. `"stop"`, `"tool_call"`, `"length"`, `"content_filter"`).
 
-System instructions are recorded separately in `gen_ai.system_instructions` as a JSON array of `{ type: "text", content: "..." }` parts.
+Instructions supplied through `instructions` (or the deprecated `system` option) are recorded separately in `gen_ai.system_instructions` as a JSON array of `{ type: "text", content: "..." }` parts. System messages supplied as chat history with `allowSystemInMessages` remain in `gen_ai.input.messages` in their original positions.
 
 ##### GenAI tool call spans
 

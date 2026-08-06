@@ -1,5 +1,34 @@
 # @ai-sdk/anthropic
 
+## 4.0.33
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - @ai-sdk/provider-utils@5.0.23
+
+## 4.0.32
+
+### Patch Changes
+
+- 8b96941: Reject spliced Anthropic generations while allowing duplicate message start events for the active message.
+
+## 4.0.31
+
+### Patch Changes
+
+- 7a9da75: Add `maxTokens` to the `advisor_20260301` tool, forward it as `max_tokens` to cap each advisor sub-inference independently of executor output, and preserve advisor `stopReason` metadata for truncation detection and multi-turn replay.
+- Updated dependencies [2b60826]
+  - @ai-sdk/provider-utils@5.0.22
+
+## 4.0.30
+
+### Patch Changes
+
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+
 ## 4.0.29
 
 ### Patch Changes
