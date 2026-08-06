@@ -11,9 +11,9 @@ import { createACPV1, type ACPV1Settings } from './v1';
 import { createImplementationIdentity } from './v1/implementation';
 import {
   acpColdSessionStateSchema,
-  acpRecoveryStartSchema,
+  acpTurnStartConfigSchema,
   type ACPColdSessionState,
-  type ACPRecoveryStart,
+  type ACPTurnStartConfig,
 } from './v1/acp-v1-bridge-protocol';
 import { VERSION } from './version';
 
@@ -72,7 +72,8 @@ const acpResumeStateSchema = z.object({
   acpSessionId: z.string().optional(),
   bridge: acpBridgeCoordsSchema.optional(),
   coldSession: acpColdSessionStateSchema.optional(),
-  recoveryStart: acpRecoveryStartSchema.optional(),
+  turnStartConfig: acpTurnStartConfigSchema.optional(),
+  recoveryStart: acpTurnStartConfigSchema.optional(),
   recovery: z
     .object({
       mode: z.enum(['disk-replay', 'lossy-rerun']),
@@ -122,7 +123,7 @@ export function createACP<TBuiltinTools extends ToolSet = {}>(
         readonly acpSessionId?: string;
         readonly bridge?: ACPBridgeCoords;
         readonly coldSession?: ACPColdSessionState;
-        readonly recoveryStart?: ACPRecoveryStart;
+        readonly turnStartConfig?: ACPTurnStartConfig;
         readonly recovery?: {
           readonly mode: 'disk-replay' | 'lossy-rerun';
           readonly reason: string;
@@ -133,15 +134,22 @@ export function createACP<TBuiltinTools extends ToolSet = {}>(
         readonly initialGuidanceApplied?: boolean;
         readonly skillsMaterialized?: boolean;
         readonly skillsFingerprint?: string;
-      }> = acpResumeStateSchema.extend({
-        implementationIdentity: z.literal(implementationIdentity),
-        authenticationProfile: acpResumeStateSchema.shape.authenticationProfile
-          .unwrap()
-          .extend({
-            digest: z.literal(authenticationProfile.digest),
-          })
-          .optional(),
-      });
+      }> = acpResumeStateSchema
+        .extend({
+          implementationIdentity: z.literal(implementationIdentity),
+          authenticationProfile:
+            acpResumeStateSchema.shape.authenticationProfile
+              .unwrap()
+              .extend({
+                digest: z.literal(authenticationProfile.digest),
+              })
+              .optional(),
+        })
+        .transform(({ recoveryStart, ...lifecycleData }) =>
+          lifecycleData.turnStartConfig != null || recoveryStart == null
+            ? lifecycleData
+            : { ...lifecycleData, turnStartConfig: recoveryStart },
+        );
       return createACPV1({
         settings,
         builtinTools:

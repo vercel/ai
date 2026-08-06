@@ -794,7 +794,7 @@ describe('createACP', () => {
     });
     const firstStart = channel.sent[0] as {
       prompt: Array<{ type: 'text'; text: string }>;
-      recovery: { providerProfile: { type: string } };
+      turnStartConfig: { providerProfile: { type: string } };
     };
     expect(firstStart.prompt.slice(1)).toEqual([
       { type: 'text', text: 'Draft' },
@@ -813,7 +813,9 @@ describe('createACP', () => {
     expect(JSON.stringify(firstStart.prompt)).not.toContain(
       'Use active voice.',
     );
-    expect(firstStart.recovery.providerProfile).toEqual({ type: 'direct' });
+    expect(firstStart.turnStartConfig.providerProfile).toEqual({
+      type: 'direct',
+    });
     channel.emit({
       type: 'finish',
       finishReason: { unified: 'stop', raw: 'end_turn' },
@@ -1071,7 +1073,7 @@ describe('createACP', () => {
       skillsFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
     });
     expect(stopped.data).not.toHaveProperty('bridge');
-    expect(stopped.data).not.toHaveProperty('recoveryStart');
+    expect(stopped.data).not.toHaveProperty('turnStartConfig');
     expect(serializedStopped).not.toContain(
       'Remember the private phrase cedar-lantern.',
     );
@@ -1105,7 +1107,7 @@ describe('createACP', () => {
           name: 'firstTool',
         }),
       ],
-      recovery: {
+      turnStartConfig: {
         prompt: [],
         providerProfile: {
           baseUrl: 'https://gateway.example/custom',
@@ -1680,7 +1682,7 @@ describe('createACP', () => {
     await initialTurn.done;
     expect(JSON.stringify(continueFrom)).not.toContain('gateway-secret-before');
     expect(continueFrom.data).toMatchObject({
-      recoveryStart: {
+      turnStartConfig: {
         providerProfile: {
           type: 'ai-gateway',
           baseUrl: 'https://gateway.example.test/v1',
@@ -2766,6 +2768,22 @@ describe('createACP', () => {
       },
       schema: first.lifecycleStateSchema!,
     });
+    const legacyTurnStartConfigCompatible = await safeValidateTypes({
+      value: {
+        implementationIdentity,
+        authenticationProfile,
+        recoveryStart: {
+          version: 1,
+          configurationFingerprint: 'fingerprint',
+          providerProfile: { type: 'direct' },
+          prompt: [],
+          tools: [],
+          builtinTools: [],
+          permissionMode: 'allow-edits',
+        },
+      },
+      schema: first.lifecycleStateSchema!,
+    });
 
     expect(compatible.success).toBe(true);
     expect(incompatible.success).toBe(false);
@@ -2777,5 +2795,18 @@ describe('createACP', () => {
         },
       },
     });
+    expect(legacyTurnStartConfigCompatible).toMatchObject({
+      success: true,
+      value: {
+        turnStartConfig: {
+          configurationFingerprint: 'fingerprint',
+        },
+      },
+    });
+    if (legacyTurnStartConfigCompatible.success) {
+      expect(legacyTurnStartConfigCompatible.value).not.toHaveProperty(
+        'recoveryStart',
+      );
+    }
   });
 });

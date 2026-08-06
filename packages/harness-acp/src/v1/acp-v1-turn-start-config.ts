@@ -6,8 +6,8 @@ import type {
 } from '../acp-auth';
 import type {
   ACPColdSessionState,
-  ACPRecoveryJSONValue,
-  ACPRecoveryStart,
+  ACPTurnStartConfig,
+  ACPTurnStartJSONValue,
   StartMessage,
 } from './acp-v1-bridge-protocol';
 import type { ACPTextContentBlock } from './acp-v1-prompt';
@@ -16,7 +16,7 @@ import type {
   ACPSerializableValue,
 } from './acp-v1-settings';
 
-export function createACPRecoveryStart({
+export function createACPTurnStartConfig({
   prompt,
   tools,
   builtinTools,
@@ -42,7 +42,7 @@ export function createACPRecoveryStart({
     | ACPProviderAuthenticationCompatibility
     | undefined;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
-}): ACPRecoveryStart {
+}): ACPTurnStartConfig {
   return {
     version: 1,
     configurationFingerprint: createHash('sha256')
@@ -64,7 +64,7 @@ export function createACPRecoveryStart({
       ...(tool.description == null ? {} : { description: tool.description }),
       ...(tool.inputSchema == null
         ? {}
-        : { inputSchema: tool.inputSchema as ACPRecoveryJSONValue }),
+        : { inputSchema: tool.inputSchema as ACPTurnStartJSONValue }),
     })),
     builtinTools: [...builtinTools],
     permissionMode,
@@ -74,22 +74,22 @@ export function createACPRecoveryStart({
 }
 
 export function createACPColdSessionState({
-  recoveryStart,
+  turnStartConfig,
   modelId,
 }: {
-  recoveryStart: ACPRecoveryStart;
+  turnStartConfig: ACPTurnStartConfig;
   modelId: string | undefined;
 }): ACPColdSessionState {
   return {
-    version: recoveryStart.version,
-    configurationFingerprint: recoveryStart.configurationFingerprint,
-    providerProfile: recoveryStart.providerProfile,
-    tools: recoveryStart.tools,
-    builtinTools: recoveryStart.builtinTools,
-    permissionMode: recoveryStart.permissionMode,
-    ...(recoveryStart.permissionModeMapping == null
+    version: turnStartConfig.version,
+    configurationFingerprint: turnStartConfig.configurationFingerprint,
+    providerProfile: turnStartConfig.providerProfile,
+    tools: turnStartConfig.tools,
+    builtinTools: turnStartConfig.builtinTools,
+    permissionMode: turnStartConfig.permissionMode,
+    ...(turnStartConfig.permissionModeMapping == null
       ? {}
-      : { permissionModeMapping: recoveryStart.permissionModeMapping }),
+      : { permissionModeMapping: turnStartConfig.permissionModeMapping }),
     ...(modelId == null ? {} : { modelId }),
   };
 }
@@ -98,13 +98,13 @@ function createProviderProfile({
   compatibility,
 }: {
   compatibility: ACPProviderAuthenticationCompatibility | undefined;
-}): ACPRecoveryStart['providerProfile'] {
+}): ACPTurnStartConfig['providerProfile'] {
   if (compatibility == null || compatibility.type === 'direct') {
     return { type: 'direct' };
   }
   if (compatibility.credentialSource == null) {
     throw new Error(
-      'ACP recovery cannot persist an AI Gateway profile without a credential source.',
+      'ACP turn start configuration cannot persist an AI Gateway profile without a credential source.',
     );
   }
   return {

@@ -1,7 +1,7 @@
 import type { ACPAuthenticationProfileIdentity } from '../acp-auth';
 import type {
   ACPColdSessionState,
-  ACPRecoveryStart,
+  ACPTurnStartConfig,
 } from './acp-v1-bridge-protocol';
 
 export type ACPPromptGuidanceLifecycleState = {
@@ -24,7 +24,7 @@ export type ACPLifecycleData = ACPPromptGuidanceLifecycleState & {
   readonly acpSessionId?: string;
   readonly bridge?: ACPBridgeCoordinates;
   readonly coldSession?: ACPColdSessionState;
-  readonly recoveryStart?: ACPRecoveryStart;
+  readonly turnStartConfig?: ACPTurnStartConfig;
   readonly recovery?: {
     readonly mode: 'disk-replay' | 'lossy-rerun';
     readonly reason: string;

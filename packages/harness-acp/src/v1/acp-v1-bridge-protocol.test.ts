@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   acpColdSessionStateSchema,
-  acpRecoveryStartSchema,
+  acpTurnStartConfigSchema,
 } from './acp-v1-bridge-protocol';
 
-const legacyRecoveryStart = {
+const legacyTurnStartConfig = {
   version: 1,
   configurationFingerprint: 'fingerprint',
   providerProfile: {
@@ -27,8 +27,8 @@ const providerProfile = {
   routeKind: 'launch',
 };
 
-const legacyImplementationDefaultRecoveryStart = {
-  ...legacyRecoveryStart,
+const legacyImplementationDefaultTurnStartConfig = {
+  ...legacyTurnStartConfig,
   providerProfile: {
     type: 'implementation-default',
     clientApp: 'ai-sdk/harness-acp/0.0.0-test',
@@ -36,24 +36,24 @@ const legacyImplementationDefaultRecoveryStart = {
 } as const;
 
 describe('ACP v1 bridge protocol', () => {
-  it('strips legacy clientApp from recovery start state', () => {
+  it('strips legacy clientApp from turn start configuration', () => {
     expect(
-      acpRecoveryStartSchema.parse(legacyRecoveryStart).providerProfile,
+      acpTurnStartConfigSchema.parse(legacyTurnStartConfig).providerProfile,
     ).toEqual(providerProfile);
   });
 
   it('strips legacy clientApp from cold session state', () => {
     expect(
       acpColdSessionStateSchema.parse({
-        ...legacyRecoveryStart,
+        ...legacyTurnStartConfig,
         modelId: 'model-id',
       }).providerProfile,
     ).toEqual(providerProfile);
   });
 
-  it('normalizes legacy implementation-default recovery start state', () => {
+  it('normalizes legacy implementation-default turn start configuration', () => {
     expect(
-      acpRecoveryStartSchema.parse(legacyImplementationDefaultRecoveryStart)
+      acpTurnStartConfigSchema.parse(legacyImplementationDefaultTurnStartConfig)
         .providerProfile,
     ).toEqual({ type: 'direct' });
   });
@@ -61,7 +61,7 @@ describe('ACP v1 bridge protocol', () => {
   it('normalizes legacy implementation-default cold session state', () => {
     expect(
       acpColdSessionStateSchema.parse({
-        ...legacyImplementationDefaultRecoveryStart,
+        ...legacyImplementationDefaultTurnStartConfig,
         modelId: 'model-id',
       }).providerProfile,
     ).toEqual({ type: 'direct' });

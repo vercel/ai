@@ -34,15 +34,15 @@ const permissionModeMappingSchema: z.ZodType<ACPPermissionModeMapping> =
     'allow-all': permissionModeTargetSchema,
   });
 
-export type ACPRecoveryJSONValue =
+export type ACPTurnStartJSONValue =
   | string
   | number
   | boolean
   | null
-  | ACPRecoveryJSONValue[]
-  | { [key: string]: ACPRecoveryJSONValue };
+  | ACPTurnStartJSONValue[]
+  | { [key: string]: ACPTurnStartJSONValue };
 
-export type ACPRecoveryStart = {
+export type ACPTurnStartConfig = {
   readonly version: 1;
   readonly configurationFingerprint: string;
   readonly providerProfile:
@@ -63,7 +63,7 @@ export type ACPRecoveryStart = {
   readonly tools: Array<{
     readonly name: string;
     readonly description?: string;
-    readonly inputSchema?: ACPRecoveryJSONValue;
+    readonly inputSchema?: ACPTurnStartJSONValue;
   }>;
   readonly builtinTools: Array<z.infer<typeof builtinToolSchema>>;
   readonly permissionMode: HarnessV1PermissionMode;
@@ -71,7 +71,7 @@ export type ACPRecoveryStart = {
   readonly debug?: HarnessV1DebugConfig;
 };
 
-export const acpRecoveryStartSchema = z.object({
+export const acpTurnStartConfigSchema = z.object({
   version: z.literal(1),
   configurationFingerprint: z.string(),
   providerProfile: z.union([
@@ -109,14 +109,17 @@ export const acpRecoveryStartSchema = z.object({
   permissionMode: harnessV1BridgeStartBaseSchema.shape.permissionMode.unwrap(),
   permissionModeMapping: permissionModeMappingSchema.optional(),
   debug: harnessV1BridgeStartBaseSchema.shape.debug.optional(),
-}) satisfies z.ZodType<ACPRecoveryStart>;
+}) satisfies z.ZodType<ACPTurnStartConfig>;
 
-export type ACPColdSessionState = Omit<ACPRecoveryStart, 'prompt' | 'debug'> & {
+export type ACPColdSessionState = Omit<
+  ACPTurnStartConfig,
+  'prompt' | 'debug'
+> & {
   readonly modelId?: string;
 };
 
 export const acpColdSessionStateSchema: z.ZodType<ACPColdSessionState> =
-  acpRecoveryStartSchema.omit({ prompt: true, debug: true }).extend({
+  acpTurnStartConfigSchema.omit({ prompt: true, debug: true }).extend({
     modelId: z.string().optional(),
   });
 
@@ -138,7 +141,7 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   prompt: z.array(acpTextContentBlockSchema),
   builtinTools: z.array(builtinToolSchema).readonly().default([]),
   permissionModeMapping: permissionModeMappingSchema.optional(),
-  recovery: acpRecoveryStartSchema,
+  turnStartConfig: acpTurnStartConfigSchema,
   recoveryMode: z
     .discriminatedUnion('type', [lossyRecoverySchema, coldRestoreSchema])
     .optional(),

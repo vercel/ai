@@ -48,7 +48,7 @@ import {
 import {
   outboundMessageSchema,
   type ACPColdSessionState,
-  type ACPRecoveryStart,
+  type ACPTurnStartConfig,
   type InboundMessage,
   type OutboundMessage,
   type StartMessage,
@@ -56,8 +56,8 @@ import {
 import { createACPBridgeEnvironment } from './acp-v1-bridge-environment';
 import {
   createACPColdSessionState,
-  createACPRecoveryStart,
-} from './acp-v1-recovery';
+  createACPTurnStartConfig,
+} from './acp-v1-turn-start-config';
 import {
   resolveACPInitialGuidanceApplied,
   shouldMaterializeACPSkills,
@@ -94,12 +94,12 @@ type ACPRespawnStrategy =
   | {
       readonly mode: 'lossy-rerun';
       readonly reason: string;
-      readonly recoveryStart: ACPRecoveryStart;
+      readonly turnStartConfig: ACPTurnStartConfig;
       readonly acpSessionId: string;
     }
   | {
       readonly mode: 'cold-restore';
-      readonly recoveryStart: ACPRecoveryStart;
+      readonly turnStartConfig: ACPTurnStartConfig;
       readonly acpSessionId: string;
     };
 
@@ -367,7 +367,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               isResume: true,
               turnInFlight: isContinue,
               bridgeStateDir,
-              recoveryStart: lifecycleData.recoveryStart,
+              turnStartConfig: lifecycleData.turnStartConfig,
               recoveryStatus: lifecycleData.recovery,
               restoration: lifecycleData.restoration,
               replayOnly: false,
@@ -389,18 +389,18 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
                   afterSeq: coords.lastSeenEventId,
                 };
               } else {
-                const recoveryStart = lifecycleData.recoveryStart;
+                const turnStartConfig = lifecycleData.turnStartConfig;
                 const acpSessionId = lifecycleData.acpSessionId;
-                if (recoveryStart == null || acpSessionId == null) {
+                if (turnStartConfig == null || acpSessionId == null) {
                   throw unsupported({
                     harnessId: settings.harnessId,
                     message:
-                      'ACP process-loss recovery is unavailable because the lifecycle state does not contain the persisted recovery start and ACP session identifier.',
+                      'ACP process-loss recovery is unavailable because the lifecycle state does not contain the persisted turn start configuration and ACP session identifier.',
                     cause: error,
                   });
                 }
-                validateACPRecoveryConfiguration({
-                  recoveryStart,
+                validateACPTurnStartConfig({
+                  turnStartConfig,
                   authenticationProfile,
                   providerAuthenticationCompatibility,
                   sessionMeta: settings.session?.meta,
@@ -410,7 +410,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
                 respawnStrategy = {
                   mode: 'lossy-rerun',
                   reason: 'event log not replayable',
-                  recoveryStart,
+                  turnStartConfig,
                   acpSessionId,
                 };
               }
@@ -427,7 +427,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
                 'Cold ACP session restoration requires persisted cold-session configuration and an ACP session identifier.',
             });
           }
-          const recoveryStart = validateACPColdSessionConfiguration({
+          const turnStartConfig = validateACPColdSessionConfiguration({
             coldSession,
             modelId: settings.modelId,
             permissionMode,
@@ -440,7 +440,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           });
           respawnStrategy = {
             mode: 'cold-restore',
-            recoveryStart,
+            turnStartConfig,
             acpSessionId,
           };
         }
@@ -556,8 +556,8 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               builtinTools: builtinToolCatalog,
               permissionMode,
               permissionModeMapping,
-              tools: respawnStrategy.recoveryStart.tools,
-              recovery: respawnStrategy.recoveryStart,
+              tools: respawnStrategy.turnStartConfig.tools,
+              turnStartConfig: respawnStrategy.turnStartConfig,
               recoveryMode: {
                 type: 'cold-restore',
                 acpSessionId: respawnStrategy.acpSessionId,
@@ -608,11 +608,11 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           respawnStrategy?.mode === 'disk-replay' ||
           respawnStrategy?.mode === 'lossy-rerun',
         bridgeStateDir,
-        recoveryStart:
+        turnStartConfig:
           respawnStrategy?.mode === 'lossy-rerun' ||
           respawnStrategy?.mode === 'cold-restore'
-            ? respawnStrategy.recoveryStart
-            : lifecycleData?.recoveryStart,
+            ? respawnStrategy.turnStartConfig
+            : lifecycleData?.turnStartConfig,
         recoveryStatus:
           respawnStrategy?.mode === 'disk-replay' ||
           respawnStrategy?.mode === 'lossy-rerun'
@@ -805,7 +805,7 @@ function createSession({
   isResume,
   turnInFlight: turnInFlightAtStart,
   bridgeStateDir,
-  recoveryStart: recoveryStartAtStart,
+  turnStartConfig: turnStartConfigAtStart,
   recoveryStatus,
   restoration,
   replayOnly,
@@ -836,7 +836,7 @@ function createSession({
   isResume: boolean;
   turnInFlight: boolean;
   bridgeStateDir: string;
-  recoveryStart: ACPRecoveryStart | undefined;
+  turnStartConfig: ACPTurnStartConfig | undefined;
   recoveryStatus: ACPLifecycleData['recovery'];
   restoration: ACPLifecycleData['restoration'];
   replayOnly: boolean;
@@ -846,7 +846,7 @@ function createSession({
   let turnInFlight = turnInFlightAtStart;
   let initialGuidanceApplied = initialGuidanceAppliedAtStart;
   let latestACPSessionId = acpSessionIdAtStart;
-  let latestRecoveryStart = recoveryStartAtStart;
+  let latestTurnStartConfig = turnStartConfigAtStart;
 
   const markTurnFinished = () => {
     turnInFlight = false;
@@ -1048,26 +1048,26 @@ function createSession({
 
   const createLifecycleData = ({
     bridge,
-    includeRecoveryStart = true,
+    includeTurnStartConfig = true,
   }: {
     bridge?: ACPLifecycleData['bridge'];
-    includeRecoveryStart?: boolean;
+    includeTurnStartConfig?: boolean;
   }): ACPLifecycleData => ({
     implementationIdentity,
     authenticationProfile,
     ...(latestACPSessionId == null ? {} : { acpSessionId: latestACPSessionId }),
     ...(bridge == null ? {} : { bridge }),
-    ...(latestRecoveryStart == null
+    ...(latestTurnStartConfig == null
       ? {}
       : {
           coldSession: createACPColdSessionState({
-            recoveryStart: latestRecoveryStart,
+            turnStartConfig: latestTurnStartConfig,
             modelId,
           }),
         }),
-    ...(!includeRecoveryStart || latestRecoveryStart == null
+    ...(!includeTurnStartConfig || latestTurnStartConfig == null
       ? {}
-      : { recoveryStart: latestRecoveryStart }),
+      : { turnStartConfig: latestTurnStartConfig }),
     ...(recoveryStatus == null ? {} : { recovery: recoveryStatus }),
     ...(restoration == null ? {} : { restoration }),
     initialGuidanceApplied,
@@ -1095,7 +1095,7 @@ function createSession({
         prompt: options.prompt,
         harnessId,
       });
-      const recoveryStart = createACPRecoveryStart({
+      const turnStartConfig = createACPTurnStartConfig({
         prompt,
         tools: options.tools ?? [],
         builtinTools,
@@ -1130,9 +1130,9 @@ function createSession({
             permissionMode,
             permissionModeMapping,
             tools: options.tools == null ? undefined : [...options.tools],
-            recovery: recoveryStart,
+            turnStartConfig,
           });
-          latestRecoveryStart = recoveryStart;
+          latestTurnStartConfig = turnStartConfig;
           initialGuidanceApplied = true;
         },
       });
@@ -1143,13 +1143,13 @@ function createSession({
         throw new Error(`${harnessId} has no in-flight ACP turn to continue.`);
       }
       if (lossyRerun) {
-        if (latestRecoveryStart == null || latestACPSessionId == null) {
+        if (latestTurnStartConfig == null || latestACPSessionId == null) {
           throw new Error(
             `${harnessId} cannot perform lossy ACP rerun without persisted start configuration and an ACP session identifier.`,
           );
         }
         assertRecoveryToolCatalog({
-          persisted: latestRecoveryStart.tools,
+          persisted: latestTurnStartConfig.tools,
           current: options.tools ?? [],
         });
       }
@@ -1158,16 +1158,16 @@ function createSession({
         abortSignal: options.abortSignal,
         start: () => {
           if (!lossyRerun) return;
-          const recoveryStart = latestRecoveryStart!;
+          const turnStartConfig = latestTurnStartConfig!;
           channel.send({
             type: 'start',
-            prompt: recoveryStart.prompt,
-            debug: recoveryStart.debug,
-            builtinTools: recoveryStart.builtinTools,
-            permissionMode: recoveryStart.permissionMode,
-            permissionModeMapping: recoveryStart.permissionModeMapping,
-            tools: recoveryStart.tools,
-            recovery: recoveryStart,
+            prompt: turnStartConfig.prompt,
+            debug: turnStartConfig.debug,
+            builtinTools: turnStartConfig.builtinTools,
+            permissionMode: turnStartConfig.permissionMode,
+            permissionModeMapping: turnStartConfig.permissionModeMapping,
+            tools: turnStartConfig.tools,
+            turnStartConfig,
             recoveryMode: {
               type: 'lossy-rerun',
               acpSessionId: latestACPSessionId!,
@@ -1240,7 +1240,7 @@ function createSession({
       };
     },
     doStop: async () => {
-      const data = createLifecycleData({ includeRecoveryStart: false });
+      const data = createLifecycleData({ includeTurnStartConfig: false });
       await terminateBridge({ command: 'stop' });
       return {
         type: 'resume-session',
@@ -1302,15 +1302,15 @@ export function serializeBuiltinTools({
   });
 }
 
-function validateACPRecoveryConfiguration({
-  recoveryStart,
+function validateACPTurnStartConfig({
+  turnStartConfig,
   authenticationProfile,
   providerAuthenticationCompatibility,
   sessionMeta,
   builtinTools,
   permissionModeMapping,
 }: {
-  recoveryStart: ACPRecoveryStart;
+  turnStartConfig: ACPTurnStartConfig;
   authenticationProfile: ACPAuthenticationProfileIdentity;
   providerAuthenticationCompatibility:
     | ACPProviderAuthenticationCompatibility
@@ -1319,25 +1319,25 @@ function validateACPRecoveryConfiguration({
   builtinTools: StartMessage['builtinTools'];
   permissionModeMapping: ACPPermissionModeMapping | undefined;
 }): void {
-  const current = createACPRecoveryStart({
-    prompt: recoveryStart.prompt,
-    tools: recoveryStart.tools,
+  const current = createACPTurnStartConfig({
+    prompt: turnStartConfig.prompt,
+    tools: turnStartConfig.tools,
     builtinTools,
-    permissionMode: recoveryStart.permissionMode,
+    permissionMode: turnStartConfig.permissionMode,
     permissionModeMapping,
-    debug: recoveryStart.debug,
+    debug: turnStartConfig.debug,
     authenticationProfile,
     providerAuthenticationCompatibility,
     sessionMeta,
   });
   if (
     current.configurationFingerprint !==
-      recoveryStart.configurationFingerprint ||
+      turnStartConfig.configurationFingerprint ||
     fingerprintValue({ value: current.providerProfile }) !==
-      fingerprintValue({ value: recoveryStart.providerProfile })
+      fingerprintValue({ value: turnStartConfig.providerProfile })
   ) {
     throw new Error(
-      'ACP recovery state is incompatible with the current non-secret start configuration.',
+      'The persisted ACP turn start configuration is incompatible with the current non-secret start configuration.',
     );
   }
 }
@@ -1364,8 +1364,8 @@ function validateACPColdSessionConfiguration({
   builtinTools: StartMessage['builtinTools'];
   permissionModeMapping: ACPPermissionModeMapping | undefined;
   debug: HarnessV1DebugConfig | undefined;
-}): ACPRecoveryStart {
-  const current = createACPRecoveryStart({
+}): ACPTurnStartConfig {
+  const current = createACPTurnStartConfig({
     prompt: [],
     tools: coldSession.tools,
     builtinTools,
