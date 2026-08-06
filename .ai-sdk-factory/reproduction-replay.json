@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 18513,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-18513-open-responses-reasoning-round-trip.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-18513-open-responses-reasoning-round-trip.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "asymmetric round trip: the SDK produced 1 reasoning part(s) from the response, but serialized 0 back into the next request."
+  }
+}
