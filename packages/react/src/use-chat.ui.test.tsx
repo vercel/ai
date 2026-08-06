@@ -2320,6 +2320,7 @@ describe('use-chat', () => {
         throttle: throttleMs,
         generateId: mockId(),
       });
+      const [, forceUnrelatedRender] = useState(0);
 
       return (
         <div>
@@ -2337,6 +2338,10 @@ describe('use-chat', () => {
             onClick={() => {
               sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
             }}
+          />
+          <button
+            data-testid="force-unrelated-render"
+            onClick={() => forceUnrelatedRender(count => count + 1)}
           />
         </div>
       );
@@ -2385,6 +2390,40 @@ describe('use-chat', () => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
         'AI: Hello There',
       );
+    });
+
+    it('should not publish a new message snapshot during an unrelated render', async () => {
+      const controller = new TestResponseController();
+
+      server.urls['/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      fireEvent.click(screen.getByTestId('do-send'));
+
+      controller.write(formatChunk({ type: 'text-start', id: '0' }));
+      controller.write(
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hel' }),
+      );
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(throttleMs + 10);
+      });
+
+      expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hel');
+
+      controller.write(
+        formatChunk({ type: 'text-delta', id: '0', delta: 'lo' }),
+      );
+      fireEvent.click(screen.getByTestId('force-unrelated-render'));
+
+      expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hel');
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(throttleMs + 10);
+      });
+
+      expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
     });
   });
 
