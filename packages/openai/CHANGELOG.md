@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.33
+
+### Patch Changes
+
+- e6a93c4: feat(openai): support batch APIs with experimental_startTextBatch
+
 ## 4.0.32
 
 ### Patch Changes
