@@ -1,9 +1,12 @@
 import { createACP } from '@ai-sdk/harness-acp';
+import { grokBuildACPBuiltinTools } from './builtin-tools';
 
 const harnessId = 'acp-grok-build';
 
 export const grokBuildACPHarness = createACP({
   harnessId,
+  auth: 'direct',
+  builtinTools: grokBuildACPBuiltinTools,
   implementation: {
     type: 'npm',
     mode: 'simple',
