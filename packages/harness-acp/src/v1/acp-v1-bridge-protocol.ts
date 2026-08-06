@@ -15,7 +15,17 @@ import type { ACPPermissionModeMapping } from './acp-v1-settings';
 import { acpTextContentBlockSchema } from './acp-v1-prompt';
 
 export type ACPBuiltinToolMapping = {
+  /**
+   * Key of the tool in `HarnessV1.builtinTools`, which is also emitted as the
+   * Harness V1 `toolName`. It is the common tool name when the tool has a
+   * standardized Harness V1 equivalent; otherwise it is the native tool name.
+   */
   readonly toolName: string;
+
+  /**
+   * Name used by the underlying agent runtime. It is present when `toolName`
+   * is a Harness V1 common tool name that differs from the runtime's name.
+   */
   readonly nativeName?: HarnessV1BuiltinTool['nativeName'];
 };
 
