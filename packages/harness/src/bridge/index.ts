@@ -11,6 +11,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { env as procEnv, pid, stdout } from 'node:process';
 import { WebSocketServer, type WebSocket } from 'ws';
 
+export { HarnessBridgeCapabilityUnsupportedError } from './harness-bridge-capability-unsupported-error';
+
 export type BridgeState = 'init' | 'waiting' | 'running' | 'draining' | 'done';
 
 /** Outbound turn event the adapter emits. `seq` is added by the runtime. */
