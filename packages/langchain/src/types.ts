@@ -28,8 +28,10 @@ export interface LangGraphEventState {
   messageReasoningIds: Map<string, string>;
   /** Maps message ID + tool call index to tool call info (for streaming chunks without ID) */
   toolCallInfoByIndex: Map<string, Map<number, { id: string; name: string }>>;
-  /** Tracks the current root LangGraph step for start-step/finish-step events */
+  /** Tracks the current LangGraph step for start-step/finish-step events */
   currentStep: number | null;
+  /** Namespace whose step counter drives the global UI step lifecycle */
+  stepNamespace: string | null;
   /** Maps tool call key (name:argsJson) to tool call ID for HITL interrupt handling */
   emittedToolCallsByKey: Map<string, string>;
   /** Tracks source IDs already emitted to avoid duplicates across messages/values events */

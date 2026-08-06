@@ -995,6 +995,7 @@ describe('processLangGraphEvent', () => {
     messageReasoningIds: new Map(),
     toolCallInfoByIndex: new Map(),
     currentStep: null as number | null,
+    stepNamespace: null,
     emittedToolCallsByKey: new Map<string, string>(),
     emittedSourceIds: new Set<string>(),
   });
@@ -2826,6 +2827,7 @@ describe('processLangGraphEvent - sources', () => {
     messageReasoningIds: new Map(),
     toolCallInfoByIndex: new Map(),
     currentStep: null as number | null,
+    stepNamespace: null,
     emittedToolCallsByKey: new Map<string, string>(),
     emittedSourceIds: new Set<string>(),
   });

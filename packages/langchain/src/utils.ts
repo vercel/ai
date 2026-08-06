@@ -1245,6 +1245,53 @@ function getOrCreateToolCallInfoByIndex(
 }
 
 /**
+ * Normalizes legacy tuples without a namespace and explicit empty root
+ * namespaces to the same key.
+ */
+function getLangGraphNamespaceKey(namespace: string[] | undefined): string {
+  return JSON.stringify(namespace ?? []);
+}
+
+/**
+ * Ends and clears message state for the namespace that drives the global UI
+ * step lifecycle. Returns whether another namespace still has active text or
+ * reasoning that would be invalidated by a global finish-step chunk.
+ */
+function closeStepNamespaceMessages(
+  state: LangGraphEventState,
+  stepNamespace: string,
+  controller: ReadableStreamDefaultController<UIMessageChunk>,
+): boolean {
+  let hasConcurrentMessageParts = false;
+
+  for (const [id, seen] of state.messageSeen) {
+    const messageNamespace = getLangGraphNamespaceKey(
+      state.messageNamespaces.get(id),
+    );
+
+    if (messageNamespace !== stepNamespace) {
+      if (seen.text || seen.reasoning) {
+        hasConcurrentMessageParts = true;
+      }
+      continue;
+    }
+
+    if (seen.text) {
+      controller.enqueue({ type: 'text-end', id });
+    }
+    if (seen.reasoning) {
+      controller.enqueue({ type: 'reasoning-end', id });
+    }
+    state.messageSeen.delete(id);
+    state.messageNamespaces.delete(id);
+    state.messageConcat.delete(id);
+    state.messageReasoningIds.delete(id);
+  }
+
+  return hasConcurrentMessageParts;
+}
+
+/**
  * Processes a LangGraph event and emits UI message chunks.
  *
  * @param event - The event to process.
@@ -1273,8 +1320,6 @@ export function processLangGraphEvent(
     rawNamespace.every(segment => typeof segment === 'string')
       ? rawNamespace
       : undefined;
-  const isRootEvent =
-    event.length !== 3 || (namespace !== undefined && namespace.length === 0);
   controller = createLangGraphNamespaceController(controller, state, namespace);
 
   switch (type) {
@@ -1328,38 +1373,40 @@ export function processLangGraphEvent(
       }
 
       /**
-       * Track root LangGraph step changes and emit start-step/finish-step events.
-       * Subgraphs have independent step counters, while UI message step events
-       * are global, so nested graph counters must not change the root lifecycle.
-       * Before emitting finish-step, close any open text/reasoning parts so
-       * the client does not receive orphaned deltas after its
-       * activeReasoningParts / activeTextParts have been cleared.
+       * The first namespace with a step counter drives the global UI step
+       * lifecycle. This is the root namespace for complete subgraph streams and
+       * the selected namespace for streams filtered to one subgraph.
+       *
+       * Other namespaces have independent counters and must not change this
+       * cursor. A finish-step chunk clears every active UI text/reasoning part,
+       * so suppress the global boundary when another namespace is still active.
        */
       const langgraphStep =
         typeof metadata?.langgraph_step === 'number'
           ? metadata.langgraph_step
           : null;
+      const eventNamespace = getLangGraphNamespaceKey(namespace);
+      if (langgraphStep !== null && state.stepNamespace === null) {
+        state.stepNamespace = eventNamespace;
+      }
       if (
-        isRootEvent &&
         langgraphStep !== null &&
+        eventNamespace === state.stepNamespace &&
         langgraphStep !== state.currentStep
       ) {
         if (state.currentStep !== null) {
-          for (const [id, seen] of messageSeen) {
-            if (seen.text) {
-              controller.enqueue({ type: 'text-end', id });
-            }
-            if (seen.reasoning) {
-              controller.enqueue({ type: 'reasoning-end', id });
-            }
-            messageSeen.delete(id);
-            state.messageNamespaces.delete(id);
-            messageConcat.delete(id);
-            messageReasoningIds.delete(id);
+          const hasConcurrentMessageParts = closeStepNamespaceMessages(
+            state,
+            state.stepNamespace,
+            controller,
+          );
+          if (!hasConcurrentMessageParts) {
+            controller.enqueue({ type: 'finish-step' });
+            controller.enqueue({ type: 'start-step' });
           }
-          controller.enqueue({ type: 'finish-step' });
+        } else {
+          controller.enqueue({ type: 'start-step' });
         }
-        controller.enqueue({ type: 'start-step' });
         state.currentStep = langgraphStep;
       }
 

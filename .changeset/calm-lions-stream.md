@@ -2,4 +2,4 @@
 '@ai-sdk/langchain': patch
 ---
 
-Preserve LangGraph subgraph namespaces without letting nested step counters split root text or reasoning streams.
+Preserve LangGraph subgraph namespaces and step lifecycles without letting concurrent namespace counters split active text or reasoning streams.
