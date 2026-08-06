@@ -1,11 +1,12 @@
 import { createHash } from 'node:crypto';
-import type { HarnessV1DebugConfig } from '@ai-sdk/harness';
+import type { HarnessV1DebugConfig, HarnessV1ToolSpec } from '@ai-sdk/harness';
 import type { ACPAuthenticationProfileIdentity } from '../acp-auth';
-import type {
-  ACPColdSessionState,
-  ACPTurnStartConfig,
-  ACPTurnStartJSONValue,
-  StartMessage,
+import {
+  acpSerializableToolSpecSchema,
+  type ACPBuiltinToolMapping,
+  type ACPColdSessionState,
+  type ACPTurnStartConfig,
+  type StartMessage,
 } from './acp-v1-bridge-protocol';
 import type { ACPTextContentBlock } from './acp-v1-prompt';
 import type {
@@ -24,12 +25,8 @@ export function createACPTurnStartConfig({
   sessionMeta,
 }: {
   prompt: ReadonlyArray<ACPTextContentBlock>;
-  tools: ReadonlyArray<{
-    readonly name: string;
-    readonly description?: string;
-    readonly inputSchema?: unknown;
-  }>;
-  builtinTools: StartMessage['builtinTools'];
+  tools: ReadonlyArray<HarnessV1ToolSpec>;
+  builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   permissionMode: NonNullable<StartMessage['permissionMode']>;
   permissionModeMapping: ACPPermissionModeMapping | undefined;
   debug: HarnessV1DebugConfig | undefined;
@@ -49,13 +46,7 @@ export function createACPTurnStartConfig({
       )
       .digest('hex'),
     prompt: [...prompt],
-    tools: tools.map(tool => ({
-      name: tool.name,
-      ...(tool.description == null ? {} : { description: tool.description }),
-      ...(tool.inputSchema == null
-        ? {}
-        : { inputSchema: tool.inputSchema as ACPTurnStartJSONValue }),
-    })),
+    tools: tools.map(tool => acpSerializableToolSpecSchema.parse(tool)),
     builtinTools: [...builtinTools],
     permissionMode,
     ...(permissionModeMapping == null ? {} : { permissionModeMapping }),

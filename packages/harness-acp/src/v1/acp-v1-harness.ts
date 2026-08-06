@@ -12,6 +12,7 @@ import {
   type HarnessV1PromptControl,
   type HarnessV1Session,
   type HarnessV1StreamPart,
+  type HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
 import { HarnessBridgeCapabilityUnsupportedError } from '@ai-sdk/harness/bridge';
 import {
@@ -47,6 +48,7 @@ import {
 } from './implementation';
 import {
   outboundMessageSchema,
+  type ACPBuiltinToolMapping,
   type ACPColdSessionState,
   type ACPTurnStartConfig,
   type InboundMessage,
@@ -815,7 +817,7 @@ function createSession({
   debug: HarnessV1DebugConfig | undefined;
   implementationIdentity: string;
   authenticationProfile: ACPAuthenticationProfileIdentity;
-  builtinTools: StartMessage['builtinTools'];
+  builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   permissionMode: NonNullable<StartMessage['permissionMode']>;
   permissionModeMapping: StartMessage['permissionModeMapping'];
   initialGuidanceApplied: boolean;
@@ -1120,7 +1122,7 @@ function createSession({
             builtinTools,
             permissionMode,
             permissionModeMapping,
-            tools: options.tools == null ? undefined : [...options.tools],
+            tools: options.tools == null ? undefined : turnStartConfig.tools,
             turnStartConfig,
           });
           latestTurnStartConfig = turnStartConfig;
@@ -1277,7 +1279,7 @@ export function serializeBuiltinTools({
   builtinTools,
 }: {
   builtinTools: ToolSet;
-}): StartMessage['builtinTools'] {
+}): ReadonlyArray<ACPBuiltinToolMapping> {
   return Object.entries(builtinTools).map(([toolName, tool]) => {
     const nativeName =
       tool != null &&
@@ -1303,7 +1305,7 @@ function validateACPTurnStartConfig({
   turnStartConfig: ACPTurnStartConfig;
   authenticationProfile: ACPAuthenticationProfileIdentity;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
-  builtinTools: StartMessage['builtinTools'];
+  builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   permissionModeMapping: ACPPermissionModeMapping | undefined;
 }): void {
   const current = createACPTurnStartConfig({
@@ -1341,7 +1343,7 @@ function validateACPColdSessionConfiguration({
   permissionMode: NonNullable<StartMessage['permissionMode']>;
   authenticationProfile: ACPAuthenticationProfileIdentity;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
-  builtinTools: StartMessage['builtinTools'];
+  builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   permissionModeMapping: ACPPermissionModeMapping | undefined;
   debug: HarnessV1DebugConfig | undefined;
 }): ACPTurnStartConfig {
@@ -1371,8 +1373,8 @@ function assertRecoveryToolCatalog({
   persisted,
   current,
 }: {
-  persisted: ReadonlyArray<NonNullable<StartMessage['tools']>[number]>;
-  current: ReadonlyArray<NonNullable<StartMessage['tools']>[number]>;
+  persisted: ReadonlyArray<HarnessV1ToolSpec>;
+  current: ReadonlyArray<HarnessV1ToolSpec>;
 }): void {
   if (
     fingerprintValue({ value: persisted }) !==

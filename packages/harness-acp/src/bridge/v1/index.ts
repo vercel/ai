@@ -20,7 +20,5 @@ export {
   validateACPProtocolVersion,
   type ACPInitializeResult,
 } from '../../v1/protocol-configuration';
-export {
-  createACPStreamTranslator,
-  type ACPBuiltinTool,
-} from '../../v1/stream-translator';
+export { createACPStreamTranslator } from '../../v1/stream-translator';
+export type { ACPBuiltinToolMapping } from '../../v1/acp-v1-bridge-protocol';

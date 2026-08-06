@@ -1,5 +1,6 @@
 import type { HarnessV1StreamPart } from '@ai-sdk/harness';
 import type { PromptResponse, SessionUpdate } from '@agentclientprotocol/sdk';
+import type { ACPBuiltinToolMapping } from './acp-v1-bridge-protocol';
 
 type HarnessUsage = Extract<
   HarnessV1StreamPart,
@@ -9,13 +10,7 @@ type HarnessToolResult = Extract<
   HarnessV1StreamPart,
   { readonly type: 'tool-result' }
 >['result'];
-type JSONValue =
-  | null
-  | string
-  | number
-  | boolean
-  | Array<JSONValue>
-  | { [key: string]: JSONValue };
+type HarnessJSONValue = HarnessToolResult | null;
 
 type ToolState = {
   readonly toolCallId: string;
@@ -28,11 +23,6 @@ type ToolState = {
   dynamic?: boolean;
 };
 
-export type ACPBuiltinTool = {
-  readonly toolName: string;
-  readonly nativeName?: string;
-};
-
 export type ACPSessionUpdate = SessionUpdate;
 export type ACPPromptResponse = PromptResponse;
 
@@ -41,7 +31,7 @@ export function createACPStreamTranslator({
   builtinTools = [],
 }: {
   emit: (event: HarnessV1StreamPart) => void;
-  builtinTools?: ReadonlyArray<ACPBuiltinTool>;
+  builtinTools?: ReadonlyArray<ACPBuiltinToolMapping>;
 }): {
   update: (
     options:
@@ -412,9 +402,9 @@ export function mapACPFinishReason({ stopReason }: { stopReason: string }): {
 function indexBuiltinTools({
   builtinTools,
 }: {
-  builtinTools: ReadonlyArray<ACPBuiltinTool>;
-}): ReadonlyMap<string, ACPBuiltinTool> {
-  const matches = new Map<string, ACPBuiltinTool | null>();
+  builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
+}): ReadonlyMap<string, ACPBuiltinToolMapping> {
+  const matches = new Map<string, ACPBuiltinToolMapping | null>();
   for (const builtinTool of builtinTools) {
     addBuiltinToolMatch({
       matches,
@@ -431,7 +421,7 @@ function indexBuiltinTools({
   }
   return new Map(
     [...matches].filter(
-      (entry): entry is [string, ACPBuiltinTool] => entry[1] != null,
+      (entry): entry is [string, ACPBuiltinToolMapping] => entry[1] != null,
     ),
   );
 }
@@ -441,9 +431,9 @@ function addBuiltinToolMatch({
   name,
   builtinTool,
 }: {
-  matches: Map<string, ACPBuiltinTool | null>;
+  matches: Map<string, ACPBuiltinToolMapping | null>;
   name: string;
-  builtinTool: ACPBuiltinTool;
+  builtinTool: ACPBuiltinToolMapping;
 }): void {
   if (!matches.has(name)) {
     matches.set(name, builtinTool);
@@ -584,9 +574,9 @@ function toSafeJSONValue({
   seen = new Set(),
 }: {
   value: unknown;
-  fallback: JSONValue;
+  fallback: HarnessJSONValue;
   seen?: Set<object>;
-}): JSONValue {
+}): HarnessJSONValue {
   if (value == null) return fallback;
   if (typeof value === 'string' || typeof value === 'boolean') return value;
   if (typeof value === 'number') return Number.isFinite(value) ? value : null;
@@ -601,7 +591,7 @@ function toSafeJSONValue({
     seen.delete(value);
     return result;
   }
-  const result = Object.create(null) as Record<string, JSONValue>;
+  const result = Object.create(null) as Record<string, HarnessJSONValue>;
   try {
     for (const [key, item] of Object.entries(value)) {
       result[key] = toSafeJSONValue({
