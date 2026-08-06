@@ -46,11 +46,12 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
 
 ### Parameters
 
-In addition to the parameters below, the constructor accepts all
+In addition to the parameters below, the constructor accepts the
 [call settings](/docs/ai-sdk-core/settings): the language model call options
 (`maxOutputTokens`, `temperature`, `topP`, `topK`, `presencePenalty`,
 `frequencyPenalty`, `stopSequences`, `seed`, and `reasoning`), the request
 options (`maxRetries`, `timeout`, and `headers`), and `providerOptions`.
+`abortSignal` is the exception: pass it to `generate()` or `stream()` per call.
 
 <PropertiesTable
   content={[

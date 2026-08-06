@@ -174,7 +174,7 @@ await agent.generate({
 });
 ```
 
-The `reasoning` setting is provider-agnostic, so it composes with dynamic model selection. For options that are genuinely provider-specific, return `providerOptions` from `prepareCall` in the same way; see the [reasoning guide](/docs/ai-sdk-core/reasoning) for per-provider mapping.
+The `reasoning` setting is provider-agnostic, so it keeps working when you combine it with dynamic model selection. See the [reasoning guide](/docs/ai-sdk-core/reasoning) for how the values map to each provider. For options that are genuinely provider-specific, return `providerOptions` from `prepareCall` in the same way.
 
 ## Advanced Patterns
 
