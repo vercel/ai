@@ -33,9 +33,7 @@ const codexACP = createACP({
     packageName: '@agentclientprotocol/codex-acp',
     version: '1.1.4',
     executable: 'codex-acp',
-    envSources: {
-      CODEX_API_KEY: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
-    },
+    forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
   },
   permissionModeMapping: {
     'allow-reads': { type: 'session-mode', modeId: 'read-only' },

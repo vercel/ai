@@ -3,7 +3,6 @@ export type { ACPAuthOptions, ACPClientApp } from './acp-auth';
 export type { ACPHarnessSettings } from './acp-harness';
 export type {
   ACPAuthentication,
-  ACPEnvironmentVariableSource,
   ACPGatewayAuthMethodRoute,
   ACPGatewayLaunchRoute,
   ACPGatewayProviderMethodRoute,

@@ -10,10 +10,7 @@ export const claudeCodeACPHarness = createACP({
     packageName: '@agentclientprotocol/claude-agent-acp',
     version: '0.61.0',
     executable: 'claude-agent-acp',
-    envSources: {
-      ANTHROPIC_API_KEY: 'ANTHROPIC_API_KEY',
-      ANTHROPIC_AUTH_TOKEN: 'ANTHROPIC_AUTH_TOKEN',
-    },
+    forwardEnv: ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN'],
   },
   permissionModeMapping: {
     'allow-reads': { type: 'session-mode', modeId: 'plan' },

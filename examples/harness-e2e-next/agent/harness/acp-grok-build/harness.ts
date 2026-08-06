@@ -11,9 +11,7 @@ export const grokBuildACPHarness = createACP({
     version: '0.2.111',
     executable: 'grok',
     args: ['agent', 'stdio'],
-    envSources: {
-      XAI_API_KEY: 'XAI_API_KEY',
-    },
+    forwardEnv: ['XAI_API_KEY'],
   },
   providerAuthentication: {
     gateway: {

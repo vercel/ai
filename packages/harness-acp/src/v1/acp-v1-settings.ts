@@ -26,17 +26,11 @@ export type ACPProfileValue =
   | ReadonlyArray<ACPProfileValue>
   | { readonly [key: string]: ACPProfileValue };
 
-export type ACPEnvironmentVariableSource = string | ReadonlyArray<string>;
-
 type ACPNpmLaunchSettings = {
   readonly type: 'npm';
   readonly executable: string;
   readonly args?: ReadonlyArray<string>;
-  /**
-   * Maps environment variables for the ACP process to host environment
-   * variable names. An array lists fallback sources in precedence order.
-   */
-  readonly envSources?: Readonly<Record<string, ACPEnvironmentVariableSource>>;
+  readonly forwardEnv?: ReadonlyArray<string>;
   /**
    * Runtime environment values that are safe to persist in bootstrap and
    * lifecycle compatibility identity.

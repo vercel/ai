@@ -63,7 +63,8 @@ try {
 - `version`: ACP protocol version. It defaults to and currently supports only
   `'v1'`.
 - `implementation`: simple or locked NPM acquisition, executable, arguments,
-  sensitive `envSources`, and persistent `env`.
+  host environment variables to forward through `forwardEnv`, and persistent
+  `env`.
 - `builtinTools`: optional native tool definitions for static typing and exact
   name matching.
 - `authentication`: advertised ACP authentication method, metadata, and client
@@ -122,7 +123,7 @@ const implementation = {
 ```
 
 Locked acquisition installs the supplied files with
-`pnpm install --frozen-lockfile`. Both modes also accept `args`, `envSources`,
+`pnpm install --frozen-lockfile`. Both modes also accept `args`, `forwardEnv`,
 and `env`. The manifest and lockfile are bootstrap artifacts, so never put
 credentials in either string.
 
@@ -140,12 +141,11 @@ With the default `auth: 'auto'`, the adapter uses AI Gateway when
 `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` is available and otherwise uses
 direct authentication.
 
-For direct authentication, you must configure `implementation.envSources` with
-the host environment variable names that contain credentials for the underlying
-ACP implementation. Each key is the environment variable exposed to the ACP
-process. Its value is the host environment variable to read, or an ordered list
-of fallback sources. These names depend on the ACP implementation. Credential
-values are resolved at runtime and are not stored in the profile.
+For direct authentication, configure `implementation.forwardEnv` with the host
+environment variable names that the underlying ACP implementation reads. These
+variables are allowlisted and forwarded unchanged to the ACP process. Their
+names depend on the ACP implementation. Credential values are resolved at
+runtime and are not stored in the profile.
 
 ### Advertised and launch routes
 
@@ -244,10 +244,7 @@ export const claudeCodeACPHarness = createACP({
     packageName: '@agentclientprotocol/claude-agent-acp',
     version: '0.61.0',
     executable: 'claude-agent-acp',
-    envSources: {
-      ANTHROPIC_API_KEY: 'ANTHROPIC_API_KEY',
-      ANTHROPIC_AUTH_TOKEN: 'ANTHROPIC_AUTH_TOKEN',
-    },
+    forwardEnv: ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN'],
     env: {
       IS_SANDBOX: '1',
     },
@@ -303,9 +300,7 @@ export const codexACPHarness = createACP({
     packageName: '@agentclientprotocol/codex-acp',
     version: '1.1.4',
     executable: 'codex-acp',
-    envSources: {
-      CODEX_API_KEY: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
-    },
+    forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
     env: {
       CODEX_CONFIG: JSON.stringify(codexConfig),
     },
@@ -376,9 +371,7 @@ export const grokBuildACPHarness = createACP({
     version: '0.2.111',
     executable: 'grok',
     args: ['agent', 'stdio'],
-    envSources: {
-      XAI_API_KEY: 'XAI_API_KEY',
-    },
+    forwardEnv: ['XAI_API_KEY'],
   },
   providerAuthentication: {
     gateway: {

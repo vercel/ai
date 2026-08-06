@@ -24,9 +24,7 @@ const simpleImplementation = {
   version: '1.2.3',
   executable: 'acp-agent',
   args: ['stdio'],
-  envSources: {
-    PROVIDER_API_KEY: ['PRIMARY_PROVIDER_API_KEY', 'FALLBACK_PROVIDER_API_KEY'],
-  },
+  forwardEnv: ['PROVIDER_API_KEY', 'SECOND_PROVIDER_API_KEY'],
   env: {
     PROVIDER_BASE_URL: 'https://provider.example',
   },
@@ -56,9 +54,7 @@ const lockedImplementation = {
   pnpmLockYaml,
   executable: 'acp-agent',
   args: ['stdio'],
-  envSources: {
-    PROVIDER_API_KEY: ['PRIMARY_PROVIDER_API_KEY', 'FALLBACK_PROVIDER_API_KEY'],
-  },
+  forwardEnv: ['PROVIDER_API_KEY', 'SECOND_PROVIDER_API_KEY'],
   env: {
     PROVIDER_BASE_URL: 'https://provider.example',
   },
@@ -175,45 +171,34 @@ describe('ACP npm acquisition', () => {
           },
         },
       }),
-    ).toThrow('cannot be configured in both envSources and env');
+    ).toThrow('cannot be configured in both forwardEnv and env');
   });
 
-  it('rejects invalid or empty environment-variable source names', () => {
+  it('rejects invalid forwarded environment-variable names', () => {
     expect(() =>
       validateACPV1Settings({
         harnessId: 'example-acp',
         implementation: {
           ...simpleImplementation,
-          envSources: {
-            PROVIDER_API_KEY: 'not-an-environment-variable',
-          },
+          forwardEnv: ['not-an-environment-variable'],
         },
       }),
-    ).toThrow('environment source name is invalid');
-    expect(() =>
-      validateACPV1Settings({
-        harnessId: 'example-acp',
-        implementation: {
-          ...simpleImplementation,
-          envSources: {
-            PROVIDER_API_KEY: [],
-          },
-        },
-      }),
-    ).toThrow('must configure at least one source environment variable');
+    ).toThrow('forwarded environment variable name is invalid');
   });
 
-  it('resolves the first available sensitive source only for runtime launch', () => {
+  it('forwards configured environment variables only for runtime launch', () => {
     expect(
       resolveImplementationEnvironment({
         implementation: simpleImplementation,
         env: {
-          PRIMARY_PROVIDER_API_KEY: 'primary-secret',
-          FALLBACK_PROVIDER_API_KEY: 'fallback-secret',
+          PROVIDER_API_KEY: 'provider-secret',
+          SECOND_PROVIDER_API_KEY: 'second-provider-secret',
+          UNRELATED_SECRET: 'unrelated-secret',
         },
       }),
     ).toEqual({
-      PROVIDER_API_KEY: 'primary-secret',
+      PROVIDER_API_KEY: 'provider-secret',
+      SECOND_PROVIDER_API_KEY: 'second-provider-secret',
       PROVIDER_BASE_URL: 'https://provider.example',
     });
     expect(
@@ -228,11 +213,11 @@ describe('ACP npm acquisition', () => {
       resolveImplementationEnvironment({
         implementation: simpleImplementation,
         env: {
-          FALLBACK_PROVIDER_API_KEY: 'fallback-secret',
+          SECOND_PROVIDER_API_KEY: 'second-provider-secret',
         },
       }),
     ).toEqual({
-      PROVIDER_API_KEY: 'fallback-secret',
+      SECOND_PROVIDER_API_KEY: 'second-provider-secret',
       PROVIDER_BASE_URL: 'https://provider.example',
     });
   });
@@ -244,9 +229,9 @@ describe('ACP npm acquisition', () => {
     });
 
     expect(descriptor).toContain('"PROVIDER_API_KEY"');
+    expect(descriptor).toContain('"SECOND_PROVIDER_API_KEY"');
     expect(descriptor).toContain('"PROVIDER_BASE_URL"');
     expect(descriptor).toContain('"implementationIdentity"');
-    expect(descriptor).not.toContain('PRIMARY_PROVIDER_API_KEY');
     expect(descriptor).not.toContain('https://provider.example');
   });
 
@@ -258,12 +243,7 @@ describe('ACP npm acquisition', () => {
       identity({
         implementation: {
           ...simpleImplementation,
-          envSources: {
-            PROVIDER_API_KEY: [
-              'PRIMARY_PROVIDER_API_KEY',
-              'FALLBACK_PROVIDER_API_KEY',
-            ],
-          },
+          forwardEnv: ['SECOND_PROVIDER_API_KEY', 'PROVIDER_API_KEY'],
         },
       }),
     ).toBe(baseIdentity);
@@ -271,9 +251,7 @@ describe('ACP npm acquisition', () => {
       identity({
         implementation: {
           ...simpleImplementation,
-          envSources: {
-            PROVIDER_API_KEY: 'OTHER_PROVIDER_API_KEY',
-          },
+          forwardEnv: ['OTHER_PROVIDER_API_KEY'],
         },
       }),
     ).not.toBe(baseIdentity);
@@ -316,13 +294,11 @@ describe('ACP npm acquisition', () => {
       identity({
         implementation: {
           ...simpleImplementation,
-          envSources: {
-            PROVIDER_API_KEY: [
-              'PRIMARY_PROVIDER_API_KEY',
-              'FALLBACK_PROVIDER_API_KEY',
-            ],
-            SECOND_SECRET: 'SECOND_SECRET',
-          },
+          forwardEnv: [
+            'PROVIDER_API_KEY',
+            'SECOND_PROVIDER_API_KEY',
+            'THIRD_SECRET',
+          ],
         },
       }),
     ).not.toBe(baseIdentity);

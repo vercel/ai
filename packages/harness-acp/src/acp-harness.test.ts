@@ -149,7 +149,7 @@ const implementation = {
   version: '1.1.4',
   executable: 'codex-acp',
   args: ['--example'],
-  envSources: { CODEX_API_KEY: 'ACP_TEST_CODEX_API_KEY' },
+  forwardEnv: ['CODEX_API_KEY'],
 } as const;
 
 const permissionModeMapping = {
@@ -350,7 +350,7 @@ function emitColdRestoration({
 describe('createACP', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubEnv('ACP_TEST_CODEX_API_KEY', 'test-key');
+    vi.stubEnv('CODEX_API_KEY', 'test-key');
     harnessUtilsMocks.channels.length = 0;
     harnessUtilsMocks.openErrors.length = 0;
     harnessUtilsMocks.nextSuspensionCursor = 0;
@@ -983,7 +983,7 @@ describe('createACP', () => {
       auth: 'ai-gateway',
       implementation: {
         ...implementation,
-        envSources: {},
+        forwardEnv: [],
       },
       modelId: 'gpt-5.1-codex',
       session: {
@@ -2565,7 +2565,7 @@ describe('createACP', () => {
       clientApp: { name: 'custom-client', version: '1.2.3' },
       implementation: {
         ...implementation,
-        envSources: {},
+        forwardEnv: [],
       },
       providerAuthentication: {
         gateway: {
@@ -2602,7 +2602,7 @@ describe('createACP', () => {
   });
 
   it('excludes resolved credentials from bootstrap and lifecycle state', async () => {
-    vi.stubEnv('ACP_TEST_PROVIDER_API_KEY', 'direct-secret');
+    vi.stubEnv('PROVIDER_API_KEY', 'direct-secret');
     vi.stubEnv('AI_GATEWAY_API_KEY', 'gateway-secret');
     const runs: string[] = [];
     const spawns: Array<{
@@ -2614,9 +2614,7 @@ describe('createACP', () => {
       auth: 'ai-gateway',
       implementation: {
         ...implementation,
-        envSources: {
-          PROVIDER_API_KEY: 'ACP_TEST_PROVIDER_API_KEY',
-        },
+        forwardEnv: ['PROVIDER_API_KEY'],
         env: {
           PROVIDER_BASE_URL: 'https://provider.example',
         },
@@ -2669,7 +2667,7 @@ describe('createACP', () => {
   });
 
   it('excludes direct provider credentials from its authentication profile', async () => {
-    vi.stubEnv('ACP_TEST_DIRECT_PROFILE_API_KEY', 'direct-profile-secret');
+    vi.stubEnv('PROVIDER_API_KEY', 'direct-profile-secret');
     vi.stubEnv('AI_GATEWAY_API_KEY', 'unused-gateway-secret');
     const spawns: Array<{
       command: string;
@@ -2680,9 +2678,7 @@ describe('createACP', () => {
       auth: 'direct',
       implementation: {
         ...implementation,
-        envSources: {
-          PROVIDER_API_KEY: 'ACP_TEST_DIRECT_PROFILE_API_KEY',
-        },
+        forwardEnv: ['PROVIDER_API_KEY'],
       },
       providerAuthentication: {
         gateway: {

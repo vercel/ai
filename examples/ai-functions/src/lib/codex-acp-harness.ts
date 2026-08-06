@@ -72,9 +72,7 @@ export function createCodexACP({
     auth,
     implementation: {
       ...implementation,
-      envSources: {
-        CODEX_API_KEY: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
-      },
+      forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
       env: {
         CODEX_CONFIG: JSON.stringify(codexConfig),
       },

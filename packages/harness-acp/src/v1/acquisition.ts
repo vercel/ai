@@ -47,13 +47,13 @@ export function validateACPV1Settings({
     );
   }
 
-  validateEnvironmentSources({ envSources: implementation.envSources });
+  validateForwardEnvironment({ forwardEnv: implementation.forwardEnv });
   validateEnvironment({ env: implementation.env });
-  const sensitiveKeys = new Set(Object.keys(implementation.envSources ?? {}));
+  const forwardedKeys = new Set(implementation.forwardEnv ?? []);
   for (const key of Object.keys(implementation.env ?? {})) {
-    if (sensitiveKeys.has(key)) {
+    if (forwardedKeys.has(key)) {
       throw new Error(
-        `ACP runtime environment key ${JSON.stringify(key)} cannot be configured in both envSources and env.`,
+        `ACP runtime environment key ${JSON.stringify(key)} cannot be configured in both forwardEnv and env.`,
       );
     }
   }
@@ -141,14 +141,9 @@ export function createImplementationIdentity({
         packageName: implementation.packageName,
         version: implementation.version,
       };
-  const sensitiveEnvironment = Object.fromEntries(
-    Object.entries(implementation.envSources ?? {})
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, sources]) => [
-        key,
-        { sources: typeof sources === 'string' ? [sources] : sources },
-      ]),
-  );
+  const forwardedEnvironment = [
+    ...new Set(implementation.forwardEnv ?? []),
+  ].sort();
   const literalEnvironment = Object.fromEntries(
     Object.entries(implementation.env ?? {})
       .sort(([left], [right]) => left.localeCompare(right))
@@ -162,8 +157,8 @@ export function createImplementationIdentity({
     args: implementation.args ?? [],
     clientApp,
     environment: {
-      ...sensitiveEnvironment,
-      ...literalEnvironment,
+      forwarded: forwardedEnvironment,
+      literal: literalEnvironment,
     },
     providerAuthentication: providerAuthentication ?? null,
     permissionModeMapping: permissionModeMapping ?? null,
@@ -196,21 +191,15 @@ export function resolveImplementationEnvironment({
   implementation: ACPNpmImplementation;
   env: Readonly<Record<string, string | undefined>>;
 }): Record<string, string> {
-  const resolvedEnvironment: Record<string, string> = {};
-  for (const [target, configuredSources] of Object.entries(
-    implementation.envSources ?? {},
-  )) {
-    const sources =
-      typeof configuredSources === 'string'
-        ? [configuredSources]
-        : configuredSources;
-    const value = sources
-      .map(source => env[source])
-      .find(value => value != null && value.length > 0);
-    if (value != null) resolvedEnvironment[target] = value;
+  const forwardedEnvironment: Record<string, string> = {};
+  for (const name of implementation.forwardEnv ?? []) {
+    const value = env[name];
+    if (value != null && value.length > 0) {
+      forwardedEnvironment[name] = value;
+    }
   }
   return {
-    ...resolvedEnvironment,
+    ...forwardedEnvironment,
     ...implementation.env,
   };
 }
@@ -247,41 +236,17 @@ function validateEnvironment({
   }
 }
 
-function validateEnvironmentSources({
-  envSources,
+function validateForwardEnvironment({
+  forwardEnv,
 }: {
-  envSources:
-    | Readonly<Record<string, string | ReadonlyArray<string>>>
-    | undefined;
+  forwardEnv: ReadonlyArray<string> | undefined;
 }): void {
-  for (const [target, configuredSources] of Object.entries(envSources ?? {})) {
-    validateEnvironmentVariableName({ name: target, role: 'target' });
-    const sources =
-      typeof configuredSources === 'string'
-        ? [configuredSources]
-        : configuredSources;
-    if (sources.length === 0) {
+  for (const name of forwardEnv ?? []) {
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
       throw new Error(
-        `ACP runtime environment target ${JSON.stringify(target)} must configure at least one source environment variable.`,
+        `ACP forwarded environment variable name is invalid: ${JSON.stringify(name)}.`,
       );
     }
-    for (const source of sources) {
-      validateEnvironmentVariableName({ name: source, role: 'source' });
-    }
-  }
-}
-
-function validateEnvironmentVariableName({
-  name,
-  role,
-}: {
-  name: string;
-  role: 'source' | 'target';
-}): void {
-  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
-    throw new Error(
-      `ACP runtime environment ${role} name is invalid: ${JSON.stringify(name)}.`,
-    );
   }
 }
 
@@ -292,7 +257,7 @@ function getImplementationEnvironmentKeys({
 }): string[] {
   return [
     ...new Set([
-      ...Object.keys(implementation.envSources ?? {}),
+      ...(implementation.forwardEnv ?? []),
       ...Object.keys(implementation.env ?? {}),
     ]),
   ].sort();
