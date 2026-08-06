@@ -3,6 +3,7 @@ import {
   type LanguageModelV4CallOptions,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
+import { sanitizeJsonSchema } from '@ai-sdk/provider-utils';
 import type {
   OpenAIChatToolChoice,
   OpenAIChatFunctionTool,
@@ -38,7 +39,7 @@ export function prepareChatTools({
           function: {
             name: tool.name,
             description: tool.description,
-            parameters: tool.inputSchema,
+            parameters: sanitizeJsonSchema(tool.inputSchema),
             ...(tool.strict != null ? { strict: tool.strict } : {}),
           },
         });

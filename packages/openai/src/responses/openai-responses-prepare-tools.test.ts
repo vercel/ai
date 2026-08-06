@@ -171,6 +171,130 @@ describe('prepareResponsesTools', () => {
     });
   });
 
+  describe('function tool schema sanitization', () => {
+    it('should strip JSON Schema keywords OpenAI strict mode rejects from function tool parameters', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                values: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  minItems: 1,
+                  maxItems: 30000,
+                },
+                email: {
+                  type: 'string',
+                  format: 'email',
+                  pattern: '^[^@]+@[^@]+$',
+                },
+              },
+              required: ['values', 'email'],
+              additionalProperties: false,
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "description": "A test function",
+              "name": "testFunction",
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "email": {
+                    "description": "pattern: ^[^@]+@[^@]+$.",
+                    "format": "email",
+                    "type": "string",
+                  },
+                  "values": {
+                    "description": "min items: 1; max items: 30000.",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
+                },
+                "required": [
+                  "values",
+                  "email",
+                ],
+                "type": "object",
+              },
+              "type": "function",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should sanitize output schema when provided', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            providerOptions: {
+              openai: {
+                outputSchema: {
+                  type: 'object',
+                  properties: {
+                    values: {
+                      type: 'array',
+                      minItems: 1,
+                      maxItems: 30000,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "description": "A test function",
+              "name": "testFunction",
+              "output_schema": {
+                "properties": {
+                  "values": {
+                    "description": "min items: 1; max items: 30000.",
+                    "type": "array",
+                  },
+                },
+                "type": "object",
+              },
+              "parameters": {
+                "properties": {},
+                "type": "object",
+              },
+              "type": "function",
+            },
+          ],
+        }
+      `);
+    });
+  });
+
   describe('code interpreter', () => {
     it('should prepare code interpreter tool with no container (auto mode)', async () => {
       const result = await prepareResponsesTools({

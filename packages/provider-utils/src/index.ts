@@ -73,6 +73,7 @@ export {
   DEFAULT_MAX_DOWNLOAD_SIZE,
   readResponseWithSizeLimit,
 } from './read-response-with-size-limit';
+export { sanitizeJsonSchema } from './sanitize-json-schema';
 export * from './remove-undefined-entries';
 export * from './resolve';
 export { resolveFullMediaType } from './resolve-full-media-type';

@@ -1,4 +1,5 @@
 import type {
+  LanguageModelV4FunctionTool,
   LanguageModelV4Prompt,
   LanguageModelV4FilePart,
 } from '@ai-sdk/provider';
@@ -49,6 +50,97 @@ describe('GatewayLanguageModel', () => {
       expect(model.modelId).toBe('test-model');
       expect(model.provider).toBe('test-provider');
       expect(model.specificationVersion).toBe('v4');
+    });
+  });
+
+  describe('tool schema sanitization', () => {
+    function prepareJsonResponse() {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'json-value',
+        body: {
+          id: 'test-id',
+          created: 1711115037,
+          model: 'openai/gpt-5.6-terra',
+          content: { type: 'text', text: '' },
+          finish_reason: 'stop',
+          usage: { prompt_tokens: 4, completion_tokens: 30 },
+        },
+      };
+    }
+
+    const tool: LanguageModelV4FunctionTool = {
+      type: 'function',
+      name: 'testTool',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          values: {
+            type: 'array',
+            items: { type: 'string' },
+            minItems: 1,
+            maxItems: 30000,
+          },
+        },
+        required: ['values'],
+        additionalProperties: false,
+      },
+    };
+
+    const createOpenAIModel = () =>
+      new GatewayLanguageModel('openai/gpt-5.6-terra', {
+        provider: 'gateway',
+        baseURL: 'https://api.test.com',
+        headers: () => ({ Authorization: 'Bearer test-token' }),
+        fetch: globalThis.fetch,
+        o11yHeaders: {},
+      });
+
+    it('should strip OpenAI-unsupported keywords from tool schemas for openai models', async () => {
+      prepareJsonResponse();
+
+      await createOpenAIModel().doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [tool],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.tools[0].inputSchema).toEqual({
+        type: 'object',
+        properties: {
+          values: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'min items: 1; max items: 30000.',
+          },
+        },
+        required: ['values'],
+        additionalProperties: false,
+      });
+    });
+
+    it('should not sanitize tool schemas for non-openai models', async () => {
+      prepareJsonResponse();
+
+      const model = new GatewayLanguageModel('anthropic/claude-opus-4', {
+        provider: 'gateway',
+        baseURL: 'https://api.test.com',
+        headers: () => ({ Authorization: 'Bearer test-token' }),
+        fetch: globalThis.fetch,
+        o11yHeaders: {},
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [tool],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.tools[0].inputSchema.properties.values).toHaveProperty(
+        'minItems',
+      );
+      expect(requestBody.tools[0].inputSchema.properties.values).toHaveProperty(
+        'maxItems',
+      );
     });
   });
 

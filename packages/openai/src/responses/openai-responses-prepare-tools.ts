@@ -9,6 +9,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   resolveProviderReference,
+  sanitizeJsonSchema,
   validateTypes,
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
@@ -427,14 +428,18 @@ function prepareFunctionTool({
     type: 'function',
     name: tool.name,
     description: tool.description,
-    parameters: tool.inputSchema,
+    parameters: sanitizeJsonSchema(tool.inputSchema),
     ...(tool.strict != null ? { strict: tool.strict } : {}),
     ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
     ...(options?.allowedCallers != null
       ? { allowed_callers: options.allowedCallers }
       : {}),
     ...(options?.outputSchema != null
-      ? { output_schema: options.outputSchema as JSONSchema7 }
+      ? {
+          output_schema: sanitizeJsonSchema(
+            options.outputSchema as JSONSchema7,
+          ),
+        }
       : {}),
   };
 }

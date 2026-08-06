@@ -12,6 +12,7 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
   resolve,
+  sanitizeJsonSchema,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -60,8 +61,37 @@ export class GatewayLanguageModel implements LanguageModelV4 {
     const { abortSignal: _abortSignal, ...optionsWithoutSignal } = options;
 
     return {
-      args: this.maybeEncodeFileParts(optionsWithoutSignal),
+      args: this.maybeEncodeFileParts(
+        this.maybeSanitizeToolSchemas(optionsWithoutSignal),
+      ),
       warnings: [],
+    };
+  }
+
+  /**
+   * Strips JSON Schema keywords that OpenAI's strict function-tool schemas
+   * reject (`minItems`/`maxItems`, `minLength`/`maxLength`, `pattern`,
+   * `format`, `minimum`/`maximum`, ...) for requests routed to OpenAI. OpenAI
+   * defaults function tools to `strict: true` and can fail with a generic
+   * in-stream `server_error` on gpt-5.x models while compiling such schemas
+   * into a constrained-decoding grammar. Only OpenAI models are sanitized,
+   * because the upstream provider is encoded in the model id prefix and other
+   * providers may support these keywords.
+   */
+  private maybeSanitizeToolSchemas(
+    options: LanguageModelV4CallOptions,
+  ): LanguageModelV4CallOptions {
+    if (!this.modelId.startsWith('openai/') || options.tools == null) {
+      return options;
+    }
+
+    return {
+      ...options,
+      tools: options.tools.map(tool =>
+        tool.type === 'function'
+          ? { ...tool, inputSchema: sanitizeJsonSchema(tool.inputSchema) }
+          : tool,
+      ),
     };
   }
 

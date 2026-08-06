@@ -83,6 +83,63 @@ describe('prepareChatTools', () => {
   `);
   });
 
+  it('should strip JSON Schema keywords OpenAI strict mode rejects from function tool parameters', () => {
+    const result = prepareChatTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'testFunction',
+          description: 'A test function',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              values: {
+                type: 'array',
+                items: { type: 'string' },
+                minItems: 1,
+                maxItems: 30000,
+              },
+            },
+            required: ['values'],
+            additionalProperties: false,
+          },
+        },
+      ],
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+    {
+      "toolChoice": undefined,
+      "toolWarnings": [],
+      "tools": [
+        {
+          "function": {
+            "description": "A test function",
+            "name": "testFunction",
+            "parameters": {
+              "additionalProperties": false,
+              "properties": {
+                "values": {
+                  "description": "min items: 1; max items: 30000.",
+                  "items": {
+                    "type": "string",
+                  },
+                  "type": "array",
+                },
+              },
+              "required": [
+                "values",
+              ],
+              "type": "object",
+            },
+          },
+          "type": "function",
+        },
+      ],
+    }
+  `);
+  });
+
   it('should handle tool choice "auto"', () => {
     const result = prepareChatTools({
       tools: [
