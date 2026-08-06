@@ -18,7 +18,7 @@ run(async () => {
     const result = await agent.stream({
       session,
       prompt:
-        'Plan a route from (0,0) to (3,4) using only N/S/E/W moves. Think through the route, then give the final path.',
+        'Solve this step by step: if f(x) = x^3 - 6x^2 + 11x - 6, find all roots and prove they are correct.',
     });
     await printFullStream({ result });
   } finally {
