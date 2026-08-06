@@ -17,7 +17,7 @@ import {
 } from './v1/acp-v1-bridge-protocol';
 import { VERSION } from './version';
 
-const DEFAULT_ACP_CLIENT_APP = {
+const ACP_CLIENT_APP = {
   name: 'ai-sdk/harness-acp',
   version: VERSION,
 } as const satisfies ACPClientApp;
@@ -93,7 +93,7 @@ export function createACP<TBuiltinTools extends ToolSet = {}>(
   const version = (settings as { readonly version?: string }).version ?? 'v1';
   switch (version) {
     case 'v1': {
-      const clientApp = settings.clientApp ?? DEFAULT_ACP_CLIENT_APP;
+      const clientApp = settings.clientApp ?? ACP_CLIENT_APP;
       const providerAuthenticationCompatibility =
         resolveACPProviderAuthenticationCompatibility({
           auth: settings.auth,
