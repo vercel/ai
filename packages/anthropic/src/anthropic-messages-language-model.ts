@@ -1,9 +1,5 @@
 import {
-<<<<<<< HEAD:packages/anthropic/src/anthropic-messages-language-model.ts
-=======
-  APICallError,
   InvalidResponseDataError,
->>>>>>> 8b9694104c (fix: prevent Anthropic streams from merging overlapping message generations (#18402)):packages/anthropic/src/anthropic-language-model.ts
   type JSONObject,
   type LanguageModelV2,
   type LanguageModelV2CallWarning,
@@ -1216,7 +1212,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     let stopSequence: string | null = null;
     let stopDetails: AnthropicMessageMetadata['stopDetails'] = undefined;
     let container: AnthropicMessageMetadata['container'] | null = null;
-<<<<<<< HEAD:packages/anthropic/src/anthropic-messages-language-model.ts
     let iterations: Array<{
       type: 'compaction' | 'message' | 'advisor_message' | 'fallback_message';
       model?: string | null;
@@ -1226,12 +1221,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     let contextManagement:
       | AnthropicMessageMetadata['contextManagement']
       | null = null;
-=======
-    let isJsonResponseFromTool = false;
     let isMessageOpen = false;
     let activeMessageId: string | null | undefined;
     let hasInvalidMessageSequence = false;
->>>>>>> 8b9694104c (fix: prevent Anthropic streams from merging overlapping message generations (#18402)):packages/anthropic/src/anthropic-language-model.ts
 
     let blockType:
       | 'text'
@@ -1766,11 +1758,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
             }
 
             case 'message_start': {
-<<<<<<< HEAD:packages/anthropic/src/anthropic-messages-language-model.ts
-              usage.inputTokens = value.message.usage.input_tokens;
-              usage.cachedInputTokens =
-                value.message.usage.cache_read_input_tokens ?? undefined;
-=======
               if (isMessageOpen) {
                 if (activeMessageId === value.message.id) {
                   return;
@@ -1792,12 +1779,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
               isMessageOpen = true;
               activeMessageId = value.message.id;
 
-              usage.input_tokens = value.message.usage.input_tokens;
-              usage.cache_read_input_tokens =
-                value.message.usage.cache_read_input_tokens ?? 0;
-              usage.cache_creation_input_tokens =
-                value.message.usage.cache_creation_input_tokens ?? 0;
->>>>>>> 8b9694104c (fix: prevent Anthropic streams from merging overlapping message generations (#18402)):packages/anthropic/src/anthropic-language-model.ts
+              usage.inputTokens = value.message.usage.input_tokens;
+              usage.cachedInputTokens =
+                value.message.usage.cache_read_input_tokens ?? undefined;
 
               rawUsage = {
                 ...(value.message.usage as JSONObject),
@@ -1951,7 +1935,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
             }
 
             case 'message_stop': {
-<<<<<<< HEAD:packages/anthropic/src/anthropic-messages-language-model.ts
+              isMessageOpen = false;
+              activeMessageId = undefined;
+
               controller.enqueue({
                 type: 'finish',
                 finishReason,
@@ -1964,19 +1950,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                     ...(stopDetails != null ? { stopDetails } : {}),
                     iterations: iterations
                       ? iterations.map(iter => ({
-=======
-              isMessageOpen = false;
-              activeMessageId = undefined;
-
-              const anthropicMetadata = {
-                usage: (rawUsage as JSONObject) ?? null,
-                stopSequence,
-                ...(stopDetails != null ? { stopDetails } : {}),
-                iterations: usage.iterations
-                  ? usage.iterations.map(
-                      iter =>
-                        ({
->>>>>>> 8b9694104c (fix: prevent Anthropic streams from merging overlapping message generations (#18402)):packages/anthropic/src/anthropic-language-model.ts
                           type: iter.type,
                           ...(iter.model != null ? { model: iter.model } : {}),
                           inputTokens: iter.input_tokens,
