@@ -22,7 +22,7 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
-  validateTypes,
+  safeValidateTypes,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
   zodSchema,
@@ -37,8 +37,14 @@ import {
   type AnthropicStopDetails,
 } from './anthropic-api';
 import { anthropicFailedResponseHandler } from './anthropic-error';
-import { AnthropicLanguageModel } from './anthropic-language-model';
-import type { AnthropicModelId } from './anthropic-language-model-options';
+import {
+  AnthropicLanguageModel,
+  type AnthropicLanguageModelConfig,
+} from './anthropic-language-model';
+import {
+  anthropicLanguageModelOptions,
+  type AnthropicModelId,
+} from './anthropic-language-model-options';
 import type {
   AnthropicMessageMetadata,
   AnthropicUsageIteration,
@@ -48,17 +54,13 @@ import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 
 const anthropicBatchRequestIdPattern = /^[A-Za-z0-9_-]{1,64}$/;
 
-const anthropicBatchProviderOptionsSchema = z.object({
-  anthropicBeta: z.array(z.string()).optional(),
+const anthropicBatchProviderOptionsSchema = anthropicLanguageModelOptions.pick({
+  anthropicBeta: true,
 });
 
 type AnthropicBatchRequest = Parameters<
   BatchLanguageModelV4['experimental_doStartBatch']
 >[0]['requests'][number];
-
-type AnthropicLanguageModelConfig = ConstructorParameters<
-  typeof AnthropicLanguageModel
->[1];
 
 const anthropicBatchResponseSchema = lazySchema(() =>
   zodSchema(
@@ -134,11 +136,8 @@ export class AnthropicMessagesBatchLanguageModel
     );
   }
 
-  constructor(
-    modelId: AnthropicModelId,
-    private readonly batchConfig: AnthropicLanguageModelConfig,
-  ) {
-    super(modelId, batchConfig);
+  constructor(modelId: AnthropicModelId, config: AnthropicLanguageModelConfig) {
+    super(modelId, config);
   }
 
   async experimental_doStartBatch({
@@ -153,7 +152,7 @@ export class AnthropicMessagesBatchLanguageModel
 
     const explicitBatchBetas = new Set(
       await getAnthropicBatchProviderBetas({
-        provider: this.batchConfig.provider,
+        provider: this.config.provider,
         providerOptions,
       }),
     );
@@ -166,7 +165,7 @@ export class AnthropicMessagesBatchLanguageModel
 
     for (const request of requests) {
       const requestBetas = await getAnthropicBatchProviderBetas({
-        provider: this.batchConfig.provider,
+        provider: this.config.provider,
         providerOptions: request.options.providerOptions,
       });
       if (requestBetas.length > 0) {
@@ -184,10 +183,7 @@ export class AnthropicMessagesBatchLanguageModel
         stream: false,
         userSuppliedBetas: new Set(explicitBatchBetas),
       });
-      const body = this.transformBatchRequestBody(
-        prepared.args,
-        prepared.betas,
-      );
+      const body = this.transformRequestBody(prepared.args, prepared.betas);
       validateAnthropicBatchBody({
         body,
         requestId: request.id,
@@ -211,7 +207,7 @@ export class AnthropicMessagesBatchLanguageModel
         anthropicBatchResponseSchema,
       ),
       abortSignal,
-      fetch: this.batchConfig.fetch,
+      fetch: this.config.fetch,
     });
 
     return {
@@ -256,15 +252,13 @@ export class AnthropicMessagesBatchLanguageModel
     const { value: stream } = await getFromApi({
       url: batch.results_url,
       validateUrl: true,
-      credentialedOrigin: this.batchConfig.baseURL,
-      trustedOrigin: this.batchConfig.baseURL,
-      headers: combineHeaders(await this.getBatchHeaders(options.headers), {
-        Accept: 'application/binary',
-      }),
+      credentialedOrigin: this.config.baseURL,
+      trustedOrigin: this.config.baseURL,
+      headers: await this.getBatchHeaders(options.headers),
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: rawStreamResponseHandler,
       abortSignal: options.abortSignal,
-      fetch: this.batchConfig.fetch,
+      fetch: this.config.fetch,
     });
 
     return convertAsyncIteratorToReadableStream(
@@ -284,7 +278,7 @@ export class AnthropicMessagesBatchLanguageModel
         anthropicBatchResponseSchema,
       ),
       abortSignal: options.abortSignal,
-      fetch: this.batchConfig.fetch,
+      fetch: this.config.fetch,
     });
 
     return batch;
@@ -299,7 +293,7 @@ export class AnthropicMessagesBatchLanguageModel
   }
 
   private getBatchUrl(path: string) {
-    return `${this.batchConfig.baseURL}/messages/batches${path}`;
+    return `${this.config.baseURL}/messages/batches${path}`;
   }
 
   private async getStartBatchHeaders({
@@ -322,18 +316,9 @@ export class AnthropicMessagesBatchLanguageModel
     headers: Record<string, string | undefined> | undefined,
   ) {
     return combineHeaders(
-      this.batchConfig.headers
-        ? await resolve(this.batchConfig.headers)
-        : undefined,
+      this.config.headers ? await resolve(this.config.headers) : undefined,
       headers,
     );
-  }
-
-  private transformBatchRequestBody(
-    args: Record<string, any>,
-    betas: Set<string>,
-  ): Record<string, any> {
-    return this.batchConfig.transformRequestBody?.(args, betas) ?? args;
   }
 }
 
@@ -412,7 +397,10 @@ function validateAnthropicBatchBody({
     Array.isArray(body.fallbacks) &&
     body.fallbacks.some(
       fallback =>
-        fallback != null && typeof fallback === 'object' && 'speed' in fallback,
+        fallback != null &&
+        typeof fallback === 'object' &&
+        'speed' in fallback &&
+        fallback.speed != null,
     )
   ) {
     throw new UnsupportedFunctionalityError({
@@ -499,10 +487,23 @@ async function convertAnthropicBatchResult(
       };
     }
     case 'succeeded': {
-      const response = await validateTypes({
+      const validation = await safeValidateTypes({
         value: line.result.message,
         schema: anthropicResponseSchema,
       });
+
+      if (!validation.success) {
+        return {
+          id: line.custom_id,
+          status: 'failed',
+          error: {
+            message: 'Anthropic returned an invalid Message batch result.',
+            code: 'invalid_response',
+          },
+        };
+      }
+
+      const response = validation.value;
 
       const unsupportedPart = response.content.find(
         part => !supportedBatchContentTypes.has(part.type),

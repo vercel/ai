@@ -155,6 +155,12 @@ Anthropic language models support asynchronous text generation through the
 Use the experimental text batch APIs to start a batch, poll its status, and
 stream its results:
 
+<Note>
+  Anthropic Message Batches do not support the `speed` option. Explicit
+  `anthropicBeta` values must be configured when starting the batch rather than
+  on an individual request.
+</Note>
+
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
 import {

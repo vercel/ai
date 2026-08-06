@@ -623,6 +623,55 @@ describe('Anthropic Messages batch language model', () => {
     ]);
   });
 
+  it('fails an invalid succeeded item without aborting later results', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse(),
+    };
+    server.urls[urls.results].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `${JSON.stringify({
+          custom_id: 'invalid',
+          result: {
+            type: 'succeeded',
+            message: { type: 'message' },
+          },
+        })}\n`,
+        JSON.stringify({
+          custom_id: 'valid',
+          result: {
+            type: 'succeeded',
+            message: messageResultBody('Paris'),
+          },
+        }),
+      ],
+    };
+    const model = createAnthropic({ apiKey: 'test-api-key' })(
+      'claude-3-haiku-20240307',
+    );
+
+    const stream = await model.experimental_doGetBatchResults({
+      batchId: 'msgbatch_123',
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchObject([
+      {
+        id: 'invalid',
+        status: 'failed',
+        error: {
+          message: 'Anthropic returned an invalid Message batch result.',
+          code: 'invalid_response',
+        },
+      },
+      {
+        id: 'valid',
+        status: 'succeeded',
+        result: { content: [{ type: 'text', text: 'Paris' }] },
+      },
+    ]);
+  });
+
   it('forwards operation headers and the abort signal while retrieving results', async () => {
     server.urls[urls.batch].response = {
       type: 'json-value',
@@ -665,7 +714,6 @@ describe('Anthropic Messages batch language model', () => {
         'operation-header': 'operation',
       });
     }
-    expect(server.calls[1].requestHeaders.accept).toBe('application/binary');
   });
 
   it('exposes batch support on every Anthropic Messages model factory', () => {
