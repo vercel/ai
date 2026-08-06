@@ -256,6 +256,32 @@
           }
         },
         {
+          "name": "harness-file-with-nested-bridge-must-declare-bridge-contracts",
+          "description": "Every harness file for a bridge harness must declare its bridge contracts.",
+          "for": { "files": ["${harnessId}-harness.ts"] },
+          "if": { "hasFile": "*/bridge/index.ts" },
+          "must": {
+            "haveFiles": ["${harnessId}-bridge-protocol.ts"],
+            "exportTypes": [
+              {
+                "name": "${harnessId.toPascalCase()}HarnessSettings",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "port": { "type": "number" },
+                    "startupTimeoutMs": { "type": "number" }
+                  }
+                }
+              }
+            ],
+            "declareConstants": [
+              "${harnessId.toCamelCase()}BridgeCoordsSchema",
+              "${harnessId.toCamelCase()}ResumeStateSchema"
+            ],
+            "declareTypes": ["${harnessId.toPascalCase()}BridgeCoords"]
+          }
+        },
+        {
           "name": "harness-file-must-use-consistent-declaration-order",
           "description": "Every harness file must use a consistent declaration order.",
           "for": { "files": ["${harnessId}-harness.ts"] },
@@ -327,7 +353,7 @@
         {
           "name": "harness-bridge-must-declare-and-use-relevant-symbols",
           "description": "Every harness bridge index file must declare and use the relevant symbols.",
-          "for": { "files": ["bridge/index.ts"] },
+          "for": { "files": ["bridge/index.ts", "*/bridge/index.ts"] },
           "must": {
             "haveFiles": ["create-emit-stream-event.ts"],
             "importValues": [
@@ -366,7 +392,12 @@
         {
           "name": "harness-stream-event-emitter-must-export-factory",
           "description": "Every harness stream event emitter file must export its factory function.",
-          "for": { "files": ["bridge/create-emit-stream-event.ts"] },
+          "for": {
+            "files": [
+              "bridge/create-emit-stream-event.ts",
+              "*/bridge/create-emit-stream-event.ts"
+            ]
+          },
           "must": {
             "exportFunctions": ["createEmitStreamEvent"]
           }
@@ -374,7 +405,7 @@
         {
           "name": "harness-bridge-must-not-use-parent-imports",
           "description": "Every harness bridge file must not use parent imports, only local and external imports.",
-          "for": { "files": ["bridge/*.ts"] },
+          "for": { "files": ["bridge/*.ts", "*/bridge/*.ts"] },
           "mustNot": {
             "importValuesFromParents": true
           }
@@ -439,7 +470,7 @@
     {
       "name": "harness-bridge-must-not-import-core-ai-sdk-packages",
       "description": "Harness bridge code must not import AI SDK packages that are unavailable in the isolated bridge runtime.",
-      "paths": ["packages/harness-*/src/bridge/**/*.ts"],
+      "paths": ["packages/harness-*/src/*/bridge/*.ts"],
       "mustNot": {
         "importValuesFrom": [
           "ai",
