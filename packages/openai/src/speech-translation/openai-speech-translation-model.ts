@@ -1,6 +1,6 @@
 import {
   InvalidArgumentError,
-  type Experimental_SpeechTranslationModelV4 as TranslationModelV4,
+  type Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
   type Experimental_SpeechTranslationModelV4StreamOptions as SpeechTranslationModelV4StreamOptions,
   type Experimental_SpeechTranslationModelV4StreamPart as SpeechTranslationModelV4StreamPart,
   type SharedV4Warning,
@@ -21,26 +21,26 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { OpenAIConfig } from '../openai-config';
 import {
-  openAITranslationModelOptions,
-  type OpenAITranslationModelId,
-} from './openai-translation-model-options';
+  openAISpeechTranslationModelOptions,
+  type OpenAISpeechTranslationModelId,
+} from './openai-speech-translation-model-options';
 
-type OpenAIRealtimeTranslationEvent = {
+type OpenAIRealtimeSpeechTranslationEvent = {
   type?: string;
   delta?: string;
   error?: { message?: string };
 };
 
-interface OpenAITranslationModelConfig extends OpenAIConfig {
+interface OpenAISpeechTranslationModelConfig extends OpenAIConfig {
   _internal?: {
     currentDate?: () => Date;
   };
 }
 
-export class OpenAITranslationModel implements TranslationModelV4 {
+export class OpenAISpeechTranslationModel implements SpeechTranslationModelV4 {
   readonly specificationVersion = 'v4';
 
-  static [WORKFLOW_SERIALIZE](model: OpenAITranslationModel) {
+  static [WORKFLOW_SERIALIZE](model: OpenAISpeechTranslationModel) {
     return serializeModelOptions({
       modelId: model.modelId,
       config: model.config,
@@ -48,10 +48,10 @@ export class OpenAITranslationModel implements TranslationModelV4 {
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
-    modelId: OpenAITranslationModelId;
-    config: OpenAITranslationModelConfig;
+    modelId: OpenAISpeechTranslationModelId;
+    config: OpenAISpeechTranslationModelConfig;
   }) {
-    return new OpenAITranslationModel(options.modelId, options.config);
+    return new OpenAISpeechTranslationModel(options.modelId, options.config);
   }
 
   get provider(): string {
@@ -59,13 +59,13 @@ export class OpenAITranslationModel implements TranslationModelV4 {
   }
 
   constructor(
-    readonly modelId: OpenAITranslationModelId,
-    private readonly config: OpenAITranslationModelConfig,
+    readonly modelId: OpenAISpeechTranslationModelId,
+    private readonly config: OpenAISpeechTranslationModelConfig,
   ) {}
 
   async doStream(
     options: SpeechTranslationModelV4StreamOptions,
-  ): Promise<Awaited<ReturnType<TranslationModelV4['doStream']>>> {
+  ): Promise<Awaited<ReturnType<SpeechTranslationModelV4['doStream']>>> {
     if (options.targetLanguage == null) {
       throw new InvalidArgumentError({
         argument: 'targetLanguage',
@@ -77,11 +77,11 @@ export class OpenAITranslationModel implements TranslationModelV4 {
     await parseProviderOptions({
       provider: 'openai',
       providerOptions: options.providerOptions,
-      schema: openAITranslationModelOptions,
+      schema: openAISpeechTranslationModelOptions,
     });
     const warnings: SharedV4Warning[] = [];
 
-    validateOpenAITranslationInputAudioFormat(options.inputAudioFormat);
+    validateOpenAISpeechTranslationInputAudioFormat(options.inputAudioFormat);
 
     if (options.sourceLanguage != null) {
       warnings.push({
@@ -102,7 +102,7 @@ export class OpenAITranslationModel implements TranslationModelV4 {
     }
 
     const headers = combineHeaders(this.config.headers?.(), options.headers);
-    const sessionUpdate = buildOpenAIRealtimeTranslationSession({
+    const sessionUpdate = buildOpenAIRealtimeSpeechTranslationSession({
       targetLanguage: options.targetLanguage,
     });
 
@@ -112,7 +112,7 @@ export class OpenAITranslationModel implements TranslationModelV4 {
         timestamp: currentDate,
         modelId: this.modelId,
       },
-      stream: createOpenAIRealtimeTranslationStream({
+      stream: createOpenAIRealtimeSpeechTranslationStream({
         webSocket: this.config.webSocket,
         url: toWebSocketUrl(
           this.config.url({
@@ -131,7 +131,7 @@ export class OpenAITranslationModel implements TranslationModelV4 {
   }
 }
 
-function createOpenAIRealtimeTranslationStream({
+function createOpenAIRealtimeSpeechTranslationStream({
   webSocket,
   url,
   headers,
@@ -249,7 +249,7 @@ function createOpenAIRealtimeTranslationStream({
           if (finished) return;
           const parsed = await safeParseJSON({ text });
           if (!parsed.success) return;
-          const raw = parsed.value as OpenAIRealtimeTranslationEvent;
+          const raw = parsed.value as OpenAIRealtimeSpeechTranslationEvent;
 
           if (includeRawChunks) {
             controller.enqueue({ type: 'raw', rawValue: raw });
@@ -324,7 +324,7 @@ function createOpenAIRealtimeTranslationStream({
   });
 }
 
-function buildOpenAIRealtimeTranslationSession({
+function buildOpenAIRealtimeSpeechTranslationSession({
   targetLanguage,
 }: {
   targetLanguage: string;
@@ -347,7 +347,7 @@ function buildOpenAIRealtimeTranslationSession({
   };
 }
 
-function validateOpenAITranslationInputAudioFormat(
+function validateOpenAISpeechTranslationInputAudioFormat(
   inputAudioFormat: SpeechTranslationModelV4StreamOptions['inputAudioFormat'],
 ) {
   if (

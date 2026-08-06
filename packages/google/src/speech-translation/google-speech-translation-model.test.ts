@@ -7,7 +7,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { describe, it, expect, vi } from 'vitest';
 import { createGoogle } from '../google-provider';
-import { GoogleTranslationModel } from './google-translation-model';
+import { GoogleSpeechTranslationModel } from './google-speech-translation-model';
 
 vi.mock('../version', () => ({
   VERSION: '0.0.0-test',
@@ -53,7 +53,7 @@ const flush = () => new Promise(resolve => setTimeout(resolve, 0));
 
 function readFixture(filename: string) {
   return fs
-    .readFileSync(`src/translation/__fixtures__/${filename}`, 'utf8')
+    .readFileSync(`src/speech-translation/__fixtures__/${filename}`, 'utf8')
     .split('\n')
     .filter(line => line.trim().length > 0)
     .map(line => JSON.parse(line));
@@ -66,7 +66,7 @@ function createModel(
     finishGraceMs: number;
   }> = {},
 ) {
-  return new GoogleTranslationModel('gemini-3.5-live-translate-preview', {
+  return new GoogleSpeechTranslationModel('gemini-3.5-live-translate-preview', {
     provider: 'test-provider',
     baseURL: 'https://generativelanguage.googleapis.com/v1beta',
     headers:
@@ -524,7 +524,7 @@ describe('doStream', () => {
 
     const partsPromise = convertReadableStreamToArray(result.stream);
     const ws = MockWebSocket.instances[0];
-    const messages = readFixture('google-live-translation.chunks.txt');
+    const messages = readFixture('google-live-speech-translation.chunks.txt');
     ws.open();
     ws.message(messages[0]);
     await flush();
@@ -563,7 +563,7 @@ describe('doStream', () => {
     MockWebSocket.instances = [];
 
     // grace period > 0 so the pending finish is still scheduled at close time
-    const graceModel = new GoogleTranslationModel(
+    const graceModel = new GoogleSpeechTranslationModel(
       'gemini-3.5-live-translate-preview',
       {
         provider: 'test-provider',
@@ -796,7 +796,7 @@ describe('doStream', () => {
         audioCancelled = true;
       },
     });
-    const model = new GoogleTranslationModel(
+    const model = new GoogleSpeechTranslationModel(
       'gemini-3.5-live-translate-preview',
       {
         provider: 'test-provider',
@@ -857,7 +857,7 @@ describe('doStream', () => {
     });
 
     const model = provider.translation('gemini-3.5-live-translate-preview');
-    expect(model.provider).toBe('google.generative-ai.translation');
+    expect(model.provider).toBe('google.generative-ai.speech-translation');
     expect(model.modelId).toBe('gemini-3.5-live-translate-preview');
 
     const result = await model.doStream({
