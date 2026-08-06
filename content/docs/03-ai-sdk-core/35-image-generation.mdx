@@ -180,6 +180,21 @@ const { image, warnings } = await generateImage({
 });
 ```
 
+### Token Usage
+
+Providers that report token counts for image generation expose them through the `usage` property, combined across all underlying provider calls.
+
+```tsx
+const { image, usage } = await generateImage({
+  model: __IMAGE_MODEL__,
+  prompt: 'Santa Claus driving a Cadillac',
+});
+
+console.log(usage); // { inputTokens, outputTokens, totalTokens }
+```
+
+Not every provider reports token usage — many image APIs bill per image rather than per token. Each field is `undefined` when the provider does not report it, and this is not an error condition. Providers also differ in which fields they populate: some report output and total tokens but no input token count. Check the provider page for specifics.
+
 ### Additional provider-specific meta data
 
 Some providers expose additional meta data for the result overall or per image.
