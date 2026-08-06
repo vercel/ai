@@ -463,10 +463,17 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     if (!normalized || emittedTerminalError || emittedTerminalFinish) return;
     streamEventState.observedTerminalError = normalized;
     emittedTerminalError = true;
-    turn.emitError({
-      error: normalized,
-      message: 'claude-code terminal error',
-    });
+    // A turn the host itself stopped ends with an error-shaped result by
+    // construction (an interrupted query reports a diagnostic, not success);
+    // reporting the host's own stop as a terminal error makes every clean
+    // interrupt look like a malfunction. The host has already settled the
+    // turn on its side.
+    if (!turn.abortSignal.aborted) {
+      turn.emitError({
+        error: normalized,
+        message: 'claude-code terminal error',
+      });
+    }
     queryInput.close();
     abortCtl.abort();
   };
@@ -528,6 +535,18 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     return;
   } finally {
     queryInput.close();
+    // Dispose the query explicitly: with streaming input the SDK keeps its
+    // CLI subprocess alive for more user messages, and a turn that ended
+    // through an interrupt or error path can otherwise leak that process —
+    // observed as orphaned `claude` processes holding the very conversation
+    // the next turn continues.
+    try {
+      await (q as { return?: (value?: unknown) => Promise<unknown> }).return?.(
+        undefined,
+      );
+    } catch {
+      // Best effort; the abort controller tears the process down otherwise.
+    }
   }
 
   if (emittedTerminalError) return;
