@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.245
+
+### Patch Changes
+
+- 0de0715: Filter unresolved tool approval requests and tool parts without state when ignoring incomplete tool calls.
+
 ## 6.0.244
 
 ### Patch Changes
