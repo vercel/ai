@@ -241,6 +241,21 @@ const { images } = await generateImage({
 });
 ```
 
+### Token Usage
+
+When the backend returns a `usage` object in the images response, it is exposed through `result.usage` as `inputTokens`, `outputTokens` and `totalTokens`. This works for both image generation and image editing.
+
+```ts
+const { images, usage } = await generateImage({
+  model: provider.imageModel('model-id'),
+  prompt: 'A futuristic cityscape at sunset',
+});
+
+console.log(usage); // { inputTokens, outputTokens, totalTokens }
+```
+
+Many OpenAI-compatible image endpoints do not report token counts. In that case `usage` is `undefined`, which is expected rather than an error.
+
 ### Image Model Options
 
 The following common provider options are available for image models:
