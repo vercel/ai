@@ -1,5 +1,31 @@
 # @ai-sdk/otel
 
+## 1.0.55
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - ai@7.0.55
+
+## 1.0.54
+
+### Patch Changes
+
+- 12cfe40: Record separately supplied system instructions on OpenTelemetry chat spans and preserve system messages in chat history order.
+- Updated dependencies [a6b17a2]
+- Updated dependencies [5615eb7]
+- Updated dependencies [36a3ff6]
+  - ai@7.0.54
+
+## 1.0.53
+
+### Patch Changes
+
+- Updated dependencies [cd0177b]
+- Updated dependencies [a09fdef]
+  - ai@7.0.53
+
 ## 1.0.52
 
 ### Patch Changes
