@@ -794,6 +794,7 @@ describe('createACP', () => {
     });
     const firstStart = channel.sent[0] as {
       prompt: Array<{ type: 'text'; text: string }>;
+      recovery: { providerProfile: { type: string } };
     };
     expect(firstStart.prompt.slice(1)).toEqual([
       { type: 'text', text: 'Draft' },
@@ -812,6 +813,7 @@ describe('createACP', () => {
     expect(JSON.stringify(firstStart.prompt)).not.toContain(
       'Use active voice.',
     );
+    expect(firstStart.recovery.providerProfile).toEqual({ type: 'direct' });
     channel.emit({
       type: 'finish',
       finishReason: { unified: 'stop', raw: 'end_turn' },
@@ -840,7 +842,7 @@ describe('createACP', () => {
       implementationIdentity: expect.any(String),
       authenticationProfile: {
         digest: expect.stringMatching(/^[a-f0-9]{64}$/),
-        providerKind: 'implementation-default',
+        providerKind: 'direct',
       },
       initialGuidanceApplied: true,
       skillsMaterialized: true,
@@ -903,7 +905,7 @@ describe('createACP', () => {
       authenticationProfile: {
         digest: expect.stringMatching(/^[a-f0-9]{64}$/),
         acpMethodId: 'api-key',
-        providerKind: 'implementation-default',
+        providerKind: 'direct',
       },
       acpSessionId: 'acp-session-1',
       bridge: {
@@ -2754,8 +2756,26 @@ describe('createACP', () => {
       value: { implementationIdentity, authenticationProfile },
       schema: second.lifecycleStateSchema!,
     });
+    const legacyCompatible = await safeValidateTypes({
+      value: {
+        implementationIdentity,
+        authenticationProfile: {
+          ...authenticationProfile,
+          providerKind: 'implementation-default',
+        },
+      },
+      schema: first.lifecycleStateSchema!,
+    });
 
     expect(compatible.success).toBe(true);
     expect(incompatible.success).toBe(false);
+    expect(legacyCompatible).toMatchObject({
+      success: true,
+      value: {
+        authenticationProfile: {
+          providerKind: 'direct',
+        },
+      },
+    });
   });
 });

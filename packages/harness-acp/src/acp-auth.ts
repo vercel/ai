@@ -42,7 +42,7 @@ export type ACPProviderAuthenticationCompatibility =
 export type ACPAuthenticationProfileIdentity = {
   readonly digest: string;
   readonly acpMethodId?: string;
-  readonly providerKind: 'implementation-default' | 'direct' | 'ai-gateway';
+  readonly providerKind: 'direct' | 'ai-gateway';
   readonly providerMode?: 'auto' | 'direct' | 'ai-gateway';
   readonly gatewayRouteKind?:
     | 'auth-method'
@@ -64,8 +64,7 @@ export function createACPAuthenticationProfileIdentity({
     | ACPProviderAuthenticationCompatibility
     | undefined;
 }): ACPAuthenticationProfileIdentity {
-  const providerKind =
-    providerAuthenticationCompatibility?.type ?? 'implementation-default';
+  const providerKind = providerAuthenticationCompatibility?.type ?? 'direct';
   const digest = createHash('sha256')
     .update(
       stableStringify({

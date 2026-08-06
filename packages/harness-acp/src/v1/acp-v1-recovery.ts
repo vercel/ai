@@ -99,10 +99,7 @@ function createProviderProfile({
 }: {
   compatibility: ACPProviderAuthenticationCompatibility | undefined;
 }): ACPRecoveryStart['providerProfile'] {
-  if (compatibility == null) {
-    return { type: 'implementation-default' };
-  }
-  if (compatibility.type === 'direct') {
+  if (compatibility == null || compatibility.type === 'direct') {
     return { type: 'direct' };
   }
   if (compatibility.credentialSource == null) {

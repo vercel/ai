@@ -47,7 +47,7 @@ export type ACPRecoveryStart = {
   readonly configurationFingerprint: string;
   readonly providerProfile:
     | {
-        readonly type: 'implementation-default' | 'direct';
+        readonly type: 'direct';
       }
     | {
         readonly type: 'ai-gateway';
@@ -74,10 +74,12 @@ export type ACPRecoveryStart = {
 export const acpRecoveryStartSchema = z.object({
   version: z.literal(1),
   configurationFingerprint: z.string(),
-  providerProfile: z.discriminatedUnion('type', [
-    z.object({
-      type: z.literal('implementation-default'),
-    }),
+  providerProfile: z.union([
+    z
+      .object({
+        type: z.literal('implementation-default'),
+      })
+      .transform(() => ({ type: 'direct' }) as const),
     z.object({
       type: z.literal('direct'),
     }),

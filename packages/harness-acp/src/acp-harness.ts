@@ -54,7 +54,11 @@ const acpResumeStateSchema = z.object({
     .object({
       digest: z.string(),
       acpMethodId: z.string().optional(),
-      providerKind: z.enum(['implementation-default', 'direct', 'ai-gateway']),
+      providerKind: z
+        .enum(['implementation-default', 'direct', 'ai-gateway'])
+        .transform(value =>
+          value === 'implementation-default' ? 'direct' : value,
+        ),
       providerMode: z.enum(['auto', 'direct', 'ai-gateway']).optional(),
       gatewayRouteKind: z
         .enum(['auth-method', 'provider-method', 'launch', 'session'])
