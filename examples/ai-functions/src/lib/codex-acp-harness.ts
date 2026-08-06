@@ -84,7 +84,7 @@ export function createCodexACP({
           CODEX_API_KEY: { $source: 'gateway-api-key' },
           CODEX_CONFIG: {
             ...(webSearch ? { web_search: 'live' } : {}),
-            model: 'openai/gpt-5.5',
+            model: 'openai/gpt-5.6-sol',
             model_provider: 'ai_gateway',
             model_providers: {
               ai_gateway: {
