@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 7259,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/use-completion-submit-input-reset.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/use-completion-submit-input-reset.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #7259 REPRODUCED: useCompletion.handleSubmit left the submitted input unchanged: \"hello\""
+  }
+}
