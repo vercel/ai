@@ -448,6 +448,11 @@ console.log(reasoning); // reasoning details including redacted reasoning
 console.log(text); // text response
 ```
 
+Anthropic's `max_tokens` limit includes both thinking and final text. To reserve
+room for both, the provider adds `budgetTokens` to `maxOutputTokens` when
+setting `max_tokens`. For known models, the combined value is capped at the
+model's maximum output token limit.
+
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
 on how to integrate reasoning into your chatbot.
 
@@ -1054,13 +1059,15 @@ import { generateText } from 'ai';
 
 const result = await generateText({
   model: anthropic('claude-sonnet-4-6'),
-  system: 'You have access to an `advisor` tool backed by a stronger reviewer model.'
+  system:
+    'You have access to an `advisor` tool backed by a stronger reviewer model.',
   prompt:
     'Build a concurrent worker pool in Go with graceful shutdown. Outline the design first.',
   tools: {
     advisor: anthropic.tools.advisor_20260301({
       model: 'claude-opus-4-8',
       maxUses: 3,
+      maxTokens: 2048,
     }),
   },
 });
@@ -1082,6 +1089,10 @@ The advisor tool supports the following configuration options:
 - **maxUses** _number_
 
   Optional. Maximum number of advisor calls allowed in a single request. Once the executor reaches this cap, further advisor calls return an `advisor_tool_result_error` with `errorCode: 'max_uses_exceeded'`, and the executor continues without further advice.
+
+- **maxTokens** _number_
+
+  Optional. Maximum number of tokens the advisor can generate per call, including thinking and text. The minimum is `1024`, and Anthropic recommends starting with `2048`. This limit applies independently to each advisor call and is separate from the request-level `maxOutputTokens`, which controls executor output. Values above the selected advisor model's output limit result in an Anthropic `400` error. When configured, successful advisor results include `stopReason`; check for `stopReason === 'max_tokens'` to detect truncated advice. The field is available on both plaintext and redacted advisor result variants and is preserved across follow-up turns.
 
 - **caching** _object_
 

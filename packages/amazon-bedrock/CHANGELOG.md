@@ -1,5 +1,119 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.46
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - @ai-sdk/anthropic@4.0.33
+  - @ai-sdk/openai@4.0.32
+  - @ai-sdk/provider-utils@5.0.23
+
+## 5.0.45
+
+### Patch Changes
+
+- Updated dependencies [8b96941]
+  - @ai-sdk/anthropic@4.0.32
+
+## 5.0.44
+
+### Patch Changes
+
+- a4ecd1c: Omit assistant messages that become empty after unsigned reasoning is filtered.
+- Updated dependencies [2b60826]
+- Updated dependencies [7a9da75]
+  - @ai-sdk/provider-utils@5.0.22
+  - @ai-sdk/anthropic@4.0.31
+  - @ai-sdk/openai@4.0.31
+
+## 5.0.43
+
+### Patch Changes
+
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+  - @ai-sdk/openai@4.0.30
+  - @ai-sdk/anthropic@4.0.30
+
+## 5.0.42
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+  - @ai-sdk/anthropic@4.0.29
+  - @ai-sdk/openai@4.0.29
+
+## 5.0.41
+
+### Patch Changes
+
+- Updated dependencies [9337ecd]
+- Updated dependencies [79e133c]
+  - @ai-sdk/anthropic@4.0.28
+  - @ai-sdk/provider@4.0.5
+  - @ai-sdk/openai@4.0.28
+  - @ai-sdk/provider-utils@5.0.19
+
+## 5.0.40
+
+### Patch Changes
+
+- 5fc7da5: chore: centralize empty language model usage creation in provider utilities.
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+  - @ai-sdk/openai@4.0.27
+  - @ai-sdk/anthropic@4.0.27
+
+## 5.0.39
+
+### Patch Changes
+
+- Updated dependencies [dc0c28e]
+- Updated dependencies [f7c4a38]
+- Updated dependencies [fa95504]
+  - @ai-sdk/anthropic@4.0.26
+  - @ai-sdk/openai@4.0.26
+  - @ai-sdk/provider-utils@5.0.17
+
+## 5.0.38
+
+### Patch Changes
+
+- 52e22a7: feat(bedrock): support video inputs in Converse messages
+
+## 5.0.37
+
+### Patch Changes
+
+- ebd31b8: fix(amazon-bedrock): warn when unsupported strict tools are omitted and align structured output fallback routing
+- Updated dependencies [d8210b6]
+- Updated dependencies [beaecb3]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+  - @ai-sdk/anthropic@4.0.25
+  - @ai-sdk/openai@4.0.25
+
+## 5.0.36
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+  - @ai-sdk/anthropic@4.0.24
+  - @ai-sdk/openai@4.0.24
+
+## 5.0.35
+
+### Patch Changes
+
+- Updated dependencies [96a237d]
+  - @ai-sdk/openai@4.0.23
+
 ## 5.0.34
 
 ### Patch Changes

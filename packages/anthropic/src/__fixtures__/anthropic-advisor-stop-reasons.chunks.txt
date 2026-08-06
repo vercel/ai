@@ -1,0 +1,11 @@
+{"type":"message_start","message":{"model":"claude-sonnet-4-6","id":"msg_advisor_stop_reasons","type":"message","role":"assistant","content":[],"stop_reason":null,"stop_sequence":null,"stop_details":null,"usage":{"input_tokens":10,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":1}}}
+{"type":"content_block_start","index":0,"content_block":{"type":"server_tool_use","id":"srvtoolu_advisor_plaintext","name":"advisor","input":{}}}
+{"type":"content_block_stop","index":0}
+{"type":"content_block_start","index":1,"content_block":{"type":"advisor_tool_result","tool_use_id":"srvtoolu_advisor_plaintext","content":{"type":"advisor_result","text":"Partial plaintext advice.","stop_reason":"max_tokens"}}}
+{"type":"content_block_stop","index":1}
+{"type":"content_block_start","index":2,"content_block":{"type":"server_tool_use","id":"srvtoolu_advisor_redacted","name":"advisor","input":{}}}
+{"type":"content_block_stop","index":2}
+{"type":"content_block_start","index":3,"content_block":{"type":"advisor_tool_result","tool_use_id":"srvtoolu_advisor_redacted","content":{"type":"advisor_redacted_result","encrypted_content":"opaque-encrypted-advice","stop_reason":"end_turn"}}}
+{"type":"content_block_stop","index":3}
+{"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null,"stop_details":null},"usage":{"input_tokens":10,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":20}}
+{"type":"message_stop"}

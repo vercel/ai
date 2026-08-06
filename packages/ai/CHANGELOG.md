@@ -1,5 +1,152 @@
 # ai
 
+## 7.0.55
+
+### Patch Changes
+
+- 3469d0c: feat: add batch APIs
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - @ai-sdk/gateway@4.0.43
+  - @ai-sdk/provider-utils@5.0.23
+
+## 7.0.54
+
+### Patch Changes
+
+- a6b17a2: Allow `ToolLoopAgent` `prepareCall` callbacks to read and override the top-level `reasoning` option.
+- 5615eb7: Add `defaultInstructionsMiddleware` for applying default language model instructions while preserving call-level overrides.
+- 36a3ff6: Preserve preceding assistant messages when regenerating a response.
+
+## 7.0.53
+
+### Patch Changes
+
+- cd0177b: Filter unresolved tool approval requests and tool parts without state when ignoring incomplete tool calls.
+- a09fdef: Release async iterable stream reader locks when source reads fail.
+- Updated dependencies [7aeab10]
+- Updated dependencies [2b60826]
+  - @ai-sdk/gateway@4.0.42
+  - @ai-sdk/provider-utils@5.0.22
+
+## 7.0.52
+
+### Patch Changes
+
+- 3836a85: Skip re-validating tool input for terminal output-available UI message parts.
+- Updated dependencies [1bec07d]
+- Updated dependencies [53c326e]
+- Updated dependencies [d765f82]
+  - @ai-sdk/provider-utils@5.0.21
+  - @ai-sdk/gateway@4.0.41
+
+## 7.0.51
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+  - @ai-sdk/gateway@4.0.40
+
+## 7.0.50
+
+### Patch Changes
+
+- 79e133c: async APIs for generateVideo (poll, webhook)
+
+  Adds an asynchronous start/status flow to the experimental video model
+  interface (`VideoModelV4`): models may now implement `doStart`, `doStatus`,
+  and `handleWebhookOption` instead of (or in addition to) `doGenerate`, and
+  `experimental_generateVideo` accepts `poll` and `webhook` options to
+  orchestrate completion via polling or webhooks. Polling configuration can use
+  a custom delay implementation for durable workflow compatibility.
+
+- da64b51: feat(code-mode): simplify tool caller configuration
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+  - @ai-sdk/gateway@4.0.39
+  - @ai-sdk/provider-utils@5.0.19
+
+## 7.0.49
+
+### Patch Changes
+
+- Updated dependencies [fb6d2f8]
+  - @ai-sdk/gateway@4.0.38
+
+## 7.0.48
+
+### Patch Changes
+
+- Updated dependencies [bdd5e28]
+  - @ai-sdk/gateway@4.0.37
+
+## 7.0.47
+
+### Patch Changes
+
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+  - @ai-sdk/gateway@4.0.36
+
+## 7.0.46
+
+### Patch Changes
+
+- Updated dependencies [4f2e064]
+  - @ai-sdk/gateway@4.0.35
+
+## 7.0.45
+
+### Patch Changes
+
+- d6ce0ee: feat(ai): support experimental_toolCallers in streamText
+- fa95504: feat(ai): support experimental tool callers in ToolLoopAgent
+- 349afe7: Warn when `generateText` receives streaming-only `firstChunkMs` or `chunkMs` timeout settings.
+- Updated dependencies [fa95504]
+  - @ai-sdk/provider-utils@5.0.17
+  - @ai-sdk/gateway@4.0.34
+
+## 7.0.44
+
+### Patch Changes
+
+- 015acb4: fix telemetry attribution for language model calls that resolve to a different response model
+
+## 7.0.43
+
+### Patch Changes
+
+- b192878: feat: add experimental_toolCaller routing to generateText for code mode
+- Updated dependencies [d8210b6]
+- Updated dependencies [af3f400]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+  - @ai-sdk/gateway@4.0.33
+
+## 7.0.42
+
+### Patch Changes
+
+- 1659cd5: Prevent validated downloads on Node.js from reaching private or internal services through DNS aliases or DNS rebinding by validating and pinning every resolved address at connection time.
+- 60f97f6: support overriding model call settings for individual `prepareStep` invocations
+- 6a5bdff: Fix validated Node.js downloads when the HTTP connector requests a single DNS address.
+- 6de2ec1: Preserve provider metadata from empty text deltas in `streamText`.
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+- Updated dependencies [0012529]
+  - @ai-sdk/provider-utils@5.0.15
+  - @ai-sdk/gateway@4.0.32
+
+## 7.0.41
+
+### Patch Changes
+
+- 2e2224b: Route the warning system information banner to stderr so it does not corrupt application output written to stdout.
+- Updated dependencies [bf216b3]
+  - @ai-sdk/gateway@4.0.31
+
 ## 7.0.40
 
 ### Patch Changes

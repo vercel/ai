@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-type CodexOptions = { config?: { mcp_servers?: unknown } };
+type CodexOptions = {
+  config?: {
+    mcp_servers?: unknown;
+    model_reasoning_summary?: unknown;
+    model_supports_reasoning_summaries?: unknown;
+  };
+};
+type ThreadOptions = { model?: string };
 const CODEX_ENV_KEYS = [
   'AI_GATEWAY_API_KEY',
   'AI_GATEWAY_BASE_URL',
@@ -10,6 +17,8 @@ const CODEX_ENV_KEYS = [
 
 const state = vi.hoisted(() => ({
   codexOptions: [] as CodexOptions[],
+  threadOptions: [] as ThreadOptions[],
+  startModel: 'gpt-5.5',
   originalArgv: [] as string[],
   originalEnv: {} as Record<
     (typeof CODEX_ENV_KEYS)[number],
@@ -23,7 +32,8 @@ vi.mock('@openai/codex-sdk', () => ({
       state.codexOptions.push(options);
     }
 
-    startThread() {
+    startThread(options: ThreadOptions = {}) {
+      state.threadOptions.push(options);
       return {
         runStreamed: async () => ({
           events: (async function* () {
@@ -48,6 +58,7 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
     await onStart(
       {
         prompt: 'Use the weather tool.',
+        model: state.startModel,
         tools: [
           {
             name: 'get_weather',
@@ -69,6 +80,8 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
 describe('Codex bridge config', () => {
   beforeEach(() => {
     state.codexOptions = [];
+    state.threadOptions = [];
+    state.startModel = 'gpt-5.5';
     state.originalArgv = [...process.argv];
     state.originalEnv = Object.fromEntries(
       CODEX_ENV_KEYS.map(key => [key, process.env[key]]),
@@ -108,5 +121,46 @@ describe('Codex bridge config', () => {
 
     expect(state.codexOptions).toHaveLength(1);
     expect(state.codexOptions[0]?.config?.mcp_servers).toBeUndefined();
+  });
+
+  test('requests detailed reasoning summaries by default', async () => {
+    await import('./index');
+
+    expect(state.codexOptions).toHaveLength(1);
+    expect(state.codexOptions[0]?.config).toMatchInlineSnapshot(`
+      {
+        "model_reasoning_summary": "detailed",
+      }
+    `);
+  });
+
+  test('uses the creator-qualified model and forces summaries for AI Gateway', async () => {
+    process.env.AI_GATEWAY_API_KEY = 'gateway-key';
+    process.env.AI_GATEWAY_BASE_URL = 'https://ai-gateway.test/v1';
+
+    await import('./index');
+
+    expect({
+      model: state.threadOptions[0]?.model,
+      reasoningSummary: state.codexOptions[0]?.config?.model_reasoning_summary,
+      supportsReasoningSummaries:
+        state.codexOptions[0]?.config?.model_supports_reasoning_summaries,
+    }).toMatchInlineSnapshot(`
+      {
+        "model": "openai/gpt-5.5",
+        "reasoningSummary": "detailed",
+        "supportsReasoningSummaries": true,
+      }
+    `);
+  });
+
+  test('preserves creator-qualified AI Gateway model ids', async () => {
+    state.startModel = 'openai/gpt-5.5';
+    process.env.AI_GATEWAY_API_KEY = 'gateway-key';
+    process.env.AI_GATEWAY_BASE_URL = 'https://ai-gateway.test/v1';
+
+    await import('./index');
+
+    expect(state.threadOptions[0]?.model).toBe('openai/gpt-5.5');
   });
 });

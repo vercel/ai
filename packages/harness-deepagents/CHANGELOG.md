@@ -1,5 +1,122 @@
 # @ai-sdk/harness-deepagents
 
+## 1.0.60
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.61
+- @ai-sdk/provider-utils@5.0.23
+
+## 1.0.59
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.60
+
+## 1.0.58
+
+### Patch Changes
+
+- Updated dependencies [2b60826]
+- Updated dependencies [81bcf2e]
+  - @ai-sdk/provider-utils@5.0.22
+  - @ai-sdk/harness@1.0.59
+
+## 1.0.57
+
+### Patch Changes
+
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+  - @ai-sdk/harness@1.0.58
+
+## 1.0.56
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+  - @ai-sdk/harness@1.0.57
+
+## 1.0.55
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.56
+- @ai-sdk/provider-utils@5.0.19
+
+## 1.0.54
+
+### Patch Changes
+
+- 8f10600: fix(harness): rename harness bridge `detach` to `stop` and `shutdown` to `destroy` for clarity
+- Updated dependencies [2c0a8aa]
+- Updated dependencies [861d423]
+- Updated dependencies [8f10600]
+  - @ai-sdk/harness@1.0.55
+
+## 1.0.53
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.54
+
+## 1.0.52
+
+### Patch Changes
+
+- bdde5d9: fix(harness): avoid placing harness bootstrap files in `/tmp` and instead use sandbox working directory
+- Updated dependencies [5fc7da5]
+- Updated dependencies [bdde5d9]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+  - @ai-sdk/harness@1.0.53
+
+## 1.0.51
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.52
+
+## 1.0.50
+
+### Patch Changes
+
+- Updated dependencies [fa95504]
+- Updated dependencies [226a679]
+  - @ai-sdk/provider-utils@5.0.17
+  - @ai-sdk/harness@1.0.51
+
+## 1.0.49
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.50
+
+## 1.0.48
+
+### Patch Changes
+
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+  - @ai-sdk/harness@1.0.49
+
+## 1.0.47
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+  - @ai-sdk/harness@1.0.48
+
+## 1.0.46
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.47
+
 ## 1.0.45
 
 ### Patch Changes

@@ -1,5 +1,101 @@
 # @ai-sdk/azure
 
+## 4.0.33
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - @ai-sdk/deepseek@3.0.24
+  - @ai-sdk/openai@4.0.32
+  - @ai-sdk/provider-utils@5.0.23
+
+## 4.0.32
+
+### Patch Changes
+
+- Updated dependencies [2b60826]
+  - @ai-sdk/provider-utils@5.0.22
+  - @ai-sdk/deepseek@3.0.23
+  - @ai-sdk/openai@4.0.31
+
+## 4.0.31
+
+### Patch Changes
+
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+  - @ai-sdk/openai@4.0.30
+  - @ai-sdk/deepseek@3.0.22
+
+## 4.0.30
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+  - @ai-sdk/deepseek@3.0.21
+  - @ai-sdk/openai@4.0.29
+
+## 4.0.29
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+  - @ai-sdk/deepseek@3.0.20
+  - @ai-sdk/openai@4.0.28
+  - @ai-sdk/provider-utils@5.0.19
+
+## 4.0.28
+
+### Patch Changes
+
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+  - @ai-sdk/deepseek@3.0.19
+  - @ai-sdk/openai@4.0.27
+
+## 4.0.27
+
+### Patch Changes
+
+- Updated dependencies [f7c4a38]
+- Updated dependencies [fa95504]
+  - @ai-sdk/openai@4.0.26
+  - @ai-sdk/provider-utils@5.0.17
+  - @ai-sdk/deepseek@3.0.18
+
+## 4.0.26
+
+### Patch Changes
+
+- Updated dependencies [d8210b6]
+- Updated dependencies [beaecb3]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+  - @ai-sdk/openai@4.0.25
+  - @ai-sdk/deepseek@3.0.17
+
+## 4.0.25
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+  - @ai-sdk/deepseek@3.0.16
+  - @ai-sdk/openai@4.0.24
+
+## 4.0.24
+
+### Patch Changes
+
+- 96a237d: Add blocked domain filters to the OpenAI and Azure Responses API web search tools.
+- Updated dependencies [96a237d]
+  - @ai-sdk/openai@4.0.23
+
 ## 4.0.23
 
 ### Patch Changes

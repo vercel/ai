@@ -1,5 +1,91 @@
 # @ai-sdk/google
 
+## 4.0.36
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - @ai-sdk/provider-utils@5.0.23
+
+## 4.0.35
+
+### Patch Changes
+
+- Updated dependencies [2b60826]
+  - @ai-sdk/provider-utils@5.0.22
+
+## 4.0.34
+
+### Patch Changes
+
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+
+## 4.0.33
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+
+## 4.0.32
+
+### Patch Changes
+
+- 79e133c: async APIs for generateVideo (poll, webhook)
+
+  Adds an asynchronous start/status flow to the experimental video model
+  interface (`VideoModelV4`): models may now implement `doStart`, `doStatus`,
+  and `handleWebhookOption` instead of (or in addition to) `doGenerate`, and
+  `experimental_generateVideo` accepts `poll` and `webhook` options to
+  orchestrate completion via polling or webhooks. Polling configuration can use
+  a custom delay implementation for durable workflow compatibility.
+
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+  - @ai-sdk/provider-utils@5.0.19
+
+## 4.0.31
+
+### Patch Changes
+
+- 5fc7da5: chore: centralize empty language model usage creation in provider utilities.
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+
+## 4.0.30
+
+### Patch Changes
+
+- Updated dependencies [fa95504]
+  - @ai-sdk/provider-utils@5.0.17
+
+## 4.0.29
+
+### Patch Changes
+
+- d8210b6: chore: centralize record type guards in provider-utils
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+
+## 4.0.28
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+
+## 4.0.27
+
+### Patch Changes
+
+- d2d9324: Forward `topK` through Google Interactions requests and warn when unsupported frequency or presence penalties are provided.
+- 8bedb2c: Allow fetch to derive the content length for Google file upload request bodies.
+
 ## 4.0.26
 
 ### Patch Changes

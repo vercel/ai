@@ -11,6 +11,7 @@
   "dependencies": {
     "@ai-sdk/anthropic": "workspace:*",
     "@ai-sdk/devtools": "workspace:*",
+    "@ai-sdk/fal": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
     "@ai-sdk/react": "workspace:*",
     "@ai-sdk/workflow": "workspace:*",

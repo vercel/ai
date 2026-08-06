@@ -6,9 +6,6 @@ on:
       - main
       - release-v*
   pull_request:
-    branches:
-      - main
-      - release-v*
 
 permissions:
   contents: read
@@ -151,6 +148,7 @@ jobs:
             '.npmrc' \
             'apps/docs/**' \
             'content/docs/**' \
+            'content/providers/**' \
             'package.json' \
             'pnpm-lock.yaml' \
             'pnpm-workspace.yaml'; then

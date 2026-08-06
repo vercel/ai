@@ -1,5 +1,74 @@
 # @ai-sdk/mcp
 
+## 2.0.27
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - @ai-sdk/provider-utils@5.0.23
+
+## 2.0.26
+
+### Patch Changes
+
+- Updated dependencies [2b60826]
+  - @ai-sdk/provider-utils@5.0.22
+
+## 2.0.25
+
+### Patch Changes
+
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+
+## 2.0.24
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+
+## 2.0.23
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+  - @ai-sdk/provider-utils@5.0.19
+
+## 2.0.22
+
+### Patch Changes
+
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+
+## 2.0.21
+
+### Patch Changes
+
+- Updated dependencies [fa95504]
+  - @ai-sdk/provider-utils@5.0.17
+
+## 2.0.20
+
+### Patch Changes
+
+- 97f0565: Honor MCP request deadlines and support bounding or aborting client initialization.
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+
+## 2.0.19
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+
 ## 2.0.18
 
 ### Patch Changes
