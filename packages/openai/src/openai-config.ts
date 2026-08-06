@@ -19,4 +19,5 @@ export type OpenAIConfig = {
    * TODO: remove in v8
    */
   fileIdPrefixes?: readonly string[];
+  compatibility?: 'strict' | 'compatible';
 };
