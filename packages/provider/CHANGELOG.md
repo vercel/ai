@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 4.0.6
+
+### Patch Changes
+
+- 3469d0c: feat: add batch APIs
+
 ## 4.0.5
 
 ### Patch Changes
