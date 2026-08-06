@@ -1,5 +1,15 @@
 # ai
 
+## 7.0.55
+
+### Patch Changes
+
+- 3469d0c: feat: add batch APIs
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - @ai-sdk/gateway@4.0.43
+  - @ai-sdk/provider-utils@5.0.23
+
 ## 7.0.54
 
 ### Patch Changes
