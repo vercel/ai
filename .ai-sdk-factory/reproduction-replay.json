@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 7259,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/use-completion-reset-input.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/use-completion-reset-input.ts",
+    "packages/react/src/use-completion-reset-input.reproduction.test.tsx"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue #7259 reproduced: expected useCompletion handleSubmit to clear the input after submission, but received \"hello\""
+  }
+}
