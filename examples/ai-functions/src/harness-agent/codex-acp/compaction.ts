@@ -1,8 +1,4 @@
-import {
-  HarnessAgent,
-  HarnessCapabilityUnsupportedError,
-  type HarnessAgentSession,
-} from '@ai-sdk/harness/agent';
+import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { createCodexACP } from '../../lib/codex-acp-harness';
 import { run } from '../../lib/run';
@@ -24,17 +20,7 @@ run(async () => {
       session,
       prompt: 'Reply with exactly ready.',
     });
-    try {
-      await session.compact();
-      throw new Error(
-        'Standard ACP v1 unexpectedly supported manual compaction.',
-      );
-    } catch (error) {
-      if (!HarnessCapabilityUnsupportedError.isInstance(error)) {
-        throw error;
-      }
-      console.log(error.message);
-    }
+    await session.compact();
   } finally {
     await session?.destroy();
   }
