@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`generateText > options.experimental_onStart > should send correct information with text prompt 1`] = `
+exports[`generateText > options.onStart > should send correct information with text prompt 1`] = `
 {
   "activeTools": undefined,
   "callId": "test-telemetry-call-id",

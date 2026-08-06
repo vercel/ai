@@ -1,4 +1,5 @@
 import type { LanguageModelV4Usage } from '@ai-sdk/provider';
+import { createNullLanguageModelUsage } from '@ai-sdk/provider-utils';
 
 export function convertGroqUsage(
   usage:
@@ -22,23 +23,12 @@ export function convertGroqUsage(
     | null,
 ): LanguageModelV4Usage {
   if (usage == null) {
-    return {
-      inputTokens: {
-        total: undefined,
-        noCache: undefined,
-        cacheRead: undefined,
-        cacheWrite: undefined,
-      },
-      outputTokens: {
-        total: undefined,
-        text: undefined,
-        reasoning: undefined,
-      },
-      raw: undefined,
-    };
+    return createNullLanguageModelUsage();
   }
 
   const promptTokens = usage.prompt_tokens ?? 0;
+  const cacheReadTokens =
+    usage.prompt_tokens_details?.cached_tokens ?? undefined;
   const completionTokens = usage.completion_tokens ?? 0;
   const reasoningTokens =
     usage.completion_tokens_details?.reasoning_tokens ?? undefined;
@@ -50,8 +40,9 @@ export function convertGroqUsage(
   return {
     inputTokens: {
       total: promptTokens,
-      noCache: promptTokens,
-      cacheRead: undefined,
+      noCache:
+        cacheReadTokens != null ? promptTokens - cacheReadTokens : promptTokens,
+      cacheRead: cacheReadTokens,
       cacheWrite: undefined,
     },
     outputTokens: {

@@ -132,7 +132,9 @@ describe('createAgentUIStreamResponse', () => {
           {
             "abortSignal": undefined,
             "frequencyPenalty": undefined,
-            "headers": undefined,
+            "headers": {
+              "user-agent": "ai-sdk-agent/tool-loop",
+            },
             "includeRawChunks": false,
             "maxOutputTokens": undefined,
             "presencePenalty": undefined,

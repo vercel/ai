@@ -250,8 +250,11 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
       fetch: this.config.fetch,
     });
 
-    // Poll the result URL until the transcription is done or an error occurs
+    // Poll the result URL until the transcription is done or an error occurs.
+    // The result URL comes from the provider response; only send credentials
+    // when it stays on the provider's own origin.
     const resultUrl = transcriptionInitResponse.result_url;
+    const apiOrigin = this.config.url({ modelId: 'default', path: '' });
     let transcriptionResult;
     let transcriptionResultHeaders;
     const timeoutMs = 60 * 1000; // 60 seconds timeout
@@ -270,6 +273,10 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
 
       const response = await getFromApi({
         url: resultUrl,
+        // resultUrl comes from the provider response body.
+        validateUrl: true,
+        credentialedOrigin: apiOrigin,
+        trustedOrigin: apiOrigin,
         headers: combineHeaders(this.config.headers?.(), options.headers),
         failedResponseHandler: gladiaFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(

@@ -825,11 +825,13 @@ describe('executeToolCall', () => {
     });
 
     it('should execute the tool inside the executeToolInTelemetryContext wrapper when provided', async () => {
-      const executeToolInTelemetryContext: <T>(params: {
-        callId: string;
-        toolCallId: string;
-        execute: () => PromiseLike<T>;
-      }) => Promise<T> = vi.fn(async ({ execute }) => execute());
+      const executeToolInTelemetryContext: <T>(
+        params: Partial<ToolExecutionStartEvent<any>> & {
+          callId: string;
+          toolCallId: string;
+          execute: () => PromiseLike<T>;
+        },
+      ) => Promise<T> = vi.fn(async ({ execute }) => execute());
 
       await executeToolCall({
         toolCall: createToolCall({ toolCallId: 'my-call-id' }),
@@ -849,17 +851,30 @@ describe('executeToolCall', () => {
       expect(executeToolInTelemetryContext).toHaveBeenCalledWith({
         callId: 'test-telemetry-call-id',
         toolCallId: 'my-call-id',
+        messages: [],
+        toolCall: {
+          dynamic: false,
+          input: {
+            value: 'test',
+          },
+          toolCallId: 'my-call-id',
+          toolName: 'testTool',
+          type: 'tool-call',
+        },
+        toolContext: undefined,
         execute: expect.any(Function),
       });
     });
 
     it('should measure only the inner execute duration when wrapped in telemetry context', async () => {
       const toolExecutionEndEvents: ToolExecutionEndEvent<any>[] = [];
-      const executeToolInTelemetryContext: <T>(params: {
-        callId: string;
-        toolCallId: string;
-        execute: () => PromiseLike<T>;
-      }) => Promise<T> = vi.fn(async ({ execute }) => {
+      const executeToolInTelemetryContext: <T>(
+        params: Partial<ToolExecutionStartEvent<any>> & {
+          callId: string;
+          toolCallId: string;
+          execute: () => PromiseLike<T>;
+        },
+      ) => Promise<T> = vi.fn(async ({ execute }) => {
         now(); // simulate wrapper overhead before the tool runs
         const result = await execute();
         now(); // simulate wrapper overhead after the tool runs

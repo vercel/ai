@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`rerank > options.experimental_onEnd > should send correct event information 1`] = `
+exports[`rerank > options.onEnd > should send correct event information 1`] = `
 {
   "callId": "test-call-id",
   "documents": [
@@ -54,7 +54,7 @@ exports[`rerank > options.experimental_onEnd > should send correct event informa
 }
 `;
 
-exports[`rerank > options.experimental_onStart > should send correct event information 1`] = `
+exports[`rerank > options.onStart > should send correct event information 1`] = `
 {
   "callId": "test-call-id",
   "documents": [

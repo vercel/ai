@@ -1,3 +1,4 @@
+import { cancelResponseBody } from './cancel-response-body';
 import { DownloadError } from './download-error';
 
 /**
@@ -40,6 +41,9 @@ export async function readResponseWithSizeLimit({
   if (contentLength != null) {
     const length = parseInt(contentLength, 10);
     if (!isNaN(length) && length > maxBytes) {
+      // Cancel the body so the underlying connection is released back to the
+      // pool instead of being left open until the socket is exhausted.
+      await cancelResponseBody(response);
       throw new DownloadError({
         url,
         message: `Download of ${url} exceeded maximum size of ${maxBytes} bytes (Content-Length: ${length}).`,

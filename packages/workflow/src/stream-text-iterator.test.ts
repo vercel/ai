@@ -14,11 +14,15 @@ import type {
 } from '@ai-sdk/provider';
 import type {
   Experimental_LanguageModelStreamPart,
+  ModelMessage,
   StepResult,
   ToolSet,
 } from 'ai';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import type { ParsedToolCall } from './do-stream-step.js';
+import type {
+  DoStreamStepRawResult,
+  ParsedToolCall,
+} from './do-stream-step.js';
 import type { StreamTextIteratorYieldValue } from './stream-text-iterator.js';
 
 // Mock doStreamStep
@@ -40,53 +44,6 @@ function createMockWritable(): WritableStream<
     write: vi.fn(),
     close: vi.fn(),
   });
-}
-
-/**
- * Helper to create a minimal step result for testing
- */
-function createMockStepResult(
-  overrides: Partial<StepResult<ToolSet, any>> = {},
-): StepResult<ToolSet, any> {
-  return {
-    content: [],
-    text: '',
-    reasoning: [],
-    reasoningText: undefined,
-    files: [],
-    sources: [],
-    toolCalls: [],
-    staticToolCalls: [],
-    dynamicToolCalls: [],
-    toolResults: [],
-    staticToolResults: [],
-    dynamicToolResults: [],
-    finishReason: 'stop',
-    usage: {
-      inputTokens: 0,
-      outputTokens: 0,
-      totalTokens: 0,
-      inputTokenDetails: {
-        noCacheTokens: undefined,
-        cacheReadTokens: undefined,
-        cacheWriteTokens: undefined,
-      },
-      outputTokenDetails: {
-        textTokens: undefined,
-        reasoningTokens: undefined,
-      },
-    },
-    warnings: [],
-    request: { body: '' },
-    response: {
-      id: 'test',
-      timestamp: new Date(),
-      modelId: 'test',
-      messages: [],
-    },
-    providerMetadata: {},
-    ...overrides,
-  } as StepResult<ToolSet, any>;
 }
 
 const mockUsage = {
@@ -119,20 +76,25 @@ function createMockDoStreamStepResult({
   toolCalls = [] as ParsedToolCall[],
   finishReason = 'stop' as 'stop' | 'tool-calls',
   finishRaw = 'stop',
-  stepOverrides = {},
+  rawOverrides = {},
 }: {
   toolCalls?: ParsedToolCall[];
   finishReason?: 'stop' | 'tool-calls';
   finishRaw?: string;
-  stepOverrides?: Partial<StepResult<ToolSet, any>>;
+  rawOverrides?: Partial<DoStreamStepRawResult>;
 } = {}) {
   return {
     toolCalls,
     finish: createMockFinish(finishReason, finishRaw),
-    step: createMockStepResult({
-      finishReason,
-      ...stepOverrides,
-    }),
+    // doStreamStep now returns minimal raw aggregates; the iterator
+    // reconstructs the StepResult via buildStepResult.
+    raw: {
+      text: '',
+      reasoning: [],
+      responseMetadata: undefined,
+      warnings: [],
+      ...rawOverrides,
+    } as DoStreamStepRawResult,
     providerExecutedToolResults: new Map(),
   };
 }
@@ -140,6 +102,164 @@ function createMockDoStreamStepResult({
 describe('streamTextIterator', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe('generation settings', () => {
+    it('merges defined prepareStep overrides', async () => {
+      vi.mocked(doStreamStep).mockResolvedValue(createMockDoStreamStepResult());
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {},
+        model: vi.fn() as any,
+        generationSettings: {
+          temperature: 0.2,
+          topP: 0.5,
+        },
+        prepareStep: () => ({
+          temperature: undefined,
+          topP: 0.9,
+          maxOutputTokens: 256,
+        }),
+      });
+
+      await iterator.next();
+
+      expect(vi.mocked(doStreamStep).mock.calls[0]?.[4]).toMatchObject({
+        temperature: 0.2,
+        topP: 0.9,
+        maxOutputTokens: 256,
+      });
+    });
+  });
+
+  describe('conversation prompt', () => {
+    it('passes initial instructions and messages to prepareStep', async () => {
+      vi.mocked(doStreamStep).mockResolvedValueOnce(
+        createMockDoStreamStepResult(),
+      );
+      const initialMessages: ModelMessage[] = [
+        { role: 'user', content: 'initial message' },
+      ];
+      const prepareStep = vi.fn(() => ({}));
+
+      const iterator = streamTextIterator({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'initial message' }],
+          },
+        ],
+        initialInstructions: 'initial instructions',
+        initialMessages,
+        tools: {},
+        model: vi.fn() as any,
+        prepareStep,
+      });
+
+      await iterator.next();
+
+      expect(prepareStep).toHaveBeenCalledWith(
+        expect.objectContaining({
+          initialInstructions: 'initial instructions',
+          initialMessages,
+        }),
+      );
+    });
+
+    it('preserves assistant text alongside tool calls for the next step', async () => {
+      let capturedPrompt: LanguageModelV4Prompt | undefined;
+
+      vi.mocked(doStreamStep)
+        .mockResolvedValueOnce(
+          createMockDoStreamStepResult({
+            toolCalls: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'testTool',
+                input: { query: 'test' },
+              },
+            ],
+            finishReason: 'tool-calls',
+            finishRaw: 'tool_calls',
+            rawOverrides: {
+              text: 'I found the answer before calling the tool.',
+            },
+          }),
+        )
+        .mockImplementationOnce(async prompt => {
+          capturedPrompt = prompt;
+          return createMockDoStreamStepResult();
+        });
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {
+          testTool: {
+            description: 'A test tool',
+            execute: async () => ({ result: 'success' }),
+          },
+        } as unknown as ToolSet,
+        writable: createMockWritable(),
+        model: vi.fn() as any,
+      });
+
+      await iterator.next();
+      await iterator.next([
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          output: { type: 'text', value: '{"result":"success"}' },
+        },
+      ]);
+
+      expect(capturedPrompt).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "test",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "text": "I found the answer before calling the tool.",
+                "type": "text",
+              },
+              {
+                "input": {
+                  "query": "test",
+                },
+                "toolCallId": "call-1",
+                "toolName": "testTool",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "text",
+                  "value": "{"result":"success"}",
+                },
+                "toolCallId": "call-1",
+                "toolName": "testTool",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
   });
 
   describe('providerMetadata to providerOptions mapping', () => {
@@ -725,17 +845,13 @@ describe('streamTextIterator', () => {
   });
 
   describe('runtimeContext and toolsContext', () => {
-    it('should pass current contexts to doStreamStep and yielded steps', async () => {
+    it('applies current contexts to the reconstructed step and yield value', async () => {
       const runtimeContext = { tenantId: 'tenant_123' };
       const toolsContext = { weather: { unit: 'celsius' } };
-      const step = createMockStepResult();
 
-      vi.mocked(doStreamStep).mockResolvedValueOnce({
-        toolCalls: [],
-        finish: createMockFinish('stop'),
-        step,
-        providerExecutedToolResults: new Map(),
-      });
+      vi.mocked(doStreamStep).mockResolvedValueOnce(
+        createMockDoStreamStepResult({ finishReason: 'stop' }),
+      );
 
       const iterator = streamTextIterator({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
@@ -747,20 +863,23 @@ describe('streamTextIterator', () => {
       });
 
       const result = await iterator.next();
+      const yielded = result.value as StreamTextIteratorYieldValue;
 
+      // Contexts are no longer serialized across the step boundary; the
+      // iterator applies them when it reconstructs the StepResult outside.
       expect(doStreamStep).toHaveBeenCalledWith(
         expect.any(Array),
         expect.any(Function),
         expect.any(WritableStream),
         expect.any(Object),
-        expect.objectContaining({
-          runtimeContext,
-          toolsContext,
-          stepNumber: 0,
-        }),
+        expect.not.objectContaining({ runtimeContext }),
       );
-      expect(result.value).toMatchObject({
-        step,
+      expect(yielded).toMatchObject({
+        runtimeContext,
+        toolsContext,
+      });
+      expect(yielded.step).toMatchObject({
+        stepNumber: 0,
         runtimeContext,
         toolsContext,
       });

@@ -20,4 +20,10 @@ export type ToolApprovalRequest = {
    * @default false
    */
   isAutomatic?: boolean;
+
+  /**
+   * HMAC-SHA256 signature binding this approval to its tool call.
+   * Present only when `experimental_toolApprovalSecret` is configured.
+   */
+  signature?: string;
 };

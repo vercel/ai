@@ -73,6 +73,7 @@ describe('GatewayImageModel', () => {
       warnings?: Array<
         | { type: 'unsupported'; feature: string; details?: string }
         | { type: 'compatibility'; feature: string; details?: string }
+        | { type: 'deprecated'; setting: string; message: string }
         | { type: 'other'; message: string }
       >;
       providerMetadata?: Record<string, unknown>;
@@ -286,6 +287,34 @@ describe('GatewayImageModel', () => {
     it('should return warnings when provided', async () => {
       const mockWarnings = [
         { type: 'other' as const, message: 'Setting not supported' },
+      ];
+
+      prepareJsonResponse({
+        images: ['base64-1'],
+        warnings: mockWarnings,
+      });
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.warnings).toEqual(mockWarnings);
+    });
+
+    it('should return deprecated warnings correctly', async () => {
+      const mockWarnings = [
+        {
+          type: 'deprecated' as const,
+          setting: 'size',
+          message: 'Use `aspectRatio` instead.',
+        },
       ];
 
       prepareJsonResponse({

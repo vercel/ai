@@ -23,7 +23,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { googleFailedResponseHandler } from '../google-error';
 import { buildGoogleInteractionsStreamTransform } from './build-google-interactions-stream-transform';
-import { convertGoogleInteractionsUsage } from './convert-google-interactions-usage';
+import {
+  convertGoogleInteractionsUsage,
+  getGoogleInteractionsOutputTokensByModality,
+} from './convert-google-interactions-usage';
 import { convertToGoogleInteractionsInput } from './convert-to-google-interactions-input';
 import {
   googleInteractionsEventSchema,
@@ -75,7 +78,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
 
   /**
    * Optional agent name. When provided, the request body sends `agent:` instead
-   * of `model:` and rejects `tools` / `generation_config` (warned, not thrown).
+   * of `model:` and rejects `generation_config` (warned, not thrown).
    */
   readonly agent: string | undefined;
 
@@ -150,18 +153,27 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
 
     const isAgent = this.agent != null;
 
+    if (!isAgent) {
+      if (options.frequencyPenalty != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'frequencyPenalty',
+        });
+      }
+      if (options.presencePenalty != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'presencePenalty',
+        });
+      }
+    }
+
     const hasTools = options.tools != null && options.tools.length > 0;
 
     let toolsForBody: Array<GoogleInteractionsTool> | undefined;
     let toolChoiceForBody: GoogleInteractionsToolChoice | undefined;
 
-    if (hasTools && isAgent) {
-      warnings.push({
-        type: 'other',
-        message:
-          'google.interactions: tools are not supported when an agent is set; tools will be omitted from the request body.',
-      });
-    } else if (hasTools) {
+    if (hasTools) {
       const prepared = prepareGoogleInteractionsTools({
         tools: options.tools,
         toolChoice: options.toolChoice,
@@ -279,6 +291,11 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       const droppedFields: Array<string> = [];
       if (options.temperature != null) droppedFields.push('temperature');
       if (options.topP != null) droppedFields.push('topP');
+      if (options.topK != null) droppedFields.push('topK');
+      if (options.frequencyPenalty != null)
+        droppedFields.push('frequencyPenalty');
+      if (options.presencePenalty != null)
+        droppedFields.push('presencePenalty');
       if (options.seed != null) droppedFields.push('seed');
       if (options.stopSequences != null && options.stopSequences.length > 0) {
         droppedFields.push('stopSequences');
@@ -302,6 +319,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       generationConfig = pruneUndefined({
         temperature: options.temperature ?? undefined,
         top_p: options.topP ?? undefined,
+        top_k: options.topK ?? undefined,
         seed: options.seed ?? undefined,
         stop_sequences:
           options.stopSequences != null && options.stopSequences.length > 0
@@ -459,7 +477,6 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     const url = `${this.config.baseURL}/interactions`;
 
     const mergedHeaders = combineHeaders(
-      INTERACTIONS_API_REVISION_HEADER,
       this.config.headers ? await resolve(this.config.headers) : undefined,
       options.headers,
     );
@@ -547,10 +564,15 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
      * `response.id` is omitted when `store: false` (fully stateless mode), so
      * `interactionId` is only surfaced when the API actually returned one.
      */
+    const outputTokensByModality = getGoogleInteractionsOutputTokensByModality(
+      response.usage,
+    );
+
     const providerMetadata: SharedV4ProviderMetadata = {
       google: {
         ...(interactionId != null ? { interactionId } : {}),
         ...(serviceTier != null ? { serviceTier } : {}),
+        ...(outputTokensByModality != null ? { outputTokensByModality } : {}),
       },
     };
 
@@ -588,7 +610,6 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     const url = `${this.config.baseURL}/interactions`;
 
     const mergedHeaders = combineHeaders(
-      INTERACTIONS_API_REVISION_HEADER,
       this.config.headers ? await resolve(this.config.headers) : undefined,
       options.headers,
     );
@@ -756,15 +777,6 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     };
   }
 }
-
-/*
- * Pins the Interactions API revision the SDK targets. Sent on every request
- * the model issues so model-id calls, agent calls, polling, SSE reconnects,
- * and cancellation all hit the same schema.
- */
-const INTERACTIONS_API_REVISION_HEADER: Record<string, string> = {
-  'Api-Revision': '2026-05-20',
-};
 
 function pruneUndefined<T extends Record<string, unknown>>(obj: T): T {
   const result: Record<string, unknown> = {};

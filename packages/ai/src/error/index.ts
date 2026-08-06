@@ -18,6 +18,7 @@ export {
 export { InvalidArgumentError } from './invalid-argument-error';
 export { InvalidStreamPartError } from './invalid-stream-part-error';
 export { InvalidToolApprovalError } from './invalid-tool-approval-error';
+export { InvalidToolApprovalSignatureError } from './invalid-tool-approval-signature-error';
 export { InvalidToolInputError } from './invalid-tool-input-error';
 export { ToolCallNotFoundForApprovalError } from './tool-call-not-found-for-approval-error';
 export { MissingToolResultsError } from './missing-tool-result-error';
@@ -26,6 +27,7 @@ export { NoObjectGeneratedError } from './no-object-generated-error';
 export { NoOutputGeneratedError } from './no-output-generated-error';
 export { NoSpeechGeneratedError } from './no-speech-generated-error';
 export { NoTranscriptGeneratedError } from './no-transcript-generated-error';
+export { NoTranslationGeneratedError } from './no-translation-generated-error';
 export { NoVideoGeneratedError } from './no-video-generated-error';
 export { NoSuchToolError } from './no-such-tool-error';
 export { ToolCallRepairError } from './tool-call-repair-error';

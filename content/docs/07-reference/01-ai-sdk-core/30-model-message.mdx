@@ -134,12 +134,10 @@ export interface FilePart {
   type: 'file';
 
   /**
-   * File data. Can either be:
-   * - data: a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer
-   * - URL: a URL that points to the file
-   * - ProviderReference: a provider reference from `uploadFile`
+   * File data. Use the tagged `FileData` shape.
+   * Bare `DataContent`, `URL`, and `ProviderReference` shorthands are also supported.
    */
-  data: DataContent | URL | ProviderReference;
+  data: FileData | DataContent | URL | ProviderReference;
 
   /**
    * Optional filename of the file.
@@ -147,10 +145,21 @@ export interface FilePart {
   filename?: string;
 
   /**
-   * IANA media type of the file.
+   * Either a full IANA media type (`type/subtype`, e.g. `image/png`) or just
+   * the top-level IANA segment (e.g. `image`, `audio`, `video`, `text`).
    */
   mediaType: string;
 }
+
+export type FileData =
+  // Raw bytes as a base64 string, Uint8Array, ArrayBuffer, or Buffer.
+  | { type: 'data'; data: DataContent }
+  // A URL that points to the file.
+  | { type: 'url'; url: URL }
+  // A provider reference from `uploadFile`.
+  | { type: 'reference'; reference: ProviderReference }
+  // Inline text content.
+  | { type: 'text'; text: string };
 ```
 
 ### `CustomPart`

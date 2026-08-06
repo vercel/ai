@@ -12,7 +12,7 @@ description: API reference for the experimental_useRealtime hook.
 Creates a browser-side realtime session for bidirectional audio and text
 conversations with a realtime provider model.
 
-The hook connects to a provider WebSocket using a short-lived token from your
+The hook connects to a realtime WebSocket using a short-lived token from your
 setup endpoint, returns messages as `UIMessage[]`, and provides controls for
 audio capture, playback, text input, and tool output.
 
@@ -27,6 +27,10 @@ const realtime = experimental_useRealtime({
   },
 });
 ```
+
+For AI Gateway, pass `gateway.experimental_realtime(...)` as the model and point
+`api.token` at a server-side setup endpoint that calls
+`gateway.experimental_realtime.getToken()`.
 
 ## Import
 
@@ -50,7 +54,7 @@ const realtime = experimental_useRealtime({
       name: 'api',
       type: '{ token: string }',
       description:
-        'API endpoints used by the realtime session. The token endpoint is called with POST to create the provider setup response.',
+        'API endpoints used by the realtime session. The token endpoint is called with POST to create the realtime setup response.',
       properties: [
         {
           type: 'Object',

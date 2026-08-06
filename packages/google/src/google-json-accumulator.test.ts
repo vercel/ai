@@ -219,6 +219,69 @@ describe('GoogleJSONAccumulator', () => {
     });
   });
 
+  describe('prototype pollution protection', () => {
+    it('should not pollute Object.prototype through __proto__ path segments', () => {
+      const pollutedKey = 'pollutedByGoogleAccumulatorTest';
+      const objectPrototype = Object.prototype as Record<string, unknown>;
+      delete objectPrototype[pollutedKey];
+
+      try {
+        const accumulator = new GoogleJSONAccumulator();
+        const result = accumulator.processPartialArgs([
+          {
+            jsonPath: `$.__proto__.${pollutedKey}`,
+            stringValue: 'true',
+          },
+        ]);
+
+        expect(objectPrototype[pollutedKey]).toBeUndefined();
+        const protoDescriptor = Object.getOwnPropertyDescriptor(
+          result.currentJSON,
+          '__proto__',
+        );
+        expect(protoDescriptor?.value[pollutedKey]).toBe('true');
+        expect(result.currentJSON).toMatchInlineSnapshot(`
+          {
+            "__proto__": {
+              "pollutedByGoogleAccumulatorTest": "true",
+            },
+          }
+        `);
+      } finally {
+        delete objectPrototype[pollutedKey];
+      }
+    });
+
+    it('should not pollute Object.prototype through constructor.prototype path segments', () => {
+      const pollutedKey = 'pollutedByGoogleConstructorTest';
+      const objectPrototype = Object.prototype as Record<string, unknown>;
+      delete objectPrototype[pollutedKey];
+
+      try {
+        const accumulator = new GoogleJSONAccumulator();
+        const result = accumulator.processPartialArgs([
+          {
+            jsonPath: `$.constructor.prototype.${pollutedKey}`,
+            stringValue: 'true',
+          },
+        ]);
+
+        expect(objectPrototype[pollutedKey]).toBeUndefined();
+        expect(result.currentJSON).toMatchInlineSnapshot(`
+          {
+            "constructor": {
+              "prototype": {
+                "pollutedByGoogleConstructorTest": "true",
+              },
+            },
+          }
+        `);
+      } finally {
+        delete objectPrototype[pollutedKey];
+      }
+    });
+  });
+
   describe('nested paths', () => {
     it('should build nested object from dotted jsonPath', () => {
       const accumulator = new GoogleJSONAccumulator();

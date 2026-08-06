@@ -9,7 +9,9 @@ describe('asTranscriptionModelV3', () => {
   let logWarningSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    logWarningSpy = vi.spyOn(logWarningsModule, 'logWarnings');
+    logWarningSpy = vi
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
   });
 
   afterEach(() => {

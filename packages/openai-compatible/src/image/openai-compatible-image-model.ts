@@ -173,7 +173,6 @@ export class OpenAICompatibleImageModel implements ImageModelV4 {
         n,
         size,
         ...args,
-        response_format: 'b64_json',
       },
       failedResponseHandler: createJsonErrorResponseHandler(
         this.config.errorStructure ?? defaultOpenAICompatibleErrorStructure,

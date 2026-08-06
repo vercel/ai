@@ -17,7 +17,7 @@ The `pipeUIMessageStreamToResponse` function pipes streaming data to a Node.js S
 ## Example
 
 ```tsx
-pipeUIMessageStreamToResponse({
+await pipeUIMessageStreamToResponse({
   response: serverResponse,
   status: 200,
   statusText: 'OK',
@@ -75,3 +75,8 @@ pipeUIMessageStreamToResponse({
     },
   ]}
 />
+
+### Returns
+
+A `Promise<void>` that resolves when the stream has been written to the response
+and rejects when reading or writing the stream fails.

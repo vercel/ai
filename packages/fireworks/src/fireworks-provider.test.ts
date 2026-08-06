@@ -114,6 +114,88 @@ describe('FireworksProvider', () => {
       expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
     });
 
+    it('should set includeUsage so streaming responses report token usage', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const config = OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
+      expect(config.includeUsage).toBe(true);
+    });
+
+    // A schema that does not match what Fireworks actually returns fails the
+    // parse, and the message silently degrades to the HTTP reason phrase —
+    // "Bad Request" over HTTP/1.1, and "" over HTTP/2, which has none.
+    describe('errorStructure', () => {
+      const getErrorStructure = () => {
+        const provider = createFireworks();
+        provider.chatModel('test-model');
+        return OpenAICompatibleChatLanguageModelMock.mock.calls[0][1]
+          .errorStructure;
+      };
+
+      it('should parse the object error envelope Fireworks returns', () => {
+        const { errorSchema, errorToMessage } = getErrorStructure();
+
+        const parsed = errorSchema.parse({
+          error: {
+            object: 'error',
+            type: 'invalid_request_error',
+            code: 'invalid_request_error',
+            message:
+              "Extra inputs are not permitted, field: 'promptCacheKey', value: 'x'",
+          },
+        });
+
+        expect(errorToMessage(parsed)).toBe(
+          "Extra inputs are not permitted, field: 'promptCacheKey', value: 'x'",
+        );
+      });
+
+      it('should parse an error envelope with a null param and numeric code', () => {
+        const { errorSchema, errorToMessage } = getErrorStructure();
+
+        const parsed = errorSchema.parse({
+          error: {
+            message: 'The API key you provided is invalid.',
+            param: null,
+            code: 401,
+            type: 'error',
+          },
+        });
+
+        expect(errorToMessage(parsed)).toBe(
+          'The API key you provided is invalid.',
+        );
+      });
+
+      it('should ignore unknown keys alongside the error object', () => {
+        const { errorSchema, errorToMessage } = getErrorStructure();
+
+        const parsed = errorSchema.parse({
+          error: { message: 'Model not found', code: 'NOT_FOUND' },
+          request_id: 'chatcmpl-abc123',
+        });
+
+        expect(errorToMessage(parsed)).toBe('Model not found');
+      });
+
+      it('should still accept a bare string error', () => {
+        const { errorSchema, errorToMessage } = getErrorStructure();
+
+        const parsed = errorSchema.parse({ error: 'something went wrong' });
+
+        expect(errorToMessage(parsed)).toBe('something went wrong');
+      });
+
+      it('should reject an error object without a message', () => {
+        const { errorSchema } = getErrorStructure();
+
+        expect(() =>
+          errorSchema.parse({ error: { code: 'NOT_FOUND' } }),
+        ).toThrow();
+      });
+    });
+
     it('should pass transformRequestBody that converts thinking options', () => {
       const provider = createFireworks();
       provider.chatModel('test-model');
@@ -157,6 +239,98 @@ describe('FireworksProvider', () => {
         model: 'test-model',
         messages: [],
         thinking: { type: 'enabled' },
+      });
+    });
+
+    it('should map promptCacheKey to prompt_cache_key', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+        promptCacheKey: 'session-123',
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+        prompt_cache_key: 'session-123',
+      });
+      expect(result).not.toHaveProperty('promptCacheKey');
+    });
+
+    it('should prefer promptCacheKey over raw prompt_cache_key', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+        prompt_cache_key: 'raw-session',
+        promptCacheKey: 'typed-session',
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+        prompt_cache_key: 'typed-session',
+      });
+    });
+
+    it('should map serviceTier to service_tier', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+        serviceTier: 'priority',
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+        service_tier: 'priority',
+      });
+      expect(result).not.toHaveProperty('serviceTier');
+    });
+
+    it('should prefer serviceTier over raw service_tier', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+        service_tier: 'standard',
+        serviceTier: 'priority',
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+        service_tier: 'priority',
       });
     });
 
@@ -255,6 +429,16 @@ describe('FireworksProvider', () => {
       const model = provider.completionModel(modelId);
 
       expect(model).toBeInstanceOf(OpenAICompatibleCompletionLanguageModel);
+    });
+
+    it('should set includeUsage so streaming responses report token usage', () => {
+      const provider = createFireworks();
+      provider.completionModel('test-model');
+
+      const config = (
+        OpenAICompatibleCompletionLanguageModel as unknown as Mock
+      ).mock.calls[0][1];
+      expect(config.includeUsage).toBe(true);
     });
   });
 

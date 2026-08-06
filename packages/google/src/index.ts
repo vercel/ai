@@ -56,5 +56,15 @@ export type {
 } from './google-provider';
 export { GoogleRealtimeModel as Experimental_GoogleRealtimeModel } from './realtime/google-realtime-model';
 export type { GoogleRealtimeModelConfig as Experimental_GoogleRealtimeModelConfig } from './realtime/google-realtime-model';
+export type {
+  GoogleRealtimeModelId as Experimental_GoogleRealtimeModelId,
+  GoogleRealtimeModelOptions as Experimental_GoogleRealtimeModelOptions,
+} from './realtime/google-realtime-model-options';
+export { GoogleTranslationModel as Experimental_GoogleTranslationModel } from './translation/google-translation-model';
+export type { GoogleTranslationModelConfig as Experimental_GoogleTranslationModelConfig } from './translation/google-translation-model';
+export type {
+  GoogleTranslationModelId as Experimental_GoogleTranslationModelId,
+  GoogleTranslationModelOptions as Experimental_GoogleTranslationModelOptions,
+} from './translation/google-translation-model-options';
 
 export { VERSION } from './version';

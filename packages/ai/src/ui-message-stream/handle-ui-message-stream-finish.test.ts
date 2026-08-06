@@ -114,6 +114,33 @@ describe('handleUIMessageStreamFinish', () => {
       expect(callArgs.messages[1]).toEqual(callArgs.responseMessage);
     });
 
+    it('should prefer onEnd over deprecated onFinish', async () => {
+      const onEndCallback = vi.fn();
+      const onFinishCallback = vi.fn();
+      const inputChunks: UIMessageChunk[] = [
+        { type: 'start', messageId: 'msg-456' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+        { type: 'text-end', id: 'text-1' },
+        { type: 'finish' },
+      ];
+
+      const stream = createUIMessageStream(inputChunks);
+
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream,
+        messageId: 'msg-456',
+        onError: mockErrorHandler,
+        onEnd: onEndCallback,
+        onFinish: onFinishCallback,
+      });
+
+      await convertReadableStreamToArray(resultStream);
+
+      expect(onEndCallback).toHaveBeenCalledTimes(1);
+      expect(onFinishCallback).not.toHaveBeenCalled();
+    });
+
     it('should handle empty original messages array', async () => {
       const onFinishCallback = vi.fn();
       const inputChunks: UIMessageChunk[] = [
@@ -396,34 +423,36 @@ describe('handleUIMessageStreamFinish', () => {
     });
 
     it('should call onFinish when reader is cancelled (simulating browser close/navigation)', async () => {
-      const onFinishCallback = vi.fn();
+      await expectUndefinedUnhandledRejections(async () => {
+        const onFinishCallback = vi.fn();
 
-      const inputChunks: UIMessageChunk[] = [
-        { type: 'start', messageId: 'msg-1' },
-        { type: 'text-start', id: 'text-1' },
-        { type: 'text-delta', id: 'text-1', delta: 'Hello' },
-      ];
+        const inputChunks: UIMessageChunk[] = [
+          { type: 'start', messageId: 'msg-1' },
+          { type: 'text-start', id: 'text-1' },
+          { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+        ];
 
-      const stream = createUIMessageStream(inputChunks);
+        const stream = createUIMessageStream(inputChunks);
 
-      const resultStream = handleUIMessageStreamFinish<UIMessage>({
-        stream,
-        messageId: 'msg-1',
-        originalMessages: [],
-        onError: mockErrorHandler,
-        onFinish: onFinishCallback,
+        const resultStream = handleUIMessageStreamFinish<UIMessage>({
+          stream,
+          messageId: 'msg-1',
+          originalMessages: [],
+          onError: mockErrorHandler,
+          onFinish: onFinishCallback,
+        });
+
+        const reader = resultStream.getReader();
+        await reader.read();
+        await reader.cancel();
+        reader.releaseLock();
+
+        expect(onFinishCallback).toHaveBeenCalledTimes(1);
+
+        const callArgs = onFinishCallback.mock.calls[0][0];
+        expect(callArgs.isAborted).toBe(false);
+        expect(callArgs.responseMessage.id).toBe('msg-1');
       });
-
-      const reader = resultStream.getReader();
-      await reader.read();
-      await reader.cancel();
-      reader.releaseLock();
-
-      expect(onFinishCallback).toHaveBeenCalledTimes(1);
-
-      const callArgs = onFinishCallback.mock.calls[0][0];
-      expect(callArgs.isAborted).toBe(false);
-      expect(callArgs.responseMessage.id).toBe('msg-1');
     });
   });
 
@@ -747,3 +776,30 @@ describe('handleUIMessageStreamFinish', () => {
     });
   });
 });
+
+async function expectUndefinedUnhandledRejections(
+  fn: () => Promise<void>,
+): Promise<void> {
+  const listeners = process.listeners('unhandledRejection');
+  const reasons: unknown[] = [];
+
+  process.removeAllListeners('unhandledRejection');
+  process.on('unhandledRejection', reason => {
+    reasons.push(reason);
+  });
+
+  try {
+    await fn();
+    await new Promise(resolve => setTimeout(resolve, 0));
+  } finally {
+    process.removeAllListeners('unhandledRejection');
+    for (const listener of listeners) {
+      process.on('unhandledRejection', listener);
+    }
+  }
+
+  expect(reasons).toEqual(
+    Array.from({ length: reasons.length }, () => undefined),
+  );
+  expect(reasons.length).toBeLessThanOrEqual(1);
+}

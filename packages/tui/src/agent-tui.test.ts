@@ -11,6 +11,8 @@ import {
   readUIMessageStream,
   type Agent,
   type AgentStreamParameters,
+  type ChatTransport,
+  type Experimental_SandboxSession,
   type ModelMessage,
   type TextStreamPart,
   type ToolSet,
@@ -162,6 +164,39 @@ describe('AgentTUIRunner', () => {
         createUserModelMessage('second'),
       ],
     ]);
+    expect(renderer.submittedPrompts).toEqual(['first', 'second']);
+  });
+
+  it('sends UI message history through a chat transport', async () => {
+    const transportCalls: ChatTransportCall[] = [];
+    const renderer = useRenderer(
+      createRenderer({
+        prompts: ['first', 'second', undefined],
+      }),
+    );
+    const transport = createChatTransport(transportCalls);
+
+    await new AgentTUIRunner({ transport, title: 'Test Agent' }).run();
+
+    expect(transportCalls).toHaveLength(2);
+    expect(transportCalls[0]).toMatchObject({
+      trigger: 'submit-message',
+      messageId: undefined,
+      messages: [createUserUIMessage('message-1', 'first')],
+      abortSignal: expect.any(AbortSignal),
+    });
+    expect(transportCalls[1]).toMatchObject({
+      trigger: 'submit-message',
+      messageId: undefined,
+      messages: [
+        createUserUIMessage('message-1', 'first'),
+        createAssistantUIMessage('response-1', 'response to first'),
+        createUserUIMessage('message-2', 'second'),
+      ],
+      abortSignal: expect.any(AbortSignal),
+    });
+    expect(transportCalls[0]?.chatId).toEqual(expect.any(String));
+    expect(transportCalls[1]?.chatId).toBe(transportCalls[0]?.chatId);
     expect(renderer.submittedPrompts).toEqual(['first', 'second']);
   });
 
@@ -318,6 +353,25 @@ describe('AgentTUIRunner', () => {
     expect(renderer.contextSizes).toEqual([200_000]);
   });
 
+  it('passes the sandbox to every agent stream call', async () => {
+    const streamCalls: AgentTUIStreamCall[] = [];
+    useRenderer(
+      createRenderer({
+        prompts: ['first', 'second', undefined],
+      }),
+    );
+    const agent = createAgent(streamCalls);
+    const sandbox = createSandboxSession();
+
+    await new AgentTUIRunner({ agent, title: 'Test Agent', sandbox }).run();
+
+    expect(streamCalls).toHaveLength(2);
+    expect(streamCalls.map(call => call.experimental_sandbox)).toEqual([
+      sandbox,
+      sandbox,
+    ]);
+  });
+
   it('streams total token usage in response metadata', async () => {
     const streamCalls: AgentTUIStreamCall[] = [];
     const renderer = useRenderer(
@@ -364,6 +418,28 @@ describe('AgentTUIRunner', () => {
 });
 
 type AgentTUIStreamCall = AgentStreamParameters<never, any, any>;
+type ChatTransportCall = Parameters<
+  ChatTransport<UIMessage>['sendMessages']
+>[0];
+
+function createChatTransport(
+  calls: ChatTransportCall[],
+): ChatTransport<UIMessage> {
+  return {
+    async sendMessages(options) {
+      calls.push(options);
+
+      const responseNumber = calls.length;
+      return createUIMessageChunkStream(
+        `response-${responseNumber}`,
+        `response to ${lastUserUIMessageText(options.messages)}`,
+      );
+    },
+    async reconnectToStream() {
+      return null;
+    },
+  };
+}
 
 function createAgent(
   streamCalls: AgentTUIStreamCall[],
@@ -431,6 +507,29 @@ function createApprovalAgent(streamCalls: AgentTUIStreamCall[]): AgentTUIAgent {
 
 function createAISDKAgent(): Agent<any, any, any, any> {
   return { version: 'agent-v1' } as Agent<any, any, any, any>;
+}
+
+function createSandboxSession(): Experimental_SandboxSession {
+  return {
+    description: 'test sandbox',
+    readFile: async () => null,
+    readBinaryFile: async () => null,
+    readTextFile: async () => null,
+    writeFile: async () => {},
+    writeBinaryFile: async () => {},
+    writeTextFile: async () => {},
+    spawn: async () => ({
+      stdout: new ReadableStream<Uint8Array>(),
+      stderr: new ReadableStream<Uint8Array>(),
+      wait: async () => ({ exitCode: 0 }),
+      kill: async () => {},
+    }),
+    run: async () => ({
+      exitCode: 0,
+      stdout: '',
+      stderr: '',
+    }),
+  };
 }
 
 type TestRenderer = AgentTUIRenderer & {
@@ -599,6 +698,47 @@ function createUserModelMessage(text: string): ModelMessage {
     role: 'user',
     content: [{ type: 'text', text }],
   };
+}
+
+function createUserUIMessage(id: string, text: string): UIMessage {
+  return { id, role: 'user', parts: [{ type: 'text', text }] };
+}
+
+function createAssistantUIMessage(id: string, text: string): UIMessage {
+  return { id, role: 'assistant', parts: [{ type: 'text', text }] };
+}
+
+function lastUserUIMessageText(messages: UIMessage[]) {
+  let message: UIMessage | undefined;
+  for (let index = messages.length - 1; index >= 0; index--) {
+    if (messages[index]?.role === 'user') {
+      message = messages[index];
+      break;
+    }
+  }
+  const part = message?.parts.find(part => part.type === 'text');
+
+  if (!part || part.type !== 'text') {
+    throw new Error('Expected at least one user text message.');
+  }
+
+  return part.text;
+}
+
+function createUIMessageChunkStream(
+  messageId: string,
+  text: string,
+): ReadableStream<UIMessageChunk> {
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue({ type: 'start', messageId });
+      controller.enqueue({ type: 'text-start', id: 'text-1' });
+      controller.enqueue({ type: 'text-delta', id: 'text-1', delta: text });
+      controller.enqueue({ type: 'text-end', id: 'text-1' });
+      controller.enqueue({ type: 'finish' });
+      controller.close();
+    },
+  });
 }
 
 function createAssistantModelMessage(text: string): ModelMessage {
