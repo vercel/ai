@@ -22,7 +22,7 @@ export const weatherApprovalCodexACPHarnessAgent = new HarnessAgent({
   toolApproval: {
     get_weather: 'user-approval',
   },
-  permissionMode: 'allow-edits',
+  permissionMode: 'allow-all',
   sandbox: createVercelSandbox({
     runtime: 'node24',
     ports: [4000],

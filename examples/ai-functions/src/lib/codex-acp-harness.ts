@@ -54,8 +54,8 @@ const CODEX_ACP_BUILTIN_TOOLS = {
 } as const;
 
 const CODEX_ACP_PERMISSION_MODE_MAPPING = {
-  'allow-reads': { type: 'session-mode', modeId: 'read-only' },
-  'allow-edits': { type: 'session-mode', modeId: 'agent-full-access' },
+  'allow-reads': null,
+  'allow-edits': null,
   'allow-all': { type: 'session-mode', modeId: 'agent-full-access' },
 } as const satisfies ACPPermissionModeMapping;
 
@@ -63,7 +63,6 @@ export function createCodexACP({
   auth = 'auto',
   webSearch,
   acquisition,
-  permissionModeMapping = CODEX_ACP_PERMISSION_MODE_MAPPING,
 }: {
   auth?: ACPAuthOptions;
   webSearch?: boolean;
@@ -74,7 +73,6 @@ export function createCodexACP({
         packageJson: string;
         pnpmLockYaml: string;
       };
-  permissionModeMapping?: ACPPermissionModeMapping;
 } = {}) {
   const implementation =
     acquisition?.mode === 'locked'
@@ -102,7 +100,7 @@ export function createCodexACP({
         : {}),
     },
     builtinTools: CODEX_ACP_BUILTIN_TOOLS,
-    permissionModeMapping,
+    permissionModeMapping: CODEX_ACP_PERMISSION_MODE_MAPPING,
     authentication: {
       methodId: 'api-key',
     },

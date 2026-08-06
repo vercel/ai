@@ -80,8 +80,9 @@ try {
 - `providerAuthentication`: declarative runtime-specific Gateway environment.
 - `modelId`: a known implementation model identifier for Harness metadata.
 - `permissionModeMapping`: mappings from all three Harness permission modes to
-  advertised ACP session modes or configuration options. When omitted, the
-  adapter applies `permissionMode` to ACP permission requests by tool kind.
+  advertised ACP session modes or configuration options. Set an entry to
+  `null` when the ACP implementation does not support that mode. When omitted,
+  the adapter applies `permissionMode` to ACP permission requests by tool kind.
 - `session.meta`: serializable implementation-specific metadata for session
   creation and restoration.
 - `port`: exposed bridge port override.
@@ -190,24 +191,15 @@ Host-defined AI SDK tools are exposed through a harness-owned MCP server and
 execute in the host. Their recursive JSON Schemas are preserved. A tool without
 `execute` pauses for a caller-supplied result through `continueStream`.
 
-To support restrictive native permissions, map all three Harness permission
-modes. For Codex ACP running inside Vercel Sandbox, use the outer sandbox for
-write isolation rather than enabling Codex's nested workspace sandbox:
-
-```ts
-const permissionModeMapping = {
-  'allow-reads': { type: 'session-mode', modeId: 'read-only' },
-  'allow-edits': { type: 'session-mode', modeId: 'agent-full-access' },
-  'allow-all': { type: 'session-mode', modeId: 'agent-full-access' },
-} as const;
-```
-
-The adapter validates mapped modes or config options against the session
-response. When a mapping is configured, any ACP permission request that still
-occurs becomes a Harness approval request. Without a mapping, the adapter
-automatically selects `allow_once` for tool kinds allowed by `permissionMode`
-and requests Harness approval for the rest. A rejection selects `reject_once`;
-persistent choices are never inferred. Host-tool approval remains independent.
+Map all three Harness permission modes when the ACP implementation exposes
+native permission controls, and set unsupported modes to `null`. Selecting a
+`null` mapping throws `HarnessCapabilityUnsupportedError`. The adapter validates
+concrete modes or config options against the session response. When a mapping is
+configured, any ACP permission request that still occurs becomes a Harness
+approval request. Without a mapping, the adapter automatically selects
+`allow_once` for tool kinds allowed by `permissionMode` and requests Harness
+approval for the rest. A rejection selects `reject_once`; persistent choices
+are never inferred. Host-tool approval remains independent.
 
 ## Complete ACP Harness Implementations
 
@@ -285,8 +277,8 @@ export const codexACPHarness = createACP({
     forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
   },
   permissionModeMapping: {
-    'allow-reads': { type: 'session-mode', modeId: 'read-only' },
-    'allow-edits': { type: 'session-mode', modeId: 'agent-full-access' },
+    'allow-reads': null,
+    'allow-edits': null,
     'allow-all': { type: 'session-mode', modeId: 'agent-full-access' },
   } as const satisfies ACPPermissionModeMapping,
   authentication: {
@@ -323,6 +315,10 @@ export const codexACPHarness = createACP({
   },
 });
 ```
+
+Codex ACP supports only `permissionMode: 'allow-all'`. Its restrictive session
+modes enable Codex's internal sandbox, which must not run inside the sandbox
+already provided to `HarnessAgent`.
 
 The `client-app` placeholder resolves to the versioned
 `ai-sdk/harness-acp/<version>` identifier and sends it as both `User-Agent` and

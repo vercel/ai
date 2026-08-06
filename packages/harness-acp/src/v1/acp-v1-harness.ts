@@ -1255,10 +1255,18 @@ function isCompletePermissionModeMapping({
   value: ACPPermissionModeMapping | undefined;
 }): boolean {
   return (
-    isPermissionModeTarget({ value: value?.['allow-reads'] }) &&
-    isPermissionModeTarget({ value: value?.['allow-edits'] }) &&
-    isPermissionModeTarget({ value: value?.['allow-all'] })
+    isPermissionModeMappingValue({ value: value?.['allow-reads'] }) &&
+    isPermissionModeMappingValue({ value: value?.['allow-edits'] }) &&
+    isPermissionModeMappingValue({ value: value?.['allow-all'] })
   );
+}
+
+function isPermissionModeMappingValue({
+  value,
+}: {
+  value: ACPPermissionModeTarget | null | undefined;
+}): boolean {
+  return value === null || isPermissionModeTarget({ value });
 }
 
 function isPermissionModeTarget({

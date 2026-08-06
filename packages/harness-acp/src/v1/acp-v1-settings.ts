@@ -80,7 +80,7 @@ export type ACPPermissionModeTarget =
     };
 
 export type ACPPermissionModeMapping = Readonly<
-  Record<HarnessV1PermissionMode, ACPPermissionModeTarget>
+  Record<HarnessV1PermissionMode, ACPPermissionModeTarget | null>
 >;
 
 export type ACPV1Settings = {

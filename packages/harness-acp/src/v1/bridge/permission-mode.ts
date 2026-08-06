@@ -32,16 +32,30 @@ export async function configureACPPermissionMode({
   permissionMode: HarnessV1PermissionMode;
   harnessId: string;
 }): Promise<void> {
-  for (const mappedPermissionMode of PERMISSION_MODES) {
-    validateTarget({
-      target: permissionModeMapping[mappedPermissionMode],
-      permissionMode: mappedPermissionMode,
-      sessionConfiguration,
+  const target = permissionModeMapping[permissionMode];
+  if (target == null) {
+    throw unsupported({
       harnessId,
+      message:
+        `Permission mode ${JSON.stringify(permissionMode)} is not supported by this ACP harness.` +
+        (permissionModeMapping['allow-all'] == null
+          ? ''
+          : ` Use permissionMode: 'allow-all'.`),
     });
   }
 
-  const target = permissionModeMapping[permissionMode];
+  for (const mappedPermissionMode of PERMISSION_MODES) {
+    const mappedTarget = permissionModeMapping[mappedPermissionMode];
+    if (mappedTarget != null) {
+      validateTarget({
+        target: mappedTarget,
+        permissionMode: mappedPermissionMode,
+        sessionConfiguration,
+        harnessId,
+      });
+    }
+  }
+
   if (target.type === 'session-mode') {
     await agent.request(acp.methods.agent.session.setMode, {
       sessionId,

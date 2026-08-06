@@ -76,9 +76,9 @@ const permissionModeTargetSchema = z.discriminatedUnion('type', [
 
 const permissionModeMappingSchema: z.ZodType<ACPPermissionModeMapping> =
   z.object({
-    'allow-reads': permissionModeTargetSchema,
-    'allow-edits': permissionModeTargetSchema,
-    'allow-all': permissionModeTargetSchema,
+    'allow-reads': permissionModeTargetSchema.nullable(),
+    'allow-edits': permissionModeTargetSchema.nullable(),
+    'allow-all': permissionModeTargetSchema.nullable(),
   });
 
 export type ACPTurnStartConfig = {

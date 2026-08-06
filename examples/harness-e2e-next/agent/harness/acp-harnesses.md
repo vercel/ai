@@ -21,7 +21,9 @@ The profiles pin the exact implementations exercised by this matrix:
 
 Claude Code uses the pinned implementation's Anthropic launch environment and
 the Gateway root endpoint. Codex uses its API-key launch environment and a
-configured OpenAI-compatible Gateway provider ending in `/v1`.
+configured OpenAI-compatible Gateway provider ending in `/v1`. Codex ACP
+supports only `permissionMode: 'allow-all'` because restrictive Codex modes
+enable its internal sandbox.
 
 The installed Grok package's npm trampoline can reuse an older binary already
 present in the default Grok home. Verification therefore used an isolated

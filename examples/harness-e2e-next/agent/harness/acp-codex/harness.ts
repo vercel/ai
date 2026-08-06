@@ -15,8 +15,8 @@ export const codexACPHarness = createACP({
     forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
   },
   permissionModeMapping: {
-    'allow-reads': { type: 'session-mode', modeId: 'read-only' },
-    'allow-edits': { type: 'session-mode', modeId: 'agent-full-access' },
+    'allow-reads': null,
+    'allow-edits': null,
     'allow-all': { type: 'session-mode', modeId: 'agent-full-access' },
   } as const satisfies ACPPermissionModeMapping,
   authentication: {

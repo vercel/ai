@@ -57,6 +57,86 @@ describe('ACP permission mode configuration', () => {
     },
   );
 
+  it('rejects an unsupported mode and suggests a mapped allow-all mode', async () => {
+    const agent = fakeAgent();
+    const mapping = {
+      'allow-reads': null,
+      'allow-edits': null,
+      'allow-all': { type: 'session-mode', modeId: 'full-access' },
+    } as const satisfies ACPPermissionModeMapping;
+
+    await expect(
+      configureACPPermissionMode({
+        agent,
+        sessionId: 'session-1',
+        sessionConfiguration: modeConfiguration,
+        permissionModeMapping: mapping,
+        permissionMode: 'allow-reads',
+        harnessId: 'example-acp',
+      }),
+    ).rejects.toThrow(
+      `Permission mode "allow-reads" is not supported by this ACP harness. Use permissionMode: 'allow-all'.`,
+    );
+    expect(agent.request).not.toHaveBeenCalled();
+  });
+
+  it('does not suggest allow-all when that mode is also unsupported', async () => {
+    const agent = fakeAgent();
+    const mapping = {
+      'allow-reads': null,
+      'allow-edits': { type: 'session-mode', modeId: 'agent' },
+      'allow-all': null,
+    } as const satisfies ACPPermissionModeMapping;
+
+    let unsupportedError: unknown;
+    try {
+      await configureACPPermissionMode({
+        agent,
+        sessionId: 'session-1',
+        sessionConfiguration: modeConfiguration,
+        permissionModeMapping: mapping,
+        permissionMode: 'allow-reads',
+        harnessId: 'example-acp',
+      });
+    } catch (error) {
+      unsupportedError = error;
+    }
+    expect(
+      HarnessBridgeCapabilityUnsupportedError.isInstance(unsupportedError),
+    ).toBe(true);
+    expect(unsupportedError).toMatchObject({
+      message:
+        'Permission mode "allow-reads" is not supported by this ACP harness.',
+    });
+    expect(agent.request).not.toHaveBeenCalled();
+  });
+
+  it('configures a supported mode when the other mappings are null', async () => {
+    const agent = fakeAgent();
+    const mapping = {
+      'allow-reads': null,
+      'allow-edits': null,
+      'allow-all': { type: 'session-mode', modeId: 'full-access' },
+    } as const satisfies ACPPermissionModeMapping;
+
+    await configureACPPermissionMode({
+      agent,
+      sessionId: 'session-1',
+      sessionConfiguration: modeConfiguration,
+      permissionModeMapping: mapping,
+      permissionMode: 'allow-all',
+      harnessId: 'example-acp',
+    });
+
+    expect(agent.request).toHaveBeenCalledWith(
+      acp.methods.agent.session.setMode,
+      {
+        sessionId: 'session-1',
+        modeId: 'full-access',
+      },
+    );
+  });
+
   it('validates grouped select values and applies a config option', async () => {
     const agent = fakeAgent();
     const mapping = {

@@ -441,6 +441,49 @@ describe('createACP', () => {
     await session.doDestroy();
   });
 
+  it('transports explicit unsupported permission mode mappings', async () => {
+    const unsupportedMapping = {
+      'allow-reads': null,
+      'allow-edits': null,
+      'allow-all': {
+        type: 'session-mode',
+        modeId: 'agent-full-access',
+      },
+    } as const satisfies ACPPermissionModeMapping;
+    const harness = createACP({
+      harnessId: 'codex-acp',
+      implementation,
+      permissionModeMapping: unsupportedMapping,
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+      permissionMode: 'allow-all',
+    });
+    const control = await session.doPromptTurn({
+      prompt: 'Check permissions.',
+      emit: () => {},
+    });
+    const channel = harnessUtilsMocks.channels[0]!;
+
+    expect(channel.sent[0]).toMatchObject({
+      type: 'start',
+      permissionModeMapping: unsupportedMapping,
+    });
+    channel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await control.done;
+    await session.doDestroy();
+  });
+
   it('does not claim native filtering when approval mapping is complete', async () => {
     const harness = createACP({
       harnessId: 'codex-acp',

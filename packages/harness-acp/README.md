@@ -36,8 +36,8 @@ const codexACP = createACP({
     forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
   },
   permissionModeMapping: {
-    'allow-reads': { type: 'session-mode', modeId: 'read-only' },
-    'allow-edits': { type: 'session-mode', modeId: 'agent-full-access' },
+    'allow-reads': null,
+    'allow-edits': null,
     'allow-all': { type: 'session-mode', modeId: 'agent-full-access' },
   },
   authentication: {
@@ -67,5 +67,6 @@ try {
 
 Set `CODEX_API_KEY` or `OPENAI_API_KEY` in the host environment. The adapter
 resolves the value when the ACP process starts and does not store it in the
-profile. A bridge-backed ACP harness requires a sandbox with at least one
-exposed port.
+profile. Codex ACP supports only `permissionMode: 'allow-all'` because its
+restrictive modes enable Codex's internal sandbox. A bridge-backed ACP harness
+requires a sandbox with at least one exposed port.

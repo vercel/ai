@@ -399,7 +399,7 @@ async function ensureSession({
       start.permissionModeMapping ?? {},
     ).some(
       target =>
-        target.type === 'session-config-option' &&
+        target?.type === 'session-config-option' &&
         typeof target.value === 'boolean',
     ),
   });
