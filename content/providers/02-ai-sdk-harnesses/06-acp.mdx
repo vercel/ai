@@ -349,7 +349,6 @@ export const grokBuildACPHarness = createACP({
   providerAuthentication: {
     gateway: {
       env: {
-        GROK_DEFAULT_MODEL: 'openai/gpt-5.4',
         GROK_CLIENT_NAME: { $source: 'client-app-name' },
         GROK_CLIENT_VERSION: { $source: 'client-app-version' },
         XAI_API_KEY: { $source: 'gateway-api-key' },
