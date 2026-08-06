@@ -1,5 +1,5 @@
 import { google, type GoogleSpeechModelOptions } from '@ai-sdk/google';
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 import { saveAudioFile } from '../../lib/save-audio';
 import { run } from '../../lib/run';
 

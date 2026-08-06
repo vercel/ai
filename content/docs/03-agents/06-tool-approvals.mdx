@@ -65,7 +65,7 @@ When `runCommand` is called, the agent returns a `tool-approval-request` instead
 
 Use a per-tool approval function when the decision depends on the parsed tool input. The function receives the typed input plus `toolCallId`, `messages`, `toolContext`, and `runtimeContext`.
 
-```ts highlight="22-25"
+```ts highlight="17-24"
 import { ToolLoopAgent, tool } from 'ai';
 __PROVIDER_IMPORT__;
 import { z } from 'zod';
@@ -99,7 +99,7 @@ In this example, non-admin users are denied automatically, large payments requir
 
 Pass a function directly as `toolApproval` when approval depends on the full tool call, shared state across tools, or the complete tool set. This is called a `GenericToolApprovalFunction`.
 
-```ts highlight="17-28"
+```ts highlight="13-16,18-20,22-23"
 const agent = new ToolLoopAgent({
   model: __MODEL__,
   tools: {
@@ -138,7 +138,7 @@ The generic function receives:
 
 Because `toolApproval` is an agent setting, you can also return it from `prepareCall`. This is useful when approval policy depends on call options, tenant policy, or user permissions.
 
-```ts highlight="8-10,11-18"
+```ts highlight="7-17"
 import { ToolLoopAgent, tool } from 'ai';
 __PROVIDER_IMPORT__;
 import { z } from 'zod';
@@ -175,7 +175,7 @@ Manual approval requires two calls:
 4. Add a `tool-approval-response` to the messages.
 5. Call the agent again with the updated messages.
 
-```ts highlight="11-18,21-28"
+```ts highlight="5-6,10-18,21-24,26"
 import { type ModelMessage, type ToolApprovalResponse } from 'ai';
 
 const messages: ModelMessage[] = [{ role: 'user', content: 'Delete temp.txt' }];
@@ -216,7 +216,7 @@ If approved, the tool runs on the second call. If denied, the model receives the
 
 When streaming an agent to a chat UI, approval requests appear as tool parts with `state: 'approval-requested'`. Respond with `addToolApprovalResponse`.
 
-```tsx highlight="6,14-28"
+```tsx highlight="7-9,17-40"
 'use client';
 
 import { useChat } from '@ai-sdk/react';
@@ -266,8 +266,61 @@ export default function Chat() {
 
 Only call `addToolApprovalResponse` for manual approvals. Automatic approvals and denials already include approval state in the stream.
 
+## Security Considerations
+
+### Trust model
+
+In the standard `useChat` pattern, the server rebuilds the conversation from the messages the client sends each turn. The server does not persist conversation state between requests. This means the message history is client-controlled input.
+
+Tool approvals reconstructed from this history are re-validated before execution: the tool input is checked against the tool's schema, and the approval policy is re-evaluated. However, without additional protection, a client that crafts a valid-looking approval for a schema-conforming input can bypass the human-in-the-loop step.
+
+If your tools perform sensitive operations (modifying data, spending money, calling external APIs, accessing private resources), use `experimental_toolApprovalSecret` to cryptographically bind approvals to the server that issued them.
+
+### Signing approvals with `experimental_toolApprovalSecret`
+
+When you provide a secret, the server HMAC-signs each approval request at issuance and verifies the signature when the approval is replayed. A forged or tampered approval is rejected before the tool executes.
+
+```ts highlight="5"
+const result = await streamText({
+  model: __MODEL__,
+  tools: { deleteFile, runQuery },
+  toolApproval: { deleteFile: 'user-approval', runQuery: 'user-approval' },
+  experimental_toolApprovalSecret: process.env.TOOL_APPROVAL_SECRET,
+  messages,
+});
+```
+
+The signature binds the approval to the exact tool name, tool call ID, and input arguments. Changing any of these after signing invalidates the approval.
+
+**Setting up the secret:**
+
+1. Generate a high-entropy random string (at least 32 bytes):
+   ```bash
+   openssl rand -base64 32
+   ```
+2. Store it as an environment variable accessible to all server instances:
+   ```
+   TOOL_APPROVAL_SECRET=your-generated-secret-here
+   ```
+3. Pass it to `generateText` or `streamText` via `experimental_toolApprovalSecret`.
+
+Every serverless instance that might handle a request needs the same secret, since one instance signs the approval and a different instance may verify it on the next turn.
+
+**Behavior when configured:**
+
+- Approval requests without a valid signature are rejected (fail-closed)
+- No secret configured: approvals work as before (backward compatible)
+- The secret is never sent to the client or included in the stream
+
+<Note>
+  `experimental_toolApprovalSecret` is not yet supported on `WorkflowAgent`. For
+  durable workflows, the workflow runtime provides its own persistence layer
+  that can be used to verify approvals.
+</Note>
+
 ## Related APIs
 
 - Use `toolApproval` with `ToolLoopAgent`, `generateText`, and `streamText`.
+- Author approval rules as code with [Policy-Based Tool Approvals](/docs/agents/policy-tool-approvals) (`@ai-sdk/policy-opa`).
 - Use `needsApproval` only with [`WorkflowAgent`](/docs/agents/workflow-agent), where approvals suspend and resume durable workflow execution.
 - Subagent tools cannot use `toolApproval`; see [Subagents](/docs/agents/subagents#no-tool-approvals-in-subagents).

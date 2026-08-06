@@ -1,6 +1,9 @@
 import {
   UnsupportedFunctionalityError,
+  type JSONSchema7,
+  type JSONObject,
   type LanguageModelV4CallOptions,
+  type LanguageModelV4FunctionTool,
   type SharedV4ProviderReference,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
@@ -18,7 +21,20 @@ import { shellArgsSchema } from '../tool/shell';
 import { toolSearchArgsSchema } from '../tool/tool-search';
 import { webSearchArgsSchema } from '../tool/web-search';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
-import type { OpenAIResponsesTool } from './openai-responses-api';
+import type {
+  OpenAIResponsesFunctionTool,
+  OpenAIResponsesTool,
+} from './openai-responses-api';
+
+export type OpenAIToolOptions = {
+  allowedCallers?: Array<'direct' | 'programmatic'>;
+  deferLoading?: boolean;
+  outputSchema?: JSONObject;
+  namespace?: {
+    name: string;
+    description: string;
+  };
+};
 
 export async function prepareResponsesTools({
   tools,
@@ -50,6 +66,8 @@ export async function prepareResponsesTools({
     | { type: 'mcp' }
     | { type: 'image_generation' }
     | { type: 'apply_patch' }
+    | { type: 'computer' }
+    | { type: 'programmatic_tool_calling' }
     | {
         type: 'allowed_tools';
         mode: 'auto' | 'required';
@@ -67,6 +85,10 @@ export async function prepareResponsesTools({
   }
 
   const openaiTools: Array<OpenAIResponsesTool> = [];
+  const namespaceTools = new Map<
+    string,
+    Extract<OpenAIResponsesTool, { type: 'namespace' }>
+  >();
   const resolvedCustomProviderToolNames =
     customProviderToolNames ?? new Set<string>();
 
@@ -74,18 +96,36 @@ export async function prepareResponsesTools({
     switch (tool.type) {
       case 'function': {
         const openaiOptions = tool.providerOptions?.openai as
-          | { deferLoading?: boolean }
+          | OpenAIToolOptions
           | undefined;
-        const deferLoading = openaiOptions?.deferLoading;
-
-        openaiTools.push({
-          type: 'function',
-          name: tool.name,
-          description: tool.description,
-          parameters: tool.inputSchema,
-          ...(tool.strict != null ? { strict: tool.strict } : {}),
-          ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
+        const openaiFunctionTool = prepareFunctionTool({
+          tool,
+          options: openaiOptions,
         });
+        const namespace = openaiOptions?.namespace;
+
+        if (namespace == null) {
+          openaiTools.push(openaiFunctionTool);
+        } else {
+          let namespaceTool = namespaceTools.get(namespace.name);
+
+          if (namespaceTool == null) {
+            namespaceTool = {
+              type: 'namespace',
+              name: namespace.name,
+              description: namespace.description,
+              tools: [],
+            };
+            namespaceTools.set(namespace.name, namespaceTool);
+            openaiTools.push(namespaceTool);
+          } else if (namespaceTool.description !== namespace.description) {
+            throw new UnsupportedFunctionalityError({
+              functionality: `conflicting descriptions for OpenAI tool namespace "${namespace.name}"`,
+            });
+          }
+
+          namespaceTool.tools.push(openaiFunctionTool);
+        }
         break;
       }
       case 'provider': {
@@ -137,6 +177,12 @@ export async function prepareResponsesTools({
             });
             break;
           }
+          case 'openai.computer': {
+            openaiTools.push({
+              type: 'computer',
+            });
+            break;
+          }
           case 'openai.web_search_preview': {
             const args = await validateTypes({
               value: tool.args,
@@ -158,7 +204,10 @@ export async function prepareResponsesTools({
               type: 'web_search',
               filters:
                 args.filters != null
-                  ? { allowed_domains: args.filters.allowedDomains }
+                  ? {
+                      allowed_domains: args.filters.allowedDomains,
+                      blocked_domains: args.filters.blockedDomains,
+                    }
                   : undefined,
               external_web_access: args.externalWebAccess,
               search_context_size: args.searchContextSize,
@@ -271,6 +320,12 @@ export async function prepareResponsesTools({
             resolvedCustomProviderToolNames.add(tool.name);
             break;
           }
+          case 'openai.programmatic_tool_calling': {
+            openaiTools.push({
+              type: 'programmatic_tool_calling',
+            });
+            break;
+          }
           case 'openai.tool_search': {
             const args = await validateTypes({
               value: tool.args,
@@ -340,7 +395,9 @@ export async function prepareResponsesTools({
           resolvedToolName === 'web_search_preview' ||
           resolvedToolName === 'web_search' ||
           resolvedToolName === 'mcp' ||
-          resolvedToolName === 'apply_patch'
+          resolvedToolName === 'apply_patch' ||
+          resolvedToolName === 'computer' ||
+          resolvedToolName === 'programmatic_tool_calling'
             ? { type: resolvedToolName }
             : resolvedCustomProviderToolNames.has(resolvedToolName)
               ? { type: 'custom', name: resolvedToolName }
@@ -355,6 +412,31 @@ export async function prepareResponsesTools({
       });
     }
   }
+}
+
+function prepareFunctionTool({
+  tool,
+  options,
+}: {
+  tool: LanguageModelV4FunctionTool;
+  options: OpenAIToolOptions | undefined;
+}): OpenAIResponsesFunctionTool {
+  const deferLoading = options?.deferLoading;
+
+  return {
+    type: 'function',
+    name: tool.name,
+    description: tool.description,
+    parameters: tool.inputSchema,
+    ...(tool.strict != null ? { strict: tool.strict } : {}),
+    ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
+    ...(options?.allowedCallers != null
+      ? { allowed_callers: options.allowedCallers }
+      : {}),
+    ...(options?.outputSchema != null
+      ? { output_schema: options.outputSchema as JSONSchema7 }
+      : {}),
+  };
 }
 
 function mapShellEnvironment(environment: {

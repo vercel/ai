@@ -6,7 +6,7 @@ import {
 import type { UIMessage } from '../ui/ui-messages';
 import type { ErrorHandler } from '../util/error-handler';
 import type { InferUIMessageChunk, UIMessageChunk } from './ui-message-chunks';
-import type { UIMessageStreamOnFinishCallback } from './ui-message-stream-on-finish-callback';
+import type { UIMessageStreamOnEndCallback } from './ui-message-stream-on-end-callback';
 import type { UIMessageStreamOnStepEndCallback } from './ui-message-stream-on-step-end-callback';
 import type { UIMessageStreamOnStepFinishCallback } from './ui-message-stream-on-step-finish-callback';
 
@@ -15,6 +15,7 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   originalMessages = [],
   onStepEnd,
   onStepFinish,
+  onEnd,
   onFinish,
   onError,
   stream,
@@ -46,7 +47,12 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
    */
   onStepFinish?: UIMessageStreamOnStepFinishCallback<UI_MESSAGE>;
 
-  onFinish?: UIMessageStreamOnFinishCallback<UI_MESSAGE>;
+  onEnd?: UIMessageStreamOnEndCallback<UI_MESSAGE>;
+
+  /**
+   * @deprecated Use `onEnd` instead.
+   */
+  onFinish?: UIMessageStreamOnEndCallback<UI_MESSAGE>;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
   // last message is only relevant for assistant messages
   let lastMessage: UI_MESSAGE | undefined =
@@ -87,8 +93,9 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
 
   // Only process the stream if we need to track state for callbacks
   const resolvedOnStepEnd = onStepEnd ?? onStepFinish;
+  const resolvedOnEnd = onEnd ?? onFinish;
 
-  if (onFinish == null && resolvedOnStepEnd == null) {
+  if (resolvedOnEnd == null && resolvedOnStepEnd == null) {
     return idInjectedStream;
   }
 
@@ -110,14 +117,14 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
 
   let finishCalled = false;
 
-  const callOnFinish = async () => {
-    if (finishCalled || !onFinish) {
+  const callOnEnd = async () => {
+    if (finishCalled || !resolvedOnEnd) {
       return;
     }
     finishCalled = true;
 
     const isContinuation = state.message.id === lastMessage?.id;
-    await onFinish({
+    await resolvedOnEnd({
       isAborted,
       isContinuation,
       responseMessage: state.message as UI_MESSAGE,
@@ -170,11 +177,11 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
       },
       // @ts-expect-error cancel is still new and missing from types https://developer.mozilla.org/en-US/docs/Web/API/TransformStream#browser_compatibility
       async cancel() {
-        await callOnFinish();
+        await callOnEnd();
       },
 
       async flush() {
-        await callOnFinish();
+        await callOnEnd();
       },
     }),
   );

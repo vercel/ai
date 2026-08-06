@@ -56,7 +56,8 @@ export type GenerateTextStartEvent<
 
   /**
    * Timeout configuration for the generation.
-   * Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs, toolMs, and per-tool overrides via tools.
+   * Can be a number (milliseconds) or an object with totalMs, stepMs,
+   * firstChunkMs (streaming only), chunkMs, toolMs, and per-tool overrides via tools.
    */
   readonly timeout: TimeoutConfiguration<TOOLS> | undefined;
 
@@ -339,7 +340,7 @@ export type OnFinishEvent<
 > = GenerateTextEndEvent<TOOLS, RUNTIME_CONTEXT>;
 
 /**
- * Callback that is set using the `experimental_onStart` option.
+ * Callback that is set using the `onStart` option.
  *
  * Called when the generateText operation begins, before any LLM calls.
  * Use this callback for logging, analytics, or initializing state at the
@@ -354,7 +355,7 @@ export type GenerateTextOnStartCallback<
 > = Callback<GenerateTextStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
 
 /**
- * Callback that is set using the `experimental_onStepStart` option.
+ * Callback that is set using the `onStepStart` option.
  *
  * Called when a step (LLM call) begins, before the provider is called.
  * Each step represents a single LLM invocation. Multiple steps occur when

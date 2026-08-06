@@ -91,6 +91,19 @@ The ToolLoopAgent is the recommended approach for building agents with the AI SD
 
 For most use cases, start with the ToolLoopAgent. Use core functions (`generateText`, `streamText`) when you need explicit control over each step for complex structured workflows.
 
+## HarnessAgent Class
+
+Use `HarnessAgent` when you want to run a preconfigured established harness,
+such as Claude Code, Codex, or Pi, instead of building the loop yourself around
+a language model. Harnesses are a separate abstraction from providers and
+models, but stream into AI SDK-compatible result and UI primitives.
+
+Learn more in [Harnesses](/docs/ai-sdk-harnesses) and
+[HarnessAgent](/docs/ai-sdk-harnesses/harness-agent).
+
+The rest of this section focuses on `ToolLoopAgent`, which is the AI SDK agent
+class for building your own model-and-tools loop.
+
 ## Terminal UI
 
 Use `@ai-sdk/tui` to run a `ToolLoopAgent` in an interactive terminal UI. It is

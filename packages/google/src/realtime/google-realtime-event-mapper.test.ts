@@ -3,6 +3,7 @@ import {
   GoogleRealtimeEventMapper,
   buildGoogleSessionConfig,
 } from './google-realtime-event-mapper';
+import type { GoogleRealtimeModelOptions } from './google-realtime-model-options';
 
 describe('GoogleRealtimeEventMapper', () => {
   describe('parseServerEvent', () => {
@@ -343,6 +344,55 @@ describe('GoogleRealtimeEventMapper', () => {
       });
     });
 
+    it('maps goAway to a stable custom lifecycle event', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = { goAway: { timeLeft: '30s' } };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'custom',
+        rawType: 'goAway',
+        raw,
+      });
+    });
+
+    it('maps sessionResumptionUpdate to a stable custom lifecycle event', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = {
+        sessionResumptionUpdate: {
+          newHandle: 'resume-handle',
+          resumable: true,
+          lastConsumedClientMessageIndex: '42',
+        },
+      };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'custom',
+        rawType: 'sessionResumptionUpdate',
+        raw,
+      });
+    });
+
+    it('keeps generationComplete distinct from turnComplete', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = { serverContent: { generationComplete: true } };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'custom',
+        rawType: 'generationComplete',
+        raw,
+      });
+
+      const next = mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: { parts: [{ text: 'still turn zero' }] },
+        },
+      });
+      expect(next).toMatchObject({
+        type: 'text-delta',
+        responseId: 'google-resp-0',
+      });
+    });
+
     it('maps unrecognized top-level key to custom event', () => {
       const mapper = new GoogleRealtimeEventMapper();
       const raw = { somethingNew: { data: 123 } };
@@ -442,6 +492,42 @@ describe('GoogleRealtimeEventMapper', () => {
       });
     });
 
+    it('serializes live translation config into generationConfig', () => {
+      const result = mapper.serializeClientEvent(
+        {
+          type: 'session-update',
+          config: {
+            inputAudioTranscription: {},
+            outputAudioTranscription: {},
+            providerOptions: {
+              google: {
+                translationConfig: {
+                  targetLanguageCode: 'pl',
+                  echoTargetLanguage: true,
+                },
+              } satisfies GoogleRealtimeModelOptions,
+            },
+          },
+        },
+        'gemini-3.5-live-translate-preview',
+      );
+
+      expect(result).toEqual({
+        setup: {
+          model: 'models/gemini-3.5-live-translate-preview',
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            translationConfig: {
+              targetLanguageCode: 'pl',
+              echoTargetLanguage: true,
+            },
+          },
+          inputAudioTranscription: {},
+          outputAudioTranscription: {},
+        },
+      });
+    });
+
     it('serializes input-audio-append as realtimeInput', () => {
       const result = mapper.serializeClientEvent(
         { type: 'input-audio-append', audio: 'base64data' },
@@ -458,10 +544,14 @@ describe('GoogleRealtimeEventMapper', () => {
       });
     });
 
-    it('returns null for input-audio-commit', () => {
+    it('serializes input-audio-commit as audioStreamEnd', () => {
       expect(
         mapper.serializeClientEvent({ type: 'input-audio-commit' }, 'model'),
-      ).toBeNull();
+      ).toEqual({
+        realtimeInput: {
+          audioStreamEnd: true,
+        },
+      });
     });
 
     it('returns null for input-audio-clear', () => {
@@ -692,6 +782,60 @@ describe('buildGoogleSessionConfig', () => {
     );
 
     expect(result.outputAudioTranscription).toEqual({});
+  });
+
+  it('maps providerOptions.google.translationConfig to generationConfig', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          google: {
+            translationConfig: {
+              targetLanguageCode: 'es',
+              echoTargetLanguage: true,
+            },
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.5-live-translate-preview',
+    );
+
+    expect(result).toEqual({
+      model: 'models/gemini-3.5-live-translate-preview',
+      generationConfig: {
+        responseModalities: ['AUDIO'],
+        translationConfig: {
+          targetLanguageCode: 'es',
+          echoTargetLanguage: true,
+        },
+      },
+    });
+  });
+
+  it('merges translation config into raw generationConfig provider options', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            temperature: 0.2,
+          },
+          google: {
+            translationConfig: {
+              targetLanguageCode: 'fr',
+            },
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.5-live-translate-preview',
+    );
+
+    expect(result.generationConfig).toEqual({
+      responseModalities: ['AUDIO'],
+      temperature: 0.2,
+      translationConfig: {
+        targetLanguageCode: 'fr',
+      },
+    });
   });
 
   it('preserves model path that already includes slash', () => {

@@ -168,6 +168,10 @@ export type StreamObjectOnFinishCallback<RESULT> = (event: {
  * - 'enum': The output is an enum.
  * - 'no-schema': The output is not a schema.
  *
+ * @param repairText - A function that attempts to repair the raw output of the model
+ * to enable JSON parsing.
+ * @param experimental_repairText - Deprecated alias for `repairText`.
+ *
  * @param telemetry - Optional telemetry configuration.
  *
  * @param providerOptions - Additional provider-specific options. They are passed through
@@ -231,6 +235,14 @@ export function streamObject<
        * A function that attempts to repair the raw output of the model
        * to enable JSON parsing.
        */
+      repairText?: RepairTextFunction;
+
+      /**
+       * A function that attempts to repair the raw output of the model
+       * to enable JSON parsing.
+       *
+       * @deprecated Use `repairText` instead.
+       */
       experimental_repairText?: RepairTextFunction;
 
       /**
@@ -263,11 +275,27 @@ export function streamObject<
        * Callback that is called when the streamObject operation begins,
        * before the LLM call is made.
        */
+      onStart?: Callback<GenerateObjectStartEvent>;
+
+      /**
+       * Callback that is called when the streamObject operation begins,
+       * before the LLM call is made.
+       *
+       * @deprecated Use `onStart` instead.
+       */
       experimental_onStart?: Callback<GenerateObjectStartEvent>;
 
       /**
        * Callback that is called when the model call (step) begins,
        * before the provider is called.
+       */
+      onStepStart?: Callback<GenerateObjectStepStartEvent>;
+
+      /**
+       * Callback that is called when the model call (step) begins,
+       * before the provider is called.
+       *
+       * @deprecated Use `onStepStart` instead.
        */
       experimental_onStepStart?: Callback<GenerateObjectStepStartEvent>;
 
@@ -330,13 +358,16 @@ export function streamObject<
     maxRetries,
     abortSignal,
     headers,
-    experimental_repairText: repairText,
+    experimental_repairText,
+    repairText = experimental_repairText,
     experimental_telemetry,
     telemetry = experimental_telemetry,
     experimental_download: download,
     providerOptions,
-    experimental_onStart: onStart,
-    experimental_onStepStart: onStepStart,
+    onStart,
+    experimental_onStart,
+    onStepStart,
+    experimental_onStepStart,
     onStepEnd,
     onStepFinish,
     onError = ({ error }: { error: unknown }) => {
@@ -391,8 +422,8 @@ export function streamObject<
     schemaDescription,
     providerOptions,
     repairText,
-    onStart,
-    onStepStart,
+    onStart: onStart ?? experimental_onStart,
+    onStepStart: onStepStart ?? experimental_onStepStart,
     onStepFinish: onStepEnd ?? onStepFinish,
     onError,
     onFinish,
@@ -807,7 +838,7 @@ class DefaultStreamObjectResult<
                   },
                   callbacks: [
                     onStepFinish,
-                    telemetryDispatcher.onObjectStepFinish,
+                    telemetryDispatcher.onObjectStepEnd,
                   ],
                 });
 
@@ -946,7 +977,7 @@ class DefaultStreamObjectResult<
   }
 
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
-    pipeTextStreamToResponse({
+    return pipeTextStreamToResponse({
       response,
       stream: this.textStream,
       ...init,

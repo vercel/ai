@@ -33,6 +33,37 @@ describe('convertToOpenAIResponsesInput', () => {
       expect(result.input).toEqual([{ role: 'developer', content: 'Hello' }]);
     });
 
+    it('should add a prompt cache breakpoint to a system message', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'system',
+            content: 'Hello',
+            providerOptions: {
+              openai: { promptCacheBreakpoint: { mode: 'explicit' } },
+            },
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'developer',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'developer',
+          content: [
+            {
+              type: 'input_text',
+              text: 'Hello',
+              prompt_cache_breakpoint: { mode: 'explicit' },
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should remove system messages', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [{ role: 'system', content: 'Hello' }],
@@ -63,6 +94,70 @@ describe('convertToOpenAIResponsesInput', () => {
 
       expect(result.input).toEqual([
         { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+      ]);
+    });
+
+    it('should add prompt cache breakpoints to supported content blocks', async () => {
+      const promptCacheBreakpoint = { mode: 'explicit' } as const;
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Hello',
+                providerOptions: { openai: { promptCacheBreakpoint } },
+              },
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: {
+                  type: 'url',
+                  url: new URL('https://example.com/image.png'),
+                },
+                providerOptions: { openai: { promptCacheBreakpoint } },
+              },
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data: {
+                  type: 'reference',
+                  reference: { openai: 'file-pdf-123' },
+                },
+                providerOptions: { openai: { promptCacheBreakpoint } },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_text',
+              text: 'Hello',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+            {
+              type: 'input_image',
+              image_url: 'https://example.com/image.png',
+              detail: undefined,
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+            {
+              type: 'input_file',
+              file_id: 'file-pdf-123',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+          ],
+        },
       ]);
     });
 
@@ -5462,6 +5557,177 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('programmatic tool calling', () => {
+    it('should preserve the program output item reference from provider metadata', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'program_call_1',
+                toolName: 'program',
+                output: {
+                  type: 'json',
+                  value: {
+                    result: '{"availableUnits":42}',
+                    status: 'completed',
+                  },
+                },
+                ...({
+                  providerMetadata: {
+                    openai: { itemId: 'program_output_item_1' },
+                  },
+                } as object),
+              },
+            ],
+          },
+        ],
+        toolNameMapping: {
+          toProviderToolName: name =>
+            name === 'program' ? 'programmatic_tool_calling' : name,
+          toCustomToolName: name =>
+            name === 'programmatic_tool_calling' ? 'program' : name,
+        },
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        { type: 'item_reference', id: 'program_output_item_1' },
+      ]);
+    });
+
+    it('should replay program items and preserve nested function caller linkage', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'program_call_1',
+                toolName: 'program',
+                input: {
+                  code: 'const value = await tools.get_inventory({ sku: "A" });',
+                  fingerprint: 'fingerprint_1',
+                },
+                providerExecuted: true,
+                providerOptions: {
+                  openai: { itemId: 'program_item_1' },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'function_call_1',
+                toolName: 'get_inventory',
+                input: { sku: 'A' },
+                providerOptions: {
+                  openai: {
+                    itemId: 'function_item_1',
+                    caller: {
+                      type: 'program',
+                      callerId: 'program_call_1',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'function_call_1',
+                toolName: 'get_inventory',
+                output: {
+                  type: 'json',
+                  value: { sku: 'A', availableUnits: 42 },
+                },
+                providerOptions: {
+                  openai: {
+                    caller: {
+                      type: 'program',
+                      callerId: 'program_call_1',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'program_call_1',
+                toolName: 'program',
+                output: {
+                  type: 'json',
+                  value: {
+                    result: '{"availableUnits":42}',
+                    status: 'completed',
+                  },
+                },
+                providerOptions: {
+                  openai: { itemId: 'program_output_item_1' },
+                },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: {
+          toProviderToolName: name =>
+            name === 'program' ? 'programmatic_tool_calling' : name,
+          toCustomToolName: name =>
+            name === 'programmatic_tool_calling' ? 'program' : name,
+        },
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'program',
+          id: 'program_item_1',
+          call_id: 'program_call_1',
+          code: 'const value = await tools.get_inventory({ sku: "A" });',
+          fingerprint: 'fingerprint_1',
+        },
+        {
+          type: 'function_call',
+          call_id: 'function_call_1',
+          name: 'get_inventory',
+          arguments: '{"sku":"A"}',
+          caller: {
+            type: 'program',
+            caller_id: 'program_call_1',
+          },
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'function_call_1',
+          output: '{"sku":"A","availableUnits":42}',
+          caller: {
+            type: 'program',
+            caller_id: 'program_call_1',
+          },
+        },
+        {
+          type: 'program_output',
+          id: 'program_output_item_1',
+          call_id: 'program_call_1',
+          result: '{"availableUnits":42}',
+          status: 'completed',
+        },
+      ]);
     });
   });
 });

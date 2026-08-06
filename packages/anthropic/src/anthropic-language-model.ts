@@ -1,5 +1,6 @@
 import {
   APICallError,
+  InvalidResponseDataError,
   type JSONObject,
   type LanguageModelV4,
   type LanguageModelV4CallOptions,
@@ -28,6 +29,7 @@ import {
   postJsonToApi,
   resolve,
   resolveProviderReference,
+  secureJsonParse,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -47,6 +49,7 @@ import {
   type AnthropicContainer,
   type AnthropicReasoningMetadata,
   type AnthropicResponseContextManagement,
+  type AnthropicStopDetails,
   type AnthropicTool,
   type Citation,
 } from './anthropic-api';
@@ -296,8 +299,20 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       supportsAdaptiveThinking,
       rejectsSamplingParameters,
       supportsXhighEffort,
+      rejectsThinkingDisabledAboveHighEffort,
       isKnownModel,
     } = getModelCapabilities(this.modelId);
+
+    if (!isKnownModel && maxOutputTokens == null) {
+      warnings.push({
+        type: 'compatibility',
+        feature: 'maxOutputTokens',
+        details:
+          `The model "${this.modelId}" is unknown. ` +
+          `The max output tokens have been limited to ${maxOutputTokensForModel}. ` +
+          `Set maxOutputTokens explicitly to override this limit.`,
+      });
+    }
 
     if (rejectsSamplingParameters) {
       if (temperature != null) {
@@ -326,7 +341,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       }
     }
 
-    const isAnthropicModel = isKnownModel || this.modelId.startsWith('claude-');
+    const isAnthropicModel = isKnownModel || this.modelId.includes('claude-');
 
     const supportsStructuredOutput =
       (this.config.supportsNativeStructuredOutput ?? true) &&
@@ -353,6 +368,19 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             inputSchema: responseFormat.schema,
           }
         : undefined;
+
+    if (
+      jsonResponseTool != null &&
+      anthropicOptions?.disableParallelToolUse === false
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.anthropic.disableParallelToolUse',
+        details:
+          '`disableParallelToolUse: false` is ignored when using the JSON response tool. ' +
+          'Parallel tool use is disabled to ensure a single coherent JSON tool call.',
+      });
+    }
 
     const contextManagement = anthropicOptions?.contextManagement;
 
@@ -417,9 +445,32 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       }
     }
 
+    // Newer models only allow disabling thinking at effort levels up to and
+    // including `high`; at `xhigh` and `max` the API returns a 400. Lower
+    // the effort to `high` to preserve the explicit request to run without
+    // thinking.
+    if (
+      rejectsThinkingDisabledAboveHighEffort &&
+      anthropicOptions?.thinking?.type === 'disabled' &&
+      (anthropicOptions.effort === 'xhigh' || anthropicOptions.effort === 'max')
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.anthropic.effort',
+        details:
+          `effort '${anthropicOptions.effort}' is not supported by ${this.modelId} when thinking is disabled. ` +
+          `The effort has been lowered to 'high'.`,
+      });
+      anthropicOptions.effort = 'high';
+    }
+
     const thinkingType = anthropicOptions?.thinking?.type;
     const isThinking =
       thinkingType === 'enabled' || thinkingType === 'adaptive';
+    // `disabled` must still be forwarded to the API: some models (e.g. Sonnet 5)
+    // default thinking on, so omitting it would leave thinking enabled and
+    // consume the max_tokens budget.
+    const sendThinking = isThinking || thinkingType === 'disabled';
     let thinkingBudget =
       thinkingType === 'enabled'
         ? anthropicOptions?.thinking?.budgetTokens
@@ -443,7 +494,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       stop_sequences: stopSequences,
 
       // provider specific settings:
-      ...(isThinking && {
+      ...(sendThinking && {
         thinking: {
           type: thinkingType,
           ...(thinkingBudget != null && { budget_tokens: thinkingBudget }),
@@ -484,6 +535,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       ...(anthropicOptions?.inferenceGeo && {
         inference_geo: anthropicOptions.inferenceGeo,
       }),
+      ...(anthropicOptions?.fallbacks != null &&
+        (anthropicOptions.fallbacks === 'default' ||
+          anthropicOptions.fallbacks.length > 0) && {
+          fallbacks: anthropicOptions.fallbacks,
+        }),
       ...(anthropicOptions?.cacheControl && {
         cache_control: anthropicOptions.cacheControl,
       }),
@@ -716,6 +772,15 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       betas.add('fast-mode-2026-02-01');
     }
 
+    if (anthropicOptions?.fallbacks === 'default') {
+      betas.add('server-side-fallback-2026-07-01');
+    } else if (
+      anthropicOptions?.fallbacks &&
+      anthropicOptions.fallbacks.length > 0
+    ) {
+      betas.add('server-side-fallback-2026-06-01');
+    }
+
     const defaultEagerInputStreaming =
       stream && (anthropicOptions?.toolStreaming ?? true);
 
@@ -913,7 +978,22 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       switch (part.type) {
         case 'text': {
           if (!usesJsonResponseTool) {
-            content.push({ type: 'text', text: part.text });
+            const webSearchCitations = part.citations?.filter(
+              citation => citation.type === 'web_search_result_location',
+            );
+
+            content.push({
+              type: 'text',
+              text: part.text,
+              ...(webSearchCitations != null &&
+                webSearchCitations.length > 0 && {
+                  providerMetadata: {
+                    anthropic: {
+                      citations: webSearchCitations,
+                    },
+                  },
+                }),
+            });
 
             // Process citations if present
             if (part.citations) {
@@ -1309,6 +1389,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               result: {
                 type: 'advisor_result',
                 text: part.content.text,
+                ...(part.content.stop_reason != null && {
+                  stopReason: part.content.stop_reason,
+                }),
               },
             });
           } else if (part.content.type === 'advisor_redacted_result') {
@@ -1319,6 +1402,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               result: {
                 type: 'advisor_redacted_result',
                 encryptedContent: part.content.encrypted_content,
+                ...(part.content.stop_reason != null && {
+                  stopReason: part.content.stop_reason,
+                }),
               },
             });
           } else {
@@ -1333,6 +1419,13 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               },
             });
           }
+          break;
+        }
+
+        // Server-side fallback marker: the AI SDK has no content primitive for
+        // a model hop, so drop it. The hop is still observable via
+        // usage.iterations.
+        case 'fallback': {
           break;
         }
       }
@@ -1357,46 +1450,33 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       },
       warnings,
       providerMetadata: (() => {
+        const stopDetails = mapAnthropicStopDetails(response.stop_details);
+
         const anthropicMetadata = {
           usage: response.usage as JSONObject,
           stopSequence: response.stop_sequence ?? null,
+          ...(stopDetails != null ? { stopDetails } : {}),
 
           iterations: response.usage.iterations
-            ? response.usage.iterations.map(iter =>
-                iter.type === 'advisor_message'
-                  ? ({
-                      type: iter.type,
-                      model: iter.model,
-                      inputTokens: iter.input_tokens,
-                      outputTokens: iter.output_tokens,
-                      ...(iter.cache_creation_input_tokens
-                        ? {
-                            cacheCreationInputTokens:
-                              iter.cache_creation_input_tokens,
-                          }
-                        : {}),
-                      ...(iter.cache_read_input_tokens
-                        ? {
-                            cacheReadInputTokens: iter.cache_read_input_tokens,
-                          }
-                        : {}),
-                    } satisfies AnthropicUsageIteration)
-                  : ({
-                      type: iter.type,
-                      inputTokens: iter.input_tokens,
-                      outputTokens: iter.output_tokens,
-                      ...(iter.cache_creation_input_tokens
-                        ? {
-                            cacheCreationInputTokens:
-                              iter.cache_creation_input_tokens,
-                          }
-                        : {}),
-                      ...(iter.cache_read_input_tokens
-                        ? {
-                            cacheReadInputTokens: iter.cache_read_input_tokens,
-                          }
-                        : {}),
-                    } satisfies AnthropicUsageIteration),
+            ? response.usage.iterations.map(
+                iter =>
+                  ({
+                    type: iter.type,
+                    ...(iter.model != null ? { model: iter.model } : {}),
+                    inputTokens: iter.input_tokens,
+                    outputTokens: iter.output_tokens,
+                    ...(iter.cache_creation_input_tokens
+                      ? {
+                          cacheCreationInputTokens:
+                            iter.cache_creation_input_tokens,
+                        }
+                      : {}),
+                    ...(iter.cache_read_input_tokens
+                      ? {
+                          cacheReadInputTokens: iter.cache_read_input_tokens,
+                        }
+                      : {}),
+                  }) satisfies AnthropicUsageIteration,
               )
             : null,
           container: response.container
@@ -1492,6 +1572,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           providerExecuted?: boolean;
           firstDelta: boolean;
           providerToolName?: string;
+          providerToolInputType?: string;
           caller?: {
             type:
               | 'code_execution_20250825'
@@ -1500,7 +1581,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             toolId?: string;
           };
         }
-      | { type: 'text' | 'reasoning' }
+      | { type: 'text'; citations: Citation[] }
+      | { type: 'reasoning' }
     > = {};
     const mcpToolCalls: Record<string, LanguageModelV4ToolCall> = {};
     const serverToolCalls: Record<string, string> = {}; // tool_use_id -> provider tool name
@@ -1510,8 +1592,12 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       | null = null;
     let rawUsage: JSONObject | undefined = undefined;
     let stopSequence: string | null = null;
+    let stopDetails: AnthropicMessageMetadata['stopDetails'] = undefined;
     let container: AnthropicMessageMetadata['container'] | null = null;
     let isJsonResponseFromTool = false;
+    let isMessageOpen = false;
+    let activeMessageId: string | null | undefined;
+    let hasInvalidMessageSequence = false;
 
     let blockType:
       | 'text'
@@ -1543,6 +1629,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         },
 
         transform(chunk, controller) {
+          if (hasInvalidMessageSequence) {
+            return;
+          }
+
           if (options.includeRawChunks) {
             controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
           }
@@ -1562,6 +1652,14 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             case 'content_block_start': {
               const part = value.content_block;
               const contentBlockType = part.type;
+
+              // Server-side fallback marker: the AI SDK has no content
+              // primitive for a model hop, so drop it. The hop is still
+              // observable via usage.iterations.
+              if (contentBlockType === 'fallback') {
+                return;
+              }
+
               blockType = contentBlockType;
 
               switch (contentBlockType) {
@@ -1572,7 +1670,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                     return;
                   }
 
-                  contentBlocks[value.index] = { type: 'text' };
+                  contentBlocks[value.index] = {
+                    type: 'text',
+                    citations: [],
+                  };
                   controller.enqueue({
                     type: 'text-start',
                     id: String(value.index),
@@ -1604,7 +1705,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 }
 
                 case 'compaction': {
-                  contentBlocks[value.index] = { type: 'text' };
+                  contentBlocks[value.index] = {
+                    type: 'text',
+                    citations: [],
+                  };
                   controller.enqueue({
                     type: 'text-start',
                     id: String(value.index),
@@ -1624,7 +1728,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                   if (isJsonResponseTool) {
                     isJsonResponseFromTool = true;
 
-                    contentBlocks[value.index] = { type: 'text' };
+                    contentBlocks[value.index] = {
+                      type: 'text',
+                      citations: [],
+                    };
 
                     controller.enqueue({
                       type: 'text-start',
@@ -1687,6 +1794,13 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       part.name === 'bash_code_execution'
                         ? 'code_execution'
                         : part.name;
+                    const providerToolInputType =
+                      part.name === 'text_editor_code_execution' ||
+                      part.name === 'bash_code_execution'
+                        ? part.name
+                        : part.name === 'code_execution'
+                          ? 'programmatic-tool-call'
+                          : undefined;
 
                     const customToolName =
                       toolNameMapping.toCustomToolName(providerToolName);
@@ -1715,8 +1829,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       providerToolName === 'code_execution'
                         ? { dynamic: true }
                         : {}),
-                      firstDelta: true,
+                      firstDelta: finalInput.length === 0,
                       providerToolName,
+                      providerToolInputType,
                     };
 
                     controller.enqueue({
@@ -1996,6 +2111,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       result: {
                         type: 'advisor_result',
                         text: part.content.text,
+                        ...(part.content.stop_reason != null && {
+                          stopReason: part.content.stop_reason,
+                        }),
                       },
                     });
                   } else if (part.content.type === 'advisor_redacted_result') {
@@ -2006,6 +2124,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       result: {
                         type: 'advisor_redacted_result',
                         encryptedContent: part.content.encrypted_content,
+                        ...(part.content.stop_reason != null && {
+                          stopReason: part.content.stop_reason,
+                        }),
                       },
                     });
                   } else {
@@ -2075,6 +2196,13 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                     controller.enqueue({
                       type: 'text-end',
                       id: String(value.index),
+                      ...(contentBlock.citations.length > 0 && {
+                        providerMetadata: {
+                          anthropic: {
+                            citations: contentBlock.citations,
+                          },
+                        },
+                      }),
                     });
                     break;
                   }
@@ -2105,7 +2233,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                         contentBlock.input === '' ? '{}' : contentBlock.input;
                       if (contentBlock.providerToolName === 'code_execution') {
                         try {
-                          const parsed = JSON.parse(finalInput);
+                          const parsed = secureJsonParse(finalInput);
                           if (
                             parsed != null &&
                             typeof parsed === 'object' &&
@@ -2245,9 +2373,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                     // the type to the delta and change the tool name.
                     if (
                       contentBlock.firstDelta &&
-                      contentBlock.providerToolName === 'code_execution'
+                      contentBlock.providerToolInputType != null
                     ) {
-                      delta = `{"type": "programmatic-tool-call",${delta.substring(1)}`;
+                      delta = `{"type": "${contentBlock.providerToolInputType}",${delta.substring(1)}`;
                     }
 
                     controller.enqueue({
@@ -2265,6 +2393,15 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
                 case 'citations_delta': {
                   const citation = value.delta.citation;
+                  const contentBlock = contentBlocks[value.index];
+
+                  if (
+                    contentBlock?.type === 'text' &&
+                    citation.type === 'web_search_result_location'
+                  ) {
+                    contentBlock.citations.push(citation);
+                  }
+
                   const source = createCitationSource(
                     citation,
                     citationDocuments,
@@ -2288,6 +2425,27 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             }
 
             case 'message_start': {
+              if (isMessageOpen) {
+                if (activeMessageId === value.message.id) {
+                  return;
+                }
+
+                hasInvalidMessageSequence = true;
+                controller.enqueue({
+                  type: 'error',
+                  error: new InvalidResponseDataError({
+                    data: value,
+                    message:
+                      `Received message_start for message ${JSON.stringify(value.message.id)} ` +
+                      `while message ${JSON.stringify(activeMessageId)} is still open.`,
+                  }),
+                });
+                return;
+              }
+
+              isMessageOpen = true;
+              activeMessageId = value.message.id;
+
               usage.input_tokens = value.message.usage.input_tokens;
               usage.cache_read_input_tokens =
                 value.message.usage.cache_read_input_tokens ?? 0;
@@ -2387,6 +2545,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 usage.input_tokens = value.usage.input_tokens;
               }
               usage.output_tokens = value.usage.output_tokens;
+              if (value.usage.output_tokens_details != null) {
+                usage.output_tokens_details = value.usage.output_tokens_details;
+              }
 
               if (value.usage.cache_read_input_tokens != null) {
                 usage.cache_read_input_tokens =
@@ -2409,6 +2570,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               };
 
               stopSequence = value.delta.stop_sequence ?? null;
+              stopDetails = mapAnthropicStopDetails(value.delta.stop_details);
               container =
                 value.delta.container != null
                   ? {
@@ -2438,47 +2600,34 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             }
 
             case 'message_stop': {
+              isMessageOpen = false;
+              activeMessageId = undefined;
+
               const anthropicMetadata = {
                 usage: (rawUsage as JSONObject) ?? null,
                 stopSequence,
+                ...(stopDetails != null ? { stopDetails } : {}),
                 iterations: usage.iterations
-                  ? usage.iterations.map(iter =>
-                      iter.type === 'advisor_message'
-                        ? ({
-                            type: iter.type,
-                            model: iter.model,
-                            inputTokens: iter.input_tokens,
-                            outputTokens: iter.output_tokens,
-                            ...(iter.cache_creation_input_tokens
-                              ? {
-                                  cacheCreationInputTokens:
-                                    iter.cache_creation_input_tokens,
-                                }
-                              : {}),
-                            ...(iter.cache_read_input_tokens
-                              ? {
-                                  cacheReadInputTokens:
-                                    iter.cache_read_input_tokens,
-                                }
-                              : {}),
-                          } satisfies AnthropicUsageIteration)
-                        : ({
-                            type: iter.type,
-                            inputTokens: iter.input_tokens,
-                            outputTokens: iter.output_tokens,
-                            ...(iter.cache_creation_input_tokens
-                              ? {
-                                  cacheCreationInputTokens:
-                                    iter.cache_creation_input_tokens,
-                                }
-                              : {}),
-                            ...(iter.cache_read_input_tokens
-                              ? {
-                                  cacheReadInputTokens:
-                                    iter.cache_read_input_tokens,
-                                }
-                              : {}),
-                          } satisfies AnthropicUsageIteration),
+                  ? usage.iterations.map(
+                      iter =>
+                        ({
+                          type: iter.type,
+                          ...(iter.model != null ? { model: iter.model } : {}),
+                          inputTokens: iter.input_tokens,
+                          outputTokens: iter.output_tokens,
+                          ...(iter.cache_creation_input_tokens
+                            ? {
+                                cacheCreationInputTokens:
+                                  iter.cache_creation_input_tokens,
+                              }
+                            : {}),
+                          ...(iter.cache_read_input_tokens
+                            ? {
+                                cacheReadInputTokens:
+                                  iter.cache_read_input_tokens,
+                              }
+                            : {}),
+                        }) satisfies AnthropicUsageIteration,
                     )
                   : null,
                 container,
@@ -2574,11 +2723,24 @@ export function getModelCapabilities(modelId: string): {
   supportsAdaptiveThinking: boolean;
   rejectsSamplingParameters: boolean;
   supportsXhighEffort: boolean;
+  rejectsThinkingDisabledAboveHighEffort: boolean;
   isKnownModel: boolean;
 } {
-  if (
+  if (modelId.includes('claude-opus-5')) {
+    return {
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      supportsAdaptiveThinking: true,
+      rejectsSamplingParameters: true,
+      supportsXhighEffort: true,
+      rejectsThinkingDisabledAboveHighEffort: true,
+      isKnownModel: true,
+    };
+  } else if (
     modelId.includes('claude-opus-4-8') ||
-    modelId.includes('claude-opus-4-7')
+    modelId.includes('claude-opus-4-7') ||
+    modelId.includes('claude-fable-5') ||
+    modelId.includes('claude-sonnet-5')
   ) {
     return {
       maxOutputTokens: 128000,
@@ -2586,6 +2748,7 @@ export function getModelCapabilities(modelId: string): {
       supportsAdaptiveThinking: true,
       rejectsSamplingParameters: true,
       supportsXhighEffort: true,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
   } else if (
@@ -2598,6 +2761,7 @@ export function getModelCapabilities(modelId: string): {
       supportsAdaptiveThinking: true,
       rejectsSamplingParameters: false,
       supportsXhighEffort: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
   } else if (
@@ -2611,6 +2775,7 @@ export function getModelCapabilities(modelId: string): {
       supportsAdaptiveThinking: false,
       rejectsSamplingParameters: false,
       supportsXhighEffort: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-4-1')) {
@@ -2620,6 +2785,7 @@ export function getModelCapabilities(modelId: string): {
       supportsAdaptiveThinking: false,
       rejectsSamplingParameters: false,
       supportsXhighEffort: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-sonnet-4-')) {
@@ -2629,6 +2795,7 @@ export function getModelCapabilities(modelId: string): {
       supportsAdaptiveThinking: false,
       rejectsSamplingParameters: false,
       supportsXhighEffort: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-4-')) {
@@ -2638,6 +2805,7 @@ export function getModelCapabilities(modelId: string): {
       supportsAdaptiveThinking: false,
       rejectsSamplingParameters: false,
       supportsXhighEffort: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-3-haiku')) {
@@ -2647,15 +2815,44 @@ export function getModelCapabilities(modelId: string): {
       supportsAdaptiveThinking: false,
       rejectsSamplingParameters: false,
       supportsXhighEffort: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
-  } else {
+  } else if (
+    /claude-(?:instant(?:-|$)|v?2(?=$|[-.:])|3(?=$|[-.]))/.test(modelId)
+  ) {
     return {
       maxOutputTokens: 4096,
       supportsStructuredOutput: false,
       supportsAdaptiveThinking: false,
       rejectsSamplingParameters: false,
       supportsXhighEffort: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
+      isKnownModel: false,
+    };
+  } else if (modelId.includes('claude-')) {
+    // Known and legacy Claude families are handled above, so any remaining
+    // Claude ID is assumed to be newer than the known list. Keep it unknown so
+    // callers still receive the maxOutputTokens compatibility warning.
+    return {
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      supportsAdaptiveThinking: true,
+      rejectsSamplingParameters: true,
+      supportsXhighEffort: true,
+      rejectsThinkingDisabledAboveHighEffort: true,
+      isKnownModel: false,
+    };
+  } else {
+    // Non-Claude models (e.g. served through Anthropic-compatible APIs)
+    // keep conservative defaults.
+    return {
+      maxOutputTokens: 4096,
+      supportsStructuredOutput: false,
+      supportsAdaptiveThinking: false,
+      rejectsSamplingParameters: false,
+      supportsXhighEffort: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: false,
     };
   }
@@ -2719,7 +2916,10 @@ function resolveAnthropicReasoningConfig({
       },
       warnings,
     });
-    return { thinking: { type: 'adaptive' }, effort };
+    return {
+      thinking: { type: 'adaptive', display: 'summarized' },
+      effort,
+    };
   }
 
   const budgetTokens = mapReasoningToProviderBudget({
@@ -2767,4 +2967,23 @@ function mapAnthropicResponseContextManagement(
           .filter(edit => edit !== undefined),
       }
     : null;
+}
+
+function mapAnthropicStopDetails(
+  stopDetails: AnthropicStopDetails | null | undefined,
+): AnthropicMessageMetadata['stopDetails'] | undefined {
+  if (stopDetails == null) {
+    return undefined;
+  }
+
+  return {
+    type: stopDetails.type,
+    ...(stopDetails.category != null ? { category: stopDetails.category } : {}),
+    ...(stopDetails.explanation != null
+      ? { explanation: stopDetails.explanation }
+      : {}),
+    ...(stopDetails.recommended_model != null
+      ? { recommendedModel: stopDetails.recommended_model }
+      : {}),
+  };
 }

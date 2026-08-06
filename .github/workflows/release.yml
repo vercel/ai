@@ -20,15 +20,17 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  id-token: write
-  contents: write
-  pull-requests: write
-  issues: write
+  contents: read
 
 jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
     # do not attempt running in forks
     if: github.repository_owner == 'vercel'
     steps:
@@ -85,6 +87,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
           PULL_REQUEST_NUMBER: ${{ steps.release-pr.outputs.number }}
+
+      - name: Attach SLSA provenance to GitHub Releases
+        if: inputs.snapshot != true && steps.changesets.outputs.published == 'true'
+        run: |
+          cd .github/scripts/upload-provenance
+          npm install --no-save
+          node index.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
 
       # Snapshot release path
       - name: Add SHORT_SHA env property with commit short sha

@@ -211,6 +211,86 @@ it('should correctly prepare file search tool for gemini-3 models', () => {
   expect(result.toolWarnings).toEqual([]);
 });
 
+it('should use newest tool support for an unknown future Gemini model', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'getWeather',
+        description: 'Get the weather',
+        inputSchema: {
+          type: 'object',
+          properties: { location: { type: 'string' } },
+        },
+      },
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+      {
+        type: 'provider',
+        id: 'google.enterprise_web_search',
+        name: 'enterprise_web_search',
+        args: {},
+      },
+      {
+        type: 'provider',
+        id: 'google.url_context',
+        name: 'url_context',
+        args: {},
+      },
+      {
+        type: 'provider',
+        id: 'google.code_execution',
+        name: 'code_execution',
+        args: {},
+      },
+      {
+        type: 'provider',
+        id: 'google.file_search',
+        name: 'file_search',
+        args: {
+          fileSearchStoreNames: ['fileSearchStores/example-store'],
+        },
+      },
+    ],
+    modelId: 'gemini-99-pro-preview',
+  });
+
+  expect(result).toEqual({
+    tools: [
+      { googleSearch: {} },
+      { enterpriseWebSearch: {} },
+      { urlContext: {} },
+      { codeExecution: {} },
+      {
+        fileSearch: {
+          fileSearchStoreNames: ['fileSearchStores/example-store'],
+        },
+      },
+      {
+        functionDeclarations: [
+          {
+            name: 'getWeather',
+            description: 'Get the weather',
+            parameters: {
+              type: 'object',
+              properties: { location: { type: 'string' } },
+            },
+          },
+        ],
+      },
+    ],
+    toolConfig: {
+      functionCallingConfig: { mode: 'VALIDATED' },
+      includeServerSideToolInvocations: true,
+    },
+    toolWarnings: [],
+  });
+});
+
 it('should handle tool choice "auto"', () => {
   const result = prepareTools({
     tools: [

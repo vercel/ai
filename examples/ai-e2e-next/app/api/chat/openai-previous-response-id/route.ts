@@ -60,7 +60,7 @@ export async function POST(req: Request) {
             previousResponseId,
           } satisfies OpenAILanguageModelResponsesOptions,
         },
-        onFinish: ({ finalStep }) => {
+        onEnd: ({ finalStep }) => {
           const providerMetadata = finalStep.providerMetadata;
 
           if (!!providerMetadata) {

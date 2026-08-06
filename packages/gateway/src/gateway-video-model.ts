@@ -1,9 +1,9 @@
 import {
   APICallError,
-  type Experimental_VideoModelV4,
-  type Experimental_VideoModelV4CallOptions,
-  type Experimental_VideoModelV4File,
-  type Experimental_VideoModelV4VideoData,
+  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
+  type Experimental_VideoModelV4File as VideoModelV4File,
+  type Experimental_VideoModelV4VideoData as VideoModelV4VideoData,
   type SharedV4ProviderMetadata,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
@@ -21,7 +21,7 @@ import type { GatewayConfig } from './gateway-config';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 
-export class GatewayVideoModel implements Experimental_VideoModelV4 {
+export class GatewayVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4' as const;
   // Set a very large number to prevent client-side splitting of requests
   readonly maxVideosPerCall = Number.MAX_SAFE_INTEGER;
@@ -46,12 +46,15 @@ export class GatewayVideoModel implements Experimental_VideoModelV4 {
     duration,
     fps,
     seed,
+    generateAudio,
     image,
+    frameImages,
+    inputReferences,
     providerOptions,
     headers,
     abortSignal,
-  }: Experimental_VideoModelV4CallOptions): Promise<{
-    videos: Array<Experimental_VideoModelV4VideoData>;
+  }: VideoModelV4CallOptions): Promise<{
+    videos: Array<VideoModelV4VideoData>;
     warnings: Array<SharedV4Warning>;
     providerMetadata?: SharedV4ProviderMetadata;
     response: {
@@ -81,8 +84,20 @@ export class GatewayVideoModel implements Experimental_VideoModelV4 {
           ...(duration && { duration }),
           ...(fps && { fps }),
           ...(seed && { seed }),
+          ...(generateAudio !== undefined && { generateAudio }),
           ...(providerOptions && { providerOptions }),
           ...(image && { image: maybeEncodeVideoFile(image) }),
+          ...(frameImages && {
+            frameImages: frameImages.map(frame => ({
+              ...frame,
+              image: maybeEncodeVideoFile(frame.image),
+            })),
+          }),
+          ...(inputReferences && {
+            inputReferences: inputReferences.map(reference =>
+              maybeEncodeVideoFile(reference),
+            ),
+          }),
         },
         successfulResponseHandler: async ({
           response,
@@ -199,7 +214,7 @@ export class GatewayVideoModel implements Experimental_VideoModelV4 {
   }
 }
 
-function maybeEncodeVideoFile(file: Experimental_VideoModelV4File) {
+function maybeEncodeVideoFile(file: VideoModelV4File) {
   if (file.type === 'file' && file.data instanceof Uint8Array) {
     return {
       ...file,
@@ -238,6 +253,11 @@ const gatewayVideoWarningSchema = z.discriminatedUnion('type', [
     type: z.literal('compatibility'),
     feature: z.string(),
     details: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('deprecated'),
+    setting: z.string(),
+    message: z.string(),
   }),
   z.object({
     type: z.literal('other'),

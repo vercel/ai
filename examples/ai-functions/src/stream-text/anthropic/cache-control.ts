@@ -35,9 +35,9 @@ run(async () => {
         ],
       },
     ],
-    onFinish({ finalStep }) {
+    onEnd({ finalStep }) {
       console.log();
-      console.log('=== onFinish ===');
+      console.log('=== onEnd ===');
       console.log(finalStep.providerMetadata?.anthropic);
     },
   });

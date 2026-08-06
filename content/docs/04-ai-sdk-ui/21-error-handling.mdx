@@ -62,7 +62,7 @@ You can use the error object to show an error message, disable the submit button
   server.
 </Note>
 
-```tsx file="app/page.tsx" highlight="7,18-25,31"
+```tsx file="app/page.tsx" highlight="8,28-35,41"
 'use client';
 
 import { useChat } from '@ai-sdk/react';
@@ -111,11 +111,13 @@ export default function Chat() {
 }
 ```
 
-#### Alternative: replace last message
+#### Alternative: replace the failed message
 
-Alternatively you can write a custom submit handler that replaces the last message when an error is present.
+Alternatively, you can write a custom submit handler that replaces the failed
+user message with new input. If the assistant response started streaming before
+the error, remove both the partial assistant response and its user message.
 
-```tsx file="app/page.tsx" highlight="17-23,35"
+```tsx file="app/page.tsx" highlight="13-19,21-22,39"
 'use client';
 
 import { useChat } from '@ai-sdk/react';
@@ -129,7 +131,11 @@ export default function Chat() {
     event.preventDefault();
 
     if (error != null) {
-      setMessages(messages.slice(0, -1)); // remove last message
+      setMessages(messages =>
+        messages.at(-1)?.role === 'assistant'
+          ? messages.slice(0, -2)
+          : messages.slice(0, -1),
+      );
     }
 
     sendMessage({ text: input });

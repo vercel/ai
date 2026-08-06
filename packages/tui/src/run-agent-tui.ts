@@ -1,5 +1,10 @@
 import { AgentTUIRunner } from './agent-tui-runner';
-import type { Agent } from 'ai';
+import type {
+  Agent,
+  ChatTransport,
+  Experimental_SandboxSession,
+  UIMessage,
+} from 'ai';
 
 /**
  * Controls how terminal UI sections for stream parts are displayed.
@@ -28,20 +33,13 @@ export type ResponseStatisticsMode =
 
 /**
  * An agent that is compatible with the terminal UI.
- *
- * It has no call options and no structured output.
  */
-export type AgentTUIAgent = Agent<undefined, any, any, never>;
+export type AgentTUIAgent = Agent<any, any, any, any>;
 
 /**
  * Options for starting an agent in the default terminal UI.
  */
 export type RunAgentTUIOptions = {
-  /**
-   * The agent to run.
-   */
-  agent: AgentTUIAgent;
-
   /**
    * The title shown in the terminal UI.
    */
@@ -75,7 +73,29 @@ export type RunAgentTUIOptions = {
    * percentage of this context window.
    */
   contextSize?: number;
-};
+} & (
+  | {
+      /**
+       * The agent to run.
+       */
+      agent: AgentTUIAgent;
+      transport?: never;
+
+      /**
+       * Sandbox session that is passed through to agent tool execution.
+       */
+      sandbox?: Experimental_SandboxSession;
+    }
+  | {
+      agent?: never;
+
+      /**
+       * The transport used to communicate with a remote agent.
+       */
+      transport: ChatTransport<UIMessage>;
+      sandbox?: never;
+    }
+);
 
 /**
  * Runs an agent in the default terminal UI until the user exits.
