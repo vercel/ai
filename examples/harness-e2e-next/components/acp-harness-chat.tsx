@@ -6,6 +6,8 @@ import { useChatId } from '@/components/chat-id-provider';
 import ChatInput from '@/components/chat-input';
 import DynamicToolView from '@/components/tool/dynamic-tool-view';
 import GetUserNameToolView from '@/components/tool/get-user-name-tool-view';
+import HarnessBashToolView from '@/components/tool/harness-bash-tool-view';
+import HarnessFileToolView from '@/components/tool/harness-file-tool-view';
 import { useChat } from '@ai-sdk/react';
 import {
   DefaultChatTransport,
@@ -80,6 +82,12 @@ export default function ACPHarnessChat({
                     }
                   />
                 );
+              case 'tool-bash':
+                return <HarnessBashToolView invocation={part} key={index} />;
+              case 'tool-read':
+              case 'tool-write':
+              case 'tool-edit':
+                return <HarnessFileToolView key={index} invocation={part} />;
               case 'dynamic-tool':
                 return <DynamicToolView invocation={part} key={index} />;
             }
