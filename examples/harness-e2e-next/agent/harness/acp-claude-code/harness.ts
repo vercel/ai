@@ -11,11 +11,14 @@ export const claudeCodeACPHarness = createACP({
     version: '0.61.0',
     executable: 'claude-agent-acp',
     forwardEnv: ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN'],
+    env: {
+      IS_SANDBOX: '1',
+    },
   },
   permissionModeMapping: {
-    'allow-reads': { type: 'session-mode', modeId: 'plan' },
+    'allow-reads': { type: 'session-mode', modeId: 'default' },
     'allow-edits': { type: 'session-mode', modeId: 'acceptEdits' },
-    'allow-all': { type: 'session-mode', modeId: 'default' },
+    'allow-all': { type: 'session-mode', modeId: 'bypassPermissions' },
   } as const satisfies ACPPermissionModeMapping,
   providerAuthentication: {
     gateway: {
