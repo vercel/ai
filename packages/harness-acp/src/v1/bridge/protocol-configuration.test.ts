@@ -13,18 +13,24 @@ const gateway = {
   clientAppVersion: '0.0.0-test',
 };
 
+const clientApp = {
+  name: 'custom-client',
+  version: '1.2.3',
+} as const;
+
 describe('ACP protocol configuration', () => {
   it('negotiates v1 with versioned client information and no invented capabilities', () => {
     expect(
       createACPInitializeRequest({
         protocolVersion: 1,
+        clientApp,
         authentication: undefined,
       }),
     ).toEqual({
       protocolVersion: 1,
       clientInfo: {
-        name: '@ai-sdk/harness-acp',
-        version: '0.0.0-test',
+        name: 'custom-client',
+        version: '1.2.3',
       },
       clientCapabilities: {},
     });
@@ -113,6 +119,7 @@ describe('ACP protocol configuration', () => {
     expect(
       createACPInitializeRequest({
         protocolVersion: 1,
+        clientApp,
         authentication: {
           methodId: 'api-key',
           clientCapabilities: {

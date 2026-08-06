@@ -1,6 +1,6 @@
 import type { HarnessV1StreamPart } from '@ai-sdk/harness';
 import type { PromptResponse, SessionUpdate } from '@agentclientprotocol/sdk';
-import type { ACPBuiltinToolMapping } from './acp-v1-bridge-protocol';
+import type { ACPBuiltinToolMapping } from '../acp-v1-bridge-protocol';
 
 type HarnessUsage = Extract<
   HarnessV1StreamPart,

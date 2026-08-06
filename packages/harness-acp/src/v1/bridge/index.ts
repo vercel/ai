@@ -13,17 +13,18 @@ import { argv, env as processEnv } from 'node:process';
 import {
   ACP_BRIDGE_CONFIGURATION_ENV,
   readACPBridgeEnvironment,
-} from '../acp-v1-bridge-environment';
+} from './acp-v1-bridge-environment';
+import type { ACPClientApp } from '../../acp-auth';
 import type { StartMessage } from '../acp-v1-bridge-protocol';
 import type { ACPAuthentication } from '../acp-v1-settings';
-import type { ACPGatewayValues } from '../profile-values';
+import type { ACPGatewayValues } from './profile-values';
 import {
   assertACPAuthenticationMethod,
   createACPInitializeRequest,
   resolveACPLaunchEnvironment,
   validateACPProtocolVersion,
   type ACPInitializeResult,
-} from '../protocol-configuration';
+} from './protocol-configuration';
 import { captureACPStream, type ACPStreamCapture } from './acp-stream-capture';
 import {
   createACPBridgeError,
@@ -340,9 +341,10 @@ async function ensureSession({
     return;
   }
 
+  const clientApp = resolveClientApp();
   const gateway =
     bridgeConfiguration.providerAuthentication?.type === 'ai-gateway'
-      ? resolveGatewayValues()
+      ? resolveGatewayValues({ clientApp })
       : undefined;
   const authentication = bridgeConfiguration.authentication;
   const launchEnv = resolveACPLaunchEnvironment({
@@ -370,7 +372,7 @@ async function ensureSession({
   });
   streamCapture = capturedStream.capture;
   connection = acp
-    .client({ name: '@ai-sdk/harness-acp' })
+    .client({ name: clientApp.name })
     .onRequest(
       acp.methods.client.session.requestPermission,
       ({ params }) =>
@@ -391,6 +393,7 @@ async function ensureSession({
 
   const initializeRequest = createACPInitializeRequest({
     protocolVersion: acp.PROTOCOL_VERSION,
+    clientApp,
     authentication,
     supportsBooleanSessionConfigOptions: Object.values(
       start.permissionModeMapping ?? {},
@@ -571,22 +574,33 @@ async function authenticate({
   });
 }
 
-function resolveGatewayValues(): ACPGatewayValues {
+function resolveClientApp(): ACPClientApp {
+  const name = processEnv.AI_SDK_ACP_CLIENT_APP_NAME;
+  const version = processEnv.AI_SDK_ACP_CLIENT_APP_VERSION;
+  if (name == null || version == null) {
+    throw new Error('ACP client app values were not supplied to the bridge.');
+  }
+  return { name, version };
+}
+
+function resolveGatewayValues({
+  clientApp,
+}: {
+  clientApp: ACPClientApp;
+}): ACPGatewayValues {
   const apiKey = processEnv.AI_SDK_ACP_GATEWAY_API_KEY;
   const baseUrl = processEnv.AI_SDK_ACP_GATEWAY_BASE_URL;
-  const clientAppName = processEnv.AI_SDK_ACP_CLIENT_APP_NAME;
-  const clientAppVersion = processEnv.AI_SDK_ACP_CLIENT_APP_VERSION;
-  if (
-    apiKey == null ||
-    baseUrl == null ||
-    clientAppName == null ||
-    clientAppVersion == null
-  ) {
+  if (apiKey == null || baseUrl == null) {
     throw new Error(
       'AI Gateway profile values were not supplied to the ACP bridge.',
     );
   }
-  return { apiKey, baseUrl, clientAppName, clientAppVersion };
+  return {
+    apiKey,
+    baseUrl,
+    clientAppName: clientApp.name,
+    clientAppVersion: clientApp.version,
+  };
 }
 
 function createChildEnvironment({

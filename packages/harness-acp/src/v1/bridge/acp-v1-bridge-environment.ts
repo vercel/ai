@@ -4,7 +4,7 @@ import type {
   ACPAuthentication,
   ACPProfileValue,
   ACPSerializableValue,
-} from './acp-v1-settings';
+} from '../acp-v1-settings';
 
 export const ACP_BRIDGE_CONFIGURATION_ENV = 'AI_SDK_ACP_BRIDGE_CONFIGURATION';
 

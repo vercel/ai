@@ -55,7 +55,7 @@ import {
   type OutboundMessage,
   type StartMessage,
 } from './acp-v1-bridge-protocol';
-import { createACPBridgeEnvironment } from './acp-v1-bridge-environment';
+import { createACPBridgeEnvironment } from './bridge/acp-v1-bridge-environment';
 import {
   createACPColdSessionState,
   createACPTurnStartConfig,

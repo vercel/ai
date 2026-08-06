@@ -5,7 +5,7 @@ import type {
   ACPProviderAuthentication,
   ACPProviderAuthenticationMode,
 } from './v1';
-import type { ACPResolvedProviderAuthentication } from './v1/acp-v1-bridge-environment';
+import type { ACPResolvedProviderAuthentication } from './v1/bridge/acp-v1-bridge-environment';
 
 const DEFAULT_AI_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh';
 
@@ -98,15 +98,19 @@ export function resolveACPProviderAuthentication({
     | undefined;
   readonly env: Record<string, string>;
 } {
+  const clientAppEnv = {
+    AI_SDK_ACP_CLIENT_APP_NAME: auth.clientApp.name,
+    AI_SDK_ACP_CLIENT_APP_VERSION: auth.clientApp.version,
+  };
   const providerAuthentication = auth.providerAuthentication;
   if (providerAuthentication == null) {
-    return { providerAuthentication: undefined, env: {} };
+    return { providerAuthentication: undefined, env: clientAppEnv };
   }
 
   if (compatibility?.type === 'direct') {
     return {
       providerAuthentication: { type: 'direct' },
-      env: {},
+      env: clientAppEnv,
     };
   }
 
@@ -114,7 +118,7 @@ export function resolveACPProviderAuthentication({
   if (mode === 'direct') {
     return {
       providerAuthentication: { type: 'direct' },
-      env: {},
+      env: clientAppEnv,
     };
   }
 
@@ -132,7 +136,7 @@ export function resolveACPProviderAuthentication({
   if (compatibility == null && mode === 'auto' && apiKey == null) {
     return {
       providerAuthentication: { type: 'direct' },
-      env: {},
+      env: clientAppEnv,
     };
   }
   if (apiKey == null) {
@@ -152,8 +156,7 @@ export function resolveACPProviderAuthentication({
     env: {
       AI_SDK_ACP_GATEWAY_API_KEY: apiKey,
       AI_SDK_ACP_GATEWAY_BASE_URL: gateway.baseUrl,
-      AI_SDK_ACP_CLIENT_APP_NAME: auth.clientApp.name,
-      AI_SDK_ACP_CLIENT_APP_VERSION: auth.clientApp.version,
+      ...clientAppEnv,
     },
   };
 }

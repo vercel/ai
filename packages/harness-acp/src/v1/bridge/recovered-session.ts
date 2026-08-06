@@ -1,6 +1,6 @@
 import { HarnessBridgeCapabilityUnsupportedError } from '@ai-sdk/harness/bridge';
 import * as acp from '@agentclientprotocol/sdk';
-import type { ACPInitializeResult } from '../protocol-configuration';
+import type { ACPInitializeResult } from './protocol-configuration';
 
 export type ACPActiveSession = {
   readonly sessionId: string;

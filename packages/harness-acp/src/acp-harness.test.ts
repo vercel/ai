@@ -16,7 +16,7 @@ import {
   resolveBridgeAssetCandidates,
   serializeBuiltinTools,
 } from './v1/acp-v1-harness';
-import { ACP_BRIDGE_CONFIGURATION_ENV } from './v1/acp-v1-bridge-environment';
+import { ACP_BRIDGE_CONFIGURATION_ENV } from './v1/bridge/acp-v1-bridge-environment';
 import type { ACPPermissionModeMapping } from './v1/acp-v1-settings';
 
 const harnessUtilsMocks = vi.hoisted(() => {
@@ -693,8 +693,8 @@ describe('createACP', () => {
     expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).not.toBe('test-key');
     expect(spawns[0].env.AI_SDK_ACP_GATEWAY_API_KEY).toBeUndefined();
-    expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_NAME).toBeUndefined();
-    expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_VERSION).toBeUndefined();
+    expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_NAME).toBe('ai-sdk/harness-acp');
+    expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_VERSION).toBe('0.0.0-test');
     expect(session.modelId).toBeUndefined();
     expect(stop).not.toHaveBeenCalled();
 

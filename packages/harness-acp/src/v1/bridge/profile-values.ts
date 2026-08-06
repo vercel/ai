@@ -1,4 +1,4 @@
-import type { ACPProfileValue, ACPSerializableValue } from './acp-v1-settings';
+import type { ACPProfileValue, ACPSerializableValue } from '../acp-v1-settings';
 
 export type ACPGatewayValues = {
   readonly apiKey: string;

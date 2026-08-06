@@ -1,10 +1,10 @@
 import type { ACPResolvedProviderAuthentication } from './acp-v1-bridge-environment';
-import type { ACPAuthentication } from './acp-v1-settings';
+import type { ACPClientApp } from '../../acp-auth';
+import type { ACPAuthentication } from '../acp-v1-settings';
 import {
   resolveACPProfileValue,
   type ACPGatewayValues,
 } from './profile-values';
-import { VERSION } from '../version';
 
 export type ACPInitializeResult = {
   readonly protocolVersion: number;
@@ -14,10 +14,12 @@ export type ACPInitializeResult = {
 
 export function createACPInitializeRequest({
   protocolVersion,
+  clientApp,
   authentication,
   supportsBooleanSessionConfigOptions = false,
 }: {
   protocolVersion: number;
+  clientApp: ACPClientApp;
   authentication: ACPAuthentication | undefined;
   supportsBooleanSessionConfigOptions?: boolean;
 }): {
@@ -44,10 +46,7 @@ export function createACPInitializeRequest({
   }
   return {
     protocolVersion,
-    clientInfo: {
-      name: '@ai-sdk/harness-acp',
-      version: VERSION,
-    },
+    clientInfo: clientApp,
     clientCapabilities,
   };
 }

@@ -42,6 +42,24 @@ function resolve({
 }
 
 describe('resolveACPProviderAuthentication', () => {
+  it('transports the client app without provider authentication configuration', () => {
+    expect(
+      resolveACPProviderAuthentication({
+        auth: {
+          providerAuthentication: undefined,
+          clientApp,
+        },
+        env: {},
+      }),
+    ).toEqual({
+      providerAuthentication: undefined,
+      env: {
+        AI_SDK_ACP_CLIENT_APP_NAME: clientApp.name,
+        AI_SDK_ACP_CLIENT_APP_VERSION: clientApp.version,
+      },
+    });
+  });
+
   it('selects AI Gateway automatically for AI_GATEWAY_API_KEY', () => {
     expect(
       resolve({
@@ -76,7 +94,10 @@ describe('resolveACPProviderAuthentication', () => {
   it('selects direct authentication automatically without Gateway credentials', () => {
     expect(resolve({ env: { DIRECT_PROVIDER_KEY: 'direct-key' } })).toEqual({
       providerAuthentication: { type: 'direct' },
-      env: {},
+      env: {
+        AI_SDK_ACP_CLIENT_APP_NAME: clientApp.name,
+        AI_SDK_ACP_CLIENT_APP_VERSION: clientApp.version,
+      },
     });
   });
 
@@ -88,7 +109,10 @@ describe('resolveACPProviderAuthentication', () => {
       }),
     ).toEqual({
       providerAuthentication: { type: 'direct' },
-      env: {},
+      env: {
+        AI_SDK_ACP_CLIENT_APP_NAME: clientApp.name,
+        AI_SDK_ACP_CLIENT_APP_VERSION: clientApp.version,
+      },
     });
   });
 
@@ -280,7 +304,10 @@ describe('resolveACPProviderAuthenticationCompatibility', () => {
       }),
     ).toEqual({
       providerAuthentication: { type: 'direct' },
-      env: {},
+      env: {
+        AI_SDK_ACP_CLIENT_APP_NAME: clientApp.name,
+        AI_SDK_ACP_CLIENT_APP_VERSION: clientApp.version,
+      },
     });
   });
 });
