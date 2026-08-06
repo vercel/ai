@@ -353,7 +353,7 @@
         {
           "name": "harness-bridge-must-declare-and-use-relevant-symbols",
           "description": "Every harness bridge index file must declare and use the relevant symbols.",
-          "for": { "files": ["bridge/index.ts", "*/bridge/index.ts"] },
+          "for": { "files": ["bridge/index.ts"] },
           "must": {
             "haveFiles": ["create-emit-stream-event.ts"],
             "importValues": [
@@ -370,6 +370,45 @@
               {
                 "name": "StartMessage",
                 "from": "../${harnessId}-bridge-protocol"
+              },
+              {
+                "name": "BridgeEvent",
+                "from": "@ai-sdk/harness/bridge"
+              },
+              {
+                "name": "BridgeTurn",
+                "from": "@ai-sdk/harness/bridge"
+              }
+            ],
+            "declareFunctions": [
+              {
+                "name": "runTurn",
+                "receiveParamsOfTypes": ["StartMessage", "BridgeTurn"],
+                "returnValueOfType": "Promise<void>"
+              }
+            ]
+          }
+        },
+        {
+          "name": "harness-nested-bridge-must-declare-and-use-relevant-symbols",
+          "description": "Every harness bridge index file must declare and use the relevant symbols.",
+          "for": { "files": ["{harnessSubId}/bridge/index.ts"] },
+          "must": {
+            "haveFiles": ["create-emit-stream-event.ts"],
+            "importValues": [
+              {
+                "name": "runBridge",
+                "from": "@ai-sdk/harness/bridge"
+              },
+              {
+                "name": "createEmitStreamEvent",
+                "from": "./create-emit-stream-event"
+              }
+            ],
+            "importTypes": [
+              {
+                "name": "StartMessage",
+                "from": "../${harnessId}-${harnessSubId}-bridge-protocol"
               },
               {
                 "name": "BridgeEvent",
