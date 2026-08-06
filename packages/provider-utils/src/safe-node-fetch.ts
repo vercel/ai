@@ -141,8 +141,7 @@ function isNodeDefaultFetch(fetch: FetchFunction): boolean {
 
 async function createSafeNodeFetch(): Promise<FetchFunction> {
   // Node 20.16+ exposes getBuiltinModule; older supported Node versions use an
-  // indirect dynamic import. Keeping the specifier non-literal prevents browser
-  // bundlers from pulling Node built-ins into the provider-utils entry point.
+  // indirect dynamic import that is hidden from browser bundle parsers.
   const [{ createRequire }, { lookup }] = await Promise.all([
     loadNodeModule<NodeModule>('node:module'),
     loadNodeModule<NodeDns>('node:dns'),
@@ -180,8 +179,18 @@ async function loadNodeModule<T>(id: string): Promise<T> {
     : (builtinModule as T);
 }
 
+let dynamicImport: ((specifier: string) => Promise<unknown>) | undefined;
+
 function importNodeModule(id: string): Promise<unknown> {
-  return import(id);
+  // Metro rejects non-static dynamic imports while parsing, even though this
+  // Node-only fallback is never executed in React Native. Construct the import
+  // function lazily so the distributed module contains no import expression for
+  // Metro to analyze and runtimes with process.getBuiltinModule avoid it.
+  dynamicImport ??= Function('specifier', 'return import(specifier)') as (
+    specifier: string,
+  ) => Promise<unknown>;
+
+  return dynamicImport(id);
 }
 
 function getCurrentModulePath(): string {
