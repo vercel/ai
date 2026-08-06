@@ -226,7 +226,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     return this.config.provider;
   }
 
-  private async getArgs({
+  protected async getArgs({
     maxOutputTokens,
     temperature,
     stopSequences,
