@@ -244,7 +244,7 @@ describe('toUIMessageStream', () => {
 
   it('should handle three-element arrays (with namespace)', async () => {
     const inputStream = convertArrayToReadableStream([
-      ['namespace', 'custom', { data: 'value' }],
+      [['namespace'], 'custom', { data: 'value' }],
       ['values', {}],
     ]);
 
@@ -270,6 +270,101 @@ describe('toUIMessageStream', () => {
         },
       ]
     `);
+  });
+
+  it('should preserve interleaved subgraph namespaces without splitting root reasoning', async () => {
+    const rootMessageId = 'root-message';
+    const subgraphMessageId = 'subgraph-message';
+    const inputStream = convertArrayToReadableStream([
+      [
+        [],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: rootMessageId,
+            content: [{ type: 'reasoning', reasoning: 'root-before' }],
+          }),
+          { langgraph_step: 5 },
+        ],
+      ],
+      [
+        ['tools:subgraph-call'],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: subgraphMessageId,
+            content: [{ type: 'reasoning', reasoning: 'subgraph' }],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        [],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: rootMessageId,
+            content: [{ type: 'reasoning', reasoning: 'root-after' }],
+          }),
+          { langgraph_step: 5 },
+        ],
+      ],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toEqual([
+      { type: 'start' },
+      { type: 'start-step' },
+      {
+        type: 'reasoning-start',
+        id: rootMessageId,
+        providerMetadata: { langchain: { namespace: [] } },
+      },
+      {
+        type: 'reasoning-delta',
+        id: rootMessageId,
+        delta: 'root-before',
+        providerMetadata: { langchain: { namespace: [] } },
+      },
+      {
+        type: 'reasoning-start',
+        id: subgraphMessageId,
+        providerMetadata: {
+          langchain: { namespace: ['tools:subgraph-call'] },
+        },
+      },
+      {
+        type: 'reasoning-delta',
+        id: subgraphMessageId,
+        delta: 'subgraph',
+        providerMetadata: {
+          langchain: { namespace: ['tools:subgraph-call'] },
+        },
+      },
+      {
+        type: 'reasoning-delta',
+        id: rootMessageId,
+        delta: 'root-after',
+        providerMetadata: { langchain: { namespace: [] } },
+      },
+      {
+        type: 'reasoning-end',
+        id: rootMessageId,
+        providerMetadata: { langchain: { namespace: [] } },
+      },
+      {
+        type: 'reasoning-end',
+        id: subgraphMessageId,
+        providerMetadata: {
+          langchain: { namespace: ['tools:subgraph-call'] },
+        },
+      },
+      { type: 'finish-step' },
+      { type: 'finish' },
+    ]);
   });
 
   it('should handle non-array events as model stream', async () => {
