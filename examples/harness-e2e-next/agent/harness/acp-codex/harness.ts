@@ -33,33 +33,31 @@ export const codexACPHarness = createACP({
   providerAuthentication: {
     gateway: {
       route: {
-        type: 'auth-method',
-        methodId: 'gateway',
+        type: 'launch',
         env: {
-          CODEX_CONFIG: JSON.stringify({
+          CODEX_API_KEY: { $source: 'gateway-api-key' },
+          CODEX_CONFIG: {
             ...codexConfig,
             model: 'openai/gpt-5.5',
-          }),
-        },
-        clientCapabilities: {
-          auth: {
-            _meta: {
-              gateway: true,
+            model_provider: 'ai_gateway',
+            model_providers: {
+              ai_gateway: {
+                name: 'AI Gateway',
+                base_url: {
+                  $source: 'gateway-base-url',
+                  ensureSuffix: '/v1',
+                },
+                env_key: 'CODEX_API_KEY',
+                wire_api: 'responses',
+                supports_websockets: false,
+                http_headers: {
+                  'User-Agent': { $source: 'client-app' },
+                  'x-client-app': { $source: 'client-app' },
+                },
+              },
             },
-          },
-        },
-        meta: {
-          gateway: {
-            baseUrl: {
-              $source: 'gateway-base-url',
-              ensureSuffix: '/v1',
-            },
-            headers: {
-              Authorization: { $source: 'gateway-authorization' },
-              'User-Agent': { $source: 'client-app' },
-              'x-client-app': { $source: 'client-app' },
-            },
-            providerName: 'AI Gateway',
+            model_supports_reasoning_summaries: true,
+            preferred_auth_method: 'apikey',
           },
         },
       },

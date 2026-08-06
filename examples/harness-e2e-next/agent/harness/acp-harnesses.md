@@ -20,8 +20,8 @@ The profiles pin the exact implementations exercised by this matrix:
 | `acp-grok-build`  | `@xai-official/grok@0.2.111`                   | `grok agent stdio` |
 
 Claude Code uses the pinned implementation's Anthropic launch environment and
-the Gateway root endpoint. Codex uses its advertised `gateway` auth method and
-an OpenAI-compatible Gateway endpoint ending in `/v1`.
+the Gateway root endpoint. Codex uses its API-key launch environment and a
+configured OpenAI-compatible Gateway provider ending in `/v1`.
 
 The installed Grok package's npm trampoline can reuse an older binary already
 present in the default Grok home. Verification therefore used an isolated

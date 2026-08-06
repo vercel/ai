@@ -105,14 +105,10 @@ export function resolveACPLaunchEnvironment({
     }),
   );
   return Object.fromEntries(
-    Object.entries(resolved).map(([key, value]) => {
-      if (typeof value !== 'string') {
-        throw new Error(
-          `ACP Gateway launch environment value for ${key} must resolve to a string.`,
-        );
-      }
-      return [key, value];
-    }),
+    Object.entries(resolved).map(([key, value]) => [
+      key,
+      typeof value === 'string' ? value : JSON.stringify(value),
+    ]),
   );
 }
 

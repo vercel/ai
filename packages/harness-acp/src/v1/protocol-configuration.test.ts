@@ -98,22 +98,63 @@ describe('ACP protocol configuration', () => {
     ).toEqual({});
   });
 
-  it('rejects non-string Gateway launch environment values', () => {
-    expect(() =>
+  it('serializes structured Gateway launch environment values as JSON', () => {
+    expect(
       resolveACPLaunchEnvironment({
         providerAuthentication: {
           type: 'ai-gateway',
           route: {
-            type: 'session',
-            env: { INVALID_VALUE: true },
-            meta: {},
+            type: 'launch',
+            env: {
+              CODEX_CONFIG: {
+                model: 'openai/gpt-5.5',
+                model_providers: {
+                  ai_gateway: {
+                    base_url: {
+                      $source: 'gateway-base-url',
+                      ensureSuffix: '/v1',
+                    },
+                  },
+                },
+              },
+            },
           },
         },
         gateway,
       }),
-    ).toThrow(
-      'ACP Gateway launch environment value for INVALID_VALUE must resolve to a string.',
-    );
+    ).toEqual({
+      CODEX_CONFIG:
+        '{"model":"openai/gpt-5.5","model_providers":{"ai_gateway":{"base_url":"https://gateway.example/v1"}}}',
+    });
+  });
+
+  it('resolves client attribution headers in structured Codex configuration', () => {
+    expect(
+      resolveACPLaunchEnvironment({
+        providerAuthentication: {
+          type: 'ai-gateway',
+          route: {
+            type: 'launch',
+            env: {
+              CODEX_CONFIG: {
+                model_providers: {
+                  ai_gateway: {
+                    http_headers: {
+                      'User-Agent': { $source: 'client-app' },
+                      'x-client-app': { $source: 'client-app' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        gateway,
+      }),
+    ).toEqual({
+      CODEX_CONFIG:
+        '{"model_providers":{"ai_gateway":{"http_headers":{"User-Agent":"ai-sdk/harness-acp/0.0.0-test","x-client-app":"ai-sdk/harness-acp/0.0.0-test"}}}}',
+    });
   });
 
   it('merges boolean session configuration support with configured capabilities', () => {
