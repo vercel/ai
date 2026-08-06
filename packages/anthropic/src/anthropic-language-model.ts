@@ -201,7 +201,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     return this.config.supportedUrls?.() ?? {};
   }
 
-  private async getArgs({
+  protected async getArgs({
     userSuppliedBetas,
     prompt,
     maxOutputTokens,
