@@ -132,8 +132,8 @@ importers:
         specifier: 18.3.7
         version: 18.3.7(@types/react@18.3.28)
       postcss:
-        specifier: ^8.5.6
-        version: 8.5.15
+        specifier: ^8.5.23
+        version: 8.5.25
       tailwindcss:
         specifier: ^4.1.17
         version: 4.3.0
@@ -293,10 +293,10 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       autoprefixer:
         specifier: ^10.5.0
-        version: 10.5.0(postcss@8.5.15)
+        version: 10.5.0(postcss@8.5.25)
       postcss:
-        specifier: ^8.5.14
-        version: 8.5.15
+        specifier: ^8.5.23
+        version: 8.5.25
       tailwindcss:
         specifier: ^3.4.19
         version: 3.4.19(tsx@4.22.0)(yaml@2.9.0)
@@ -781,10 +781,10 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       autoprefixer:
         specifier: ^10.5.0
-        version: 10.5.0(postcss@8.5.15)
+        version: 10.5.0(postcss@8.5.25)
       postcss:
-        specifier: ^8.5.14
-        version: 8.5.15
+        specifier: ^8.5.23
+        version: 8.5.25
       tailwindcss:
         specifier: ^3.4.19
         version: 3.4.19(tsx@4.22.0)(yaml@2.9.0)
@@ -1023,10 +1023,10 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       autoprefixer:
         specifier: ^10.5.0
-        version: 10.5.0(postcss@8.5.15)
+        version: 10.5.0(postcss@8.5.25)
       postcss:
-        specifier: ^8.5.14
-        version: 8.5.15
+        specifier: ^8.5.23
+        version: 8.5.25
       tailwindcss:
         specifier: ^3.4.19
         version: 3.4.19(tsx@4.22.0)(yaml@2.9.0)
@@ -1078,10 +1078,10 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       autoprefixer:
         specifier: ^10.5.0
-        version: 10.5.0(postcss@8.5.15)
+        version: 10.5.0(postcss@8.5.25)
       postcss:
-        specifier: ^8.5.14
-        version: 8.5.15
+        specifier: ^8.5.23
+        version: 8.5.25
       tailwindcss:
         specifier: ^3.4.19
         version: 3.4.19(tsx@4.22.0)(yaml@2.9.0)
@@ -1121,13 +1121,13 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       autoprefixer:
         specifier: ^10.5.0
-        version: 10.5.0(postcss@8.5.15)
+        version: 10.5.0(postcss@8.5.25)
       concurrently:
         specifier: ^9.2.1
         version: 9.2.1
       postcss:
-        specifier: ^8.5.14
-        version: 8.5.15
+        specifier: ^8.5.23
+        version: 8.5.25
       tailwindcss:
         specifier: ^3.4.19
         version: 3.4.19(tsx@4.22.0)(yaml@2.9.0)
@@ -1166,8 +1166,8 @@ importers:
         specifier: ^18.3.7
         version: 18.3.7(@types/react@18.3.28)
       postcss:
-        specifier: ^8.5.14
-        version: 8.5.15
+        specifier: ^8.5.23
+        version: 8.5.25
       tailwindcss:
         specifier: ^3.4.19
         version: 3.4.19(tsx@4.22.0)(yaml@2.9.0)
@@ -1228,13 +1228,13 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       autoprefixer:
         specifier: ^10.5.0
-        version: 10.5.0(postcss@8.5.15)
+        version: 10.5.0(postcss@8.5.25)
       npm-run-all2:
         specifier: ^8.0.4
         version: 8.0.4
       postcss:
-        specifier: ^8.5.14
-        version: 8.5.15
+        specifier: ^8.5.23
+        version: 8.5.25
       tailwindcss:
         specifier: ^3.4.19
         version: 3.4.19(tsx@4.22.0)(yaml@2.9.0)
@@ -1280,10 +1280,10 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       autoprefixer:
         specifier: ^10.5.0
-        version: 10.5.0(postcss@8.5.15)
+        version: 10.5.0(postcss@8.5.25)
       postcss:
-        specifier: ^8.5.14
-        version: 8.5.15
+        specifier: ^8.5.23
+        version: 8.5.25
       tailwindcss:
         specifier: ^3.4.19
         version: 3.4.19(tsx@4.22.0)(yaml@2.9.0)
@@ -1326,10 +1326,10 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       autoprefixer:
         specifier: ^10.5.0
-        version: 10.5.0(postcss@8.5.15)
+        version: 10.5.0(postcss@8.5.25)
       postcss:
-        specifier: ^8.5.14
-        version: 8.5.15
+        specifier: ^8.5.23
+        version: 8.5.25
       tailwindcss:
         specifier: ^3.4.19
         version: 3.4.19(tsx@4.22.0)(yaml@2.9.0)
@@ -1384,10 +1384,10 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       autoprefixer:
         specifier: ^10.5.0
-        version: 10.5.0(postcss@8.5.15)
+        version: 10.5.0(postcss@8.5.25)
       postcss:
-        specifier: ^8.5.14
-        version: 8.5.15
+        specifier: ^8.5.23
+        version: 8.5.25
       tailwindcss:
         specifier: ^3.4.19
         version: 3.4.19(tsx@4.22.0)(yaml@2.9.0)
@@ -1414,7 +1414,7 @@ importers:
         version: 0.55.0(@opentelemetry/api@1.9.1)
       '@sentry/nextjs':
         specifier: ^10.53.1
-        version: 10.53.1(@opentelemetry/core@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/exporter-trace-otlp-http@0.219.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.8.0(@opentelemetry/api@1.9.1))(encoding@0.1.13)(next@15.5.21(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(react@18.3.1)(webpack@5.105.0(lightningcss@1.32.0)(postcss@8.5.15))
+        version: 10.53.1(@opentelemetry/core@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/exporter-trace-otlp-http@0.219.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.8.0(@opentelemetry/api@1.9.1))(encoding@0.1.13)(next@15.5.21(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(react@18.3.1)(webpack@5.105.0(lightningcss@1.32.0)(postcss@8.5.25))
       '@sentry/opentelemetry':
         specifier: 8.22.0
         version: 8.22.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/semantic-conventions@1.43.0)
@@ -1448,10 +1448,10 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       autoprefixer:
         specifier: ^10.5.0
-        version: 10.5.0(postcss@8.5.15)
+        version: 10.5.0(postcss@8.5.25)
       postcss:
-        specifier: ^8.5.14
-        version: 8.5.15
+        specifier: ^8.5.23
+        version: 8.5.25
       tailwindcss:
         specifier: ^3.4.19
         version: 3.4.19(tsx@4.22.0)(yaml@2.9.0)
@@ -1500,10 +1500,10 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       autoprefixer:
         specifier: ^10.5.0
-        version: 10.5.0(postcss@8.5.15)
+        version: 10.5.0(postcss@8.5.25)
       postcss:
-        specifier: ^8.5.14
-        version: 8.5.15
+        specifier: ^8.5.23
+        version: 8.5.25
       tailwindcss:
         specifier: ^3.4.19
         version: 3.4.19(tsx@4.22.0)(yaml@2.9.0)
@@ -1561,10 +1561,10 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       autoprefixer:
         specifier: ^10.5.0
-        version: 10.5.0(postcss@8.5.15)
+        version: 10.5.0(postcss@8.5.25)
       postcss:
-        specifier: ^8.5.14
-        version: 8.5.15
+        specifier: ^8.5.23
+        version: 8.5.25
       tailwindcss:
         specifier: ^3.4.19
         version: 3.4.19(tsx@4.22.0)(yaml@2.9.0)
@@ -2547,6 +2547,7 @@ importers:
       zod:
         specifier: 3.25.76
         version: 3.25.76
+
   packages/gateway:
     dependencies:
       '@ai-sdk/provider':
@@ -4098,7 +4099,7 @@ importers:
         version: 4.1.6(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@22.19.19)(jsdom@26.1.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.48.0)(tsx@4.22.0)(yaml@2.9.0))
       workflow:
         specifier: 4.2.4
-        version: 4.2.4(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(chokidar@5.0.0))(@swc/core@1.15.3(@swc/helpers@0.5.21))(@swc/helpers@0.5.21)(magicast@0.5.3)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0))(typescript@5.8.3)
+        version: 4.2.4(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(chokidar@5.0.0))(@swc/core@1.15.3(@swc/helpers@0.5.21))(@swc/helpers@0.5.21)(magicast@0.5.3)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0))(typescript@5.8.3)
       zod:
         specifier: 3.25.76
         version: 3.25.76
@@ -4123,7 +4124,7 @@ importers:
         version: 5.8.3
       workflow:
         specifier: 4.6.0
-        version: 4.6.0(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(chokidar@5.0.0))(@swc/core@1.15.3(@swc/helpers@0.5.21))(@swc/helpers@0.5.21)(magicast@0.5.3)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0))(typescript@5.8.3)(ws@8.21.1)
+        version: 4.6.0(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(chokidar@5.0.0))(@swc/core@1.15.3(@swc/helpers@0.5.21))(@swc/helpers@0.5.21)(magicast@0.5.3)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0))(typescript@5.8.3)(ws@8.21.1)
 
   packages/xai:
     dependencies:
@@ -14238,12 +14239,12 @@ packages:
     resolution: {integrity: sha512-Y/b0YJoCDda6DCFj8ikks06GrEWDsz/3vdgGLeectV9p+YJc76YugRjtqFdd2KTf2rnEPjalL2hcXP+x2KcSLQ==}
     engines: {node: '>=20'}
 
-  '@xhmikosr/bin-wrapper@14.5.0':
-    resolution: {integrity: sha512-qzNWA0+YUbN3lVz79b2WK+X3QbR8+hmd6nMTAko1F/1jAeK7VbpK7TcfkYU4dL8iaLNNGYL94WsTewwH17jMTQ==}
+  '@xhmikosr/bin-wrapper@14.5.1':
+    resolution: {integrity: sha512-UZUuTYWxeAbTIiRKKEAmV3csoE36B3CGFZrYYn87+bSEBTyJ32p5gx5Gmj5HOgyOtioFUypbOZ1V5M/l/VoePw==}
     engines: {node: '>=20'}
 
-  '@xhmikosr/decompress-tar@9.0.1':
-    resolution: {integrity: sha512-4AkVR1SoqTxYY22IRRYKDeLirPIDGqMqYsqgjKYuwhgRcBb+yDP4t5Xph33UCzL/nahK/aADmlMEjTNstbX7kw==}
+  '@xhmikosr/decompress-tar@9.0.2':
+    resolution: {integrity: sha512-8nPZ6lZ3ExhsSxi/X/PMB3K+Vtsuxk43HowxYpxw4AsCHTYqFBXwC8B3Y+M/meaUOGOVm+2tFNUAfWGRjBt+Ww==}
     engines: {node: '>=20'}
 
   '@xhmikosr/decompress-tarbz2@9.0.2':
@@ -14258,12 +14259,12 @@ packages:
     resolution: {integrity: sha512-2MS94QnmXQwjkKN8WyFiu1sU7J3rcWJcMze4kRYsX7tN+CXpUGECgkh4YSOhujpkWPuVlFudIziJHO/TxOqkQQ==}
     engines: {node: '>=20'}
 
-  '@xhmikosr/decompress@11.1.3':
-    resolution: {integrity: sha512-NiyhJq6z7ERsYghcnXZUI6ooDXgZtoB+G9eUsYhfSM4VLp2rKx9UxhKI1NEf1PqosrNPxG3bnSsr2UBVbNurlg==}
+  '@xhmikosr/decompress@11.1.4':
+    resolution: {integrity: sha512-ZbYL7SAfY37/TMpopqBR3mQiuQ76kI/RNpN4q82YHSw/UxktZNy8P4wgiKPSrTImMAWRaUG8UK1pgEa56YdLaw==}
     engines: {node: '>=20'}
 
-  '@xhmikosr/downloader@16.3.0':
-    resolution: {integrity: sha512-DF6qHkozD2SiE6yOUOUk8JWpLEPwT4vKZRsDeOZX6ekKDUO/LyeauxOO+H8j3AuRT23YWIx+7Thv7f5SoPS3lQ==}
+  '@xhmikosr/downloader@16.3.1':
+    resolution: {integrity: sha512-M67dvznaFbsvoqhGT4FsHWysaXXQ8386OViGZm0WOyQS3apW9p16WgvHp9nWj2vfKQAR2ZdqIBPNCHSM5rKSCg==}
     engines: {node: '>=20'}
 
   '@xhmikosr/os-filter-obj@4.1.0':
@@ -15488,6 +15489,7 @@ packages:
 
   crypto-js@4.2.0:
     resolution: {integrity: sha512-KALDyEYgpY+Rlob/iriUtjV6d5Eq+Y191A5g4UqLAi8CyGP9N1+FdVbkc1SxKc2r4YAYqG8JzO2KGL+AizD70Q==}
+    deprecated: Active development of CryptoJS has been discontinued. This library is no longer maintained.
 
   css-declaration-sorter@7.4.0:
     resolution: {integrity: sha512-LTuzjPoyA2vMGKKcaOqKSp7Ub2eGrNfKiZH4LpezxpNrsICGCSFvsQOI29psISxNZtaXibkC2CXzrQ5enMeGGw==}
@@ -19265,13 +19267,8 @@ packages:
   mz@2.7.0:
     resolution: {integrity: sha512-z81GNO7nnYMEhrGh9LeymoE4+Yr0Wn5McHIZMK5cfQCl+NDX08sCZgUc9/6MHni9IWuFLm1Z3HTCXu2z9fN62Q==}
 
-  nanoid@3.3.12:
-    resolution: {integrity: sha512-ZB9RH/39qpq5Vu6Y+NmUaFhQR6pp+M2Xt76XBnEwDaGcVAqhlvxrl3B2bKS5D3NH3QR76v3aSrKaF/Kiy7lEtQ==}
-    engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
-    hasBin: true
-
-  nanoid@3.3.16:
-    resolution: {integrity: sha512-bzlKTyNJ7+LdGIIwy8ijFpIqEQIvafahV7eYykJ8Cvh42EdJeODoJ6gUJXpQJvej1BddH8OqTXZNE/KfbWAu8Q==}
+  nanoid@3.3.17:
+    resolution: {integrity: sha512-xQLf0A3HOMlgHq0n247/LRuAOYmB7dXJ/DvAxGvsSBij45XtBSmQycu+F8ODbHwns/XyFZagyL1+J0Offw1E0g==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
@@ -20436,10 +20433,6 @@ packages:
 
   postcss@8.5.12:
     resolution: {integrity: sha512-W62t/Se6rA0Az3DfCL0AqJwXuKwBeYg6nOaIgzP+xZ7N5BFCI7DYi1qs6ygUYT6rvfi6t9k65UMLJC+PHZpDAA==}
-    engines: {node: ^10 || ^12 || >=14}
-
-  postcss@8.5.15:
-    resolution: {integrity: sha512-FfR8sjd4em2T6fb3I2MwAJU7HWVMr9zba+enmQeeWFfCbm+UOC/0X4DS8XtpUTMwWMGbjKYP7xjfNekzyGmB3A==}
     engines: {node: ^10 || ^12 || >=14}
 
   postcss@8.5.25:
@@ -29812,14 +29805,14 @@ snapshots:
   '@nuxtjs/tailwindcss@6.12.2(magicast@0.5.3)(tsx@4.22.0)(yaml@2.9.0)':
     dependencies:
       '@nuxt/kit': 3.21.5(magicast@0.5.3)
-      autoprefixer: 10.5.0(postcss@8.5.15)
+      autoprefixer: 10.5.0(postcss@8.5.25)
       consola: 3.4.2
       defu: 6.1.7
       h3: 1.15.11
       klona: 2.0.6
       pathe: 1.1.2
-      postcss: 8.5.15
-      postcss-nesting: 13.0.2(postcss@8.5.15)
+      postcss: 8.5.25
+      postcss-nesting: 13.0.2(postcss@8.5.25)
       tailwind-config-viewer: 2.0.4(tailwindcss@3.4.19(tsx@4.22.0)(yaml@2.9.0))
       tailwindcss: 3.4.19(tsx@4.22.0)(yaml@2.9.0)
       ufo: 1.6.4
@@ -33258,7 +33251,7 @@ snapshots:
       '@sentry/types': 8.22.0
       '@sentry/utils': 8.22.0
 
-  '@sentry/nextjs@10.53.1(@opentelemetry/core@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/exporter-trace-otlp-http@0.219.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.8.0(@opentelemetry/api@1.9.1))(encoding@0.1.13)(next@15.5.21(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(react@18.3.1)(webpack@5.105.0(lightningcss@1.32.0)(postcss@8.5.15))':
+  '@sentry/nextjs@10.53.1(@opentelemetry/core@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/exporter-trace-otlp-http@0.219.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.8.0(@opentelemetry/api@1.9.1))(encoding@0.1.13)(next@15.5.21(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(react@18.3.1)(webpack@5.105.0(lightningcss@1.32.0)(postcss@8.5.25))':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/semantic-conventions': 1.41.1
@@ -33270,7 +33263,7 @@ snapshots:
       '@sentry/opentelemetry': 10.53.1(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/semantic-conventions@1.41.1)
       '@sentry/react': 10.53.1(react@18.3.1)
       '@sentry/vercel-edge': 10.53.1
-      '@sentry/webpack-plugin': 5.3.0(encoding@0.1.13)(webpack@5.105.0(lightningcss@1.32.0)(postcss@8.5.15))
+      '@sentry/webpack-plugin': 5.3.0(encoding@0.1.13)(webpack@5.105.0(lightningcss@1.32.0)(postcss@8.5.25))
       next: 15.5.21(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       rollup: 4.61.1
       stacktrace-parser: 0.1.11
@@ -33376,10 +33369,10 @@ snapshots:
       '@opentelemetry/resources': 2.8.0(@opentelemetry/api@1.9.1)
       '@sentry/core': 10.53.1
 
-  '@sentry/webpack-plugin@5.3.0(encoding@0.1.13)(webpack@5.105.0(lightningcss@1.32.0)(postcss@8.5.15))':
+  '@sentry/webpack-plugin@5.3.0(encoding@0.1.13)(webpack@5.105.0(lightningcss@1.32.0)(postcss@8.5.25))':
     dependencies:
       '@sentry/bundler-plugin-core': 5.3.0(encoding@0.1.13)
-      webpack: 5.105.0(lightningcss@1.32.0)(postcss@8.5.15)
+      webpack: 5.105.0(lightningcss@1.32.0)(postcss@8.5.25)
     transitivePeerDependencies:
       - encoding
       - supports-color
@@ -33755,7 +33748,7 @@ snapshots:
     dependencies:
       '@swc/core': 1.15.3(@swc/helpers@0.5.21)
       '@swc/counter': 0.1.3
-      '@xhmikosr/bin-wrapper': 14.5.0
+      '@xhmikosr/bin-wrapper': 14.5.1
       commander: 8.3.0
       minimatch: 9.0.9
       piscina: 4.9.3
@@ -33897,7 +33890,7 @@ snapshots:
       '@alloc/quick-lru': 5.2.0
       '@tailwindcss/node': 4.3.0
       '@tailwindcss/oxide': 4.3.0
-      postcss: 8.5.15
+      postcss: 8.5.25
       tailwindcss: 4.3.0
 
   '@tailwindcss/vite@4.3.0(vite@6.4.3(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.48.0)(tsx@4.22.0)(yaml@2.9.0))':
@@ -35086,7 +35079,7 @@ snapshots:
       '@vue/devtools-kit': 7.6.4
       '@vue/devtools-shared': 7.7.9
       mitt: 3.0.1
-      nanoid: 3.3.16
+      nanoid: 3.3.17
       pathe: 1.1.2
       vite-hot-client: 0.2.4(vite@7.3.5(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.48.0)(tsx@4.22.0)(yaml@2.9.0))
       vue: 3.5.13(typescript@5.9.3)
@@ -35709,7 +35702,7 @@ snapshots:
       - '@swc/helpers'
       - supports-color
 
-  '@workflow/next@4.0.5(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0))':
+  '@workflow/next@4.0.5(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0))':
     dependencies:
       '@swc/core': 1.15.3(@swc/helpers@0.5.21)
       '@workflow/builders': 4.0.5(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)
@@ -35718,13 +35711,13 @@ snapshots:
       semver: 7.7.4
       watchpack: 2.5.1
     optionalDependencies:
-      next: 16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0)
+      next: 16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0)
     transitivePeerDependencies:
       - '@opentelemetry/api'
       - '@swc/helpers'
       - supports-color
 
-  '@workflow/next@4.1.0(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0))(ws@8.21.1)':
+  '@workflow/next@4.1.0(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0))(ws@8.21.1)':
     dependencies:
       '@swc/core': 1.15.3(@swc/helpers@0.5.21)
       '@workflow/builders': 4.1.1(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(ws@8.21.1)
@@ -35733,7 +35726,7 @@ snapshots:
       semver: 7.7.4
       watchpack: 2.5.1
     optionalDependencies:
-      next: 16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0)
+      next: 16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0)
     transitivePeerDependencies:
       - '@opentelemetry/api'
       - '@swc/helpers'
@@ -36139,10 +36132,10 @@ snapshots:
       execa: 9.6.1
       isexe: 4.0.0
 
-  '@xhmikosr/bin-wrapper@14.5.0':
+  '@xhmikosr/bin-wrapper@14.5.1':
     dependencies:
       '@xhmikosr/bin-check': 8.2.2
-      '@xhmikosr/downloader': 16.3.0
+      '@xhmikosr/downloader': 16.3.1
       '@xhmikosr/os-filter-obj': 4.1.0
       binary-version-check: 6.1.0
     transitivePeerDependencies:
@@ -36150,7 +36143,7 @@ snapshots:
       - react-native-b4a
       - supports-color
 
-  '@xhmikosr/decompress-tar@9.0.1':
+  '@xhmikosr/decompress-tar@9.0.2':
     dependencies:
       file-type: 21.3.4
       is-stream: 4.0.1
@@ -36162,7 +36155,7 @@ snapshots:
 
   '@xhmikosr/decompress-tarbz2@9.0.2':
     dependencies:
-      '@xhmikosr/decompress-tar': 9.0.1
+      '@xhmikosr/decompress-tar': 9.0.2
       file-type: 21.3.4
       is-stream: 4.0.1
       seek-bzip: 2.0.0
@@ -36174,7 +36167,7 @@ snapshots:
 
   '@xhmikosr/decompress-targz@9.0.1':
     dependencies:
-      '@xhmikosr/decompress-tar': 9.0.1
+      '@xhmikosr/decompress-tar': 9.0.2
       file-type: 21.3.4
       is-stream: 4.0.1
     transitivePeerDependencies:
@@ -36190,9 +36183,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@xhmikosr/decompress@11.1.3':
+  '@xhmikosr/decompress@11.1.4':
     dependencies:
-      '@xhmikosr/decompress-tar': 9.0.1
+      '@xhmikosr/decompress-tar': 9.0.2
       '@xhmikosr/decompress-tarbz2': 9.0.2
       '@xhmikosr/decompress-targz': 9.0.1
       '@xhmikosr/decompress-unzip': 8.2.1
@@ -36203,10 +36196,10 @@ snapshots:
       - react-native-b4a
       - supports-color
 
-  '@xhmikosr/downloader@16.3.0':
+  '@xhmikosr/downloader@16.3.1':
     dependencies:
       '@xhmikosr/archive-type': 8.1.0
-      '@xhmikosr/decompress': 11.1.3
+      '@xhmikosr/decompress': 11.1.4
       content-disposition: 2.0.1
       ext-name: 5.0.0
       file-type: 21.3.4
@@ -36547,15 +36540,6 @@ snapshots:
       normalize-range: 0.1.2
       picocolors: 1.1.1
       postcss: 8.5.12
-      postcss-value-parser: 4.2.0
-
-  autoprefixer@10.5.0(postcss@8.5.15):
-    dependencies:
-      browserslist: 4.28.2
-      caniuse-lite: 1.0.30001792
-      fraction.js: 5.3.4
-      picocolors: 1.1.1
-      postcss: 8.5.15
       postcss-value-parser: 4.2.0
 
   autoprefixer@10.5.0(postcss@8.5.25):
@@ -42580,9 +42564,7 @@ snapshots:
       object-assign: 4.1.1
       thenify-all: 1.6.0
 
-  nanoid@3.3.12: {}
-
-  nanoid@3.3.16: {}
+  nanoid@3.3.17: {}
 
   nanoid@5.1.6: {}
 
@@ -42717,6 +42699,34 @@ snapshots:
     transitivePeerDependencies:
       - '@babel/core'
       - babel-plugin-macros
+
+  next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0):
+    dependencies:
+      '@next/env': 16.2.12
+      '@swc/helpers': 0.5.15
+      baseline-browser-mapping: 2.10.29
+      caniuse-lite: 1.0.30001799
+      postcss: 8.4.31
+      react: 19.0.0-rc-cc1ec60d0d-20240607
+      react-dom: 19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607)
+      styled-jsx: 5.1.6(react@19.0.0-rc-cc1ec60d0d-20240607)
+    optionalDependencies:
+      '@next/swc-darwin-arm64': 16.2.12
+      '@next/swc-darwin-x64': 16.2.12
+      '@next/swc-linux-arm64-gnu': 16.2.12
+      '@next/swc-linux-arm64-musl': 16.2.12
+      '@next/swc-linux-x64-gnu': 16.2.12
+      '@next/swc-linux-x64-musl': 16.2.12
+      '@next/swc-win32-arm64-msvc': 16.2.12
+      '@next/swc-win32-x64-msvc': 16.2.12
+      '@opentelemetry/api': 1.9.1
+      '@playwright/test': 1.61.1
+      sass: 1.90.0
+      sharp: 0.34.5
+    transitivePeerDependencies:
+      - '@babel/core'
+      - babel-plugin-macros
+    optional: true
 
   next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0):
     dependencies:
@@ -43879,25 +43889,17 @@ snapshots:
     dependencies:
       postcss: 8.5.25
 
-  postcss-import@15.1.0(postcss@8.5.15):
+  postcss-import@15.1.0(postcss@8.5.25):
     dependencies:
-      postcss: 8.5.15
+      postcss: 8.5.25
       postcss-value-parser: 4.2.0
       read-cache: 1.0.0
       resolve: 1.22.12
 
-  postcss-js@4.1.0(postcss@8.5.15):
+  postcss-js@4.1.0(postcss@8.5.25):
     dependencies:
       camelcase-css: 2.0.1
-      postcss: 8.5.15
-
-  postcss-load-config@4.0.2(postcss@8.5.15)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.21))(@types/node@22.19.19)(typescript@5.9.3)):
-    dependencies:
-      lilconfig: 3.1.3
-      yaml: 2.9.0
-    optionalDependencies:
-      postcss: 8.5.15
-      ts-node: 10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.21))(@types/node@22.19.19)(typescript@5.9.3)
+      postcss: 8.5.25
 
   postcss-load-config@4.0.2(postcss@8.5.25)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.21))(@types/node@22.19.19)(typescript@5.8.3)):
     dependencies:
@@ -43907,12 +43909,20 @@ snapshots:
       postcss: 8.5.25
       ts-node: 10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.21))(@types/node@22.19.19)(typescript@5.8.3)
 
-  postcss-load-config@6.0.1(jiti@1.21.7)(postcss@8.5.15)(tsx@4.22.0)(yaml@2.9.0):
+  postcss-load-config@4.0.2(postcss@8.5.25)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.21))(@types/node@22.19.19)(typescript@5.9.3)):
+    dependencies:
+      lilconfig: 3.1.3
+      yaml: 2.9.0
+    optionalDependencies:
+      postcss: 8.5.25
+      ts-node: 10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.21))(@types/node@22.19.19)(typescript@5.9.3)
+
+  postcss-load-config@6.0.1(jiti@1.21.7)(postcss@8.5.25)(tsx@4.22.0)(yaml@2.9.0):
     dependencies:
       lilconfig: 3.1.3
     optionalDependencies:
       jiti: 1.21.7
-      postcss: 8.5.15
+      postcss: 8.5.25
       tsx: 4.22.0
       yaml: 2.9.0
 
@@ -44021,16 +44031,16 @@ snapshots:
       postcss-modules-values: 4.0.0(postcss@8.5.25)
       string-hash: 1.1.3
 
-  postcss-nested@6.2.0(postcss@8.5.15):
+  postcss-nested@6.2.0(postcss@8.5.25):
     dependencies:
-      postcss: 8.5.15
+      postcss: 8.5.25
       postcss-selector-parser: 6.1.2
 
-  postcss-nesting@13.0.2(postcss@8.5.15):
+  postcss-nesting@13.0.2(postcss@8.5.25):
     dependencies:
       '@csstools/selector-resolve-nested': 3.1.0(postcss-selector-parser@7.1.1)
       '@csstools/selector-specificity': 5.0.0(postcss-selector-parser@7.1.1)
-      postcss: 8.5.15
+      postcss: 8.5.25
       postcss-selector-parser: 7.1.1
 
   postcss-normalize-charset@7.0.3(postcss@8.5.25):
@@ -44125,25 +44135,19 @@ snapshots:
 
   postcss@8.4.31:
     dependencies:
-      nanoid: 3.3.16
+      nanoid: 3.3.17
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
   postcss@8.5.12:
     dependencies:
-      nanoid: 3.3.12
-      picocolors: 1.1.1
-      source-map-js: 1.2.1
-
-  postcss@8.5.15:
-    dependencies:
-      nanoid: 3.3.12
+      nanoid: 3.3.17
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
   postcss@8.5.25:
     dependencies:
-      nanoid: 3.3.16
+      nanoid: 3.3.17
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
@@ -46187,11 +46191,11 @@ snapshots:
       normalize-path: 3.0.0
       object-hash: 3.0.0
       picocolors: 1.1.1
-      postcss: 8.5.15
-      postcss-import: 15.1.0(postcss@8.5.15)
-      postcss-js: 4.1.0(postcss@8.5.15)
-      postcss-load-config: 4.0.2(postcss@8.5.15)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.21))(@types/node@22.19.19)(typescript@5.9.3))
-      postcss-nested: 6.2.0(postcss@8.5.15)
+      postcss: 8.5.25
+      postcss-import: 15.1.0(postcss@8.5.25)
+      postcss-js: 4.1.0(postcss@8.5.25)
+      postcss-load-config: 4.0.2(postcss@8.5.25)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.21))(@types/node@22.19.19)(typescript@5.9.3))
+      postcss-nested: 6.2.0(postcss@8.5.25)
       postcss-selector-parser: 6.1.2
       resolve: 1.22.12
       sucrase: 3.35.1
@@ -46214,11 +46218,11 @@ snapshots:
       normalize-path: 3.0.0
       object-hash: 3.0.0
       picocolors: 1.1.1
-      postcss: 8.5.15
-      postcss-import: 15.1.0(postcss@8.5.15)
-      postcss-js: 4.1.0(postcss@8.5.15)
-      postcss-load-config: 6.0.1(jiti@1.21.7)(postcss@8.5.15)(tsx@4.22.0)(yaml@2.9.0)
-      postcss-nested: 6.2.0(postcss@8.5.15)
+      postcss: 8.5.25
+      postcss-import: 15.1.0(postcss@8.5.25)
+      postcss-js: 4.1.0(postcss@8.5.25)
+      postcss-load-config: 6.0.1(jiti@1.21.7)(postcss@8.5.25)(tsx@4.22.0)(yaml@2.9.0)
+      postcss-nested: 6.2.0(postcss@8.5.25)
       postcss-selector-parser: 6.1.2
       resolve: 1.22.12
       sucrase: 3.35.1
@@ -46350,16 +46354,16 @@ snapshots:
       lightningcss: 1.32.0
       postcss: 8.5.12
 
-  terser-webpack-plugin@5.6.0(lightningcss@1.32.0)(postcss@8.5.15)(webpack@5.105.0(lightningcss@1.32.0)(postcss@8.5.15)):
+  terser-webpack-plugin@5.6.0(lightningcss@1.32.0)(postcss@8.5.25)(webpack@5.105.0(lightningcss@1.32.0)(postcss@8.5.25)):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       jest-worker: 27.5.1
       schema-utils: 4.3.3
       terser: 5.47.1
-      webpack: 5.105.0(lightningcss@1.32.0)(postcss@8.5.15)
+      webpack: 5.105.0(lightningcss@1.32.0)(postcss@8.5.25)
     optionalDependencies:
       lightningcss: 1.32.0
-      postcss: 8.5.15
+      postcss: 8.5.25
 
   terser@5.43.1:
     dependencies:
@@ -47391,7 +47395,7 @@ snapshots:
       esbuild: 0.25.12
       fdir: 6.5.0(picomatch@4.0.4)
       picomatch: 4.0.4
-      postcss: 8.5.15
+      postcss: 8.5.25
       rollup: 4.62.0
       tinyglobby: 0.2.17
     optionalDependencies:
@@ -47411,7 +47415,7 @@ snapshots:
       esbuild: 0.25.12
       fdir: 6.5.0(picomatch@4.0.4)
       picomatch: 4.0.4
-      postcss: 8.5.15
+      postcss: 8.5.25
       rollup: 4.62.0
       tinyglobby: 0.2.17
     optionalDependencies:
@@ -48020,7 +48024,7 @@ snapshots:
       - postcss
       - uglify-js
 
-  webpack@5.105.0(lightningcss@1.32.0)(postcss@8.5.15):
+  webpack@5.105.0(lightningcss@1.32.0)(postcss@8.5.25):
     dependencies:
       '@types/eslint-scope': 3.7.7
       '@types/estree': 1.0.9
@@ -48044,7 +48048,7 @@ snapshots:
       neo-async: 2.6.2
       schema-utils: 4.3.3
       tapable: 2.3.3
-      terser-webpack-plugin: 5.6.0(lightningcss@1.32.0)(postcss@8.5.15)(webpack@5.105.0(lightningcss@1.32.0)(postcss@8.5.15))
+      terser-webpack-plugin: 5.6.0(lightningcss@1.32.0)(postcss@8.5.25)(webpack@5.105.0(lightningcss@1.32.0)(postcss@8.5.25))
       watchpack: 2.5.1
       webpack-sources: 3.4.1
     transitivePeerDependencies:
@@ -48277,14 +48281,14 @@ snapshots:
       - supports-color
       - typescript
 
-  workflow@4.2.4(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(chokidar@5.0.0))(@swc/core@1.15.3(@swc/helpers@0.5.21))(@swc/helpers@0.5.21)(magicast@0.5.3)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0))(typescript@5.8.3):
+  workflow@4.2.4(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(chokidar@5.0.0))(@swc/core@1.15.3(@swc/helpers@0.5.21))(@swc/helpers@0.5.21)(magicast@0.5.3)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0))(typescript@5.8.3):
     dependencies:
       '@workflow/astro': 4.0.4(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)
       '@workflow/cli': 4.2.4(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)
       '@workflow/core': 4.2.4(@opentelemetry/api@1.9.1)
       '@workflow/errors': 4.1.1
       '@workflow/nest': 0.0.4(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(chokidar@5.0.0))(@swc/core@1.15.3(@swc/helpers@0.5.21))(@swc/helpers@0.5.21)
-      '@workflow/next': 4.0.5(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0))
+      '@workflow/next': 4.0.5(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0))
       '@workflow/nitro': 4.0.5(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)
       '@workflow/nuxt': 4.0.5(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(magicast@0.5.3)
       '@workflow/rollup': 4.0.4(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)
@@ -48305,14 +48309,14 @@ snapshots:
       - supports-color
       - typescript
 
-  workflow@4.6.0(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(chokidar@5.0.0))(@swc/core@1.15.3(@swc/helpers@0.5.21))(@swc/helpers@0.5.21)(magicast@0.5.3)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0))(typescript@5.8.3)(ws@8.21.1):
+  workflow@4.6.0(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(chokidar@5.0.0))(@swc/core@1.15.3(@swc/helpers@0.5.21))(@swc/helpers@0.5.21)(magicast@0.5.3)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0))(typescript@5.8.3)(ws@8.21.1):
     dependencies:
       '@workflow/astro': 4.0.11(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(ws@8.21.1)
       '@workflow/cli': 4.3.0(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(ws@8.21.1)
       '@workflow/core': 4.6.0(@opentelemetry/api@1.9.1)(ws@8.21.1)
       '@workflow/errors': 4.1.4
       '@workflow/nest': 4.0.12(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(chokidar@5.0.0))(@swc/core@1.15.3(@swc/helpers@0.5.21))(@swc/helpers@0.5.21)(ws@8.21.1)
-      '@workflow/next': 4.1.0(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0))(ws@8.21.1)
+      '@workflow/next': 4.1.0(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0))(ws@8.21.1)
       '@workflow/nitro': 4.1.2(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(ws@8.21.1)
       '@workflow/nuxt': 4.0.12(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(magicast@0.5.3)(ws@8.21.1)
       '@workflow/rollup': 4.0.11(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(ws@8.21.1)
