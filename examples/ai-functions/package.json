@@ -99,6 +99,8 @@
   "devDependencies": {
     "@types/node": "22.19.19",
     "@types/ws": "^8.5.13",
+    "metro-config": "0.84.3",
+    "metro-transform-worker": "0.84.3",
     "tsx": "4.19.2",
     "typescript": "5.8.3"
   }
