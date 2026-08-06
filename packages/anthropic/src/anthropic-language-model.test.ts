@@ -6596,6 +6596,30 @@ describe('AnthropicLanguageModel', () => {
               "id": "msg_01K2JbSUMYhez5RHoK9ZCj9U",
               "modelId": "claude-haiku-4-5-20251001",
               "type": "response-metadata",
+              "usage": {
+                "inputTokens": {
+                  "cacheRead": 0,
+                  "cacheWrite": 0,
+                  "noCache": 849,
+                  "total": 849,
+                },
+                "outputTokens": {
+                  "reasoning": undefined,
+                  "text": undefined,
+                  "total": 10,
+                },
+                "raw": {
+                  "cache_creation": {
+                    "ephemeral_1h_input_tokens": 0,
+                    "ephemeral_5m_input_tokens": 0,
+                  },
+                  "cache_creation_input_tokens": 0,
+                  "cache_read_input_tokens": 0,
+                  "input_tokens": 849,
+                  "output_tokens": 10,
+                  "service_tier": "standard",
+                },
+              },
             },
             {
               "id": "0",
@@ -6751,6 +6775,30 @@ describe('AnthropicLanguageModel', () => {
               "id": "msg_01K2JbSUMYhez5RHoK9ZCj9U",
               "modelId": "claude-haiku-4-5-20251001",
               "type": "response-metadata",
+              "usage": {
+                "inputTokens": {
+                  "cacheRead": 0,
+                  "cacheWrite": 0,
+                  "noCache": 849,
+                  "total": 849,
+                },
+                "outputTokens": {
+                  "reasoning": undefined,
+                  "text": undefined,
+                  "total": 10,
+                },
+                "raw": {
+                  "cache_creation": {
+                    "ephemeral_1h_input_tokens": 0,
+                    "ephemeral_5m_input_tokens": 0,
+                  },
+                  "cache_creation_input_tokens": 0,
+                  "cache_read_input_tokens": 0,
+                  "input_tokens": 849,
+                  "output_tokens": 10,
+                  "service_tier": "standard",
+                },
+              },
             },
             {
               "id": "1",
@@ -6944,6 +6992,30 @@ describe('AnthropicLanguageModel', () => {
                 "id": "msg_01CD3XaZfhNabxRt1SG5ybtK",
                 "modelId": "claude-haiku-4-5-20251001",
                 "type": "response-metadata",
+                "usage": {
+                  "inputTokens": {
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "noCache": 843,
+                    "total": 843,
+                  },
+                  "outputTokens": {
+                    "reasoning": undefined,
+                    "text": undefined,
+                    "total": 16,
+                  },
+                  "raw": {
+                    "cache_creation": {
+                      "ephemeral_1h_input_tokens": 0,
+                      "ephemeral_5m_input_tokens": 0,
+                    },
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                    "input_tokens": 843,
+                    "output_tokens": 16,
+                    "service_tier": "standard",
+                  },
+                },
               },
               {
                 "id": "toolu_019Zvehfe1XQWweT1pm7okyt",
@@ -7156,6 +7228,23 @@ describe('AnthropicLanguageModel', () => {
             "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
             "modelId": "claude-3-haiku-20240307",
             "type": "response-metadata",
+            "usage": {
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "noCache": 17,
+                "total": 17,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": undefined,
+                "total": 1,
+              },
+              "raw": {
+                "input_tokens": 17,
+                "output_tokens": 1,
+              },
+            },
           },
           {
             "id": "0",
@@ -7350,6 +7439,23 @@ describe('AnthropicLanguageModel', () => {
             "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
             "modelId": "claude-3-haiku-20240307",
             "type": "response-metadata",
+            "usage": {
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "noCache": 17,
+                "total": 17,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": undefined,
+                "total": 1,
+              },
+              "raw": {
+                "input_tokens": 17,
+                "output_tokens": 1,
+              },
+            },
           },
           {
             "id": "0",
@@ -7461,6 +7567,23 @@ describe('AnthropicLanguageModel', () => {
             "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
             "modelId": "claude-3-haiku-20240307",
             "type": "response-metadata",
+            "usage": {
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "noCache": 17,
+                "total": 17,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": undefined,
+                "total": 1,
+              },
+              "raw": {
+                "input_tokens": 17,
+                "output_tokens": 1,
+              },
+            },
           },
           {
             "id": "0",
@@ -7556,6 +7679,23 @@ describe('AnthropicLanguageModel', () => {
             "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
             "modelId": "claude-3-haiku-20240307",
             "type": "response-metadata",
+            "usage": {
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "noCache": 17,
+                "total": 17,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": undefined,
+                "total": 1,
+              },
+              "raw": {
+                "input_tokens": 17,
+                "output_tokens": 1,
+              },
+            },
           },
           {
             "id": "0",
@@ -8005,6 +8145,23 @@ describe('AnthropicLanguageModel', () => {
             "id": "msg_01GouTqNCGXzrj5LQ5jEkw67",
             "modelId": "claude-3-haiku-20240307",
             "type": "response-metadata",
+            "usage": {
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "noCache": 441,
+                "total": 441,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": undefined,
+                "total": 2,
+              },
+              "raw": {
+                "input_tokens": 441,
+                "output_tokens": 2,
+              },
+            },
           },
           {
             "id": "0",
@@ -8130,6 +8287,23 @@ describe('AnthropicLanguageModel', () => {
             "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
             "modelId": "claude-3-haiku-20240307",
             "type": "response-metadata",
+            "usage": {
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "noCache": 17,
+                "total": 17,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": undefined,
+                "total": 1,
+              },
+              "raw": {
+                "input_tokens": 17,
+                "output_tokens": 1,
+              },
+            },
           },
           {
             "id": "0",
@@ -8425,6 +8599,25 @@ describe('AnthropicLanguageModel', () => {
             "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
             "modelId": "claude-3-haiku-20240307",
             "type": "response-metadata",
+            "usage": {
+              "inputTokens": {
+                "cacheRead": 5,
+                "cacheWrite": 10,
+                "noCache": 17,
+                "total": 32,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": undefined,
+                "total": 1,
+              },
+              "raw": {
+                "cache_creation_input_tokens": 10,
+                "cache_read_input_tokens": 5,
+                "input_tokens": 17,
+                "output_tokens": 1,
+              },
+            },
           },
           {
             "id": "0",
@@ -8516,6 +8709,29 @@ describe('AnthropicLanguageModel', () => {
             "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
             "modelId": "claude-3-haiku-20240307",
             "type": "response-metadata",
+            "usage": {
+              "inputTokens": {
+                "cacheRead": 5,
+                "cacheWrite": 10,
+                "noCache": 17,
+                "total": 32,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": undefined,
+                "total": 1,
+              },
+              "raw": {
+                "cache_creation": {
+                  "ephemeral_1h_input_tokens": 10,
+                  "ephemeral_5m_input_tokens": 0,
+                },
+                "cache_creation_input_tokens": 10,
+                "cache_read_input_tokens": 5,
+                "input_tokens": 17,
+                "output_tokens": 1,
+              },
+            },
           },
           {
             "id": "0",
@@ -8613,6 +8829,23 @@ describe('AnthropicLanguageModel', () => {
             "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
             "modelId": "claude-3-haiku-20240307",
             "type": "response-metadata",
+            "usage": {
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "noCache": 17,
+                "total": 17,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": undefined,
+                "total": 1,
+              },
+              "raw": {
+                "input_tokens": 17,
+                "output_tokens": 1,
+              },
+            },
           },
           {
             "id": "0",
@@ -9023,6 +9256,23 @@ describe('AnthropicLanguageModel', () => {
               "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
               "modelId": "claude-3-haiku-20240307",
               "type": "response-metadata",
+              "usage": {
+                "inputTokens": {
+                  "cacheRead": 0,
+                  "cacheWrite": 0,
+                  "noCache": 17,
+                  "total": 17,
+                },
+                "outputTokens": {
+                  "reasoning": undefined,
+                  "text": undefined,
+                  "total": 1,
+                },
+                "raw": {
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
+              },
             },
             {
               "id": "0",
@@ -9376,6 +9626,23 @@ describe('AnthropicLanguageModel', () => {
                 "id": "msg_01GouTqNCGXzrj5LQ5jEkw67",
                 "modelId": "claude-3-haiku-20240307",
                 "type": "response-metadata",
+                "usage": {
+                  "inputTokens": {
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "noCache": 441,
+                    "total": 441,
+                  },
+                  "outputTokens": {
+                    "reasoning": undefined,
+                    "text": undefined,
+                    "total": 2,
+                  },
+                  "raw": {
+                    "input_tokens": 441,
+                    "output_tokens": 2,
+                  },
+                },
               },
               {
                 "id": "0",
@@ -9507,6 +9774,30 @@ describe('AnthropicLanguageModel', () => {
                 "id": "msg_01GE2RKp1VYsPzdFs3sS9z5S",
                 "modelId": "claude-sonnet-4-5-20250929",
                 "type": "response-metadata",
+                "usage": {
+                  "inputTokens": {
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "noCache": 565,
+                    "total": 565,
+                  },
+                  "outputTokens": {
+                    "reasoning": undefined,
+                    "text": undefined,
+                    "total": 7,
+                  },
+                  "raw": {
+                    "cache_creation": {
+                      "ephemeral_1h_input_tokens": 0,
+                      "ephemeral_5m_input_tokens": 0,
+                    },
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                    "input_tokens": 565,
+                    "output_tokens": 7,
+                    "service_tier": "standard",
+                  },
+                },
               },
               {
                 "id": "0",
@@ -10677,6 +10968,23 @@ describe('AnthropicLanguageModel', () => {
             "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
             "modelId": "claude-3-haiku-20240307",
             "type": "response-metadata",
+            "usage": {
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "noCache": 17,
+                "total": 17,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": undefined,
+                "total": 1,
+              },
+              "raw": {
+                "input_tokens": 17,
+                "output_tokens": 1,
+              },
+            },
           },
           {
             "id": "0",
@@ -10998,6 +11306,78 @@ describe('AnthropicLanguageModel', () => {
     });
 
     describe('doStream', () => {
+      it('should expose initial usage in response metadata', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: ${JSON.stringify({
+              type: 'message_start',
+              message: {
+                id: 'msg-test',
+                model: 'claude-3-haiku-20240307',
+                role: 'assistant',
+                content: [],
+                stop_reason: null,
+                stop_sequence: null,
+                usage: {
+                  input_tokens: 13,
+                  output_tokens: 1,
+                  cache_creation_input_tokens: 3,
+                  cache_read_input_tokens: 2,
+                },
+              },
+            })}\n\n`,
+            `data: ${JSON.stringify({
+              type: 'message_delta',
+              delta: {
+                stop_reason: 'end_turn',
+                stop_sequence: null,
+              },
+              usage: {
+                output_tokens: 5,
+              },
+            })}\n\n`,
+            `data: ${JSON.stringify({ type: 'message_stop' })}\n\n`,
+            'data: [DONE]\n\n',
+          ],
+        };
+
+        const { stream } = await model.doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const responseMetadata = (
+          await convertReadableStreamToArray(stream)
+        ).find(part => part.type === 'response-metadata');
+
+        expect(responseMetadata).toMatchInlineSnapshot(`
+          {
+            "id": "msg-test",
+            "modelId": "claude-3-haiku-20240307",
+            "type": "response-metadata",
+            "usage": {
+              "inputTokens": {
+                "cacheRead": 2,
+                "cacheWrite": 3,
+                "noCache": 13,
+                "total": 18,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": undefined,
+                "total": 1,
+              },
+              "raw": {
+                "cache_creation_input_tokens": 3,
+                "cache_read_input_tokens": 2,
+                "input_tokens": 13,
+                "output_tokens": 1,
+              },
+            },
+          }
+        `);
+      });
+
       // Case 1: providerOptions with 'anthropic' key → only 'anthropic' in providerMetadata
       it('should only include "anthropic" key in providerMetadata when providerOptions uses "anthropic" key', async () => {
         prepareCustomStreamResponse();
