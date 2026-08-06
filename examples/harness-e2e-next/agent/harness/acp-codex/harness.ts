@@ -1,13 +1,6 @@
 import { createACP, type ACPPermissionModeMapping } from '@ai-sdk/harness-acp';
 
 const harnessId = 'acp-codex';
-const codexConfig = {
-  features: {
-    code_mode_only: true,
-  },
-  developer_instructions:
-    'ACP MCP tools may be deferred in Code Mode. Before claiming an ACP MCP tool is unavailable, use exec to inspect ALL_TOOLS by name and description, then invoke the selected tool through the global tools object.',
-};
 
 export const codexACPHarness = createACP({
   harnessId,
@@ -18,9 +11,6 @@ export const codexACPHarness = createACP({
     version: '1.1.4',
     executable: 'codex-acp',
     forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
-    env: {
-      CODEX_CONFIG: JSON.stringify(codexConfig),
-    },
   },
   permissionModeMapping: {
     'allow-reads': { type: 'session-mode', modeId: 'read-only' },
@@ -35,7 +25,6 @@ export const codexACPHarness = createACP({
       env: {
         CODEX_API_KEY: { $source: 'gateway-api-key' },
         CODEX_CONFIG: {
-          ...codexConfig,
           model: 'openai/gpt-5.5',
           model_provider: 'ai_gateway',
           model_providers: {

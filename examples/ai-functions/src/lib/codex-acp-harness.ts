@@ -48,14 +48,6 @@ export function createCodexACP({
       };
   permissionModeMapping?: ACPPermissionModeMapping;
 } = {}) {
-  const codexConfig = {
-    features: {
-      code_mode_only: true,
-    },
-    developer_instructions:
-      'ACP MCP tools may be deferred in Code Mode. Before claiming an ACP MCP tool is unavailable, use exec to inspect ALL_TOOLS by name and description, then invoke the selected tool through the global tools object.',
-    ...(webSearch ? { web_search: 'live' } : {}),
-  };
   const implementation =
     acquisition?.mode === 'locked'
       ? ({
@@ -73,9 +65,13 @@ export function createCodexACP({
     implementation: {
       ...implementation,
       forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
-      env: {
-        CODEX_CONFIG: JSON.stringify(codexConfig),
-      },
+      ...(webSearch
+        ? {
+            env: {
+              CODEX_CONFIG: JSON.stringify({ web_search: 'live' }),
+            },
+          }
+        : {}),
     },
     builtinTools: CODEX_ACP_BUILTIN_TOOLS,
     permissionModeMapping,
@@ -87,7 +83,7 @@ export function createCodexACP({
         env: {
           CODEX_API_KEY: { $source: 'gateway-api-key' },
           CODEX_CONFIG: {
-            ...codexConfig,
+            ...(webSearch ? { web_search: 'live' } : {}),
             model: 'openai/gpt-5.5',
             model_provider: 'ai_gateway',
             model_providers: {
