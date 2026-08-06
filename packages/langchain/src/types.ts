@@ -12,6 +12,8 @@ export interface LangGraphMessageSeen {
 export interface LangGraphEventState {
   /** Tracks which message IDs have been seen */
   messageSeen: Map<string, LangGraphMessageSeen>;
+  /** Maps message IDs to the LangGraph namespace that emitted them */
+  messageNamespaces: Map<string, string[]>;
   /** Accumulates message chunks for later reference */
   messageConcat: Map<string, AIMessageChunk>;
   /** Tracks which tool call IDs have emitted tool-input-start */
@@ -26,6 +28,8 @@ export interface LangGraphEventState {
   toolCallInfoByIndex: Map<string, Map<number, { id: string; name: string }>>;
   /** Tracks the current LangGraph step for start-step/finish-step events */
   currentStep: number | null;
+  /** Namespace whose step counter drives the global UI step lifecycle */
+  stepNamespace: string | null;
   /** Maps tool call key (name:argsJson) to tool call ID for HITL interrupt handling */
   emittedToolCallsByKey: Map<string, string>;
   /** Tracks source IDs already emitted to avoid duplicates across messages/values events */
