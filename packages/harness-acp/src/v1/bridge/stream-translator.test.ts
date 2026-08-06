@@ -303,6 +303,67 @@ describe('createACPStreamTranslator', () => {
     `);
   });
 
+  it('buffers partial input updates for a recognized built-in tool', () => {
+    const events: HarnessV1StreamPart[] = [];
+    const translator = createACPStreamTranslator({
+      emit: event => events.push(event),
+      builtinTools: [
+        {
+          toolName: 'write',
+          nativeName: 'Write',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              file_path: { type: 'string' },
+              content: { type: 'string' },
+            },
+            required: ['file_path', 'content'],
+          },
+        },
+      ],
+    });
+
+    translator.update({
+      sessionUpdate: 'tool_call',
+      toolCallId: 'call-write',
+      title: 'Write file',
+      status: 'pending',
+      rawInput: {},
+      _meta: { claudeCode: { toolName: 'Write' } },
+    });
+    translator.update({
+      sessionUpdate: 'tool_call_update',
+      toolCallId: 'call-write',
+      rawInput: { file_path: 'app/page.tsx' },
+      _meta: { claudeCode: { toolName: 'Write' } },
+    });
+
+    expect(toolEvents({ events })).toEqual([]);
+
+    translator.update({
+      sessionUpdate: 'tool_call_update',
+      toolCallId: 'call-write',
+      rawInput: {
+        file_path: 'app/page.tsx',
+        content: 'export default function Page() {}',
+      },
+      _meta: { claudeCode: { toolName: 'Write' } },
+    });
+
+    expect(toolEvents({ events })).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{\"file_path\":\"app/page.tsx\",\"content\":\"export default function Page() {}\"}",
+          "nativeName": "Write",
+          "providerExecuted": true,
+          "toolCallId": "call-write",
+          "toolName": "write",
+          "type": "tool-call",
+        },
+      ]
+    `);
+  });
+
   it('emits permission tool calls before their approval request', () => {
     const events: HarnessV1StreamPart[] = [];
     const translator = createACPStreamTranslator({

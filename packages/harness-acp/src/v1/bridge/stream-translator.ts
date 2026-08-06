@@ -210,6 +210,18 @@ export function createACPStreamTranslator({
         builtinTools,
         builtinToolsByName,
       });
+      if (
+        !forceEmit &&
+        builtin?.inputSchema != null &&
+        state.values.status !== 'completed' &&
+        state.values.status !== 'failed' &&
+        !hasRequiredBuiltinToolInput({
+          rawInput: state.values.rawInput,
+          inputSchema: builtin.inputSchema,
+        })
+      ) {
+        return;
+      }
       if (builtin != null) {
         state.toolName = builtin.toolName;
         state.nativeName =
@@ -554,18 +566,11 @@ function matchesBuiltinToolInput({
   ) {
     return false;
   }
+  if (!hasRequiredBuiltinToolInput({ rawInput, inputSchema })) return false;
+
   const properties = isRecord(inputSchema.properties)
     ? inputSchema.properties
     : {};
-  const requiredPropertiesMatch = required.every(property => {
-    if (!Object.prototype.hasOwnProperty.call(rawInput, property)) return false;
-    return matchesJSONSchemaValue({
-      value: rawInput[property],
-      schema: properties[property],
-    });
-  });
-  if (!requiredPropertiesMatch) return false;
-
   return Object.entries(properties)
     .filter(([, schema]) => isJSONSchemaDiscriminator({ schema }))
     .every(([property, schema]) => {
@@ -574,6 +579,30 @@ function matchesBuiltinToolInput({
       }
       return matchesJSONSchemaValue({ value: rawInput[property], schema });
     });
+}
+
+function hasRequiredBuiltinToolInput({
+  rawInput,
+  inputSchema,
+}: {
+  rawInput: unknown;
+  inputSchema: ACPBuiltinToolMapping['inputSchema'];
+}): boolean {
+  if (!isRecord(inputSchema) || inputSchema.type !== 'object') return true;
+  if (!isRecord(rawInput)) return false;
+  const required = inputSchema.required;
+  if (!Array.isArray(required) || required.length === 0) return true;
+  if (!required.every(property => typeof property === 'string')) return true;
+  const properties = isRecord(inputSchema.properties)
+    ? inputSchema.properties
+    : {};
+  return required.every(property => {
+    if (!Object.prototype.hasOwnProperty.call(rawInput, property)) return false;
+    return matchesJSONSchemaValue({
+      value: rawInput[property],
+      schema: properties[property],
+    });
+  });
 }
 
 function isJSONSchemaDiscriminator({ schema }: { schema: unknown }): boolean {
