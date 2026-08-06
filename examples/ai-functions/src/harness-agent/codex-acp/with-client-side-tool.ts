@@ -33,7 +33,7 @@ run(async () => {
     const first = await agent.stream({
       session,
       prompt:
-        'Call `mcp__ai-sdk-harness-tools__getUserName` exactly once, then greet the user by name in one sentence.',
+        'Use the getUserName tool exactly once, then greet the user by name in one sentence.',
     });
     await printFullStream({ result: first });
 

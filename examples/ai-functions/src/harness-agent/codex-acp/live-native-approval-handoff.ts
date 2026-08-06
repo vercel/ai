@@ -28,7 +28,7 @@ run(async () => {
           const content = await session.readTextFile({
             path: `${sessionWorkDir}/live-approval.txt`,
           });
-          if (content !== 'approved handoff') {
+          if (content?.trim() !== 'approved handoff') {
             throw new Error(
               `Expected live-approval.txt to contain "approved handoff", received ${JSON.stringify(content)}.`,
             );
@@ -46,7 +46,7 @@ run(async () => {
       const result = await agent.stream({
         session,
         prompt:
-          'Create `live-approval.txt` containing exactly `approved handoff`. Request native permission and do not use a host MCP tool.',
+          'Create `live-approval.txt` containing exactly `approved handoff`.',
       });
       await printFullStream({ result });
       const state = await session.suspendTurn();

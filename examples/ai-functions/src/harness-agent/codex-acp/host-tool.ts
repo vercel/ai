@@ -30,7 +30,7 @@ run(async () => {
     const result = await agent.stream({
       session,
       prompt:
-        'Do not use web search, shell commands, or any native tool. Call the MCP tool `mcp__ai-sdk-harness-tools__weather` exactly once with `{"city":"Lima"}`, then report its temperature result in one sentence.',
+        'What is the weather in Lima? Use the `weather` tool, then summarize in one sentence.',
     });
     await printFullStream({ result });
 

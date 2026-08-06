@@ -50,7 +50,7 @@ run(async () => {
     const first = await weatherAgent.stream({
       session,
       prompt:
-        'Do not use web search, shell commands, or any native tool. Call `mcp__ai-sdk-harness-tools__weather` exactly once with `{"city":"Lima"}`, then report its result in one sentence.',
+        'What is the weather in Lima? Use the `weather` tool, then summarize in one sentence.',
     });
     await printFullStream({ result: first });
     const firstCalls = await first.toolCalls;
@@ -67,7 +67,7 @@ run(async () => {
     const second = await timeAgent.stream({
       session,
       prompt:
-        'The weather tool is no longer active. Do not use web search, shell commands, or any native tool. Call `mcp__ai-sdk-harness-tools__time` exactly once with `{"city":"Lima"}`, then report its result in one sentence.',
+        'What time is it in Lima? Use the `time` tool, then summarize in one sentence.',
     });
     let refreshError: unknown;
     try {

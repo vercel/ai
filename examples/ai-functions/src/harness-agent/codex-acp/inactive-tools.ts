@@ -38,7 +38,7 @@ run(async () => {
     const result = await agent.stream({
       session,
       prompt:
-        'Call `mcp__ai-sdk-harness-tools__weather` exactly once with `{"city":"Paris"}`, then read README.md and summarize both results in one sentence.',
+        'Use the `weather` tool for Paris, then read README.md and summarize both results in one sentence.',
     });
 
     await printFullStream({ result });

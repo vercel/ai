@@ -38,7 +38,7 @@ run(async () => {
     const first = await agent.stream({
       session,
       prompt:
-        'Do not use any native tool. Call `mcp__ai-sdk-harness-tools__weather` exactly once with `{"city":"Lima"}`, then report the result.',
+        'What is the weather in Paris? Use the `weather` tool, then summarize in one sentence.',
     });
     const approval = await printFullStreamAndCaptureToolApproval({
       result: first,

@@ -22,8 +22,7 @@ run(async () => {
   try {
     const first = await agent.stream({
       session,
-      prompt:
-        'Create `approval-rejected.txt` containing exactly `rejected`. Request permission for the native file change and do not use a host MCP tool.',
+      prompt: 'Create `approval-rejected.txt` containing exactly `rejected`.',
     });
     const approval = await printFullStreamAndCaptureToolApproval({
       result: first,

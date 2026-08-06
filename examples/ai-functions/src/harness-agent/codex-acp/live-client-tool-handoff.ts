@@ -37,7 +37,7 @@ run(async () => {
       const result = await agent.stream({
         session,
         prompt:
-          'Do not use a native tool. Call `mcp__ai-sdk-harness-tools__getHandoffCode` exactly once, then report its code.',
+          'Use the getHandoffCode tool exactly once, then report its code.',
       });
       await printFullStream({ result });
       const state = await session.suspendTurn();
