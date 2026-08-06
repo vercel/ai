@@ -1,5 +1,12 @@
 # @ai-sdk/minimax
 
+## 3.0.8
+
+### Patch Changes
+
+- Updated dependencies [8b96941]
+  - @ai-sdk/anthropic@4.0.32
+
 ## 3.0.7
 
 ### Patch Changes
