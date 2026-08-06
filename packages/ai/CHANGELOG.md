@@ -1,5 +1,13 @@
 # ai
 
+## 7.0.54
+
+### Patch Changes
+
+- a6b17a2: Allow `ToolLoopAgent` `prepareCall` callbacks to read and override the top-level `reasoning` option.
+- 5615eb7: Add `defaultInstructionsMiddleware` for applying default language model instructions while preserving call-level overrides.
+- 36a3ff6: Preserve preceding assistant messages when regenerating a response.
+
 ## 7.0.53
 
 ### Patch Changes
