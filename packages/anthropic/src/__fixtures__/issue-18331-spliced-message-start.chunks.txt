@@ -1,0 +1,17 @@
+{"type":"message_start","message":{"id":"msg_first","model":"claude-sonnet-4-20250514","usage":{"input_tokens":10,"output_tokens":1}}}
+{"type":"content_block_start","index":0,"content_block":{"type":"thinking","thinking":""}}
+{"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"first reasoning"}}
+{"type":"content_block_delta","index":0,"delta":{"type":"signature_delta","signature":"sig_first"}}
+{"type":"content_block_stop","index":0}
+{"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"toolu_first","name":"lookup","input":{}}}
+{"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\"value\":\"Spark"}}
+{"type":"message_start","message":{"id":"msg_second","model":"claude-sonnet-4-20250514","usage":{"input_tokens":99,"output_tokens":1}}}
+{"type":"content_block_start","index":0,"content_block":{"type":"thinking","thinking":""}}
+{"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"second reasoning"}}
+{"type":"content_block_delta","index":0,"delta":{"type":"signature_delta","signature":"sig_second"}}
+{"type":"content_block_stop","index":0}
+{"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"toolu_second","name":"lookup","input":{}}}
+{"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\"value\":\"Spark\"}"}}
+{"type":"content_block_stop","index":1}
+{"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":20}}
+{"type":"message_stop"}
