@@ -52,7 +52,7 @@
     "streamdown": "^1.6.11",
     "tailwind-merge": "^3.6.0",
     "tailwindcss-animate": "^1.0.7",
-    "valibot": "1.1.0",
+    "valibot": "1.4.2",
     "zod": "3.25.76"
   },
   "devDependencies": {
