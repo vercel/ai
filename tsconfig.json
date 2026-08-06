@@ -64,6 +64,9 @@
       "path": "packages/fireworks"
     },
     {
+      "path": "packages/fish-audio"
+    },
+    {
       "path": "packages/gateway"
     },
     {

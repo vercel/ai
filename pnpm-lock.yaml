@@ -259,6 +259,9 @@ importers:
       '@ai-sdk/fireworks':
         specifier: workspace:*
         version: link:../../packages/fireworks
+      '@ai-sdk/fish-audio':
+        specifier: workspace:*
+        version: link:../../packages/fish-audio
       '@ai-sdk/gateway':
         specifier: workspace:*
         version: link:../../packages/gateway
@@ -2091,6 +2094,33 @@ importers:
         specifier: 3.25.76
         version: 3.25.76
 
+  packages/fish-audio:
+    dependencies:
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
+      '@types/node':
+        specifier: 20.17.24
+        version: 20.17.24
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.6.3)(yaml@2.7.0)
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
   packages/gateway:
     dependencies:
       '@ai-sdk/provider':
