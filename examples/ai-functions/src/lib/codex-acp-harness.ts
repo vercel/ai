@@ -6,6 +6,24 @@ import {
 import { commonTool } from '@ai-sdk/harness';
 import { z } from 'zod';
 
+const webSearchActionSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('search'),
+    query: z.string().optional(),
+    queries: z.array(z.string()).optional(),
+  }),
+  z.object({
+    type: z.literal('open_page'),
+    url: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('find_in_page'),
+    url: z.string().optional(),
+    pattern: z.string().optional(),
+  }),
+  z.object({ type: z.literal('other') }),
+]);
+
 const CODEX_ACP_IMPLEMENTATION = {
   type: 'npm',
   mode: 'simple',
@@ -21,6 +39,16 @@ const CODEX_ACP_BUILTIN_TOOLS = {
     inputSchema: z.object({
       command: z.string(),
       cwd: z.string().optional(),
+    }),
+  }),
+  webSearch: commonTool('webSearch', {
+    nativeName: 'web_search',
+    toolUseKind: 'readonly',
+    inputSchema: z.object({
+      type: z.literal('webSearch').optional(),
+      id: z.string().optional(),
+      query: z.string(),
+      action: webSearchActionSchema.nullable().optional(),
     }),
   }),
 } as const;

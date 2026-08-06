@@ -1,9 +1,11 @@
 import { createACP, type ACPPermissionModeMapping } from '@ai-sdk/harness-acp';
+import { codexACPBuiltinTools } from './builtin-tools';
 
 const harnessId = 'acp-codex';
 
 export const codexACPHarness = createACP({
   harnessId,
+  builtinTools: codexACPBuiltinTools,
   implementation: {
     type: 'npm',
     mode: 'simple',

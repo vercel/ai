@@ -1,9 +1,11 @@
 import { createACP, type ACPPermissionModeMapping } from '@ai-sdk/harness-acp';
+import { claudeCodeACPBuiltinTools } from './builtin-tools';
 
 const harnessId = 'acp-claude-code';
 
 export const claudeCodeACPHarness = createACP({
   harnessId,
+  builtinTools: claudeCodeACPBuiltinTools,
   implementation: {
     type: 'npm',
     mode: 'simple',

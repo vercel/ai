@@ -225,6 +225,9 @@ import { createACP, type ACPPermissionModeMapping } from '@ai-sdk/harness-acp';
 
 export const claudeCodeACPHarness = createACP({
   harnessId: 'acp-claude-code',
+  // Define the runtime's built-in tool names and input schemas to expose
+  // provider-executed calls as typed HarnessAgent tools.
+  // builtinTools: { ... },
   implementation: {
     type: 'npm',
     mode: 'simple',
@@ -270,6 +273,9 @@ import { createACP, type ACPPermissionModeMapping } from '@ai-sdk/harness-acp';
 
 export const codexACPHarness = createACP({
   harnessId: 'acp-codex',
+  // Define the runtime's built-in tool names and input schemas to expose
+  // provider-executed calls as typed HarnessAgent tools.
+  // builtinTools: { ... },
   implementation: {
     type: 'npm',
     mode: 'simple',
@@ -337,6 +343,9 @@ import { createACP } from '@ai-sdk/harness-acp';
 
 export const grokBuildACPHarness = createACP({
   harnessId: 'acp-grok-build',
+  // Define the runtime's built-in tool names and input schemas to expose
+  // provider-executed calls as typed HarnessAgent tools.
+  // builtinTools: { ... },
   implementation: {
     type: 'npm',
     mode: 'simple',

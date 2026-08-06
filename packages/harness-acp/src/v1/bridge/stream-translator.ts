@@ -42,6 +42,12 @@ export function createACPStreamTranslator({
           preserveRaw?: boolean;
         },
   ) => void;
+  permissionToolCall: (options: {
+    toolCall: Extract<
+      ACPSessionUpdate,
+      { sessionUpdate: 'tool_call' | 'tool_call_update' }
+    >;
+  }) => void;
   raw: (options: { rawValue: unknown }) => void;
   close: () => void;
   finish: (response: ACPPromptResponse) => void;
@@ -161,12 +167,14 @@ export function createACPStreamTranslator({
   const emitToolUpdate = ({
     update,
     rawUpdate,
+    forceEmit = false,
   }: {
     update: Extract<
       ACPSessionUpdate,
       { sessionUpdate: 'tool_call' | 'tool_call_update' }
     >;
     rawUpdate: unknown;
+    forceEmit?: boolean;
   }) => {
     closeBlock();
     const state =
@@ -181,21 +189,32 @@ export function createACPStreamTranslator({
     toolStates.set(update.toolCallId, state);
     mergeToolUpdate({ state, update, rawUpdate });
 
+    if (
+      !forceEmit &&
+      !state.emittedCall &&
+      update.sessionUpdate === 'tool_call' &&
+      update.status === 'pending'
+    ) {
+      return;
+    }
+
     if (!state.emittedCall) {
       const programmaticName = getStringProperty({
         value: state.values,
         property: 'name',
       });
-      const builtin =
-        programmaticName == null
-          ? undefined
-          : builtinToolsByName.get(programmaticName);
+      const builtin = resolveBuiltinTool({
+        programmaticName,
+        metadata: state.values._meta,
+        rawInput: state.values.rawInput,
+        builtinTools,
+        builtinToolsByName,
+      });
       if (builtin != null) {
         state.toolName = builtin.toolName;
         state.nativeName =
-          builtin.nativeName === programmaticName &&
-          builtin.toolName !== programmaticName
-            ? programmaticName
+          builtin.nativeName != null && builtin.toolName !== builtin.nativeName
+            ? builtin.nativeName
             : undefined;
         state.dynamic = false;
       } else {
@@ -339,6 +358,13 @@ export function createACPStreamTranslator({
         emitToolUpdate({ update, rawUpdate: preservedUpdate });
       }
     },
+    permissionToolCall: ({ toolCall }) => {
+      emitToolUpdate({
+        update: toolCall,
+        rawUpdate: toolCall,
+        forceEmit: true,
+      });
+    },
     raw: ({ rawValue }) => {
       emit({ type: 'raw', rawValue });
     },
@@ -441,6 +467,167 @@ function addBuiltinToolMatch({
   }
   if (matches.get(name)?.toolName !== builtinTool.toolName) {
     matches.set(name, null);
+  }
+}
+
+function resolveBuiltinTool({
+  programmaticName,
+  metadata,
+  rawInput,
+  builtinTools,
+  builtinToolsByName,
+}: {
+  programmaticName: string | undefined;
+  metadata: unknown;
+  rawInput: unknown;
+  builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
+  builtinToolsByName: ReadonlyMap<string, ACPBuiltinToolMapping>;
+}): ACPBuiltinToolMapping | undefined {
+  if (programmaticName != null) {
+    return builtinToolsByName.get(programmaticName);
+  }
+
+  const metadataMatch = findBuiltinToolsInMetadata({
+    metadata,
+    builtinToolsByName,
+  });
+  if (metadataMatch.hasProgrammaticName) {
+    return metadataMatch.matches.length === 1
+      ? metadataMatch.matches[0]
+      : undefined;
+  }
+
+  const schemaMatches = builtinTools.filter(tool =>
+    matchesBuiltinToolInput({ rawInput, inputSchema: tool.inputSchema }),
+  );
+  return schemaMatches.length === 1 ? schemaMatches[0] : undefined;
+}
+
+function findBuiltinToolsInMetadata({
+  metadata,
+  builtinToolsByName,
+}: {
+  metadata: unknown;
+  builtinToolsByName: ReadonlyMap<string, ACPBuiltinToolMapping>;
+}): {
+  hasProgrammaticName: boolean;
+  matches: ReadonlyArray<ACPBuiltinToolMapping>;
+} {
+  const matches = new Map<string, ACPBuiltinToolMapping>();
+  let hasProgrammaticName = false;
+  const seen = new Set<object>();
+  const visit = (value: unknown): void => {
+    if (value == null || typeof value !== 'object' || seen.has(value)) return;
+    seen.add(value);
+    for (const [property, child] of Array.isArray(value)
+      ? value.entries()
+      : Object.entries(value as Record<string, unknown>)) {
+      if (
+        (property === 'name' || property === 'toolName') &&
+        typeof child === 'string'
+      ) {
+        hasProgrammaticName = true;
+        const builtin = builtinToolsByName.get(child);
+        if (builtin != null) matches.set(builtin.toolName, builtin);
+      }
+      visit(child);
+    }
+  };
+  visit(metadata);
+  return { hasProgrammaticName, matches: [...matches.values()] };
+}
+
+function matchesBuiltinToolInput({
+  rawInput,
+  inputSchema,
+}: {
+  rawInput: unknown;
+  inputSchema: ACPBuiltinToolMapping['inputSchema'];
+}): boolean {
+  if (!isRecord(rawInput) || !isRecord(inputSchema)) return false;
+  if (inputSchema.type !== 'object') return false;
+  const required = inputSchema.required;
+  if (
+    !Array.isArray(required) ||
+    required.length === 0 ||
+    !required.every(property => typeof property === 'string')
+  ) {
+    return false;
+  }
+  const properties = isRecord(inputSchema.properties)
+    ? inputSchema.properties
+    : {};
+  const requiredPropertiesMatch = required.every(property => {
+    if (!Object.prototype.hasOwnProperty.call(rawInput, property)) return false;
+    return matchesJSONSchemaValue({
+      value: rawInput[property],
+      schema: properties[property],
+    });
+  });
+  if (!requiredPropertiesMatch) return false;
+
+  return Object.entries(properties)
+    .filter(([, schema]) => isJSONSchemaDiscriminator({ schema }))
+    .every(([property, schema]) => {
+      if (!Object.prototype.hasOwnProperty.call(rawInput, property)) {
+        return false;
+      }
+      return matchesJSONSchemaValue({ value: rawInput[property], schema });
+    });
+}
+
+function isJSONSchemaDiscriminator({ schema }: { schema: unknown }): boolean {
+  return (
+    isRecord(schema) &&
+    ('const' in schema ||
+      (Array.isArray(schema.enum) && schema.enum.length === 1))
+  );
+}
+
+function matchesJSONSchemaValue({
+  value,
+  schema,
+}: {
+  value: unknown;
+  schema: unknown;
+}): boolean {
+  if (schema === true) return true;
+  if (schema === false || !isRecord(schema)) return false;
+  if ('const' in schema && !Object.is(value, schema.const)) return false;
+  if (
+    Array.isArray(schema.enum) &&
+    !schema.enum.some(candidate => Object.is(value, candidate))
+  ) {
+    return false;
+  }
+  for (const alternatives of [schema.anyOf, schema.oneOf]) {
+    if (
+      Array.isArray(alternatives) &&
+      !alternatives.some(alternative =>
+        matchesJSONSchemaValue({ value, schema: alternative }),
+      )
+    ) {
+      return false;
+    }
+  }
+  if (typeof schema.type !== 'string') return true;
+  switch (schema.type) {
+    case 'null':
+      return value === null;
+    case 'boolean':
+      return typeof value === 'boolean';
+    case 'integer':
+      return typeof value === 'number' && Number.isInteger(value);
+    case 'number':
+      return typeof value === 'number' && Number.isFinite(value);
+    case 'string':
+      return typeof value === 'string';
+    case 'array':
+      return Array.isArray(value);
+    case 'object':
+      return isRecord(value);
+    default:
+      return true;
   }
 }
 

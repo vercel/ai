@@ -28,6 +28,7 @@ import {
   waitForBridgeReady,
 } from '@ai-sdk/harness/utils';
 import {
+  asSchema,
   type Experimental_SandboxProcess,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
@@ -1288,9 +1289,23 @@ export function serializeBuiltinTools({
       typeof tool.nativeName === 'string'
         ? tool.nativeName
         : undefined;
+    let inputSchema: ACPBuiltinToolMapping['inputSchema'];
+    if (
+      tool != null &&
+      typeof tool === 'object' &&
+      'inputSchema' in tool &&
+      tool.inputSchema != null
+    ) {
+      try {
+        inputSchema = asSchema(
+          tool.inputSchema as Parameters<typeof asSchema>[0],
+        ).jsonSchema as ACPBuiltinToolMapping['inputSchema'];
+      } catch {}
+    }
     return {
       toolName,
       ...(nativeName == null ? {} : { nativeName }),
+      ...(inputSchema == null ? {} : { inputSchema }),
     };
   });
 }

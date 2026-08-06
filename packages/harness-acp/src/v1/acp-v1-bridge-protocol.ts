@@ -27,11 +27,19 @@ export type ACPBuiltinToolMapping = {
    * is a Harness V1 common tool name that differs from the runtime's name.
    */
   readonly nativeName?: HarnessV1BuiltinTool['nativeName'];
+
+  /**
+   * JSON Schema used to identify tool calls when an ACP implementation does
+   * not provide a programmatic tool name. It is optional because built-in
+   * definitions are allowed to omit their input schema.
+   */
+  readonly inputSchema?: HarnessV1LifecycleState['data'];
 };
 
 const builtinToolSchema: z.ZodType<ACPBuiltinToolMapping> = z.object({
   toolName: z.string(),
   nativeName: z.string().optional(),
+  inputSchema: z.json().optional(),
 });
 
 type ACPSerializableToolSpec = Omit<HarnessV1ToolSpec, 'inputSchema'> & {

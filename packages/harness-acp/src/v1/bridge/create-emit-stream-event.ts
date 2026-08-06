@@ -81,13 +81,11 @@ export function createEmitStreamEvent({
       translator.close();
     },
     permissionToolCall: ({ toolCall }) => {
-      translator.update({
-        update: {
+      translator.permissionToolCall({
+        toolCall: {
           sessionUpdate: 'tool_call_update',
           ...toolCall,
         },
-        rawUpdate: toolCall,
-        preserveRaw: false,
       });
     },
     claimHostToolPermission: correlation.claimHostToolPermission,

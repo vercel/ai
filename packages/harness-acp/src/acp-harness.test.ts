@@ -499,7 +499,7 @@ describe('createACP', () => {
     expect(harness.builtinTools.bash.nativeName).toBe('shell');
   });
 
-  it('sends only built-in keys and native names across the bridge', () => {
+  it('serializes built-in names and input schemas across the bridge', () => {
     const builtinTools = {
       bash: commonTool('bash', {
         nativeName: 'shell',
@@ -508,9 +508,27 @@ describe('createACP', () => {
       }),
     };
 
-    expect(serializeBuiltinTools({ builtinTools })).toEqual([
-      { toolName: 'bash', nativeName: 'shell' },
-    ]);
+    expect(serializeBuiltinTools({ builtinTools })).toMatchInlineSnapshot(`
+      [
+        {
+          "inputSchema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "command": {
+                "type": "string",
+              },
+            },
+            "required": [
+              "command",
+            ],
+            "type": "object",
+          },
+          "nativeName": "shell",
+          "toolName": "bash",
+        },
+      ]
+    `);
     expect(
       JSON.stringify(serializeBuiltinTools({ builtinTools })),
     ).not.toContain('Execute a command');
