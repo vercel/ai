@@ -1,5 +1,31 @@
 # @ai-sdk/workflow-harness
 
+## 1.0.61
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.61
+
+## 1.0.60
+
+### Patch Changes
+
+- 9ee38cd: fix(workflow-harness): preserve flat token usage from completed harness agent runs
+  - @ai-sdk/harness@1.0.60
+
+## 1.0.59
+
+### Patch Changes
+
+- Updated dependencies [81bcf2e]
+  - @ai-sdk/harness@1.0.59
+
+## 1.0.58
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.58
+
 ## 1.0.57
 
 ### Patch Changes

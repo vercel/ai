@@ -17,6 +17,7 @@ import type { AsyncIterableStream } from '../util/async-iterable-stream';
 import type { DeepPartial } from '../util/deep-partial';
 import type { AgentCallParameters, AgentStreamParameters } from './agent';
 import { ToolLoopAgent } from './tool-loop-agent';
+import type { ToolLoopAgentSettings } from './tool-loop-agent-settings';
 
 describe('ToolLoopAgent', () => {
   describe('onFinish callback type compatibility', () => {
@@ -531,6 +532,32 @@ describe('ToolLoopAgent', () => {
     });
 
     describe('prepareCall', () => {
+      it('should type reasoning in input and return values', () => {
+        type PrepareCallResult = Awaited<
+          ReturnType<NonNullable<ToolLoopAgentSettings['prepareCall']>>
+        >;
+
+        const preparedOverride = {
+          reasoning: 'high',
+        } satisfies Partial<PrepareCallResult>;
+
+        new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          reasoning: 'medium',
+          prepareCall: options => {
+            expectTypeOf(options.reasoning).toEqualTypeOf<
+              ToolLoopAgentSettings['reasoning']
+            >();
+
+            return {
+              ...options,
+              reasoning: preparedOverride.reasoning,
+              prompt: 'Hello, world!',
+            };
+          },
+        });
+      });
+
       it('should expose includeRuntimeContext type', async () => {
         new ToolLoopAgent<never, {}, { userId: string; requestId: string }>({
           model: new MockLanguageModelV4(),

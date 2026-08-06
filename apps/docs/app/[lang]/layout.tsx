@@ -1,9 +1,9 @@
 import '../global.css';
+import { Footer } from '@vercel/geistdocs/footer';
 import { GeistdocsProvider } from '@vercel/geistdocs/layout';
 import { Navbar } from '@vercel/geistdocs/navbar';
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
-import { Footer } from '@/components/footer';
 import { config } from '@/lib/geistdocs/config';
 import { mono, sans } from '@/lib/geistdocs/fonts';
 

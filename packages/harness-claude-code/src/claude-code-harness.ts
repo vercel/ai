@@ -690,15 +690,18 @@ export function createClaudeCode(
         abortSignal: startOpts.abortSignal,
       });
       const token = randomBytes(32).toString('hex');
+      const authEnv = resolveClaudeCodeEnv(settings.auth);
       const env = {
-        ...resolveClaudeCodeEnv(settings.auth),
+        ...authEnv,
         /*
          * The Claude Agent SDK does not expose arbitrary model-request
          * headers. It reads this environment variable and sends the value as
          * `x-client-app`, while also appending `client-app/<value>` to
          * `User-Agent`, so this is the attribution path for AI Gateway.
          */
-        CLAUDE_AGENT_SDK_CLIENT_APP: CLAUDE_CODE_CLIENT_APP,
+        ...(authEnv.AI_GATEWAY_BASE_URL
+          ? { CLAUDE_AGENT_SDK_CLIENT_APP: CLAUDE_CODE_CLIENT_APP }
+          : {}),
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
         ...(sandboxHomeDir ? { HOME: sandboxHomeDir } : {}),

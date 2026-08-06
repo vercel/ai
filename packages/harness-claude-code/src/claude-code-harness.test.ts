@@ -263,9 +263,48 @@ describe('createClaudeCode adapter', () => {
     expect(spawns).toEqual([
       "node '/vercel/sandbox/.harness-bootstrap/claude-code/bridge.mjs' --workdir '/vercel/sandbox/claude-code-s1; env > /tmp/workdir-leak #' --bridge-state-dir '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/bridge'",
     ]);
+    await session.doDestroy();
+  });
+
+  it('sets the client app for AI Gateway auth', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const harness = createClaudeCode({
+      auth: { gateway: { apiKey: 'gateway-key' } },
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        spawnEnvs,
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
     expect(spawnEnvs.at(0)?.CLAUDE_AGENT_SDK_CLIENT_APP).toBe(
       'ai-sdk/harness-claude-code/0.0.0-test',
     );
+    await session.doDestroy();
+  });
+
+  it('does not set the client app for direct Anthropic auth', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const harness = createClaudeCode({
+      auth: { anthropic: { apiKey: 'anthropic-key' } },
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        spawnEnvs,
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
+    expect(spawnEnvs.at(0)).not.toHaveProperty('CLAUDE_AGENT_SDK_CLIENT_APP');
     await session.doDestroy();
   });
 
