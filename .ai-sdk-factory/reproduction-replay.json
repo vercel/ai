@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 18504,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-18504-langchain-subgraph-steps.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-18504-langchain-subgraph-steps.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_18504_REPRODUCED: root reasoning ended before its continuation after an interleaved subgraph event"
+  }
+}
