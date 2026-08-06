@@ -1,9 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { HarnessV1DebugConfig } from '@ai-sdk/harness';
-import type {
-  ACPAuthenticationProfileIdentity,
-  ACPProviderAuthenticationCompatibility,
-} from '../acp-auth';
+import type { ACPAuthenticationProfileIdentity } from '../acp-auth';
 import type {
   ACPColdSessionState,
   ACPTurnStartConfig,
@@ -24,7 +21,6 @@ export function createACPTurnStartConfig({
   permissionModeMapping,
   debug,
   authenticationProfile,
-  providerAuthenticationCompatibility,
   sessionMeta,
 }: {
   prompt: ReadonlyArray<ACPTextContentBlock>;
@@ -38,9 +34,6 @@ export function createACPTurnStartConfig({
   permissionModeMapping: ACPPermissionModeMapping | undefined;
   debug: HarnessV1DebugConfig | undefined;
   authenticationProfile: ACPAuthenticationProfileIdentity;
-  providerAuthenticationCompatibility:
-    | ACPProviderAuthenticationCompatibility
-    | undefined;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
 }): ACPTurnStartConfig {
   return {
@@ -55,9 +48,6 @@ export function createACPTurnStartConfig({
         }),
       )
       .digest('hex'),
-    providerProfile: createProviderProfile({
-      compatibility: providerAuthenticationCompatibility,
-    }),
     prompt: [...prompt],
     tools: tools.map(tool => ({
       name: tool.name,
@@ -83,7 +73,6 @@ export function createACPColdSessionState({
   return {
     version: turnStartConfig.version,
     configurationFingerprint: turnStartConfig.configurationFingerprint,
-    providerProfile: turnStartConfig.providerProfile,
     tools: turnStartConfig.tools,
     builtinTools: turnStartConfig.builtinTools,
     permissionMode: turnStartConfig.permissionMode,
@@ -91,27 +80,6 @@ export function createACPColdSessionState({
       ? {}
       : { permissionModeMapping: turnStartConfig.permissionModeMapping }),
     ...(modelId == null ? {} : { modelId }),
-  };
-}
-
-function createProviderProfile({
-  compatibility,
-}: {
-  compatibility: ACPProviderAuthenticationCompatibility | undefined;
-}): ACPTurnStartConfig['providerProfile'] {
-  if (compatibility == null || compatibility.type === 'direct') {
-    return { type: 'direct' };
-  }
-  if (compatibility.credentialSource == null) {
-    throw new Error(
-      'ACP turn start configuration cannot persist an AI Gateway profile without a credential source.',
-    );
-  }
-  return {
-    type: 'ai-gateway',
-    baseUrl: compatibility.baseUrl,
-    credentialSource: compatibility.credentialSource,
-    routeKind: compatibility.route.type,
   };
 }
 

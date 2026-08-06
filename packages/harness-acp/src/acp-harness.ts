@@ -73,7 +73,6 @@ const acpResumeStateSchema = z.object({
   bridge: acpBridgeCoordsSchema.optional(),
   coldSession: acpColdSessionStateSchema.optional(),
   turnStartConfig: acpTurnStartConfigSchema.optional(),
-  recoveryStart: acpTurnStartConfigSchema.optional(),
   recovery: z
     .object({
       mode: z.enum(['disk-replay', 'lossy-rerun']),
@@ -134,22 +133,15 @@ export function createACP<TBuiltinTools extends ToolSet = {}>(
         readonly initialGuidanceApplied?: boolean;
         readonly skillsMaterialized?: boolean;
         readonly skillsFingerprint?: string;
-      }> = acpResumeStateSchema
-        .extend({
-          implementationIdentity: z.literal(implementationIdentity),
-          authenticationProfile:
-            acpResumeStateSchema.shape.authenticationProfile
-              .unwrap()
-              .extend({
-                digest: z.literal(authenticationProfile.digest),
-              })
-              .optional(),
-        })
-        .transform(({ recoveryStart, ...lifecycleData }) =>
-          lifecycleData.turnStartConfig != null || recoveryStart == null
-            ? lifecycleData
-            : { ...lifecycleData, turnStartConfig: recoveryStart },
-        );
+      }> = acpResumeStateSchema.extend({
+        implementationIdentity: z.literal(implementationIdentity),
+        authenticationProfile: acpResumeStateSchema.shape.authenticationProfile
+          .unwrap()
+          .extend({
+            digest: z.literal(authenticationProfile.digest),
+          })
+          .optional(),
+      });
       return createACPV1({
         settings,
         builtinTools:

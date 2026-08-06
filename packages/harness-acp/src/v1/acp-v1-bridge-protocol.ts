@@ -45,20 +45,6 @@ export type ACPTurnStartJSONValue =
 export type ACPTurnStartConfig = {
   readonly version: 1;
   readonly configurationFingerprint: string;
-  readonly providerProfile:
-    | {
-        readonly type: 'direct';
-      }
-    | {
-        readonly type: 'ai-gateway';
-        readonly baseUrl: string;
-        readonly credentialSource: 'AI_GATEWAY_API_KEY' | 'VERCEL_OIDC_TOKEN';
-        readonly routeKind:
-          | 'auth-method'
-          | 'provider-method'
-          | 'launch'
-          | 'session';
-      };
   readonly prompt: Array<z.infer<typeof acpTextContentBlockSchema>>;
   readonly tools: Array<{
     readonly name: string;
@@ -74,27 +60,6 @@ export type ACPTurnStartConfig = {
 export const acpTurnStartConfigSchema = z.object({
   version: z.literal(1),
   configurationFingerprint: z.string(),
-  providerProfile: z.union([
-    z
-      .object({
-        type: z.literal('implementation-default'),
-      })
-      .transform(() => ({ type: 'direct' }) as const),
-    z.object({
-      type: z.literal('direct'),
-    }),
-    z.object({
-      type: z.literal('ai-gateway'),
-      baseUrl: z.string(),
-      credentialSource: z.enum(['AI_GATEWAY_API_KEY', 'VERCEL_OIDC_TOKEN']),
-      routeKind: z.enum([
-        'auth-method',
-        'provider-method',
-        'launch',
-        'session',
-      ]),
-    }),
-  ]),
   prompt: z.array(acpTextContentBlockSchema),
   tools: z
     .array(

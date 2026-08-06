@@ -350,7 +350,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               debug: startOptions.observability?.debug,
               implementationIdentity,
               authenticationProfile,
-              providerAuthenticationCompatibility,
               builtinTools: builtinToolCatalog,
               permissionMode,
               permissionModeMapping,
@@ -402,7 +401,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
                 validateACPTurnStartConfig({
                   turnStartConfig,
                   authenticationProfile,
-                  providerAuthenticationCompatibility,
                   sessionMeta: settings.session?.meta,
                   builtinTools: builtinToolCatalog,
                   permissionModeMapping,
@@ -432,7 +430,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
             modelId: settings.modelId,
             permissionMode,
             authenticationProfile,
-            providerAuthenticationCompatibility,
             sessionMeta: settings.session?.meta,
             builtinTools: builtinToolCatalog,
             permissionModeMapping,
@@ -589,7 +586,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         debug: startOptions.observability?.debug,
         implementationIdentity,
         authenticationProfile,
-        providerAuthenticationCompatibility,
         builtinTools: builtinToolCatalog,
         permissionMode,
         permissionModeMapping,
@@ -791,7 +787,6 @@ function createSession({
   debug,
   implementationIdentity,
   authenticationProfile,
-  providerAuthenticationCompatibility,
   builtinTools,
   permissionMode,
   permissionModeMapping,
@@ -820,9 +815,6 @@ function createSession({
   debug: HarnessV1DebugConfig | undefined;
   implementationIdentity: string;
   authenticationProfile: ACPAuthenticationProfileIdentity;
-  providerAuthenticationCompatibility:
-    | ACPProviderAuthenticationCompatibility
-    | undefined;
   builtinTools: StartMessage['builtinTools'];
   permissionMode: NonNullable<StartMessage['permissionMode']>;
   permissionModeMapping: StartMessage['permissionModeMapping'];
@@ -1103,7 +1095,6 @@ function createSession({
         permissionModeMapping,
         debug,
         authenticationProfile,
-        providerAuthenticationCompatibility,
         sessionMeta,
       });
       const control = wireTurn({
@@ -1305,16 +1296,12 @@ export function serializeBuiltinTools({
 function validateACPTurnStartConfig({
   turnStartConfig,
   authenticationProfile,
-  providerAuthenticationCompatibility,
   sessionMeta,
   builtinTools,
   permissionModeMapping,
 }: {
   turnStartConfig: ACPTurnStartConfig;
   authenticationProfile: ACPAuthenticationProfileIdentity;
-  providerAuthenticationCompatibility:
-    | ACPProviderAuthenticationCompatibility
-    | undefined;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
   builtinTools: StartMessage['builtinTools'];
   permissionModeMapping: ACPPermissionModeMapping | undefined;
@@ -1327,14 +1314,11 @@ function validateACPTurnStartConfig({
     permissionModeMapping,
     debug: turnStartConfig.debug,
     authenticationProfile,
-    providerAuthenticationCompatibility,
     sessionMeta,
   });
   if (
     current.configurationFingerprint !==
-      turnStartConfig.configurationFingerprint ||
-    fingerprintValue({ value: current.providerProfile }) !==
-      fingerprintValue({ value: turnStartConfig.providerProfile })
+    turnStartConfig.configurationFingerprint
   ) {
     throw new Error(
       'The persisted ACP turn start configuration is incompatible with the current non-secret start configuration.',
@@ -1347,7 +1331,6 @@ function validateACPColdSessionConfiguration({
   modelId,
   permissionMode,
   authenticationProfile,
-  providerAuthenticationCompatibility,
   sessionMeta,
   builtinTools,
   permissionModeMapping,
@@ -1357,9 +1340,6 @@ function validateACPColdSessionConfiguration({
   modelId: string | undefined;
   permissionMode: NonNullable<StartMessage['permissionMode']>;
   authenticationProfile: ACPAuthenticationProfileIdentity;
-  providerAuthenticationCompatibility:
-    | ACPProviderAuthenticationCompatibility
-    | undefined;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
   builtinTools: StartMessage['builtinTools'];
   permissionModeMapping: ACPPermissionModeMapping | undefined;
@@ -1373,13 +1353,10 @@ function validateACPColdSessionConfiguration({
     permissionModeMapping,
     debug,
     authenticationProfile,
-    providerAuthenticationCompatibility,
     sessionMeta,
   });
   if (
     current.configurationFingerprint !== coldSession.configurationFingerprint ||
-    fingerprintValue({ value: current.providerProfile }) !==
-      fingerprintValue({ value: coldSession.providerProfile }) ||
     coldSession.permissionMode !== permissionMode ||
     coldSession.modelId !== modelId
   ) {
