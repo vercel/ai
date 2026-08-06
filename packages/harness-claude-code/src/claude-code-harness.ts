@@ -461,13 +461,20 @@ function installCommand(reuseSystemExecutable: boolean): string {
 
   if (!reuseSystemExecutable) return `${fullInstall} && ${discardStore}`;
 
+  // The store cleanup must not swallow the install's exit status: with it as
+  // the last command, a failed `pnpm install` still exited this script with
+  // 0, the framework recorded the bootstrap as complete over a half-linked
+  // node_modules, and every later session skipped the bootstrap and crashed
+  // in the bridge on a missing dependency.
   return [
     'if command -v claude >/dev/null 2>&1 && claude --version >/dev/null 2>&1; then',
     `  ${install} --no-optional && command -v claude > ${REUSED_EXECUTABLE_MARKER_NAME}`,
     'else',
     `  ${fullInstall}`,
     'fi',
+    'bootstrap_status=$?',
     discardStore,
+    'exit $bootstrap_status',
   ].join('\n');
 }
 
