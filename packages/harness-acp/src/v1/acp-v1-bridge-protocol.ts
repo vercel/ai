@@ -48,12 +48,10 @@ export type ACPRecoveryStart = {
   readonly providerProfile:
     | {
         readonly type: 'implementation-default' | 'direct';
-        readonly clientApp: string;
       }
     | {
         readonly type: 'ai-gateway';
         readonly baseUrl: string;
-        readonly clientApp: string;
         readonly credentialSource: 'AI_GATEWAY_API_KEY' | 'VERCEL_OIDC_TOKEN';
         readonly routeKind:
           | 'auth-method'
@@ -79,16 +77,13 @@ export const acpRecoveryStartSchema = z.object({
   providerProfile: z.discriminatedUnion('type', [
     z.object({
       type: z.literal('implementation-default'),
-      clientApp: z.string(),
     }),
     z.object({
       type: z.literal('direct'),
-      clientApp: z.string(),
     }),
     z.object({
       type: z.literal('ai-gateway'),
       baseUrl: z.string(),
-      clientApp: z.string(),
       credentialSource: z.enum(['AI_GATEWAY_API_KEY', 'VERCEL_OIDC_TOKEN']),
       routeKind: z.enum([
         'auth-method',

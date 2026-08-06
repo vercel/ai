@@ -25,7 +25,6 @@ export function createACPRecoveryStart({
   debug,
   authenticationProfile,
   providerAuthenticationCompatibility,
-  clientApp,
   sessionMeta,
 }: {
   prompt: ReadonlyArray<ACPTextContentBlock>;
@@ -42,7 +41,6 @@ export function createACPRecoveryStart({
   providerAuthenticationCompatibility:
     | ACPProviderAuthenticationCompatibility
     | undefined;
-  clientApp: string;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
 }): ACPRecoveryStart {
   return {
@@ -59,7 +57,6 @@ export function createACPRecoveryStart({
       .digest('hex'),
     providerProfile: createProviderProfile({
       compatibility: providerAuthenticationCompatibility,
-      clientApp,
     }),
     prompt: [...prompt],
     tools: tools.map(tool => ({
@@ -99,16 +96,14 @@ export function createACPColdSessionState({
 
 function createProviderProfile({
   compatibility,
-  clientApp,
 }: {
   compatibility: ACPProviderAuthenticationCompatibility | undefined;
-  clientApp: string;
 }): ACPRecoveryStart['providerProfile'] {
   if (compatibility == null) {
-    return { type: 'implementation-default', clientApp };
+    return { type: 'implementation-default' };
   }
   if (compatibility.type === 'direct') {
-    return { type: 'direct', clientApp };
+    return { type: 'direct' };
   }
   if (compatibility.credentialSource == null) {
     throw new Error(
@@ -118,7 +113,6 @@ function createProviderProfile({
   return {
     type: 'ai-gateway',
     baseUrl: compatibility.baseUrl,
-    clientApp,
     credentialSource: compatibility.credentialSource,
     routeKind: compatibility.route.type,
   };

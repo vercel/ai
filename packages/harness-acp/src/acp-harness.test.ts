@@ -1055,7 +1055,6 @@ describe('createACP', () => {
         providerProfile: {
           type: 'ai-gateway',
           baseUrl: 'https://gateway.example/custom',
-          clientApp: 'ai-sdk/harness-acp/0.0.0-test',
           credentialSource: 'AI_GATEWAY_API_KEY',
           routeKind: 'auth-method',
         },
@@ -1075,6 +1074,7 @@ describe('createACP', () => {
       'Remember the private phrase cedar-lantern.',
     );
     expect(serializedStopped).not.toContain('gateway-key-before-stop');
+    expect(serializedStopped).not.toContain('clientApp');
     expect(firstChannel.sent.at(-1)).toEqual({ type: 'stop' });
     expect(stop).not.toHaveBeenCalled();
     const writeCount = writes.length;
@@ -1107,7 +1107,6 @@ describe('createACP', () => {
         prompt: [],
         providerProfile: {
           baseUrl: 'https://gateway.example/custom',
-          clientApp: 'ai-sdk/harness-acp/0.0.0-test',
         },
       },
       recoveryMode: {
@@ -1118,6 +1117,7 @@ describe('createACP', () => {
     expect(JSON.stringify(restoreFrame)).not.toContain(
       'gateway-key-before-stop',
     );
+    expect(JSON.stringify(restoreFrame)).not.toContain('clientApp');
     expect(JSON.stringify(restoreFrame)).not.toContain(
       'gateway-key-after-stop',
     );
@@ -1682,7 +1682,6 @@ describe('createACP', () => {
         providerProfile: {
           type: 'ai-gateway',
           baseUrl: 'https://gateway.example.test/v1',
-          clientApp: expect.stringContaining('ai-sdk/harness-acp/'),
           credentialSource: 'AI_GATEWAY_API_KEY',
           routeKind: 'launch',
         },
@@ -1694,6 +1693,7 @@ describe('createACP', () => {
         ],
       },
     });
+    expect(JSON.stringify(continueFrom)).not.toContain('clientApp');
     const stateDir = Reflect.get(
       Reflect.get(continueFrom.data as object, 'bridge'),
       'stateDir',

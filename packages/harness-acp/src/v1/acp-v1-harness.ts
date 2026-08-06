@@ -135,8 +135,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
   }
   validateACPV1Implementation(settings.implementation);
 
-  const clientAppValue = `${clientApp.name}/${clientApp.version}`;
-
   const BOOTSTRAP_DIR = `.harness-bootstrap/${settings.harnessId}`;
 
   let cachedBootstrap: HarnessV1Bootstrap | undefined;
@@ -353,7 +351,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               implementationIdentity,
               authenticationProfile,
               providerAuthenticationCompatibility,
-              clientApp: clientAppValue,
               builtinTools: builtinToolCatalog,
               permissionMode,
               permissionModeMapping,
@@ -406,7 +403,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
                   recoveryStart,
                   authenticationProfile,
                   providerAuthenticationCompatibility,
-                  clientApp: clientAppValue,
                   sessionMeta: settings.session?.meta,
                   builtinTools: builtinToolCatalog,
                   permissionModeMapping,
@@ -437,7 +433,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
             permissionMode,
             authenticationProfile,
             providerAuthenticationCompatibility,
-            clientApp: clientAppValue,
             sessionMeta: settings.session?.meta,
             builtinTools: builtinToolCatalog,
             permissionModeMapping,
@@ -595,7 +590,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         implementationIdentity,
         authenticationProfile,
         providerAuthenticationCompatibility,
-        clientApp: clientAppValue,
         builtinTools: builtinToolCatalog,
         permissionMode,
         permissionModeMapping,
@@ -798,7 +792,6 @@ function createSession({
   implementationIdentity,
   authenticationProfile,
   providerAuthenticationCompatibility,
-  clientApp,
   builtinTools,
   permissionMode,
   permissionModeMapping,
@@ -830,7 +823,6 @@ function createSession({
   providerAuthenticationCompatibility:
     | ACPProviderAuthenticationCompatibility
     | undefined;
-  clientApp: string;
   builtinTools: StartMessage['builtinTools'];
   permissionMode: NonNullable<StartMessage['permissionMode']>;
   permissionModeMapping: StartMessage['permissionModeMapping'];
@@ -1112,7 +1104,6 @@ function createSession({
         debug,
         authenticationProfile,
         providerAuthenticationCompatibility,
-        clientApp,
         sessionMeta,
       });
       const control = wireTurn({
@@ -1315,7 +1306,6 @@ function validateACPRecoveryConfiguration({
   recoveryStart,
   authenticationProfile,
   providerAuthenticationCompatibility,
-  clientApp,
   sessionMeta,
   builtinTools,
   permissionModeMapping,
@@ -1325,7 +1315,6 @@ function validateACPRecoveryConfiguration({
   providerAuthenticationCompatibility:
     | ACPProviderAuthenticationCompatibility
     | undefined;
-  clientApp: string;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
   builtinTools: StartMessage['builtinTools'];
   permissionModeMapping: ACPPermissionModeMapping | undefined;
@@ -1339,7 +1328,6 @@ function validateACPRecoveryConfiguration({
     debug: recoveryStart.debug,
     authenticationProfile,
     providerAuthenticationCompatibility,
-    clientApp,
     sessionMeta,
   });
   if (
@@ -1360,7 +1348,6 @@ function validateACPColdSessionConfiguration({
   permissionMode,
   authenticationProfile,
   providerAuthenticationCompatibility,
-  clientApp,
   sessionMeta,
   builtinTools,
   permissionModeMapping,
@@ -1373,7 +1360,6 @@ function validateACPColdSessionConfiguration({
   providerAuthenticationCompatibility:
     | ACPProviderAuthenticationCompatibility
     | undefined;
-  clientApp: string;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
   builtinTools: StartMessage['builtinTools'];
   permissionModeMapping: ACPPermissionModeMapping | undefined;
@@ -1388,7 +1374,6 @@ function validateACPColdSessionConfiguration({
     debug,
     authenticationProfile,
     providerAuthenticationCompatibility,
-    clientApp,
     sessionMeta,
   });
   if (
