@@ -990,7 +990,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should not send item references for function calls when previousResponseId is set', async () => {
+      it('should send client-executed function calls in full when previousResponseId is set', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           prompt: [
             {
@@ -1039,6 +1039,12 @@ describe('OpenAIResponsesLanguageModel', () => {
               content: [{ type: 'input_text', text: 'What is the weather?' }],
             },
             {
+              type: 'function_call',
+              call_id: 'call_123',
+              name: 'weather',
+              arguments: '{"location":"San Francisco"}',
+            },
+            {
               type: 'function_call_output',
               call_id: 'call_123',
               output: '{"temp":72}',
@@ -1049,73 +1055,6 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(warnings).toStrictEqual([]);
-      });
-
-      it('should keep a follow-up client function call paired with its output when previousResponseId is set', async () => {
-        const toolCallId = 'call_SjdIRQnfceiXp0D5eZCcjlxW';
-
-        await createModel('gpt-4.1-mini').doGenerate({
-          prompt: [
-            {
-              role: 'user',
-              content: [{ type: 'text', text: 'Now search for blue shoes.' }],
-            },
-            {
-              role: 'assistant',
-              content: [
-                {
-                  type: 'tool-call',
-                  toolCallId,
-                  toolName: 'search',
-                  input: { query: 'blue shoes' },
-                  providerOptions: {
-                    openai: { itemId: 'fc_issue_18537' },
-                  },
-                },
-              ],
-            },
-            {
-              role: 'tool',
-              content: [
-                {
-                  type: 'tool-result',
-                  toolCallId,
-                  toolName: 'search',
-                  output: {
-                    type: 'json',
-                    value: { result: 'results for blue shoes' },
-                  },
-                },
-              ],
-            },
-          ],
-          providerOptions: {
-            openai: {
-              previousResponseId: 'resp_previous_turn',
-              store: true,
-            } satisfies OpenAILanguageModelResponsesOptions,
-          },
-        });
-
-        const requestBody = await server.calls[0].requestBodyJson;
-        const functionCallOutput = requestBody.input.find(
-          (item: { type?: string }) => item.type === 'function_call_output',
-        );
-        const matchingFunctionCall = requestBody.input.find(
-          (item: { call_id?: string; type?: string }) =>
-            item.type === 'function_call' &&
-            item.call_id === functionCallOutput?.call_id,
-        );
-
-        if (matchingFunctionCall == null) {
-          const liveError = JSON.parse(
-            fs.readFileSync(
-              'src/responses/__fixtures__/openai-issue-18537-error.1.json',
-              'utf8',
-            ),
-          );
-          throw new Error(liveError.error.message);
-        }
       });
 
       it('should send metadata provider option', async () => {
