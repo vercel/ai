@@ -29,7 +29,11 @@ function createModel(fixtureName: string) {
         status: 200,
         headers: { 'content-type': 'text/event-stream' },
       }),
+<<<<<<< HEAD
   })('claude-sonnet-4-20250514');
+=======
+  })('claude-3-haiku-20240307');
+>>>>>>> origin/release-v6.0
 }
 
 describe('Anthropic message lifecycle', () => {
@@ -39,7 +43,11 @@ describe('Anthropic message lifecycle', () => {
       tools: [
         {
           type: 'function',
+<<<<<<< HEAD
           name: 'lookup',
+=======
+          name: 'test-tool',
+>>>>>>> origin/release-v6.0
           inputSchema: {
             type: 'object',
             properties: { value: { type: 'string' } },
@@ -81,8 +89,12 @@ describe('Anthropic message lifecycle', () => {
 
     expect(responseMetadata).toHaveLength(1);
     expect(parts.some(part => part.type === 'error')).toBeFalsy();
+<<<<<<< HEAD
     expect(
       parts.find(part => part.type === 'finish')?.usage.inputTokens.total,
     ).toBe(10);
+=======
+    expect(parts.some(part => part.type === 'finish')).toBeTruthy();
+>>>>>>> origin/release-v6.0
   });
 });
