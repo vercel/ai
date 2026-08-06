@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.244
+
+### Patch Changes
+
+- 79e58aa: Preserve preceding assistant messages when regenerating a response.
+
 ## 6.0.243
 
 ### Patch Changes
