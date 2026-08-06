@@ -10,18 +10,20 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { Readable, Writable } from 'node:stream';
 import { argv, env as processEnv } from 'node:process';
-import type { StartMessage } from '../acp-bridge-protocol';
+import {
+  ACP_BRIDGE_CONFIGURATION_ENV,
+  readACPBridgeEnvironment,
+} from '../acp-v1-bridge-environment';
+import type { StartMessage } from '../acp-v1-bridge-protocol';
+import type { ACPAuthentication } from '../acp-v1-settings';
+import type { ACPGatewayValues } from '../profile-values';
 import {
   assertACPAuthenticationMethod,
-  ACP_BRIDGE_CONFIGURATION_ENV,
   createACPInitializeRequest,
-  readACPBridgeEnvironment,
   resolveACPLaunchEnvironment,
   validateACPProtocolVersion,
-  type ACPAuthentication,
-  type ACPGatewayValues,
   type ACPInitializeResult,
-} from './v1';
+} from '../protocol-configuration';
 import { captureACPStream, type ACPStreamCapture } from './acp-stream-capture';
 import {
   createACPBridgeError,

@@ -17,8 +17,8 @@ export default defineConfig([
   },
   {
     entry: {
-      'bridge/index': 'src/bridge/index.ts',
-      'bridge/host-tool-mcp': 'src/bridge/host-tool-mcp.ts',
+      'bridge/index': 'src/v1/bridge/index.ts',
+      'bridge/host-tool-mcp': 'src/v1/bridge/host-tool-mcp.ts',
     },
     format: ['esm'],
     target: 'es2022',

@@ -624,18 +624,29 @@ describe('createACP', () => {
 
   it('resolves bridge assets from source and bundled module layouts', () => {
     const sourceModuleUrl = new URL('./v1/acp-v1-harness.ts', import.meta.url);
+    const compiledModuleUrl = new URL(
+      '../dist/v1/acp-v1-harness.js',
+      import.meta.url,
+    );
     const bundledModuleUrl = new URL('../dist/index.js', import.meta.url);
     const sourceCandidates = resolveBridgeAssetCandidates({
       name: 'package.json',
       moduleUrl: sourceModuleUrl,
+    });
+    const compiledCandidates = resolveBridgeAssetCandidates({
+      name: 'package.json',
+      moduleUrl: compiledModuleUrl,
     });
     const bundledCandidates = resolveBridgeAssetCandidates({
       name: 'package.json',
       moduleUrl: bundledModuleUrl,
     });
 
-    expect(sourceCandidates).toContainEqual(
-      new URL('./bridge/package.json', import.meta.url),
+    expect(sourceCandidates[0]).toEqual(
+      new URL('./v1/bridge/package.json', import.meta.url),
+    );
+    expect(compiledCandidates[1]).toEqual(
+      new URL('../dist/bridge/package.json', import.meta.url),
     );
     expect(bundledCandidates[0]).toEqual(
       new URL('../dist/bridge/package.json', import.meta.url),

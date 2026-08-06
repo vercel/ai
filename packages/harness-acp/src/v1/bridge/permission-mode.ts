@@ -4,7 +4,7 @@ import * as acp from '@agentclientprotocol/sdk';
 import type {
   ACPPermissionModeMapping,
   ACPPermissionModeTarget,
-} from '../v1/acp-v1-settings';
+} from '../acp-v1-settings';
 
 const PERMISSION_MODES = [
   'allow-reads',

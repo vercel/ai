@@ -6,7 +6,8 @@ import type {
   HarnessV1BridgeToolWire,
   HarnessV1StreamPart,
 } from '@ai-sdk/harness';
-import { createACPStreamTranslator, type ACPBuiltinToolMapping } from './v1';
+import type { ACPBuiltinToolMapping } from '../acp-v1-bridge-protocol';
+import { createACPStreamTranslator } from '../stream-translator';
 import { createHostToolCorrelation } from './host-tool-correlation';
 
 export function createEmitStreamEvent({
