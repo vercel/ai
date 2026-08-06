@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 7259,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/use-completion-input-reset.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/use-completion-input-reset.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE 7259 REPRODUCED: expected useCompletion handleSubmit to clear input, but input remained \"write a haiku\""
+  }
+}
