@@ -5,11 +5,11 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export type GoogleTranslationModelId =
+export type GoogleSpeechTranslationModelId =
   | 'gemini-3.5-live-translate-preview'
   | (string & {});
 
-export const googleTranslationModelOptions = lazySchema(() =>
+export const googleSpeechTranslationModelOptions = lazySchema(() =>
   zodSchema(
     z.object({
       /**
@@ -21,6 +21,6 @@ export const googleTranslationModelOptions = lazySchema(() =>
   ),
 );
 
-export type GoogleTranslationModelOptions = InferSchema<
-  typeof googleTranslationModelOptions
+export type GoogleSpeechTranslationModelOptions = InferSchema<
+  typeof googleSpeechTranslationModelOptions
 >;

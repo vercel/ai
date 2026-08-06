@@ -101,8 +101,6 @@
         {
           "use": "aisdk/provider-model-file-must-export-model-class",
           "excludeFiles": [
-            "packages/google/src/translation/google-translation-model.ts",
-            "packages/openai/src/translation/openai-translation-model.ts",
             "${providerId}-realtime-model.ts",
             "${providerId}-video-model.ts"
           ]
@@ -110,11 +108,13 @@
         {
           "use": "aisdk/provider-model-file-with-subtype-must-export-model-class",
           "excludeFiles": [
+            "${providerId}-speech-translation-model.ts",
             "packages/deepinfra/src/deepinfra-chat-language-model.ts",
             "packages/moonshotai/src/moonshotai-chat-language-model.ts"
           ]
         },
         "aisdk/provider-realtime-model-file-must-export-model-class",
+        "aisdk/provider-speech-translation-model-file-must-export-model-class",
         "aisdk/provider-video-model-file-must-export-model-class",
         {
           "use": "aisdk/provider-model-file-must-have-matching-model-options-file",
@@ -133,6 +133,7 @@
         {
           "use": "aisdk/provider-model-file-with-subtype-must-have-matching-model-options-file",
           "excludeFiles": [
+            "${providerId}-speech-translation-model.ts",
             "packages/deepinfra/src/deepinfra-chat-language-model.ts",
             "packages/moonshotai/src/moonshotai-chat-language-model.ts"
           ]
@@ -142,12 +143,22 @@
           "excludeFiles": ["packages/gateway/src/gateway-realtime-model.ts"]
         },
         {
+          "use": "aisdk/provider-speech-translation-model-file-must-have-matching-model-options-file",
+          "excludeFiles": [
+            "packages/gateway/src/gateway-speech-translation-model.ts"
+          ]
+        },
+        {
           "use": "aisdk/provider-video-model-file-must-have-matching-model-options-file",
           "excludeFiles": ["packages/gateway/src/gateway-video-model.ts"]
         },
         "aisdk/provider-language-model-file-must-import-workflow-serialization",
         "aisdk/provider-model-options-file-must-export-model-options-type",
-        "aisdk/provider-model-options-file-with-subtype-must-export-model-options-type"
+        {
+          "use": "aisdk/provider-model-options-file-with-subtype-must-export-model-options-type",
+          "excludeFiles": ["${providerId}-speech-translation-model-options.ts"]
+        },
+        "aisdk/provider-speech-translation-model-options-file-must-export-model-options-type"
       ]
     },
     {
