@@ -21,6 +21,7 @@ import {
   type HarnessV1Skill,
   type HarnessV1StreamPart,
 } from '@ai-sdk/harness';
+import { readClaudeCodeHistory } from './claude-code-history';
 import {
   classifyDiskLog,
   createBridgeErrorHandler,
@@ -611,6 +612,7 @@ export function createClaudeCode(
           await attachChannel.open(isContinue ? { resume: true } : undefined);
           return createSession({
             sessionId: startOpts.sessionId,
+            workDir,
             channel: attachChannel,
             // The live bridge was spawned by another process; this one owns no
             // process handle. The session lifecycle method decides whether the
@@ -801,6 +803,7 @@ export function createClaudeCode(
 
       return createSession({
         sessionId: startOpts.sessionId,
+        workDir,
         channel,
         proc,
         model: settings.model,
@@ -1137,8 +1140,11 @@ function createSession({
   builtinToolFiltering,
   skills,
   claudeExecutablePath,
+  workDir,
 }: {
   sessionId: string;
+  /** Where the runtime runs; keys its transcript store for history reads. */
+  workDir: string;
   channel: ClaudeCodeChannel;
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
@@ -1314,6 +1320,8 @@ function createSession({
     sessionId,
     isResume,
     modelId: model,
+    doReadHistory: async readOpts =>
+      readClaudeCodeHistory({ workDir, since: readOpts.since }),
     doPromptTurn: async promptOpts => {
       const control = wireTurn({
         emit: promptOpts.emit,
