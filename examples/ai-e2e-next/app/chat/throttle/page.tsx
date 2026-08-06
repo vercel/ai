@@ -8,6 +8,7 @@ const THROTTLE_MS = 50;
 const EXPECTED_ASSISTANT_CHARACTERS = 1000;
 
 type Result = {
+  assistantCharacterCountAtReady: number;
   durationInMs: number;
   maximumExpectedSnapshotChanges: number;
   renderCount: number;
@@ -60,16 +61,13 @@ export default function Chat() {
   }, [status]);
 
   useEffect(() => {
-    if (
-      startedAt.current == null ||
-      status !== 'ready' ||
-      assistantText.length !== EXPECTED_ASSISTANT_CHARACTERS
-    ) {
+    if (startedAt.current == null || status !== 'ready') {
       return;
     }
 
     const durationInMs = performance.now() - startedAt.current;
     setResult({
+      assistantCharacterCountAtReady: assistantText.length,
       durationInMs,
       // Account for the leading update, trailing update, user message, and
       // timer/commit boundary variance around the throttle window.
@@ -91,7 +89,8 @@ export default function Chat() {
 
   const passed =
     result != null &&
-    result.snapshotChangeCount <= result.maximumExpectedSnapshotChanges;
+    result.snapshotChangeCount <= result.maximumExpectedSnapshotChanges &&
+    result.assistantCharacterCountAtReady === EXPECTED_ASSISTANT_CHARACTERS;
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
@@ -130,7 +129,9 @@ export default function Chat() {
           {result.snapshotChangeCount} message snapshot changes in{' '}
           {Math.round(result.durationInMs)}ms; expected at most{' '}
           {result.maximumExpectedSnapshotChanges} with a {THROTTLE_MS}ms
-          throttle. Total renders: {result.renderCount}.
+          throttle. Assistant characters when status became ready:{' '}
+          {result.assistantCharacterCountAtReady}/
+          {EXPECTED_ASSISTANT_CHARACTERS}. Total renders: {result.renderCount}.
         </div>
       )}
 

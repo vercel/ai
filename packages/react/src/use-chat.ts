@@ -187,10 +187,29 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     getMessagesSnapshot,
   );
 
+  const subscribeToStatus = useCallback(
+    (update: () => void) =>
+      chat['~registerStatusCallback'](() => {
+        if (messagesSnapshotRef.current.chat !== chat) {
+          return;
+        }
+
+        if (chat.status === 'ready' || chat.status === 'error') {
+          // Publish the latest messages before the terminal status can render.
+          messagesSnapshotRef.current = { chat, messages: chat.messages };
+        }
+
+        update();
+      }),
+    [chat],
+  );
+
+  const getStatusSnapshot = useCallback(() => chat.status, [chat]);
+
   const status = useSyncExternalStore(
-    chatRef.current['~registerStatusCallback'],
-    () => chatRef.current.status,
-    () => chatRef.current.status,
+    subscribeToStatus,
+    getStatusSnapshot,
+    getStatusSnapshot,
   );
 
   const error = useSyncExternalStore(
