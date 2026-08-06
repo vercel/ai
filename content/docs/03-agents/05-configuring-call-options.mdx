@@ -14,7 +14,7 @@ When you need agent behavior to change based on runtime inputs:
 - **Add dynamic context** - Inject retrieved documents, user preferences, or session data into prompts
 - **Select models dynamically** - Choose faster or more capable models based on request complexity
 - **Configure tools per request** - Pass user location to search tools or adjust tool behavior
-- **Customize provider options** - Set reasoning effort, temperature, or other provider-specific settings
+- **Adjust generation settings** - Set reasoning effort, temperature, or other call settings
 
 Without call options, you'd need to create multiple agents or handle configuration logic outside the agent.
 
@@ -148,27 +148,23 @@ await newsAgent.generate({
 });
 ```
 
-### Provider-Specific Options
+### Dynamic Reasoning Effort
 
-Configure provider settings dynamically:
+Control how much reasoning the model performs based on runtime inputs, using the top-level [`reasoning` setting](/docs/ai-sdk-core/settings#reasoning):
 
 ```ts
-import { OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import { ToolLoopAgent } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const agent = new ToolLoopAgent({
-  model: 'openai/o3',
+  model: __MODEL__,
   callOptionsSchema: z.object({
     taskDifficulty: z.enum(['low', 'medium', 'high']),
   }),
   prepareCall: ({ options, ...settings }) => ({
     ...settings,
-    providerOptions: {
-      openai: {
-        reasoningEffort: options.taskDifficulty,
-      } satisfies OpenAILanguageModelResponsesOptions,
-    },
+    reasoning: options.taskDifficulty,
   }),
 });
 
@@ -177,6 +173,8 @@ await agent.generate({
   options: { taskDifficulty: 'high' },
 });
 ```
+
+The `reasoning` setting is provider-agnostic, so it composes with dynamic model selection. For options that are genuinely provider-specific, return `providerOptions` from `prepareCall` in the same way; see the [reasoning guide](/docs/ai-sdk-core/reasoning) for per-provider mapping.
 
 ## Advanced Patterns
 
