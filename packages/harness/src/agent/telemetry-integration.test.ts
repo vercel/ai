@@ -164,6 +164,9 @@ describe('HarnessAgent telemetry integration', () => {
         type: 'finish-step',
         finishReason: { unified: 'stop', raw: 'stop' },
         usage,
+        harnessMetadata: {
+          gateway: { generationId: 'generation-id' },
+        },
       },
       {
         type: 'finish',
@@ -200,6 +203,7 @@ describe('HarnessAgent telemetry integration', () => {
       finishReason: unknown;
       usage: unknown;
       performance: unknown;
+      providerMetadata: unknown;
     };
     expect(lmEnd.content).toEqual([
       { type: 'text', text: 'hi' },
@@ -216,6 +220,9 @@ describe('HarnessAgent telemetry integration', () => {
       timeBetweenOutputChunksMs: undefined,
     });
     expect(lmEnd.finishReason).toBe('stop');
+    expect(lmEnd.providerMetadata).toEqual({
+      gateway: { generationId: 'generation-id' },
+    });
     expect(lmEnd.usage).toEqual({
       inputTokens: 5,
       inputTokenDetails: {
@@ -240,7 +247,9 @@ describe('HarnessAgent telemetry integration', () => {
     expect(end.text).toBe('hi');
     expect(end.finalStep).toEqual({
       reasoning: [],
-      providerMetadata: undefined,
+      providerMetadata: {
+        gateway: { generationId: 'generation-id' },
+      },
     });
     expect(end.toolCalls).toEqual([
       {
