@@ -29,16 +29,107 @@ import type {
 } from './types';
 
 /**
- * Parses a LangGraph event tuple into [type, data].
+ * Parses a LangGraph event tuple into [namespace, type, data].
  * Handles both 2-element [type, data] and 3-element [namespace, type, data] formats.
  *
  * @param event - The raw LangGraph event array.
- * @returns A tuple of [type, data].
+ * @returns A tuple of [namespace, type, data].
  */
 export function parseLangGraphEvent(
   event: unknown[],
-): [type: unknown, data: unknown] {
-  return event.length === 3 ? [event[1], event[2]] : [event[0], event[1]];
+): [namespace: unknown | undefined, type: unknown, data: unknown] {
+  return event.length === 3
+    ? [event[0], event[1], event[2]]
+    : [undefined, event[0], event[1]];
+}
+
+export function getLangGraphProviderMetadata(
+  namespace: string[] | undefined,
+): ProviderMetadata | undefined {
+  return namespace === undefined
+    ? undefined
+    : {
+        langchain: {
+          namespace,
+        },
+      };
+}
+
+function addLangGraphNamespace(
+  chunk: UIMessageChunk,
+  namespace: string[] | undefined,
+): UIMessageChunk {
+  if (namespace === undefined) {
+    return chunk;
+  }
+
+  switch (chunk.type) {
+    case 'text-start':
+    case 'text-delta':
+    case 'text-end':
+    case 'reasoning-start':
+    case 'reasoning-delta':
+    case 'reasoning-end':
+    case 'custom':
+    case 'tool-input-start':
+    case 'tool-input-available':
+    case 'tool-input-error':
+    case 'tool-approval-response':
+    case 'tool-output-available':
+    case 'tool-output-error':
+    case 'source-url':
+    case 'source-document':
+    case 'file':
+    case 'reasoning-file': {
+      return {
+        ...chunk,
+        providerMetadata: {
+          ...chunk.providerMetadata,
+          langchain: {
+            ...chunk.providerMetadata?.langchain,
+            namespace,
+          },
+        },
+      };
+    }
+    default:
+      return chunk;
+  }
+}
+
+function createLangGraphNamespaceController(
+  controller: ReadableStreamDefaultController<UIMessageChunk>,
+  state: LangGraphEventState,
+  eventNamespace: string[] | undefined,
+): ReadableStreamDefaultController<UIMessageChunk> {
+  return {
+    get desiredSize() {
+      return controller.desiredSize;
+    },
+    close: () => controller.close(),
+    error: reason => controller.error(reason),
+    enqueue: chunk => {
+      if (chunk === undefined) {
+        return;
+      }
+
+      let messageNamespace: string[] | undefined;
+      switch (chunk.type) {
+        case 'text-start':
+        case 'text-delta':
+        case 'text-end':
+        case 'reasoning-start':
+        case 'reasoning-delta':
+        case 'reasoning-end':
+          messageNamespace = state.messageNamespaces.get(chunk.id);
+          break;
+      }
+
+      controller.enqueue(
+        addLangGraphNamespace(chunk, messageNamespace ?? eventNamespace),
+      );
+    },
+  };
 }
 
 /**
@@ -1176,7 +1267,15 @@ export function processLangGraphEvent(
     emittedToolCallsByKey,
     emittedToolInputs,
   } = state;
-  const [type, data] = parseLangGraphEvent(event);
+  const [rawNamespace, type, data] = parseLangGraphEvent(event);
+  const namespace =
+    Array.isArray(rawNamespace) &&
+    rawNamespace.every(segment => typeof segment === 'string')
+      ? rawNamespace
+      : undefined;
+  const isRootEvent =
+    event.length !== 3 || (namespace !== undefined && namespace.length === 0);
+  controller = createLangGraphNamespaceController(controller, state, namespace);
 
   switch (type) {
     case 'custom': {
@@ -1224,8 +1323,14 @@ export function processLangGraphEvent(
 
       if (!msgId) return;
 
+      if (namespace !== undefined) {
+        state.messageNamespaces.set(msgId, namespace);
+      }
+
       /**
-       * Track LangGraph step changes and emit start-step/finish-step events.
+       * Track root LangGraph step changes and emit start-step/finish-step events.
+       * Subgraphs have independent step counters, while UI message step events
+       * are global, so nested graph counters must not change the root lifecycle.
        * Before emitting finish-step, close any open text/reasoning parts so
        * the client does not receive orphaned deltas after its
        * activeReasoningParts / activeTextParts have been cleared.
@@ -1234,7 +1339,11 @@ export function processLangGraphEvent(
         typeof metadata?.langgraph_step === 'number'
           ? metadata.langgraph_step
           : null;
-      if (langgraphStep !== null && langgraphStep !== state.currentStep) {
+      if (
+        isRootEvent &&
+        langgraphStep !== null &&
+        langgraphStep !== state.currentStep
+      ) {
         if (state.currentStep !== null) {
           for (const [id, seen] of messageSeen) {
             if (seen.text) {
@@ -1244,6 +1353,7 @@ export function processLangGraphEvent(
               controller.enqueue({ type: 'reasoning-end', id });
             }
             messageSeen.delete(id);
+            state.messageNamespaces.delete(id);
             messageConcat.delete(id);
             messageReasoningIds.delete(id);
           }
@@ -1640,6 +1750,7 @@ export function processLangGraphEvent(
         }
 
         messageSeen.delete(id);
+        state.messageNamespaces.delete(id);
         messageConcat.delete(id);
         messageReasoningIds.delete(id);
       }
