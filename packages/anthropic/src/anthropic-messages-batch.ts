@@ -17,7 +17,9 @@ import {
   createJsonResponseHandler,
   getFromApi,
   lazySchema,
+  normalizeHeaders,
   parseJSON,
+  parseProviderOptions,
   postJsonToApi,
   resolve,
   validateTypes,
@@ -45,6 +47,10 @@ import { convertAnthropicUsage } from './convert-anthropic-usage';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 
 const anthropicBatchRequestIdPattern = /^[A-Za-z0-9_-]{1,64}$/;
+
+const anthropicBatchProviderOptionsSchema = z.object({
+  anthropicBeta: z.array(z.string()).optional(),
+});
 
 type AnthropicBatchRequest = Parameters<
   BatchLanguageModelV4['experimental_doStartBatch']
@@ -137,6 +143,7 @@ export class AnthropicMessagesBatchLanguageModel
 
   async experimental_doStartBatch({
     requests,
+    providerOptions,
     headers,
     abortSignal,
   }: Parameters<
@@ -144,8 +151,13 @@ export class AnthropicMessagesBatchLanguageModel
   >[0]): Promise<BatchV4StartResult> {
     validateRequestIds(requests);
 
-    const userSuppliedBetas = await this.getBatchBetasFromHeaders(headers);
-    const batchBetas = new Set(userSuppliedBetas);
+    const explicitBatchBetas = new Set(
+      await getAnthropicBatchProviderBetas({
+        provider: this.batchConfig.provider,
+        providerOptions,
+      }),
+    );
+    const batchBetas = new Set(explicitBatchBetas);
     const preparedRequests: Array<{
       custom_id: string;
       params: Record<string, unknown>;
@@ -153,10 +165,24 @@ export class AnthropicMessagesBatchLanguageModel
     const batchWarnings: BatchV4StartResult['warnings'] = [];
 
     for (const request of requests) {
+      const requestBetas = await getAnthropicBatchProviderBetas({
+        provider: this.batchConfig.provider,
+        providerOptions: request.options.providerOptions,
+      });
+      if (requestBetas.length > 0) {
+        throw new UnsupportedFunctionalityError({
+          functionality: 'per-request providerOptions.anthropic.anthropicBeta',
+          message:
+            `Anthropic Message Batches do not support per-request betas ` +
+            `(request "${request.id}"). Set providerOptions.anthropic.anthropicBeta ` +
+            `on startTextBatch instead.`,
+        });
+      }
+
       const prepared = await this.getArgs({
         ...request.options,
         stream: false,
-        userSuppliedBetas: new Set(userSuppliedBetas),
+        userSuppliedBetas: new Set(explicitBatchBetas),
       });
       const body = this.transformBatchRequestBody(
         prepared.args,
@@ -178,7 +204,7 @@ export class AnthropicMessagesBatchLanguageModel
 
     const { value: batch } = await postJsonToApi({
       url: this.getBatchUrl(''),
-      headers: await this.getBatchHeaders({ betas: batchBetas, headers }),
+      headers: await this.getStartBatchHeaders({ betas: batchBetas, headers }),
       body: { requests: preparedRequests },
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -227,16 +253,14 @@ export class AnthropicMessagesBatchLanguageModel
       });
     }
 
-    const betas = await this.getBatchBetasFromHeaders(options.headers);
     const { value: stream } = await getFromApi({
       url: batch.results_url,
       validateUrl: true,
       credentialedOrigin: this.batchConfig.baseURL,
       trustedOrigin: this.batchConfig.baseURL,
-      headers: combineHeaders(
-        await this.getBatchHeaders({ betas, headers: options.headers }),
-        { Accept: 'application/binary' },
-      ),
+      headers: combineHeaders(await this.getBatchHeaders(options.headers), {
+        Accept: 'application/binary',
+      }),
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: rawStreamResponseHandler,
       abortSignal: options.abortSignal,
@@ -251,14 +275,10 @@ export class AnthropicMessagesBatchLanguageModel
   private async retrieveBatch(
     options: BatchV4OperationOptions,
   ): Promise<AnthropicBatchResponse> {
-    const betas = await this.getBatchBetasFromHeaders(options.headers);
     const { value: batch } = await getFromApi({
       url: this.getBatchUrl(`/${encodeURIComponent(options.batchId)}`),
       validateUrl: false,
-      headers: await this.getBatchHeaders({
-        betas,
-        headers: options.headers,
-      }),
+      headers: await this.getBatchHeaders(options.headers),
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         anthropicBatchResponseSchema,
@@ -282,7 +302,7 @@ export class AnthropicMessagesBatchLanguageModel
     return `${this.batchConfig.baseURL}/messages/batches${path}`;
   }
 
-  private async getBatchHeaders({
+  private async getStartBatchHeaders({
     betas,
     headers,
   }: {
@@ -290,28 +310,22 @@ export class AnthropicMessagesBatchLanguageModel
     headers: Record<string, string | undefined> | undefined;
   }) {
     return combineHeaders(
+      normalizeHeaders(await this.getBatchHeaders(headers)),
+      {
+        'anthropic-beta':
+          betas.size > 0 ? Array.from(betas).join(',') : undefined,
+      },
+    );
+  }
+
+  private async getBatchHeaders(
+    headers: Record<string, string | undefined> | undefined,
+  ) {
+    return combineHeaders(
       this.batchConfig.headers
         ? await resolve(this.batchConfig.headers)
         : undefined,
       headers,
-      betas.size > 0 ? { 'anthropic-beta': Array.from(betas).join(',') } : {},
-    );
-  }
-
-  private async getBatchBetasFromHeaders(
-    requestHeaders: Record<string, string | undefined> | undefined,
-  ) {
-    const configHeaders = this.batchConfig.headers
-      ? await resolve(this.batchConfig.headers)
-      : undefined;
-
-    return new Set(
-      [
-        ...(configHeaders?.['anthropic-beta'] ?? '').toLowerCase().split(','),
-        ...(requestHeaders?.['anthropic-beta'] ?? '').toLowerCase().split(','),
-      ]
-        .map(beta => beta.trim())
-        .filter(beta => beta !== ''),
     );
   }
 
@@ -321,6 +335,37 @@ export class AnthropicMessagesBatchLanguageModel
   ): Record<string, any> {
     return this.batchConfig.transformRequestBody?.(args, betas) ?? args;
   }
+}
+
+async function getAnthropicBatchProviderBetas({
+  provider,
+  providerOptions,
+}: {
+  provider: string;
+  providerOptions: BatchV4OperationOptions['providerOptions'];
+}) {
+  const providerOptionsName = provider.split('.')[0];
+  const canonicalOptions = await parseProviderOptions({
+    provider: 'anthropic',
+    providerOptions,
+    schema: anthropicBatchProviderOptionsSchema,
+  });
+  const customOptions =
+    providerOptionsName !== 'anthropic'
+      ? await parseProviderOptions({
+          provider: providerOptionsName,
+          providerOptions,
+          schema: anthropicBatchProviderOptionsSchema,
+        })
+      : undefined;
+
+  const anthropicOptions = Object.assign(
+    {},
+    canonicalOptions ?? {},
+    customOptions ?? {},
+  );
+
+  return anthropicOptions.anthropicBeta ?? [];
 }
 
 function validateRequestIds(requests: ReadonlyArray<AnthropicBatchRequest>) {

@@ -91,7 +91,7 @@ function messageResultBody(text: string) {
 }
 
 describe('Anthropic Messages batch language model', () => {
-  it('starts a batch from prepared requests and unions beta headers', async () => {
+  it('starts a batch from prepared requests and combines batch and inferred betas', async () => {
     server.urls[urls.batches].response = {
       type: 'json-value',
       body: batchResponse({
@@ -110,7 +110,7 @@ describe('Anthropic Messages batch language model', () => {
       apiKey: 'test-api-key',
       headers: {
         'Provider-Header': 'provider',
-        'anthropic-beta': 'provider-beta',
+        'Anthropic-Beta': 'provider-header-beta',
       },
     })('claude-3-haiku-20240307');
 
@@ -121,11 +121,6 @@ describe('Anthropic Messages batch language model', () => {
           ...request('What is the capital of France?', {
             maxOutputTokens: 100,
             frequencyPenalty: 0.5,
-            providerOptions: {
-              anthropic: {
-                anthropicBeta: ['request-one-beta'],
-              } satisfies AnthropicLanguageModelOptions,
-            },
           }),
         },
         {
@@ -134,7 +129,6 @@ describe('Anthropic Messages batch language model', () => {
             maxOutputTokens: 200,
             providerOptions: {
               anthropic: {
-                anthropicBeta: ['request-two-beta'],
                 fallbacks: [
                   {
                     model: 'claude-sonnet-4-5',
@@ -146,9 +140,12 @@ describe('Anthropic Messages batch language model', () => {
           }),
         },
       ],
+      providerOptions: {
+        anthropic: { anthropicBeta: ['batch-beta'] },
+      },
       headers: {
         'Operation-Header': 'operation',
-        'anthropic-beta': 'operation-beta',
+        'anthropic-beta': 'operation-header-beta',
       },
     });
 
@@ -225,15 +222,39 @@ describe('Anthropic Messages batch language model', () => {
       .split(',')
       .map(beta => beta.trim());
     expect(betas).toEqual(
-      expect.arrayContaining([
-        'provider-beta',
-        'operation-beta',
-        'request-one-beta',
-        'request-two-beta',
-        'server-side-fallback-2026-06-01',
-      ]),
+      expect.arrayContaining(['batch-beta', 'server-side-fallback-2026-06-01']),
     );
+    expect(betas).toHaveLength(2);
     expect(new Set(betas).size).toBe(betas.length);
+  });
+
+  it('rejects per-request betas before making an API request', async () => {
+    const model = createAnthropic({ apiKey: 'test-api-key' })(
+      'claude-3-haiku-20240307',
+    );
+
+    await expect(
+      model.experimental_doStartBatch({
+        requests: [
+          {
+            id: 'request-1',
+            ...request('Hello', {
+              providerOptions: {
+                anthropic: {
+                  anthropicBeta: ['request-beta'],
+                } satisfies AnthropicLanguageModelOptions,
+              },
+            }),
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_UnsupportedFunctionalityError',
+      functionality: 'per-request providerOptions.anthropic.anthropicBeta',
+      message:
+        'Anthropic Message Batches do not support per-request betas (request "request-1"). Set providerOptions.anthropic.anthropicBeta on startTextBatch instead.',
+    });
+    expect(server.calls).toHaveLength(0);
   });
 
   it.each([
@@ -622,7 +643,6 @@ describe('Anthropic Messages batch language model', () => {
       apiKey: 'test-api-key',
       headers: {
         'Provider-Header': 'provider',
-        'anthropic-beta': 'provider-beta',
       },
       fetch: mockFetch,
     })('claude-3-haiku-20240307');
@@ -632,7 +652,6 @@ describe('Anthropic Messages batch language model', () => {
       abortSignal: abortController.signal,
       headers: {
         'Operation-Header': 'operation',
-        'anthropic-beta': 'operation-beta',
       },
     });
     await convertReadableStreamToArray(stream);
@@ -645,11 +664,6 @@ describe('Anthropic Messages batch language model', () => {
         'provider-header': 'provider',
         'operation-header': 'operation',
       });
-      expect(
-        call.requestHeaders['anthropic-beta']
-          .split(',')
-          .map(beta => beta.trim()),
-      ).toEqual(expect.arrayContaining(['provider-beta', 'operation-beta']));
     }
     expect(server.calls[1].requestHeaders.accept).toBe('application/binary');
   });
