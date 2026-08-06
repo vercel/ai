@@ -1,0 +1,749 @@
+import {
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
+} from '@ai-sdk/provider-utils';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { GoogleBatchLanguageModel } from './google-batch-language-model';
+import type { GoogleLanguageModelConfig } from './google-language-model';
+import { createGoogle } from './google-provider';
+
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
+
+const urls = {
+  uploadStart: 'https://generativelanguage.googleapis.com/upload/v1beta/files',
+  uploadSession:
+    'https://generativelanguage.googleapis.com/upload/v1beta/files/session-123',
+  create:
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:batchGenerateContent',
+  batch: 'https://generativelanguage.googleapis.com/v1beta/batches/batch-123',
+  output:
+    'https://generativelanguage.googleapis.com/download/v1beta/files/batch-output:download?alt=media',
+} as const;
+
+const server = createTestServer({
+  [urls.uploadStart]: {},
+  [urls.uploadSession]: {},
+  [urls.create]: {},
+  [urls.batch]: {},
+  [urls.output]: {},
+});
+
+const config: GoogleLanguageModelConfig = {
+  provider: 'google.generative-ai',
+  baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+  headers: { 'x-goog-api-key': 'test-api-key' },
+  generateId: () => 'test-id',
+};
+
+type BatchRequest = Parameters<
+  GoogleBatchLanguageModel['experimental_doStartBatch']
+>[0]['requests'][number];
+
+function request(
+  id: string,
+  prompt: string,
+  options: Omit<BatchRequest['options'], 'prompt'> = {},
+): BatchRequest {
+  return {
+    id,
+    options: {
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: prompt }],
+        },
+      ],
+      ...options,
+    },
+  };
+}
+
+function operation(
+  metadataOverrides: Record<string, unknown> = {},
+  operationOverrides: Record<string, unknown> = {},
+) {
+  return {
+    name: 'batches/batch-123',
+    done: true,
+    metadata: {
+      name: 'batches/batch-123',
+      model: 'models/gemini-2.5-flash',
+      displayName: 'ai-sdk-batch-test-id',
+      state: 'BATCH_STATE_SUCCEEDED',
+      createTime: '2026-08-04T12:34:56.123Z',
+      batchStats: {
+        requestCount: '2',
+        successfulRequestCount: '2',
+        failedRequestCount: '0',
+      },
+      ...metadataOverrides,
+    },
+    ...operationOverrides,
+  };
+}
+
+function prepareUpload() {
+  server.urls[urls.uploadStart].response = {
+    type: 'json-value',
+    headers: { 'x-goog-upload-url': urls.uploadSession },
+    body: {},
+  };
+  server.urls[urls.uploadSession].response = {
+    type: 'json-value',
+    body: {
+      file: {
+        name: 'files/batch-input',
+        displayName: 'batch.jsonl',
+        mimeType: 'application/jsonl',
+        sizeBytes: '256',
+        uri: 'https://generativelanguage.googleapis.com/v1beta/files/batch-input',
+        state: 'ACTIVE',
+      },
+    },
+  };
+}
+
+function googleResponse({ id, text }: { id: string; text: string }) {
+  return {
+    responseId: id,
+    candidates: [
+      {
+        content: {
+          role: 'model',
+          parts: [{ text }],
+        },
+        finishReason: 'STOP',
+        finishMessage: 'Generation completed.',
+        safetyRatings: [
+          {
+            category: 'HARM_CATEGORY_HATE_SPEECH',
+            probability: 'NEGLIGIBLE',
+          },
+        ],
+        groundingMetadata: {
+          webSearchQueries: ['capital of France'],
+        },
+      },
+    ],
+    promptFeedback: {
+      safetyRatings: [
+        {
+          category: 'HARM_CATEGORY_HATE_SPEECH',
+          probability: 'NEGLIGIBLE',
+        },
+      ],
+    },
+    usageMetadata: {
+      promptTokenCount: 10,
+      candidatesTokenCount: 3,
+      totalTokenCount: 14,
+      cachedContentTokenCount: 2,
+      thoughtsTokenCount: 1,
+      serviceTier: 'priority',
+    },
+  };
+}
+
+function prepareOutput(lines: unknown[]) {
+  server.urls[urls.batch].response = {
+    type: 'json-value',
+    body: operation({
+      output: { responsesFile: 'files/batch-output' },
+    }),
+  };
+
+  const encodedLines = lines.map(line => JSON.stringify(line));
+  const body = encodedLines.join('\n');
+  server.urls[urls.output].response = {
+    type: 'stream-chunks',
+    headers: { 'Content-Type': 'application/jsonl' },
+    chunks: [body.slice(0, 17), body.slice(17, 61), body.slice(61)],
+  };
+}
+
+describe('GoogleBatchLanguageModel', () => {
+  it('starts a batch from prepared JSONL requests using a resumable file upload', async () => {
+    prepareUpload();
+    server.urls[urls.create].response = {
+      type: 'json-value',
+      body: operation(
+        {
+          state: 'BATCH_STATE_PENDING',
+          batchStats: {
+            requestCount: '1',
+            successfulRequestCount: '0',
+            failedRequestCount: '0',
+          },
+        },
+        { done: false },
+      ),
+    };
+
+    const mockFetch = vi.fn().mockImplementation(globalThis.fetch);
+    const abortController = new AbortController();
+    const model = createGoogle({
+      apiKey: 'test-api-key',
+      generateId: () => 'test-id',
+      headers: { 'Provider-Header': 'provider' },
+      fetch: mockFetch,
+    })('gemini-2.5-flash');
+
+    const result = await model.experimental_doStartBatch({
+      requests: [
+        {
+          id: 'france',
+          options: {
+            prompt: [
+              {
+                role: 'system',
+                content: 'Answer with only the city name.',
+              },
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: 'What is the capital of France?' },
+                ],
+              },
+            ],
+            maxOutputTokens: 20,
+            temperature: 0.2,
+            topP: 0.9,
+            topK: 10,
+            frequencyPenalty: 0.1,
+            presencePenalty: 0.2,
+            stopSequences: ['END'],
+            seed: 42,
+            providerOptions: {
+              google: { sharedRequestType: 'flex' },
+            },
+          },
+        },
+      ],
+      headers: { 'Operation-Header': 'operation' },
+      abortSignal: abortController.signal,
+    });
+
+    expect(result).toMatchObject({
+      batchId: 'batches/batch-123',
+      status: 'pending',
+      rawStatus: 'BATCH_STATE_PENDING',
+      requestCounts: {
+        total: 1,
+        pending: 1,
+        completed: 0,
+        failed: 0,
+      },
+      createdAt: '2026-08-04T12:34:56.123Z',
+      warnings: [
+        {
+          requestId: 'france',
+          warning: {
+            type: 'other',
+            message: expect.stringContaining(
+              "'sharedRequestType' and 'requestType' are Vertex AI options",
+            ),
+          },
+        },
+      ],
+    });
+
+    expect(server.calls.map(call => call.requestUrl)).toEqual([
+      urls.uploadStart,
+      urls.uploadSession,
+      urls.create,
+    ]);
+    expect(server.calls[0].requestMethod).toBe('POST');
+    expect(server.calls[0].requestHeaders).toMatchObject({
+      'provider-header': 'provider',
+      'operation-header': 'operation',
+      'x-goog-api-key': 'test-api-key',
+      'x-goog-upload-protocol': 'resumable',
+      'x-goog-upload-command': 'start',
+      'x-goog-upload-header-content-type': 'application/jsonl',
+    });
+    expect(server.calls[1].requestHeaders).toMatchObject({
+      'x-goog-upload-command': 'upload, finalize',
+      'x-goog-upload-offset': '0',
+    });
+    expect(server.calls[1].requestHeaders).not.toHaveProperty('x-goog-api-key');
+    expect(server.calls[1].requestHeaders).not.toHaveProperty(
+      'provider-header',
+    );
+    expect(server.calls[1].requestHeaders).not.toHaveProperty(
+      'operation-header',
+    );
+
+    expect(await server.calls[1].requestBodyJson).toEqual({
+      key: 'france',
+      request: {
+        generationConfig: {
+          maxOutputTokens: 20,
+          temperature: 0.2,
+          topK: 10,
+          topP: 0.9,
+          frequencyPenalty: 0.1,
+          presencePenalty: 0.2,
+          stopSequences: ['END'],
+          seed: 42,
+        },
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: 'What is the capital of France?' }],
+          },
+        ],
+        systemInstruction: {
+          parts: [{ text: 'Answer with only the city name.' }],
+        },
+      },
+    });
+    expect(await server.calls[2].requestBodyJson).toEqual({
+      batch: {
+        displayName: 'ai-sdk-batch-test-id',
+        inputConfig: { fileName: 'files/batch-input' },
+      },
+    });
+    expect(server.calls[2].requestHeaders).toMatchObject({
+      'provider-header': 'provider',
+      'operation-header': 'operation',
+      'x-goog-api-key': 'test-api-key',
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+    expect(mockFetch.mock.calls[1][1]?.body).toBeInstanceOf(Blob);
+    for (const [, init] of mockFetch.mock.calls) {
+      expect(init.signal).toBe(abortController.signal);
+    }
+  });
+
+  it.each([
+    ['JOB_STATE_PENDING', 'pending'],
+    ['JOB_STATE_RUNNING', 'pending'],
+    ['JOB_STATE_SUCCEEDED', 'completed'],
+    ['JOB_STATE_FAILED', 'failed'],
+    ['JOB_STATE_CANCELLED', 'failed'],
+    ['JOB_STATE_EXPIRED', 'failed'],
+    ['BATCH_STATE_SUCCEEDED', 'completed'],
+  ] as const)('maps status %s to %s', async (rawStatus, status) => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: operation({ state: rawStatus }),
+    };
+    const model = createGoogle({ apiKey: 'test-api-key' })('gemini-2.5-flash');
+
+    await expect(
+      model.experimental_doGetBatchStatus({
+        batchId: 'batches/batch-123',
+      }),
+    ).resolves.toMatchObject({ status, rawStatus });
+  });
+
+  it.each([
+    { done: false, error: undefined, status: 'pending' },
+    { done: true, error: undefined, status: 'completed' },
+    {
+      done: true,
+      error: { code: 13, message: 'The operation failed.' },
+      status: 'failed',
+    },
+  ] as const)(
+    'uses Operation.done and error when metadata has no state ($status)',
+    async ({ done, error, status }) => {
+      server.urls[urls.batch].response = {
+        type: 'json-value',
+        body: operation({ state: undefined }, { done, error }),
+      };
+      const model = createGoogle({ apiKey: 'test-api-key' })(
+        'gemini-2.5-flash',
+      );
+
+      await expect(
+        model.experimental_doGetBatchStatus({
+          batchId: 'batches/batch-123',
+        }),
+      ).resolves.toMatchObject({ status });
+    },
+  );
+
+  it('normalizes int64 counts, timestamps, and a top-level RPC error', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: operation(
+        {
+          state: 'BATCH_STATE_FAILED',
+          batchStats: {
+            requestCount: '7',
+            successfulRequestCount: '2',
+            failedRequestCount: '3',
+          },
+        },
+        {
+          error: {
+            code: 3,
+            message: 'The batch input was invalid.',
+            details: [{ reason: 'INVALID_ARGUMENT' }],
+          },
+        },
+      ),
+    };
+    const model = createGoogle({ apiKey: 'test-api-key' })('gemini-2.5-flash');
+
+    await expect(
+      model.experimental_doGetBatchStatus({
+        batchId: 'batches/batch-123',
+      }),
+    ).resolves.toMatchObject({
+      status: 'failed',
+      rawStatus: 'BATCH_STATE_FAILED',
+      requestCounts: {
+        total: 7,
+        pending: 2,
+        completed: 2,
+        failed: 3,
+      },
+      error: {
+        message: 'The batch input was invalid.',
+        code: '3',
+      },
+      createdAt: '2026-08-04T12:34:56.123Z',
+    });
+  });
+
+  it('rejects result retrieval while the batch is pending', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: operation(
+        { state: 'BATCH_STATE_RUNNING', output: undefined },
+        { done: false },
+      ),
+    };
+    const model = createGoogle({ apiKey: 'test-api-key' })('gemini-2.5-flash');
+
+    await expect(
+      model.experimental_doGetBatchResults({
+        batchId: 'batches/batch-123',
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_InvalidArgumentError',
+      argument: 'batchId',
+      message: expect.stringContaining('is not complete'),
+    });
+  });
+
+  it('streams successful and failed results across JSONL chunk boundaries', async () => {
+    const usageMetadata = {
+      promptTokenCount: 10,
+      candidatesTokenCount: 3,
+      totalTokenCount: 14,
+      cachedContentTokenCount: 2,
+      thoughtsTokenCount: 1,
+      serviceTier: 'priority',
+    };
+    prepareOutput([
+      {
+        key: 'france',
+        response: googleResponse({ id: 'response-france', text: 'Paris' }),
+      },
+      {
+        key: 'germany',
+        error: {
+          code: 3,
+          message: 'The request was invalid.',
+          details: [{ reason: 'INVALID_ARGUMENT' }],
+        },
+      },
+    ]);
+    const model = createGoogle({
+      apiKey: 'test-api-key',
+      generateId: () => 'test-id',
+    })('gemini-2.5-flash');
+
+    const stream = await model.experimental_doGetBatchResults({
+      batchId: 'batches/batch-123',
+    });
+    const results = await convertReadableStreamToArray(stream);
+
+    expect(results).toHaveLength(2);
+    expect(results[0]).toMatchObject({
+      id: 'france',
+      status: 'succeeded',
+      result: {
+        content: [{ type: 'text', text: 'Paris' }],
+        finishReason: { unified: 'stop', raw: 'STOP' },
+        usage: {
+          inputTokens: { total: 10, noCache: 8, cacheRead: 2 },
+          outputTokens: { total: 4, text: 3, reasoning: 1 },
+          raw: usageMetadata,
+        },
+        response: { id: 'response-france' },
+        warnings: [],
+        providerMetadata: {
+          google: {
+            promptFeedback: {
+              safetyRatings: [
+                {
+                  category: 'HARM_CATEGORY_HATE_SPEECH',
+                  probability: 'NEGLIGIBLE',
+                },
+              ],
+            },
+            groundingMetadata: {
+              webSearchQueries: ['capital of France'],
+            },
+            safetyRatings: [
+              {
+                category: 'HARM_CATEGORY_HATE_SPEECH',
+                probability: 'NEGLIGIBLE',
+              },
+            ],
+            usageMetadata,
+            finishMessage: 'Generation completed.',
+            serviceTier: 'priority',
+          },
+        },
+      },
+    });
+    expect(results[1]).toMatchObject({
+      id: 'germany',
+      status: 'failed',
+      error: {
+        message: 'The request was invalid.',
+        code: '3',
+      },
+    });
+    expect(server.calls.map(call => call.requestUrl)).toEqual([
+      urls.batch,
+      urls.output,
+    ]);
+  });
+
+  it('maps numeric gRPC cancellation errors to cancelled results', async () => {
+    prepareOutput([
+      {
+        key: 'cancelled-request',
+        error: { code: 1, message: 'The request was cancelled.' },
+      },
+    ]);
+    const model = createGoogle({ apiKey: 'test-api-key' })('gemini-2.5-flash');
+
+    const stream = await model.experimental_doGetBatchResults({
+      batchId: 'batches/batch-123',
+    });
+
+    await expect(convertReadableStreamToArray(stream)).resolves.toEqual([
+      {
+        id: 'cancelled-request',
+        status: 'cancelled',
+        error: {
+          message: 'The request was cancelled.',
+          code: '1',
+        },
+      },
+    ]);
+  });
+
+  it.each([undefined, []])(
+    'returns a failed item when a blocked response has candidates %j',
+    async candidates => {
+      prepareOutput([
+        {
+          key: 'blocked-request',
+          response: {
+            candidates,
+            promptFeedback: {
+              blockReason: 'SAFETY',
+              safetyRatings: [
+                {
+                  category: 'HARM_CATEGORY_HATE_SPEECH',
+                  probability: 'HIGH',
+                },
+              ],
+            },
+          },
+        },
+      ]);
+      const model = createGoogle({ apiKey: 'test-api-key' })(
+        'gemini-2.5-flash',
+      );
+
+      const stream = await model.experimental_doGetBatchResults({
+        batchId: 'batches/batch-123',
+      });
+
+      await expect(convertReadableStreamToArray(stream)).resolves.toEqual([
+        {
+          id: 'blocked-request',
+          status: 'failed',
+          error: {
+            message: 'Google blocked the batch request (SAFETY).',
+            type: 'SAFETY',
+            code: 'prompt_blocked',
+          },
+          providerMetadata: {
+            google: {
+              promptFeedback: { blockReason: 'SAFETY' },
+            },
+          },
+        },
+      ]);
+    },
+  );
+
+  it('reads the output file from the operation response', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: operation(
+        { output: undefined },
+        { response: { responsesFile: 'files/batch-output' } },
+      ),
+    };
+    server.urls[urls.output].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          key: 'france',
+          response: googleResponse({
+            id: 'response-france',
+            text: 'Paris',
+          }),
+        }),
+      ],
+    };
+    const model = createGoogle({ apiKey: 'test-api-key' })('gemini-2.5-flash');
+
+    const stream = await model.experimental_doGetBatchResults({
+      batchId: 'batches/batch-123',
+    });
+
+    await expect(convertReadableStreamToArray(stream)).resolves.toMatchObject([
+      {
+        id: 'france',
+        status: 'succeeded',
+        result: { content: [{ type: 'text', text: 'Paris' }] },
+      },
+    ]);
+  });
+
+  it('returns an empty stream for a failed batch without output', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: operation({
+        state: 'BATCH_STATE_FAILED',
+        output: undefined,
+      }),
+    };
+    const model = createGoogle({ apiKey: 'test-api-key' })('gemini-2.5-flash');
+
+    const stream = await model.experimental_doGetBatchResults({
+      batchId: 'batches/batch-123',
+    });
+
+    await expect(convertReadableStreamToArray(stream)).resolves.toEqual([]);
+    expect(server.calls.map(call => call.requestUrl)).toEqual([urls.batch]);
+  });
+
+  it('rejects a completed file-backed batch without an output file', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: operation({ output: undefined }),
+    };
+    const model = createGoogle({ apiKey: 'test-api-key' })('gemini-2.5-flash');
+
+    await expect(
+      model.experimental_doGetBatchResults({
+        batchId: 'batches/batch-123',
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_GoogleBatchMissingOutput',
+      message: expect.stringContaining('completed without an output file'),
+    });
+  });
+
+  it('surfaces Google HTTP errors from status retrieval', async () => {
+    server.urls[urls.batch].response = {
+      type: 'error',
+      status: 404,
+      body: JSON.stringify({
+        error: {
+          code: 404,
+          message: 'Batch not found.',
+          status: 'NOT_FOUND',
+        },
+      }),
+    };
+    const model = createGoogle({ apiKey: 'test-api-key' })('gemini-2.5-flash');
+
+    await expect(
+      model.experimental_doGetBatchStatus({
+        batchId: 'batches/batch-123',
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_APICallError',
+      message: 'Batch not found.',
+      statusCode: 404,
+      url: urls.batch,
+    });
+  });
+
+  it('surfaces Google HTTP errors from starting a batch', async () => {
+    prepareUpload();
+    server.urls[urls.create].response = {
+      type: 'error',
+      status: 400,
+      body: JSON.stringify({
+        error: {
+          code: 400,
+          message: 'The batch input was invalid.',
+          status: 'INVALID_ARGUMENT',
+        },
+      }),
+    };
+    const model = createGoogle({ apiKey: 'test-api-key' })('gemini-2.5-flash');
+
+    await expect(
+      model.experimental_doStartBatch({
+        requests: [request('france', 'What is the capital of France?')],
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_APICallError',
+      message: 'The batch input was invalid.',
+      statusCode: 400,
+      url: urls.create,
+    });
+  });
+
+  it('preserves batch support and ID generation across a workflow round trip', async () => {
+    prepareUpload();
+    server.urls[urls.create].response = {
+      type: 'json-value',
+      body: operation(),
+    };
+    const serialized = GoogleBatchLanguageModel[WORKFLOW_SERIALIZE](
+      new GoogleBatchLanguageModel('gemini-2.5-flash', config),
+    );
+    expect(serialized.config).not.toHaveProperty('generateId');
+    const model = GoogleBatchLanguageModel[WORKFLOW_DESERIALIZE](
+      serialized as unknown as {
+        modelId: string;
+        config: GoogleLanguageModelConfig;
+      },
+    );
+
+    expect(model.experimental_doStartBatch).toBeTypeOf('function');
+    expect(model.experimental_doGetBatchStatus).toBeTypeOf('function');
+    expect(model.experimental_doGetBatchResults).toBeTypeOf('function');
+
+    await model.experimental_doStartBatch({
+      requests: [request('france', 'What is the capital of France?')],
+    });
+    await expect(server.calls[2].requestBodyJson).resolves.toMatchObject({
+      batch: {
+        displayName: expect.stringMatching(/^ai-sdk-batch-/),
+      },
+    });
+  });
+});
