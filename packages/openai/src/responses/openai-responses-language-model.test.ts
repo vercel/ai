@@ -5890,10 +5890,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-delta",
           },
           {
-            "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
             "providerMetadata": {
               "openai": {
-                "itemId": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+                "itemId": "msg_67c9a81dea8c8190b79651a2b3adf91e",
               },
             },
             "type": "text-end",
@@ -6112,10 +6112,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-delta",
           },
           {
-            "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
             "providerMetadata": {
               "openai": {
-                "itemId": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+                "itemId": "msg_67c9a81dea8c8190b79651a2b3adf91e",
               },
             },
             "type": "text-end",
@@ -8039,6 +8039,56 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('reasoning', () => {
+      it('should correlate rotated item ids by output index', async () => {
+        // Captured from GitHub Copilot's Responses API with gpt-5.3-codex on
+        // 2026-08-06. Opaque ids and encrypted content were sanitized while
+        // preserving the complete 69-event SSE sequence.
+        prepareChunksFixtureResponse('github-copilot-id-rotation.1');
+
+        const { stream } = await createModel('gpt-5.3-codex').doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'low',
+              reasoningSummary: 'detailed',
+              store: false,
+            },
+          },
+          includeRawChunks: false,
+        });
+
+        const streamParts = await convertReadableStreamToArray(stream);
+
+        expect(streamParts.filter(part => part.type === 'error')).toEqual([]);
+
+        const reasoningPartIds = streamParts.flatMap(part =>
+          part.type === 'reasoning-start' ||
+          part.type === 'reasoning-delta' ||
+          part.type === 'reasoning-end'
+            ? [part.id]
+            : [],
+        );
+        const textPartIds = streamParts.flatMap(part =>
+          part.type === 'text-start' ||
+          part.type === 'text-delta' ||
+          part.type === 'text-end'
+            ? [part.id]
+            : [],
+        );
+
+        expect(new Set(reasoningPartIds)).toEqual(new Set(['capture-id-3:0']));
+        expect(new Set(textPartIds)).toEqual(new Set(['capture-id-9']));
+        expect(
+          streamParts
+            .flatMap(part => (part.type === 'text-delta' ? [part.delta] : []))
+            .join(''),
+        ).toBe(
+          'There are **3** letter **“r”**s in **“strawberry.”**\n\n' +
+            'Breakdown: **s t r a w b e r r y**  \n' +
+            'You can see **r** at positions **3, 8, and 9**.',
+        );
+      });
+
       it('should handle reasoning with summary', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'stream-chunks',
