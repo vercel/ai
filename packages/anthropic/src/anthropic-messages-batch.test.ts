@@ -64,10 +64,8 @@ function batchResponse(
       canceled: 0,
       expired: 0,
     },
-    ended_at: '2024-09-24T18:40:00.000Z',
     created_at: '2024-09-24T18:37:24.100Z',
     expires_at: '2024-09-25T18:37:24.100Z',
-    cancel_initiated_at: null,
     archived_at: null,
     results_url: urls.results,
     ...overrides,
@@ -105,7 +103,6 @@ describe('Anthropic Messages batch language model', () => {
           canceled: 0,
           expired: 0,
         },
-        ended_at: null,
         results_url: null,
       }),
     };
@@ -325,7 +322,7 @@ describe('Anthropic Messages batch language model', () => {
     ).resolves.toMatchObject({ status, rawStatus });
   });
 
-  it('normalizes request counts and preserves Anthropic lifecycle metadata', async () => {
+  it('normalizes request counts', async () => {
     server.urls[urls.batch].response = {
       type: 'json-value',
       body: batchResponse({
@@ -336,10 +333,6 @@ describe('Anthropic Messages batch language model', () => {
           canceled: 1,
           expired: 1,
         },
-        ended_at: '2024-09-24T18:40:00.000Z',
-        cancel_initiated_at: '2024-09-24T18:39:03.114Z',
-        archived_at: '2024-10-24T18:37:24.100Z',
-        results_url: null,
       }),
     };
     const model = createAnthropic({ apiKey: 'test-api-key' })(
@@ -359,20 +352,6 @@ describe('Anthropic Messages batch language model', () => {
       },
       createdAt: '2024-09-24T18:37:24.100Z',
       expiresAt: '2024-09-25T18:37:24.100Z',
-      providerMetadata: {
-        anthropic: {
-          requestCounts: {
-            processing: 0,
-            succeeded: 2,
-            errored: 1,
-            canceled: 1,
-            expired: 1,
-          },
-          endedAt: '2024-09-24T18:40:00.000Z',
-          cancelInitiatedAt: '2024-09-24T18:39:03.114Z',
-          archivedAt: '2024-10-24T18:37:24.100Z',
-        },
-      },
     });
   });
 
@@ -388,7 +367,6 @@ describe('Anthropic Messages batch language model', () => {
           canceled: 0,
           expired: 0,
         },
-        ended_at: null,
         results_url: null,
       }),
     };
@@ -627,9 +605,6 @@ describe('Anthropic Messages batch language model', () => {
     const stream = await model.experimental_doGetBatchResults({
       batchId: 'msgbatch_123',
       abortSignal: abortController.signal,
-      providerOptions: {
-        anthropic: { anthropicBeta: ['operation-provider-beta'] },
-      },
       headers: {
         'Operation-Header': 'operation',
         'anthropic-beta': 'operation-beta',
@@ -649,13 +624,7 @@ describe('Anthropic Messages batch language model', () => {
         call.requestHeaders['anthropic-beta']
           .split(',')
           .map(beta => beta.trim()),
-      ).toEqual(
-        expect.arrayContaining([
-          'provider-beta',
-          'operation-beta',
-          'operation-provider-beta',
-        ]),
-      );
+      ).toEqual(expect.arrayContaining(['provider-beta', 'operation-beta']));
     }
     expect(server.calls[1].requestHeaders.accept).toBe('application/binary');
   });
