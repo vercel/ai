@@ -656,10 +656,7 @@ describe('createACP', () => {
       authentication: { methodId: 'api-key' },
       providerAuthentication: {
         gateway: {
-          route: {
-            type: 'auth-method',
-            methodId: 'gateway',
-          },
+          env: {},
         },
       },
     });
@@ -994,10 +991,7 @@ describe('createACP', () => {
       permissionModeMapping,
       providerAuthentication: {
         gateway: {
-          route: {
-            type: 'auth-method',
-            methodId: 'gateway',
-          },
+          env: {},
         },
       },
     });
@@ -1121,10 +1115,7 @@ describe('createACP', () => {
       value: {
         providerAuthentication: {
           type: 'ai-gateway',
-          route: {
-            type: 'auth-method',
-            methodId: 'gateway',
-          },
+          env: {},
         },
         sessionMeta: {
           profile: 'restored',
@@ -1621,6 +1612,7 @@ describe('createACP', () => {
 
   it('reruns an incomplete turn only through session resume with fresh Gateway credentials', async () => {
     vi.stubEnv('AI_GATEWAY_API_KEY', 'gateway-secret-before');
+    vi.stubEnv('AI_GATEWAY_BASE_URL', 'https://gateway.example.test/v1');
     const files: Record<string, string> = {};
     const spawns: Array<{
       command: string;
@@ -1638,14 +1630,10 @@ describe('createACP', () => {
       implementation,
       providerAuthentication: {
         gateway: {
-          baseUrl: 'https://gateway.example.test/v1',
-          route: {
-            type: 'launch',
-            env: {
-              AI_GATEWAY_API_KEY: { $source: 'gateway-api-key' },
-              AI_GATEWAY_BASE_URL: { $source: 'gateway-base-url' },
-              AI_GATEWAY_CLIENT: { $source: 'client-app' },
-            },
+          env: {
+            AI_GATEWAY_API_KEY: { $source: 'gateway-api-key' },
+            AI_GATEWAY_BASE_URL: { $source: 'gateway-base-url' },
+            AI_GATEWAY_CLIENT: { $source: 'client-app' },
           },
         },
       },
@@ -2554,13 +2542,7 @@ describe('createACP', () => {
       },
       providerAuthentication: {
         gateway: {
-          route: {
-            type: 'auth-method',
-            methodId: 'gateway',
-            clientCapabilities: {
-              auth: { _meta: { gateway: true } },
-            },
-          },
+          env: {},
         },
       },
     });
@@ -2589,6 +2571,7 @@ describe('createACP', () => {
   it('excludes resolved credentials from bootstrap and lifecycle state', async () => {
     vi.stubEnv('PROVIDER_API_KEY', 'direct-secret');
     vi.stubEnv('AI_GATEWAY_API_KEY', 'gateway-secret');
+    vi.stubEnv('AI_GATEWAY_BASE_URL', 'https://gateway.example');
     const runs: string[] = [];
     const spawns: Array<{
       command: string;
@@ -2606,12 +2589,8 @@ describe('createACP', () => {
       },
       providerAuthentication: {
         gateway: {
-          baseUrl: 'https://gateway.example',
-          route: {
-            type: 'launch',
-            env: {
-              PROVIDER_API_KEY: { $source: 'gateway-api-key' },
-            },
+          env: {
+            PROVIDER_API_KEY: { $source: 'gateway-api-key' },
           },
         },
       },
@@ -2645,7 +2624,6 @@ describe('createACP', () => {
         digest: expect.stringMatching(/^[a-f0-9]{64}$/),
         providerKind: 'ai-gateway',
         providerMode: 'ai-gateway',
-        gatewayRouteKind: 'launch',
         gatewayCredentialSource: 'AI_GATEWAY_API_KEY',
       },
     });
@@ -2667,11 +2645,8 @@ describe('createACP', () => {
       },
       providerAuthentication: {
         gateway: {
-          route: {
-            type: 'launch',
-            env: {
-              PROVIDER_API_KEY: { $source: 'gateway-api-key' },
-            },
+          env: {
+            PROVIDER_API_KEY: { $source: 'gateway-api-key' },
           },
         },
       },

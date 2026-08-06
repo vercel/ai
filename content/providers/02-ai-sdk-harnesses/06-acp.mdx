@@ -71,13 +71,13 @@ try {
   capabilities.
 - `auth`: downstream provider authentication mode:
   - `auto` (default): use AI Gateway when Gateway credentials and a
-    `providerAuthentication` route are available; otherwise use direct
+    `providerAuthentication` configuration are available; otherwise use direct
     authentication.
   - `direct`: always use direct authentication, even when Gateway credentials
     are available.
   - `ai-gateway`: always use AI Gateway and throw when Gateway credentials are
-    unavailable. This requires a `providerAuthentication` route.
-- `providerAuthentication`: declarative runtime-specific Gateway route.
+    unavailable. This requires `providerAuthentication` configuration.
+- `providerAuthentication`: declarative runtime-specific Gateway environment.
 - `modelId`: a known implementation model identifier for Harness metadata.
 - `permissionModeMapping`: mappings from all three Harness permission modes to
   advertised ACP session modes or configuration options. When omitted, the
@@ -88,7 +88,7 @@ try {
 - `startupTimeoutMs`: bridge startup timeout. The default is 120 seconds.
 - `clientApp`: optional client attribution with `name` and `version`. It
   defaults to the installed `ai-sdk/harness-acp/<version>` identity and is
-  available to Gateway route placeholders.
+  available to Gateway environment placeholders.
 
 Runtime-specific package names, environment variables, modes, and session
 metadata belong in the inline profile, not in the generic adapter.
@@ -147,31 +147,17 @@ variables are allowlisted and forwarded unchanged to the ACP process. Their
 names depend on the ACP implementation. Credential values are resolved at
 runtime and are not stored in the profile.
 
-### Advertised and launch routes
+### Gateway environment
 
-Prefer an advertised ACP mechanism when the runtime exposes one:
-
-- `auth-method` advertises optional client capabilities, validates `methodId`
-  against the agent's initialization response, and sends the resolved values
-  through `authenticate`.
-- `provider-method` validates `advertisedCapability` before calling the
-  configured ACP method.
-
-If the runtime does not advertise a suitable method but documents a supported
-launch environment or session metadata path, use `launch` or `session`.
-Profile values such as `gateway-api-key`, `gateway-base-url`,
+Set `providerAuthentication.gateway.env` to the environment variables that the
+underlying ACP implementation uses for its provider endpoint, credentials, and
+attribution. Profile values such as `gateway-api-key`, `gateway-base-url`,
 `gateway-authorization`, `client-app`, `client-app-name`, and
 `client-app-version` are placeholders that the adapter resolves only after
 Gateway authentication has been selected. The three client-app placeholders
 resolve to the combined `name/version` identifier, its name, and its version,
 respectively. Structured launch environment values are serialized as JSON after
 their placeholders are resolved.
-
-Only declare a fallback route that the specific ACP implementation supports.
-If a requested advertised method or capability is missing, the adapter fails
-explicitly instead of falling back to direct authentication. A profile for a
-runtime with no feasible endpoint-and-credential path must reject Gateway
-selection rather than supply a fictitious generic mapping.
 
 ## Sandbox
 
@@ -257,14 +243,11 @@ export const claudeCodeACPHarness = createACP({
   } as const satisfies ACPPermissionModeMapping,
   providerAuthentication: {
     gateway: {
-      route: {
-        type: 'launch',
-        env: {
-          ANTHROPIC_API_KEY: { $source: 'gateway-api-key' },
-          ANTHROPIC_AUTH_TOKEN: { $source: 'gateway-api-key' },
-          ANTHROPIC_BASE_URL: { $source: 'gateway-base-url' },
-          CLAUDE_AGENT_SDK_CLIENT_APP: { $source: 'client-app' },
-        },
+      env: {
+        ANTHROPIC_API_KEY: { $source: 'gateway-api-key' },
+        ANTHROPIC_AUTH_TOKEN: { $source: 'gateway-api-key' },
+        ANTHROPIC_BASE_URL: { $source: 'gateway-base-url' },
+        CLAUDE_AGENT_SDK_CLIENT_APP: { $source: 'client-app' },
       },
     },
   },
@@ -273,7 +256,7 @@ export const claudeCodeACPHarness = createACP({
 
 Without Gateway credentials, this profile uses direct
 `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN` authentication. The
-Gateway route supplies versioned attribution through Claude's supported
+Gateway environment supplies versioned attribution through Claude's supported
 `CLAUDE_AGENT_SDK_CLIENT_APP` setting. `IS_SANDBOX` allows Claude Code ACP to
 advertise `bypassPermissions` when the sandbox process runs as root.
 
@@ -316,33 +299,30 @@ export const codexACPHarness = createACP({
   },
   providerAuthentication: {
     gateway: {
-      route: {
-        type: 'launch',
-        env: {
-          CODEX_API_KEY: { $source: 'gateway-api-key' },
-          CODEX_CONFIG: {
-            ...codexConfig,
-            model: 'openai/gpt-5.5',
-            model_provider: 'ai_gateway',
-            model_providers: {
-              ai_gateway: {
-                name: 'AI Gateway',
-                base_url: {
-                  $source: 'gateway-base-url',
-                  ensureSuffix: '/v1',
-                },
-                env_key: 'CODEX_API_KEY',
-                wire_api: 'responses',
-                supports_websockets: false,
-                http_headers: {
-                  'User-Agent': { $source: 'client-app' },
-                  'x-client-app': { $source: 'client-app' },
-                },
+      env: {
+        CODEX_API_KEY: { $source: 'gateway-api-key' },
+        CODEX_CONFIG: {
+          ...codexConfig,
+          model: 'openai/gpt-5.5',
+          model_provider: 'ai_gateway',
+          model_providers: {
+            ai_gateway: {
+              name: 'AI Gateway',
+              base_url: {
+                $source: 'gateway-base-url',
+                ensureSuffix: '/v1',
+              },
+              env_key: 'CODEX_API_KEY',
+              wire_api: 'responses',
+              supports_websockets: false,
+              http_headers: {
+                'User-Agent': { $source: 'client-app' },
+                'x-client-app': { $source: 'client-app' },
               },
             },
-            model_supports_reasoning_summaries: true,
-            preferred_auth_method: 'apikey',
           },
+          model_supports_reasoning_summaries: true,
+          preferred_auth_method: 'apikey',
         },
       },
     },
@@ -354,7 +334,7 @@ The `client-app` placeholder resolves to the versioned
 `ai-sdk/harness-acp/<version>` identifier and sends it as both `User-Agent` and
 `x-client-app`.
 Without Gateway credentials, this profile uses direct `CODEX_API_KEY` or
-`OPENAI_API_KEY` authentication. Gateway route `env` values are added to the
+`OPENAI_API_KEY` authentication. Gateway `env` values are added to the
 ACP process only when Gateway is selected, so direct runtime configuration
 remains unchanged.
 
@@ -380,21 +360,18 @@ export const grokBuildACPHarness = createACP({
   },
   providerAuthentication: {
     gateway: {
-      route: {
-        type: 'launch',
-        env: {
-          GROK_DEFAULT_MODEL: 'openai/gpt-5.4',
-          GROK_CLIENT_NAME: { $source: 'client-app-name' },
-          GROK_CLIENT_VERSION: { $source: 'client-app-version' },
-          XAI_API_KEY: { $source: 'gateway-api-key' },
-          GROK_XAI_API_BASE_URL: {
-            $source: 'gateway-base-url',
-            ensureSuffix: '/v1',
-          },
-          GROK_MODELS_BASE_URL: {
-            $source: 'gateway-base-url',
-            ensureSuffix: '/v1',
-          },
+      env: {
+        GROK_DEFAULT_MODEL: 'openai/gpt-5.4',
+        GROK_CLIENT_NAME: { $source: 'client-app-name' },
+        GROK_CLIENT_VERSION: { $source: 'client-app-version' },
+        XAI_API_KEY: { $source: 'gateway-api-key' },
+        GROK_XAI_API_BASE_URL: {
+          $source: 'gateway-base-url',
+          ensureSuffix: '/v1',
+        },
+        GROK_MODELS_BASE_URL: {
+          $source: 'gateway-base-url',
+          ensureSuffix: '/v1',
         },
       },
     },
@@ -403,7 +380,7 @@ export const grokBuildACPHarness = createACP({
 ```
 
 Without Gateway credentials, this profile uses direct `XAI_API_KEY`
-authentication. The Gateway route supplies client name and version attribution.
+authentication. The Gateway environment supplies client name and version attribution.
 Grok Build handles its built-in safe operations internally. For permission
 requests sent through ACP, the adapter applies the configured Harness
 `permissionMode` by tool kind and requests explicit approval for the rest.

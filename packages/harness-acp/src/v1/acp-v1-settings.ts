@@ -60,46 +60,11 @@ export type ACPAuthentication = {
   readonly clientCapabilities?: Readonly<Record<string, ACPSerializableValue>>;
 };
 
-export type ACPGatewayAuthMethodRoute = {
-  readonly type: 'auth-method';
-  readonly methodId: string;
-  readonly env?: Readonly<Record<string, ACPProfileValue>>;
-  readonly clientCapabilities?: Readonly<Record<string, ACPProfileValue>>;
-  readonly meta?: Readonly<Record<string, ACPProfileValue>>;
-};
-
-export type ACPGatewayProviderMethodRoute = {
-  readonly type: 'provider-method';
-  readonly method: string;
-  readonly advertisedCapability: ReadonlyArray<string>;
-  readonly env?: Readonly<Record<string, ACPProfileValue>>;
-  readonly clientCapabilities?: Readonly<Record<string, ACPProfileValue>>;
-  readonly params: Readonly<Record<string, ACPProfileValue>>;
-};
-
-export type ACPGatewayLaunchRoute = {
-  readonly type: 'launch';
-  readonly env: Readonly<Record<string, ACPProfileValue>>;
-};
-
-export type ACPGatewaySessionRoute = {
-  readonly type: 'session';
-  readonly env?: Readonly<Record<string, ACPProfileValue>>;
-  readonly meta: Readonly<Record<string, ACPProfileValue>>;
-};
-
-export type ACPGatewayRoute =
-  | ACPGatewayAuthMethodRoute
-  | ACPGatewayProviderMethodRoute
-  | ACPGatewayLaunchRoute
-  | ACPGatewaySessionRoute;
-
 export type ACPProviderAuthenticationMode = 'auto' | 'direct' | 'ai-gateway';
 
 export type ACPProviderAuthentication = {
   readonly gateway: {
-    readonly route: ACPGatewayRoute;
-    readonly baseUrl?: string;
+    readonly env: Readonly<Record<string, ACPProfileValue>>;
   };
 };
 

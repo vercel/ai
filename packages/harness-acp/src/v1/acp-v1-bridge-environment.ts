@@ -47,32 +47,7 @@ const providerAuthenticationSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('direct') }),
   z.object({
     type: z.literal('ai-gateway'),
-    route: z.discriminatedUnion('type', [
-      z.object({
-        type: z.literal('auth-method'),
-        methodId: z.string(),
-        env: profileRecordSchema.optional(),
-        clientCapabilities: profileRecordSchema.optional(),
-        meta: profileRecordSchema.optional(),
-      }),
-      z.object({
-        type: z.literal('provider-method'),
-        method: z.string(),
-        advertisedCapability: z.array(z.string()).readonly(),
-        env: profileRecordSchema.optional(),
-        clientCapabilities: profileRecordSchema.optional(),
-        params: profileRecordSchema,
-      }),
-      z.object({
-        type: z.literal('launch'),
-        env: profileRecordSchema,
-      }),
-      z.object({
-        type: z.literal('session'),
-        env: profileRecordSchema.optional(),
-        meta: profileRecordSchema,
-      }),
-    ]),
+    env: profileRecordSchema,
   }),
 ]);
 

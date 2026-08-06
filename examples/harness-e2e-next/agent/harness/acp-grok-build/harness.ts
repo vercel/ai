@@ -15,21 +15,18 @@ export const grokBuildACPHarness = createACP({
   },
   providerAuthentication: {
     gateway: {
-      route: {
-        type: 'launch',
-        env: {
-          GROK_DEFAULT_MODEL: 'openai/gpt-5.4',
-          GROK_CLIENT_NAME: { $source: 'client-app-name' },
-          GROK_CLIENT_VERSION: { $source: 'client-app-version' },
-          XAI_API_KEY: { $source: 'gateway-api-key' },
-          GROK_XAI_API_BASE_URL: {
-            $source: 'gateway-base-url',
-            ensureSuffix: '/v1',
-          },
-          GROK_MODELS_BASE_URL: {
-            $source: 'gateway-base-url',
-            ensureSuffix: '/v1',
-          },
+      env: {
+        GROK_DEFAULT_MODEL: 'openai/gpt-5.4',
+        GROK_CLIENT_NAME: { $source: 'client-app-name' },
+        GROK_CLIENT_VERSION: { $source: 'client-app-version' },
+        XAI_API_KEY: { $source: 'gateway-api-key' },
+        GROK_XAI_API_BASE_URL: {
+          $source: 'gateway-base-url',
+          ensureSuffix: '/v1',
+        },
+        GROK_MODELS_BASE_URL: {
+          $source: 'gateway-base-url',
+          ensureSuffix: '/v1',
         },
       },
     },

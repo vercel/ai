@@ -22,14 +22,11 @@ export const claudeCodeACPHarness = createACP({
   } as const satisfies ACPPermissionModeMapping,
   providerAuthentication: {
     gateway: {
-      route: {
-        type: 'launch',
-        env: {
-          ANTHROPIC_API_KEY: { $source: 'gateway-api-key' },
-          ANTHROPIC_AUTH_TOKEN: { $source: 'gateway-api-key' },
-          ANTHROPIC_BASE_URL: { $source: 'gateway-base-url' },
-          CLAUDE_AGENT_SDK_CLIENT_APP: { $source: 'client-app' },
-        },
+      env: {
+        ANTHROPIC_API_KEY: { $source: 'gateway-api-key' },
+        ANTHROPIC_AUTH_TOKEN: { $source: 'gateway-api-key' },
+        ANTHROPIC_BASE_URL: { $source: 'gateway-base-url' },
+        CLAUDE_AGENT_SDK_CLIENT_APP: { $source: 'client-app' },
       },
     },
   },

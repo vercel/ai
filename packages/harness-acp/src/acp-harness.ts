@@ -60,9 +60,6 @@ const acpResumeStateSchema = z.object({
           value === 'implementation-default' ? 'direct' : value,
         ),
       providerMode: z.enum(['auto', 'direct', 'ai-gateway']).optional(),
-      gatewayRouteKind: z
-        .enum(['auth-method', 'provider-method', 'launch', 'session'])
-        .optional(),
       gatewayCredentialSource: z
         .enum(['AI_GATEWAY_API_KEY', 'VERCEL_OIDC_TOKEN'])
         .nullable()

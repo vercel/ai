@@ -32,9 +32,7 @@ export type ACPProviderAuthenticationCompatibility =
   | {
       readonly type: 'ai-gateway';
       readonly mode: 'auto' | 'ai-gateway';
-      readonly route: NonNullable<
-        ACPProviderAuthentication['gateway']
-      >['route'];
+      readonly env: ACPProviderAuthentication['gateway']['env'];
       readonly credentialSource: ACPGatewayCredentialSource | null;
       readonly baseUrl: string;
     };
@@ -44,11 +42,6 @@ export type ACPAuthenticationProfileIdentity = {
   readonly acpMethodId?: string;
   readonly providerKind: 'direct' | 'ai-gateway';
   readonly providerMode?: 'auto' | 'direct' | 'ai-gateway';
-  readonly gatewayRouteKind?:
-    | 'auth-method'
-    | 'provider-method'
-    | 'launch'
-    | 'session';
   readonly gatewayCredentialSource?:
     | 'AI_GATEWAY_API_KEY'
     | 'VERCEL_OIDC_TOKEN'
@@ -84,7 +77,6 @@ export function createACPAuthenticationProfileIdentity({
       : { providerMode: providerAuthenticationCompatibility.mode }),
     ...(providerAuthenticationCompatibility?.type === 'ai-gateway'
       ? {
-          gatewayRouteKind: providerAuthenticationCompatibility.route.type,
           gatewayCredentialSource:
             providerAuthenticationCompatibility.credentialSource,
         }
@@ -135,10 +127,7 @@ export function resolveACPProviderAuthentication({
           }),
           baseUrl: compatibility.baseUrl,
         }
-      : resolveGateway({
-          providerAuthentication,
-          env,
-        });
+      : getAiGatewayAuthFromEnv({ env });
   const apiKey = gateway.apiKey;
   if (compatibility == null && mode === 'auto' && apiKey == null) {
     return {
@@ -155,10 +144,10 @@ export function resolveACPProviderAuthentication({
   return {
     providerAuthentication: {
       type: 'ai-gateway',
-      route:
+      env:
         compatibility?.type === 'ai-gateway'
-          ? compatibility.route
-          : providerAuthentication.gateway.route,
+          ? compatibility.env
+          : providerAuthentication.gateway.env,
     },
     env: {
       AI_SDK_ACP_GATEWAY_API_KEY: apiKey,
@@ -195,12 +184,9 @@ export function resolveACPProviderAuthenticationCompatibility({
   return {
     type: 'ai-gateway',
     mode,
-    route: providerAuthentication.gateway.route,
+    env: providerAuthentication.gateway.env,
     credentialSource,
-    baseUrl:
-      providerAuthentication.gateway.baseUrl ??
-      env.AI_GATEWAY_BASE_URL ??
-      DEFAULT_AI_GATEWAY_BASE_URL,
+    baseUrl: env.AI_GATEWAY_BASE_URL ?? DEFAULT_AI_GATEWAY_BASE_URL,
   };
 }
 
@@ -212,23 +198,6 @@ export function resolveACPEnv({
   env: Record<string, string | undefined>;
 }): Record<string, string> {
   return resolveACPProviderAuthentication({ auth, env }).env;
-}
-
-function resolveGateway({
-  providerAuthentication,
-  env,
-}: {
-  providerAuthentication: ACPProviderAuthentication;
-  env: Record<string, string | undefined>;
-}): {
-  readonly apiKey: string | undefined;
-  readonly baseUrl: string;
-} {
-  const gatewayFromEnv = getAiGatewayAuthFromEnv({ env });
-  return {
-    apiKey: gatewayFromEnv.apiKey,
-    baseUrl: providerAuthentication.gateway.baseUrl ?? gatewayFromEnv.baseUrl,
-  };
 }
 
 function resolveGatewayCredentialSource({

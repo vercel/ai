@@ -16,15 +16,12 @@ describe('ACP bridge environment', () => {
       },
       providerAuthentication: {
         type: 'ai-gateway',
-        route: {
-          type: 'launch',
-          env: {
-            AI_GATEWAY_API_KEY: { $source: 'gateway-api-key' },
-            AI_GATEWAY_BASE_URL: { $source: 'gateway-base-url' },
-            CLIENT_APP: { $source: 'client-app' },
-            CLIENT_APP_NAME: { $source: 'client-app-name' },
-            CLIENT_APP_VERSION: { $source: 'client-app-version' },
-          },
+        env: {
+          AI_GATEWAY_API_KEY: { $source: 'gateway-api-key' },
+          AI_GATEWAY_BASE_URL: { $source: 'gateway-base-url' },
+          CLIENT_APP: { $source: 'client-app' },
+          CLIENT_APP_NAME: { $source: 'client-app-name' },
+          CLIENT_APP_VERSION: { $source: 'client-app-version' },
         },
       },
       sessionMeta: {
@@ -43,16 +40,12 @@ describe('ACP bridge environment', () => {
     await expect(readACPBridgeEnvironment({ env: {} })).resolves.toEqual({});
   });
 
-  it('round-trips Gateway-only launch environment on an advertised route', async () => {
+  it('round-trips a Gateway launch environment', async () => {
     const configuration = {
       providerAuthentication: {
         type: 'ai-gateway',
-        route: {
-          type: 'auth-method',
-          methodId: 'gateway',
-          env: {
-            CODEX_CONFIG: '{"model":"openai/gpt-5.5"}',
-          },
+        env: {
+          CODEX_CONFIG: '{"model":"openai/gpt-5.5"}',
         },
       },
     } as const;

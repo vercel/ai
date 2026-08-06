@@ -12,10 +12,8 @@ export {
   type ACPGatewayValues,
 } from '../../v1/profile-values';
 export {
-  assertACPAgentCapability,
   assertACPAuthenticationMethod,
   createACPInitializeRequest,
-  resolveACPAuthentication,
   resolveACPLaunchEnvironment,
   validateACPProtocolVersion,
   type ACPInitializeResult,

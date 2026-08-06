@@ -355,11 +355,8 @@ describe('ACP npm implementation', () => {
     const environmentGateway = {
       type: 'ai-gateway',
       mode: 'ai-gateway',
-      route: {
-        type: 'launch',
-        env: {
-          PROVIDER_API_KEY: { $source: 'gateway-api-key' },
-        },
+      env: {
+        PROVIDER_API_KEY: { $source: 'gateway-api-key' },
       },
       credentialSource: 'AI_GATEWAY_API_KEY',
       baseUrl: 'https://gateway.example',

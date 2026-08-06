@@ -15,14 +15,10 @@ export type ACPInitializeResult = {
 export function createACPInitializeRequest({
   protocolVersion,
   authentication,
-  providerAuthentication,
-  gateway,
   supportsBooleanSessionConfigOptions = false,
 }: {
   protocolVersion: number;
   authentication: ACPAuthentication | undefined;
-  providerAuthentication: ACPResolvedProviderAuthentication | undefined;
-  gateway: ACPGatewayValues | undefined;
   supportsBooleanSessionConfigOptions?: boolean;
 }): {
   readonly protocolVersion: number;
@@ -34,21 +30,6 @@ export function createACPInitializeRequest({
 } {
   let clientCapabilities: Readonly<Record<string, unknown>> =
     authentication?.clientCapabilities ?? {};
-  if (
-    providerAuthentication?.type === 'ai-gateway' &&
-    'clientCapabilities' in providerAuthentication.route &&
-    providerAuthentication.route.clientCapabilities != null
-  ) {
-    clientCapabilities = mergeRecords({
-      left: clientCapabilities,
-      right: asRecord(
-        resolveACPProfileValue({
-          value: providerAuthentication.route.clientCapabilities,
-          gateway: requireGateway({ gateway }),
-        }),
-      ),
-    });
-  }
   if (supportsBooleanSessionConfigOptions) {
     clientCapabilities = mergeRecords({
       left: clientCapabilities,
@@ -71,19 +52,6 @@ export function createACPInitializeRequest({
   };
 }
 
-export function resolveACPAuthentication({
-  authentication,
-  providerAuthentication,
-}: {
-  authentication: ACPAuthentication | undefined;
-  providerAuthentication: ACPResolvedProviderAuthentication | undefined;
-}): ACPAuthentication | undefined {
-  return providerAuthentication?.type === 'ai-gateway' &&
-    providerAuthentication.route.type === 'auth-method'
-    ? undefined
-    : authentication;
-}
-
 export function resolveACPLaunchEnvironment({
   providerAuthentication,
   gateway,
@@ -91,16 +59,12 @@ export function resolveACPLaunchEnvironment({
   providerAuthentication: ACPResolvedProviderAuthentication | undefined;
   gateway: ACPGatewayValues | undefined;
 }): Record<string, string> {
-  if (
-    providerAuthentication?.type !== 'ai-gateway' ||
-    !('env' in providerAuthentication.route) ||
-    providerAuthentication.route.env == null
-  ) {
+  if (providerAuthentication?.type !== 'ai-gateway') {
     return {};
   }
   const resolved = asRecord(
     resolveACPProfileValue({
-      value: providerAuthentication.route.env,
+      value: providerAuthentication.env,
       gateway: requireGateway({ gateway }),
     }),
   );
@@ -138,34 +102,6 @@ export function assertACPAuthenticationMethod({
       initialization.authMethods?.map(method => method.id).join(', ') || 'none';
     throw new Error(
       `ACP authentication method ${JSON.stringify(methodId)} is not advertised by the agent. Advertised methods: ${advertised}.`,
-    );
-  }
-}
-
-export function assertACPAgentCapability({
-  capabilities,
-  path,
-}: {
-  capabilities: Readonly<Record<string, unknown>> | null | undefined;
-  path: ReadonlyArray<string>;
-}): void {
-  if (path.length === 0) {
-    throw new Error(
-      'ACP provider method routing requires a non-empty advertised capability path.',
-    );
-  }
-  let current: unknown = capabilities;
-  for (const segment of path) {
-    if (current == null || typeof current !== 'object') {
-      throw new Error(
-        `ACP provider method requires unadvertised agent capability ${path.join('.')}.`,
-      );
-    }
-    current = (current as Record<string, unknown>)[segment];
-  }
-  if (current == null || current === false) {
-    throw new Error(
-      `ACP provider method requires unadvertised agent capability ${path.join('.')}.`,
     );
   }
 }

@@ -12,20 +12,15 @@ import { Readable, Writable } from 'node:stream';
 import { argv, env as processEnv } from 'node:process';
 import type { StartMessage } from '../acp-bridge-protocol';
 import {
-  assertACPAgentCapability,
   assertACPAuthenticationMethod,
   ACP_BRIDGE_CONFIGURATION_ENV,
   createACPInitializeRequest,
   readACPBridgeEnvironment,
-  resolveACPAuthentication,
   resolveACPLaunchEnvironment,
-  resolveACPProfileValue,
   validateACPProtocolVersion,
   type ACPAuthentication,
   type ACPGatewayValues,
   type ACPInitializeResult,
-  type ACPResolvedProviderAuthentication,
-  type ACPSerializableValue,
 } from './v1';
 import { captureACPStream, type ACPStreamCapture } from './acp-stream-capture';
 import {
@@ -347,10 +342,7 @@ async function ensureSession({
     bridgeConfiguration.providerAuthentication?.type === 'ai-gateway'
       ? resolveGatewayValues()
       : undefined;
-  const authentication = resolveACPAuthentication({
-    authentication: bridgeConfiguration.authentication,
-    providerAuthentication: bridgeConfiguration.providerAuthentication,
-  });
+  const authentication = bridgeConfiguration.authentication;
   const launchEnv = resolveACPLaunchEnvironment({
     providerAuthentication: bridgeConfiguration.providerAuthentication,
     gateway,
@@ -398,8 +390,6 @@ async function ensureSession({
   const initializeRequest = createACPInitializeRequest({
     protocolVersion: acp.PROTOCOL_VERSION,
     authentication,
-    providerAuthentication: bridgeConfiguration.providerAuthentication,
-    gateway,
     supportsBooleanSessionConfigOptions: Object.values(
       start.permissionModeMapping ?? {},
     ).some(
@@ -424,13 +414,6 @@ async function ensureSession({
       authentication,
     });
   }
-  await configureProviderAuthentication({
-    agent: connection.agent,
-    initialization,
-    providerAuthentication: bridgeConfiguration.providerAuthentication,
-    gateway,
-  });
-
   const tools = start.tools ?? [];
   const catalogPath = `${bridgeStateDir}/host-tools.json`;
   await writeFile(catalogPath, JSON.stringify(tools), { mode: 0o600 });
@@ -439,16 +422,6 @@ async function ensureSession({
     serverName: HOST_TOOL_MCP_SERVER_NAME,
   });
 
-  const gatewaySessionMeta =
-    bridgeConfiguration.providerAuthentication?.type === 'ai-gateway' &&
-    bridgeConfiguration.providerAuthentication.route.type === 'session'
-      ? asSerializableRecord(
-          resolveACPProfileValue({
-            value: bridgeConfiguration.providerAuthentication.route.meta,
-            gateway: requireGateway({ gateway }),
-          }),
-        )
-      : undefined;
   const mcpServers: acp.McpServer[] = [
     {
       name: HOST_TOOL_MCP_SERVER_NAME,
@@ -482,13 +455,9 @@ async function ensureSession({
       sessionId: recoveredSessionId,
       cwd: workDir,
       mcpServers,
-      ...((bridgeConfiguration.sessionMeta != null ||
-        gatewaySessionMeta != null) && {
-        _meta: {
-          ...bridgeConfiguration.sessionMeta,
-          ...gatewaySessionMeta,
-        },
-      }),
+      ...(bridgeConfiguration.sessionMeta == null
+        ? {}
+        : { _meta: bridgeConfiguration.sessionMeta }),
     });
     createdSession = createACPRecoveredSession({
       agent: connection.agent,
@@ -505,13 +474,7 @@ async function ensureSession({
       sessionId: recoveredSessionId,
       cwd: workDir,
       mcpServers,
-      meta:
-        bridgeConfiguration.sessionMeta == null && gatewaySessionMeta == null
-          ? undefined
-          : {
-              ...bridgeConfiguration.sessionMeta,
-              ...gatewaySessionMeta,
-            },
+      meta: bridgeConfiguration.sessionMeta,
       harnessId: bridgeType,
       setHistoricalUpdatesSuppressed: ({ suppressed }) => {
         historicalUpdatesSuppressed = suppressed;
@@ -532,13 +495,9 @@ async function ensureSession({
       .buildSession({
         cwd: workDir,
         mcpServers,
-        ...((bridgeConfiguration.sessionMeta != null ||
-          gatewaySessionMeta != null) && {
-          _meta: {
-            ...bridgeConfiguration.sessionMeta,
-            ...gatewaySessionMeta,
-          },
-        }),
+        ...(bridgeConfiguration.sessionMeta == null
+          ? {}
+          : { _meta: bridgeConfiguration.sessionMeta }),
       })
       .start();
   }
@@ -610,56 +569,6 @@ async function authenticate({
   });
 }
 
-async function configureProviderAuthentication({
-  agent,
-  initialization,
-  providerAuthentication,
-  gateway,
-}: {
-  agent: acp.ClientContext;
-  initialization: ACPInitializeResult;
-  providerAuthentication: ACPResolvedProviderAuthentication | undefined;
-  gateway: ACPGatewayValues | undefined;
-}): Promise<void> {
-  if (
-    providerAuthentication == null ||
-    providerAuthentication.type === 'direct'
-  ) {
-    return;
-  }
-  const values = requireGateway({ gateway });
-  const route = providerAuthentication.route;
-  if (route.type === 'auth-method') {
-    assertACPAuthenticationMethod({
-      initialization,
-      methodId: route.methodId,
-    });
-    const meta =
-      route.meta == null
-        ? undefined
-        : asSerializableRecord(
-            resolveACPProfileValue({ value: route.meta, gateway: values }),
-          );
-    await agent.request(acp.methods.agent.authenticate, {
-      methodId: route.methodId,
-      ...(meta == null ? {} : { _meta: meta }),
-    });
-    return;
-  }
-  if (route.type === 'provider-method') {
-    assertACPAgentCapability({
-      capabilities: initialization.agentCapabilities,
-      path: route.advertisedCapability,
-    });
-    await agent.request(
-      route.method,
-      asSerializableRecord(
-        resolveACPProfileValue({ value: route.params, gateway: values }),
-      ),
-    );
-  }
-}
-
 function resolveGatewayValues(): ACPGatewayValues {
   const apiKey = processEnv.AI_SDK_ACP_GATEWAY_API_KEY;
   const baseUrl = processEnv.AI_SDK_ACP_GATEWAY_BASE_URL;
@@ -700,26 +609,6 @@ function createChildEnvironment({
     ),
     ...launchEnv,
   };
-}
-
-function requireGateway({
-  gateway,
-}: {
-  gateway: ACPGatewayValues | undefined;
-}): ACPGatewayValues {
-  if (gateway == null) {
-    throw new Error('ACP Gateway profile values are unavailable.');
-  }
-  return gateway;
-}
-
-function asSerializableRecord(
-  value: ACPSerializableValue,
-): Readonly<Record<string, ACPSerializableValue>> {
-  if (!isRecord(value) || Array.isArray(value)) {
-    throw new Error('ACP profile data must resolve to an object.');
-  }
-  return value as Readonly<Record<string, ACPSerializableValue>>;
 }
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {

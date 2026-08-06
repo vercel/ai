@@ -32,33 +32,30 @@ export const codexACPHarness = createACP({
   },
   providerAuthentication: {
     gateway: {
-      route: {
-        type: 'launch',
-        env: {
-          CODEX_API_KEY: { $source: 'gateway-api-key' },
-          CODEX_CONFIG: {
-            ...codexConfig,
-            model: 'openai/gpt-5.5',
-            model_provider: 'ai_gateway',
-            model_providers: {
-              ai_gateway: {
-                name: 'AI Gateway',
-                base_url: {
-                  $source: 'gateway-base-url',
-                  ensureSuffix: '/v1',
-                },
-                env_key: 'CODEX_API_KEY',
-                wire_api: 'responses',
-                supports_websockets: false,
-                http_headers: {
-                  'User-Agent': { $source: 'client-app' },
-                  'x-client-app': { $source: 'client-app' },
-                },
+      env: {
+        CODEX_API_KEY: { $source: 'gateway-api-key' },
+        CODEX_CONFIG: {
+          ...codexConfig,
+          model: 'openai/gpt-5.5',
+          model_provider: 'ai_gateway',
+          model_providers: {
+            ai_gateway: {
+              name: 'AI Gateway',
+              base_url: {
+                $source: 'gateway-base-url',
+                ensureSuffix: '/v1',
+              },
+              env_key: 'CODEX_API_KEY',
+              wire_api: 'responses',
+              supports_websockets: false,
+              http_headers: {
+                'User-Agent': { $source: 'client-app' },
+                'x-client-app': { $source: 'client-app' },
               },
             },
-            model_supports_reasoning_summaries: true,
-            preferred_auth_method: 'apikey',
           },
+          model_supports_reasoning_summaries: true,
+          preferred_auth_method: 'apikey',
         },
       },
     },
