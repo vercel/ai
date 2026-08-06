@@ -154,8 +154,8 @@ export class GatewayVideoModel implements VideoModelV4 {
       return {
         videos: responseBody.videos,
         warnings: responseBody.warnings ?? [],
-        providerMetadata:
-          responseBody.providerMetadata as SharedV4ProviderMetadata,
+        providerMetadata: (responseBody.providerMetadata ??
+          undefined) as SharedV4ProviderMetadata,
         response: {
           timestamp: new Date(),
           modelId: this.modelId,
@@ -174,8 +174,11 @@ export class GatewayVideoModel implements VideoModelV4 {
   // async video jobs are polling-first: it does not expose a provider->SDK
   // webhook completion channel. If this method were present, `generateVideo`
   // would forward a webhook URL and await a notification that never arrives.
-  // `doStart` still forwards `webhookUrl` when supplied, so enabling webhooks
-  // later only requires adding `handleWebhookOption` here.
+  // `doStart` still forwards the spec's `webhookUrl` — as the Gateway's
+  // `callbackUrl` wire field (its completion-webhook contract; unknown body
+  // keys are stripped server-side). Enabling webhooks later requires adding
+  // `handleWebhookOption` here plus handling the Gateway's HMAC-signed
+  // delivery format; the wire field is already the right one.
 
   async doStart(
     options: VideoModelV4CallOptions & {
@@ -197,7 +200,9 @@ export class GatewayVideoModel implements VideoModelV4 {
         ),
         body: {
           ...this.buildRequestBody(options),
-          ...(webhookUrl && { webhookUrl }),
+          // The spec option is `webhookUrl`; the Gateway's wire contract for a
+          // completion webhook is `callbackUrl`.
+          ...(webhookUrl && { callbackUrl: webhookUrl }),
         },
         successfulResponseHandler: createJsonResponseHandler(
           gatewayVideoStartResponseSchema,
@@ -213,8 +218,8 @@ export class GatewayVideoModel implements VideoModelV4 {
       return {
         operation: responseBody.operation as JSONValue,
         warnings: responseBody.warnings ?? [],
-        providerMetadata:
-          responseBody.providerMetadata as SharedV4ProviderMetadata,
+        providerMetadata: (responseBody.providerMetadata ??
+          undefined) as SharedV4ProviderMetadata,
         response: {
           timestamp: new Date(),
           modelId: this.modelId,
@@ -273,8 +278,8 @@ export class GatewayVideoModel implements VideoModelV4 {
           status: 'completed',
           videos: responseBody.videos,
           warnings: responseBody.warnings ?? [],
-          providerMetadata:
-            responseBody.providerMetadata as SharedV4ProviderMetadata,
+          providerMetadata: (responseBody.providerMetadata ??
+            undefined) as SharedV4ProviderMetadata,
           response,
         };
       }
@@ -283,8 +288,8 @@ export class GatewayVideoModel implements VideoModelV4 {
         return {
           status: 'error',
           error: responseBody.error,
-          providerMetadata:
-            responseBody.providerMetadata as SharedV4ProviderMetadata,
+          providerMetadata: (responseBody.providerMetadata ??
+            undefined) as SharedV4ProviderMetadata,
           response,
         };
       }
@@ -296,8 +301,8 @@ export class GatewayVideoModel implements VideoModelV4 {
         return {
           status: 'error',
           error: 'Video generation was cancelled.',
-          providerMetadata:
-            responseBody.providerMetadata as SharedV4ProviderMetadata,
+          providerMetadata: (responseBody.providerMetadata ??
+            undefined) as SharedV4ProviderMetadata,
           response,
         };
       }
@@ -305,8 +310,8 @@ export class GatewayVideoModel implements VideoModelV4 {
       return {
         status: 'pending',
         warnings: responseBody.warnings ?? [],
-        providerMetadata:
-          responseBody.providerMetadata as SharedV4ProviderMetadata,
+        providerMetadata: (responseBody.providerMetadata ??
+          undefined) as SharedV4ProviderMetadata,
         response,
       };
     } catch (error) {
@@ -447,39 +452,37 @@ const gatewayVideoEventSchema = z.discriminatedUnion('type', [
 
 const gatewayVideoStartResponseSchema = z.object({
   operation: z.unknown(),
-  warnings: z.array(gatewayVideoWarningSchema).optional(),
-  providerMetadata: z
-    .record(z.string(), providerMetadataEntrySchema)
-    .optional(),
+  warnings: z.array(gatewayVideoWarningSchema).nullish(),
+  providerMetadata: z.record(z.string(), providerMetadataEntrySchema).nullish(),
 });
 
 const gatewayVideoStatusResponseSchema = z.discriminatedUnion('status', [
   z.object({
     status: z.literal('pending'),
-    warnings: z.array(gatewayVideoWarningSchema).optional(),
+    warnings: z.array(gatewayVideoWarningSchema).nullish(),
     providerMetadata: z
       .record(z.string(), providerMetadataEntrySchema)
-      .optional(),
+      .nullish(),
   }),
   z.object({
     status: z.literal('completed'),
     videos: z.array(gatewayVideoDataSchema),
-    warnings: z.array(gatewayVideoWarningSchema).optional(),
+    warnings: z.array(gatewayVideoWarningSchema).nullish(),
     providerMetadata: z
       .record(z.string(), providerMetadataEntrySchema)
-      .optional(),
+      .nullish(),
   }),
   z.object({
     status: z.literal('error'),
     error: z.string(),
     providerMetadata: z
       .record(z.string(), providerMetadataEntrySchema)
-      .optional(),
+      .nullish(),
   }),
   z.object({
     status: z.literal('cancelled'),
     providerMetadata: z
       .record(z.string(), providerMetadataEntrySchema)
-      .optional(),
+      .nullish(),
   }),
 ]);

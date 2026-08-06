@@ -1277,6 +1277,53 @@ describe('experimental_generateVideo', () => {
       expect(seenKeys).toEqual(['caller-key-1']);
     });
 
+    it('should honor a caller-supplied idempotency key regardless of header casing', async () => {
+      const seenHeaders: Array<Record<string, string | undefined> | undefined> =
+        [];
+      const model = new MockVideoModelV4({
+        doGenerate: undefined,
+        doStart: async options => {
+          seenHeaders.push(options.headers);
+          return {
+            operation: 'op-1',
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          };
+        },
+        doStatus: async () => ({
+          status: 'completed' as const,
+          videos: [{ type: 'base64', data: mp4Base64, mediaType: 'video/mp4' }],
+          warnings: [],
+          response: {
+            timestamp: new Date(),
+            modelId: 'test-model-id',
+            headers: {},
+          },
+        }),
+      });
+
+      await experimental_generateVideo({
+        model,
+        prompt,
+        headers: { 'Idempotency-Key': 'caller-key-cased' },
+        poll: { intervalMs: 0 },
+      });
+
+      // generateVideo normalizes header casing via the Headers round-trip in
+      // withUserAgentSuffix, so the caller's key arrives lowercased — and no
+      // minted key replaces or duplicates it.
+      expect(seenHeaders[0]?.['idempotency-key']).toBe('caller-key-cased');
+      expect(
+        Object.values(seenHeaders[0] ?? {}).filter(value =>
+          String(value).startsWith('aisdk_vid_'),
+        ),
+      ).toHaveLength(0);
+    });
+
     it('should fall back to doGenerate when poll is provided but model lacks doStart/doStatus', async () => {
       const result = await experimental_generateVideo({
         model: new MockVideoModelV4({

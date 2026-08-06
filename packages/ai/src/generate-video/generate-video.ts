@@ -554,24 +554,19 @@ async function executeStartStatusFlow({
     }
   }
 
-  // 2. Start the generation.
-  //
-  // `doStart` has a side effect the caller pays for, so a retry after a lost
-  // response must not create a second generation. Mint ONE idempotency token per
-  // logical start — here, outside the retry closure — and forward it as a header
-  // so a provider that supports deduplication can key off it. Explicit, rather
-  // than inferred from object identity: two unrelated calls that happen to share
-  // an options object must never share a token.
-  // A caller-supplied `idempotency-key` header wins: users implementing their
-  // own dedupe (e.g. an outer retry wrapper with a stable key) must not have
-  // it silently replaced.
-  const startIdempotencyKey =
-    callOptions.headers?.['idempotency-key'] ?? `aisdk_vid_${generateId()}`;
+  // 2. Start the generation. `doStart` is billable: mint one idempotency token
+  // per logical start, outside the retry closure; a caller-supplied key wins.
+  const callerIdempotencyKey = Object.entries(callOptions.headers ?? {}).find(
+    ([key, value]) =>
+      key.toLowerCase() === 'idempotency-key' && value !== undefined,
+  );
   const startCallOptions = {
     ...callOptions,
     headers: {
       ...callOptions.headers,
-      'idempotency-key': startIdempotencyKey,
+      ...(callerIdempotencyKey
+        ? {}
+        : { 'idempotency-key': `aisdk_vid_${generateId()}` }),
     },
     webhookUrl,
   };

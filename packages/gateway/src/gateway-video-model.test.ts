@@ -1245,11 +1245,13 @@ describe('GatewayVideoModel', () => {
         seed: 123,
         generateAudio: true,
         providerOptions: { gateway: { tags: ['async'] } },
-        webhookUrl: 'https://example.com/webhook',
+        // The spec-side `webhookUrl` option maps onto the Gateway's
+        // `callbackUrl` wire field (its completion-webhook contract).
+        callbackUrl: 'https://example.com/webhook',
       });
     });
 
-    it('should omit optional fields and webhookUrl when not provided', async () => {
+    it('should omit optional fields and callbackUrl when webhookUrl is not provided', async () => {
       server.urls['https://api.test.com/video-model/start'].response = {
         type: 'json-value',
         body: { operation: { gatewayJobId: 'job_123' } },
