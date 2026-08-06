@@ -1,12 +1,9 @@
-import type { SharedV4Warning, SpeechModelV4 } from '@ai-sdk/provider';
+import type { SharedV3Warning, SpeechModelV3 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
   parseProviderOptions,
   postJsonToApi,
-  serializeModelOptions,
-  WORKFLOW_DESERIALIZE,
-  WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
 import type { FishAudioConfig } from './fish-audio-config';
 import { fishAudioFailedResponseHandler } from './fish-audio-error';
@@ -42,7 +39,7 @@ function resolveFormat({
   warnings,
 }: {
   outputFormat: string | undefined;
-  warnings: SharedV4Warning[];
+  warnings: SharedV3Warning[];
 }): FishAudioSpeechFormat {
   if (outputFormat == null) {
     return DEFAULT_FORMAT;
@@ -63,25 +60,11 @@ function resolveFormat({
   return matched;
 }
 
-export class FishAudioSpeechModel implements SpeechModelV4 {
-  readonly specificationVersion = 'v4';
+export class FishAudioSpeechModel implements SpeechModelV3 {
+  readonly specificationVersion = 'v3';
 
   get provider(): string {
     return this.config.provider;
-  }
-
-  static [WORKFLOW_SERIALIZE](model: FishAudioSpeechModel) {
-    return serializeModelOptions({
-      modelId: model.modelId,
-      config: model.config,
-    });
-  }
-
-  static [WORKFLOW_DESERIALIZE](options: {
-    modelId: FishAudioSpeechModelId;
-    config: FishAudioSpeechModelConfig;
-  }) {
-    return new FishAudioSpeechModel(options.modelId, options.config);
   }
 
   constructor(
@@ -97,8 +80,8 @@ export class FishAudioSpeechModel implements SpeechModelV4 {
     language,
     speed,
     providerOptions,
-  }: Parameters<SpeechModelV4['doGenerate']>[0]) {
-    const warnings: SharedV4Warning[] = [];
+  }: Parameters<SpeechModelV3['doGenerate']>[0]) {
+    const warnings: SharedV3Warning[] = [];
 
     const fishAudioOptions = await parseProviderOptions({
       provider: 'fishAudio',
@@ -255,8 +238,8 @@ export class FishAudioSpeechModel implements SpeechModelV4 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
+    options: Parameters<SpeechModelV3['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<SpeechModelV3['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, warnings } = await this.getArgs(options);
 

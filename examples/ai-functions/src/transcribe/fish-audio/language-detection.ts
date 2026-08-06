@@ -2,7 +2,10 @@ import {
   fishAudio,
   type FishAudioTranscriptionModelOptions,
 } from '@ai-sdk/fish-audio';
-import { generateSpeech, transcribe } from 'ai';
+import {
+  experimental_generateSpeech as generateSpeech,
+  experimental_transcribe as transcribe,
+} from 'ai';
 import { run } from '../../lib/run';
 
 // Round-trips Japanese speech through synthesis and transcription to show how

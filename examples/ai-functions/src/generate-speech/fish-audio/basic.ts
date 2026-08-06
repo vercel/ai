@@ -1,5 +1,5 @@
 import { fishAudio } from '@ai-sdk/fish-audio';
-import { generateSpeech } from 'ai';
+import { experimental_generateSpeech as generateSpeech } from 'ai';
 import { run } from '../../lib/run';
 import { saveAudioFile } from '../../lib/save-audio';
 

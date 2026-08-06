@@ -1,8 +1,8 @@
 import {
   NoSuchModelError,
-  type ProviderV4,
-  type SpeechModelV4,
-  type TranscriptionModelV4,
+  type ProviderV3,
+  type SpeechModelV3,
+  type TranscriptionModelV3,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -15,7 +15,7 @@ import { FishAudioTranscriptionModel } from './fish-audio-transcription-model';
 import type { FishAudioTranscriptionModelId } from './fish-audio-transcription-options';
 import { VERSION } from './version';
 
-export interface FishAudioProvider extends ProviderV4 {
+export interface FishAudioProvider extends ProviderV3 {
   (
     modelId: FishAudioSpeechModelId,
     settings?: {},
@@ -26,19 +26,19 @@ export interface FishAudioProvider extends ProviderV4 {
   /**
    * Creates a model for speech generation.
    */
-  speech(modelId: FishAudioSpeechModelId): SpeechModelV4;
+  speech(modelId: FishAudioSpeechModelId): SpeechModelV3;
 
   /**
    * Creates a model for speech generation.
    *
    * Narrowed to required: Fish Audio always provides speech models.
    */
-  speechModel(modelId: FishAudioSpeechModelId): SpeechModelV4;
+  speechModel(modelId: FishAudioSpeechModelId): SpeechModelV3;
 
   /**
    * Creates a model for transcription.
    */
-  transcription(modelId?: FishAudioTranscriptionModelId): TranscriptionModelV4;
+  transcription(modelId?: FishAudioTranscriptionModelId): TranscriptionModelV3;
 
   /**
    * Creates a model for transcription.
@@ -47,7 +47,7 @@ export interface FishAudioProvider extends ProviderV4 {
    */
   transcriptionModel(
     modelId?: FishAudioTranscriptionModelId,
-  ): TranscriptionModelV4;
+  ): TranscriptionModelV3;
 }
 
 export interface FishAudioProviderSettings {
@@ -122,13 +122,13 @@ export function createFishAudio(
     };
   };
 
-  provider.specificationVersion = 'v4' as const;
+  provider.specificationVersion = 'v3' as const;
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 
-  // Required ProviderV4 methods that are not supported
+  // Required ProviderV3 methods that are not supported
   provider.languageModel = (modelId: string) => {
     throw new NoSuchModelError({
       modelId,

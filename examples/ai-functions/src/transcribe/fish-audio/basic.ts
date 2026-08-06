@@ -1,5 +1,5 @@
 import { fishAudio } from '@ai-sdk/fish-audio';
-import { transcribe } from 'ai';
+import { experimental_transcribe as transcribe } from 'ai';
 import { readFile } from 'node:fs/promises';
 import { run } from '../../lib/run';
 

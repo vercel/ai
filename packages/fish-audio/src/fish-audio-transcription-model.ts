@@ -1,4 +1,4 @@
-import type { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
+import type { SharedV3Warning, TranscriptionModelV3 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -6,9 +6,6 @@ import {
   mediaTypeToExtension,
   parseProviderOptions,
   postFormDataToApi,
-  serializeModelOptions,
-  WORKFLOW_DESERIALIZE,
-  WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { FishAudioConfig } from './fish-audio-config';
@@ -22,25 +19,11 @@ interface FishAudioTranscriptionModelConfig extends FishAudioConfig {
   };
 }
 
-export class FishAudioTranscriptionModel implements TranscriptionModelV4 {
-  readonly specificationVersion = 'v4';
+export class FishAudioTranscriptionModel implements TranscriptionModelV3 {
+  readonly specificationVersion = 'v3';
 
   get provider(): string {
     return this.config.provider;
-  }
-
-  static [WORKFLOW_SERIALIZE](model: FishAudioTranscriptionModel) {
-    return serializeModelOptions({
-      modelId: model.modelId,
-      config: model.config,
-    });
-  }
-
-  static [WORKFLOW_DESERIALIZE](options: {
-    modelId: FishAudioTranscriptionModelId;
-    config: FishAudioTranscriptionModelConfig;
-  }) {
-    return new FishAudioTranscriptionModel(options.modelId, options.config);
   }
 
   constructor(
@@ -52,8 +35,8 @@ export class FishAudioTranscriptionModel implements TranscriptionModelV4 {
     audio,
     mediaType,
     providerOptions,
-  }: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
-    const warnings: SharedV4Warning[] = [];
+  }: Parameters<TranscriptionModelV3['doGenerate']>[0]) {
+    const warnings: SharedV3Warning[] = [];
 
     const fishAudioOptions = await parseProviderOptions({
       provider: 'fishAudio',
@@ -89,8 +72,8 @@ export class FishAudioTranscriptionModel implements TranscriptionModelV4 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
+    options: Parameters<TranscriptionModelV3['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV3['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { formData, warnings } = await this.getArgs(options);
 

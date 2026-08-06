@@ -40,7 +40,7 @@ describe('createFishAudio', () => {
 
     expect(model.modelId).toBe('s2-pro');
     expect(model.provider).toBe('fish-audio.speech');
-    expect(model.specificationVersion).toBe('v4');
+    expect(model.specificationVersion).toBe('v3');
   });
 
   it('should expose the transcription model provider', () => {
@@ -48,7 +48,7 @@ describe('createFishAudio', () => {
     const model = provider.transcription();
 
     expect(model.provider).toBe('fish-audio.transcription');
-    expect(model.specificationVersion).toBe('v4');
+    expect(model.specificationVersion).toBe('v3');
   });
 
   it('should throw for unsupported model types', () => {
@@ -62,6 +62,6 @@ describe('createFishAudio', () => {
   it('should report specification version v4', () => {
     expect(
       createFishAudio({ apiKey: 'test-api-key' }).specificationVersion,
-    ).toBe('v4');
+    ).toBe('v3');
   });
 });
