@@ -955,6 +955,7 @@ describe('extractImageOutputs', () => {
 describe('processLangGraphEvent', () => {
   const createMockState = (): LangGraphEventState => ({
     messageSeen: new Map(),
+    messageNamespaces: new Map(),
     messageConcat: new Map(),
     emittedToolCalls: new Set<string>(),
     emittedImages: new Set<string>(),
@@ -962,6 +963,7 @@ describe('processLangGraphEvent', () => {
     messageReasoningIds: new Map(),
     toolCallInfoByIndex: new Map(),
     currentStep: null as number | null,
+    stepNamespace: null,
     emittedToolCallsByKey: new Map<string, string>(),
     emittedSourceIds: new Set<string>(),
   });
@@ -2469,6 +2471,7 @@ describe('processModelChunk - sources', () => {
 describe('processLangGraphEvent - sources', () => {
   const createMockState = (): LangGraphEventState => ({
     messageSeen: new Map(),
+    messageNamespaces: new Map(),
     messageConcat: new Map(),
     emittedToolCalls: new Set<string>(),
     emittedImages: new Set<string>(),
@@ -2476,6 +2479,7 @@ describe('processLangGraphEvent - sources', () => {
     messageReasoningIds: new Map(),
     toolCallInfoByIndex: new Map(),
     currentStep: null as number | null,
+    stepNamespace: null,
     emittedToolCallsByKey: new Map<string, string>(),
     emittedSourceIds: new Set<string>(),
   });
