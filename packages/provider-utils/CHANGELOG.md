@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.42
+
+### Patch Changes
+
+- ee2bf30: fix(provider-utils): prevent Metro from parsing the Node 18 dynamic import fallback
+
 ## 4.0.41
 
 ### Patch Changes
