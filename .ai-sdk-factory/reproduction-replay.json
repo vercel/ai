@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 18590,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/openai-responses-output-schema-tool-error.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/openai-responses-output-schema-tool-error.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_18590_REPRODUCED: OpenAI rejected the thrown tool error because function_call_output.output was not a JSON string."
+  }
+}

@@ -2066,6 +2066,114 @@ describe('OpenAIResponsesLanguageModel', () => {
           'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.',
         );
       });
+
+      it('should let the model recover from a tool error when the function declares output_schema', async () => {
+        const model = new OpenAIResponsesLanguageModel('gpt-4.1', {
+          provider: 'openai',
+          url: ({ path }) => `https://api.openai.com/v1${path}`,
+          headers: () => ({ Authorization: `Bearer APIKEY` }),
+          generateId: mockId(),
+          fetch: async (_input, init) => {
+            const requestBody = JSON.parse(String(init?.body)) as {
+              input: Array<{
+                type?: string;
+                output?: string;
+              }>;
+            };
+            const output = requestBody.input.find(
+              item => item.type === 'function_call_output',
+            )?.output;
+
+            let isJsonEncoded = false;
+            try {
+              JSON.parse(output ?? '');
+              isJsonEncoded = true;
+            } catch {
+              // Mirrors OpenAI rejecting non-JSON output for output_schema tools.
+            }
+
+            const fixture = fs.readFileSync(
+              `src/responses/__fixtures__/openai-output-schema-tool-error.${isJsonEncoded ? 2 : 1}.json`,
+              'utf8',
+            );
+
+            return new Response(fixture, {
+              status: isJsonEncoded ? 200 : 400,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          },
+        });
+
+        const result = await model.doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Get the weather in London.' }],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_weather',
+                  toolName: 'get_weather',
+                  input: { city: 'London' },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_weather',
+                  toolName: 'get_weather',
+                  output: {
+                    type: 'error-text',
+                    value:
+                      'Error: WeatherServiceError: upstream returned 503 (service unavailable)',
+                  },
+                },
+              ],
+            },
+          ],
+          tools: [
+            {
+              type: 'function',
+              name: 'get_weather',
+              description: 'Get the current weather for a city.',
+              inputSchema: {
+                type: 'object',
+                properties: { city: { type: 'string' } },
+                required: ['city'],
+                additionalProperties: false,
+              },
+              providerOptions: {
+                openai: {
+                  outputSchema: {
+                    type: 'object',
+                    properties: {
+                      temperatureC: { type: 'number' },
+                      conditions: { type: 'string' },
+                    },
+                    required: ['temperatureC', 'conditions'],
+                    additionalProperties: false,
+                  },
+                },
+              },
+            },
+          ],
+        });
+
+        expect(result.content).toContainEqual(
+          expect.objectContaining({
+            type: 'text',
+            text: expect.stringContaining(
+              'unable to retrieve the weather for London',
+            ),
+          }),
+        );
+      });
     });
 
     describe('reasoning', () => {
