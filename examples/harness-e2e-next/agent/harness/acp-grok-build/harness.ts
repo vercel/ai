@@ -6,15 +6,13 @@ const harnessId = 'acp-grok-build';
 export const grokBuildACPHarness = createACP({
   harnessId,
   builtinTools: grokBuildACPBuiltinTools,
-  implementation: {
-    type: 'npm',
-    mode: 'simple',
+  source: {
+    type: 'npm-simple',
     packageName: '@xai-official/grok',
-    version: '0.2.111',
-    executable: 'grok',
-    args: ['agent', 'stdio'],
-    forwardEnv: ['XAI_API_KEY'],
   },
+  executable: 'grok',
+  args: ['agent', 'stdio'],
+  forwardEnv: ['XAI_API_KEY'],
   providerAuthentication: {
     gateway: {
       env: {

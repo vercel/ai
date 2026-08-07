@@ -6,14 +6,12 @@ const harnessId = 'acp-codex';
 export const codexACPHarness = createACP({
   harnessId,
   builtinTools: codexACPBuiltinTools,
-  implementation: {
-    type: 'npm',
-    mode: 'simple',
+  source: {
+    type: 'npm-simple',
     packageName: '@agentclientprotocol/codex-acp',
-    version: '1.1.4',
-    executable: 'codex-acp',
-    forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
   },
+  executable: 'codex-acp',
+  forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
   permissionModeMapping: {
     'allow-reads': null,
     'allow-edits': null,
