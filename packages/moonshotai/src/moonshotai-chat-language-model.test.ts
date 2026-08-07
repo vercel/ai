@@ -219,6 +219,75 @@ describe('doGenerate', () => {
       expect(requestBody.reasoning_effort).toBe('max');
     });
 
+    it('should map generic reasoning levels to reasoning_effort', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'low',
+      });
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'low',
+      );
+
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'xhigh',
+      });
+      expect((await server.calls[1].requestBodyJson).reasoning_effort).toBe(
+        'max',
+      );
+    });
+
+    it('should prefer explicit reasoningEffort over generic reasoning', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'low',
+        providerOptions: {
+          moonshotai: { reasoningEffort: 'high' },
+        },
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'high',
+      );
+    });
+
+    it('should warn and omit reasoning_effort for reasoning none', async () => {
+      const result = await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      expect(
+        (await server.calls[0].requestBodyJson).reasoning_effort,
+      ).toBeUndefined();
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature:
+            'reasoning "none" (use providerOptions.moonshotai.thinking to control thinking)',
+        },
+      ]);
+    });
+
+    it('should omit thinking.keep and warn on models without keep support', async () => {
+      const result = await provider.chatModel('kimi-k2.5').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: { reasoningHistory: 'preserved' },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).not.toHaveProperty('thinking');
+      expect(requestBody).not.toHaveProperty('reasoning_history');
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: `reasoningHistory 'preserved' is not supported by model "kimi-k2.5"`,
+        },
+      ]);
+    });
+
     it('should extract reasoning content and remap usage', async () => {
       const result = await provider.chatModel('kimi-k2.6').doGenerate({
         prompt: TEST_PROMPT,
@@ -336,6 +405,37 @@ describe('doGenerate', () => {
         { type: 'unsupported', feature: 'topK' },
         { type: 'unsupported', feature: 'seed' },
       ]);
+    });
+  });
+
+  describe('provider options passthrough', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('moonshotai-text');
+    });
+
+    it('should forward promptCacheKey and safetyIdentifier', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: {
+            promptCacheKey: 'session-42',
+            safetyIdentifier: 'user-hash-7',
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.prompt_cache_key).toBe('session-42');
+      expect(requestBody.safety_identifier).toBe('user-hash-7');
+    });
+  });
+
+  describe('supportedUrls', () => {
+    it('should natively support ms:// file references', () => {
+      expect(provider.chatModel('kimi-k3').supportedUrls).toEqual({
+        'image/*': [/^ms:\/\//],
+        'video/*': [/^ms:\/\//],
+      });
     });
   });
 

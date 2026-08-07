@@ -16,6 +16,8 @@ import {
   createJsonResponseHandler,
   createLanguageModelResponseMetadata as getResponseMetadata,
   generateId,
+  isCustomReasoning,
+  mapReasoningToProviderEffort,
   parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
@@ -37,6 +39,7 @@ import {
   type MoonshotAIChatTokenUsage,
 } from './moonshotai-chat-api-types';
 import {
+  getModelThinkingKeepSupport,
   moonshotaiLanguageModelOptions,
   type MoonshotAIChatModelId,
 } from './moonshotai-chat-options';
@@ -57,8 +60,12 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
   readonly modelId: MoonshotAIChatModelId;
 
   // Moonshot AI does not fetch external URLs; the AI SDK downloads and
-  // inlines URL file parts instead.
-  readonly supportedUrls = {};
+  // inlines URL file parts instead. ms:// file references from the Moonshot
+  // Files API are passed through natively.
+  readonly supportedUrls = {
+    'image/*': [/^ms:\/\//],
+    'video/*': [/^ms:\/\//],
+  };
 
   private readonly config: MoonshotAIChatConfig;
   private readonly failedResponseHandler: ResponseHandler<APICallError>;
@@ -103,6 +110,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
     topK,
     frequencyPenalty,
     presencePenalty,
+    reasoning,
     providerOptions,
     stopSequences,
     responseFormat,
@@ -138,12 +146,46 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
 
     // Moonshot has no reasoning_history field; the API silently ignores it
     // (verified against the live API). Preserved Thinking maps to
-    // thinking.keep, which only accepts 'all'. Other reasoningHistory values
-    // use the server default.
-    const keep =
-      moonshotOptions.reasoningHistory === 'preserved'
-        ? ('all' as const)
-        : undefined;
+    // thinking.keep, which only accepts 'all' and only on some models
+    // (verified: k2.6, k2.7-code, k3 accept it; k2.5 rejects it). Other
+    // reasoningHistory values use the server default.
+    let keep: 'all' | undefined;
+    if (moonshotOptions.reasoningHistory === 'preserved') {
+      if (getModelThinkingKeepSupport(this.modelId)) {
+        keep = 'all';
+      } else {
+        allWarnings.push({
+          type: 'unsupported',
+          feature: `reasoningHistory 'preserved' is not supported by model "${this.modelId}"`,
+        });
+      }
+    }
+
+    // Map the generic reasoning call option to Moonshot's reasoning_effort
+    // (explicit provider options win). 'none' cannot disable Moonshot
+    // thinking from here; use thinking: { type: 'disabled' } instead.
+    if (reasoning === 'none') {
+      allWarnings.push({
+        type: 'unsupported',
+        feature:
+          'reasoning "none" (use providerOptions.moonshotai.thinking to control thinking)',
+      });
+    }
+    const reasoningEffort =
+      moonshotOptions.reasoningEffort ??
+      (isCustomReasoning(reasoning) && reasoning !== 'none'
+        ? mapReasoningToProviderEffort({
+            reasoning,
+            effortMap: {
+              minimal: 'low',
+              low: 'low',
+              medium: 'high',
+              high: 'high',
+              xhigh: 'max',
+            },
+            warnings: allWarnings,
+          })
+        : undefined);
 
     let response_format: Record<string, unknown> | undefined;
     if (responseFormat?.type === 'json') {
@@ -197,8 +239,14 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
               },
             }
           : {}),
-        ...(moonshotOptions.reasoningEffort != null && {
-          reasoning_effort: moonshotOptions.reasoningEffort,
+        ...(reasoningEffort != null && {
+          reasoning_effort: reasoningEffort,
+        }),
+        ...(moonshotOptions.promptCacheKey != null && {
+          prompt_cache_key: moonshotOptions.promptCacheKey,
+        }),
+        ...(moonshotOptions.safetyIdentifier != null && {
+          safety_identifier: moonshotOptions.safetyIdentifier,
         }),
       },
       warnings: [...allWarnings, ...toolWarnings],

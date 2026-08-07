@@ -128,6 +128,36 @@ describe('user messages', () => {
     ]);
   });
 
+  it('should pass through ms:// file references from the Files API', () => {
+    const result = convertToMoonshotAIChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'url' as const,
+              url: new URL('ms://file-abc123'),
+            },
+            mediaType: 'video/mp4',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'video_url',
+            video_url: { url: 'ms://file-abc123' },
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should decode text/* file parts into text parts', () => {
     const result = convertToMoonshotAIChatMessages([
       {
