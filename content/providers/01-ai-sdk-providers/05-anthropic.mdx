@@ -845,7 +845,7 @@ For more on prompt caching with Anthropic, see [Anthropic's Cache Control docume
 
 ### Cache Diagnostics
 
-Anthropic's [cache diagnostics beta](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching#cache-diagnostics) lets you correlate a response with the previous request that populated (or missed) the prompt cache. Pass a `cacheDiagnostics.previousMessageId` in `providerOptions.anthropic` to opt in:
+Anthropic's [cache diagnostics feature](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching#cache-diagnostics) lets you correlate a response with the previous request that populated (or missed) the prompt cache. Pass a `cacheDiagnostics.previousMessageId` in `providerOptions.anthropic` to opt in:
 
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
@@ -869,8 +869,6 @@ console.log(result.providerMetadata?.anthropic?.diagnostics);
 ```
 
 The resolved diagnostics are exposed on `result.providerMetadata.anthropic.diagnostics`. The same field is available on streamed responses via the `finish` part's `providerMetadata`.
-
-`cacheDiagnostics` is supported only on the Claude API. Adapters backed by other Anthropic-compatible providers (Amazon Bedrock, Google Vertex) set `supportsCacheDiagnostics: false` internally and will emit an unsupported-feature warning if the option is used; use it only with `@ai-sdk/anthropic`.
 
 ### Bash Tool
 
