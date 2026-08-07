@@ -161,14 +161,25 @@ describe('startHostToolRelay', () => {
       }),
     ).resolves.toEqual({ revision: 3, tools: [] });
 
-    const heldPoll = postRelay({
-      relay,
-      path: '/catalog/next',
-      body: { afterRevision: 3 },
-    });
-    await new Promise(resolve => setTimeout(resolve, 20));
-    await relay.close();
-    await expect(heldPoll).resolves.toEqual({ closed: true, revision: 3 });
+    const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
+    try {
+      const heldPoll = postRelay({
+        relay,
+        path: '/catalog/next',
+        body: { afterRevision: 3 },
+      });
+      await vi.waitFor(() => {
+        expect(setTimeoutSpy).toHaveBeenCalledWith(
+          expect.any(Function),
+          20_000,
+        );
+      });
+      await relay.close();
+      await expect(heldPoll).resolves.toEqual({ closed: true, revision: 3 });
+    } finally {
+      setTimeoutSpy.mockRestore();
+      await relay.close();
+    }
   });
 
   it('rejects stale and removed calls without consuming invocation order', async () => {
