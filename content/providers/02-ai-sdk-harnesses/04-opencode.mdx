@@ -164,6 +164,9 @@ not fit a common tool shape.
 OpenCode supports built-in tool approval requests when `permissionMode` is
 `allow-reads` or `allow-edits`. Host-executed AI SDK tool approvals also work.
 
+OpenCode does not currently support active-turn steering. Calling
+`session.steer(message)` throws `HarnessCapabilityUnsupportedError`.
+
 ## Related
 
 - [HarnessAgent](/docs/ai-sdk-harnesses/harness-agent)

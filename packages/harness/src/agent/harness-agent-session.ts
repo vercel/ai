@@ -4,8 +4,10 @@ import type { HarnessAgentToolApprovalConfiguration } from './harness-agent-sett
 import type {
   HarnessV1BuiltinToolFiltering,
   HarnessV1NetworkSandboxSession,
+  HarnessV1PromptControl,
   HarnessV1SandboxProvider,
 } from '../v1';
+import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
 import type {
   HarnessAgentAdapter,
   HarnessAgentAdapterSession,
@@ -38,6 +40,13 @@ type HarnessAgentTurnState =
   | 'awaiting-approval'
   | 'awaiting-tool-result'
   | 'suspended';
+
+type ActivePromptControl = {
+  readonly turnId: number;
+  readonly promise: Promise<HarnessV1PromptControl | undefined>;
+  resolve(control: HarnessV1PromptControl | undefined): void;
+  settled: boolean;
+};
 
 /**
  * Live harness session held by the caller.
@@ -82,6 +91,7 @@ export class HarnessAgentSession {
   private turnState: HarnessAgentTurnState;
   private turnSequence = 0;
   private activeTurnSequence = 0;
+  private activePromptControl: ActivePromptControl | undefined;
   private suspendedTurnState:
     | Promise<HarnessAgentContinueTurnState>
     | undefined;
@@ -212,6 +222,9 @@ export class HarnessAgentSession {
         onTurnFailed: () => {
           this.finishTrackedTurn({ turnId });
         },
+        onPromptControl: control => {
+          this.setPromptControl({ turnId, control });
+        },
         isTurnSuspending: () =>
           this.activeTurnSequence === turnId && this.suspendedTurnState != null,
         onStopConditionMet: () =>
@@ -289,6 +302,9 @@ export class HarnessAgentSession {
         onTurnFailed: () => {
           this.finishTrackedTurn({ turnId });
         },
+        onPromptControl: control => {
+          this.setPromptControl({ turnId, control });
+        },
         isTurnSuspending: () =>
           this.activeTurnSequence === turnId && this.suspendedTurnState != null,
         onStopConditionMet: () =>
@@ -313,6 +329,51 @@ export class HarnessAgentSession {
    */
   async compact(customInstructions?: string): Promise<void> {
     await this.requireReusableSession().doCompact(customInstructions);
+  }
+
+  /**
+   * Send an additional user instruction to the active turn.
+   *
+   * The adapter decides when the runtime applies the message: runtimes may
+   * interrupt their current model work immediately or consume it at their next
+   * safe input boundary. The active result stream remains the stream for the
+   * redirected turn.
+   *
+   * This method waits for the turn's prompt control to become ready, so it can
+   * be called immediately after starting `agent.stream()` or `agent.generate()`.
+   *
+   * Throws when there is no active turn, the session has ended, or the harness
+   * adapter does not support mid-turn user messages.
+   */
+  async steer(text: string): Promise<void> {
+    this.requireReusableSession();
+    const activePromptControl = this.activePromptControl;
+    if (this.turnState === 'idle' || activePromptControl == null) {
+      throw new Error(
+        `Harness session ${this.sessionId} has no active turn to steer.`,
+      );
+    }
+
+    const control = await activePromptControl.promise;
+    if (
+      control == null ||
+      this.sessionState !== 'active' ||
+      this.activePromptControl !== activePromptControl ||
+      this.activeTurnSequence !== activePromptControl.turnId
+    ) {
+      throw new Error(
+        `Harness session ${this.sessionId} no longer has the active turn that was targeted for steering.`,
+      );
+    }
+
+    if (control.submitUserMessage == null) {
+      throw new HarnessCapabilityUnsupportedError({
+        message: `Harness '${this.harness.harnessId}' does not support steering active turns.`,
+        harnessId: this.harness.harnessId,
+      });
+    }
+
+    await control.submitUserMessage(text);
   }
 
   /**
@@ -554,12 +615,62 @@ export class HarnessAgentSession {
     this.activeTurnSequence = turnId;
     this.suspendedTurnState = undefined;
     this.turnState = 'running';
+    this.clearActivePromptControl();
+    let resolve!: (control: HarnessV1PromptControl | undefined) => void;
+    const promise = new Promise<HarnessV1PromptControl | undefined>(
+      resolvePromise => {
+        resolve = resolvePromise;
+      },
+    );
+    this.activePromptControl = {
+      turnId,
+      promise,
+      resolve,
+      settled: false,
+    };
     return turnId;
+  }
+
+  private setPromptControl(input: {
+    turnId: number;
+    control: HarnessV1PromptControl;
+  }): void {
+    const activePromptControl = this.activePromptControl;
+    if (
+      this.sessionState !== 'active' ||
+      this.activeTurnSequence !== input.turnId ||
+      activePromptControl?.turnId !== input.turnId
+    ) {
+      return;
+    }
+    this.settleActivePromptControl(input.control);
+  }
+
+  private settleActivePromptControl(
+    control: HarnessV1PromptControl | undefined,
+  ): void {
+    const activePromptControl = this.activePromptControl;
+    if (activePromptControl == null || activePromptControl.settled) return;
+    activePromptControl.settled = true;
+    activePromptControl.resolve(control);
+  }
+
+  private clearActivePromptControl(turnId?: number): void {
+    if (
+      turnId != null &&
+      this.activePromptControl != null &&
+      this.activePromptControl.turnId !== turnId
+    ) {
+      return;
+    }
+    this.settleActivePromptControl(undefined);
+    this.activePromptControl = undefined;
   }
 
   private finishTrackedTurn(options: { turnId: number }): void {
     if (this.sessionState !== 'active') return;
     if (this.activeTurnSequence !== options.turnId) return;
+    this.clearActivePromptControl(options.turnId);
     this.pendingToolApprovals.clear();
     this.pendingToolResults.clear();
     this.suspendedTurnState = undefined;
@@ -570,6 +681,7 @@ export class HarnessAgentSession {
     sessionState: Exclude<HarnessAgentSessionState, 'active'>;
     releasePortLease: boolean;
   }): void {
+    this.clearActivePromptControl();
     this.sessionState = options.sessionState;
     this.underlyingSession = undefined;
     this.sandboxSession = undefined;
