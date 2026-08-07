@@ -13,7 +13,7 @@
       "id": "srvtoolu_013gia34XNKyTfwHxaPCKEVd",
       "name": "web_fetch",
       "input": {
-        "url": "https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf"
+        "url": "https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-functions/data/ai.pdf"
       }
     },
     {

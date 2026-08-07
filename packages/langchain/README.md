@@ -47,12 +47,38 @@ const langchainMessages = await toBaseMessages(uiMessages);
 
 const langchainStream = await graph.stream(
   { messages: langchainMessages },
-  { streamMode: ['values', 'messages'] },
+  { streamMode: ['values', 'messages', 'tools'] },
 );
 
 // Convert to UI message stream response
 return createUIMessageStreamResponse({
   stream: toUIMessageStream(langchainStream),
+});
+```
+
+Use the `tools` stream mode when you want to stream LangGraph tool progress. The adapter converts `on_tool_event` events to preliminary tool output (`preliminary: true`) and the final `on_tool_end` event to final tool output.
+
+### Streaming with Callbacks
+
+Use callbacks to access the final LangGraph state, handle errors, or detect aborts:
+
+```ts
+const langchainStream = await graph.stream(
+  { messages: langchainMessages },
+  { streamMode: ['values', 'messages'] },
+);
+
+return createUIMessageStreamResponse({
+  stream: toUIMessageStream<MyGraphState>(langchainStream, {
+    onFinish: async finalState => {
+      if (finalState) {
+        await saveConversation(finalState.messages);
+        await sendAnalytics(finalState);
+      }
+    },
+    onError: error => console.error('Stream failed:', error),
+    onAbort: () => console.log('Client disconnected'),
+  }),
 });
 ```
 
@@ -195,26 +221,64 @@ Converts AI SDK `ModelMessage` objects to LangChain `BaseMessage` objects.
 
 **Returns:** `BaseMessage[]`
 
-### `toUIMessageStream(stream)`
+### `toUIMessageStream(stream, options?)`
 
 Converts a LangChain/LangGraph stream to an AI SDK `UIMessageStream`.
 
 **Parameters:**
 
 - `stream`: `AsyncIterable | ReadableStream` - A stream from LangChain `model.stream()`, LangGraph `graph.stream()`, or `streamEvents()`
+- `options?`: `ToUIMessageStreamOptions<TState>` - Optional lifecycle controls and callbacks:
+  - `sendStart` - Whether to emit the outer `start` chunk (defaults to `true`)
+  - `sendFinish` - Whether to emit the outer `finish` chunk (defaults to `true`)
+  - `onStart()` - Called when stream initializes
+  - `onToken(token)` - Called for each token
+  - `onText(text)` - Called for each text chunk
+  - `onFinal(text)` - Called with aggregated text (on success, error, or abort)
+  - `onFinish(state)` - Called on success with LangGraph state (or `undefined` for other streams)
+  - `onError(error)` - Called when stream errors
+  - `onAbort()` - Called when stream is aborted
 
 **Returns:** `ReadableStream<UIMessageChunk>`
+
+When composing the adapter output into a stream that owns the message
+lifecycle, set `sendStart` and `sendFinish` to `false`:
+
+```ts
+const stream = createUIMessageStream({
+  async execute({ writer }) {
+    writer.write({ type: 'start' });
+
+    const reader = toUIMessageStream(langchainStream, {
+      sendStart: false,
+      sendFinish: false,
+    }).getReader();
+
+    while (true) {
+      const { done, value: chunk } = await reader.read();
+      if (done) break;
+      writer.write(chunk);
+    }
+
+    writer.write({ type: 'finish' });
+  },
+});
+```
+
+Only the outer lifecycle chunks are omitted. Text, reasoning, tool, data, and
+step chunks are still emitted.
 
 **Supported stream types:**
 
 - **Model streams** - Direct `AIMessageChunk` streams from `model.stream()`
-- **LangGraph streams** - Streams with `streamMode: ['values', 'messages']`
+- **LangGraph streams** - Streams with `streamMode: ['values', 'messages']`, or `['values', 'messages', 'tools']` for tool progress
 - **streamEvents** - Event streams from `agent.streamEvents()` or `model.streamEvents()`
 
 **Supported LangGraph stream events:**
 
 - `messages` - Streaming message chunks (text, tool calls)
 - `values` - State updates that finalize pending message chunks
+- `tools` - Tool progress events (`on_tool_event` emits preliminary tool output with `preliminary: true`, final `on_tool_end` emits final output)
 - `custom` - Custom data events (emitted as `data-{type}` chunks)
 
 **Supported streamEvents events:**

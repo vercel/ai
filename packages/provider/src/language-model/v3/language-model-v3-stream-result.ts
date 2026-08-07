@@ -1,5 +1,5 @@
-import { SharedV3Headers } from '../../shared';
-import { LanguageModelV3StreamPart } from './language-model-v3-stream-part';
+import type { SharedV3Headers } from '../../shared';
+import type { LanguageModelV3StreamPart } from './language-model-v3-stream-part';
 
 /**
  * The result of a language model doStream call.

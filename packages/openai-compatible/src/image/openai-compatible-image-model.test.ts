@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { FetchFunction } from '@ai-sdk/provider-utils';
+import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { OpenAICompatibleImageModel } from './openai-compatible-image-model';
+import type { OpenAICompatibleImageModelOptions } from './openai-compatible-image-model-options';
 import { z } from 'zod/v4';
-import { ProviderErrorStructure } from '../openai-compatible-error';
-import { ImageModelV3CallOptions } from '@ai-sdk/provider';
+import type { ProviderErrorStructure } from '../openai-compatible-error';
+import type { ImageModelV4CallOptions } from '@ai-sdk/provider';
 
 const prompt = 'A photorealistic astronaut riding a horse';
 
@@ -31,7 +32,7 @@ function createBasicModel({
   });
 }
 
-function createDefaultGenerateParams(overrides = {}): ImageModelV3CallOptions {
+function createDefaultGenerateParams(overrides = {}): ImageModelV4CallOptions {
   return {
     prompt: 'A photorealistic astronaut riding a horse',
     files: undefined,
@@ -64,6 +65,18 @@ describe('OpenAICompatibleImageModel', () => {
         },
       },
     },
+    'https://external.api.recraft.ai/v1/images/generations': {
+      response: {
+        type: 'json-value',
+        body: {
+          data: [
+            {
+              b64_json: 'recraft-test-image',
+            },
+          ],
+        },
+      },
+    },
   });
 
   describe('constructor', () => {
@@ -72,7 +85,7 @@ describe('OpenAICompatibleImageModel', () => {
 
       expect(model.provider).toBe('openai-compatible');
       expect(model.modelId).toBe('dall-e-3');
-      expect(model.specificationVersion).toBe('v3');
+      expect(model.specificationVersion).toBe('v4');
       expect(model.maxImagesPerCall).toBe(10);
     });
   });
@@ -84,7 +97,11 @@ describe('OpenAICompatibleImageModel', () => {
       await model.doGenerate(
         createDefaultGenerateParams({
           n: 2,
-          providerOptions: { openai: { quality: 'hd' } },
+          providerOptions: {
+            openaiCompatible: {
+              quality: 'hd',
+            } satisfies OpenAICompatibleImageModelOptions,
+          },
         }),
       );
 
@@ -94,8 +111,107 @@ describe('OpenAICompatibleImageModel', () => {
         n: 2,
         size: '1024x1024',
         quality: 'hd',
-        response_format: 'b64_json',
       });
+    });
+
+    it('should use provider name from config for providerOptions key', async () => {
+      const recraftModel = new OpenAICompatibleImageModel('recraft-v3', {
+        provider: 'recraft.image',
+        headers: () => ({ Authorization: 'Bearer test-key' }),
+        url: ({ modelId, path }) => `https://external.api.recraft.ai/v1${path}`,
+      });
+
+      await recraftModel.doGenerate(
+        createDefaultGenerateParams({
+          prompt: 'A beautiful sunset',
+          providerOptions: {
+            recraft: {
+              style: 'vector_illustration',
+            } satisfies OpenAICompatibleImageModelOptions,
+          },
+        }),
+      );
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'recraft-v3',
+        prompt: 'A beautiful sunset',
+        n: 1,
+        size: '1024x1024',
+        style: 'vector_illustration',
+      });
+    });
+
+    it('should pass typed image output options', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate(
+        createDefaultGenerateParams({
+          providerOptions: {
+            openaiCompatible: {
+              size: 'auto',
+              quality: 'high',
+              output_format: 'jpeg',
+              output_compression: 80,
+              background: 'opaque',
+            } satisfies OpenAICompatibleImageModelOptions,
+          },
+        }),
+      );
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'dall-e-3',
+        prompt,
+        n: 1,
+        size: 'auto',
+        quality: 'high',
+        output_format: 'jpeg',
+        output_compression: 80,
+        background: 'opaque',
+      });
+    });
+
+    it('should emit deprecated warning when raw provider options key is used for hyphenated provider', async () => {
+      const model = new OpenAICompatibleImageModel('dall-e-3', {
+        provider: 'black-forest-labs.image',
+        headers: () => ({ Authorization: 'Bearer test-key' }),
+        url: ({ modelId, path }) => `https://api.example.com/${modelId}${path}`,
+      });
+
+      const result = await model.doGenerate(
+        createDefaultGenerateParams({
+          providerOptions: {
+            'black-forest-labs': { quality: 'hd' },
+          },
+        }),
+      );
+
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "Use 'blackForestLabs' instead.",
+            "setting": "providerOptions key 'black-forest-labs'",
+            "type": "deprecated",
+          },
+        ]
+      `);
+    });
+
+    it('should not emit deprecated warning when camelCase provider options key is used', async () => {
+      const model = new OpenAICompatibleImageModel('dall-e-3', {
+        provider: 'black-forest-labs.image',
+        headers: () => ({ Authorization: 'Bearer test-key' }),
+        url: ({ modelId, path }) => `https://api.example.com/${modelId}${path}`,
+      });
+
+      const result = await model.doGenerate(
+        createDefaultGenerateParams({
+          providerOptions: {
+            blackForestLabs: { quality: 'hd' },
+          },
+        }),
+      );
+
+      expect(result.warnings).toMatchInlineSnapshot(`[]`);
     });
 
     it('should add warnings for unsupported settings', async () => {
@@ -271,7 +387,7 @@ describe('OpenAICompatibleImageModel', () => {
       await model.doGenerate(
         createDefaultGenerateParams({
           providerOptions: {
-            openai: {
+            openaiCompatible: {
               user: 'test-user-id',
             },
           },
@@ -284,7 +400,6 @@ describe('OpenAICompatibleImageModel', () => {
         n: 1,
         size: '1024x1024',
         user: 'test-user-id',
-        response_format: 'b64_json',
       });
     });
 
@@ -294,7 +409,7 @@ describe('OpenAICompatibleImageModel', () => {
       await model.doGenerate(
         createDefaultGenerateParams({
           providerOptions: {
-            openai: {},
+            openaiCompatible: {},
           },
         }),
       );
@@ -305,7 +420,6 @@ describe('OpenAICompatibleImageModel', () => {
         prompt,
         n: 1,
         size: '1024x1024',
-        response_format: 'b64_json',
       });
       expect(requestBody).not.toHaveProperty('user');
     });

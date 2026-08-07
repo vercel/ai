@@ -2,12 +2,22 @@
 
 The **[fal provider](https://ai-sdk.dev/providers/ai-sdk-providers/fal)** for the [AI SDK](https://ai-sdk.dev/docs) contains image model support for the [fal.ai API](https://fal.ai/).
 
+> **Deploying to Vercel?** With Vercel's AI Gateway you can access fal (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+
 ## Setup
 
 The fal provider is available in the `@ai-sdk/fal` module. You can install it with
 
 ```bash
 npm i @ai-sdk/fal
+```
+
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
 ```
 
 ## Provider Instance

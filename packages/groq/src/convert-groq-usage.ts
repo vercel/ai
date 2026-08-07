@@ -1,4 +1,5 @@
-import { LanguageModelV3Usage } from '@ai-sdk/provider';
+import type { LanguageModelV4Usage } from '@ai-sdk/provider';
+import { createNullLanguageModelUsage } from '@ai-sdk/provider-utils';
 
 export function convertGroqUsage(
   usage:
@@ -11,41 +12,43 @@ export function convertGroqUsage(
             }
           | null
           | undefined;
+        completion_tokens_details?:
+          | {
+              reasoning_tokens?: number | null | undefined;
+            }
+          | null
+          | undefined;
       }
     | undefined
     | null,
-): LanguageModelV3Usage {
+): LanguageModelV4Usage {
   if (usage == null) {
-    return {
-      inputTokens: {
-        total: undefined,
-        noCache: undefined,
-        cacheRead: undefined,
-        cacheWrite: undefined,
-      },
-      outputTokens: {
-        total: undefined,
-        text: undefined,
-        reasoning: undefined,
-      },
-      raw: undefined,
-    };
+    return createNullLanguageModelUsage();
   }
 
   const promptTokens = usage.prompt_tokens ?? 0;
+  const cacheReadTokens =
+    usage.prompt_tokens_details?.cached_tokens ?? undefined;
   const completionTokens = usage.completion_tokens ?? 0;
+  const reasoningTokens =
+    usage.completion_tokens_details?.reasoning_tokens ?? undefined;
+  const textTokens =
+    reasoningTokens != null
+      ? completionTokens - reasoningTokens
+      : completionTokens;
 
   return {
     inputTokens: {
       total: promptTokens,
-      noCache: promptTokens,
-      cacheRead: undefined,
+      noCache:
+        cacheReadTokens != null ? promptTokens - cacheReadTokens : promptTokens,
+      cacheRead: cacheReadTokens,
       cacheWrite: undefined,
     },
     outputTokens: {
       total: completionTokens,
-      text: completionTokens,
-      reasoning: undefined,
+      text: textTokens,
+      reasoning: reasoningTokens,
     },
     raw: usage,
   };

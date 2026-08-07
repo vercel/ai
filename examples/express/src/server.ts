@@ -4,9 +4,10 @@ import {
   pipeAgentUIStreamToResponse,
   pipeUIMessageStreamToResponse,
   streamText,
+  toUIMessageStream,
 } from 'ai';
 import 'dotenv/config';
-import express, { Request, Response } from 'express';
+import express, { type Request, type Response } from 'express';
 import { openaiWebSearchAgent } from './openai-web-search-agent.js';
 
 const app = express();
@@ -30,7 +31,10 @@ app.post('/', async (req: Request, res: Response) => {
     prompt,
   });
 
-  result.pipeUIMessageStreamToResponse(res);
+  pipeUIMessageStreamToResponse({
+    response: res,
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 });
 
 app.post('/chat', async (request: Request, response: Response) => {
@@ -60,7 +64,9 @@ app.post('/custom-data-parts', async (req: Request, res: Response) => {
           prompt: 'Invent a new holiday and describe its traditions.',
         });
 
-        writer.merge(result.toUIMessageStream({ sendStart: false }));
+        writer.merge(
+          toUIMessageStream({ stream: result.stream, sendStart: false }),
+        );
       },
     }),
   });

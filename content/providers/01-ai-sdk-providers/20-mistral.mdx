@@ -5,27 +5,15 @@ description: Learn how to use Mistral.
 
 # Mistral AI Provider
 
-The [Mistral AI](https://mistral.ai/) provider contains language model support for the Mistral chat API.
+The [Mistral AI](https://mistral.ai/) provider contains language model,
+embedding model, speech model, and transcription model support for Mistral
+APIs.
 
 ## Setup
 
 The Mistral provider is available in the `@ai-sdk/mistral` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add @ai-sdk/mistral" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install @ai-sdk/mistral" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add @ai-sdk/mistral" dark />
-  </Tab>
-
-  <Tab>
-    <Snippet text="bun add @ai-sdk/mistral" dark />
-  </Tab>
-</Tabs>
+<InstallPackages packages="@ai-sdk/mistral" />
 
 ## Provider Instance
 
@@ -80,10 +68,10 @@ const model = mistral('mistral-large-latest');
 ```
 
 Mistral chat models also support additional model settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
-You can pass them as an options argument and utilize `MistralLanguageModelOptions` for typing:
+You can pass them as an options argument and utilize `MistralLanguageModelChatOptions` for typing:
 
 ```ts
-import { mistral, type MistralLanguageModelOptions } from '@ai-sdk/mistral';
+import { mistral, type MistralLanguageModelChatOptions } from '@ai-sdk/mistral';
 const model = mistral('mistral-large-latest');
 
 await generateText({
@@ -92,7 +80,7 @@ await generateText({
     mistral: {
       safePrompt: true, // optional safety prompt injection
       parallelToolCalls: false, // disable parallel tool calls (one tool per response)
-    } satisfies MistralLanguageModelOptions,
+    } satisfies MistralLanguageModelChatOptions,
   },
 });
 ```
@@ -137,6 +125,9 @@ Mistral chat models support document OCR for PDF files.
 You can optionally set image and page limits using the provider options.
 
 ```ts
+import { mistral, type MistralLanguageModelChatOptions } from '@ai-sdk/mistral';
+import { generateText } from 'ai';
+
 const result = await generateText({
   model: mistral('mistral-small-latest'),
   messages: [
@@ -150,7 +141,7 @@ const result = await generateText({
         {
           type: 'file',
           data: new URL(
-            'https://github.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf?raw=true',
+            'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/ai.pdf?raw=true',
           ),
           mediaType: 'application/pdf',
         },
@@ -162,7 +153,7 @@ const result = await generateText({
     mistral: {
       documentImageLimit: 8,
       documentPageLimit: 64,
-    },
+    } satisfies MistralLanguageModelChatOptions,
   },
 });
 ```
@@ -171,26 +162,17 @@ const result = await generateText({
 
 Mistral offers reasoning models that provide step-by-step thinking capabilities:
 
-- **magistral-small-2506**: Smaller reasoning model for efficient step-by-step thinking
-- **magistral-medium-2506**: More powerful reasoning model balancing performance and cost
+- **magistral-small-2507**: Smaller reasoning model for efficient step-by-step thinking
+- **magistral-medium-2507**: More powerful reasoning model balancing performance and cost
 
-These models return content that includes `<think>...</think>` tags containing the reasoning process. To properly extract and separate the reasoning from the final answer, use the [extract reasoning middleware](/docs/reference/ai-sdk-core/extract-reasoning-middleware):
+These models return structured reasoning content that the AI SDK extracts automatically. The reasoning is available via the `reasoningText` property in the result:
 
 ```ts
 import { mistral } from '@ai-sdk/mistral';
-import {
-  extractReasoningMiddleware,
-  generateText,
-  wrapLanguageModel,
-} from 'ai';
+import { generateText } from 'ai';
 
 const result = await generateText({
-  model: wrapLanguageModel({
-    model: mistral('magistral-small-2506'),
-    middleware: extractReasoningMiddleware({
-      tagName: 'think',
-    }),
-  }),
+  model: mistral('magistral-small-2507'),
   prompt: 'What is 15 * 24?',
 });
 
@@ -201,7 +183,28 @@ console.log('ANSWER:', result.text);
 // Output: "360"
 ```
 
-The middleware automatically parses the `<think>` tags and provides separate `reasoningText` and `text` properties in the result.
+The SDK automatically parses Mistral's native reasoning format and provides separate `reasoningText` and `text` properties in the result. No middleware is needed.
+
+#### Configurable Reasoning
+
+Some Mistral models support configurable reasoning, which you can control via the `reasoning` parameter.
+You can use the AI SDK's top-level `reasoning` setting to control reasoning effort:
+
+```ts
+import { mistral } from '@ai-sdk/mistral';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: mistral('mistral-small-latest'),
+  reasoning: 'high',
+  prompt: 'What is 15 * 24?',
+});
+
+console.log('REASONING:', result.reasoningText);
+console.log('ANSWER:', result.text);
+```
+
+So far, Mistral only supports `'high'` and `'none'` as effort levels.
 
 ### Example
 
@@ -217,51 +220,58 @@ const { text } = await generateText({
 });
 ```
 
-Mistral language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions
+Mistral language models can also be used in the `streamText` function
+and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output)
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
 #### Structured Outputs
 
-Mistral chat models support structured outputs using JSON Schema. You can use `generateObject` or `streamObject`
-with Zod, Valibot, or raw JSON Schema. The SDK sends your schema via Mistral's `response_format: { type: 'json_schema' }`.
+Mistral chat models support structured outputs using JSON Schema. You can use `generateText` or `streamText` with [`Output`](/docs/reference/ai-sdk-core/output)
+and Zod, Valibot, or raw JSON Schema. The SDK sends your schema via Mistral's `response_format: { type: 'json_schema' }`.
 
 ```ts
 import { mistral } from '@ai-sdk/mistral';
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
-const result = await generateObject({
+const result = await generateText({
   model: mistral('mistral-large-latest'),
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(z.string()),
-      instructions: z.array(z.string()),
+  output: Output.object({
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(z.string()),
+        instructions: z.array(z.string()),
+      }),
     }),
   }),
   prompt: 'Generate a simple pasta recipe.',
 });
 
-console.log(JSON.stringify(result.object, null, 2));
+console.log(JSON.stringify(result.output, null, 2));
 ```
 
 You can enable strict JSON Schema validation using a provider option:
 
 ```ts highlight="7-11"
-import { mistral } from '@ai-sdk/mistral';
-import { generateObject } from 'ai';
+import { mistral, type MistralLanguageModelChatOptions } from '@ai-sdk/mistral';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
-const result = await generateObject({
+const result = await generateText({
   model: mistral('mistral-large-latest'),
   providerOptions: {
     mistral: {
-      strictJsonSchema: true, // reject outputs that don't strictly match the schema
-    },
+      strictJsonSchema: true,
+    } satisfies MistralLanguageModelChatOptions,
   },
-  schema: z.object({
-    title: z.string(),
-    items: z.array(z.object({ id: z.string(), qty: z.number().int().min(1) })),
+  output: Output.object({
+    schema: z.object({
+      title: z.string(),
+      items: z.array(
+        z.object({ id: z.string(), qty: z.number().int().min(1) }),
+      ),
+    }),
   }),
   prompt: 'Generate a small shopping list.',
 });
@@ -276,21 +286,26 @@ const result = await generateObject({
 
 ### Model Capabilities
 
-| Model                   | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| ----------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `pixtral-large-latest`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `mistral-large-latest`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `mistral-medium-latest` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `mistral-medium-2505`   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `mistral-small-latest`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `magistral-small-2506`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `magistral-medium-2506` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `ministral-3b-latest`   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `ministral-8b-latest`   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `pixtral-12b-2409`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `open-mistral-7b`       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `open-mixtral-8x7b`     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `open-mixtral-8x22b`    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                   | Image Input | Object Generation | Tool Usage | Tool Streaming |
+| ----------------------- | ----------- | ----------------- | ---------- | -------------- |
+| `pixtral-large-latest`  | <Check />   | <Check />         | <Check />  | <Check />      |
+| `mistral-large-latest`  | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `mistral-medium-latest` | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `mistral-medium-3`      | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `mistral-medium-2508`   | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `mistral-medium-2505`   | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `mistral-medium-3.5`    | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `mistral-small-latest`  | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `magistral-small-2507`  | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `magistral-medium-2507` | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `magistral-small-2506`  | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `magistral-medium-2506` | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `ministral-3b-latest`   | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `ministral-8b-latest`   | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `pixtral-12b-2409`      | <Check />   | <Check />         | <Check />  | <Check />      |
+| `open-mistral-7b`       | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `open-mixtral-8x7b`     | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `open-mixtral-8x22b`    | <Cross />   | <Check />         | <Check />  | <Check />      |
 
 <Note>
   The table above lists popular models. Please see the [Mistral
@@ -298,6 +313,167 @@ const result = await generateObject({
   full list of available models. The table above lists popular models. You can
   also pass any available provider model ID as a string if needed.
 </Note>
+
+## Transcription Models
+
+You can create models that call the
+[Mistral audio transcription API](https://docs.mistral.ai/api/endpoint/audio/transcriptions)
+using the `.transcription()` factory method:
+
+```ts
+const model = mistral.transcription('voxtral-mini-latest');
+```
+
+Use Mistral transcription models with [`transcribe`](/docs/reference/ai-sdk-core/transcribe):
+
+```ts
+import { mistral } from '@ai-sdk/mistral';
+import { transcribe } from 'ai';
+import { readFile } from 'node:fs/promises';
+
+const result = await transcribe({
+  model: mistral.transcription('voxtral-mini-latest'),
+  audio: await readFile('audio.mp3'),
+});
+```
+
+Mistral transcription models support additional provider options. Pass them
+through `providerOptions.mistral` and use
+`MistralTranscriptionModelOptions` for type checking:
+
+```ts highlight="9-13"
+import {
+  mistral,
+  type MistralTranscriptionModelOptions,
+} from '@ai-sdk/mistral';
+import { transcribe } from 'ai';
+import { readFile } from 'node:fs/promises';
+
+const result = await transcribe({
+  model: mistral.transcription('voxtral-mini-latest'),
+  audio: await readFile('audio.mp3'),
+  providerOptions: {
+    mistral: {
+      timestampGranularities: ['segment'],
+      diarize: true,
+      contextBias: ['Vercel', 'AI_SDK'],
+    } satisfies MistralTranscriptionModelOptions,
+  },
+});
+```
+
+The following optional provider options are available:
+
+- **language** _string_
+
+  The language of the audio, such as `en`. Providing it can improve accuracy.
+
+- **temperature** _number_
+
+  The sampling temperature for the transcription.
+
+- **timestampGranularities** _Array&lt;'segment' | 'word'&gt;_
+
+  Timestamp granularities to include in the response. Mistral does not support
+  combining this option with `language`; the SDK throws an
+  `InvalidArgumentError` when both are provided.
+
+- **diarize** _boolean_
+
+  Whether to identify speakers in the transcription.
+
+- **contextBias** _string[]_
+
+  Up to 100 words or phrases that guide spelling for names, technical terms,
+  or domain-specific vocabulary. Items cannot contain commas or whitespace;
+  use underscores for multi-word phrases.
+
+The normalized result includes transcript text, language, timed segments, and
+duration when returned by Mistral. Mistral token and prompt-audio usage is
+available under `result.providerMetadata.mistral.usage`. Segment scores and
+speaker IDs from diarization are available under
+`result.providerMetadata.mistral.segments`.
+
+<Note>
+  Audio is uploaded to Mistral for processing. This integration supports batch
+  transcription only; Mistral realtime transcription is not exposed by this
+  model.
+</Note>
+
+### Model Capabilities
+
+| Model                 | Timestamps | Diarization | Context Bias |
+| --------------------- | ---------- | ----------- | ------------ |
+| `voxtral-mini-latest` | <Check />  | <Check />   | <Check />    |
+
+## Speech Models
+
+You can create models that call the
+[Mistral speech API](https://docs.mistral.ai/api/endpoint/audio/speech) using
+the `.speech()` factory method:
+
+```ts
+const model = mistral.speech('voxtral-mini-tts-2603');
+```
+
+Use a preset or saved voice ID with [`generateSpeech`](/docs/reference/ai-sdk-core/generate-speech):
+
+```ts
+import { mistral } from '@ai-sdk/mistral';
+import { generateSpeech } from 'ai';
+
+const result = await generateSpeech({
+  model: mistral.speech('voxtral-mini-tts-2603'),
+  text: 'Hello from the AI SDK!',
+  voice: 'en_paul_neutral',
+  outputFormat: 'mp3',
+});
+
+const audio = result.audio.uint8Array;
+```
+
+The Mistral speech model maps `voice` to Mistral's `voice_id`. It supports
+`mp3`, `wav`, `pcm`, `flac`, and `opus` output formats and defaults to `mp3`.
+The `instructions`, `speed`, and `language` settings are not supported and
+produce warnings when provided.
+
+Mistral also supports one-off voice cloning with base64-encoded reference
+audio. Pass it through `providerOptions.mistral.refAudio` and use
+`MistralSpeechModelOptions` for type checking:
+
+```ts highlight="9-13"
+import { readFile } from 'node:fs/promises';
+import { mistral, type MistralSpeechModelOptions } from '@ai-sdk/mistral';
+import { generateSpeech } from 'ai';
+
+const referenceAudio = await readFile('./reference.mp3');
+
+const result = await generateSpeech({
+  model: mistral.speech('voxtral-mini-tts-2603'),
+  text: 'Hello from the AI SDK!',
+  providerOptions: {
+    mistral: {
+      refAudio: referenceAudio.toString('base64'),
+    } satisfies MistralSpeechModelOptions,
+  },
+});
+```
+
+When `refAudio` is provided, it takes precedence over `voice`. Reference audio
+is redacted from request metadata and API call errors returned by the provider.
+
+<Note>
+  Only use reference audio with the speaker's explicit consent. Follow Mistral's
+  voice cloning usage policy and disclose AI-generated audio when required. This
+  provider integration supports non-streaming speech generation; Mistral's
+  streaming speech API is not exposed through `SpeechModelV4`.
+</Note>
+
+### Model Capabilities
+
+| Model                   | Saved Voices | Reference Audio | Non-Streaming |
+| ----------------------- | ------------ | --------------- | ------------- |
+| `voxtral-mini-tts-2603` | <Check />    | <Check />       | <Check />     |
 
 ## Embedding Models
 
@@ -315,10 +491,47 @@ import { mistral } from '@ai-sdk/mistral';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: mistral.embedding('mistral-embed'),
-  value: 'sunny day at the beach',
+  model: mistral.embedding('codestral-embed-2505'),
+  value: 'function add(a: number, b: number) { return a + b; }',
 });
 ```
+
+Mistral embedding models support additional provider options through
+`providerOptions.mistral`. You can validate them with
+`MistralEmbeddingModelOptions`:
+
+```ts
+import { mistral, type MistralEmbeddingModelOptions } from '@ai-sdk/mistral';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: mistral.embedding('mistral-embed'),
+  value: 'sunny day at the beach',
+  providerOptions: {
+    mistral: {
+      metadata: { source: 'knowledge-base' },
+      outputDimension: 1024,
+      outputDtype: 'float',
+    } satisfies MistralEmbeddingModelOptions,
+  },
+});
+```
+
+The following optional provider options are available for Mistral embedding
+models:
+
+- **metadata** _Record&lt;string, unknown&gt;_
+
+  Additional metadata to attach to the embedding request.
+
+- **outputDimension** _number_
+
+  The dimension of the output embeddings when supported by the model.
+
+- **outputDtype** _string_
+
+  The data type of the output embeddings when supported by the model. Accepts
+  `'float'`, `'int8'`, `'uint8'`, `'binary'`, or `'ubinary'`.
 
 ### Model Capabilities
 

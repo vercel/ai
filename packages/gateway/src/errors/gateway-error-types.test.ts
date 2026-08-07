@@ -7,6 +7,7 @@ import {
   GatewayModelNotFoundError,
   GatewayInternalServerError,
   GatewayResponseError,
+  GatewayTimeoutError,
 } from './index';
 
 describe('GatewayAuthenticationError', () => {
@@ -195,6 +196,48 @@ describe('GatewayInternalServerError', () => {
 
     expect(GatewayInternalServerError.isInstance(error)).toBe(true);
     expect(GatewayError.isInstance(error)).toBe(true);
+  });
+});
+
+describe('isRetryable', () => {
+  it('should be true for GatewayInternalServerError (500)', () => {
+    const error = new GatewayInternalServerError();
+    expect(error.isRetryable).toBe(true);
+  });
+
+  it('should be true for GatewayRateLimitError (429)', () => {
+    const error = new GatewayRateLimitError();
+    expect(error.isRetryable).toBe(true);
+  });
+
+  it('should be true for GatewayTimeoutError (408)', () => {
+    const error = new GatewayTimeoutError();
+    expect(error.isRetryable).toBe(true);
+  });
+
+  it('should be true for status codes >= 500', () => {
+    const error = new GatewayInternalServerError({ statusCode: 503 });
+    expect(error.isRetryable).toBe(true);
+  });
+
+  it('should be false for GatewayAuthenticationError (401)', () => {
+    const error = new GatewayAuthenticationError();
+    expect(error.isRetryable).toBe(false);
+  });
+
+  it('should be false for GatewayInvalidRequestError (400)', () => {
+    const error = new GatewayInvalidRequestError();
+    expect(error.isRetryable).toBe(false);
+  });
+
+  it('should be false for GatewayModelNotFoundError (404)', () => {
+    const error = new GatewayModelNotFoundError();
+    expect(error.isRetryable).toBe(false);
+  });
+
+  it('should be true for GatewayResponseError (502)', () => {
+    const error = new GatewayResponseError();
+    expect(error.isRetryable).toBe(true);
   });
 });
 

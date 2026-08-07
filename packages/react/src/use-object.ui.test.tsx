@@ -2,12 +2,12 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
-import '@testing-library/jest-dom/vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
-import { experimental_useObject } from './use-object';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { experimental_useObject } from './index';
+import { useObject } from './use-object';
 
 const server = createTestServer({
   '/api/use-object': {},
@@ -27,19 +27,18 @@ describe('text stream', () => {
     headers?: Record<string, string> | Headers;
     credentials?: RequestCredentials;
   }) => {
-    const { object, error, submit, isLoading, stop, clear } =
-      experimental_useObject({
-        api: '/api/use-object',
-        schema: z.object({ content: z.string() }),
-        onError(error) {
-          onErrorResult = error;
-        },
-        onFinish(event) {
-          onFinishCalls.push(event);
-        },
-        headers,
-        credentials,
-      });
+    const { object, error, submit, isLoading, stop, clear } = useObject({
+      api: '/api/use-object',
+      schema: z.object({ content: z.string() }),
+      onError(error) {
+        onErrorResult = error;
+      },
+      onFinish(event) {
+        onFinishCalls.push(event);
+      },
+      headers,
+      credentials,
+    });
 
     return (
       <div>
@@ -280,12 +279,12 @@ describe('text stream', () => {
     };
 
     const TestComponentWithAsyncHeaders = () => {
-      const { submit } = experimental_useObject({
+      const { submit } = useObject({
         api: '/api/use-object',
         schema: z.object({ content: z.string() }),
         headers: async () => {
           // Simulate async token fetch
-          await new Promise(resolve => setTimeout(resolve, 10));
+          await Promise.resolve();
           return {
             Authorization: 'Bearer ASYNC_TOKEN',
             'X-Request-ID': 'async-123',
@@ -322,7 +321,7 @@ describe('text stream', () => {
     };
 
     const TestComponentWithSyncFunctionHeaders = () => {
-      const { submit } = experimental_useObject({
+      const { submit } = useObject({
         api: '/api/use-object',
         schema: z.object({ content: z.string() }),
         headers: () => ({
@@ -385,5 +384,11 @@ describe('text stream', () => {
       expect(screen.getByTestId('error')).toBeEmptyDOMElement();
       expect(screen.getByTestId('loading')).toHaveTextContent('false');
     });
+  });
+});
+
+describe('deprecated experimental_useObject alias', () => {
+  it('should be the same function as useObject', () => {
+    expect(experimental_useObject).toBe(useObject);
   });
 });

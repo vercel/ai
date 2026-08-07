@@ -1,8 +1,8 @@
 import {
-  type FetchFunction,
   getRuntimeEnvironmentUserAgent,
   normalizeHeaders,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 

@@ -1,5 +1,5 @@
-import { SharedV3ProviderOptions } from '../../shared';
-import { ImageModelV3File } from './image-model-v3-file';
+import type { SharedV3ProviderOptions } from '../../shared';
+import type { ImageModelV3File } from './image-model-v3-file';
 
 export type ImageModelV3CallOptions = {
   /**

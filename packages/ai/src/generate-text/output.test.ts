@@ -352,6 +352,36 @@ describe('Output.array', () => {
         });
       }
     });
+
+    it('should return schema-validated values (with transforms applied)', async () => {
+      const arrayWithTransform = array({
+        element: z
+          .object({ content: z.string() })
+          .transform(val => ({ ...val, extra: true })),
+      });
+
+      const result = await arrayWithTransform.parseCompleteOutput(
+        { text: `{ "elements": [{ "content": "hello" }] }` },
+        context,
+      );
+
+      expect(result).toStrictEqual([{ content: 'hello', extra: true }]);
+    });
+
+    it('should return validated values for multiple elements', async () => {
+      const result = await array1.parseCompleteOutput(
+        {
+          text: `{ "elements": [{ "content": "a" }, { "content": "b" }, { "content": "c" }] }`,
+        },
+        context,
+      );
+
+      expect(result).toStrictEqual([
+        { content: 'a' },
+        { content: 'b' },
+        { content: 'c' },
+      ]);
+    });
   });
 
   describe('array.parsePartialOutput', () => {

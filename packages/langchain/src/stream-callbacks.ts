@@ -1,39 +1,45 @@
 /**
- * Configuration options and helper callback methods for stream lifecycle events.
+ * Callback options for stream lifecycle events.
  */
-export interface StreamCallbacks {
-  /** `onStart`: Called once when the stream is initialized. */
+export interface StreamCallbacks<TState = unknown> {
+  /** Called once when the stream is initialized. */
   onStart?: () => Promise<void> | void;
 
-  /** `onFinal`: Called once when the stream is closed with the final completion message. */
-  onFinal?: (completion: string) => Promise<void> | void;
-
-  /** `onToken`: Called for each tokenized message. */
+  /** Called for each tokenized message. */
   onToken?: (token: string) => Promise<void> | void;
 
-  /** `onText`: Called for each text chunk. */
+  /** Called for each text chunk. */
   onText?: (text: string) => Promise<void> | void;
+
+  /** Called with aggregated text when stream ends (success, error, or abort). */
+  onFinal?: (completion: string) => Promise<void> | void;
+
+  /**
+   * Called on successful completion. Receives final graph state for LangGraph
+   * streams (from last "values" event), undefined for other stream types.
+   */
+  onFinish?: (finalState: TState | undefined) => Promise<void> | void;
+
+  /** Called when the stream encounters an error. */
+  onError?: (error: Error) => Promise<void> | void;
+
+  /** Called when the stream is aborted. */
+  onAbort?: () => Promise<void> | void;
 }
 
 /**
- * Creates a transform stream that encodes input messages and invokes optional callback functions.
- * The transform stream uses the provided callbacks to execute custom logic at different stages of the stream's lifecycle.
- * - `onStart`: Called once when the stream is initialized.
- * - `onToken`: Called for each tokenized message.
- * - `onFinal`: Called once when the stream is closed with the final completion message.
+ * Creates a transform stream that invokes callbacks during text stream processing.
  *
- * This function is useful when you want to process a stream of messages and perform specific actions during the stream's lifecycle.
+ * Lifecycle:
+ * 1. `onStart` - Called once when stream initializes
+ * 2. `onToken` / `onText` - Called for each chunk as it flows through
+ * 3. `onFinal` - Called once when stream closes with aggregated text
  *
- * @param {StreamCallbacks} [callbacks] - An object containing the callback functions.
- * @return {TransformStream<string, string>} A transform stream that allows the execution of custom logic through callbacks.
+ * Note: This transformer only supports text-based callbacks. For LangGraph state
+ * callbacks (`onFinish`, `onError`, `onAbort`), use `toUIMessageStream` instead.
  *
- * @example
- * const callbacks = {
- *   onStart: async () => console.log('Stream started'),
- *   onToken: async (token) => console.log(`Token: ${token}`),
- *   onFinal: async () => data.close()
- * };
- * const transformer = createCallbacksTransformer(callbacks);
+ * @param callbacks - Optional callback functions for stream lifecycle events.
+ * @returns A TransformStream that passes through messages while invoking callbacks.
  */
 export function createCallbacksTransformer(
   callbacks: StreamCallbacks | undefined = {},

@@ -76,21 +76,19 @@ import { fetchData, emptyData } from '../utils/data';
 export const getStreamedData = async () => {
   const streamableData = createStreamableValue<string>(emptyData);
 
-  try {
-    (() => {
-      const data1 = await fetchData();
-      streamableData.update(data1);
+  (async () => {
+    const data1 = await fetchData();
+    streamableData.update(data1);
 
-      const data2 = await fetchData();
-      streamableData.update(data2);
+    const data2 = await fetchData();
+    streamableData.update(data2);
 
-      const data3 = await fetchData();
-      streamableData.done(data3);
-    })();
+    const data3 = await fetchData();
+    streamableData.done(data3);
+  })().catch(e => {
+    streamableData.error(e);
+  });
 
-    return { data: streamableData.value };
-  } catch (e) {
-    return { error: e.message };
-  }
+  return { data: streamableData.value };
 };
 ```

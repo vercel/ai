@@ -1,4 +1,4 @@
-import { http, HttpResponse, JsonBodyType } from 'msw';
+import { http, HttpResponse, type JsonBodyType } from 'msw';
 import { setupServer } from 'msw/node';
 import { convertArrayToReadableStream } from './convert-array-to-readable-stream';
 
@@ -173,9 +173,12 @@ export function createTestServer<
           case 'controlled-stream': {
             if (request.signal) {
               request.signal.addEventListener('abort', () => {
-                response.controller.error(
-                  new DOMException('Aborted', 'AbortError'),
-                );
+                // the writer may already be closed (e.g. the signal aborts
+                // during teardown after the stream completed) — swallow the
+                // rejection so it cannot surface as an unhandled rejection:
+                response.controller
+                  .error(new DOMException('Aborted', 'AbortError'))
+                  .catch(() => {});
               });
             }
 

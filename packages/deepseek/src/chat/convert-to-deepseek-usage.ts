@@ -1,4 +1,5 @@
-import { LanguageModelV3Usage } from '@ai-sdk/provider';
+import type { LanguageModelV4Usage } from '@ai-sdk/provider';
+import { createNullLanguageModelUsage } from '@ai-sdk/provider-utils';
 
 export function convertDeepSeekUsage(
   usage:
@@ -15,22 +16,9 @@ export function convertDeepSeekUsage(
       }
     | undefined
     | null,
-): LanguageModelV3Usage {
+): LanguageModelV4Usage {
   if (usage == null) {
-    return {
-      inputTokens: {
-        total: undefined,
-        noCache: undefined,
-        cacheRead: undefined,
-        cacheWrite: undefined,
-      },
-      outputTokens: {
-        total: undefined,
-        text: undefined,
-        reasoning: undefined,
-      },
-      raw: undefined,
-    };
+    return createNullLanguageModelUsage();
   }
 
   const promptTokens = usage.prompt_tokens ?? 0;

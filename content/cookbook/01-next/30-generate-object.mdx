@@ -6,9 +6,9 @@ tags: ['next', 'structured data']
 
 # Generate Object
 
-Earlier functions like `generateText` and `streamText` gave us the ability to generate unstructured text. However, if you want to generate structured data like JSON, you can provide a schema that describes the structure of your desired object to the `generateObject` function.
+You can use `generateText` with `Output` to generate structured data like JSON. By providing a schema that describes the structure of your desired object, the SDK will validate the generated output and ensure that it conforms to the specified structure.
 
-The function requires you to provide a schema using [zod](https://zod.dev), a library for defining schemas for JavaScript objects. By using zod, you can also use it to validate the generated object and ensure that it conforms to the specified structure.
+The `Output.object` function requires you to provide a schema using [zod](https://zod.dev), a library for defining schemas for JavaScript objects.
 
 <Browser>
   <ObjectGeneration
@@ -83,31 +83,33 @@ export default function Page() {
 
 ## Server
 
-Let's create a route handler for `/api/completion` that will generate an object based on the input prompt. The route will call the `generateObject` function from the `ai` module, which will then generate an object based on the input prompt and return it.
+Let's create a route handler for `/api/completion` that will generate an object based on the input prompt. The route will call the `generateText` function with `Output.object` from the `ai` module, which will then generate an object based on the input prompt and return it.
 
 ```typescript filename='app/api/completion/route.ts'
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
 export async function POST(req: Request) {
   const { prompt }: { prompt: string } = await req.json();
 
-  const result = await generateObject({
+  const result = await generateText({
     model: 'openai/gpt-4o',
     system: 'You generate three notifications for a messages app.',
     prompt,
-    schema: z.object({
-      notifications: z.array(
-        z.object({
-          name: z.string().describe('Name of a fictional person.'),
-          message: z.string().describe('Do not use emojis or links.'),
-          minutesAgo: z.number(),
-        }),
-      ),
+    output: Output.object({
+      schema: z.object({
+        notifications: z.array(
+          z.object({
+            name: z.string().describe('Name of a fictional person.'),
+            message: z.string().describe('Do not use emojis or links.'),
+            minutesAgo: z.number(),
+          }),
+        ),
+      }),
     }),
   });
 
-  return result.toJsonResponse();
+  return Response.json(result.output);
 }
 ```
 

@@ -1,23 +1,56 @@
 import {
-  LanguageModelV3CallOptions,
-  SharedV3Warning,
   UnsupportedFunctionalityError,
+  type JSONSchema7,
+  type JSONObject,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4FunctionTool,
+  type SharedV4ProviderReference,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
-import { validateTypes } from '@ai-sdk/provider-utils';
+import {
+  resolveProviderReference,
+  validateTypes,
+  type ToolNameMapping,
+} from '@ai-sdk/provider-utils';
 import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
 import { fileSearchArgsSchema } from '../tool/file-search';
 import { imageGenerationArgsSchema } from '../tool/image-generation';
+import { customArgsSchema } from '../tool/custom';
 import { mcpArgsSchema } from '../tool/mcp';
+import { shellArgsSchema } from '../tool/shell';
+import { toolSearchArgsSchema } from '../tool/tool-search';
 import { webSearchArgsSchema } from '../tool/web-search';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
-import { OpenAIResponsesTool } from './openai-responses-api';
+import type {
+  OpenAIResponsesFunctionTool,
+  OpenAIResponsesTool,
+} from './openai-responses-api';
+
+export type OpenAIToolOptions = {
+  allowedCallers?: Array<'direct' | 'programmatic'>;
+  deferLoading?: boolean;
+  outputSchema?: JSONObject;
+  namespace?: {
+    name: string;
+    description: string;
+  };
+};
 
 export async function prepareResponsesTools({
   tools,
   toolChoice,
+  allowedTools,
+  toolNameMapping,
+  customProviderToolNames,
 }: {
-  tools: LanguageModelV3CallOptions['tools'];
-  toolChoice: LanguageModelV3CallOptions['toolChoice'] | undefined;
+  tools: LanguageModelV4CallOptions['tools'];
+  toolChoice: LanguageModelV4CallOptions['toolChoice'] | undefined;
+  allowedTools?: {
+    toolNames: string[];
+    mode?: 'auto' | 'required';
+  };
+  toolNameMapping?: ToolNameMapping;
+  customProviderToolNames?: Set<string>;
 }): Promise<{
   tools?: Array<OpenAIResponsesTool>;
   toolChoice?:
@@ -28,34 +61,73 @@ export async function prepareResponsesTools({
     | { type: 'web_search_preview' }
     | { type: 'web_search' }
     | { type: 'function'; name: string }
+    | { type: 'custom'; name: string }
     | { type: 'code_interpreter' }
     | { type: 'mcp' }
     | { type: 'image_generation' }
-    | { type: 'apply_patch' };
-  toolWarnings: SharedV3Warning[];
+    | { type: 'apply_patch' }
+    | { type: 'computer' }
+    | { type: 'programmatic_tool_calling' }
+    | {
+        type: 'allowed_tools';
+        mode: 'auto' | 'required';
+        tools: Array<{ type: 'function'; name: string }>;
+      };
+  toolWarnings: SharedV4Warning[];
 }> {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
-  const toolWarnings: SharedV3Warning[] = [];
+  const toolWarnings: SharedV4Warning[] = [];
 
   if (tools == null) {
     return { tools: undefined, toolChoice: undefined, toolWarnings };
   }
 
   const openaiTools: Array<OpenAIResponsesTool> = [];
+  const namespaceTools = new Map<
+    string,
+    Extract<OpenAIResponsesTool, { type: 'namespace' }>
+  >();
+  const resolvedCustomProviderToolNames =
+    customProviderToolNames ?? new Set<string>();
 
   for (const tool of tools) {
     switch (tool.type) {
-      case 'function':
-        openaiTools.push({
-          type: 'function',
-          name: tool.name,
-          description: tool.description,
-          parameters: tool.inputSchema,
-          ...(tool.strict != null ? { strict: tool.strict } : {}),
+      case 'function': {
+        const openaiOptions = tool.providerOptions?.openai as
+          | OpenAIToolOptions
+          | undefined;
+        const openaiFunctionTool = prepareFunctionTool({
+          tool,
+          options: openaiOptions,
         });
+        const namespace = openaiOptions?.namespace;
+
+        if (namespace == null) {
+          openaiTools.push(openaiFunctionTool);
+        } else {
+          let namespaceTool = namespaceTools.get(namespace.name);
+
+          if (namespaceTool == null) {
+            namespaceTool = {
+              type: 'namespace',
+              name: namespace.name,
+              description: namespace.description,
+              tools: [],
+            };
+            namespaceTools.set(namespace.name, namespaceTool);
+            openaiTools.push(namespaceTool);
+          } else if (namespaceTool.description !== namespace.description) {
+            throw new UnsupportedFunctionalityError({
+              functionality: `conflicting descriptions for OpenAI tool namespace "${namespace.name}"`,
+            });
+          }
+
+          namespaceTool.tools.push(openaiFunctionTool);
+        }
         break;
+      }
       case 'provider': {
         switch (tool.id) {
           case 'openai.file_search': {
@@ -86,14 +158,28 @@ export async function prepareResponsesTools({
             break;
           }
           case 'openai.shell': {
+            const args = await validateTypes({
+              value: tool.args,
+              schema: shellArgsSchema,
+            });
+
             openaiTools.push({
               type: 'shell',
+              ...(args.environment && {
+                environment: mapShellEnvironment(args.environment),
+              }),
             });
             break;
           }
           case 'openai.apply_patch': {
             openaiTools.push({
               type: 'apply_patch',
+            });
+            break;
+          }
+          case 'openai.computer': {
+            openaiTools.push({
+              type: 'computer',
             });
             break;
           }
@@ -118,7 +204,10 @@ export async function prepareResponsesTools({
               type: 'web_search',
               filters:
                 args.filters != null
-                  ? { allowed_domains: args.filters.allowedDomains }
+                  ? {
+                      allowed_domains: args.filters.allowedDomains,
+                      blocked_domains: args.filters.blockedDomains,
+                    }
                   : undefined,
               external_web_access: args.externalWebAccess,
               search_context_size: args.searchContextSize,
@@ -216,6 +305,44 @@ export async function prepareResponsesTools({
 
             break;
           }
+          case 'openai.custom': {
+            const args = await validateTypes({
+              value: tool.args,
+              schema: customArgsSchema,
+            });
+
+            openaiTools.push({
+              type: 'custom',
+              name: tool.name,
+              description: args.description,
+              format: args.format,
+            });
+            resolvedCustomProviderToolNames.add(tool.name);
+            break;
+          }
+          case 'openai.programmatic_tool_calling': {
+            openaiTools.push({
+              type: 'programmatic_tool_calling',
+            });
+            break;
+          }
+          case 'openai.tool_search': {
+            const args = await validateTypes({
+              value: tool.args,
+              schema: toolSearchArgsSchema,
+            });
+            openaiTools.push({
+              type: 'tool_search',
+              ...(args.execution != null ? { execution: args.execution } : {}),
+              ...(args.description != null
+                ? { description: args.description }
+                : {}),
+              ...(args.parameters != null
+                ? { parameters: args.parameters }
+                : {}),
+            });
+            break;
+          }
         }
         break;
       }
@@ -226,6 +353,21 @@ export async function prepareResponsesTools({
         });
         break;
     }
+  }
+
+  if (allowedTools != null) {
+    return {
+      tools: openaiTools,
+      toolChoice: {
+        type: 'allowed_tools',
+        mode: allowedTools.mode ?? 'auto',
+        tools: allowedTools.toolNames.map(name => ({
+          type: 'function',
+          name: toolNameMapping?.toProviderToolName(name) ?? name,
+        })),
+      },
+      toolWarnings,
+    };
   }
 
   if (toolChoice == null) {
@@ -239,21 +381,30 @@ export async function prepareResponsesTools({
     case 'none':
     case 'required':
       return { tools: openaiTools, toolChoice: type, toolWarnings };
-    case 'tool':
+    case 'tool': {
+      const resolvedToolName =
+        toolNameMapping?.toProviderToolName(toolChoice.toolName) ??
+        toolChoice.toolName;
+
       return {
         tools: openaiTools,
         toolChoice:
-          toolChoice.toolName === 'code_interpreter' ||
-          toolChoice.toolName === 'file_search' ||
-          toolChoice.toolName === 'image_generation' ||
-          toolChoice.toolName === 'web_search_preview' ||
-          toolChoice.toolName === 'web_search' ||
-          toolChoice.toolName === 'mcp' ||
-          toolChoice.toolName === 'apply_patch'
-            ? { type: toolChoice.toolName }
-            : { type: 'function', name: toolChoice.toolName },
+          resolvedToolName === 'code_interpreter' ||
+          resolvedToolName === 'file_search' ||
+          resolvedToolName === 'image_generation' ||
+          resolvedToolName === 'web_search_preview' ||
+          resolvedToolName === 'web_search' ||
+          resolvedToolName === 'mcp' ||
+          resolvedToolName === 'apply_patch' ||
+          resolvedToolName === 'computer' ||
+          resolvedToolName === 'programmatic_tool_calling'
+            ? { type: resolvedToolName }
+            : resolvedCustomProviderToolNames.has(resolvedToolName)
+              ? { type: 'custom', name: resolvedToolName }
+              : { type: 'function', name: resolvedToolName },
         toolWarnings,
       };
+    }
     default: {
       const _exhaustiveCheck: never = type;
       throw new UnsupportedFunctionalityError({
@@ -261,4 +412,137 @@ export async function prepareResponsesTools({
       });
     }
   }
+}
+
+function prepareFunctionTool({
+  tool,
+  options,
+}: {
+  tool: LanguageModelV4FunctionTool;
+  options: OpenAIToolOptions | undefined;
+}): OpenAIResponsesFunctionTool {
+  const deferLoading = options?.deferLoading;
+
+  return {
+    type: 'function',
+    name: tool.name,
+    description: tool.description,
+    parameters: tool.inputSchema,
+    ...(tool.strict != null ? { strict: tool.strict } : {}),
+    ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
+    ...(options?.allowedCallers != null
+      ? { allowed_callers: options.allowedCallers }
+      : {}),
+    ...(options?.outputSchema != null
+      ? { output_schema: options.outputSchema as JSONSchema7 }
+      : {}),
+  };
+}
+
+function mapShellEnvironment(environment: {
+  type?: string;
+  [key: string]: unknown;
+}): NonNullable<
+  Extract<OpenAIResponsesTool, { type: 'shell' }>['environment']
+> {
+  if (environment.type === 'containerReference') {
+    const env = environment as {
+      type: 'containerReference';
+      containerId: string;
+    };
+    return {
+      type: 'container_reference',
+      container_id: env.containerId,
+    };
+  }
+
+  if (environment.type === 'containerAuto') {
+    const env = environment as {
+      type: 'containerAuto';
+      fileIds?: string[];
+      memoryLimit?: '1g' | '4g' | '16g' | '64g';
+      networkPolicy?: {
+        type: string;
+        allowedDomains?: string[];
+        domainSecrets?: Array<{
+          domain: string;
+          name: string;
+          value: string;
+        }>;
+      };
+      skills?: Array<{
+        type: string;
+        providerReference?: SharedV4ProviderReference;
+        version?: string;
+        name?: string;
+        description?: string;
+        source?: { type: string; mediaType: string; data: string };
+      }>;
+    };
+
+    return {
+      type: 'container_auto',
+      file_ids: env.fileIds,
+      memory_limit: env.memoryLimit,
+      network_policy:
+        env.networkPolicy == null
+          ? undefined
+          : env.networkPolicy.type === 'disabled'
+            ? { type: 'disabled' as const }
+            : {
+                type: 'allowlist' as const,
+                allowed_domains: env.networkPolicy.allowedDomains!,
+                domain_secrets: env.networkPolicy.domainSecrets,
+              },
+      skills: mapShellSkills(env.skills),
+    };
+  }
+
+  const env = environment as {
+    type?: 'local';
+    skills?: Array<{
+      name: string;
+      description: string;
+      path: string;
+    }>;
+  };
+  return {
+    type: 'local',
+    skills: env.skills,
+  };
+}
+
+function mapShellSkills(
+  skills:
+    | Array<{
+        type: string;
+        providerReference?: SharedV4ProviderReference;
+        version?: string;
+        name?: string;
+        description?: string;
+        source?: { type: string; mediaType: string; data: string };
+      }>
+    | undefined,
+) {
+  return skills?.map(skill =>
+    skill.type === 'skillReference'
+      ? {
+          type: 'skill_reference' as const,
+          skill_id: resolveProviderReference({
+            reference: skill.providerReference ?? {},
+            provider: 'openai',
+          }),
+          version: skill.version ?? 'latest',
+        }
+      : {
+          type: 'inline' as const,
+          name: skill.name!,
+          description: skill.description!,
+          source: {
+            type: 'base64' as const,
+            media_type: skill.source!.mediaType as 'application/zip',
+            data: skill.source!.data,
+          },
+        },
+  );
 }

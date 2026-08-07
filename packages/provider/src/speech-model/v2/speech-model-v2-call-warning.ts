@@ -1,4 +1,4 @@
-import { SpeechModelV2CallOptions } from './speech-model-v2-call-options';
+import type { SpeechModelV2CallOptions } from './speech-model-v2-call-options';
 
 /**
  * Warning from the model provider for this call. The call will proceed, but e.g.

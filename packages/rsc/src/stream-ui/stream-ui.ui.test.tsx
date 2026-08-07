@@ -1,9 +1,10 @@
-import { LanguageModelV3Usage } from '@ai-sdk/provider';
+import type { LanguageModelV4Usage } from '@ai-sdk/provider';
 import { delay } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { asLanguageModelUsage } from 'ai/internal';
-import { MockLanguageModelV3 } from 'ai/test';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { MockLanguageModelV4 } from 'ai/test';
+import React from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { streamUI } from './stream-ui';
 
@@ -53,7 +54,7 @@ async function simulateFlightServerRender(node: React.ReactNode) {
   return traverse(node);
 }
 
-const testUsage: LanguageModelV3Usage = {
+const testUsage: LanguageModelV4Usage = {
   inputTokens: {
     total: 3,
     noCache: 3,
@@ -67,7 +68,7 @@ const testUsage: LanguageModelV3Usage = {
   },
 };
 
-const mockTextModel = new MockLanguageModelV3({
+const mockTextModel = new MockLanguageModelV4({
   doStream: async () => {
     return {
       stream: convertArrayToReadableStream([
@@ -89,13 +90,12 @@ const mockTextModel = new MockLanguageModelV3({
   },
 });
 
-const mockToolModel = new MockLanguageModelV3({
+const mockToolModel = new MockLanguageModelV4({
   doStream: async () => {
     return {
       stream: convertArrayToReadableStream([
         {
           type: 'tool-call',
-          toolCallType: 'function',
           toolCallId: 'call-1',
           toolName: 'tool1',
           input: `{ "value": "value" }`,
@@ -111,6 +111,14 @@ const mockToolModel = new MockLanguageModelV3({
 });
 
 describe('result.value', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('should render text', async () => {
     const result = await streamUI({
       model: mockTextModel,
@@ -132,6 +140,52 @@ describe('result.value', () => {
     expect(rendered).toMatchSnapshot();
   });
 
+  it('should pass instructions to the model prompt', async () => {
+    let prompt: unknown;
+
+    await streamUI({
+      model: new MockLanguageModelV4({
+        doStream: async options => {
+          prompt = options.prompt;
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '0' },
+              { type: 'text-delta', id: '0', delta: 'Hello' },
+              { type: 'text-end', id: '0' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      }),
+      instructions: 'You are a helpful assistant.',
+      prompt: 'Hello!',
+    });
+
+    expect(prompt).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "You are a helpful assistant.",
+          "role": "system",
+        },
+        {
+          "content": [
+            {
+              "text": "Hello!",
+              "type": "text",
+            },
+          ],
+          "providerOptions": undefined,
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
   it('should render tool call results', async () => {
     const result = await streamUI({
       model: mockToolModel,
@@ -150,7 +204,9 @@ describe('result.value', () => {
       },
     });
 
-    const rendered = await simulateFlightServerRender(result.value);
+    const renderedPromise = simulateFlightServerRender(result.value);
+    await vi.runAllTimersAsync();
+    const rendered = await renderedPromise;
     expect(rendered).toMatchSnapshot();
   });
 
@@ -173,7 +229,9 @@ describe('result.value', () => {
       },
     });
 
-    const rendered = await simulateFlightServerRender(result.value);
+    const renderedPromise = simulateFlightServerRender(result.value);
+    await vi.runAllTimersAsync();
+    const rendered = await renderedPromise;
     expect(rendered).toMatchSnapshot();
   });
 
@@ -205,6 +263,8 @@ describe('rsc - streamUI() onFinish callback', () => {
   >[0];
 
   beforeEach(async () => {
+    vi.useFakeTimers();
+
     const ui = await streamUI({
       model: mockToolModel,
       prompt: '',
@@ -226,7 +286,13 @@ describe('rsc - streamUI() onFinish callback', () => {
     });
 
     // consume stream
-    await simulateFlightServerRender(ui.value);
+    const renderPromise = simulateFlightServerRender(ui.value);
+    await vi.runAllTimersAsync();
+    await renderPromise;
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('should contain token usage', () => {
@@ -245,7 +311,7 @@ describe('rsc - streamUI() onFinish callback', () => {
 describe('options.headers', () => {
   it('should pass headers to model', async () => {
     const result = await streamUI({
-      model: new MockLanguageModelV3({
+      model: new MockLanguageModelV4({
         doStream: async ({ headers }) => {
           expect(headers).toStrictEqual({
             'custom-request-header': 'request-header-value',
@@ -283,7 +349,7 @@ describe('options.headers', () => {
 describe('options.providerMetadata', () => {
   it('should pass provider metadata to model', async () => {
     const result = await streamUI({
-      model: new MockLanguageModelV3({
+      model: new MockLanguageModelV4({
         doStream: async ({ providerOptions }) => {
           expect(providerOptions).toStrictEqual({
             aProvider: { someKey: 'someValue' },

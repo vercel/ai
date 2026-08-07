@@ -1,4 +1,4 @@
-import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
+import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 
 export function transformTextToUiMessageStream({
   stream,

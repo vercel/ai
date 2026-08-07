@@ -1,4 +1,4 @@
-import { createProviderToolFactoryWithOutputSchema } from '@ai-sdk/provider-utils';
+import { createProviderExecutedToolFactory } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 const viewXVideoOutputSchema = z.object({
@@ -7,7 +7,7 @@ const viewXVideoOutputSchema = z.object({
   duration: z.number().optional().describe('duration in seconds'),
 });
 
-const viewXVideoToolFactory = createProviderToolFactoryWithOutputSchema({
+const viewXVideoToolFactory = createProviderExecutedToolFactory({
   id: 'xai.view_x_video',
   inputSchema: z.object({}).describe('no input parameters'),
   outputSchema: viewXVideoOutputSchema,

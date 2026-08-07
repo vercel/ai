@@ -1,4 +1,4 @@
-import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
   mockId,
@@ -7,13 +7,13 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import { XaiResponsesLanguageModel } from './xai-responses-language-model';
-import { XaiResponsesProviderOptions } from './xai-responses-options';
+import type { XaiLanguageModelResponsesOptions } from './xai-responses-language-model-options';
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'hello' }] },
 ];
 
-function createModel(modelId = 'grok-4-fast') {
+function createModel(modelId = 'grok-4-fast-non-reasoning') {
   return new XaiResponsesLanguageModel(modelId, {
     provider: 'xai.responses',
     baseURL: 'https://api.x.ai/v1',
@@ -73,7 +73,7 @@ describe('XaiResponsesLanguageModel', () => {
           object: 'response',
           created_at: 1700000000,
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [
             {
               type: 'message',
@@ -115,7 +115,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [],
           usage: {
             input_tokens: 345,
@@ -156,12 +156,52 @@ describe('XaiResponsesLanguageModel', () => {
         `);
       });
 
+      it('should expose cost_in_usd_ticks in providerMetadata', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast-non-reasoning',
+          output: [],
+          usage: {
+            input_tokens: 10,
+            output_tokens: 5,
+            cost_in_usd_ticks: 113500,
+          },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.providerMetadata).toStrictEqual({
+          xai: { costInUsdTicks: 113500 },
+        });
+      });
+
+      it('should not include providerMetadata when cost_in_usd_ticks is missing', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast-non-reasoning',
+          output: [],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.providerMetadata).toBeUndefined();
+      });
+
       it('should extract finish reason from status', async () => {
         prepareJsonResponse({
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [],
           usage: { input_tokens: 10, output_tokens: 5 },
         });
@@ -177,6 +217,47 @@ describe('XaiResponsesLanguageModel', () => {
           }
         `);
       });
+
+      it('should return tool-calls finish reason when function_call is present', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast-non-reasoning',
+          output: [
+            {
+              type: 'function_call',
+              id: 'fc_123',
+              name: 'weather',
+              arguments: '{"location":"sf"}',
+              call_id: 'call_123',
+            },
+          ],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'weather',
+              description: 'get weather',
+              inputSchema: {
+                type: 'object',
+                properties: { location: { type: 'string' } },
+              },
+            },
+          ],
+        });
+
+        expect(result.finishReason).toMatchInlineSnapshot(`
+          {
+            "raw": "completed",
+            "unified": "tool-calls",
+          }
+        `);
+      });
     });
 
     describe('reasoning content', () => {
@@ -185,7 +266,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [
             {
               type: 'reasoning',
@@ -251,7 +332,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [
             {
               type: 'reasoning',
@@ -306,6 +387,129 @@ describe('XaiResponsesLanguageModel', () => {
           ]
         `);
       });
+
+      it('should extract reasoning from content when summary is empty', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-3-mini',
+          output: [
+            {
+              type: 'reasoning',
+              id: 'rs_456',
+              status: 'completed',
+              summary: [],
+              content: [
+                {
+                  type: 'reasoning_text',
+                  text: 'Let me think step by step.',
+                },
+              ],
+            },
+            {
+              type: 'message',
+              id: 'msg_123',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'The answer is 444.',
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          usage: {
+            input_tokens: 10,
+            output_tokens: 15,
+          },
+        });
+
+        const result = await createModel('grok-3-mini').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": {
+                "xai": {
+                  "itemId": "rs_456",
+                },
+              },
+              "text": "Let me think step by step.",
+              "type": "reasoning",
+            },
+            {
+              "text": "The answer is 444.",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should extract reasoning with encrypted content but empty summary text', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast-non-reasoning',
+          output: [
+            {
+              type: 'reasoning',
+              id: 'rs_789',
+              status: 'completed',
+              summary: [],
+              encrypted_content: 'encrypted_zdr_content_xyz',
+            },
+            {
+              type: 'message',
+              id: 'msg_123',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Here is my response.',
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          usage: {
+            input_tokens: 10,
+            output_tokens: 20,
+            output_tokens_details: {
+              reasoning_tokens: 15,
+            },
+          },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": {
+                "xai": {
+                  "itemId": "rs_789",
+                  "reasoningEncryptedContent": "encrypted_zdr_content_xyz",
+                },
+              },
+              "text": "",
+              "type": "reasoning",
+            },
+            {
+              "text": "Here is my response.",
+              "type": "text",
+            },
+          ]
+        `);
+      });
     });
 
     describe('settings and options', () => {
@@ -314,12 +518,12 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [],
           usage: { input_tokens: 10, output_tokens: 5 },
         });
 
-        await createModel('grok-4-fast').doGenerate({
+        await createModel('grok-4-fast-non-reasoning').doGenerate({
           prompt: [
             { role: 'system', content: 'you are helpful' },
             { role: 'user', content: [{ type: 'text', text: 'hello' }] },
@@ -337,12 +541,17 @@ describe('XaiResponsesLanguageModel', () => {
                 "role": "system",
               },
               {
-                "content": "hello",
+                "content": [
+                  {
+                    "text": "hello",
+                    "type": "input_text",
+                  },
+                ],
                 "role": "user",
               },
             ],
             "max_output_tokens": 100,
-            "model": "grok-4-fast",
+            "model": "grok-4-fast-non-reasoning",
             "temperature": 0.5,
             "top_p": 0.9,
           }
@@ -355,7 +564,7 @@ describe('XaiResponsesLanguageModel', () => {
             id: 'resp_123',
             object: 'response',
             status: 'completed',
-            model: 'grok-4-fast',
+            model: 'grok-4-fast-non-reasoning',
             output: [],
             usage: { input_tokens: 10, output_tokens: 5 },
           });
@@ -365,7 +574,7 @@ describe('XaiResponsesLanguageModel', () => {
             providerOptions: {
               xai: {
                 reasoningEffort: 'high',
-              } satisfies XaiResponsesProviderOptions,
+              } satisfies XaiLanguageModelResponsesOptions,
             },
           });
 
@@ -373,7 +582,80 @@ describe('XaiResponsesLanguageModel', () => {
           expect(requestBody.reasoning.effort).toBe('high');
         });
 
-        it('store:true', async () => {
+        it('reasoningEffort: "none"', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.3',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                reasoningEffort: 'none',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning.effort).toBe('none');
+        });
+
+        it('reasoningSummary', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                reasoningSummary: 'concise',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning.summary).toBe('concise');
+        });
+
+        it('reasoningEffort and reasoningSummary together', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                reasoningEffort: 'high',
+                reasoningSummary: 'detailed',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning).toStrictEqual({
+            effort: 'high',
+            summary: 'detailed',
+          });
+        });
+
+        it('logprobs and topLogprobs', async () => {
           prepareJsonResponse({
             id: 'resp_123',
             object: 'response',
@@ -387,8 +669,57 @@ describe('XaiResponsesLanguageModel', () => {
             prompt: TEST_PROMPT,
             providerOptions: {
               xai: {
+                logprobs: true,
+                topLogprobs: 6,
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.logprobs).toBe(true);
+          expect(requestBody.top_logprobs).toBe(6);
+        });
+
+        it('topLogprobs enables logprobs', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                topLogprobs: 2,
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.logprobs).toBe(true);
+          expect(requestBody.top_logprobs).toBe(2);
+        });
+
+        it('store:true', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
                 store: true,
-              } satisfies XaiResponsesProviderOptions,
+              } satisfies XaiLanguageModelResponsesOptions,
             },
           });
 
@@ -402,7 +733,7 @@ describe('XaiResponsesLanguageModel', () => {
             id: 'resp_123',
             object: 'response',
             status: 'completed',
-            model: 'grok-4-fast',
+            model: 'grok-4-fast-non-reasoning',
             output: [],
             usage: { input_tokens: 10, output_tokens: 5 },
           });
@@ -412,7 +743,7 @@ describe('XaiResponsesLanguageModel', () => {
             providerOptions: {
               xai: {
                 store: false,
-              } satisfies XaiResponsesProviderOptions,
+              } satisfies XaiLanguageModelResponsesOptions,
             },
           });
 
@@ -428,7 +759,7 @@ describe('XaiResponsesLanguageModel', () => {
             id: 'resp_123',
             object: 'response',
             status: 'completed',
-            model: 'grok-4-fast',
+            model: 'grok-4-fast-non-reasoning',
             output: [],
             usage: { input_tokens: 10, output_tokens: 5 },
           });
@@ -438,13 +769,356 @@ describe('XaiResponsesLanguageModel', () => {
             providerOptions: {
               xai: {
                 previousResponseId: 'resp_456',
-              } satisfies XaiResponsesProviderOptions,
+              } satisfies XaiLanguageModelResponsesOptions,
             },
           });
 
           const requestBody = await server.calls[0].requestBodyJson;
           expect(requestBody.previous_response_id).toBe('resp_456');
         });
+
+        it('include with file_search_call.results', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                include: ['file_search_call.results'],
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.include).toStrictEqual([
+            'file_search_call.results',
+          ]);
+        });
+
+        it('include with file_search_call.results and store:false', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                include: ['file_search_call.results'],
+                store: false,
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.store).toBe(false);
+          expect(requestBody.include).toStrictEqual([
+            'file_search_call.results',
+            'reasoning.encrypted_content',
+          ]);
+        });
+      });
+
+      describe('top-level reasoning', () => {
+        it('should map top-level reasoning to reasoning effort', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.3',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'high',
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning.effort).toBe('high');
+        });
+
+        it('should map top-level reasoning none to reasoning effort "none"', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.3',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'none',
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning.effort).toBe('none');
+        });
+
+        it('should prefer providerOptions reasoningEffort over top-level reasoning', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.3',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'none',
+            providerOptions: {
+              xai: {
+                reasoningEffort: 'high',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning.effort).toBe('high');
+        });
+
+        it('should omit reasoning effort and warn for models that do not support it', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.20-reasoning',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          const result = await createModel('grok-4.20-reasoning').doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'none',
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning).toBeUndefined();
+          expect(result.warnings).toContainEqual({
+            type: 'unsupported',
+            feature: 'reasoning',
+            details: 'reasoning "none" is not supported by this model.',
+          });
+        });
+
+        it('should still pass providerOptions reasoningEffort for models that do not support top-level reasoning', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.20-reasoning',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel('grok-4.20-reasoning').doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                reasoningEffort: 'none',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning.effort).toBe('none');
+        });
+      });
+
+      describe('image detail', () => {
+        it('should pass detail from the imageDetail provider option on image parts', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.3',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel('grok-4.3').doGenerate({
+            prompt: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: 'What is in this image?' },
+                  {
+                    type: 'file',
+                    mediaType: 'image/png',
+                    data: { type: 'data', data: Buffer.from([0, 1, 2, 3]) },
+                    providerOptions: { xai: { imageDetail: 'high' } },
+                  },
+                ],
+              },
+            ],
+          });
+
+          expect((await server.calls[0].requestBodyJson).input).toEqual([
+            {
+              role: 'user',
+              content: [
+                { type: 'input_text', text: 'What is in this image?' },
+                {
+                  type: 'input_image',
+                  image_url: 'data:image/png;base64,AAECAw==',
+                  detail: 'high',
+                },
+              ],
+            },
+          ]);
+        });
+
+        it('should not set detail when the imageDetail provider option is not set', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.3',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel('grok-4.3').doGenerate({
+            prompt: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: 'What is in this image?' },
+                  {
+                    type: 'file',
+                    mediaType: 'image/png',
+                    data: { type: 'data', data: Buffer.from([0, 1, 2, 3]) },
+                  },
+                ],
+              },
+            ],
+          });
+
+          expect((await server.calls[0].requestBodyJson).input).toEqual([
+            {
+              role: 'user',
+              content: [
+                { type: 'input_text', text: 'What is in this image?' },
+                {
+                  type: 'input_image',
+                  image_url: 'data:image/png;base64,AAECAw==',
+                },
+              ],
+            },
+          ]);
+        });
+      });
+
+      it('should send image data in function call output', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4.5',
+          output: [],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        await createModel('grok-4.5').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Read the tool image.' }],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_123',
+                  toolName: 'inspectImage',
+                  input: {},
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_123',
+                  toolName: 'inspectImage',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'text',
+                        text: 'The requested image is attached.',
+                      },
+                      {
+                        type: 'file',
+                        mediaType: 'image/png',
+                        data: {
+                          type: 'data',
+                          data: Buffer.from([0, 1, 2, 3]),
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        });
+
+        expect((await server.calls[0].requestBodyJson).input)
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "Read the tool image.",
+                  "type": "input_text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "arguments": "{}",
+              "call_id": "call_123",
+              "id": "call_123",
+              "name": "inspectImage",
+              "status": "completed",
+              "type": "function_call",
+            },
+            {
+              "call_id": "call_123",
+              "output": [
+                {
+                  "text": "The requested image is attached.",
+                  "type": "input_text",
+                },
+                {
+                  "image_url": "data:image/png;base64,AAECAw==",
+                  "type": "input_image",
+                },
+              ],
+              "type": "function_call_output",
+            },
+          ]
+        `);
       });
 
       it('should warn about unsupported stopSequences', async () => {
@@ -452,7 +1126,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [],
           usage: { input_tokens: 10, output_tokens: 5 },
         });
@@ -472,13 +1146,48 @@ describe('XaiResponsesLanguageModel', () => {
         `);
       });
 
+      it('should warn about unsupported sampling settings', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast-non-reasoning',
+          output: [],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          topK: 10,
+          frequencyPenalty: 0.5,
+          presencePenalty: 0.5,
+        });
+
+        expect(result.warnings).toMatchInlineSnapshot(`
+          [
+            {
+              "feature": "topK",
+              "type": "unsupported",
+            },
+            {
+              "feature": "frequencyPenalty",
+              "type": "unsupported",
+            },
+            {
+              "feature": "presencePenalty",
+              "type": "unsupported",
+            },
+          ]
+        `);
+      });
+
       describe('responseFormat', () => {
         it('should send response format json schema', async () => {
           prepareJsonResponse({
             id: 'resp_123',
             object: 'response',
             status: 'completed',
-            model: 'grok-4-fast',
+            model: 'grok-4-fast-non-reasoning',
             output: [],
             usage: { input_tokens: 10, output_tokens: 5 },
           });
@@ -505,11 +1214,16 @@ describe('XaiResponsesLanguageModel', () => {
             {
               "input": [
                 {
-                  "content": "hello",
+                  "content": [
+                    {
+                      "text": "hello",
+                      "type": "input_text",
+                    },
+                  ],
                   "role": "user",
                 },
               ],
-              "model": "grok-4-fast",
+              "model": "grok-4-fast-non-reasoning",
               "text": {
                 "format": {
                   "description": "A recipe object",
@@ -546,7 +1260,7 @@ describe('XaiResponsesLanguageModel', () => {
             id: 'resp_123',
             object: 'response',
             status: 'completed',
-            model: 'grok-4-fast',
+            model: 'grok-4-fast-non-reasoning',
             output: [],
             usage: { input_tokens: 10, output_tokens: 5 },
           });
@@ -562,11 +1276,16 @@ describe('XaiResponsesLanguageModel', () => {
             {
               "input": [
                 {
-                  "content": "hello",
+                  "content": [
+                    {
+                      "text": "hello",
+                      "type": "input_text",
+                    },
+                  ],
                   "role": "user",
                 },
               ],
-              "model": "grok-4-fast",
+              "model": "grok-4-fast-non-reasoning",
               "text": {
                 "format": {
                   "type": "json_object",
@@ -581,7 +1300,7 @@ describe('XaiResponsesLanguageModel', () => {
             id: 'resp_123',
             object: 'response',
             status: 'completed',
-            model: 'grok-4-fast',
+            model: 'grok-4-fast-non-reasoning',
             output: [],
             usage: { input_tokens: 10, output_tokens: 5 },
           });
@@ -633,7 +1352,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [],
           usage: { input_tokens: 10, output_tokens: 5 },
         });
@@ -647,23 +1366,34 @@ describe('XaiResponsesLanguageModel', () => {
               name: 'web_search',
               args: {
                 allowedDomains: ['wikipedia.org'],
+                enableImageSearch: true,
                 enableImageUnderstanding: true,
               },
             },
           ],
         });
 
-        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
           {
             "input": [
               {
-                "content": "hello",
+                "content": [
+                  {
+                    "text": "hello",
+                    "type": "input_text",
+                  },
+                ],
                 "role": "user",
               },
             ],
-            "model": "grok-4-fast",
+            "model": "grok-4-fast-non-reasoning",
             "tools": [
               {
+                "allowed_domains": [
+                  "wikipedia.org",
+                ],
+                "enable_image_search": true,
+                "enable_image_understanding": true,
                 "type": "web_search",
               },
             ],
@@ -712,13 +1442,146 @@ describe('XaiResponsesLanguageModel', () => {
       });
     });
 
+    describe('file_search tool', () => {
+      it('should include file_search tool call and result with providerExecuted true', async () => {
+        prepareJsonFixtureResponse('xai-file-search-tool.1');
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.file_search',
+              name: 'file_search',
+              args: {
+                vectorStoreIds: ['collection_test123'],
+              },
+            },
+          ],
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "",
+              "providerExecuted": true,
+              "toolCallId": "fs_123",
+              "toolName": "file_search",
+              "type": "tool-call",
+            },
+            {
+              "result": {
+                "queries": [
+                  "AI safety research",
+                ],
+                "results": [
+                  {
+                    "fileId": "file_abc123",
+                    "filename": "ai-safety-paper.pdf",
+                    "score": 0.95,
+                    "text": "Recent advances in AI safety research have focused on alignment techniques...",
+                  },
+                  {
+                    "fileId": "file_def456",
+                    "filename": "research-notes.md",
+                    "score": 0.82,
+                    "text": "Key findings from the AI safety workshop include recommendations for...",
+                  },
+                ],
+              },
+              "toolCallId": "fs_123",
+              "toolName": "file_search",
+              "type": "tool-result",
+            },
+            {
+              "text": "Based on the documents in your collection, I found relevant information about AI safety research. The main findings indicate that recent advances have focused on alignment techniques and the workshop recommendations emphasize the importance of interpretability.",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should handle file_search with null results', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast-non-reasoning',
+          output: [
+            {
+              type: 'file_search_call',
+              id: 'fs_456',
+              status: 'completed',
+              queries: ['nonexistent topic'],
+              results: null,
+            },
+            {
+              type: 'message',
+              id: 'msg_456',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'No relevant documents found.',
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          usage: { input_tokens: 100, output_tokens: 20 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.file_search',
+              name: 'file_search',
+              args: {
+                vectorStoreIds: ['collection_test123'],
+              },
+            },
+          ],
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "",
+              "providerExecuted": true,
+              "toolCallId": "fs_456",
+              "toolName": "file_search",
+              "type": "tool-call",
+            },
+            {
+              "result": {
+                "queries": [
+                  "nonexistent topic",
+                ],
+                "results": null,
+              },
+              "toolCallId": "fs_456",
+              "toolName": "file_search",
+              "type": "tool-result",
+            },
+            {
+              "text": "No relevant documents found.",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+    });
+
     describe('function tools', () => {
       it('should include function tool calls without providerExecuted', async () => {
         prepareJsonResponse({
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [
             {
               type: 'function_call',
@@ -757,6 +1620,144 @@ describe('XaiResponsesLanguageModel', () => {
           ]
         `);
       });
+
+      it('should omit additionalProperties from serialized function tool schemas', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast-non-reasoning',
+          output: [],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'saveContactWithAddress',
+              description: 'Save a contact with an address.',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  address: {
+                    type: 'object',
+                    properties: {
+                      city: { type: 'string' },
+                      country: { type: 'string' },
+                    },
+                    required: ['city', 'country'],
+                    additionalProperties: false,
+                  },
+                },
+                required: ['address'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+            {
+              type: 'function',
+              name: 'saveContactWithProperties',
+              description: 'Save a contact with a properties field.',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  properties: {
+                    type: 'object',
+                    properties: {
+                      city: { type: 'string' },
+                      country: { type: 'string' },
+                    },
+                    required: ['city', 'country'],
+                    additionalProperties: false,
+                  },
+                },
+                required: ['properties'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "grok-4-fast-non-reasoning",
+            "tools": [
+              {
+                "description": "Save a contact with an address.",
+                "name": "saveContactWithAddress",
+                "parameters": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "properties": {
+                    "address": {
+                      "properties": {
+                        "city": {
+                          "type": "string",
+                        },
+                        "country": {
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "city",
+                        "country",
+                      ],
+                      "type": "object",
+                    },
+                  },
+                  "required": [
+                    "address",
+                  ],
+                  "type": "object",
+                },
+                "type": "function",
+              },
+              {
+                "description": "Save a contact with a properties field.",
+                "name": "saveContactWithProperties",
+                "parameters": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "properties": {
+                    "properties": {
+                      "properties": {
+                        "city": {
+                          "type": "string",
+                        },
+                        "country": {
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "city",
+                        "country",
+                      ],
+                      "type": "object",
+                    },
+                  },
+                  "required": [
+                    "properties",
+                  ],
+                  "type": "object",
+                },
+                "type": "function",
+              },
+            ],
+          }
+        `);
+      });
     });
 
     describe('citations', () => {
@@ -765,7 +1766,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [
             {
               type: 'message',
@@ -829,7 +1830,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [
             {
               type: 'web_search_call',
@@ -881,7 +1882,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [
             {
               type: 'web_search_call',
@@ -923,7 +1924,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [
             {
               type: 'x_search_call',
@@ -965,7 +1966,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [
             {
               type: 'code_interpreter_call',
@@ -1007,7 +2008,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [
             {
               type: 'code_execution_call',
@@ -1049,7 +2050,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [
             {
               type: 'web_search_call',
@@ -1089,6 +2090,37 @@ describe('XaiResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it('should warn about unsupported sampling settings', async () => {
+      prepareChunksFixtureResponse('xai-text-streaming.1');
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+        topK: 10,
+        frequencyPenalty: 0.5,
+        presencePenalty: 0.5,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.find(part => part.type === 'stream-start')?.warnings)
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "feature": "topK",
+            "type": "unsupported",
+          },
+          {
+            "feature": "frequencyPenalty",
+            "type": "unsupported",
+          },
+          {
+            "feature": "presencePenalty",
+            "type": "unsupported",
+          },
+        ]
+      `);
+    });
+
     describe('text streaming', () => {
       it('should stream web search with real response', async () => {
         prepareChunksFixtureResponse('xai-web-search-tool.1');
@@ -1155,7 +2187,7 @@ describe('XaiResponsesLanguageModel', () => {
             response: {
               id: 'resp_123',
               object: 'response',
-              model: 'grok-4-fast',
+              model: 'grok-4-fast-non-reasoning',
               output: [],
             },
           }),
@@ -1224,7 +2256,7 @@ describe('XaiResponsesLanguageModel', () => {
             response: {
               id: 'resp_123',
               object: 'response',
-              model: 'grok-4-fast',
+              model: 'grok-4-fast-non-reasoning',
               status: 'completed',
               output: [],
               usage: { input_tokens: 10, output_tokens: 20 },
@@ -1251,6 +2283,355 @@ describe('XaiResponsesLanguageModel', () => {
             "type": "reasoning-end",
           }
         `);
+      });
+
+      it('should emit reasoning-start before reasoning-end when reasoning_summary_part.added is not sent', async () => {
+        // This test covers the case where xAI sends encrypted reasoning without
+        // streaming the reasoning summary text (no reasoning_summary_part.added events)
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'reasoning',
+              id: 'rs_456',
+              status: 'in_progress',
+              summary: [],
+            },
+            output_index: 0,
+          }),
+          // Note: No response.reasoning_summary_part.added event
+          // This happens with encrypted reasoning when store=false
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'reasoning',
+              id: 'rs_456',
+              status: 'completed',
+              summary: [],
+              encrypted_content: 'encrypted_reasoning_content_xyz',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'message',
+              id: 'msg_789',
+              role: 'assistant',
+              status: 'in_progress',
+              content: [],
+            },
+            output_index: 1,
+          }),
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            item_id: 'msg_789',
+            output_index: 1,
+            content_index: 0,
+            delta: 'The answer is 42.',
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 20 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        // Verify reasoning-start is emitted before reasoning-end
+        const reasoningStart = parts.find(
+          part => part.type === 'reasoning-start',
+        );
+        const reasoningEnd = parts.find(part => part.type === 'reasoning-end');
+
+        expect(reasoningStart).toMatchInlineSnapshot(`
+          {
+            "id": "reasoning-rs_456",
+            "providerMetadata": {
+              "xai": {
+                "itemId": "rs_456",
+              },
+            },
+            "type": "reasoning-start",
+          }
+        `);
+
+        expect(reasoningEnd).toMatchInlineSnapshot(`
+          {
+            "id": "reasoning-rs_456",
+            "providerMetadata": {
+              "xai": {
+                "itemId": "rs_456",
+                "reasoningEncryptedContent": "encrypted_reasoning_content_xyz",
+              },
+            },
+            "type": "reasoning-end",
+          }
+        `);
+
+        // Verify reasoning-start comes before reasoning-end in the stream
+        const reasoningStartIndex = parts.findIndex(
+          part => part.type === 'reasoning-start',
+        );
+        const reasoningEndIndex = parts.findIndex(
+          part => part.type === 'reasoning-end',
+        );
+        expect(reasoningStartIndex).toBeLessThan(reasoningEndIndex);
+      });
+
+      it('should stream reasoning text deltas (response.reasoning_text.delta)', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-code-fast-1',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'reasoning',
+              id: 'rs_456',
+              status: 'in_progress',
+              summary: [],
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.reasoning_text.delta',
+            item_id: 'rs_456',
+            output_index: 0,
+            content_index: 0,
+            delta: 'First',
+          }),
+          JSON.stringify({
+            type: 'response.reasoning_text.delta',
+            item_id: 'rs_456',
+            output_index: 0,
+            content_index: 0,
+            delta: ', analyze the question.',
+          }),
+          JSON.stringify({
+            type: 'response.reasoning_text.done',
+            item_id: 'rs_456',
+            output_index: 0,
+            content_index: 0,
+            text: 'First, analyze the question.',
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'reasoning',
+              id: 'rs_456',
+              status: 'completed',
+              summary: [
+                { type: 'summary_text', text: 'First, analyze the question.' },
+              ],
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'message',
+              id: 'msg_789',
+              role: 'assistant',
+              status: 'in_progress',
+              content: [],
+            },
+            output_index: 1,
+          }),
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            item_id: 'msg_789',
+            output_index: 1,
+            content_index: 0,
+            delta: 'The answer.',
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-code-fast-1',
+              status: 'completed',
+              output: [],
+              usage: {
+                input_tokens: 10,
+                output_tokens: 20,
+                output_tokens_details: { reasoning_tokens: 15 },
+              },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel('grok-code-fast-1').doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        const reasoningStart = parts.find(
+          part => part.type === 'reasoning-start',
+        );
+        expect(reasoningStart).toMatchInlineSnapshot(`
+          {
+            "id": "reasoning-rs_456",
+            "providerMetadata": {
+              "xai": {
+                "itemId": "rs_456",
+              },
+            },
+            "type": "reasoning-start",
+          }
+        `);
+
+        const reasoningDeltas = parts.filter(
+          part => part.type === 'reasoning-delta',
+        );
+        expect(reasoningDeltas).toHaveLength(2);
+        expect(reasoningDeltas[0].delta).toBe('First');
+        expect(reasoningDeltas[1].delta).toBe(', analyze the question.');
+
+        const reasoningEnd = parts.find(part => part.type === 'reasoning-end');
+        expect(reasoningEnd).toMatchInlineSnapshot(`
+          {
+            "id": "reasoning-rs_456",
+            "providerMetadata": {
+              "xai": {
+                "itemId": "rs_456",
+              },
+            },
+            "type": "reasoning-end",
+          }
+        `);
+
+        // Verify ordering: reasoning-start < reasoning-deltas < reasoning-end < text
+        const startIdx = parts.findIndex(p => p.type === 'reasoning-start');
+        const firstDeltaIdx = parts.findIndex(
+          p => p.type === 'reasoning-delta',
+        );
+        const endIdx = parts.findIndex(p => p.type === 'reasoning-end');
+        const textIdx = parts.findIndex(p => p.type === 'text-delta');
+        expect(startIdx).toBeLessThan(firstDeltaIdx);
+        expect(firstDeltaIdx).toBeLessThan(endIdx);
+        expect(endIdx).toBeLessThan(textIdx);
+      });
+
+      it('should emit only one reasoning-start when multiple reasoning_summary_part.added events share an item_id', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4.3',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'reasoning',
+              id: 'rs_456',
+              status: 'in_progress',
+              summary: [],
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.reasoning_summary_part.added',
+            item_id: 'rs_456',
+            output_index: 0,
+            summary_index: 0,
+            part: { type: 'summary_text', text: '' },
+          }),
+          JSON.stringify({
+            type: 'response.reasoning_summary_text.delta',
+            item_id: 'rs_456',
+            output_index: 0,
+            summary_index: 0,
+            delta: 'First summary part.',
+          }),
+          JSON.stringify({
+            type: 'response.reasoning_summary_part.added',
+            item_id: 'rs_456',
+            output_index: 0,
+            summary_index: 1,
+            part: { type: 'summary_text', text: '' },
+          }),
+          JSON.stringify({
+            type: 'response.reasoning_summary_text.delta',
+            item_id: 'rs_456',
+            output_index: 0,
+            summary_index: 1,
+            delta: ' Second summary part.',
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'reasoning',
+              id: 'rs_456',
+              status: 'completed',
+              summary: [
+                { type: 'summary_text', text: 'First summary part.' },
+                { type: 'summary_text', text: ' Second summary part.' },
+              ],
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4.3',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 20 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        const reasoningStarts = parts.filter(p => p.type === 'reasoning-start');
+        const reasoningEnds = parts.filter(p => p.type === 'reasoning-end');
+
+        expect(reasoningStarts).toHaveLength(1);
+        expect(reasoningEnds).toHaveLength(1);
+        expect(reasoningStarts[0]).toMatchObject({
+          type: 'reasoning-start',
+          id: 'reasoning-rs_456',
+          providerMetadata: { xai: { itemId: 'rs_456' } },
+        });
       });
 
       it('should stream x_search tool call', async () => {
@@ -1280,7 +2661,7 @@ describe('XaiResponsesLanguageModel', () => {
             response: {
               id: 'resp_123',
               object: 'response',
-              model: 'grok-4-fast',
+              model: 'grok-4-fast-non-reasoning',
               created_at: 1700000000,
               status: 'in_progress',
               output: [],
@@ -1377,7 +2758,7 @@ describe('XaiResponsesLanguageModel', () => {
             response: {
               id: 'resp_123',
               object: 'response',
-              model: 'grok-4-fast',
+              model: 'grok-4-fast-non-reasoning',
               status: 'in_progress',
               output: [],
             },
@@ -1428,6 +2809,386 @@ describe('XaiResponsesLanguageModel', () => {
           providerExecuted: true,
         });
       });
+
+      it('should emit a tool result when provider-executed tool calls finish', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'web_search_call',
+              id: 'ws_123',
+              name: 'web_search',
+              arguments: '{"query":"test"}',
+              call_id: '',
+              status: 'in_progress',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'web_search_call',
+              id: 'ws_123',
+              name: 'web_search',
+              arguments: '{"query":"test"}',
+              call_id: '',
+              status: 'completed',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.web_search',
+              name: 'web_search',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'ws_123',
+          toolName: 'web_search',
+          input: '{"query":"test"}',
+          providerExecuted: true,
+        });
+        expect(parts).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'ws_123',
+          toolName: 'web_search',
+          result: {},
+        });
+      });
+
+      it('should stream function tool call arguments', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            output_index: 0,
+            item: {
+              type: 'function_call',
+              id: 'fc_123',
+              call_id: 'call_123',
+              name: 'weather',
+              arguments: '',
+              status: 'in_progress',
+            },
+          }),
+          JSON.stringify({
+            type: 'response.function_call_arguments.delta',
+            item_id: 'fc_123',
+            output_index: 0,
+            delta: '{"location"',
+          }),
+          JSON.stringify({
+            type: 'response.function_call_arguments.delta',
+            item_id: 'fc_123',
+            output_index: 0,
+            delta: ':"sf"}',
+          }),
+          JSON.stringify({
+            type: 'response.function_call_arguments.done',
+            item_id: 'fc_123',
+            output_index: 0,
+            arguments: '{"location":"sf"}',
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            output_index: 0,
+            item: {
+              type: 'function_call',
+              id: 'fc_123',
+              call_id: 'call_123',
+              name: 'weather',
+              arguments: '{"location":"sf"}',
+              status: 'completed',
+            },
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'weather',
+              description: 'get weather',
+              inputSchema: {
+                type: 'object',
+                properties: { location: { type: 'string' } },
+              },
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-input-start',
+          id: 'call_123',
+          toolName: 'weather',
+        });
+        expect(parts).toContainEqual({
+          type: 'tool-input-delta',
+          id: 'call_123',
+          delta: '{"location"',
+        });
+        expect(parts).toContainEqual({
+          type: 'tool-input-delta',
+          id: 'call_123',
+          delta: ':"sf"}',
+        });
+        expect(parts).toContainEqual({
+          type: 'tool-input-end',
+          id: 'call_123',
+        });
+        expect(parts).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'call_123',
+          toolName: 'weather',
+          input: '{"location":"sf"}',
+        });
+      });
+
+      it('should return tool-calls finish reason when function_call is streamed', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            output_index: 0,
+            item: {
+              type: 'function_call',
+              id: 'fc_123',
+              call_id: 'call_123',
+              name: 'weather',
+              arguments: '',
+              status: 'in_progress',
+            },
+          }),
+          JSON.stringify({
+            type: 'response.function_call_arguments.done',
+            item_id: 'fc_123',
+            output_index: 0,
+            arguments: '{"location":"sf"}',
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            output_index: 0,
+            item: {
+              type: 'function_call',
+              id: 'fc_123',
+              call_id: 'call_123',
+              name: 'weather',
+              arguments: '{"location":"sf"}',
+              status: 'completed',
+            },
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'weather',
+              description: 'get weather',
+              inputSchema: {
+                type: 'object',
+                properties: { location: { type: 'string' } },
+              },
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const finishPart = parts.find(p => p.type === 'finish');
+
+        expect(finishPart).toMatchObject({
+          type: 'finish',
+          finishReason: {
+            unified: 'tool-calls',
+            raw: 'completed',
+          },
+        });
+      });
+
+      it('should stream file_search tool call and result', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'file_search_call',
+              id: 'fs_stream_123',
+              status: 'in_progress',
+              queries: ['search query'],
+              results: null,
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'file_search_call',
+              id: 'fs_stream_123',
+              status: 'completed',
+              queries: ['search query'],
+              results: [
+                {
+                  file_id: 'file_abc',
+                  filename: 'doc.txt',
+                  score: 0.9,
+                  text: 'Found text content',
+                },
+              ],
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.file_search',
+              name: 'file_search',
+              args: {
+                vectorStoreIds: ['collection_123'],
+              },
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-input-start',
+          id: 'fs_stream_123',
+          toolName: 'file_search',
+        });
+
+        expect(parts).toContainEqual({
+          type: 'tool-input-delta',
+          id: 'fs_stream_123',
+          delta: '',
+        });
+
+        expect(parts).toContainEqual({
+          type: 'tool-input-end',
+          id: 'fs_stream_123',
+        });
+
+        expect(parts).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'fs_stream_123',
+          toolName: 'file_search',
+          input: '',
+          providerExecuted: true,
+        });
+
+        expect(parts).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'fs_stream_123',
+          toolName: 'file_search',
+          result: {
+            queries: ['search query'],
+            results: [
+              {
+                fileId: 'file_abc',
+                filename: 'doc.txt',
+                score: 0.9,
+                text: 'Found text content',
+              },
+            ],
+          },
+        });
+      });
     });
 
     describe('tool name mapping by type in streaming', () => {
@@ -1438,7 +3199,7 @@ describe('XaiResponsesLanguageModel', () => {
             response: {
               id: 'resp_123',
               object: 'response',
-              model: 'grok-4-fast',
+              model: 'grok-4-fast-non-reasoning',
               status: 'in_progress',
               output: [],
             },
@@ -1497,7 +3258,7 @@ describe('XaiResponsesLanguageModel', () => {
             response: {
               id: 'resp_123',
               object: 'response',
-              model: 'grok-4-fast',
+              model: 'grok-4-fast-non-reasoning',
               status: 'in_progress',
               output: [],
             },
@@ -1556,7 +3317,7 @@ describe('XaiResponsesLanguageModel', () => {
             response: {
               id: 'resp_123',
               object: 'response',
-              model: 'grok-4-fast',
+              model: 'grok-4-fast-non-reasoning',
               status: 'in_progress',
               output: [],
             },
@@ -1615,7 +3376,7 @@ describe('XaiResponsesLanguageModel', () => {
             response: {
               id: 'resp_123',
               object: 'response',
-              model: 'grok-4-fast',
+              model: 'grok-4-fast-non-reasoning',
               status: 'in_progress',
               output: [],
             },
@@ -1674,7 +3435,7 @@ describe('XaiResponsesLanguageModel', () => {
             response: {
               id: 'resp_123',
               object: 'response',
-              model: 'grok-4-fast',
+              model: 'grok-4-fast-non-reasoning',
               status: 'in_progress',
               output: [],
             },
@@ -1735,7 +3496,7 @@ describe('XaiResponsesLanguageModel', () => {
             response: {
               id: 'resp_123',
               object: 'response',
-              model: 'grok-4-fast',
+              model: 'grok-4-fast-non-reasoning',
               status: 'in_progress',
               output: [],
             },
@@ -1777,6 +3538,532 @@ describe('XaiResponsesLanguageModel', () => {
           url: 'https://example.com',
           title: 'example',
         });
+      });
+    });
+
+    describe('cost_in_usd_ticks streaming', () => {
+      it('should expose cost_in_usd_ticks in finish providerMetadata', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            output_index: 0,
+            content_index: 0,
+            delta: 'Hello',
+          }),
+          JSON.stringify({
+            type: 'response.completed',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'completed',
+              output: [
+                {
+                  type: 'message',
+                  id: 'msg_001',
+                  role: 'assistant',
+                  status: 'completed',
+                  content: [{ type: 'output_text', text: 'Hello' }],
+                },
+              ],
+              usage: {
+                input_tokens: 10,
+                output_tokens: 5,
+                cost_in_usd_ticks: 113500,
+              },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const finishPart = parts.find(p => p.type === 'finish');
+
+        expect(finishPart).toMatchObject({
+          type: 'finish',
+          providerMetadata: {
+            xai: { costInUsdTicks: 113500 },
+          },
+        });
+      });
+    });
+
+    describe('missing usage handling', () => {
+      function prepareStreamChunksNoUsage(chunks: string[]) {
+        server.urls['https://api.x.ai/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [...chunks.map(c => `data: ${c}\n\n`), 'data: [DONE]\n\n'],
+        };
+      }
+
+      it('should handle missing usage in streaming response', async () => {
+        prepareStreamChunksNoUsage([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              created_at: 1700000000,
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            output_index: 0,
+            content_index: 0,
+            delta: 'Hello',
+          }),
+          JSON.stringify({
+            type: 'response.completed',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              created_at: 1700000000,
+              status: 'completed',
+              output: [
+                {
+                  type: 'message',
+                  id: 'msg_001',
+                  role: 'assistant',
+                  status: 'completed',
+                  content: [{ type: 'output_text', text: 'Hello' }],
+                },
+              ],
+              // usage field is omitted
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const finishPart = parts.find(p => p.type === 'finish');
+
+        expect(finishPart).toMatchObject({
+          type: 'finish',
+          finishReason: {
+            unified: 'stop',
+            raw: 'completed',
+          },
+          usage: {
+            inputTokens: {
+              total: 0,
+              noCache: 0,
+              cacheRead: 0,
+              cacheWrite: 0,
+            },
+            outputTokens: {
+              total: 0,
+              text: 0,
+              reasoning: 0,
+            },
+          },
+        });
+      });
+    });
+  });
+
+  describe('schema validation', () => {
+    it('should accept response.created with usage: null', async () => {
+      prepareStreamChunks([
+        JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast-non-reasoning',
+            created_at: 1700000000,
+            status: 'in_progress',
+            output: [],
+            usage: null,
+          },
+        }),
+        JSON.stringify({
+          type: 'response.output_item.added',
+          item: {
+            id: 'msg_001',
+            type: 'message',
+            role: 'assistant',
+            content: [],
+            status: 'in_progress',
+          },
+          output_index: 0,
+        }),
+        JSON.stringify({
+          type: 'response.content_part.added',
+          item_id: 'msg_001',
+          output_index: 0,
+          content_index: 0,
+          part: { type: 'output_text', text: '' },
+        }),
+        JSON.stringify({
+          type: 'response.output_text.delta',
+          item_id: 'msg_001',
+          output_index: 0,
+          content_index: 0,
+          delta: 'Hello',
+        }),
+        JSON.stringify({
+          type: 'response.completed',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast-non-reasoning',
+            created_at: 1700000000,
+            status: 'completed',
+            output: [
+              {
+                id: 'msg_001',
+                type: 'message',
+                role: 'assistant',
+                content: [{ type: 'output_text', text: 'Hello' }],
+                status: 'completed',
+              },
+            ],
+            usage: {
+              input_tokens: 10,
+              output_tokens: 5,
+              total_tokens: 15,
+            },
+          },
+        }),
+      ]);
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'text-delta',
+          delta: 'Hello',
+        }),
+      );
+
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'finish',
+        }),
+      );
+    });
+
+    it('should accept response.in_progress with usage: null', async () => {
+      prepareStreamChunks([
+        JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast-non-reasoning',
+            created_at: 1700000000,
+            status: 'in_progress',
+            output: [],
+            usage: null,
+          },
+        }),
+        JSON.stringify({
+          type: 'response.in_progress',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast-non-reasoning',
+            created_at: 1700000000,
+            status: 'in_progress',
+            output: [],
+            usage: null,
+          },
+        }),
+        JSON.stringify({
+          type: 'response.output_item.added',
+          item: {
+            id: 'msg_001',
+            type: 'message',
+            role: 'assistant',
+            content: [],
+            status: 'in_progress',
+          },
+          output_index: 0,
+        }),
+        JSON.stringify({
+          type: 'response.content_part.added',
+          item_id: 'msg_001',
+          output_index: 0,
+          content_index: 0,
+          part: { type: 'output_text', text: '' },
+        }),
+        JSON.stringify({
+          type: 'response.output_text.delta',
+          item_id: 'msg_001',
+          output_index: 0,
+          content_index: 0,
+          delta: 'Hi',
+        }),
+        JSON.stringify({
+          type: 'response.completed',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast-non-reasoning',
+            created_at: 1700000000,
+            status: 'completed',
+            output: [
+              {
+                id: 'msg_001',
+                type: 'message',
+                role: 'assistant',
+                content: [{ type: 'output_text', text: 'Hi' }],
+                status: 'completed',
+              },
+            ],
+            usage: {
+              input_tokens: 5,
+              output_tokens: 1,
+              total_tokens: 6,
+            },
+          },
+        }),
+      ]);
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'text-delta',
+          delta: 'Hi',
+        }),
+      );
+    });
+  });
+
+  describe('response.incomplete handling', () => {
+    it('should set finish reason to length for max_output_tokens', async () => {
+      prepareStreamChunks([
+        JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+          },
+        }),
+        JSON.stringify({
+          type: 'response.output_text.delta',
+          item_id: 'msg_456',
+          output_index: 0,
+          content_index: 0,
+          delta: 'partial output',
+        }),
+        JSON.stringify({
+          type: 'response.incomplete',
+          response: {
+            incomplete_details: { reason: 'max_output_tokens' },
+            usage: { input_tokens: 100, output_tokens: 4096 },
+          },
+        }),
+      ]);
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finish = parts.find(part => part.type === 'finish');
+
+      expect(finish).toMatchObject({
+        type: 'finish',
+        finishReason: {
+          unified: 'length',
+          raw: 'max_output_tokens',
+        },
+        usage: expect.objectContaining({
+          inputTokens: expect.objectContaining({ total: 100 }),
+          outputTokens: expect.objectContaining({ total: 4096 }),
+        }),
+      });
+    });
+
+    it('should default to length when incomplete_details is missing', async () => {
+      prepareStreamChunks([
+        JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+          },
+        }),
+        JSON.stringify({
+          type: 'response.incomplete',
+          response: {
+            usage: { input_tokens: 50, output_tokens: 200 },
+          },
+        }),
+      ]);
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finish = parts.find(part => part.type === 'finish');
+
+      expect(finish).toMatchObject({
+        type: 'finish',
+        finishReason: {
+          unified: 'other',
+          raw: 'incomplete',
+        },
+      });
+    });
+  });
+
+  describe('response.failed handling', () => {
+    it('should set finish reason to error', async () => {
+      prepareStreamChunks([
+        JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+          },
+        }),
+        JSON.stringify({
+          type: 'response.failed',
+          response: {
+            error: {
+              code: 'server_error',
+              message: 'Internal server error',
+            },
+            usage: { input_tokens: 50, output_tokens: 0 },
+          },
+        }),
+      ]);
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finish = parts.find(part => part.type === 'finish');
+
+      expect(finish).toMatchObject({
+        type: 'finish',
+        finishReason: {
+          unified: 'error',
+          raw: 'error',
+        },
+        usage: expect.objectContaining({
+          inputTokens: expect.objectContaining({ total: 50 }),
+          outputTokens: expect.objectContaining({ total: 0 }),
+        }),
+      });
+    });
+
+    it('should map incomplete_details reason on failed response', async () => {
+      prepareStreamChunks([
+        JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+          },
+        }),
+        JSON.stringify({
+          type: 'response.failed',
+          response: {
+            error: {
+              code: 'server_error',
+              message: 'response failed',
+            },
+            incomplete_details: { reason: 'max_output_tokens' },
+            usage: null,
+          },
+        }),
+      ]);
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finish = parts.find(part => part.type === 'finish');
+
+      expect(finish).toMatchObject({
+        type: 'finish',
+        finishReason: {
+          unified: 'length',
+          raw: 'max_output_tokens',
+        },
+      });
+    });
+  });
+
+  describe('error event handling', () => {
+    it('should emit error chunk for server error events', async () => {
+      prepareStreamChunks([
+        JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+          },
+        }),
+        JSON.stringify({
+          type: 'error',
+          code: null,
+          message:
+            'Service temporarily unavailable. The model did not respond to this request.',
+          param: null,
+        }),
+      ]);
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const errorPart = parts.find(part => part.type === 'error');
+
+      expect(errorPart).toMatchObject({
+        type: 'error',
+        error: {
+          type: 'error',
+          code: null,
+          message:
+            'Service temporarily unavailable. The model did not respond to this request.',
+          param: null,
+        },
       });
     });
   });

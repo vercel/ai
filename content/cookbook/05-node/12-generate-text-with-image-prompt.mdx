@@ -25,8 +25,9 @@ const result = await generateText({
           text: 'what are the red things in this image?',
         },
         {
-          type: 'image',
-          image: new URL(
+          type: 'file',
+          mediaType: 'image',
+          data: new URL(
             'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/2024_Solar_Eclipse_Prominences.jpg/720px-2024_Solar_Eclipse_Prominences.jpg',
           ),
         },
@@ -56,8 +57,9 @@ const result = await generateText({
           text: 'what are the red things in this image?',
         },
         {
-          type: 'image',
-          image: fs.readFileSync('./node/attachments/eclipse.jpg', {
+          type: 'file',
+          mediaType: 'image',
+          data: fs.readFileSync('./node/attachments/eclipse.jpg', {
             encoding: 'base64',
           }),
         },

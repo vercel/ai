@@ -1,4 +1,4 @@
-import { EmbeddingModelV2, EmbeddingModelV3 } from '@ai-sdk/provider';
+import type { EmbeddingModelV2, EmbeddingModelV3 } from '@ai-sdk/provider';
 import { logV2CompatibilityWarning } from '../util/log-v2-compatibility-warning';
 
 export function asEmbeddingModelV3(

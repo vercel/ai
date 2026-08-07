@@ -1,9 +1,8 @@
 import { createVercel } from './vercel-provider';
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
-import { LanguageModelV3 } from '@ai-sdk/provider';
+import type { LanguageModelV4 } from '@ai-sdk/provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
-
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 const OpenAICompatibleChatLanguageModelMock =
   OpenAICompatibleChatLanguageModel as unknown as Mock;
 
@@ -26,12 +25,12 @@ vi.mock('./vercel-image-model', () => ({
 }));
 
 describe('VercelProvider', () => {
-  let mockLanguageModel: LanguageModelV3;
+  let mockLanguageModel: LanguageModelV4;
 
   beforeEach(() => {
     mockLanguageModel = {
       // Add any required methods for LanguageModelV1
-    } as LanguageModelV3;
+    } as LanguageModelV4;
 
     // Reset mocks
     vi.clearAllMocks();

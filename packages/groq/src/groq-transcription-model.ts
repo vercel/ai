@@ -1,30 +1,25 @@
-import { TranscriptionModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import type { TranscriptionModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
+  createBinaryResponseHandler,
   createJsonResponseHandler,
   mediaTypeToExtension,
   parseProviderOptions,
   postFormDataToApi,
+  serializeModelOptions,
+  type ResponseHandler,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { GroqConfig } from './groq-config';
+import type { GroqConfig } from './groq-config';
 import { groqFailedResponseHandler } from './groq-error';
-import { GroqTranscriptionModelId } from './groq-transcription-options';
-import { GroqTranscriptionAPITypes } from './groq-api-types';
-
-// https://console.groq.com/docs/speech-to-text
-const groqProviderOptionsSchema = z.object({
-  language: z.string().nullish(),
-  prompt: z.string().nullish(),
-  responseFormat: z.string().nullish(),
-  temperature: z.number().min(0).max(1).nullish(),
-  timestampGranularities: z.array(z.string()).nullish(),
-});
-
-export type GroqTranscriptionCallOptions = z.infer<
-  typeof groqProviderOptionsSchema
->;
+import {
+  groqTranscriptionModelOptions,
+  type GroqTranscriptionModelId,
+} from './groq-transcription-model-options';
+import type { GroqTranscriptionAPITypes } from './groq-api-types';
 
 interface GroqTranscriptionModelConfig extends GroqConfig {
   _internal?: {
@@ -32,11 +27,25 @@ interface GroqTranscriptionModelConfig extends GroqConfig {
   };
 }
 
-export class GroqTranscriptionModel implements TranscriptionModelV3 {
-  readonly specificationVersion = 'v3';
+export class GroqTranscriptionModel implements TranscriptionModelV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: GroqTranscriptionModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: GroqTranscriptionModelId;
+    config: GroqTranscriptionModelConfig;
+  }) {
+    return new GroqTranscriptionModel(options.modelId, options.config);
   }
 
   constructor(
@@ -48,14 +57,14 @@ export class GroqTranscriptionModel implements TranscriptionModelV3 {
     audio,
     mediaType,
     providerOptions,
-  }: Parameters<TranscriptionModelV3['doGenerate']>[0]) {
-    const warnings: SharedV3Warning[] = [];
+  }: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const groqOptions = await parseProviderOptions({
       provider: 'groq',
       providerOptions,
-      schema: groqProviderOptionsSchema,
+      schema: groqTranscriptionModelOptions,
     });
 
     // Create form data with base fields
@@ -93,22 +102,34 @@ export class GroqTranscriptionModel implements TranscriptionModelV3 {
             key as keyof Omit<GroqTranscriptionAPITypes, 'model'>
           ];
         if (value !== undefined) {
-          formData.append(key, String(value));
+          if (Array.isArray(value)) {
+            for (const item of value) {
+              formData.append(`${key}[]`, String(item));
+            }
+          } else {
+            formData.append(key, String(value));
+          }
         }
       }
     }
 
     return {
       formData,
+      responseFormat: groqOptions?.responseFormat,
       warnings,
     };
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV3['doGenerate']>>> {
+    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { formData, warnings } = await this.getArgs(options);
+    const { formData, responseFormat, warnings } = await this.getArgs(options);
+
+    const successfulResponseHandler: ResponseHandler<GroqTranscriptionResponse> =
+      responseFormat === 'text'
+        ? groqTextTranscriptionResponseHandler
+        : createJsonResponseHandler(groqTranscriptionResponseSchema);
 
     const {
       value: response,
@@ -119,12 +140,10 @@ export class GroqTranscriptionModel implements TranscriptionModelV3 {
         path: '/audio/transcriptions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       formData,
       failedResponseHandler: groqFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        groqTranscriptionResponseSchema,
-      ),
+      successfulResponseHandler,
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
@@ -136,7 +155,13 @@ export class GroqTranscriptionModel implements TranscriptionModelV3 {
           text: segment.text,
           startSecond: segment.start,
           endSecond: segment.end,
-        })) ?? [],
+        })) ??
+        response.words?.map(word => ({
+          text: word.word,
+          startSecond: word.start,
+          endSecond: word.end,
+        })) ??
+        [],
       language: response.language ?? undefined,
       durationInSeconds: response.duration ?? undefined,
       warnings,
@@ -175,4 +200,35 @@ const groqTranscriptionResponseSchema = z.object({
       }),
     )
     .nullish(),
+  words: z
+    .array(
+      z.object({
+        word: z.string(),
+        start: z.number(),
+        end: z.number(),
+      }),
+    )
+    .nullish(),
 });
+
+type GroqTranscriptionResponse = Partial<
+  Omit<z.infer<typeof groqTranscriptionResponseSchema>, 'text'>
+> & {
+  text: string;
+};
+
+const binaryResponseHandler = createBinaryResponseHandler();
+const textDecoder = new TextDecoder();
+
+const groqTextTranscriptionResponseHandler: ResponseHandler<
+  GroqTranscriptionResponse
+> = async options => {
+  const { value, responseHeaders } = await binaryResponseHandler(options);
+  const text = textDecoder.decode(value);
+
+  return {
+    value: { text },
+    rawValue: text,
+    responseHeaders,
+  };
+};

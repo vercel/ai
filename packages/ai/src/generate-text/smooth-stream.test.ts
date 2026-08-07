@@ -1,7 +1,7 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { smoothStream } from './smooth-stream';
-import { TextStreamPart } from './stream-text-result';
-import { ToolSet } from './tool-set';
+import type { TextStreamPart } from './stream-text-result';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('smoothStream', () => {
@@ -1506,6 +1506,76 @@ describe('smoothStream', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('providerMetadata preservation', () => {
+    it('should preserve providerMetadata on reasoning-delta chunks (signature for Anthropic thinking)', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'reasoning-start', id: '1' },
+        { text: 'I am', type: 'reasoning-delta', id: '1' },
+        { text: ' thinking...', type: 'reasoning-delta', id: '1' },
+        // signature as an empty delta with providerMetadata
+        {
+          text: '',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: {
+            anthropic: { signature: 'sig_abc123' },
+          },
+        },
+        { type: 'reasoning-end', id: '1' },
+        { type: 'text-start', id: '2' },
+        { text: 'Hello!', type: 'text-delta', id: '2' },
+        { type: 'text-end', id: '2' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      // Find the last reasoning-delta chunk
+      const reasoningDeltas = events.filter(
+        (e: any) => e.type === 'reasoning-delta',
+      );
+      const lastReasoningDelta = reasoningDeltas[reasoningDeltas.length - 1];
+
+      expect(lastReasoningDelta).toHaveProperty('providerMetadata');
+      expect(lastReasoningDelta.providerMetadata).toEqual({
+        anthropic: { signature: 'sig_abc123' },
+      });
+    });
+
+    it('should preserve providerMetadata on reasoning-start for redacted thinking', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        {
+          type: 'reasoning-start',
+          id: '1',
+          providerMetadata: {
+            anthropic: { redactedData: 'redacted-thinking-data' },
+          },
+        },
+        { type: 'reasoning-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      // reasoning-start should pass through unchanged with providerMetadata
+      const reasoningStart = events.find(
+        (e: any) => e.type === 'reasoning-start',
+      );
+      expect(reasoningStart).toHaveProperty('providerMetadata');
+      expect(reasoningStart.providerMetadata).toEqual({
+        anthropic: { redactedData: 'redacted-thinking-data' },
+      });
     });
   });
 

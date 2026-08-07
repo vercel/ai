@@ -1,4 +1,4 @@
-import { FileUIPart } from './ui-messages';
+import type { FileUIPart } from './ui-messages';
 
 export async function convertFileListToFileUIParts(
   files: FileList | undefined,

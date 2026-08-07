@@ -1,9 +1,9 @@
-import { AIMessageChunk } from '@langchain/core/messages';
-import {
-  type UIMessage,
-  type UIMessageChunk,
-  type ChatTransport,
-  type ChatRequestOptions,
+import type { AIMessageChunk } from '@langchain/core/messages';
+import type {
+  UIMessage,
+  UIMessageChunk,
+  ChatTransport,
+  ChatRequestOptions,
 } from 'ai';
 import {
   RemoteGraph,
@@ -45,9 +45,9 @@ export type LangSmithDeploymentTransportOptions = Omit<
  * });
  * ```
  */
-export class LangSmithDeploymentTransport<UI_MESSAGE extends UIMessage>
-  implements ChatTransport<UI_MESSAGE>
-{
+export class LangSmithDeploymentTransport<
+  UI_MESSAGE extends UIMessage,
+> implements ChatTransport<UI_MESSAGE> {
   protected graph: RemoteGraph;
 
   constructor(options: LangSmithDeploymentTransportOptions) {

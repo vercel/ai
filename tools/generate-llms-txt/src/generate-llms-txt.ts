@@ -44,9 +44,14 @@ const exclusionPrefixes = [
   'providers/01-ai-sdk-providers/index',
   'providers/02-openai-compatible-providers/01-custom-providers',
   'providers/02-openai-compatible-providers/40-baseten',
+  'providers/04-openai-compatible-providers/01-custom-providers',
+  'providers/04-openai-compatible-providers/40-baseten',
   'providers/03-community-providers',
+  'providers/05-community-providers',
   'providers/04-adapters',
+  'providers/06-adapters',
   'providers/05-observability',
+  'providers/03-observability',
 ];
 
 async function main() {

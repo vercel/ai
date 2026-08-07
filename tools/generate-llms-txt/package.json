@@ -7,7 +7,7 @@
   },
   "lint-staged": {
     "*": [
-      "prettier --ignore-unknown --write"
+      "ultracite fix"
     ]
   },
   "devDependencies": {

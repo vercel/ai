@@ -1,6 +1,6 @@
-import { UIMessageChunk } from '../ui-message-stream';
-import { ChatRequestOptions } from './chat';
-import { UIMessage } from './ui-messages';
+import type { UIMessageChunk } from '../ui-message-stream';
+import type { ChatRequestOptions } from './chat';
+import type { UIMessage } from './ui-messages';
 
 /**
  * Transport interface for handling chat message communication and streaming.
@@ -64,6 +64,7 @@ export interface ChatTransport<UI_MESSAGE extends UIMessage> {
    *
    * @param options - Configuration object containing:
    * @param options.chatId - Unique identifier for the chat session to reconnect to
+   * @param options.abortSignal - Signal to abort the reconnection request if needed
    * @param options.headers - Additional HTTP headers to include in the reconnection request
    * @param options.body - Additional JSON properties to include in the request body
    * @param options.metadata - Custom metadata to attach to the request
@@ -78,6 +79,8 @@ export interface ChatTransport<UI_MESSAGE extends UIMessage> {
     options: {
       /** Unique identifier for the chat session to reconnect to */
       chatId: string;
+      /** Signal to abort the reconnection request if needed */
+      abortSignal?: AbortSignal;
     } & ChatRequestOptions,
   ) => Promise<ReadableStream<UIMessageChunk> | null>;
 }

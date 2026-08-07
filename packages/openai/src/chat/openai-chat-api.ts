@@ -1,5 +1,9 @@
-import { JSONSchema7 } from '@ai-sdk/provider';
-import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
+import type { JSONSchema7 } from '@ai-sdk/provider';
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { openaiErrorDataSchema } from '../openai-error';
 
@@ -88,6 +92,7 @@ export const openaiChatResponseSchema = lazySchema(() =>
           prompt_tokens_details: z
             .object({
               cached_tokens: z.number().nullish(),
+              cache_write_tokens: z.number().nullish(),
             })
             .nullish(),
           completion_tokens_details: z
@@ -176,6 +181,7 @@ export const openaiChatChunkSchema = lazySchema(() =>
             prompt_tokens_details: z
               .object({
                 cached_tokens: z.number().nullish(),
+                cache_write_tokens: z.number().nullish(),
               })
               .nullish(),
             completion_tokens_details: z

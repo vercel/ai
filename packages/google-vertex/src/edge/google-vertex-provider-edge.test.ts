@@ -1,6 +1,6 @@
 import { resolve } from '@ai-sdk/provider-utils';
-import { createVertex as createVertexEdge } from './google-vertex-provider-edge';
-import { createVertex as createVertexOriginal } from '../google-vertex-provider';
+import { createGoogleVertex as createVertexEdge } from './google-vertex-provider-edge';
+import { createGoogleVertex as createGoogleVertexOriginal } from '../google-vertex-provider-base';
 import * as edgeAuth from './google-vertex-auth-edge';
 import { describe, beforeEach, afterEach, expect, it, vi } from 'vitest';
 
@@ -9,8 +9,8 @@ vi.mock('./google-vertex-auth-edge', () => ({
   generateAuthToken: vi.fn().mockResolvedValue('mock-auth-token'),
 }));
 
-vi.mock('../google-vertex-provider', () => ({
-  createVertex: vi.fn().mockImplementation(options => ({
+vi.mock('../google-vertex-provider-base', () => ({
+  createGoogleVertex: vi.fn().mockImplementation(options => ({
     ...options,
   })),
 }));
@@ -28,7 +28,7 @@ describe('google-vertex-provider-edge', () => {
   it('default headers function should return auth token', async () => {
     createVertexEdge({ project: 'test-project' });
 
-    const mockCreateVertex = vi.mocked(createVertexOriginal);
+    const mockCreateVertex = vi.mocked(createGoogleVertexOriginal);
     const passedOptions = mockCreateVertex.mock.calls[0][0];
 
     expect(mockCreateVertex).toHaveBeenCalledTimes(1);
@@ -47,7 +47,7 @@ describe('google-vertex-provider-edge', () => {
       }),
     });
 
-    const mockCreateVertex = vi.mocked(createVertexOriginal);
+    const mockCreateVertex = vi.mocked(createGoogleVertexOriginal);
     const passedOptions = mockCreateVertex.mock.calls[0][0];
 
     expect(mockCreateVertex).toHaveBeenCalledTimes(1);
@@ -61,7 +61,7 @@ describe('google-vertex-provider-edge', () => {
   it('should use edge auth token generator', async () => {
     createVertexEdge({ project: 'test-project' });
 
-    const mockCreateVertex = vi.mocked(createVertexOriginal);
+    const mockCreateVertex = vi.mocked(createGoogleVertexOriginal);
     const passedOptions = mockCreateVertex.mock.calls[0][0];
 
     // Verify the headers function actually calls generateAuthToken by checking its result
@@ -79,7 +79,7 @@ describe('google-vertex-provider-edge', () => {
       },
     });
 
-    const mockCreateVertex = vi.mocked(createVertexOriginal);
+    const mockCreateVertex = vi.mocked(createGoogleVertexOriginal);
     const passedOptions = mockCreateVertex.mock.calls[0][0];
 
     await resolve(passedOptions?.headers); // call the headers function
@@ -95,7 +95,7 @@ describe('google-vertex-provider-edge', () => {
       apiKey: 'test-api-key',
     });
 
-    const mockCreateVertex = vi.mocked(createVertexOriginal);
+    const mockCreateVertex = vi.mocked(createGoogleVertexOriginal);
     const passedOptions = mockCreateVertex.mock.calls[0][0];
 
     expect(passedOptions?.apiKey).toBe('test-api-key');

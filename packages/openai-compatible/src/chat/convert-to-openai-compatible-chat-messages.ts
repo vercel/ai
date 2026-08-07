@@ -1,19 +1,36 @@
 import {
-  LanguageModelV3Prompt,
-  SharedV3ProviderMetadata,
   UnsupportedFunctionalityError,
+  type LanguageModelV4Prompt,
+  type SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
-import { OpenAICompatibleChatPrompt } from './openai-compatible-api-types';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
+import type { OpenAICompatibleChatPrompt } from './openai-compatible-api-types';
+import {
+  convertBase64ToUint8Array,
+  convertToBase64,
+  getTopLevelMediaType,
+  resolveFullMediaType,
+} from '@ai-sdk/provider-utils';
 
 function getOpenAIMetadata(message: {
-  providerOptions?: SharedV3ProviderMetadata;
+  providerOptions?: SharedV4ProviderMetadata;
 }) {
   return message?.providerOptions?.openaiCompatible ?? {};
 }
 
+function getAudioFormat(mediaType: string): 'wav' | 'mp3' | null {
+  switch (mediaType) {
+    case 'audio/wav':
+      return 'wav';
+    case 'audio/mp3':
+    case 'audio/mpeg':
+      return 'mp3';
+    default:
+      return null;
+  }
+}
+
 export function convertToOpenAICompatibleChatMessages(
-  prompt: LanguageModelV3Prompt,
+  prompt: LanguageModelV4Prompt,
 ): OpenAICompatibleChatPrompt {
   const messages: OpenAICompatibleChatPrompt = [];
   for (const { role, content, ...message } of prompt) {
@@ -43,26 +60,104 @@ export function convertToOpenAICompatibleChatMessages(
                 return { type: 'text', text: part.text, ...partMetadata };
               }
               case 'file': {
-                if (part.mediaType.startsWith('image/')) {
-                  const mediaType =
-                    part.mediaType === 'image/*'
-                      ? 'image/jpeg'
-                      : part.mediaType;
+                switch (part.data.type) {
+                  case 'reference': {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'file parts with provider references',
+                    });
+                  }
+                  case 'text': {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'text file parts',
+                    });
+                  }
+                  case 'url':
+                  case 'data': {
+                    const topLevel = getTopLevelMediaType(part.mediaType);
 
-                  return {
-                    type: 'image_url',
-                    image_url: {
-                      url:
-                        part.data instanceof URL
-                          ? part.data.toString()
-                          : `data:${mediaType};base64,${convertToBase64(part.data)}`,
-                    },
-                    ...partMetadata,
-                  };
-                } else {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: `file part media type ${part.mediaType}`,
-                  });
+                    if (topLevel === 'image') {
+                      return {
+                        type: 'image_url',
+                        image_url: {
+                          url:
+                            part.data.type === 'url'
+                              ? part.data.url.toString()
+                              : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
+                        },
+                        ...partMetadata,
+                      };
+                    }
+
+                    if (topLevel === 'audio') {
+                      if (part.data.type === 'url') {
+                        throw new UnsupportedFunctionalityError({
+                          functionality: 'audio file parts with URLs',
+                        });
+                      }
+
+                      const fullMediaType = resolveFullMediaType({ part });
+                      const format = getAudioFormat(fullMediaType);
+                      if (format === null) {
+                        throw new UnsupportedFunctionalityError({
+                          functionality: `audio media type ${fullMediaType}`,
+                        });
+                      }
+
+                      return {
+                        type: 'input_audio',
+                        input_audio: {
+                          data: convertToBase64(part.data.data),
+                          format,
+                        },
+                        ...partMetadata,
+                      };
+                    }
+
+                    if (topLevel === 'application') {
+                      if (part.data.type === 'url') {
+                        throw new UnsupportedFunctionalityError({
+                          functionality: 'PDF file parts with URLs',
+                        });
+                      }
+
+                      const fullMediaType = resolveFullMediaType({ part });
+                      if (fullMediaType !== 'application/pdf') {
+                        throw new UnsupportedFunctionalityError({
+                          functionality: `file part media type ${fullMediaType}`,
+                        });
+                      }
+
+                      return {
+                        type: 'file',
+                        file: {
+                          filename: part.filename ?? 'document.pdf',
+                          file_data: `data:application/pdf;base64,${convertToBase64(part.data.data)}`,
+                        },
+                        ...partMetadata,
+                      };
+                    }
+
+                    if (topLevel === 'text') {
+                      const textContent =
+                        part.data.type === 'url'
+                          ? part.data.url.toString()
+                          : typeof part.data.data === 'string'
+                            ? new TextDecoder().decode(
+                                convertBase64ToUint8Array(part.data.data),
+                              )
+                            : new TextDecoder().decode(part.data.data);
+
+                      return {
+                        type: 'text',
+                        text: textContent,
+                        ...partMetadata,
+                      };
+                    }
+
+                    throw new UnsupportedFunctionalityError({
+                      functionality: `file part media type ${part.mediaType}`,
+                    });
+                  }
                 }
               }
             }
@@ -75,10 +170,16 @@ export function convertToOpenAICompatibleChatMessages(
 
       case 'assistant': {
         let text = '';
+        let reasoning = '';
         const toolCalls: Array<{
           id: string;
           type: 'function';
           function: { name: string; arguments: string };
+          extra_content?: {
+            google?: {
+              thought_signature?: string;
+            };
+          };
         }> = [];
 
         for (const part of content) {
@@ -88,7 +189,14 @@ export function convertToOpenAICompatibleChatMessages(
               text += part.text;
               break;
             }
+            case 'reasoning': {
+              reasoning += part.text;
+              break;
+            }
             case 'tool-call': {
+              // TODO: thoughtSignature should be abstracted once we add support for other providers
+              const thoughtSignature =
+                part.providerOptions?.google?.thoughtSignature;
               toolCalls.push({
                 id: part.toolCallId,
                 type: 'function',
@@ -97,6 +205,16 @@ export function convertToOpenAICompatibleChatMessages(
                   arguments: JSON.stringify(part.input),
                 },
                 ...partMetadata,
+                // Include extra_content for Google Gemini thought signatures
+                ...(thoughtSignature
+                  ? {
+                      extra_content: {
+                        google: {
+                          thought_signature: String(thoughtSignature),
+                        },
+                      },
+                    }
+                  : {}),
               });
               break;
             }
@@ -105,7 +223,8 @@ export function convertToOpenAICompatibleChatMessages(
 
         messages.push({
           role: 'assistant',
-          content: text,
+          content: toolCalls.length > 0 ? text || null : text,
+          ...(reasoning.length > 0 ? { reasoning_content: reasoning } : {}),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
           ...metadata,
         });
@@ -128,7 +247,7 @@ export function convertToOpenAICompatibleChatMessages(
               contentValue = output.value;
               break;
             case 'execution-denied':
-              contentValue = output.reason ?? 'Tool execution denied.';
+              contentValue = output.reason ?? 'Tool call execution denied.';
               break;
             case 'content':
             case 'json':

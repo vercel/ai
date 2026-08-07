@@ -76,8 +76,7 @@ export default function Home() {
 ```tsx filename='app/actions.tsx' highlight={"57-63"}
 'use server';
 
-import { createAI, getMutableAIState, streamUI } from '@ai-sdk/rsc';
-import { openai } from '@ai-sdk/openai';
+import { getMutableAIState, streamUI } from '@ai-sdk/rsc';
 import { ReactNode } from 'react';
 import { z } from 'zod';
 import { generateId } from 'ai';
@@ -101,7 +100,7 @@ export async function continueConversation(
   const history = getMutableAIState();
 
   const result = await streamUI({
-    model: openai('gpt-3.5-turbo'),
+    model: 'openai/gpt-5.4',
     messages: [...history.get(), { role: 'user', content: input }],
     text: ({ content, done }) => {
       if (done) {

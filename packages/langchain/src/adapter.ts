@@ -1,12 +1,12 @@
 import {
   SystemMessage,
-  BaseMessage,
-  AIMessageChunk,
+  type BaseMessage,
+  type AIMessageChunk,
 } from '@langchain/core/messages';
 import {
+  convertToModelMessages,
   type UIMessage,
   type UIMessageChunk,
-  convertToModelMessages,
   type ModelMessage,
 } from 'ai';
 import {
@@ -15,11 +15,36 @@ import {
   convertUserContent,
   processModelChunk,
   processLangGraphEvent,
+  parseLangGraphEvent,
   isToolResultPart,
   extractReasoningFromContentBlocks,
+  extractCitationsFromContentBlocks,
+  emitSourceChunks,
+  getLangGraphProviderMetadata,
 } from './utils';
-import { type LangGraphEventState } from './types';
-import { type StreamCallbacks } from './stream-callbacks';
+import type { LangGraphEventState } from './types';
+import type { StreamCallbacks } from './stream-callbacks';
+
+/**
+ * Options for converting a LangChain stream to an AI SDK UIMessageStream.
+ */
+export interface ToUIMessageStreamOptions<
+  TState = unknown,
+> extends StreamCallbacks<TState> {
+  /**
+   * Whether to emit the outer `start` chunk.
+   *
+   * @default true
+   */
+  sendStart?: boolean;
+
+  /**
+   * Whether to emit the outer `finish` chunk.
+   *
+   * @default true
+   */
+  sendFinish?: boolean;
+}
 
 /**
  * Converts AI SDK UIMessages to LangChain BaseMessage objects.
@@ -131,6 +156,7 @@ function processStreamEventsEvent(
     textStarted: boolean;
     textMessageId: string | null;
     reasoningMessageId: string | null;
+    emittedSourceIds: Set<string>;
   },
   controller: ReadableStreamDefaultController<UIMessageChunk>,
 ): void {
@@ -149,8 +175,41 @@ function processStreamEventsEvent(
   switch (event.event) {
     case 'on_chat_model_start': {
       /**
-       * Handle model start - capture message metadata if available
-       * run_id is at event level in v2, but check data for backwards compatibility
+       * End the previous model turn's reasoning stream before a new LLM invocation.
+       * Without this, reasoning-delta chunks from the next turn could attach to the
+       * wrong reasoning part in the UI message stream.
+       */
+      if (state.reasoningStarted) {
+        controller.enqueue({
+          type: 'reasoning-end',
+          id:
+            state.reasoningMessageId != null
+              ? state.reasoningMessageId
+              : state.messageId,
+        });
+        state.reasoningStarted = false;
+        state.reasoningMessageId = null;
+      }
+
+      /**
+       * End the previous model turn's text stream before a new LLM invocation.
+       * The streamEvents adapter otherwise leaves `textStarted` true, so all later
+       * text-delta chunks append to the first text part — tools still grow the parts
+       * array, which breaks chronological order in the assistant message.
+       */
+      if (state.textStarted) {
+        controller.enqueue({
+          type: 'text-end',
+          id:
+            state.textMessageId != null ? state.textMessageId : state.messageId,
+        });
+        state.textStarted = false;
+        state.textMessageId = null;
+      }
+
+      /**
+       * Handle model start — capture message metadata if available.
+       * `run_id` is on the event in streamEvents v2; fall back to `data` for compatibility.
        */
       const runId = event.run_id || (event.data.run_id as string | undefined);
       if (runId) {
@@ -240,6 +299,16 @@ function processStreamEventsEvent(
             id: state.textMessageId ?? state.messageId,
           });
         }
+
+        const citations = extractCitationsFromContentBlocks(chunk);
+        if (citations.length > 0) {
+          emitSourceChunks(
+            citations,
+            state.messageId,
+            state.emittedSourceIds,
+            controller,
+          );
+        }
       }
       break;
     }
@@ -284,6 +353,19 @@ function processStreamEventsEvent(
 }
 
 /**
+ * Checks if an error is an abort error.
+ */
+function isAbortError(error: unknown): boolean {
+  if (error instanceof Error) {
+    return (
+      error.name === 'AbortError' ||
+      (error instanceof DOMException && error.name === 'AbortError')
+    );
+  }
+  return false;
+}
+
+/**
  * Converts a LangChain stream to an AI SDK UIMessageStream.
  *
  * This function automatically detects the stream type and handles:
@@ -292,7 +374,7 @@ function processStreamEventsEvent(
  * - streamEvents streams (from `agent.streamEvents()` or `model.streamEvents()`)
  *
  * @param stream - A stream from LangChain model.stream(), graph.stream(), or streamEvents().
- * @param callbacks - Optional callbacks for stream lifecycle events.
+ * @param options - Optional lifecycle callbacks and outer chunk controls.
  * @returns A ReadableStream of UIMessageChunk objects.
  *
  * @example
@@ -321,16 +403,38 @@ function processStreamEventsEvent(
  * return createUIMessageStreamResponse({
  *   stream: toUIMessageStream(streamEvents),
  * });
+ *
+ * // With callbacks for LangGraph state
+ * const graphStream = await graph.stream(
+ *   { messages },
+ *   { streamMode: ['values', 'messages'] }
+ * );
+ * return createUIMessageStreamResponse({
+ *   stream: toUIMessageStream<MyStateType>(graphStream, {
+ *     onFinish: async (finalState) => {
+ *       if (finalState) {
+ *         await saveToDatabase(finalState);
+ *       }
+ *     },
+ *     onError: (error) => console.error('Stream failed:', error),
+ *     onAbort: () => console.log('Stream aborted'),
+ *   }),
+ * });
  * ```
  */
-export function toUIMessageStream(
+export function toUIMessageStream<TState = unknown>(
   stream: AsyncIterable<AIMessageChunk> | ReadableStream,
-  callbacks?: StreamCallbacks,
+  options?: ToUIMessageStreamOptions<TState>,
 ): ReadableStream<UIMessageChunk> {
+  const { sendStart = true, sendFinish = true } = options ?? {};
+
   /**
    * Track text chunks for onFinal callback
    */
   const textChunks: string[] = [];
+
+  /** Last LangGraph values event data for onFinish callback */
+  let lastValuesData: TState | undefined;
 
   /**
    * State for model stream handling
@@ -344,27 +448,26 @@ export function toUIMessageStream(
     textMessageId: null as string | null,
     /** Track the ID used for reasoning-start to ensure reasoning-end uses the same ID */
     reasoningMessageId: null as string | null,
+    emittedSourceIds: new Set<string>(),
   };
 
   /**
    * State for LangGraph stream handling
    */
   const langGraphState: LangGraphEventState = {
-    messageSeen: {} as Record<
-      string,
-      { text?: boolean; reasoning?: boolean; tool?: Record<string, boolean> }
-    >,
-    messageConcat: {} as Record<string, AIMessageChunk>,
+    messageSeen: new Map(),
+    messageNamespaces: new Map(),
+    messageConcat: new Map(),
     emittedToolCalls: new Set<string>(),
+    emittedToolInputs: new Set<string>(),
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
-    messageReasoningIds: {} as Record<string, string>,
-    toolCallInfoByIndex: {} as Record<
-      string,
-      Record<number, { id: string; name: string }>
-    >,
+    messageReasoningIds: new Map(),
+    toolCallInfoByIndex: new Map(),
     currentStep: null as number | null,
+    stepNamespace: null,
     emittedToolCallsByKey: new Map<string, string>(),
+    emittedSourceIds: new Set<string>(),
   };
 
   /**
@@ -409,10 +512,12 @@ export function toUIMessageStream(
         /**
          * Intercept text-delta chunks for callbacks
          */
-        if (callbacks && chunk.type === 'text-delta' && chunk.delta) {
-          textChunks.push(chunk.delta);
-          callbacks.onToken?.(chunk.delta);
-          callbacks.onText?.(chunk.delta);
+        if (chunk.type === 'text-delta' && chunk.delta) {
+          if (options?.onFinal) {
+            textChunks.push(chunk.delta);
+          }
+          options?.onToken?.(chunk.delta);
+          options?.onText?.(chunk.delta);
         }
         originalController.enqueue(chunk);
       },
@@ -421,10 +526,12 @@ export function toUIMessageStream(
 
   return new ReadableStream<UIMessageChunk>({
     async start(controller) {
-      await callbacks?.onStart?.();
+      await options?.onStart?.();
 
       const wrappedController = createCallbackController(controller);
-      controller.enqueue({ type: 'start' });
+      if (sendStart) {
+        controller.enqueue({ type: 'start' });
+      }
 
       try {
         while (true) {
@@ -465,8 +572,15 @@ export function toUIMessageStream(
               wrappedController,
             );
           } else {
+            const eventArray = value as unknown[];
+            const [, type, data] = parseLangGraphEvent(eventArray);
+
+            if (type === 'values') {
+              lastValuesData = data as TState;
+            }
+
             processLangGraphEvent(
-              value as unknown[],
+              eventArray,
               langGraphState,
               wrappedController,
             );
@@ -492,25 +606,66 @@ export function toUIMessageStream(
               id: modelState.textMessageId ?? modelState.messageId,
             });
           }
-          controller.enqueue({ type: 'finish' });
+          if (sendFinish) {
+            controller.enqueue({ type: 'finish' });
+          }
         } else if (streamType === 'langgraph') {
+          /**
+           * Close any open text/reasoning parts before finishing.
+           * This handles streams without values events (e.g. streamMode: 'messages')
+           * where the values handler never ran to emit *-end events.
+           */
+          for (const [id, seen] of langGraphState.messageSeen) {
+            const providerMetadata = getLangGraphProviderMetadata(
+              langGraphState.messageNamespaces.get(id),
+            );
+            if (seen.text) {
+              controller.enqueue({
+                type: 'text-end',
+                id,
+                ...(providerMetadata !== undefined && { providerMetadata }),
+              });
+            }
+            if (seen.reasoning) {
+              controller.enqueue({
+                type: 'reasoning-end',
+                id,
+                ...(providerMetadata !== undefined && { providerMetadata }),
+              });
+            }
+          }
+
           /**
            * Emit finish-step if a step was started
            */
           if (langGraphState.currentStep !== null) {
             controller.enqueue({ type: 'finish-step' });
           }
-          controller.enqueue({ type: 'finish' });
+          if (sendFinish) {
+            controller.enqueue({ type: 'finish' });
+          }
         }
 
         /**
          * Call onFinal callback with aggregated text
          */
-        await callbacks?.onFinal?.(textChunks.join(''));
+        await options?.onFinal?.(textChunks.join(''));
+        await options?.onFinish?.(lastValuesData);
       } catch (error) {
+        const errorObj =
+          error instanceof Error ? error : new Error(String(error));
+
+        await options?.onFinal?.(textChunks.join(''));
+
+        if (isAbortError(error)) {
+          await options?.onAbort?.();
+        } else {
+          await options?.onError?.(errorObj);
+        }
+
         controller.enqueue({
           type: 'error',
-          errorText: error instanceof Error ? error.message : 'Unknown error',
+          errorText: errorObj.message,
         });
       } finally {
         controller.close();

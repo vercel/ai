@@ -8,22 +8,27 @@ import {
  */
 export interface GeneratedFile {
   /**
-File as a base64 encoded string.
-     */
+   * File as a base64 encoded string.
+   */
   readonly base64: string;
 
   /**
-File as a Uint8Array.
-     */
+   * File as a Uint8Array.
+   */
   readonly uint8Array: Uint8Array;
 
   /**
-The IANA media type of the file.
-
-@see https://www.iana.org/assignments/media-types/media-types.xhtml
+   * The IANA media type of the file.
+   *
+   * @see https://www.iana.org/assignments/media-types/media-types.xhtml
    */
   readonly mediaType: string;
 }
+
+/**
+ * @deprecated Use `GeneratedFile` instead. This alias will be removed in v8.
+ */
+export type Experimental_GeneratedImage = GeneratedFile;
 
 export class DefaultGeneratedFile implements GeneratedFile {
   private base64Data: string | undefined;

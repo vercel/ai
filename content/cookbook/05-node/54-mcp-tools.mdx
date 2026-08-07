@@ -14,7 +14,7 @@ If you prefer to use the official transports (optional), install the official Mo
 
 ```ts
 import { createMCPClient } from '@ai-sdk/mcp';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
 import { openai } from '@ai-sdk/openai';
 // Optional: Official transports if you prefer them
@@ -83,7 +83,7 @@ try {
   const response = await generateText({
     model: 'openai/gpt-4o',
     tools,
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     messages: [
       {
         role: 'user',

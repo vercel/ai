@@ -1,7 +1,42 @@
 import { describe, expect, it } from 'vitest';
 import * as z4 from 'zod/v4';
 import { safeParseJSON } from './parse-json';
-import { asSchema, StandardSchema, zodSchema } from './schema';
+import { asSchema, zodSchema, type StandardSchema } from './schema';
+
+describe('asSchema', () => {
+  it('should create an object schema when no schema is provided', async () => {
+    const schema = asSchema(undefined);
+
+    expect(await schema.jsonSchema).toStrictEqual({
+      type: 'object',
+      properties: {},
+      additionalProperties: false,
+    });
+  });
+
+  it('should validate with callable standard schemas', async () => {
+    class CallableStandardSchema {
+      static readonly '~standard' = {
+        version: 1 as const,
+        vendor: 'effect',
+        validate: (value: unknown) =>
+          typeof value === 'object' &&
+          value !== null &&
+          'model' in value &&
+          typeof value.model === 'string'
+            ? { value: { model: value.model } }
+            : { issues: [{ message: 'model must be a string' }] },
+      };
+    }
+
+    const schema = asSchema(CallableStandardSchema);
+
+    await expect(schema.validate?.({ model: 'test-model' })).resolves.toEqual({
+      success: true,
+      value: { model: 'test-model' },
+    });
+  });
+});
 
 describe('zodSchema', () => {
   describe('zod/v4', () => {
@@ -244,6 +279,7 @@ describe('StandardSchema (StandardJSONSchemaV1)', () => {
 
       expect(await schema.jsonSchema).toStrictEqual({
         type: 'object',
+        additionalProperties: false,
         properties: {
           name: { type: 'string' },
           age: { type: 'number' },
@@ -277,9 +313,14 @@ describe('StandardSchema (StandardJSONSchemaV1)', () => {
       } as StandardSchema<{ text: string }>;
 
       const schema = asSchema(standardSchema);
-      await schema.jsonSchema;
+      const jsonSchema = await schema.jsonSchema;
 
       expect(capturedTarget).toBe('draft-07');
+      expect(jsonSchema).toStrictEqual({
+        type: 'object',
+        additionalProperties: false,
+        properties: { text: { type: 'string' } },
+      });
     });
 
     it('should support nested objects', async () => {
@@ -309,9 +350,11 @@ describe('StandardSchema (StandardJSONSchemaV1)', () => {
 
       expect(await schema.jsonSchema).toStrictEqual({
         type: 'object',
+        additionalProperties: false,
         properties: {
           user: {
             type: 'object',
+            additionalProperties: false,
             properties: {
               name: { type: 'string' },
               email: { type: 'string' },
@@ -342,6 +385,7 @@ describe('StandardSchema (StandardJSONSchemaV1)', () => {
 
       expect(await schema.jsonSchema).toStrictEqual({
         type: 'object',
+        additionalProperties: false,
         properties: {
           items: {
             type: 'array',
@@ -485,6 +529,7 @@ describe('StandardSchema (StandardJSONSchemaV1)', () => {
 
       expect(await schema.jsonSchema).toStrictEqual({
         type: 'object',
+        additionalProperties: false,
         properties: { text: { type: 'string' } },
       });
     });

@@ -11,14 +11,22 @@
     "skipLibCheck": true,
     "types": []
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["dist", "node_modules"],
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules"
+  ],
   "references": [
+    {
+      "path": "../ai"
+    },
     {
       "path": "../provider-utils"
     },
     {
-      "path": "../ai"
+      "path": "../test-server"
     }
   ]
 }

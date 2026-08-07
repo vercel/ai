@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactoryWithOutputSchema,
+  createProviderExecutedToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -33,7 +33,7 @@ const codeExecution_20250522InputSchema = lazySchema(() =>
   ),
 );
 
-const factory = createProviderToolFactoryWithOutputSchema<
+const factory = createProviderExecutedToolFactory<
   {
     /**
      * The Python code to execute.

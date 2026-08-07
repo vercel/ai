@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { z } from 'zod/v3';
 import { parsePipelineDef } from './pipeline';
 import { getRefs } from '../refs';
-import { JSONSchema7 } from '@ai-sdk/provider';
+import type { JSONSchema7 } from '@ai-sdk/provider';
 
 describe('pipe', () => {
   it('Should create an allOf schema with all its inner schemas represented', () => {

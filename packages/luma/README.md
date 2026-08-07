@@ -14,12 +14,22 @@ Luma Photon and Photon Flash are groundbreaking image generation models that del
 
 For more detailed information about the Luma models and their capabilities, please visit [Luma AI](https://lumalabs.ai/).
 
+> **Deploying to Vercel?** With Vercel's AI Gateway you can access Luma (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+
 ## Setup
 
 The Luma provider is available in the `@ai-sdk/luma` module. You can install it with:
 
 ```bash
 npm i @ai-sdk/luma
+```
+
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
 ```
 
 ## Provider Instance

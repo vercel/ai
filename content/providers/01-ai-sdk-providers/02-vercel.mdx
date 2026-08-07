@@ -5,7 +5,7 @@ description: Learn how to use Vercel's v0 models with the AI SDK.
 
 # Vercel Provider
 
-The [Vercel](https://vercel.com) provider gives you access to the [v0 API](https://vercel.com/docs/v0/api), designed for building modern web applications. The v0 models support text and image inputs and provide fast streaming responses.
+The [Vercel](https://vercel.com) provider gives you access to the [v0 API](https://v0.app/docs/api/model), designed for building modern web applications. The v0 models support text and image inputs and provide fast streaming responses.
 
 You can create your Vercel API key at [v0.dev](https://v0.dev/chat/settings/keys).
 
@@ -27,21 +27,7 @@ You can create your Vercel API key at [v0.dev](https://v0.dev/chat/settings/keys
 
 The Vercel provider is available via the `@ai-sdk/vercel` module. You can install it with:
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add @ai-sdk/vercel" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install @ai-sdk/vercel" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add @ai-sdk/vercel" dark />
-  </Tab>
-
-  <Tab>
-    <Snippet text="bun add @ai-sdk/vercel" dark />
-  </Tab>
-</Tabs>
+<InstallPackages packages="@ai-sdk/vercel" />
 
 ## Provider Instance
 
@@ -92,7 +78,7 @@ import { vercel } from '@ai-sdk/vercel';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: vercel('v0-1.0-md'),
+  model: vercel('v0-1.5-md'),
   prompt: 'Create a Next.js AI chatbot',
 });
 ```
@@ -122,8 +108,8 @@ All v0 models have the following capabilities:
 
 ## Model Capabilities
 
-| Model       | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| ----------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `v0-1.5-md` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `v0-1.5-lg` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `v0-1.0-md` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model       | Image Input | Object Generation | Tool Usage | Tool Streaming |
+| ----------- | ----------- | ----------------- | ---------- | -------------- |
+| `v0-1.5-md` | <Check />   | <Check />         | <Check />  | <Check />      |
+| `v0-1.5-lg` | <Check />   | <Check />         | <Check />  | <Check />      |
+| `v0-1.0-md` | <Check />   | <Check />         | <Check />  | <Check />      |

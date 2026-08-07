@@ -1,4 +1,4 @@
-import { ToolNameMapping } from '@ai-sdk/provider-utils';
+import { NoSuchProviderReferenceError } from '@ai-sdk/provider';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { describe, it, expect } from 'vitest';
 
@@ -637,6 +637,7 @@ describe('prepareResponsesTools', () => {
               externalWebAccess: true,
               filters: {
                 allowedDomains: ['example.com', 'test.org'],
+                blockedDomains: ['blocked.example', 'blocked.test'],
               },
               searchContextSize: 'high',
               userLocation: {
@@ -664,6 +665,10 @@ describe('prepareResponsesTools', () => {
                   "example.com",
                   "test.org",
                 ],
+                "blocked_domains": [
+                  "blocked.example",
+                  "blocked.test",
+                ],
               },
               "search_context_size": "high",
               "type": "web_search",
@@ -680,7 +685,7 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
-    it('should prepare web_search tool with filters but no externalWebAccess', async () => {
+    it('should prepare web_search tool with blocked domains', async () => {
       const result = await prepareResponsesTools({
         tools: [
           {
@@ -689,7 +694,7 @@ describe('prepareResponsesTools', () => {
             name: 'web_search',
             args: {
               filters: {
-                allowedDomains: ['example.com'],
+                blockedDomains: ['example.com'],
               },
             },
           },
@@ -705,7 +710,8 @@ describe('prepareResponsesTools', () => {
             {
               "external_web_access": undefined,
               "filters": {
-                "allowed_domains": [
+                "allowed_domains": undefined,
+                "blocked_domains": [
                   "example.com",
                 ],
               },
@@ -810,6 +816,772 @@ describe('prepareResponsesTools', () => {
           ],
         }
       `);
+    });
+  });
+
+  describe('shell', () => {
+    it('should prepare shell tool without environment args', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {},
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare shell tool with containerAuto without skills', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {
+              environment: {
+                type: 'containerAuto',
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "environment": {
+                "file_ids": undefined,
+                "memory_limit": undefined,
+                "network_policy": undefined,
+                "skills": undefined,
+                "type": "container_auto",
+              },
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare shell tool with containerAuto and providerReference skills', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {
+              environment: {
+                type: 'containerAuto',
+                skills: [
+                  {
+                    type: 'skillReference',
+                    providerReference: { openai: 'skill_abc' },
+                    version: '1.0.0',
+                  },
+                ],
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "environment": {
+                "file_ids": undefined,
+                "memory_limit": undefined,
+                "network_policy": undefined,
+                "skills": [
+                  {
+                    "skill_id": "skill_abc",
+                    "type": "skill_reference",
+                    "version": "1.0.0",
+                  },
+                ],
+                "type": "container_auto",
+              },
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should default shell skillReference version to latest when omitted', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {
+              environment: {
+                type: 'containerAuto',
+                skills: [
+                  {
+                    type: 'skillReference',
+                    providerReference: { openai: 'skill_abc' },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "environment": {
+                "file_ids": undefined,
+                "memory_limit": undefined,
+                "network_policy": undefined,
+                "skills": [
+                  {
+                    "skill_id": "skill_abc",
+                    "type": "skill_reference",
+                    "version": "latest",
+                  },
+                ],
+                "type": "container_auto",
+              },
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should throw when a providerReference cannot be resolved for openai', async () => {
+      try {
+        await prepareResponsesTools({
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {
+                environment: {
+                  type: 'containerAuto',
+                  skills: [
+                    {
+                      type: 'skillReference',
+                      providerReference: { anthropic: 'skill_abc' },
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+          toolChoice: undefined,
+        });
+
+        expect.unreachable('should have thrown');
+      } catch (error) {
+        expect(NoSuchProviderReferenceError.isInstance(error)).toBe(true);
+        expect((error as NoSuchProviderReferenceError).provider).toBe('openai');
+        expect((error as NoSuchProviderReferenceError).reference).toStrictEqual(
+          {
+            anthropic: 'skill_abc',
+          },
+        );
+      }
+    });
+
+    it('should prepare shell tool with containerAuto and inline skill', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {
+              environment: {
+                type: 'containerAuto',
+                skills: [
+                  {
+                    type: 'inline',
+                    name: 'my-skill',
+                    description: 'A test skill',
+                    source: {
+                      type: 'base64',
+                      mediaType: 'application/zip',
+                      data: 'dGVzdA==',
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "environment": {
+                "file_ids": undefined,
+                "memory_limit": undefined,
+                "network_policy": undefined,
+                "skills": [
+                  {
+                    "description": "A test skill",
+                    "name": "my-skill",
+                    "source": {
+                      "data": "dGVzdA==",
+                      "media_type": "application/zip",
+                      "type": "base64",
+                    },
+                    "type": "inline",
+                  },
+                ],
+                "type": "container_auto",
+              },
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare shell tool with containerAuto and networkPolicy disabled', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {
+              environment: {
+                type: 'containerAuto',
+                networkPolicy: { type: 'disabled' },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "environment": {
+                "file_ids": undefined,
+                "memory_limit": undefined,
+                "network_policy": {
+                  "type": "disabled",
+                },
+                "skills": undefined,
+                "type": "container_auto",
+              },
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare shell tool with containerAuto and networkPolicy allowlist with domain secrets', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {
+              environment: {
+                type: 'containerAuto',
+                networkPolicy: {
+                  type: 'allowlist',
+                  allowedDomains: ['example.com', 'api.test.org'],
+                  domainSecrets: [
+                    {
+                      domain: 'api.test.org',
+                      name: 'API_KEY',
+                      value: 'secret123',
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "environment": {
+                "file_ids": undefined,
+                "memory_limit": undefined,
+                "network_policy": {
+                  "allowed_domains": [
+                    "example.com",
+                    "api.test.org",
+                  ],
+                  "domain_secrets": [
+                    {
+                      "domain": "api.test.org",
+                      "name": "API_KEY",
+                      "value": "secret123",
+                    },
+                  ],
+                  "type": "allowlist",
+                },
+                "skills": undefined,
+                "type": "container_auto",
+              },
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare shell tool with containerAuto, fileIds, and memoryLimit', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {
+              environment: {
+                type: 'containerAuto',
+                fileIds: ['file-1', 'file-2'],
+                memoryLimit: '16g',
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "environment": {
+                "file_ids": [
+                  "file-1",
+                  "file-2",
+                ],
+                "memory_limit": "16g",
+                "network_policy": undefined,
+                "skills": undefined,
+                "type": "container_auto",
+              },
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare shell tool with containerReference', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {
+              environment: {
+                type: 'containerReference',
+                containerId: 'ctr_abc123',
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "environment": {
+                "container_id": "ctr_abc123",
+                "type": "container_reference",
+              },
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+    it('should prepare shell tool with local environment and skills', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {
+              environment: {
+                type: 'local',
+                skills: [
+                  {
+                    name: 'calculator',
+                    description: 'Perform math calculations',
+                    path: '/path/to/calculator',
+                  },
+                ],
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "environment": {
+                "skills": [
+                  {
+                    "description": "Perform math calculations",
+                    "name": "calculator",
+                    "path": "/path/to/calculator",
+                  },
+                ],
+                "type": "local",
+              },
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare shell tool with local environment without explicit type', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {
+              environment: {
+                skills: [
+                  {
+                    name: 'calculator',
+                    description: 'Perform math calculations',
+                    path: '/path/to/calculator',
+                  },
+                ],
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "environment": {
+                "skills": [
+                  {
+                    "description": "Perform math calculations",
+                    "name": "calculator",
+                    "path": "/path/to/calculator",
+                  },
+                ],
+                "type": "local",
+              },
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare shell tool with local environment without skills', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {
+              environment: {
+                type: 'local',
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "environment": {
+                "skills": undefined,
+                "type": "local",
+              },
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+  });
+
+  describe('custom tool', () => {
+    it('should prepare custom tool with regex format', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.custom',
+            name: 'write_sql',
+            args: {
+              description: 'Write a SQL SELECT query.',
+              format: {
+                type: 'grammar',
+                syntax: 'regex',
+                definition: 'SELECT .+',
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "description": "Write a SQL SELECT query.",
+              "format": {
+                "definition": "SELECT .+",
+                "syntax": "regex",
+                "type": "grammar",
+              },
+              "name": "write_sql",
+              "type": "custom",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare custom tool with lark format', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.custom',
+            name: 'generate_json',
+            args: {
+              format: {
+                type: 'grammar',
+                syntax: 'lark',
+                definition: 'start: "{"  "}"',
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "description": undefined,
+              "format": {
+                "definition": "start: "{"  "}"",
+                "syntax": "lark",
+                "type": "grammar",
+              },
+              "name": "generate_json",
+              "type": "custom",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should handle multiple tools including custom tool', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                input: { type: 'string' },
+              },
+            },
+          },
+          {
+            type: 'provider',
+            id: 'openai.custom',
+            name: 'write_sql',
+            args: {
+              description: 'Write SQL.',
+              format: {
+                type: 'grammar',
+                syntax: 'regex',
+                definition: 'SELECT .+',
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "description": "A test function",
+              "name": "testFunction",
+              "parameters": {
+                "properties": {
+                  "input": {
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+              "type": "function",
+            },
+            {
+              "description": "Write SQL.",
+              "format": {
+                "definition": "SELECT .+",
+                "syntax": "regex",
+                "type": "grammar",
+              },
+              "name": "write_sql",
+              "type": "custom",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should resolve custom tool choice using tool name', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.custom',
+            name: 'write_sql',
+            args: {},
+          },
+        ],
+        toolChoice: { type: 'tool', toolName: 'write_sql' },
+      });
+
+      expect(result.toolChoice).toStrictEqual({
+        type: 'custom',
+        name: 'write_sql',
+      });
+    });
+  });
+
+  describe('computer', () => {
+    it('should prepare computer tool', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.computer',
+            name: 'computer',
+            args: {},
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toEqual({
+        tools: [{ type: 'computer' }],
+        toolChoice: undefined,
+        toolWarnings: [],
+      });
+    });
+
+    it('should handle computer tool choice', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.computer',
+            name: 'computer',
+            args: {},
+          },
+        ],
+        toolChoice: { type: 'tool', toolName: 'computer' },
+      });
+
+      expect(result.toolChoice).toEqual({ type: 'computer' });
     });
   });
 
@@ -919,6 +1691,444 @@ describe('prepareResponsesTools', () => {
           ],
         }
       `);
+    });
+  });
+
+  describe('tool search', () => {
+    it('should prepare tool_search tool', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.tool_search',
+            name: 'toolSearch',
+            args: {},
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "type": "tool_search",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare tool_search alongside function tools with defer_loading', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.tool_search',
+            name: 'toolSearch',
+            args: {},
+          },
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get the current weather',
+            inputSchema: {
+              type: 'object',
+              properties: { location: { type: 'string' } },
+              required: ['location'],
+              additionalProperties: false,
+            },
+            providerOptions: {
+              openai: { deferLoading: true },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "type": "tool_search",
+            },
+            {
+              "defer_loading": true,
+              "description": "Get the current weather",
+              "name": "get_weather",
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "location": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "location",
+                ],
+                "type": "object",
+              },
+              "type": "function",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should group function tools by OpenAI namespace provider option', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.tool_search',
+            name: 'toolSearch',
+            args: {},
+          },
+          {
+            type: 'function',
+            name: 'get_customer_profile',
+            description: 'Fetch a customer profile by customer ID.',
+            inputSchema: {
+              type: 'object',
+              properties: { customer_id: { type: 'string' } },
+              required: ['customer_id'],
+              additionalProperties: false,
+            },
+            providerOptions: {
+              openai: {
+                namespace: {
+                  name: 'crm',
+                  description:
+                    'CRM tools for customer lookup and order management.',
+                },
+              },
+            },
+          },
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get the current weather',
+            inputSchema: {
+              type: 'object',
+              properties: { location: { type: 'string' } },
+              required: ['location'],
+              additionalProperties: false,
+            },
+          },
+          {
+            type: 'function',
+            name: 'list_open_orders',
+            description: 'List open orders for a customer ID.',
+            inputSchema: {
+              type: 'object',
+              properties: { customer_id: { type: 'string' } },
+              required: ['customer_id'],
+              additionalProperties: false,
+            },
+            strict: true,
+            providerOptions: {
+              openai: {
+                deferLoading: true,
+                namespace: {
+                  name: 'crm',
+                  description:
+                    'CRM tools for customer lookup and order management.',
+                },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "type": "tool_search",
+            },
+            {
+              "description": "CRM tools for customer lookup and order management.",
+              "name": "crm",
+              "tools": [
+                {
+                  "description": "Fetch a customer profile by customer ID.",
+                  "name": "get_customer_profile",
+                  "parameters": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "customer_id": {
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "customer_id",
+                    ],
+                    "type": "object",
+                  },
+                  "type": "function",
+                },
+                {
+                  "defer_loading": true,
+                  "description": "List open orders for a customer ID.",
+                  "name": "list_open_orders",
+                  "parameters": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "customer_id": {
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "customer_id",
+                    ],
+                    "type": "object",
+                  },
+                  "strict": true,
+                  "type": "function",
+                },
+              ],
+              "type": "namespace",
+            },
+            {
+              "description": "Get the current weather",
+              "name": "get_weather",
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "location": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "location",
+                ],
+                "type": "object",
+              },
+              "type": "function",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should reject conflicting descriptions for the same OpenAI namespace', async () => {
+      await expect(
+        prepareResponsesTools({
+          tools: [
+            {
+              type: 'function',
+              name: 'get_customer_profile',
+              description: 'Fetch a customer profile by customer ID.',
+              inputSchema: { type: 'object', properties: {} },
+              providerOptions: {
+                openai: {
+                  namespace: {
+                    name: 'crm',
+                    description: 'CRM tools.',
+                  },
+                },
+              },
+            },
+            {
+              type: 'function',
+              name: 'list_open_orders',
+              description: 'List open orders for a customer ID.',
+              inputSchema: { type: 'object', properties: {} },
+              providerOptions: {
+                openai: {
+                  namespace: {
+                    name: 'crm',
+                    description: 'Different CRM tools.',
+                  },
+                },
+              },
+            },
+          ],
+          toolChoice: undefined,
+        }),
+      ).rejects.toThrow(
+        'conflicting descriptions for OpenAI tool namespace "crm"',
+      );
+    });
+  });
+
+  describe('allowedTools provider option', () => {
+    it('should emit allowed_tools with default auto mode', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get weather',
+            inputSchema: { type: 'object', properties: {} },
+          },
+          {
+            type: 'function',
+            name: 'get_time',
+            description: 'Get time',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        toolChoice: undefined,
+        allowedTools: { toolNames: ['get_weather'] },
+      });
+
+      expect(result.toolChoice).toEqual({
+        type: 'allowed_tools',
+        mode: 'auto',
+        tools: [{ type: 'function', name: 'get_weather' }],
+      });
+      expect(result.tools).toHaveLength(2);
+    });
+
+    it('should emit allowed_tools with required mode', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get weather',
+            inputSchema: { type: 'object', properties: {} },
+          },
+          {
+            type: 'function',
+            name: 'get_time',
+            description: 'Get time',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        toolChoice: undefined,
+        allowedTools: {
+          toolNames: ['get_weather', 'get_time'],
+          mode: 'required',
+        },
+      });
+
+      expect(result.toolChoice).toEqual({
+        type: 'allowed_tools',
+        mode: 'required',
+        tools: [
+          { type: 'function', name: 'get_weather' },
+          { type: 'function', name: 'get_time' },
+        ],
+      });
+      expect(result.tools).toHaveLength(2);
+    });
+
+    it('should override request-level toolChoice when allowedTools is set', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get weather',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        toolChoice: { type: 'required' },
+        allowedTools: { toolNames: ['get_weather'] },
+      });
+
+      expect(result.toolChoice).toEqual({
+        type: 'allowed_tools',
+        mode: 'auto',
+        tools: [{ type: 'function', name: 'get_weather' }],
+      });
+    });
+  });
+
+  describe('programmatic tool calling', () => {
+    it('should serialize the hosted tool and function tool options', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.programmatic_tool_calling',
+            name: 'program',
+            args: {},
+          },
+          {
+            type: 'function',
+            name: 'get_inventory',
+            description: 'Get inventory',
+            inputSchema: {
+              type: 'object',
+              properties: { sku: { type: 'string' } },
+              required: ['sku'],
+              additionalProperties: false,
+            },
+            providerOptions: {
+              openai: {
+                allowedCallers: ['programmatic'],
+                outputSchema: {
+                  type: 'object',
+                  properties: {
+                    sku: { type: 'string' },
+                    availableUnits: { type: 'number' },
+                  },
+                  required: ['sku', 'availableUnits'],
+                  additionalProperties: false,
+                },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools).toEqual([
+        { type: 'programmatic_tool_calling' },
+        {
+          type: 'function',
+          name: 'get_inventory',
+          description: 'Get inventory',
+          parameters: {
+            type: 'object',
+            properties: { sku: { type: 'string' } },
+            required: ['sku'],
+            additionalProperties: false,
+          },
+          allowed_callers: ['programmatic'],
+          output_schema: {
+            type: 'object',
+            properties: {
+              sku: { type: 'string' },
+              availableUnits: { type: 'number' },
+            },
+            required: ['sku', 'availableUnits'],
+            additionalProperties: false,
+          },
+        },
+      ]);
+    });
+
+    it('should support forcing the hosted tool', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.programmatic_tool_calling',
+            name: 'program',
+            args: {},
+          },
+        ],
+        toolChoice: { type: 'tool', toolName: 'program' },
+        toolNameMapping: {
+          toProviderToolName: () => 'programmatic_tool_calling',
+          toCustomToolName: () => 'program',
+        },
+      });
+
+      expect(result.toolChoice).toEqual({
+        type: 'programmatic_tool_calling',
+      });
     });
   });
 });

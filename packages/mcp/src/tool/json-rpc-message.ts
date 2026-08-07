@@ -1,3 +1,4 @@
+import { parseJSON } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { BaseParamsSchema, RequestSchema, ResultSchema } from './types';
 
@@ -59,3 +60,13 @@ export const JSONRPCMessageSchema = z.union([
 ]);
 
 export type JSONRPCMessage = z.infer<typeof JSONRPCMessageSchema>;
+
+export function validateJSONRPCMessage(message: unknown): JSONRPCMessage {
+  return JSONRPCMessageSchema.parse(message);
+}
+
+export async function parseJSONRPCMessage(
+  text: string,
+): Promise<JSONRPCMessage> {
+  return validateJSONRPCMessage(await parseJSON({ text }));
+}

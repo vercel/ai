@@ -1,4 +1,4 @@
-import { JSONObject } from '../../json-value';
+import type { JSONObject } from '../../json-value';
 
 /**
  * Usage information for a language model call.
@@ -9,7 +9,7 @@ export type LanguageModelV3Usage = {
    */
   inputTokens: {
     /**
-     *The total number of input (prompt) tokens used.
+     * The total number of input (prompt) tokens used.
      */
     total: number | undefined;
 

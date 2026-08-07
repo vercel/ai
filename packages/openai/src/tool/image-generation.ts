@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactoryWithOutputSchema,
+  createProviderExecutedToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -104,7 +104,7 @@ type ImageGenerationArgs = {
   size?: 'auto' | '1024x1024' | '1024x1536' | '1536x1024';
 };
 
-const imageGenerationToolFactory = createProviderToolFactoryWithOutputSchema<
+const imageGenerationToolFactory = createProviderExecutedToolFactory<
   {},
   {
     /**

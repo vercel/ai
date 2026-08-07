@@ -2,8 +2,8 @@ import { convertToXaiChatMessages } from './convert-to-xai-chat-messages';
 import { describe, it, expect } from 'vitest';
 
 describe('convertToXaiChatMessages', () => {
-  it('should convert simple text messages', () => {
-    const { messages, warnings } = convertToXaiChatMessages([
+  it('should convert simple text messages', async () => {
+    const { messages, warnings } = await convertToXaiChatMessages([
       { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
     ]);
 
@@ -11,8 +11,8 @@ describe('convertToXaiChatMessages', () => {
     expect(messages).toEqual([{ role: 'user', content: 'Hello' }]);
   });
 
-  it('should convert system messages', () => {
-    const { messages, warnings } = convertToXaiChatMessages([
+  it('should convert system messages', async () => {
+    const { messages, warnings } = await convertToXaiChatMessages([
       { role: 'system', content: 'You are a helpful assistant.' },
     ]);
 
@@ -22,8 +22,8 @@ describe('convertToXaiChatMessages', () => {
     ]);
   });
 
-  it('should convert assistant messages', () => {
-    const { messages, warnings } = convertToXaiChatMessages([
+  it('should convert assistant messages', async () => {
+    const { messages, warnings } = await convertToXaiChatMessages([
       { role: 'assistant', content: [{ type: 'text', text: 'Hello there!' }] },
     ]);
 
@@ -33,8 +33,8 @@ describe('convertToXaiChatMessages', () => {
     ]);
   });
 
-  it('should convert messages with image parts', () => {
-    const { messages, warnings } = convertToXaiChatMessages([
+  it('should convert messages with image parts', async () => {
+    const { messages, warnings } = await convertToXaiChatMessages([
       {
         role: 'user',
         content: [
@@ -42,7 +42,7 @@ describe('convertToXaiChatMessages', () => {
           {
             type: 'file',
             mediaType: 'image/png',
-            data: Buffer.from([0, 1, 2, 3]),
+            data: { type: 'data' as const, data: Buffer.from([0, 1, 2, 3]) },
           },
         ],
       },
@@ -63,15 +63,18 @@ describe('convertToXaiChatMessages', () => {
     ]);
   });
 
-  it('should convert image URLs', () => {
-    const { messages, warnings } = convertToXaiChatMessages([
+  it('should convert image URLs', async () => {
+    const { messages, warnings } = await convertToXaiChatMessages([
       {
         role: 'user',
         content: [
           {
             type: 'file',
             mediaType: 'image/jpeg',
-            data: new URL('https://example.com/image.jpg'),
+            data: {
+              type: 'url' as const,
+              url: new URL('https://example.com/image.jpg'),
+            },
           },
         ],
       },
@@ -91,8 +94,92 @@ describe('convertToXaiChatMessages', () => {
     ]);
   });
 
-  it('should throw error for unsupported file types', () => {
-    expect(() => {
+  it('should convert image file parts with provider reference', async () => {
+    const { messages, warnings } = await convertToXaiChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: {
+              type: 'reference' as const,
+              reference: { xai: 'file-abc123', openai: 'file-xyz789' },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(warnings).toEqual([]);
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            file: { file_id: 'file-abc123' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert non-image file parts with provider reference', async () => {
+    const { messages, warnings } = await convertToXaiChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'application/pdf',
+            data: {
+              type: 'reference' as const,
+              reference: { xai: 'file-pdf456' },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(warnings).toEqual([]);
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            file: { file_id: 'file-pdf456' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should throw error when provider reference is missing xai key', async () => {
+    await expect(
+      convertToXaiChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: {
+                type: 'reference' as const,
+                reference: { openai: 'file-xyz789' },
+              },
+            },
+          ],
+        },
+      ]),
+    ).rejects.toThrow(
+      "No provider reference found for provider 'xai'. Available providers: openai",
+    );
+  });
+
+  it('should throw error for unsupported file types', async () => {
+    await expect(
       convertToXaiChatMessages([
         {
           role: 'user',
@@ -100,16 +187,16 @@ describe('convertToXaiChatMessages', () => {
             {
               type: 'file',
               mediaType: 'application/pdf',
-              data: Buffer.from([0, 1, 2, 3]),
+              data: { type: 'data' as const, data: Buffer.from([0, 1, 2, 3]) },
             },
           ],
         },
-      ]);
-    }).toThrow('file part media type application/pdf');
+      ]),
+    ).rejects.toThrow('file part media type application/pdf');
   });
 
-  it('should convert tool calls and tool responses', () => {
-    const { messages, warnings } = convertToXaiChatMessages([
+  it('should convert tool calls and tool responses', async () => {
+    const { messages, warnings } = await convertToXaiChatMessages([
       {
         role: 'assistant',
         content: [
@@ -158,8 +245,8 @@ describe('convertToXaiChatMessages', () => {
     ]);
   });
 
-  it('should handle multiple tool calls in one message', () => {
-    const { messages, warnings } = convertToXaiChatMessages([
+  it('should handle multiple tool calls in one message', async () => {
+    const { messages, warnings } = await convertToXaiChatMessages([
       {
         role: 'assistant',
         content: [
@@ -206,8 +293,8 @@ describe('convertToXaiChatMessages', () => {
     ]);
   });
 
-  it('should handle mixed content with text and tool calls', () => {
-    const { messages, warnings } = convertToXaiChatMessages([
+  it('should handle mixed content with text and tool calls', async () => {
+    const { messages, warnings } = await convertToXaiChatMessages([
       {
         role: 'assistant',
         content: [
@@ -239,5 +326,92 @@ describe('convertToXaiChatMessages', () => {
         ],
       },
     ]);
+  });
+
+  describe('top-level-only media type resolution', () => {
+    const pngBase64 = 'iVBORw0KGgo=';
+
+    it('passes full image/png through unchanged for inline data', async () => {
+      const { messages } = await convertToXaiChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: { type: 'data', data: pngBase64 },
+            },
+          ],
+        },
+      ]);
+
+      expect((messages[0].content as unknown[])[0]).toEqual({
+        type: 'image_url',
+        image_url: { url: `data:image/png;base64,${pngBase64}` },
+      });
+    });
+
+    it('detects image subtype from inline bytes for top-level "image"', async () => {
+      const { messages } = await convertToXaiChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image',
+              data: { type: 'data', data: pngBase64 },
+            },
+          ],
+        },
+      ]);
+
+      expect((messages[0].content as unknown[])[0]).toEqual({
+        type: 'image_url',
+        image_url: { url: `data:image/png;base64,${pngBase64}` },
+      });
+    });
+
+    it('passes through URL source for top-level-only image', async () => {
+      const { messages } = await convertToXaiChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image',
+              data: {
+                type: 'url',
+                url: new URL('https://example.com/x.png'),
+              },
+            },
+          ],
+        },
+      ]);
+
+      expect((messages[0].content as unknown[])[0]).toEqual({
+        type: 'image_url',
+        image_url: { url: 'https://example.com/x.png' },
+      });
+    });
+
+    it('normalizes image/* wildcard via detection', async () => {
+      const { messages } = await convertToXaiChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/*',
+              data: { type: 'data', data: pngBase64 },
+            },
+          ],
+        },
+      ]);
+
+      expect((messages[0].content as unknown[])[0]).toEqual({
+        type: 'image_url',
+        image_url: { url: `data:image/png;base64,${pngBase64}` },
+      });
+    });
   });
 });

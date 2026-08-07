@@ -1,4 +1,4 @@
-import { Output } from './output';
+import type { Output } from './output';
 
 /**
  * Infers the complete output type from the output specification.

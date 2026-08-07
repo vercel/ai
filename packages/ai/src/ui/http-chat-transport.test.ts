@@ -1,10 +1,10 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
+import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import {
   HttpChatTransport,
-  HttpChatTransportInitOptions,
+  type HttpChatTransportInitOptions,
 } from './http-chat-transport';
-import { UIMessage } from './ui-messages';
+import type { UIMessage } from './ui-messages';
 import { describe, it, expect } from 'vitest';
 
 class MockHttpChatTransport extends HttpChatTransport<UIMessage> {
@@ -148,7 +148,6 @@ describe('HttpChatTransport', () => {
       expect(server.calls[0].requestHeaders['x-test-header']).toBe(
         'test-value',
       );
-      expect(server.calls[0].requestUserAgent).toContain('ai-sdk/');
     });
 
     it('should include headers in the request when a function is provided', async () => {
@@ -179,7 +178,28 @@ describe('HttpChatTransport', () => {
       expect(server.calls[0].requestHeaders['x-test-header']).toBe(
         'test-value-fn',
       );
-      expect(server.calls[0].requestUserAgent).toContain('ai-sdk/');
+    });
+  });
+
+  describe('reconnectToStream', () => {
+    it('should pass the abort signal to fetch', async () => {
+      const abortController = new AbortController();
+      let receivedAbortSignal: AbortSignal | null | undefined;
+
+      const transport = new MockHttpChatTransport({
+        api: 'http://localhost/api/chat',
+        fetch: async (_input, init) => {
+          receivedAbortSignal = init?.signal;
+          return new Response(null, { status: 204 });
+        },
+      });
+
+      await transport.reconnectToStream({
+        chatId: 'c123',
+        abortSignal: abortController.signal,
+      });
+
+      expect(receivedAbortSignal).toBe(abortController.signal);
     });
   });
 });

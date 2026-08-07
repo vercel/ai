@@ -1,7 +1,7 @@
-import { JSONValue } from '../../json-value';
-import { SharedV2Headers } from '../../shared';
-import { SpeechModelV2CallOptions } from './speech-model-v2-call-options';
-import { SpeechModelV2CallWarning } from './speech-model-v2-call-warning';
+import type { JSONValue } from '../../json-value';
+import type { SharedV2Headers } from '../../shared';
+import type { SpeechModelV2CallOptions } from './speech-model-v2-call-options';
+import type { SpeechModelV2CallWarning } from './speech-model-v2-call-warning';
 
 /**
  * Speech model specification version 2.

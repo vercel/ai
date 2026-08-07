@@ -68,10 +68,10 @@ async function editImage() {
             text: 'Add a small wizard hat to this cat. Keep everything else the same.',
           },
           {
-            type: 'image',
-            // image: DataContent (string | Uint8Array | ArrayBuffer | Buffer) or URL
-            image: new URL(
-              'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-core/data/comic-cat.png',
+            type: 'file',
+            // data: DataContent (string | Uint8Array | ArrayBuffer | Buffer) or URL
+            data: new URL(
+              'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/comic-cat.png',
             ),
             mediaType: 'image/jpeg',
           },

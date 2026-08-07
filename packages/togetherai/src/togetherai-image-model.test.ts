@@ -1,4 +1,4 @@
-import { FetchFunction } from '@ai-sdk/provider-utils';
+import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { TogetherAIImageModel } from './togetherai-image-model';
@@ -58,11 +58,58 @@ describe('doGenerate', () => {
       model: 'stabilityai/stable-diffusion-xl',
       prompt,
       seed: 42,
-      n: 1,
       width: 1024,
       height: 1024,
       response_format: 'base64',
       additional_param: 'value',
+    });
+  });
+
+  it('should omit seed from request body when seed is undefined', async () => {
+    const model = createBasicModel();
+
+    await model.doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 1,
+      size: undefined,
+      seed: undefined,
+      providerOptions: {},
+      aspectRatio: undefined,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).not.toHaveProperty('seed');
+    expect(requestBody).toStrictEqual({
+      model: 'stabilityai/stable-diffusion-xl',
+      prompt,
+      response_format: 'base64',
+    });
+  });
+
+  it('should include n parameter when requesting multiple images', async () => {
+    const model = createBasicModel();
+
+    await model.doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 3,
+      size: '1024x1024',
+      seed: 42,
+      providerOptions: {},
+      aspectRatio: undefined,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'stabilityai/stable-diffusion-xl',
+      prompt,
+      seed: 42,
+      n: 3,
+      width: 1024,
+      height: 1024,
+      response_format: 'base64',
     });
   });
 
@@ -257,7 +304,7 @@ describe('constructor', () => {
 
     expect(model.provider).toBe('togetherai');
     expect(model.modelId).toBe('stabilityai/stable-diffusion-xl');
-    expect(model.specificationVersion).toBe('v3');
+    expect(model.specificationVersion).toBe('v4');
     expect(model.maxImagesPerCall).toBe(1);
   });
 });
@@ -301,7 +348,6 @@ describe('Image Editing', () => {
       {
         "image_url": "https://example.com/input.jpg",
         "model": "stabilityai/stable-diffusion-xl",
-        "n": 1,
         "prompt": "Make the shirt yellow",
         "response_format": "base64",
       }
@@ -456,7 +502,6 @@ describe('Image Editing', () => {
         "guidance": 3.5,
         "image_url": "https://example.com/input.jpg",
         "model": "stabilityai/stable-diffusion-xl",
-        "n": 1,
         "prompt": "Transform the style",
         "response_format": "base64",
         "steps": 28,

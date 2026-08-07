@@ -1,45 +1,49 @@
-import { ImageModelV3, NoSuchModelError, ProviderV3 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  NoSuchModelError,
+  type ImageModelV4,
+  type ProviderV4,
+} from '@ai-sdk/provider';
+import {
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { LumaImageModel } from './luma-image-model';
-import { LumaImageModelId } from './luma-image-settings';
+import type { LumaImageModelId } from './luma-image-settings';
 import { VERSION } from './version';
 
 export interface LumaProviderSettings {
   /**
-Luma API key. Default value is taken from the `LUMA_API_KEY` environment
-variable.
-  */
+   * Luma API key. Default value is taken from the `LUMA_API_KEY` environment
+   * variable.
+   */
   apiKey?: string;
   /**
-Base URL for the API calls.
-  */
+   * Base URL for the API calls.
+   */
   baseURL?: string;
   /**
-Custom headers to include in the requests.
-  */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-  */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
-export interface LumaProvider extends ProviderV3 {
+export interface LumaProvider extends ProviderV4 {
   /**
-Creates a model for image generation.
-  */
-  image(modelId: LumaImageModelId): ImageModelV3;
+   * Creates a model for image generation.
+   */
+  image(modelId: LumaImageModelId): ImageModelV4;
 
   /**
-Creates a model for image generation.
+   * Creates a model for image generation.
    */
-  imageModel(modelId: LumaImageModelId): ImageModelV3;
+  imageModel(modelId: LumaImageModelId): ImageModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -80,7 +84,7 @@ export function createLuma(options: LumaProviderSettings = {}): LumaProvider {
   };
 
   return {
-    specificationVersion: 'v3' as const,
+    specificationVersion: 'v4' as const,
     image: createImageModel,
     imageModel: createImageModel,
     languageModel: (modelId: string) => {

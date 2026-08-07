@@ -12,9 +12,10 @@ such as creating visual content or generating images for data augmentation.
 
 ```ts
 import { generateImage } from 'ai';
+__PROVIDER_IMPORT__;
 
 const { images } = await generateImage({
-  model: openai.image('dall-e-3'),
+  model: __IMAGE_MODEL__,
   prompt: 'A futuristic cityscape at sunset',
   n: 3,
   size: '1024x1024',
@@ -35,7 +36,7 @@ console.log(images);
   content={[
     {
       name: 'model',
-      type: 'ImageModelV3',
+      type: 'ImageModelV4',
       description: 'The image model to use.',
     },
     {
@@ -100,6 +101,13 @@ console.log(images);
       type: 'ProviderOptions',
       isOptional: true,
       description: 'Additional provider-specific options.',
+    },
+    {
+      name: 'maxImagesPerCall',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of images to generate per API call. When n exceeds this value, multiple API calls will be made.',
     },
     {
       name: 'maxRetries',
@@ -185,6 +193,23 @@ console.log(images);
       type: 'Warning[]',
       description:
         'Warnings from the model provider (e.g. unsupported settings).',
+    },
+    {
+      name: 'usage',
+      type: 'ImageModelUsage',
+      description: 'The usage statistics for the image generation.',
+      properties: [
+        {
+          type: 'ImageModelUsage',
+          parameters: [
+            {
+              name: 'imagesGenerated',
+              type: 'number',
+              description: 'The total number of images generated.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'providerMetadata',

@@ -1,7 +1,9 @@
 # AI SDK - ElevenLabs Provider
 
 The **[ElevenLabs provider](https://ai-sdk.dev/providers/ai-sdk-providers/elevenlabs)** for the [AI SDK](https://ai-sdk.dev/docs)
-contains language model support for the ElevenLabs chat and completion APIs and embedding model support for the ElevenLabs embeddings API.
+contains speech generation plus batch and realtime transcription support for the ElevenLabs APIs.
+
+> **Deploying to Vercel?** With Vercel's AI Gateway you can access ElevenLabs (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
 
 ## Setup
 
@@ -9,6 +11,14 @@ The ElevenLabs provider is available in the `@ai-sdk/elevenlabs` module. You can
 
 ```bash
 npm i @ai-sdk/elevenlabs
+```
+
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
 ```
 
 ## Provider Instance
@@ -23,12 +33,12 @@ import { elevenlabs } from '@ai-sdk/elevenlabs';
 
 ```ts
 import { elevenlabs } from '@ai-sdk/elevenlabs';
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 
 const { text } = await transcribe({
   model: elevenlabs.transcription('scribe_v1'),
   audio: new URL(
-    'https://github.com/vercel/ai/raw/refs/heads/main/examples/ai-core/data/galileo.mp3',
+    'https://github.com/vercel/ai/raw/refs/heads/main/examples/ai-functions/data/galileo.mp3',
   ),
 });
 ```

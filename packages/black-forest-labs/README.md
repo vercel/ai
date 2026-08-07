@@ -1,6 +1,8 @@
 # AI SDK - Black Forest Labs Provider
 
-The **[Black Forest Labs provider](https://ai-sdk.dev/providers/ai-sdk-providers/black-forest-labs)** for the [AI SDK](https://ai-sdk.dev/docs) adds image model support for the [Black Forest Labs API](https://docs.bfl.ai/).
+The **[Black Forest Labs provider](https://ai-sdk.dev/providers/ai-sdk-providers/black-forest-labs)** for the [AI SDK](https://ai-sdk.dev/docs) adds image and video model support for the [Black Forest Labs API](https://docs.bfl.ai/).
+
+> **Deploying to Vercel?** With Vercel's AI Gateway you can access Black Forest Labs (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
 
 ## Setup
 
@@ -8,6 +10,14 @@ The Black Forest Labs provider is available in the `@ai-sdk/black-forest-labs` m
 
 ```bash
 pnpm add @ai-sdk/black-forest-labs
+```
+
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
 ```
 
 ## Provider Instance
@@ -33,6 +43,20 @@ const { image } = await generateImage({
 const filename = `image-${Date.now()}.png`;
 fs.writeFileSync(filename, image.uint8Array);
 console.log(`Image saved to ${filename}`);
+```
+
+## Video Generation Example
+
+```ts
+import { blackForestLabs } from '@ai-sdk/black-forest-labs';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: blackForestLabs.video('flux-3-video'),
+  prompt: 'A white kitten chases a butterfly across a sunlit garden.',
+  aspectRatio: '16:9',
+  duration: 8,
+});
 ```
 
 ## Additional Options
@@ -73,7 +97,7 @@ const blackForestLabs = createBlackForestLabs({
 
 ## Configuring Polling
 
-You can customize how often the client polls for image completion and how long it waits before timing out:
+You can customize how often the client polls for completion and how long it waits before timing out. The defaults differ by model type: 500ms / 60s for images, and 2s / 10 minutes for video.
 
 ```ts
 import { createBlackForestLabs } from '@ai-sdk/black-forest-labs';

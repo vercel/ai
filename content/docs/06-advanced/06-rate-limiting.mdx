@@ -18,7 +18,11 @@ and [Upstash Ratelimit](https://github.com/upstash/ratelimit).
 
 ```tsx filename='app/api/generate/route.ts'
 import kv from '@vercel/kv';
-import { streamText } from 'ai';
+import {
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 __PROVIDER_IMPORT__;
 import { Ratelimit } from '@upstash/ratelimit';
 import { NextRequest } from 'next/server';
@@ -37,7 +41,7 @@ export async function POST(req: NextRequest) {
   const ip = req.ip ?? 'ip';
   const { success, remaining } = await ratelimit.limit(ip);
 
-  // block the request if unsuccessfull
+  // block the request if unsuccessful
   if (!success) {
     return new Response('Ratelimited!', { status: 429 });
   }
@@ -49,7 +53,9 @@ export async function POST(req: NextRequest) {
     messages,
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 

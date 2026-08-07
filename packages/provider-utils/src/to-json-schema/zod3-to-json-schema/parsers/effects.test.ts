@@ -2,7 +2,7 @@ import { describe, it, expect, test } from 'vitest';
 import { z } from 'zod/v3';
 import { parseEffectsDef } from './effects';
 import { getRefs } from '../refs';
-import { JSONSchema7 } from '@ai-sdk/provider';
+import type { JSONSchema7 } from '@ai-sdk/provider';
 
 describe('effects', () => {
   it('should be possible to use refine', () => {

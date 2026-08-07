@@ -1,84 +1,112 @@
 import {
-  EmbeddingModelV3,
-  LanguageModelV3,
   NoSuchModelError,
-  ProviderV3,
+  type EmbeddingModelV4,
+  type LanguageModelV4,
+  type ProviderV4,
+  type SpeechModelV4,
+  type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { MistralChatLanguageModel } from './mistral-chat-language-model';
-import { MistralChatModelId } from './mistral-chat-options';
+import type { MistralChatModelId } from './mistral-chat-language-model-options';
 import { MistralEmbeddingModel } from './mistral-embedding-model';
-import { MistralEmbeddingModelId } from './mistral-embedding-options';
+import type { MistralEmbeddingModelId } from './mistral-embedding-model-options';
+import { MistralSpeechModel } from './mistral-speech-model';
+import type { MistralSpeechModelId } from './mistral-speech-model-options';
+import { MistralTranscriptionModel } from './mistral-transcription-model';
+import type { MistralTranscriptionModelId } from './mistral-transcription-model-options';
 import { VERSION } from './version';
 
-export interface MistralProvider extends ProviderV3 {
-  (modelId: MistralChatModelId): LanguageModelV3;
+export interface MistralProvider extends ProviderV4 {
+  (modelId: MistralChatModelId): LanguageModelV4;
 
   /**
-Creates a model for text generation.
-*/
-  languageModel(modelId: MistralChatModelId): LanguageModelV3;
+   * Creates a model for text generation.
+   */
+  languageModel(modelId: MistralChatModelId): LanguageModelV4;
 
   /**
-Creates a model for text generation.
-*/
-  chat(modelId: MistralChatModelId): LanguageModelV3;
+   * Creates a model for text generation.
+   */
+  chat(modelId: MistralChatModelId): LanguageModelV4;
 
   /**
    * Creates a model for text embeddings.
    */
-  embedding(modelId: MistralEmbeddingModelId): EmbeddingModelV3;
+  embedding(modelId: MistralEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * Creates a model for text embeddings.
    */
-  embeddingModel: (modelId: MistralEmbeddingModelId) => EmbeddingModelV3;
+  embeddingModel: (modelId: MistralEmbeddingModelId) => EmbeddingModelV4;
+
+  /**
+   * Creates a model for speech generation (text-to-speech).
+   */
+  speech(modelId: MistralSpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a model for speech generation (text-to-speech).
+   */
+  speechModel(modelId: MistralSpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a model for audio transcription.
+   */
+  transcription(modelId: MistralTranscriptionModelId): TranscriptionModelV4;
+
+  /**
+   * Creates a model for audio transcription.
+   */
+  transcriptionModel(
+    modelId: MistralTranscriptionModelId,
+  ): TranscriptionModelV4;
 
   /**
    * @deprecated Use `embedding` instead.
    */
-  textEmbedding(modelId: MistralEmbeddingModelId): EmbeddingModelV3;
+  textEmbedding(modelId: MistralEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(modelId: MistralEmbeddingModelId): EmbeddingModelV3;
+  textEmbeddingModel(modelId: MistralEmbeddingModelId): EmbeddingModelV4;
 }
 
 export interface MistralProviderSettings {
   /**
-Use a different URL prefix for API calls, e.g. to use proxy servers.
-The default prefix is `https://api.mistral.ai/v1`.
+   * Use a different URL prefix for API calls, e.g. to use proxy servers.
+   * The default prefix is `https://api.mistral.ai/v1`.
    */
   baseURL?: string;
 
   /**
-API key that is being send using the `Authorization` header.
-It defaults to the `MISTRAL_API_KEY` environment variable.
+   * API key that is being send using the `Authorization` header.
+   * It defaults to the `MISTRAL_API_KEY` environment variable.
    */
   apiKey?: string;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 
   generateId?: () => string;
 }
 
 /**
-Create a Mistral AI provider instance.
+ * Create a Mistral AI provider instance.
  */
 export function createMistral(
   options: MistralProviderSettings = {},
@@ -116,6 +144,22 @@ export function createMistral(
       fetch: options.fetch,
     });
 
+  const createSpeechModel = (modelId: MistralSpeechModelId) =>
+    new MistralSpeechModel(modelId, {
+      provider: 'mistral.speech',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const createTranscriptionModel = (modelId: MistralTranscriptionModelId) =>
+    new MistralTranscriptionModel(modelId, {
+      provider: 'mistral.transcription',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (modelId: MistralChatModelId) {
     if (new.target) {
       throw new Error(
@@ -126,13 +170,17 @@ export function createMistral(
     return createChatModel(modelId);
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
+  provider.speech = createSpeechModel;
+  provider.speechModel = createSpeechModel;
+  provider.transcription = createTranscriptionModel;
+  provider.transcriptionModel = createTranscriptionModel;
 
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
@@ -142,6 +190,6 @@ export function createMistral(
 }
 
 /**
-Default Mistral provider instance.
+ * Default Mistral provider instance.
  */
 export const mistral = createMistral();
