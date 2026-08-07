@@ -3,8 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "bin": {
+    "ai-sdk-memory-benchmark": "src/cli.mjs"
+  },
   "scripts": {
-    "benchmark": "node src/benchmark.mjs",
-    "smoke": "node src/benchmark.mjs --name smoke --iterations 2 --sample-interval 50 -- node -e \"const values = []; let i = 0; const timer = setInterval(() => { values.push(Buffer.alloc(4 * 1024 * 1024, 1)); if (++i === 4) { clearInterval(timer); setTimeout(() => process.exit(0), 100); } }, 75);\""
+    "benchmark": "node src/cli.mjs",
+    "smoke": "node src/cli.mjs smoke"
   }
 }

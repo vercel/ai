@@ -25,76 +25,113 @@ Each run produces:
 The top-level `report.json` and `report.md` aggregate medians, minima, maxima,
 and p95 values across iterations.
 
-## Quick smoke test
+## CLI workflow
 
-From the repository root:
+Run all commands from the AI SDK repository root. The CLI manages its own
+repository cache under `tools/memory-benchmark/.repos`; colleagues do not need
+to create or populate `/tmp`.
 
-```bash
-pnpm --dir tools/memory-benchmark smoke
-```
+Prerequisites are Node.js, Git, pnpm, npm, and Bun.
 
-The smoke workload allocates memory in a child Node process and runs twice. Its
-result is written under `tools/memory-benchmark/results/`.
-
-## Measure one command
-
-Anything after `--` is the application command:
+### 1. Clone and install the applications
 
 ```bash
-pnpm --dir tools/memory-benchmark benchmark \
-  --name node-deep-research \
-  --iterations 5 \
-  -- \
-  npm run dev -- "Compare HTTP/2 and HTTP/3 in five concise points."
+pnpm benchmark:memory setup
 ```
 
-Run this command from the target application's directory, or use config mode to
-set the working directory explicitly.
+Setup shallow-clones the four upstream repositories and installs their
+dependencies with each repository's package manager. The exact commit is
+recorded in every report, and existing clones are left at their current commit
+so a later run does not silently change the baseline.
 
-## Run the six shortlisted applications
-
-Clone and install the applications in one parent directory, then set:
+Setup can be limited or separated from dependency installation:
 
 ```bash
-export AI_SDK_BENCH_ROOT=/absolute/path/to/parent
-export AI_SDK_BENCH_FIXTURE=/absolute/path/to/immutable-fixture-repo
+pnpm benchmark:memory setup --name scira
+pnpm benchmark:memory setup --skip-install
 ```
 
-The example config expects these child directory names:
-
-```text
-scira/
-zero-mail/
-superdesign/
-shortest/
-node-deep-research/
-neovate-code/
-```
-
-List or run configured benchmarks:
+### 2. Configure the scoped environment
 
 ```bash
-pnpm --dir tools/memory-benchmark benchmark \
-  --config benchmarks.example.json \
-  --list
-
-pnpm --dir tools/memory-benchmark benchmark \
-  --config benchmarks.example.json \
-  --name node-deep-research
+cp tools/memory-benchmark/.env.example tools/memory-benchmark/.env
 ```
 
-Scira and Zero are long-running servers. Supply a fixed request as a shell
-command so the harness can establish an idle baseline, execute the workload,
-consume the full stream, observe cooldown, and stop the server:
+Fill values in that file. The CLI loads it into benchmark subprocesses without
+copying secrets into the cloned repositories. `.env` and `.repos/` are ignored
+by Git.
+
+Minimum values by benchmark:
+
+- **Scira:** `XAI_API_KEY`, `SCIRA_DATABASE_URL`,
+  `SCIRA_BETTER_AUTH_SECRET`
+- **SuperDesign:** `ANTHROPIC_API_KEY`
+- **Shortest:** either `SHORTEST_ANTHROPIC_API_KEY` or `ANTHROPIC_API_KEY`
+- **Neovate Code:** `ANTHROPIC_API_KEY`
+
+### 3. Run
 
 ```bash
-export SCIRA_MEMORY_WORKLOAD='curl --no-buffer ...'
-export ZERO_MEMORY_WORKLOAD='curl --no-buffer ...'
+pnpm benchmark:memory run
 ```
 
-Use authenticated request recordings or Playwright scripts when a plain curl
-request cannot reproduce the application flow. The workload process itself is
-not included in the application's measured process group.
+The run command checks repositories, dependencies, environment variables, and
+workload commands first. Incomplete applications are shown as `SKIP`; their
+missing variable names are printed without exposing secret values. Ready
+applications continue running.
+
+Limit the run or override sampling:
+
+```bash
+pnpm benchmark:memory run --name neovate-code --iterations 5
+pnpm benchmark:memory run --name scira --sample-interval 50 --verbose
+```
+
+The terminal prints peak RSS after each fresh-process iteration and prints the
+result directory when complete.
+
+### Sampler smoke test
+
+```bash
+pnpm benchmark:memory smoke
+```
+
+The smoke workload allocates memory in a child Node process and runs twice. It
+tests process-tree discovery and report generation without provider keys.
+
+## Observe and interpret results
+
+Every run is written below a timestamped
+`tools/memory-benchmark/results/<timestamp>/` directory:
+
+- `report.md` is the quick human-readable summary.
+- `report.json` contains aggregate statistics, host details, and Git commits.
+- `<benchmark>/run-XX/samples.csv` is the raw time series.
+- `<benchmark>/run-XX/summary.json` includes the process snapshot at peak RSS.
+- `application.log` and `workload.log` explain failed or unusual runs.
+
+**RSS (resident set size)** is the physical memory currently resident in RAM
+for a process. This tool sums RSS across the application's complete process
+group, including launchers, workers, browsers, and agent subprocesses. RSS is
+not the same as JavaScript heap usage: it also includes native buffers, loaded
+code, runtime data, and shared libraries as reported for each process.
+
+Interpret the main columns as follows:
+
+- **Peak RSS:** highest observed process-group memory. Use this as the primary
+  CLI-application comparison.
+- **Baseline RSS:** median idle memory after a server reports ready and before
+  its request starts.
+- **Peak delta:** peak RSS minus baseline RSS. This is the clearest estimate of
+  incremental server workload memory.
+- **Post-run RSS:** last live memory sample after the cooldown period.
+- **Retained delta:** post-run RSS minus baseline RSS. A positive value can be a
+  cache or retained state; one run does not prove a leak.
+- **p95 RSS:** 95% of samples in the run were at or below this value.
+
+The Markdown report shows medians across successful iterations. Use min, max,
+and p95 values in `report.json` to assess variance. CLI applications report
+baseline and retained fields as `n/a` because they have no stable idle state.
 
 ## Baseline protocol
 

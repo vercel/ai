@@ -52,6 +52,7 @@ Options:
 function parseArguments(argv) {
   const options = {
     command: [],
+    names: [],
     verbose: false,
     list: false,
   };
@@ -90,10 +91,12 @@ function parseArguments(argv) {
         '--sample-interval': 'sampleIntervalMs',
         '--output': 'output',
       }[argument];
-      options[key] =
+      const parsedValue =
         argument === '--iterations' || argument === '--sample-interval'
           ? parsePositiveInteger(value, argument)
           : value;
+      options[key] = parsedValue;
+      if (argument === '--name') options.names.push(parsedValue);
     } else {
       throw new Error(`Unknown argument: ${argument}`);
     }
@@ -157,20 +160,31 @@ async function loadBenchmarks(options) {
 
   const configPath = path.resolve(options.config);
   const configDirectory = path.dirname(configPath);
-  const parsed = expandEnvironmentVariables(
-    JSON.parse(await readFile(configPath, 'utf8')),
-  );
+  const parsed = JSON.parse(await readFile(configPath, 'utf8'));
 
   if (!Array.isArray(parsed.benchmarks) || parsed.benchmarks.length === 0) {
     throw new Error('Configuration must contain a non-empty benchmarks array');
   }
 
+  const selectedBenchmarks =
+    options.names.length === 0
+      ? parsed.benchmarks
+      : parsed.benchmarks.filter(benchmark =>
+          options.names.includes(benchmark.name),
+        );
+
   return {
-    defaults: { ...DEFAULTS, ...parsed.defaults },
-    benchmarks: parsed.benchmarks.map(benchmark => ({
-      ...benchmark,
-      cwd: path.resolve(configDirectory, benchmark.cwd ?? '.'),
-    })),
+    defaults: {
+      ...DEFAULTS,
+      ...expandEnvironmentVariables(parsed.defaults),
+    },
+    benchmarks: selectedBenchmarks.map(unexpandedBenchmark => {
+      const benchmark = expandEnvironmentVariables(unexpandedBenchmark);
+      return {
+        ...benchmark,
+        cwd: path.resolve(configDirectory, benchmark.cwd ?? '.'),
+      };
+    }),
   };
 }
 
@@ -751,10 +765,12 @@ async function main() {
     return;
   }
 
-  if (options.name && options.command.length === 0) {
-    benchmarks = benchmarks.filter(benchmark => benchmark.name === options.name);
+  if (options.names.length > 0 && options.command.length === 0) {
+    benchmarks = benchmarks.filter(benchmark =>
+      options.names.includes(benchmark.name),
+    );
     if (benchmarks.length === 0) {
-      throw new Error(`No benchmark named ${options.name}`);
+      throw new Error(`No benchmark named ${options.names.join(', ')}`);
     }
   }
 

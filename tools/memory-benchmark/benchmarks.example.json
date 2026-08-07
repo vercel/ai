@@ -12,28 +12,18 @@
     {
       "name": "scira",
       "cwd": "${AI_SDK_BENCH_ROOT}/scira",
-      "command": ["pnpm", "dev"],
+      "command": ["bun", "run", "dev"],
+      "env": {
+        "DATABASE_URL": "${SCIRA_DATABASE_URL}",
+        "BETTER_AUTH_SECRET": "${SCIRA_BETTER_AUTH_SECRET}"
+      },
       "readyPattern": "(Ready in|Local:)",
       "workloadCommand": [
-        "sh",
-        "-lc",
-        "test -n \"$SCIRA_MEMORY_WORKLOAD\" || { echo 'Set SCIRA_MEMORY_WORKLOAD'; exit 2; }; eval \"$SCIRA_MEMORY_WORKLOAD\""
+        "node",
+        "${AI_SDK_MEMORY_TOOL_DIR}/workloads/scira.mjs"
       ],
       "tags": ["nextjs", "streaming", "tools", "ai-sdk-6"],
-      "notes": "Set SCIRA_MEMORY_WORKLOAD to a curl or Playwright command that submits one fixed search and consumes the complete stream."
-    },
-    {
-      "name": "zero",
-      "cwd": "${AI_SDK_BENCH_ROOT}/zero-mail",
-      "command": ["pnpm", "--filter", "@zero/server", "dev"],
-      "readyPattern": "(Ready on|localhost:8787|wrangler dev)",
-      "workloadCommand": [
-        "sh",
-        "-lc",
-        "test -n \"$ZERO_MEMORY_WORKLOAD\" || { echo 'Set ZERO_MEMORY_WORKLOAD'; exit 2; }; eval \"$ZERO_MEMORY_WORKLOAD\""
-      ],
-      "tags": ["cloudflare", "agent", "tools", "ai-sdk-4"],
-      "notes": "Set ZERO_MEMORY_WORKLOAD to a deterministic authenticated chat or eval request."
+      "notes": "Runs a fixed temporary chat request and consumes the complete response stream."
     },
     {
       "name": "superdesign",
@@ -58,19 +48,6 @@
       "notes": "Build the Shortest CLI first. Replace the example with a local deterministic page to remove network and browser-content variance."
     },
     {
-      "name": "node-deep-research",
-      "cwd": "${AI_SDK_BENCH_ROOT}/node-deep-research",
-      "command": [
-        "npm",
-        "run",
-        "dev",
-        "--",
-        "Compare HTTP/2 and HTTP/3 in five concise points."
-      ],
-      "tags": ["cli", "generate-object", "multi-step", "ai-sdk-4"],
-      "notes": "Set a fixed token budget in the application configuration and use the same model and search provider for every run."
-    },
-    {
       "name": "neovate-code",
       "cwd": "${AI_SDK_BENCH_ROOT}/neovate-code",
       "command": [
@@ -79,6 +56,8 @@
         "--quiet",
         "--output-format",
         "json",
+        "--model",
+        "anthropic/claude-sonnet-4-20250514",
         "--approval-mode",
         "yolo",
         "--cwd",
