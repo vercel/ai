@@ -1,5 +1,26 @@
 # ai
 
+## 7.0.56
+
+### Patch Changes
+
+- 25c9120: Expose provider metadata on language-model-call end callbacks and telemetry spans.
+- 89080c8: fix (ai/gateway): make retried `doStart` calls idempotent
+
+  `generateVideo` retries `doStart`, which creates a billable generation, so a
+  retry after a lost response could start a second one. It now mints one
+  idempotency token per logical start — outside the retry closure — and forwards it
+  as an `idempotency-key` header, so a provider that deduplicates (the Vercel AI
+  Gateway does) sees the same key on every attempt. `GatewayVideoModel` simply
+  forwards the caller's headers rather than inferring retry identity from an
+  options object, which would collide across unrelated calls.
+
+- 79d6195: Stop pending and active resumed chat streams after cancellation, and prevent
+  overlapping resumptions from applying stale updates.
+- Updated dependencies [89080c8]
+- Updated dependencies [89080c8]
+  - @ai-sdk/gateway@4.0.44
+
 ## 7.0.55
 
 ### Patch Changes
