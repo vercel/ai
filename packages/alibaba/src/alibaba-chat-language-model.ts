@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import {
   getResponseMetadata,
   mapOpenAICompatibleFinishReason,
@@ -13,11 +14,23 @@ import {
   type LanguageModelV3StreamPart,
   type LanguageModelV3StreamResult,
   type SharedV3Warning,
+=======
+import type {
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  SharedV4Warning,
+>>>>>>> 15dce62eb1 (fix(alibaba): preserve unmapped usage fields in usage.raw (#18563))
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  createLanguageModelResponseMetadata as getResponseMetadata,
   generateId,
   parseProviderOptions,
   postJsonToApi,
@@ -30,9 +43,11 @@ import {
 } from './alibaba-chat-options';
 import type { AlibabaConfig } from './alibaba-config';
 import { alibabaFailedResponseHandler } from './alibaba-error';
+import { prepareTools } from './alibaba-prepare-tools';
 import { convertAlibabaUsage } from './convert-alibaba-usage';
 import { convertToAlibabaChatMessages } from './convert-to-alibaba-chat-messages';
 import { CacheControlValidator } from './get-cache-control';
+import { mapAlibabaFinishReason } from './map-alibaba-finish-reason';
 
 /**
  * Alibaba language model implementation.
@@ -212,7 +227,7 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
     return {
       content,
       finishReason: {
-        unified: mapOpenAICompatibleFinishReason(choice.finish_reason),
+        unified: mapAlibabaFinishReason(choice.finish_reason),
         raw: choice.finish_reason ?? undefined,
       },
       usage: convertAlibabaUsage(response.usage),
@@ -452,7 +467,7 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
             // Track finish reason
             if (choice.finish_reason != null) {
               finishReason = {
-                unified: mapOpenAICompatibleFinishReason(choice.finish_reason),
+                unified: mapAlibabaFinishReason(choice.finish_reason),
                 raw: choice.finish_reason,
               };
             }
@@ -507,18 +522,19 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
  * Reference for schemas below:
  * https://www.alibabacloud.com/help/en/model-studio/qwen-api-via-openai-chat-completions
  */
-const alibabaUsageSchema = z.object({
+const alibabaUsageSchema = z.looseObject({
   prompt_tokens: z.number(),
   completion_tokens: z.number(),
   total_tokens: z.number(),
   prompt_tokens_details: z
-    .object({
+    .looseObject({
       cached_tokens: z.number().nullish(),
       cache_creation_input_tokens: z.number().nullish(),
+      cache_type: z.string().nullish(),
     })
     .nullish(),
   completion_tokens_details: z
-    .object({
+    .looseObject({
       reasoning_tokens: z.number().nullish(),
     })
     .nullish(),
