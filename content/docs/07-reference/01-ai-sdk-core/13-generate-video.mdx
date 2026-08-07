@@ -83,7 +83,7 @@ console.log(videos);
       type: 'string',
       isOptional: true,
       description:
-        'Aspect ratio of the videos to generate. Format: `{width}:{height}`.',
+        "Aspect ratio of the videos to generate. Format: `{width}:{height}`, or `'adaptive'` to inherit the ratio from the input media (e.g. a first-frame image or a source video). Support for `'adaptive'` is provider-specific.",
     },
     {
       name: 'resolution',

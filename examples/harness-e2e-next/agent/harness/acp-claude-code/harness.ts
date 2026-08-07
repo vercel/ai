@@ -6,16 +6,15 @@ const harnessId = 'acp-claude-code';
 export const claudeCodeACPHarness = createACP({
   harnessId,
   builtinTools: claudeCodeACPBuiltinTools,
-  implementation: {
-    type: 'npm',
-    mode: 'simple',
+  source: {
+    type: 'npm-simple',
     packageName: '@agentclientprotocol/claude-agent-acp',
-    version: '0.61.0',
-    executable: 'claude-agent-acp',
-    forwardEnv: ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN'],
-    env: {
-      IS_SANDBOX: '1',
-    },
+    packageVersion: '0.61.0',
+  },
+  executable: 'claude-agent-acp',
+  forwardEnv: ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN'],
+  env: {
+    IS_SANDBOX: '1',
   },
   permissionModeMapping: {
     'allow-reads': { type: 'session-mode', modeId: 'default' },
