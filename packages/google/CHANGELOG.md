@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.37
+
+### Patch Changes
+
+- bbd9b31: chore: rename `*TranslationModel` and its related types to `*SpeechTranslationModel` for consistency
+
 ## 4.0.36
 
 ### Patch Changes

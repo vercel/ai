@@ -127,7 +127,7 @@ function createCitationSource(
   };
 }
 
-type AnthropicLanguageModelConfig = {
+export type AnthropicLanguageModelConfig = {
   provider: string;
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
@@ -157,7 +157,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
   readonly modelId: AnthropicModelId;
 
-  private readonly config: AnthropicLanguageModelConfig;
+  protected readonly config: AnthropicLanguageModelConfig;
   private readonly generateId: () => string;
 
   static [WORKFLOW_SERIALIZE](model: AnthropicLanguageModel) {
@@ -202,7 +202,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     return this.config.supportedUrls?.() ?? {};
   }
 
-  private async getArgs({
+  protected async getArgs({
     userSuppliedBetas,
     prompt,
     maxOutputTokens,
@@ -876,7 +876,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     );
   }
 
-  private transformRequestBody(
+  protected transformRequestBody(
     args: Record<string, any>,
     betas: Set<string>,
   ): Record<string, any> {

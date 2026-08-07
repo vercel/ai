@@ -92,6 +92,40 @@ const config: NextConfig = {
       destination: '/v5/providers/ai-sdk-providers',
       permanent: false,
     },
+    // The cookbook family root mirrors production (ai-sdk.dev/cookbook):
+    // the legacy app permanently redirects it to the Recipes landing page.
+    ...['', '/v6', '/v5'].flatMap(prefix => [
+      {
+        source: `${prefix}/cookbook`,
+        destination: `${prefix}/resources/recipes`,
+        permanent: true,
+      },
+      // Cookbook section landing pages have no content (the content sync
+      // drops their frontmatter-only index.mdx); the legacy app redirects
+      // each section to its first recipe.
+      ...['/cookbook', '/resources/recipes'].flatMap(family => [
+        {
+          source: `${prefix}${family}/:section(next|node|rsc)`,
+          destination: `${prefix}${family}/:section/generate-text`,
+          permanent: false,
+        },
+        {
+          source: `${prefix}${family}/:section(next|node|rsc).md`,
+          destination: `${prefix}${family}/:section/generate-text.md`,
+          permanent: false,
+        },
+        {
+          source: `${prefix}${family}/api-servers`,
+          destination: `${prefix}${family}/api-servers/node-http-server`,
+          permanent: false,
+        },
+        {
+          source: `${prefix}${family}/api-servers.md`,
+          destination: `${prefix}${family}/api-servers/node-http-server.md`,
+          permanent: false,
+        },
+      ]),
+    ]),
     {
       source: '/docs/ai-sdk-core/prompts',
       destination: '/docs/foundations/prompts',
