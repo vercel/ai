@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 import { withSpinner } from '../../lib/spinner';
 
 run(async () => {
-  const { video } = await withSpinner(
+  const { video, warnings, providerMetadata } = await withSpinner(
     'Generating text-to-video with seedance-1-0-pro...',
     () =>
       generateVideo({
@@ -22,5 +22,8 @@ run(async () => {
       }),
   );
 
+  console.log('Warnings:', warnings);
+  // `bytedance.taskId` and `bytedance.usage` come from the completed task.
+  console.log('Provider metadata:', providerMetadata);
   await presentVideos([video]);
 });
