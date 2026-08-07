@@ -10,7 +10,6 @@ import { safeParseJSON, safeValidateTypes, tool } from '@ai-sdk/provider-utils';
 import * as fsPromises from 'node:fs/promises';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
-import { createACPAuthenticationProfileIdentity } from './acp-auth';
 import { createACP } from './acp-harness';
 import {
   resolveBridgeAssetCandidates,
@@ -2640,6 +2639,65 @@ describe('createACP', () => {
     await session.doDestroy();
   });
 
+  it('resolves automatic provider authentication from the session-start environment', async () => {
+    vi.stubEnv('AI_GATEWAY_API_KEY', '');
+    vi.stubEnv('VERCEL_OIDC_TOKEN', '');
+    const spawns: Array<{
+      command: string;
+      env: Record<string, string | undefined>;
+    }> = [];
+    const harness = createACP({
+      harnessId: 'late-auth-acp',
+      implementation: {
+        ...implementation,
+        forwardEnv: [],
+      },
+      providerAuthentication: {
+        gateway: {
+          env: {
+            PROVIDER_API_KEY: { $source: 'gateway-api-key' },
+          },
+        },
+      },
+    });
+
+    vi.stubEnv('AI_GATEWAY_API_KEY', 'late-gateway-key');
+    vi.stubEnv('AI_GATEWAY_BASE_URL', 'https://gateway.example/late');
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns,
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+
+    expect(spawns[0]!.env.AI_SDK_ACP_GATEWAY_API_KEY).toBe('late-gateway-key');
+    expect(spawns[0]!.env.AI_SDK_ACP_GATEWAY_BASE_URL).toBe(
+      'https://gateway.example/late',
+    );
+    expect(
+      await safeParseJSON({
+        text: spawns[0]!.env[ACP_BRIDGE_CONFIGURATION_ENV]!,
+      }),
+    ).toMatchObject({
+      success: true,
+      value: {
+        providerAuthentication: {
+          type: 'ai-gateway',
+        },
+      },
+    });
+    expect((await session.doStop()).data).toMatchObject({
+      authenticationProfile: {
+        providerKind: 'ai-gateway',
+        providerMode: 'auto',
+        gatewayCredentialSource: 'AI_GATEWAY_API_KEY',
+      },
+    });
+  });
+
   it('excludes resolved credentials from bootstrap and lifecycle state', async () => {
     vi.stubEnv('PROVIDER_API_KEY', 'direct-secret');
     vi.stubEnv('AI_GATEWAY_API_KEY', 'gateway-secret');
@@ -2750,7 +2808,7 @@ describe('createACP', () => {
     });
   });
 
-  it('rejects lifecycle state from an incompatible implementation identity', async () => {
+  it('validates lifecycle state structurally and rejects incompatible identities at start', async () => {
     const first = createACP({
       harnessId: 'identity-acp',
       implementation,
@@ -2762,33 +2820,30 @@ describe('createACP', () => {
         args: ['different'],
       },
     });
-    const firstBootstrap = await first.getBootstrap!();
-    const descriptorText = firstBootstrap.files.find(file =>
-      file.path.endsWith('/implementation.json'),
-    )?.content;
-    expect(descriptorText).toBeDefined();
-    const descriptor = await safeParseJSON({ text: descriptorText! });
-    expect(descriptor.success).toBe(true);
-    if (!descriptor.success) return;
-    const implementationIdentity = (
-      descriptor.value as { implementationIdentity: string }
-    ).implementationIdentity;
-    const authenticationProfile = createACPAuthenticationProfileIdentity({
-      authentication: undefined,
-      providerAuthenticationCompatibility: undefined,
+    const sandbox = fakeSandbox({
+      runs: [],
+      spawns: [],
+      stop: async () => {},
     });
+    const firstSession = await first.doStart({
+      sessionId: 'session-1',
+      sandboxSession: sandbox,
+      sessionWorkDir: '/workspace/user-project',
+    });
+    const resumeFrom = await firstSession.doStop();
+    const lifecycleData = resumeFrom.data as Record<string, unknown>;
+    const authenticationProfile = lifecycleData.authenticationProfile as Record<
+      string,
+      unknown
+    >;
 
-    const compatible = await safeValidateTypes({
-      value: { implementationIdentity, authenticationProfile },
-      schema: first.lifecycleStateSchema!,
-    });
-    const incompatible = await safeValidateTypes({
-      value: { implementationIdentity, authenticationProfile },
+    const structurallyCompatible = await safeValidateTypes({
+      value: lifecycleData,
       schema: second.lifecycleStateSchema!,
     });
     const legacyCompatible = await safeValidateTypes({
       value: {
-        implementationIdentity,
+        ...lifecycleData,
         authenticationProfile: {
           ...authenticationProfile,
           providerKind: 'implementation-default',
@@ -2796,8 +2851,7 @@ describe('createACP', () => {
       },
       schema: first.lifecycleStateSchema!,
     });
-    expect(compatible.success).toBe(true);
-    expect(incompatible.success).toBe(false);
+    expect(structurallyCompatible.success).toBe(true);
     expect(legacyCompatible).toMatchObject({
       success: true,
       value: {
@@ -2806,5 +2860,15 @@ describe('createACP', () => {
         },
       },
     });
+    await expect(
+      second.doStart({
+        sessionId: 'session-1',
+        sandboxSession: sandbox,
+        sessionWorkDir: '/workspace/user-project',
+        resumeFrom,
+      }),
+    ).rejects.toThrow(
+      'ACP lifecycle state is incompatible with the configured implementation.',
+    );
   });
 });
