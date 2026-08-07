@@ -110,8 +110,8 @@ const HARNESSES = [
     ],
   },
   {
-    slug: 'acp-grok-build',
-    label: 'ACP: Grok Build',
+    slug: 'grok-build',
+    label: 'Grok Build',
     variants: [
       'basic',
       'basic-with-stop',
