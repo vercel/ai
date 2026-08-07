@@ -30,6 +30,7 @@ const CODEX_ACP_EXECUTABLE = 'codex-acp';
 const CODEX_ACP_SOURCE = {
   type: 'npm-simple',
   packageName: '@agentclientprotocol/codex-acp',
+  packageVersion: '1.1.4',
 } as const satisfies ACPSource;
 
 const CODEX_ACP_BUILTIN_TOOLS = {

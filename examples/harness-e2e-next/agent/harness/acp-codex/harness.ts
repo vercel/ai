@@ -9,6 +9,7 @@ export const codexACPHarness = createACP({
   source: {
     type: 'npm-simple',
     packageName: '@agentclientprotocol/codex-acp',
+    packageVersion: '1.1.4',
   },
   executable: 'codex-acp',
   forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],

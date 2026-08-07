@@ -9,6 +9,7 @@ export const grokBuildACPHarness = createACP({
   source: {
     type: 'npm-simple',
     packageName: '@xai-official/grok',
+    packageVersion: '0.2.111',
   },
   executable: 'grok',
   args: ['agent', 'stdio'],

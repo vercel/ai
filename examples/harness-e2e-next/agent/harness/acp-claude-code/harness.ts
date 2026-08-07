@@ -9,6 +9,7 @@ export const claudeCodeACPHarness = createACP({
   source: {
     type: 'npm-simple',
     packageName: '@agentclientprotocol/claude-agent-acp',
+    packageVersion: '0.61.0',
   },
   executable: 'claude-agent-acp',
   forwardEnv: ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN'],
