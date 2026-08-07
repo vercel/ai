@@ -11,6 +11,7 @@ import { z } from 'zod/v4';
 import { Output, streamText } from '../generate-text';
 import type { Instructions } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import type { ProviderMetadata } from '../types';
 import type { UIMessage } from '../ui';
 import type {
   UIMessageStreamOnEndCallback,
@@ -23,8 +24,22 @@ import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 describe('streamText types', () => {
+  describe('onLanguageModelCallEnd', () => {
+    it('should expose provider metadata', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onLanguageModelCallEnd: event => {
+          expectTypeOf(event.providerMetadata).toEqualTypeOf<
+            ProviderMetadata | undefined
+          >();
+        },
+      });
+    });
+  });
+
   describe('experimental_toolCallers', () => {
-    it('should expose only caller-capable tools as references', () => {
+    it('should accept caller-capable tool names', () => {
       const codeMode = experimental_toolCaller(
         tool({
           inputSchema: z.object({}),
@@ -50,14 +65,8 @@ describe('streamText types', () => {
             execute: async ({ sku }) => ({ sku }),
           }),
         },
-        experimental_toolCallers: callers => {
-          expectTypeOf(callers.code_mode.toolName).toEqualTypeOf<'code_mode'>();
-          // @ts-expect-error regular tools are not caller references
-          callers.getInventory;
-
-          return {
-            getInventory: ['direct', callers.code_mode],
-          };
+        experimental_toolCallers: {
+          getInventory: ['AI_SDK_DIRECT_TOOL_CALL', 'code_mode'],
         },
       });
     });

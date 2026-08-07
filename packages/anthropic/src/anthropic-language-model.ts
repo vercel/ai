@@ -1,5 +1,6 @@
 import {
   APICallError,
+  InvalidResponseDataError,
   type JSONObject,
   type LanguageModelV4,
   type LanguageModelV4CallOptions,
@@ -126,7 +127,7 @@ function createCitationSource(
   };
 }
 
-type AnthropicLanguageModelConfig = {
+export type AnthropicLanguageModelConfig = {
   provider: string;
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
@@ -156,7 +157,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
   readonly modelId: AnthropicModelId;
 
-  private readonly config: AnthropicLanguageModelConfig;
+  protected readonly config: AnthropicLanguageModelConfig;
   private readonly generateId: () => string;
 
   static [WORKFLOW_SERIALIZE](model: AnthropicLanguageModel) {
@@ -201,7 +202,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     return this.config.supportedUrls?.() ?? {};
   }
 
-  private async getArgs({
+  protected async getArgs({
     userSuppliedBetas,
     prompt,
     maxOutputTokens,
@@ -875,7 +876,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     );
   }
 
-  private transformRequestBody(
+  protected transformRequestBody(
     args: Record<string, any>,
     betas: Set<string>,
   ): Record<string, any> {
@@ -1388,6 +1389,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               result: {
                 type: 'advisor_result',
                 text: part.content.text,
+                ...(part.content.stop_reason != null && {
+                  stopReason: part.content.stop_reason,
+                }),
               },
             });
           } else if (part.content.type === 'advisor_redacted_result') {
@@ -1398,6 +1402,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               result: {
                 type: 'advisor_redacted_result',
                 encryptedContent: part.content.encrypted_content,
+                ...(part.content.stop_reason != null && {
+                  stopReason: part.content.stop_reason,
+                }),
               },
             });
           } else {
@@ -1588,6 +1595,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     let stopDetails: AnthropicMessageMetadata['stopDetails'] = undefined;
     let container: AnthropicMessageMetadata['container'] | null = null;
     let isJsonResponseFromTool = false;
+    let isMessageOpen = false;
+    let activeMessageId: string | null | undefined;
+    let hasInvalidMessageSequence = false;
 
     let blockType:
       | 'text'
@@ -1619,6 +1629,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         },
 
         transform(chunk, controller) {
+          if (hasInvalidMessageSequence) {
+            return;
+          }
+
           if (options.includeRawChunks) {
             controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
           }
@@ -2097,6 +2111,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       result: {
                         type: 'advisor_result',
                         text: part.content.text,
+                        ...(part.content.stop_reason != null && {
+                          stopReason: part.content.stop_reason,
+                        }),
                       },
                     });
                   } else if (part.content.type === 'advisor_redacted_result') {
@@ -2107,6 +2124,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       result: {
                         type: 'advisor_redacted_result',
                         encryptedContent: part.content.encrypted_content,
+                        ...(part.content.stop_reason != null && {
+                          stopReason: part.content.stop_reason,
+                        }),
                       },
                     });
                   } else {
@@ -2405,6 +2425,27 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             }
 
             case 'message_start': {
+              if (isMessageOpen) {
+                if (activeMessageId === value.message.id) {
+                  return;
+                }
+
+                hasInvalidMessageSequence = true;
+                controller.enqueue({
+                  type: 'error',
+                  error: new InvalidResponseDataError({
+                    data: value,
+                    message:
+                      `Received message_start for message ${JSON.stringify(value.message.id)} ` +
+                      `while message ${JSON.stringify(activeMessageId)} is still open.`,
+                  }),
+                });
+                return;
+              }
+
+              isMessageOpen = true;
+              activeMessageId = value.message.id;
+
               usage.input_tokens = value.message.usage.input_tokens;
               usage.cache_read_input_tokens =
                 value.message.usage.cache_read_input_tokens ?? 0;
@@ -2559,6 +2600,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             }
 
             case 'message_stop': {
+              isMessageOpen = false;
+              activeMessageId = undefined;
+
               const anthropicMetadata = {
                 usage: (rawUsage as JSONObject) ?? null,
                 stopSequence,

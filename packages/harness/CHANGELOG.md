@@ -1,5 +1,88 @@
 # @ai-sdk/harness
 
+## 1.0.63
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+  - ai@7.0.57
+
+## 1.0.62
+
+### Patch Changes
+
+- 25c9120: Expose provider metadata on language-model-call end callbacks and telemetry spans.
+- Updated dependencies [25c9120]
+- Updated dependencies [89080c8]
+- Updated dependencies [79d6195]
+  - ai@7.0.56
+
+## 1.0.61
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - ai@7.0.55
+  - @ai-sdk/provider-utils@5.0.23
+
+## 1.0.60
+
+### Patch Changes
+
+- Updated dependencies [a6b17a2]
+- Updated dependencies [5615eb7]
+- Updated dependencies [36a3ff6]
+  - ai@7.0.54
+
+## 1.0.59
+
+### Patch Changes
+
+- 81bcf2e: feat(harness): add `HarnessBridgeCapabilityUnsupportedError` for bridge code that needs to flag missing capability
+- Updated dependencies [cd0177b]
+- Updated dependencies [2b60826]
+- Updated dependencies [a09fdef]
+  - ai@7.0.53
+  - @ai-sdk/provider-utils@5.0.22
+
+## 1.0.58
+
+### Patch Changes
+
+- Updated dependencies [3836a85]
+- Updated dependencies [1bec07d]
+  - ai@7.0.52
+  - @ai-sdk/provider-utils@5.0.21
+
+## 1.0.57
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+  - ai@7.0.51
+
+## 1.0.56
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+- Updated dependencies [da64b51]
+  - @ai-sdk/provider@4.0.5
+  - ai@7.0.50
+  - @ai-sdk/provider-utils@5.0.19
+
+## 1.0.55
+
+### Patch Changes
+
+- 2c0a8aa: fix(harness): remove unused and unnecessary `workingDirectory` property from `HarnessV1BootstrapCommand`
+- 861d423: feat(harness): improve harness sandbox auth error handling and expose `getHarnessErrorMessage()` helper
+- 8f10600: fix(harness): rename harness bridge `detach` to `stop` and `shutdown` to `destroy` for clarity
+  - ai@7.0.49
+
 ## 1.0.54
 
 ### Patch Changes

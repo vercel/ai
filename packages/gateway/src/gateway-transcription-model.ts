@@ -27,7 +27,7 @@ import {
   type WebSocketConstructor,
   type WebSocketLike,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import { z } from './zod';
 import { asGatewayError, createGatewayErrorFromResponse } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';

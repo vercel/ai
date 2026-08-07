@@ -1,5 +1,73 @@
 # @ai-sdk/code-mode
 
+## 1.0.14
+
+### Patch Changes
+
+- ai@7.0.57
+
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [25c9120]
+- Updated dependencies [89080c8]
+- Updated dependencies [79d6195]
+  - ai@7.0.56
+
+## 1.0.12
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - ai@7.0.55
+
+## 1.0.11
+
+### Patch Changes
+
+- Updated dependencies [a6b17a2]
+- Updated dependencies [5615eb7]
+- Updated dependencies [36a3ff6]
+  - ai@7.0.54
+
+## 1.0.10
+
+### Patch Changes
+
+- Updated dependencies [cd0177b]
+- Updated dependencies [a09fdef]
+  - ai@7.0.53
+
+## 1.0.9
+
+### Patch Changes
+
+- Updated dependencies [3836a85]
+  - ai@7.0.52
+
+## 1.0.8
+
+### Patch Changes
+
+- ai@7.0.51
+
+## 1.0.7
+
+### Patch Changes
+
+- 8b7f805: feat(code-mode): add signed interruption continuations and deterministic nested tool replay
+- da64b51: feat(code-mode): simplify tool caller configuration
+- Updated dependencies [79e133c]
+- Updated dependencies [da64b51]
+  - ai@7.0.50
+
+## 1.0.6
+
+### Patch Changes
+
+- ai@7.0.49
+
 ## 1.0.5
 
 ### Patch Changes

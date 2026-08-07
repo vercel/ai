@@ -21,6 +21,8 @@ Run the following commands to update each harness's primary SDK packages.
 Run these commands exactly as below:
 
 ```bash
+# ACP
+pnpm --filter harness-acp update @agentclientprotocol/sdk @modelcontextprotocol/sdk --latest --lockfile-only
 # Claude Code
 pnpm --filter harness-claude-code update @anthropic-ai/claude-agent-sdk @modelcontextprotocol/sdk --latest --lockfile-only
 # Codex
@@ -38,6 +40,8 @@ For the bridge dependencies of bridge harnesses, you must additionally run the f
 Run these commands exactly as below:
 
 ```bash
+# ACP
+pnpm --dir packages/harness-acp/src/v1/bridge update @agentclientprotocol/sdk @modelcontextprotocol/sdk --latest --ignore-workspace --config.minimumReleaseAge=4320
 # Claude Code
 pnpm --dir packages/harness-claude-code/src/bridge update @anthropic-ai/claude-agent-sdk @anthropic-ai/claude-code @modelcontextprotocol/sdk --latest --ignore-workspace --config.minimumReleaseAge=4320
 # Codex

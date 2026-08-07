@@ -32,6 +32,7 @@ export {
 
 // directory exports
 export * from './agent';
+export * from './batch';
 export * from './embed';
 export * from './error';
 export * from './generate-image';
