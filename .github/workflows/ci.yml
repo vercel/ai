@@ -149,6 +149,7 @@ jobs:
             'apps/docs/**' \
             'content/docs/**' \
             'content/providers/**' \
+            'content/cookbook/**' \
             'package.json' \
             'pnpm-lock.yaml' \
             'pnpm-workspace.yaml'; then
@@ -171,6 +172,19 @@ jobs:
       - name: Install dependencies
         if: steps.docs-changes.outputs.changed == 'true'
         run: pnpm install --frozen-lockfile
+
+      # The docs build peaks above the standard runner's 16 GB of RAM
+      # (every versioned content family is compiled into one app), which
+      # OOM-kills the runner agent mid-compile. Swap absorbs the peak, the
+      # same way Vercel's build machines handle it.
+      - name: Add swap space
+        if: steps.docs-changes.outputs.changed == 'true'
+        run: |
+          sudo fallocate -l 12G /mnt/swapfile
+          sudo chmod 600 /mnt/swapfile
+          sudo mkswap /mnt/swapfile
+          sudo swapon /mnt/swapfile
+          free -h
 
       - name: Test and build docs
         if: steps.docs-changes.outputs.changed == 'true'

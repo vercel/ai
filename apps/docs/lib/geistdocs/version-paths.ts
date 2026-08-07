@@ -1,4 +1,11 @@
-import { v5Sources, v6Sources, v7Sources } from './source';
+import {
+  recipesV5Source,
+  recipesV6Source,
+  recipesV7Source,
+  v5Sources,
+  v6Sources,
+  v7Sources,
+} from './source';
 
 const collect = (
   bundles: typeof v7Sources,
@@ -13,9 +20,11 @@ const collect = (
   return paths;
 };
 
-const v7Paths = collect(v7Sources, null);
-const v6Paths = collect(v6Sources, /^\/v6/);
-const v5Paths = collect(v5Sources, /^\/v5/);
+// The /resources/recipes mirror participates in version switching even
+// though it stays out of the sitemap/llms/search surfaces.
+const v7Paths = collect([...v7Sources, recipesV7Source], null);
+const v6Paths = collect([...v6Sources, recipesV6Source], /^\/v6/);
+const v5Paths = collect([...v5Sources, recipesV5Source], /^\/v5/);
 const allPaths = new Set([...v7Paths, ...v6Paths, ...v5Paths]);
 
 export const missingVersionPaths = {
