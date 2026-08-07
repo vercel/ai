@@ -385,7 +385,7 @@ function emitLegacyToolPart({
       authorizeHostToolCall({
         callID,
         toolName: hostToolName,
-        input: legacyToolPartInput(toolPart),
+        input: toolPart.state?.input ?? {},
       });
     }
     return;
