@@ -1267,6 +1267,30 @@ describe('ByteDanceVideoModel', () => {
         another_param: 123,
       });
     });
+
+    it('should not pass legacy poll options through to the request body', async () => {
+      const model = createBasicModel();
+
+      await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          bytedance: {
+            pollIntervalMs: 1000,
+            pollTimeoutMs: 600000,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'seedance-1-0-pro-250528',
+        content: [
+          {
+            type: 'text',
+            text: prompt,
+          },
+        ],
+      });
+    });
   });
 
   describe('Error Handling', () => {
@@ -1328,6 +1352,29 @@ describe('ByteDanceVideoModel', () => {
       expect(result.status).toBe('error');
       expect(result.status === 'error' ? result.error : undefined).toContain(
         'Video generation cancelled',
+      );
+    });
+
+    it('should return error status when task is canceled (single-l spelling)', async () => {
+      server.urls[
+        'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/test-task-id-123'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'test-task-id-123',
+          status: 'canceled',
+        },
+      };
+
+      const model = createBasicModel();
+
+      const result = await model.doStatus({
+        operation: { taskId: 'test-task-id-123' },
+      });
+
+      expect(result.status).toBe('error');
+      expect(result.status === 'error' ? result.error : undefined).toContain(
+        'Video generation canceled',
       );
     });
 

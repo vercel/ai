@@ -425,6 +425,7 @@ export class ByteDanceVideoModel implements VideoModelV4 {
       };
     }
 
+    // ModelArk documents `cancelled`; `canceled` is handled defensively.
     if (
       statusResponse.status === 'failed' ||
       statusResponse.status === 'cancelled' ||
