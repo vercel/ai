@@ -16,9 +16,10 @@ import {
   type SpeechifySpeechRequest,
   speechifySpeechResponseSchema,
 } from './speechify-api-types';
-import type {
-  SpeechifySpeechModelId,
-  SpeechifySpeechVoiceId,
+import {
+  type SpeechifySpeechModelId,
+  type SpeechifySpeechVoiceId,
+  SIMBA_3_2_VOICES,
 } from './speechify-speech-options';
 
 const DEFAULT_VOICE_ID: SpeechifySpeechVoiceId = 'geffen_32';
@@ -94,6 +95,18 @@ export class SpeechifySpeechModel implements SpeechModelV4 {
     providerOptions,
   }: Parameters<SpeechModelV4['doGenerate']>[0]) {
     const warnings: SharedV4Warning[] = [];
+
+    // Warn when a simba-3.2 curated voice is used with a non-simba-3.2 model
+    if (
+      (SIMBA_3_2_VOICES as readonly string[]).includes(voice) &&
+      this.modelId !== 'simba-3.2'
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'voice',
+        details: `The voice "${voice}" is a simba-3.2 curated voice and may not be available on the ${this.modelId} model. Use a voice from the model's supported voice set.`,
+      });
+    }
 
     const speechifyOptions = await parseProviderOptions({
       provider: 'speechify',
