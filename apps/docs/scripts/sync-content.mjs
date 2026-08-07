@@ -43,7 +43,7 @@ const versions = [
 ];
 
 /** Content families to sync. */
-const families = ["docs", "providers"];
+const families = ["docs", "providers", "cookbook"];
 
 const log = (msg) => console.log(`[sync-content] ${msg}`);
 
