@@ -1,10 +1,10 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { grokBuild } from '@ai-sdk/harness-grok-build';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 run(async () => {
   const sandbox = createVercelSandbox({
@@ -29,6 +29,7 @@ run(async () => {
     harness: grokBuild,
     sandbox,
     tools: { weather },
+    activeTools: ['weather'],
   });
 
   let exitCode = 0;
@@ -37,12 +38,10 @@ run(async () => {
     const result = await agent.stream({
       session,
       prompt:
-        'What is the weather in Paris and Reykjavik? Use the `weather` tool, then summarize in one sentence.',
+        'Use the `weather` tool for Paris, then read README.md and summarize both results in one sentence.',
     });
 
     await printFullStream({ result });
-
-    console.log('steps:', (await result.steps).length);
   } catch (err) {
     exitCode = 1;
     console.error('[example] failed:', err);

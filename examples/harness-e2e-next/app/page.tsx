@@ -54,6 +54,20 @@ const HARNESSES = [
     ],
   },
   {
+    slug: 'grok-build',
+    label: 'Grok Build',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+  {
     slug: 'opencode',
     label: 'OpenCode',
     variants: [
@@ -110,8 +124,8 @@ const HARNESSES = [
     ],
   },
   {
-    slug: 'grok-build',
-    label: 'Grok Build',
+    slug: 'acp-grok-build',
+    label: 'ACP: Grok Build',
     variants: [
       'basic',
       'basic-with-stop',
