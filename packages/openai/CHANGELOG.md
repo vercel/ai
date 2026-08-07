@@ -1,5 +1,12 @@
 # @ai-sdk/openai
 
+## 4.0.34
+
+### Patch Changes
+
+- 73d48d0: fix(provider/openai): correlate rotating Responses API item IDs by output index
+- bbd9b31: chore: rename `*TranslationModel` and its related types to `*SpeechTranslationModel` for consistency
+
 ## 4.0.33
 
 ### Patch Changes
