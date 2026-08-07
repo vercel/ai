@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 5.0.24
+
+### Patch Changes
+
+- 1937bef: fix(provider-utils): make URL regex checks stateless
+
 ## 5.0.23
 
 ### Patch Changes
