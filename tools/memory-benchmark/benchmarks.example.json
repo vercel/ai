@@ -1,0 +1,92 @@
+{
+  "defaults": {
+    "iterations": 5,
+    "sampleIntervalMs": 100,
+    "startupTimeoutMs": 120000,
+    "timeoutMs": 600000,
+    "baselineDurationMs": 3000,
+    "cooldownMs": 3000,
+    "terminateGraceMs": 5000
+  },
+  "benchmarks": [
+    {
+      "name": "scira",
+      "cwd": "${AI_SDK_BENCH_ROOT}/scira",
+      "command": ["pnpm", "dev"],
+      "readyPattern": "(Ready in|Local:)",
+      "workloadCommand": [
+        "sh",
+        "-lc",
+        "test -n \"$SCIRA_MEMORY_WORKLOAD\" || { echo 'Set SCIRA_MEMORY_WORKLOAD'; exit 2; }; eval \"$SCIRA_MEMORY_WORKLOAD\""
+      ],
+      "tags": ["nextjs", "streaming", "tools", "ai-sdk-6"],
+      "notes": "Set SCIRA_MEMORY_WORKLOAD to a curl or Playwright command that submits one fixed search and consumes the complete stream."
+    },
+    {
+      "name": "zero",
+      "cwd": "${AI_SDK_BENCH_ROOT}/zero-mail",
+      "command": ["pnpm", "--filter", "@zero/server", "dev"],
+      "readyPattern": "(Ready on|localhost:8787|wrangler dev)",
+      "workloadCommand": [
+        "sh",
+        "-lc",
+        "test -n \"$ZERO_MEMORY_WORKLOAD\" || { echo 'Set ZERO_MEMORY_WORKLOAD'; exit 2; }; eval \"$ZERO_MEMORY_WORKLOAD\""
+      ],
+      "tags": ["cloudflare", "agent", "tools", "ai-sdk-4"],
+      "notes": "Set ZERO_MEMORY_WORKLOAD to a deterministic authenticated chat or eval request."
+    },
+    {
+      "name": "superdesign",
+      "cwd": "${AI_SDK_BENCH_ROOT}/superdesign",
+      "command": ["npm", "run", "test:llm"],
+      "tags": ["vscode", "streaming", "tools", "ai-sdk-4"],
+      "notes": "Use the upstream LLM integration test or replace this with a VS Code extension-host test that generates the same design every run."
+    },
+    {
+      "name": "shortest",
+      "cwd": "${AI_SDK_BENCH_ROOT}/shortest",
+      "command": [
+        "pnpm",
+        "--dir",
+        "packages/shortest",
+        "cli",
+        "--",
+        "../../examples/google.test.ts",
+        "--headless"
+      ],
+      "tags": ["browser", "computer-use", "tools", "ai-sdk-4"],
+      "notes": "Build the Shortest CLI first. Replace the example with a local deterministic page to remove network and browser-content variance."
+    },
+    {
+      "name": "node-deep-research",
+      "cwd": "${AI_SDK_BENCH_ROOT}/node-deep-research",
+      "command": [
+        "npm",
+        "run",
+        "dev",
+        "--",
+        "Compare HTTP/2 and HTTP/3 in five concise points."
+      ],
+      "tags": ["cli", "generate-object", "multi-step", "ai-sdk-4"],
+      "notes": "Set a fixed token budget in the application configuration and use the same model and search provider for every run."
+    },
+    {
+      "name": "neovate-code",
+      "cwd": "${AI_SDK_BENCH_ROOT}/neovate-code",
+      "command": [
+        "bun",
+        "./src/cli.ts",
+        "--quiet",
+        "--output-format",
+        "json",
+        "--approval-mode",
+        "yolo",
+        "--cwd",
+        "${AI_SDK_BENCH_FIXTURE}",
+        "Inspect package.json and summarize its scripts. Do not modify files."
+      ],
+      "tags": ["cli", "coding-agent", "middleware", "ai-sdk-6"],
+      "notes": "Point AI_SDK_BENCH_FIXTURE at a small immutable fixture repository."
+    }
+  ]
+}

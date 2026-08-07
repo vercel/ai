@@ -4240,6 +4240,8 @@ importers:
         specifier: ^4.1.8
         version: 4.4.3
 
+  tools/memory-benchmark: {}
+
   tools/tsconfig: {}
 
 packages:
