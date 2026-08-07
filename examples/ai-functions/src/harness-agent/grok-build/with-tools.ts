@@ -37,10 +37,12 @@ run(async () => {
     const result = await agent.stream({
       session,
       prompt:
-        'Use the `weather` tool for Paris, then read README.md and summarize both results in one sentence.',
+        'What is the weather in Paris and Reykjavik? Use the `weather` tool, then summarize in one sentence.',
     });
 
     await printFullStream({ result });
+
+    console.log('steps:', (await result.steps).length);
   } catch (err) {
     exitCode = 1;
     console.error('[example] failed:', err);
