@@ -97,6 +97,11 @@ export type LanguageModelV4StreamPart =
       providerMetadata?: SharedV4ProviderMetadata;
     }
 
+  // ping events that keep the stream connection alive
+  | {
+      type: 'ping';
+    }
+
   // raw chunks if enabled
   | {
       type: 'raw';

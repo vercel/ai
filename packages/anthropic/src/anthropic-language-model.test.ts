@@ -6602,6 +6602,9 @@ describe('AnthropicLanguageModel', () => {
               "type": "text-start",
             },
             {
+              "type": "ping",
+            },
+            {
               "delta": "{"elements": [{"location": "San Francisco", "temperature": 58, "condition": "sunny"}]",
               "id": "0",
               "type": "text-delta",
@@ -6753,8 +6756,14 @@ describe('AnthropicLanguageModel', () => {
               "type": "response-metadata",
             },
             {
+              "type": "ping",
+            },
+            {
               "id": "1",
               "type": "text-start",
+            },
+            {
+              "type": "ping",
             },
             {
               "delta": "{"elements": [{"location": "San Francisco", "temperature": 58, "condition": "sunny"}]",
@@ -6951,14 +6960,23 @@ describe('AnthropicLanguageModel', () => {
                 "type": "tool-input-start",
               },
               {
+                "type": "ping",
+              },
+              {
                 "delta": "{"location": "San Francisco",
                 "id": "toolu_019Zvehfe1XQWweT1pm7okyt",
                 "type": "tool-input-delta",
               },
               {
+                "type": "ping",
+              },
+              {
                 "delta": ""}",
                 "id": "toolu_019Zvehfe1XQWweT1pm7okyt",
                 "type": "tool-input-delta",
+              },
+              {
+                "type": "ping",
               },
               {
                 "id": "toolu_019Zvehfe1XQWweT1pm7okyt",
@@ -6970,6 +6988,12 @@ describe('AnthropicLanguageModel', () => {
                 "toolCallId": "toolu_019Zvehfe1XQWweT1pm7okyt",
                 "toolName": "weather",
                 "type": "tool-call",
+              },
+              {
+                "type": "ping",
+              },
+              {
+                "type": "ping",
               },
               {
                 "finishReason": {
@@ -8011,6 +8035,9 @@ describe('AnthropicLanguageModel', () => {
             "type": "text-start",
           },
           {
+            "type": "ping",
+          },
+          {
             "delta": "Okay",
             "id": "0",
             "type": "text-delta",
@@ -8134,6 +8161,9 @@ describe('AnthropicLanguageModel', () => {
           {
             "id": "0",
             "type": "text-start",
+          },
+          {
+            "type": "ping",
           },
           {
             "error": {
@@ -8431,6 +8461,9 @@ describe('AnthropicLanguageModel', () => {
             "type": "text-start",
           },
           {
+            "type": "ping",
+          },
+          {
             "delta": "Hello",
             "id": "0",
             "type": "text-delta",
@@ -8520,6 +8553,9 @@ describe('AnthropicLanguageModel', () => {
           {
             "id": "0",
             "type": "text-start",
+          },
+          {
+            "type": "ping",
           },
           {
             "delta": "Hello",
@@ -8617,6 +8653,9 @@ describe('AnthropicLanguageModel', () => {
           {
             "id": "0",
             "type": "text-start",
+          },
+          {
+            "type": "ping",
           },
           {
             "delta": "Hello",
@@ -8845,6 +8884,32 @@ describe('AnthropicLanguageModel', () => {
             },
           ]
         `);
+    });
+
+    it('should forward ping events without raw chunks enabled', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"ping"}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":2}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      expect(chunks.filter(chunk => chunk.type === 'ping')).toEqual([
+        { type: 'ping' },
+      ]);
+      expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
     });
 
     describe('raw chunks', () => {
@@ -9382,6 +9447,9 @@ describe('AnthropicLanguageModel', () => {
                 "type": "text-start",
               },
               {
+                "type": "ping",
+              },
+              {
                 "delta": "Okay",
                 "id": "0",
                 "type": "text-delta",
@@ -9523,13 +9591,22 @@ describe('AnthropicLanguageModel', () => {
                 "type": "text-delta",
               },
               {
+                "type": "ping",
+              },
+              {
                 "id": "0",
                 "type": "text-end",
+              },
+              {
+                "type": "ping",
               },
               {
                 "id": "toolu_01QE1WLsSVp5hy5Q3GmGTmjP",
                 "toolName": "updateIssueList",
                 "type": "tool-input-start",
+              },
+              {
+                "type": "ping",
               },
               {
                 "id": "toolu_01QE1WLsSVp5hy5Q3GmGTmjP",

@@ -21336,6 +21336,33 @@ describe('streamText', () => {
     });
   });
 
+  describe('ping forwarding', () => {
+    it('should forward ping chunks without enabling raw chunks', async () => {
+      const model = createTestModel({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start', warnings: [] },
+          { type: 'ping' },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ]),
+      });
+
+      const result = streamText({
+        model,
+        prompt: 'test prompt',
+      });
+
+      const chunks = await convertAsyncIterableToArray(result.stream);
+
+      expect(chunks.filter(chunk => chunk.type === 'ping')).toEqual([
+        { type: 'ping' },
+      ]);
+    });
+  });
+
   describe('raw chunks forwarding', () => {
     it('should forward raw chunks when include.rawChunks is enabled', async () => {
       const modelWithRawChunks = createTestModel({

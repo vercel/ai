@@ -375,6 +375,7 @@ export function toUIMessageChunk<
     }
 
     case 'tool-input-end':
+    case 'ping':
     case 'raw': {
       return undefined;
     }
