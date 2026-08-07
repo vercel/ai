@@ -6,6 +6,7 @@ import type { ValueOf } from '../util/value-of';
 type BaseToolCall = {
   type: 'tool-call';
   toolCallId: string;
+  callerToolCallId?: string;
   providerExecuted?: boolean;
   providerMetadata?: ProviderMetadata;
   toolMetadata?: JSONObject;

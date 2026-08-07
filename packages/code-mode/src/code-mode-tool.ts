@@ -2,8 +2,13 @@ import {
   experimental_toolCaller,
   jsonSchema,
   tool,
-  type Experimental_ToolCallerTool,
+  type Experimental_ToolWithCaller,
 } from 'ai';
+import {
+  continueCodeModeApproval,
+  isCodeModeApprovalInterrupt,
+} from './approval-continuation.js';
+import { getCodeModeInterrupt } from './interrupt-continuation.js';
 import { runCodeMode } from './run-code-mode.js';
 import { buildCodeModeToolDescription } from './tool-prompt.js';
 import type {
@@ -51,10 +56,69 @@ export function createCodeModeTool(
  */
 export function codeModeTool(
   options: CodeModeOptions = {},
-): Experimental_ToolCallerTool<CodeModeTool> {
+): Experimental_ToolWithCaller<CodeModeTool> {
   return experimental_toolCaller(createCodeModeTool({}, options), {
     type: 'local',
-    bind: tools =>
-      createCodeModeTool(tools as unknown as CodeModeToolSet, options),
+    bind: (tools, context) =>
+      createCodeModeTool(tools as unknown as CodeModeToolSet, {
+        ...options,
+        approval: {
+          ...options.approval,
+          mode: 'interrupt',
+          resolve: context.resolveToolApproval,
+        },
+      }),
+    getApprovalRequest: output => {
+      const interrupt = getCodeModeInterrupt(
+        output,
+        options.continuationSecurity,
+      );
+      if (
+        !isCodeModeApprovalInterrupt(interrupt, options.continuationSecurity)
+      ) {
+        return undefined;
+      }
+      return {
+        approvalId: interrupt.interruptId,
+        callerToolCallId: interrupt.outerToolCallId,
+        toolCall: {
+          toolCallId: interrupt.toolCallId,
+          toolName: interrupt.toolName,
+          input: interrupt.input,
+        },
+      };
+    },
+    continueApproval: async ({
+      output,
+      approvalResponse,
+      tools,
+      toolExecutionOptions,
+      resolveToolApproval,
+    }) => {
+      const interrupt = getCodeModeInterrupt(
+        output,
+        options.continuationSecurity,
+      );
+      if (
+        !isCodeModeApprovalInterrupt(interrupt, options.continuationSecurity)
+      ) {
+        throw new TypeError(
+          'Tool caller output does not contain a code-mode approval interrupt.',
+        );
+      }
+      return await continueCodeModeApproval({
+        interrupt,
+        approvalResponse,
+        tools: tools as CodeModeToolSet,
+        options: {
+          ...options,
+          approval: {
+            ...options.approval,
+            resolve: resolveToolApproval,
+          },
+        },
+        toolExecutionOptions,
+      });
+    },
   });
 }

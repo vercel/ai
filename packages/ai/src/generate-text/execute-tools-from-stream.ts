@@ -15,6 +15,10 @@ import { resolveToolApproval } from './resolve-tool-approval';
 import type { LanguageModelStreamPart } from './stream-language-model-call';
 import { maybeSignApproval } from './tool-approval-signature';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
+import {
+  createToolCallerApprovalRequestOutput,
+  getToolCallerApprovalRequest,
+} from './tool-caller-configuration';
 import type { TypedToolCall } from './tool-call';
 import type {
   OnToolExecutionEndCallback,
@@ -227,6 +231,24 @@ export function executeToolsFromStream<
                       toolExecutionMs: result.toolExecutionMs,
                     });
                     controller.enqueue(result.output);
+
+                    if (result.output.type === 'tool-result') {
+                      const callerApproval = getToolCallerApprovalRequest({
+                        callerToolName: result.output.toolName,
+                        output: result.output.output,
+                        tools,
+                      });
+                      if (callerApproval !== undefined) {
+                        const approvalRequest =
+                          await createToolCallerApprovalRequestOutput<TOOLS>({
+                            request: callerApproval,
+                            toolApprovalSecret,
+                          });
+
+                        controller.enqueue(approvalRequest.toolCall);
+                        controller.enqueue(approvalRequest);
+                      }
+                    }
                   }
                 } catch (error) {
                   controller.enqueue({

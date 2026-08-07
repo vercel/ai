@@ -84,6 +84,10 @@ import { prepareRetries } from '../util/prepare-retries';
 import { setAbortTimeout } from '../util/set-abort-timeout';
 import type { ActiveTools } from './active-tools';
 import { collectToolApprovals } from './collect-tool-approvals';
+import {
+  continueToolCallerApprovals,
+  normalizeToolCallerApprovalMessages,
+} from './continue-tool-caller-approvals';
 import type { ContentPart } from './content-part';
 import {
   executeToolsFromStream,
@@ -135,8 +139,12 @@ import type {
   UIMessageStreamOptions,
 } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
+import { resolveToolApproval } from './resolve-tool-approval';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
+import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import {
+  createToolCallerApprovalRequestOutput,
+  getToolCallerApprovalRequest,
   prepareToolsForToolCallers,
   resolveToolCallerConfiguration,
   type Experimental_ToolCallers,
@@ -1668,22 +1676,44 @@ class DefaultStreamTextResult<
         callbacks: [onStart, telemetryDispatcher.onStart],
       });
 
-      const initialMessages = initialPrompt.messages;
+      let initialMessages = initialPrompt.messages;
+      const callerContinuationResponseMessages: Array<ResponseMessage> = [];
+      const pendingToolCallerApprovals: Array<
+        ToolApprovalRequestOutput<TOOLS>
+      > = [];
       let instructionsForNextStep = initialPrompt.instructions;
+      const { executionTools: initialExecutionTools } =
+        prepareToolsForToolCallers({
+          tools,
+          toolCallers: resolvedToolCallers,
+          resolveToolApproval: async toolCall =>
+            await resolveToolApproval({
+              tools,
+              toolCall: {
+                type: 'tool-call',
+                ...toolCall,
+                dynamic: false,
+              } as TypedToolCall<TOOLS>,
+              toolApproval,
+              messages: initialMessages,
+              toolsContext,
+              runtimeContext,
+            }),
+        });
 
       const { approvedToolApprovals, deniedToolApprovals } =
         collectToolApprovals<TOOLS>({ messages: initialMessages });
 
       // initial tool execution step stream
       if (deniedToolApprovals.length > 0 || approvedToolApprovals.length > 0) {
-        const {
+        let {
           approvedToolApprovals: localApprovedToolApprovals,
           deniedToolApprovals: revalidationDeniedToolApprovals,
         } = await validateApprovedToolApprovals<TOOLS, RUNTIME_CONTEXT>({
           approvedToolApprovals: approvedToolApprovals.filter(
             toolApproval => !toolApproval.toolCall.providerExecuted,
           ),
-          tools,
+          tools: initialExecutionTools,
           toolApproval,
           messages: initialMessages,
           toolsContext,
@@ -1691,20 +1721,16 @@ class DefaultStreamTextResult<
           toolApprovalSecret: experimental_toolApprovalSecret,
         });
 
-        const localDeniedToolApprovals = [
+        let localDeniedToolApprovals = [
           ...deniedToolApprovals.filter(
             toolApproval => !toolApproval.toolCall.providerExecuted,
           ),
           ...revalidationDeniedToolApprovals,
         ];
-        const localDeniedToolApprovalsWithoutResults =
+        let localDeniedToolApprovalsWithoutResults =
           localDeniedToolApprovals.filter(
             toolApproval => toolApproval.existingToolResult == null,
           );
-
-        const deniedProviderExecutedToolApprovals = deniedToolApprovals.filter(
-          toolApproval => toolApproval.toolCall.providerExecuted,
-        );
 
         let toolExecutionStepStreamController:
           | ReadableStreamDefaultController<TextStreamPart<TOOLS>>
@@ -1720,6 +1746,76 @@ class DefaultStreamTextResult<
         self.addStream(toolExecutionStepStream);
 
         try {
+          if (tools != null) {
+            const continuedApprovals = await continueToolCallerApprovals({
+              approvals: [
+                ...localApprovedToolApprovals,
+                ...localDeniedToolApprovalsWithoutResults,
+              ],
+              messages: initialMessages,
+              tools,
+              toolCallers: resolvedToolCallers,
+              toolsContext,
+              abortSignal,
+              resolveToolApproval: async (toolCall, messages) =>
+                await resolveToolApproval({
+                  tools,
+                  toolCall: {
+                    type: 'tool-call',
+                    ...toolCall,
+                    dynamic: false,
+                  } as TypedToolCall<TOOLS>,
+                  toolApproval,
+                  messages,
+                  toolsContext,
+                  runtimeContext,
+                }),
+            });
+            for (const continuation of continuedApprovals.continued) {
+              if (continuation.nextApprovalRequest !== undefined) {
+                pendingToolCallerApprovals.push(
+                  await createToolCallerApprovalRequestOutput({
+                    request: continuation.nextApprovalRequest,
+                    toolApprovalSecret: experimental_toolApprovalSecret,
+                  }),
+                );
+              }
+            }
+            if (continuedApprovals.continued.length > 0) {
+              initialMessages = continuedApprovals.messages;
+              for (const continuation of continuedApprovals.continued) {
+                toolExecutionStepStreamController?.enqueue(
+                  continuation.toolOutput,
+                );
+              }
+              callerContinuationResponseMessages.push(
+                ...continuedApprovals.continued.map(
+                  continuation => continuation.responseMessage,
+                ),
+              );
+              initialResponseMessages.push(
+                ...callerContinuationResponseMessages,
+              );
+            }
+            localApprovedToolApprovals = localApprovedToolApprovals.filter(
+              approval => continuedApprovals.remaining.includes(approval),
+            );
+            localDeniedToolApprovals = localDeniedToolApprovals.filter(
+              approval =>
+                approval.existingToolResult != null ||
+                continuedApprovals.remaining.includes(approval),
+            );
+            localDeniedToolApprovalsWithoutResults =
+              localDeniedToolApprovalsWithoutResults.filter(approval =>
+                continuedApprovals.remaining.includes(approval),
+              );
+          }
+
+          const deniedProviderExecutedToolApprovals =
+            deniedToolApprovals.filter(
+              toolApproval => toolApproval.toolCall.providerExecuted,
+            );
+
           for (const toolApproval of [
             ...localDeniedToolApprovals,
             ...deniedProviderExecutedToolApprovals,
@@ -1737,7 +1833,7 @@ class DefaultStreamTextResult<
             localApprovedToolApprovals.map(async toolApproval => {
               const result = await executeToolCall({
                 toolCall: toolApproval.toolCall,
-                tools,
+                tools: initialExecutionTools,
                 callId,
                 messages: initialMessages,
                 abortSignal,
@@ -1760,6 +1856,22 @@ class DefaultStreamTextResult<
               });
 
               if (result != null) {
+                if (result.output.type === 'tool-result') {
+                  const callerApproval = getToolCallerApprovalRequest({
+                    callerToolName: result.output.toolName,
+                    output: result.output.output,
+                    tools: initialExecutionTools,
+                  });
+                  if (callerApproval !== undefined) {
+                    pendingToolCallerApprovals.push(
+                      await createToolCallerApprovalRequestOutput({
+                        request: callerApproval,
+                        toolApprovalSecret: experimental_toolApprovalSecret,
+                      }),
+                    );
+                  }
+                }
+
                 toolExecutionStepStreamController?.enqueue(result.output);
                 toolOutputs.push(result.output);
               }
@@ -1782,7 +1894,7 @@ class DefaultStreamTextResult<
                 output: await createToolModelOutput({
                   toolCallId: output.toolCallId,
                   input: output.input,
-                  tool: getOwn(tools, output.toolName),
+                  tool: getOwn(initialExecutionTools, output.toolName),
                   output:
                     output.type === 'tool-result'
                       ? output.output
@@ -1815,7 +1927,60 @@ class DefaultStreamTextResult<
         }
       }
 
+      initialMessages = normalizeToolCallerApprovalMessages({
+        messages: initialMessages,
+      });
       self._initialResponseMessages.resolve(initialResponseMessages);
+      if (pendingToolCallerApprovals.length > 0) {
+        const usage = createNullLanguageModelUsage();
+        stepFinish = new DelayedPromise<void>();
+        self.addStream(
+          new ReadableStream<TextStreamPart<TOOLS>>({
+            start(controller) {
+              controller.enqueue({
+                type: 'start-step',
+                request: {},
+                warnings: [],
+              });
+              for (const approvalRequest of pendingToolCallerApprovals) {
+                controller.enqueue(approvalRequest.toolCall);
+                controller.enqueue(approvalRequest);
+              }
+              controller.enqueue({
+                type: 'finish-step',
+                finishReason: 'tool-calls',
+                rawFinishReason: undefined,
+                usage,
+                performance: {
+                  effectiveOutputTokensPerSecond: 0,
+                  outputTokensPerSecond: undefined,
+                  inputTokensPerSecond: undefined,
+                  effectiveTotalTokensPerSecond: 0,
+                  stepTimeMs: 0,
+                  responseTimeMs: 0,
+                  toolExecutionMs: {},
+                  timeToFirstOutputMs: undefined,
+                },
+                providerMetadata: undefined,
+                response: {
+                  id: generateId(),
+                  timestamp: new Date(),
+                  modelId: model.modelId,
+                },
+              });
+              controller.enqueue({
+                type: 'finish',
+                finishReason: 'tool-calls',
+                rawFinishReason: undefined,
+                totalUsage: usage,
+              });
+              controller.close();
+            },
+          }),
+        );
+        self.closeStream();
+        return;
+      }
 
       async function streamStep({
         currentStep,
@@ -1925,7 +2090,9 @@ class DefaultStreamTextResult<
           ];
           const stepInputMessages = stepMessagesForNextStep ?? [
             ...initialMessages,
-            ...initialResponseMessages,
+            ...initialResponseMessages.filter(
+              message => !callerContinuationResponseMessages.includes(message),
+            ),
           ];
 
           const prepareStepResult = await prepareStep?.({
@@ -1956,12 +2123,26 @@ class DefaultStreamTextResult<
             tools,
             activeTools: prepareStepResult?.activeTools ?? activeTools,
           });
+          const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
           const {
             executionTools: stepExecutionTools,
             modelTools: stepModelTools,
           } = prepareToolsForToolCallers({
             tools: stepActiveTools,
             toolCallers: resolvedToolCallers,
+            resolveToolApproval: async toolCall =>
+              await resolveToolApproval({
+                tools: stepActiveTools as TOOLS,
+                toolCall: {
+                  type: 'tool-call',
+                  ...toolCall,
+                  dynamic: false,
+                } as TypedToolCall<TOOLS>,
+                toolApproval,
+                messages: stepMessages,
+                toolsContext,
+                runtimeContext,
+              }),
           });
           const stepToolOrder = prepareStepResult?.toolOrder ?? toolOrder;
 
@@ -1984,7 +2165,6 @@ class DefaultStreamTextResult<
             toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
           });
 
-          const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
           currentStepMessages = stepMessages;
           const stepInstructions =
             prepareStepResult?.instructions ??
