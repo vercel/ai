@@ -76,6 +76,21 @@ describe('inboundMessageSchema', () => {
     ).not.toThrow();
   });
 
+  it('accepts a start message with sandbox settings', () => {
+    expect(() =>
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: 'hi',
+        thinking: { type: 'adaptive', display: 'summarized' },
+        sandbox: {
+          enabled: true,
+          failIfUnavailable: true,
+          network: { allowedDomains: ['registry.npmjs.org'] },
+        },
+      }),
+    ).not.toThrow();
+  });
+
   it('rejects legacy string thinking values', () => {
     expect(() =>
       inboundMessageSchema.parse({
