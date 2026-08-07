@@ -22,7 +22,11 @@ export type ACPHarnessSettings<TBuiltinTools extends ToolSet = {}> = {
   readonly version?: ACPV1Settings['version'];
   readonly harnessId: ACPV1Settings['harnessId'];
   readonly auth?: ACPV1Settings['auth'];
-  readonly implementation: ACPV1Settings['implementation'];
+  readonly source: ACPV1Settings['source'];
+  readonly executable: ACPV1Settings['executable'];
+  readonly args?: ACPV1Settings['args'];
+  readonly forwardEnv?: ACPV1Settings['forwardEnv'];
+  readonly env?: ACPV1Settings['env'];
   readonly authentication?: ACPV1Settings['authentication'];
   readonly providerAuthentication?: ACPV1Settings['providerAuthentication'];
   readonly modelId?: ACPV1Settings['modelId'];

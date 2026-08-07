@@ -27,14 +27,13 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 const codexACP = createACP({
   harnessId: 'acp-codex',
-  implementation: {
-    type: 'npm',
-    mode: 'simple',
+  source: {
+    type: 'npm-simple',
     packageName: '@agentclientprotocol/codex-acp',
-    version: '1.1.4',
-    executable: 'codex-acp',
-    forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
+    packageVersion: '1.1.4',
   },
+  executable: 'codex-acp',
+  forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
   permissionModeMapping: {
     'allow-reads': null,
     'allow-edits': null,
