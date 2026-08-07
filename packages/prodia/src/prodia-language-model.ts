@@ -99,6 +99,10 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'responseFormat' });
     }
 
+    if (options.seed !== undefined) {
+      warnings.push({ type: 'unsupported', feature: 'seed' });
+    }
+
     if (isCustomReasoning(options.reasoning)) {
       warnings.push({
         type: 'unsupported',

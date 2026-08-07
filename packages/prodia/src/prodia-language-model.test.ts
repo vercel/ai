@@ -396,6 +396,7 @@ describe('ProdiaLanguageModel', () => {
         toolChoice: { type: 'auto' },
         responseFormat: { type: 'json' },
         reasoning: 'medium',
+        seed: 42,
         providerOptions: {},
       });
 
@@ -413,6 +414,7 @@ describe('ProdiaLanguageModel', () => {
       expect(warningFeatures).toContain('toolChoice');
       expect(warningFeatures).toContain('responseFormat');
       expect(warningFeatures).toContain('reasoning');
+      expect(warningFeatures).toContain('seed');
     });
 
     it('passes aspectRatio from provider options', async () => {
