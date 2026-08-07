@@ -1,5 +1,5 @@
 ---
-"@ai-sdk/anthropic": minor
+"@ai-sdk/anthropic": patch
 "@ai-sdk/google-vertex": patch
 ---
 

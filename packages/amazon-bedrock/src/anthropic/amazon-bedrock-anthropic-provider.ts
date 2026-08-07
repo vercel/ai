@@ -348,6 +348,8 @@ export function createAmazonBedrockAnthropic(
       supportedUrls: () => ({}),
       supportsNativeStructuredOutput: supportsNativeStructuredOutput(modelId),
       supportsStrictTools: supportsStrictTools(modelId),
+      // Anthropic cache diagnostics are only supported on the Claude API.
+      supportsCacheDiagnostics: false,
     });
 
   const provider = function (modelId: AmazonBedrockAnthropicModelId) {

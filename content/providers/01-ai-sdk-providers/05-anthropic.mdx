@@ -843,6 +843,35 @@ For more on prompt caching with Anthropic, see [Anthropic's Cache Control docume
   [here](/docs/foundations/prompts#provider-options).
 </Note>
 
+### Cache Diagnostics
+
+Anthropic's [cache diagnostics beta](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching#cache-diagnostics) lets you correlate a response with the previous request that populated (or missed) the prompt cache. Pass a `cacheDiagnostics.previousMessageId` in `providerOptions.anthropic` to opt in:
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  prompt: 'Summarize the attached document.',
+  providerOptions: {
+    anthropic: {
+      cacheDiagnostics: {
+        previousMessageId: 'msg_01XyZ...',
+      },
+    },
+  },
+});
+
+console.log(result.providerMetadata?.anthropic?.diagnostics);
+// Diagnostics response from the API (or `null` when there was no prior
+// message to compare against).
+```
+
+The resolved diagnostics are exposed on `result.providerMetadata.anthropic.diagnostics`. The same field is available on streamed responses via the `finish` part's `providerMetadata`.
+
+`cacheDiagnostics` is supported only on the Claude API. Adapters backed by other Anthropic-compatible providers (Amazon Bedrock, Google Vertex) set `supportsCacheDiagnostics: false` internally and will emit an unsupported-feature warning if the option is used; use it only with `@ai-sdk/anthropic`.
+
 ### Bash Tool
 
 The Bash Tool allows running bash commands. By default, the tool executes

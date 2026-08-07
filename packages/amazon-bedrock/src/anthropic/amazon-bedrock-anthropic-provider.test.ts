@@ -80,6 +80,26 @@ describe('amazon-bedrock-anthropic-provider', () => {
         supportedUrls: expect.any(Function),
         supportsNativeStructuredOutput: true,
         supportsStrictTools: true,
+        supportsCacheDiagnostics: false,
+      }),
+    );
+  });
+
+  it('should always disable cache diagnostics on the shared Anthropic model', () => {
+    // Regression for vercel/ai#17032 review feedback: the shared
+    // `AnthropicLanguageModel` defaults `supportsCacheDiagnostics` to true,
+    // which let the Bedrock path silently forward an Anthropic-only feature.
+    const provider = createAmazonBedrockAnthropic({
+      region: 'us-east-1',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    provider('anthropic.claude-3-5-sonnet-20241022-v2:0');
+
+    expect(AnthropicLanguageModel).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        supportsCacheDiagnostics: false,
       }),
     );
   });
