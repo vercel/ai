@@ -25,7 +25,8 @@ run(async () => {
   try {
     const first = await agent.stream({
       session,
-      prompt: 'Run `pwd` with Bash and tell me the working directory.',
+      prompt:
+        'Use Bash to create a new text file named `approval-example.txt` containing `Tool approval succeeded.`.',
     });
     const approval = await printFullStreamAndCaptureToolApproval({
       result: first,
