@@ -54,6 +54,20 @@ const HARNESSES = [
     ],
   },
   {
+    slug: 'grok-build',
+    label: 'Grok Build',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+  {
     slug: 'opencode',
     label: 'OpenCode',
     variants: [
