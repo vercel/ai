@@ -88,10 +88,8 @@ export function getImplementationLockfile({
 
 export function createImplementationDescriptor({
   implementation,
-  implementationIdentity,
 }: {
   implementation: ACPNpmImplementation;
-  implementationIdentity: string;
 }): string {
   return (
     JSON.stringify(
@@ -99,7 +97,6 @@ export function createImplementationDescriptor({
         executable: implementation.executable,
         args: implementation.args ?? [],
         envKeys: getImplementationEnvironmentKeys({ implementation }),
-        implementationIdentity,
       },
       null,
       2,

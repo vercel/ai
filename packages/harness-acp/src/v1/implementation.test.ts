@@ -224,13 +224,12 @@ describe('ACP npm implementation', () => {
   it('keeps sensitive values out of immutable descriptors', () => {
     const descriptor = createImplementationDescriptor({
       implementation: simpleImplementation,
-      implementationIdentity: identity(),
     });
 
     expect(descriptor).toContain('"PROVIDER_API_KEY"');
     expect(descriptor).toContain('"SECOND_PROVIDER_API_KEY"');
     expect(descriptor).toContain('"PROVIDER_BASE_URL"');
-    expect(descriptor).toContain('"implementationIdentity"');
+    expect(descriptor).not.toContain('"implementationIdentity"');
     expect(descriptor).not.toContain('https://provider.example');
   });
 
