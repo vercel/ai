@@ -292,4 +292,78 @@ describe('toUIMessageStream', () => {
     });
     expect(onFinish).not.toHaveBeenCalled();
   });
+
+  it('reports the source outcome to onEnd', async () => {
+    const observe = async (parts: TextStreamPart<{}>[]) => {
+      const onEnd = vi.fn();
+
+      await convertReadableStreamToArray(
+        toUIMessageStream({
+          stream: convertArrayToReadableStream(parts),
+          tools: undefined,
+          onEnd,
+        }),
+      );
+
+      const outcome = onEnd.mock.calls[0][0].outcome;
+      return {
+        status: outcome.status,
+        errorMessage:
+          outcome.status === 'failed' && outcome.error instanceof Error
+            ? outcome.error.message
+            : undefined,
+      };
+    };
+
+    const finishPart: TextStreamPart<{}> = {
+      type: 'finish',
+      finishReason: 'stop',
+      rawFinishReason: 'stop',
+      totalUsage: testUsage,
+    };
+    const abortPart: TextStreamPart<{}> = {
+      type: 'abort',
+      reason: 'user cancelled',
+    };
+    const errorPart: TextStreamPart<{}> = {
+      type: 'error',
+      error: new Error('generation failed'),
+    };
+
+    expect({
+      completed: await observe([finishPart]),
+      failed: await observe([errorPart]),
+      aborted: await observe([abortPart]),
+      unknown: await observe([]),
+      completedBeforeError: await observe([finishPart, errorPart]),
+      completedAfterError: await observe([errorPart, finishPart]),
+    }).toMatchInlineSnapshot(`
+      {
+        "aborted": {
+          "errorMessage": undefined,
+          "status": "aborted",
+        },
+        "completed": {
+          "errorMessage": undefined,
+          "status": "completed",
+        },
+        "completedAfterError": {
+          "errorMessage": undefined,
+          "status": "completed",
+        },
+        "completedBeforeError": {
+          "errorMessage": undefined,
+          "status": "completed",
+        },
+        "failed": {
+          "errorMessage": "generation failed",
+          "status": "failed",
+        },
+        "unknown": {
+          "errorMessage": undefined,
+          "status": "unknown",
+        },
+      }
+    `);
+  });
 });

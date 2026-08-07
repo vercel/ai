@@ -47,12 +47,22 @@ const stream = createUIMessageStream({
       prompt: 'Write a haiku about AI',
     });
 
-    writer.merge(toUIMessageStream({ stream: result.stream }));
+    writer.merge(
+      toUIMessageStream({
+        stream: result.stream,
+        onEnd: ({ outcome }) => {
+          // The composer decides that the model stream outcome is also the
+          // aggregate stream outcome.
+          writer.setOutcome(outcome);
+        },
+      }),
+    );
   },
   onError: error => `Custom error: ${error.message}`,
   originalMessages: existingMessages,
-  onEnd: ({ messages, isContinuation, responseMessage }) => {
+  onEnd: ({ messages, isContinuation, outcome, responseMessage }) => {
     console.log('Stream ended with messages:', messages);
+    console.log('Stream outcome:', outcome.status);
   },
 });
 ```
@@ -84,6 +94,12 @@ const stream = createUIMessageStream({
                 'Merges the contents of another UI message stream into this stream.',
             },
             {
+              name: 'setOutcome',
+              type: '(outcome: UIMessageStreamOutcome) => void',
+              description:
+                "Declares the operation-level outcome of the composed stream. The first terminal outcome is retained. Supported statuses are 'completed', 'failed', 'aborted', and 'unknown'. Declaring an outcome does not write a chunk or close the stream.",
+            },
+            {
               name: 'onError',
               type: '(error: unknown) => string',
               description:
@@ -107,7 +123,7 @@ const stream = createUIMessageStream({
     },
     {
       name: 'onEnd',
-      type: '(options: { messages: UIMessage[]; isContinuation: boolean; isAborted: boolean; responseMessage: UIMessage; finishReason?: FinishReason }) => PromiseLike<void> | void',
+      type: '(options: { messages: UIMessage[]; isContinuation: boolean; isAborted: boolean; outcome: UIMessageStreamOutcome; responseMessage: UIMessage; finishReason?: FinishReason }) => PromiseLike<void> | void',
       description: 'A callback function that is called when the stream ends.',
       properties: [
         {
@@ -130,6 +146,12 @@ const stream = createUIMessageStream({
               description: 'Indicates whether the stream was aborted.',
             },
             {
+              name: 'outcome',
+              type: "UIMessageStreamOutcome = { status: 'completed' } | { status: 'failed'; error?: unknown } | { status: 'aborted' } | { status: 'unknown' }",
+              description:
+                'The operation-level outcome declared by the stream owner. It is separate from model finish reasons and individual error chunks.',
+            },
+            {
               name: 'responseMessage',
               type: 'UIMessage',
               description:
@@ -147,7 +169,7 @@ const stream = createUIMessageStream({
     },
     {
       name: 'onFinish',
-      type: '(options: { messages: UIMessage[]; isContinuation: boolean; isAborted: boolean; responseMessage: UIMessage; finishReason?: FinishReason }) => PromiseLike<void> | void',
+      type: '(options: { messages: UIMessage[]; isContinuation: boolean; isAborted: boolean; outcome: UIMessageStreamOutcome; responseMessage: UIMessage; finishReason?: FinishReason }) => PromiseLike<void> | void',
       description: 'Deprecated alias for `onEnd`.',
     },
     {
