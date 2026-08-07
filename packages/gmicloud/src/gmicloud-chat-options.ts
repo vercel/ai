@@ -3,5 +3,3 @@
  * are not enumerated here. Example: `deepseek-ai/DeepSeek-V4-Flash-0731`.
  */
 export type GmicloudChatModelId = string;
-
-export type GmicloudLanguageModelChatOptions = Record<string, never>;
