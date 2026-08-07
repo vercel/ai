@@ -163,6 +163,34 @@ describe('WorkflowAgent', () => {
         }),
       );
     });
+
+    it('applies maxRetries and abortSignal from prepareCall', async () => {
+      const abortController = new AbortController();
+      const prepareCall = vi.fn(() => ({
+        maxRetries: 0,
+        abortSignal: abortController.signal,
+      }));
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockReturnValue({
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      } as unknown as MockIterator);
+
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        prepareCall,
+      });
+
+      await agent.stream({ prompt: 'test' });
+
+      expect(streamTextIterator).toHaveBeenCalledWith(
+        expect.objectContaining({
+          generationSettings: expect.objectContaining({
+            maxRetries: 0,
+            abortSignal: abortController.signal,
+          }),
+        }),
+      );
+    });
   });
 
   describe('tool execution error handling', () => {
