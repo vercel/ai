@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { readResponseWithSizeLimit } from './read-response-with-size-limit';
+import { describe, expect, it, vi } from 'vitest';
 import { DownloadError } from './download-error';
+import { readResponseWithSizeLimit } from './read-response-with-size-limit';
 
 function createMockResponse({
   body,
@@ -119,6 +119,36 @@ describe('readResponseWithSizeLimit', () => {
       );
       return true;
     });
+  });
+
+  it('should preserve the size error when stream cancellation rejects', async () => {
+    const cancelError = new Error('cancel failed');
+    const cancel = vi.fn(() => Promise.reject(cancelError));
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array([1, 2]));
+      },
+      cancel,
+    });
+    const response = {
+      headers: new Headers(),
+      body,
+    } as unknown as Response;
+
+    await expect(
+      readResponseWithSizeLimit({
+        response,
+        url: 'http://example.com/streaming',
+        maxBytes: 1,
+      }),
+    ).rejects.toSatisfy((error: unknown) => {
+      expect(DownloadError.isInstance(error)).toBe(true);
+      expect(error).not.toBe(cancelError);
+      return true;
+    });
+
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(body.locked).toBe(false);
   });
 
   it('should handle lying Content-Length (says small, sends large)', async () => {
