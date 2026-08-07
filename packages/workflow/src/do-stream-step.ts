@@ -125,6 +125,24 @@ export async function doStreamStep(
   const tools = serializedTools
     ? resolveSerializableTools(serializedTools)
     : undefined;
+  const output =
+    options?.responseFormat == null
+      ? undefined
+      : {
+          name: 'workflow-response-format',
+          responseFormat: Promise.resolve(options.responseFormat),
+          async parseCompleteOutput(): Promise<never> {
+            throw new Error(
+              'Workflow step output parsing is handled outside doStreamStep.',
+            );
+          },
+          async parsePartialOutput() {
+            return undefined;
+          },
+          createElementStreamTransform() {
+            return undefined;
+          },
+        };
 
   // streamModelCall handles: prompt standardization, tool preparation,
   // model.doStream(), retry logic, and stream part transformation
@@ -152,6 +170,7 @@ export async function doStreamStep(
     stopSequences: options?.stopSequences,
     seed: options?.seed,
     repairToolCall: options?.repairToolCall,
+    output,
   });
 
   // Consume the stream: capture data and write to writable in real-time
