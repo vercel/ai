@@ -29,7 +29,7 @@ For custom configuration, you can import `createGmicloud` and create a provider 
 import { createGmicloud } from '@ai-sdk/gmicloud';
 
 const gmicloud = createGmicloud({
-  apiKey: process.env.GMI_API_KEY ?? '',
+  apiKey: process.env.GMI_CLOUD_APIKEY ?? '',
 });
 ```
 
@@ -43,7 +43,7 @@ You can use the following optional settings to customize the GMI Cloud provider 
 - **apiKey** _string_
 
   API key that is being sent using the `Authorization` header. It defaults to
-  the `GMI_API_KEY` environment variable.
+  the `GMI_CLOUD_APIKEY` environment variable.
 
 - **headers** _Record&lt;string,string&gt;_
 
