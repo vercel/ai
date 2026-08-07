@@ -123,6 +123,114 @@ describe('ToolLoopAgent', () => {
       expect(doGenerateOptions?.abortSignal).toBeDefined();
     });
 
+<<<<<<< HEAD
+=======
+    it('should pass settings timeout to generateText', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        timeout: 5000,
+      });
+
+      await agent.generate({
+        prompt: 'Hello, world!',
+      });
+
+      // timeout is merged into abortSignal, so we check that an abort signal was created
+      expect(doGenerateOptions?.abortSignal).toBeDefined();
+    });
+
+    it('should pass sandbox to tool execution', async () => {
+      const sandbox = {
+        description: 'test sandbox',
+        run: vi.fn(async () => ({
+          exitCode: 0,
+          stdout: 'ok',
+          stderr: '',
+        })),
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
+      let recordedSandbox: SandboxSession | undefined;
+      let modelCallCount = 0;
+
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            modelCallCount++;
+
+            if (modelCallCount === 1) {
+              return {
+                content: [
+                  {
+                    type: 'tool-call' as const,
+                    toolCallType: 'function' as const,
+                    toolCallId: 'call-1',
+                    toolName: 'testTool',
+                    input: '{ "value": "test" }',
+                  },
+                ],
+                finishReason: {
+                  unified: 'tool-calls' as const,
+                  raw: undefined,
+                },
+                usage: {
+                  cachedInputTokens: undefined,
+                  inputTokens: {
+                    total: 3,
+                    noCache: 3,
+                    cacheRead: undefined,
+                    cacheWrite: undefined,
+                  },
+                  outputTokens: {
+                    total: 10,
+                    text: 10,
+                    reasoning: undefined,
+                  },
+                },
+                warnings: [],
+              };
+            }
+
+            return {
+              content: [{ type: 'text' as const, text: 'done' }],
+              finishReason: { unified: 'stop' as const, raw: 'stop' },
+              usage: {
+                cachedInputTokens: undefined,
+                inputTokens: {
+                  total: 3,
+                  noCache: 3,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 10,
+                  text: 10,
+                  reasoning: undefined,
+                },
+              },
+              warnings: [],
+            };
+          },
+        }),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }, { experimental_sandbox: sandbox }) => {
+              recordedSandbox = sandbox;
+              return value;
+            },
+          }),
+        },
+      });
+
+      await agent.generate({
+        prompt: 'test',
+        experimental_sandbox: sandbox,
+      });
+
+      expect(recordedSandbox).toBe(sandbox);
+    });
+
+>>>>>>> 72ad23fd56 (fix: ToolLoopAgent settings-level timeouts being ignored by generate and stream (#18521))
     it('should pass experimental_download to generateText', async () => {
       const downloadFunction = vi
         .fn()
@@ -392,6 +500,22 @@ describe('ToolLoopAgent', () => {
       const result = await agent.stream({
         prompt: 'Hello, world!',
         timeout: 5000,
+      });
+
+      await result.consumeStream();
+
+      // timeout is merged into abortSignal, so we check that an abort signal was created
+      expect(doStreamOptions?.abortSignal).toBeDefined();
+    });
+
+    it('should pass settings timeout to streamText', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        timeout: 5000,
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
       });
 
       await result.consumeStream();
