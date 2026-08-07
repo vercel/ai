@@ -48,6 +48,22 @@ const { video } = await generateVideo({
 });
 ```
 
+Some models also accept `'adaptive'`, which lets the provider derive the output
+ratio from the input media instead of a fixed value. This is typically required
+for image-to-video, video editing, and video extension, where the output
+inherits the ratio of the input and an explicit ratio is rejected.
+
+```tsx highlight={"7"}
+import { experimental_generateVideo as generateVideo } from 'ai';
+__PROVIDER_IMPORT__;
+
+const { video } = await generateVideo({
+  model: __VIDEO_MODEL__,
+  prompt: { image: firstFrame, text: 'A cat walking on a treadmill' },
+  aspectRatio: 'adaptive',
+});
+```
+
 ### Resolution
 
 The resolution is specified as a string in the format `{width}x{height}`.
