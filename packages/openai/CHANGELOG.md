@@ -1,5 +1,16 @@
 # @ai-sdk/openai
 
+## 4.0.36
+
+### Patch Changes
+
+- 6157098: fix(openai): serialize tool text outputs when an output schema is configured
+- 4cd4548: Accept `serviceTier: 'fast'` on OpenAI chat and responses models. OpenAI renamed priority processing to Fast mode and accepts `service_tier: 'fast'` and `'priority'` interchangeably, so `'fast'` is now passed through verbatim and gated on the same model capability as `'priority'`.
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - @ai-sdk/provider@4.0.7
+  - @ai-sdk/provider-utils@5.0.25
+
 ## 4.0.35
 
 ### Patch Changes

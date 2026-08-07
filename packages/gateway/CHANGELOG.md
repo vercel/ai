@@ -1,5 +1,16 @@
 # @ai-sdk/gateway
 
+## 4.0.46
+
+### Patch Changes
+
+- c477556: chore(provider/gateway): update gateway model settings files
+- 81cd026: Reduce bundle size by making internal Zod v4 imports tree-shakeable.
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - @ai-sdk/provider@4.0.7
+  - @ai-sdk/provider-utils@5.0.25
+
 ## 4.0.45
 
 ### Patch Changes
