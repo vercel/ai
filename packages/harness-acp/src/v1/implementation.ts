@@ -4,10 +4,41 @@ import type {
   ACPProviderAuthenticationCompatibility,
 } from '../acp-auth';
 import type {
-  ACPNpmImplementation,
+  ACPNpmSimpleSource,
   ACPPermissionModeMapping,
-  ACPSimpleNpmImplementation,
+  ACPSource,
+  ACPV1Settings,
 } from './acp-v1-settings';
+
+/*
+ * Launch descriptor assembled from the launch-related settings fields. The
+ * fields are declared here rather than derived from ACPV1Settings so that the
+ * settings type stays free to describe the configuration surface while this
+ * type describes what the bootstrap, install, and identity logic consume. The
+ * two shapes are required to agree, and createACPV1Implementation is the only
+ * place that maps between them.
+ */
+export type ACPNpmImplementation = {
+  readonly source: ACPSource;
+  readonly executable: string;
+  readonly args?: ReadonlyArray<string>;
+  readonly forwardEnv?: ReadonlyArray<string>;
+  readonly env?: Readonly<Record<string, string>>;
+};
+
+export function createACPV1Implementation({
+  settings,
+}: {
+  settings: ACPV1Settings;
+}): ACPNpmImplementation {
+  return {
+    source: settings.source,
+    executable: settings.executable,
+    args: settings.args,
+    forwardEnv: settings.forwardEnv,
+    env: settings.env,
+  };
+}
 
 const EXACT_SEMVER_REGEXP =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
@@ -19,19 +50,16 @@ const ENVIRONMENT_VARIABLE_NAME_REGEXP = /^[A-Za-z_][A-Za-z0-9_]*$/;
 export function validateACPV1Implementation(
   implementation: ACPNpmImplementation,
 ): void {
-  if (isLockedImplementation(implementation)) {
-    if (implementation.packageJson.length === 0) {
-      throw new Error(
-        'ACP locked npm implementation packageJson must not be empty.',
-      );
+  const { source } = implementation;
+  if (source.type === 'npm-locked') {
+    if (source.packageJson.length === 0) {
+      throw new Error('ACP source.packageJson must not be empty.');
     }
-    if (implementation.pnpmLockYaml.length === 0) {
-      throw new Error(
-        'ACP locked npm implementation pnpmLockYaml must not be empty.',
-      );
+    if (source.pnpmLockYaml.length === 0) {
+      throw new Error('ACP source.pnpmLockYaml must not be empty.');
     }
   } else {
-    validateSimpleImplementation({ implementation });
+    validateNpmSimpleSource({ source });
   }
   if (!EXECUTABLE_NAME_REGEXP.test(implementation.executable)) {
     throw new Error(
@@ -56,8 +84,9 @@ export function createImplementationManifest({
 }: {
   implementation: ACPNpmImplementation;
 }): string {
-  if (isLockedImplementation(implementation)) {
-    return implementation.packageJson;
+  const { source } = implementation;
+  if (source.type === 'npm-locked') {
+    return source.packageJson;
   }
   return (
     JSON.stringify(
@@ -67,7 +96,7 @@ export function createImplementationManifest({
         private: true,
         type: 'module',
         dependencies: {
-          [implementation.packageName]: implementation.version,
+          [source.packageName]: source.packageVersion ?? 'latest',
         },
       },
       null,
@@ -81,9 +110,8 @@ export function getImplementationLockfile({
 }: {
   implementation: ACPNpmImplementation;
 }): string | undefined {
-  return isLockedImplementation(implementation)
-    ? implementation.pnpmLockYaml
-    : undefined;
+  const { source } = implementation;
+  return source.type === 'npm-locked' ? source.pnpmLockYaml : undefined;
 }
 
 export function createImplementationDescriptor({
@@ -119,17 +147,21 @@ export function createImplementationIdentity({
   providerAuthentication: ACPProviderAuthenticationCompatibility | undefined;
   permissionModeMapping?: ACPPermissionModeMapping;
 }): string {
-  const acquisition = isLockedImplementation(implementation)
-    ? {
-        mode: 'locked',
-        packageJson: implementation.packageJson,
-        pnpmLockYaml: implementation.pnpmLockYaml,
-      }
-    : {
-        mode: 'simple',
-        packageName: implementation.packageName,
-        version: implementation.version,
-      };
+  const { source } = implementation;
+  const sourceIdentity =
+    source.type === 'npm-locked'
+      ? {
+          type: source.type,
+          packageJson: source.packageJson,
+          pnpmLockYaml: source.pnpmLockYaml,
+        }
+      : {
+          type: source.type,
+          packageName: source.packageName,
+          ...(source.packageVersion == null
+            ? {}
+            : { packageVersion: source.packageVersion }),
+        };
   const forwardedEnvironment = [
     ...new Set(implementation.forwardEnv ?? []),
   ].sort();
@@ -141,7 +173,7 @@ export function createImplementationIdentity({
   const payload = {
     harnessId,
     acpVersion,
-    acquisition,
+    source: sourceIdentity,
     executable: implementation.executable,
     args: implementation.args ?? [],
     clientApp,
@@ -168,7 +200,7 @@ export function createImplementationInstallCommand({
 }): string {
   return (
     `pnpm --dir ${implementationDir} install` +
-    (isLockedImplementation(implementation) ? ' --frozen-lockfile' : '') +
+    (implementation.source.type === 'npm-locked' ? ' --frozen-lockfile' : '') +
     ` --prod --store-dir ${storeDir}`
   );
 }
@@ -193,19 +225,22 @@ export function resolveImplementationEnvironment({
   };
 }
 
-function validateSimpleImplementation({
-  implementation,
+function validateNpmSimpleSource({
+  source,
 }: {
-  implementation: ACPSimpleNpmImplementation;
+  source: ACPNpmSimpleSource;
 }): void {
-  if (!PACKAGE_NAME_REGEXP.test(implementation.packageName)) {
+  if (!PACKAGE_NAME_REGEXP.test(source.packageName)) {
     throw new Error(
-      `ACP npm package name is invalid: ${JSON.stringify(implementation.packageName)}.`,
+      `ACP npm package name is invalid: ${JSON.stringify(source.packageName)}.`,
     );
   }
-  if (!EXACT_SEMVER_REGEXP.test(implementation.version)) {
+  if (
+    source.packageVersion != null &&
+    !EXACT_SEMVER_REGEXP.test(source.packageVersion)
+  ) {
     throw new Error(
-      `ACP npm implementation version must be an exact semantic version; received ${JSON.stringify(implementation.version)}.`,
+      `ACP npm package version must be an exact semantic version; received ${JSON.stringify(source.packageVersion)}.`,
     );
   }
 }
@@ -252,12 +287,6 @@ function getImplementationEnvironmentKeys({
       ...Object.keys(implementation.env ?? {}),
     ]),
   ].sort();
-}
-
-function isLockedImplementation(
-  implementation: ACPNpmImplementation,
-): implementation is Extract<ACPNpmImplementation, { mode: 'locked' }> {
-  return implementation.mode === 'locked';
 }
 
 function stableStringify({ value }: { value: unknown }): string {

@@ -3,8 +3,8 @@ export type { ACPAuthOptions, ACPClientApp } from './acp-auth';
 export type { ACPHarnessSettings } from './acp-harness';
 export type {
   ACPAuthentication,
-  ACPLockedNpmImplementation,
-  ACPNpmImplementation,
+  ACPNpmLockedSource,
+  ACPNpmSimpleSource,
   ACPPermissionModeMapping,
   ACPPermissionModeTarget,
   ACPProfileValue,
@@ -12,7 +12,7 @@ export type {
   ACPProviderAuthenticationMode,
   ACPSerializablePrimitive,
   ACPSerializableValue,
-  ACPSimpleNpmImplementation,
+  ACPSource,
   ACPV1Settings,
   ACPValueSource,
 } from './v1';
