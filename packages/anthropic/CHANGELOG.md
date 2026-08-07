@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.106
+
+### Patch Changes
+
+- b74e654: Reject spliced Anthropic generations while allowing duplicate message start events for the active message.
+
 ## 3.0.105
 
 ### Patch Changes
