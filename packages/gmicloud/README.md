@@ -20,13 +20,13 @@ You can import the default provider instance `gmicloud` from `@ai-sdk/gmicloud`:
 import { gmicloud } from '@ai-sdk/gmicloud';
 ```
 
-The GMI Cloud API key is read from the `GMI_API_KEY` environment variable by default. For custom configuration, use `createGmicloud`:
+The GMI Cloud API key is read from the `GMI_CLOUD_APIKEY` environment variable by default. For custom configuration, use `createGmicloud`:
 
 ```ts
 import { createGmicloud } from '@ai-sdk/gmicloud';
 
 const gmicloud = createGmicloud({
-  apiKey: process.env.GMI_API_KEY ?? '',
+  apiKey: process.env.GMI_CLOUD_APIKEY ?? '',
 });
 ```
 

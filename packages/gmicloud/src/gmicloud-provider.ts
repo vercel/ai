@@ -16,7 +16,8 @@ import { VERSION } from './version';
 
 export interface GmicloudProviderSettings {
   /**
-   * GMI Cloud API key. Defaults to the `GMI_API_KEY` environment variable.
+   * GMI Cloud API key. Defaults to the `GMI_CLOUD_APIKEY` environment
+   * variable (matching GMI's own SDK package).
    */
   apiKey?: string;
   /**
@@ -68,7 +69,7 @@ export function createGmicloud(
       {
         Authorization: `Bearer ${loadApiKey({
           apiKey: options.apiKey,
-          environmentVariableName: 'GMI_API_KEY',
+          environmentVariableName: 'GMI_CLOUD_APIKEY',
           description: 'GMI Cloud API key',
         })}`,
         ...options.headers,

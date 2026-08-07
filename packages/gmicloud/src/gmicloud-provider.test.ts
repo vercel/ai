@@ -29,7 +29,7 @@ describe('createGmicloud', () => {
     vi.clearAllMocks();
   });
 
-  it('defaults to the GMI Cloud endpoint and GMI_API_KEY', () => {
+  it('defaults to the GMI Cloud endpoint and GMI_CLOUD_APIKEY', () => {
     const provider = createGmicloud();
     provider('deepseek-ai/DeepSeek-V4-Flash-0731');
 
@@ -41,7 +41,7 @@ describe('createGmicloud', () => {
       'https://api.gmi-serving.com/v1/chat/completions',
     );
     expect(loadApiKey).toHaveBeenCalledWith(
-      expect.objectContaining({ environmentVariableName: 'GMI_API_KEY' }),
+      expect.objectContaining({ environmentVariableName: 'GMI_CLOUD_APIKEY' }),
     );
     expect(headers).toEqual(
       expect.objectContaining({
