@@ -115,6 +115,9 @@
       "path": "packages/hume"
     },
     {
+      "path": "packages/interfaze"
+    },
+    {
       "path": "packages/klingai"
     },
     {

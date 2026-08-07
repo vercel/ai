@@ -1,0 +1,22 @@
+{
+  "id": "chatcmpl-interfaze-basic",
+  "object": "chat.completion",
+  "created": 1780000000,
+  "model": "interfaze-beta",
+  "choices": [
+    {
+      "index": 0,
+      "finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "content": "The magic number is 2026."
+      }
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 10,
+    "completion_tokens": 8,
+    "total_tokens": 18
+  },
+  "vcache": true
+}

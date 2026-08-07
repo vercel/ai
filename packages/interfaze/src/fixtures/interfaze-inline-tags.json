@@ -1,0 +1,22 @@
+{
+  "id": "chatcmpl-interfaze-inline-tags",
+  "object": "chat.completion",
+  "created": 1780000002,
+  "model": "interfaze-beta",
+  "choices": [
+    {
+      "index": 0,
+      "finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "content": "<think>Let me compute this.</think>The answer is 42."
+      }
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 5,
+    "completion_tokens": 6,
+    "total_tokens": 11
+  },
+  "vcache": false
+}

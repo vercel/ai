@@ -1,0 +1,7 @@
+{"id":"chatcmpl-interfaze-think-stream","choices":[{"index":0,"delta":{"role":"assistant"}}],"created":1780000010,"model":"interfaze-beta","object":"chat.completion.chunk"}
+{"id":"chatcmpl-interfaze-think-stream","choices":[{"index":0,"delta":{"content":"<thi"}}],"created":1780000010,"model":"interfaze-beta","object":"chat.completion.chunk"}
+{"id":"chatcmpl-interfaze-think-stream","choices":[{"index":0,"delta":{"content":"nk>Thinking about the weat"}}],"created":1780000010,"model":"interfaze-beta","object":"chat.completion.chunk"}
+{"id":"chatcmpl-interfaze-think-stream","choices":[{"index":0,"delta":{"content":"her.</thi"}}],"created":1780000010,"model":"interfaze-beta","object":"chat.completion.chunk"}
+{"id":"chatcmpl-interfaze-think-stream","choices":[{"index":0,"delta":{"content":"nk>It is "}}],"created":1780000010,"model":"interfaze-beta","object":"chat.completion.chunk"}
+{"id":"chatcmpl-interfaze-think-stream","choices":[{"index":0,"delta":{"content":"sunny."}}],"created":1780000010,"model":"interfaze-beta","object":"chat.completion.chunk"}
+{"id":"chatcmpl-interfaze-think-stream","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"created":1780000010,"model":"interfaze-beta","object":"chat.completion.chunk","usage":{"prompt_tokens":9,"completion_tokens":14,"total_tokens":23}}

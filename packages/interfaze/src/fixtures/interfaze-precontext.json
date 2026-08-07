@@ -1,0 +1,29 @@
+{
+  "id": "chatcmpl-interfaze-precontext",
+  "object": "chat.completion",
+  "created": 1780000001,
+  "model": "interfaze-beta",
+  "choices": [
+    {
+      "index": 0,
+      "finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "content": "San Francisco is currently 62°F and sunny."
+      }
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 20,
+    "completion_tokens": 12,
+    "total_tokens": 32
+  },
+  "vcache": false,
+  "reasoning": "The user asked about SF weather; the web_search task returned current conditions.",
+  "precontext": [
+    {
+      "name": "web_search",
+      "result": { "temperature": 62, "condition": "sunny" }
+    }
+  ]
+}
