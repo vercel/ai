@@ -210,7 +210,6 @@
           "description": "Every harness file must export a harness creator function and a harness settings type.",
           "for": { "files": ["${harnessId}-harness.ts"] },
           "must": {
-            "haveFiles": ["${harnessId}-auth.ts"],
             "importTypes": [
               {
                 "name": "HarnessV1",
@@ -306,6 +305,15 @@
               "${harnessId.toPascalCase()}BridgeCoords",
               "create${harnessId.toPascalCase()}"
             ]
+          }
+        },
+        {
+          "name": "harness-file-must-have-corresponding-auth-file",
+          "description": "Every harness file must be accompanied by its corresponding auth file.",
+          "for": { "files": ["${harnessId}-harness.ts"] },
+          "excludeFiles": ["grok-build-harness.ts"],
+          "must": {
+            "haveFiles": ["${harnessId}-auth.ts"]
           }
         },
         {
