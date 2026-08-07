@@ -4,6 +4,7 @@ import type { HarnessAgentToolApprovalConfiguration } from './harness-agent-sett
 import type {
   HarnessV1BuiltinToolFiltering,
   HarnessV1NetworkSandboxSession,
+  HarnessV1ReadHistoryResult,
   HarnessV1SandboxProvider,
 } from '../v1';
 import type {
@@ -414,6 +415,31 @@ export class HarnessAgentSession {
    * released, because bridge-backed adapters may still have a live bridge on
    * that port.
    */
+  /**
+   * Read the conversation history the runtime itself persisted, normalized
+   * by the adapter. Includes exchanges that happened outside this process —
+   * the same conversation continued interactively in the agent's own CLI,
+   * for instance — which the live event stream never saw.
+   *
+   * Pass a previous result's `cursor` as `since` to read only the delta.
+   * Resolves `undefined` when the adapter does not support history reads or
+   * cannot reach the runtime's store from this environment.
+   */
+  async readHistory(options?: {
+    since?: string;
+  }): Promise<HarnessV1ReadHistoryResult | undefined> {
+    if (this.sessionState !== 'active' || this.underlyingSession == null) {
+      throw new Error(
+        `Harness session ${this.sessionId} is not active and cannot read history.`,
+      );
+    }
+    const session = this.underlyingSession;
+    if (typeof session.doReadHistory !== 'function') {
+      return undefined;
+    }
+    return await session.doReadHistory({ since: options?.since });
+  }
+
   async suspendTurn(): Promise<HarnessAgentContinueTurnState> {
     if (this.sessionState !== 'active' || this.underlyingSession == null) {
       throw new Error(

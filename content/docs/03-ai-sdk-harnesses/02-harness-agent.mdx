@@ -15,9 +15,54 @@ Install the core harness package, a harness adapter, and a sandbox provider:
 
 <InstallPackages packages="@ai-sdk/harness @ai-sdk/harness-claude-code @ai-sdk/sandbox-vercel" />
 
-Bridge-backed harnesses such as Claude Code and Codex require using real network sandbox
-like `@ai-sdk/sandbox-vercel`. Host-runtime harnesses such as Pi can also run with
-`@ai-sdk/sandbox-just-bash` because they do not need a sandbox-exposed port.
+Bridge-backed harnesses such as Claude Code and Codex require a sandbox provider that can
+spawn processes and expose a reachable port, such as `@ai-sdk/sandbox-vercel`. Host-runtime
+harnesses such as Pi can also run with `@ai-sdk/sandbox-just-bash` because they do not need
+a sandbox-exposed port.
+
+## Running without a sandbox
+
+`sandbox` is optional. When it is omitted, the harness runs **on your own machine**, in
+`process.cwd()`, as the current user:
+
+```ts
+const agent = new HarnessAgent({
+  harness: claudeCode,
+  instructions: 'You are a careful refactoring assistant.',
+});
+```
+
+This is meant for local development. It reuses the CLI configuration, credentials and
+skills the harness already has on your machine, so there is nothing to provision.
+
+<Note type="warning">
+  Running without a sandbox provides **no isolation**. The harness has every
+  permission the current user has, and each one ships a shell tool that can read
+  and write anywhere you can. It is the same trust level as running `claude` or
+  `codex` in your terminal. For untrusted input or untrusted output, pass a real
+  sandbox provider.
+</Note>
+
+A warning is emitted once per process in this mode. Silence it the same way as other AI SDK
+warnings, by setting the `AI_SDK_LOG_WARNINGS` global to `false` or to your own logger.
+
+### Generated directories
+
+Running in your working directory means the harness generates state there. Two directories
+may appear:
+
+| Directory             | Contents                                                                                                                    |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `.harness-bootstrap/` | Bridge dependencies for bridge-backed harnesses, plus setup markers. Hundreds of megabytes; Claude Code's is around 785 MB. |
+| `.agent-runs/`        | Per-session harness state, including the event log a suspended turn is replayed from.                                       |
+
+Each is given a `.gitignore` of `*` when the session starts, so they never appear in
+`git status` and cannot be committed by accident. Your own `.gitignore` is left untouched,
+and this works whether or not the directory is a git repository. Delete either to force that
+part to be regenerated.
+
+Because the bootstrap is keyed to the working directory, each new directory you run in pays
+for its own bridge install. Reusing a directory keeps that to once.
 
 ## Create an Agent
 

@@ -83,7 +83,11 @@ try {
 
 Use `session.detach()` to park a bridge-backed session for later attach, `session.stop()` to save state and stop the sandbox, or `session.destroy()` to clean up without keeping resume state. Bridge-backed adapters such as Claude Code, Codex, OpenCode, and DeepAgents require a sandbox provider that exposes ports — `@ai-sdk/sandbox-vercel` is the supported choice today. `@ai-sdk/sandbox-just-bash` is suitable only for host-runtime or otherwise non-bridge flows, such as Pi.
 
-`sandbox` is a required `HarnessV1SandboxProvider` — the agent calls `provider.createSession()` when a session starts. Use `sandboxConfig` for agent specific sandbox configuration that works independently from the sandbox provider that is used:
+`sandbox` is an optional `HarnessV1SandboxProvider` — the agent calls `provider.createSession()` when a session starts.
+
+When omitted, the harness runs on the local machine in `process.cwd()` as the current user, reusing the CLI configuration and credentials already there. That is convenient for local development but provides **no isolation**: the harness has every permission the current user has, and each one ships a shell tool. A warning is emitted once per process, suppressible by setting the `AI_SDK_LOG_WARNINGS` global to `false` or to your own logger. Harness state generated in the working directory (`.harness-bootstrap/` and `.agent-runs/`) is given a `.gitignore` so it stays out of `git status`; your own `.gitignore` is not modified.
+
+Use `sandboxConfig` for agent specific sandbox configuration that works independently from the sandbox provider that is used:
 
 - Use `sandboxConfig.onSession` to prepare the acquired sandbox before the harness adapter starts. The hook runs for fresh and resumed sessions, so keep it idempotent.
 - Use `sandboxConfig.onBootstrap` for expensive sandbox setup that should be baked into a reusable snapshot, such as installing tools or cloning a large repository. Provide `sandboxConfig.bootstrapHash` with it and change that value whenever the bootstrap output should invalidate the cached snapshot.

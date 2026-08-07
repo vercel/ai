@@ -465,7 +465,10 @@
     {
       "name": "sandbox-package-must-export-required-symbols",
       "description": "Every sandbox package must have specific files that export a specific set of symbols.",
-      "paths": ["packages/sandbox-{sandboxId}/src/index.ts"],
+      "paths": [
+        "packages/sandbox-{sandboxId}/src/index.ts",
+        "packages/harness/src/agent/internal/sandbox-{sandboxId}/index.ts"
+      ],
       "must": [
         {
           "name": "sandbox-package-must-export-sandbox-creator-and-settings",
@@ -489,14 +492,8 @@
         {
           "name": "sandbox-file-must-export-sandbox-creator-and-settings-type",
           "description": "Every sandbox file must export a sandbox creator function and a sandbox settings type.",
-          "for": { "files": ["{sandboxId}-sandbox.ts"] },
+          "for": { "files": ["${sandboxId}-sandbox.ts"] },
           "must": {
-            "importTypes": [
-              {
-                "name": "HarnessV1SandboxProvider",
-                "from": "@ai-sdk/harness"
-              }
-            ],
             "exportClasses": [
               {
                 "name": "${sandboxId.toPascalCase()}SandboxProvider",
@@ -514,6 +511,20 @@
             ],
             "exportTypes": ["${sandboxId.toPascalCase()}SandboxSettings"]
           }
+        },
+        {
+          "name": "sandbox-file-must-import-sandbox-provider-type",
+          "description": "Every sandbox file must export a sandbox creator function and a sandbox settings type.",
+          "for": { "files": ["${sandboxId}-sandbox.ts"] },
+          "must": {
+            "importTypes": [
+              {
+                "name": "HarnessV1SandboxProvider",
+                "from": "@ai-sdk/harness"
+              }
+            ]
+          },
+          "excludeFiles": ["local-workspace-sandbox.ts"]
         }
       ]
     },

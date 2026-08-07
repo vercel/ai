@@ -305,12 +305,26 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   // Local controller for the Claude query. Aborted either by the host (via the
   // shared runtime's `turn.abortSignal`) or by us on a terminal error.
   const abortCtl = new AbortController();
+  // A host abort prefers the SDK's graceful `interrupt()` — Esc semantics: the
+  // in-flight turn is persisted to the session transcript and settles with an
+  // interrupted result, so a later resume (including the user's own
+  // `claude --resume`) still sees the work done before the interrupt. The hard
+  // abort kills the CLI process and loses that turn's records, so it is only
+  // the fallback — armed unconditionally, because aborting an already-settled
+  // query is a no-op — and the immediate path when the abort arrives before
+  // the query exists.
+  let gracefulAbort: (() => void) | undefined;
+  const onHostAbort = (): void => {
+    if (gracefulAbort) {
+      gracefulAbort();
+    } else {
+      abortCtl.abort();
+    }
+  };
   if (turn.abortSignal.aborted) {
     abortCtl.abort();
   } else {
-    turn.abortSignal.addEventListener('abort', () => abortCtl.abort(), {
-      once: true,
-    });
+    turn.abortSignal.addEventListener('abort', onHostAbort, { once: true });
   }
 
   const streamEventState = createClaudeStreamEventState();
@@ -391,6 +405,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     options: {
       ...(start.model ? { model: start.model } : {}),
       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
+      // Absent unless the bootstrap skipped the bundled platform binaries
+      // because the sandbox already had a usable executable.
+      ...(start.claudeExecutablePath
+        ? { pathToClaudeCodeExecutable: start.claudeExecutablePath }
+        : {}),
       ...(skillsOption ? { skills: skillsOption } : {}),
       ...(nativeTools !== undefined ? { tools: nativeTools } : {}),
       ...(inactiveNativeTools.length > 0
@@ -426,6 +445,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       abortSignal: abortCtl.signal,
     },
   });
+
+  gracefulAbort = () => {
+    setTimeout(() => abortCtl.abort(), 5000);
+    void Promise.resolve()
+      .then(() => q.interrupt())
+      .catch(() => abortCtl.abort());
+  };
+
   let turnUsage: Record<string, unknown> | undefined;
   let totalCostUsd: number | undefined;
   let emittedTerminalError = false;
@@ -436,10 +463,17 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     if (!normalized || emittedTerminalError || emittedTerminalFinish) return;
     streamEventState.observedTerminalError = normalized;
     emittedTerminalError = true;
-    turn.emitError({
-      error: normalized,
-      message: 'claude-code terminal error',
-    });
+    // A turn the host itself stopped ends with an error-shaped result by
+    // construction (an interrupted query reports a diagnostic, not success);
+    // reporting the host's own stop as a terminal error makes every clean
+    // interrupt look like a malfunction. The host has already settled the
+    // turn on its side.
+    if (!turn.abortSignal.aborted) {
+      turn.emitError({
+        error: normalized,
+        message: 'claude-code terminal error',
+      });
+    }
     queryInput.close();
     abortCtl.abort();
   };
@@ -501,6 +535,18 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     return;
   } finally {
     queryInput.close();
+    // Dispose the query explicitly: with streaming input the SDK keeps its
+    // CLI subprocess alive for more user messages, and a turn that ended
+    // through an interrupt or error path can otherwise leak that process —
+    // observed as orphaned `claude` processes holding the very conversation
+    // the next turn continues.
+    try {
+      await (q as { return?: (value?: unknown) => Promise<unknown> }).return?.(
+        undefined,
+      );
+    } catch {
+      // Best effort; the abort controller tears the process down otherwise.
+    }
   }
 
   if (emittedTerminalError) return;

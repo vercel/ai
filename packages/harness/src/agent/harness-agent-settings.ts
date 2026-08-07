@@ -175,8 +175,19 @@ export type HarnessAgentSettings<
    * harness runs against. Its `restricted()` view is also propagated to user
    * tool `execute()` calls (as the `experimental_sandbox` field), typed as
    * `Experimental_SandboxSession` so tools cannot reach the infra surface.
+   *
+   * When omitted, the harness runs **on the local machine**, in
+   * `process.cwd()`, as the current user. That is convenient for local
+   * development, and reuses whatever CLI configuration and credentials the
+   * user already has, but it provides **no isolation**: the harness has every
+   * permission the current user has. Pass a real sandbox provider such as
+   * `@ai-sdk/sandbox-vercel` for untrusted input or untrusted output.
+   *
+   * A warning is emitted once per process when this is omitted. Suppress it the
+   * same way as other AI SDK warnings, by setting the `AI_SDK_LOG_WARNINGS`
+   * global to `false` or to your own logger function.
    */
-  readonly sandbox: HarnessV1SandboxProvider;
+  readonly sandbox?: HarnessV1SandboxProvider;
 
   /**
    * Sandbox working-directory and lifecycle hook configuration.
