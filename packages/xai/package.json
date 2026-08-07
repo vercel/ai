@@ -42,7 +42,6 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*"
   },

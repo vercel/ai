@@ -2547,6 +2547,7 @@ importers:
       zod:
         specifier: 3.25.76
         version: 3.25.76
+
   packages/gateway:
     dependencies:
       '@ai-sdk/provider':
@@ -4127,9 +4128,6 @@ importers:
 
   packages/xai:
     dependencies:
-      '@ai-sdk/openai-compatible':
-        specifier: workspace:*
-        version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: workspace:*
         version: link:../provider
