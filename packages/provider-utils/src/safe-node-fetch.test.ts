@@ -108,18 +108,32 @@ describe('getDefaultDownloadFetch', () => {
       return;
     }
 
+    const nodeModules = new Map<string, unknown>([
+      ['node:dns', await import('node:dns')],
+      ['node:module', await import('node:module')],
+    ]);
+    const dynamicImport = vi.fn(async (id: string) => nodeModules.get(id));
+    const functionConstructor = vi.fn(() => dynamicImport);
     const runtimeProcess = globalThis.process as unknown as {
       getBuiltinModule: ((id: string) => unknown) | undefined;
     };
     const originalGetBuiltinModule = runtimeProcess.getBuiltinModule;
+    vi.stubGlobal('Function', functionConstructor);
     runtimeProcess.getBuiltinModule = undefined;
 
     try {
       await expect(getDefaultDownloadFetch()).resolves.not.toBe(
         globalThis.fetch,
       );
+      expect(functionConstructor).toHaveBeenCalledWith(
+        'specifier',
+        'return import(specifier)',
+      );
+      expect(dynamicImport).toHaveBeenCalledWith('node:module');
+      expect(dynamicImport).toHaveBeenCalledWith('node:dns');
     } finally {
       runtimeProcess.getBuiltinModule = originalGetBuiltinModule;
+      vi.unstubAllGlobals();
     }
   });
 });
