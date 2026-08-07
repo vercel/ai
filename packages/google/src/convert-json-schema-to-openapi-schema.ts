@@ -38,8 +38,13 @@ export function convertJSONSchemaToOpenAPISchema(
     oneOf,
     format,
     const: constValue,
-    minLength,
     enum: enumValues,
+    minLength,
+    maxLength,
+    minimum,
+    maximum,
+    minItems,
+    maxItems,
   } = jsonSchema;
 
   const result: Record<string, unknown> = {};
@@ -141,6 +146,25 @@ export function convertJSONSchemaToOpenAPISchema(
 
   if (minLength !== undefined) {
     result.minLength = minLength;
+  }
+  if (maxLength !== undefined) {
+    result.maxLength = maxLength;
+  }
+
+  // numeric constraints
+  if (minimum !== undefined) {
+    result.minimum = minimum;
+  }
+  if (maximum !== undefined) {
+    result.maximum = maximum;
+  }
+
+  // array length constraints
+  if (minItems !== undefined) {
+    result.minItems = minItems;
+  }
+  if (maxItems !== undefined) {
+    result.maxItems = maxItems;
   }
 
   return result;
