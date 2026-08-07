@@ -1,5 +1,13 @@
 # @ai-sdk/provider-utils
 
+## 5.0.25
+
+### Patch Changes
+
+- 81cd026: Reduce bundle size by making internal Zod v4 imports tree-shakeable.
+- Updated dependencies [ad6a650]
+  - @ai-sdk/provider@4.0.7
+
 ## 5.0.24
 
 ### Patch Changes
