@@ -550,7 +550,10 @@ describe('doGenerate', () => {
         | typeof TEST_URL_GEMINI_2_0_PRO
         | typeof TEST_URL_GEMINI_2_0_FLASH_EXP
         | typeof TEST_URL_GEMINI_1_0_PRO
-        | typeof TEST_URL_GEMINI_1_5_FLASH;
+        | typeof TEST_URL_GEMINI_1_5_FLASH
+        | typeof TEST_URL_GEMINI_2_5_PRO
+        | typeof TEST_URL_GEMINI_2_5_FLASH
+        | typeof TEST_URL_GEMINI_2_5_FLASH_LITE;
     } = {},
   ) {
     server.urls[url].response = {
@@ -1296,6 +1299,62 @@ describe('doGenerate', () => {
         },
       }
     `);
+  });
+
+  it.each([
+    ['frequencyPenalty', 'gemini-2.5-pro', TEST_URL_GEMINI_2_5_PRO],
+    ['presencePenalty', 'gemini-2.5-pro', TEST_URL_GEMINI_2_5_PRO],
+    ['frequencyPenalty', 'gemini-2.5-flash', TEST_URL_GEMINI_2_5_FLASH],
+    ['presencePenalty', 'gemini-2.5-flash', TEST_URL_GEMINI_2_5_FLASH],
+    [
+      'frequencyPenalty',
+      'gemini-2.5-flash-lite',
+      TEST_URL_GEMINI_2_5_FLASH_LITE,
+    ],
+    [
+      'presencePenalty',
+      'gemini-2.5-flash-lite',
+      TEST_URL_GEMINI_2_5_FLASH_LITE,
+    ],
+  ] as const)(
+    'should omit unsupported %s for %s',
+    async (penalty, modelId, url) => {
+      prepareJsonFixtureResponse('google-text', { url });
+
+      const result = await provider.languageModel(modelId).doGenerate({
+        prompt: TEST_PROMPT,
+        [penalty]: 0.5,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.generationConfig).toEqual({});
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: penalty,
+        },
+      ]);
+    },
+  );
+
+  it('should pass penalty settings for Gemini 2.0 models', async () => {
+    prepareJsonFixtureResponse('google-text', {
+      url: TEST_URL_GEMINI_2_0_PRO,
+    });
+
+    const result = await provider.languageModel('gemini-2.0-pro').doGenerate({
+      prompt: TEST_PROMPT,
+      frequencyPenalty: 0.5,
+      presencePenalty: 0.5,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        frequencyPenalty: 0.5,
+        presencePenalty: 0.5,
+      },
+    });
+    expect(result.warnings).toEqual([]);
   });
 
   it('should only pass valid provider options', async () => {
