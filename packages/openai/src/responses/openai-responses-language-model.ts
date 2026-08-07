@@ -572,8 +572,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       delete (baseArgs as any).service_tier;
     }
 
-    // Validate priority processing support. 'fast' is OpenAI's newer name for
-    // the same tier, so it is gated on the same capability.
+    // Validate priority processing support
     if (
       (openaiOptions?.serviceTier === 'priority' ||
         openaiOptions?.serviceTier === 'fast') &&

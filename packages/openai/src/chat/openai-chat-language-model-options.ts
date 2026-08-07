@@ -138,8 +138,7 @@ export const openaiLanguageModelChatOptions = lazySchema(() =>
        *           Project settings. Unless otherwise configured, the Project will use 'default'.
        * - 'flex': 50% cheaper processing at the cost of increased latency. Only available for o3 and o4-mini models.
        * - 'priority': Higher-speed processing with predictably low latency at premium cost. Available for Enterprise customers.
-       * - 'fast': The same tier as 'priority', which OpenAI renamed to Fast mode. Both values are accepted
-       *           and interchangeable; responses from gpt-5.6 and earlier echo 'priority' either way.
+       * - 'fast': OpenAI's newer name for the 'priority' tier. Interchangeable with it.
        * - 'default': The request will be processed with the standard pricing and performance for the selected model.
        *
        * @default 'auto'
