@@ -20,15 +20,15 @@ describe('createGrokBuild', () => {
     createGrokBuild();
 
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
-    if (settings.implementation.mode !== 'locked') {
-      throw new Error('Expected a locked Grok Build implementation.');
+    if (settings.source.type !== 'npm-locked') {
+      throw new Error('Expected a locked Grok Build source.');
     }
-    const implementation = {
-      ...settings.implementation,
-      packageJson: JSON.parse(settings.implementation.packageJson),
+    const source = {
+      ...settings.source,
+      packageJson: JSON.parse(settings.source.packageJson),
       pnpmLockYaml: '<pnpm-lock.yaml>',
     };
-    expect(settings.implementation.pnpmLockYaml).toContain(
+    expect(settings.source.pnpmLockYaml).toContain(
       "'@xai-official/grok@0.2.111'",
     );
 
@@ -36,11 +36,18 @@ describe('createGrokBuild', () => {
       version: settings.version,
       harnessId: settings.harnessId,
       clientApp: settings.clientApp,
-      implementation,
+      source,
+      executable: settings.executable,
+      args: settings.args,
+      forwardEnv: settings.forwardEnv,
       providerAuthentication: settings.providerAuthentication,
       builtinToolNames: Object.keys(settings.builtinTools ?? {}),
     }).toMatchInlineSnapshot(`
       {
+        "args": [
+          "agent",
+          "stdio",
+        ],
         "builtinToolNames": [
           "bash",
           "edit",
@@ -72,33 +79,11 @@ describe('createGrokBuild', () => {
           "name": "ai-sdk/harness-grok-build",
           "version": "0.0.0-test",
         },
+        "executable": "grok",
+        "forwardEnv": [
+          "XAI_API_KEY",
+        ],
         "harnessId": "grok-build",
-        "implementation": {
-          "args": [
-            "agent",
-            "stdio",
-          ],
-          "executable": "grok",
-          "forwardEnv": [
-            "XAI_API_KEY",
-          ],
-          "mode": "locked",
-          "packageJson": {
-            "dependencies": {
-              "@agentclientprotocol/sdk": "1.2.1",
-              "@modelcontextprotocol/sdk": "1.29.0",
-              "@xai-official/grok": "0.2.111",
-              "ws": "8.21.0",
-              "zod": "4.4.3",
-            },
-            "name": "harness-grok-build-bridge",
-            "private": true,
-            "type": "module",
-            "version": "0.0.0",
-          },
-          "pnpmLockYaml": "<pnpm-lock.yaml>",
-          "type": "npm",
-        },
         "providerAuthentication": {
           "gateway": {
             "env": {
@@ -121,6 +106,23 @@ describe('createGrokBuild', () => {
               },
             },
           },
+        },
+        "source": {
+          "packageJson": {
+            "dependencies": {
+              "@agentclientprotocol/sdk": "1.2.1",
+              "@modelcontextprotocol/sdk": "1.29.0",
+              "@xai-official/grok": "0.2.111",
+              "ws": "8.21.0",
+              "zod": "4.4.3",
+            },
+            "name": "harness-grok-build-bridge",
+            "private": true,
+            "type": "module",
+            "version": "0.0.0",
+          },
+          "pnpmLockYaml": "<pnpm-lock.yaml>",
+          "type": "npm-locked",
         },
         "version": "v1",
       }

@@ -285,15 +285,14 @@ export function createGrokBuild(
       name: clientAppSegments.join('/'),
       version: clientAppVersion,
     },
-    implementation: {
-      type: 'npm',
-      mode: 'locked',
+    source: {
+      type: 'npm-locked',
       packageJson: GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON,
       pnpmLockYaml: GROK_BUILD_IMPLEMENTATION_PNPM_LOCK,
-      executable: 'grok',
-      args: ['agent', 'stdio'],
-      forwardEnv: ['XAI_API_KEY'],
     },
+    executable: 'grok',
+    args: ['agent', 'stdio'],
+    forwardEnv: ['XAI_API_KEY'],
     providerAuthentication: {
       gateway: {
         env: {
