@@ -1291,6 +1291,41 @@ describe('ByteDanceVideoModel', () => {
         ],
       });
     });
+
+    it('should warn that legacy poll options are ignored', async () => {
+      const model = createBasicModel();
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          bytedance: {
+            pollIntervalMs: 1000,
+            pollTimeoutMs: 600000,
+          },
+        },
+      });
+
+      expect(result.warnings).toStrictEqual([
+        {
+          type: 'deprecated',
+          setting: 'pollIntervalMs',
+          message: expect.stringContaining('poll: { intervalMs, timeoutMs }'),
+        },
+        {
+          type: 'deprecated',
+          setting: 'pollTimeoutMs',
+          message: expect.stringContaining('poll: { intervalMs, timeoutMs }'),
+        },
+      ]);
+    });
+
+    it('should not warn when no legacy poll options are provided', async () => {
+      const model = createBasicModel();
+
+      const result = await model.doStart({ ...defaultOptions });
+
+      expect(result.warnings).toStrictEqual([]);
+    });
   });
 
   describe('Error Handling', () => {
@@ -1328,7 +1363,57 @@ describe('ByteDanceVideoModel', () => {
 
       expect(result.status).toBe('error');
       expect(result.status === 'error' ? result.error : undefined).toContain(
-        'Video generation failed',
+        'Video generation failed. Task ID: test-task-id-123.',
+      );
+    });
+
+    it('should surface the failure reason reported by the task', async () => {
+      server.urls[
+        'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/test-task-id-123'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'test-task-id-123',
+          status: 'failed',
+          error: {
+            code: 'SensitiveContentDetected',
+            message: 'The prompt was rejected by the content filter.',
+          },
+        },
+      };
+
+      const model = createBasicModel();
+
+      const result = await model.doStatus({
+        operation: { taskId: 'test-task-id-123' },
+      });
+
+      expect(result.status === 'error' ? result.error : undefined).toBe(
+        'Video generation failed. Task ID: test-task-id-123. ' +
+          'The prompt was rejected by the content filter.',
+      );
+    });
+
+    it('should fall back to the error code when the task reports no message', async () => {
+      server.urls[
+        'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/test-task-id-123'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'test-task-id-123',
+          status: 'failed',
+          error: { code: 'InternalServiceError' },
+        },
+      };
+
+      const model = createBasicModel();
+
+      const result = await model.doStatus({
+        operation: { taskId: 'test-task-id-123' },
+      });
+
+      expect(result.status === 'error' ? result.error : undefined).toBe(
+        'Video generation failed. Task ID: test-task-id-123. InternalServiceError',
       );
     });
 
@@ -1395,7 +1480,7 @@ describe('ByteDanceVideoModel', () => {
       await expect(
         model.doStatus({ operation: { taskId: 'test-task-id-123' } }),
       ).rejects.toMatchObject({
-        message: 'No video URL in response',
+        message: 'No video URL in response. Task ID: test-task-id-123',
       });
     });
 
@@ -1416,6 +1501,29 @@ describe('ByteDanceVideoModel', () => {
 
       await expect(model.doStart({ ...defaultOptions })).rejects.toMatchObject({
         statusCode: 400,
+      });
+    });
+
+    it('should handle API errors from the status endpoint', async () => {
+      server.urls[
+        'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/test-task-id-123'
+      ].response = {
+        type: 'error',
+        status: 404,
+        body: JSON.stringify({
+          error: {
+            message: 'Task not found',
+          },
+        }),
+      };
+
+      const model = createBasicModel();
+
+      await expect(
+        model.doStatus({ operation: { taskId: 'test-task-id-123' } }),
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Task not found',
       });
     });
   });

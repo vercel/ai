@@ -198,6 +198,20 @@ export class ByteDanceVideoModel implements VideoModelV4 {
       schema: byteDanceVideoModelOptionsSchema,
     })) as ByteDanceVideoModelOptions | undefined;
 
+    // Polling is orchestrated by the AI SDK core via doStart/doStatus, so the
+    // legacy provider-level poll options no longer have any effect.
+    for (const setting of ['pollIntervalMs', 'pollTimeoutMs'] as const) {
+      if (byteDanceOptions?.[setting] != null) {
+        warnings.push({
+          type: 'deprecated',
+          setting,
+          message:
+            `\`${setting}\` is ignored. Polling is orchestrated by the AI SDK: ` +
+            'pass `poll: { intervalMs, timeoutMs }` to `generateVideo` instead.',
+        });
+      }
+    }
+
     // Warn about unsupported standard options
     if (options.fps) {
       warnings.push({
@@ -397,7 +411,7 @@ export class ByteDanceVideoModel implements VideoModelV4 {
       if (!videoUrl) {
         throw new AISDKError({
           name: 'BYTEDANCE_VIDEO_GENERATION_ERROR',
-          message: 'No video URL in response',
+          message: `No video URL in response. Task ID: ${taskId}`,
         });
       }
 
@@ -431,11 +445,16 @@ export class ByteDanceVideoModel implements VideoModelV4 {
       statusResponse.status === 'cancelled' ||
       statusResponse.status === 'canceled'
     ) {
+      // Fall back to the raw body when the task carries no structured reason,
+      // so a failure is never reported without any diagnostic detail.
+      const failureDetails =
+        statusResponse.error?.message ??
+        statusResponse.error?.code ??
+        JSON.stringify(statusResponse);
+
       return {
         status: 'error',
-        error: `Video generation ${statusResponse.status}: ${JSON.stringify(
-          statusResponse,
-        )}`,
+        error: `Video generation ${statusResponse.status}. Task ID: ${taskId}. ${failureDetails}`,
         response: {
           timestamp: currentDate,
           modelId: this.modelId,
@@ -471,6 +490,13 @@ const byteDanceStatusResponseSchema = z.object({
   usage: z
     .object({
       completion_tokens: z.number().nullish(),
+    })
+    .nullish(),
+  // Present on failed tasks (the HTTP response itself is still 200).
+  error: z
+    .object({
+      code: z.string().nullish(),
+      message: z.string().nullish(),
     })
     .nullish(),
 });
