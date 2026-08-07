@@ -1,13 +1,11 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { createDeepAgents } from '@ai-sdk/harness-deepagents';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
 import { z } from 'zod';
+import { createCodexACP } from '../../lib/codex-acp-harness';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
-// Runs a non-Anthropic model through AI Gateway's Anthropic-compatible endpoint.
-// Requires AI_GATEWAY_API_KEY (or VERCEL_OIDC_TOKEN) in the environment.
 run(async () => {
   const sandbox = createVercelSandbox({
     runtime: 'node24',
@@ -28,11 +26,10 @@ run(async () => {
   });
 
   const agent = new HarnessAgent({
-    harness: createDeepAgents({
-      model: process.env.PROBE_MODEL ?? 'google/gemini-2.5-flash',
-    }),
+    harness: createCodexACP(),
     sandbox,
     tools: { weather },
+    activeTools: ['weather'],
   });
 
   let exitCode = 0;
@@ -41,12 +38,10 @@ run(async () => {
     const result = await agent.stream({
       session,
       prompt:
-        'What is the weather in Paris? Use the `weather` tool, then summarize in one sentence.',
+        'Use the `weather` tool for Paris, then read README.md and summarize both results in one sentence.',
     });
 
     await printFullStream({ result });
-
-    console.log('steps:', (await result.steps).length);
   } catch (err) {
     exitCode = 1;
     console.error('[example] failed:', err);

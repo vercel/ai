@@ -88,6 +88,9 @@
       "path": "packages/groq"
     },
     {
+      "path": "packages/harness-acp"
+    },
+    {
       "path": "packages/harness-claude-code"
     },
     {
