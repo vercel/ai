@@ -30,6 +30,7 @@ import {
   createACPBridgeError,
   createACPInitializationDiagnostic,
 } from './acp-diagnostics';
+import { monitorACPAgentStderr } from './agent-stderr-monitor';
 import { createEmitStreamEvent } from './create-emit-stream-event';
 import {
   startHostToolRelay,
@@ -79,6 +80,7 @@ const implementation = await readImplementationDescriptor({
 const bridgeConfiguration = await readACPBridgeEnvironment({ env: processEnv });
 
 let child: ChildProcessWithoutNullStreams | undefined;
+let agentResponseStreamFailure: Promise<never> | undefined;
 let connection: acp.ClientConnection | undefined;
 let session: ACPActiveSession | undefined;
 let recoveredSessionUpdates:
@@ -138,6 +140,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const activeSession = session;
   if (activeSession == null) {
     throw new Error('ACP session initialization did not produce a session.');
+  }
+  const activeAgentResponseStreamFailure = agentResponseStreamFailure;
+  if (activeAgentResponseStreamFailure == null) {
+    throw new Error(
+      'ACP session initialization did not start stderr monitoring.',
+    );
   }
   if (start.recoveryMode?.type === 'lossy-rerun') {
     const marker = {
@@ -260,6 +268,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         message = await Promise.race([
           activeSession.nextUpdate(),
           cancellationFailure,
+          activeAgentResponseStreamFailure,
         ]);
       } catch (error) {
         for (const rawValue of streamCapture?.drainRawValues() ?? []) {
@@ -361,7 +370,16 @@ async function ensureSession({
       stdio: ['pipe', 'pipe', 'pipe'],
     },
   );
-  forwardAgentStderr({ child, turn });
+  agentResponseStreamFailure = monitorACPAgentStderr({
+    stderr: child.stderr,
+    onStderrLine: line => {
+      turn.bridgeLog({
+        level: 'warn',
+        subsystem: 'acp.agent.stderr',
+        message: line,
+      });
+    },
+  });
 
   const input = Writable.toWeb(child.stdin);
   const output = Readable.toWeb(child.stdout) as ReadableStream<
@@ -629,39 +647,6 @@ function createChildEnvironment({
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
   return value != null && typeof value === 'object' && !Array.isArray(value);
-}
-
-function forwardAgentStderr({
-  child,
-  turn,
-}: {
-  child: ChildProcessWithoutNullStreams;
-  turn: BridgeTurn;
-}): void {
-  void (async () => {
-    child.stderr.setEncoding('utf8');
-    let pending = '';
-    for await (const chunk of child.stderr) {
-      pending += chunk;
-      const lines = pending.split('\n');
-      pending = lines.pop() ?? '';
-      for (const line of lines) {
-        if (line.length === 0) continue;
-        turn.bridgeLog({
-          level: 'warn',
-          subsystem: 'acp.agent.stderr',
-          message: line,
-        });
-      }
-    }
-    if (pending.length > 0) {
-      turn.bridgeLog({
-        level: 'warn',
-        subsystem: 'acp.agent.stderr',
-        message: pending,
-      });
-    }
-  })();
 }
 
 async function readImplementationDescriptor({
