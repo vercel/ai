@@ -1,5 +1,15 @@
 # @ai-sdk/workflow
 
+## 1.0.56
+
+### Patch Changes
+
+- 25c9120: Expose provider metadata on language-model-call end callbacks and telemetry spans.
+- Updated dependencies [25c9120]
+- Updated dependencies [89080c8]
+- Updated dependencies [79d6195]
+  - ai@7.0.56
+
 ## 1.0.55
 
 ### Patch Changes

@@ -11,6 +11,7 @@ import type {
 import {
   convertBase64ToUint8Array,
   delay as defaultDelay,
+  generateId,
   withUserAgentSuffix,
   type DataContent,
   detectMediaType,
@@ -553,13 +554,23 @@ async function executeStartStatusFlow({
     }
   }
 
-  // 2. Start the generation
-  const startResult = await retry(() =>
-    model.doStart!({
-      ...callOptions,
-      webhookUrl,
-    }),
+  // 2. Start the generation. `doStart` is billable: mint one idempotency token
+  // per logical start, outside the retry closure; a caller-supplied key wins.
+  const callerIdempotencyKey = Object.entries(callOptions.headers ?? {}).find(
+    ([key, value]) =>
+      key.toLowerCase() === 'idempotency-key' && value !== undefined,
   );
+  const startCallOptions = {
+    ...callOptions,
+    headers: {
+      ...callOptions.headers,
+      ...(callerIdempotencyKey
+        ? {}
+        : { 'idempotency-key': `aisdk_vid_${generateId()}` }),
+    },
+    webhookUrl,
+  };
+  const startResult = await retry(() => model.doStart!(startCallOptions));
 
   const allWarnings = [...earlyWarnings, ...startResult.warnings];
   let operationProviderMetadata =
