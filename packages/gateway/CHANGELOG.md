@@ -1,5 +1,102 @@
 # @ai-sdk/gateway
 
+## 4.0.44
+
+### Patch Changes
+
+- 89080c8: feat (provider/gateway): support the async video operation flow (doStart/doStatus) on the v4 video model
+- 89080c8: fix (ai/gateway): make retried `doStart` calls idempotent
+
+  `generateVideo` retries `doStart`, which creates a billable generation, so a
+  retry after a lost response could start a second one. It now mints one
+  idempotency token per logical start — outside the retry closure — and forwards it
+  as an `idempotency-key` header, so a provider that deduplicates (the Vercel AI
+  Gateway does) sees the same key on every attempt. `GatewayVideoModel` simply
+  forwards the caller's headers rather than inferring retry identity from an
+  options object, which would collide across unrelated calls.
+
+## 4.0.43
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - @ai-sdk/provider-utils@5.0.23
+
+## 4.0.42
+
+### Patch Changes
+
+- 7aeab10: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [2b60826]
+  - @ai-sdk/provider-utils@5.0.22
+
+## 4.0.41
+
+### Patch Changes
+
+- 53c326e: chore(provider/gateway): update gateway model settings files
+- d765f82: Export the Gateway embedding and image model ID types.
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+
+## 4.0.40
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+
+## 4.0.39
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+  - @ai-sdk/provider-utils@5.0.19
+
+## 4.0.38
+
+### Patch Changes
+
+- fb6d2f8: chore(provider/gateway): update gateway model settings files
+
+## 4.0.37
+
+### Patch Changes
+
+- bdd5e28: feat(provider/gateway): support `'vision'` (image input) in the `has` provider option
+
+## 4.0.36
+
+### Patch Changes
+
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+
+## 4.0.35
+
+### Patch Changes
+
+- 4f2e064: chore(provider/gateway): update gateway model settings files
+
+## 4.0.34
+
+### Patch Changes
+
+- Updated dependencies [fa95504]
+  - @ai-sdk/provider-utils@5.0.17
+
+## 4.0.33
+
+### Patch Changes
+
+- af3f400: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+
 ## 4.0.32
 
 ### Patch Changes

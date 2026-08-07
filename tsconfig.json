@@ -34,7 +34,13 @@
       "path": "packages/bytedance"
     },
     {
+      "path": "packages/cartesia"
+    },
+    {
       "path": "packages/cerebras"
+    },
+    {
+      "path": "packages/code-mode"
     },
     {
       "path": "packages/codemod"
@@ -64,6 +70,9 @@
       "path": "packages/fireworks"
     },
     {
+      "path": "packages/fish-audio"
+    },
+    {
       "path": "packages/gateway"
     },
     {
@@ -77,6 +86,9 @@
     },
     {
       "path": "packages/groq"
+    },
+    {
+      "path": "packages/harness-acp"
     },
     {
       "path": "packages/harness-claude-code"
@@ -119,6 +131,9 @@
     },
     {
       "path": "packages/mcp"
+    },
+    {
+      "path": "packages/minimax"
     },
     {
       "path": "packages/mistral"

@@ -704,6 +704,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
       z.object({
         type: z.literal('response.output_text.delta'),
         item_id: z.string(),
+        output_index: z.number().nullish(),
         delta: z.string(),
         logprobs: z
           .array(
@@ -791,6 +792,15 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
       }),
       z.object({
         type: z.literal('response.created'),
+        response: z.object({
+          id: z.string(),
+          created_at: z.number(),
+          model: z.string(),
+          service_tier: z.string().nullish(),
+        }),
+      }),
+      z.object({
+        type: z.literal('response.in_progress'),
         response: z.object({
           id: z.string(),
           created_at: z.number(),
@@ -1255,17 +1265,20 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
       z.object({
         type: z.literal('response.reasoning_summary_part.added'),
         item_id: z.string(),
+        output_index: z.number().nullish(),
         summary_index: z.number(),
       }),
       z.object({
         type: z.literal('response.reasoning_summary_text.delta'),
         item_id: z.string(),
+        output_index: z.number().nullish(),
         summary_index: z.number(),
         delta: z.string(),
       }),
       z.object({
         type: z.literal('response.reasoning_summary_part.done'),
         item_id: z.string(),
+        output_index: z.number().nullish(),
         summary_index: z.number(),
       }),
       z.object({

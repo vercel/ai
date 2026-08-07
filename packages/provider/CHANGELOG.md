@@ -1,5 +1,24 @@
 # @ai-sdk/provider
 
+## 4.0.6
+
+### Patch Changes
+
+- 3469d0c: feat: add batch APIs
+
+## 4.0.5
+
+### Patch Changes
+
+- 79e133c: async APIs for generateVideo (poll, webhook)
+
+  Adds an asynchronous start/status flow to the experimental video model
+  interface (`VideoModelV4`): models may now implement `doStart`, `doStatus`,
+  and `handleWebhookOption` instead of (or in addition to) `doGenerate`, and
+  `experimental_generateVideo` accepts `poll` and `webhook` options to
+  orchestrate completion via polling or webhooks. Polling configuration can use
+  a custom delay implementation for durable workflow compatibility.
+
 ## 4.0.4
 
 ### Patch Changes

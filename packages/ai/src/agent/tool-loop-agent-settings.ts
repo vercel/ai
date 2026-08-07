@@ -22,6 +22,7 @@ import type { PrepareStepFunction } from '../generate-text/prepare-step';
 import type { StopCondition } from '../generate-text/stop-condition';
 import type { StreamTextInclude } from '../generate-text/stream-text';
 import type { ToolApprovalConfiguration } from '../generate-text/tool-approval-configuration';
+import type { Experimental_ToolCallers } from '../generate-text/tool-caller-configuration';
 import type { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
 import type {
   OnToolExecutionEndCallback,
@@ -133,6 +134,11 @@ export type ToolLoopAgentSettings<
      * This configuration takes precedence over tool-defined approval settings.
      */
     toolApproval?: ToolApprovalConfiguration<NoInfer<TOOLS>, RUNTIME_CONTEXT>;
+
+    /**
+     * Configures which caller tools may invoke each tool.
+     */
+    experimental_toolCallers?: Experimental_ToolCallers<NoInfer<TOOLS>>;
 
     /**
      * Optional function that you can use to provide different settings for a step.
@@ -320,6 +326,7 @@ export type ToolLoopAgentSettings<
           | 'frequencyPenalty'
           | 'stopSequences'
           | 'seed'
+          | 'reasoning'
           | 'headers'
           | 'instructions'
           | 'allowSystemInMessages'
@@ -329,6 +336,7 @@ export type ToolLoopAgentSettings<
           | 'activeTools'
           | 'toolOrder'
           | 'toolApproval'
+          | 'experimental_toolCallers'
           | 'providerOptions'
           | 'experimental_download'
           | 'experimental_refineToolInput'
@@ -354,6 +362,7 @@ export type ToolLoopAgentSettings<
         | 'frequencyPenalty'
         | 'stopSequences'
         | 'seed'
+        | 'reasoning'
         | 'headers'
         | 'instructions'
         | 'allowSystemInMessages'
@@ -363,6 +372,7 @@ export type ToolLoopAgentSettings<
         | 'activeTools'
         | 'toolOrder'
         | 'toolApproval'
+        | 'experimental_toolCallers'
         | 'providerOptions'
         | 'experimental_download'
         | 'experimental_refineToolInput'
