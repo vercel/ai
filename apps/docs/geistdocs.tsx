@@ -6,8 +6,11 @@ export const Logo = () => (
   <span className="font-semibold text-gray-1000">AI SDK</span>
 );
 
+// Production nests Recipes (and more) under a Resources dropdown; the
+// dropdown is a follow-up, so Recipes gets a flat item for now.
 export const nav: NonNullable<GeistdocsConfig['nav']> = [
   { label: 'Docs', href: '/docs' },
+  { label: 'Recipes', href: '/resources/recipes' },
   { label: 'Providers', href: '/providers' },
 ];
 
@@ -42,6 +45,24 @@ export const content: NonNullable<GeistdocsConfig['content']> = [
     label: 'Providers (v5)',
     dir: 'content/v5/providers',
     route: '/v5/providers',
+  },
+  {
+    id: 'cookbook-v7',
+    label: 'Cookbook (v7)',
+    dir: 'content/v7/cookbook',
+    route: '/cookbook',
+  },
+  {
+    id: 'cookbook-v6',
+    label: 'Cookbook (v6)',
+    dir: 'content/v6/cookbook',
+    route: '/v6/cookbook',
+  },
+  {
+    id: 'cookbook-v5',
+    label: 'Cookbook (v5)',
+    dir: 'content/v5/cookbook',
+    route: '/v5/cookbook',
   },
 ];
 
