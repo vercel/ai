@@ -28,6 +28,9 @@ export const docsV7 = createDocsCollection('content/v7/docs');
 export const providersV5 = createDocsCollection('content/v5/providers');
 export const providersV6 = createDocsCollection('content/v6/providers');
 export const providersV7 = createDocsCollection('content/v7/providers');
+export const cookbookV5 = createDocsCollection('content/v5/cookbook');
+export const cookbookV6 = createDocsCollection('content/v6/cookbook');
+export const cookbookV7 = createDocsCollection('content/v7/cookbook');
 
 export default defineGeistdocsSourceConfig({
   mdxOptions: {

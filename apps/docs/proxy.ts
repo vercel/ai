@@ -16,6 +16,29 @@ const proxy = createProxy({
       from: '/v5/providers/*path',
       to: '/[lang]/v5/providers-llms.mdx/*path',
     },
+    { from: '/cookbook/*path', to: '/[lang]/cookbook-llms.mdx/*path' },
+    {
+      from: '/v6/cookbook/*path',
+      to: '/[lang]/v6/cookbook-llms.mdx/*path',
+    },
+    {
+      from: '/v5/cookbook/*path',
+      to: '/[lang]/v5/cookbook-llms.mdx/*path',
+    },
+    // /resources/recipes mirrors /cookbook (production serves the same
+    // markdown for both surfaces).
+    {
+      from: '/resources/recipes/*path',
+      to: '/[lang]/cookbook-llms.mdx/*path',
+    },
+    {
+      from: '/v6/resources/recipes/*path',
+      to: '/[lang]/v6/cookbook-llms.mdx/*path',
+    },
+    {
+      from: '/v5/resources/recipes/*path',
+      to: '/[lang]/v5/cookbook-llms.mdx/*path',
+    },
   ],
 });
 
