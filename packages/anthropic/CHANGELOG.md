@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 4.0.34
+
+### Patch Changes
+
+- e6415bd: feat(anthropic): add text batch support
+
 ## 4.0.33
 
 ### Patch Changes
