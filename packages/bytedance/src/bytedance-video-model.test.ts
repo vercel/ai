@@ -159,7 +159,7 @@ describe('ByteDanceVideoModel', () => {
     it('should pass an adaptive aspect ratio through unchanged', async () => {
       const model = createBasicModel();
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         aspectRatio: 'adaptive',
       });
