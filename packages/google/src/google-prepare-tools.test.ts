@@ -1,5 +1,8 @@
-import { LanguageModelV3ProviderTool } from '@ai-sdk/provider';
-import { expect, it } from 'vitest';
+import {
+  InvalidArgumentError,
+  LanguageModelV3ProviderTool,
+} from '@ai-sdk/provider';
+import { describe, expect, it } from 'vitest';
 import { prepareTools } from './google-prepare-tools';
 
 it('should return undefined tools and tool_choice when tools are null', () => {
@@ -473,172 +476,67 @@ it('should add warnings for google maps on unsupported models', () => {
   `);
 });
 
-it('should throw error for invalid tool name starting with number', () => {
-  expect(() =>
-    prepareTools({
-      tools: [
-        {
-          type: 'function',
-          name: '123invalid',
-          description: 'Invalid name',
-          inputSchema: { type: 'object', properties: {} },
-        },
-      ],
-      modelId: 'gemini-2.5-flash',
-    }),
-  ).toThrowError(/Invalid tool name/);
-});
-
-it('should accept valid tool name starting with underscore', () => {
-  const result = prepareTools({
-    tools: [
-      {
-        type: 'function',
-        name: '_validName',
-        description: 'Valid name starting with underscore',
-        inputSchema: { type: 'object', properties: {} },
-      },
-    ],
-    modelId: 'gemini-2.5-flash',
-  });
-  expect(result.tools).toEqual([
-    {
-      functionDeclarations: [
-        {
-          name: '_validName',
-          description: 'Valid name starting with underscore',
-          parameters: undefined,
-        },
-      ],
+describe('tool name validation', () => {
+  it.each([
+    ['starting with number', '123invalid'],
+    ['starting with dash', '-invalid'],
+    ['starting with dot', '.invalid'],
+    ['starting with colon', ':invalid'],
+    ['containing space', 'tool name'],
+    ['containing invalid symbol @', 'tool@name'],
+    ['containing invalid symbol #', 'tool#name'],
+    ['exceeding 64 characters', 'a'.repeat(65)],
+  ])(
+    'should throw InvalidArgumentError for invalid tool name (%s)',
+    (_, name) => {
+      expect(() =>
+        prepareTools({
+          tools: [
+            {
+              type: 'function',
+              name,
+              description: 'test',
+              inputSchema: { type: 'object', properties: {} },
+            },
+          ],
+          modelId: 'gemini-2.5-flash',
+        }),
+      ).toThrow(InvalidArgumentError);
     },
-  ]);
-  expect(result.toolWarnings).toEqual([]);
-});
+  );
 
-it('should accept valid tool names with allowed special characters', () => {
-  const result = prepareTools({
-    tools: [
+  it.each([
+    ['simple name', 'validName'],
+    ['starting with underscore', '_validName'],
+    ['containing numbers', 'validName123'],
+    ['containing underscores', 'valid_name'],
+    ['containing dots', 'valid.name'],
+    ['containing colons', 'valid:name'],
+    ['containing dashes', 'valid-name'],
+    ['exactly 64 characters', 'a'.repeat(64)],
+  ])('should accept valid tool name (%s)', (_, name) => {
+    const result = prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name,
+          description: 'test',
+          inputSchema: { type: 'object', properties: {} },
+        },
+      ],
+      modelId: 'gemini-2.5-flash',
+    });
+    expect(result.tools).toEqual([
       {
-        type: 'function',
-        name: 'tool.name',
-        description: 'Name with dot',
-        inputSchema: { type: 'object', properties: {} },
+        functionDeclarations: [
+          {
+            name,
+            description: 'test',
+            parameters: undefined,
+          },
+        ],
       },
-      {
-        type: 'function',
-        name: 'tool:name',
-        description: 'Name with colon',
-        inputSchema: { type: 'object', properties: {} },
-      },
-      {
-        type: 'function',
-        name: 'tool-name',
-        description: 'Name with dash',
-        inputSchema: { type: 'object', properties: {} },
-      },
-    ],
-    modelId: 'gemini-2.5-flash',
+    ]);
+    expect(result.toolWarnings).toEqual([]);
   });
-  expect(result.tools).toEqual([
-    {
-      functionDeclarations: [
-        {
-          name: 'tool.name',
-          description: 'Name with dot',
-          parameters: undefined,
-        },
-        {
-          name: 'tool:name',
-          description: 'Name with colon',
-          parameters: undefined,
-        },
-        {
-          name: 'tool-name',
-          description: 'Name with dash',
-          parameters: undefined,
-        },
-      ],
-    },
-  ]);
-  expect(result.toolWarnings).toEqual([]);
-});
-
-it('should throw error for tool name starting with dash', () => {
-  expect(() =>
-    prepareTools({
-      tools: [
-        {
-          type: 'function',
-          name: '-invalid',
-          description: 'Invalid name',
-          inputSchema: { type: 'object', properties: {} },
-        },
-      ],
-      modelId: 'gemini-2.5-flash',
-    }),
-  ).toThrowError(/Invalid tool name/);
-});
-
-it('should throw error for tool name starting with dot', () => {
-  expect(() =>
-    prepareTools({
-      tools: [
-        {
-          type: 'function',
-          name: '.invalid',
-          description: 'Invalid name',
-          inputSchema: { type: 'object', properties: {} },
-        },
-      ],
-      modelId: 'gemini-2.5-flash',
-    }),
-  ).toThrowError(/Invalid tool name/);
-});
-
-it('should throw error for tool name starting with colon', () => {
-  expect(() =>
-    prepareTools({
-      tools: [
-        {
-          type: 'function',
-          name: ':invalid',
-          description: 'Invalid name',
-          inputSchema: { type: 'object', properties: {} },
-        },
-      ],
-      modelId: 'gemini-2.5-flash',
-    }),
-  ).toThrowError(/Invalid tool name/);
-});
-
-it('should throw error for tool name with @ symbol', () => {
-  expect(() =>
-    prepareTools({
-      tools: [
-        {
-          type: 'function',
-          name: 'tool@name',
-          description: 'Invalid name',
-          inputSchema: { type: 'object', properties: {} },
-        },
-      ],
-      modelId: 'gemini-2.5-flash',
-    }),
-  ).toThrowError(/Invalid tool name/);
-});
-
-it('should throw error for tool name with # symbol', () => {
-  expect(() =>
-    prepareTools({
-      tools: [
-        {
-          type: 'function',
-          name: 'tool#name',
-          description: 'Invalid name',
-          inputSchema: { type: 'object', properties: {} },
-        },
-      ],
-      modelId: 'gemini-2.5-flash',
-    }),
-  ).toThrowError(/Invalid tool name/);
 });

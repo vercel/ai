@@ -1,10 +1,24 @@
 import {
+  InvalidArgumentError,
   LanguageModelV3CallOptions,
   SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import { GoogleGenerativeAIModelId } from './google-generative-ai-options';
+
+function isValidToolName(name: string): boolean {
+  return /^[a-zA-Z_][a-zA-Z0-9_.:-]{0,63}$/.test(name);
+}
+
+function validateToolName(name: string): void {
+  if (!isValidToolName(name)) {
+    throw new InvalidArgumentError({
+      argument: 'tools',
+      message: `Invalid tool name: "${name}". Tool names must start with a letter or underscore, contain only alphanumeric characters, underscores, dots, colons, or dashes, and have a maximum length of 64 characters.`,
+    });
+  }
+}
 
 export function prepareTools({
   tools,
@@ -199,11 +213,7 @@ export function prepareTools({
   for (const tool of tools) {
     switch (tool.type) {
       case 'function':
-        if (!/^[a-zA-Z_][a-zA-Z0-9_.:-]*$/.test(tool.name)) {
-          throw new Error(
-            `Invalid tool name: ${tool.name}. Tool names must start with a letter or underscore and contain only alphanumeric characters, underscores, dots, colons, or dashes.`,
-          );
-        }
+        validateToolName(tool.name);
 
         functionDeclarations.push({
           name: tool.name,
