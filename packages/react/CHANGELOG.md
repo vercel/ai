@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 2.0.231
+
+### Patch Changes
+
+- e642a50: Fix `useChat` throttling so unrelated React renders cannot publish message snapshots ahead of the configured throttle cadence.
+
 ## 2.0.230
 
 ### Patch Changes
