@@ -5,15 +5,15 @@ import { createCodexACP } from '../../lib/codex-acp-harness';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const acquisitionDir = new URL('./locked-acquisition/', import.meta.url);
+  const lockedSourceDir = new URL('./locked-acquisition/', import.meta.url);
   const [packageJson, pnpmLockYaml] = await Promise.all([
-    readFile(new URL('package.json', acquisitionDir), 'utf8'),
-    readFile(new URL('pnpm-lock.yaml', acquisitionDir), 'utf8'),
+    readFile(new URL('package.json', lockedSourceDir), 'utf8'),
+    readFile(new URL('pnpm-lock.yaml', lockedSourceDir), 'utf8'),
   ]);
   const agent = new HarnessAgent({
     harness: createCodexACP({
-      acquisition: {
-        mode: 'locked',
+      source: {
+        type: 'npm-locked',
         packageJson,
         pnpmLockYaml,
       },

@@ -2,6 +2,7 @@ import {
   createACP,
   type ACPAuthOptions,
   type ACPPermissionModeMapping,
+  type ACPSource,
 } from '@ai-sdk/harness-acp';
 import { commonTool } from '@ai-sdk/harness';
 import { z } from 'zod';
@@ -24,13 +25,13 @@ const webSearchActionSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('other') }),
 ]);
 
-const CODEX_ACP_IMPLEMENTATION = {
-  type: 'npm',
-  mode: 'simple',
+const CODEX_ACP_EXECUTABLE = 'codex-acp';
+
+const CODEX_ACP_SOURCE = {
+  type: 'npm-simple',
   packageName: '@agentclientprotocol/codex-acp',
-  version: '1.1.4',
-  executable: 'codex-acp',
-} as const;
+  packageVersion: '1.1.4',
+} as const satisfies ACPSource;
 
 const CODEX_ACP_BUILTIN_TOOLS = {
   bash: commonTool('bash', {
@@ -62,43 +63,25 @@ const CODEX_ACP_PERMISSION_MODE_MAPPING = {
 export function createCodexACP({
   auth = 'auto',
   webSearch,
-  acquisition,
+  source = CODEX_ACP_SOURCE,
 }: {
   auth?: ACPAuthOptions;
   webSearch?: boolean;
-  acquisition?:
-    | { mode: 'simple' }
-    | {
-        mode: 'locked';
-        packageJson: string;
-        pnpmLockYaml: string;
-      };
+  source?: ACPSource;
 } = {}) {
-  const implementation =
-    acquisition?.mode === 'locked'
-      ? ({
-          type: 'npm',
-          mode: 'locked',
-          packageJson: acquisition.packageJson,
-          pnpmLockYaml: acquisition.pnpmLockYaml,
-          executable: CODEX_ACP_IMPLEMENTATION.executable,
-        } as const)
-      : CODEX_ACP_IMPLEMENTATION;
-
   return createACP({
     harnessId: 'codex-acp',
     auth,
-    implementation: {
-      ...implementation,
-      forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
-      ...(webSearch
-        ? {
-            env: {
-              CODEX_CONFIG: JSON.stringify({ web_search: 'live' }),
-            },
-          }
-        : {}),
-    },
+    source,
+    executable: CODEX_ACP_EXECUTABLE,
+    forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
+    ...(webSearch
+      ? {
+          env: {
+            CODEX_CONFIG: JSON.stringify({ web_search: 'live' }),
+          },
+        }
+      : {}),
     builtinTools: CODEX_ACP_BUILTIN_TOOLS,
     permissionModeMapping: CODEX_ACP_PERMISSION_MODE_MAPPING,
     authentication: {

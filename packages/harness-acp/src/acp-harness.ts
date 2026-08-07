@@ -1,19 +1,11 @@
 import type { HarnessV1 } from '@ai-sdk/harness';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import {
-  createACPAuthenticationProfileIdentity,
-  resolveACPProviderAuthenticationCompatibility,
-  type ACPAuthenticationProfileIdentity,
-  type ACPClientApp,
-} from './acp-auth';
+import type { ACPClientApp } from './acp-auth';
 import { createACPV1, type ACPV1Settings } from './v1';
-import { createImplementationIdentity } from './v1/implementation';
 import {
   acpColdSessionStateSchema,
   acpTurnStartConfigSchema,
-  type ACPColdSessionState,
-  type ACPTurnStartConfig,
 } from './v1/acp-v1-bridge-protocol';
 import { VERSION } from './version';
 
@@ -30,7 +22,11 @@ export type ACPHarnessSettings<TBuiltinTools extends ToolSet = {}> = {
   readonly version?: ACPV1Settings['version'];
   readonly harnessId: ACPV1Settings['harnessId'];
   readonly auth?: ACPV1Settings['auth'];
-  readonly implementation: ACPV1Settings['implementation'];
+  readonly source: ACPV1Settings['source'];
+  readonly executable: ACPV1Settings['executable'];
+  readonly args?: ACPV1Settings['args'];
+  readonly forwardEnv?: ACPV1Settings['forwardEnv'];
+  readonly env?: ACPV1Settings['env'];
   readonly authentication?: ACPV1Settings['authentication'];
   readonly providerAuthentication?: ACPV1Settings['providerAuthentication'];
   readonly modelId?: ACPV1Settings['modelId'];
@@ -86,8 +82,6 @@ const acpResumeStateSchema = z.object({
   skillsFingerprint: z.string().optional(),
 });
 
-type ACPBridgeCoords = z.infer<typeof acpBridgeCoordsSchema>;
-
 export function createACP<TBuiltinTools extends ToolSet = {}>(
   settings: ACPHarnessSettings<TBuiltinTools>,
 ): HarnessV1<TBuiltinTools> {
@@ -95,50 +89,6 @@ export function createACP<TBuiltinTools extends ToolSet = {}>(
   switch (version) {
     case 'v1': {
       const clientApp = settings.clientApp ?? ACP_CLIENT_APP;
-      const providerAuthenticationCompatibility =
-        resolveACPProviderAuthenticationCompatibility({
-          auth: settings.auth,
-          providerAuthentication: settings.providerAuthentication,
-          env: process.env,
-        });
-      const implementationIdentity = createImplementationIdentity({
-        harnessId: settings.harnessId,
-        acpVersion: version,
-        implementation: settings.implementation,
-        clientApp,
-        providerAuthentication: providerAuthenticationCompatibility,
-        permissionModeMapping: settings.permissionModeMapping,
-      });
-      const authenticationProfile = createACPAuthenticationProfileIdentity({
-        authentication: settings.authentication,
-        providerAuthenticationCompatibility,
-      });
-      const lifecycleStateSchema: z.ZodType<{
-        readonly implementationIdentity: string;
-        readonly authenticationProfile?: ACPAuthenticationProfileIdentity;
-        readonly acpSessionId?: string;
-        readonly bridge?: ACPBridgeCoords;
-        readonly coldSession?: ACPColdSessionState;
-        readonly turnStartConfig?: ACPTurnStartConfig;
-        readonly recovery?: {
-          readonly mode: 'disk-replay' | 'lossy-rerun';
-          readonly reason: string;
-        };
-        readonly restoration?: {
-          readonly method: 'resume' | 'load';
-        };
-        readonly initialGuidanceApplied?: boolean;
-        readonly skillsMaterialized?: boolean;
-        readonly skillsFingerprint?: string;
-      }> = acpResumeStateSchema.extend({
-        implementationIdentity: z.literal(implementationIdentity),
-        authenticationProfile: acpResumeStateSchema.shape.authenticationProfile
-          .unwrap()
-          .extend({
-            digest: z.literal(authenticationProfile.digest),
-          })
-          .optional(),
-      });
       return createACPV1({
         settings,
         builtinTools:
@@ -146,10 +96,7 @@ export function createACP<TBuiltinTools extends ToolSet = {}>(
         port: settings.port,
         startupTimeoutMs: settings.startupTimeoutMs,
         clientApp,
-        implementationIdentity,
-        authenticationProfile,
-        providerAuthenticationCompatibility,
-        lifecycleStateSchema,
+        lifecycleStateSchema: acpResumeStateSchema,
       });
     }
     default:
