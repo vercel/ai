@@ -10,6 +10,7 @@ export type GatewayVideoModelId =
   | 'bfl/flux-3-video'
   | 'bytedance/seedance-2.0'
   | 'bytedance/seedance-2.0-fast'
+  | 'bytedance/seedance-2.5'
   | 'bytedance/seedance-v1.0-pro'
   | 'bytedance/seedance-v1.0-pro-fast'
   | 'bytedance/seedance-v1.5-pro'
