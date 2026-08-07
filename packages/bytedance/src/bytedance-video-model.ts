@@ -3,6 +3,8 @@ import {
   type Experimental_VideoModelV4 as VideoModelV4,
   type Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
   type Experimental_VideoModelV4File as VideoModelV4File,
+  type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
+  type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -10,7 +12,6 @@ import {
   convertImageModelFileToDataUri,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  delay,
   getFromApi,
   getTopLevelMediaType,
   parseProviderOptions,
@@ -185,10 +186,10 @@ export class ByteDanceVideoModel implements VideoModelV4 {
     private readonly config: ByteDanceVideoModelConfig,
   ) {}
 
-  async doGenerate(
-    options: Parameters<NonNullable<VideoModelV4['doGenerate']>>[0],
-  ): Promise<Awaited<ReturnType<NonNullable<VideoModelV4['doGenerate']>>>> {
-    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+  private async buildRequestBody(options: VideoModelV4CallOptions): Promise<{
+    body: Record<string, unknown>;
+    warnings: SharedV4Warning[];
+  }> {
     const warnings: SharedV4Warning[] = [];
 
     const byteDanceOptions = (await parseProviderOptions({
@@ -325,10 +326,17 @@ export class ByteDanceVideoModel implements VideoModelV4 {
       }
     }
 
-    const createUrl = `${this.config.baseURL}/contents/generations/tasks`;
+    return { body, warnings };
+  }
 
-    const { value: createResponse } = await postJsonToApi({
-      url: createUrl,
+  async doStart(
+    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+  ): Promise<VideoModelV4OperationStartResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { body, warnings } = await this.buildRequestBody(options);
+
+    const { value: createResponse, responseHeaders } = await postJsonToApi({
+      url: `${this.config.baseURL}/contents/generations/tasks`,
       headers: combineHeaders(
         await resolve(this.config.headers),
         options.headers,
@@ -351,82 +359,96 @@ export class ByteDanceVideoModel implements VideoModelV4 {
       });
     }
 
-    const pollIntervalMs = byteDanceOptions?.pollIntervalMs ?? 3000;
-    const pollTimeoutMs = byteDanceOptions?.pollTimeoutMs ?? 300000;
-
-    const startTime = Date.now();
-    let response: ByteDanceResponse;
-    let responseHeaders: Record<string, string> | undefined;
-
-    while (true) {
-      const statusUrl = `${this.config.baseURL}/contents/generations/tasks/${taskId}`;
-
-      const { value: statusResponse, responseHeaders: statusHeaders } =
-        await getFromApi({
-          url: statusUrl,
-          validateUrl: false,
-          headers: combineHeaders(
-            await resolve(this.config.headers),
-            options.headers,
-          ),
-          failedResponseHandler: byteDanceFailedResponseHandler,
-          successfulResponseHandler: createJsonResponseHandler(
-            byteDanceStatusResponseSchema,
-          ),
-          abortSignal: options.abortSignal,
-          fetch: this.config.fetch,
-        });
-
-      if (statusResponse.status === 'succeeded') {
-        response = statusResponse;
-        responseHeaders = statusHeaders;
-        break;
-      }
-
-      if (statusResponse.status === 'failed') {
-        throw new AISDKError({
-          name: 'BYTEDANCE_VIDEO_GENERATION_FAILED',
-          message: `Video generation failed: ${JSON.stringify(statusResponse)}`,
-        });
-      }
-
-      if (Date.now() - startTime > pollTimeoutMs) {
-        throw new AISDKError({
-          name: 'BYTEDANCE_VIDEO_GENERATION_TIMEOUT',
-          message: `Video generation timed out after ${pollTimeoutMs}ms`,
-        });
-      }
-
-      await delay(pollIntervalMs, { abortSignal: options.abortSignal });
-    }
-
-    const videoUrl = response.content?.video_url;
-    if (!videoUrl) {
-      throw new AISDKError({
-        name: 'BYTEDANCE_VIDEO_GENERATION_ERROR',
-        message: 'No video URL in response',
-      });
-    }
-
     return {
-      videos: [
-        {
-          type: 'url',
-          url: videoUrl,
-          mediaType: 'video/mp4',
-        },
-      ],
+      operation: { taskId },
       warnings,
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
         headers: responseHeaders,
       },
-      providerMetadata: {
-        bytedance: {
-          taskId,
-          usage: response.usage,
+    };
+  }
+
+  async doStatus(
+    options: Parameters<NonNullable<VideoModelV4['doStatus']>>[0],
+  ): Promise<VideoModelV4OperationStatusResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { taskId } = options.operation as { taskId: string };
+
+    const { value: statusResponse, responseHeaders } = await getFromApi({
+      url: `${this.config.baseURL}/contents/generations/tasks/${taskId}`,
+      validateUrl: false,
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
+      failedResponseHandler: byteDanceFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        byteDanceStatusResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    if (statusResponse.status === 'succeeded') {
+      const videoUrl = statusResponse.content?.video_url;
+
+      if (!videoUrl) {
+        throw new AISDKError({
+          name: 'BYTEDANCE_VIDEO_GENERATION_ERROR',
+          message: 'No video URL in response',
+        });
+      }
+
+      return {
+        status: 'completed',
+        videos: [
+          {
+            type: 'url',
+            url: videoUrl,
+            mediaType: 'video/mp4',
+          },
+        ],
+        warnings: [],
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
         },
+        providerMetadata: {
+          bytedance: {
+            taskId,
+            usage: statusResponse.usage,
+          },
+        },
+      };
+    }
+
+    if (
+      statusResponse.status === 'failed' ||
+      statusResponse.status === 'cancelled' ||
+      statusResponse.status === 'canceled'
+    ) {
+      return {
+        status: 'error',
+        error: `Video generation ${statusResponse.status}: ${JSON.stringify(
+          statusResponse,
+        )}`,
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
+    }
+
+    return {
+      status: 'pending',
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
       },
     };
   }
@@ -435,8 +457,6 @@ export class ByteDanceVideoModel implements VideoModelV4 {
 const byteDanceTaskResponseSchema = z.object({
   id: z.string().nullish(),
 });
-
-type ByteDanceResponse = z.infer<typeof byteDanceStatusResponseSchema>;
 
 const byteDanceStatusResponseSchema = z.object({
   id: z.string().nullish(),
