@@ -29,6 +29,19 @@ const simpleImplementation = {
   },
 } as const satisfies ACPNpmImplementation;
 
+const unpinnedImplementation = {
+  source: {
+    type: 'npm-simple',
+    packageName: '@example/acp-agent',
+  },
+  executable: 'acp-agent',
+  args: ['stdio'],
+  forwardEnv: ['PROVIDER_API_KEY', 'SECOND_PROVIDER_API_KEY'],
+  env: {
+    PROVIDER_BASE_URL: 'https://provider.example',
+  },
+} as const satisfies ACPNpmImplementation;
+
 const packageJson = `{
   "name": "locked-acp-agent",
   "private": true,
@@ -118,6 +131,50 @@ describe('ACP npm implementation', () => {
         implementation: simpleImplementation,
       }),
     ).toBeUndefined();
+  });
+
+  it('installs the latest dist-tag when no version is pinned', () => {
+    expect(
+      createImplementationManifest({
+        implementation: unpinnedImplementation,
+      }),
+    ).toBe(`{
+  "name": "harness-acp-implementation",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@example/acp-agent": "latest"
+  }
+}
+`);
+    expect(() =>
+      validateACPV1Implementation(unpinnedImplementation),
+    ).not.toThrow();
+  });
+
+  it('keeps the identity of an unpinned source free of any version', () => {
+    const unpinnedIdentity = identity({
+      implementation: unpinnedImplementation,
+    });
+
+    expect(identity({ implementation: unpinnedImplementation })).toBe(
+      unpinnedIdentity,
+    );
+    expect(identity({ implementation: simpleImplementation })).not.toBe(
+      unpinnedIdentity,
+    );
+    expect(
+      identity({
+        implementation: {
+          ...unpinnedImplementation,
+          source: {
+            ...unpinnedImplementation.source,
+            packageName: '@example/other-agent',
+          },
+        },
+      }),
+    ).not.toBe(unpinnedIdentity);
   });
 
   it('preserves caller-provided locked artifacts and freezes installation', () => {

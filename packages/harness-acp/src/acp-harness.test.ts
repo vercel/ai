@@ -587,6 +587,28 @@ describe('createACP', () => {
     ).toThrow('exact semantic version');
   });
 
+  it('resolves the latest dist-tag when no package version is pinned', async () => {
+    const harness = createACP({
+      harnessId: 'codex-acp-unpinned',
+      ...agentSettings,
+      source: {
+        type: 'npm-simple',
+        packageName: '@agentclientprotocol/codex-acp',
+      },
+    });
+    const bootstrap = await harness.getBootstrap!();
+
+    expect(
+      bootstrap.files.find(file =>
+        file.path.endsWith('/implementation/package.json'),
+      )?.content,
+    ).toContain('"@agentclientprotocol/codex-acp": "latest"');
+    expect(bootstrap.commands.map(command => command.command)).toEqual([
+      'pnpm install --frozen-lockfile --store-dir .pnpm-store',
+      'pnpm --dir implementation install --prod --store-dir ../.pnpm-store',
+    ]);
+  });
+
   it('generates implementation acquisition files and caches the bootstrap', async () => {
     const harness = createACP({
       harnessId: 'codex-acp',

@@ -96,7 +96,7 @@ export function createImplementationManifest({
         private: true,
         type: 'module',
         dependencies: {
-          [source.packageName]: source.packageVersion,
+          [source.packageName]: source.packageVersion ?? 'latest',
         },
       },
       null,
@@ -158,7 +158,9 @@ export function createImplementationIdentity({
       : {
           type: source.type,
           packageName: source.packageName,
-          packageVersion: source.packageVersion,
+          ...(source.packageVersion == null
+            ? {}
+            : { packageVersion: source.packageVersion }),
         };
   const forwardedEnvironment = [
     ...new Set(implementation.forwardEnv ?? []),
@@ -233,7 +235,10 @@ function validateNpmSimpleSource({
       `ACP npm package name is invalid: ${JSON.stringify(source.packageName)}.`,
     );
   }
-  if (!EXACT_SEMVER_REGEXP.test(source.packageVersion)) {
+  if (
+    source.packageVersion != null &&
+    !EXACT_SEMVER_REGEXP.test(source.packageVersion)
+  ) {
     throw new Error(
       `ACP npm package version must be an exact semantic version; received ${JSON.stringify(source.packageVersion)}.`,
     );

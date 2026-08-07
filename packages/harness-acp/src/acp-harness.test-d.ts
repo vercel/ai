@@ -51,6 +51,14 @@ describe('createACP built-in tool inference', () => {
       executable: 'acp-agent',
     });
     createACP({
+      harnessId: 'unpinned-acp',
+      source: {
+        type: 'npm-simple',
+        packageName: '@example/acp-agent',
+      },
+      executable: 'acp-agent',
+    });
+    createACP({
       harnessId: 'locked-acp',
       source: {
         type: 'npm-locked',

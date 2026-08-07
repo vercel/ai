@@ -29,7 +29,12 @@ export type ACPProfileValue =
 export type ACPNpmSimpleSource = {
   readonly type: 'npm-simple';
   readonly packageName: string;
-  readonly packageVersion: string;
+  /**
+   * Exact version to install. When omitted, the package's `latest` dist-tag is
+   * installed and no version takes part in the implementation identity, so a
+   * new upstream release does not invalidate existing lifecycle state.
+   */
+  readonly packageVersion?: string;
 };
 
 export type ACPNpmLockedSource = {
