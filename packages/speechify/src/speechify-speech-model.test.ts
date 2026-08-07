@@ -312,6 +312,47 @@ describe('doGenerate', () => {
     expect(result.response.modelId).toBe('simba-3.2');
   });
 
+  it('should warn when a simba-3.2 voice is used with a non-simba-3.2 model', async () => {
+    prepareAudioResponse();
+
+    const nonSimba32Model = provider.speech('simba-english');
+
+    const result = await nonSimba32Model.doGenerate({
+      text: 'Hello from the AI SDK!',
+      voice: 'geffen_32',
+    });
+
+    expect(result.warnings).toContainEqual({
+      type: 'unsupported',
+      feature: 'voice',
+      details: expect.stringContaining('geffen_32'),
+    });
+  });
+
+  it('should NOT warn when a simba-3.2 voice is used with simba-3.2 model', async () => {
+    prepareAudioResponse();
+
+    const result = await model.doGenerate({
+      text: 'Hello from the AI SDK!',
+      voice: 'geffen_32',
+    });
+
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should NOT warn when a non-simba-3.2 voice is used with a non-simba-3.2 model', async () => {
+    prepareAudioResponse();
+
+    const nonSimba32Model = provider.speech('simba-english');
+
+    const result = await nonSimba32Model.doGenerate({
+      text: 'Hello from the AI SDK!',
+      voice: 'some-other-voice',
+    });
+
+    expect(result.warnings).toEqual([]);
+  });
+
   it('should not include warnings for a plain generation', async () => {
     prepareAudioResponse();
 
