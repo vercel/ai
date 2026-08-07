@@ -1,10 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { DownloadError } from './download-error';
-import {
-  createSafeLookup,
-  getDefaultDownloadFetch,
-  isNodeRuntime,
-} from './safe-node-fetch';
+import { createSafeLookup } from './safe-node-fetch';
 
 type Address = { address: string; family: number };
 
@@ -99,41 +95,5 @@ describe('createSafeLookup', () => {
     await expect(result).rejects.toThrow(
       'resolved to disallowed IP address ::1',
     );
-  });
-});
-
-describe('getDefaultDownloadFetch', () => {
-  it('loads Node modules without process.getBuiltinModule', async () => {
-    if (!isNodeRuntime()) {
-      return;
-    }
-
-    const nodeModules = new Map<string, unknown>([
-      ['node:dns', await import('node:dns')],
-      ['node:module', await import('node:module')],
-    ]);
-    const dynamicImport = vi.fn(async (id: string) => nodeModules.get(id));
-    const functionConstructor = vi.fn(() => dynamicImport);
-    const runtimeProcess = globalThis.process as unknown as {
-      getBuiltinModule: ((id: string) => unknown) | undefined;
-    };
-    const originalGetBuiltinModule = runtimeProcess.getBuiltinModule;
-    vi.stubGlobal('Function', functionConstructor);
-    runtimeProcess.getBuiltinModule = undefined;
-
-    try {
-      await expect(getDefaultDownloadFetch()).resolves.not.toBe(
-        globalThis.fetch,
-      );
-      expect(functionConstructor).toHaveBeenCalledWith(
-        'specifier',
-        'return import(specifier)',
-      );
-      expect(dynamicImport).toHaveBeenCalledWith('node:module');
-      expect(dynamicImport).toHaveBeenCalledWith('node:dns');
-    } finally {
-      runtimeProcess.getBuiltinModule = originalGetBuiltinModule;
-      vi.unstubAllGlobals();
-    }
   });
 });

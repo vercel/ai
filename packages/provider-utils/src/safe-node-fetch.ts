@@ -128,7 +128,7 @@ export async function getDefaultDownloadFetch(): Promise<FetchFunction> {
     return globalThis.fetch;
   }
 
-  return (safeNodeFetchPromise ??= createSafeNodeFetch());
+  return (safeNodeFetchPromise ??= Promise.resolve().then(createSafeNodeFetch));
 }
 
 function isNodeDefaultFetch(fetch: FetchFunction): boolean {
@@ -139,13 +139,11 @@ function isNodeDefaultFetch(fetch: FetchFunction): boolean {
   );
 }
 
-async function createSafeNodeFetch(): Promise<FetchFunction> {
-  // Node 20.16+ exposes getBuiltinModule; older supported Node versions use an
-  // indirect dynamic import that is hidden from browser bundle parsers.
-  const [{ createRequire }, { lookup }] = await Promise.all([
-    loadNodeModule<NodeModule>('node:module'),
-    loadNodeModule<NodeDns>('node:dns'),
-  ]);
+function createSafeNodeFetch(): FetchFunction {
+  // Load Node-only modules indirectly so browser bundlers do not pull undici
+  // and Node built-ins into the browser-facing provider-utils entry point.
+  const { createRequire } = loadBuiltinModule<NodeModule>('node:module');
+  const { lookup } = loadBuiltinModule<NodeDns>('node:dns');
   const { Agent, fetch } = createRequire(getCurrentModulePath())(
     'undici',
   ) as Undici;
@@ -166,7 +164,7 @@ async function createSafeNodeFetch(): Promise<FetchFunction> {
     ) as unknown as Promise<Response>) satisfies FetchFunction;
 }
 
-async function loadNodeModule<T>(id: string): Promise<T> {
+function loadBuiltinModule<T>(id: string): T {
   const processWithBuiltins = globalThis.process as
     | {
         getBuiltinModule?: (id: string) => unknown;
@@ -174,23 +172,11 @@ async function loadNodeModule<T>(id: string): Promise<T> {
     | undefined;
   const builtinModule = processWithBuiltins?.getBuiltinModule?.(id);
 
-  return builtinModule == null
-    ? ((await importNodeModule(id)) as T)
-    : (builtinModule as T);
-}
+  if (builtinModule == null) {
+    throw new Error(`Node.js built-in module ${id} is unavailable`);
+  }
 
-let dynamicImport: ((specifier: string) => Promise<unknown>) | undefined;
-
-function importNodeModule(id: string): Promise<unknown> {
-  // Metro rejects non-static dynamic imports while parsing, even though this
-  // Node-only fallback is never executed in React Native. Construct the import
-  // function lazily so the distributed module contains no import expression for
-  // Metro to analyze and runtimes with process.getBuiltinModule avoid it.
-  dynamicImport ??= Function('specifier', 'return import(specifier)') as (
-    specifier: string,
-  ) => Promise<unknown>;
-
-  return dynamicImport(id);
+  return builtinModule as T;
 }
 
 function getCurrentModulePath(): string {
