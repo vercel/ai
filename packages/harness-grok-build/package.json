@@ -18,9 +18,10 @@
     "README.md"
   ],
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
+    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json && pnpm copy-bridge-assets",
     "build:watch": "pnpm clean && tsup --watch",
     "clean": "del-cli dist *.tsbuildinfo",
+    "copy-bridge-assets": "node -e \"import('node:fs/promises').then(async fs => { await fs.mkdir('dist/bridge', { recursive: true }); await fs.copyFile('src/bridge/package.json', 'dist/bridge/package.json'); await fs.copyFile('src/bridge/pnpm-lock.yaml', 'dist/bridge/pnpm-lock.yaml'); })\"",
     "type-check": "tsc --build",
     "test": "pnpm test:node",
     "test:watch": "vitest --config vitest.node.config.js",
@@ -43,6 +44,7 @@
     "zod": "^3.25.76 || ^4.1.8"
   },
   "devDependencies": {
+    "@xai-official/grok": "0.2.111",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8.5.1",

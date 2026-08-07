@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import {
   commonTool,
   type HarnessV1,
@@ -12,6 +13,14 @@ import { z } from 'zod/v4';
 import { VERSION } from './version';
 
 const GROK_BUILD_CLIENT_APP = `ai-sdk/harness-grok-build/${VERSION}`;
+const GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON = readFileSync(
+  new URL('./bridge/package.json', import.meta.url),
+  'utf8',
+);
+const GROK_BUILD_IMPLEMENTATION_PNPM_LOCK = readFileSync(
+  new URL('./bridge/pnpm-lock.yaml', import.meta.url),
+  'utf8',
+);
 
 export type GrokBuildHarnessSettings = {
   /**
@@ -278,9 +287,9 @@ export function createGrokBuild(
     },
     implementation: {
       type: 'npm',
-      mode: 'simple',
-      packageName: '@xai-official/grok',
-      version: '0.2.111',
+      mode: 'locked',
+      packageJson: GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON,
+      pnpmLockYaml: GROK_BUILD_IMPLEMENTATION_PNPM_LOCK,
       executable: 'grok',
       args: ['agent', 'stdio'],
       forwardEnv: ['XAI_API_KEY'],
