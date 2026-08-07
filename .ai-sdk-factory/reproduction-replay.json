@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 18605,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/openai-mcp-approval-previous-response-id.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/openai-mcp-approval-previous-response-id.ts",
+    "packages/openai/src/responses/openai-mcp-approval-previous-response-id.repro.test.ts",
+    "packages/openai/src/responses/__fixtures__/openai-mcp-approval-previous-response-duplicate-error.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #18605 REPRODUCED: OpenAI rejected the SDK MCP approval request as a duplicate item"
+  }
+}
