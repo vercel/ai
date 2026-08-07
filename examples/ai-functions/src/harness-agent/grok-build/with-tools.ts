@@ -29,7 +29,6 @@ run(async () => {
     harness: grokBuild,
     sandbox,
     tools: { weather },
-    activeTools: ['weather'],
   });
 
   let exitCode = 0;
