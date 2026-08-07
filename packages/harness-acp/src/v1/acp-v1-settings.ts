@@ -26,33 +26,19 @@ export type ACPProfileValue =
   | ReadonlyArray<ACPProfileValue>
   | { readonly [key: string]: ACPProfileValue };
 
-type ACPNpmLaunchSettings = {
-  readonly type: 'npm';
-  readonly executable: string;
-  readonly args?: ReadonlyArray<string>;
-  readonly forwardEnv?: ReadonlyArray<string>;
-  /**
-   * Runtime environment values that are safe to persist in bootstrap and
-   * lifecycle compatibility identity.
-   */
-  readonly env?: Readonly<Record<string, string>>;
-};
-
-export type ACPSimpleNpmImplementation = ACPNpmLaunchSettings & {
-  readonly mode: 'simple';
+export type ACPNpmSimpleSource = {
+  readonly type: 'npm-simple';
   readonly packageName: string;
-  readonly version: string;
+  readonly packageVersion: string;
 };
 
-export type ACPLockedNpmImplementation = ACPNpmLaunchSettings & {
-  readonly mode: 'locked';
+export type ACPNpmLockedSource = {
+  readonly type: 'npm-locked';
   readonly packageJson: string;
   readonly pnpmLockYaml: string;
 };
 
-export type ACPNpmImplementation =
-  | ACPSimpleNpmImplementation
-  | ACPLockedNpmImplementation;
+export type ACPSource = ACPNpmSimpleSource | ACPNpmLockedSource;
 
 export type ACPAuthentication = {
   readonly methodId: string;
@@ -87,7 +73,15 @@ export type ACPV1Settings = {
   readonly version?: 'v1';
   readonly harnessId: string;
   readonly auth?: ACPProviderAuthenticationMode;
-  readonly implementation: ACPNpmImplementation;
+  readonly source: ACPSource;
+  readonly executable: string;
+  readonly args?: ReadonlyArray<string>;
+  readonly forwardEnv?: ReadonlyArray<string>;
+  /**
+   * Runtime environment values that are safe to persist in bootstrap and
+   * lifecycle compatibility identity.
+   */
+  readonly env?: Readonly<Record<string, string>>;
   readonly authentication?: ACPAuthentication;
   readonly providerAuthentication?: ACPProviderAuthentication;
   readonly modelId?: string;

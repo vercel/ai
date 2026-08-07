@@ -3,11 +3,9 @@ import type {
   ACPClientApp,
   ACPProviderAuthenticationCompatibility,
 } from '../acp-auth';
-import type {
-  ACPNpmImplementation,
-  ACPPermissionModeMapping,
-} from './acp-v1-settings';
+import type { ACPPermissionModeMapping } from './acp-v1-settings';
 import {
+  type ACPNpmImplementation,
   createImplementationDescriptor,
   createImplementationIdentity,
   createImplementationInstallCommand,
@@ -18,10 +16,11 @@ import {
 } from './implementation';
 
 const simpleImplementation = {
-  type: 'npm',
-  mode: 'simple',
-  packageName: '@example/acp-agent',
-  version: '1.2.3',
+  source: {
+    type: 'npm-simple',
+    packageName: '@example/acp-agent',
+    packageVersion: '1.2.3',
+  },
   executable: 'acp-agent',
   args: ['stdio'],
   forwardEnv: ['PROVIDER_API_KEY', 'SECOND_PROVIDER_API_KEY'],
@@ -48,10 +47,11 @@ importers:
 `;
 
 const lockedImplementation = {
-  type: 'npm',
-  mode: 'locked',
-  packageJson,
-  pnpmLockYaml,
+  source: {
+    type: 'npm-locked',
+    packageJson,
+    pnpmLockYaml,
+  },
   executable: 'acp-agent',
   args: ['stdio'],
   forwardEnv: ['PROVIDER_API_KEY', 'SECOND_PROVIDER_API_KEY'],
@@ -142,11 +142,14 @@ describe('ACP npm implementation', () => {
     );
   });
 
-  it('requires exact versions only for simple acquisition', () => {
+  it('requires exact versions only for a simple npm source', () => {
     expect(() =>
       validateACPV1Implementation({
         ...simpleImplementation,
-        version: '^1.2.3',
+        source: {
+          ...simpleImplementation.source,
+          packageVersion: '^1.2.3',
+        },
       }),
     ).toThrow('must be an exact semantic version');
     expect(() =>
@@ -260,7 +263,10 @@ describe('ACP npm implementation', () => {
       identity({
         implementation: {
           ...simpleImplementation,
-          packageName: '@example/other-agent',
+          source: {
+            ...simpleImplementation.source,
+            packageName: '@example/other-agent',
+          },
         },
       }),
     ).not.toBe(baseIdentity);
@@ -268,7 +274,10 @@ describe('ACP npm implementation', () => {
       identity({
         implementation: {
           ...simpleImplementation,
-          version: '1.2.4',
+          source: {
+            ...simpleImplementation.source,
+            packageVersion: '1.2.4',
+          },
         },
       }),
     ).not.toBe(baseIdentity);
@@ -336,7 +345,10 @@ describe('ACP npm implementation', () => {
       identity({
         implementation: {
           ...lockedImplementation,
-          packageJson: packageJson.replace('locked-acp-agent', 'other-agent'),
+          source: {
+            ...lockedImplementation.source,
+            packageJson: packageJson.replace('locked-acp-agent', 'other-agent'),
+          },
         },
       }),
     ).not.toBe(lockedIdentity);
@@ -344,7 +356,10 @@ describe('ACP npm implementation', () => {
       identity({
         implementation: {
           ...lockedImplementation,
-          pnpmLockYaml: `${pnpmLockYaml}\n# changed\n`,
+          source: {
+            ...lockedImplementation.source,
+            pnpmLockYaml: `${pnpmLockYaml}\n# changed\n`,
+          },
         },
       }),
     ).not.toBe(lockedIdentity);

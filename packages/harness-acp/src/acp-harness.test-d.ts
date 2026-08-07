@@ -27,13 +27,12 @@ describe('createACP built-in tool inference', () => {
     });
     const harness = createACP({
       harnessId: 'codex-acp',
-      implementation: {
-        type: 'npm',
-        mode: 'simple',
+      source: {
+        type: 'npm-simple',
         packageName: '@agentclientprotocol/codex-acp',
-        version: '1.1.4',
-        executable: 'codex-acp',
+        packageVersion: '1.1.4',
       },
+      executable: 'codex-acp',
       builtinTools: { bash },
       clientApp: { name: 'example-app', version: '1.2.3' },
     });
@@ -41,26 +40,24 @@ describe('createACP built-in tool inference', () => {
     expectTypeOf(harness.builtinTools).toEqualTypeOf<{ bash: typeof bash }>();
   });
 
-  test('accepts discriminated simple and locked npm acquisition', () => {
+  test('accepts discriminated simple and locked npm sources', () => {
     createACP({
       harnessId: 'simple-acp',
-      implementation: {
-        type: 'npm',
-        mode: 'simple',
+      source: {
+        type: 'npm-simple',
         packageName: '@example/acp-agent',
-        version: '1.2.3',
-        executable: 'acp-agent',
+        packageVersion: '1.2.3',
       },
+      executable: 'acp-agent',
     });
     createACP({
       harnessId: 'locked-acp',
-      implementation: {
-        type: 'npm',
-        mode: 'locked',
+      source: {
+        type: 'npm-locked',
         packageJson: '{"private":true}',
         pnpmLockYaml: "lockfileVersion: '9.0'\n",
-        executable: 'acp-agent',
       },
+      executable: 'acp-agent',
     });
   });
 });
