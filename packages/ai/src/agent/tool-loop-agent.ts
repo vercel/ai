@@ -146,9 +146,46 @@ export class ToolLoopAgent<
     return generateText({
       ...(await this.prepareCall(options)),
       abortSignal,
+<<<<<<< HEAD
       timeout,
       onStepFinish: this.mergeOnStepFinishCallbacks(onStepFinish),
     });
+=======
+      timeout: timeout ?? preparedCall.timeout,
+      experimental_sandbox: sandbox,
+      onStart: mergeCallbacks(
+        this.settings.onStart ?? this.settings.experimental_onStart,
+        (onStart ?? experimental_onStart) as
+          | GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
+          | undefined,
+      ),
+      onStepStart: mergeCallbacks(
+        this.settings.onStepStart ?? this.settings.experimental_onStepStart,
+        (onStepStart ?? experimental_onStepStart) as
+          | GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
+          | undefined,
+      ),
+      onToolExecutionStart: mergeCallbacks(
+        this.settings.onToolExecutionStart,
+        onToolExecutionStart,
+      ),
+      onToolExecutionEnd: mergeCallbacks(
+        this.settings.onToolExecutionEnd,
+        onToolExecutionEnd,
+      ),
+      onStepEnd: mergeCallbacks(
+        this.settings.onStepEnd ?? this.settings.onStepFinish,
+        onStepEnd ?? onStepFinish,
+      ),
+      onEnd: mergeCallbacks(this.settings.onEnd, onEnd),
+    };
+
+    return await generate({
+      ...preparedCall,
+      ...callbackArgs,
+      headers: this.agentHeaders(preparedCall),
+    } as unknown as Parameters<typeof generate>[0]);
+>>>>>>> 72ad23fd56 (fix: ToolLoopAgent settings-level timeouts being ignored by generate and stream (#18521))
   }
 
   /**
@@ -166,7 +203,12 @@ export class ToolLoopAgent<
     return streamText({
       ...(await this.prepareCall(options)),
       abortSignal,
+<<<<<<< HEAD
       timeout,
+=======
+      timeout: timeout ?? preparedCall.timeout,
+      experimental_sandbox: sandbox,
+>>>>>>> 72ad23fd56 (fix: ToolLoopAgent settings-level timeouts being ignored by generate and stream (#18521))
       experimental_transform,
       onStepFinish: this.mergeOnStepFinishCallbacks(onStepFinish),
     });
