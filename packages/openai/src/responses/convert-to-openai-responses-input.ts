@@ -97,6 +97,7 @@ export async function convertToOpenAIResponsesInput({
   hasShellTool = false,
   hasApplyPatchTool = false,
   hasComputerTool = false,
+  toolSearchToolName,
   customProviderToolNames,
 }: {
   prompt: LanguageModelV4Prompt;
@@ -113,6 +114,7 @@ export async function convertToOpenAIResponsesInput({
   hasShellTool?: boolean;
   hasApplyPatchTool?: boolean;
   hasComputerTool?: boolean;
+  toolSearchToolName?: string;
   customProviderToolNames?: Set<string>;
 }): Promise<{
   input: OpenAIResponsesInput;
@@ -382,7 +384,7 @@ export async function convertToOpenAIResponsesInput({
                 part.toolName,
               );
 
-              if (resolvedToolName === 'tool_search') {
+              if (part.toolName === toolSearchToolName) {
                 if (store && id != null) {
                   input.push({ type: 'item_reference', id });
                   break;
@@ -627,7 +629,7 @@ export async function convertToOpenAIResponsesInput({
                 part.toolName,
               );
 
-              if (resolvedResultToolName === 'tool_search') {
+              if (part.toolName === toolSearchToolName) {
                 const itemId = (part.providerOptions?.[providerOptionsName]
                   ?.itemId ??
                   (
@@ -923,7 +925,7 @@ export async function convertToOpenAIResponsesInput({
             part.toolName,
           );
 
-          if (resolvedToolName === 'tool_search' && output.type === 'json') {
+          if (part.toolName === toolSearchToolName && output.type === 'json') {
             const parsedOutput = await validateTypes({
               value: output.value,
               schema: toolSearchOutputSchema,
