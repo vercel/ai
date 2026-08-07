@@ -6,7 +6,7 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
+  pull-requests: read
 
 jobs:
   nexus-shield:
@@ -19,7 +19,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Nexus Shield Gatekeeper
-        uses: baturhantasdelen-sudo/nexus-shield-action@v1
+        uses: baturhantasdelen-sudo/nexus-shield-action@78cb976dc3608d4539ad58270361b04e2328f450
         with:
-          github-token: ${{ github.token }}
           fail-on-detection: true
