@@ -470,14 +470,47 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     // `function.name`, which the shared tracker rejects on first chunk.
     const pendingToolCalls = new Map<number, PendingToolCall>();
     const forwardedToolCallIndices = new Set<number>();
+    const syntheticToolCallIndices = new Map<string, number>();
+    let nextSyntheticToolCallIndex = 0;
+
+    const getToolCallIndex = (
+      toolCallDelta: OpenAICompatibleStreamingToolCallDelta,
+    ) => {
+      if (toolCallDelta.index != null) {
+        return toolCallDelta.index;
+      }
+
+      if (toolCallDelta.id == null) {
+        return undefined;
+      }
+
+      let index = syntheticToolCallIndices.get(toolCallDelta.id);
+      if (index == null) {
+        while (
+          pendingToolCalls.has(nextSyntheticToolCallIndex) ||
+          forwardedToolCallIndices.has(nextSyntheticToolCallIndex)
+        ) {
+          nextSyntheticToolCallIndex++;
+        }
+
+        index = nextSyntheticToolCallIndex++;
+        syntheticToolCallIndices.set(toolCallDelta.id, index);
+      }
+
+      return index;
+    };
 
     const processToolCallDelta = (
       toolCallDelta: OpenAICompatibleStreamingToolCallDelta,
     ) => {
-      const index = toolCallDelta.index;
+      const index = getToolCallIndex(toolCallDelta);
+      const indexedToolCallDelta =
+        index == null || toolCallDelta.index != null
+          ? toolCallDelta
+          : { ...toolCallDelta, index };
 
       if (index == null || forwardedToolCallIndices.has(index)) {
-        toolCallTracker.processDelta(toolCallDelta);
+        toolCallTracker.processDelta(indexedToolCallDelta);
         return;
       }
 
