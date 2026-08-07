@@ -156,6 +156,26 @@ describe('ByteDanceVideoModel', () => {
       });
     });
 
+    it('should pass an adaptive aspect ratio through unchanged', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        aspectRatio: 'adaptive',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'seedance-1-0-pro-250528',
+        content: [
+          {
+            type: 'text',
+            text: prompt,
+          },
+        ],
+        ratio: 'adaptive',
+      });
+    });
+
     it('should pass duration when provided', async () => {
       const model = createBasicModel();
 
