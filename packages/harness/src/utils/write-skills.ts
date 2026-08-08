@@ -48,10 +48,18 @@ export async function writeSkills({
     }
   }
 
-  await sandbox.run({
-    command: `mkdir -p ${shellQuote(rootDir)}`,
-    abortSignal,
-  });
+  if (sandbox.ensureDirectory != null) {
+    await sandbox.ensureDirectory({
+      path: rootDir,
+      recursive: true,
+      abortSignal,
+    });
+  } else {
+    await sandbox.run({
+      command: `mkdir -p ${shellQuote(rootDir)}`,
+      abortSignal,
+    });
+  }
 
   for (const skill of skills) {
     const name = validateSkillName({
@@ -59,9 +67,9 @@ export async function writeSkills({
       pattern: skillNamePattern,
       message: invalidSkillNameMessage,
     });
-    const skillDir = path.posix.join(rootDir, name);
+    const skillDir = resolveSkillPath(sandbox, rootDir, [name]);
     await sandbox.writeTextFile({
-      path: path.posix.join(skillDir, 'SKILL.md'),
+      path: resolveSkillPath(sandbox, skillDir, ['SKILL.md']),
       content: renderSkillFile({ skill, trailingNewline }),
       abortSignal,
     });
@@ -74,12 +82,22 @@ export async function writeSkills({
         message: invalidSkillFilePathMessage,
       });
       await sandbox.writeTextFile({
-        path: path.posix.join(skillDir, filePath),
+        path: resolveSkillPath(sandbox, skillDir, filePath.split('/')),
         content: file.content,
         abortSignal,
       });
     }
   }
+}
+
+function resolveSkillPath(
+  sandbox: Experimental_SandboxSession,
+  base: string,
+  segments: ReadonlyArray<string>,
+): string {
+  return sandbox.resolvePath != null
+    ? sandbox.resolvePath({ base, segments })
+    : path.posix.join(base, ...segments);
 }
 
 function validateSkillName({

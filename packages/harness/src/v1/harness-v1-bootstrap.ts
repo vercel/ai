@@ -32,6 +32,13 @@ export interface HarnessV1Bootstrap {
   readonly harnessId: string;
 
   /**
+   * Optional immutable identity for bootstrap content that is already present
+   * in the sandbox and therefore is not represented by {@link files} or
+   * {@link commands}. Included in the recipe hash when provided.
+   */
+  readonly identity?: string;
+
+  /**
    * Path inside the sandbox where this recipe writes its state. Absolute paths
    * are used as-is. Relative paths are resolved against the sandbox's default
    * working directory. The marker file lives directly under it. Files

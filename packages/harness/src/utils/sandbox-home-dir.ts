@@ -8,6 +8,9 @@ export async function resolveSandboxHomeDir({
   sandbox: Experimental_SandboxSession;
   abortSignal?: AbortSignal;
 }): Promise<string> {
+  if (sandbox.homeDirectory != null) {
+    return sandbox.homeDirectory;
+  }
   const result = await sandbox.run({
     command: 'printf "%s" "$HOME"',
     abortSignal,

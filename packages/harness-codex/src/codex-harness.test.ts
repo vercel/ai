@@ -4,6 +4,7 @@ import {
 } from '@ai-sdk/harness';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
+import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { createCodex } from './codex-harness';
 
@@ -57,15 +58,42 @@ function fakeNetworkSandboxSessionForStartupSuccess({
   runs,
   spawns,
   spawnEnvs,
+  spawnCalls,
+  directories,
   writes,
+  defaultWorkingDirectory = '/vercel/sandbox',
+  homeDirectory,
+  pathDialect = path.posix,
 }: {
   bridgePortUrl: string;
   runs: string[];
   spawns: string[];
   spawnEnvs?: Array<Record<string, string | undefined>>;
+  spawnCalls?: Array<Record<string, unknown>>;
+  directories?: string[];
   writes: Array<{ path: string; content: string }>;
+  defaultWorkingDirectory?: string;
+  homeDirectory?: string;
+  pathDialect?: typeof path.posix | typeof path.win32;
 }): HarnessV1NetworkSandboxSession {
+  const spawnProcess = async (options: Record<string, unknown>) => {
+    const command = options.command;
+    const env = options.env as Record<string, string | undefined> | undefined;
+    spawns.push(
+      typeof command === 'string' ? command : String(options.executable ?? ''),
+    );
+    spawnCalls?.push(options);
+    if (env) spawnEnvs?.push(env);
+    return {
+      stdout: textStream('{"type":"bridge-ready","port":4319}\n'),
+      stderr: textStream(''),
+      kill: async () => {},
+      wait: async () => ({ exitCode: 0 }),
+    };
+  };
   const session = {
+    homeDirectory:
+      homeDirectory ?? pathDialect.resolve(defaultWorkingDirectory, '..'),
     run: async ({ command }: { command: string }) => {
       runs.push(command);
       return { exitCode: 0, stdout: '', stderr: '' };
@@ -80,26 +108,22 @@ function fakeNetworkSandboxSessionForStartupSuccess({
     }) => {
       writes.push({ path, content });
     },
-    spawn: async ({
-      command,
-      env,
+    spawn: spawnProcess,
+    spawnExecutable: spawnProcess,
+    resolvePath: ({
+      base,
+      segments,
     }: {
-      command: string;
-      env?: Record<string, string | undefined>;
-    }) => {
-      spawns.push(command);
-      if (env) spawnEnvs?.push(env);
-      return {
-        stdout: textStream('{"type":"bridge-ready","port":4319}\n'),
-        stderr: textStream(''),
-        kill: async () => {},
-        wait: async () => ({ exitCode: 0 }),
-      };
+      base?: string;
+      segments: ReadonlyArray<string>;
+    }) => pathDialect.resolve(base ?? defaultWorkingDirectory, ...segments),
+    ensureDirectory: async ({ path }: { path: string }) => {
+      directories?.push(path);
     },
   };
   return {
     id: 'test-sandbox',
-    defaultWorkingDirectory: '/vercel/sandbox',
+    defaultWorkingDirectory,
     restricted: () => session,
     ports: [4319],
     async getPortUrl() {
@@ -237,5 +261,124 @@ describe('createCodex adapter', () => {
       const b = await harness.getBootstrap!();
       expect(a).toBe(b);
     });
+
+    it('uses immutable no-install bootstrap identity for a preinstalled bridge', async () => {
+      const harness = createCodex({
+        preinstalledBridge: {
+          identity: 'codex-bridge-v1',
+          nodeExecutable: 'C:\\Program Files\\nodejs\\node.exe',
+          entrypoint: 'C:\\AI SDK\\bridge runtime\\bridge.mjs',
+        },
+      });
+
+      const recipe = await harness.getBootstrap!();
+      expect(recipe.identity).toContain('codex-bridge-v1');
+      expect(recipe.files).toEqual([]);
+      expect(recipe.commands).toEqual([]);
+
+      const relocatedRecipe = await createCodex({
+        preinstalledBridge: {
+          identity: 'codex-bridge-v1',
+          nodeExecutable: 'D:\\Runtime\\node.exe',
+          entrypoint: 'D:\\Runtime\\bridge.mjs',
+        },
+      }).getBootstrap!();
+      const upgradedRecipe = await createCodex({
+        preinstalledBridge: {
+          identity: 'codex-bridge-v2',
+          nodeExecutable: 'D:\\Runtime\\node.exe',
+          entrypoint: 'D:\\Runtime\\bridge.mjs',
+        },
+      }).getBootstrap!();
+      expect(relocatedRecipe).toEqual(recipe);
+      expect(upgradedRecipe.identity).not.toBe(recipe.identity);
+    });
+  });
+
+  it('launches a preinstalled Windows bridge with argv and no shell setup', async () => {
+    const runs: string[] = [];
+    const spawns: string[] = [];
+    const spawnCalls: Array<Record<string, unknown>> = [];
+    const directories: string[] = [];
+    const writes: Array<{ path: string; content: string }> = [];
+    const harness = createCodex({
+      preinstalledBridge: {
+        identity: 'codex-bridge-v1',
+        nodeExecutable: 'C:\\Program Files\\nodejs\\node.exe',
+        entrypoint: 'C:\\AI SDK\\bridge runtime\\bridge.mjs',
+      },
+    });
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      runs,
+      spawns,
+      spawnCalls,
+      directories,
+      writes,
+      defaultWorkingDirectory: 'C:\\Users\\Ada\\Work Machine',
+      homeDirectory: 'C:\\Users\\Ada',
+      pathDialect: path.win32,
+    });
+    const skills = [
+      {
+        name: 'review',
+        description: 'Review changes.',
+        content: 'Check the diff.',
+      },
+    ];
+
+    const session = await harness.doStart({
+      sessionId: 'session with spaces',
+      sandboxSession,
+      sessionWorkDir: 'C:\\Users\\Ada\\Work Machine\\repo with spaces',
+      skills,
+    });
+
+    expect(runs).toEqual([]);
+    expect(directories).toEqual([
+      'C:\\Users\\Ada\\.codex',
+      'C:\\Users\\Ada\\.agents\\skills',
+      'C:\\Users\\Ada\\Work Machine\\repo with spaces',
+      'C:\\Users\\Ada\\Work Machine\\.agent-runs\\session with spaces\\bridge',
+    ]);
+    expect(writes).toContainEqual({
+      path: 'C:\\Users\\Ada\\.agents\\skills\\review\\SKILL.md',
+      content:
+        '---\nname: review\ndescription: Review changes.\n---\n\nCheck the diff.',
+    });
+    expect(spawnCalls).toEqual([
+      expect.objectContaining({
+        executable: 'C:\\Program Files\\nodejs\\node.exe',
+        args: [
+          'C:\\AI SDK\\bridge runtime\\bridge.mjs',
+          '--workdir',
+          'C:\\Users\\Ada\\Work Machine\\repo with spaces',
+          '--bridge-state-dir',
+          'C:\\Users\\Ada\\Work Machine\\.agent-runs\\session with spaces\\bridge',
+          '--cli-shim-dir',
+          'C:\\Users\\Ada\\Work Machine\\.agent-runs\\session with spaces\\codex',
+        ],
+      }),
+    ]);
+    expect(spawns).toEqual(['C:\\Program Files\\nodejs\\node.exe']);
+    await session.doDestroy();
+    const resumed = await harness.doStart({
+      sessionId: 'session with spaces',
+      sandboxSession,
+      sessionWorkDir: 'C:\\Users\\Ada\\Work Machine\\repo with spaces',
+      skills,
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'codex',
+        specificationVersion: 'harness-v1',
+        data: { threadId: 'thread-abc' },
+      },
+    });
+    expect(runs).toEqual([]);
+    expect(spawns).toEqual([
+      'C:\\Program Files\\nodejs\\node.exe',
+      'C:\\Program Files\\nodejs\\node.exe',
+    ]);
+    await resumed.doDestroy();
   });
 });

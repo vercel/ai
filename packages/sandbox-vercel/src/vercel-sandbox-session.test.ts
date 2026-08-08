@@ -260,7 +260,11 @@ describe('VercelSandboxSession', () => {
       });
 
       expect(baseSandbox.spies.runCommand).toHaveBeenCalledWith(
-        expect.objectContaining({ detached: true }),
+        expect.objectContaining({
+          cmd: 'bash',
+          args: ['-c', 'node x.js'],
+          detached: true,
+        }),
       );
 
       const [stdout, stderr, { exitCode }] = await Promise.all([
@@ -272,6 +276,22 @@ describe('VercelSandboxSession', () => {
       expect(stdout).toBe('out\n');
       expect(stderr).toBe('err\n');
       expect(exitCode).toBe(0);
+    });
+
+    it('launches an executable with argv without a shell', async () => {
+      const { handle } = makeMockCommand({ exitCode: 0 });
+      baseSandbox.spies.runCommand.mockResolvedValueOnce(handle);
+
+      await new VercelSandboxSession(baseSandbox.sandbox).spawnExecutable({
+        executable: 'C:\\Program Files\\nodejs\\node.exe',
+        args: ['C:\\AI SDK\\bridge.mjs', '--workdir', 'C:\\Work Space'],
+      });
+
+      expect(baseSandbox.spies.runCommand).toHaveBeenCalledWith({
+        cmd: 'C:\\Program Files\\nodejs\\node.exe',
+        args: ['C:\\AI SDK\\bridge.mjs', '--workdir', 'C:\\Work Space'],
+        detached: true,
+      });
     });
 
     it('surfaces non-zero exit codes via wait()', async () => {
@@ -304,6 +324,31 @@ describe('VercelSandboxSession', () => {
       });
       ac.abort(new Error('user cancelled'));
       await expect(proc.wait()).rejects.toThrow('user cancelled');
+    });
+  });
+
+  describe('provider-owned path operations', () => {
+    it('resolves paths and creates directories without a shell', async () => {
+      const { sandbox, spies } = makeMockSandbox({
+        currentSession: () => ({ cwd: '/vercel/sandbox' }),
+      } as Partial<Sandbox>);
+      spies.runCommand.mockResolvedValueOnce(
+        makeMockCommand({ exitCode: 0 }).handle,
+      );
+      const session = new VercelSandboxSession(sandbox);
+
+      expect(
+        session.resolvePath({ segments: ['folder with spaces', 'bridge'] }),
+      ).toBe('/vercel/sandbox/folder with spaces/bridge');
+      await session.ensureDirectory({
+        path: '/vercel/sandbox/folder with spaces/bridge',
+        recursive: true,
+      });
+
+      expect(spies.runCommand).toHaveBeenCalledWith({
+        cmd: 'mkdir',
+        args: ['-p', '/vercel/sandbox/folder with spaces/bridge'],
+      });
     });
   });
 });

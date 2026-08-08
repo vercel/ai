@@ -27,7 +27,7 @@ export class JustBashSandboxSession implements Experimental_SandboxSession {
     ].join('\n');
   }
 
-  private resolvePath(path: string): string {
+  private resolveFilePath(path: string): string {
     return isAbsolute(path)
       ? path
       : posix.join(this.sandbox.bashEnvInstance.getCwd(), path);
@@ -71,12 +71,9 @@ export class JustBashSandboxSession implements Experimental_SandboxSession {
     workingDirectory,
     env,
     abortSignal,
-  }: {
-    command: string;
-    workingDirectory?: string;
-    env?: Record<string, string>;
-    abortSignal?: AbortSignal;
-  }): Promise<Experimental_SandboxProcess> {
+  }: Parameters<
+    Experimental_SandboxSession['spawn']
+  >[0]): Promise<Experimental_SandboxProcess> {
     abortSignal?.throwIfAborted();
 
     const live = await this.sandbox.runCommand({
@@ -89,6 +86,52 @@ export class JustBashSandboxSession implements Experimental_SandboxSession {
     });
 
     return createSandboxProcess(live, abortSignal);
+  }
+
+  async spawnExecutable({
+    executable,
+    args,
+    workingDirectory,
+    env,
+    abortSignal,
+  }: Parameters<
+    NonNullable<Experimental_SandboxSession['spawnExecutable']>
+  >[0]): Promise<Experimental_SandboxProcess> {
+    abortSignal?.throwIfAborted();
+    const live = await this.sandbox.runCommand({
+      cmd: executable,
+      args: [...(args ?? [])],
+      detached: true,
+      ...(workingDirectory !== undefined ? { cwd: workingDirectory } : {}),
+      ...(env !== undefined ? { env } : {}),
+      ...(abortSignal !== undefined ? { signal: abortSignal } : {}),
+    });
+    return createSandboxProcess(live, abortSignal);
+  }
+
+  resolvePath({
+    base,
+    segments,
+  }: {
+    base?: string;
+    segments: ReadonlyArray<string>;
+  }): string {
+    return posix.resolve(
+      base ?? this.sandbox.bashEnvInstance.getCwd(),
+      ...segments,
+    );
+  }
+
+  async ensureDirectory({
+    path,
+    abortSignal,
+  }: {
+    path: string;
+    recursive: true;
+    abortSignal?: AbortSignal;
+  }): Promise<void> {
+    abortSignal?.throwIfAborted();
+    await this.sandbox.bashEnvInstance.fs.mkdir(path, { recursive: true });
   }
 
   async readFile({
@@ -111,7 +154,7 @@ export class JustBashSandboxSession implements Experimental_SandboxSession {
     abortSignal?: AbortSignal;
   }): Promise<Uint8Array | null> {
     abortSignal?.throwIfAborted();
-    const resolved = this.resolvePath(path);
+    const resolved = this.resolveFilePath(path);
     try {
       const bytes =
         await this.sandbox.bashEnvInstance.fs.readFileBuffer(resolved);
@@ -164,7 +207,7 @@ export class JustBashSandboxSession implements Experimental_SandboxSession {
     abortSignal?: AbortSignal;
   }): Promise<void> {
     abortSignal?.throwIfAborted();
-    const resolved = this.resolvePath(path);
+    const resolved = this.resolveFilePath(path);
     await this.sandbox.bashEnvInstance.fs.writeFile(resolved, content);
   }
 

@@ -65,17 +65,20 @@ export function normalizeSandboxWorkDir(workDir: string): string {
 }
 
 export function resolveSessionWorkDir({
+  session,
   defaultWorkingDirectory,
   harnessId,
   sessionId,
   workDir,
 }: {
+  readonly session?: SandboxSession;
   readonly defaultWorkingDirectory: string;
   readonly harnessId: string;
   readonly sessionId: string;
   readonly workDir?: string;
 }): string {
   return joinSandboxPath({
+    session,
     base: defaultWorkingDirectory,
     path: workDir ?? `${harnessId}-${sessionId}`,
   });
@@ -169,6 +172,7 @@ export async function runSandboxBootstrap({
     workDir == null
       ? resolvedDefaultWorkingDirectory
       : joinSandboxPath({
+          session,
           base: resolvedDefaultWorkingDirectory,
           path: workDir,
         });
@@ -188,6 +192,16 @@ export async function resolveDefaultWorkingDirectory({
   readonly session: SandboxSession;
   readonly abortSignal?: AbortSignal;
 }): Promise<string> {
+  if (session.resolvePath != null) {
+    const cwd = session.resolvePath({ segments: [] });
+    if (cwd.length === 0 || cwd.includes('\0')) {
+      throw new Error(
+        `Failed to resolve sandbox default working directory: expected a non-empty path, got ${JSON.stringify(cwd)}.`,
+      );
+    }
+    return cwd;
+  }
+
   const result = await session.run({
     command: 'pwd',
     abortSignal,
@@ -216,6 +230,15 @@ export async function ensureSandboxDirectory({
   readonly workDir: string;
   readonly abortSignal?: AbortSignal;
 }): Promise<void> {
+  if (session.ensureDirectory != null) {
+    await session.ensureDirectory({
+      path: workDir,
+      recursive: true,
+      abortSignal,
+    });
+    return;
+  }
+
   const result = await session.run({
     command: 'mkdir -p "$WORK_DIR"',
     env: { WORK_DIR: workDir },
@@ -267,11 +290,19 @@ async function hashSandboxBootstrapIdentity({
 }
 
 function joinSandboxPath({
+  session,
   base,
   path,
 }: {
+  readonly session?: SandboxSession;
   readonly base: string;
   readonly path: string;
 }): string {
+  if (session?.resolvePath != null) {
+    return session.resolvePath({
+      base,
+      segments: path.split('/'),
+    });
+  }
   return posix.join(base, path);
 }

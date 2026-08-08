@@ -1,4 +1,5 @@
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
+import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import type { HarnessV1Bootstrap } from '../../v1';
 import {
@@ -74,6 +75,14 @@ describe('hashHarnessBootstrap', () => {
     };
     expect(await hashHarnessBootstrap(altered)).not.toBe(
       await hashHarnessBootstrap(baseRecipe),
+    );
+  });
+
+  it('changes when an external bootstrap identity changes', async () => {
+    const first = { ...baseRecipe, identity: 'bridge-v1' };
+    const second = { ...baseRecipe, identity: 'bridge-v2' };
+    expect(await hashHarnessBootstrap(first)).not.toBe(
+      await hashHarnessBootstrap(second),
     );
   });
 });
@@ -165,6 +174,52 @@ describe('applyBootstrapRecipe', () => {
     });
     expect(readTextFile).toHaveBeenCalledTimes(1);
     expect(writeTextFile).not.toHaveBeenCalled();
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it('applies an identity-only recipe with provider-owned Windows paths and no shell', async () => {
+    const ensureDirectory = vi.fn(async () => {});
+    const writeTextFile = vi.fn(async () => {});
+    const run = vi.fn();
+    const session = {
+      description: 'windows mock',
+      resolvePath: ({
+        base,
+        segments,
+      }: {
+        base?: string;
+        segments: ReadonlyArray<string>;
+      }) => path.win32.resolve(base ?? 'C:\\Work', ...segments),
+      ensureDirectory,
+      readTextFile: vi.fn(async () => null),
+      writeTextFile,
+      run,
+    } as unknown as SandboxSession;
+    const recipe: HarnessV1Bootstrap = {
+      harnessId: 'codex',
+      identity: 'bridge-v1',
+      bootstrapDir: '.harness-bootstrap/codex-preinstalled',
+      files: [],
+      commands: [],
+    };
+
+    await applyBootstrapRecipe({
+      session,
+      recipe,
+      identity: 'abc1234567890def',
+      defaultWorkingDirectory: 'C:\\Work Machine',
+    });
+
+    expect(ensureDirectory).toHaveBeenCalledWith({
+      path: 'C:\\Work Machine\\.harness-bootstrap\\codex-preinstalled',
+      recursive: true,
+      abortSignal: undefined,
+    });
+    expect(writeTextFile).toHaveBeenCalledWith({
+      path: 'C:\\Work Machine\\.harness-bootstrap\\codex-preinstalled\\.bootstrap-abc1234567890def.ok',
+      content: '',
+      abortSignal: undefined,
+    });
     expect(run).not.toHaveBeenCalled();
   });
 

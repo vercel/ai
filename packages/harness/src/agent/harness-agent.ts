@@ -294,6 +294,7 @@ export class HarnessAgent<
     const sandboxSession = leased.sandboxSession;
     const leasedBridgePort = leased.port;
     const sessionWorkDir = resolveSessionWorkDir({
+      session: sandboxSession,
       defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
       harnessId: harness.harnessId,
       sessionId,
