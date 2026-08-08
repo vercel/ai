@@ -1182,6 +1182,26 @@ toolErrors.forEach(toolError => {
 
 `streamText` sends errors as part of the `stream` result. Tool execution errors appear as `tool-error` parts, while other errors appear as `error` parts.
 
+A thrown error inside a tool's `execute` function does not throw from `streamText` or abort the stream. The AI SDK catches it, emits a `tool-error` part, and keeps streaming, so the `finish` parts still arrive and a multi-step run can continue. You can read these parts directly from `result.stream`:
+
+```ts
+const result = streamText({
+  // ... model, tools, prompt
+});
+
+for await (const part of result.stream) {
+  if (part.type === 'tool-error') {
+    // a tool's execute function threw; the stream keeps going
+    console.error(`Tool ${part.toolName} failed:`, part.error);
+  } else if (part.type === 'error') {
+    // errors outside of tool execution (e.g. the provider stream)
+    console.error('Stream error:', part.error);
+  }
+}
+```
+
+Because a tool failure is surfaced as a `tool-error` part instead of being thrown, multi-step runs send it back to the model as a tool result, letting the model recover or explain the failure on the next step without breaking the conversation.
+
 When using `toUIMessageStream`, you can pass an `onError` function to extract the error message from the error part and forward it as part of the stream response:
 
 ```ts
