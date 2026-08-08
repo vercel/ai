@@ -10,6 +10,9 @@ on:
 permissions:
   contents: read
 
+permissions:
+  contents: read
+
 jobs:
   check:
     name: 'Lint & Format'
