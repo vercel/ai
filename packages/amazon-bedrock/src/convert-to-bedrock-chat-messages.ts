@@ -200,6 +200,14 @@ export async function convertToBedrockChatMessages(
                   case 'error-text':
                     toolResultContent = [{ text: output.value }];
                     break;
+<<<<<<< HEAD
+=======
+                  case 'execution-denied':
+                    toolResultContent = [
+                      { text: output.reason ?? 'Tool call execution denied.' },
+                    ];
+                    break;
+>>>>>>> 327642b278 ([v6.0] fix: more precise default message for tool execution denial (#16804))
                   case 'json':
                   case 'error-json':
                   default:

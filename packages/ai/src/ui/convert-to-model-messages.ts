@@ -266,8 +266,45 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       case 'output-available': {
                         const toolName = getToolOrDynamicToolName(toolPart);
 
+<<<<<<< HEAD
                         return {
                           type: 'tool-result',
+=======
+                  // For provider-executed tools, the tool result is already in the
+                  // assistant content. Skip adding to tool message to avoid duplicates
+                  // (which would create orphaned function_call_output entries).
+                  if (toolPart.providerExecuted === true) {
+                    continue;
+                  }
+
+                  switch (toolPart.state) {
+                    case 'output-denied': {
+                      content.push({
+                        type: 'tool-result',
+                        toolCallId: toolPart.toolCallId,
+                        toolName: getToolName(toolPart),
+                        output: {
+                          type: 'error-text' as const,
+                          value:
+                            toolPart.approval?.reason ??
+                            'Tool call execution denied.',
+                        },
+                        ...(toolPart.callProviderMetadata != null
+                          ? { providerOptions: toolPart.callProviderMetadata }
+                          : {}),
+                      });
+                      break;
+                    }
+
+                    case 'output-error':
+                    case 'output-available': {
+                      const toolName = getToolName(toolPart);
+                      content.push({
+                        type: 'tool-result',
+                        toolCallId: toolPart.toolCallId,
+                        toolName,
+                        output: await createToolModelOutput({
+>>>>>>> 327642b278 ([v6.0] fix: more precise default message for tool execution denial (#16804))
                           toolCallId: toolPart.toolCallId,
                           toolName,
                           output: createToolModelOutput({
