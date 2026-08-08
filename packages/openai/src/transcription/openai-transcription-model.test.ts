@@ -242,6 +242,30 @@ describe('doGenerate', () => {
     `);
   });
 
+  // Regression for #6561: several granularities must go out as repeated
+  // `timestamp_granularities[]` fields, which is what the OpenAI API expects. The original bug
+  // stringified the array into a single `"word,segment"` value; a single-element test cannot
+  // catch that coming back, since the broken and the correct encoding look identical with one
+  // item.
+  it('should send each `timestampGranularities` value as a repeated field', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        openai: {
+          timestampGranularities: ['word', 'segment'],
+        },
+      },
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body!['timestamp_granularities[]']).toEqual(['word', 'segment']);
+    // and not a single comma-joined string, which is how the bug manifested
+    expect(body!['timestamp_granularities[]']).not.toBe('word,segment');
+  });
+
   it('should not set pass response_format to "verbose_json" when model is "gpt-4o-transcribe"', async () => {
     prepareJsonFixtureResponse('openai-transcription');
 

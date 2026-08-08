@@ -69,7 +69,22 @@ class TestServerCall {
       ? this.request!.formData().then(formData => {
           const entries: Record<string, any> = {};
           formData.forEach((value, key) => {
-            entries[key] = value;
+            // A multipart body may repeat a key to express an array (e.g. OpenAI's
+            // `timestamp_granularities[]=word` + `timestamp_granularities[]=segment`).
+            // Overwriting on each hit dropped every value but the last, which made repeated
+            // fields impossible to assert on. Collect them instead: a key seen once stays a
+            // scalar (existing assertions are unaffected), a key seen more than once becomes
+            // an array in encounter order.
+            if (key in entries) {
+              const existing = entries[key];
+              if (Array.isArray(existing)) {
+                existing.push(value);
+              } else {
+                entries[key] = [existing, value];
+              }
+            } else {
+              entries[key] = value;
+            }
           });
           return entries;
         })
