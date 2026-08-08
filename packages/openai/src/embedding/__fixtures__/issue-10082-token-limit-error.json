@@ -1,0 +1,8 @@
+{
+  "error": {
+    "message": "Requested 1228288 tokens, max 300000 tokens per request",
+    "type": "max_tokens_per_request",
+    "param": null,
+    "code": "max_tokens_per_request"
+  }
+}
