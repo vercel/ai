@@ -990,7 +990,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should not send item references for function calls when previousResponseId is set', async () => {
+      it('should send client-executed function calls in full when previousResponseId is set', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           prompt: [
             {
@@ -1037,6 +1037,12 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               role: 'user',
               content: [{ type: 'input_text', text: 'What is the weather?' }],
+            },
+            {
+              type: 'function_call',
+              call_id: 'call_123',
+              name: 'weather',
+              arguments: '{"location":"San Francisco"}',
             },
             {
               type: 'function_call_output',
