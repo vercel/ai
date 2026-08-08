@@ -362,6 +362,66 @@ describe('convertToOpenResponsesInput', () => {
   });
 
   describe('assistant messages with tool calls', () => {
+    it('should preserve reasoning before a tool call and its result', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'I should use the weather tool.',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'get_weather',
+                input: { location: 'San Francisco' },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'get_weather',
+                output: {
+                  type: 'json',
+                  value: { temperature: 72, condition: 'sunny' },
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'reasoning',
+          summary: [],
+          content: [
+            {
+              type: 'reasoning_text',
+              text: 'I should use the weather tool.',
+            },
+          ],
+        },
+        {
+          type: 'function_call',
+          call_id: 'call_123',
+          name: 'get_weather',
+          arguments: '{"location":"San Francisco"}',
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_123',
+          output: '{"temperature":72,"condition":"sunny"}',
+        },
+      ]);
+    });
+
     it('should convert assistant message with a single tool-call', async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
