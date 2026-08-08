@@ -3,7 +3,7 @@
     "strict": true,
     "declaration": true,
     "sourceMap": true,
-    "target": "es2022",
+    "target": "ES2022",
     "lib": [
       "es2022",
       "dom"
