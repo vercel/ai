@@ -26,6 +26,11 @@ import {
   type GatewaySpendReportResponse,
 } from './gateway-spend-report';
 import {
+  GatewayModelMetrics,
+  type GatewayModelMetricsOptions,
+  type GatewayModelMetricsResponse,
+} from './gateway-model-metrics';
+import {
   GatewayGenerationInfoFetcher,
   type GatewayGenerationInfoParams,
   type GatewayGenerationInfo,
@@ -103,6 +108,15 @@ export interface GatewayProvider extends ProviderV4 {
   getGenerationInfo(
     params: GatewayGenerationInfoParams,
   ): Promise<GatewayGenerationInfo>;
+
+  /**
+   * Returns per model and provider performance metrics (time to first token,
+   * throughput, uptime) alongside declared pricing. This is a public endpoint:
+   * no authentication is required, but credentials are attached when available.
+   */
+  getModelMetrics(
+    options?: GatewayModelMetricsOptions,
+  ): Promise<GatewayModelMetricsResponse>;
 
   /**
    * Creates a model for generating text embeddings.
@@ -325,6 +339,26 @@ export function createGateway(
     }
   };
 
+  // Headers for public endpoints such as the model metrics endpoint:
+  // credentials are attached when available (harmless), but their absence
+  // does not prevent the request.
+  const getMetricsHeaders = async () => {
+    try {
+      return createAuthHeaders(await getGatewayAuthToken(options));
+    } catch {
+      return withUserAgentSuffix(
+        {
+          'ai-gateway-protocol-version': AI_GATEWAY_PROTOCOL_VERSION,
+          ...(options.teamIdOrSlug != null
+            ? { [VERCEL_AI_GATEWAY_TEAM_HEADER]: options.teamIdOrSlug }
+            : {}),
+          ...options.headers,
+        },
+        `ai-sdk/gateway/${VERSION}`,
+      );
+    }
+  };
+
   const getRealtimeAuthToken = async () => {
     try {
       return await getGatewayAuthToken(options);
@@ -496,6 +530,21 @@ export function createGateway(
       });
   };
 
+  const getModelMetrics = async (params?: GatewayModelMetricsOptions) => {
+    return new GatewayModelMetrics({
+      baseURL,
+      headers: getMetricsHeaders,
+      fetch: options.fetch,
+    })
+      .getModelMetrics(params)
+      .catch(async (error: unknown) => {
+        throw await asGatewayError(
+          error,
+          await parseAuthMethod(await getMetricsHeaders()),
+        );
+      });
+  };
+
   const provider = function (modelId: GatewayModelId) {
     if (new.target) {
       throw new Error(
@@ -511,6 +560,7 @@ export function createGateway(
   provider.getCredits = getCredits;
   provider.getSpendReport = getSpendReport;
   provider.getGenerationInfo = getGenerationInfo;
+  provider.getModelMetrics = getModelMetrics;
   provider.imageModel = (modelId: GatewayImageModelId) => {
     return new GatewayImageModel(modelId, {
       provider: 'gateway',

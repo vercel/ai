@@ -7,6 +7,7 @@ import {
 import { GatewayFetchMetadata } from './gateway-fetch-metadata';
 import { GatewaySpendReport } from './gateway-spend-report';
 import { GatewayGenerationInfoFetcher } from './gateway-generation-info';
+import { GatewayModelMetrics } from './gateway-model-metrics';
 import { NoSuchModelError } from '@ai-sdk/provider';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
@@ -54,6 +55,35 @@ vi.mock('./gateway-generation-info', () => ({
     };
   }),
 }));
+
+const mockGetModelMetrics = vi.fn();
+vi.mock('./gateway-model-metrics', () => ({
+  GatewayModelMetrics: vi.fn(function (config: any) {
+    return {
+      getModelMetrics: async (params: any) => {
+        if (config.headers && typeof config.headers === 'function') {
+          await config.headers();
+        }
+        return mockGetModelMetrics(params);
+      },
+    };
+  }),
+}));
+
+const emptyModelMetricsResponse = {
+  object: 'list',
+  data: [],
+  meta: {
+    generatedAt: '2026-07-05T00:00:00.000Z',
+    sourceWindows: {
+      latency: '1h',
+      throughput: '1h',
+      uptime: ['15m', '1h', '1d'],
+    },
+    provenanceNote:
+      'Latency and throughput are observed from live gateway traffic.',
+  },
+};
 
 // Mock the gateway fetch metadata to prevent actual network calls
 // We'll create a more flexible mock that can simulate auth failures
@@ -254,6 +284,7 @@ describe('GatewayProvider', () => {
     mockGetCredits.mockReturnValue({ balance: '100.00', total_used: '50.00' });
     mockGetSpendReport.mockReturnValue({ results: [] });
     mockGetGenerationInfo.mockReturnValue({ id: 'gen_test' });
+    mockGetModelMetrics.mockReturnValue(emptyModelMetricsResponse);
     if ('AI_GATEWAY_API_KEY' in process.env) {
       Reflect.deleteProperty(process.env, 'AI_GATEWAY_API_KEY');
     }
@@ -1714,6 +1745,141 @@ describe('GatewayProvider', () => {
 
       expect(generationInfo).toBeDefined();
       expect(getVercelOidcToken).toHaveBeenCalled();
+    });
+  });
+
+  describe('getModelMetrics method', () => {
+    it('should fetch model metrics successfully', async () => {
+      const mockResults = {
+        ...emptyModelMetricsResponse,
+        data: [
+          {
+            id: 'anthropic/claude-sonnet-4.5',
+            name: 'Claude Sonnet 4.5',
+            provider: 'anthropic',
+            type: 'language',
+            pricing: { meta: { source: 'declared' } },
+            latency: null,
+            throughput: null,
+            uptime: null,
+          },
+        ],
+      };
+      mockGetModelMetrics.mockReturnValue(mockResults);
+
+      const provider = createGateway({
+        apiKey: 'test-key',
+      });
+
+      const metrics = await provider.getModelMetrics();
+
+      expect(metrics).toEqual(mockResults);
+      expect(GatewayModelMetrics).toHaveBeenCalledWith(
+        expect.objectContaining({
+          baseURL: 'https://ai-gateway.vercel.sh/v4/ai',
+          headers: expect.any(Function),
+          fetch: undefined,
+        }),
+      );
+    });
+
+    it('should pass options through to GatewayModelMetrics', async () => {
+      const provider = createGateway({
+        apiKey: 'test-key',
+      });
+
+      await provider.getModelMetrics({
+        type: 'language',
+        tags: ['tools', 'reasoning'],
+        maxInputPrice: 0.000005,
+        sort: 'ttft',
+        limit: 100,
+      });
+
+      expect(mockGetModelMetrics).toHaveBeenCalledWith({
+        type: 'language',
+        tags: ['tools', 'reasoning'],
+        maxInputPrice: 0.000005,
+        sort: 'ttft',
+        limit: 100,
+      });
+    });
+
+    it('should work with custom baseURL', async () => {
+      const customBaseURL = 'https://custom-gateway.example.com/v4/ai';
+      const provider = createGateway({
+        apiKey: 'test-key',
+        baseURL: customBaseURL,
+      });
+
+      await provider.getModelMetrics();
+
+      expect(GatewayModelMetrics).toHaveBeenCalledWith(
+        expect.objectContaining({
+          baseURL: customBaseURL,
+        }),
+      );
+    });
+
+    it('should work with custom fetch function', async () => {
+      const customFetch = vi.fn();
+      const provider = createGateway({
+        apiKey: 'test-key',
+        fetch: customFetch,
+      });
+
+      await provider.getModelMetrics();
+
+      expect(GatewayModelMetrics).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fetch: customFetch,
+        }),
+      );
+    });
+
+    it('should handle errors from the model metrics endpoint', async () => {
+      const testError = new Error('Metrics service unavailable');
+      mockGetModelMetrics.mockRejectedValue(testError);
+
+      const provider = createGateway({
+        apiKey: 'test-key',
+      });
+
+      await expect(provider.getModelMetrics()).rejects.toThrow(
+        'Metrics service unavailable',
+      );
+    });
+
+    it('should work without credentials since the endpoint is public', async () => {
+      vi.mocked(getVercelOidcToken).mockRejectedValue(
+        new Error('OIDC token not available'),
+      );
+
+      const provider = createGateway();
+
+      const metrics = await provider.getModelMetrics();
+
+      expect(metrics).toEqual(emptyModelMetricsResponse);
+    });
+
+    it('should work with OIDC authentication in model metrics', async () => {
+      vi.mocked(getVercelOidcToken).mockResolvedValue('oidc-token');
+
+      const provider = createGateway();
+
+      const metrics = await provider.getModelMetrics();
+
+      expect(metrics).toBeDefined();
+      expect(getVercelOidcToken).toHaveBeenCalled();
+    });
+
+    it('should be available on the provider interface', () => {
+      const provider = createGateway({ apiKey: 'test-key' });
+      expect(typeof provider.getModelMetrics).toBe('function');
+    });
+
+    it('should be available on the default gateway export', () => {
+      expect(typeof gateway.getModelMetrics).toBe('function');
     });
   });
 
