@@ -112,18 +112,6 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
-    if (frequencyPenalty != null) {
-      warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
-    }
-
-    if (presencePenalty != null) {
-      warnings.push({ type: 'unsupported', feature: 'presencePenalty' });
-    }
-
-    if (stopSequences != null) {
-      warnings.push({ type: 'unsupported', feature: 'stopSequences' });
-    }
-
     // convert ai sdk messages to xai format
     const { messages, warnings: messageWarnings } =
       await convertToXaiChatMessages(prompt);
@@ -178,6 +166,9 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
       max_completion_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
+      frequency_penalty: frequencyPenalty,
+      presence_penalty: presencePenalty,
+      stop: stopSequences,
       seed,
       reasoning_effort: reasoningEffort,
 
