@@ -17,6 +17,9 @@ on:
 permissions:
   contents: read
 
+permissions:
+  contents: read
+
 jobs:
   verify-changesets:
     runs-on: ubuntu-latest
