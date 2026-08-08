@@ -193,6 +193,13 @@ const ImageContentSchema = z
     mimeType: z.string(),
   })
   .loose();
+const AudioContentSchema = z
+  .object({
+    type: z.literal('audio'),
+    data: z.base64(),
+    mimeType: z.string(),
+  })
+  .loose();
 export const ResourceSchema = z
   .object({
     uri: z.string(),
@@ -257,6 +264,7 @@ export const CallToolResultSchema = ResultSchema.extend({
     z.union([
       TextContentSchema,
       ImageContentSchema,
+      AudioContentSchema,
       EmbeddedResourceSchema,
       ResourceLinkContentSchema,
     ]),
