@@ -25,6 +25,7 @@ import type {
   OpenAIResponsesFunctionTool,
   OpenAIResponsesTool,
 } from './openai-responses-api';
+import { removePatternKeyword } from './openai-responses-sanitize-schema';
 
 export type OpenAIToolOptions = {
   allowedCallers?: Array<'direct' | 'programmatic'>;
@@ -432,7 +433,7 @@ function prepareFunctionTool({
     type: 'function',
     name: tool.name,
     description: tool.description,
-    parameters: tool.inputSchema,
+    parameters: removePatternKeyword(tool.inputSchema),
     ...(tool.strict != null ? { strict: tool.strict } : {}),
     ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
     ...(options?.allowedCallers != null

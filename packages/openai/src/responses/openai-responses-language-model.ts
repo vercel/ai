@@ -1,3 +1,4 @@
+import { removePatternKeyword } from './openai-responses-sanitize-schema';
 import {
   APICallError,
   type JSONValue,
@@ -442,7 +443,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                     strict: strictJsonSchema,
                     name: responseFormat.name ?? 'response',
                     description: responseFormat.description,
-                    schema: responseFormat.schema,
+                    schema: removePatternKeyword(responseFormat.schema),
                   }
                 : { type: 'json_object' },
           }),
