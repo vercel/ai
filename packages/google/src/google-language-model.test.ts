@@ -1463,7 +1463,9 @@ describe('doGenerate', () => {
               {
                 "description": "",
                 "name": "test-tool",
-                "parameters": {
+                "parametersJsonSchema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
                   "properties": {
                     "value": {
                       "type": "string",
@@ -1666,7 +1668,8 @@ describe('doGenerate', () => {
               {
                 "description": "",
                 "name": "test-tool",
-                "parameters": {
+                "parametersJsonSchema": {
+                  "additionalProperties": false,
                   "properties": {
                     "property1": {
                       "type": "string",
@@ -6496,7 +6499,9 @@ describe('doStream', () => {
               {
                 "description": "",
                 "name": "test-tool",
-                "parameters": {
+                "parametersJsonSchema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
                   "properties": {
                     "value": {
                       "type": "string",
@@ -6893,7 +6898,9 @@ describe('doStream', () => {
               {
                 "description": "",
                 "name": "test-tool",
-                "parameters": {
+                "parametersJsonSchema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
                   "properties": {
                     "value": {
                       "type": "string",

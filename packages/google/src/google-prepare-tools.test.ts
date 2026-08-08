@@ -41,13 +41,52 @@ it('should correctly prepare function tools', () => {
         {
           name: 'testFunction',
           description: 'A test function',
-          parameters: undefined,
+          parametersJsonSchema: { type: 'object', properties: {} },
         },
       ],
     },
   ]);
   expect(result.toolConfig).toBeUndefined();
   expect(result.toolWarnings).toEqual([]);
+});
+
+it('should preserve JSON Schema parameter descriptions', () => {
+  const inputSchema = {
+    type: 'object' as const,
+    properties: {
+      userInputExactlyAsIs: {
+        type: 'string' as const,
+        description:
+          "The user's prompt as is, do not modify it or infer. Copy it verbatim.",
+      },
+    },
+    required: ['userInputExactlyAsIs'],
+    additionalProperties: false,
+  };
+
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'capture',
+        description: 'Capture the requested value.',
+        inputSchema,
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+  });
+
+  expect(result.tools).toEqual([
+    {
+      functionDeclarations: [
+        {
+          name: 'capture',
+          description: 'Capture the requested value.',
+          parametersJsonSchema: inputSchema,
+        },
+      ],
+    },
+  ]);
 });
 
 it('should correctly prepare provider-defined tools as array', () => {
@@ -346,7 +385,7 @@ it('should handle tool choice "none"', () => {
         {
           name: 'testFunction',
           description: 'Test',
-          parameters: {},
+          parametersJsonSchema: {},
         },
       ],
     },
@@ -470,7 +509,7 @@ it('should combine function and provider-defined tools on Gemini 3 models', () =
         {
           name: 'testFunction',
           description: 'A test function',
-          parameters: undefined,
+          parametersJsonSchema: { type: 'object', properties: {} },
         },
       ],
     },
@@ -521,7 +560,10 @@ it('should omit server-side tool invocation flag for Vertex Gemini 3', () => {
             {
               "description": "A test function",
               "name": "testFunction",
-              "parameters": undefined,
+              "parametersJsonSchema": {
+                "properties": {},
+                "type": "object",
+              },
             },
           ],
         },
@@ -569,12 +611,12 @@ it('should combine multiple provider tools with function tools on Gemini 3', () 
         {
           name: 'getWeather',
           description: 'Get weather',
-          parameters: undefined,
+          parametersJsonSchema: { type: 'object', properties: {} },
         },
         {
           name: 'bookVenue',
           description: 'Book a venue',
-          parameters: undefined,
+          parametersJsonSchema: { type: 'object', properties: {} },
         },
       ],
     },
