@@ -445,6 +445,8 @@ data: {"type":"finish-step"}
 ### Finish Message Part
 
 A part indicating the completion of a message.
+The message ID is established by the preceding [message start part](#message-start-part);
+the finish part does not include a `messageId`.
 
 Format: Server-Sent Event with JSON object
 
