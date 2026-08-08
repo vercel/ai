@@ -1,0 +1,147 @@
+---
+title: 'Smallest AI'
+description: 'Learn how to use the Smallest AI provider for the AI SDK.'
+---
+
+# Smallest AI Provider
+
+The [Smallest AI provider](https://github.com/smallest-inc/smallest-ai-vercel-provider)
+for the AI SDK contains support for text-to-speech (Lightning v3.1) and
+speech-to-text (Pulse) models.
+
+For more information about Smallest AI, see the
+[Smallest AI Documentation](https://waves-docs.smallest.ai).
+
+## Setup
+
+The Smallest AI provider is available in the `smallestai-vercel-provider` module.
+You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add smallestai-vercel-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install smallestai-vercel-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add smallestai-vercel-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add smallestai-vercel-provider" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `smallestai` from `smallestai-vercel-provider`:
+
+```ts
+import { smallestai } from 'smallestai-vercel-provider';
+```
+
+If you need a custom configuration, use `createSmallestAI`:
+
+```ts
+import { createSmallestAI } from 'smallestai-vercel-provider';
+
+const smallestai = createSmallestAI({
+  apiKey: process.env.SMALLEST_API_KEY, // default
+});
+```
+
+## Speech Models
+
+You can create Smallest AI speech models using the `.speech()` method:
+
+```ts
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { smallestai } from 'smallestai-vercel-provider';
+
+const { audio } = await generateSpeech({
+  model: smallestai.speech('lightning-v3.1'),
+  text: 'Hello from Smallest AI!',
+  voice: 'sophia',
+});
+
+// audio.uint8Array — raw audio bytes (WAV)
+// audio.base64 — base64-encoded audio
+```
+
+### Speech Model Options
+
+| Model ID | Description |
+| --- | --- |
+| `lightning-v3.1` | 44.1 kHz, natural expressive speech, sub-100ms latency |
+| `lightning-v2` | 100ms TTFB, 16 languages, voice cloning |
+
+### Voices
+
+Smallest AI provides 80+ voices across multiple languages and accents.
+Some popular voices include:
+
+| Voice | Gender | Accent | Best For |
+| --- | --- | --- | --- |
+| `sophia` | Female | American | General use (default) |
+| `robert` | Male | American | Professional, reports |
+| `advika` | Female | Indian | Hindi, code-switching |
+| `vivaan` | Male | Indian | Bilingual English/Hindi |
+| `camilla` | Female | Mexican/Latin | Spanish content |
+
+### Provider Options
+
+You can pass provider-specific options using the `providerOptions` parameter:
+
+```ts
+const { audio } = await generateSpeech({
+  model: smallestai.speech('lightning-v3.1'),
+  text: 'Hello!',
+  voice: 'robert',
+  providerOptions: {
+    smallestai: {
+      sampleRate: 48000, // 8000 | 16000 | 24000 | 44100 | 48000
+      outputFormat: 'mp3', // pcm | mp3 | wav | mulaw
+    },
+  },
+});
+```
+
+## Transcription Models
+
+You can create Smallest AI transcription models using the `.transcription()` method:
+
+```ts
+import { experimental_transcribe as transcribe } from 'ai';
+import { smallestai } from 'smallestai-vercel-provider';
+import { readFileSync } from 'fs';
+
+const { text, segments } = await transcribe({
+  model: smallestai.transcription('pulse'),
+  audio: readFileSync('recording.wav'),
+  mediaType: 'audio/wav',
+});
+```
+
+### Transcription Provider Options
+
+```ts
+const result = await transcribe({
+  model: smallestai.transcription('pulse'),
+  audio: audioBuffer,
+  mediaType: 'audio/wav',
+  providerOptions: {
+    smallestai: {
+      language: 'hi', // ISO 639-1 code
+      diarize: true, // speaker identification
+      emotionDetection: true,
+    },
+  },
+});
+```
+
+## Resources
+
+- [GitHub Repository](https://github.com/smallest-inc/smallest-ai-vercel-provider)
+- [npm Package](https://www.npmjs.com/package/smallestai-vercel-provider)
+- [Smallest AI Documentation](https://waves-docs.smallest.ai)
+- [Get API Key](https://waves.smallest.ai)
