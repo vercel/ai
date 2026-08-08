@@ -1259,6 +1259,10 @@ describe('doStream', () => {
           "type": "reasoning-delta",
         },
         {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
           "id": "txt-0",
           "type": "text-start",
         },
@@ -1271,10 +1275,6 @@ describe('doStream', () => {
           "delta": " my response",
           "id": "txt-0",
           "type": "text-delta",
-        },
-        {
-          "id": "reasoning-0",
-          "type": "reasoning-end",
         },
         {
           "id": "txt-0",
@@ -1349,6 +1349,10 @@ describe('doStream', () => {
           "type": "reasoning-delta",
         },
         {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
           "id": "txt-0",
           "type": "text-start",
         },
@@ -1361,10 +1365,6 @@ describe('doStream', () => {
           "delta": " correct",
           "id": "txt-0",
           "type": "text-delta",
-        },
-        {
-          "id": "reasoning-0",
-          "type": "reasoning-end",
         },
         {
           "id": "txt-0",
@@ -1430,6 +1430,10 @@ describe('doStream', () => {
           "type": "reasoning-delta",
         },
         {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
           "id": "txt-0",
           "type": "text-start",
         },
@@ -1437,10 +1441,6 @@ describe('doStream', () => {
           "delta": "Final response",
           "id": "txt-0",
           "type": "text-delta",
-        },
-        {
-          "id": "reasoning-0",
-          "type": "reasoning-end",
         },
         {
           "id": "txt-0",
