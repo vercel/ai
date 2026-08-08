@@ -1,5 +1,6 @@
 import {
   codeInterpreter,
+  customTool,
   fileSearch,
   imageGeneration,
   webSearch,
@@ -8,12 +9,14 @@ import {
 
 export const azureOpenaiTools: {
   codeInterpreter: typeof codeInterpreter;
+  customTool: typeof customTool;
   fileSearch: typeof fileSearch;
   imageGeneration: typeof imageGeneration;
   webSearch: typeof webSearch;
   webSearchPreview: typeof webSearchPreview;
 } = {
   codeInterpreter,
+  customTool,
   fileSearch,
   imageGeneration,
   webSearch,
