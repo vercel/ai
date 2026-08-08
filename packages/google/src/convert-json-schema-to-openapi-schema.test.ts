@@ -100,7 +100,7 @@ it('should convert "const" to "enum" with a single value', () => {
   const expected = {
     type: 'object',
     properties: {
-      status: { enum: ['active'] },
+      status: { type: 'string', enum: ['active'] },
     },
   };
 
@@ -214,6 +214,7 @@ it('should convert deeply nested "const" to "enum"', () => {
                 type: 'object',
                 properties: {
                   value: {
+                    type: 'string',
                     enum: ['specific value'],
                   },
                 },
@@ -681,4 +682,179 @@ it('should convert type arrays without null to anyOf', () => {
   };
 
   expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
+});
+
+it('should move number enum values into the description (Gemini only allows enum on string type)', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      rating: {
+        type: 'number',
+        enum: [1, 2, 3],
+      },
+      count: {
+        type: 'integer',
+        enum: [10, 20],
+      },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual({
+    type: 'object',
+    properties: {
+      rating: {
+        type: 'number',
+        description: 'Possible values: 1, 2, 3',
+      },
+      count: {
+        type: 'integer',
+        description: 'Possible values: 10, 20',
+      },
+    },
+  });
+});
+
+it('should append number enum values to an existing description', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      rating: {
+        type: 'number',
+        description: 'Rating of the review.',
+        enum: [1, 2, 3],
+      },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual({
+    type: 'object',
+    properties: {
+      rating: {
+        type: 'number',
+        description: 'Rating of the review. (Possible values: 1, 2, 3)',
+      },
+    },
+  });
+});
+
+it('should move boolean enum values into the description', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      flag: {
+        type: 'boolean',
+        enum: [true, false],
+      },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual({
+    type: 'object',
+    properties: {
+      flag: {
+        type: 'boolean',
+        description: 'Possible values: true, false',
+      },
+    },
+  });
+});
+
+it('should move non-string "const" into the description', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      version: { type: 'number', const: 42 },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual({
+    type: 'object',
+    properties: {
+      version: { type: 'number', description: 'Possible values: 42' },
+    },
+  });
+});
+
+it('should infer string type for enums without an explicit type', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      value: {
+        enum: ['foo', 'bar'],
+      },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual({
+    type: 'object',
+    properties: {
+      value: {
+        type: 'string',
+        enum: ['foo', 'bar'],
+      },
+    },
+  });
+});
+
+it('should infer number type for number enums without an explicit type', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      rating: {
+        enum: [1, 2, 3],
+      },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual({
+    type: 'object',
+    properties: {
+      rating: {
+        type: 'number',
+        description: 'Possible values: 1, 2, 3',
+      },
+    },
+  });
+});
+
+it('should convert "const: null" to nullable', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      empty: { type: ['number', 'null'], const: null },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual({
+    type: 'object',
+    properties: {
+      empty: {
+        anyOf: [{ type: 'number' }],
+        nullable: true,
+      },
+    },
+  });
+});
+
+it('should remove null from enum values and mark the schema as nullable', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      status: {
+        type: ['string', 'null'],
+        enum: ['active', 'inactive', null],
+      },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual({
+    type: 'object',
+    properties: {
+      status: {
+        anyOf: [{ type: 'string' }],
+        nullable: true,
+        enum: ['active', 'inactive'],
+      },
+    },
+  });
 });
