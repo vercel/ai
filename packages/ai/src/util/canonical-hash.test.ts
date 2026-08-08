@@ -18,6 +18,20 @@ describe('canonicalJSON', () => {
     expect(canonicalJSON('x')).toBe('"x"');
     expect(canonicalJSON(42)).toBe('42');
   });
+
+  // Regression for #18157: Array.prototype.join coerces undefined → "" so
+  // `[]` and `[undefined]` both serialized as "[]" before this fix.
+  it('distinguishes empty arrays from arrays containing undefined', () => {
+    expect(canonicalJSON([])).toBe('[]');
+    expect(canonicalJSON([undefined])).toBe('[null]');
+    expect(canonicalJSON([null])).toBe('[null]');
+    expect(canonicalJSON([1, undefined, 2])).toBe('[1,null,2]');
+    expect(canonicalJSON([])).not.toBe(canonicalJSON([undefined]));
+  });
+
+  it('hashes empty arrays and [undefined] differently', async () => {
+    expect(await hashCanonical([])).not.toBe(await hashCanonical([undefined]));
+  });
 });
 
 describe('hashCanonical', () => {
