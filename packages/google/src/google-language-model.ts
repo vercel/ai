@@ -260,6 +260,29 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
     const { usesGemini3Features } = getGoogleModelCapabilities(this.modelId);
 
+    // Gemini 2.5 models no longer support frequencyPenalty/presencePenalty
+    // (Google removed these from the 2.5 series API). Sending them causes
+    // an INVALID_ARGUMENT error, so strip them and warn instead.
+    const gemini25ModelPattern = /(^|\/)gemini-2\.5(?:[.-]|$)/i;
+    const isGemini25Model = gemini25ModelPattern.test(this.modelId);
+    const shouldStripPenalties = isGemini25Model && !isVertexProvider;
+    if (shouldStripPenalties && frequencyPenalty != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'frequencyPenalty',
+        details:
+          'frequencyPenalty is not supported for gemini-2.5 models on the Gemini Developer API and will be ignored.',
+      });
+    }
+    if (shouldStripPenalties && presencePenalty != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'presencePenalty',
+        details:
+          'presencePenalty is not supported for gemini-2.5 models on the Gemini Developer API and will be ignored.',
+      });
+    }
+
     const { contents, systemInstruction } = convertToGoogleMessages(prompt, {
       isGemmaModel,
       isGemini3Model: usesGemini3Features,
@@ -331,8 +354,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           temperature,
           topK,
           topP,
-          frequencyPenalty,
-          presencePenalty,
+          frequencyPenalty: shouldStripPenalties ? undefined : frequencyPenalty,
+          presencePenalty: shouldStripPenalties ? undefined : presencePenalty,
           stopSequences,
           seed,
 
