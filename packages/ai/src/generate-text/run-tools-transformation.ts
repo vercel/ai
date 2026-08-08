@@ -173,8 +173,14 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   // keep track of outstanding tool results for stream closing:
   const outstandingToolResults = new Set<string>();
 
+<<<<<<< HEAD
   // keep track of tool inputs for provider-side tool results
   const toolInputs = new Map<string, unknown>();
+=======
+  // keep track of parsed tool calls so provider-emitted approval requests can reference them
+  // keep track of tool inputs for provider-side tool results
+  const toolCallsByToolCallId = new Map<string, TypedToolCall<TOOLS>>();
+>>>>>>> 2706461b1d ([v6.0] fix(ai): include tool input on tool result for provider executed dynamic tools (#16802))
 
   let canClose = false;
   let finishChunk:
@@ -290,6 +296,35 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               });
             }
 
+<<<<<<< HEAD
+=======
+            if (
+              await isApprovalNeeded({
+                tool,
+                toolCall,
+                messages,
+                experimental_context,
+              })
+            ) {
+              const approvalId = generateId();
+              const signature = await maybeSignApproval({
+                secret: toolApprovalSecret,
+                approvalId,
+                toolCallId: toolCall.toolCallId,
+                toolName: toolCall.toolName,
+                input: toolCall.input,
+              });
+
+              toolResultsStreamController!.enqueue({
+                type: 'tool-approval-request',
+                approvalId,
+                toolCall,
+                ...(signature != null ? { signature } : {}),
+              });
+              break;
+            }
+
+>>>>>>> 2706461b1d ([v6.0] fix(ai): include tool input on tool result for provider executed dynamic tools (#16802))
             // Only execute tools that are not provider-executed:
             if (tool.execute != null && toolCall.providerExecuted !== true) {
               const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
@@ -396,8 +431,13 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               type: 'tool-error',
               toolCallId: chunk.toolCallId,
               toolName,
+<<<<<<< HEAD
               input: toolInputs.get(chunk.toolCallId),
               providerExecuted: chunk.providerExecuted,
+=======
+              input: toolCall?.input,
+              providerExecuted: true,
+>>>>>>> 2706461b1d ([v6.0] fix(ai): include tool input on tool result for provider executed dynamic tools (#16802))
               error: chunk.result,
             } as TypedToolError<TOOLS>);
           } else {
@@ -405,7 +445,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               type: 'tool-result',
               toolCallId: chunk.toolCallId,
               toolName,
-              input: toolInputs.get(chunk.toolCallId),
+              input: toolCall?.input,
               output: chunk.result,
               providerExecuted: chunk.providerExecuted,
             } as TypedToolResult<TOOLS>);
