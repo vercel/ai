@@ -25,6 +25,221 @@ import {
 
 const createMockTransport = vi.fn(config => new MockMCPTransport(config));
 
+<<<<<<< HEAD
+=======
+class GetterOnlyProtocolVersionTransport implements MCPTransport {
+  private readonly transport: MockMCPTransport;
+  private negotiatedProtocolVersion?: string;
+
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+
+  constructor(protocolVersion: string) {
+    this.transport = new MockMCPTransport({
+      initializeResult: {
+        protocolVersion,
+        serverInfo: { name: 'mock-mcp-server', version: '1.0.0' },
+        capabilities: { tools: {} },
+      },
+    });
+  }
+
+  get protocolVersion(): string | undefined {
+    return this.negotiatedProtocolVersion;
+  }
+
+  setProtocolVersion(version: string): void {
+    this.negotiatedProtocolVersion = version;
+  }
+
+  async start(): Promise<void> {
+    await this.transport.start();
+  }
+
+  async send(message: JSONRPCMessage): Promise<void> {
+    this.transport.onmessage = this.onmessage;
+    this.transport.onclose = this.onclose;
+    this.transport.onerror = this.onerror;
+    await this.transport.send(message);
+  }
+
+  async close(): Promise<void> {
+    await this.transport.close();
+  }
+}
+
+class FailsFirstToolCallTransport implements MCPTransport {
+  toolCallAttempts = 0;
+
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+
+  constructor(
+    private readonly failure:
+      | 'transient-http'
+      | 'unlisted-http'
+      | 'network'
+      | 'invalid-params'
+      | 'auth'
+      | 'tool-result-error',
+  ) {}
+
+  async start(): Promise<void> {}
+
+  async close(): Promise<void> {
+    this.onclose?.();
+  }
+
+  async send(message: JSONRPCMessage): Promise<void> {
+    if (!('method' in message) || !('id' in message)) {
+      return;
+    }
+
+    if (message.method === 'initialize') {
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          protocolVersion: LATEST_PROTOCOL_VERSION,
+          serverInfo: { name: 'retry-test-server', version: '1.0.0' },
+          capabilities: { tools: {} },
+        },
+      });
+      return;
+    }
+
+    if (message.method === 'tools/list') {
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          tools: [
+            {
+              name: 'retry-tool',
+              description: 'A retry test tool',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  value: { type: 'string' },
+                },
+              },
+            },
+          ],
+        },
+      });
+      return;
+    }
+
+    if (message.method === 'tools/call') {
+      this.toolCallAttempts += 1;
+
+      if (this.toolCallAttempts === 1) {
+        if (this.failure === 'transient-http') {
+          throw new MCPClientError({
+            message: 'temporary overload',
+            statusCode: 503,
+          });
+        }
+
+        if (this.failure === 'unlisted-http') {
+          throw new MCPClientError({
+            message: 'not retryable by default',
+            statusCode: 418,
+          });
+        }
+
+        if (this.failure === 'network') {
+          throw Object.assign(new Error('connection reset'), {
+            code: 'ECONNRESET',
+          });
+        }
+
+        if (this.failure === 'invalid-params') {
+          this.onmessage?.({
+            jsonrpc: '2.0',
+            id: message.id,
+            error: {
+              code: -32602,
+              message: 'Invalid params',
+            },
+          });
+          return;
+        }
+
+        if (this.failure === 'auth') {
+          throw new MCPClientError({
+            message: 'Unauthorized',
+            statusCode: 401,
+          });
+        }
+
+        this.onmessage?.({
+          jsonrpc: '2.0',
+          id: message.id,
+          result: {
+            content: [{ type: 'text', text: 'tool-level error' }],
+            isError: true,
+          },
+        });
+        return;
+      }
+
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          content: [{ type: 'text', text: 'retried successfully' }],
+          isError: false,
+        },
+      });
+    }
+  }
+}
+
+class HangingToolCallTransport implements MCPTransport {
+  sentMessages: JSONRPCMessage[] = [];
+
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+
+  async start(): Promise<void> {}
+
+  async close(): Promise<void> {
+    this.onclose?.();
+  }
+
+  async send(message: JSONRPCMessage): Promise<void> {
+    this.sentMessages.push(message);
+
+    if (!('method' in message) || !('id' in message)) {
+      return;
+    }
+
+    if (message.method === 'initialize') {
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          protocolVersion: LATEST_PROTOCOL_VERSION,
+          serverInfo: { name: 'hanging-tool-call-server', version: '1.0.0' },
+          capabilities: { tools: {} },
+        },
+      });
+      return;
+    }
+
+    if (message.method === 'tools/call') {
+      // Intentionally never respond. This exercises aborting an in-flight
+      // request after it has been sent to a slow or hung MCP server.
+      return;
+    }
+  }
+}
+
+>>>>>>> 937d731587 ([v6.0] fix: MCP callTool hangs and leaks its response handler when an in-flight request is aborted (#16794))
 vi.mock('./mcp-transport.ts', async importOriginal => {
   const actual =
     // oxlint-disable-next-line typescript-eslint/consistent-type-imports
@@ -496,6 +711,49 @@ describe('MCPClient', () => {
     ).rejects.toSatisfy(
       error => error instanceof Error && error.name === 'AbortError',
     );
+  });
+
+  it('should reject in-flight tool call request when aborted', async () => {
+    const transport = new HangingToolCallTransport();
+    client = await createMCPClient({ transport });
+
+    const abortController = new AbortController();
+    const abortReason = new Error('abort after send');
+    const toolCallPromise = (
+      client as unknown as {
+        callTool: (args: {
+          name: string;
+          args: Record<string, unknown>;
+          options?: { abortSignal?: AbortSignal };
+        }) => Promise<unknown>;
+      }
+    ).callTool({
+      name: 'hanging-tool',
+      args: {},
+      options: { abortSignal: abortController.signal },
+    });
+
+    expect(
+      transport.sentMessages.some(
+        message => 'method' in message && message.method === 'tools/call',
+      ),
+    ).toBe(true);
+
+    abortController.abort(abortReason);
+
+    await expect(toolCallPromise).rejects.toSatisfy(
+      error =>
+        MCPClientError.isInstance(error) &&
+        error.message === 'Request was aborted' &&
+        error.cause === abortReason,
+    );
+    expect(
+      (
+        client as unknown as {
+          responseHandlers: Map<number, unknown>;
+        }
+      ).responseHandlers.size,
+    ).toBe(0);
   });
 
   describe('elicitation support', () => {
