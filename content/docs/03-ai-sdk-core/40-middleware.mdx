@@ -193,9 +193,13 @@ export const yourLogMiddleware: LanguageModelV2Middleware = {
     console.log(`params: ${JSON.stringify(params, null, 2)}`);
 
     const result = await doGenerate();
+    const generatedText = result.content
+      .filter(part => part.type === 'text')
+      .map(part => part.text)
+      .join('');
 
     console.log('doGenerate finished');
-    console.log(`generated text: ${result.text}`);
+    console.log(`generated text: ${generatedText}`);
 
     return result;
   },
@@ -323,12 +327,16 @@ import type { LanguageModelV2Middleware } from '@ai-sdk/provider';
 
 export const yourGuardrailMiddleware: LanguageModelV2Middleware = {
   wrapGenerate: async ({ doGenerate }) => {
-    const { text, ...rest } = await doGenerate();
+    const result = await doGenerate();
 
     // filtering approach, e.g. for PII or other sensitive information:
-    const cleanedText = text?.replace(/badword/g, '<REDACTED>');
+    const content = result.content.map(part =>
+      part.type === 'text'
+        ? { ...part, text: part.text.replace(/badword/g, '<REDACTED>') }
+        : part,
+    );
 
-    return { text: cleanedText, ...rest };
+    return { ...result, content };
   },
 
   // here you would implement the guardrail logic for streaming
