@@ -42,7 +42,7 @@ export type UseChatHelpers<UI_MESSAGE extends UIMessage> = {
 >;
 
 export type UseChatOptions<UI_MESSAGE extends UIMessage> = (
-  | { chat: Chat<UI_MESSAGE> }
+  | ({ chat: Chat<UI_MESSAGE> } & Pick<ChatInit<UI_MESSAGE>, 'onData'>)
   | ChatInit<UI_MESSAGE>
 ) & {
   /**
@@ -98,6 +98,12 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
       transport: options.transport,
     };
   }
+
+  // Keep the latest hook-level `onData` in a ref so the subscription wrapper
+  // used for a shared `chat` instance (see effect below) always calls the
+  // current callback without needing to re-subscribe on every render.
+  const onDataRef = useRef(options.onData);
+  onDataRef.current = options.onData;
 
   // resolve the latest transport and fallback to a lazily created default transport
   let defaultTransport: ChatTransport<UI_MESSAGE> | undefined;
@@ -235,6 +241,23 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
       chatRef.current.resumeStream();
     }
   }, [resume, chatRef]);
+
+  // When a shared `chat` instance is supplied, its constructor `onData` is
+  // owned by that instance, so the hook-level `onData` is not wired up by the
+  // options passed to `new Chat` above. Register it as an additional data
+  // callback so it observes data parts alongside the chat-level `onData`.
+  // For a hook-owned chat this is already handled by the `chatOptions` wrapper.
+  const isSharedChat = 'chat' in options;
+  useEffect(() => {
+    if (!isSharedChat) {
+      return;
+    }
+    return chatRef.current['~registerDataCallback'](dataPart => {
+      onDataRef.current?.(dataPart);
+    });
+    // `chatRef.current.id` re-subscribes when the shared chat instance changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSharedChat, chatRef.current.id]);
 
   return {
     id: chatRef.current.id,

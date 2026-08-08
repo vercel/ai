@@ -257,6 +257,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   private onData?: ChatInit<UI_MESSAGE>['onData'];
   private sendAutomaticallyWhen?: ChatInit<UI_MESSAGE>['sendAutomaticallyWhen'];
 
+  // additional data callbacks registered by consumers of a (potentially shared)
+  // chat instance, invoked alongside the constructor `onData` callback.
+  private readonly dataCallbacks = new Set<ChatOnDataCallback<UI_MESSAGE>>();
+
   private activeResponse: ActiveResponse<UI_MESSAGE> | undefined = undefined;
   private activeResumeRequest: ActiveResumeRequest | undefined = undefined;
   private jobExecutor = new SerialJobExecutor();
@@ -288,6 +292,24 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.onData = onData;
     this.sendAutomaticallyWhen = sendAutomaticallyWhen;
   }
+
+  /**
+   * Registers an additional callback that is invoked whenever a data part is
+   * received, in addition to the `onData` callback passed to the constructor.
+   *
+   * This lets consumers of a shared chat instance (e.g. multiple `useChat`
+   * hooks) observe data parts without overwriting the chat-level `onData`.
+   *
+   * @returns A function that unregisters the callback.
+   */
+  '~registerDataCallback' = (
+    callback: ChatOnDataCallback<UI_MESSAGE>,
+  ): (() => void) => {
+    this.dataCallbacks.add(callback);
+    return () => {
+      this.dataCallbacks.delete(callback);
+    };
+  };
 
   /**
    * Hook status:
@@ -779,7 +801,12 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         stream: processUIMessageStream({
           stream,
           onToolCall: this.onToolCall,
-          onData: this.onData,
+          onData: dataPart => {
+            this.onData?.(dataPart);
+            for (const callback of this.dataCallbacks) {
+              callback(dataPart);
+            }
+          },
           messageMetadataSchema: this.messageMetadataSchema,
           dataPartSchemas: this.dataPartSchemas,
           runUpdateMessageJob,
