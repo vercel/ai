@@ -1510,6 +1510,55 @@ describe('smoothStream', () => {
   });
 
   describe('providerMetadata preservation', () => {
+    it('should preserve providerMetadata on chunks emitted while word chunking reasoning-delta text', async () => {
+      const providerMetadata = {
+        anthropic: { signature: 'sig_issue_14373' },
+      };
+
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'reasoning-start', id: '1' },
+        {
+          text: 'First second final',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata,
+        },
+        { type: 'reasoning-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: null,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      const reasoningDeltas = events.filter(
+        (event: any) => event.type === 'reasoning-delta',
+      );
+
+      expect(reasoningDeltas).toEqual([
+        {
+          id: '1',
+          providerMetadata,
+          text: 'First ',
+          type: 'reasoning-delta',
+        },
+        {
+          id: '1',
+          providerMetadata,
+          text: 'second ',
+          type: 'reasoning-delta',
+        },
+        {
+          id: '1',
+          providerMetadata,
+          text: 'final',
+          type: 'reasoning-delta',
+        },
+      ]);
+    });
+
     it('should preserve providerMetadata on reasoning-delta chunks (signature for Anthropic thinking)', async () => {
       const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
         { type: 'reasoning-start', id: '1' },
