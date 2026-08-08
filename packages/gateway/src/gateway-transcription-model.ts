@@ -1,26 +1,24 @@
 import type {
-  ImageModelV2,
-  ImageModelV2CallWarning,
-  ImageModelV2ProviderMetadata,
+  SharedV3ProviderMetadata,
+  TranscriptionModelV3,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  createJsonResponseHandler,
+  convertUint8ArrayToBase64,
   createJsonErrorResponseHandler,
+  createJsonResponseHandler,
   postJsonToApi,
   resolve,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { mapGatewayWarnings } from './map-gateway-warnings';
-import type { GatewayConfig } from './gateway-config';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
+import type { GatewayConfig } from './gateway-config';
 
-export class GatewayImageModel implements ImageModelV2 {
-  readonly specificationVersion = 'v2';
-  // Set a very large number to prevent client-side splitting of requests
-  readonly maxImagesPerCall = Number.MAX_SAFE_INTEGER;
+export class GatewayTranscriptionModel implements TranscriptionModelV3 {
+  readonly specificationVersion = 'v3' as const;
 
   constructor(
     readonly modelId: string,
@@ -35,15 +33,14 @@ export class GatewayImageModel implements ImageModelV2 {
   }
 
   async doGenerate({
-    prompt,
-    n,
-    size,
-    aspectRatio,
-    seed,
+    audio,
+    mediaType,
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV2['doGenerate']>[0]) {
+  }: Parameters<TranscriptionModelV3['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<TranscriptionModelV3['doGenerate']>>
+  > {
     const resolvedHeaders = await resolve(this.config.headers());
     try {
       const {
@@ -59,15 +56,15 @@ export class GatewayImageModel implements ImageModelV2 {
           await resolve(this.config.o11yHeaders),
         ),
         body: {
-          prompt,
-          n,
-          ...(size && { size }),
-          ...(aspectRatio && { aspectRatio }),
-          ...(seed && { seed }),
+          audio:
+            audio instanceof Uint8Array
+              ? convertUint8ArrayToBase64(audio)
+              : audio,
+          mediaType,
           ...(providerOptions && { providerOptions }),
         },
         successfulResponseHandler: createJsonResponseHandler(
-          gatewayImageResponseSchema,
+          gatewayTranscriptionResponseSchema,
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
@@ -78,49 +75,43 @@ export class GatewayImageModel implements ImageModelV2 {
       });
 
       return {
-        images: responseBody.images, // Always base64 strings from server
+        text: responseBody.text,
+        segments: responseBody.segments ?? [],
+        language: responseBody.language ?? undefined,
+        durationInSeconds: responseBody.durationInSeconds ?? undefined,
         warnings: mapGatewayWarnings(responseBody.warnings),
         providerMetadata:
-          responseBody.providerMetadata as ImageModelV2ProviderMetadata,
+          responseBody.providerMetadata as SharedV3ProviderMetadata,
         response: {
           timestamp: new Date(),
           modelId: this.modelId,
           headers: responseHeaders,
+          body: rawValue,
         },
-        ...(responseBody.usage != null && {
-          usage: {
-            inputTokens: responseBody.usage.inputTokens ?? undefined,
-            outputTokens: responseBody.usage.outputTokens ?? undefined,
-            totalTokens: responseBody.usage.totalTokens ?? undefined,
-          },
-        }),
       };
     } catch (error) {
-      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
+      throw await asGatewayError(
+        error,
+        await parseAuthMethod(resolvedHeaders ?? {}),
+      );
     }
   }
 
   private getUrl() {
-    return `${this.config.baseURL}/image-model`;
+    return `${this.config.baseURL}/transcription-model`;
   }
 
   private getModelConfigHeaders() {
     return {
-      'ai-image-model-specification-version': '2',
+      'ai-transcription-model-specification-version': '3',
       'ai-model-id': this.modelId,
     };
   }
 }
 
-const providerMetadataEntrySchema = z
-  .object({
-    images: z.array(z.unknown()).optional(),
-  })
-  .catchall(z.unknown());
+const providerMetadataEntrySchema = z.object({}).catchall(z.unknown());
 
-<<<<<<< HEAD
-=======
-const gatewayImageWarningSchema = z.discriminatedUnion('type', [
+const gatewayTranscriptionWarningSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('unsupported'),
     feature: z.string(),
@@ -142,25 +133,21 @@ const gatewayImageWarningSchema = z.discriminatedUnion('type', [
   }),
 ]);
 
->>>>>>> 9c54a9f34c ([v6.0] fix(gateway): accept deprecated warnings in image, speech, transcription, and video responses (#16792))
-const gatewayImageUsageSchema = z.object({
-  inputTokens: z.number().nullish(),
-  outputTokens: z.number().nullish(),
-  totalTokens: z.number().nullish(),
-});
-
-const gatewayImageResponseSchema = z.object({
-  images: z.array(z.string()), // Always base64 strings over the wire
-  warnings: z
+const gatewayTranscriptionResponseSchema = z.object({
+  text: z.string(),
+  segments: z
     .array(
       z.object({
-        type: z.literal('other'),
-        message: z.string(),
+        text: z.string(),
+        startSecond: z.number(),
+        endSecond: z.number(),
       }),
     )
     .optional(),
+  language: z.string().nullish(),
+  durationInSeconds: z.number().nullish(),
+  warnings: z.array(gatewayTranscriptionWarningSchema).optional(),
   providerMetadata: z
     .record(z.string(), providerMetadataEntrySchema)
     .optional(),
-  usage: gatewayImageUsageSchema.optional(),
 });
