@@ -35,6 +35,7 @@ import {
   writeSkills as writeHarnessSkills,
 } from '@ai-sdk/harness/utils';
 import {
+  safeParseJSON,
   tool,
   type Experimental_SandboxSession,
   type Experimental_SandboxProcess,
@@ -809,41 +810,87 @@ async function readBridgeAsset(name: string): Promise<string> {
  * `bridge-hello` the instant it accepts the connection, so receiving it
  * is the only reliable evidence that the end-to-end link is live.
  */
-async function waitForBridgeHello({
-  ws,
-  timeoutMs,
+function openWebSocketAndWaitForBridgeHello({
+  url,
+  openTimeoutMs,
+  getHelloTimeoutMs,
 }: {
-  ws: WebSocket;
-  timeoutMs: number;
-}): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
+  url: string;
+  openTimeoutMs: number;
+  getHelloTimeoutMs: () => number;
+}): Promise<WebSocket> {
+  return new Promise<WebSocket>((resolve, reject) => {
+    const ws = new WebSocket(url);
+    let opened = false;
+    let sawBridgeHello = false;
     let settled = false;
+    let openTimer: ReturnType<typeof setTimeout> | undefined;
+    let helloTimer: ReturnType<typeof setTimeout> | undefined;
+
     const cleanup = () => {
+      if (openTimer) clearTimeout(openTimer);
+      if (helloTimer) clearTimeout(helloTimer);
+      ws.off('open', onOpen);
       ws.off('message', onMessage);
       ws.off('close', onClose);
       ws.off('error', onError);
-      if (timer) clearTimeout(timer);
     };
     const settle = (err?: unknown) => {
       if (settled) return;
       settled = true;
       cleanup();
-      if (err) reject(err);
-      else resolve();
+      if (err) {
+        try {
+          ws.terminate();
+        } catch {}
+        reject(err);
+      } else {
+        resolve(ws);
+      }
+    };
+    const tryResolve = () => {
+      if (opened && sawBridgeHello) settle();
+    };
+    const startHelloTimer = () => {
+      if (helloTimer) return;
+      const helloTimeoutMs = getHelloTimeoutMs();
+      helloTimer = setTimeout(
+        () =>
+          settle(
+            new Error(
+              `claude-code bridge did not send bridge-hello within ${helloTimeoutMs}ms`,
+            ),
+          ),
+        helloTimeoutMs,
+      );
+      helloTimer.unref?.();
+    };
+    const onOpen = () => {
+      opened = true;
+      if (openTimer) {
+        clearTimeout(openTimer);
+        openTimer = undefined;
+      }
+      startHelloTimer();
+      tryResolve();
     };
     const onMessage = (raw: unknown) => {
-      try {
-        const text =
-          typeof raw === 'string'
-            ? raw
-            : (raw as Buffer | ArrayBufferLike).toString
-              ? (raw as Buffer).toString('utf8')
-              : String(raw);
-        const parsed = JSON.parse(text) as { type?: unknown };
-        if (parsed?.type === 'bridge-hello') settle();
-      } catch {
-        // Ignore malformed frames while waiting.
-      }
+      void (async () => {
+        const parsed = await safeParseJSON({
+          text: webSocketMessageToString(raw),
+        });
+        if (!parsed.success || settled) return;
+        const value = parsed.value;
+        if (
+          typeof value === 'object' &&
+          value !== null &&
+          !Array.isArray(value) &&
+          (value as { type?: unknown }).type === 'bridge-hello'
+        ) {
+          sawBridgeHello = true;
+          tryResolve();
+        }
+      })();
     };
     const onClose = () => {
       settle(
@@ -851,16 +898,13 @@ async function waitForBridgeHello({
       );
     };
     const onError = (err: Error) => settle(err);
-    const timer = setTimeout(
+    openTimer = setTimeout(
       () =>
-        settle(
-          new Error(
-            `claude-code bridge did not send bridge-hello within ${timeoutMs}ms`,
-          ),
-        ),
-      timeoutMs,
+        settle(new Error(`WebSocket open timed out after ${openTimeoutMs}ms`)),
+      openTimeoutMs,
     );
-    timer.unref?.();
+    openTimer.unref?.();
+    ws.on('open', onOpen);
     ws.on('message', onMessage);
     ws.on('close', onClose);
     ws.on('error', onError);
@@ -880,23 +924,16 @@ async function openBridgeWebSocket({
 
   while (Date.now() < deadline) {
     attempt++;
-    let ws: WebSocket | undefined;
     try {
       const remaining = Math.max(1, deadline - Date.now());
-      ws = await openWebSocket({
+      return await openWebSocketAndWaitForBridgeHello({
         url: wsUrl,
-        timeoutMs: Math.min(10_000, remaining),
+        openTimeoutMs: Math.min(10_000, remaining),
+        getHelloTimeoutMs: () =>
+          Math.min(5_000, Math.max(1, deadline - Date.now())),
       });
-      await waitForBridgeHello({
-        ws,
-        timeoutMs: Math.min(5_000, Math.max(1, deadline - Date.now())),
-      });
-      return ws;
     } catch (err) {
       lastError = err;
-      try {
-        ws?.close();
-      } catch {}
       const remaining = deadline - Date.now();
       if (remaining <= 0) break;
       await sleep(Math.min(250 * attempt, 1_000, remaining));
@@ -908,39 +945,17 @@ async function openBridgeWebSocket({
   );
 }
 
-function openWebSocket({
-  url,
-  timeoutMs,
-}: {
-  url: string;
-  timeoutMs: number;
-}): Promise<WebSocket> {
-  return new Promise((resolve, reject) => {
-    const ws = new WebSocket(url);
-    const timer = setTimeout(() => {
-      cleanup();
-      try {
-        ws.terminate();
-      } catch {}
-      reject(new Error(`WebSocket open timed out after ${timeoutMs}ms`));
-    }, timeoutMs);
-    timer.unref?.();
-    const cleanup = () => {
-      clearTimeout(timer);
-      ws.off('open', onOpen);
-      ws.off('error', onError);
-    };
-    const onOpen = () => {
-      cleanup();
-      resolve(ws);
-    };
-    const onError = (err: Error) => {
-      cleanup();
-      reject(err);
-    };
-    ws.once('open', onOpen);
-    ws.once('error', onError);
-  });
+function webSocketMessageToString(raw: unknown): string {
+  if (typeof raw === 'string') return raw;
+  if (Buffer.isBuffer(raw)) return raw.toString('utf8');
+  if (Array.isArray(raw)) return Buffer.concat(raw).toString('utf8');
+  if (raw instanceof ArrayBuffer) return Buffer.from(raw).toString('utf8');
+  if (ArrayBuffer.isView(raw)) {
+    return Buffer.from(raw.buffer, raw.byteOffset, raw.byteLength).toString(
+      'utf8',
+    );
+  }
+  return String(raw);
 }
 
 function sleep(ms: number): Promise<void> {
