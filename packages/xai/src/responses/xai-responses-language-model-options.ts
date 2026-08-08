@@ -36,6 +36,13 @@ export const xaiLanguageModelResponsesOptions = z.object({
    */
   previousResponseId: z.string().optional(),
   /**
+   * A stable cache routing key. Requests that share the same key are routed
+   * to the same server, which increases prompt cache hits.
+   *
+   * @see https://docs.x.ai/developers/advanced-api-usage/prompt-caching/maximizing-cache-hits
+   */
+  promptCacheKey: z.string().optional(),
+  /**
    * Specify additional output data to include in the model response.
    * Example values: 'file_search_call.results'.
    */

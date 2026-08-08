@@ -777,6 +777,29 @@ describe('XaiResponsesLanguageModel', () => {
           expect(requestBody.previous_response_id).toBe('resp_456');
         });
 
+        it('promptCacheKey', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                promptCacheKey: 'conv-abc-123',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.prompt_cache_key).toBe('conv-abc-123');
+        });
+
         it('include with file_search_call.results', async () => {
           prepareJsonResponse({
             id: 'resp_123',
