@@ -1,5 +1,8 @@
-import type { LanguageModelV4ProviderTool } from '@ai-sdk/provider';
-import { expect, it } from 'vitest';
+import {
+  InvalidArgumentError,
+  type LanguageModelV4ProviderTool,
+} from '@ai-sdk/provider';
+import { describe, expect, it } from 'vitest';
 import { prepareTools } from './google-prepare-tools';
 
 it('should return undefined tools and tool_choice when tools are null', () => {
@@ -976,5 +979,92 @@ it('should use AUTO mode when no tools have strict: true', () => {
   });
   expect(result.toolConfig).toEqual({
     functionCallingConfig: { mode: 'AUTO' },
+  });
+});
+
+describe('tool name validation', () => {
+  it.each([
+    ['starting with number', '123invalid'],
+    ['starting with dash', '-invalid'],
+    ['starting with dot', '.invalid'],
+    ['starting with colon', ':invalid'],
+    ['containing space', 'tool name'],
+    ['containing invalid symbol @', 'tool@name'],
+    ['containing invalid symbol #', 'tool#name'],
+    ['exceeding 64 characters', 'a'.repeat(65)],
+  ])(
+    'should throw InvalidArgumentError for invalid tool name (%s)',
+    (_, name) => {
+      expect(() =>
+        prepareTools({
+          tools: [
+            {
+              type: 'function',
+              name,
+              description: 'test',
+              inputSchema: { type: 'object', properties: {} },
+            },
+          ],
+          modelId: 'gemini-2.5-flash',
+        }),
+      ).toThrow(InvalidArgumentError);
+    },
+  );
+
+  it('should throw InvalidArgumentError for invalid tool name in Gemini 3 combined tools path', () => {
+    expect(() =>
+      prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: '123invalid',
+            description: 'test',
+            inputSchema: { type: 'object', properties: {} },
+          },
+          {
+            type: 'provider',
+            id: 'google.google_search',
+            name: 'google_search',
+            args: {},
+          },
+        ],
+        modelId: 'gemini-3.1-flash-lite-preview',
+      }),
+    ).toThrow(InvalidArgumentError);
+  });
+
+  it.each([
+    ['simple name', 'validName'],
+    ['starting with underscore', '_validName'],
+    ['containing numbers', 'validName123'],
+    ['containing underscores', 'valid_name'],
+    ['containing dots', 'valid.name'],
+    ['containing colons', 'valid:name'],
+    ['containing dashes', 'valid-name'],
+    ['exactly 64 characters', 'a'.repeat(64)],
+  ])('should accept valid tool name (%s)', (_, name) => {
+    const result = prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name,
+          description: 'test',
+          inputSchema: { type: 'object', properties: {} },
+        },
+      ],
+      modelId: 'gemini-2.5-flash',
+    });
+    expect(result.tools).toEqual([
+      {
+        functionDeclarations: [
+          {
+            name,
+            description: 'test',
+            parameters: undefined,
+          },
+        ],
+      },
+    ]);
+    expect(result.toolWarnings).toEqual([]);
   });
 });
