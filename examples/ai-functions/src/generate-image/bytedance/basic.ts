@@ -23,6 +23,9 @@ run(async () => {
   await presentImages(result.images);
 
   console.log('Generated', result.images.length, 'image(s)');
+  // Ark reports no input token count for image generation, so `inputTokens`
+  // is undefined while `outputTokens` / `totalTokens` are populated.
+  console.log('Token usage:', result.usage);
   console.log('Warnings:', JSON.stringify(result.warnings, null, 2));
   console.log(
     'Provider metadata:',

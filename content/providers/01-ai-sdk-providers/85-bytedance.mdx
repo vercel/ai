@@ -90,6 +90,26 @@ const { image } = await generateImage({
   levels such as `2K` can be passed via `providerOptions.bytedance.size`.
 </Note>
 
+### Token Usage
+
+Seedream reports token usage for image generation, exposed through `result.usage`:
+
+```ts
+const { image, usage } = await generateImage({
+  model: byteDance.image('seedream-5-0-260128'),
+  prompt: 'A salamander in a forest pond at dusk surrounded by fireflies',
+});
+
+console.log(usage); // { inputTokens, outputTokens, totalTokens }
+```
+
+<Note>
+  ModelArk reports no input token count for image generation, so `inputTokens`
+  is always `undefined`. The `generated_images` field returned by the API is an
+  image counter rather than a token count and is not mapped into `usage` — use
+  `images.length` instead.
+</Note>
+
 ### Image Editing
 
 Pass input images via `prompt.images` to transform an existing image

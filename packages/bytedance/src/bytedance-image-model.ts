@@ -1,6 +1,7 @@
 import type {
   ImageModelV4,
   ImageModelV4CallOptions,
+  ImageModelV4Usage,
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -170,6 +171,7 @@ export class ByteDanceImageModel implements ImageModelV4 {
     return {
       images: response.data.map(item => item.b64_json),
       warnings,
+      usage: mapImageUsage(response.usage),
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
@@ -179,10 +181,34 @@ export class ByteDanceImageModel implements ImageModelV4 {
   }
 }
 
+// Ark exposes no input token count for image generation, so `inputTokens` stays
+// undefined rather than being defaulted to 0. A missing `usage` object is not
+// warned about - it is a valid response.
+function mapImageUsage(
+  usage: z.infer<typeof byteDanceImageResponseSchema>['usage'],
+): ImageModelV4Usage | undefined {
+  return usage == null
+    ? undefined
+    : {
+        inputTokens: undefined,
+        outputTokens: usage.output_tokens ?? undefined,
+        totalTokens: usage.total_tokens ?? undefined,
+      };
+}
+
 // Minimal schema focused on what the implementation needs. This limits
 // breakages when the API adds fields and keeps parsing efficient.
 const byteDanceImageResponseSchema = z.object({
   data: z.array(z.object({ b64_json: z.string() })),
+  // Ark also returns `generated_images` and `tool_usage`, which are deliberately
+  // not parsed here: `generated_images` duplicates `images.length`, and neither
+  // is a token count.
+  usage: z
+    .object({
+      output_tokens: z.number().nullish(),
+      total_tokens: z.number().nullish(),
+    })
+    .nullish(),
 });
 
 const byteDanceErrorSchema = z.object({
