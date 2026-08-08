@@ -148,7 +148,10 @@ describe('createAmazonBedrockAnthropicFetch', () => {
     const text = new TextDecoder().decode(value);
 
     expect(text).toBe(
-      `data: ${JSON.stringify({ type: 'error', error: errorData })}\n\n`,
+      `data: ${JSON.stringify({
+        type: 'error',
+        error: { type: 'error', message: 'Rate limit exceeded' },
+      })}\n\n`,
     );
   });
 

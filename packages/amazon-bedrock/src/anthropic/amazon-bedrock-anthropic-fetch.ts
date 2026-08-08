@@ -93,9 +93,20 @@ function transformAmazonBedrockEventStreamToSSE(
           controller.enqueue(textEncoder.encode('data: [DONE]\n\n'));
         }
       } else if (event.messageType === 'exception') {
+        const parsed = await safeParseJSON({
+          text: event.data,
+          schema: amazonBedrockErrorSchema,
+        });
+        const message =
+          parsed.success && parsed.value.message
+            ? parsed.value.message
+            : event.data;
         controller.enqueue(
           textEncoder.encode(
-            `data: ${JSON.stringify({ type: 'error', error: event.data })}\n\n`,
+            `data: ${JSON.stringify({
+              type: 'error',
+              error: { type: 'error', message },
+            })}\n\n`,
           ),
         );
       }
