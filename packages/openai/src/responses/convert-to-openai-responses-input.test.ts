@@ -4595,6 +4595,69 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+    it('should omit stored mcpr item_reference when a previous response chain is linked', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'mcpr_stored_123',
+                approved: true,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasPreviousResponseId: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'mcp_approval_response',
+          approval_request_id: 'mcpr_stored_123',
+          approve: true,
+        },
+      ]);
+    });
+
+    it('should keep stored mcpr item_reference without a previous response.chain or conversation', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'mcpr_stored_123',
+                approved: true,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'item_reference',
+          id: 'mcpr_stored_123',
+        },
+        {
+          type: 'mcp_approval_response',
+          approval_request_id: 'mcpr_stored_123',
+          approve: true,
+        },
+      ]);
+    });
+
     it('should skip execution-denied output when it has approvalId in providerOptions', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,

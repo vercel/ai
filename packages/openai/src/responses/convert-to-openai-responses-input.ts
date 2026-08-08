@@ -893,7 +893,12 @@ export async function convertToOpenAIResponsesInput({
             }
             processedApprovalIds.add(approvalResponse.approvalId);
 
-            if (store) {
+            const isStoredMcpApproval =
+              (hasConversation || hasPreviousResponseId) &&
+              approvalResponse.approvalId.startsWith('mcpr_');
+
+            // OpenAI stores `mcpr_` approval requests on conversation/response chains.
+            if (store && !isStoredMcpApproval) {
               input.push({
                 type: 'item_reference',
                 id: approvalResponse.approvalId,
