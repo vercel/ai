@@ -1277,6 +1277,13 @@ function extractSources({
       // Handle retrievedContext chunks from RAG operations
       const uri = chunk.retrievedContext.uri;
       const fileSearchStore = chunk.retrievedContext.fileSearchStore;
+      const customMetadata = chunk.retrievedContext.customMetadata ?? undefined;
+      const customMetadataProviderMetadata =
+        customMetadata != null
+          ? ({
+              google: { customMetadata: customMetadata as JSONObject },
+            } as SharedV4ProviderMetadata)
+          : undefined;
 
       if (uri && (uri.startsWith('http://') || uri.startsWith('https://'))) {
         // Old format: Google Search with HTTP/HTTPS URL
@@ -1286,6 +1293,9 @@ function extractSources({
           id: generateId(),
           url: uri,
           title: chunk.retrievedContext.title ?? undefined,
+          ...(customMetadataProviderMetadata != null
+            ? { providerMetadata: customMetadataProviderMetadata }
+            : {}),
         });
       } else if (uri) {
         // Old format: Document with file path (gs://, etc.)
@@ -1320,6 +1330,9 @@ function extractSources({
           mediaType,
           title,
           filename,
+          ...(customMetadataProviderMetadata != null
+            ? { providerMetadata: customMetadataProviderMetadata }
+            : {}),
         });
       } else if (fileSearchStore) {
         // New format: File Search with fileSearchStore (no uri)
@@ -1331,6 +1344,9 @@ function extractSources({
           mediaType: 'application/octet-stream',
           title,
           filename: fileSearchStore.split('/').pop(),
+          ...(customMetadataProviderMetadata != null
+            ? { providerMetadata: customMetadataProviderMetadata }
+            : {}),
         });
       }
     } else if (chunk.maps != null) {
@@ -1375,6 +1391,7 @@ export const getGroundingMetadataSchema = () =>
               title: z.string().nullish(),
               text: z.string().nullish(),
               fileSearchStore: z.string().nullish(),
+              customMetadata: z.record(z.string(), z.unknown()).nullish(),
             })
             .nullish(),
           maps: z
