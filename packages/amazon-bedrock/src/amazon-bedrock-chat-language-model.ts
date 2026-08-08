@@ -1243,7 +1243,7 @@ const AmazonBedrockResponseSchema = z.object({
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const AmazonBedrockStreamSchema = z.object({
+export const AmazonBedrockStreamSchema = z.object({
   contentBlockDelta: z
     .object({
       contentBlockIndex: z.number(),
@@ -1262,6 +1262,7 @@ const AmazonBedrockStreamSchema = z.object({
           z.object({
             reasoningContent: z.object({ data: z.string() }),
           }),
+          z.object({ citation: z.unknown() }),
         ])
         .nullish(),
     })
