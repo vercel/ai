@@ -419,7 +419,65 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
   };
 
+<<<<<<< HEAD
   addToolOutput = async <TOOL extends keyof InferUIMessageTools<UI_MESSAGE>>({
+=======
+  addToolApprovalResponse: ChatAddToolApproveResponseFunction = async ({
+    id,
+    approved,
+    reason,
+    options,
+  }) =>
+    this.jobExecutor.run(async () => {
+      const messages = this.state.messages;
+      const lastMessage = messages[messages.length - 1];
+
+      const updatePart = (
+        part: UIMessagePart<UIDataTypes, UITools>,
+      ): UIMessagePart<UIDataTypes, UITools> =>
+        isToolUIPart(part) &&
+        part.state === 'approval-requested' &&
+        part.approval.id === id
+          ? {
+              ...part,
+              state: 'approval-responded',
+              approval: { ...part.approval, id, approved, reason },
+            }
+          : part;
+
+      // update the message to trigger an immediate UI update
+      this.state.replaceMessage(messages.length - 1, {
+        ...lastMessage,
+        parts: lastMessage.parts.map(updatePart),
+      });
+
+      // update the active response if it exists
+      if (this.activeResponse) {
+        this.activeResponse.state.message.parts =
+          this.activeResponse.state.message.parts.map(updatePart);
+      }
+
+      // automatically send the message if the sendAutomaticallyWhen function returns true
+      if (
+        this.status !== 'streaming' &&
+        this.status !== 'submitted' &&
+        this.sendAutomaticallyWhen
+      ) {
+        this.shouldSendAutomatically().then(shouldSend => {
+          if (shouldSend) {
+            // no await to avoid deadlocking
+            this.makeRequest({
+              trigger: 'submit-message',
+              messageId: this.lastMessage?.id,
+              ...options,
+            });
+          }
+        });
+      }
+    });
+
+  addToolOutput: ChatAddToolOutputFunction<UI_MESSAGE> = async ({
+>>>>>>> 89df298781 ([v6.0] fix: preserve signed tool approval metadata across approval responses (#16796))
     state = 'output-available',
     tool,
     toolCallId,
