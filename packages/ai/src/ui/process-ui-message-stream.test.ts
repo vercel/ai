@@ -190,6 +190,78 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  describe('freeform tool input streaming', () => {
+    it('should progressively expose freeform text tool input', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-freeform' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-start',
+          toolCallId: 'tool-call-freeform',
+          toolName: 'setHtml',
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'tool-call-freeform',
+          inputTextDelta: '<main>',
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'tool-call-freeform',
+          inputTextDelta: '<h1>Streaming</h1></main>',
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-freeform',
+          toolName: 'setHtml',
+          input: '<main><h1>Streaming</h1></main>',
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-freeform',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      const toolSnapshots = writeCalls
+        .map(({ message }) =>
+          message.parts.find(part => part.type === 'tool-setHtml'),
+        )
+        .filter(part => part != null);
+
+      expect(toolSnapshots).toEqual([
+        expect.objectContaining({
+          state: 'input-streaming',
+          input: undefined,
+        }),
+        expect.objectContaining({
+          state: 'input-streaming',
+          input: '<main>',
+        }),
+        expect.objectContaining({
+          state: 'input-streaming',
+          input: '<main><h1>Streaming</h1></main>',
+        }),
+        expect.objectContaining({
+          state: 'input-available',
+          input: '<main><h1>Streaming</h1></main>',
+        }),
+      ]);
+    });
+  });
+
   describe('errors', () => {
     let errors: Array<unknown>;
 
