@@ -21,7 +21,12 @@ createFeatureTestSuite({
     languageModels: [
       createChatModel('gpt-oss-120b'),
       createChatModel('zai-glm-4.7'),
-      createChatModel('gemma-4-31b'),
+      createLanguageModelWithCapabilities(provider.chat('gemma-4-31b'), [
+        'imageInput',
+        'objectGeneration',
+        'textCompletion',
+        'toolCalls',
+      ]),
     ],
   },
   timeout: 30000,
