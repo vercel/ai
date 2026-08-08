@@ -76,6 +76,32 @@ describe('inboundMessageSchema', () => {
     ).not.toThrow();
   });
 
+  it('accepts ordered text and local images in a start message', () => {
+    expect(() =>
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: [
+          { type: 'text', text: 'Compare ' },
+          { type: 'local_image', path: '/tmp/before.png' },
+          { type: 'text', text: ' with ' },
+          { type: 'local_image', path: '/tmp/after.png' },
+        ],
+      }),
+    ).not.toThrow();
+  });
+
+  it.each([
+    'https://example.com/screenshot.png',
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB',
+  ])('rejects non-path local image input %s', path => {
+    expect(() =>
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: [{ type: 'local_image', path }],
+      }),
+    ).toThrow();
+  });
+
   it('accepts a tool-result message', () => {
     expect(() =>
       inboundMessageSchema.parse({
