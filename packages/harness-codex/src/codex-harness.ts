@@ -75,6 +75,8 @@ const CODEX_CLIENT_APP = `ai-sdk/harness-codex/${VERSION}`;
 
 export type CodexHarnessSettings = {
   readonly auth?: CodexAuthOptions;
+  /** Path to a Codex executable inside the sandbox. */
+  readonly codexPath?: string;
   /**
    * OpenAI model id the underlying `codex` CLI should use. Leaving this unset
    * pins the adapter default (`DEFAULT_CODEX_MODEL`).
@@ -348,6 +350,7 @@ export function createCodex(
           : undefined;
       const env = {
         ...resolveCodexEnv(settings.auth),
+        ...(settings.codexPath ? { CODEX_PATH: settings.codexPath } : {}),
         AI_SDK_HARNESS_CLIENT_APP: CODEX_CLIENT_APP,
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),

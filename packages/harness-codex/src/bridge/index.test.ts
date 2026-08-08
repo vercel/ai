@@ -1,6 +1,10 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { delimiter, join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type CodexOptions = {
+  codexPathOverride?: string;
   config?: {
     mcp_servers?: unknown;
     model_reasoning_summary?: unknown;
@@ -8,11 +12,13 @@ type CodexOptions = {
   };
 };
 type ThreadOptions = { model?: string };
-const CODEX_ENV_KEYS = [
+const ENV_KEYS = [
   'AI_GATEWAY_API_KEY',
   'AI_GATEWAY_BASE_URL',
   'OPENAI_BASE_URL',
   'CODEX_API_KEY',
+  'CODEX_PATH',
+  'PATH',
 ] as const;
 
 const state = vi.hoisted(() => ({
@@ -20,10 +26,7 @@ const state = vi.hoisted(() => ({
   threadOptions: [] as ThreadOptions[],
   startModel: 'gpt-5.5',
   originalArgv: [] as string[],
-  originalEnv: {} as Record<
-    (typeof CODEX_ENV_KEYS)[number],
-    string | undefined
-  >,
+  originalEnv: {} as Record<string, string | undefined>,
 }));
 
 vi.mock('@openai/codex-sdk', () => ({
@@ -69,6 +72,8 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
       },
       {
         emit: () => {},
+        emitWarning: () => {},
+        emitError: () => {},
         requestToolResult: async () => ({ output: {} }),
         abortSignal: new AbortController().signal,
         pendingUserMessages: [],
@@ -78,17 +83,17 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
 }));
 
 describe('Codex bridge config', () => {
+  const tempDirs: string[] = [];
+
   beforeEach(() => {
     state.codexOptions = [];
     state.threadOptions = [];
     state.startModel = 'gpt-5.5';
     state.originalArgv = [...process.argv];
     state.originalEnv = Object.fromEntries(
-      CODEX_ENV_KEYS.map(key => [key, process.env[key]]),
-    ) as Record<(typeof CODEX_ENV_KEYS)[number], string | undefined>;
-    for (const key of CODEX_ENV_KEYS) {
-      delete process.env[key];
-    }
+      ENV_KEYS.map(key => [key, process.env[key]]),
+    );
+    for (const key of ENV_KEYS) delete process.env[key];
     process.argv.splice(
       0,
       process.argv.length,
@@ -103,27 +108,29 @@ describe('Codex bridge config', () => {
     );
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     process.argv.splice(0, process.argv.length, ...state.originalArgv);
-    for (const key of CODEX_ENV_KEYS) {
+    for (const key of ENV_KEYS) {
       const value = state.originalEnv[key];
-      if (value === undefined) {
-        delete process.env[key];
-      } else {
-        process.env[key] = value;
-      }
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
     }
+    await Promise.all(
+      tempDirs
+        .splice(0)
+        .map(path => rm(path, { recursive: true, force: true })),
+    );
     vi.resetModules();
   });
 
-  test('does not register host tools as Codex MCP servers', async () => {
+  it('does not register host tools as Codex MCP servers', async () => {
     await import('./index');
 
     expect(state.codexOptions).toHaveLength(1);
     expect(state.codexOptions[0]?.config?.mcp_servers).toBeUndefined();
   });
 
-  test('requests detailed reasoning summaries by default', async () => {
+  it('requests detailed reasoning summaries by default', async () => {
     await import('./index');
 
     expect(state.codexOptions).toHaveLength(1);
@@ -134,7 +141,7 @@ describe('Codex bridge config', () => {
     `);
   });
 
-  test('uses the creator-qualified model and forces summaries for AI Gateway', async () => {
+  it('uses the creator-qualified model and forces summaries for AI Gateway', async () => {
     process.env.AI_GATEWAY_API_KEY = 'gateway-key';
     process.env.AI_GATEWAY_BASE_URL = 'https://ai-gateway.test/v1';
 
@@ -154,7 +161,7 @@ describe('Codex bridge config', () => {
     `);
   });
 
-  test('preserves creator-qualified AI Gateway model ids', async () => {
+  it('preserves creator-qualified AI Gateway model ids', async () => {
     state.startModel = 'openai/gpt-5.5';
     process.env.AI_GATEWAY_API_KEY = 'gateway-key';
     process.env.AI_GATEWAY_BASE_URL = 'https://ai-gateway.test/v1';
@@ -162,5 +169,37 @@ describe('Codex bridge config', () => {
     await import('./index');
 
     expect(state.threadOptions[0]?.model).toBe('openai/gpt-5.5');
+  });
+
+  it('passes CODEX_PATH as codexPathOverride', async () => {
+    process.env.CODEX_PATH = ' /opt/codex/custom ';
+
+    await import('./index');
+
+    expect(state.codexOptions[0]?.codexPathOverride).toBe('/opt/codex/custom');
+  });
+
+  it('uses an executable codex on PATH', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'harness-codex-'));
+    tempDirs.push(dir);
+    const executable = join(
+      dir,
+      process.platform === 'win32' ? 'codex.exe' : 'codex',
+    );
+    await writeFile(executable, '');
+    await chmod(executable, 0o755);
+    process.env.PATH = [dir, '/not-a-real-bin'].join(delimiter);
+
+    await import('./index');
+
+    expect(state.codexOptions[0]?.codexPathOverride).toBe(executable);
+  });
+
+  it('leaves the SDK bundled executable as the fallback', async () => {
+    process.env.PATH = '/not-a-real-bin';
+
+    await import('./index');
+
+    expect(state.codexOptions[0]).not.toHaveProperty('codexPathOverride');
   });
 });
