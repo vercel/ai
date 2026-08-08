@@ -84,6 +84,48 @@ describe('zodSchema', () => {
         expect(schema.jsonSchema).toMatchSnapshot();
       });
 
+      it('should preserve record value schemas', () => {
+        const schema = zodSchema(
+          z4.object({
+            values: z4.record(z4.string(), z4.string()),
+          }),
+        );
+
+        expect(schema.jsonSchema).toStrictEqual({
+          $schema: 'http://json-schema.org/draft-07/schema#',
+          type: 'object',
+          properties: {
+            values: {
+              type: 'object',
+              propertyNames: { type: 'string' },
+              additionalProperties: { type: 'string' },
+            },
+          },
+          required: ['values'],
+          additionalProperties: false,
+        });
+      });
+
+      it('should preserve object catchall schemas', () => {
+        const schema = zodSchema(
+          z4
+            .object({
+              fixed: z4.string(),
+            })
+            .catchall(z4.number()),
+        );
+
+        expect(schema.jsonSchema).toStrictEqual({
+          $schema: 'http://json-schema.org/draft-07/schema#',
+          type: 'object',
+          properties: {
+            fixed: { type: 'string' },
+          },
+          required: ['fixed'],
+          additionalProperties: { type: 'number' },
+        });
+      });
+
       it('should support optional arrays', () => {
         const schema = zodSchema(
           z4.object({
