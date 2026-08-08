@@ -305,7 +305,7 @@ describe('doGenerate', () => {
         {
           "file_name": "test.pdf",
           "file_url": {
-            "url": "mock-pdf-data",
+            "url": "data:application/pdf;base64,mock-pdf-data",
           },
           "type": "file_url",
         },
