@@ -48,9 +48,8 @@ export class JustBashSandboxSession implements Experimental_SandboxSession {
 
     const finished = await this.sandbox.runCommand({
       cmd: 'bash',
-      args: ['-c', command],
+      args: ['-c', withEnvironment(command, env)],
       ...(workingDirectory !== undefined ? { cwd: workingDirectory } : {}),
-      ...(env !== undefined ? { env } : {}),
       ...(abortSignal !== undefined ? { signal: abortSignal } : {}),
     });
 
@@ -81,10 +80,9 @@ export class JustBashSandboxSession implements Experimental_SandboxSession {
 
     const live = await this.sandbox.runCommand({
       cmd: 'bash',
-      args: ['-c', command],
+      args: ['-c', withEnvironment(command, env)],
       detached: true,
       ...(workingDirectory !== undefined ? { cwd: workingDirectory } : {}),
-      ...(env !== undefined ? { env } : {}),
       ...(abortSignal !== undefined ? { signal: abortSignal } : {}),
     });
 
@@ -190,6 +188,27 @@ export class JustBashSandboxSession implements Experimental_SandboxSession {
       abortSignal,
     });
   }
+}
+
+function withEnvironment(
+  command: string,
+  env: Record<string, string> | undefined,
+): string {
+  if (env == null || Object.keys(env).length === 0) return command;
+
+  const exports: string[] = [];
+  for (const key of Object.keys(env)) {
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) continue;
+    exports.push(`export ${key}=${shellQuote(env[key])}`);
+  }
+
+  if (exports.length === 0) return command;
+
+  return `${exports.join('\n')}\n${command}`;
+}
+
+function shellQuote(value: string): string {
+  return `'${value.split("'").join("'\\''")}'`;
 }
 
 function createSandboxProcess(

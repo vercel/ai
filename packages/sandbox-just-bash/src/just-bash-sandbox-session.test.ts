@@ -53,6 +53,41 @@ describe('JustBashSandboxSession', () => {
       expect(result.stdout.trim()).toBe('/tmp/cwd-test');
     });
 
+    it('honours env variables', async () => {
+      const result = await sandbox.run({
+        command: 'printf "%s" "$WORK_DIR"',
+        env: { WORK_DIR: '/home/user/repro-dir' },
+      });
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toBe('/home/user/repro-dir');
+    });
+
+    it('uses env variables when creating directories', async () => {
+      const mkdir = await sandbox.run({
+        command: 'mkdir -p "$WORK_DIR"',
+        env: { WORK_DIR: '/home/user/repro-dir' },
+      });
+
+      expect(mkdir.exitCode).toBe(0);
+
+      const cd = await sandbox.run({
+        command: 'cd /home/user/repro-dir && pwd',
+      });
+
+      expect(cd.exitCode).toBe(0);
+      expect(cd.stdout.trim()).toBe('/home/user/repro-dir');
+    });
+
+    it('shell-quotes env values', async () => {
+      const result = await sandbox.run({
+        command: 'printf "%s" "$PAYLOAD"',
+        env: { PAYLOAD: "one two ' three" },
+      });
+
+      expect(result.stdout).toBe("one two ' three");
+    });
+
     it('throws when abortSignal is already aborted', async () => {
       const ac = new AbortController();
       ac.abort();
