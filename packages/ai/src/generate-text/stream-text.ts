@@ -1113,6 +1113,7 @@ class DefaultStreamTextResult<
             prepareStepResult?.model ?? model,
           );
 
+<<<<<<< HEAD
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: {
               system: prepareStepResult?.system ?? initialPrompt.system,
@@ -1121,6 +1122,17 @@ class DefaultStreamTextResult<
             supportedUrls: await stepModel.supportedUrls,
             download,
           });
+=======
+          // The step's stream is registered lazily and consumed long after this
+          // function returns, so the step timer must stay armed past setup. When
+          // the merged abort signal fires (any step/chunk/total timeout or caller
+          // abort), drop both step-scoped timers so neither outlives the step.
+          abortSignal?.addEventListener('abort', clearStepTimeout);
+          abortSignal?.addEventListener('abort', clearChunkTimeout);
+
+          try {
+            stepFinish = new DelayedPromise<void>();
+>>>>>>> faaef7c83e ([v6.0] fix(ai): enforce timeout.stepMs for the whole step in streamText (#16801))
 
           const stepActiveTools = prepareStepResult?.activeTools ?? activeTools;
           const stepToolSet = filterActiveTools({
@@ -1556,12 +1568,156 @@ class DefaultStreamTextResult<
                       totalUsage: combinedUsage,
                     });
 
+<<<<<<< HEAD
                     self.closeStream(); // close the stitchable stream
                   }
                 },
               }),
             ),
           );
+=======
+                    const combinedUsage = addLanguageModelUsage(
+                      usage,
+                      stepUsage,
+                    );
+
+                    // wait for the step to be fully processed by the event processor
+                    // to ensure that the recorded steps are complete:
+                    await stepFinish.promise;
+
+                    // set transform-dependent attributes after the step has been
+                    // fully processed (post-transform) by the event processor:
+                    const processedStep =
+                      recordedSteps[recordedSteps.length - 1];
+                    try {
+                      doStreamSpan.setAttributes(
+                        await selectTelemetryAttributes({
+                          telemetry,
+                          attributes: {
+                            'ai.response.text': {
+                              output: () => processedStep.text,
+                            },
+                            'ai.response.reasoning': {
+                              output: () => processedStep.reasoningText,
+                            },
+                            'ai.response.providerMetadata': JSON.stringify(
+                              processedStep.providerMetadata,
+                            ),
+                          },
+                        }),
+                      );
+                    } catch (error) {
+                      // ignore error setting telemetry attributes
+                    } finally {
+                      doStreamSpan.end();
+                    }
+
+                    const clientToolCalls = stepToolCalls.filter(
+                      toolCall => toolCall.providerExecuted !== true,
+                    );
+                    const clientToolOutputs = stepToolOutputs.filter(
+                      toolOutput => toolOutput.providerExecuted !== true,
+                    );
+
+                    // Track provider-executed tool calls that support deferred results.
+                    // In programmatic tool calling, a server tool (e.g., code_execution) may
+                    // trigger a client tool, and the server tool's result is deferred until
+                    // the client tool's result is sent back.
+                    for (const toolCall of stepToolCalls) {
+                      if (toolCall.providerExecuted !== true) continue;
+                      const tool = tools?.[toolCall.toolName];
+                      if (
+                        tool?.type === 'provider' &&
+                        tool.supportsDeferredResults
+                      ) {
+                        // Check if this tool call already has a result in the current step
+                        const hasResultInStep = stepToolOutputs.some(
+                          output =>
+                            (output.type === 'tool-result' ||
+                              output.type === 'tool-error') &&
+                            output.toolCallId === toolCall.toolCallId,
+                        );
+                        if (!hasResultInStep) {
+                          pendingDeferredToolCalls.set(toolCall.toolCallId, {
+                            toolName: toolCall.toolName,
+                          });
+                        }
+                      }
+                    }
+
+                    // Mark deferred tool calls as resolved when we receive their results
+                    for (const output of stepToolOutputs) {
+                      if (
+                        output.type === 'tool-result' ||
+                        output.type === 'tool-error'
+                      ) {
+                        pendingDeferredToolCalls.delete(output.toolCallId);
+                      }
+                    }
+
+                    // Clear the step and chunk timeouts before the next step is started
+                    clearStepTimeout();
+                    clearChunkTimeout();
+
+                    if (
+                      // Continue if:
+                      // 1. There are client tool calls that have all been executed, OR
+                      // 2. There are pending deferred results from provider-executed tools
+                      ((clientToolCalls.length > 0 &&
+                        clientToolOutputs.length === clientToolCalls.length) ||
+                        pendingDeferredToolCalls.size > 0) &&
+                      // continue until a stop condition is met:
+                      !(await isStopConditionMet({
+                        stopConditions,
+                        steps: recordedSteps,
+                      }))
+                    ) {
+                      // append to messages for the next step:
+                      responseMessages.push(
+                        ...(await toResponseMessages({
+                          content:
+                            // use transformed content to create the messages for the next step:
+                            recordedSteps[recordedSteps.length - 1].content,
+                          tools,
+                        })),
+                      );
+
+                      try {
+                        await streamStep({
+                          currentStep: currentStep + 1,
+                          responseMessages,
+                          usage: combinedUsage,
+                        });
+                      } catch (error) {
+                        controller.enqueue({
+                          type: 'error',
+                          error,
+                        });
+
+                        self.closeStream();
+                      }
+                    } else {
+                      controller.enqueue({
+                        type: 'finish',
+                        finishReason: stepFinishReason,
+                        rawFinishReason: stepRawFinishReason,
+                        totalUsage: combinedUsage,
+                      });
+
+                      self.closeStream(); // close the stitchable stream
+                    }
+                  },
+                }),
+              ),
+            );
+          } catch (error) {
+            // Setup failed before the stream was registered, so neither the
+            // stream's flush nor an abort will clear the timers — clear them here.
+            clearStepTimeout();
+            clearChunkTimeout();
+            throw error;
+          }
+>>>>>>> faaef7c83e ([v6.0] fix(ai): enforce timeout.stepMs for the whole step in streamText (#16801))
         }
 
         // add the initial stream to the stitchable stream
