@@ -3,7 +3,7 @@
  */
 type SandboxProcessOptions = {
   /**
-   * Command to execute in the sandbox.
+   * Shell command to execute in the sandbox.
    */
   command: string;
 
@@ -25,6 +25,16 @@ type SandboxProcessOptions = {
    * process is killed; for `spawn`, `wait()` rejects with the abort reason.
    */
   abortSignal?: AbortSignal;
+};
+
+type SandboxExecutableProcessOptions = Omit<
+  SandboxProcessOptions,
+  'command'
+> & {
+  /** Executable to launch directly, without shell parsing. */
+  executable: string;
+  /** Arguments passed directly to the executable. */
+  args?: ReadonlyArray<string>;
 };
 
 /**
@@ -73,6 +83,12 @@ export type SandboxSession = {
    * ports, the public hostname, etc.
    */
   readonly description: string;
+
+  /**
+   * Provider-owned absolute home directory inside the guest environment.
+   * Optional for backwards compatibility.
+   */
+  readonly homeDirectory?: string;
 
   /**
    * Read one file from the sandbox as a stream of bytes. Resolves to `null`
@@ -155,6 +171,31 @@ export type SandboxSession = {
   ) => PromiseLike<void>;
 
   /**
+   * Resolve a path using the sandbox provider's guest path dialect. When
+   * `base` is omitted, resolution starts at the session's default working
+   * directory.
+   *
+   * Optional for backwards compatibility. Harness features that require a
+   * non-POSIX path dialect validate that the provider implements it.
+   */
+  readonly resolvePath?: (options: {
+    base?: string;
+    segments: ReadonlyArray<string>;
+  }) => string;
+
+  /**
+   * Create a directory in the sandbox without invoking a shell.
+   *
+   * Optional for backwards compatibility. Harness features that require
+   * shell-free setup validate that the provider implements it.
+   */
+  readonly ensureDirectory?: (options: {
+    path: string;
+    recursive: true;
+    abortSignal?: AbortSignal;
+  }) => PromiseLike<void>;
+
+  /**
    * Spawn a long-running process in the sandbox. Returns immediately with a
    * handle that streams stdout/stderr, can be waited on, and can be killed.
    *
@@ -163,6 +204,14 @@ export type SandboxSession = {
    */
   readonly spawn: (
     options: SandboxProcessOptions,
+  ) => PromiseLike<SandboxProcess>;
+
+  /**
+   * Spawn a long-running executable with argv directly, without a shell.
+   * Optional for backwards compatibility.
+   */
+  readonly spawnExecutable?: (
+    options: SandboxExecutableProcessOptions,
   ) => PromiseLike<SandboxProcess>;
 
   /**

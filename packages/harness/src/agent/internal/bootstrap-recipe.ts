@@ -29,6 +29,10 @@ export async function hashHarnessBootstrap(
 
   pushString(recipe.harnessId);
   pushString(recipe.bootstrapDir);
+  if (recipe.identity != null) {
+    pushString('identity');
+    pushString(recipe.identity);
+  }
 
   const sortedFiles = [...recipe.files].sort((a, b) =>
     a.path.localeCompare(b.path),
@@ -64,21 +68,27 @@ export async function hashHarnessBootstrap(
  * with the matching `identity` has already been applied.
  */
 export function bootstrapMarkerPath({
+  session,
   recipe,
   identity,
   defaultWorkingDirectory,
 }: {
+  session?: SandboxSession;
   recipe: HarnessV1Bootstrap;
   identity: string;
   defaultWorkingDirectory: string;
 }): string {
-  return posix.join(
-    resolveBootstrapPath({
-      path: recipe.bootstrapDir,
-      defaultWorkingDirectory,
-    }),
-    `.bootstrap-${identity}.ok`,
-  );
+  const bootstrapDir = resolveBootstrapPath({
+    session,
+    path: recipe.bootstrapDir,
+    defaultWorkingDirectory,
+  });
+  return session?.resolvePath != null
+    ? session.resolvePath({
+        base: bootstrapDir,
+        segments: [`.bootstrap-${identity}.ok`],
+      })
+    : posix.join(bootstrapDir, `.bootstrap-${identity}.ok`);
 }
 
 /**
@@ -105,6 +115,7 @@ export async function applyBootstrapRecipe({
   abortSignal?: AbortSignal;
 }): Promise<void> {
   const markerPath = bootstrapMarkerPath({
+    session,
     recipe,
     identity,
     defaultWorkingDirectory,
@@ -119,24 +130,34 @@ export async function applyBootstrapRecipe({
   }
 
   const bootstrapDir = resolveBootstrapPath({
+    session,
     path: recipe.bootstrapDir,
     defaultWorkingDirectory,
   });
-  const mkdirResult = await session.run({
-    command: 'mkdir -p "$BOOTSTRAP_DIR"',
-    workingDirectory: defaultWorkingDirectory,
-    env: { BOOTSTRAP_DIR: bootstrapDir },
-    abortSignal,
-  });
-  if (mkdirResult.exitCode !== 0) {
-    throw new Error(
-      `Failed to create bootstrap directory for harness '${recipe.harnessId}' (exit ${mkdirResult.exitCode}): ${bootstrapDir}\n${mkdirResult.stderr || mkdirResult.stdout}`,
-    );
+  if (session.ensureDirectory != null) {
+    await session.ensureDirectory({
+      path: bootstrapDir,
+      recursive: true,
+      abortSignal,
+    });
+  } else {
+    const mkdirResult = await session.run({
+      command: 'mkdir -p "$BOOTSTRAP_DIR"',
+      workingDirectory: defaultWorkingDirectory,
+      env: { BOOTSTRAP_DIR: bootstrapDir },
+      abortSignal,
+    });
+    if (mkdirResult.exitCode !== 0) {
+      throw new Error(
+        `Failed to create bootstrap directory for harness '${recipe.harnessId}' (exit ${mkdirResult.exitCode}): ${bootstrapDir}\n${mkdirResult.stderr || mkdirResult.stdout}`,
+      );
+    }
   }
 
   for (const file of recipe.files) {
     await session.writeTextFile({
       path: resolveBootstrapPath({
+        session,
         path: file.path,
         defaultWorkingDirectory,
       }),
@@ -166,12 +187,20 @@ export async function applyBootstrapRecipe({
 }
 
 function resolveBootstrapPath({
+  session,
   path,
   defaultWorkingDirectory,
 }: {
+  session?: SandboxSession;
   path: string;
   defaultWorkingDirectory: string;
 }): string {
+  if (session?.resolvePath != null) {
+    return session.resolvePath({
+      base: defaultWorkingDirectory,
+      segments: [path],
+    });
+  }
   return posix.isAbsolute(path)
     ? path
     : posix.resolve(defaultWorkingDirectory, path);

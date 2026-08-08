@@ -10,6 +10,23 @@ npm i @ai-sdk/harness-codex @ai-sdk/harness @ai-sdk/sandbox-vercel
 
 The bridge installs `@openai/codex-sdk` (and the `codex` CLI it depends on) inside the sandbox the first time the session starts.
 
+Applications that package the bridge ahead of time can skip that install:
+
+```ts
+const harness = createCodex({
+  preinstalledBridge: {
+    identity: 'codex-bridge-v1',
+    nodeExecutable: '/opt/app/node',
+    entrypoint: '/opt/app/codex-bridge/bridge.mjs',
+  },
+});
+```
+
+Preinstalled mode requires the sandbox session to expose `homeDirectory` and
+implement `resolvePath`, `ensureDirectory`, and `spawnExecutable`. The bridge
+is launched directly with argv; the legacy adapter-owned pnpm bootstrap remains
+the default.
+
 ## Usage
 
 ```ts

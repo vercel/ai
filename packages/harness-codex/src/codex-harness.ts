@@ -98,6 +98,19 @@ export type CodexHarnessSettings = {
   readonly port?: number;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
+  /**
+   * Immutable bridge runtime already installed in the sandbox. When set, the
+   * adapter skips its pnpm bootstrap and launches the supplied Node executable
+   * with argv directly, without a shell.
+   */
+  readonly preinstalledBridge?: {
+    /** Stable identity of the packaged bridge payload. */
+    readonly identity: string;
+    /** Guest path of the Node executable used to launch the bridge. */
+    readonly nodeExecutable: string;
+    /** Guest path of the preinstalled bridge entrypoint. */
+    readonly entrypoint: string;
+  };
 };
 
 /*
@@ -178,6 +191,16 @@ export function createCodex(
     lifecycleStateSchema: codexResumeStateSchema,
     getBootstrap: async () => {
       if (cachedBootstrap != null) return cachedBootstrap;
+      if (settings.preinstalledBridge != null) {
+        cachedBootstrap = {
+          harnessId: 'codex',
+          identity: settings.preinstalledBridge.identity,
+          bootstrapDir: '.harness-bootstrap/codex-preinstalled',
+          files: [],
+          commands: [],
+        };
+        return cachedBootstrap;
+      }
       const [pkg, lock, bridge] = await Promise.all([
         readBridgeAsset('package.json'),
         readBridgeAsset('pnpm-lock.yaml'),
@@ -219,11 +242,15 @@ export function createCodex(
       }
       const sandboxSession = startOpts.sandboxSession;
       const session = sandboxSession.restricted();
+      if (settings.preinstalledBridge != null) {
+        assertPreinstalledBridgeCapabilities(session);
+      }
       const sandboxId = sandboxSession.id;
-      const bootstrapDir = path.posix.resolve(
-        sandboxSession.defaultWorkingDirectory,
-        BOOTSTRAP_DIR,
-      );
+      const bootstrapDir = resolveGuestPath({
+        session,
+        base: sandboxSession.defaultWorkingDirectory,
+        segments: [BOOTSTRAP_DIR],
+      });
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
       const isContinue = startOpts.continueFrom != null;
@@ -242,10 +269,26 @@ export function createCodex(
       const coords = resumeData?.bridge;
 
       const workDir = startOpts.sessionWorkDir;
-      const sessionDataDir = `${sandboxSession.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
-      const bridgeStateDir = `${sessionDataDir}/bridge`;
-      const cliShimDir = `${sessionDataDir}/codex`;
-      const cliShimPath = `${cliShimDir}/${CLI_SHIM_FILENAME}`;
+      const sessionDataDir = resolveGuestPath({
+        session,
+        base: sandboxSession.defaultWorkingDirectory,
+        segments: ['.agent-runs', startOpts.sessionId],
+      });
+      const bridgeStateDir = resolveGuestPath({
+        session,
+        base: sessionDataDir,
+        segments: ['bridge'],
+      });
+      const cliShimDir = resolveGuestPath({
+        session,
+        base: sessionDataDir,
+        segments: ['codex'],
+      });
+      const cliShimPath = resolveGuestPath({
+        session,
+        base: cliShimDir,
+        segments: [CLI_SHIM_FILENAME],
+      });
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
 
       // Normalize each forwarded bridge diagnostics frame into the general
@@ -363,10 +406,25 @@ export function createCodex(
       };
 
       if (respawnStrategy === undefined) {
-        await session.run({
-          command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
-          abortSignal: startOpts.abortSignal,
-        });
+        if (settings.preinstalledBridge != null) {
+          await Promise.all([
+            session.ensureDirectory!({
+              path: workDir,
+              recursive: true,
+              abortSignal: startOpts.abortSignal,
+            }),
+            session.ensureDirectory!({
+              path: bridgeStateDir,
+              recursive: true,
+              abortSignal: startOpts.abortSignal,
+            }),
+          ]);
+        } else {
+          await session.run({
+            command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
+            abortSignal: startOpts.abortSignal,
+          });
+        }
       }
 
       await markBridgeStarting({
@@ -376,11 +434,26 @@ export function createCodex(
         abortSignal: startOpts.abortSignal,
       });
 
-      const proc = await session.spawn({
-        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --cli-shim-dir ${shellQuote(cliShimDir)}`,
-        env,
-        abortSignal: startOpts.abortSignal,
-      });
+      const proc = await (settings.preinstalledBridge == null
+        ? session.spawn({
+            command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --cli-shim-dir ${shellQuote(cliShimDir)}`,
+            env,
+            abortSignal: startOpts.abortSignal,
+          })
+        : session.spawnExecutable!({
+            executable: settings.preinstalledBridge.nodeExecutable,
+            args: [
+              settings.preinstalledBridge.entrypoint,
+              '--workdir',
+              workDir,
+              '--bridge-state-dir',
+              bridgeStateDir,
+              '--cli-shim-dir',
+              cliShimDir,
+            ],
+            env,
+            abortSignal: startOpts.abortSignal,
+          }));
       const stderrTail: string[] = [];
       const bridgeStderrDone = forwardBridgeProcessStream({
         stream: proc.stderr,
@@ -473,6 +546,43 @@ function resolveBridgePort(
   });
 }
 
+function assertPreinstalledBridgeCapabilities(
+  session: Experimental_SandboxSession,
+): asserts session is Experimental_SandboxSession &
+  Required<
+    Pick<
+      Experimental_SandboxSession,
+      'homeDirectory' | 'resolvePath' | 'ensureDirectory' | 'spawnExecutable'
+    >
+  > {
+  if (
+    session.homeDirectory == null ||
+    session.resolvePath == null ||
+    session.ensureDirectory == null ||
+    session.spawnExecutable == null
+  ) {
+    throw new HarnessCapabilityUnsupportedError({
+      harnessId: 'codex',
+      message:
+        'The preinstalled Codex bridge requires sandbox homeDirectory, resolvePath, ensureDirectory, and spawnExecutable support.',
+    });
+  }
+}
+
+function resolveGuestPath({
+  session,
+  base,
+  segments,
+}: {
+  session: Experimental_SandboxSession;
+  base?: string;
+  segments: ReadonlyArray<string>;
+}): string {
+  return session.resolvePath != null
+    ? session.resolvePath({ base, segments })
+    : path.posix.resolve(base ?? '.', ...segments);
+}
+
 async function readBridgeAsset(name: string): Promise<string> {
   const candidates = [
     new URL(`./bridge/${name}`, import.meta.url),
@@ -501,13 +611,29 @@ async function writeCodexSkills({
   abortSignal?: AbortSignal;
 }): Promise<WriteSkillsResult> {
   const homeDir = await resolveSandboxHomeDir({ sandbox, abortSignal });
-  const codexHomeDir = path.posix.join(homeDir, '.codex');
-  await sandbox.run({
-    command: `mkdir -p ${shellQuote(codexHomeDir)}`,
-    abortSignal,
+  const codexHomeDir = resolveGuestPath({
+    session: sandbox,
+    base: homeDir,
+    segments: ['.codex'],
   });
+  if (sandbox.ensureDirectory != null) {
+    await sandbox.ensureDirectory({
+      path: codexHomeDir,
+      recursive: true,
+      abortSignal,
+    });
+  } else {
+    await sandbox.run({
+      command: `mkdir -p ${shellQuote(codexHomeDir)}`,
+      abortSignal,
+    });
+  }
 
-  const rootDir = path.posix.join(homeDir, '.agents', 'skills');
+  const rootDir = resolveGuestPath({
+    session: sandbox,
+    base: homeDir,
+    segments: ['.agents', 'skills'],
+  });
   await writeHarnessSkills({
     sandbox,
     rootDir,

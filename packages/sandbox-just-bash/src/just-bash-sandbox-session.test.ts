@@ -165,6 +165,18 @@ describe('JustBashSandboxSession', () => {
       expect(stdout).toBe('shared payload');
     });
 
+    it('launches an executable with argv without shell parsing', async () => {
+      const proc = await sandbox.spawnExecutable({
+        executable: 'printf',
+        args: ['%s', 'path with spaces; not a shell command'],
+      });
+
+      expect(await collect(proc.stdout)).toBe(
+        'path with spaces; not a shell command',
+      );
+      expect((await proc.wait()).exitCode).toBe(0);
+    });
+
     it('non-zero exit codes are surfaced via wait()', async () => {
       const proc = await sandbox.spawn({ command: 'exit 7' });
       await collect(proc.stdout);
@@ -190,6 +202,29 @@ describe('JustBashSandboxSession', () => {
       });
       ac.abort();
       await expect(proc.wait()).rejects.toThrow();
+    });
+  });
+
+  describe('provider-owned path operations', () => {
+    it('resolves paths and creates directories without a shell', async () => {
+      expect(
+        sandbox.resolvePath({ segments: ['folder with spaces', 'bridge'] }),
+      ).toBe('/work/folder with spaces/bridge');
+
+      await sandbox.ensureDirectory({
+        path: '/work/folder with spaces/bridge',
+        recursive: true,
+      });
+      await sandbox.writeTextFile({
+        path: '/work/folder with spaces/bridge/ready',
+        content: 'yes',
+      });
+
+      expect(
+        await sandbox.readTextFile({
+          path: '/work/folder with spaces/bridge/ready',
+        }),
+      ).toBe('yes');
     });
   });
 });
