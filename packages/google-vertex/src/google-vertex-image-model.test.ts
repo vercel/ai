@@ -125,6 +125,70 @@ describe('GoogleVertexImageModel', () => {
       `);
     });
 
+    it('should throw a clear error when all predictions are filtered', async () => {
+      server.urls[GENERATE_URL].response = {
+        type: 'json-value',
+        body: {
+          predictions: [
+            {
+              raiFilteredReason:
+                "Unable to show generated images. All images were filtered out because they violated Google's Responsible AI practices.",
+            },
+          ],
+        },
+      };
+
+      let error: unknown;
+      try {
+        await model.doGenerate({
+          prompt,
+          files: undefined,
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        });
+      } catch (caughtError) {
+        error = caughtError;
+      }
+
+      expect(error).toMatchObject({
+        name: 'AI_APICallError',
+        message:
+          "Unable to show generated images. All images were filtered out because they violated Google's Responsible AI practices.",
+        statusCode: 200,
+        isRetryable: false,
+      });
+    });
+
+    it('should reject malformed successful image predictions', async () => {
+      server.urls[GENERATE_URL].response = {
+        type: 'json-value',
+        body: {
+          predictions: [
+            {
+              mimeType: 'image/png',
+            },
+          ],
+        },
+      };
+
+      await expect(
+        model.doGenerate({
+          prompt,
+          files: undefined,
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow('Invalid JSON response');
+    });
+
     it('should return full result snapshot', async () => {
       const testDate = new Date('2024-03-15T12:00:00Z');
       const customModel = new GoogleVertexImageModel(
