@@ -1,12 +1,22 @@
-import { createNullLanguageModelUsage } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
 import { convertOpenAICompatibleChatUsage } from './convert-openai-compatible-chat-usage';
 
 describe('convertOpenAICompatibleChatUsage', () => {
   it('returns null usage when usage is missing', () => {
-    expect(convertOpenAICompatibleChatUsage(undefined)).toEqual(
-      createNullLanguageModelUsage(),
-    );
+    expect(convertOpenAICompatibleChatUsage(undefined)).toEqual({
+      inputTokens: {
+        total: undefined,
+        noCache: undefined,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: undefined,
+        text: undefined,
+        reasoning: undefined,
+      },
+      raw: undefined,
+    });
   });
 
   it('splits completion tokens into text and reasoning', () => {
