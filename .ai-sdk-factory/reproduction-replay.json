@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 18618,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-18618.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-18618.ts",
+    "packages/harness-claude-code/src/bridge/issue-18618-reproduction.test.ts",
+    "packages/harness-claude-code/src/bridge/__fixtures__/subagent-step-stream.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_18618_PRIMARY_FAILURE: finish-step usage used subagent tokens; subagent tool events leaked into the main step"
+  }
+}
