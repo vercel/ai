@@ -98,6 +98,11 @@ Settings:
   `{ type: 'adaptive', display: 'summarized' }`.
 - `port`: bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the bridge to start.
+- `sandbox`: Claude Agent SDK sandbox settings, forwarded verbatim to the
+  runtime's `query()` call so the SDK itself sandboxes model-driven Bash/tool
+  execution. The shape is owned by `@anthropic-ai/claude-agent-sdk`. Useful
+  when the sandbox provider offers no isolation of its own (e.g. a custom
+  provider running the bridge on the host).
 
 ## Authentication
 

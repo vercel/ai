@@ -355,6 +355,55 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('forwards the sandbox settings to the bridge start message', async () => {
+    const sandbox = {
+      enabled: true,
+      failIfUnavailable: true,
+      network: { allowedDomains: ['registry.npmjs.org'] },
+    };
+    const harness = createClaudeCode({ sandbox });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      prompt: 'run something',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({ sandbox });
+
+    await session.doDestroy();
+  });
+
+  it('omits sandbox from the start message when unset', async () => {
+    const harness = createClaudeCode();
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      prompt: 'run something',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).not.toHaveProperty('sandbox');
+
+    await session.doDestroy();
+  });
+
   it('writes standard Claude skill files and enables their names on start', async () => {
     const writes: Array<{ path: string; content: string }> = [];
     const runs: string[] = [];

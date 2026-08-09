@@ -38,6 +38,10 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   // Claude SDK so the in-workdir thread state is rehydrated. The host sets this
   // on the first prompt after a cross-process resume.
   continue: z.boolean().optional(),
+  // Claude Agent SDK `sandbox` settings, forwarded opaquely to the in-bridge
+  // `query()` call. The shape is owned by `@anthropic-ai/claude-agent-sdk`;
+  // absent means the runtime applies no SDK-level sandbox.
+  sandbox: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type StartMessage = z.infer<typeof startMessageSchema>;

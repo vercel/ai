@@ -87,6 +87,16 @@ export type ClaudeCodeHarnessSettings = {
   readonly port?: number;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
+  /**
+   * Claude Agent SDK `sandbox` settings, forwarded verbatim to the runtime's
+   * `query()` call inside the bridge so the SDK itself sandboxes model-driven
+   * Bash/tool execution. Useful when the sandbox provider offers no isolation
+   * of its own (e.g. a custom provider that runs the bridge directly on the
+   * host). The shape is owned by `@anthropic-ai/claude-agent-sdk`
+   * (`Options['sandbox']`) and passed through opaquely. When unset, the
+   * runtime applies no SDK-level sandbox.
+   */
+  readonly sandbox?: Record<string, unknown>;
 };
 
 /*
@@ -550,6 +560,7 @@ export function createClaudeCode(
             model: settings.model,
             maxTurns: settings.maxTurns,
             thinking,
+            sandbox: settings.sandbox,
             isResume: true,
             continueOnFirstPrompt: false,
             rerunContinue: false,
@@ -720,6 +731,7 @@ export function createClaudeCode(
         model: settings.model,
         maxTurns: settings.maxTurns,
         thinking,
+        sandbox: settings.sandbox,
         isResume: respawnStrategy !== undefined,
         continueOnFirstPrompt: respawnStrategy !== undefined,
         rerunContinue: respawnStrategy === 'rerun',
@@ -962,6 +974,7 @@ function createSession({
   model,
   maxTurns,
   thinking,
+  sandbox,
   isResume,
   continueOnFirstPrompt,
   rerunContinue,
@@ -980,6 +993,8 @@ function createSession({
   model: string | undefined;
   maxTurns: number | undefined;
   thinking: ClaudeCodeThinkingConfig;
+  /** Claude Agent SDK sandbox settings forwarded into each turn's `start`. */
+  sandbox: Record<string, unknown> | undefined;
   isResume: boolean;
   continueOnFirstPrompt: boolean;
   rerunContinue: boolean;
@@ -1170,6 +1185,7 @@ function createSession({
         model,
         maxTurns,
         thinking,
+        ...(sandbox !== undefined ? { sandbox } : {}),
         ...(skills.length > 0
           ? { skills: skills.map(skill => skill.name) }
           : {}),
@@ -1222,6 +1238,7 @@ function createSession({
           model,
           maxTurns,
           thinking,
+          ...(sandbox !== undefined ? { sandbox } : {}),
           ...(skills.length > 0
             ? { skills: skills.map(skill => skill.name) }
             : {}),
