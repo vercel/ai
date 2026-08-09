@@ -35,7 +35,10 @@ export function convertOpenAICompatibleChatUsage(
     },
     outputTokens: {
       total: completionTokens,
-      text: completionTokens - reasoningTokens,
+      // Providers can report reasoning_tokens > completion_tokens (e.g. Baseten
+      // undercounts completion when a model hits the length stop mid-reasoning).
+      // The text share can never be negative, so clamp instead of propagating it.
+      text: Math.max(0, completionTokens - reasoningTokens),
       reasoning: reasoningTokens,
     },
     raw: usage,
