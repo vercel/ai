@@ -20,3 +20,4 @@ An Architecture Decision Record (ADR) captures an important architecture decisio
 ## ADRs
 
 - [Adopt architecture decision records](2026-03-11-adopt-architecture-decision-records.md) (accepted, 2026-03-11)
+- [Hook-level `onData` composes with a shared `Chat` instance](2026-07-05-shared-chat-data-callbacks.md) (proposed, 2026-07-05)
