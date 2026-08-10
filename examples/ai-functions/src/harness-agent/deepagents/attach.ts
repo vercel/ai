@@ -2,8 +2,9 @@ import {
   HarnessAgent,
   type HarnessAgentResumeSessionState,
 } from '@ai-sdk/harness/agent';
-import { deepAgents } from '@ai-sdk/harness-deepagents';
+import { createDeepAgents } from '@ai-sdk/harness-deepagents';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { mintBridgeToken } from '../../lib/mint-bridge-token';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
@@ -11,6 +12,7 @@ import { run } from '../../lib/run';
 // coordinates; a fresh HarnessAgent reattaches and continues mid-conversation
 // (the in-memory conversation survives because the bridge stays alive).
 run(async () => {
+  const harness = createDeepAgents({ mintBridgeToken });
   const sandbox = createVercelSandbox({
     runtime: 'node24',
     ports: [4000],
@@ -20,7 +22,7 @@ run(async () => {
   let sessionId: string;
   let resumeState: HarnessAgentResumeSessionState;
   {
-    const agent = new HarnessAgent({ harness: deepAgents, sandbox });
+    const agent = new HarnessAgent({ harness, sandbox });
     const session = await agent.createSession();
     sessionId = session.sessionId;
     console.log('--- turn 1 ---');
@@ -34,7 +36,7 @@ run(async () => {
   }
 
   {
-    const agent = new HarnessAgent({ harness: deepAgents, sandbox });
+    const agent = new HarnessAgent({ harness, sandbox });
     const session = await agent.createSession({
       sessionId,
       resumeFrom: resumeState,

@@ -1,5 +1,6 @@
 import type { Sandbox } from '@vercel/sandbox';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { HarnessSandboxAuthenticationError } from '@ai-sdk/harness';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createVercelSandbox } from './vercel-sandbox';
 
 const { createMock, getMock, getOrCreateMock } = vi.hoisted(() => ({
@@ -46,6 +47,15 @@ function makeMockSandbox(overrides: Partial<MockSpies> = {}) {
     sandbox,
     spies: { domain, update, runCommand, stop, delete: deleteSandbox, routes },
   };
+}
+
+async function captureError(promise: PromiseLike<unknown>): Promise<unknown> {
+  try {
+    await promise;
+  } catch (error) {
+    return error;
+  }
+  throw new Error('Expected promise to reject');
 }
 
 describe('createVercelSandbox (wrap existing)', () => {
@@ -237,6 +247,83 @@ describe('createVercelSandbox (create from scratch)', () => {
         [key: symbol]: Map<string, string> | undefined;
       }
     )[Symbol.for('ai-sdk.harness.vercel-template-snapshots')]?.clear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('reports the opaque missing-auth path failure as sandbox authentication', async () => {
+    vi.stubEnv('VERCEL_OIDC_TOKEN', '');
+    const cause = Object.assign(
+      new TypeError(
+        'The "path" argument must be of type string. Received undefined',
+      ),
+      { code: 'ERR_INVALID_ARG_TYPE' },
+    );
+    createMock.mockRejectedValueOnce(cause);
+
+    const error = await captureError(createVercelSandbox({}).createSession());
+
+    expect(HarnessSandboxAuthenticationError.isInstance(error)).toBe(true);
+    if (!HarnessSandboxAuthenticationError.isInstance(error)) {
+      throw new Error('Expected sandbox authentication error');
+    }
+    expect(error.message).toMatchInlineSnapshot(
+      `"Vercel Sandbox authentication failed. Set VERCEL_OIDC_TOKEN, or pass token, teamId, and projectId to createVercelSandbox(), then verify that they can access Vercel Sandbox."`,
+    );
+    expect(error.sandboxProviderId).toBe('vercel-sandbox');
+    expect(error.cause).toBe(cause);
+  });
+
+  it('reports nested OIDC credential failures as sandbox authentication', async () => {
+    const cause = Object.assign(new Error('Could not resolve local OIDC'), {
+      name: 'LocalOidcContextError',
+    });
+    getMock.mockRejectedValueOnce(
+      Object.assign(new Error('Sandbox lookup failed'), { cause }),
+    );
+
+    const error = await captureError(
+      createVercelSandbox({}).resumeSession!({
+        sessionId: 'session-123',
+      }),
+    );
+
+    expect(HarnessSandboxAuthenticationError.isInstance(error)).toBe(true);
+    if (!HarnessSandboxAuthenticationError.isInstance(error)) {
+      throw new Error('Expected sandbox authentication error');
+    }
+    expect(error.cause).toMatchInlineSnapshot(`[Error: Sandbox lookup failed]`);
+  });
+
+  it('preserves unrelated Vercel Sandbox failures', async () => {
+    const cause = new Error('Sandbox service unavailable');
+    createMock.mockRejectedValueOnce(cause);
+
+    const error = await captureError(createVercelSandbox({}).createSession());
+
+    expect(error).toBe(cause);
+  });
+
+  it('does not treat an opaque path error as missing auth when explicit credentials are configured', async () => {
+    const cause = Object.assign(
+      new TypeError(
+        'The "path" argument must be of type string. Received undefined',
+      ),
+      { code: 'ERR_INVALID_ARG_TYPE' },
+    );
+    createMock.mockRejectedValueOnce(cause);
+
+    const error = await captureError(
+      createVercelSandbox({
+        token: 'token_test',
+        teamId: 'team_test',
+        projectId: 'prj_test',
+      }).createSession(),
+    );
+
+    expect(error).toBe(cause);
   });
 
   it('applies a 30 minute default timeout when none is provided', async () => {

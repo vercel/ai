@@ -100,19 +100,26 @@
         },
         {
           "use": "aisdk/provider-model-file-must-export-model-class",
-          "excludeFiles": ["${providerId}-video-model.ts"]
+          "excludeFiles": [
+            "${providerId}-realtime-model.ts",
+            "${providerId}-video-model.ts"
+          ]
         },
         {
           "use": "aisdk/provider-model-file-with-subtype-must-export-model-class",
           "excludeFiles": [
+            "${providerId}-speech-translation-model.ts",
             "packages/deepinfra/src/deepinfra-chat-language-model.ts",
             "packages/moonshotai/src/moonshotai-chat-language-model.ts"
           ]
         },
+        "aisdk/provider-realtime-model-file-must-export-model-class",
+        "aisdk/provider-speech-translation-model-file-must-export-model-class",
         "aisdk/provider-video-model-file-must-export-model-class",
         {
           "use": "aisdk/provider-model-file-must-have-matching-model-options-file",
           "excludeFiles": [
+            "${providerId}-realtime-model.ts",
             "${providerId}-video-model.ts",
             "packages/gateway/src/gateway-embedding-model.ts",
             "packages/gateway/src/gateway-image-model.ts",
@@ -126,8 +133,19 @@
         {
           "use": "aisdk/provider-model-file-with-subtype-must-have-matching-model-options-file",
           "excludeFiles": [
+            "${providerId}-speech-translation-model.ts",
             "packages/deepinfra/src/deepinfra-chat-language-model.ts",
             "packages/moonshotai/src/moonshotai-chat-language-model.ts"
+          ]
+        },
+        {
+          "use": "aisdk/provider-realtime-model-file-must-have-matching-model-options-file",
+          "excludeFiles": ["packages/gateway/src/gateway-realtime-model.ts"]
+        },
+        {
+          "use": "aisdk/provider-speech-translation-model-file-must-have-matching-model-options-file",
+          "excludeFiles": [
+            "packages/gateway/src/gateway-speech-translation-model.ts"
           ]
         },
         {
@@ -136,7 +154,11 @@
         },
         "aisdk/provider-language-model-file-must-import-workflow-serialization",
         "aisdk/provider-model-options-file-must-export-model-options-type",
-        "aisdk/provider-model-options-file-with-subtype-must-export-model-options-type"
+        {
+          "use": "aisdk/provider-model-options-file-with-subtype-must-export-model-options-type",
+          "excludeFiles": ["${providerId}-speech-translation-model-options.ts"]
+        },
+        "aisdk/provider-speech-translation-model-options-file-must-export-model-options-type"
       ]
     },
     {
@@ -148,7 +170,7 @@
           "name": "harness-package-must-export-harness-creator-and-settings",
           "description": "Every harness package must export a harness creator function and settings from its index.ts file.",
           "must": {
-            "export": [
+            "exportValues": [
               {
                 "name": "create${harnessId.toPascalCase()}",
                 "from": "./${harnessId}-harness"
@@ -158,7 +180,6 @@
                 "from": "./version"
               }
             ],
-            "exportConstants": ["${harnessId.toCamelCase()}"],
             "exportTypes": [
               {
                 "name": "${harnessId.toPascalCase()}HarnessSettings",
@@ -166,6 +187,14 @@
               }
             ],
             "haveFiles": ["${harnessId}-harness.ts", "version.ts"]
+          }
+        },
+        {
+          "name": "harness-package-must-export-default-instance",
+          "description": "Every fixed-runtime harness package must export its default instance.",
+          "excludeFiles": ["packages/harness-acp/src/index.ts"],
+          "must": {
+            "exportConstants": ["${harnessId.toCamelCase()}"]
           }
         },
         {
@@ -181,7 +210,6 @@
           "description": "Every harness file must export a harness creator function and a harness settings type.",
           "for": { "files": ["${harnessId}-harness.ts"] },
           "must": {
-            "haveFiles": ["${harnessId}-auth.ts"],
             "importTypes": [
               {
                 "name": "HarnessV1",
@@ -197,7 +225,17 @@
                 "returnValueOfType": "HarnessV1"
               }
             ],
-            "exportTypes": ["${harnessId.toPascalCase()}HarnessSettings"]
+            "exportTypes": [
+              {
+                "name": "${harnessId.toPascalCase()}HarnessSettings",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mcpServers": {}
+                  }
+                }
+              }
+            ]
           }
         },
         {
@@ -224,6 +262,34 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "mintBridgeToken": {},
+                    "port": { "type": "number" },
+                    "startupTimeoutMs": { "type": "number" }
+                  }
+                }
+              }
+            ],
+            "declareConstants": [
+              "${harnessId.toCamelCase()}BridgeCoordsSchema",
+              "${harnessId.toCamelCase()}ResumeStateSchema"
+            ],
+            "declareTypes": ["${harnessId.toPascalCase()}BridgeCoords"]
+          }
+        },
+        {
+          "name": "harness-file-with-nested-bridge-must-declare-bridge-contracts",
+          "description": "Every harness file for a bridge harness must declare its bridge contracts.",
+          "for": { "files": ["${harnessId}-harness.ts"] },
+          "if": { "hasFile": "*/bridge/index.ts" },
+          "must": {
+            "haveFiles": ["${harnessId}-bridge-protocol.ts"],
+            "exportTypes": [
+              {
+                "name": "${harnessId.toPascalCase()}HarnessSettings",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mintBridgeToken": {},
                     "port": { "type": "number" },
                     "startupTimeoutMs": { "type": "number" }
                   }
@@ -254,11 +320,20 @@
           }
         },
         {
+          "name": "harness-file-must-have-corresponding-auth-file",
+          "description": "Every harness file must be accompanied by its corresponding auth file.",
+          "for": { "files": ["${harnessId}-harness.ts"] },
+          "excludeFiles": ["grok-build-harness.ts"],
+          "must": {
+            "haveFiles": ["${harnessId}-auth.ts"]
+          }
+        },
+        {
           "name": "harness-auth-file-must-export-relevant-symbols",
           "description": "Every harness auth file must export the relevant symbols.",
           "for": { "files": ["${harnessId}-auth.ts"] },
           "must": {
-            "import": [
+            "importValues": [
               {
                 "name": "getAiGatewayAuthFromEnv",
                 "from": "@ai-sdk/harness/utils"
@@ -312,7 +387,7 @@
           "for": { "files": ["bridge/index.ts"] },
           "must": {
             "haveFiles": ["create-emit-stream-event.ts"],
-            "import": [
+            "importValues": [
               {
                 "name": "runBridge",
                 "from": "@ai-sdk/harness/bridge"
@@ -346,9 +421,53 @@
           }
         },
         {
+          "name": "harness-nested-bridge-must-declare-and-use-relevant-symbols",
+          "description": "Every harness bridge index file must declare and use the relevant symbols.",
+          "for": { "files": ["{harnessSubId}/bridge/index.ts"] },
+          "must": {
+            "haveFiles": ["create-emit-stream-event.ts"],
+            "importValues": [
+              {
+                "name": "runBridge",
+                "from": "@ai-sdk/harness/bridge"
+              },
+              {
+                "name": "createEmitStreamEvent",
+                "from": "./create-emit-stream-event"
+              }
+            ],
+            "importTypes": [
+              {
+                "name": "StartMessage",
+                "from": "../${harnessId}-${harnessSubId}-bridge-protocol"
+              },
+              {
+                "name": "BridgeEvent",
+                "from": "@ai-sdk/harness/bridge"
+              },
+              {
+                "name": "BridgeTurn",
+                "from": "@ai-sdk/harness/bridge"
+              }
+            ],
+            "declareFunctions": [
+              {
+                "name": "runTurn",
+                "receiveParamsOfTypes": ["StartMessage", "BridgeTurn"],
+                "returnValueOfType": "Promise<void>"
+              }
+            ]
+          }
+        },
+        {
           "name": "harness-stream-event-emitter-must-export-factory",
           "description": "Every harness stream event emitter file must export its factory function.",
-          "for": { "files": ["bridge/create-emit-stream-event.ts"] },
+          "for": {
+            "files": [
+              "bridge/create-emit-stream-event.ts",
+              "*/bridge/create-emit-stream-event.ts"
+            ]
+          },
           "must": {
             "exportFunctions": ["createEmitStreamEvent"]
           }
@@ -356,9 +475,9 @@
         {
           "name": "harness-bridge-must-not-use-parent-imports",
           "description": "Every harness bridge file must not use parent imports, only local and external imports.",
-          "for": { "files": ["bridge/*.ts"] },
+          "for": { "files": ["bridge/*.ts", "*/bridge/*.ts"] },
           "mustNot": {
-            "importFromParents": true
+            "importValuesFromParents": true
           }
         }
       ]
@@ -372,7 +491,7 @@
           "name": "sandbox-package-must-export-sandbox-creator-and-settings",
           "description": "Every sandbox package must export a sandbox creator function and settings from its index.ts file.",
           "must": {
-            "export": [
+            "exportValues": [
               {
                 "name": "create${sandboxId.toPascalCase()}Sandbox",
                 "from": "./${sandboxId}-sandbox"
@@ -421,20 +540,26 @@
     {
       "name": "harness-bridge-must-not-import-core-ai-sdk-packages",
       "description": "Harness bridge code must not import AI SDK packages that are unavailable in the isolated bridge runtime.",
-      "paths": ["packages/harness-*/src/bridge/**/*.ts"],
+      "paths": ["packages/harness-*/src/**/bridge/*.ts"],
       "mustNot": {
-        "importFrom": [
+        "importValuesFrom": [
           "ai",
           "ai/*",
-          "@ai-sdk/provider",
-          "@ai-sdk/provider/*",
-          "@ai-sdk/provider-utils",
-          "@ai-sdk/provider-utils/*"
+          "@ai-sdk/*",
+          "!@ai-sdk/harness/bridge"
+        ],
+        "importTypesFrom": [
+          "ai",
+          "ai/*",
+          "@ai-sdk/*",
+          "!@ai-sdk/harness",
+          "!@ai-sdk/harness/bridge"
         ]
       }
     }
   ],
   "kebabToPascalMap": {
+    "acp": "ACP",
     "assemblyai": "AssemblyAI",
     "bytedance": "ByteDance",
     "cartesia": "Cartesia",
@@ -454,6 +579,7 @@
     "togetherai": "TogetherAI"
   },
   "kebabToCamelMap": {
+    "acp": "acp",
     "lmnt": "lmnt",
     "minimax": "minimax"
   }

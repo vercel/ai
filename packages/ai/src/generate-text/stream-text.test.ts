@@ -8541,6 +8541,39 @@ describe('streamText', () => {
   });
 
   describe('options.onLanguageModelCallStart and onLanguageModelCallEnd', () => {
+    it('should expose provider metadata on model-call end', async () => {
+      const onLanguageModelCallEnd = vi.fn();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+                providerMetadata: {
+                  gateway: { generationId: 'generation-id' },
+                },
+              },
+            ]),
+          }),
+        }),
+        prompt: 'test-input',
+        onLanguageModelCallEnd,
+      });
+
+      await result.consumeStream();
+
+      expect(onLanguageModelCallEnd).toHaveBeenCalledWith(
+        expect.objectContaining({
+          providerMetadata: {
+            gateway: { generationId: 'generation-id' },
+          },
+        }),
+      );
+    });
+
     it('should fire the model-call callbacks before tool execution and step finish', async () => {
       const callOrder: string[] = [];
       const modelCallEndEvents: LanguageModelCallEndEvent<any>[] = [];
@@ -21108,9 +21141,9 @@ describe('streamText', () => {
             execute: async ({ sku }) => ({ sku, availableUnits: 42 }),
           }),
         },
-        experimental_toolCallers: ({ code_mode }) => ({
-          getInventory: [code_mode],
-        }),
+        experimental_toolCallers: {
+          getInventory: ['code_mode'],
+        },
         prompt: 'Check inventory.',
       });
 
@@ -21165,9 +21198,9 @@ describe('streamText', () => {
             execute: async ({ sku }) => ({ sku }),
           }),
         },
-        experimental_toolCallers: ({ programmatic }) => ({
-          getDemand: ['direct', programmatic],
-        }),
+        experimental_toolCallers: {
+          getDemand: ['AI_SDK_DIRECT_TOOL_CALL', 'programmatic'],
+        },
         prompt: 'Check demand.',
       });
 

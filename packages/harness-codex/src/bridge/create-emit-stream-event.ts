@@ -185,6 +185,7 @@ export function createEmitStreamEvent({
           nativeName: item.tool ?? 'unknown',
           input: JSON.stringify(item.arguments ?? {}),
           providerExecuted: true,
+          dynamic: true,
         });
       } else if (event.type === 'item.completed') {
         send({
@@ -192,6 +193,7 @@ export function createEmitStreamEvent({
           toolCallId: id,
           toolName: item.tool ?? 'unknown',
           result: extractMcpToolCallResult(item),
+          dynamic: true,
         });
       }
       observeStep();
