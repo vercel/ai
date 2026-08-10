@@ -1517,6 +1517,51 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send serviceTier fast provider option', async () => {
+        const { warnings } = await createModel('gpt-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              serviceTier: 'fast',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          service_tier: 'fast',
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should warn and drop serviceTier fast for a model without priority processing', async () => {
+        const { warnings } = await createModel('gpt-5-nano').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              serviceTier: 'fast',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).service_tier,
+        ).toBeUndefined();
+
+        expect(warnings).toStrictEqual([
+          {
+            type: 'unsupported',
+            feature: 'serviceTier',
+            details:
+              'priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported',
+          },
+        ]);
+      });
+
       it('should send truncation auto provider option', async () => {
         const { warnings } = await createModel('gpt-5').doGenerate({
           prompt: TEST_PROMPT,
