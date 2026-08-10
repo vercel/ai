@@ -140,8 +140,8 @@ function isNodeDefaultFetch(fetch: FetchFunction): boolean {
 }
 
 async function createSafeNodeFetch(): Promise<FetchFunction> {
-  // Node 20.16+ exposes getBuiltinModule; older supported Node versions use an
-  // indirect dynamic import that is hidden from browser bundle parsers.
+  // Load Node-only modules indirectly so browser bundlers do not pull undici
+  // and Node built-ins into the browser-facing provider-utils entry point.
   const [{ createRequire }, { lookup }] = await Promise.all([
     loadNodeModule<NodeModule>('node:module'),
     loadNodeModule<NodeDns>('node:dns'),
@@ -174,23 +174,16 @@ async function loadNodeModule<T>(id: string): Promise<T> {
     | undefined;
   const builtinModule = processWithBuiltins?.getBuiltinModule?.(id);
 
-  return builtinModule == null
-    ? ((await importNodeModule(id)) as T)
-    : (builtinModule as T);
-}
+  if (builtinModule == null) {
+    // There is no bundle-safe way to load Node built-ins without
+    // process.getBuiltinModule (Node <20.16): Metro rejects non-static
+    // import() expressions while parsing, and Next.js Edge Runtime rejects
+    // the Function-constructor shim during static analysis. Throw rather
+    // than ship either, matching the v7 implementation. See #18545, #18559.
+    throw new Error(`Node.js built-in module ${id} is unavailable`);
+  }
 
-let dynamicImport: ((specifier: string) => Promise<unknown>) | undefined;
-
-function importNodeModule(id: string): Promise<unknown> {
-  // Metro rejects non-static dynamic imports while parsing, even though this
-  // Node-only fallback is never executed in React Native. Construct the import
-  // function lazily so the distributed module contains no import expression for
-  // Metro to analyze and runtimes with process.getBuiltinModule avoid it.
-  dynamicImport ??= Function('specifier', 'return import(specifier)') as (
-    specifier: string,
-  ) => Promise<unknown>;
-
-  return dynamicImport(id);
+  return builtinModule as T;
 }
 
 function getCurrentModulePath(): string {
