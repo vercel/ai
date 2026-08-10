@@ -6,6 +6,7 @@ const harnessId = 'acp-codex';
 export const codexACPHarness = createACP({
   harnessId,
   builtinTools: codexACPBuiltinTools,
+  isMcpToolCall: toolCall => toolCall._meta?.is_mcp_tool_call === true,
   source: {
     type: 'npm-simple',
     packageName: '@agentclientprotocol/codex-acp',

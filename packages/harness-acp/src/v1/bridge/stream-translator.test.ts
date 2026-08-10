@@ -1,5 +1,6 @@
 import type { HarnessV1StreamPart } from '@ai-sdk/harness';
 import { describe, expect, it } from 'vitest';
+import type { ACPToolCall } from '../../acp-tool-call';
 import {
   createACPStreamTranslator,
   mapACPFinishReason,
@@ -491,7 +492,6 @@ describe('createACPStreamTranslator', () => {
     expect(toolEvents({ events })).toMatchInlineSnapshot(`
       [
         {
-          "dynamic": true,
           "input": "{\"query\":\"package.json\"}",
           "providerExecuted": true,
           "toolCallId": "call-fuzzy-search",
@@ -499,7 +499,6 @@ describe('createACPStreamTranslator', () => {
           "type": "tool-call",
         },
         {
-          "dynamic": true,
           "result": {},
           "toolCallId": "call-fuzzy-search",
           "toolName": "acp_tool_call-fuzzy-search",
@@ -548,7 +547,6 @@ describe('createACPStreamTranslator', () => {
 
     expect(toolEvents({ events })[0]).toMatchInlineSnapshot(`
       {
-        "dynamic": true,
         "input": "{\"id\":\"task-1\"}",
         "providerExecuted": true,
         "toolCallId": "call-ambiguous",
@@ -586,7 +584,6 @@ describe('createACPStreamTranslator', () => {
 
     expect(toolEvents({ events })[0]).toMatchInlineSnapshot(`
       {
-        "dynamic": true,
         "input": "{\"command\":\"pwd\"}",
         "providerExecuted": true,
         "toolCallId": "call-custom",
@@ -596,10 +593,12 @@ describe('createACPStreamTranslator', () => {
     `);
   });
 
-  it('keeps unnamed and third-party MCP calls provider-executed and dynamic', () => {
+  it('exposes unknown ACP tool calls for host-side classification', () => {
     const events: HarnessV1StreamPart[] = [];
+    const candidates: ACPToolCall[] = [];
     const translator = createACPStreamTranslator({
       emit: event => events.push(event),
+      emitToolCallCandidate: ({ toolCall }) => candidates.push(toolCall),
       builtinTools: [{ toolName: 'bash', nativeName: 'shell' }],
     });
 
@@ -627,7 +626,6 @@ describe('createACPStreamTranslator', () => {
     expect(toolEvents({ events })).toMatchInlineSnapshot(`
       [
         {
-          "dynamic": true,
           "input": "{"command":"pwd"}",
           "providerExecuted": true,
           "toolCallId": "call unknown/1",
@@ -635,11 +633,26 @@ describe('createACPStreamTranslator', () => {
           "type": "tool-call",
         },
         {
-          "dynamic": true,
           "result": {},
           "toolCallId": "call unknown/1",
           "toolName": "acp_tool_call_unknown_1",
           "type": "tool-result",
+        },
+      ]
+    `);
+    expect(candidates).toMatchInlineSnapshot(`
+      [
+        {
+          "_meta": {
+            "is_mcp_tool_call": true,
+          },
+          "kind": "execute",
+          "rawInput": {
+            "command": "pwd",
+          },
+          "status": "completed",
+          "title": "shell",
+          "toolCallId": "call unknown/1",
         },
       ]
     `);
@@ -680,7 +693,6 @@ describe('createACPStreamTranslator', () => {
     expect(toolEvents({ events })).toMatchInlineSnapshot(`
       [
         {
-          "dynamic": true,
           "input": "{}",
           "providerExecuted": true,
           "toolCallId": "success",
@@ -688,7 +700,6 @@ describe('createACPStreamTranslator', () => {
           "type": "tool-call",
         },
         {
-          "dynamic": true,
           "result": {
             "exitCode": 0,
             "output": "ok",
@@ -698,7 +709,6 @@ describe('createACPStreamTranslator', () => {
           "type": "tool-result",
         },
         {
-          "dynamic": true,
           "input": "{"command":"false"}",
           "providerExecuted": true,
           "toolCallId": "failure",
@@ -706,7 +716,6 @@ describe('createACPStreamTranslator', () => {
           "type": "tool-call",
         },
         {
-          "dynamic": true,
           "isError": true,
           "result": {
             "message": "exit 1",

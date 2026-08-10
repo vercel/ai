@@ -40,6 +40,7 @@ import {
   type ACPAuthenticationProfileIdentity,
   type ACPClientApp,
 } from '../acp-auth';
+import type { ACPToolCall } from '../acp-tool-call';
 import {
   createACPV1Implementation,
   createImplementationDescriptor,
@@ -126,6 +127,17 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
     HarnessV1<TBuiltinTools>['lifecycleStateSchema']
   >;
 }): HarnessV1<TBuiltinTools> {
+  if (
+    settings.mcpServers != null &&
+    Object.prototype.hasOwnProperty.call(
+      settings.mcpServers,
+      'ai-sdk-harness-tools',
+    )
+  ) {
+    throw new Error(
+      'ACP MCP server name "ai-sdk-harness-tools" is reserved for HarnessAgent tools.',
+    );
+  }
   if (!HARNESS_ID_REGEXP.test(settings.harnessId)) {
     throw new Error(
       `ACP harnessId must be a stable kebab-case identifier; received ${JSON.stringify(settings.harnessId)}.`,
@@ -370,6 +382,8 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               builtinTools: builtinToolCatalog,
               permissionMode,
               permissionModeMapping,
+              mcpServers: settings.mcpServers,
+              isMcpToolCall: settings.isMcpToolCall,
               initialGuidanceApplied: resolveACPInitialGuidanceApplied({
                 isResume: true,
                 lifecycleState: lifecycleData,
@@ -421,6 +435,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
                   sessionMeta: settings.session?.meta,
                   builtinTools: builtinToolCatalog,
                   permissionModeMapping,
+                  mcpServers: settings.mcpServers,
                 });
                 respawnStrategy = {
                   mode: 'lossy-rerun',
@@ -450,6 +465,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
             sessionMeta: settings.session?.meta,
             builtinTools: builtinToolCatalog,
             permissionModeMapping,
+            mcpServers: settings.mcpServers,
             debug: startOptions.observability?.debug,
           });
           respawnStrategy = {
@@ -570,6 +586,9 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               builtinTools: builtinToolCatalog,
               permissionMode,
               permissionModeMapping,
+              ...(settings.mcpServers == null
+                ? {}
+                : { mcpServers: settings.mcpServers }),
               tools: respawnStrategy.turnStartConfig.tools,
               turnStartConfig: respawnStrategy.turnStartConfig,
               recoveryMode: {
@@ -606,6 +625,8 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         builtinTools: builtinToolCatalog,
         permissionMode,
         permissionModeMapping,
+        mcpServers: settings.mcpServers,
+        isMcpToolCall: settings.isMcpToolCall,
         initialGuidanceApplied: resolveACPInitialGuidanceApplied({
           isResume,
           lifecycleState: lifecycleData,
@@ -807,6 +828,8 @@ function createSession({
   builtinTools,
   permissionMode,
   permissionModeMapping,
+  mcpServers,
+  isMcpToolCall,
   initialGuidanceApplied: initialGuidanceAppliedAtStart,
   skillCatalog,
   skillsFingerprint,
@@ -835,6 +858,8 @@ function createSession({
   builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   permissionMode: NonNullable<StartMessage['permissionMode']>;
   permissionModeMapping: StartMessage['permissionModeMapping'];
+  mcpServers: Record<string, unknown> | undefined;
+  isMcpToolCall: ((toolCall: ACPToolCall) => boolean) | undefined;
   initialGuidanceApplied: boolean;
   skillCatalog: ReadonlyArray<ACPSkillCatalogEntry>;
   skillsFingerprint: string;
@@ -889,6 +914,8 @@ function createSession({
     let openBlock:
       | { readonly type: 'text' | 'reasoning'; readonly id: string }
       | undefined;
+    const dynamicToolCalls = new Map<string, boolean>();
+    const toolCallClassificationErrors = new Map<string, unknown>();
     const subscriptions: Array<() => void> = [];
     const forward = (event: HarnessV1StreamPart) => {
       if (event.type === 'text-start' || event.type === 'reasoning-start') {
@@ -923,9 +950,7 @@ function createSession({
       'reasoning-start',
       'reasoning-delta',
       'reasoning-end',
-      'tool-call',
       'tool-approval-request',
-      'tool-result',
       'file-change',
       'finish-step',
       'raw',
@@ -954,6 +979,45 @@ function createSession({
         settle({ error: abortError });
       }
     };
+    subscriptions.push(
+      channel.on('acp-tool-call-candidate', event => {
+        try {
+          dynamicToolCalls.set(
+            event.toolCall.toolCallId,
+            isMcpToolCall?.(event.toolCall) === true,
+          );
+        } catch (error) {
+          toolCallClassificationErrors.set(event.toolCall.toolCallId, error);
+        }
+      }),
+    );
+    subscriptions.push(
+      channel.on('tool-call', event => {
+        if (toolCallClassificationErrors.has(event.toolCallId)) {
+          const error = toolCallClassificationErrors.get(event.toolCallId);
+          closeForwardedBlock();
+          forward({ type: 'error', error });
+          try {
+            channel.send({ type: 'abort' });
+          } catch {}
+          settle({ error });
+          return;
+        }
+        forward(
+          dynamicToolCalls.get(event.toolCallId) === true
+            ? { ...event, dynamic: true }
+            : event,
+        );
+      }),
+    );
+    subscriptions.push(
+      channel.on('tool-result', event => {
+        const dynamic = dynamicToolCalls.get(event.toolCallId) === true;
+        dynamicToolCalls.delete(event.toolCallId);
+        toolCallClassificationErrors.delete(event.toolCallId);
+        forward(dynamic ? { ...event, dynamic: true } : event);
+      }),
+    );
     for (const type of eventTypes) {
       subscriptions.push(channel.on(type, event => forward(event)));
     }
@@ -1110,6 +1174,7 @@ function createSession({
         builtinTools,
         permissionMode,
         permissionModeMapping,
+        mcpServers,
         debug,
         authenticationProfile,
         sessionMeta,
@@ -1137,6 +1202,7 @@ function createSession({
             builtinTools,
             permissionMode,
             permissionModeMapping,
+            ...(mcpServers == null ? {} : { mcpServers }),
             tools: options.tools == null ? undefined : turnStartConfig.tools,
             turnStartConfig,
           });
@@ -1174,6 +1240,7 @@ function createSession({
             builtinTools: turnStartConfig.builtinTools,
             permissionMode: turnStartConfig.permissionMode,
             permissionModeMapping: turnStartConfig.permissionModeMapping,
+            ...(mcpServers == null ? {} : { mcpServers }),
             tools: turnStartConfig.tools,
             turnStartConfig,
             recoveryMode: {
@@ -1338,12 +1405,14 @@ function validateACPTurnStartConfig({
   sessionMeta,
   builtinTools,
   permissionModeMapping,
+  mcpServers,
 }: {
   turnStartConfig: ACPTurnStartConfig;
   authenticationProfile: ACPAuthenticationProfileIdentity;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
   builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   permissionModeMapping: ACPPermissionModeMapping | undefined;
+  mcpServers: Record<string, unknown> | undefined;
 }): void {
   const current = createACPTurnStartConfig({
     prompt: turnStartConfig.prompt,
@@ -1351,6 +1420,7 @@ function validateACPTurnStartConfig({
     builtinTools,
     permissionMode: turnStartConfig.permissionMode,
     permissionModeMapping,
+    mcpServers,
     debug: turnStartConfig.debug,
     authenticationProfile,
     sessionMeta,
@@ -1373,6 +1443,7 @@ function validateACPColdSessionConfiguration({
   sessionMeta,
   builtinTools,
   permissionModeMapping,
+  mcpServers,
   debug,
 }: {
   coldSession: ACPColdSessionState;
@@ -1382,6 +1453,7 @@ function validateACPColdSessionConfiguration({
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
   builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   permissionModeMapping: ACPPermissionModeMapping | undefined;
+  mcpServers: Record<string, unknown> | undefined;
   debug: HarnessV1DebugConfig | undefined;
 }): ACPTurnStartConfig {
   const current = createACPTurnStartConfig({
@@ -1390,6 +1462,7 @@ function validateACPColdSessionConfiguration({
     builtinTools,
     permissionMode,
     permissionModeMapping,
+    mcpServers,
     debug,
     authenticationProfile,
     sessionMeta,

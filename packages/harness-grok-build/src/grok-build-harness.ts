@@ -40,6 +40,7 @@ export type GrokBuildHarnessSettings = {
    * Maximum milliseconds to wait for the ACP bridge to start.
    */
   readonly startupTimeoutMs?: number;
+  readonly mcpServers?: Record<string, unknown>;
 };
 
 /*
@@ -278,6 +279,11 @@ export function createGrokBuild(
     modelId: settings.model,
     port: settings.port,
     startupTimeoutMs: settings.startupTimeoutMs,
+    mcpServers: settings.mcpServers,
+    isMcpToolCall: toolCall => {
+      const metadata = toolCall._meta?.['x.ai/tool'];
+      return isRecord(metadata) && metadata.namespace === 'mcp';
+    },
     version: 'v1',
     harnessId: 'grok-build',
     builtinTools: GROK_BUILD_BUILTIN_TOOLS,
@@ -311,4 +317,8 @@ export function createGrokBuild(
       },
     },
   });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
 }

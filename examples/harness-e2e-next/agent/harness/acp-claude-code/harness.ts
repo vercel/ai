@@ -6,6 +6,14 @@ const harnessId = 'acp-claude-code';
 export const claudeCodeACPHarness = createACP({
   harnessId,
   builtinTools: claudeCodeACPBuiltinTools,
+  isMcpToolCall: toolCall => {
+    const metadata = toolCall._meta?.claudeCode;
+    return (
+      isRecord(metadata) &&
+      typeof metadata.toolName === 'string' &&
+      metadata.toolName.startsWith('mcp__')
+    );
+  },
   source: {
     type: 'npm-simple',
     packageName: '@agentclientprotocol/claude-agent-acp',
@@ -32,3 +40,7 @@ export const claudeCodeACPHarness = createACP({
     },
   },
 });
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}

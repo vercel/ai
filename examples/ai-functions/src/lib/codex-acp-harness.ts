@@ -62,16 +62,20 @@ const CODEX_ACP_PERMISSION_MODE_MAPPING = {
 
 export function createCodexACP({
   auth = 'auto',
+  mcpServers,
   webSearch,
   source = CODEX_ACP_SOURCE,
 }: {
   auth?: ACPAuthOptions;
+  mcpServers?: Record<string, unknown>;
   webSearch?: boolean;
   source?: ACPSource;
 } = {}) {
   return createACP({
     harnessId: 'codex-acp',
     auth,
+    mcpServers,
+    isMcpToolCall: toolCall => toolCall._meta?.is_mcp_tool_call === true,
     source,
     executable: CODEX_ACP_EXECUTABLE,
     forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],

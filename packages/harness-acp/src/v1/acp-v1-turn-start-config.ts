@@ -20,6 +20,7 @@ export function createACPTurnStartConfig({
   builtinTools,
   permissionMode,
   permissionModeMapping,
+  mcpServers,
   debug,
   authenticationProfile,
   sessionMeta,
@@ -29,6 +30,7 @@ export function createACPTurnStartConfig({
   builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   permissionMode: NonNullable<StartMessage['permissionMode']>;
   permissionModeMapping: ACPPermissionModeMapping | undefined;
+  mcpServers: Record<string, unknown> | undefined;
   debug: HarnessV1DebugConfig | undefined;
   authenticationProfile: ACPAuthenticationProfileIdentity;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
@@ -42,6 +44,7 @@ export function createACPTurnStartConfig({
           sessionMeta: sessionMeta ?? null,
           builtinTools,
           permissionModeMapping: permissionModeMapping ?? null,
+          mcpServers: mcpServers ?? null,
         }),
       )
       .digest('hex'),
