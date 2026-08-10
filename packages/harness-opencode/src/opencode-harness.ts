@@ -67,6 +67,10 @@ const OPENCODE_CLIENT_APP = `ai-sdk/harness-opencode/${VERSION}`;
 
 export type OpenCodeHarnessSettings = {
   readonly auth?: OpenCodeAuthOptions;
+  /**
+   * MCP server definitions keyed by server name. Each definition uses the
+   * underlying runtime's native MCP server configuration format.
+   */
   readonly mcpServers?: Record<string, unknown>;
   readonly model?: string;
   readonly provider?: string;

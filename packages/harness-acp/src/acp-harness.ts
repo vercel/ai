@@ -17,6 +17,10 @@ const ACP_CLIENT_APP = {
 
 export type ACPHarnessSettings<TBuiltinTools extends ToolSet = {}> = {
   readonly builtinTools?: TBuiltinTools;
+  /**
+   * MCP server definitions keyed by server name. Each definition uses the
+   * underlying runtime's native MCP server configuration format.
+   */
   readonly mcpServers?: Record<string, unknown>;
   readonly isMcpToolCall?: (toolCall: ACPToolCall) => boolean;
   readonly port?: number;

@@ -40,6 +40,10 @@ export type PiHarnessSettings = {
    * model settings.
    */
   readonly agentDir?: string;
+  /**
+   * MCP server definitions keyed by server name. Each definition uses the
+   * underlying runtime's native MCP server configuration format.
+   */
   readonly mcpServers?: Record<string, unknown>;
 };
 

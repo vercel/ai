@@ -106,6 +106,10 @@ export type DeepAgentsHarnessSettings = {
    * When omitted, the Deep Agents default applies.
    */
   readonly recursionLimit?: number;
+  /**
+   * MCP server definitions keyed by server name. Each definition uses the
+   * underlying runtime's native MCP server configuration format.
+   */
   readonly mcpServers?: Record<string, unknown>;
 };
 

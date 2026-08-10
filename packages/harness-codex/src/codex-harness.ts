@@ -75,6 +75,10 @@ const CODEX_CLIENT_APP = `ai-sdk/harness-codex/${VERSION}`;
 
 export type CodexHarnessSettings = {
   readonly auth?: CodexAuthOptions;
+  /**
+   * MCP server definitions keyed by server name. Each definition uses the
+   * underlying runtime's native MCP server configuration format.
+   */
   readonly mcpServers?: Record<string, unknown>;
   /**
    * OpenAI model id the underlying `codex` CLI should use. Leaving this unset

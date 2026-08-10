@@ -40,6 +40,10 @@ export type GrokBuildHarnessSettings = {
    * Maximum milliseconds to wait for the ACP bridge to start.
    */
   readonly startupTimeoutMs?: number;
+  /**
+   * MCP server definitions keyed by server name. Each definition uses the
+   * underlying runtime's native MCP server configuration format.
+   */
   readonly mcpServers?: Record<string, unknown>;
   /**
    * Creates the authentication token used by the sandbox bridge. Defaults to
