@@ -1,5 +1,6 @@
 import { createMDX } from 'fumadocs-mdx/next';
 import type { NextConfig } from 'next';
+import { exampleRedirects } from './lib/example-redirects';
 
 const withMDX = createMDX();
 
@@ -91,6 +92,40 @@ const config: NextConfig = {
       source: '/v5/providers',
       destination: '/v5/providers/ai-sdk-providers',
       permanent: false,
+    },
+    // Legacy resource URLs, mirroring production.
+    {
+      source: '/tools-registry',
+      destination: '/resources/tools',
+      permanent: true,
+    },
+    {
+      source: '/tools-registry/:slug',
+      destination: '/resources/tools/:slug',
+      permanent: true,
+    },
+    {
+      source: '/showcase',
+      destination: '/resources/showcase',
+      permanent: true,
+    },
+    // /examples and its deep URLs are still linked from docs content; they
+    // chain to their cookbook replacements exactly as on production.
+    ...exampleRedirects,
+    {
+      source: '/elements',
+      destination: 'https://elements.ai-sdk.dev',
+      permanent: true,
+    },
+    {
+      source: '/elements/:path*',
+      destination: 'https://elements.ai-sdk.dev/:path*',
+      permanent: true,
+    },
+    {
+      source: '/model-library',
+      destination: 'https://vercel.com/docs/ai-gateway',
+      permanent: true,
     },
     // The cookbook family root mirrors production (ai-sdk.dev/cookbook):
     // the legacy app permanently redirects it to the Recipes landing page.
