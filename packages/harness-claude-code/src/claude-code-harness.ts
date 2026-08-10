@@ -75,6 +75,11 @@ export type ClaudeCodeHarnessSettings = {
    */
   readonly maxTurns?: number;
   /**
+   * Environment variables for the Claude Code process. These values are
+   * merged over the sandbox bridge process environment.
+   */
+  readonly env?: Readonly<Record<string, string>>;
+  /**
    * Controls extended-thinking behavior and whether reasoning is summarized or
    * omitted. Defaults to `{ type: 'adaptive', display: 'summarized' }`.
    */
@@ -558,6 +563,7 @@ export function createClaudeCode(
             proc: undefined,
             model: settings.model,
             maxTurns: settings.maxTurns,
+            env: settings.env,
             thinking,
             isResume: true,
             continueOnFirstPrompt: false,
@@ -729,6 +735,7 @@ export function createClaudeCode(
         proc,
         model: settings.model,
         maxTurns: settings.maxTurns,
+        env: settings.env,
         thinking,
         isResume: respawnStrategy !== undefined,
         continueOnFirstPrompt: respawnStrategy !== undefined,
@@ -972,6 +979,7 @@ function createSession({
   proc,
   model,
   maxTurns,
+  env,
   thinking,
   isResume,
   continueOnFirstPrompt,
@@ -991,6 +999,7 @@ function createSession({
   proc: Experimental_SandboxProcess | undefined;
   model: string | undefined;
   maxTurns: number | undefined;
+  env: Readonly<Record<string, string>> | undefined;
   thinking: ClaudeCodeThinkingConfig;
   isResume: boolean;
   continueOnFirstPrompt: boolean;
@@ -1182,6 +1191,7 @@ function createSession({
         })),
         model,
         maxTurns,
+        ...(env !== undefined ? { env } : {}),
         thinking,
         ...(skills.length > 0
           ? { skills: skills.map(skill => skill.name) }
@@ -1235,6 +1245,7 @@ function createSession({
           })),
           model,
           maxTurns,
+          ...(env !== undefined ? { env } : {}),
           thinking,
           ...(skills.length > 0
             ? { skills: skills.map(skill => skill.name) }

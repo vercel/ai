@@ -33,6 +33,7 @@ const thinkingSchema = z.discriminatedUnion('type', [
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   thinking: thinkingSchema,
   maxTurns: z.number().optional(),
+  env: z.record(z.string(), z.string()).optional(),
   skills: z.array(z.string()).optional(),
   mcpServers: z.record(z.string(), z.unknown()).optional(),
   // Resume signal. When true, the bridge passes `{ continue: true }` to the
