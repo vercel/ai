@@ -62,16 +62,19 @@ const CODEX_ACP_PERMISSION_MODE_MAPPING = {
 
 export function createCodexACP({
   auth = 'auto',
+  mintBridgeToken,
   webSearch,
   source = CODEX_ACP_SOURCE,
 }: {
   auth?: ACPAuthOptions;
+  mintBridgeToken?: (sandboxId: string) => string;
   webSearch?: boolean;
   source?: ACPSource;
 } = {}) {
   return createACP({
     harnessId: 'codex-acp',
     auth,
+    mintBridgeToken,
     source,
     executable: CODEX_ACP_EXECUTABLE,
     forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
