@@ -214,6 +214,7 @@ export interface PiSessionSettings {
   readonly model?: string;
   readonly thinkingLevel?: PiThinkingLevel;
   readonly mcpServers?: Record<string, unknown>;
+  readonly extensionFactories?: ReadonlyArray<ExtensionFactory>;
 }
 
 export interface CreatePiSessionInput {
@@ -393,7 +394,16 @@ export async function createPiSession(
     mcpServers: input.settings.mcpServers,
   });
   const hasMcpServers = Object.keys(mcpServers).length > 0;
-  const extensionFactories: ExtensionFactory[] = [];
+
+  /*
+   * Configured MCP servers are served by an inline Pi extension, so they share
+   * the extension runtime with the caller-supplied factories: both are loaded
+   * by the resource loader below and both are subject to the reload handling
+   * that keeps the active runtime alive across resource-only reloads.
+   */
+  const extensionFactories: ExtensionFactory[] = [
+    ...(input.settings.extensionFactories ?? []),
+  ];
   if (hasMcpServers) {
     const { createMcpAdapter } = (await import(
       PI_MCP_ADAPTER_PACKAGE
@@ -411,19 +421,38 @@ export async function createPiSession(
       }),
     );
   }
-
+  const hasExtensionFactories = extensionFactories.length > 0;
+  let preserveExtensionsResult = false;
+  let currentExtensionsResult:
+    | ReturnType<DefaultResourceLoader['getExtensions']>
+    | undefined;
   const resourceLoader = new DefaultResourceLoader({
     cwd: sessionWorkDir,
     agentDir: hostAgentDir,
     settingsManager,
     appendSystemPromptOverride: () => [],
     extensionFactories,
+    ...(hasExtensionFactories
+      ? {
+          // DefaultResourceLoader invokes inline factories on every reload.
+          // Resource-only reloads retain the active extension runtime, while a
+          // genuine Pi session rebuild is allowed to replace that runtime.
+          extensionsOverride: extensions => {
+            if (preserveExtensionsResult && currentExtensionsResult != null) {
+              return currentExtensionsResult;
+            }
+            currentExtensionsResult = extensions;
+            return extensions;
+          },
+        }
+      : {}),
     // Pi runs in the host process, so its default resource discovery reaches
     // the host developer's personal config (`~/.pi/agent/*`, `~/.agents/*`).
-    // The harness does not expose extensions, themes, or prompt templates, so
-    // disable those entirely — this also avoids loading and executing a host
-    // developer's personal Pi extensions inside the server process. Skills are
-    // kept but filtered to workspace project skills plus harness-provided
+    // The harness exposes only explicitly supplied inline extension factories;
+    // disable filesystem extension discovery entirely to avoid loading and
+    // executing a host developer's personal or project Pi extensions inside
+    // the server process. Themes and prompt templates stay disabled. Skills
+    // are kept but filtered to workspace project skills plus harness-provided
     // skills whose files live in sandbox HOME.
     noExtensions: true,
     noThemes: true,
@@ -439,6 +468,22 @@ export async function createPiSession(
     }),
   });
   await resourceLoader.reload();
+
+  async function reloadResourcesOnly(): Promise<void> {
+    if (!hasExtensionFactories) {
+      await resourceLoader.reload();
+      return;
+    }
+
+    const factories = extensionFactories.splice(0);
+    preserveExtensionsResult = true;
+    try {
+      await resourceLoader.reload();
+    } finally {
+      preserveExtensionsResult = false;
+      extensionFactories.push(...factories);
+    }
+  }
 
   // Per-session mutable state we hold across prompts.
   let piSession: AgentSession | undefined;
@@ -632,7 +677,8 @@ export async function createPiSession(
   async function rebuildPiSession(
     userTools: ReadonlyArray<HarnessV1ToolSpec>,
     isFirstBuild: boolean,
-  ): Promise<void> {
+  ): Promise<boolean> {
+    let resourcesReloaded = false;
     if (piSession) {
       await disposePiSession();
       // Original adapter waits 25 ms here to let Pi's teardown microtasks
@@ -640,6 +686,12 @@ export async function createPiSession(
       // TODO(pi-0.77): verify the race still exists; original SDK had a
       // teardown microtask the host needed to wait on.
       await new Promise(resolve => setTimeout(resolve, 25));
+      if (hasExtensionFactories) {
+        // dispose() invalidates Pi's current extension runtime, so a replacement
+        // AgentSession needs factories to create a fresh runtime before build.
+        await resourceLoader.reload();
+        resourcesReloaded = true;
+      }
     }
 
     const { customTools, builtinNames } = buildToolDefinitions(userTools);
@@ -706,6 +758,7 @@ export async function createPiSession(
         // Other event types outside a turn have no consumer and are dropped.
       }
     });
+    return resourcesReloaded;
   }
 
   /*
@@ -726,12 +779,15 @@ export async function createPiSession(
     const userTools = turnOpts.tools;
     const signature = JSON.stringify(userTools.map(t => t.name).sort());
     const needsRebuild = piSession == null || signature !== lastToolsSignature;
+    let resourcesReloaded = false;
     if (needsRebuild) {
-      await rebuildPiSession(userTools, piSession == null);
+      resourcesReloaded = await rebuildPiSession(userTools, piSession == null);
       lastToolsSignature = signature;
     }
 
-    await resourceLoader.reload();
+    if (!resourcesReloaded) {
+      await reloadResourcesOnly();
+    }
     await syncHostWorkspaceFromSandbox({
       sandbox,
       sandboxWorkDir: input.sessionWorkDir,

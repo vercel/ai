@@ -107,14 +107,43 @@ export type ClaudeCodeHarnessSettings = {
 /*
  * Every native tool the Claude Code CLI can invoke, declared as a `ToolSet`
  * keyed by what the bridge emits as `toolName` on the wire
- * (`commonName ?? nativeName`). Schemas transcribed from
- * `@anthropic-ai/claude-agent-sdk`'s `agentSdkTypes.d.ts`.
+ * (`commonName ?? nativeName`). Schemas are transcribed from the generated
+ * `sdk-tools.d.ts` and the conditionally registered tool definitions in the
+ * pinned Claude Code executable.
  *
  * `MCP` (the generic proxy tool inside the Claude Code SDK) is intentionally
  * omitted — the bridge filters out `mcp__harness-tools__*` tool names before
  * emitting them, and other MCP invocations come through with their own
  * server-tool names rather than the literal `'Mcp'` token.
  */
+const listMcpResourcesInputSchema = z.object({
+  server: z.string().optional(),
+});
+
+const readMcpResourceInputSchema = z.object({
+  server: z.string(),
+  uri: z.string(),
+});
+
+const structuredTeamMessageSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('shutdown_request'),
+    reason: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('shutdown_response'),
+    request_id: z.string(),
+    approve: z.boolean(),
+    reason: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('plan_approval_response'),
+    request_id: z.string(),
+    approve: z.boolean(),
+    feedback: z.string().optional(),
+  }),
+]);
+
 const CLAUDE_CODE_BUILTIN_TOOLS = {
   read: commonTool('read', {
     nativeName: 'Read',
@@ -306,23 +335,66 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       timeout: z.number(),
     }),
   }),
-  Monitor: tool({
-    description: 'Run and monitor a shell command',
-    inputSchema: z.object({
-      command: z.string(),
-      description: z.string().optional(),
-      timeout_ms: z.number().optional(),
-      persistent: z.boolean().optional(),
+  Monitor: {
+    ...tool({
+      description: 'Run and monitor a shell command or WebSocket',
+      inputSchema: z.object({
+        description: z.string().optional(),
+        timeout_ms: z.number().optional(),
+        persistent: z.boolean().optional(),
+        command: z.string().optional(),
+        ws: z
+          .object({
+            url: z.string(),
+            protocols: z.array(z.string()).optional(),
+          })
+          .optional(),
+      }),
     }),
-  }),
-  ListMcpResources: tool({
-    description: 'List resources available from MCP servers',
-    inputSchema: z.object({ server: z.string().optional() }),
-  }),
-  ReadMcpResource: tool({
-    description: 'Read a specific MCP resource by URI',
-    inputSchema: z.object({ server: z.string(), uri: z.string() }),
-  }),
+    toolUseKind: 'bash',
+  },
+  ListMcpResources: {
+    ...tool({
+      description: 'List resources available from MCP servers',
+      inputSchema: listMcpResourcesInputSchema,
+    }),
+    toolUseKind: 'readonly',
+  },
+  ListMcpResourcesTool: {
+    ...tool({
+      description: 'List resources available from MCP servers',
+      inputSchema: listMcpResourcesInputSchema,
+    }),
+    toolUseKind: 'readonly',
+  },
+  ReadMcpResource: {
+    ...tool({
+      description: 'Read a specific MCP resource by URI',
+      inputSchema: readMcpResourceInputSchema,
+    }),
+    toolUseKind: 'readonly',
+  },
+  ReadMcpResourceTool: {
+    ...tool({
+      description: 'Read a specific MCP resource by URI',
+      inputSchema: readMcpResourceInputSchema,
+    }),
+    toolUseKind: 'readonly',
+  },
+  ReadMcpResourceDirTool: {
+    ...tool({
+      description: 'List direct children of an MCP directory resource',
+      inputSchema: readMcpResourceInputSchema,
+    }),
+    toolUseKind: 'readonly',
+  },
+  RefreshMcpTools: {
+    ...tool({
+      description: 'Refresh tools from one or all connected MCP servers',
+      inputSchema: z.object({ server: z.string().optional() }),
+    }),
+    toolUseKind: 'readonly',
+  },
   ExitPlanMode: tool({
     description: 'Exit plan mode with optional permission approvals',
     inputSchema: z.looseObject({
@@ -336,6 +408,13 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
         .optional(),
     }),
   }),
+  EnterPlanMode: {
+    ...tool({
+      description: 'Enter plan mode',
+      inputSchema: z.object({}),
+    }),
+    toolUseKind: 'readonly',
+  },
   EnterWorktree: tool({
     description: 'Create or enter an isolated git worktree',
     inputSchema: z.object({
@@ -401,6 +480,271 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       max_results: z.number().optional(),
     }),
   }),
+  Artifact: {
+    ...tool({
+      description: 'Publish or list claude.ai artifacts',
+      inputSchema: z.object({
+        action: z.enum(['publish', 'list']).optional(),
+        file_path: z.string().optional(),
+        favicon: z.string().optional(),
+        limit: z.number().optional(),
+        scope: z.enum(['mine', 'shared', 'all']).optional(),
+        title: z.string().optional(),
+        description: z.string().optional(),
+        label: z.string().optional(),
+        url: z.string().optional(),
+        force: z.boolean().optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  CronCreate: {
+    ...tool({
+      description: 'Schedule a recurring or one-shot prompt',
+      inputSchema: z.object({
+        cron: z.string(),
+        prompt: z.string(),
+        recurring: z.boolean().optional(),
+        durable: z.boolean().optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  CronDelete: {
+    ...tool({
+      description: 'Delete a scheduled prompt by id',
+      inputSchema: z.object({ id: z.string() }),
+    }),
+    toolUseKind: 'edit',
+  },
+  CronList: {
+    ...tool({
+      description: 'List scheduled prompts for the current session',
+      inputSchema: z.object({}),
+    }),
+    toolUseKind: 'readonly',
+  },
+  DesignSync: {
+    ...tool({
+      description: 'Read or update claude.ai Design projects',
+      inputSchema: z.object({
+        method: z.enum([
+          'list_projects',
+          'get_project',
+          'list_files',
+          'get_file',
+          'finalize_plan',
+          'write_files',
+          'delete_files',
+          'register_assets',
+          'unregister_assets',
+          'create_project',
+          'report_validate',
+        ]),
+        projectId: z.string().optional(),
+        path: z.string().optional(),
+        writes: z.array(z.string()).max(256).optional(),
+        deletes: z.array(z.string()).max(256).optional(),
+        planId: z.string().optional(),
+        files: z
+          .array(
+            z.object({
+              path: z.string(),
+              localPath: z.string().optional(),
+              data: z.string().optional(),
+              encoding: z.literal('base64').optional(),
+              mimeType: z.string().optional(),
+            }),
+          )
+          .max(256)
+          .optional(),
+        paths: z.array(z.string()).max(256).optional(),
+        name: z.string().optional(),
+        assets: z
+          .array(
+            z.object({
+              name: z.string(),
+              path: z.string(),
+              subtitle: z.string().optional(),
+              viewport: z
+                .object({
+                  width: z.number(),
+                  height: z.number().optional(),
+                })
+                .optional(),
+              group: z.string().optional(),
+            }),
+          )
+          .max(256)
+          .optional(),
+        localDir: z.string().optional(),
+        counts: z
+          .object({
+            total: z.number(),
+            bad: z.number(),
+            thin: z.number(),
+            variantsIdentical: z.number(),
+            iterations: z.number(),
+          })
+          .optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  LSP: {
+    ...tool({
+      description: 'Query a language server for code intelligence',
+      inputSchema: z.object({
+        operation: z.enum([
+          'goToDefinition',
+          'findReferences',
+          'hover',
+          'documentSymbol',
+          'workspaceSymbol',
+          'goToImplementation',
+          'prepareCallHierarchy',
+          'incomingCalls',
+          'outgoingCalls',
+        ]),
+        filePath: z.string(),
+        line: z.number().int().positive(),
+        character: z.number().int().positive(),
+        query: z.string().optional(),
+      }),
+    }),
+    toolUseKind: 'readonly',
+  },
+  PowerShell: {
+    ...tool({
+      description: 'Execute a PowerShell command, optionally in background',
+      inputSchema: z.object({
+        command: z.string(),
+        timeout: z.number().optional(),
+        description: z.string().optional(),
+        run_in_background: z.boolean().optional(),
+        dangerouslyDisableSandbox: z.boolean().optional(),
+      }),
+    }),
+    toolUseKind: 'bash',
+  },
+  PushNotification: {
+    ...tool({
+      description: 'Send a notification for proactive or scheduled work',
+      inputSchema: z.object({
+        message: z.string(),
+        status: z.literal('proactive'),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  RemoteTrigger: {
+    ...tool({
+      description: 'List, manage, or run a claude.ai Routine trigger',
+      inputSchema: z.object({
+        action: z.enum(['list', 'get', 'create', 'update', 'run']),
+        trigger_id: z.string().optional(),
+        body: z.record(z.string(), z.unknown()).optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  ReportFindings: {
+    ...tool({
+      description: 'Return verified code-review findings',
+      inputSchema: z.object({
+        level: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
+        findings: z
+          .array(
+            z.object({
+              file: z.string(),
+              line: z.number().optional(),
+              summary: z.string(),
+              short_summary: z.string().optional(),
+              failure_scenario: z.string(),
+              category: z.string().optional(),
+              verdict: z.enum(['CONFIRMED', 'PLAUSIBLE']).optional(),
+              outcome: z
+                .enum(['fixed', 'skipped', 'no_change_needed'])
+                .optional(),
+            }),
+          )
+          .max(32),
+      }),
+    }),
+    toolUseKind: 'readonly',
+  },
+  ScheduleWakeup: {
+    ...tool({
+      description: 'Schedule or stop the next iteration of a dynamic loop',
+      inputSchema: z.object({
+        delaySeconds: z.number().optional(),
+        reason: z.string().optional(),
+        prompt: z.string().optional(),
+        stop: z.boolean().optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  SendMessage: {
+    ...tool({
+      description: 'Send a plain-text or protocol message to another agent',
+      inputSchema: z.object({
+        to: z.string(),
+        summary: z.string().max(200).optional(),
+        message: z.union([z.string(), structuredTeamMessageSchema]),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  SendUserFile: {
+    ...tool({
+      description: 'Send one or more files to the user',
+      inputSchema: z.object({
+        files: z.union([z.string(), z.array(z.string()).min(1)]),
+        caption: z.string().optional(),
+        status: z.enum(['normal', 'proactive']),
+        display: z.enum(['render', 'attach']).optional(),
+      }),
+    }),
+    toolUseKind: 'readonly',
+  },
+  ShareOnboardingGuide: {
+    ...tool({
+      description: 'Create, update, inspect, or delete an onboarding guide',
+      inputSchema: z.object({
+        mode: z.enum(['check', 'update', 'create', 'delete']).optional(),
+        short_code: z
+          .string()
+          .regex(/^[A-Za-z0-9_-]{1,64}$/)
+          .optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  WaitForMcpServers: {
+    ...tool({
+      description: 'Wait for MCP servers that are still connecting',
+      inputSchema: z.object({
+        servers: z.array(z.string()).optional(),
+      }),
+    }),
+    toolUseKind: 'readonly',
+  },
+  Workflow: {
+    ...tool({
+      description: 'Run or resume a dynamic multi-agent workflow',
+      inputSchema: z.object({
+        script: z.string().optional(),
+        name: z.string().optional(),
+        description: z.string().optional(),
+        title: z.string().optional(),
+        args: z.record(z.string(), z.unknown()).optional(),
+        scriptPath: z.string().optional(),
+        resumeFromRunId: z.string().optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
 /*

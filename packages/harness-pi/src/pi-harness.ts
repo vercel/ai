@@ -4,6 +4,7 @@ import {
   type HarnessV1BuiltinTool,
 } from '@ai-sdk/harness';
 import { tool } from '@ai-sdk/provider-utils';
+import type { ExtensionFactory } from '@earendil-works/pi-coding-agent';
 import { z } from 'zod/v4';
 import type { PiAuthOptions } from './pi-auth';
 import { piResumeStateSchema } from './pi-resume-state';
@@ -45,6 +46,12 @@ export type PiHarnessSettings = {
    * underlying runtime's native MCP server configuration format.
    */
   readonly mcpServers?: Record<string, unknown>;
+  /**
+   * Trusted inline Pi extensions loaded for each harness session.
+   *
+   * Filesystem-discovered user and project extensions remain disabled.
+   */
+  readonly extensionFactories?: ReadonlyArray<ExtensionFactory>;
 };
 
 const PI_BUILTIN_TOOLS = {
@@ -150,6 +157,9 @@ export function createPi(
             ? { thinkingLevel: settings.thinkingLevel }
             : {}),
           ...(settings.mcpServers ? { mcpServers: settings.mcpServers } : {}),
+          ...(settings.extensionFactories
+            ? { extensionFactories: settings.extensionFactories }
+            : {}),
         },
         clientApp: PI_CLIENT_APP,
         isResume: lifecycleState != null,
