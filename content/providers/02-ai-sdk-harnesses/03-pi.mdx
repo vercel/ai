@@ -82,8 +82,37 @@ const harness = createPi({
 Settings:
 
 - `auth`: AI Gateway or custom provider environment configuration.
+- `extensionFactories`: trusted inline Pi extension factories that run in the
+  host Node.js process.
 - `model`: Pi model id or model name.
 - `thinkingLevel`: Pi thinking budget level.
+
+## Inline Extensions
+
+Use `extensionFactories` to load trusted inline Pi extensions for each harness
+session:
+
+```ts
+const harness = createPi({
+  extensionFactories: [
+    pi => {
+      pi.on('agent_start', () => {
+        console.log('Pi agent started');
+      });
+    },
+  ],
+});
+```
+
+Routine resource refreshes between turns reuse the active extension runtime and
+do not reinitialize factories. If the underlying Pi session is rebuilt, the
+factories initialize again for the new Pi runtime.
+
+Extension factories execute in the host Node.js process with access to the host
+environment, so only pass factories you trust. This setting enables only the
+factories you explicitly provide. Filesystem extension discovery remains
+disabled, including user, project, and settings-based extensions. Themes and
+prompt templates also remain disabled.
 
 ## Authentication
 
