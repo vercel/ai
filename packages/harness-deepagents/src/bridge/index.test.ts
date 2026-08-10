@@ -60,6 +60,10 @@ vi.mock('@langchain/langgraph', () => ({
   MemorySaver: class {},
 }));
 
+vi.mock('@langchain/mcp-adapters', () => ({
+  MultiServerMCPClient: class {},
+}));
+
 describe('Deep Agents bridge instructions', () => {
   beforeEach(() => {
     state.createDeepAgentOptions = [];
