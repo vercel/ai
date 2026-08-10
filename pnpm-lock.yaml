@@ -474,6 +474,9 @@ importers:
       '@ai-sdk/sandbox-just-bash':
         specifier: workspace:*
         version: link:../../packages/sandbox-just-bash
+      '@ai-sdk/sandbox-tensorlake':
+        specifier: workspace:*
+        version: link:../../packages/sandbox-tensorlake
       '@ai-sdk/sandbox-vercel':
         specifier: workspace:*
         version: link:../../packages/sandbox-vercel
@@ -3861,6 +3864,37 @@ importers:
       typescript:
         specifier: 5.8.3
         version: 5.8.3
+
+  packages/sandbox-tensorlake:
+    dependencies:
+      '@ai-sdk/harness':
+        specifier: workspace:*
+        version: link:../harness
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+      tensorlake:
+        specifier: ^0.5.85
+        version: 0.5.85
+    devDependencies:
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@types/ws':
+        specifier: ^8.5.13
+        version: 8.18.1
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.19)(tsx@4.22.0)(typescript@5.8.3)(yaml@2.9.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      ws:
+        specifier: ^8.20.1
+        version: 8.21.0
 
   packages/sandbox-vercel:
     dependencies:
@@ -22281,6 +22315,11 @@ packages:
   teex@1.0.1:
     resolution: {integrity: sha512-eYE6iEI62Ni1H8oIa7KlDU6uQBtqr4Eajni3wX7rpfXD8ysFx8z0+dri+KWEPWpBsxXfxu58x/0jvTVT1ekOSg==}
 
+  tensorlake@0.5.85:
+    resolution: {integrity: sha512-205AKHh4aR8eSmEL/9Z+DwpD1cxNEBok4hyK8csoYn7kHexXpJaM/5nWurzZcIA018GUzikMZI/mOkSDKKwubg==}
+    engines: {node: '>=22.0.0'}
+    hasBin: true
+
   term-img@6.0.0:
     resolution: {integrity: sha512-R4c+XtUiN/9lMlw+wldmxjPO/xlG3sIE79tcnE3A8CtcYMTDiOgAKy/EhroI+rmjB3cVyCkYSzTPBBjPsC7YdQ==}
     engines: {node: '>=12'}
@@ -22844,6 +22883,10 @@ packages:
   undici@7.28.0:
     resolution: {integrity: sha512-cRZYrTDwWznlnRiPjggAGxZXanty6M8RV1ff8Wm4LWXBp7/IG8v5DnOm74DtUBp9OONpK75YlPnIjQqX0dBDtA==}
     engines: {node: '>=20.18.1'}
+
+  undici@8.3.0:
+    resolution: {integrity: sha512-TkUDgb6tl7KOGZ+7e8E3d2FYgUQgF6z5YypqjWmixVQSQERFcVrVg0ySADm2LVLRh5ljAaHTCR5Fmz3Q34rB7Q==}
+    engines: {node: '>=22.19.0'}
 
   undici@8.5.0:
     resolution: {integrity: sha512-xamtWoB1EshgjpmlXd7GGm2VfdDtw1+rD8uhry8pSNW3If6S8E0m2T2+orSKeZXEn/aPJMviCpDBA65WJt8zhg==}
@@ -46819,6 +46862,14 @@ snapshots:
       - bare-abort-controller
       - react-native-b4a
 
+  tensorlake@0.5.85:
+    dependencies:
+      undici: 8.3.0
+      ws: 8.21.0
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
   term-img@6.0.0:
     dependencies:
       ansi-escapes: 5.0.0
@@ -47457,6 +47508,8 @@ snapshots:
   undici@7.27.1: {}
 
   undici@7.28.0: {}
+
+  undici@8.3.0: {}
 
   undici@8.5.0: {}
 
