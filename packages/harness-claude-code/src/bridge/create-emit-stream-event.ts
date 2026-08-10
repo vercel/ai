@@ -67,6 +67,7 @@ export type ClaudeStreamEventState = {
    * suppressed.
    */
   mcpToolUseIds: Set<string>;
+  externalMcpToolUseIds: Set<string>;
   observedTerminalError: string | undefined;
 };
 
@@ -80,6 +81,7 @@ export function createClaudeStreamEventState(): ClaudeStreamEventState {
     pendingStepUsage: undefined,
     stepOpen: false,
     mcpToolUseIds: new Set(),
+    externalMcpToolUseIds: new Set(),
     observedTerminalError: undefined,
   };
 }
@@ -205,6 +207,8 @@ export function createEmitStreamEvent({
             continue;
           }
           state.nativeToolCallNames.set(block.id, block.name);
+          const dynamic = block.name.startsWith('mcp__');
+          if (dynamic) state.externalMcpToolUseIds.add(block.id);
           if (state.approvalRequestedToolUseIds.has(block.id)) {
             continue;
           }
@@ -217,6 +221,7 @@ export function createEmitStreamEvent({
             nativeName: block.name,
             input: JSON.stringify(block.input ?? {}),
             providerExecuted: true,
+            ...(dynamic ? { dynamic: true } : {}),
           });
         }
       }
@@ -243,6 +248,7 @@ export function createEmitStreamEvent({
             state.nativeToolCallNames.get(block.tool_use_id) ?? 'unknown';
           state.nativeToolCallNames.delete(block.tool_use_id);
           const toolName = toCommonName(nativeName);
+          const dynamic = state.externalMcpToolUseIds.delete(block.tool_use_id);
           const isError = !!block.is_error;
           const content = stringifyContent(block.content);
           /*
@@ -258,13 +264,16 @@ export function createEmitStreamEvent({
           const result =
             toolName === 'bash'
               ? { exitCode: isError ? 1 : 0, stdout: content }
-              : content;
+              : dynamic
+                ? parseMcpToolResult(content)
+                : content;
           emit({
             type: 'tool-result',
             toolCallId: block.tool_use_id,
             toolName,
             result,
             isError,
+            ...(dynamic ? { dynamic: true } : {}),
           });
           state.pendingStepToolUseIds.delete(block.tool_use_id);
         }
@@ -413,6 +422,14 @@ function stringifyContent(content: unknown): string {
       .join('');
   }
   return JSON.stringify(content);
+}
+
+function parseMcpToolResult(content: string): unknown {
+  try {
+    return JSON.parse(content);
+  } catch {
+    return content;
+  }
 }
 
 export function mapUsage(usage: unknown): Record<string, unknown> | undefined {

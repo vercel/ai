@@ -27,6 +27,7 @@ export type DeepAgentsStreamEventState = {
   // Approval-gated tools are announced before execution; these tie the later run back to the approval id and dedup the call.
   approvedToolQueue: Map<string, string[]>;
   approvedRunIds: Map<string, string>;
+  dynamicToolRunIds: Set<string>;
 };
 
 export function createDeepAgentsStreamEventState(): DeepAgentsStreamEventState {
@@ -41,6 +42,7 @@ export function createDeepAgentsStreamEventState(): DeepAgentsStreamEventState {
     pendingStep: undefined,
     approvedToolQueue: new Map(),
     approvedRunIds: new Map(),
+    dynamicToolRunIds: new Set(),
   };
 }
 
@@ -60,11 +62,13 @@ export function createEmitStreamEvent({
   state,
   configuredModel,
   hostToolNames,
+  mcpToolNames,
   emit,
 }: {
   state: DeepAgentsStreamEventState;
   configuredModel: string | undefined;
   hostToolNames: ReadonlySet<string>;
+  mcpToolNames: ReadonlySet<string>;
   emit: Emit;
 }): (event: DeepAgentsStreamEvent) => void {
   return event => {
@@ -162,6 +166,8 @@ export function createEmitStreamEvent({
       const runId = event.run_id ?? '';
       // Host tools emit their own tool-call; surface only top-level builtin (providerExecuted) tools.
       if (!nested && !hostToolNames.has(toolName)) {
+        const isMcpTool = mcpToolNames.has(toolName);
+        if (isMcpTool && runId) state.dynamicToolRunIds.add(runId);
         const queued = state.approvedToolQueue.get(toolName);
         if (queued && queued.length > 0) {
           // Already announced at approval time; tie this run to that id and don't re-emit the call.
@@ -177,6 +183,7 @@ export function createEmitStreamEvent({
             input: toToolCallInput(data.input),
             providerExecuted: true,
             nativeName: toolName,
+            ...(isMcpTool ? { dynamic: true } : {}),
           });
         }
       }
@@ -184,6 +191,7 @@ export function createEmitStreamEvent({
       const toolName = event.name ?? 'unknown';
       const runId = event.run_id ?? '';
       if (!nested && !hostToolNames.has(toolName)) {
+        const dynamic = state.dynamicToolRunIds.delete(runId);
         let output: unknown = data.output ?? '';
         if (output && typeof output === 'object' && 'content' in output) {
           output = (output as { content: unknown }).content;
@@ -193,6 +201,7 @@ export function createEmitStreamEvent({
           toolCallId: state.approvedRunIds.get(runId) ?? runId,
           toolName: toCommonName(toolName),
           result: output ?? null,
+          ...(dynamic ? { dynamic: true } : {}),
         });
         state.approvedRunIds.delete(runId);
       }

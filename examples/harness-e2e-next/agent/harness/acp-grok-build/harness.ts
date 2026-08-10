@@ -6,6 +6,10 @@ const harnessId = 'acp-grok-build';
 export const grokBuildACPHarness = createACP({
   harnessId,
   builtinTools: grokBuildACPBuiltinTools,
+  isMcpToolCall: toolCall => {
+    const metadata = toolCall._meta?.['x.ai/tool'];
+    return isRecord(metadata) && metadata.namespace === 'mcp';
+  },
   source: {
     type: 'npm-simple',
     packageName: '@xai-official/grok',
@@ -36,3 +40,7 @@ export const grokBuildACPHarness = createACP({
     },
   },
 });
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}

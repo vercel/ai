@@ -385,6 +385,127 @@ describe('createACP', () => {
     ).toBe('harness-v1');
   });
 
+  it('forwards MCP servers and lets the implementation classify unknown ACP tools', async () => {
+    const isMcpToolCall = vi.fn(
+      (toolCall: { _meta?: Record<string, unknown> | null }) =>
+        toolCall._meta?.is_mcp_tool_call === true,
+    );
+    const mcpServers = {
+      external: {
+        command: '/usr/bin/external-mcp',
+        args: [],
+        env: [],
+      },
+    };
+    const harness = createACP({
+      harnessId: 'codex-acp',
+      ...agentSettings,
+      mcpServers,
+      isMcpToolCall,
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+    const events: unknown[] = [];
+    const control = await session.doPromptTurn({
+      prompt: 'Use the external tool.',
+      emit: event => events.push(event),
+    });
+    const channel = harnessUtilsMocks.channels[0]!;
+
+    expect(channel.sent[0]).toMatchObject({
+      type: 'start',
+      mcpServers,
+    });
+    channel.emit({
+      type: 'acp-tool-call-candidate',
+      toolCall: {
+        toolCallId: 'call-1',
+        title: 'External tool',
+        _meta: { is_mcp_tool_call: true },
+      },
+    });
+    channel.emit({
+      type: 'tool-call',
+      toolCallId: 'call-1',
+      toolName: 'external_tool',
+      input: '{}',
+      providerExecuted: true,
+    });
+    channel.emit({
+      type: 'tool-result',
+      toolCallId: 'call-1',
+      toolName: 'external_tool',
+      result: { ok: true },
+    });
+    channel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+
+    await control.done;
+    expect(isMcpToolCall).toHaveBeenCalledOnce();
+    expect(events).toMatchInlineSnapshot(`
+      [
+        {
+          "dynamic": true,
+          "input": "{}",
+          "providerExecuted": true,
+          "toolCallId": "call-1",
+          "toolName": "external_tool",
+          "type": "tool-call",
+        },
+        {
+          "dynamic": true,
+          "result": {
+            "ok": true,
+          },
+          "toolCallId": "call-1",
+          "toolName": "external_tool",
+          "type": "tool-result",
+        },
+        {
+          "finishReason": {
+            "raw": "end_turn",
+            "unified": "stop",
+          },
+          "totalUsage": {
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+          },
+          "type": "finish",
+        },
+      ]
+    `);
+    await session.doDestroy();
+  });
+
+  it('reserves the host-tool MCP server name', () => {
+    expect(() =>
+      createACP({
+        harnessId: 'codex-acp',
+        ...agentSettings,
+        mcpServers: { 'ai-sdk-harness-tools': {} },
+      }),
+    ).toThrow('reserved for HarnessAgent tools');
+  });
+
   it('advertises approvals with and without a complete mapping', () => {
     const mapped = createACP({
       harnessId: 'codex-acp',

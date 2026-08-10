@@ -11,6 +11,7 @@ export const outboundMessageSchema = harnessV1BridgeOutboundMessageSchema;
 export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
 
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
+  mcpServers: z.record(z.string(), z.unknown()).optional(),
   /*
    * Appended to Deep Agents's native system prompt when the bridge constructs
    * the session's agent.

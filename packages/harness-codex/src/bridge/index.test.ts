@@ -22,6 +22,7 @@ const state = vi.hoisted(() => ({
   threadOptions: [] as ThreadOptions[],
   startModel: 'gpt-5.5',
   startInstructions: undefined as string | undefined,
+  startMcpServers: undefined as Record<string, unknown> | undefined,
   originalArgv: [] as string[],
   originalEnv: {} as Record<
     (typeof CODEX_ENV_KEYS)[number],
@@ -65,6 +66,7 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
           ? { instructions: state.startInstructions }
           : {}),
         model: state.startModel,
+        mcpServers: state.startMcpServers,
         tools: [
           {
             name: 'get_weather',
@@ -89,6 +91,7 @@ describe('Codex bridge config', () => {
     state.threadOptions = [];
     state.startModel = 'gpt-5.5';
     state.startInstructions = undefined;
+    state.startMcpServers = undefined;
     state.originalArgv = [...process.argv];
     state.originalEnv = Object.fromEntries(
       CODEX_ENV_KEYS.map(key => [key, process.env[key]]),
@@ -128,6 +131,18 @@ describe('Codex bridge config', () => {
 
     expect(state.codexOptions).toHaveLength(1);
     expect(state.codexOptions[0]?.config?.mcp_servers).toBeUndefined();
+  });
+
+  test('passes configured MCP servers to Codex', async () => {
+    state.startMcpServers = {
+      context7: { url: 'https://mcp.context7.com/mcp' },
+    };
+
+    await import('./index');
+
+    expect(state.codexOptions[0]?.config?.mcp_servers).toEqual(
+      state.startMcpServers,
+    );
   });
 
   test('requests detailed reasoning summaries by default', async () => {

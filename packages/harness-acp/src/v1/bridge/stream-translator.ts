@@ -1,5 +1,10 @@
 import type { HarnessV1StreamPart } from '@ai-sdk/harness';
 import type { PromptResponse, SessionUpdate } from '@agentclientprotocol/sdk';
+import type {
+  ACPToolCall,
+  ACPToolCallStatus,
+  ACPToolKind,
+} from '../../acp-tool-call';
 import type { ACPBuiltinToolMapping } from '../acp-v1-bridge-protocol';
 
 type HarnessUsage = Extract<
@@ -20,7 +25,6 @@ type ToolState = {
   emittedResult: boolean;
   toolName?: string;
   nativeName?: string;
-  dynamic?: boolean;
 };
 
 export type ACPSessionUpdate = SessionUpdate;
@@ -28,9 +32,11 @@ export type ACPPromptResponse = PromptResponse;
 
 export function createACPStreamTranslator({
   emit,
+  emitToolCallCandidate,
   builtinTools = [],
 }: {
   emit: (event: HarnessV1StreamPart) => void;
+  emitToolCallCandidate?: (options: { toolCall: ACPToolCall }) => void;
   builtinTools?: ReadonlyArray<ACPBuiltinToolMapping>;
 }): {
   update: (
@@ -228,13 +234,12 @@ export function createACPStreamTranslator({
           builtin.nativeName != null && builtin.toolName !== builtin.nativeName
             ? builtin.nativeName
             : undefined;
-        state.dynamic = false;
       } else {
         state.toolName = createDynamicToolName({
           programmaticName,
           toolCallId: state.toolCallId,
         });
-        state.dynamic = true;
+        emitToolCallCandidate?.({ toolCall: createACPToolCall({ state }) });
       }
       emit({
         type: 'tool-call',
@@ -242,7 +247,6 @@ export function createACPStreamTranslator({
         toolName: state.toolName,
         input: stringifyToolInput({ input: state.values.rawInput }),
         providerExecuted: true,
-        ...(state.dynamic ? { dynamic: true } : {}),
         ...(state.nativeName == null ? {} : { nativeName: state.nativeName }),
       });
       state.emittedCall = true;
@@ -263,7 +267,6 @@ export function createACPStreamTranslator({
         toolName: state.toolName!,
         result: createToolResult({ state }),
         ...(state.values.status === 'failed' ? { isError: true } : {}),
-        ...(state.dynamic ? { dynamic: true } : {}),
       });
       state.emittedResult = true;
       pendingToolCallIds.delete(state.toolCallId);
@@ -695,6 +698,60 @@ function mergeToolUpdate({
     property: 'name',
   });
   if (programmaticName != null) state.values.name = programmaticName;
+}
+
+function createACPToolCall({ state }: { state: ToolState }): ACPToolCall {
+  const title = getStringProperty({
+    value: state.values,
+    property: 'title',
+  });
+  const kind = state.values.kind;
+  const status = state.values.status;
+  return {
+    toolCallId: state.toolCallId,
+    title: title ?? state.toolName ?? `Tool ${state.toolCallId}`,
+    ...(isACPToolKind(kind) ? { kind } : {}),
+    ...(isACPToolCallStatus(status) ? { status } : {}),
+    ...(Array.isArray(state.values.content)
+      ? { content: state.values.content as ACPToolCall['content'] }
+      : {}),
+    ...(Array.isArray(state.values.locations)
+      ? { locations: state.values.locations as ACPToolCall['locations'] }
+      : {}),
+    ...(Object.prototype.hasOwnProperty.call(state.values, 'rawInput')
+      ? { rawInput: state.values.rawInput }
+      : {}),
+    ...(Object.prototype.hasOwnProperty.call(state.values, 'rawOutput')
+      ? { rawOutput: state.values.rawOutput }
+      : {}),
+    ...(state.values._meta === null || isRecord(state.values._meta)
+      ? { _meta: state.values._meta }
+      : {}),
+  };
+}
+
+function isACPToolKind(value: unknown): value is ACPToolKind {
+  return (
+    value === 'read' ||
+    value === 'edit' ||
+    value === 'delete' ||
+    value === 'move' ||
+    value === 'search' ||
+    value === 'execute' ||
+    value === 'think' ||
+    value === 'fetch' ||
+    value === 'switch_mode' ||
+    value === 'other'
+  );
+}
+
+function isACPToolCallStatus(value: unknown): value is ACPToolCallStatus {
+  return (
+    value === 'pending' ||
+    value === 'in_progress' ||
+    value === 'completed' ||
+    value === 'failed'
+  );
 }
 
 function emitFileChanges({

@@ -2,6 +2,7 @@ import type { HarnessV1 } from '@ai-sdk/harness';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { ACPClientApp } from './acp-auth';
+import type { ACPToolCall } from './acp-tool-call';
 import { createACPV1, type ACPV1Settings } from './v1';
 import {
   acpColdSessionStateSchema,
@@ -16,6 +17,12 @@ const ACP_CLIENT_APP = {
 
 export type ACPHarnessSettings<TBuiltinTools extends ToolSet = {}> = {
   readonly builtinTools?: TBuiltinTools;
+  /**
+   * MCP server definitions keyed by server name. Each definition uses the
+   * underlying runtime's native MCP server configuration format.
+   */
+  readonly mcpServers?: Record<string, unknown>;
+  readonly isMcpToolCall?: (toolCall: ACPToolCall) => boolean;
   readonly port?: number;
   readonly startupTimeoutMs?: number;
   readonly clientApp?: ACPClientApp;
@@ -87,6 +94,17 @@ const acpResumeStateSchema = z.object({
 export function createACP<TBuiltinTools extends ToolSet = {}>(
   settings: ACPHarnessSettings<TBuiltinTools>,
 ): HarnessV1<TBuiltinTools> {
+  if (
+    settings.mcpServers != null &&
+    Object.prototype.hasOwnProperty.call(
+      settings.mcpServers,
+      'ai-sdk-harness-tools',
+    )
+  ) {
+    throw new Error(
+      'ACP MCP server name "ai-sdk-harness-tools" is reserved for HarnessAgent tools.',
+    );
+  }
   const version = (settings as { readonly version?: string }).version ?? 'v1';
   switch (version) {
     case 'v1': {

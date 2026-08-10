@@ -172,6 +172,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       },
     };
   }
+  if (start.mcpServers != null) {
+    codexConfig.mcp_servers = start.mcpServers;
+  }
   const usesConfiguredModelProvider =
     typeof codexConfig.model_provider === 'string';
 

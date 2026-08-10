@@ -234,6 +234,7 @@ describe('createEmitStreamEvent', () => {
           "type": "tool-result",
         },
         {
+          "dynamic": true,
           "result": {
             "temperature": 72,
           },

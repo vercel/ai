@@ -1,4 +1,5 @@
 import type { HarnessV1PermissionMode } from '@ai-sdk/harness';
+import type { ACPToolCall } from '../acp-tool-call';
 
 export type ACPSerializablePrimitive = string | number | boolean | null;
 
@@ -93,6 +94,8 @@ export type ACPInstructionMapping =
 export type ACPV1Settings = {
   readonly version?: 'v1';
   readonly harnessId: string;
+  readonly mcpServers?: Record<string, unknown>;
+  readonly isMcpToolCall?: (toolCall: ACPToolCall) => boolean;
   readonly auth?: ACPProviderAuthenticationMode;
   readonly source: ACPSource;
   readonly executable: string;

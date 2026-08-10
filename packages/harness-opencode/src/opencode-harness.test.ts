@@ -320,7 +320,7 @@ describe('createOpenCode adapter', () => {
     );
   });
 
-  it('passes reasoningVariant and instructions to every OpenCode prompt', async () => {
+  it('passes reasoningVariant, instructions, and MCP servers to every OpenCode prompt', async () => {
     harnessUtilsMocks.channels.length = 0;
     harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
     const emptyStream = () =>
@@ -360,8 +360,15 @@ describe('createOpenCode adapter', () => {
       async stop() {},
     } as unknown as HarnessV1NetworkSandboxSession;
 
+    const mcpServers = {
+      context7: {
+        type: 'remote',
+        url: 'https://mcp.context7.com/mcp',
+      },
+    };
     const session = await createOpenCode({
       reasoningVariant: 'high',
+      mcpServers,
     }).doStart({
       sessionId: 's1',
       sandboxSession,
@@ -379,6 +386,7 @@ describe('createOpenCode adapter', () => {
       prompt: 'think',
       instructions: 'be concise',
       variant: 'high',
+      mcpServers,
     });
 
     await session.doPromptTurn({
@@ -393,6 +401,7 @@ describe('createOpenCode adapter', () => {
       prompt: 'think again',
       instructions: 'be concise',
       variant: 'high',
+      mcpServers,
     });
 
     await session.doDestroy();

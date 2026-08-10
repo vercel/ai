@@ -106,6 +106,11 @@ export type DeepAgentsHarnessSettings = {
    * When omitted, the Deep Agents default applies.
    */
   readonly recursionLimit?: number;
+  /**
+   * MCP server definitions keyed by server name. Each definition uses the
+   * underlying runtime's native MCP server configuration format.
+   */
+  readonly mcpServers?: Record<string, unknown>;
 };
 
 // Every model-callable DeepAgents built-in, keyed by what the bridge emits (commonName ?? nativeName); all must be listed or AI SDK throws AI_NoSuchToolError.
@@ -283,6 +288,7 @@ export function createDeepAgents(
             permissionMode,
             builtinToolFiltering: startOpts.builtinToolFiltering,
             recursionLimit: settings.recursionLimit,
+            mcpServers: settings.mcpServers,
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -401,6 +407,7 @@ export function createDeepAgents(
         permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
         recursionLimit: settings.recursionLimit,
+        mcpServers: settings.mcpServers,
       });
     },
   };
@@ -498,6 +505,7 @@ function createSession({
   permissionMode,
   builtinToolFiltering,
   recursionLimit,
+  mcpServers,
 }: {
   sessionId: string;
   channel: DeepAgentsChannel;
@@ -516,6 +524,7 @@ function createSession({
   permissionMode?: HarnessV1PermissionMode;
   builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
   recursionLimit?: number;
+  mcpServers?: Record<string, unknown>;
 }): HarnessV1Session {
   let stopped = false;
   let instructionsApplied = attached;
@@ -673,6 +682,7 @@ function createSession({
         ...(permissionMode ? { permissionMode } : {}),
         ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
         ...(recursionLimit != null ? { recursionLimit } : {}),
+        ...(mcpServers == null ? {} : { mcpServers }),
       });
 
       return control;

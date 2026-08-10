@@ -64,6 +64,11 @@ const CLAUDE_CODE_CLIENT_APP = `ai-sdk/harness-claude-code/${VERSION}`;
 export type ClaudeCodeHarnessSettings = {
   readonly auth?: ClaudeCodeAuthOptions;
   /**
+   * MCP server definitions keyed by server name. Each definition uses the
+   * underlying runtime's native MCP server configuration format.
+   */
+  readonly mcpServers?: Record<string, unknown>;
+  /**
    * Anthropic model id the underlying `claude` CLI should use. Leaving this
    * unset defers to the CLI's default.
    */
@@ -786,6 +791,14 @@ type ClaudeCodeBridgeCoords = z.infer<typeof claudeCodeBridgeCoordsSchema>;
 export function createClaudeCode(
   settings: ClaudeCodeHarnessSettings = {},
 ): HarnessV1<typeof CLAUDE_CODE_BUILTIN_TOOLS> {
+  if (
+    settings.mcpServers != null &&
+    Object.prototype.hasOwnProperty.call(settings.mcpServers, 'harness-tools')
+  ) {
+    throw new Error(
+      'Claude Code MCP server name "harness-tools" is reserved for HarnessAgent tools.',
+    );
+  }
   let cachedBootstrap: HarnessV1Bootstrap | undefined;
   const thinking = settings.thinking ?? {
     type: 'adaptive',
@@ -915,6 +928,7 @@ export function createClaudeCode(
             permissionMode: startOpts.permissionMode,
             builtinToolFiltering: startOpts.builtinToolFiltering,
             skills: startOpts.skills ?? [],
+            mcpServers: settings.mcpServers,
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -1089,6 +1103,7 @@ export function createClaudeCode(
         permissionMode: startOpts.permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
         skills: startOpts.skills ?? [],
+        mcpServers: settings.mcpServers,
       });
     },
   };
@@ -1332,6 +1347,7 @@ function createSession({
   permissionMode,
   builtinToolFiltering,
   skills,
+  mcpServers,
 }: {
   sessionId: string;
   channel: ClaudeCodeChannel;
@@ -1351,6 +1367,7 @@ function createSession({
   permissionMode: HarnessV1PermissionMode | undefined;
   builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
   skills: ReadonlyArray<HarnessV1Skill>;
+  mcpServers: Record<string, unknown> | undefined;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
@@ -1525,6 +1542,7 @@ function createSession({
         ...(skills.length > 0
           ? { skills: skills.map(skill => skill.name) }
           : {}),
+        ...(mcpServers == null ? {} : { mcpServers }),
         ...(permissionMode ? { permissionMode } : {}),
         ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
         ...(debug ? { debug } : {}),
@@ -1581,6 +1599,7 @@ function createSession({
           ...(skills.length > 0
             ? { skills: skills.map(skill => skill.name) }
             : {}),
+          ...(mcpServers == null ? {} : { mcpServers }),
           ...(permissionMode ? { permissionMode } : {}),
           ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
           ...(debug ? { debug } : {}),
