@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 type CodexOptions = {
   config?: {
+    base_instructions?: unknown;
+    developer_instructions?: unknown;
     mcp_servers?: unknown;
     model_reasoning_summary?: unknown;
     model_supports_reasoning_summaries?: unknown;
@@ -19,6 +21,7 @@ const state = vi.hoisted(() => ({
   codexOptions: [] as CodexOptions[],
   threadOptions: [] as ThreadOptions[],
   startModel: 'gpt-5.5',
+  startInstructions: undefined as string | undefined,
   originalArgv: [] as string[],
   originalEnv: {} as Record<
     (typeof CODEX_ENV_KEYS)[number],
@@ -58,6 +61,9 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
     await onStart(
       {
         prompt: 'Use the weather tool.',
+        ...(state.startInstructions
+          ? { instructions: state.startInstructions }
+          : {}),
         model: state.startModel,
         tools: [
           {
@@ -82,6 +88,7 @@ describe('Codex bridge config', () => {
     state.codexOptions = [];
     state.threadOptions = [];
     state.startModel = 'gpt-5.5';
+    state.startInstructions = undefined;
     state.originalArgv = [...process.argv];
     state.originalEnv = Object.fromEntries(
       CODEX_ENV_KEYS.map(key => [key, process.env[key]]),
@@ -129,9 +136,22 @@ describe('Codex bridge config', () => {
     expect(state.codexOptions).toHaveLength(1);
     expect(state.codexOptions[0]?.config).toMatchInlineSnapshot(`
       {
+        "developer_instructions": "Only respond with your \`final\` message once you have fully addressed the user request.",
         "model_reasoning_summary": "detailed",
       }
     `);
+  });
+
+  test('injects session instructions as developer instructions', async () => {
+    state.startInstructions = 'Answer every question in German.';
+
+    await import('./index');
+
+    expect(state.codexOptions[0]?.config?.base_instructions).toBeUndefined();
+    expect(state.codexOptions[0]?.config?.developer_instructions).toBe(
+      'Answer every question in German.\n\n' +
+        'Only respond with your `final` message once you have fully addressed the user request.',
+    );
   });
 
   test('uses the creator-qualified model and forces summaries for AI Gateway', async () => {
