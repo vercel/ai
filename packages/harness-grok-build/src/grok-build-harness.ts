@@ -40,6 +40,11 @@ export type GrokBuildHarnessSettings = {
    * Maximum milliseconds to wait for the ACP bridge to start.
    */
   readonly startupTimeoutMs?: number;
+  /**
+   * Creates the authentication token used by the sandbox bridge. Defaults to
+   * a random 32-byte hexadecimal token.
+   */
+  readonly mintBridgeToken?: (sandboxId: string) => string;
 };
 
 /*
@@ -278,6 +283,7 @@ export function createGrokBuild(
     modelId: settings.model,
     port: settings.port,
     startupTimeoutMs: settings.startupTimeoutMs,
+    mintBridgeToken: settings.mintBridgeToken,
     version: 'v1',
     harnessId: 'grok-build',
     builtinTools: GROK_BUILD_BUILTIN_TOOLS,

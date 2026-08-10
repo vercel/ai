@@ -12,7 +12,7 @@ import {
 import { createCompactionLatch } from './compaction-latch';
 import type { StartMessage } from '../claude-code-bridge-protocol';
 import { randomUUID } from 'node:crypto';
-import { argv, stdout } from 'node:process';
+import { argv, env as procEnv, stdout } from 'node:process';
 
 /*
  * CONSTRAINT — the third-party imports below are NEVER bundled into the
@@ -45,6 +45,10 @@ import {
   type ClaudeMessage,
 } from './create-emit-stream-event';
 import { jsonSchemaToZodShape } from './json-schema-to-zod';
+import {
+  resolveInactiveNativeTools,
+  resolveNativeTools,
+} from './tool-filtering';
 
 /*
  * Native Claude Code tool name → cross-harness common name. Tools outside this
@@ -69,37 +73,6 @@ const NATIVE_TO_COMMON: Readonly<Record<string, CommonBuiltinToolName>> = {
   Grep: 'grep',
   WebSearch: 'webSearch',
 };
-
-const PUBLIC_TO_NATIVE: Readonly<Record<string, string>> = {
-  read: 'Read',
-  write: 'Write',
-  edit: 'Edit',
-  bash: 'Bash',
-  glob: 'Glob',
-  grep: 'Grep',
-  webSearch: 'WebSearch',
-  WebFetch: 'WebFetch',
-  NotebookEdit: 'NotebookEdit',
-  TodoWrite: 'TodoWrite',
-  Agent: 'Agent',
-  TaskCreate: 'TaskCreate',
-  TaskGet: 'TaskGet',
-  TaskUpdate: 'TaskUpdate',
-  TaskList: 'TaskList',
-  TaskStop: 'TaskStop',
-  TaskOutput: 'TaskOutput',
-  Monitor: 'Monitor',
-  ListMcpResources: 'ListMcpResources',
-  ReadMcpResource: 'ReadMcpResource',
-  ExitPlanMode: 'ExitPlanMode',
-  EnterWorktree: 'EnterWorktree',
-  ExitWorktree: 'ExitWorktree',
-  AskUserQuestion: 'AskUserQuestion',
-  Skill: 'Skill',
-  ToolSearch: 'ToolSearch',
-};
-
-const PUBLIC_TOOL_NAMES = Object.keys(PUBLIC_TO_NATIVE);
 
 const NATIVE_TOOL_KINDS: Readonly<
   Record<string, 'readonly' | 'edit' | 'bash'>
@@ -133,34 +106,6 @@ const NATIVE_TOOL_KINDS: Readonly<
 
 function toCommonName(nativeName: string): CommonBuiltinToolName | string {
   return NATIVE_TO_COMMON[nativeName] ?? nativeName;
-}
-
-function toNativeName(toolName: string): string {
-  return PUBLIC_TO_NATIVE[toolName] ?? toolName;
-}
-
-function resolveNativeTools(start: StartMessage): string[] | undefined {
-  const toolFiltering = start.builtinToolFiltering;
-  if (toolFiltering == null) return undefined;
-  const activeToolNames =
-    toolFiltering.mode === 'allow'
-      ? toolFiltering.toolNames
-      : PUBLIC_TOOL_NAMES.filter(
-          name => !toolFiltering.toolNames.includes(name),
-        );
-  return activeToolNames.map(name => toNativeName(name));
-}
-
-function resolveInactiveNativeTools(start: StartMessage): string[] {
-  const toolFiltering = start.builtinToolFiltering;
-  if (toolFiltering == null) return [];
-  const inactiveToolNames =
-    toolFiltering.mode === 'allow'
-      ? PUBLIC_TOOL_NAMES.filter(
-          name => !toolFiltering.toolNames.includes(name),
-        )
-      : toolFiltering.toolNames;
-  return inactiveToolNames.map(name => toNativeName(name));
 }
 
 const args = parseArgs(argv.slice(2));
@@ -373,8 +318,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     abortSignal: abortCtl.signal,
   });
   const skillsOption = toClaudeSkillsOption(start.skills);
-  const nativeTools = resolveNativeTools(start);
-  const inactiveNativeTools = resolveInactiveNativeTools(start);
+  const nativeTools = resolveNativeTools(start.builtinToolFiltering);
+  const inactiveNativeTools = resolveInactiveNativeTools(
+    start.builtinToolFiltering,
+  );
   const permissionOptions = createPermissionOptions({
     start,
     inactiveNativeTools,
@@ -392,6 +339,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     options: {
       ...(start.model ? { model: start.model } : {}),
       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
+      ...(start.env !== undefined ? { env: { ...procEnv, ...start.env } } : {}),
       ...(skillsOption ? { skills: skillsOption } : {}),
       ...(nativeTools !== undefined ? { tools: nativeTools } : {}),
       ...(inactiveNativeTools.length > 0

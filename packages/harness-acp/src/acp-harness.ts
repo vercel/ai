@@ -33,6 +33,7 @@ export type ACPHarnessSettings<TBuiltinTools extends ToolSet = {}> = {
   readonly instructionMapping?: ACPV1Settings['instructionMapping'];
   readonly permissionModeMapping?: ACPV1Settings['permissionModeMapping'];
   readonly session?: ACPV1Settings['session'];
+  readonly mintBridgeToken?: ACPV1Settings['mintBridgeToken'];
 };
 
 const ACP_BUILTIN_TOOLS = {} as const satisfies ToolSet;

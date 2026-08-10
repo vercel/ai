@@ -785,6 +785,48 @@ describe('createACP', () => {
     expect(stop).not.toHaveBeenCalled();
   });
 
+  it('uses a caller-minted bridge token and reuses it when attaching', async () => {
+    const spawns: Array<{
+      command: string;
+      env: Record<string, string | undefined>;
+    }> = [];
+    const mintBridgeToken = vi.fn(
+      (sandboxId: string) => `token-for-${sandboxId}`,
+    );
+    const harness = createACP({
+      harnessId: 'codex-acp',
+      ...agentSettings,
+      mintBridgeToken,
+    });
+    const sandboxSession = fakeSandbox({
+      runs: [],
+      spawns,
+      stop: async () => {},
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/user-project',
+    });
+
+    expect(mintBridgeToken).toHaveBeenCalledExactlyOnceWith('sandbox-1');
+    expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).toBe('token-for-sandbox-1');
+
+    const resumeFrom = await session.doDetach();
+    expect(resumeFrom.data).toMatchObject({
+      bridge: { token: 'token-for-sandbox-1' },
+    });
+
+    const attachedSession = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/user-project',
+      resumeFrom,
+    });
+    expect(mintBridgeToken).toHaveBeenCalledTimes(1);
+    await attachedSession.doDetach();
+  });
+
   it('rejects an already-aborted turn without sending a start frame', async () => {
     const harness = createACP({
       harnessId: 'codex-acp',

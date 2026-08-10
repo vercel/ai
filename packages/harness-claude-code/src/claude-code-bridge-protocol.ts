@@ -34,6 +34,7 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   instructions: z.string().optional(),
   thinking: thinkingSchema,
   maxTurns: z.number().optional(),
+  env: z.record(z.string(), z.string()).optional(),
   skills: z.array(z.string()).optional(),
   // Resume signal. When true, the bridge passes `{ continue: true }` to the
   // Claude SDK so the in-workdir thread state is rehydrated. The host sets this

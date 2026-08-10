@@ -69,12 +69,24 @@ describe('inboundMessageSchema', () => {
         tools: [{ name: 'deploy' }],
         model: 'claude-sonnet-4-5',
         maxTurns: 5,
+        env: { DEPLOYMENT_ENV: 'staging' },
         thinking: { type: 'adaptive', display: 'summarized' },
         skills: ['weather-forecast', 'weather-codes'],
         permissionMode: 'allow-edits',
         builtinToolFiltering: { mode: 'deny', toolNames: ['bash'] },
       }),
     ).not.toThrow();
+  });
+
+  it('rejects non-string environment values', () => {
+    expect(() =>
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: 'hi',
+        thinking: { type: 'disabled' },
+        env: { RETRY_COUNT: 3 },
+      }),
+    ).toThrow();
   });
 
   it('rejects legacy string thinking values', () => {
