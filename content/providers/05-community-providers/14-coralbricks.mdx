@@ -1,0 +1,86 @@
+---
+title: CoralBricks
+description: Learn how to use the CoralBricks provider for the AI SDK.
+---
+
+# CoralBricks Provider
+
+[@coralbricks/ai-sdk-provider](https://github.com/Coral-Bricks-AI/www/tree/main/integrations/ai-sdk-provider)
+provides access to [CoralBricks](https://www.coralbricks.ai) inference — open
+models (GLM 5.2, Kimi K3, GPT-OSS 120B) with up to 1M-token context and free
+cached input, over an OpenAI-compatible API.
+
+API keys can be obtained from the [CoralBricks API keys page](https://www.coralbricks.ai/api-keys).
+
+## Setup
+
+The CoralBricks provider is available via the `@coralbricks/ai-sdk-provider` module. You can install it with:
+
+<InstallPackages packages="@coralbricks/ai-sdk-provider" />
+
+### Environment variables
+
+Create a `.env` file with a `CORALBRICKS_API_KEY` variable.
+
+## Provider Instance
+
+You can import the default provider instance `coralbricks` from `@coralbricks/ai-sdk-provider`:
+
+```ts
+import { coralbricks } from '@coralbricks/ai-sdk-provider';
+```
+
+If you need a customized setup, you can import `createCoralBricks` and create a provider instance with your settings:
+
+```ts
+import { createCoralBricks } from '@coralbricks/ai-sdk-provider';
+
+const coralbricks = createCoralBricks({
+  // Optional settings
+});
+```
+
+You can use the following optional settings to customize the CoralBricks provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls.
+  The default prefix is `https://inference.coralbricks.ai/v1`.
+
+- **apiKey** _string_
+
+  API key that is sent using the `Authorization` header.
+  It defaults to the `CORALBRICKS_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+## Language Models
+
+Create a model with the provider instance and a model id:
+
+```ts
+const model = coralbricks('glm-5.2-fp4');
+```
+
+Available model ids: `glm-5.2-fp4` (GLM 5.2), `kimi-k3` (Kimi K3), and
+`gpt-oss-120b`. The id type is open, so a newly launched model works before
+the package updates. See [coralbricks.ai/pricing](https://www.coralbricks.ai/pricing)
+for the current catalog.
+
+### Example
+
+```ts
+import { generateText } from 'ai';
+import { coralbricks } from '@coralbricks/ai-sdk-provider';
+
+const { text } = await generateText({
+  model: coralbricks('glm-5.2-fp4'),
+  prompt: 'Explain prompt caching in one sentence.',
+});
+```
+
+Streaming (`streamText`), tool calls, and structured output (`generateObject`)
+work through the standard AI SDK functions — CoralBricks speaks the OpenAI wire
+format, including streaming tool calls. Cached input tokens are billed at zero.
