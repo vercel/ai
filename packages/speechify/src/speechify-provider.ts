@@ -65,6 +65,7 @@ export function createSpeechify(
           environmentVariableName: 'SPEECHIFY_API_KEY',
           description: 'Speechify',
         })}`,
+        'Speechify-Caller': 'vercel',
         ...options.headers,
       },
       `ai-sdk/speechify/${VERSION}`,
