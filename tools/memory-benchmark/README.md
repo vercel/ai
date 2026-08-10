@@ -34,6 +34,11 @@ ignored by Git.
 pnpm benchmark:memory run
 ```
 
+Before measuring, the CLI builds the current AI SDK workspace and links
+Neovate Code's `ai` and `@ai-sdk/*` dependencies to the local packages. This
+ensures each run measures the current checkout instead of Neovate Code's pinned
+registry versions.
+
 The benchmark runs five fresh-process iterations by default. Override the
 iteration count or sampling interval when needed:
 
@@ -51,8 +56,8 @@ pnpm benchmark:memory smoke
 
 ## Results
 
-Each run is written below a timestamped
-`tools/memory-benchmark/results/<timestamp>/` directory:
+Each benchmark invocation is written to the next numbered directory, beginning
+with `tools/memory-benchmark/results/run-1/`.
 
 - `report.md` is the human-readable summary.
 - `report.json` contains aggregate statistics and host details.

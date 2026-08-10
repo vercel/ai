@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { spawn } from 'node:child_process';
-import { access, mkdir, readFile } from 'node:fs/promises';
+import { access, mkdir, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -9,6 +9,7 @@ const toolDirectory = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '..',
 );
+const workspaceDirectory = path.resolve(toolDirectory, '..', '..');
 const defaultRepositoriesDirectory = path.join(toolDirectory, '.repos');
 const defaultEnvPath = path.join(toolDirectory, '.env');
 const benchmarkConfigPath = path.join(
@@ -17,6 +18,15 @@ const benchmarkConfigPath = path.join(
 );
 const benchmarkRunnerPath = path.join(toolDirectory, 'src', 'benchmark.mjs');
 const fixtureDirectory = path.join(toolDirectory, 'fixtures', 'code-project');
+const workspaceAiSdkPackages = [
+  'packages/ai',
+  'packages/anthropic',
+  'packages/google',
+  'packages/mcp',
+  'packages/openai',
+  'packages/openai-compatible',
+  'packages/provider',
+];
 
 const repositories = [
   {
@@ -112,6 +122,46 @@ async function pathExists(targetPath) {
     return true;
   } catch {
     return false;
+  }
+}
+
+async function nextRunDirectory() {
+  const resultsDirectory = path.join(toolDirectory, 'results');
+  await mkdir(resultsDirectory, { recursive: true });
+  const entries = await readdir(resultsDirectory, { withFileTypes: true });
+  const runNumbers = entries
+    .filter(entry => entry.isDirectory())
+    .map(entry => entry.name.match(/^run-(\d+)$/)?.[1])
+    .filter(Boolean)
+    .map(Number);
+  const nextRunNumber =
+    runNumbers.length === 0 ? 1 : Math.max(...runNumbers) + 1;
+  return path.join(resultsDirectory, `run-${nextRunNumber}`);
+}
+
+async function prepareWorkspaceAiSdk(neovateDirectory) {
+  console.log('Building AI SDK workspace packages');
+  await runCommand(
+    [
+      'pnpm',
+      'turbo',
+      'build',
+      '--filter=ai...',
+      '--filter=@ai-sdk/anthropic...',
+      '--filter=@ai-sdk/google...',
+      '--filter=@ai-sdk/mcp...',
+      '--filter=@ai-sdk/openai...',
+      '--filter=@ai-sdk/openai-compatible...',
+    ],
+    { cwd: workspaceDirectory },
+  );
+
+  console.log('\nLinking AI SDK workspace packages into Neovate Code');
+  for (const packageDirectory of workspaceAiSdkPackages) {
+    await runCommand(
+      ['pnpm', 'link', path.join(workspaceDirectory, packageDirectory)],
+      { cwd: neovateDirectory },
+    );
   }
 }
 
@@ -331,15 +381,15 @@ async function runBenchmarks(options) {
     return;
   }
 
+  await prepareWorkspaceAiSdk(ready[0].repositoryPath);
+
   const environment = {
     ...diagnosis.environment,
     AI_SDK_BENCH_ROOT: options.repositoriesDirectory,
     AI_SDK_BENCH_FIXTURE:
       diagnosis.environment.AI_SDK_BENCH_FIXTURE || fixtureDirectory,
   };
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const outputDirectory =
-    options.output ?? path.join(toolDirectory, 'results', timestamp);
+  const outputDirectory = options.output ?? (await nextRunDirectory());
   await mkdir(outputDirectory, { recursive: true });
 
   const command = [
@@ -365,6 +415,7 @@ async function runBenchmarks(options) {
 }
 
 async function smoke() {
+  const outputDirectory = await nextRunDirectory();
   await runCommand(
     [
       process.execPath,
@@ -375,6 +426,8 @@ async function smoke() {
       '2',
       '--sample-interval',
       '50',
+      '--output',
+      outputDirectory,
       '--',
       process.execPath,
       '-e',

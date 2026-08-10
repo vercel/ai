@@ -22,7 +22,7 @@
         "${AI_SDK_BENCH_FIXTURE}",
         "Inspect package.json and summarize its scripts. Do not modify files."
       ],
-      "tags": ["cli", "coding-agent", "middleware", "ai-sdk-6"],
+      "tags": ["cli", "coding-agent", "middleware", "workspace-ai-sdk"],
       "notes": "Runs a fixed read-only prompt against the included fixture project."
     }
   ]
