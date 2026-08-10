@@ -148,56 +148,121 @@ export function convertJSONSchemaToOpenAPISchema(
   return result;
 }
 
+type EnumValues = NonNullable<JSONSchema7['enum']>;
+type EnumType = 'string' | 'number' | 'integer' | 'boolean';
+type GoogleEnumSchema = {
+  type?: JSONSchema7['type'];
+  enum?: JSONSchema7['enum'];
+  format?: JSONSchema7['format'];
+  anyOf?: JSONSchema7['anyOf'];
+  nullable?: boolean;
+};
+
 function addEnumToSchema({
   values,
   type,
   result,
 }: {
-  values: NonNullable<JSONSchema7['enum']>;
+  values: EnumValues;
   type: JSONSchema7['type'];
-  result: Pick<JSONSchema7, 'type' | 'enum' | 'format'>;
+  result: GoogleEnumSchema;
 }) {
-  // Gemini ignores a string enum when its schema has no type, so infer it.
+  const nullable =
+    (Array.isArray(type) && type.includes('null')) ||
+    (type === undefined && values.includes(null));
+
+  // Gemini uses nullable instead of a null enum member.
+  const enumValues = nullable ? values.filter(value => value !== null) : values;
+
+  if (values.length > 0 && values.every(value => value === null)) {
+    const typeAllowsNull =
+      type === undefined ||
+      type === 'null' ||
+      (Array.isArray(type) && type.includes('null'));
+
+    if (typeAllowsNull) {
+      result.type = 'null';
+      if (Array.isArray(type)) {
+        delete result.anyOf;
+      }
+      return;
+    }
+  }
+
+  const enumType = getEnumType({ values: enumValues, type });
+
+  if (enumType === undefined) {
+    throw new UnsupportedFunctionalityError({
+      functionality: 'JSON Schema enum with mixed or unsupported values',
+      message:
+        'Google does not support this JSON Schema enum. Enum values must share one supported primitive type and match the schema type.',
+    });
+  }
+
+  result.type = enumType;
+
+  // The earlier type-array conversion created anyOf. The enum gives us one
+  // concrete value type, so store that type directly.
+  if (Array.isArray(type)) {
+    delete result.anyOf;
+  }
+
+  if (nullable) {
+    result.nullable = true;
+  }
+
+  if (enumType === 'string') {
+    result.enum = enumValues;
+  } else {
+    result.format = 'enum';
+    result.enum = enumValues.map(String);
+  }
+}
+
+function getEnumType({
+  values,
+  type,
+}: {
+  values: EnumValues;
+  type: JSONSchema7['type'];
+}): EnumType | undefined {
+  if (values.length === 0) {
+    return undefined;
+  }
+
+  const typeAllows = (enumType: EnumType) =>
+    type === undefined ||
+    type === enumType ||
+    (Array.isArray(type) && type.includes(enumType));
+
   if (
-    (type == null || type === 'string') &&
-    values.length > 0 &&
+    typeAllows('string') &&
     values.every(value => typeof value === 'string')
   ) {
-    result.type = 'string';
-    result.enum = values;
-    return;
+    return 'string';
   }
 
-  // Gemini requires string enum members for these types. The schema type still
-  // controls the type of the generated JSON value.
   if (
-    (type === 'number' &&
-      values.every(
-        value => typeof value === 'number' && Number.isFinite(value),
-      )) ||
-    (type === 'integer' && values.every(value => Number.isInteger(value))) ||
-    (type === 'boolean' && values.every(value => typeof value === 'boolean'))
+    (typeAllows('number') || typeAllows('integer')) &&
+    values.every(value => typeof value === 'number' && Number.isFinite(value))
   ) {
-    result.format = 'enum';
-    result.enum = values.map(String);
-    return;
+    if (typeAllows('number')) {
+      return 'number';
+    }
+
+    if (values.every(value => Number.isInteger(value))) {
+      return 'integer';
+    }
   }
 
-  // A null type already restricts the value to null.
   if (
-    (type == null || type === 'null') &&
-    values.length > 0 &&
-    values.every(value => value === null)
+    typeAllows('boolean') &&
+    values.every(value => typeof value === 'boolean')
   ) {
-    result.type = 'null';
-    return;
+    return 'boolean';
   }
 
-  throw new UnsupportedFunctionalityError({
-    functionality: 'JSON Schema enum with mixed or unsupported values',
-    message:
-      'Google does not support this JSON Schema enum. Enum values must share one supported primitive type and match the schema type.',
-  });
+  return undefined;
 }
 
 function isEmptyObjectSchema(jsonSchema: JSONSchema7Definition): boolean {
