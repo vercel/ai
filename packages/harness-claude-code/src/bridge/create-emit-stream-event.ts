@@ -5,6 +5,7 @@ type Emit = (message: Record<string, unknown>) => void;
 export type ClaudeMessage = {
   type?: string;
   subtype?: string;
+  parent_tool_use_id?: string | null;
   model?: string;
   error?: string;
   error_status?: number | null;
@@ -186,6 +187,10 @@ export function createEmitStreamEvent({
       return;
     }
 
+    if (type === 'assistant' && msg.parent_tool_use_id != null) {
+      return;
+    }
+
     if (type === 'assistant' && msg.message?.content) {
       const usage = mapUsage(msg.message.usage);
       const toolUseIds: string[] = [];
@@ -224,6 +229,10 @@ export function createEmitStreamEvent({
         state.stepOpen = true;
         if (usage) state.pendingStepUsage = usage;
       }
+      return;
+    }
+
+    if (type === 'user' && msg.parent_tool_use_id != null) {
       return;
     }
 
