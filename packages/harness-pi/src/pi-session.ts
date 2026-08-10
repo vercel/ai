@@ -37,7 +37,7 @@ import {
 } from './pi-auth';
 import { getPiTerminalError, parseNativeEvent } from './pi-events';
 import { createPiModelResolver } from './pi-model-resolver';
-import { createPiPathMapper } from './pi-paths';
+import { createPiPathMapper, type PiFileToolPathPolicy } from './pi-paths';
 import { createPiRemoteOps, type PiRemoteOps } from './pi-remote-ops';
 import { writePiSkills } from './pi-skills';
 import {
@@ -213,6 +213,7 @@ export interface CreatePiSessionInput {
    * (e.g. `~/.pi/agent/`) to reuse their CLI auth and model settings.
    */
   readonly agentDir?: string;
+  readonly fileToolPathPolicy?: PiFileToolPathPolicy;
 }
 
 interface PendingToolResult {
@@ -328,6 +329,9 @@ export async function createPiSession(
     readableRoots: sandboxSkillRootDir
       ? [{ sandboxDir: sandboxSkillRootDir }]
       : [],
+    ...(input.fileToolPathPolicy
+      ? { fileToolPathPolicy: input.fileToolPathPolicy }
+      : {}),
   });
 
   // Pi auth + model registry are global to this Pi session. These live on the

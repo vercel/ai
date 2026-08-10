@@ -3004,6 +3004,9 @@ importers:
         specifier: ^1.1.38
         version: 1.2.2
     devDependencies:
+      '@ai-sdk/sandbox-just-bash':
+        specifier: workspace:*
+        version: link:../sandbox-just-bash
       '@types/node':
         specifier: 22.19.19
         version: 22.19.19

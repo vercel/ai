@@ -6,6 +6,7 @@ import {
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { PiAuthOptions } from './pi-auth';
+import type { PiFileToolPathPolicy } from './pi-paths';
 import { piResumeStateSchema } from './pi-resume-state';
 import { createPiSession, type PiThinkingLevel } from './pi-session';
 import { VERSION } from './version';
@@ -40,6 +41,11 @@ export type PiHarnessSettings = {
    * model settings.
    */
   readonly agentDir?: string;
+  /**
+   * Additional allow and deny roots for Pi's native file tools. This does not
+   * constrain shell commands executed by the `bash` tool.
+   */
+  readonly fileToolPathPolicy?: PiFileToolPathPolicy;
 };
 
 const PI_BUILTIN_TOOLS = {
@@ -156,6 +162,9 @@ export function createPi(
           ? { abortSignal: startOpts.abortSignal }
           : {}),
         ...(settings.agentDir ? { agentDir: settings.agentDir } : {}),
+        ...(settings.fileToolPathPolicy
+          ? { fileToolPathPolicy: settings.fileToolPathPolicy }
+          : {}),
       });
     },
   };
