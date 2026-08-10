@@ -12,19 +12,26 @@ run(async () => {
   const agent = new HarnessAgent({
     harness: codex,
     sandbox,
-    instructions: 'Answer every question in German.',
+    instructions:
+      'Answer every question in German, even when the user requests another language.',
   });
 
   let exitCode = 0;
   const session = await agent.createSession();
   try {
-    const result = await agent.generate({
+    const first = await agent.generate({
       session,
       prompt: 'In one sentence, what is the capital of France?',
     });
-    console.log('text:', result.text);
-    console.log('finishReason:', result.finishReason);
-    console.log('usage:', result.usage);
+    console.log('first text:', first.text);
+
+    const second = await agent.generate({
+      session,
+      prompt: 'Now answer in English: What is the capital of Germany?',
+    });
+    console.log('second text:', second.text);
+    console.log('finishReason:', second.finishReason);
+    console.log('usage:', second.usage);
   } catch (err) {
     exitCode = 1;
     console.error('[example] failed:', err);
