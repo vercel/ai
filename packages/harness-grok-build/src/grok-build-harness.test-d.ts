@@ -2,7 +2,9 @@ import { expectTypeOf, test } from 'vitest';
 import { createGrokBuild } from './grok-build-harness';
 
 test('preserves Grok Build built-in tool types', () => {
-  const harness = createGrokBuild();
+  const harness = createGrokBuild({
+    mintBridgeToken: sandboxId => sandboxId,
+  });
 
   expectTypeOf<keyof typeof harness.builtinTools>().toEqualTypeOf<
     | 'bash'

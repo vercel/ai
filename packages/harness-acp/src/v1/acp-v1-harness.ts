@@ -465,7 +465,10 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         override: portOverride,
         harnessId: settings.harnessId,
       });
-      const token = randomBytes(32).toString('hex');
+      const token =
+        settings.mintBridgeToken == null
+          ? randomBytes(32).toString('hex')
+          : settings.mintBridgeToken(sandboxSession.id);
       await sandbox.run({
         command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
         abortSignal: startOptions.abortSignal,
