@@ -331,6 +331,31 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('sends configured MCP servers to the bridge', async () => {
+    const mcpServers = {
+      context7: { type: 'http', url: 'https://mcp.context7.com/mcp' },
+    };
+    const harness = createClaudeCode({ mcpServers });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      prompt: 'Use Context7.',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({ mcpServers });
+
+    await session.doDestroy();
+  });
+
   it('defaults to summarized adaptive thinking', async () => {
     const harness = createClaudeCode();
     const session = await harness.doStart({

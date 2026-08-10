@@ -34,6 +34,7 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   thinking: thinkingSchema,
   maxTurns: z.number().optional(),
   skills: z.array(z.string()).optional(),
+  mcpServers: z.record(z.string(), z.unknown()).optional(),
   // Resume signal. When true, the bridge passes `{ continue: true }` to the
   // Claude SDK so the in-workdir thread state is rehydrated. The host sets this
   // on the first prompt after a cross-process resume.
