@@ -14,6 +14,7 @@ describe('createEmitStreamEvent', () => {
       state,
       configuredModel: 'configured-model',
       hostToolNames: new Set(),
+      mcpToolNames: new Set(),
       emit: event => emitted.push(event),
     });
 
@@ -94,6 +95,7 @@ describe('createEmitStreamEvent', () => {
       state,
       configuredModel: undefined,
       hostToolNames: new Set(),
+      mcpToolNames: new Set(),
       emit: event => emitted.push(event),
     });
 
@@ -131,6 +133,58 @@ describe('createEmitStreamEvent', () => {
           "result": "contents",
           "toolCallId": "approval-1",
           "toolName": "read",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
+
+  it('marks only external MCP tools as dynamic', () => {
+    const state = createDeepAgentsStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      configuredModel: undefined,
+      hostToolNames: new Set(['mcp__custom__typed']),
+      mcpToolNames: new Set(['mcp__memory__search']),
+      emit: event => emitted.push(event),
+    });
+
+    emitStreamEvent({
+      event: 'on_tool_start',
+      name: 'mcp__memory__search',
+      run_id: 'mcp-run',
+      data: { input: { query: 'AI SDK' } },
+    });
+    emitStreamEvent({
+      event: 'on_tool_end',
+      name: 'mcp__memory__search',
+      run_id: 'mcp-run',
+      data: { output: 'found' },
+    });
+    emitStreamEvent({
+      event: 'on_tool_start',
+      name: 'mcp__custom__typed',
+      run_id: 'host-run',
+      data: { input: {} },
+    });
+
+    expect(emitted).toMatchInlineSnapshot(`
+      [
+        {
+          "dynamic": true,
+          "input": "{\"query\":\"AI SDK\"}",
+          "nativeName": "mcp__memory__search",
+          "providerExecuted": true,
+          "toolCallId": "mcp-run",
+          "toolName": "mcp__memory__search",
+          "type": "tool-call",
+        },
+        {
+          "dynamic": true,
+          "result": "found",
+          "toolCallId": "mcp-run",
+          "toolName": "mcp__memory__search",
           "type": "tool-result",
         },
       ]

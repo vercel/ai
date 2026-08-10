@@ -37,7 +37,9 @@
   "dependencies": {
     "@ai-sdk/harness": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
+    "@earendil-works/pi-ai": "0.74.2",
     "@earendil-works/pi-coding-agent": "^0.80.10",
+    "pi-mcp-adapter": "2.12.1",
     "typebox": "^1.1.38"
   },
   "peerDependencies": {

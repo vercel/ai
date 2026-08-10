@@ -6,17 +6,20 @@ import type {
   HarnessV1BridgeToolWire,
   HarnessV1StreamPart,
 } from '@ai-sdk/harness';
+import type { ACPToolCall } from '../../acp-tool-call';
 import type { ACPBuiltinToolMapping } from '../acp-v1-bridge-protocol';
 import { createACPStreamTranslator } from './stream-translator';
 import { createHostToolCorrelation } from './host-tool-correlation';
 
 export function createEmitStreamEvent({
   emit,
+  emitToolCallCandidate,
   builtinTools,
   hostToolServerName,
   hostTools,
 }: {
   emit: (event: HarnessV1StreamPart) => void;
+  emitToolCallCandidate: (options: { toolCall: ACPToolCall }) => void;
   builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   hostToolServerName: string;
   hostTools: ReadonlyArray<HarnessV1BridgeToolWire>;
@@ -49,7 +52,11 @@ export function createEmitStreamEvent({
   }) => void;
   removeHostToolCorrelationInvocation: (options: { token: string }) => void;
 } {
-  const translator = createACPStreamTranslator({ emit, builtinTools });
+  const translator = createACPStreamTranslator({
+    emit,
+    emitToolCallCandidate,
+    builtinTools,
+  });
   const correlation = createHostToolCorrelation({
     emitSemanticUpdate: ({ message, rawUpdate }) => {
       translator.update({

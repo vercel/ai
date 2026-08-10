@@ -5,9 +5,11 @@ import { ToolRelayAuthorizer } from './tool-relay-auth';
 
 function createEmitter({
   hostToolNames = new Set<string>(),
+  mcpToolNames = new Set<string>(),
   onAuthorizeHostToolCall,
 }: {
   hostToolNames?: Set<string>;
+  mcpToolNames?: Set<string>;
   onAuthorizeHostToolCall?: (input: {
     callID: string;
     toolName: string;
@@ -40,9 +42,11 @@ function createEmitter({
       authorized.push(input);
       onAuthorizeHostToolCall?.(input);
     },
+    isMcpToolName: toolName => mcpToolNames.has(toolName),
     stripWorkDir: file => file.replace('/work/', ''),
     formatError: error => String(error),
   });
+
   return { state, emitted, warnings, errors, authorized, emitStreamEvent };
 }
 
@@ -183,6 +187,45 @@ describe('createEmitStreamEvent', () => {
           },
         ],
       }
+    `);
+  });
+
+  it('marks external MCP tool events as dynamic', () => {
+    const { emitted, emitStreamEvent } = createEmitter({
+      mcpToolNames: new Set(['context7_resolve-library-id']),
+    });
+
+    emitStreamEvent({
+      type: 'session.next.tool.called',
+      properties: {
+        callID: 'tool-1',
+        tool: 'context7_resolve-library-id',
+        input: { libraryName: 'next.js' },
+      },
+    });
+    emitStreamEvent({
+      type: 'session.next.tool.success',
+      properties: { callID: 'tool-1', result: 'vercel/next.js' },
+    });
+
+    expect(emitted).toMatchInlineSnapshot(`
+      [
+        {
+          "dynamic": true,
+          "input": "{\"libraryName\":\"next.js\"}",
+          "providerExecuted": true,
+          "toolCallId": "tool-1",
+          "toolName": "context7_resolve-library-id",
+          "type": "tool-call",
+        },
+        {
+          "dynamic": true,
+          "result": "vercel/next.js",
+          "toolCallId": "tool-1",
+          "toolName": "context7_resolve-library-id",
+          "type": "tool-result",
+        },
+      ]
     `);
   });
 

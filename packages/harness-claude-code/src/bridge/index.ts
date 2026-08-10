@@ -260,7 +260,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 
   const streamEventState = createClaudeStreamEventState();
 
-  const mcpServers: Record<string, unknown> = {};
+  const mcpServers: Record<string, unknown> = { ...(start.mcpServers ?? {}) };
   if (start.tools && start.tools.length > 0) {
     const server = new mcpModule.McpServer({
       name: 'harness-tools',
