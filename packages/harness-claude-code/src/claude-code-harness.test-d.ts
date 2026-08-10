@@ -57,4 +57,12 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
     assertType(claudeCode.builtinTools.ReadMcpResource);
     assertType(claudeCode.builtinTools.ReadMcpResourceTool);
   });
+
+  test('createClaudeCode accepts environment configuration', () => {
+    expectTypeOf(
+      createClaudeCode({
+        env: { DEPLOYMENT_ENV: 'staging' },
+      }),
+    ).toExtend<HarnessAgentAdapter<any>>();
+  });
 });
