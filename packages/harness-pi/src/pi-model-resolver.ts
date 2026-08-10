@@ -11,14 +11,16 @@ type PiModel = ReturnType<ModelRegistry['getAll']>[number];
  */
 export const DEFAULT_PI_GATEWAY_MODEL_ID = 'anthropic/claude-sonnet-4.6';
 
-// A `"<provider>/<id>"` reference must resolve under that provider, not any
-// entry whose flat `id` happens to equal the whole string. Routing proxies
-// (`vercel-ai-gateway`, `openrouter`) can carry another provider's id
-// verbatim as their own flat `id` (e.g. `id: "xai/grok-4.3"`), so this tier
-// must win over flat matching. It still runs after the gateway-preference
-// tier below: when gateway creds are present, a gateway entry carrying
-// another provider's id verbatim is exactly what the user asked to route
-// through, not a collision to avoid.
+/*
+ * A `"<provider>/<id>"` reference normally resolves under that provider, not
+ * any entry whose flat `id` happens to equal the whole string. Routing proxies
+ * (`vercel-ai-gateway`, `openrouter`) can carry another provider's id verbatim
+ * as their own flat `id` (e.g. `id: "xai/grok-4.3"`), so this tier normally
+ * wins over flat matching. An authenticated literal-id match remains usable
+ * when the scoped provider is unauthenticated, matching Pi's own resolver.
+ * Gateway preference stays first because gateway credentials explicitly opt
+ * the harness into routing matching models through the gateway.
+ */
 const findScopedMatch = (
   effectiveId: string,
   models: PiModel[],
@@ -69,11 +71,21 @@ export function createPiModelResolver({
     // (e.g. `anthropic/claude-sonnet-4.6` exists under both `openrouter` and
     // `vercel-ai-gateway`); without this preference Pi would dispatch through
     // a provider we didn't register, which fails with "No API key found".
-    return (
-      (useGateway &&
-        models.find(m => m.provider === 'vercel-ai-gateway' && matches(m))) ||
-      findScopedMatch(effectiveId, models) ||
-      models.find(matches)
-    );
+    const gatewayMatch = useGateway
+      ? models.find(m => m.provider === 'vercel-ai-gateway' && matches(m))
+      : undefined;
+    if (gatewayMatch) return gatewayMatch;
+
+    const scopedMatch = findScopedMatch(effectiveId, models);
+    if (scopedMatch && !modelRegistry.hasConfiguredAuth(scopedMatch)) {
+      const authenticatedFlatMatches = models.filter(
+        m => m.id === effectiveId && modelRegistry.hasConfiguredAuth(m),
+      );
+      if (authenticatedFlatMatches.length === 1) {
+        return authenticatedFlatMatches[0];
+      }
+    }
+
+    return scopedMatch ?? models.find(matches);
   };
 }
