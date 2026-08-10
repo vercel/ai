@@ -1,5 +1,17 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.66
+
+### Patch Changes
+
+- ecd9169: fix(harness-opencode): authorize legacy host tool relay calls using raw tool input
+- a03ff6c: feat(harness): add support for per-harness MCP servers
+- fc3baaf: feat(harness): add optional `mintBridgeToken(sandboxId)` to harness settings to control the bridge token value
+- Updated dependencies [401a4ba]
+- Updated dependencies [a03ff6c]
+  - @ai-sdk/provider-utils@5.0.26
+  - @ai-sdk/harness@1.0.65
+
 ## 1.0.65
 
 ### Patch Changes
