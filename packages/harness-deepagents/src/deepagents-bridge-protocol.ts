@@ -11,7 +11,10 @@ export const outboundMessageSchema = harnessV1BridgeOutboundMessageSchema;
 export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
 
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
-  // Prepended to the first user message (createDeepAgent takes no instructions param).
+  /*
+   * Appended to Deep Agents's native system prompt when the bridge constructs
+   * the session's agent.
+   */
   instructions: z.string().optional(),
   // In-backend skills source dirs ($HOME and <workDir>), passed to createDeepAgent({ skills }).
   skillsPaths: z.array(z.string()).optional(),
