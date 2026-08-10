@@ -201,6 +201,7 @@ describe('registerPiProviders', () => {
       apiKey: 'mk',
       baseUrl: 'https://api.mistral.example',
       authHeader: true,
+      api: 'openai-completions',
     });
   });
 
