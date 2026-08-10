@@ -268,6 +268,9 @@ importers:
       '@ai-sdk/gladia':
         specifier: workspace:*
         version: link:../../packages/gladia
+      '@ai-sdk/gmicloud':
+        specifier: workspace:*
+        version: link:../../packages/gmicloud
       '@ai-sdk/google':
         specifier: workspace:*
         version: link:../../packages/google
@@ -2180,6 +2183,34 @@ importers:
       typescript:
         specifier: 5.6.3
         version: 5.6.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
+  packages/gmicloud:
+    dependencies:
+      '@ai-sdk/openai-compatible':
+        specifier: workspace:*
+        version: link:../openai-compatible
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.25)(tsx@4.22.0)(typescript@5.8.3)(yaml@2.9.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
       zod:
         specifier: 3.25.76
         version: 3.25.76
