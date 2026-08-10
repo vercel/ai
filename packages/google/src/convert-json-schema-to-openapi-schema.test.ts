@@ -643,6 +643,61 @@ it('should convert non-string enum values to the Google enum format', () => {
   });
 });
 
+it('should convert nullable type-array and untyped primitive enums', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      nullableString: {
+        type: ['string', 'null'],
+        enum: ['a', 'b'],
+      },
+      nullableNumber: {
+        type: ['number', 'null'],
+        enum: [1, 2],
+      },
+      nullableBoolean: {
+        type: ['boolean', 'null'],
+        enum: [true, null],
+      },
+      untypedNumber: { enum: [1, 2] },
+      untypedBoolean: { enum: [true, false] },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual({
+    type: 'object',
+    properties: {
+      nullableString: {
+        type: 'string',
+        nullable: true,
+        enum: ['a', 'b'],
+      },
+      nullableNumber: {
+        type: 'number',
+        nullable: true,
+        format: 'enum',
+        enum: ['1', '2'],
+      },
+      nullableBoolean: {
+        type: 'boolean',
+        nullable: true,
+        format: 'enum',
+        enum: ['true'],
+      },
+      untypedNumber: {
+        type: 'number',
+        format: 'enum',
+        enum: ['1', '2'],
+      },
+      untypedBoolean: {
+        type: 'boolean',
+        format: 'enum',
+        enum: ['true', 'false'],
+      },
+    },
+  });
+});
+
 it('should reject enum values with mixed types', () => {
   expect(() => convertJSONSchemaToOpenAPISchema({ enum: ['text', 1] })).toThrow(
     UnsupportedFunctionalityError,
