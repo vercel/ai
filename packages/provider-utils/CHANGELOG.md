@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 5.0.26
+
+### Patch Changes
+
+- 401a4ba: fix(provider-utils): allow imports in runtimes without a global fetch function
+
 ## 5.0.25
 
 ### Patch Changes
