@@ -90,6 +90,7 @@ const harness = createClaudeCode({
 Settings:
 
 - `auth`: direct Anthropic or AI Gateway authentication settings.
+- `mcpServers`: MCP server definitions keyed by server name.
 - `model`: Anthropic model id passed to the underlying Claude Code runtime.
 - `maxTurns`: maximum internal turns before yielding.
 - `thinking`: extended-thinking configuration. `type` can be `enabled`,
