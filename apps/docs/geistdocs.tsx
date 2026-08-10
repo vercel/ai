@@ -6,12 +6,17 @@ export const Logo = () => (
   <span className="font-semibold text-gray-1000">AI SDK</span>
 );
 
-// Production nests these under a Resources dropdown; the dropdown is a
-// follow-up, so a flat item links to the /resources hub (which links to
-// Recipes, the Tools Registry, Templates, and the Showcase).
 export const nav: NonNullable<GeistdocsConfig['nav']> = [
   { label: 'Docs', href: '/docs' },
-  { label: 'Resources', href: '/resources' },
+  {
+    label: 'Resources',
+    items: [
+      { label: 'Recipes', href: '/resources/recipes' },
+      { label: 'Tools Registry', href: '/resources/tools' },
+      { label: 'Templates', href: '/resources/templates' },
+      { label: 'Showcase', href: '/resources/showcase' },
+    ],
+  },
   { label: 'Providers', href: '/providers' },
 ];
 
