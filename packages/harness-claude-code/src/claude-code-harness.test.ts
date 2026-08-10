@@ -197,13 +197,34 @@ describe('createClaudeCode adapter', () => {
       'TaskOutput',
       'Monitor',
       'ListMcpResources',
+      'ListMcpResourcesTool',
       'ReadMcpResource',
+      'ReadMcpResourceTool',
+      'ReadMcpResourceDirTool',
+      'RefreshMcpTools',
       'ExitPlanMode',
+      'EnterPlanMode',
       'EnterWorktree',
       'ExitWorktree',
       'AskUserQuestion',
       'Skill',
       'ToolSearch',
+      'Artifact',
+      'CronCreate',
+      'CronDelete',
+      'CronList',
+      'DesignSync',
+      'LSP',
+      'PowerShell',
+      'PushNotification',
+      'RemoteTrigger',
+      'ReportFindings',
+      'ScheduleWakeup',
+      'SendMessage',
+      'SendUserFile',
+      'ShareOnboardingGuide',
+      'WaitForMcpServers',
+      'Workflow',
     ]);
     expect(harness.builtinTools.read.nativeName).toBe('Read');
     expect(harness.builtinTools.read.commonName).toBe('read');
@@ -211,6 +232,10 @@ describe('createClaudeCode adapter', () => {
     expect(harness.builtinTools.write.toolUseKind).toBe('edit');
     expect(harness.builtinTools.bash.toolUseKind).toBe('bash');
     expect(harness.builtinTools.Skill.toolUseKind).toBe('readonly');
+    expect(harness.builtinTools.ListMcpResourcesTool.toolUseKind).toBe(
+      'readonly',
+    );
+    expect(harness.builtinTools.PowerShell.toolUseKind).toBe('bash');
     // WebFetch has no cross-harness common equivalent — its key is the
     // native name directly, so the entry intentionally omits both
     // `nativeName` and `commonName`.
