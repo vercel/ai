@@ -1,11 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { createEmitStreamEvent } from './create-emit-stream-event';
 import { createTranslationState } from './opencode-events';
+import { ToolRelayAuthorizer } from './tool-relay-auth';
 
 function createEmitter({
   hostToolNames = new Set<string>(),
+  onAuthorizeHostToolCall,
 }: {
   hostToolNames?: Set<string>;
+  onAuthorizeHostToolCall?: (input: {
+    callID: string;
+    toolName: string;
+    input: unknown;
+  }) => void;
 } = {}) {
   const state = createTranslationState();
   const emitted: Record<string, unknown>[] = [];
@@ -29,7 +36,10 @@ function createEmitter({
     nativeNameField: ({ nativeName, toolName }) =>
       nativeName === toolName ? {} : { nativeName },
     getHostToolName,
-    authorizeHostToolCall: input => authorized.push(input),
+    authorizeHostToolCall: input => {
+      authorized.push(input);
+      onAuthorizeHostToolCall?.(input);
+    },
     stripWorkDir: file => file.replace('/work/', ''),
     formatError: error => String(error),
   });
@@ -215,6 +225,35 @@ describe('createEmitStreamEvent', () => {
         },
       ]
     `);
+  });
+
+  it('authorizes legacy host tool calls using only the tool input', async () => {
+    const authorizer = new ToolRelayAuthorizer({ ttlMs: 10 });
+    const { emitStreamEvent } = createEmitter({
+      hostToolNames: new Set(['weather']),
+      onAuthorizeHostToolCall: ({ toolName, input }) =>
+        authorizer.authorizeToolCall({ toolName, input }),
+    });
+
+    emitStreamEvent({
+      type: 'message.part.updated',
+      properties: {
+        part: {
+          type: 'tool',
+          callID: 'tool-openai',
+          tool: 'weather',
+          metadata: { openai: { itemId: 'fc_x' } },
+          state: { status: 'running', input: {} },
+        },
+      },
+    });
+
+    await expect(
+      authorizer.waitForToolCallAuthorization({
+        toolName: 'weather',
+        input: {},
+      }),
+    ).resolves.toBe(true);
   });
 
   it('preserves retry, error, compaction, and file events', () => {

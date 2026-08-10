@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   type AgentSession,
+  type ExtensionAPI,
+  type ExtensionFactory,
   type ToolDefinition,
   ModelRuntime,
   SettingsManager,
@@ -9,15 +11,47 @@ import type {
   HarnessV1NetworkSandboxSession,
   HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
+import { createPi } from './pi-harness';
 import { createPiSession } from './pi-session';
 
 type FakePiTool = Pick<ToolDefinition, 'name' | 'execute'>;
+type FakeExtensionsResult = {
+  readonly errors: unknown[];
+  readonly extensions: unknown[];
+  readonly runtime: object;
+};
+type ResourceLoaderOptions = {
+  readonly appendSystemPromptOverride?: (base: string[]) => string[];
+  readonly extensionFactories?: Array<ExtensionFactory>;
+  readonly extensionsOverride?: (
+    base: FakeExtensionsResult,
+  ) => FakeExtensionsResult;
+  readonly noExtensions?: boolean;
+  readonly noPromptTemplates?: boolean;
+  readonly noThemes?: boolean;
+};
 
 const piMock = vi.hoisted(() => {
+  const extensionHandlers = new Map<string, Array<() => unknown>>();
   return {
+    agentSessionExtensionResults: [] as FakeExtensionsResult[],
     createAgentSession: vi.fn(),
     customTools: [] as FakePiTool[],
     appendSystemPrompts: [] as string[][],
+    extensionApi: {
+      on: vi.fn((eventType: string, handler: () => unknown) => {
+        const handlers = extensionHandlers.get(eventType) ?? [];
+        handlers.push(handler);
+        extensionHandlers.set(eventType, handlers);
+      }),
+    } as unknown as ExtensionAPI,
+    extensionFactoryInputs: [] as Array<{
+      readonly reference: Array<ExtensionFactory>;
+      readonly snapshot: Array<ExtensionFactory>;
+    }>,
+    extensionHandlers,
+    resourceLoaderReloadCount: 0,
+    resourceLoaderOptions: [] as ResourceLoaderOptions[],
     session: undefined as AgentSession | undefined,
   };
 });
@@ -26,16 +60,35 @@ vi.mock('@earendil-works/pi-coding-agent', () => {
   return {
     createAgentSession: piMock.createAgentSession,
     DefaultResourceLoader: class {
-      constructor(
-        private readonly options: {
-          appendSystemPromptOverride?: (base: string[]) => string[];
-        },
-      ) {}
+      private extensionsResult: FakeExtensionsResult = {
+        errors: [],
+        extensions: [],
+        runtime: {},
+      };
+
+      constructor(private readonly options: ResourceLoaderOptions) {
+        piMock.resourceLoaderOptions.push(options);
+        const extensionFactories = options.extensionFactories ?? [];
+        piMock.extensionFactoryInputs.push({
+          reference: extensionFactories,
+          snapshot: [...extensionFactories],
+        });
+      }
 
       async reload() {
+        piMock.resourceLoaderReloadCount += 1;
         piMock.appendSystemPrompts.push(
           this.options.appendSystemPromptOverride?.([]) ?? [],
         );
+        for (const factory of this.options.extensionFactories ?? []) {
+          await factory(piMock.extensionApi);
+        }
+        const base = { errors: [], extensions: [], runtime: {} };
+        this.extensionsResult = this.options.extensionsOverride?.(base) ?? base;
+      }
+
+      getExtensions() {
+        return this.extensionsResult;
       }
     },
     defineTool: vi.fn(tool => tool),
@@ -65,14 +118,188 @@ vi.mock('@earendil-works/pi-coding-agent', () => {
 
 describe('createPiSession', () => {
   beforeEach(() => {
+    piMock.agentSessionExtensionResults = [];
     piMock.customTools = [];
     piMock.appendSystemPrompts = [];
+    piMock.extensionFactoryInputs = [];
+    piMock.extensionHandlers.clear();
+    piMock.resourceLoaderReloadCount = 0;
+    piMock.resourceLoaderOptions = [];
     piMock.session = undefined;
     piMock.createAgentSession.mockReset();
     piMock.createAgentSession.mockImplementation(async options => {
+      piMock.agentSessionExtensionResults.push(
+        options.resourceLoader.getExtensions(),
+      );
       piMock.customTools = options.customTools;
       return { session: piMock.session };
     });
+  });
+
+  it('loads a caller-supplied inline extension factory through createPi', async () => {
+    const factory = vi.fn((piApi: ExtensionAPI) => {
+      expect(piApi).toBe(piMock.extensionApi);
+    });
+
+    const session = await createPi({
+      extensionFactories: [factory],
+    }).doStart({
+      sessionId: 'session-inline-extension',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      expect(factory).toHaveBeenCalledOnce();
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('preserves caller order and passes a fresh mutable factory array', async () => {
+    const callOrder: string[] = [];
+    const firstFactory: ExtensionFactory = () => {
+      callOrder.push('first');
+    };
+    const secondFactory: ExtensionFactory = () => {
+      callOrder.push('second');
+    };
+    const extensionFactories = [firstFactory, secondFactory] as const;
+
+    const session = await createPi({ extensionFactories }).doStart({
+      sessionId: 'session-ordered-extensions',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      const extensionFactoryInput = piMock.extensionFactoryInputs.at(-1);
+      expect(callOrder).toEqual(['first', 'second']);
+      expect(extensionFactoryInput?.snapshot).toEqual(extensionFactories);
+      expect(extensionFactoryInput?.reference).not.toBe(extensionFactories);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('does not reload inline extensions between turns', async () => {
+    const observedEvents: string[] = [];
+    const factory = vi.fn((piApi: ExtensionAPI) => {
+      piApi.on('agent_start', () => {
+        observedEvents.push('agent_start');
+      });
+    });
+    piMock.session = {
+      abort: vi.fn(async () => {}),
+      compact: vi.fn(async () => {}),
+      dispose: vi.fn(),
+      getSessionStats: () => ({
+        tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      }),
+      prompt: vi.fn(async () => {
+        for (const handler of piMock.extensionHandlers.get('agent_start') ??
+          []) {
+          await handler();
+        }
+      }),
+      steer: vi.fn(async () => {}),
+      subscribe: vi.fn(() => () => {}),
+    } as unknown as AgentSession;
+
+    const session = await createPi({
+      extensionFactories: [factory],
+    }).doStart({
+      sessionId: 'session-multiple-extension-turns',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      for (const prompt of ['first turn', 'second turn']) {
+        const control = await session.doPromptTurn({
+          prompt,
+          tools: [],
+          emit: vi.fn(),
+        });
+        await control.done;
+      }
+
+      expect(factory).toHaveBeenCalledOnce();
+      expect(observedEvents).toEqual(['agent_start', 'agent_start']);
+      expect(piMock.resourceLoaderReloadCount).toBe(3);
+      expect(piMock.agentSessionExtensionResults).toHaveLength(1);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('reloads inline extensions when the Pi session is rebuilt', async () => {
+    const factory = vi.fn();
+    piMock.session = {
+      abort: vi.fn(async () => {}),
+      compact: vi.fn(async () => {}),
+      dispose: vi.fn(),
+      getSessionStats: () => ({
+        tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      }),
+      prompt: vi.fn(async () => {}),
+      steer: vi.fn(async () => {}),
+      subscribe: vi.fn(() => () => {}),
+    } as unknown as AgentSession;
+
+    const session = await createPi({
+      extensionFactories: [factory],
+    }).doStart({
+      sessionId: 'session-rebuilt-extension-runtime',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      const firstControl = await session.doPromptTurn({
+        prompt: 'first turn',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await firstControl.done;
+      const secondControl = await session.doPromptTurn({
+        prompt: 'second turn',
+        tools: [{ name: 'new-tool' }],
+        emit: vi.fn(),
+      });
+      await secondControl.done;
+
+      expect(factory).toHaveBeenCalledTimes(2);
+      expect(piMock.resourceLoaderReloadCount).toBe(3);
+      expect(piMock.agentSessionExtensionResults).toHaveLength(2);
+      expect(piMock.agentSessionExtensionResults[0]).not.toBe(
+        piMock.agentSessionExtensionResults[1],
+      );
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('keeps filesystem extensions and other resources disabled by default', async () => {
+    const session = await createPi().doStart({
+      sessionId: 'session-no-extensions',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      expect(piMock.resourceLoaderOptions.at(-1)).toMatchObject({
+        extensionFactories: [],
+        noExtensions: true,
+        noPromptTemplates: true,
+        noThemes: true,
+      });
+      expect(
+        piMock.resourceLoaderOptions.at(-1)?.extensionsOverride,
+      ).toBeUndefined();
+    } finally {
+      await session.doDestroy();
+    }
   });
 
   it('rejects unsafe resume session filenames before sandbox restore', async () => {

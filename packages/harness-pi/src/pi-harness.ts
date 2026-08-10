@@ -4,6 +4,7 @@ import {
   type HarnessV1BuiltinTool,
 } from '@ai-sdk/harness';
 import { tool } from '@ai-sdk/provider-utils';
+import type { ExtensionFactory } from '@earendil-works/pi-coding-agent';
 import { z } from 'zod/v4';
 import type { PiAuthOptions } from './pi-auth';
 import { piResumeStateSchema } from './pi-resume-state';
@@ -40,6 +41,12 @@ export type PiHarnessSettings = {
    * model settings.
    */
   readonly agentDir?: string;
+  /**
+   * Trusted inline Pi extensions loaded for each harness session.
+   *
+   * Filesystem-discovered user and project extensions remain disabled.
+   */
+  readonly extensionFactories?: ReadonlyArray<ExtensionFactory>;
 };
 
 const PI_BUILTIN_TOOLS = {
@@ -143,6 +150,9 @@ export function createPi(
           ...(settings.model ? { model: settings.model } : {}),
           ...(settings.thinkingLevel
             ? { thinkingLevel: settings.thinkingLevel }
+            : {}),
+          ...(settings.extensionFactories
+            ? { extensionFactories: settings.extensionFactories }
             : {}),
         },
         clientApp: PI_CLIENT_APP,
