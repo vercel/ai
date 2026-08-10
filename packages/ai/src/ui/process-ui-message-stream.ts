@@ -127,6 +127,23 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             return getCurrentStepParts().filter(isToolUIPart);
           }
 
+          function resetCurrentStep() {
+            const currentStepStartIndex = getCurrentStepStartIndex();
+
+            // A retry invalidates everything streamed after the current step
+            // boundary. If no boundary exists, keep the message intact.
+            if (currentStepStartIndex >= 0) {
+              state.message.parts = state.message.parts.slice(
+                0,
+                currentStepStartIndex + 1,
+              );
+            }
+
+            state.activeTextParts = createIdMap();
+            state.activeReasoningParts = createIdMap();
+            state.partialToolCalls = createIdMap();
+          }
+
           function getToolInvocation(toolCallId: string) {
             const toolInvocations = getCurrentStepToolInvocations();
 
@@ -924,25 +941,14 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               break;
             }
 
+            case 'reload': {
+              resetCurrentStep();
+              write();
+              break;
+            }
+
             default: {
               if (isDataUIMessageChunk(chunk)) {
-                if (chunk.type === 'data-reload') {
-                  const currentStepStartIndex = getCurrentStepStartIndex();
-
-                  // A retry invalidates everything streamed after the current
-                  // step boundary. The retried step will add a new boundary
-                  // before it starts writing output again.
-                  state.message.parts = state.message.parts.slice(
-                    0,
-                    currentStepStartIndex + 1,
-                  );
-                  state.activeTextParts = createIdMap();
-                  state.activeReasoningParts = createIdMap();
-                  state.partialToolCalls = createIdMap();
-                  write();
-                  break;
-                }
-
                 // validate data chunk if dataPartSchemas is provided
                 if (dataPartSchemas?.[chunk.type] != null) {
                   const partIdx = state.message.parts.findIndex(

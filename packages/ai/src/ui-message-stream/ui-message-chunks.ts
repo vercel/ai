@@ -184,6 +184,9 @@ export const uiMessageChunkSchema = lazySchema(() =>
         type: z.literal('finish-step'),
       }),
       z.looseObject({
+        type: z.literal('reload'),
+      }),
+      z.looseObject({
         type: z.literal('start'),
         messageId: z.string().optional(),
         messageMetadata: z.unknown().optional(),
@@ -377,6 +380,9 @@ export type UIMessageChunk<
     }
   | {
       type: 'finish-step';
+    }
+  | {
+      type: 'reload';
     }
   | {
       type: 'start';

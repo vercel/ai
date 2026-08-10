@@ -72,7 +72,7 @@ describe('doStreamStep', () => {
 
     expect(chunks).toEqual([
       { type: 'finish-step' },
-      { type: 'data-reload', data: {}, transient: true },
+      { type: 'reload' },
       { type: 'start-step' },
     ]);
   });

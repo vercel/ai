@@ -152,9 +152,7 @@ export async function doStreamStep(
         type: 'finish-step',
       } as unknown as ModelCallStreamPart<ToolSet>);
       await writer.write({
-        type: 'data-reload',
-        data: {},
-        transient: true,
+        type: 'reload',
       } as unknown as ModelCallStreamPart<ToolSet>);
       await writer.write({
         type: 'start-step',

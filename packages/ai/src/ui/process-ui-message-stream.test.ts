@@ -4785,7 +4785,7 @@ describe('processUIMessageStream', () => {
         toolCallId: 'old-tool-call',
       },
       { type: 'finish-step' },
-      { type: 'data-reload', data: {}, transient: true },
+      { type: 'reload' },
       { type: 'start-step' },
       {
         type: 'tool-input-available',
@@ -4829,6 +4829,70 @@ describe('processUIMessageStream', () => {
       input: { path: '/tmp/new.txt' },
       approval: { id: 'new-approval' },
     });
+  });
+
+  it('should preserve a user data-reload part', async () => {
+    const stream = createUIMessageStream([
+      { type: 'start', messageId: 'msg-123' },
+      { type: 'start-step' },
+      {
+        type: 'data-reload',
+        data: { source: 'application' },
+      },
+      { type: 'finish-step' },
+      { type: 'finish' },
+    ]);
+
+    state = createStreamingUIMessageState({
+      messageId: 'msg-123',
+      lastMessage: undefined,
+    });
+
+    await consumeStream({
+      stream: processUIMessageStream({
+        stream,
+        runUpdateMessageJob,
+        onError: error => {
+          throw error;
+        },
+      }),
+    });
+
+    expect(state!.message.parts).toEqual([
+      { type: 'step-start' },
+      { type: 'data-reload', data: { source: 'application' } },
+    ]);
+  });
+
+  it('should preserve existing parts when reload has no step boundary', async () => {
+    const stream = createUIMessageStream([
+      { type: 'start', messageId: 'msg-123' },
+      { type: 'reload' },
+      { type: 'finish' },
+    ]);
+
+    state = createStreamingUIMessageState({
+      messageId: 'msg-123',
+      lastMessage: {
+        role: 'assistant',
+        id: 'original-id',
+        parts: [{ type: 'text', text: 'existing response', state: 'done' }],
+      },
+    });
+
+    await consumeStream({
+      stream: processUIMessageStream({
+        stream,
+        runUpdateMessageJob,
+        onError: error => {
+          throw error;
+        },
+      }),
+    });
+
+    expect(state!.message.parts).toEqual([
+      { type: 'text', text: 'existing response', state: 'done' },
+    ]);
   });
 
   describe('data ui parts (transient part)', () => {

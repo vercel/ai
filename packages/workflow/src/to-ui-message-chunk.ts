@@ -199,12 +199,10 @@ export function toUIMessageChunk(
           toolCallId: passthroughPart.toolCallId,
         } as UIMessageChunk;
       }
-      if (passthroughPart.type === 'data-reload') {
+      if (passthroughPart.type === 'reload') {
         return {
-          type: 'data-reload',
-          data: passthroughPart.data ?? {},
-          transient: true,
-        } as UIMessageChunk;
+          type: 'reload',
+        } as unknown as UIMessageChunk;
       }
       if (
         passthroughPart.type === 'finish-step' ||
