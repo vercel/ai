@@ -227,4 +227,119 @@ describe('createEmitStreamEvent', () => {
       ]
     `);
   });
+
+  it('parses external MCP JSON results without parsing native tool results', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        content: [
+          {
+            type: 'tool_use',
+            id: 'mcp-object',
+            name: 'mcp__context7__query-docs',
+            input: {},
+          },
+          {
+            type: 'tool_use',
+            id: 'mcp-array',
+            name: 'mcp__context7__query-docs',
+            input: {},
+          },
+          {
+            type: 'tool_use',
+            id: 'mcp-text',
+            name: 'mcp__context7__query-docs',
+            input: {},
+          },
+          {
+            type: 'tool_use',
+            id: 'native-tool',
+            name: 'Read',
+            input: {},
+          },
+        ],
+      },
+    });
+    emitStreamEvent({
+      type: 'user',
+      message: {
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: 'mcp-object',
+            content: '{"library":"next.js","version":16}',
+          },
+          {
+            type: 'tool_result',
+            tool_use_id: 'mcp-array',
+            content: '["docs","examples"]',
+          },
+          {
+            type: 'tool_result',
+            tool_use_id: 'mcp-text',
+            content: 'not JSON',
+          },
+          {
+            type: 'tool_result',
+            tool_use_id: 'native-tool',
+            content: '{"path":"README.md"}',
+          },
+        ],
+      },
+    });
+
+    expect(emitted.filter(event => event.type === 'tool-result'))
+      .toMatchInlineSnapshot(`
+      [
+        {
+          "dynamic": true,
+          "isError": false,
+          "result": {
+            "library": "next.js",
+            "version": 16,
+          },
+          "toolCallId": "mcp-object",
+          "toolName": "mcp__context7__query-docs",
+          "type": "tool-result",
+        },
+        {
+          "dynamic": true,
+          "isError": false,
+          "result": [
+            "docs",
+            "examples",
+          ],
+          "toolCallId": "mcp-array",
+          "toolName": "mcp__context7__query-docs",
+          "type": "tool-result",
+        },
+        {
+          "dynamic": true,
+          "isError": false,
+          "result": "not JSON",
+          "toolCallId": "mcp-text",
+          "toolName": "mcp__context7__query-docs",
+          "type": "tool-result",
+        },
+        {
+          "isError": false,
+          "result": "{\"path\":\"README.md\"}",
+          "toolCallId": "native-tool",
+          "toolName": "Read",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
 });

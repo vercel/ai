@@ -264,7 +264,9 @@ export function createEmitStreamEvent({
           const result =
             toolName === 'bash'
               ? { exitCode: isError ? 1 : 0, stdout: content }
-              : content;
+              : dynamic
+                ? parseMcpToolResult(content)
+                : content;
           emit({
             type: 'tool-result',
             toolCallId: block.tool_use_id,
@@ -420,6 +422,14 @@ function stringifyContent(content: unknown): string {
       .join('');
   }
   return JSON.stringify(content);
+}
+
+function parseMcpToolResult(content: string): unknown {
+  try {
+    return JSON.parse(content);
+  } catch {
+    return content;
+  }
 }
 
 export function mapUsage(usage: unknown): Record<string, unknown> | undefined {

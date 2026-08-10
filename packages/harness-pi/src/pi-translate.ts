@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import type { HarnessV1StreamPart } from '@ai-sdk/harness';
+import { secureJsonParse } from '@ai-sdk/provider-utils';
 import { extractAssistantText, type PiSessionEvent } from './pi-events';
 import { serializeToolOutput } from './pi-utils';
 
@@ -131,6 +132,15 @@ function unwrapPiToolResult(event: PiSessionEvent): never {
   if (typeof event.result === 'string') return event.result as never;
   if (typeof event.content === 'string') return event.content as never;
   return (event.result ?? event.content ?? null) as never;
+}
+
+function parseMcpToolResult(content: unknown): unknown {
+  if (typeof content !== 'string') return content;
+  try {
+    return secureJsonParse(content);
+  } catch {
+    return content;
+  }
 }
 
 function resolveToolName(
@@ -340,6 +350,7 @@ export function translatePiEvent(
         recordedName ??
         (nativeName ? resolveToolName(state, nativeName).wire : undefined);
       if (!wire) return [];
+      const dynamic = state.dynamicToolCallIds.delete(event.toolCallId);
       /*
        * Prefer the exact value the host submitted for user-registered tools
        * (see `hostToolResults`). Built-in tools, whose results Pi produces and
@@ -351,10 +362,11 @@ export function translatePiEvent(
             HarnessV1StreamPart,
             { type: 'tool-result' }
           >['result'])
-        : unwrapPiToolResult(event);
+        : dynamic
+          ? parseMcpToolResult(unwrapPiToolResult(event))
+          : unwrapPiToolResult(event);
       state.hostToolResults.delete(event.toolCallId);
       state.pendingStepToolCallIds.delete(event.toolCallId);
-      const dynamic = state.dynamicToolCallIds.delete(event.toolCallId);
       return [
         {
           type: 'tool-result',
