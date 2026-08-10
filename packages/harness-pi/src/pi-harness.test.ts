@@ -1,7 +1,21 @@
-import { describe, expect, it } from 'vitest';
+import type { HarnessV1NetworkSandboxSession } from '@ai-sdk/harness';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPi } from './pi-harness';
 
+const piSessionMock = vi.hoisted(() => ({
+  createPiSession: vi.fn(),
+}));
+
+vi.mock('./pi-session', () => ({
+  createPiSession: piSessionMock.createPiSession,
+}));
+
 describe('createPi adapter', () => {
+  beforeEach(() => {
+    piSessionMock.createPiSession.mockReset();
+    piSessionMock.createPiSession.mockResolvedValue({});
+  });
+
   it('declares the harness id and builtin tools', () => {
     const harness = createPi();
     expect(harness.harnessId).toBe('pi');
@@ -38,5 +52,24 @@ describe('createPi adapter', () => {
   it('omits getBootstrap (no in-sandbox install needed)', () => {
     const harness = createPi();
     expect(harness.getBootstrap).toBeUndefined();
+  });
+
+  it('forwards the native file-tool path policy to the Pi session', async () => {
+    const fileToolPathPolicy = {
+      readableRoots: ['/mnt/reference'],
+      writableRoots: ['/tmp', '/mnt/artifacts'],
+      deniedRoots: ['/tmp/private'],
+    };
+    const harness = createPi({ fileToolPathPolicy });
+
+    await harness.doStart({
+      sessionId: 'session-with-file-tool-policy',
+      sandboxSession: {} as HarnessV1NetworkSandboxSession,
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    expect(piSessionMock.createPiSession).toHaveBeenCalledWith(
+      expect.objectContaining({ fileToolPathPolicy }),
+    );
   });
 });

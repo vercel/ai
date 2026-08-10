@@ -6,10 +6,16 @@ export interface PiPathMapper {
   readonly hostWorkDir: string;
   /** The sandbox-side working directory where tools actually operate. */
   readonly sandboxWorkDir: string;
+  /** Additional sandbox roots accepted by read-only tools. */
+  readonly readableSandboxRoots: ReadonlyArray<string>;
+  /** Additional sandbox roots accepted by mutating tools. */
+  readonly writableSandboxRoots: ReadonlyArray<string>;
+  /** Sandbox roots rejected by every native file tool. */
+  readonly deniedSandboxRoots: ReadonlyArray<string>;
   /**
    * Translate a path the host sees (relative to `hostWorkDir`, or absolute
    * inside it, or already a sandbox path) to the canonical sandbox path. Throws
-   * if the path would escape the workspace.
+   * if the path would escape the workspace and configured writable roots.
    */
   toSandboxPath(inputPath: string): string;
   /**
@@ -17,13 +23,17 @@ export interface PiPathMapper {
    * allows explicitly configured sandbox roots such as `$HOME/.agents/skills`.
    */
   toReadableSandboxPath(inputPath: string): string;
-  /** Verify that a sandbox-side path is still inside `sandboxWorkDir`. */
+  /** Verify that a sandbox-side path is writable under the configured policy. */
   assertSandboxPath(inputPath: string): string;
   /**
    * Verify that a sandbox-side path is inside `sandboxWorkDir` or an
    * explicitly configured readable root.
    */
   assertReadableSandboxPath(inputPath: string): string;
+  /** Whether a sandbox-side path is inside `sandboxWorkDir`. */
+  isWorkspacePath(inputPath: string): boolean;
+  /** Denied roots nested within a sandbox-side path. */
+  getDeniedSandboxRootsWithin(inputPath: string): ReadonlyArray<string>;
   /** Translate any path to its POSIX-relative form under `sandboxWorkDir`. */
   toRelativePath(inputPath: string): string;
 }
@@ -32,10 +42,26 @@ export interface PiReadablePathRoot {
   readonly sandboxDir: string;
 }
 
+/**
+ * Additional sandbox paths exposed to Pi's native file tools. The session
+ * workspace remains read-write and harness-provided skills remain read-only.
+ * Writable roots are also readable, and denied roots take precedence over
+ * every allowed root.
+ *
+ * This policy does not restrict Pi's `bash` tool. Shell filesystem access is
+ * defined by the sandbox; the harness permission mode only controls approval.
+ */
+export interface PiFileToolPathPolicy {
+  readonly readableRoots?: ReadonlyArray<string>;
+  readonly writableRoots?: ReadonlyArray<string>;
+  readonly deniedRoots?: ReadonlyArray<string>;
+}
+
 export interface CreatePiPathMapperOptions {
   readonly hostWorkDir: string;
   readonly sandboxWorkDir: string;
   readonly readableRoots?: ReadonlyArray<PiReadablePathRoot>;
+  readonly fileToolPathPolicy?: PiFileToolPathPolicy;
 }
 
 function isInsidePath(parent: string, candidate: string): boolean {
@@ -69,6 +95,20 @@ function canonicalizeForContainment(inputPath: string): string {
   }
 }
 
+function normalizeSandboxRoots(
+  roots: ReadonlyArray<string> | undefined,
+  kind: string,
+): string[] {
+  return (roots ?? []).map(root => {
+    if (!path.posix.isAbsolute(root)) {
+      throw new Error(
+        `Pi ${kind} root must be an absolute sandbox path: ${root}`,
+      );
+    }
+    return path.posix.normalize(root);
+  });
+}
+
 export function createPiPathMapper(
   options: CreatePiPathMapperOptions,
 ): PiPathMapper {
@@ -79,10 +119,37 @@ export function createPiPathMapper(
     options.readableRoots?.map(root => ({
       sandboxDir: path.posix.normalize(root.sandboxDir),
     })) ?? [];
+  const policyReadableRoots = normalizeSandboxRoots(
+    options.fileToolPathPolicy?.readableRoots,
+    'readable',
+  );
+  const writableRoots = normalizeSandboxRoots(
+    options.fileToolPathPolicy?.writableRoots,
+    'writable',
+  );
+  const deniedRoots = normalizeSandboxRoots(
+    options.fileToolPathPolicy?.deniedRoots,
+    'denied',
+  );
 
-  const assertWorkspaceSandboxPath = (inputPath: string): string => {
+  const isDeniedSandboxPath = (inputPath: string): boolean =>
+    deniedRoots.some(root => isInsidePosixPath(root, inputPath));
+
+  const assertNotDenied = (inputPath: string): void => {
+    if (isDeniedSandboxPath(inputPath)) {
+      throw new Error(
+        `Pi path is denied by the file-tool policy: ${inputPath}`,
+      );
+    }
+  };
+
+  const assertWritableSandboxPath = (inputPath: string): string => {
     const normalizedInput = path.posix.normalize(inputPath);
-    if (!isInsidePosixPath(normalizedSandbox, normalizedInput)) {
+    assertNotDenied(normalizedInput);
+    if (
+      !isInsidePosixPath(normalizedSandbox, normalizedInput) &&
+      !writableRoots.some(root => isInsidePosixPath(root, normalizedInput))
+    ) {
       throw new Error(`Pi path escapes the workspace: ${inputPath}`);
     }
     return normalizedInput;
@@ -90,35 +157,31 @@ export function createPiPathMapper(
 
   const assertReadableSandboxPath = (inputPath: string): string => {
     const normalizedInput = path.posix.normalize(inputPath);
+    assertNotDenied(normalizedInput);
     if (
       !isInsidePosixPath(normalizedSandbox, normalizedInput) &&
       !readableRoots.some(root =>
         isInsidePosixPath(root.sandboxDir, normalizedInput),
-      )
+      ) &&
+      !policyReadableRoots.some(root =>
+        isInsidePosixPath(root, normalizedInput),
+      ) &&
+      !writableRoots.some(root => isInsidePosixPath(root, normalizedInput))
     ) {
       throw new Error(`Pi path escapes the readable roots: ${inputPath}`);
     }
     return normalizedInput;
   };
 
-  const toWorkspaceSandboxPath = (inputPath: string): string => {
-    if (path.posix.isAbsolute(inputPath)) {
-      const normalizedInput = path.posix.normalize(inputPath);
-      try {
-        return assertWorkspaceSandboxPath(normalizedInput);
-      } catch {
-        // Absolute host paths are handled below.
-      }
-    }
-
+  const mapHostWorkspacePath = (inputPath: string): string | undefined => {
     const resolvedHost = path.isAbsolute(inputPath)
       ? path.resolve(inputPath)
       : path.resolve(normalizedHost, inputPath);
     const canonicalResolvedHost = canonicalizeForContainment(resolvedHost);
-    if (
-      !isInsidePath(normalizedHost, resolvedHost) ||
-      !isInsidePath(canonicalHost, canonicalResolvedHost)
-    ) {
+    if (!isInsidePath(normalizedHost, resolvedHost)) {
+      return undefined;
+    }
+    if (!isInsidePath(canonicalHost, canonicalResolvedHost)) {
       throw new Error(`Pi path escapes the workspace: ${inputPath}`);
     }
 
@@ -131,29 +194,93 @@ export function createPiPathMapper(
       : normalizedSandbox;
   };
 
+  const toWritableSandboxPath = (inputPath: string): string => {
+    if (path.posix.isAbsolute(inputPath)) {
+      const normalizedInput = path.posix.normalize(inputPath);
+      if (isInsidePosixPath(normalizedSandbox, normalizedInput)) {
+        return assertWritableSandboxPath(normalizedInput);
+      }
+
+      const mappedHostPath = mapHostWorkspacePath(inputPath);
+      if (mappedHostPath) {
+        return assertWritableSandboxPath(mappedHostPath);
+      }
+
+      if (
+        writableRoots.some(root => isInsidePosixPath(root, normalizedInput))
+      ) {
+        return assertWritableSandboxPath(normalizedInput);
+      }
+    } else {
+      const mappedHostPath = mapHostWorkspacePath(inputPath);
+      if (mappedHostPath) {
+        return assertWritableSandboxPath(mappedHostPath);
+      }
+    }
+
+    throw new Error(`Pi path escapes the workspace: ${inputPath}`);
+  };
+
   return {
     hostWorkDir: normalizedHost,
     sandboxWorkDir: normalizedSandbox,
+    readableSandboxRoots: [
+      ...readableRoots.map(root => root.sandboxDir),
+      ...policyReadableRoots,
+    ],
+    writableSandboxRoots: writableRoots,
+    deniedSandboxRoots: deniedRoots,
     toSandboxPath(inputPath: string) {
-      return toWorkspaceSandboxPath(inputPath);
+      return toWritableSandboxPath(inputPath);
     },
     toReadableSandboxPath(inputPath: string) {
       if (path.posix.isAbsolute(inputPath)) {
         const normalizedInput = path.posix.normalize(inputPath);
-        try {
+        if (isInsidePosixPath(normalizedSandbox, normalizedInput)) {
           return assertReadableSandboxPath(normalizedInput);
-        } catch {
-          // Absolute host paths are handled by workspace mapping below.
+        }
+
+        const mappedHostPath = mapHostWorkspacePath(inputPath);
+        if (mappedHostPath) {
+          return assertReadableSandboxPath(mappedHostPath);
+        }
+
+        if (
+          readableRoots.some(root =>
+            isInsidePosixPath(root.sandboxDir, normalizedInput),
+          ) ||
+          policyReadableRoots.some(root =>
+            isInsidePosixPath(root, normalizedInput),
+          ) ||
+          writableRoots.some(root => isInsidePosixPath(root, normalizedInput))
+        ) {
+          return assertReadableSandboxPath(normalizedInput);
+        }
+      } else {
+        const mappedHostPath = mapHostWorkspacePath(inputPath);
+        if (mappedHostPath) {
+          return assertReadableSandboxPath(mappedHostPath);
         }
       }
-
-      return toWorkspaceSandboxPath(inputPath);
+      throw new Error(`Pi path escapes the readable roots: ${inputPath}`);
     },
     assertSandboxPath(inputPath: string) {
-      return assertWorkspaceSandboxPath(inputPath);
+      return assertWritableSandboxPath(inputPath);
     },
     assertReadableSandboxPath(inputPath: string) {
       return assertReadableSandboxPath(inputPath);
+    },
+    isWorkspacePath(inputPath: string) {
+      return isInsidePosixPath(
+        normalizedSandbox,
+        path.posix.normalize(inputPath),
+      );
+    },
+    getDeniedSandboxRootsWithin(inputPath: string) {
+      const normalizedInput = path.posix.normalize(inputPath);
+      return deniedRoots.filter(root =>
+        isInsidePosixPath(normalizedInput, root),
+      );
     },
     toRelativePath(inputPath: string) {
       const sandboxPath = path.posix.isAbsolute(inputPath)
