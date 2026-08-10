@@ -1079,7 +1079,13 @@ const { output } = await generateText({
 });
 ```
 
-JSON Schema also only supports a subset of the specification. See the
+JSON Schema also only supports a subset of the specification, and it is a
+different subset, so switching is a trade-off rather than an upgrade. There is
+no `pattern`, `minLength` or `maxLength` in it, and unsupported keywords are
+ignored instead of rejected, so a `z.string().min(3)` constraint silently stops
+being enforced. In the other direction, the conversion to the OpenAPI subset
+drops `minimum`, `maximum`, `minItems` and `maxItems`, which
+`responseJsonSchema` keeps. See the
 [Gemini structured output documentation](https://ai.google.dev/gemini-api/docs/structured-output)
 for the supported schema features.
 

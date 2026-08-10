@@ -96,6 +96,9 @@ export const googleLanguageModelOptions = lazySchema(() =>
        * e.g. unions (`anyOf`), records (`additionalProperties`) and
        * recursive schemas (`$ref` / `$defs`). Requires Gemini 2.5 or later.
        *
+       * It is a different subset rather than a superset: `pattern`,
+       * `minLength` and `maxLength` are ignored on this path.
+       *
        * https://ai.google.dev/gemini-api/docs/structured-output
        */
       useResponseJsonSchema: z.boolean().optional(),
