@@ -77,6 +77,11 @@ export type OpenCodeHarnessSettings = {
   readonly reasoningVariant?: string;
   readonly port?: number;
   readonly startupTimeoutMs?: number;
+  /**
+   * Creates the authentication token used by the sandbox bridge. Defaults to
+   * a random 32-byte hexadecimal token.
+   */
+  readonly mintBridgeToken?: (sandboxId: string) => string;
 };
 
 const optionalStringRecord = z.record(z.string(), z.unknown()).optional();
@@ -339,7 +344,10 @@ export function createOpenCode(
       }
 
       const port = resolveBridgePort(sandboxSession, settings.port);
-      const token = randomBytes(32).toString('hex');
+      const token =
+        settings.mintBridgeToken == null
+          ? randomBytes(32).toString('hex')
+          : settings.mintBridgeToken(sandboxId);
       const sandboxHomeDir = await resolveSandboxHomeDir({
         sandbox: session,
         abortSignal: startOpts.abortSignal,

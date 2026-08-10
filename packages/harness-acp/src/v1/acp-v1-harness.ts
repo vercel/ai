@@ -34,13 +34,16 @@ import {
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
 import {
+  createACPAuthenticationProfileIdentity,
   resolveACPProviderAuthentication,
+  resolveACPProviderAuthenticationCompatibility,
   type ACPAuthenticationProfileIdentity,
   type ACPClientApp,
-  type ACPProviderAuthenticationCompatibility,
 } from '../acp-auth';
 import {
+  createACPV1Implementation,
   createImplementationDescriptor,
+  createImplementationIdentity,
   createImplementationInstallCommand,
   createImplementationManifest,
   getImplementationLockfile,
@@ -112,9 +115,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
   port: portOverride,
   startupTimeoutMs,
   clientApp,
-  implementationIdentity,
-  authenticationProfile,
-  providerAuthenticationCompatibility,
   lifecycleStateSchema,
 }: {
   settings: ACPV1Settings;
@@ -122,11 +122,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
   port?: number;
   startupTimeoutMs?: number;
   clientApp: ACPClientApp;
-  implementationIdentity: string;
-  authenticationProfile: ACPAuthenticationProfileIdentity;
-  providerAuthenticationCompatibility:
-    | ACPProviderAuthenticationCompatibility
-    | undefined;
   lifecycleStateSchema: NonNullable<
     HarnessV1<TBuiltinTools>['lifecycleStateSchema']
   >;
@@ -136,7 +131,8 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       `ACP harnessId must be a stable kebab-case identifier; received ${JSON.stringify(settings.harnessId)}.`,
     );
   }
-  validateACPV1Implementation(settings.implementation);
+  const implementation = createACPV1Implementation({ settings });
+  validateACPV1Implementation(implementation);
 
   const BOOTSTRAP_DIR = `.harness-bootstrap/${settings.harnessId}`;
 
@@ -164,7 +160,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           readBridgeAsset({ name: 'host-tool-mcp.mjs' }),
         ]);
       const implementationLock = getImplementationLockfile({
-        implementation: settings.implementation,
+        implementation,
       });
       cachedBootstrap = {
         harnessId: settings.harnessId,
@@ -186,14 +182,13 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           {
             path: `${BOOTSTRAP_DIR}/implementation/package.json`,
             content: createImplementationManifest({
-              implementation: settings.implementation,
+              implementation,
             }),
           },
           {
             path: `${BOOTSTRAP_DIR}/implementation/implementation.json`,
             content: createImplementationDescriptor({
-              implementation: settings.implementation,
-              implementationIdentity,
+              implementation,
             }),
           },
           ...(implementationLock == null
@@ -213,7 +208,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
             command: createImplementationInstallCommand({
               implementationDir: 'implementation',
               storeDir: '../.pnpm-store',
-              implementation: settings.implementation,
+              implementation,
             }),
           },
         ],
@@ -229,6 +224,25 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         });
       }
       const permissionMode = startOptions.permissionMode ?? 'allow-all';
+      const env = { ...process.env };
+      const providerAuthenticationCompatibility =
+        resolveACPProviderAuthenticationCompatibility({
+          auth: settings.auth,
+          providerAuthentication: settings.providerAuthentication,
+          env,
+        });
+      const implementationIdentity = createImplementationIdentity({
+        harnessId: settings.harnessId,
+        acpVersion: 'v1',
+        implementation,
+        clientApp,
+        providerAuthentication: providerAuthenticationCompatibility,
+        permissionModeMapping: settings.permissionModeMapping,
+      });
+      const authenticationProfile = createACPAuthenticationProfileIdentity({
+        authentication: settings.authentication,
+        providerAuthenticationCompatibility,
+      });
 
       const resolvedProviderAuthentication = resolveACPProviderAuthentication({
         auth: {
@@ -236,7 +250,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           providerAuthentication: settings.providerAuthentication,
           clientApp,
         },
-        env: process.env,
+        env,
         compatibility: providerAuthenticationCompatibility,
       });
       const sandboxSession = startOptions.sandboxSession;
@@ -451,7 +465,10 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         override: portOverride,
         harnessId: settings.harnessId,
       });
-      const token = randomBytes(32).toString('hex');
+      const token =
+        settings.mintBridgeToken == null
+          ? randomBytes(32).toString('hex')
+          : settings.mintBridgeToken(sandboxSession.id);
       await sandbox.run({
         command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
         abortSignal: startOptions.abortSignal,
@@ -472,8 +489,8 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           ` --bridge-type ${shellQuote(settings.harnessId)}`,
         env: {
           ...resolveImplementationEnvironment({
-            implementation: settings.implementation,
-            env: process.env,
+            implementation,
+            env,
           }),
           ...createACPBridgeEnvironment({
             authentication: settings.authentication,

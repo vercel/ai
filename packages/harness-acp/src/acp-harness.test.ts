@@ -10,7 +10,6 @@ import { safeParseJSON, safeValidateTypes, tool } from '@ai-sdk/provider-utils';
 import * as fsPromises from 'node:fs/promises';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
-import { createACPAuthenticationProfileIdentity } from './acp-auth';
 import { createACP } from './acp-harness';
 import {
   resolveBridgeAssetCandidates,
@@ -142,11 +141,12 @@ vi.mock('node:fs/promises', async importOriginal => {
   };
 });
 
-const implementation = {
-  type: 'npm',
-  mode: 'simple',
-  packageName: '@agentclientprotocol/codex-acp',
-  version: '1.1.4',
+const agentSettings = {
+  source: {
+    type: 'npm-simple',
+    packageName: '@agentclientprotocol/codex-acp',
+    packageVersion: '1.1.4',
+  },
   executable: 'codex-acp',
   args: ['--example'],
   forwardEnv: ['CODEX_API_KEY'],
@@ -363,7 +363,7 @@ describe('createACP', () => {
   it('constructs the default v1 harness synchronously without reading assets', () => {
     const harness = createACP({
       harnessId: 'codex-acp',
-      implementation,
+      ...agentSettings,
     });
 
     expect(harness).not.toBeInstanceOf(Promise);
@@ -380,7 +380,7 @@ describe('createACP', () => {
       createACP({
         version: 'v1',
         harnessId: 'codex-acp',
-        implementation,
+        ...agentSettings,
       }).specificationVersion,
     ).toBe('harness-v1');
   });
@@ -388,12 +388,12 @@ describe('createACP', () => {
   it('advertises approvals with and without a complete mapping', () => {
     const mapped = createACP({
       harnessId: 'codex-acp',
-      implementation,
+      ...agentSettings,
       permissionModeMapping,
     });
     const incomplete = createACP({
       harnessId: 'codex-acp-incomplete',
-      implementation,
+      ...agentSettings,
       permissionModeMapping: {
         'allow-all': permissionModeMapping['allow-all'],
       } as never,
@@ -408,7 +408,7 @@ describe('createACP', () => {
   it('supports restrictive permission modes without a mapping', async () => {
     const harness = createACP({
       harnessId: 'grok-build-acp',
-      implementation,
+      ...agentSettings,
     });
 
     const session = await harness.doStart({
@@ -452,7 +452,7 @@ describe('createACP', () => {
     } as const satisfies ACPPermissionModeMapping;
     const harness = createACP({
       harnessId: 'codex-acp',
-      implementation,
+      ...agentSettings,
       permissionModeMapping: unsupportedMapping,
     });
     const session = await harness.doStart({
@@ -487,7 +487,7 @@ describe('createACP', () => {
   it('does not claim native filtering when approval mapping is complete', async () => {
     const harness = createACP({
       harnessId: 'codex-acp',
-      implementation,
+      ...agentSettings,
       permissionModeMapping,
     });
 
@@ -511,7 +511,7 @@ describe('createACP', () => {
       createACP({
         version: 'v2',
         harnessId: 'codex-acp',
-        implementation,
+        ...agentSettings,
       } as never),
     ).toThrow('Unsupported ACP protocol version "v2"');
   });
@@ -519,7 +519,7 @@ describe('createACP', () => {
   it.each(['CodexACP', 'codex_acp', 'codex/acp', 'codex--acp', ''])(
     'rejects unstable harness id %j',
     harnessId => {
-      expect(() => createACP({ harnessId, implementation })).toThrow(
+      expect(() => createACP({ harnessId, ...agentSettings })).toThrow(
         'stable kebab-case identifier',
       );
     },
@@ -534,7 +534,7 @@ describe('createACP', () => {
     };
     const harness = createACP({
       harnessId: 'codex-acp',
-      implementation,
+      ...agentSettings,
       builtinTools,
     });
 
@@ -581,15 +581,38 @@ describe('createACP', () => {
     expect(() =>
       createACP({
         harnessId: 'codex-acp',
-        implementation: { ...implementation, version: '^1.1.4' },
+        ...agentSettings,
+        source: { ...agentSettings.source, packageVersion: '^1.1.4' },
       }),
     ).toThrow('exact semantic version');
+  });
+
+  it('resolves the latest dist-tag when no package version is pinned', async () => {
+    const harness = createACP({
+      harnessId: 'codex-acp-unpinned',
+      ...agentSettings,
+      source: {
+        type: 'npm-simple',
+        packageName: '@agentclientprotocol/codex-acp',
+      },
+    });
+    const bootstrap = await harness.getBootstrap!();
+
+    expect(
+      bootstrap.files.find(file =>
+        file.path.endsWith('/implementation/package.json'),
+      )?.content,
+    ).toContain('"@agentclientprotocol/codex-acp": "latest"');
+    expect(bootstrap.commands.map(command => command.command)).toEqual([
+      'pnpm install --frozen-lockfile --store-dir .pnpm-store',
+      'pnpm --dir implementation install --prod --store-dir ../.pnpm-store',
+    ]);
   });
 
   it('generates implementation acquisition files and caches the bootstrap', async () => {
     const harness = createACP({
       harnessId: 'codex-acp',
-      implementation,
+      ...agentSettings,
     });
     const first = await harness.getBootstrap!();
     const second = await harness.getBootstrap!();
@@ -635,11 +658,11 @@ describe('createACP', () => {
   it('caches bootstrap per factory without sharing configuration globally', async () => {
     const firstHarness = createACP({
       harnessId: 'first-acp',
-      implementation,
+      ...agentSettings,
     });
     const secondHarness = createACP({
       harnessId: 'second-acp',
-      implementation,
+      ...agentSettings,
     });
     const firstBootstrap = await firstHarness.getBootstrap!();
     const secondBootstrap = await secondHarness.getBootstrap!();
@@ -654,13 +677,12 @@ describe('createACP', () => {
   it('uses caller-provided artifacts for locked frozen acquisition', async () => {
     const harness = createACP({
       harnessId: 'codex-acp-locked',
-      implementation: {
-        type: 'npm',
-        mode: 'locked',
+      source: {
+        type: 'npm-locked',
         packageJson: lockedPackageJson,
         pnpmLockYaml: lockedPnpmLockYaml,
-        executable: 'codex-acp',
       },
+      executable: 'codex-acp',
     });
     const bootstrap = await harness.getBootstrap!();
 
@@ -724,7 +746,7 @@ describe('createACP', () => {
     const harness = createACP({
       harnessId: 'codex-acp',
       auth: 'direct',
-      implementation,
+      ...agentSettings,
       authentication: { methodId: 'api-key' },
       providerAuthentication: {
         gateway: {
@@ -763,10 +785,52 @@ describe('createACP', () => {
     expect(stop).not.toHaveBeenCalled();
   });
 
+  it('uses a caller-minted bridge token and reuses it when attaching', async () => {
+    const spawns: Array<{
+      command: string;
+      env: Record<string, string | undefined>;
+    }> = [];
+    const mintBridgeToken = vi.fn(
+      (sandboxId: string) => `token-for-${sandboxId}`,
+    );
+    const harness = createACP({
+      harnessId: 'codex-acp',
+      ...agentSettings,
+      mintBridgeToken,
+    });
+    const sandboxSession = fakeSandbox({
+      runs: [],
+      spawns,
+      stop: async () => {},
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/user-project',
+    });
+
+    expect(mintBridgeToken).toHaveBeenCalledExactlyOnceWith('sandbox-1');
+    expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).toBe('token-for-sandbox-1');
+
+    const resumeFrom = await session.doDetach();
+    expect(resumeFrom.data).toMatchObject({
+      bridge: { token: 'token-for-sandbox-1' },
+    });
+
+    const attachedSession = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/user-project',
+      resumeFrom,
+    });
+    expect(mintBridgeToken).toHaveBeenCalledTimes(1);
+    await attachedSession.doDetach();
+  });
+
   it('rejects an already-aborted turn without sending a start frame', async () => {
     const harness = createACP({
       harnessId: 'codex-acp',
-      implementation,
+      ...agentSettings,
     });
     const session = await harness.doStart({
       sessionId: 'session-1',
@@ -802,7 +866,7 @@ describe('createACP', () => {
     const writes: Array<{ path: string; content: string }> = [];
     const harness = createACP({
       harnessId: 'codex-acp',
-      implementation,
+      ...agentSettings,
     });
     const session = await harness.doStart({
       sessionId: 'session-1',
@@ -939,7 +1003,7 @@ describe('createACP', () => {
     ] as const;
     const harness = createACP({
       harnessId: 'codex-acp',
-      implementation,
+      ...agentSettings,
       authentication: { methodId: 'api-key' },
     });
     const firstSession = await harness.doStart({
@@ -1050,10 +1114,8 @@ describe('createACP', () => {
     const harness = createACP({
       harnessId: 'cold-gateway-acp',
       auth: 'ai-gateway',
-      implementation: {
-        ...implementation,
-        forwardEnv: [],
-      },
+      ...agentSettings,
+      forwardEnv: [],
       modelId: 'gpt-5.1-codex',
       session: {
         meta: {
@@ -1290,7 +1352,7 @@ describe('createACP', () => {
     });
     const harness = createACP({
       harnessId: 'unsupported-cold-acp',
-      implementation,
+      ...agentSettings,
     });
     const firstSession = await harness.doStart({
       sessionId: 'session-1',
@@ -1359,7 +1421,7 @@ describe('createACP', () => {
     });
     const firstHarness = createACP({
       harnessId: 'model-identity-acp',
-      implementation,
+      ...agentSettings,
       modelId: 'model-before-stop',
     });
     const firstSession = await firstHarness.doStart({
@@ -1386,7 +1448,7 @@ describe('createACP', () => {
 
     const changedHarness = createACP({
       harnessId: 'model-identity-acp',
-      implementation,
+      ...agentSettings,
       modelId: 'model-after-stop',
     });
     await expect(
@@ -1413,7 +1475,7 @@ describe('createACP', () => {
     });
     const harness = createACP({
       harnessId: 'idempotent-lifecycle-acp',
-      implementation,
+      ...agentSettings,
     });
     const stoppedSession = await harness.doStart({
       sessionId: 'session-stop',
@@ -1479,7 +1541,7 @@ describe('createACP', () => {
   it('rejects standard ACP v1 manual compaction without sending a command', async () => {
     const harness = createACP({
       harnessId: 'compact-acp',
-      implementation,
+      ...agentSettings,
     });
     const session = await harness.doStart({
       sessionId: 'session-1',
@@ -1514,7 +1576,7 @@ describe('createACP', () => {
     });
     const harness = createACP({
       harnessId: 'codex-acp',
-      implementation,
+      ...agentSettings,
     });
     const firstSession = await harness.doStart({
       sessionId: 'session-1',
@@ -1600,7 +1662,7 @@ describe('createACP', () => {
     });
     const harness = createACP({
       harnessId: 'codex-acp',
-      implementation,
+      ...agentSettings,
     });
     const initialSession = await harness.doStart({
       sessionId: 'session-replay',
@@ -1699,7 +1761,7 @@ describe('createACP', () => {
     const harness = createACP({
       harnessId: 'codex-acp',
       auth: 'ai-gateway',
-      implementation,
+      ...agentSettings,
       providerAuthentication: {
         gateway: {
           env: {
@@ -1815,7 +1877,7 @@ describe('createACP', () => {
     });
     const harness = createACP({
       harnessId: 'codex-acp',
-      implementation,
+      ...agentSettings,
     });
     const firstAgent = new HarnessAgent({
       harness,
@@ -1905,7 +1967,7 @@ describe('createACP', () => {
     });
     const harness = createACP({
       harnessId: 'codex-acp',
-      implementation,
+      ...agentSettings,
       builtinTools: {
         bash: commonTool('bash', {
           nativeName: 'shell',
@@ -2022,7 +2084,7 @@ describe('createACP', () => {
     async ({ permissionMode }) => {
       const harness = createACP({
         harnessId: 'codex-acp',
-        implementation,
+        ...agentSettings,
         permissionModeMapping,
       });
       const session = await harness.doStart({
@@ -2059,7 +2121,7 @@ describe('createACP', () => {
   it('submits a host approval decision to the pending ACP turn', async () => {
     const harness = createACP({
       harnessId: 'codex-acp',
-      implementation,
+      ...agentSettings,
       permissionModeMapping,
     });
     const session = await harness.doStart({
@@ -2103,7 +2165,7 @@ describe('createACP', () => {
   it('sends the exact host tool catalog and submits a continued client result', async () => {
     const harness = createACP({
       harnessId: 'codex-acp',
-      implementation,
+      ...agentSettings,
     });
     const session = await harness.doStart({
       sessionId: 'session-1',
@@ -2182,7 +2244,7 @@ describe('createACP', () => {
   it('sends changed, removed, and unchanged catalogs on consecutive turns', async () => {
     const harness = createACP({
       harnessId: 'codex-acp',
-      implementation,
+      ...agentSettings,
     });
     const session = await harness.doStart({
       sessionId: 'session-1',
@@ -2278,7 +2340,7 @@ describe('createACP', () => {
   it('preserves capability errors reported by the sandbox bridge', async () => {
     const harness = createACP({
       harnessId: 'codex-acp',
-      implementation,
+      ...agentSettings,
     });
     const session = await harness.doStart({
       sessionId: 'session-1',
@@ -2340,7 +2402,7 @@ describe('createACP', () => {
     const agent = new HarnessAgent({
       harness: createACP({
         harnessId: 'codex-acp',
-        implementation,
+        ...agentSettings,
       }),
       sandbox: sandboxProvider({ session: sandboxSession }),
       tools: { weather },
@@ -2416,7 +2478,7 @@ describe('createACP', () => {
     const agent = new HarnessAgent({
       harness: createACP({
         harnessId: 'codex-acp',
-        implementation,
+        ...agentSettings,
       }),
       sandbox: sandboxProvider({ session: sandboxSession }),
       tools: { clientTool },
@@ -2484,7 +2546,7 @@ describe('createACP', () => {
   it('waits for the bridge terminal sequence after cancellation before rejecting the turn', async () => {
     const harness = createACP({
       harnessId: 'codex-acp',
-      implementation,
+      ...agentSettings,
     });
     const session = await harness.doStart({
       sessionId: 'session-1',
@@ -2562,7 +2624,7 @@ describe('createACP', () => {
   it('rejects a cancelled turn when the bridge connection fails', async () => {
     const harness = createACP({
       harnessId: 'codex-acp',
-      implementation,
+      ...agentSettings,
     });
     const session = await harness.doStart({
       sessionId: 'session-1',
@@ -2608,10 +2670,8 @@ describe('createACP', () => {
       harnessId: 'codex-acp-gateway',
       auth: 'ai-gateway',
       clientApp: { name: 'custom-client', version: '1.2.3' },
-      implementation: {
-        ...implementation,
-        forwardEnv: [],
-      },
+      ...agentSettings,
+      forwardEnv: [],
       providerAuthentication: {
         gateway: {
           env: {},
@@ -2640,6 +2700,63 @@ describe('createACP', () => {
     await session.doDestroy();
   });
 
+  it('resolves automatic provider authentication from the session-start environment', async () => {
+    vi.stubEnv('AI_GATEWAY_API_KEY', '');
+    vi.stubEnv('VERCEL_OIDC_TOKEN', '');
+    const spawns: Array<{
+      command: string;
+      env: Record<string, string | undefined>;
+    }> = [];
+    const harness = createACP({
+      harnessId: 'late-auth-acp',
+      ...agentSettings,
+      forwardEnv: [],
+      providerAuthentication: {
+        gateway: {
+          env: {
+            PROVIDER_API_KEY: { $source: 'gateway-api-key' },
+          },
+        },
+      },
+    });
+
+    vi.stubEnv('AI_GATEWAY_API_KEY', 'late-gateway-key');
+    vi.stubEnv('AI_GATEWAY_BASE_URL', 'https://gateway.example/late');
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns,
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+
+    expect(spawns[0]!.env.AI_SDK_ACP_GATEWAY_API_KEY).toBe('late-gateway-key');
+    expect(spawns[0]!.env.AI_SDK_ACP_GATEWAY_BASE_URL).toBe(
+      'https://gateway.example/late',
+    );
+    expect(
+      await safeParseJSON({
+        text: spawns[0]!.env[ACP_BRIDGE_CONFIGURATION_ENV]!,
+      }),
+    ).toMatchObject({
+      success: true,
+      value: {
+        providerAuthentication: {
+          type: 'ai-gateway',
+        },
+      },
+    });
+    expect((await session.doStop()).data).toMatchObject({
+      authenticationProfile: {
+        providerKind: 'ai-gateway',
+        providerMode: 'auto',
+        gatewayCredentialSource: 'AI_GATEWAY_API_KEY',
+      },
+    });
+  });
+
   it('excludes resolved credentials from bootstrap and lifecycle state', async () => {
     vi.stubEnv('PROVIDER_API_KEY', 'direct-secret');
     vi.stubEnv('AI_GATEWAY_API_KEY', 'gateway-secret');
@@ -2652,12 +2769,10 @@ describe('createACP', () => {
     const harness = createACP({
       harnessId: 'secret-safe-acp',
       auth: 'ai-gateway',
-      implementation: {
-        ...implementation,
-        forwardEnv: ['PROVIDER_API_KEY'],
-        env: {
-          PROVIDER_BASE_URL: 'https://provider.example',
-        },
+      ...agentSettings,
+      forwardEnv: ['PROVIDER_API_KEY'],
+      env: {
+        PROVIDER_BASE_URL: 'https://provider.example',
       },
       providerAuthentication: {
         gateway: {
@@ -2711,10 +2826,8 @@ describe('createACP', () => {
     const harness = createACP({
       harnessId: 'direct-secret-safe-acp',
       auth: 'direct',
-      implementation: {
-        ...implementation,
-        forwardEnv: ['PROVIDER_API_KEY'],
-      },
+      ...agentSettings,
+      forwardEnv: ['PROVIDER_API_KEY'],
       providerAuthentication: {
         gateway: {
           env: {
@@ -2750,45 +2863,40 @@ describe('createACP', () => {
     });
   });
 
-  it('rejects lifecycle state from an incompatible implementation identity', async () => {
+  it('validates lifecycle state structurally and rejects incompatible identities at start', async () => {
     const first = createACP({
       harnessId: 'identity-acp',
-      implementation,
+      ...agentSettings,
     });
     const second = createACP({
       harnessId: 'identity-acp',
-      implementation: {
-        ...implementation,
-        args: ['different'],
-      },
+      ...agentSettings,
+      args: ['different'],
     });
-    const firstBootstrap = await first.getBootstrap!();
-    const descriptorText = firstBootstrap.files.find(file =>
-      file.path.endsWith('/implementation.json'),
-    )?.content;
-    expect(descriptorText).toBeDefined();
-    const descriptor = await safeParseJSON({ text: descriptorText! });
-    expect(descriptor.success).toBe(true);
-    if (!descriptor.success) return;
-    const implementationIdentity = (
-      descriptor.value as { implementationIdentity: string }
-    ).implementationIdentity;
-    const authenticationProfile = createACPAuthenticationProfileIdentity({
-      authentication: undefined,
-      providerAuthenticationCompatibility: undefined,
+    const sandbox = fakeSandbox({
+      runs: [],
+      spawns: [],
+      stop: async () => {},
     });
+    const firstSession = await first.doStart({
+      sessionId: 'session-1',
+      sandboxSession: sandbox,
+      sessionWorkDir: '/workspace/user-project',
+    });
+    const resumeFrom = await firstSession.doStop();
+    const lifecycleData = resumeFrom.data as Record<string, unknown>;
+    const authenticationProfile = lifecycleData.authenticationProfile as Record<
+      string,
+      unknown
+    >;
 
-    const compatible = await safeValidateTypes({
-      value: { implementationIdentity, authenticationProfile },
-      schema: first.lifecycleStateSchema!,
-    });
-    const incompatible = await safeValidateTypes({
-      value: { implementationIdentity, authenticationProfile },
+    const structurallyCompatible = await safeValidateTypes({
+      value: lifecycleData,
       schema: second.lifecycleStateSchema!,
     });
     const legacyCompatible = await safeValidateTypes({
       value: {
-        implementationIdentity,
+        ...lifecycleData,
         authenticationProfile: {
           ...authenticationProfile,
           providerKind: 'implementation-default',
@@ -2796,8 +2904,7 @@ describe('createACP', () => {
       },
       schema: first.lifecycleStateSchema!,
     });
-    expect(compatible.success).toBe(true);
-    expect(incompatible.success).toBe(false);
+    expect(structurallyCompatible.success).toBe(true);
     expect(legacyCompatible).toMatchObject({
       success: true,
       value: {
@@ -2806,5 +2913,15 @@ describe('createACP', () => {
         },
       },
     });
+    await expect(
+      second.doStart({
+        sessionId: 'session-1',
+        sandboxSession: sandbox,
+        sessionWorkDir: '/workspace/user-project',
+        resumeFrom,
+      }),
+    ).rejects.toThrow(
+      'ACP lifecycle state is incompatible with the configured implementation.',
+    );
   });
 });

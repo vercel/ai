@@ -118,6 +118,9 @@
       "path": "../../packages/harness-deepagents"
     },
     {
+      "path": "../../packages/harness-grok-build"
+    },
+    {
       "path": "../../packages/harness-opencode"
     },
     {

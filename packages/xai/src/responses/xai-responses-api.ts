@@ -110,6 +110,10 @@ export type XaiResponsesTool =
   | { type: 'view_image' }
   | { type: 'view_x_video' }
   | {
+      type: 'image_generation';
+      action?: 'auto' | 'generate' | 'edit';
+    }
+  | {
       type: 'file_search';
       vector_store_ids?: string[];
       max_num_results?: number;
@@ -214,6 +218,13 @@ const outputItemSchema = z.discriminatedUnion('type', [
         }),
       )
       .nullish(),
+  }),
+  z.object({
+    type: z.literal('image_generation_call'),
+    id: z.string(),
+    status: z.string(),
+    prompt: z.string().nullish(),
+    result: z.string().nullish(),
   }),
   z.object({
     type: z.literal('custom_tool_call'),
@@ -420,6 +431,21 @@ export const xaiResponsesChunkSchema = z.union([
   }),
   z.object({
     type: z.literal('response.file_search_call.completed'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.image_generation_call.in_progress'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.image_generation_call.generating'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.image_generation_call.completed'),
     item_id: z.string(),
     output_index: z.number(),
   }),

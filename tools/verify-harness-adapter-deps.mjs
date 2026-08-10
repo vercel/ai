@@ -48,6 +48,16 @@ const adapterConfigs = [
     ],
   },
   {
+    name: 'Grok Build',
+    packageDir: 'packages/harness-grok-build',
+    primarySdk: '@xai-official/grok',
+    sdkPackages: [
+      '@agentclientprotocol/sdk',
+      '@modelcontextprotocol/sdk',
+      '@xai-official/grok',
+    ],
+  },
+  {
     name: 'OpenCode',
     packageDir: 'packages/harness-opencode',
     primarySdk: '@opencode-ai/sdk',

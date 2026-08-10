@@ -62,9 +62,11 @@ try {
 - `harnessId`: stable kebab-case identity for this profile.
 - `version`: ACP protocol version. It defaults to and currently supports only
   `'v1'`.
-- `implementation`: simple or locked NPM acquisition, executable, arguments,
-  host environment variables to forward through `forwardEnv`, and persistent
-  `env`.
+- `source`: where the ACP package comes from, as a simple or locked NPM source.
+- `executable`: the package bin name to launch.
+- `args`: optional arguments passed to the executable.
+- `forwardEnv`: host environment variable names to forward into the sandbox.
+- `env`: persistent environment values written at bootstrap.
 - `builtinTools`: optional native tool definitions for static typing and exact
   name matching.
 - `authentication`: advertised ACP authentication method, metadata, and client
@@ -87,6 +89,10 @@ try {
   creation and restoration.
 - `port`: exposed bridge port override.
 - `startupTimeoutMs`: bridge startup timeout. The default is 120 seconds.
+- `mintBridgeToken`: synchronous function that receives the sandbox id and
+  returns the bridge authentication token. By default, the adapter generates a
+  random 32-byte token. Custom implementations must return a suitably secret
+  token.
 - `clientApp`: optional client attribution with `name` and `version`. It
   defaults to the installed `ai-sdk/harness-acp/<version>` identity and is
   available to Gateway environment placeholders.
@@ -94,39 +100,38 @@ try {
 Runtime-specific package names, environment variables, modes, and session
 metadata belong in the inline profile, not in the generic adapter.
 
-### Implementation acquisition
+### Package source
 
-Simple NPM acquisition requires an exact package version:
+A simple NPM source installs a single package by name:
 
 ```ts
-const implementation = {
-  type: 'npm',
-  mode: 'simple',
+const source = {
+  type: 'npm-simple',
   packageName: '@agentclientprotocol/codex-acp',
-  version: '1.1.4',
-  executable: 'codex-acp',
+  packageVersion: '1.1.4',
 } as const;
 ```
 
-This pins the requested ACP package, while its transitive dependencies are
-resolved when the sandbox bootstraps. To freeze the complete installation, use
-locked acquisition and provide the contents of a `package.json` and its
-`pnpm-lock.yaml`:
+`packageVersion` is optional and must be an exact version when supplied. Omit it
+to install the package's `latest` dist-tag instead. An omitted version also
+stays out of the harness identity, so a new upstream release does not
+invalidate existing lifecycle state.
+
+A simple source pins only the requested ACP package, while its transitive
+dependencies are resolved when the sandbox bootstraps. To freeze the complete
+installation, use a locked source and provide the contents of a `package.json`
+and its `pnpm-lock.yaml`:
 
 ```ts
-const implementation = {
-  type: 'npm',
-  mode: 'locked',
+const source = {
+  type: 'npm-locked',
   packageJson: packageJsonContents,
   pnpmLockYaml: pnpmLockYamlContents,
-  executable: 'codex-acp',
 } as const;
 ```
 
-Locked acquisition installs the supplied files with
-`pnpm install --frozen-lockfile`. Both modes also accept `args`, `forwardEnv`,
-and `env`. The manifest and lockfile are bootstrap artifacts, so never put
-credentials in either string.
+A locked source installs the supplied files with
+`pnpm install --frozen-lockfile`.
 
 ## Authentication
 
@@ -142,7 +147,7 @@ With the default `auth: 'auto'`, the adapter uses AI Gateway when
 `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` is available and otherwise uses
 direct authentication.
 
-For direct authentication, configure `implementation.forwardEnv` with the host
+For direct authentication, configure `forwardEnv` with the host
 environment variable names that the underlying ACP implementation reads. These
 variables are allowlisted and forwarded unchanged to the ACP process. Their
 names depend on the ACP implementation. Credential values are resolved at
@@ -220,16 +225,15 @@ export const claudeCodeACPHarness = createACP({
   // Define the runtime's built-in tool names and input schemas to expose
   // provider-executed calls as typed HarnessAgent tools.
   // builtinTools: { ... },
-  implementation: {
-    type: 'npm',
-    mode: 'simple',
+  source: {
+    type: 'npm-simple',
     packageName: '@agentclientprotocol/claude-agent-acp',
-    version: '0.61.0',
-    executable: 'claude-agent-acp',
-    forwardEnv: ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN'],
-    env: {
-      IS_SANDBOX: '1',
-    },
+    packageVersion: '0.61.0',
+  },
+  executable: 'claude-agent-acp',
+  forwardEnv: ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN'],
+  env: {
+    IS_SANDBOX: '1',
   },
   permissionModeMapping: {
     'allow-reads': { type: 'session-mode', modeId: 'default' },
@@ -268,14 +272,13 @@ export const codexACPHarness = createACP({
   // Define the runtime's built-in tool names and input schemas to expose
   // provider-executed calls as typed HarnessAgent tools.
   // builtinTools: { ... },
-  implementation: {
-    type: 'npm',
-    mode: 'simple',
+  source: {
+    type: 'npm-simple',
     packageName: '@agentclientprotocol/codex-acp',
-    version: '1.1.4',
-    executable: 'codex-acp',
-    forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
+    packageVersion: '1.1.4',
   },
+  executable: 'codex-acp',
+  forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
   permissionModeMapping: {
     'allow-reads': null,
     'allow-edits': null,
@@ -342,15 +345,14 @@ export const grokBuildACPHarness = createACP({
   // Define the runtime's built-in tool names and input schemas to expose
   // provider-executed calls as typed HarnessAgent tools.
   // builtinTools: { ... },
-  implementation: {
-    type: 'npm',
-    mode: 'simple',
+  source: {
+    type: 'npm-simple',
     packageName: '@xai-official/grok',
-    version: '0.2.111',
-    executable: 'grok',
-    args: ['agent', 'stdio'],
-    forwardEnv: ['XAI_API_KEY'],
+    packageVersion: '0.2.111',
   },
+  executable: 'grok',
+  args: ['agent', 'stdio'],
+  forwardEnv: ['XAI_API_KEY'],
   providerAuthentication: {
     gateway: {
       env: {

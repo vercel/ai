@@ -399,6 +399,9 @@ importers:
       '@ai-sdk/harness-deepagents':
         specifier: workspace:*
         version: link:../../packages/harness-deepagents
+      '@ai-sdk/harness-grok-build':
+        specifier: workspace:*
+        version: link:../../packages/harness-grok-build
       '@ai-sdk/harness-opencode':
         specifier: workspace:*
         version: link:../../packages/harness-opencode
@@ -727,6 +730,9 @@ importers:
       '@ai-sdk/harness-deepagents':
         specifier: workspace:*
         version: link:../../packages/harness-deepagents
+      '@ai-sdk/harness-grok-build':
+        specifier: workspace:*
+        version: link:../../packages/harness-grok-build
       '@ai-sdk/harness-opencode':
         specifier: workspace:*
         version: link:../../packages/harness-opencode
@@ -2915,6 +2921,37 @@ importers:
         specifier: 3.25.76
         version: 3.25.76
 
+  packages/harness-grok-build:
+    dependencies:
+      '@ai-sdk/harness':
+        specifier: workspace:*
+        version: link:../harness
+      '@ai-sdk/harness-acp':
+        specifier: workspace:*
+        version: link:../harness-acp
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      '@xai-official/grok':
+        specifier: 0.2.111
+        version: 0.2.111
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.25)(tsx@4.22.0)(typescript@5.8.3)(yaml@2.9.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
   packages/harness-opencode:
     dependencies:
       '@ai-sdk/harness':
@@ -3268,9 +3305,6 @@ importers:
 
   packages/moonshotai:
     dependencies:
-      '@ai-sdk/openai-compatible':
-        specifier: workspace:*
-        version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: workspace:*
         version: link:../provider
@@ -47675,7 +47709,7 @@ snapshots:
       esbuild: 0.28.1
       fdir: 6.5.0(picomatch@4.0.5)
       picomatch: 4.0.5
-      postcss: 8.5.25
+      postcss: 8.5.15
       rollup: 4.62.4
       tinyglobby: 0.2.17
     optionalDependencies:
@@ -47694,7 +47728,7 @@ snapshots:
       esbuild: 0.28.1
       fdir: 6.5.0(picomatch@4.0.5)
       picomatch: 4.0.5
-      postcss: 8.5.25
+      postcss: 8.5.15
       rollup: 4.62.4
       tinyglobby: 0.2.17
     optionalDependencies:
