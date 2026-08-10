@@ -118,15 +118,15 @@ For example, enable cancellation for your chat route:
 Then forward the request signal to the AI SDK:
 
 ```ts filename="app/api/chat/route.ts" highlight="10"
-import { streamText } from 'ai';
+import { convertToModelMessages, streamText, type UIMessage } from 'ai';
 __PROVIDER_IMPORT__;
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
     model: __MODEL__,
-    messages,
+    messages: convertToModelMessages(messages),
     abortSignal: req.signal,
   });
 
