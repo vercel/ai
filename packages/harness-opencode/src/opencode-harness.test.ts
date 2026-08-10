@@ -142,6 +142,74 @@ describe('createOpenCode adapter', () => {
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
   });
 
+  it('uses a caller-minted bridge token and reuses it when attaching', async () => {
+    harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const mintBridgeToken = vi.fn(
+      (sandboxId: string) => `token-for-${sandboxId}`,
+    );
+    const emptyStream = () =>
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.close();
+        },
+      });
+    const sandbox = {
+      async run({ command }: { command: string }) {
+        return command === 'printf "%s" "$HOME"'
+          ? { exitCode: 0, stdout: '/home/vercel-sandbox', stderr: '' }
+          : { exitCode: 0, stdout: '', stderr: '' };
+      },
+      async readTextFile() {
+        return null;
+      },
+      async spawn({ env }: { env: Record<string, string | undefined> }) {
+        spawnEnvs.push(env);
+        return {
+          stdout: emptyStream(),
+          stderr: emptyStream(),
+          async wait() {},
+          async kill() {},
+        };
+      },
+    };
+    const sandboxSession = {
+      id: 'test-sandbox',
+      defaultWorkingDirectory: '/workspace',
+      restricted: () => sandbox,
+      ports: [4000] as ReadonlyArray<number>,
+      async getPortUrl() {
+        return 'ws://sandbox.example';
+      },
+      async stop() {},
+    } as unknown as HarnessV1NetworkSandboxSession;
+    const harness = createOpenCode({ mintBridgeToken });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/project',
+    });
+
+    expect(mintBridgeToken).toHaveBeenCalledExactlyOnceWith('test-sandbox');
+    expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toBe(
+      'token-for-test-sandbox',
+    );
+
+    const resumeFrom = await session.doDetach();
+    expect(resumeFrom.data).toMatchObject({
+      bridge: { token: 'token-for-test-sandbox' },
+    });
+
+    const attachedSession = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/project',
+      resumeFrom,
+    });
+    expect(mintBridgeToken).toHaveBeenCalledTimes(1);
+    await attachedSession.doDetach();
+  });
+
   it('writes skills under sandbox HOME and starts OpenCode with that HOME', async () => {
     const runCommands: string[] = [];
     const writes: Array<{ path: string; content: string }> = [];
@@ -240,6 +308,7 @@ describe('createOpenCode adapter', () => {
     expect(spawns.at(-1)?.env.AI_SDK_HARNESS_CLIENT_APP).toBe(
       'ai-sdk/harness-opencode/0.0.0-test',
     );
+    expect(spawns.at(-1)?.env.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     expect(spawns.at(-1)?.command).toContain(
       "node '/workspace/.harness-bootstrap/opencode/bridge.mjs'",
     );

@@ -41,6 +41,11 @@ export type GrokBuildHarnessSettings = {
    */
   readonly startupTimeoutMs?: number;
   readonly mcpServers?: Record<string, unknown>;
+  /**
+   * Creates the authentication token used by the sandbox bridge. Defaults to
+   * a random 32-byte hexadecimal token.
+   */
+  readonly mintBridgeToken?: (sandboxId: string) => string;
 };
 
 /*
@@ -284,6 +289,7 @@ export function createGrokBuild(
       const metadata = toolCall._meta?.['x.ai/tool'];
       return isRecord(metadata) && metadata.namespace === 'mcp';
     },
+    mintBridgeToken: settings.mintBridgeToken,
     version: 'v1',
     harnessId: 'grok-build',
     builtinTools: GROK_BUILD_BUILTIN_TOOLS,

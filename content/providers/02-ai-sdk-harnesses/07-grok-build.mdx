@@ -96,6 +96,10 @@ Settings:
 - `mcpServers`: MCP server definitions keyed by server name.
 - `port`: ACP bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the ACP bridge to start.
+- `mintBridgeToken`: synchronous function that receives the sandbox id and
+  returns the ACP bridge authentication token. By default, the adapter generates
+  a random 32-byte token. Custom implementations must return a suitably secret
+  token.
 
 The adapter pins the Grok Build CLI and ACP launch command. These implementation
 details cannot be overridden through `createGrokBuild()`.

@@ -130,12 +130,14 @@ describe('createGrokBuild', () => {
   });
 
   it('forwards user-configurable settings', () => {
+    const mintBridgeToken = (sandboxId: string) => `token-for-${sandboxId}`;
     createGrokBuild({
       auth: 'direct',
       model: 'grok-code-fast-1',
       port: 4319,
       startupTimeoutMs: 45_000,
       mcpServers: { external: { command: 'external-mcp' } },
+      mintBridgeToken,
     });
 
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
@@ -146,12 +148,14 @@ describe('createGrokBuild', () => {
       port: settings.port,
       startupTimeoutMs: settings.startupTimeoutMs,
       mcpServers: settings.mcpServers,
+      mintBridgeToken: settings.mintBridgeToken,
     }).toEqual({
       auth: 'direct',
       modelId: 'grok-code-fast-1',
       port: 4319,
       startupTimeoutMs: 45_000,
       mcpServers: { external: { command: 'external-mcp' } },
+      mintBridgeToken,
     });
   });
 

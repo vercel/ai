@@ -97,4 +97,9 @@ export type ACPV1Settings = {
   readonly session?: {
     readonly meta?: Readonly<Record<string, ACPSerializableValue>>;
   };
+  /**
+   * Creates the authentication token used by the sandbox bridge. Defaults to
+   * a random 32-byte hexadecimal token.
+   */
+  readonly mintBridgeToken?: (sandboxId: string) => string;
 };

@@ -97,6 +97,11 @@ export type DeepAgentsHarnessSettings = {
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
   /**
+   * Creates the authentication token used by the sandbox bridge. Defaults to
+   * a random 32-byte hexadecimal token.
+   */
+  readonly mintBridgeToken?: (sandboxId: string) => string;
+  /**
    * Maximum LangGraph super-steps per turn before it errors.
    * When omitted, the Deep Agents default applies.
    */
@@ -287,7 +292,10 @@ export function createDeepAgents(
       }
 
       const port = resolveBridgePort(sandboxSession, settings.port);
-      const token = randomBytes(32).toString('hex');
+      const token =
+        settings.mintBridgeToken == null
+          ? randomBytes(32).toString('hex')
+          : settings.mintBridgeToken(sandboxId);
 
       // Always discover repo-provided skills under <workDir>/.agents/skills (e.g. a cloned repo); a missing dir is tolerated by deepagents.
       // Absolute paths: LocalShellBackend (non-virtual) treats a leading-slash path as a real fs path.

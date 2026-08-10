@@ -63,11 +63,13 @@ const CODEX_ACP_PERMISSION_MODE_MAPPING = {
 export function createCodexACP({
   auth = 'auto',
   mcpServers,
+  mintBridgeToken,
   webSearch,
   source = CODEX_ACP_SOURCE,
 }: {
   auth?: ACPAuthOptions;
   mcpServers?: Record<string, unknown>;
+  mintBridgeToken?: (sandboxId: string) => string;
   webSearch?: boolean;
   source?: ACPSource;
 } = {}) {
@@ -76,6 +78,7 @@ export function createCodexACP({
     auth,
     mcpServers,
     isMcpToolCall: toolCall => toolCall._meta?.is_mcp_tool_call === true,
+    mintBridgeToken,
     source,
     executable: CODEX_ACP_EXECUTABLE,
     forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],

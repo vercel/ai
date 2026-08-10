@@ -262,6 +262,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "mintBridgeToken": {},
                     "port": { "type": "number" },
                     "startupTimeoutMs": { "type": "number" }
                   }
@@ -288,6 +289,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "mintBridgeToken": {},
                     "port": { "type": "number" },
                     "startupTimeoutMs": { "type": "number" }
                   }

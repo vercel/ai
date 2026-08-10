@@ -166,6 +166,7 @@ describe('createDeepAgents', () => {
     expect(spawnEnvs.at(0)?.AI_SDK_HARNESS_CLIENT_APP).toBe(
       'ai-sdk/harness-deepagents/0.0.0-test',
     );
+    expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     expect(spawns.at(0)).toContain(
       "node '/vercel/sandbox/.harness-bootstrap/deepagents/bridge.mjs'",
     );
@@ -198,6 +199,39 @@ describe('createDeepAgents', () => {
       mcpServers,
     });
     await session.doDestroy();
+  });
+
+  it('uses a caller-minted bridge token and reuses it when attaching', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const mintBridgeToken = vi.fn(
+      (sandboxId: string) => `token-for-${sandboxId}`,
+    );
+    const harness = createDeepAgents({ mintBridgeToken });
+    const sandboxSession = fakeSandboxSession({ spawnEnvs });
+    const session = await harness.doStart({
+      sessionId: 'test-session',
+      sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+      sandboxSession,
+    });
+
+    expect(mintBridgeToken).toHaveBeenCalledExactlyOnceWith('test-sandbox');
+    expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toBe(
+      'token-for-test-sandbox',
+    );
+
+    const resumeFrom = await session.doDetach();
+    expect(resumeFrom.data).toMatchObject({
+      bridge: { token: 'token-for-test-sandbox' },
+    });
+
+    const attachedSession = await harness.doStart({
+      sessionId: 'test-session',
+      sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+      sandboxSession,
+      resumeFrom,
+    });
+    expect(mintBridgeToken).toHaveBeenCalledTimes(1);
+    await attachedSession.doDetach();
   });
 
   it('resolves the turn when the channel closes with reason "suspended"', async () => {

@@ -90,6 +90,10 @@ try {
   creation and restoration.
 - `port`: exposed bridge port override.
 - `startupTimeoutMs`: bridge startup timeout. The default is 120 seconds.
+- `mintBridgeToken`: synchronous function that receives the sandbox id and
+  returns the bridge authentication token. By default, the adapter generates a
+  random 32-byte token. Custom implementations must return a suitably secret
+  token.
 - `clientApp`: optional client attribution with `name` and `version`. It
   defaults to the installed `ai-sdk/harness-acp/<version>` identity and is
   available to Gateway environment placeholders.
