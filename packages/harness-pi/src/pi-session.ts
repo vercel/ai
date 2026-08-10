@@ -54,7 +54,6 @@ import {
 import { toolSpecToTypeBoxParameters } from './pi-typebox-adapter';
 import {
   extractUserText,
-  frameInstructions,
   safePiMetadataSegment,
   serializeToolOutput,
 } from './pi-utils';
@@ -368,11 +367,13 @@ export async function createPiSession(
   // `Model` object handed to `createAgentSession`.
   const resolvedModel = resolveModel(input.settings.model);
 
+  let sessionInstructions: string | undefined;
   const resourceLoader = new DefaultResourceLoader({
     cwd: sessionWorkDir,
     agentDir: hostAgentDir,
     settingsManager,
-    appendSystemPromptOverride: () => [],
+    appendSystemPromptOverride: () =>
+      sessionInstructions ? [sessionInstructions] : [],
     extensionFactories: [],
     // Pi runs in the host process, so its default resource discovery reaches
     // the host developer's personal config (`~/.pi/agent/*`, `~/.agents/*`).
@@ -409,12 +410,6 @@ export async function createPiSession(
    * from the persisted journal.
    */
   let suspending = false;
-  /*
-   * Instructions are prepended to the first user message of a fresh session
-   * only. A resumed session already carried them in its original first
-   * message (preserved in the persisted session file), so it starts "applied".
-   */
-  let instructionsApplied = input.isResume;
   const pendingToolResults = new Map<string, PendingToolResult>();
   const pendingToolApprovals = new Map<string, PendingToolApproval>();
 
@@ -431,6 +426,15 @@ export async function createPiSession(
    * runs mid-turn still emits inline via `currentEmit`.
    */
   const pendingCompactionParts: HarnessV1StreamPart[] = [];
+
+  async function applySessionInstructions(
+    instructions: string | undefined,
+  ): Promise<void> {
+    if (instructions === sessionInstructions) return;
+    sessionInstructions = instructions;
+    await resourceLoader.reload();
+    piSession?.setActiveToolsByName(piSession.getActiveToolNames());
+  }
 
   const remoteOps = createPiRemoteOps({
     sandbox,
@@ -824,14 +828,10 @@ export async function createPiSession(
     doPromptTurn: async (
       promptOpts: HarnessV1PromptTurnOptions,
     ): Promise<HarnessV1PromptControl> => {
-      let text = extractUserText(promptOpts.prompt);
-      if (!instructionsApplied && promptOpts.instructions) {
-        text = frameInstructions(promptOpts.instructions, text);
-      }
-      instructionsApplied = true;
+      await applySessionInstructions(promptOpts.instructions);
 
       return runTurn({
-        text,
+        text: extractUserText(promptOpts.prompt),
         tools: promptOpts.tools ?? [],
         emit: promptOpts.emit,
         abortSignal: promptOpts.abortSignal,
@@ -857,6 +857,7 @@ export async function createPiSession(
        * flight at the slice boundary is recomputed because a host-resident
        * runtime cannot do a lossless attach.
        */
+      await applySessionInstructions(continueOpts.instructions);
       return runTurn({
         text: '',
         tools: continueOpts.tools ?? [],

@@ -17,6 +17,7 @@ const piMock = vi.hoisted(() => {
   return {
     createAgentSession: vi.fn(),
     customTools: [] as FakePiTool[],
+    appendSystemPrompts: [] as string[][],
     session: undefined as AgentSession | undefined,
   };
 });
@@ -25,7 +26,17 @@ vi.mock('@earendil-works/pi-coding-agent', () => {
   return {
     createAgentSession: piMock.createAgentSession,
     DefaultResourceLoader: class {
-      async reload() {}
+      constructor(
+        private readonly options: {
+          appendSystemPromptOverride?: (base: string[]) => string[];
+        },
+      ) {}
+
+      async reload() {
+        piMock.appendSystemPrompts.push(
+          this.options.appendSystemPromptOverride?.([]) ?? [],
+        );
+      }
     },
     defineTool: vi.fn(tool => tool),
     ModelRegistry: class {
@@ -55,6 +66,7 @@ vi.mock('@earendil-works/pi-coding-agent', () => {
 describe('createPiSession', () => {
   beforeEach(() => {
     piMock.customTools = [];
+    piMock.appendSystemPrompts = [];
     piMock.session = undefined;
     piMock.createAgentSession.mockReset();
     piMock.createAgentSession.mockImplementation(async options => {
@@ -80,6 +92,42 @@ describe('createPiSession', () => {
     ).rejects.toThrow('Invalid Pi session file name');
 
     expect(sandboxSession.readBinaryFile).not.toHaveBeenCalled();
+  });
+
+  it('appends instructions to the native system prompt without changing the user prompt', async () => {
+    const prompt = vi.fn(async () => {});
+    piMock.session = {
+      abort: vi.fn(async () => {}),
+      compact: vi.fn(async () => {}),
+      dispose: vi.fn(),
+      getActiveToolNames: vi.fn(() => []),
+      getSessionStats: () => ({
+        tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      }),
+      prompt,
+      setActiveToolsByName: vi.fn(),
+      steer: vi.fn(async () => {}),
+      subscribe: vi.fn(() => () => {}),
+    } as unknown as AgentSession;
+
+    const session = await createPiSession({
+      sessionId: 'session-instructions',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      skills: [],
+      settings: {},
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: false,
+    });
+    const control = await session.doPromptTurn({
+      prompt: 'do the thing',
+      instructions: 'Use turbo build.',
+      emit: vi.fn(),
+    });
+    await control.done;
+
+    expect(piMock.appendSystemPrompts.at(-1)).toEqual(['Use turbo build.']);
+    expect(prompt).toHaveBeenCalledWith('do the thing');
   });
 
   it('parks a pending tool turn on suspend and resumes it in-process', async () => {
