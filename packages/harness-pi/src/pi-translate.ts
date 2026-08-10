@@ -43,6 +43,7 @@ export interface PiTranslatorState {
    * the matching `tool_result`/`tool_execution_end` event is translated.
    */
   hostToolResults: Map<string, unknown>;
+  dynamicToolCallIds: Set<string>;
   /**
    * Names of tools that Pi executes natively (read/write/edit/bash/grep/
    * find/ls). `tool-call` events for these get `providerExecuted: true`
@@ -50,6 +51,7 @@ export interface PiTranslatorState {
    * tools are not in this set.
    */
   readonly builtinToolNames: ReadonlySet<string>;
+  readonly hostToolNames: ReadonlySet<string>;
   /**
    * Map of native tool name → common name. `find` → `glob`, etc. Pi emits
    * native names on its events; the wire `toolName` is the common name when
@@ -60,6 +62,7 @@ export interface PiTranslatorState {
 
 export interface PiTranslatorStateOptions {
   readonly builtinToolNames?: ReadonlyArray<string>;
+  readonly hostToolNames?: ReadonlyArray<string>;
   readonly nativeToCommon?:
     | ReadonlyMap<string, string>
     | Record<string, string>;
@@ -82,7 +85,9 @@ export function createPiTranslatorState(
     pendingStepToolCallIds: new Set(),
     stepOpen: false,
     hostToolResults: new Map(),
+    dynamicToolCallIds: new Set(),
     builtinToolNames: new Set(options.builtinToolNames ?? []),
+    hostToolNames: new Set(options.hostToolNames ?? []),
     nativeToCommonNameMap: map,
   };
 }
@@ -307,7 +312,11 @@ export function translatePiEvent(
       if (!event.toolCallId || !event.toolName) return [];
       const { wire, native } = resolveToolName(state, event.toolName);
       state.observedToolNames.set(event.toolCallId, wire);
-      const providerExecuted = state.builtinToolNames.has(native);
+      const isMcpTool =
+        !state.hostToolNames.has(native) &&
+        (native === 'mcp' || native.startsWith('mcp__'));
+      const providerExecuted = state.builtinToolNames.has(native) || isMcpTool;
+      if (isMcpTool) state.dynamicToolCallIds.add(event.toolCallId);
       const input = serializeToolOutput(event.args ?? event.input ?? {});
       return [
         {
@@ -317,6 +326,7 @@ export function translatePiEvent(
           input,
           ...(wire !== native ? { nativeName: native } : {}),
           ...(providerExecuted ? { providerExecuted: true } : {}),
+          ...(isMcpTool ? { dynamic: true } : {}),
         } as HarnessV1StreamPart,
       ];
     }
@@ -344,6 +354,7 @@ export function translatePiEvent(
         : unwrapPiToolResult(event);
       state.hostToolResults.delete(event.toolCallId);
       state.pendingStepToolCallIds.delete(event.toolCallId);
+      const dynamic = state.dynamicToolCallIds.delete(event.toolCallId);
       return [
         {
           type: 'tool-result',
@@ -351,6 +362,7 @@ export function translatePiEvent(
           toolName: wire,
           result,
           ...(event.isError ? { isError: true } : {}),
+          ...(dynamic ? { dynamic: true } : {}),
         } as HarnessV1StreamPart,
         ...finishStep(state),
       ];

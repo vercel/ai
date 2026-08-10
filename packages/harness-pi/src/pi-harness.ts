@@ -40,6 +40,7 @@ export type PiHarnessSettings = {
    * model settings.
    */
   readonly agentDir?: string;
+  readonly mcpServers?: Record<string, unknown>;
 };
 
 const PI_BUILTIN_TOOLS = {
@@ -144,6 +145,7 @@ export function createPi(
           ...(settings.thinkingLevel
             ? { thinkingLevel: settings.thinkingLevel }
             : {}),
+          ...(settings.mcpServers ? { mcpServers: settings.mcpServers } : {}),
         },
         clientApp: PI_CLIENT_APP,
         isResume: lifecycleState != null,

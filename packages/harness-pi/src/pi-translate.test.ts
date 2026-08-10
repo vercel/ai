@@ -307,6 +307,75 @@ describe('translatePiEvent', () => {
     expect(part.providerExecuted).toBeUndefined();
   });
 
+  it('marks MCP-prefixed tool calls and results as dynamic', () => {
+    const state = createPiTranslatorState();
+    emit([{ type: 'turn_start' } as PiSessionEvent], state);
+
+    const call = translatePiEvent(
+      {
+        type: 'tool_execution_start',
+        toolCallId: 'mcp-call',
+        toolName: 'mcp__memory_search',
+        args: { query: 'AI SDK' },
+      } as PiSessionEvent,
+      state,
+    );
+    const result = translatePiEvent(
+      {
+        type: 'tool_execution_end',
+        toolCallId: 'mcp-call',
+        result: 'found',
+      } as PiSessionEvent,
+      state,
+    );
+
+    expect([call[0], result[0]]).toMatchInlineSnapshot(`
+      [
+        {
+          "dynamic": true,
+          "input": "{\"query\":\"AI SDK\"}",
+          "providerExecuted": true,
+          "toolCallId": "mcp-call",
+          "toolName": "mcp__memory_search",
+          "type": "tool-call",
+        },
+        {
+          "dynamic": true,
+          "result": "found",
+          "toolCallId": "mcp-call",
+          "toolName": "mcp__memory_search",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
+
+  it('keeps explicitly typed host tools static even with an MCP prefix', () => {
+    const state = createPiTranslatorState({
+      hostToolNames: ['mcp__custom_tool'],
+    });
+    emit([{ type: 'turn_start' } as PiSessionEvent], state);
+
+    const out = translatePiEvent(
+      {
+        type: 'tool_execution_start',
+        toolCallId: 'host-call',
+        toolName: 'mcp__custom_tool',
+        args: {},
+      } as PiSessionEvent,
+      state,
+    );
+
+    expect(out[0]).toMatchInlineSnapshot(`
+      {
+        "input": "{}",
+        "toolCallId": "host-call",
+        "toolName": "mcp__custom_tool",
+        "type": "tool-call",
+      }
+    `);
+  });
+
   it('correlates tool-result with the prior tool-call by id', () => {
     const state = createPiTranslatorState({
       builtinToolNames: ['bash'],
