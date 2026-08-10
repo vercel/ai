@@ -33,6 +33,7 @@ import { argv, stdout } from 'node:process';
  */
 import * as claudeAgentSdk from '@anthropic-ai/claude-agent-sdk';
 import * as mcpServerModule from '@modelcontextprotocol/sdk/server/mcp.js';
+import { createClaudeCodeSystemPrompt } from './claude-code-system-prompt';
 import { toClaudeSkillsOption } from './claude-skills-option';
 import {
   createClaudeStreamEventState,
@@ -396,6 +397,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       ...(inactiveNativeTools.length > 0
         ? { disallowedTools: inactiveNativeTools }
         : {}),
+      systemPrompt: createClaudeCodeSystemPrompt(start.instructions),
       thinking: start.thinking,
       includePartialMessages: true,
       // The `PostCompact` hook carries the compaction summary, which the
