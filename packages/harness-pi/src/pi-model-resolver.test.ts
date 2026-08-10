@@ -58,6 +58,22 @@ const xaiProxiedThroughGateway: PiModel = {
   baseUrl: 'https://ai-gateway.vercel.sh',
 };
 
+const openaiModel: PiModel = {
+  ...sampleModel,
+  id: 'gpt-4o',
+  name: 'GPT-4o',
+  provider: 'openai',
+  baseUrl: 'https://api.openai.com/v1',
+};
+
+const openaiProxiedThroughOpenRouter: PiModel = {
+  ...sampleModel,
+  id: 'openai/gpt-4o',
+  name: 'OpenAI: GPT-4o',
+  provider: 'openrouter',
+  baseUrl: 'https://openrouter.ai/api/v1',
+};
+
 describe('createPiModelResolver', () => {
   it('returns matching model by id', async () => {
     const resolve = createPiModelResolver({
@@ -149,6 +165,19 @@ describe('createPiModelResolver', () => {
       env: {},
     });
     expect(resolve('xai/grok-4.3')).toEqual(xaiModel);
+  });
+
+  it('prefers an authenticated proxy entry over an unauthenticated scoped provider match', async () => {
+    const modelRegistry = await makeRegistry([
+      openaiModel,
+      openaiProxiedThroughOpenRouter,
+    ]);
+    vi.spyOn(modelRegistry, 'hasConfiguredAuth').mockImplementation(
+      model => model.provider === 'openrouter',
+    );
+    const resolve = createPiModelResolver({ modelRegistry, env: {} });
+
+    expect(resolve('openai/gpt-4o')).toEqual(openaiProxiedThroughOpenRouter);
   });
 
   it('prefers the gateway entry over the scoped native provider when gateway creds are present', async () => {
