@@ -1,15 +1,15 @@
 import {
   UnsupportedFunctionalityError,
-  type LanguageModelV4CallOptions,
-  type SharedV4Warning,
+  type LanguageModelV3CallOptions,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 
 export function prepareTools({
   tools,
   toolChoice,
 }: {
-  tools: LanguageModelV4CallOptions['tools'];
-  toolChoice?: LanguageModelV4CallOptions['toolChoice'];
+  tools: LanguageModelV3CallOptions['tools'];
+  toolChoice?: LanguageModelV3CallOptions['toolChoice'];
 }): {
   tools:
     | undefined
@@ -28,12 +28,12 @@ export function prepareTools({
     | 'none'
     | 'required'
     | undefined;
-  toolWarnings: SharedV4Warning[];
+  toolWarnings: SharedV3Warning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
-  const toolWarnings: SharedV4Warning[] = [];
+  const toolWarnings: SharedV3Warning[] = [];
 
   if (tools == null) {
     return { tools: undefined, toolChoice: undefined, toolWarnings };

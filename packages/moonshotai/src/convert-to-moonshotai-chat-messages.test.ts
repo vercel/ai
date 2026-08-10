@@ -18,7 +18,7 @@ describe('user messages', () => {
           { type: 'text', text: 'Hi' },
           {
             type: 'file',
-            data: { type: 'data' as const, data: new Uint8Array([0, 1, 2, 3]) },
+            data: new Uint8Array([0, 1, 2, 3]),
             mediaType: 'image/png',
           },
         ],
@@ -46,10 +46,7 @@ describe('user messages', () => {
         content: [
           {
             type: 'file',
-            data: {
-              type: 'url' as const,
-              url: new URL('https://example.com/image.jpg'),
-            },
+            data: new URL('https://example.com/image.jpg'),
             mediaType: 'image/*',
           },
         ],
@@ -77,7 +74,7 @@ describe('user messages', () => {
           { type: 'text', text: 'Describe this video' },
           {
             type: 'file',
-            data: { type: 'data' as const, data: new Uint8Array([0, 1, 2, 3]) },
+            data: new Uint8Array([0, 1, 2, 3]),
             mediaType: 'video/mp4',
           },
         ],
@@ -105,10 +102,7 @@ describe('user messages', () => {
         content: [
           {
             type: 'file',
-            data: {
-              type: 'url' as const,
-              url: new URL('https://example.com/video.mp4'),
-            },
+            data: new URL('https://example.com/video.mp4'),
             mediaType: 'video/*',
           },
         ],
@@ -135,10 +129,7 @@ describe('user messages', () => {
         content: [
           {
             type: 'file',
-            data: {
-              type: 'url' as const,
-              url: new URL('ms://file-abc123'),
-            },
+            data: new URL('ms://file-abc123'),
             mediaType: 'video/mp4',
           },
         ],
@@ -165,10 +156,7 @@ describe('user messages', () => {
         content: [
           {
             type: 'file',
-            data: {
-              type: 'data' as const,
-              data: Buffer.from('hello markdown').toString('base64'),
-            },
+            data: Buffer.from('hello markdown').toString('base64'),
             mediaType: 'text/markdown',
           },
         ],
@@ -188,10 +176,7 @@ describe('user messages', () => {
           content: [
             {
               type: 'file',
-              data: {
-                type: 'data' as const,
-                data: new Uint8Array([0, 1, 2, 3]),
-              },
+              data: new Uint8Array([0, 1, 2, 3]),
               mediaType: 'audio/mp3',
             },
           ],
@@ -208,10 +193,7 @@ describe('user messages', () => {
           content: [
             {
               type: 'file',
-              data: {
-                type: 'data' as const,
-                data: new Uint8Array([0, 1, 2, 3]),
-              },
+              data: new Uint8Array([0, 1, 2, 3]),
               mediaType: 'application/pdf',
             },
           ],
@@ -230,10 +212,7 @@ describe('user messages', () => {
           content: [
             {
               type: 'file',
-              data: {
-                type: 'data' as const,
-                data: new Uint8Array([0, 1, 2, 3]),
-              },
+              data: new Uint8Array([0, 1, 2, 3]),
               mediaType: 'application/zip',
             },
           ],
@@ -242,45 +221,6 @@ describe('user messages', () => {
     ).toThrow(
       "'file part media type application/zip' functionality not supported",
     );
-  });
-
-  it('should throw for file parts with provider references', () => {
-    expect(() =>
-      convertToMoonshotAIChatMessages([
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'file',
-              data: {
-                type: 'reference' as const,
-                reference: { moonshotai: 'file-123' },
-              },
-              mediaType: 'image/png',
-            },
-          ],
-        },
-      ]),
-    ).toThrow(
-      "'file parts with provider references' functionality not supported",
-    );
-  });
-
-  it('should throw for text file parts', () => {
-    expect(() =>
-      convertToMoonshotAIChatMessages([
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'file',
-              data: { type: 'text' as const, text: 'hello' },
-              mediaType: 'text/plain',
-            },
-          ],
-        },
-      ]),
-    ).toThrow("'text file parts' functionality not supported");
   });
 });
 

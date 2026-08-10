@@ -1,8 +1,8 @@
-import type { LanguageModelV4FinishReason } from '@ai-sdk/provider';
+import type { LanguageModelV3FinishReason } from '@ai-sdk/provider';
 
 export function mapMoonshotAIFinishReason(
   finishReason: string | null | undefined,
-): LanguageModelV4FinishReason['unified'] {
+): LanguageModelV3FinishReason['unified'] {
   switch (finishReason) {
     case 'stop':
       return 'stop';

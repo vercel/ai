@@ -1,39 +1,23 @@
-<<<<<<< HEAD
-import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
-import type { OpenAICompatibleChatConfig } from '@ai-sdk/openai-compatible/internal';
-import type {
-  LanguageModelV3CallOptions,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-=======
-import type {
-  APICallError,
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4Content,
-  LanguageModelV4FinishReason,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4StreamPart,
-  LanguageModelV4StreamResult,
-  SharedV4Warning,
->>>>>>> b283a6f876 (feat(provider/moonshotai): own the chat implementation, support video input (#18449))
+import {
+  InvalidResponseDataError,
+  type APICallError,
+  type LanguageModelV3,
+  type LanguageModelV3CallOptions,
+  type LanguageModelV3Content,
+  type LanguageModelV3FinishReason,
+  type LanguageModelV3GenerateResult,
+  type LanguageModelV3StreamPart,
+  type LanguageModelV3StreamResult,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  createLanguageModelResponseMetadata as getResponseMetadata,
   generateId,
-  isCustomReasoning,
-  mapReasoningToProviderEffort,
   parseProviderOptions,
   postJsonToApi,
-  serializeModelOptions,
-  StreamingToolCallTracker,
-  WORKFLOW_SERIALIZE,
-  WORKFLOW_DESERIALIZE,
   type FetchFunction,
   type InferSchema,
   type ParseResult,
@@ -41,6 +25,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { convertToMoonshotAIChatMessages } from './convert-to-moonshotai-chat-messages';
 import { convertMoonshotAIChatUsage } from './convert-moonshotai-chat-usage';
+import { getResponseMetadata } from './get-response-metadata';
 import { mapMoonshotAIFinishReason } from './map-moonshotai-finish-reason';
 import {
   moonshotAIChatChunkSchema,
@@ -64,8 +49,8 @@ export type MoonshotAIChatConfig = {
   supportsStructuredOutputs?: boolean;
 };
 
-export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
-  readonly specificationVersion = 'v4';
+export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
+  readonly specificationVersion = 'v3';
 
   readonly modelId: MoonshotAIChatModelId;
 
@@ -79,34 +64,6 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
 
   private readonly config: MoonshotAIChatConfig;
   private readonly failedResponseHandler: ResponseHandler<APICallError>;
-
-<<<<<<< HEAD
-export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageModel {
-  constructor(
-    modelId: MoonshotAIChatModelId,
-    config: OpenAICompatibleChatConfig,
-  ) {
-    super(modelId, config);
-  }
-
-  async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
-    const result = await super.doGenerate(options);
-=======
-  static [WORKFLOW_SERIALIZE](model: MoonshotAIChatLanguageModel) {
-    return serializeModelOptions({
-      modelId: model.modelId,
-      config: model.config,
-    });
-  }
-
-  static [WORKFLOW_DESERIALIZE](options: {
-    modelId: MoonshotAIChatModelId;
-    config: MoonshotAIChatConfig;
-  }) {
-    return new MoonshotAIChatLanguageModel(options.modelId, options.config);
-  }
 
   constructor(modelId: MoonshotAIChatModelId, config: MoonshotAIChatConfig) {
     this.modelId = modelId;
@@ -134,14 +91,13 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
     topK,
     frequencyPenalty,
     presencePenalty,
-    reasoning,
     providerOptions,
     stopSequences,
     responseFormat,
     seed,
     toolChoice,
     tools,
-  }: LanguageModelV4CallOptions) {
+  }: LanguageModelV3CallOptions) {
     const moonshotOptions =
       (await parseProviderOptions({
         provider: this.providerOptionsName,
@@ -151,7 +107,7 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
 
     const messages = convertToMoonshotAIChatMessages(prompt);
 
-    const allWarnings: SharedV4Warning[] = [];
+    const allWarnings: SharedV3Warning[] = [];
     if (topK != null) {
       allWarnings.push({ type: 'unsupported', feature: 'topK' });
     }
@@ -184,32 +140,6 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
         });
       }
     }
-
-    // Map the generic reasoning call option to Moonshot's reasoning_effort
-    // (explicit provider options win). 'none' cannot disable Moonshot
-    // thinking from here; use thinking: { type: 'disabled' } instead.
-    if (reasoning === 'none') {
-      allWarnings.push({
-        type: 'unsupported',
-        feature:
-          'reasoning "none" (use providerOptions.moonshotai.thinking to control thinking)',
-      });
-    }
-    const reasoningEffort =
-      moonshotOptions.reasoningEffort ??
-      (isCustomReasoning(reasoning) && reasoning !== 'none'
-        ? mapReasoningToProviderEffort({
-            reasoning,
-            effortMap: {
-              minimal: 'low',
-              low: 'low',
-              medium: 'high',
-              high: 'high',
-              xhigh: 'max',
-            },
-            warnings: allWarnings,
-          })
-        : undefined);
 
     let response_format: Record<string, unknown> | undefined;
     if (responseFormat?.type === 'json') {
@@ -263,8 +193,8 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
               },
             }
           : {}),
-        ...(reasoningEffort != null && {
-          reasoning_effort: reasoningEffort,
+        ...(moonshotOptions.reasoningEffort != null && {
+          reasoning_effort: moonshotOptions.reasoningEffort,
         }),
         ...(moonshotOptions.promptCacheKey != null && {
           prompt_cache_key: moonshotOptions.promptCacheKey,
@@ -278,10 +208,9 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
   }
 
   async doGenerate(
-    options: LanguageModelV4CallOptions,
-  ): Promise<LanguageModelV4GenerateResult> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3GenerateResult> {
     const { args, warnings } = await this.getArgs({ ...options });
->>>>>>> b283a6f876 (feat(provider/moonshotai): own the chat implementation, support video input (#18449))
 
     const {
       responseHeaders,
@@ -303,7 +232,7 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
     });
 
     const choice = responseBody.choices[0];
-    const content: Array<LanguageModelV4Content> = [];
+    const content: Array<LanguageModelV3Content> = [];
 
     // reasoning content (before text):
     const reasoning = choice.message.reasoning_content;
@@ -347,13 +276,8 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
   }
 
   async doStream(
-<<<<<<< HEAD
     options: LanguageModelV3CallOptions,
   ): Promise<LanguageModelV3StreamResult> {
-    const result = await super.doStream(options);
-=======
-    options: LanguageModelV4CallOptions,
-  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs({ ...options });
 
     const body = {
@@ -379,9 +303,14 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
       fetch: this.config.fetch,
     });
 
-    let toolCallTracker: StreamingToolCallTracker;
+    const toolCalls: Array<{
+      id: string;
+      type: 'function';
+      function: { name: string; arguments: string };
+      hasFinished: boolean;
+    }> = [];
 
-    let finishReason: LanguageModelV4FinishReason = {
+    let finishReason: LanguageModelV3FinishReason = {
       unified: 'other',
       raw: undefined,
     };
@@ -389,23 +318,14 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
     let isFirstChunk = true;
     let isActiveReasoning = false;
     let isActiveText = false;
->>>>>>> b283a6f876 (feat(provider/moonshotai): own the chat implementation, support video input (#18449))
 
     return {
       stream: response.pipeThrough(
         new TransformStream<
-<<<<<<< HEAD
-          LanguageModelV3StreamPart,
-          LanguageModelV3StreamPart
-=======
           ParseResult<InferSchema<typeof moonshotAIChatChunkSchema>>,
-          LanguageModelV4StreamPart
->>>>>>> b283a6f876 (feat(provider/moonshotai): own the chat implementation, support video input (#18449))
+          LanguageModelV3StreamPart
         >({
           start(controller) {
-            toolCallTracker = new StreamingToolCallTracker(controller, {
-              generateId,
-            });
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
@@ -509,7 +429,75 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
               }
 
               for (const toolCallDelta of delta.tool_calls) {
-                toolCallTracker.processDelta(toolCallDelta);
+                const index = toolCallDelta.index;
+
+                if (toolCalls[index] == null) {
+                  if (toolCallDelta.id == null) {
+                    throw new InvalidResponseDataError({
+                      data: toolCallDelta,
+                      message: `Expected 'id' to be a string.`,
+                    });
+                  }
+
+                  if (toolCallDelta.function?.name == null) {
+                    throw new InvalidResponseDataError({
+                      data: toolCallDelta,
+                      message: `Expected 'function.name' to be a string.`,
+                    });
+                  }
+
+                  controller.enqueue({
+                    type: 'tool-input-start',
+                    id: toolCallDelta.id,
+                    toolName: toolCallDelta.function.name,
+                  });
+
+                  toolCalls[index] = {
+                    id: toolCallDelta.id,
+                    type: 'function',
+                    function: {
+                      name: toolCallDelta.function.name,
+                      arguments: toolCallDelta.function.arguments ?? '',
+                    },
+                    hasFinished: false,
+                  };
+
+                  const toolCall = toolCalls[index];
+
+                  if (
+                    toolCall.function?.name != null &&
+                    toolCall.function?.arguments != null &&
+                    toolCall.function.arguments.length > 0
+                  ) {
+                    // send delta if the argument text has already started:
+                    controller.enqueue({
+                      type: 'tool-input-delta',
+                      id: toolCall.id,
+                      delta: toolCall.function.arguments,
+                    });
+                  }
+
+                  continue;
+                }
+
+                // existing tool call, merge if not finished
+                const toolCall = toolCalls[index];
+
+                if (toolCall.hasFinished) {
+                  continue;
+                }
+
+                if (toolCallDelta.function?.arguments != null) {
+                  toolCall.function.arguments +=
+                    toolCallDelta.function.arguments;
+                }
+
+                // send delta
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: toolCall.id,
+                  delta: toolCallDelta.function.arguments ?? '',
+                });
               }
             }
           },
@@ -523,7 +511,22 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
               controller.enqueue({ type: 'text-end', id: 'txt-0' });
             }
 
-            toolCallTracker.flush();
+            // go through all tool calls and send the ones that are not finished
+            for (const toolCall of toolCalls.filter(
+              toolCall => !toolCall.hasFinished,
+            )) {
+              controller.enqueue({
+                type: 'tool-input-end',
+                id: toolCall.id,
+              });
+
+              controller.enqueue({
+                type: 'tool-call',
+                toolCallId: toolCall.id,
+                toolName: toolCall.function.name,
+                input: toolCall.function.arguments,
+              });
+            }
 
             controller.enqueue({
               type: 'finish',

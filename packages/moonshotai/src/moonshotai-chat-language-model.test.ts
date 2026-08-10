@@ -1,11 +1,11 @@
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createMoonshotAI } from './moonshotai-provider';
 
-const TEST_PROMPT: LanguageModelV4Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -103,10 +103,7 @@ describe('doGenerate', () => {
               { type: 'text', text: 'Describe this video' },
               {
                 type: 'file',
-                data: {
-                  type: 'data' as const,
-                  data: new Uint8Array([0, 1, 2, 3]),
-                },
+                data: new Uint8Array([0, 1, 2, 3]),
                 mediaType: 'video/mp4',
               },
             ],
@@ -132,10 +129,7 @@ describe('doGenerate', () => {
             content: [
               {
                 type: 'file',
-                data: {
-                  type: 'url' as const,
-                  url: new URL('https://example.com/video.mp4'),
-                },
+                data: new URL('https://example.com/video.mp4'),
                 mediaType: 'video/*',
               },
             ],
@@ -217,56 +211,6 @@ describe('doGenerate', () => {
 
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody.reasoning_effort).toBe('max');
-    });
-
-    it('should map generic reasoning levels to reasoning_effort', async () => {
-      await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'low',
-      });
-      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
-        'low',
-      );
-
-      await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'xhigh',
-      });
-      expect((await server.calls[1].requestBodyJson).reasoning_effort).toBe(
-        'max',
-      );
-    });
-
-    it('should prefer explicit reasoningEffort over generic reasoning', async () => {
-      await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'low',
-        providerOptions: {
-          moonshotai: { reasoningEffort: 'high' },
-        },
-      });
-
-      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
-        'high',
-      );
-    });
-
-    it('should warn and omit reasoning_effort for reasoning none', async () => {
-      const result = await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'none',
-      });
-
-      expect(
-        (await server.calls[0].requestBodyJson).reasoning_effort,
-      ).toBeUndefined();
-      expect(result.warnings).toEqual([
-        {
-          type: 'unsupported',
-          feature:
-            'reasoning "none" (use providerOptions.moonshotai.thinking to control thinking)',
-        },
-      ]);
     });
 
     it('should omit thinking.keep and warn on models without keep support', async () => {
