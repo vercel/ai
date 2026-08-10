@@ -75,6 +75,11 @@ export function createCodexACP({
     source,
     executable: CODEX_ACP_EXECUTABLE,
     forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
+    instructionMapping: {
+      type: 'launch-env-json',
+      variable: 'CODEX_CONFIG',
+      path: ['developer_instructions'],
+    },
     ...(webSearch
       ? {
           env: {

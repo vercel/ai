@@ -939,6 +939,86 @@ describe('createACP', () => {
     });
   });
 
+  it('keeps mapped instructions separate from prompts while preserving skill guidance', async () => {
+    const harness = createACP({
+      harnessId: 'claude-acp',
+      ...agentSettings,
+      instructionMapping: {
+        type: 'session-meta',
+        path: ['systemPrompt', 'append'],
+      },
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+      skills: [
+        {
+          name: 'release-notes',
+          description: 'Prepare concise release notes.',
+          content: 'Use active voice.',
+        },
+      ],
+    });
+    const channel = harnessUtilsMocks.channels[0]!;
+
+    const first = await session.doPromptTurn({
+      prompt: 'Draft release notes.',
+      instructions: 'Answer every question in German.',
+      emit: () => {},
+    });
+    expect(channel.sent[0]).toMatchObject({
+      type: 'start',
+      instructions: 'Answer every question in German.',
+      instructionMapping: {
+        type: 'session-meta',
+        path: ['systemPrompt', 'append'],
+      },
+      prompt: [
+        {
+          type: 'text',
+          text: expect.stringContaining('<available-skills>'),
+        },
+        { type: 'text', text: 'Draft release notes.' },
+      ],
+    });
+    expect(
+      JSON.stringify(Reflect.get(channel.sent[0]!, 'prompt')),
+    ).not.toContain('Answer every question in German.');
+    channel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await first.done;
+
+    const second = await session.doPromptTurn({
+      prompt: 'Revise them.',
+      instructions: 'Answer every question in German.',
+      emit: () => {},
+    });
+    expect(channel.sent[1]).toMatchObject({
+      type: 'start',
+      instructions: 'Answer every question in German.',
+      instructionMapping: {
+        type: 'session-meta',
+        path: ['systemPrompt', 'append'],
+      },
+      prompt: [{ type: 'text', text: 'Revise them.' }],
+    });
+    channel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await second.done;
+    await session.doDestroy();
+  });
+
   it('detaches between turns and attaches without spawning or reapplying guidance and skills', async () => {
     const runs: string[] = [];
     const spawns: Array<{
@@ -1720,6 +1800,11 @@ describe('createACP', () => {
       harnessId: 'codex-acp',
       auth: 'ai-gateway',
       ...agentSettings,
+      instructionMapping: {
+        type: 'launch-env-json',
+        variable: 'CODEX_CONFIG',
+        path: ['developer_instructions'],
+      },
       providerAuthentication: {
         gateway: {
           env: {
@@ -1738,6 +1823,7 @@ describe('createACP', () => {
     const initialChannel = harnessUtilsMocks.channels[0]!;
     const initialTurn = await initialSession.doPromptTurn({
       prompt: 'Finish this durable operation.',
+      instructions: 'Keep working until the operation is complete.',
       emit: () => {},
     });
     initialChannel.emit({
@@ -1785,6 +1871,7 @@ describe('createACP', () => {
 
     const rerunChannel = harnessUtilsMocks.channels[2]!;
     const continued = await recoveredSession.doContinueTurn({
+      instructions: 'Keep working until the operation is complete.',
       emit: () => {},
     });
     expect(rerunChannel.sent[0]).toMatchObject({
@@ -1799,6 +1886,12 @@ describe('createACP', () => {
         type: 'lossy-rerun',
         acpSessionId: 'acp-rerun-session',
         reason: 'event log not replayable',
+      },
+      instructions: 'Keep working until the operation is complete.',
+      instructionMapping: {
+        type: 'launch-env-json',
+        variable: 'CODEX_CONFIG',
+        path: ['developer_instructions'],
       },
     });
     expect(JSON.stringify(rerunChannel.sent[0])).not.toContain(

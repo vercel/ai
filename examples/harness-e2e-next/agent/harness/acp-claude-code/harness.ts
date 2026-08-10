@@ -16,6 +16,10 @@ export const claudeCodeACPHarness = createACP({
   env: {
     IS_SANDBOX: '1',
   },
+  instructionMapping: {
+    type: 'session-meta',
+    path: ['systemPrompt', 'append'],
+  },
   permissionModeMapping: {
     'allow-reads': { type: 'session-mode', modeId: 'default' },
     'allow-edits': { type: 'session-mode', modeId: 'acceptEdits' },

@@ -32,6 +32,7 @@ import {
 } from './acp-diagnostics';
 import { monitorACPAgentStderr } from './agent-stderr-monitor';
 import { createEmitStreamEvent } from './create-emit-stream-event';
+import { resolveACPInstructionConfiguration } from './instruction-mapping';
 import {
   startHostToolRelay,
   type HostToolRelay,
@@ -320,6 +321,7 @@ async function ensureSession({
     authentication: bridgeConfiguration.authentication,
     providerAuthentication: bridgeConfiguration.providerAuthentication,
     sessionMeta: bridgeConfiguration.sessionMeta,
+    instructionMapping: start.instructionMapping,
     permissionMode: start.permissionMode,
     permissionModeMapping: start.permissionModeMapping,
   });
@@ -360,12 +362,18 @@ async function ensureSession({
     providerAuthentication: bridgeConfiguration.providerAuthentication,
     gateway,
   });
+  const instructionConfiguration = await resolveACPInstructionConfiguration({
+    instructions: start.instructions,
+    instructionMapping: start.instructionMapping,
+    sessionMeta: bridgeConfiguration.sessionMeta,
+    environment: createChildEnvironment({ launchEnv }),
+  });
   child = spawn(
     `${implementationDir}/node_modules/.bin/${implementation.executable}`,
     [...implementation.args],
     {
       cwd: workDir,
-      env: createChildEnvironment({ launchEnv }),
+      env: instructionConfiguration.environment,
       shell: false,
       stdio: ['pipe', 'pipe', 'pipe'],
     },
@@ -478,9 +486,9 @@ async function ensureSession({
       sessionId: recoveredSessionId,
       cwd: workDir,
       mcpServers,
-      ...(bridgeConfiguration.sessionMeta == null
+      ...(instructionConfiguration.sessionMeta == null
         ? {}
-        : { _meta: bridgeConfiguration.sessionMeta }),
+        : { _meta: instructionConfiguration.sessionMeta }),
     });
     createdSession = createACPRecoveredSession({
       agent: connection.agent,
@@ -497,7 +505,7 @@ async function ensureSession({
       sessionId: recoveredSessionId,
       cwd: workDir,
       mcpServers,
-      meta: bridgeConfiguration.sessionMeta,
+      meta: instructionConfiguration.sessionMeta,
       harnessId: bridgeType,
       setHistoricalUpdatesSuppressed: ({ suppressed }) => {
         historicalUpdatesSuppressed = suppressed;
@@ -518,9 +526,9 @@ async function ensureSession({
       .buildSession({
         cwd: workDir,
         mcpServers,
-        ...(bridgeConfiguration.sessionMeta == null
+        ...(instructionConfiguration.sessionMeta == null
           ? {}
-          : { _meta: bridgeConfiguration.sessionMeta }),
+          : { _meta: instructionConfiguration.sessionMeta }),
       })
       .start();
   }

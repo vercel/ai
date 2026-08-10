@@ -293,6 +293,10 @@ export function createGrokBuild(
     executable: 'grok',
     args: ['agent', 'stdio'],
     forwardEnv: ['XAI_API_KEY'],
+    instructionMapping: {
+      type: 'session-meta',
+      path: ['rules'],
+    },
     providerAuthentication: {
       gateway: {
         env: {

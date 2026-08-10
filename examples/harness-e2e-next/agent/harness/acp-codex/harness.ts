@@ -13,6 +13,11 @@ export const codexACPHarness = createACP({
   },
   executable: 'codex-acp',
   forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
+  instructionMapping: {
+    type: 'launch-env-json',
+    variable: 'CODEX_CONFIG',
+    path: ['developer_instructions'],
+  },
   permissionModeMapping: {
     'allow-reads': null,
     'allow-edits': null,

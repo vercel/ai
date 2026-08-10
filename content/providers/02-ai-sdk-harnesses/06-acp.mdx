@@ -81,6 +81,11 @@ try {
     unavailable. This requires `providerAuthentication` configuration.
 - `providerAuthentication`: declarative runtime-specific Gateway environment.
 - `modelId`: a known implementation model identifier for Harness metadata.
+- `instructionMapping`: optional mapping from `HarnessAgent` instructions to
+  an implementation's native system or developer prompt. Use `session-meta`
+  for a path below the ACP session request's `_meta` field, or
+  `launch-env-json` for a path within a JSON launch environment variable. When
+  omitted, instructions are prepended to the first user prompt.
 - `permissionModeMapping`: mappings from all three Harness permission modes to
   advertised ACP session modes or configuration options. Set an entry to
   `null` when the ACP implementation does not support that mode. When omitted,
@@ -231,6 +236,10 @@ export const claudeCodeACPHarness = createACP({
   env: {
     IS_SANDBOX: '1',
   },
+  instructionMapping: {
+    type: 'session-meta',
+    path: ['systemPrompt', 'append'],
+  },
   permissionModeMapping: {
     'allow-reads': { type: 'session-mode', modeId: 'default' },
     'allow-edits': { type: 'session-mode', modeId: 'acceptEdits' },
@@ -275,6 +284,11 @@ export const codexACPHarness = createACP({
   },
   executable: 'codex-acp',
   forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
+  instructionMapping: {
+    type: 'launch-env-json',
+    variable: 'CODEX_CONFIG',
+    path: ['developer_instructions'],
+  },
   permissionModeMapping: {
     'allow-reads': null,
     'allow-edits': null,
@@ -349,6 +363,10 @@ export const grokBuildACPHarness = createACP({
   executable: 'grok',
   args: ['agent', 'stdio'],
   forwardEnv: ['XAI_API_KEY'],
+  instructionMapping: {
+    type: 'session-meta',
+    path: ['rules'],
+  },
   providerAuthentication: {
     gateway: {
       env: {
