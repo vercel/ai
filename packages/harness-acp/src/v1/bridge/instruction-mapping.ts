@@ -1,4 +1,3 @@
-import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type {
   ACPInstructionMapping,
@@ -50,16 +49,10 @@ export async function resolveACPInstructionConfiguration({
   const serialized = resolvedEnvironment[instructionMapping.variable];
   let configuration: Readonly<Record<string, ACPSerializableValue>> = {};
   if (serialized != null && serialized.length > 0) {
-    const parsed = await safeParseJSON({
-      text: serialized,
-      schema: serializableRecordSchema,
+    configuration = parseSerializableRecord({
+      serialized,
+      variable: instructionMapping.variable,
     });
-    if (!parsed.success) {
-      throw new Error(
-        `ACP instruction mapping environment variable ${JSON.stringify(instructionMapping.variable)} must contain a JSON object.`,
-      );
-    }
-    configuration = parsed.value;
   }
 
   resolvedEnvironment[instructionMapping.variable] = JSON.stringify(
@@ -71,6 +64,28 @@ export async function resolveACPInstructionConfiguration({
   );
 
   return { sessionMeta, environment: resolvedEnvironment };
+}
+
+/*
+ * The bridge runs in an isolated runtime whose dependencies are limited to the
+ * ones declared in this directory's package.json, so AI SDK JSON helpers are
+ * unavailable here. Schema validation plus a guarded `JSON.parse` provides the
+ * same guarantee: nothing but a validated serializable record escapes.
+ */
+function parseSerializableRecord({
+  serialized,
+  variable,
+}: {
+  serialized: string;
+  variable: string;
+}): Readonly<Record<string, ACPSerializableValue>> {
+  try {
+    const result = serializableRecordSchema.safeParse(JSON.parse(serialized));
+    if (result.success) return result.data;
+  } catch {}
+  throw new Error(
+    `ACP instruction mapping environment variable ${JSON.stringify(variable)} must contain a JSON object.`,
+  );
 }
 
 function setStringAtPath({

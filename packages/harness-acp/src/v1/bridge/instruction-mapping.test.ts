@@ -1,4 +1,3 @@
-import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
 import { resolveACPInstructionConfiguration } from './instruction-mapping';
 
@@ -50,15 +49,10 @@ describe('ACP instruction mapping', () => {
 
     expect(result.sessionMeta).toEqual({ profile: 'default' });
     expect(result.environment.EXISTING).toBe('value');
-    await expect(
-      safeParseJSON({ text: result.environment.CODEX_CONFIG! }),
-    ).resolves.toMatchObject({
-      success: true,
-      value: {
-        model: 'openai/gpt-5.6-sol',
-        model_provider: 'ai_gateway',
-        developer_instructions: 'Answer every question in German.',
-      },
+    expect(JSON.parse(result.environment.CODEX_CONFIG!)).toEqual({
+      model: 'openai/gpt-5.6-sol',
+      model_provider: 'ai_gateway',
+      developer_instructions: 'Answer every question in German.',
     });
   });
 
