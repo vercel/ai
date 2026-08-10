@@ -1,5 +1,12 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.66
+
+### Patch Changes
+
+- 8c95b3f: fix(harness-claude-code): fix built-in tool filtering by using actual denylist when passing `inactiveTools`
+- a65bbb2: feat(harness-claude-code): add optional `env` property to `createClaudeCode()` for custom env vars
+
 ## 1.0.65
 
 ### Patch Changes
