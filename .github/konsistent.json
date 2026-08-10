@@ -225,7 +225,17 @@
                 "returnValueOfType": "HarnessV1"
               }
             ],
-            "exportTypes": ["${harnessId.toPascalCase()}HarnessSettings"]
+            "exportTypes": [
+              {
+                "name": "${harnessId.toPascalCase()}HarnessSettings",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mcpServers": {}
+                  }
+                }
+              }
+            ]
           }
         },
         {
