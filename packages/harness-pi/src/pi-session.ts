@@ -368,6 +368,33 @@ export async function createPiSession(
   // `Model` object handed to `createAgentSession`.
   const resolvedModel = resolveModel(input.settings.model);
 
+  // A CONFIGURED model that resolves to nothing must not fall through. The
+  // `model` key is spread conditionally below, so an unresolved id simply
+  // omits it and Pi runs the turn on its own default model instead — a
+  // different model than the caller asked for, with nothing reported. When
+  // that default's provider has no credential, the mismatch finally surfaces
+  // as `No API key found for the selected model`, which points at a credential
+  // rather than at the unknown id that actually caused it.
+  //
+  // `model: undefined` is deliberately left alone: that means "no model
+  // configured", and deferring to Pi's default is the intended behaviour.
+  if (input.settings.model !== undefined && resolvedModel === undefined) {
+    // `workspaceVfs.mount()` above installed a process-global `fs` patch, and
+    // the session lifecycle methods that would `unmount()` it only exist once
+    // this function returns a session. Release it before throwing, or a
+    // misconfigured model id leaks the patch and a stale `mountedRoots` entry
+    // for the lifetime of the process.
+    workspaceVfs.unmount();
+    throw new Error(
+      `Pi model '${input.settings.model}' was not found in the model registry. ` +
+        `Pi resolves a model id against its built-in catalog and models.json ` +
+        `only; an id that matches nothing is not substituted. Check the id, or ` +
+        `register the provider's models via \`agentDir\`/models.json. Note that ` +
+        `\`auth.customEnv\` registers a provider's credentials but none of its ` +
+        `models.`,
+    );
+  }
+
   const resourceLoader = new DefaultResourceLoader({
     cwd: sessionWorkDir,
     agentDir: hostAgentDir,
