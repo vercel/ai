@@ -151,6 +151,52 @@ console.log(text);
 
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details on how to integrate reasoning into your chatbot.
 
+### Video Input
+
+Kimi K3, Kimi K2.7 Code, Kimi K2.6, and Kimi K2.5 support video input. Pass the video as a `file` content part with a video media type:
+
+```ts
+import { moonshotai } from '@ai-sdk/moonshotai';
+import { generateText } from 'ai';
+import fs from 'node:fs';
+
+const { text } = await generateText({
+  model: moonshotai('kimi-k3'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Summarize what happens in this video.' },
+        {
+          type: 'file',
+          data: fs.readFileSync('./video.mp4'),
+          mediaType: 'video/mp4',
+        },
+      ],
+    },
+  ],
+});
+
+console.log(text);
+```
+
+You can also pass a URL. Since Moonshot AI does not fetch external URLs, the AI SDK downloads the video and inlines it as base64 before sending:
+
+```ts
+{
+  type: 'file',
+  data: new URL('https://example.com/video.mp4'),
+  mediaType: 'video/mp4',
+}
+```
+
+<Note>
+  Moonshot AI recommends videos up to 1080p. For larger videos, or videos you
+  reuse across many requests, upload them with the [Moonshot Files
+  API](https://platform.moonshot.ai/docs/api/files) instead. Audio and PDF
+  inputs are not supported by Moonshot AI chat completions.
+</Note>
+
 ### Provider Options
 
 The following optional provider options are available for Moonshot AI language models:
@@ -175,10 +221,12 @@ The following optional provider options are available for Moonshot AI language m
   Controls how reasoning history is handled in multi-turn conversations:
   - `'disabled'`: Remove reasoning from history
   - `'interleaved'`: Include reasoning between tool calls within a single turn
-  - `'preserved'`: Keep all reasoning in history
+  - `'preserved'`: Keep all reasoning in history. Mapped to Moonshot's
+    `thinking.keep: 'all'` request field.
 
 ## Model Capabilities
 
+<<<<<<< HEAD
 | Model                    | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
 | `moonshot-v1-8k`         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -190,6 +238,21 @@ The following optional provider options are available for Moonshot AI language m
 | `kimi-k2-thinking`       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `kimi-k2-thinking-turbo` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `kimi-k2-turbo`          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+=======
+| Model                    | Image Input | Video Input | Object Generation | Tool Usage | Tool Streaming |
+| ------------------------ | ----------- | ----------- | ----------------- | ---------- | -------------- |
+| `moonshot-v1-8k`         | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `moonshot-v1-32k`        | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `moonshot-v1-128k`       | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `kimi-k2`                | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `kimi-k2.5`              | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      |
+| `kimi-k2-thinking`       | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `kimi-k2-thinking-turbo` | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `kimi-k2-turbo`          | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `kimi-k2.6`              | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      |
+| `kimi-k2.7-code`         | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      |
+| `kimi-k3`                | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      |
+>>>>>>> b283a6f876 (feat(provider/moonshotai): own the chat implementation, support video input (#18449))
 
 <Note>
   Please see the [Moonshot AI docs](https://platform.moonshot.ai/docs/intro) for
