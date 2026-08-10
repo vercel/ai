@@ -11,6 +11,7 @@ import {
   type HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
 import { z } from 'zod/v4';
+import type { ACPToolCall } from '../acp-tool-call';
 import type { ACPPermissionModeMapping } from './acp-v1-settings';
 import { acpTextContentBlockSchema } from './acp-v1-prompt';
 
@@ -126,11 +127,26 @@ const coldRestoreSchema = z.object({
   acpSessionId: z.string(),
 });
 
-export const outboundMessageSchema = harnessV1BridgeOutboundMessageSchema;
+const acpToolCallCandidateSchema = z.object({
+  type: z.literal('acp-tool-call-candidate'),
+  toolCall: z.custom<ACPToolCall>(
+    value =>
+      value != null &&
+      typeof value === 'object' &&
+      typeof (value as { toolCallId?: unknown }).toolCallId === 'string' &&
+      typeof (value as { title?: unknown }).title === 'string',
+  ),
+});
+
+export const outboundMessageSchema = z.union([
+  harnessV1BridgeOutboundMessageSchema,
+  acpToolCallCandidateSchema,
+]);
 export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
 
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   prompt: z.array(acpTextContentBlockSchema),
+  mcpServers: z.record(z.string(), z.unknown()).optional(),
   tools: z.array(acpSerializableToolSpecSchema).optional(),
   builtinTools: z.array(builtinToolSchema).readonly().default([]),
   permissionModeMapping: permissionModeMappingSchema.optional(),

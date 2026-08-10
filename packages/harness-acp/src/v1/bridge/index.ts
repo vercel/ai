@@ -230,6 +230,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   turn.emit({ type: 'stream-start' });
   const emitStreamEvent = createEmitStreamEvent({
     emit: event => turn.emit(event as BridgeEvent),
+    emitToolCallCandidate: ({ toolCall }) => {
+      turn.emit({
+        type: 'acp-tool-call-candidate',
+        toolCall,
+      });
+    },
     builtinTools: start.builtinTools,
     hostToolServerName: HOST_TOOL_MCP_SERVER_NAME,
     hostTools: start.tools ?? [],
@@ -322,6 +328,7 @@ async function ensureSession({
     sessionMeta: bridgeConfiguration.sessionMeta,
     permissionMode: start.permissionMode,
     permissionModeMapping: start.permissionModeMapping,
+    mcpServers: start.mcpServers,
   });
   if (session != null) {
     if (catalogRefreshError != null) throw catalogRefreshError;
@@ -437,6 +444,10 @@ async function ensureSession({
       authentication,
     });
   }
+  const externalMcpServers = createExternalMcpServers({
+    mcpServers: start.mcpServers,
+    initialization,
+  });
   const tools = start.tools ?? [];
   const catalogPath = `${bridgeStateDir}/host-tools.json`;
   await writeFile(catalogPath, JSON.stringify(tools), { mode: 0o600 });
@@ -446,6 +457,7 @@ async function ensureSession({
   });
 
   const mcpServers: acp.McpServer[] = [
+    ...externalMcpServers,
     {
       name: HOST_TOOL_MCP_SERVER_NAME,
       command: process.execPath,
@@ -555,6 +567,41 @@ async function ensureSession({
     sessionId: createdSession.sessionId,
   });
   sessionConfigurationFingerprint = fingerprint;
+}
+
+function createExternalMcpServers({
+  mcpServers,
+  initialization,
+}: {
+  mcpServers: Record<string, unknown> | undefined;
+  initialization: acp.InitializeResponse;
+}): acp.McpServer[] {
+  if (mcpServers == null) return [];
+  return Object.entries(mcpServers).map(([name, value]) => {
+    if (!isRecord(value)) {
+      throw new Error(
+        `ACP MCP server ${JSON.stringify(name)} must be configured with an object value.`,
+      );
+    }
+    if (value.type === 'acp') {
+      throw new HarnessBridgeCapabilityUnsupportedError({
+        harnessId: bridgeType,
+        message:
+          'ACP-transport MCP servers require client-side mcp/connect handling, which this harness does not provide.',
+      });
+    }
+    const mcpCapabilities = initialization.agentCapabilities?.mcpCapabilities;
+    if (
+      (value.type === 'http' && mcpCapabilities?.http !== true) ||
+      (value.type === 'sse' && mcpCapabilities?.sse !== true)
+    ) {
+      throw new HarnessBridgeCapabilityUnsupportedError({
+        harnessId: bridgeType,
+        message: `The ACP agent does not advertise support for ${value.type.toUpperCase()} MCP servers.`,
+      });
+    }
+    return { ...value, name } as acp.McpServer;
+  });
 }
 
 function unknownUsage() {

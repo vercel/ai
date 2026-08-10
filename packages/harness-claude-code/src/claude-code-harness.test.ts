@@ -200,13 +200,34 @@ describe('createClaudeCode adapter', () => {
       'TaskOutput',
       'Monitor',
       'ListMcpResources',
+      'ListMcpResourcesTool',
       'ReadMcpResource',
+      'ReadMcpResourceTool',
+      'ReadMcpResourceDirTool',
+      'RefreshMcpTools',
       'ExitPlanMode',
+      'EnterPlanMode',
       'EnterWorktree',
       'ExitWorktree',
       'AskUserQuestion',
       'Skill',
       'ToolSearch',
+      'Artifact',
+      'CronCreate',
+      'CronDelete',
+      'CronList',
+      'DesignSync',
+      'LSP',
+      'PowerShell',
+      'PushNotification',
+      'RemoteTrigger',
+      'ReportFindings',
+      'ScheduleWakeup',
+      'SendMessage',
+      'SendUserFile',
+      'ShareOnboardingGuide',
+      'WaitForMcpServers',
+      'Workflow',
     ]);
     expect(harness.builtinTools.read.nativeName).toBe('Read');
     expect(harness.builtinTools.read.commonName).toBe('read');
@@ -214,6 +235,10 @@ describe('createClaudeCode adapter', () => {
     expect(harness.builtinTools.write.toolUseKind).toBe('edit');
     expect(harness.builtinTools.bash.toolUseKind).toBe('bash');
     expect(harness.builtinTools.Skill.toolUseKind).toBe('readonly');
+    expect(harness.builtinTools.ListMcpResourcesTool.toolUseKind).toBe(
+      'readonly',
+    );
+    expect(harness.builtinTools.PowerShell.toolUseKind).toBe('bash');
     // WebFetch has no cross-harness common equivalent — its key is the
     // native name directly, so the entry intentionally omits both
     // `nativeName` and `commonName`.
@@ -369,6 +394,31 @@ describe('createClaudeCode adapter', () => {
     void Promise.resolve(control.done).catch(() => {});
 
     expect(lastStart()).toMatchObject({ thinking });
+
+    await session.doDestroy();
+  });
+
+  it('sends configured MCP servers to the bridge', async () => {
+    const mcpServers = {
+      context7: { type: 'http', url: 'https://mcp.context7.com/mcp' },
+    };
+    const harness = createClaudeCode({ mcpServers });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      prompt: 'Use Context7.',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({ mcpServers });
 
     await session.doDestroy();
   });

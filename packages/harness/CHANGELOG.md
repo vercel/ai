@@ -1,5 +1,14 @@
 # @ai-sdk/harness
 
+## 1.0.65
+
+### Patch Changes
+
+- a03ff6c: feat(harness): add support for per-harness MCP servers
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+  - ai@7.0.59
+
 ## 1.0.64
 
 ### Patch Changes

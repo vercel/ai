@@ -6,6 +6,7 @@ import { createDeepAgents } from './deepagents-harness';
 
 // Captures the wireTurn `onClose` handler so tests can fire a close with a chosen reason.
 const closeHolder: { fire?: (code: number, reason: string) => void } = {};
+const sentMessages: unknown[] = [];
 
 vi.mock('@ai-sdk/harness/utils', async importOriginal => {
   const actual = await importOriginal<typeof HarnessUtils>();
@@ -17,7 +18,9 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
     onClose(handler: (code: number, reason: string) => void): void {
       closeHolder.fire = handler;
     }
-    send(): void {}
+    send(message: unknown): void {
+      sentMessages.push(message);
+    }
     suspend(): Promise<number> {
       return Promise.resolve(0);
     }
@@ -171,6 +174,30 @@ describe('createDeepAgents', () => {
       "--bootstrap-dir '/vercel/sandbox/.harness-bootstrap/deepagents'",
     );
 
+    await session.doDestroy();
+  });
+
+  it('passes configured MCP servers to the bridge', async () => {
+    sentMessages.length = 0;
+    const mcpServers = {
+      memory: { command: 'memory-mcp', args: [] },
+    };
+    const harness = createDeepAgents({ mcpServers });
+    const session = await harness.doStart({
+      sessionId: 'test-session',
+      sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+      sandboxSession: fakeSandboxSession(),
+    } as unknown as Parameters<typeof harness.doStart>[0]);
+
+    await session.doPromptTurn({
+      prompt: 'Use memory.',
+      emit: () => {},
+    });
+
+    expect(sentMessages[0]).toMatchObject({
+      type: 'start',
+      mcpServers,
+    });
     await session.doDestroy();
   });
 
