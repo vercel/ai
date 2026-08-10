@@ -20,47 +20,11 @@ const fixtureDirectory = path.join(toolDirectory, 'fixtures', 'code-project');
 
 const repositories = [
   {
-    name: 'scira',
-    directory: 'scira',
-    url: 'https://github.com/zaidmukaddam/scira.git',
-    install: ['bun', 'install', '--frozen-lockfile'],
-    requiredEnv: [
-      'XAI_API_KEY',
-      'SCIRA_DATABASE_URL',
-      'SCIRA_BETTER_AUTH_SECRET',
-    ],
-    requiredEnvAny: [],
-    workloadEnv: [],
-  },
-  {
-    name: 'superdesign',
-    directory: 'superdesign',
-    url: 'https://github.com/superdesigndev/superdesign.git',
-    install: ['npm', 'ci'],
-    requiredEnv: ['ANTHROPIC_API_KEY'],
-    requiredEnvAny: [],
-    workloadEnv: [],
-  },
-  {
-    name: 'shortest',
-    directory: 'shortest',
-    url: 'https://github.com/antiwork/shortest.git',
-    install: ['pnpm', 'install', '--frozen-lockfile'],
-    prepare: ['pnpm', 'cli:build'],
-    requiredEnv: [],
-    requiredEnvAny: [
-      ['SHORTEST_ANTHROPIC_API_KEY', 'ANTHROPIC_API_KEY'],
-    ],
-    workloadEnv: [],
-  },
-  {
     name: 'neovate-code',
     directory: 'neovate-code',
     url: 'https://github.com/neovateai/neovate-code.git',
     install: ['pnpm', 'install', '--frozen-lockfile'],
     requiredEnv: ['ANTHROPIC_API_KEY'],
-    requiredEnvAny: [],
-    workloadEnv: [],
   },
 ];
 
@@ -73,15 +37,14 @@ Usage:
   pnpm benchmark:memory smoke
 
 Commands:
-  setup     Clone the four repositories and install their dependencies
-  run       Run every ready benchmark; incomplete benchmarks are skipped
+  setup     Clone Neovate Code and install its dependencies
+  run       Run the Neovate Code memory benchmark
   smoke     Run the synthetic memory sampler smoke test
 
 Options:
-  --name <name>          Limit setup or run to a benchmark (repeatable)
   --repos-dir <path>     Repository cache (default: tools/memory-benchmark/.repos)
   --dotenv <path>        Scoped env file (default: tools/memory-benchmark/.env)
-  --skip-install         Clone repositories without installing dependencies
+  --skip-install         Clone Neovate Code without installing dependencies
   --iterations <count>   Override benchmark iterations
   --sample-interval <ms> Override sampling interval
   --output <path>        Results directory
@@ -91,7 +54,6 @@ Options:
 
 function parseOptions(arguments_) {
   const options = {
-    names: [],
     repositoriesDirectory: defaultRepositoriesDirectory,
     envPath: defaultEnvPath,
     skipInstall: false,
@@ -108,7 +70,6 @@ function parseOptions(arguments_) {
       options.verbose = true;
     } else if (
       [
-        '--name',
         '--repos-dir',
         '--dotenv',
         '--iterations',
@@ -118,8 +79,7 @@ function parseOptions(arguments_) {
     ) {
       const value = arguments_[++index];
       if (value == null) throw new Error(`Missing value for ${argument}`);
-      if (argument === '--name') options.names.push(value);
-      else if (argument === '--repos-dir') {
+      if (argument === '--repos-dir') {
         options.repositoriesDirectory = path.resolve(value);
       } else if (argument === '--dotenv') {
         options.envPath = path.resolve(value);
@@ -144,20 +104,6 @@ function parsePositiveInteger(value, option) {
     throw new Error(`${option} must be a positive integer`);
   }
   return result;
-}
-
-function selectRepositories(names) {
-  if (names.length === 0) return repositories;
-  const selected = repositories.filter(repository =>
-    names.includes(repository.name),
-  );
-  const unknown = names.filter(
-    name => !repositories.some(repository => repository.name === name),
-  );
-  if (unknown.length > 0) {
-    throw new Error(`Unknown benchmark: ${unknown.join(', ')}`);
-  }
-  return selected;
 }
 
 async function pathExists(targetPath) {
@@ -250,26 +196,18 @@ function isConfigured(environment, name) {
 }
 
 function missingEnvironment(repository, environment) {
-  const missing = repository.requiredEnv.filter(
+  return repository.requiredEnv.filter(
     name => !isConfigured(environment, name),
   );
-  const missingAny = repository.requiredEnvAny.filter(
-    group => !group.some(name => isConfigured(environment, name)),
-  );
-  const missingWorkload = repository.workloadEnv.filter(
-    name => !isConfigured(environment, name),
-  );
-  return { missing, missingAny, missingWorkload };
 }
 
 async function setup(options) {
-  const selected = selectRepositories(options.names);
   await mkdir(options.repositoriesDirectory, { recursive: true });
   const failures = [];
 
   console.log(`Repository cache: ${options.repositoriesDirectory}\n`);
 
-  for (const repository of selected) {
+  for (const repository of repositories) {
     const target = path.join(
       options.repositoriesDirectory,
       repository.directory,
@@ -299,10 +237,6 @@ async function setup(options) {
       if (!options.skipInstall) {
         console.log(`  installing: ${repository.install.join(' ')}`);
         await runCommand(repository.install, { cwd: target });
-        if (repository.prepare) {
-          console.log(`  preparing: ${repository.prepare.join(' ')}`);
-          await runCommand(repository.prepare, { cwd: target });
-        }
       }
       console.log('  ready\n');
     } catch (error) {
@@ -328,7 +262,6 @@ async function setup(options) {
 }
 
 async function checkReadiness(options, { print = true } = {}) {
-  const selected = selectRepositories(options.names);
   const scoped = await loadScopedEnvironment(options.envPath);
   const environment = { ...scoped, ...process.env };
   const results = [];
@@ -338,7 +271,7 @@ async function checkReadiness(options, { print = true } = {}) {
     console.log(`Environment file: ${options.envPath}\n`);
   }
 
-  for (const repository of selected) {
+  for (const repository of repositories) {
     const repositoryPath = path.join(
       options.repositoriesDirectory,
       repository.directory,
@@ -349,20 +282,21 @@ async function checkReadiness(options, { print = true } = {}) {
     const dependenciesReady = await pathExists(
       path.join(repositoryPath, 'node_modules'),
     );
-    const missing = missingEnvironment(repository, environment);
+    const missingEnvironmentVariables = missingEnvironment(
+      repository,
+      environment,
+    );
     const ready =
       repositoryReady &&
       dependenciesReady &&
-      missing.missing.length === 0 &&
-      missing.missingAny.length === 0 &&
-      missing.missingWorkload.length === 0;
+      missingEnvironmentVariables.length === 0;
 
     results.push({
       repository,
       repositoryPath,
       repositoryReady,
       dependenciesReady,
-      ...missing,
+      missingEnvironmentVariables,
       ready,
     });
 
@@ -373,16 +307,8 @@ async function checkReadiness(options, { print = true } = {}) {
       } else if (!dependenciesReady) {
         console.log('  - dependencies missing; rerun setup');
       }
-      if (missing.missing.length > 0) {
-        console.log(`  - missing: ${missing.missing.join(', ')}`);
-      }
-      for (const group of missing.missingAny) {
-        console.log(`  - set one of: ${group.join(', ')}`);
-      }
-      if (missing.missingWorkload.length > 0) {
-        console.log(
-          `  - workload command missing: ${missing.missingWorkload.join(', ')}`,
-        );
+      if (missingEnvironmentVariables.length > 0) {
+        console.log(`  - missing: ${missingEnvironmentVariables.join(', ')}`);
       }
       console.log();
     }
@@ -410,29 +336,31 @@ async function runBenchmarks(options) {
     AI_SDK_BENCH_ROOT: options.repositoriesDirectory,
     AI_SDK_BENCH_FIXTURE:
       diagnosis.environment.AI_SDK_BENCH_FIXTURE || fixtureDirectory,
-    AI_SDK_MEMORY_TOOL_DIR: toolDirectory,
   };
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const outputDirectory =
+    options.output ?? path.join(toolDirectory, 'results', timestamp);
+  await mkdir(outputDirectory, { recursive: true });
+
   const command = [
     process.execPath,
     benchmarkRunnerPath,
     '--config',
     benchmarkConfigPath,
+    '--name',
+    ready[0].repository.name,
+    '--output',
+    outputDirectory,
   ];
-  for (const result of ready) {
-    command.push('--name', result.repository.name);
-  }
   if (options.iterations) {
     command.push('--iterations', String(options.iterations));
   }
   if (options.sampleIntervalMs) {
     command.push('--sample-interval', String(options.sampleIntervalMs));
   }
-  if (options.output) command.push('--output', options.output);
   if (options.verbose) command.push('--verbose');
 
-  console.log(
-    `\nRunning ${ready.length} benchmark(s): ${ready.map(result => result.repository.name).join(', ')}`,
-  );
+  console.log('\nRunning Neovate Code benchmark');
   await runCommand(command, { cwd: toolDirectory, env: environment });
 }
 

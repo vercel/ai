@@ -2,51 +2,9 @@
   "defaults": {
     "iterations": 5,
     "sampleIntervalMs": 100,
-    "startupTimeoutMs": 120000,
-    "timeoutMs": 600000,
-    "baselineDurationMs": 3000,
-    "cooldownMs": 3000,
-    "terminateGraceMs": 5000
+    "timeoutMs": 600000
   },
   "benchmarks": [
-    {
-      "name": "scira",
-      "cwd": "${AI_SDK_BENCH_ROOT}/scira",
-      "command": ["bun", "run", "dev"],
-      "env": {
-        "DATABASE_URL": "${SCIRA_DATABASE_URL}",
-        "BETTER_AUTH_SECRET": "${SCIRA_BETTER_AUTH_SECRET}"
-      },
-      "readyPattern": "(Ready in|Local:)",
-      "workloadCommand": [
-        "node",
-        "${AI_SDK_MEMORY_TOOL_DIR}/workloads/scira.mjs"
-      ],
-      "tags": ["nextjs", "streaming", "tools", "ai-sdk-6"],
-      "notes": "Runs a fixed temporary chat request and consumes the complete response stream."
-    },
-    {
-      "name": "superdesign",
-      "cwd": "${AI_SDK_BENCH_ROOT}/superdesign",
-      "command": ["npm", "run", "test:llm"],
-      "tags": ["vscode", "streaming", "tools", "ai-sdk-4"],
-      "notes": "Use the upstream LLM integration test or replace this with a VS Code extension-host test that generates the same design every run."
-    },
-    {
-      "name": "shortest",
-      "cwd": "${AI_SDK_BENCH_ROOT}/shortest",
-      "command": [
-        "pnpm",
-        "--dir",
-        "packages/shortest",
-        "cli",
-        "--",
-        "../../examples/google.test.ts",
-        "--headless"
-      ],
-      "tags": ["browser", "computer-use", "tools", "ai-sdk-4"],
-      "notes": "Build the Shortest CLI first. Replace the example with a local deterministic page to remove network and browser-content variance."
-    },
     {
       "name": "neovate-code",
       "cwd": "${AI_SDK_BENCH_ROOT}/neovate-code",
@@ -65,7 +23,7 @@
         "Inspect package.json and summarize its scripts. Do not modify files."
       ],
       "tags": ["cli", "coding-agent", "middleware", "ai-sdk-6"],
-      "notes": "Point AI_SDK_BENCH_FIXTURE at a small immutable fixture repository."
+      "notes": "Runs a fixed read-only prompt against the included fixture project."
     }
   ]
 }

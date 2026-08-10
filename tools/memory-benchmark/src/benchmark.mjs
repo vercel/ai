@@ -33,7 +33,7 @@ Measure the resident memory of an application and its complete process tree.
 
 Config mode:
   node src/benchmark.mjs --config benchmarks.example.json
-  node src/benchmark.mjs --config benchmarks.example.json --name scira
+  node src/benchmark.mjs --config benchmarks.example.json --name neovate-code
 
 Direct command mode:
   node src/benchmark.mjs --name my-app --iterations 5 -- node app.js
