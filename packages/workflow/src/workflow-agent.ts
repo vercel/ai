@@ -1788,8 +1788,11 @@ export class WorkflowAgent<
       download,
     });
 
+    // Merge per-stream + prepareCall/constructor abort sources so neither is
+    // discarded when both are present (timeout still races whichever wins).
     const effectiveAbortSignal = mergeAbortSignals(
-      options.abortSignal ?? effectiveGenerationSettings.abortSignal,
+      options.abortSignal,
+      effectiveGenerationSettings.abortSignal,
       options.timeout,
     );
 

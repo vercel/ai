@@ -51,6 +51,7 @@ const prepareStepGenerationSettingKeys = [
   'stopSequences',
   'seed',
   'maxRetries',
+  'abortSignal',
   'headers',
   'reasoning',
   'providerOptions',

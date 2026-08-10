@@ -135,6 +135,30 @@ describe('streamTextIterator', () => {
         maxOutputTokens: 256,
       });
     });
+
+    it('applies abortSignal from prepareStep', async () => {
+      vi.mocked(doStreamStep).mockResolvedValue(createMockDoStreamStepResult());
+      const stepAbort = new AbortController();
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {},
+        model: vi.fn() as any,
+        generationSettings: {
+          temperature: 0.2,
+        },
+        prepareStep: () => ({
+          abortSignal: stepAbort.signal,
+        }),
+      });
+
+      await iterator.next();
+
+      expect(vi.mocked(doStreamStep).mock.calls[0]?.[4]).toMatchObject({
+        temperature: 0.2,
+        abortSignal: stepAbort.signal,
+      });
+    });
   });
 
   describe('telemetry', () => {

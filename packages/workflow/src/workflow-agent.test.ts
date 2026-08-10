@@ -191,6 +191,40 @@ describe('WorkflowAgent', () => {
         }),
       );
     });
+
+    it('merges prepareCall and per-stream abortSignal', async () => {
+      const prepareAbort = new AbortController();
+      const streamAbort = new AbortController();
+      const prepareCall = vi.fn(() => ({
+        abortSignal: prepareAbort.signal,
+      }));
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockClear();
+      vi.mocked(streamTextIterator).mockReturnValue({
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      } as unknown as MockIterator);
+
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        prepareCall,
+      });
+
+      await agent.stream({
+        prompt: 'test',
+        abortSignal: streamAbort.signal,
+      });
+
+      expect(streamTextIterator).toHaveBeenCalledTimes(1);
+      const generationSettings = vi.mocked(streamTextIterator).mock
+        .calls[0]?.[0]?.generationSettings;
+      expect(generationSettings?.abortSignal).toBeDefined();
+      expect(generationSettings?.abortSignal).not.toBe(prepareAbort.signal);
+      expect(generationSettings?.abortSignal).not.toBe(streamAbort.signal);
+
+      streamAbort.abort('stream-cancel');
+      expect(generationSettings?.abortSignal?.aborted).toBe(true);
+      expect(generationSettings?.abortSignal?.reason).toBe('stream-cancel');
+    });
   });
 
   describe('tool execution error handling', () => {
