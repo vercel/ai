@@ -12,7 +12,7 @@ import {
 import { createCompactionLatch } from './compaction-latch';
 import type { StartMessage } from '../claude-code-bridge-protocol';
 import { randomUUID } from 'node:crypto';
-import { argv, stdout } from 'node:process';
+import { argv, env as procEnv, stdout } from 'node:process';
 
 /*
  * CONSTRAINT — the third-party imports below are NEVER bundled into the
@@ -338,6 +338,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     options: {
       ...(start.model ? { model: start.model } : {}),
       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
+      ...(start.env !== undefined ? { env: { ...procEnv, ...start.env } } : {}),
       ...(skillsOption ? { skills: skillsOption } : {}),
       ...(nativeTools !== undefined ? { tools: nativeTools } : {}),
       ...(inactiveNativeTools.length > 0

@@ -32,4 +32,12 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
 
     assertType<typeof claudeCode>(acceptsHarness(claudeCode));
   });
+
+  test('createClaudeCode accepts environment configuration', () => {
+    expectTypeOf(
+      createClaudeCode({
+        env: { DEPLOYMENT_ENV: 'staging' },
+      }),
+    ).toExtend<HarnessAgentAdapter<any>>();
+  });
 });
