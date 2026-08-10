@@ -2,6 +2,7 @@ import type {
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
+import { getStepMetadata } from 'workflow';
 import {
   experimental_streamLanguageModelCall as streamModelCall,
   gateway,
@@ -126,34 +127,6 @@ export async function doStreamStep(
     ? resolveSerializableTools(serializedTools)
     : undefined;
 
-  // streamModelCall handles: prompt standardization, tool preparation,
-  // model.doStream(), retry logic, and stream part transformation
-  // (tool call parsing, finish reason mapping, file wrapping).
-  const { stream: modelStream } = await streamModelCall({
-    model,
-    // streamModelCall expects Prompt (ModelMessage[]) but we pass the
-    // pre-converted LanguageModelV4Prompt. standardizePrompt inside
-    // streamModelCall handles both formats.
-    messages: conversationPrompt as unknown as ModelMessage[],
-    allowSystemInMessages: true,
-    tools,
-    toolChoice: options?.toolChoice,
-    includeRawChunks: options?.includeRawChunks,
-    providerOptions: options?.providerOptions,
-    abortSignal: options?.abortSignal,
-    headers: options?.headers,
-    reasoning: options?.reasoning,
-    maxOutputTokens: options?.maxOutputTokens,
-    temperature: options?.temperature,
-    topP: options?.topP,
-    topK: options?.topK,
-    presencePenalty: options?.presencePenalty,
-    frequencyPenalty: options?.frequencyPenalty,
-    stopSequences: options?.stopSequences,
-    seed: options?.seed,
-    repairToolCall: options?.repairToolCall,
-  });
-
   // Consume the stream: capture data and write to writable in real-time
   const toolCalls: ParsedToolCall[] = [];
   const providerExecutedToolResults = new Map<
@@ -174,6 +147,48 @@ export async function doStreamStep(
   const writer = writable?.getWriter();
 
   try {
+    if (writer && isRetryAttempt()) {
+      await writer.write({
+        type: 'finish-step',
+      } as unknown as ModelCallStreamPart<ToolSet>);
+      await writer.write({
+        type: 'data-reload',
+        data: {},
+        transient: true,
+      } as unknown as ModelCallStreamPart<ToolSet>);
+      await writer.write({
+        type: 'start-step',
+      } as unknown as ModelCallStreamPart<ToolSet>);
+    }
+
+    // streamModelCall handles: prompt standardization, tool preparation,
+    // model.doStream(), retry logic, and stream part transformation
+    // (tool call parsing, finish reason mapping, file wrapping).
+    const { stream: modelStream } = await streamModelCall({
+      model,
+      // streamModelCall expects Prompt (ModelMessage[]) but we pass the
+      // pre-converted LanguageModelV4Prompt. standardizePrompt inside
+      // streamModelCall handles both formats.
+      messages: conversationPrompt as unknown as ModelMessage[],
+      allowSystemInMessages: true,
+      tools,
+      toolChoice: options?.toolChoice,
+      includeRawChunks: options?.includeRawChunks,
+      providerOptions: options?.providerOptions,
+      abortSignal: options?.abortSignal,
+      headers: options?.headers,
+      reasoning: options?.reasoning,
+      maxOutputTokens: options?.maxOutputTokens,
+      temperature: options?.temperature,
+      topP: options?.topP,
+      topK: options?.topK,
+      presencePenalty: options?.presencePenalty,
+      frequencyPenalty: options?.frequencyPenalty,
+      stopSequences: options?.stopSequences,
+      seed: options?.seed,
+      repairToolCall: options?.repairToolCall,
+    });
+
     for await (const part of modelStream) {
       switch (part.type) {
         case 'text-delta':
@@ -262,4 +277,22 @@ export async function doStreamStep(
     },
     providerExecutedToolResults,
   };
+}
+
+function isRetryAttempt() {
+  try {
+    return getStepMetadata().attempt > 1;
+  } catch (error) {
+    // Direct calls are supported by the compatibility tests and do not run
+    // inside a Workflow step, so they can only represent the first attempt.
+    if (
+      error instanceof Error &&
+      error.message ===
+        '`getStepMetadata()` can only be called inside a step function'
+    ) {
+      return false;
+    }
+
+    throw error;
+  }
 }

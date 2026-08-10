@@ -4769,6 +4769,68 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  it('should discard the current step when receiving a reload marker', async () => {
+    const stream = createUIMessageStream([
+      { type: 'start', messageId: 'msg-123' },
+      { type: 'start-step' },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'old-tool-call',
+        toolName: 'deleteFile',
+        input: { path: '/tmp/old.txt' },
+      },
+      {
+        type: 'tool-approval-request',
+        approvalId: 'old-approval',
+        toolCallId: 'old-tool-call',
+      },
+      { type: 'finish-step' },
+      { type: 'data-reload', data: {}, transient: true },
+      { type: 'start-step' },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'new-tool-call',
+        toolName: 'deleteFile',
+        input: { path: '/tmp/new.txt' },
+      },
+      {
+        type: 'tool-approval-request',
+        approvalId: 'new-approval',
+        toolCallId: 'new-tool-call',
+      },
+      { type: 'finish-step' },
+      { type: 'finish' },
+    ]);
+
+    state = createStreamingUIMessageState({
+      messageId: 'msg-123',
+      lastMessage: undefined,
+    });
+
+    await consumeStream({
+      stream: processUIMessageStream({
+        stream,
+        runUpdateMessageJob,
+        onError: error => {
+          throw error;
+        },
+      }),
+    });
+
+    expect(state!.message.parts).toHaveLength(3);
+    expect(state!.message.parts.slice(0, 2)).toEqual([
+      { type: 'step-start' },
+      { type: 'step-start' },
+    ]);
+    expect(state!.message.parts[2]).toMatchObject({
+      type: 'tool-deleteFile',
+      toolCallId: 'new-tool-call',
+      state: 'approval-requested',
+      input: { path: '/tmp/new.txt' },
+      approval: { id: 'new-approval' },
+    });
+  });
+
   describe('data ui parts (transient part)', () => {
     let dataCalls: InferUIMessageData<UIMessage>[] = [];
 

@@ -104,7 +104,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
     new TransformStream<UIMessageChunk, InferUIMessageChunk<UI_MESSAGE>>({
       async transform(chunk, controller) {
         await runUpdateMessageJob(async ({ state, write }) => {
-          function getCurrentStepParts() {
+          function getCurrentStepStartIndex() {
             const parts = state.message.parts;
             let currentStepStartIndex = parts.length - 1;
 
@@ -115,7 +115,12 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               currentStepStartIndex--;
             }
 
-            return parts.slice(currentStepStartIndex + 1);
+            return currentStepStartIndex;
+          }
+
+          function getCurrentStepParts() {
+            const currentStepStartIndex = getCurrentStepStartIndex();
+            return state.message.parts.slice(currentStepStartIndex + 1);
           }
 
           function getCurrentStepToolInvocations() {
@@ -921,6 +926,23 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             default: {
               if (isDataUIMessageChunk(chunk)) {
+                if (chunk.type === 'data-reload') {
+                  const currentStepStartIndex = getCurrentStepStartIndex();
+
+                  // A retry invalidates everything streamed after the current
+                  // step boundary. The retried step will add a new boundary
+                  // before it starts writing output again.
+                  state.message.parts = state.message.parts.slice(
+                    0,
+                    currentStepStartIndex + 1,
+                  );
+                  state.activeTextParts = createIdMap();
+                  state.activeReasoningParts = createIdMap();
+                  state.partialToolCalls = createIdMap();
+                  write();
+                  break;
+                }
+
                 // validate data chunk if dataPartSchemas is provided
                 if (dataPartSchemas?.[chunk.type] != null) {
                   const partIdx = state.message.parts.findIndex(
