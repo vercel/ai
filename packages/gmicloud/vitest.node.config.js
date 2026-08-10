@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vite';
 import packageJson from './package.json';
 
 // https://vitejs.dev/config/

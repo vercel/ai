@@ -1,7 +1,7 @@
 import {
   NoSuchModelError,
-  type LanguageModelV4,
-  type ProviderV4,
+  type LanguageModelV3,
+  type ProviderV3,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -36,21 +36,21 @@ export interface GmicloudProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface GmicloudProvider extends ProviderV4 {
+export interface GmicloudProvider extends ProviderV3 {
   /**
    * Creates a GMI Cloud model for text generation.
    */
-  (modelId: GmicloudChatModelId): LanguageModelV4;
+  (modelId: GmicloudChatModelId): LanguageModelV3;
 
   /**
    * Creates a GMI Cloud model for text generation.
    */
-  languageModel(modelId: GmicloudChatModelId): LanguageModelV4;
+  languageModel(modelId: GmicloudChatModelId): LanguageModelV3;
 
   /**
    * Creates a GMI Cloud chat model for text generation.
    */
-  chat(modelId: GmicloudChatModelId): LanguageModelV4;
+  chat(modelId: GmicloudChatModelId): LanguageModelV3;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -91,7 +91,7 @@ export function createGmicloud(
   const provider = (modelId: GmicloudChatModelId) =>
     createLanguageModel(modelId);
 
-  provider.specificationVersion = 'v4' as const;
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createLanguageModel;
   provider.chat = createLanguageModel;
 
