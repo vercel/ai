@@ -1,5 +1,13 @@
 # @ai-sdk/xai
 
+## 4.0.34
+
+### Patch Changes
+
+- fa2c2bb: feat: add xAI image generation server-side tool for the responses API
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+
 ## 4.0.33
 
 ### Patch Changes

@@ -1,5 +1,16 @@
 # @ai-sdk/harness-pi
 
+## 1.0.65
+
+### Patch Changes
+
+- c20a315: feat(harness-pi): support caller-supplied inline Pi extension factories
+- a03ff6c: feat(harness): add support for per-harness MCP servers
+- Updated dependencies [401a4ba]
+- Updated dependencies [a03ff6c]
+  - @ai-sdk/provider-utils@5.0.26
+  - @ai-sdk/harness@1.0.65
+
 ## 1.0.64
 
 ### Patch Changes

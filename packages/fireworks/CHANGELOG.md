@@ -1,5 +1,13 @@
 # @ai-sdk/fireworks
 
+## 3.0.31
+
+### Patch Changes
+
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+  - @ai-sdk/openai-compatible@3.0.29
+
 ## 3.0.30
 
 ### Patch Changes
