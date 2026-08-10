@@ -80,6 +80,9 @@ Use `createClaudeCode()` to configure the runtime:
 const harness = createClaudeCode({
   model: 'claude-sonnet-4-6',
   maxTurns: 10,
+  env: {
+    DEPLOYMENT_ENV: 'staging',
+  },
   thinking: {
     type: 'adaptive',
     display: 'summarized',
@@ -92,6 +95,8 @@ Settings:
 - `auth`: direct Anthropic or AI Gateway authentication settings.
 - `model`: Anthropic model id passed to the underlying Claude Code runtime.
 - `maxTurns`: maximum internal turns before yielding.
+- `env`: environment variables for the Claude Code process. Values are merged
+  over the sandbox bridge process environment and take precedence.
 - `thinking`: extended-thinking configuration. `type` can be `enabled`,
   `disabled`, or `adaptive`. For enabled or adaptive thinking, `display` can be
   `summarized` or `omitted`. Defaults to
