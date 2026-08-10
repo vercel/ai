@@ -26,6 +26,9 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
     isClosed(): boolean {
       return false;
     }
+    suspend(): Promise<number> {
+      return Promise.resolve(0);
+    }
     close(): void {}
   }
   return { ...actual, SandboxChannel: FakeSandboxChannel };
@@ -285,7 +288,46 @@ describe('createClaudeCode adapter', () => {
     expect(spawnEnvs.at(0)?.CLAUDE_AGENT_SDK_CLIENT_APP).toBe(
       'ai-sdk/harness-claude-code/0.0.0-test',
     );
+    expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     await session.doDestroy();
+  });
+
+  it('uses a caller-minted bridge token and reuses it when attaching', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const mintBridgeToken = vi.fn(
+      (sandboxId: string) => `token-for-${sandboxId}`,
+    );
+    const harness = createClaudeCode({ mintBridgeToken });
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      spawnEnvs,
+      writes: [],
+      runs: [],
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
+    expect(mintBridgeToken).toHaveBeenCalledExactlyOnceWith('test-sandbox');
+    expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toBe(
+      'token-for-test-sandbox',
+    );
+
+    const resumeFrom = await session.doDetach();
+    expect(resumeFrom.data).toMatchObject({
+      bridge: { token: 'token-for-test-sandbox' },
+    });
+
+    const attachedSession = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      resumeFrom,
+    });
+    expect(mintBridgeToken).toHaveBeenCalledTimes(1);
+    await attachedSession.doDetach();
   });
 
   it('does not set the client app for direct Anthropic auth', async () => {

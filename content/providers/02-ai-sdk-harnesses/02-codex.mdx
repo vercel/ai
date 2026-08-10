@@ -91,6 +91,10 @@ Settings:
 - `webSearch`: allow live web search.
 - `port`: bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the bridge to start.
+- `mintBridgeToken`: synchronous function that receives the sandbox id and
+  returns the bridge authentication token. By default, the adapter generates a
+  random 32-byte token. Custom implementations must return a suitably secret
+  token.
 
 ## Authentication
 
