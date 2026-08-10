@@ -1091,6 +1091,42 @@ describe('assistant messages', () => {
     `);
   });
 
+  it('should omit an assistant message when unsigned reasoning is its only content', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Think hard then answer' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'Let me consider the options',
+          },
+        ],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Hello?' }],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Think hard then answer' }],
+        },
+        {
+          role: 'user',
+          content: [{ text: 'Hello?' }],
+        },
+      ],
+      system: [],
+    });
+  });
+
   it('should omit multiple reasoning parts without signatures', async () => {
     const result = await convertToAmazonBedrockChatMessages([
       {

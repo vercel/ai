@@ -42,6 +42,7 @@ export async function prepareResponsesTools({
   allowedTools,
   toolNameMapping,
   customProviderToolNames,
+  outputSchemaToolNames,
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice: LanguageModelV4CallOptions['toolChoice'] | undefined;
@@ -51,6 +52,7 @@ export async function prepareResponsesTools({
   };
   toolNameMapping?: ToolNameMapping;
   customProviderToolNames?: Set<string>;
+  outputSchemaToolNames?: Set<string>;
 }): Promise<{
   tools?: Array<OpenAIResponsesTool>;
   toolChoice?:
@@ -98,6 +100,9 @@ export async function prepareResponsesTools({
         const openaiOptions = tool.providerOptions?.openai as
           | OpenAIToolOptions
           | undefined;
+        if (openaiOptions?.outputSchema != null) {
+          outputSchemaToolNames?.add(tool.name);
+        }
         const openaiFunctionTool = prepareFunctionTool({
           tool,
           options: openaiOptions,

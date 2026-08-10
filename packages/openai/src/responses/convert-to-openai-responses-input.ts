@@ -98,6 +98,7 @@ export async function convertToOpenAIResponsesInput({
   hasApplyPatchTool = false,
   hasComputerTool = false,
   customProviderToolNames,
+  outputSchemaToolNames,
 }: {
   prompt: LanguageModelV4Prompt;
   toolNameMapping: ToolNameMapping;
@@ -114,6 +115,7 @@ export async function convertToOpenAIResponsesInput({
   hasApplyPatchTool?: boolean;
   hasComputerTool?: boolean;
   customProviderToolNames?: Set<string>;
+  outputSchemaToolNames?: Set<string>;
 }): Promise<{
   input: OpenAIResponsesInput;
   warnings: Array<SharedV4Warning>;
@@ -1141,14 +1143,22 @@ export async function convertToOpenAIResponsesInput({
           }
 
           let contentValue: OpenAIResponsesFunctionCallOutput['output'];
+          // `output` is always a string, but for functions with output_schema
+          // OpenAI parses the contents of that string as JSON. Text-like results
+          // therefore need JSON.stringify to become valid JSON string literals.
+          const hasOutputSchema = outputSchemaToolNames?.has(part.toolName);
           switch (output.type) {
             case 'text':
             case 'error-text':
-              contentValue = output.value;
+              contentValue = hasOutputSchema
+                ? JSON.stringify(output.value)
+                : output.value;
               break;
-            case 'execution-denied':
-              contentValue = output.reason ?? 'Tool call execution denied.';
+            case 'execution-denied': {
+              const reason = output.reason ?? 'Tool call execution denied.';
+              contentValue = hasOutputSchema ? JSON.stringify(reason) : reason;
               break;
+            }
             case 'json':
             case 'error-json':
               contentValue = JSON.stringify(output.value);

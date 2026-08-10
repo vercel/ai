@@ -1,5 +1,38 @@
 # @ai-sdk/provider-utils
 
+## 5.0.25
+
+### Patch Changes
+
+- 81cd026: Reduce bundle size by making internal Zod v4 imports tree-shakeable.
+- Updated dependencies [ad6a650]
+  - @ai-sdk/provider@4.0.7
+
+## 5.0.24
+
+### Patch Changes
+
+- 1937bef: fix(provider-utils): make URL regex checks stateless
+
+## 5.0.23
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+
+## 5.0.22
+
+### Patch Changes
+
+- 2b60826: feat(provider-utils): support Blob request bodies in postToApi
+
+## 5.0.21
+
+### Patch Changes
+
+- 1bec07d: Fix streamed tool calls with non-zero, non-contiguous, reused, or missing indexes.
+
 ## 5.0.20
 
 ### Patch Changes

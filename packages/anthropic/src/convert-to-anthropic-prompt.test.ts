@@ -2741,6 +2741,7 @@ describe('assistant messages', () => {
                   value: {
                     type: 'advisor_result',
                     text: 'Use a channel-based coordination pattern. Close the input channel first, then wait on a WaitGroup.',
+                    stopReason: 'max_tokens',
                   },
                 },
                 toolCallId: 'srvtoolu_advisor_abc123',
@@ -2772,6 +2773,7 @@ describe('assistant messages', () => {
                   {
                     "cache_control": undefined,
                     "content": {
+                      "stop_reason": "max_tokens",
                       "text": "Use a channel-based coordination pattern. Close the input channel first, then wait on a WaitGroup.",
                       "type": "advisor_result",
                     },
@@ -2809,6 +2811,7 @@ describe('assistant messages', () => {
                   value: {
                     type: 'advisor_redacted_result',
                     encryptedContent: 'opaque-encrypted-blob-xyz',
+                    stopReason: 'end_turn',
                   },
                 },
                 toolCallId: 'srvtoolu_advisor_redacted',
@@ -2830,6 +2833,7 @@ describe('assistant messages', () => {
           "cache_control": undefined,
           "content": {
             "encrypted_content": "opaque-encrypted-blob-xyz",
+            "stop_reason": "end_turn",
             "type": "advisor_redacted_result",
           },
           "tool_use_id": "srvtoolu_advisor_redacted",

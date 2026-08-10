@@ -26,6 +26,9 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
     isClosed(): boolean {
       return false;
     }
+    suspend(): Promise<number> {
+      return Promise.resolve(0);
+    }
     close(): void {}
   }
   return { ...actual, SandboxChannel: FakeSandboxChannel };
@@ -197,13 +200,34 @@ describe('createClaudeCode adapter', () => {
       'TaskOutput',
       'Monitor',
       'ListMcpResources',
+      'ListMcpResourcesTool',
       'ReadMcpResource',
+      'ReadMcpResourceTool',
+      'ReadMcpResourceDirTool',
+      'RefreshMcpTools',
       'ExitPlanMode',
+      'EnterPlanMode',
       'EnterWorktree',
       'ExitWorktree',
       'AskUserQuestion',
       'Skill',
       'ToolSearch',
+      'Artifact',
+      'CronCreate',
+      'CronDelete',
+      'CronList',
+      'DesignSync',
+      'LSP',
+      'PowerShell',
+      'PushNotification',
+      'RemoteTrigger',
+      'ReportFindings',
+      'ScheduleWakeup',
+      'SendMessage',
+      'SendUserFile',
+      'ShareOnboardingGuide',
+      'WaitForMcpServers',
+      'Workflow',
     ]);
     expect(harness.builtinTools.read.nativeName).toBe('Read');
     expect(harness.builtinTools.read.commonName).toBe('read');
@@ -211,6 +235,10 @@ describe('createClaudeCode adapter', () => {
     expect(harness.builtinTools.write.toolUseKind).toBe('edit');
     expect(harness.builtinTools.bash.toolUseKind).toBe('bash');
     expect(harness.builtinTools.Skill.toolUseKind).toBe('readonly');
+    expect(harness.builtinTools.ListMcpResourcesTool.toolUseKind).toBe(
+      'readonly',
+    );
+    expect(harness.builtinTools.PowerShell.toolUseKind).toBe('bash');
     // WebFetch has no cross-harness common equivalent — its key is the
     // native name directly, so the entry intentionally omits both
     // `nativeName` and `commonName`.
@@ -263,9 +291,87 @@ describe('createClaudeCode adapter', () => {
     expect(spawns).toEqual([
       "node '/vercel/sandbox/.harness-bootstrap/claude-code/bridge.mjs' --workdir '/vercel/sandbox/claude-code-s1; env > /tmp/workdir-leak #' --bridge-state-dir '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/bridge'",
     ]);
+    await session.doDestroy();
+  });
+
+  it('sets the client app for AI Gateway auth', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const harness = createClaudeCode({
+      auth: { gateway: { apiKey: 'gateway-key' } },
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        spawnEnvs,
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
     expect(spawnEnvs.at(0)?.CLAUDE_AGENT_SDK_CLIENT_APP).toBe(
       'ai-sdk/harness-claude-code/0.0.0-test',
     );
+    expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
+    await session.doDestroy();
+  });
+
+  it('uses a caller-minted bridge token and reuses it when attaching', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const mintBridgeToken = vi.fn(
+      (sandboxId: string) => `token-for-${sandboxId}`,
+    );
+    const harness = createClaudeCode({ mintBridgeToken });
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      spawnEnvs,
+      writes: [],
+      runs: [],
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
+    expect(mintBridgeToken).toHaveBeenCalledExactlyOnceWith('test-sandbox');
+    expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toBe(
+      'token-for-test-sandbox',
+    );
+
+    const resumeFrom = await session.doDetach();
+    expect(resumeFrom.data).toMatchObject({
+      bridge: { token: 'token-for-test-sandbox' },
+    });
+
+    const attachedSession = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      resumeFrom,
+    });
+    expect(mintBridgeToken).toHaveBeenCalledTimes(1);
+    await attachedSession.doDetach();
+  });
+
+  it('does not set the client app for direct Anthropic auth', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const harness = createClaudeCode({
+      auth: { anthropic: { apiKey: 'anthropic-key' } },
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        spawnEnvs,
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
+    expect(spawnEnvs.at(0)).not.toHaveProperty('CLAUDE_AGENT_SDK_CLIENT_APP');
     await session.doDestroy();
   });
 
@@ -312,6 +418,57 @@ describe('createClaudeCode adapter', () => {
     expect(lastStart()).toMatchObject({
       thinking: { type: 'adaptive', display: 'summarized' },
     });
+
+    await session.doDestroy();
+  });
+
+  it('sends environment configuration to the bridge', async () => {
+    const env = { DEPLOYMENT_ENV: 'staging' };
+    const harness = createClaudeCode({ env });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      prompt: 'inspect the project',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({ env });
+
+    await session.doDestroy();
+  });
+
+  it('sends environment configuration when rerunning a continued turn', async () => {
+    const env = { DEPLOYMENT_ENV: 'staging' };
+    const harness = createClaudeCode({ env });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+    const control = await session.doContinueTurn({
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({ env, continue: true });
 
     await session.doDestroy();
   });

@@ -444,6 +444,29 @@ if (generationId) {
 }
 ```
 
+You can also capture the generation ID for every completed model call with
+`onLanguageModelCallEnd`. The callback runs before client-side tools execute,
+so the metadata remains available even if the operation is later aborted while
+a tool is running:
+
+```ts
+import { gateway, generateText } from 'ai';
+
+await generateText({
+  model: gateway('anthropic/claude-sonnet-4'),
+  prompt: 'Explain quantum entanglement briefly',
+  onLanguageModelCallEnd({ providerMetadata }) {
+    const generationId = providerMetadata?.gateway?.generationId as
+      | string
+      | undefined;
+
+    if (generationId) {
+      console.log(`Completed Gateway generation: ${generationId}`);
+    }
+  },
+});
+```
+
 The `getGenerationInfo()` method accepts:
 
 - **id** _string_ - The generation ID to look up (format: `gen_<ulid>`, required)

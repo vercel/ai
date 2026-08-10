@@ -448,6 +448,73 @@ describe('Chat', () => {
     });
   });
 
+  describe('regenerate', () => {
+    it('preserves a preceding assistant message', async () => {
+      server.urls['http://localhost:3000/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          formatChunk({ type: 'start' }),
+          formatChunk({ type: 'text-start', id: 'text-1' }),
+          formatChunk({
+            type: 'text-delta',
+            id: 'text-1',
+            delta: 'regenerated target',
+          }),
+          formatChunk({ type: 'text-end', id: 'text-1' }),
+          formatChunk({ type: 'finish', finishReason: 'stop' }),
+        ],
+      };
+
+      const initialMessages = [
+        {
+          id: 'user',
+          role: 'user',
+          parts: [{ type: 'text', text: 'prompt' }],
+        },
+        {
+          id: 'assistant-parent',
+          role: 'assistant',
+          parts: [{ type: 'text', text: 'parent' }],
+        },
+        {
+          id: 'assistant-target',
+          role: 'assistant',
+          parts: [{ type: 'text', text: 'target' }],
+        },
+      ] satisfies UIMessage[];
+      const expectedRequestMessages = structuredClone(
+        initialMessages.slice(0, 2),
+      );
+      const expectedAssistantParent = structuredClone(initialMessages[1]);
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        messages: initialMessages,
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+      });
+
+      await chat.regenerate({ messageId: 'assistant-target' });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        trigger: 'regenerate-message',
+        messageId: 'assistant-target',
+        messages: expectedRequestMessages,
+      });
+      expect(chat.messages).toMatchObject([
+        initialMessages[0],
+        expectedAssistantParent,
+        {
+          id: 'id-0',
+          role: 'assistant',
+          parts: [{ type: 'text', text: 'regenerated target' }],
+        },
+      ]);
+    });
+  });
+
   describe('send handle a disconnected response stream', () => {
     let chat: TestChat;
     let letOnFinishArgs: any[] = [];
@@ -902,6 +969,191 @@ describe('Chat', () => {
         ]
       `);
     });
+  });
+
+  it('should stop updating messages when a resumed stream is stopped', async () => {
+    const nextChunk = createResolvablePromise<void>();
+    let reconnectAbortSignal: AbortSignal | undefined;
+    let isCancelled = false;
+
+    const resumeStream = new ReadableStream<UIMessageChunk>({
+      start(controller) {
+        controller.enqueue({ type: 'start' });
+        controller.enqueue({ type: 'start-step' });
+        controller.enqueue({ type: 'text-start', id: 'text-1' });
+        controller.enqueue({
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'before stop',
+        });
+      },
+      async pull(controller) {
+        await nextChunk.promise;
+
+        try {
+          controller.enqueue({
+            type: 'text-delta',
+            id: 'text-1',
+            delta: ' after stop',
+          });
+          controller.close();
+        } catch {
+          // the stream was cancelled while the pull was pending
+        }
+      },
+      cancel() {
+        isCancelled = true;
+      },
+    });
+
+    const chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => new ReadableStream(),
+        reconnectToStream: async options => {
+          reconnectAbortSignal = options.abortSignal;
+          return resumeStream;
+        },
+      },
+      onFinish: () => {},
+    });
+
+    const resumePromise = chat.resumeStream();
+
+    while ((chat.messages[0]?.parts[1] as any)?.text !== 'before stop') {
+      await vi.advanceTimersByTimeAsync(0);
+    }
+
+    await chat.stop();
+    nextChunk.resolve();
+    await resumePromise;
+
+    expect(reconnectAbortSignal?.aborted).toBe(true);
+    expect(isCancelled).toBe(true);
+    expect((chat.messages[0]?.parts[1] as any)?.text).toBe('before stop');
+  });
+
+  it('should stop a resumed stream while reconnection is pending', async () => {
+    const reconnectResult =
+      createResolvablePromise<ReadableStream<UIMessageChunk>>();
+    let reconnectAbortSignal: AbortSignal | undefined;
+    let isCancelled = false;
+
+    const chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => new ReadableStream(),
+        reconnectToStream: async options => {
+          reconnectAbortSignal = options.abortSignal;
+          return reconnectResult.promise;
+        },
+      },
+      onFinish: () => {},
+    });
+
+    const resumePromise = chat.resumeStream();
+
+    expect(chat.status).toBe('ready');
+    await chat.stop();
+    expect(reconnectAbortSignal?.aborted).toBe(true);
+
+    reconnectResult.resolve(
+      new ReadableStream<UIMessageChunk>({
+        start(controller) {
+          controller.enqueue({ type: 'start' });
+          controller.enqueue({ type: 'start-step' });
+          controller.enqueue({ type: 'text-start', id: 'text-1' });
+          controller.enqueue({
+            type: 'text-delta',
+            id: 'text-1',
+            delta: 'after stop',
+          });
+        },
+        cancel() {
+          isCancelled = true;
+        },
+      }),
+    );
+
+    await resumePromise;
+
+    expect(isCancelled).toBe(true);
+    expect(chat.messages).toEqual([]);
+    expect(chat.status).toBe('ready');
+  });
+
+  it('should only apply the latest overlapping resumed stream', async () => {
+    const reconnectResults = [
+      createResolvablePromise<ReadableStream<UIMessageChunk>>(),
+      createResolvablePromise<ReadableStream<UIMessageChunk>>(),
+    ];
+    const reconnectAbortSignals: AbortSignal[] = [];
+    let reconnectCount = 0;
+    let firstStreamCancelled = false;
+
+    const chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => new ReadableStream(),
+        reconnectToStream: async options => {
+          reconnectAbortSignals.push(options.abortSignal!);
+          return reconnectResults[reconnectCount++].promise;
+        },
+      },
+      onFinish: () => {},
+    });
+
+    const firstResumePromise = chat.resumeStream();
+    const secondResumePromise = chat.resumeStream();
+
+    expect(reconnectAbortSignals[0].aborted).toBe(true);
+    expect(reconnectAbortSignals[1].aborted).toBe(false);
+
+    reconnectResults[0].resolve(
+      new ReadableStream<UIMessageChunk>({
+        start(controller) {
+          controller.enqueue({ type: 'start' });
+          controller.enqueue({ type: 'start-step' });
+          controller.enqueue({ type: 'text-start', id: 'text-1' });
+          controller.enqueue({
+            type: 'text-delta',
+            id: 'text-1',
+            delta: 'stale',
+          });
+        },
+        cancel() {
+          firstStreamCancelled = true;
+        },
+      }),
+    );
+    reconnectResults[1].resolve(
+      new ReadableStream<UIMessageChunk>({
+        start(controller) {
+          controller.enqueue({ type: 'start' });
+          controller.enqueue({ type: 'start-step' });
+          controller.enqueue({ type: 'text-start', id: 'text-1' });
+          controller.enqueue({
+            type: 'text-delta',
+            id: 'text-1',
+            delta: 'latest',
+          });
+          controller.enqueue({ type: 'text-end', id: 'text-1' });
+          controller.enqueue({ type: 'finish-step' });
+          controller.enqueue({ type: 'finish', finishReason: 'stop' });
+          controller.close();
+        },
+      }),
+    );
+
+    await Promise.all([firstResumePromise, secondResumePromise]);
+
+    expect(firstStreamCancelled).toBe(true);
+    expect(chat.messages).toHaveLength(1);
+    expect((chat.messages[0].parts[1] as any).text).toBe('latest');
+    expect(chat.status).toBe('ready');
   });
 
   it('should include the metadata of text message', async () => {

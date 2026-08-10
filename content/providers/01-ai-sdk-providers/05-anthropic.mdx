@@ -144,6 +144,57 @@ The following optional provider options are available for Anthropic models:
   Optional. Metadata to include with the request. See the [Anthropic API documentation](https://platform.claude.com/docs/en/api/messages/create) for details.
   - `userId` _string_ - An external identifier for the end-user. Should be a UUID, hash, or other opaque identifier. Must not contain PII.
 
+### Text Batches
+
+<Note type="warning">
+  Text batch support is experimental and the API may change in patch releases.
+</Note>
+
+Anthropic language models support asynchronous text generation through the
+[Message Batches API](https://platform.claude.com/docs/en/build-with-claude/batch-processing).
+Use the experimental text batch APIs to start a batch, poll its status, and
+stream its results:
+
+<Note>
+  Anthropic Message Batches do not support the `speed` option. Explicit
+  `anthropicBeta` values must be configured when starting the batch rather than
+  on an individual request.
+</Note>
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import {
+  experimental_getBatchResults as getBatchResults,
+  experimental_getBatchStatus as getBatchStatus,
+  experimental_startTextBatch as startTextBatch,
+} from 'ai';
+import { setTimeout } from 'node:timers/promises';
+
+const model = anthropic('claude-haiku-4-5');
+
+const batch = await startTextBatch({
+  model,
+  requests: [
+    { id: 'first', prompt: 'What is the capital of France?' },
+    { id: 'second', prompt: 'What is the capital of Germany?' },
+  ],
+});
+
+let status = batch.status;
+while (status === 'pending') {
+  await setTimeout(60_000);
+  ({ status } = await getBatchStatus({ model, batch }));
+}
+
+for await (const item of getBatchResults({ model, batch })) {
+  if (item.status === 'succeeded') {
+    console.log(item.id, item.text);
+  } else {
+    console.error(item.id, item.error);
+  }
+}
+```
+
 ### Structured Outputs and Tool Input Streaming
 
 Tool call streaming is enabled by default. You can opt out by setting the
@@ -1059,13 +1110,15 @@ import { generateText } from 'ai';
 
 const result = await generateText({
   model: anthropic('claude-sonnet-4-6'),
-  system: 'You have access to an `advisor` tool backed by a stronger reviewer model.'
+  system:
+    'You have access to an `advisor` tool backed by a stronger reviewer model.',
   prompt:
     'Build a concurrent worker pool in Go with graceful shutdown. Outline the design first.',
   tools: {
     advisor: anthropic.tools.advisor_20260301({
       model: 'claude-opus-4-8',
       maxUses: 3,
+      maxTokens: 2048,
     }),
   },
 });
@@ -1087,6 +1140,10 @@ The advisor tool supports the following configuration options:
 - **maxUses** _number_
 
   Optional. Maximum number of advisor calls allowed in a single request. Once the executor reaches this cap, further advisor calls return an `advisor_tool_result_error` with `errorCode: 'max_uses_exceeded'`, and the executor continues without further advice.
+
+- **maxTokens** _number_
+
+  Optional. Maximum number of tokens the advisor can generate per call, including thinking and text. The minimum is `1024`, and Anthropic recommends starting with `2048`. This limit applies independently to each advisor call and is separate from the request-level `maxOutputTokens`, which controls executor output. Values above the selected advisor model's output limit result in an Anthropic `400` error. When configured, successful advisor results include `stopReason`; check for `stopReason === 'max_tokens'` to detect truncated advice. The field is available on both plaintext and redacted advisor result variants and is preserved across follow-up turns.
 
 - **caching** _object_
 
