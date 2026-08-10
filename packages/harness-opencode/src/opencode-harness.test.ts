@@ -251,7 +251,7 @@ describe('createOpenCode adapter', () => {
     );
   });
 
-  it('passes reasoningVariant to OpenCode as the prompt variant', async () => {
+  it('passes reasoningVariant and instructions to every OpenCode prompt', async () => {
     harnessUtilsMocks.channels.length = 0;
     harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
     const emptyStream = () =>
@@ -300,6 +300,7 @@ describe('createOpenCode adapter', () => {
     });
     await session.doPromptTurn({
       prompt: 'think',
+      instructions: 'be concise',
       emit: () => {},
     });
 
@@ -307,6 +308,21 @@ describe('createOpenCode adapter', () => {
       type: 'start',
       operation: 'prompt',
       prompt: 'think',
+      instructions: 'be concise',
+      variant: 'high',
+    });
+
+    await session.doPromptTurn({
+      prompt: 'think again',
+      instructions: 'be concise',
+      emit: () => {},
+    });
+
+    expect(harnessUtilsMocks.channels.at(-1)?.sent.at(-1)).toMatchObject({
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'think again',
+      instructions: 'be concise',
       variant: 'high',
     });
 
