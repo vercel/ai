@@ -1,5 +1,19 @@
 # ai
 
+## 6.0.246
+
+### Patch Changes
+
+- Updated dependencies [ee2bf30]
+  - @ai-sdk/provider-utils@4.0.42
+  - @ai-sdk/gateway@3.0.166
+
+## 6.0.245
+
+### Patch Changes
+
+- 0de0715: Filter unresolved tool approval requests and tool parts without state when ignoring incomplete tool calls.
+
 ## 6.0.244
 
 ### Patch Changes

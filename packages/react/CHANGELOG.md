@@ -1,5 +1,21 @@
 # @ai-sdk/react
 
+## 3.0.248
+
+### Patch Changes
+
+- 987cab1: Fix `useChat` throttling so unrelated React renders cannot publish message snapshots ahead of the configured throttle cadence.
+- Updated dependencies [ee2bf30]
+  - @ai-sdk/provider-utils@4.0.42
+  - ai@6.0.246
+
+## 3.0.247
+
+### Patch Changes
+
+- Updated dependencies [0de0715]
+  - ai@6.0.245
+
 ## 3.0.246
 
 ### Patch Changes
