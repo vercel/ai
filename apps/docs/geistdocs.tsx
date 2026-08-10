@@ -1,9 +1,15 @@
+import { LogoAiSdk } from '@vercel/geistdocs/assets/logos/logo-ai-sdk';
 import type { GeistdocsConfig } from '@vercel/geistdocs/config';
 
 export const title = 'AI SDK';
 
+// The logo SVG is aria-hidden; the visually hidden text keeps an
+// accessible name on the wordmark link.
 export const Logo = () => (
-  <span className="font-semibold text-gray-1000">AI SDK</span>
+  <>
+    <LogoAiSdk />
+    <span className="sr-only">AI SDK</span>
+  </>
 );
 
 export const nav: NonNullable<GeistdocsConfig['nav']> = [
