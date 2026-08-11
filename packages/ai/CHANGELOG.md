@@ -1,5 +1,15 @@
 # ai
 
+## 6.0.249
+
+### Patch Changes
+
+- a774b7b: Stop pending and active resumed chat streams after cancellation, and prevent
+  overlapping resumptions from applying stale updates.
+- Updated dependencies [b39f987]
+- Updated dependencies [d79117b]
+  - @ai-sdk/gateway@3.0.169
+
 ## 6.0.248
 
 ### Patch Changes
