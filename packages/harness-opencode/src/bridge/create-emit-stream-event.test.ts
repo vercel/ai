@@ -271,7 +271,10 @@ describe('createEmitStreamEvent', () => {
   });
 
   it('authorizes legacy host tool calls using only the tool input', async () => {
-    const authorizer = new ToolRelayAuthorizer({ ttlMs: 10 });
+    const authorizer = new ToolRelayAuthorizer({
+      ttlMs: 10,
+      now: () => 1_000,
+    });
     const { emitStreamEvent } = createEmitter({
       hostToolNames: new Set(['weather']),
       onAuthorizeHostToolCall: ({ toolName, input }) =>
