@@ -3776,6 +3776,9 @@ importers:
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
+      tsx:
+        specifier: 4.23.12
+        version: 4.23.12
       typescript:
         specifier: 6.0.3
         version: 6.0.3
