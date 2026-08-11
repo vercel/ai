@@ -88,6 +88,7 @@ Settings:
 
 - `auth`: Anthropic, OpenAI, OpenAI-compatible, or AI Gateway authentication
   settings.
+- `mcpServers`: MCP server definitions keyed by server name.
 - `model`: OpenCode model id. Provider-prefixed values such as
   `anthropic/claude-sonnet-4-6` are passed through to OpenCode.
 - `provider`: provider id to use with an unprefixed `model`.
@@ -95,6 +96,10 @@ Settings:
   such as `low`, `medium`, or `high`.
 - `port`: bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the bridge to start.
+- `mintBridgeToken`: synchronous function that receives the sandbox id and
+  returns the bridge authentication token. By default, the adapter generates a
+  random 32-byte token. Custom implementations must return a suitably secret
+  token.
 
 ## Authentication
 
