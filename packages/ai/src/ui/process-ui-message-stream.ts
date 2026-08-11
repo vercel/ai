@@ -12,7 +12,14 @@ import {
 import { createIdMap } from '../util/create-id-map';
 import type { ErrorHandler } from '../util/error-handler';
 import { mergeObjects } from '../util/merge-objects';
+import { now } from '../util/now';
 import { parsePartialJson } from '../util/parse-partial-json';
+import {
+  appendToTextAccumulator,
+  finalizeTextAccumulator,
+  getTextAccumulatorLength,
+  prepareTextAccumulator,
+} from '../util/text-accumulator';
 import type { UIDataTypesToSchemas } from './chat';
 import {
   getStaticToolName,
@@ -48,6 +55,9 @@ export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   >;
   finishReason?: FinishReason;
 };
+
+const LONG_TEXT_STREAM_THRESHOLD = 16_384;
+const LONG_TEXT_STREAM_UPDATE_INTERVAL_MS = 16;
 
 export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
   lastMessage,
@@ -100,6 +110,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   ) => Promise<void>;
   onError: ErrorHandler;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
+  const lastTextUpdateTimes = new WeakMap<
+    TextUIPart | ReasoningUIPart,
+    number
+  >();
+
   return stream.pipeThrough(
     new TransformStream<UIMessageChunk, InferUIMessageChunk<UI_MESSAGE>>({
       async transform(chunk, controller) {
@@ -403,15 +418,16 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
           switch (chunk.type) {
             case 'text-start': {
-              const textPart: TextUIPart = {
+              const textPart = prepareTextAccumulator({
                 type: 'text',
                 text: '',
                 providerMetadata: chunk.providerMetadata,
                 state: 'streaming',
-              };
+              } satisfies TextUIPart);
               state.activeTextParts[chunk.id] = textPart;
               state.message.parts.push(textPart);
               write();
+              lastTextUpdateTimes.set(textPart, now());
               break;
             }
 
@@ -426,10 +442,25 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     `Ensure a "text-start" chunk is sent before any "text-delta" chunks.`,
                 });
               }
-              textPart.text += chunk.delta;
+              appendToTextAccumulator({
+                part: textPart,
+                textDelta: chunk.delta,
+              });
               textPart.providerMetadata =
                 chunk.providerMetadata ?? textPart.providerMetadata;
-              write();
+              const currentTime = now();
+              // Materializing the full cumulative string on every delta is
+              // quadratic for long streams. Preserve per-delta updates for
+              // normal responses, then cap long-stream updates at 60 fps.
+              if (
+                getTextAccumulatorLength(textPart) <
+                  LONG_TEXT_STREAM_THRESHOLD ||
+                currentTime - (lastTextUpdateTimes.get(textPart) ?? 0) >=
+                  LONG_TEXT_STREAM_UPDATE_INTERVAL_MS
+              ) {
+                write();
+                lastTextUpdateTimes.set(textPart, now());
+              }
               break;
             }
 
@@ -447,21 +478,23 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               textPart.state = 'done';
               textPart.providerMetadata =
                 chunk.providerMetadata ?? textPart.providerMetadata;
+              finalizeTextAccumulator(textPart);
               delete state.activeTextParts[chunk.id];
               write();
               break;
             }
 
             case 'reasoning-start': {
-              const reasoningPart: ReasoningUIPart = {
+              const reasoningPart = prepareTextAccumulator({
                 type: 'reasoning',
                 text: '',
                 providerMetadata: chunk.providerMetadata,
                 state: 'streaming',
-              };
+              } satisfies ReasoningUIPart);
               state.activeReasoningParts[chunk.id] = reasoningPart;
               state.message.parts.push(reasoningPart);
               write();
+              lastTextUpdateTimes.set(reasoningPart, now());
               break;
             }
 
@@ -476,10 +509,22 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     `Ensure a "reasoning-start" chunk is sent before any "reasoning-delta" chunks.`,
                 });
               }
-              reasoningPart.text += chunk.delta;
+              appendToTextAccumulator({
+                part: reasoningPart,
+                textDelta: chunk.delta,
+              });
               reasoningPart.providerMetadata =
                 chunk.providerMetadata ?? reasoningPart.providerMetadata;
-              write();
+              const currentTime = now();
+              if (
+                getTextAccumulatorLength(reasoningPart) <
+                  LONG_TEXT_STREAM_THRESHOLD ||
+                currentTime - (lastTextUpdateTimes.get(reasoningPart) ?? 0) >=
+                  LONG_TEXT_STREAM_UPDATE_INTERVAL_MS
+              ) {
+                write();
+                lastTextUpdateTimes.set(reasoningPart, now());
+              }
               break;
             }
 
@@ -497,6 +542,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               reasoningPart.providerMetadata =
                 chunk.providerMetadata ?? reasoningPart.providerMetadata;
               reasoningPart.state = 'done';
+              finalizeTextAccumulator(reasoningPart);
               delete state.activeReasoningParts[chunk.id];
 
               write();
