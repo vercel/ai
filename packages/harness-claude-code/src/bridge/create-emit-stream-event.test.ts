@@ -115,13 +115,41 @@ describe('createEmitStreamEvent', () => {
     for (const message of messages) {
       emitStreamEvent(message);
     }
+    emitStreamEvent({
+      type: 'stream_event',
+      parent_tool_use_id: 'toolu_main_agent',
+      event: {
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'text' },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      parent_tool_use_id: 'toolu_main_agent',
+      event: {
+        type: 'content_block_delta',
+        index: 0,
+        delta: { type: 'text_delta', text: 'subagent text' },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      parent_tool_use_id: 'toolu_main_agent',
+      event: { type: 'content_block_stop', index: 0 },
+    });
 
     const finishStep = emitted.find(event => event.type === 'finish-step');
     const leakedSubagentEvents = emitted.filter(
       event =>
-        (event.type === 'tool-call' || event.type === 'tool-result') &&
-        typeof event.toolCallId === 'string' &&
-        event.toolCallId.startsWith('toolu_subagent_'),
+        (event.type === 'text-start' ||
+          event.type === 'text-delta' ||
+          event.type === 'text-end' ||
+          event.type === 'tool-call' ||
+          event.type === 'tool-result') &&
+        (event.delta === 'subagent text' ||
+          (typeof event.toolCallId === 'string' &&
+            event.toolCallId.startsWith('toolu_subagent_'))),
     );
 
     expect(finishStep?.usage).toEqual({
