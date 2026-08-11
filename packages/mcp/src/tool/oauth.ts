@@ -329,7 +329,7 @@ async function fetchWithCorsRetry(
   fetchFn: FetchFunction = fetch,
 ): Promise<Response | undefined> {
   try {
-    return await fetchFn(url, { headers });
+    return await fetchFn(url, { headers, redirect: 'error' });
   } catch (error) {
     if (error instanceof TypeError) {
       if (headers) {
@@ -890,6 +890,7 @@ export async function exchangeAuthorization(
     method: 'POST',
     headers,
     body: params,
+    redirect: 'error',
   });
 
   if (!response.ok) {
@@ -982,6 +983,7 @@ export async function refreshAuthorization(
     method: 'POST',
     headers,
     body: params,
+    redirect: 'error',
   });
   if (!response.ok) {
     throw await parseErrorResponse(response);
@@ -1028,6 +1030,7 @@ export async function registerClient(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(clientMetadata),
+    redirect: 'error',
   });
 
   if (!response.ok) {
