@@ -6,11 +6,11 @@ import {
   type FlexibleSchema,
   type Tool,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
 import { InvalidArgumentError } from '../error';
 import { jsonValueSchema } from '../types/json-value';
 import { getOwn } from '../util/get-own';
 import { providerMetadataSchema } from '../types/provider-metadata';
+import { z, type ZodType } from '../util/zod';
 import type {
   DataUIPart,
   InferUIMessageData,
@@ -19,7 +19,7 @@ import type {
   UIMessage,
 } from './ui-messages';
 
-const toolMetadataSchema: z.ZodType<JSONObject> = z.record(
+const toolMetadataSchema: ZodType<JSONObject> = z.record(
   z.string(),
   jsonValueSchema.optional(),
 );

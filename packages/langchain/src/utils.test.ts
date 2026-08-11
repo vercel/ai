@@ -986,6 +986,7 @@ describe('extractImageOutputs', () => {
 describe('processLangGraphEvent', () => {
   const createMockState = (): LangGraphEventState => ({
     messageSeen: new Map(),
+    messageNamespaces: new Map(),
     messageConcat: new Map(),
     emittedToolCalls: new Set<string>(),
     emittedToolInputs: new Set<string>(),
@@ -994,6 +995,7 @@ describe('processLangGraphEvent', () => {
     messageReasoningIds: new Map(),
     toolCallInfoByIndex: new Map(),
     currentStep: null as number | null,
+    stepNamespace: null,
     emittedToolCallsByKey: new Map<string, string>(),
     emittedSourceIds: new Set<string>(),
   });
@@ -1427,6 +1429,11 @@ describe('processLangGraphEvent', () => {
         toolCallId: 'call-weather',
         toolName: 'get_weather',
         dynamic: true,
+        providerMetadata: {
+          langchain: {
+            namespace: ['agent:run-1', 'tools:run-2'],
+          },
+        },
       },
       {
         type: 'tool-input-available',
@@ -1434,11 +1441,21 @@ describe('processLangGraphEvent', () => {
         toolName: 'get_weather',
         input: undefined,
         dynamic: true,
+        providerMetadata: {
+          langchain: {
+            namespace: ['agent:run-1', 'tools:run-2'],
+          },
+        },
       },
       {
         type: 'tool-output-available',
         toolCallId: 'call-weather',
         output: 'Sunny',
+        providerMetadata: {
+          langchain: {
+            namespace: ['agent:run-1', 'tools:run-2'],
+          },
+        },
       },
     ]);
   });
@@ -2801,6 +2818,7 @@ describe('processModelChunk - sources', () => {
 describe('processLangGraphEvent - sources', () => {
   const createMockState = (): LangGraphEventState => ({
     messageSeen: new Map(),
+    messageNamespaces: new Map(),
     messageConcat: new Map(),
     emittedToolCalls: new Set<string>(),
     emittedToolInputs: new Set<string>(),
@@ -2809,6 +2827,7 @@ describe('processLangGraphEvent - sources', () => {
     messageReasoningIds: new Map(),
     toolCallInfoByIndex: new Map(),
     currentStep: null as number | null,
+    stepNamespace: null,
     emittedToolCallsByKey: new Map<string, string>(),
     emittedSourceIds: new Set<string>(),
   });

@@ -28,6 +28,7 @@ export function createEmitStreamEvent({
   nativeNameField,
   getHostToolName,
   authorizeHostToolCall,
+  isMcpToolName,
   stripWorkDir,
   formatError,
 }: {
@@ -48,6 +49,7 @@ export function createEmitStreamEvent({
     toolName: string;
     input: unknown;
   }) => void;
+  isMcpToolName: (toolName: string) => boolean;
   stripWorkDir: (file: string) => string;
   formatError: (error: unknown) => string;
 }): (event: OpenCodeEvent) => void {
@@ -81,6 +83,7 @@ export function createEmitStreamEvent({
         nativeNameField,
         getHostToolName,
         authorizeHostToolCall,
+        isMcpToolName,
       });
       return;
     }
@@ -209,10 +212,12 @@ export function createEmitStreamEvent({
         ...nativeNameField({ nativeName: rawToolName, toolName }),
         input: JSON.stringify(props.input ?? parseToolInput(state, props)),
         providerExecuted: true,
+        ...(isMcpToolName(rawToolName) ? { dynamic: true } : {}),
         ...(props.provider?.metadata
           ? { providerMetadata: props.provider.metadata }
           : {}),
       });
+      if (isMcpToolName(rawToolName)) state.dynamicToolCallIds.add(callID);
       return;
     }
     if (
@@ -237,6 +242,7 @@ export function createEmitStreamEvent({
           ('content' in props ? props.content : null) ??
           null,
         ...(type === 'session.next.tool.failed' ? { isError: true } : {}),
+        ...(state.dynamicToolCallIds.delete(callID) ? { dynamic: true } : {}),
       });
       return;
     }
@@ -351,6 +357,7 @@ function emitLegacyToolPart({
   nativeNameField,
   getHostToolName,
   authorizeHostToolCall,
+  isMcpToolName,
 }: {
   part: unknown;
   state: TranslationState;
@@ -368,6 +375,7 @@ function emitLegacyToolPart({
     toolName: string;
     input: unknown;
   }) => void;
+  isMcpToolName: (toolName: string) => boolean;
 }): void {
   const toolPart = legacyToolPartFromValue(part);
   if (!toolPart) return;
@@ -385,7 +393,7 @@ function emitLegacyToolPart({
       authorizeHostToolCall({
         callID,
         toolName: hostToolName,
-        input: legacyToolPartInput(toolPart),
+        input: toolPart.state?.input ?? {},
       });
     }
     return;
@@ -399,10 +407,12 @@ function emitLegacyToolPart({
       ...nativeNameField({ nativeName: rawToolName, toolName }),
       input: JSON.stringify(legacyToolPartInput(toolPart)),
       providerExecuted: true,
+      ...(isMcpToolName(rawToolName) ? { dynamic: true } : {}),
       ...(toolPart.providerMetadata
         ? { providerMetadata: toolPart.providerMetadata }
         : {}),
     });
+    if (isMcpToolName(rawToolName)) state.dynamicToolCallIds.add(callID);
   }
   if (
     (status === 'completed' || status === 'error') &&
@@ -415,6 +425,7 @@ function emitLegacyToolPart({
       toolName,
       result: legacyToolPartOutput(toolPart),
       ...(status === 'error' ? { isError: true } : {}),
+      ...(state.dynamicToolCallIds.delete(callID) ? { dynamic: true } : {}),
     });
   }
 }

@@ -38,9 +38,14 @@ The outside-root setting is required because the content sync reads the
 repository's `content/docs/` directory and Git metadata.
 
 Ask AI, feedback, and edit-source links remain disabled until their routes and
-source-path mapping are ready. Provider, cookbook, and example links continue
-to the existing production site while those route families remain outside this
+source-path mapping are ready. Example, playground, and resource links (other
+than `/resources/recipes`, which is served by this application) continue to
+the existing production site while those route families remain outside this
 application.
+
+Mirroring production, every cookbook recipe is served on two URL surfaces:
+`/cookbook/...` and `/resources/recipes/...`. The sitemap, llms.txt, and
+search canonicalize on `/cookbook`.
 
 ## Third-party logos
 

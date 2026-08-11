@@ -47,6 +47,9 @@
       "path": "../../packages/harness"
     },
     {
+      "path": "../../packages/harness-acp"
+    },
+    {
       "path": "../../packages/harness-claude-code"
     },
     {
@@ -54,6 +57,9 @@
     },
     {
       "path": "../../packages/harness-deepagents"
+    },
+    {
+      "path": "../../packages/harness-grok-build"
     },
     {
       "path": "../../packages/harness-opencode"

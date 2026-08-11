@@ -42,8 +42,8 @@ import {
 import type { GoogleInteractionsModelId } from './interactions/google-interactions-language-model-options';
 import type { GoogleInteractionsAgentName } from './interactions/google-interactions-agent';
 import { GoogleRealtimeModel } from './realtime/google-realtime-model';
-import { GoogleTranslationModel } from './translation/google-translation-model';
-import type { GoogleTranslationModelId } from './translation/google-translation-model-options';
+import { GoogleSpeechTranslationModel } from './speech-translation/google-speech-translation-model';
+import type { GoogleSpeechTranslationModelId } from './speech-translation/google-speech-translation-model-options';
 
 export interface GoogleProvider extends ProviderV4 {
   (modelId: GoogleModelId): LanguageModelV4;
@@ -98,13 +98,15 @@ export interface GoogleProvider extends ProviderV4 {
   /**
    * Creates an experimental model for streaming speech translation.
    */
-  translation(modelId: GoogleTranslationModelId): SpeechTranslationModelV4;
+  translation(
+    modelId: GoogleSpeechTranslationModelId,
+  ): SpeechTranslationModelV4;
 
   /**
    * Creates an experimental model for streaming speech translation.
    */
   speechTranslationModel(
-    modelId: GoogleTranslationModelId,
+    modelId: GoogleSpeechTranslationModelId,
   ): SpeechTranslationModelV4;
 
   /**
@@ -310,9 +312,11 @@ export function createGoogle(
       fetch: options.fetch,
     });
 
-  const createTranslationModel = (modelId: GoogleTranslationModelId) =>
-    new GoogleTranslationModel(modelId, {
-      provider: `${providerName}.translation`,
+  const createSpeechTranslationModel = (
+    modelId: GoogleSpeechTranslationModelId,
+  ) =>
+    new GoogleSpeechTranslationModel(modelId, {
+      provider: `${providerName}.speech-translation`,
       baseURL,
       headers: getHeaders,
       webSocket: options.webSocket,
@@ -388,8 +392,8 @@ export function createGoogle(
   provider.files = createFiles;
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
-  provider.translation = createTranslationModel;
-  provider.speechTranslationModel = createTranslationModel;
+  provider.translation = createSpeechTranslationModel;
+  provider.speechTranslationModel = createSpeechTranslationModel;
   provider.interactions = createInteractionsModel;
   provider.tools = googleTools;
 

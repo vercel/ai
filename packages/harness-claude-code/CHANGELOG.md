@@ -1,5 +1,47 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.67
+
+### Patch Changes
+
+- a03ff6c: feat(harness): add support for per-harness MCP servers
+- fc3baaf: feat(harness): add optional `mintBridgeToken(sandboxId)` to harness settings to control the bridge token value
+- cfc587b: fix(harness-claude-code): add missing Claude Code built-in tools
+- Updated dependencies [401a4ba]
+- Updated dependencies [a03ff6c]
+  - @ai-sdk/provider-utils@5.0.26
+  - @ai-sdk/harness@1.0.65
+
+## 1.0.66
+
+### Patch Changes
+
+- 8c95b3f: fix(harness-claude-code): fix built-in tool filtering by using actual denylist when passing `inactiveTools`
+- a65bbb2: feat(harness-claude-code): add optional `env` property to `createClaudeCode()` for custom env vars
+
+## 1.0.65
+
+### Patch Changes
+
+- Updated dependencies [81cd026]
+  - @ai-sdk/provider-utils@5.0.25
+  - @ai-sdk/harness@1.0.64
+
+## 1.0.64
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+  - @ai-sdk/harness@1.0.63
+
+## 1.0.63
+
+### Patch Changes
+
+- Updated dependencies [25c9120]
+  - @ai-sdk/harness@1.0.62
+
 ## 1.0.62
 
 ### Patch Changes
