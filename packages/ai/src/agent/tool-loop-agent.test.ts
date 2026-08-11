@@ -115,16 +115,15 @@ describe('ToolLoopAgent', () => {
       ]);
     });
 
-    it('should prefer the call timeout over the settings timeout', async () => {
-      const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
-      const agent = new ToolLoopAgent({ model: mockModel, timeout: 1000 });
+    it('should pass timeout to generateText', async () => {
+      const agent = new ToolLoopAgent({ model: mockModel });
 
       await agent.generate({
         prompt: 'Hello, world!',
         timeout: 5000,
       });
 
-      expect(timeoutSpy).toHaveBeenCalledWith(5000);
+      // timeout is merged into abortSignal, so we check that an abort signal was created
       expect(doGenerateOptions?.abortSignal).toBeDefined();
     });
 
@@ -141,6 +140,19 @@ describe('ToolLoopAgent', () => {
 
       expect(timeoutSpy).toHaveBeenCalledWith(5000);
       expect(doGenerateOptions?.abortSignal).toBeDefined();
+    });
+
+    it('should prefer the call timeout over the settings timeout', async () => {
+      const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+      const agent = new ToolLoopAgent({ model: mockModel, timeout: 1000 });
+
+      await agent.generate({
+        prompt: 'Hello, world!',
+        timeout: 5000,
+      });
+
+      expect(timeoutSpy).toHaveBeenCalledWith(5000);
+      expect(timeoutSpy).not.toHaveBeenCalledWith(1000);
     });
 
     it('should use the timeout returned by prepareCall', async () => {
@@ -161,6 +173,7 @@ describe('ToolLoopAgent', () => {
       expect(timeoutSpy).toHaveBeenCalledWith(5000);
       expect(doGenerateOptions?.abortSignal).toBeDefined();
     });
+
     it('should pass experimental_download to generateText', async () => {
       const downloadFunction = vi
         .fn()
@@ -422,11 +435,9 @@ describe('ToolLoopAgent', () => {
       expect(doStreamOptions?.abortSignal).toBe(abortController.signal);
     });
 
-    it('should prefer the call timeout over the settings timeout', async () => {
-      const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    it('should pass timeout to streamText', async () => {
       const agent = new ToolLoopAgent({
         model: mockModel,
-        timeout: 1000,
       });
 
       const result = await agent.stream({
@@ -436,7 +447,7 @@ describe('ToolLoopAgent', () => {
 
       await result.consumeStream();
 
-      expect(timeoutSpy).toHaveBeenCalledWith(5000);
+      // timeout is merged into abortSignal, so we check that an abort signal was created
       expect(doStreamOptions?.abortSignal).toBeDefined();
     });
 
@@ -455,6 +466,24 @@ describe('ToolLoopAgent', () => {
 
       expect(timeoutSpy).toHaveBeenCalledWith(5000);
       expect(doStreamOptions?.abortSignal).toBeDefined();
+    });
+
+    it('should prefer the call timeout over the settings timeout', async () => {
+      const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        timeout: 1000,
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+        timeout: 5000,
+      });
+
+      await result.consumeStream();
+
+      expect(timeoutSpy).toHaveBeenCalledWith(5000);
+      expect(timeoutSpy).not.toHaveBeenCalledWith(1000);
     });
 
     it('should allow system messages when allowSystemInMessages is true', async () => {
