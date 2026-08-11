@@ -630,14 +630,19 @@ describe('StreamingToolCallTracker', () => {
         type: 'function',
         function: { name: 'second', arguments: '{}' },
       });
+      tracker.processDelta({
+        index: 2,
+        type: 'function',
+        function: { name: 'third', arguments: '{}' },
+      });
       tracker.flush();
 
-      expect(generateId).toHaveBeenCalledTimes(2);
+      expect(generateId).toHaveBeenCalledTimes(3);
       expect(
         parts
           .filter(part => part.type === 'tool-call')
           .map(part => part.toolCallId),
-      ).toEqual(['generated-id', 'generated-id-1']);
+      ).toEqual(['generated-id', 'generated-id-1', 'generated-id-2']);
     });
 
     it('should create usable ids when generateId returns blank values', () => {
@@ -698,6 +703,101 @@ describe('StreamingToolCallTracker', () => {
           toolCallId: 'call_2',
           toolName: 'write_file',
           input: '{"path":"b"}',
+        },
+      ]);
+    });
+
+    it('should ignore an ambiguous continuation for a repeated id', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller, {
+        generateId: () => 'generated-id',
+      });
+
+      tracker.processDelta({
+        index: 0,
+        id: 'dup',
+        type: 'function',
+        function: { name: 'read_file', arguments: '{"path":"a"}' },
+      });
+      tracker.processDelta({
+        index: 1,
+        id: 'dup',
+        type: 'function',
+        function: { name: 'write_file', arguments: '{"path":"b"}' },
+      });
+      tracker.processDelta({
+        id: 'dup',
+        function: { arguments: '{"unattributed":true}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'dup',
+          toolName: 'read_file',
+          input: '{"path":"a"}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'generated-id',
+          toolName: 'write_file',
+          input: '{"path":"b"}',
+        },
+      ]);
+    });
+
+    it('should use a matching name and index for an id-less continuation', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller, {
+        typeValidation: 'required',
+      });
+
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'read_file', arguments: '{"pa' },
+      });
+      tracker.processDelta({
+        index: 0,
+        function: { name: 'read_file', arguments: 'th":"a"}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'read_file',
+          input: '{"path":"a"}',
+        },
+      ]);
+    });
+
+    it('should use the index when a continuation has an unexpected id', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'read_file', arguments: '{"pa' },
+      });
+      tracker.processDelta({
+        index: 0,
+        id: 'unexpected',
+        function: { arguments: 'th":"a"}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'read_file',
+          input: '{"path":"a"}',
         },
       ]);
     });

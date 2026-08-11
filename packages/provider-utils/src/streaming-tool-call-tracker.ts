@@ -84,6 +84,7 @@ export class StreamingToolCallTracker<
   private toolCallsById = new Map<string, Set<TrackedToolCall>>();
   private toolCallsByIndex = new Map<number, TrackedToolCall>();
   private usedToolCallIds = new Set<string>();
+  private nextGeneratedIdSuffixes = new Map<string, number>();
   private readonly controller: StreamingToolCallTrackerController;
   private readonly _generateId: () => string;
   private readonly typeValidation: 'none' | 'if-present' | 'required';
@@ -115,27 +116,26 @@ export class StreamingToolCallTracker<
     const name = this.getNonBlankString(toolCallDelta.function?.name);
     const { index } = toolCallDelta;
 
-    // A delta without any association data cannot be attributed safely when
-    // multiple calls are active. Ignoring it avoids corrupting an arbitrary
-    // call while preserving index-less continuations for a single active call.
-    if (
-      wireId == null &&
-      index == null &&
-      name == null &&
-      this.toolCalls.filter(toolCall => !toolCall.hasFinished).length > 1
-    ) {
+    const existingToolCall = this.findToolCall({ wireId, index, name });
+
+    // `null` indicates that the available labels match multiple calls or
+    // conflict without enough information to choose safely.
+    if (existingToolCall === null) {
       return;
     }
 
-    let toolCall = this.findToolCall({ wireId, index, name });
-
-    if (toolCall == null) {
+    let toolCall: TrackedToolCall;
+    if (existingToolCall === undefined) {
       toolCall = this.processNewToolCall(toolCallDelta, {
         wireId,
         index,
         name,
       });
     } else {
+      toolCall = existingToolCall;
+      if (wireId != null) {
+        this.associateWireId(toolCall, wireId);
+      }
       this.processExistingToolCall(toolCall, toolCallDelta);
     }
 
@@ -177,73 +177,85 @@ export class StreamingToolCallTracker<
     wireId: string | undefined;
     index: number | null | undefined;
     name: string | undefined;
-  }): TrackedToolCall | undefined {
+  }): TrackedToolCall | null | undefined {
     const indexedToolCall =
       index != null ? this.toolCallsByIndex.get(index) : undefined;
 
     if (wireId != null) {
       const toolCallsWithId = this.toolCallsById.get(wireId);
-      if (toolCallsWithId == null) {
-        return undefined;
+
+      if (toolCallsWithId != null) {
+        if (index != null) {
+          if (indexedToolCall != null && toolCallsWithId.has(indexedToolCall)) {
+            return name == null || indexedToolCall.function.name === name
+              ? indexedToolCall
+              : undefined;
+          }
+
+          // A named delta with a distinct index starts a new call even when its
+          // wire ID and function name repeat. Providers may reuse IDs across
+          // parallel calls, so the ID/name pair cannot override index evidence.
+          if (name != null) {
+            return undefined;
+          }
+
+          // Conflicting labels on a continuation cannot be resolved safely.
+          if (indexedToolCall != null) {
+            return null;
+          }
+
+          return toolCallsWithId.size === 1
+            ? toolCallsWithId.values().next().value
+            : null;
+        }
+
+        if (name != null) {
+          const matchingToolCalls = [...toolCallsWithId].filter(
+            toolCall => toolCall.function.name === name,
+          );
+
+          if (matchingToolCalls.length === 0) {
+            return undefined;
+          }
+
+          return matchingToolCalls.length === 1 ? matchingToolCalls[0] : null;
+        }
+
+        return toolCallsWithId.size === 1
+          ? toolCallsWithId.values().next().value
+          : null;
       }
 
-      if (
-        indexedToolCall != null &&
-        toolCallsWithId.has(indexedToolCall) &&
-        (name == null || indexedToolCall.function.name === name)
-      ) {
+      // A continuation can carry an unexpected ID. When it has no name, a
+      // matching index is the only usable evidence and should keep the call
+      // intact instead of attempting to create a nameless call.
+      if (indexedToolCall != null && name == null) {
         return indexedToolCall;
       }
 
-      // A named delta with a distinct index starts a new call even when its
-      // wire ID and function name repeat. Providers may reuse IDs across
-      // parallel calls, so the ID/name pair cannot override index evidence.
-      if (index != null && name != null) {
-        return undefined;
-      }
-
-      if (name != null) {
-        const matchingToolCalls = [...toolCallsWithId].filter(
-          toolCall => toolCall.function.name === name,
-        );
-
-        if (matchingToolCalls.length === 0) {
-          return undefined;
-        }
-        if (matchingToolCalls.length === 1) {
-          return matchingToolCalls[0];
-        }
-
-        return matchingToolCalls.at(-1);
-      }
-
-      if (toolCallsWithId.size === 1) {
-        return toolCallsWithId.values().next().value;
-      }
-
-      if (indexedToolCall != null && toolCallsWithId.has(indexedToolCall)) {
-        return indexedToolCall;
-      }
-
-      return [...toolCallsWithId].at(-1);
-    }
-
-    // A non-empty function name without a usable ID marks a new call. This
-    // supports gateways that reuse the same index for every parallel call.
-    if (name != null) {
       return undefined;
     }
 
     if (indexedToolCall != null) {
-      return indexedToolCall;
+      // Repeated names are valid on continuations. A different name at the
+      // same index is evidence of a new call from a provider that reuses
+      // indices across parallel calls.
+      return name == null || indexedToolCall.function.name === name
+        ? indexedToolCall
+        : undefined;
+    }
+
+    if (name != null) {
+      return undefined;
     }
 
     const unfinishedToolCalls = this.toolCalls.filter(
       toolCall => !toolCall.hasFinished,
     );
-    return unfinishedToolCalls.length === 1
-      ? unfinishedToolCalls[0]
-      : undefined;
+    if (unfinishedToolCalls.length === 1) {
+      return unfinishedToolCalls[0];
+    }
+    return unfinishedToolCalls.length > 1 ? null : undefined;
   }
 
   private processNewToolCall(
@@ -305,12 +317,7 @@ export class StreamingToolCallTracker<
     };
     this.toolCalls.push(toolCall);
     if (wireId != null) {
-      let toolCallsWithId = this.toolCallsById.get(wireId);
-      if (toolCallsWithId == null) {
-        toolCallsWithId = new Set();
-        this.toolCallsById.set(wireId, toolCallsWithId);
-      }
-      toolCallsWithId.add(toolCall);
+      this.associateWireId(toolCall, wireId);
     }
 
     // Emit initial delta if arguments already present
@@ -329,6 +336,15 @@ export class StreamingToolCallTracker<
     return toolCall;
   }
 
+  private associateWireId(toolCall: TrackedToolCall, wireId: string): void {
+    let toolCallsWithId = this.toolCallsById.get(wireId);
+    if (toolCallsWithId == null) {
+      toolCallsWithId = new Set();
+      this.toolCallsById.set(wireId, toolCallsWithId);
+    }
+    toolCallsWithId.add(toolCall);
+  }
+
   private createToolCallId(wireId: string | undefined): string {
     if (wireId != null && !this.usedToolCallIds.has(wireId)) {
       this.usedToolCallIds.add(wireId);
@@ -343,14 +359,16 @@ export class StreamingToolCallTracker<
       return generatedId;
     }
 
-    // At most usedToolCallIds.size candidates can already be occupied, so
-    // checking one more suffix guarantees a unique ID without repeatedly
-    // invoking a potentially deterministic custom generator.
-    const maximumSuffix = this.usedToolCallIds.size + 1;
-    for (let suffix = 1; suffix <= maximumSuffix; suffix++) {
+    // Resume after the last suffix checked for this generated value. This
+    // keeps deterministic generators bounded without repeatedly rescanning
+    // the same occupied suffixes.
+    const initialSuffix = this.nextGeneratedIdSuffixes.get(generatedId) ?? 1;
+    const maximumSuffix = initialSuffix + this.usedToolCallIds.size;
+    for (let suffix = initialSuffix; suffix <= maximumSuffix; suffix++) {
       const suffixedId = `${generatedId}-${suffix}`;
       if (!this.usedToolCallIds.has(suffixedId)) {
         this.usedToolCallIds.add(suffixedId);
+        this.nextGeneratedIdSuffixes.set(generatedId, suffix + 1);
         return suffixedId;
       }
     }
