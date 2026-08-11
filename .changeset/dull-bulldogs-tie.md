@@ -10,4 +10,4 @@
 "@ai-sdk/harness": patch
 ---
 
-feat(harness): add `getPortEndpoint()` as more comprehensive replacement to `getPortURL()` (now deprecated) in `HarnessV1NetworkSandboxSession`
+feat(harness): add `getPortEndpoint()` as more comprehensive replacement to `getPortUrl()` (now deprecated) in `HarnessV1NetworkSandboxSession`
