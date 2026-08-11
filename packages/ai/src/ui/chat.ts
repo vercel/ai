@@ -539,7 +539,14 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     try {
       const response = {
         state: createStreamingUIMessageState({
+<<<<<<< HEAD
           lastMessage: this.state.snapshot(lastMessage),
+=======
+          lastMessage:
+            trigger === 'resume-stream' || trigger === 'regenerate-message'
+              ? undefined
+              : this.state.snapshot(lastMessage),
+>>>>>>> 326054ba0c (fix: prevent resumeStream from duplicating the previous assistant message (#18462))
           messageId: this.generateId(),
         }),
         abortController,
