@@ -13,7 +13,6 @@ import {
   DelayedPromise,
   type InferSchema,
 } from '@ai-sdk/provider-utils';
-import type { Span } from '@opentelemetry/api';
 import type { ServerResponse } from 'http';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
@@ -483,6 +482,7 @@ class DefaultStreamObjectResult<
       }),
       tracer,
       endWhenDone: false,
+      endOnError: true,
       fn: async rootSpan => {
         const standardizedPrompt = await standardizePrompt({
           system,
@@ -533,54 +533,43 @@ class DefaultStreamObjectResult<
           result: { stream, response, request },
           doStreamSpan,
           startTimestampMs,
-        } = await retry(async () => {
-          let doStreamSpan: Span | undefined;
-
-          try {
-            return await recordSpan({
-              name: 'ai.streamObject.doStream',
-              attributes: selectTelemetryAttributes({
-                telemetry,
-                attributes: {
-                  ...assembleOperationName({
-                    operationId: 'ai.streamObject.doStream',
-                    telemetry,
-                  }),
-                  ...baseTelemetryAttributes,
-                  'ai.prompt.messages': {
-                    input: () => stringifyForTelemetry(callOptions.prompt),
-                  },
-
-                  // standardized gen-ai llm span attributes:
-                  'gen_ai.system': model.provider,
-                  'gen_ai.request.model': model.modelId,
-                  'gen_ai.request.frequency_penalty':
-                    callSettings.frequencyPenalty,
-                  'gen_ai.request.max_tokens': callSettings.maxOutputTokens,
-                  'gen_ai.request.presence_penalty':
-                    callSettings.presencePenalty,
-                  'gen_ai.request.temperature': callSettings.temperature,
-                  'gen_ai.request.top_k': callSettings.topK,
-                  'gen_ai.request.top_p': callSettings.topP,
+        } = await retry(() =>
+          recordSpan({
+            name: 'ai.streamObject.doStream',
+            attributes: selectTelemetryAttributes({
+              telemetry,
+              attributes: {
+                ...assembleOperationName({
+                  operationId: 'ai.streamObject.doStream',
+                  telemetry,
+                }),
+                ...baseTelemetryAttributes,
+                'ai.prompt.messages': {
+                  input: () => stringifyForTelemetry(callOptions.prompt),
                 },
-              }),
-              tracer,
-              endWhenDone: false,
-              fn: async span => {
-                doStreamSpan = span;
 
-                return {
-                  startTimestampMs: now(),
-                  doStreamSpan: span,
-                  result: await model.doStream(callOptions),
-                };
+                // standardized gen-ai llm span attributes:
+                'gen_ai.system': model.provider,
+                'gen_ai.request.model': model.modelId,
+                'gen_ai.request.frequency_penalty':
+                  callSettings.frequencyPenalty,
+                'gen_ai.request.max_tokens': callSettings.maxOutputTokens,
+                'gen_ai.request.presence_penalty': callSettings.presencePenalty,
+                'gen_ai.request.temperature': callSettings.temperature,
+                'gen_ai.request.top_k': callSettings.topK,
+                'gen_ai.request.top_p': callSettings.topP,
               },
-            });
-          } catch (error) {
-            doStreamSpan?.end();
-            throw error;
-          }
-        });
+            }),
+            tracer,
+            endWhenDone: false,
+            endOnError: true,
+            fn: async doStreamSpan => ({
+              startTimestampMs: now(),
+              doStreamSpan,
+              result: await model.doStream(callOptions),
+            }),
+          }),
+        );
 
         self._request.resolve(request ?? {});
 

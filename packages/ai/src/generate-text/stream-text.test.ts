@@ -9660,17 +9660,32 @@ describe('streamText', () => {
       });
 
       const parts = await convertAsyncIterableToArray(result.fullStream);
+      const rootSpan = tracer.spans.find(span => span.name === 'ai.streamText');
 
       expect(parts.map(part => part.type)).toEqual(['start', 'error']);
       expect(
         tracer.spans.map(span => ({
           name: span.name,
           endCalls: span.endCalls,
+          status: span.status,
         })),
       ).toEqual([
-        { name: 'ai.streamText', endCalls: 1 },
-        { name: 'ai.streamText.doStream', endCalls: 1 },
+        {
+          name: 'ai.streamText',
+          endCalls: 1,
+          status: { code: 2, message: 'model call failed' },
+        },
+        {
+          name: 'ai.streamText.doStream',
+          endCalls: 1,
+          status: { code: 2, message: 'model call failed' },
+        },
       ]);
+
+      // The provider rejected before producing a finish part or usage, so
+      // failure telemetry must not fabricate response metadata.
+      expect(rootSpan?.attributes['ai.response.finishReason']).toBeUndefined();
+      expect(rootSpan?.attributes['ai.usage.totalTokens']).toBeUndefined();
     });
 
     it('should record successful tool call', async () => {
