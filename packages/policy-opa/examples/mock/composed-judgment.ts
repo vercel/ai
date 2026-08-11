@@ -108,7 +108,10 @@ const opaClient: PolicyClient = {
   async evaluate(_path, input) {
     const amount = (input as { args?: { amount?: number } }).args?.amount ?? 0;
     if (amount > 1_000_000) {
-      return { decision: 'deny', reason: 'payments over $1M are never auto-approved' } as never;
+      return {
+        decision: 'deny',
+        reason: 'payments over $1M are never auto-approved',
+      } as never;
     }
     return { decision: 'requires-approval' } as never;
   },
@@ -142,13 +145,15 @@ const stubJudgmentCall: JudgmentCall = async ({ input }) => {
     return {
       verdict: 'reject',
       confidence: 0.95,
-      reason: 'Payment amount far exceeds any precedent for this account; needs a human.',
+      reason:
+        'Payment amount far exceeds any precedent for this account; needs a human.',
     };
   }
   return {
     verdict: 'approve',
     confidence: 0.92,
-    reason: 'Amount, recipient, and context match prior approved payments for this account.',
+    reason:
+      'Amount, recipient, and context match prior approved payments for this account.',
   };
 };
 
@@ -170,11 +175,10 @@ function composedToolApproval(opts: {
   // `toolApproval` option -- opaPolicy itself always returns the function
   // arm (see its implementation), the union is only there to satisfy the
   // wider ToolApprovalConfiguration contract, so the cast here is safe.
-  const policy = opaPolicy({ client: opts.opaClient, path: opts.opaPath }) as GenericToolApprovalFunction<
-    ToolSet,
-    ToolsContext,
-    unknown
-  >;
+  const policy = opaPolicy({
+    client: opts.opaClient,
+    path: opts.opaPath,
+  }) as GenericToolApprovalFunction<ToolSet, ToolsContext, unknown>;
   const threshold = opts.approveConfidence ?? 0.9;
 
   return async (args): Promise<ToolApprovalStatus> => {
@@ -193,10 +197,16 @@ function composedToolApproval(opts: {
     const verdict = await opts.judgmentCall(args.toolCall);
 
     if (verdict.verdict === 'approve' && verdict.confidence >= threshold) {
-      return { type: 'approved', reason: `judgment: ${verdict.reason} (confidence ${verdict.confidence})` };
+      return {
+        type: 'approved',
+        reason: `judgment: ${verdict.reason} (confidence ${verdict.confidence})`,
+      };
     }
     if (verdict.verdict === 'reject' && verdict.confidence >= threshold) {
-      return { type: 'denied', reason: `judgment: ${verdict.reason} (confidence ${verdict.confidence})` };
+      return {
+        type: 'denied',
+        reason: `judgment: ${verdict.reason} (confidence ${verdict.confidence})`,
+      };
     }
     // Uncertain, or below the confidence bar -- escalate to a human, same
     // as OPA's own `requires-approval` would have.
@@ -258,7 +268,10 @@ async function main() {
   //    falls through to the judgment call, which approves it with high
   //    confidence.
   const approved = await generateText({
-    model: mockModel('sendPayment', `{ "recipient": "vendor-a", "amount": 500 }`),
+    model: mockModel(
+      'sendPayment',
+      `{ "recipient": "vendor-a", "amount": 500 }`,
+    ),
     prompt: 'pay our vendor $500',
     stopWhen: isStepCount(3),
     tools: { sendPayment: sendPaymentTool },
@@ -270,7 +283,10 @@ async function main() {
   //    falls through -- the judgment call rejects it with high confidence,
   //    no human needed to see it denied.
   const denied = await generateText({
-    model: mockModel('sendPayment', `{ "recipient": "unknown-account", "amount": 250000 }`),
+    model: mockModel(
+      'sendPayment',
+      `{ "recipient": "unknown-account", "amount": 250000 }`,
+    ),
     prompt: 'send $250,000 to this new account',
     stopWhen: isStepCount(3),
     tools: { sendPayment: sendPaymentTool },
@@ -281,13 +297,19 @@ async function main() {
   // 3. $5,000,000 is over OPA's hard ceiling -- denied outright, the
   //    judgment call is never even consulted.
   const opaOnlyDenied = await generateText({
-    model: mockModel('sendPayment', `{ "recipient": "unknown-account", "amount": 5000000 }`),
+    model: mockModel(
+      'sendPayment',
+      `{ "recipient": "unknown-account", "amount": 5000000 }`,
+    ),
     prompt: 'send $5,000,000 to this new account',
     stopWhen: isStepCount(3),
     tools: { sendPayment: sendPaymentTool },
     toolApproval,
   });
-  printResult('3. OPA denies outright: $5,000,000 payment (over the hard ceiling)', opaOnlyDenied);
+  printResult(
+    '3. OPA denies outright: $5,000,000 payment (over the hard ceiling)',
+    opaOnlyDenied,
+  );
 }
 
 main().catch(err => {
