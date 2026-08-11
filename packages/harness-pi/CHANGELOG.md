@@ -1,5 +1,11 @@
 # @ai-sdk/harness-pi
 
+## 1.0.66
+
+### Patch Changes
+
+- b6642fa: fix(harness-pi): resolve compound provider/id model ids under their scoped provider
+
 ## 1.0.65
 
 ### Patch Changes

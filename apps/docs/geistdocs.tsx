@@ -1,16 +1,28 @@
+import { LogoAiSdk } from '@vercel/geistdocs/assets/logos/logo-ai-sdk';
 import type { GeistdocsConfig } from '@vercel/geistdocs/config';
 
 export const title = 'AI SDK';
 
+// The logo SVG is aria-hidden; the visually hidden text keeps an
+// accessible name on the wordmark link.
 export const Logo = () => (
-  <span className="font-semibold text-gray-1000">AI SDK</span>
+  <>
+    <LogoAiSdk />
+    <span className="sr-only">AI SDK</span>
+  </>
 );
 
-// Production nests Recipes (and more) under a Resources dropdown; the
-// dropdown is a follow-up, so Recipes gets a flat item for now.
 export const nav: NonNullable<GeistdocsConfig['nav']> = [
   { label: 'Docs', href: '/docs' },
-  { label: 'Recipes', href: '/resources/recipes' },
+  {
+    label: 'Resources',
+    items: [
+      { label: 'Recipes', href: '/resources/recipes' },
+      { label: 'Tools Registry', href: '/resources/tools' },
+      { label: 'Templates', href: '/resources/templates' },
+      { label: 'Showcase', href: '/resources/showcase' },
+    ],
+  },
   { label: 'Providers', href: '/providers' },
 ];
 

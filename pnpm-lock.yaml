@@ -83,8 +83,8 @@ importers:
         specifier: 3.23.0
         version: 3.23.0
       '@vercel/geistdocs':
-        specifier: 1.19.2
-        version: 1.19.2(688e87b6bbe7b9cbe345e743dc3536d1)
+        specifier: 1.20.0
+        version: 1.20.0(688e87b6bbe7b9cbe345e743dc3536d1)
       fumadocs-core:
         specifier: 16.2.2
         version: 16.2.2(@types/react@18.3.28)(algoliasearch@5.35.0)(lucide-react@0.555.0(react@19.2.6))(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -375,6 +375,9 @@ importers:
       '@ai-sdk/gladia':
         specifier: workspace:*
         version: link:../../packages/gladia
+      '@ai-sdk/gmicloud':
+        specifier: workspace:*
+        version: link:../../packages/gmicloud
       '@ai-sdk/google':
         specifier: workspace:*
         version: link:../../packages/google
@@ -1713,7 +1716,7 @@ importers:
         version: 5.55.7
       svelte-check:
         specifier: ^4.4.8
-        version: 4.4.8(picomatch@4.0.4)(svelte@5.55.7)(typescript@5.9.3)
+        version: 4.4.8(picomatch@4.0.5)(svelte@5.55.7)(typescript@5.9.3)
       tailwind-merge:
         specifier: ^3.6.0
         version: 3.6.0
@@ -2624,6 +2627,34 @@ importers:
       typescript:
         specifier: 5.6.3
         version: 5.6.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
+  packages/gmicloud:
+    dependencies:
+      '@ai-sdk/openai-compatible':
+        specifier: workspace:*
+        version: link:../openai-compatible
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.25)(tsx@4.22.0)(typescript@5.8.3)(yaml@2.9.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
       zod:
         specifier: 3.25.76
         version: 3.25.76
@@ -13760,8 +13791,8 @@ packages:
       ws:
         optional: true
 
-  '@vercel/geistdocs@1.19.2':
-    resolution: {integrity: sha512-LOxbVHAVsfWIkBIo98TUNL2pRKBL/XrthAxgGm3eYP57G9xlKSTRsA43mpnZ1k80rUz1IzhLrGFffOIV6UR7oQ==}
+  '@vercel/geistdocs@1.20.0':
+    resolution: {integrity: sha512-xYjZ8fbePdoVzX1jcae4Zmk3isdaWAhVE1yzG4C5xKsrYF0HKbJEKMQWeQfoFOj+JJxiTC75KqsiTI7FfWxg9g==}
     hasBin: true
     peerDependencies:
       next: ^16.2.11
@@ -35025,7 +35056,7 @@ snapshots:
       ws: 8.21.1
     optional: true
 
-  '@vercel/geistdocs@1.19.2(688e87b6bbe7b9cbe345e743dc3536d1)':
+  '@vercel/geistdocs@1.20.0(688e87b6bbe7b9cbe345e743dc3536d1)':
     dependencies:
       '@ai-sdk/react': 3.0.223(react@19.2.6)(zod@4.4.3)
       '@clack/prompts': 0.11.0
@@ -46578,18 +46609,6 @@ snapshots:
       supports-color: 10.2.2
 
   supports-preserve-symlinks-flag@1.0.0: {}
-
-  svelte-check@4.4.8(picomatch@4.0.4)(svelte@5.55.7)(typescript@5.9.3):
-    dependencies:
-      '@jridgewell/trace-mapping': 0.3.31
-      chokidar: 4.0.3
-      fdir: 6.5.0(picomatch@4.0.4)
-      picocolors: 1.1.1
-      sade: 1.8.1
-      svelte: 5.55.7
-      typescript: 5.9.3
-    transitivePeerDependencies:
-      - picomatch
 
   svelte-check@4.4.8(picomatch@4.0.5)(svelte@5.55.7)(typescript@5.9.3):
     dependencies:
