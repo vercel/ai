@@ -22,23 +22,62 @@ npx skills add vercel/ai
 
 ## Provider Instance
 
-You can import the default provider instance `deepseek` from `@ai-sdk/deepseek`:
+You can import the default provider instance `deepSeek` from `@ai-sdk/deepseek`:
 
 ```ts
-import { deepseek } from '@ai-sdk/deepseek';
+import { deepSeek } from '@ai-sdk/deepseek';
 ```
+
+The provider supports DeepSeek V4's current API models:
+
+- `deepseek-v4-flash`: fast and cost-efficient
+- `deepseek-v4-pro`: higher-capability reasoning and agentic tasks
+
+Both models support thinking and non-thinking modes, a 1M-token context window,
+and up to 384K output tokens.
+
+The provider also supports:
+
+- JSON output through AI SDK `Output` schemas
+- Tool calls in thinking and non-thinking modes
+- Beta strict tool schemas with a custom `https://api.deepseek.com/beta` base URL
+- Automatic context caching with cache hit and miss usage metadata
 
 ## Example
 
 ```ts
-import { deepseek } from '@ai-sdk/deepseek';
+import { deepSeek } from '@ai-sdk/deepseek';
 import { generateText } from 'ai';
 
-const { text } = await generateText({
-  model: deepseek('deepseek-chat'),
-  prompt: 'Write a JavaScript function that sorts a list:',
+const { text, reasoning } = await generateText({
+  model: deepSeek('deepseek-v4-pro'),
+  prompt: 'How many "r"s are in the word "strawberry"?',
+  providerOptions: {
+    deepseek: {
+      thinking: { type: 'enabled' },
+      reasoningEffort: 'high',
+    },
+  },
 });
 ```
+
+DeepSeek V4 uses thinking mode by default. Set
+`providerOptions.deepseek.thinking.type` to `disabled` to turn it off. In
+thinking mode, DeepSeek ignores `temperature`, `topP`, `presencePenalty`, and
+`frequencyPenalty`.
+
+When a thinking-mode response contains a tool call, keep the complete assistant
+response, including its reasoning parts, in subsequent conversation history.
+DeepSeek requires this reasoning content and returns a `400` error when it is
+missing.
+
+DeepSeek's API is stateless. Preserve `responseMessages` from `generateText` or
+`streamText` when building multi-turn conversations, especially across tool
+calls.
+
+> The legacy `deepseek-chat` and `deepseek-reasoner` aliases currently map to
+> the non-thinking and thinking modes of `deepseek-v4-flash`, respectively.
+> DeepSeek will retire both aliases on 2026-07-24 at 15:59 UTC.
 
 ## Documentation
 
