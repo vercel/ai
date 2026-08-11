@@ -70,6 +70,17 @@ const result = await generateText({
 });
 ```
 
+## Examples
+
+- [`examples/mock/basic.ts`](./examples/mock/basic.ts) demonstrates direct
+  allow and deny decisions plus transitive enforcement through a composite
+  shell tool.
+- [`examples/mock/composed-judgment.ts`](./examples/mock/composed-judgment.ts)
+  composes deterministic OPA decisions with a contextual judgment service and
+  human-approval fallback.
+- [`examples/git-in-bash`](./examples/git-in-bash) contains a complete Rego
+  policy, parser, tests, and `generateText` demo for transitive git enforcement.
+
 ## Writing the Rego policy
 
 The adapter expects the policy to emit a decision object with one of three `decision` values. `reason` is optional and gets surfaced back to the model (for `deny`) or to the human approver (for `requires-approval`).

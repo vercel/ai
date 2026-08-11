@@ -1,21 +1,14 @@
 /**
- * Runnable demo composing `@ai-sdk/policy-opa` with a judgment-based second
- * opinion, for the cases a deterministic policy can't resolve on its own.
+ * Runnable demo composing `@ai-sdk/policy-opa` with a contextual judgment
+ * service for cases a deterministic policy cannot resolve on its own.
  *
  * Run from the package directory:
  *   pnpm tsx examples/mock/composed-judgment.ts
  *
- * WHY THIS COMPOSITION
- *
- * OPA is the right tool for a hard, deterministic rule ("never let a
- * non-admin call `sendPayment`") -- a boolean expression over known fields.
- * It's the wrong tool for "is *this specific* payment, in *this* context,
- * actually sound" -- a question with no fixed rule to write. This example
- * shows OPA handling the deterministic layer first, and only escalating to a
- * judgment call for the case OPA itself flags as `requires-approval` (mapped
- * by the SDK to `user-approval`) -- instead of routing that case straight to
- * a human, ask an independent judgment service first and only fall through
- * to a human when the judgment call is itself uncertain.
+ * OPA handles the hard limit first. Calls that need more review go to an
+ * independent judgment service, which can use the tool call, runtime context,
+ * and conversation messages. Only confident verdicts are applied
+ * automatically; uncertain or unavailable judgments fall back to a human.
  *
  *   tool call
  *     -> OPA evaluates      --+--> allow / deny (clear-cut)  -> resolved, no judgment call
@@ -25,23 +18,22 @@
  *                                                                    +--> still uncertain    -> SDK's
  *                                                                                                human-in-the-loop UI
  *
- * `judgmentCall` below is a minimal interface (one async function, one
- * verdict shape) so ANY judgment provider can be plugged in -- an in-house
- * LLM-as-judge, a compliance review service, or a hosted verdict API. This
- * example stubs it (deterministic, no network call, no API key) so it runs
- * the same way `examples/mock/basic.ts` does. A concrete, live-verified
- * implementation against a real judgment API (invinoveritas's `/review`,
- * <https://github.com/babyblueviper1/invinoveritas/tree/main/integrations/vercel-ai-sdk>)
- * is linked in the README for anyone who wants the non-stubbed version --
- * swapping it in is a one-line change to `judgmentCall` below, same as
- * swapping `MockLanguageModelV3` for a real provider.
+ * `judgmentCall` is a provider-neutral async function. This example stubs it
+ * so the script is deterministic and needs no API key. A production
+ * implementation can call an in-house model, compliance service, or hosted
+ * verdict API using the same request and response shapes.
  *
  * To swap the mock model for a real provider, replace the
  * `MockLanguageModelV3` construction with one line, e.g.
  * `model: anthropic('claude-sonnet-4-5')`. Everything else (tools,
  * toolApproval, policy, judgmentCall) is provider-agnostic.
  */
-import { jsonSchema, type InferToolSetContext } from '@ai-sdk/provider-utils';
+import {
+  jsonSchema,
+  type Context,
+  type InferToolSetContext,
+  type ModelMessage,
+} from '@ai-sdk/provider-utils';
 import {
   generateText,
   isStepCount,
@@ -55,6 +47,12 @@ import type { PolicyClient } from '../../src/policy-client';
 import { opaPolicy } from '../../src/opa/opa-policy';
 
 type ToolsContext = InferToolSetContext<ToolSet>;
+
+type PaymentRuntimeContext = Context & {
+  accountId: string;
+  approvedRecipients: string[];
+  largestApprovedPayment: number;
+};
 
 const dummyUsage = {
   inputTokens: {
@@ -128,32 +126,46 @@ interface JudgmentVerdict {
   reason: string;
 }
 
-type JudgmentCall = (toolCall: {
-  toolName: string;
-  input: unknown;
-}) => Promise<JudgmentVerdict>;
+interface JudgmentRequest {
+  toolCall: { toolName: string; input: unknown };
+  messages: ReadonlyArray<ModelMessage>;
+  runtimeContext: PaymentRuntimeContext;
+}
+
+type JudgmentCall = (request: JudgmentRequest) => Promise<JudgmentVerdict>;
 
 /**
- * Stub judgment call -- deterministic, no network, so this example runs the
- * same way examples/mock/basic.ts does. A real implementation calls out to
- * a judgment service and returns its verdict in this same shape; see the
- * module docstring above for a live-verified example.
+ * Stub judgment call -- deterministic and context-aware, but with no network
+ * call. A real implementation can send this request to a judgment service and
+ * return its verdict in the same shape.
  */
-const stubJudgmentCall: JudgmentCall = async ({ input }) => {
-  const amount = (input as { amount?: number }).amount ?? 0;
-  if (amount > 100_000) {
+const stubJudgmentCall: JudgmentCall = async ({ toolCall, runtimeContext }) => {
+  const { amount, recipient } = toolCall.input as {
+    amount: number;
+    recipient: string;
+  };
+  const knownRecipient = runtimeContext.approvedRecipients.includes(recipient);
+
+  if (knownRecipient && amount <= runtimeContext.largestApprovedPayment) {
+    return {
+      verdict: 'approve',
+      confidence: 0.96,
+      reason: `Recipient and amount match prior payments for ${runtimeContext.accountId}.`,
+    };
+  }
+
+  if (!knownRecipient && amount > 100_000) {
     return {
       verdict: 'reject',
       confidence: 0.95,
-      reason:
-        'Payment amount far exceeds any precedent for this account; needs a human.',
+      reason: `Large payment to an unknown recipient for ${runtimeContext.accountId}.`,
     };
   }
+
   return {
-    verdict: 'approve',
-    confidence: 0.92,
-    reason:
-      'Amount, recipient, and context match prior approved payments for this account.',
+    verdict: 'uncertain',
+    confidence: 0.55,
+    reason: `No sufficient payment precedent for ${runtimeContext.accountId}.`,
   };
 };
 
@@ -168,18 +180,19 @@ function composedToolApproval(opts: {
   opaClient: PolicyClient;
   opaPath: string;
   judgmentCall: JudgmentCall;
-  approveConfidence?: number;
-}): GenericToolApprovalFunction<ToolSet, ToolsContext, unknown> {
-  // opaPolicy's return type is a union (a single generic function, OR a
-  // per-tool-keyed object) so that it can be used either way as the SDK's
-  // `toolApproval` option -- opaPolicy itself always returns the function
-  // arm (see its implementation), the union is only there to satisfy the
-  // wider ToolApprovalConfiguration contract, so the cast here is safe.
-  const policy = opaPolicy({
+  confidenceThreshold?: number;
+}): GenericToolApprovalFunction<ToolSet, ToolsContext, PaymentRuntimeContext> {
+  // opaPolicy is implemented as a generic function, but its public return
+  // type also permits a per-tool map. Narrow that union before composing it.
+  const policy = opaPolicy<ToolSet, PaymentRuntimeContext>({
     client: opts.opaClient,
     path: opts.opaPath,
-  }) as GenericToolApprovalFunction<ToolSet, ToolsContext, unknown>;
-  const threshold = opts.approveConfidence ?? 0.9;
+  });
+  if (typeof policy !== 'function') {
+    throw new Error('opaPolicy must return a generic approval function');
+  }
+
+  const threshold = opts.confidenceThreshold ?? 0.9;
 
   return async (args): Promise<ToolApprovalStatus> => {
     // `undefined` is documented as equivalent to 'not-applicable'.
@@ -194,7 +207,18 @@ function composedToolApproval(opts: {
     // OPA has no fixed rule for this case (or explicitly flagged it as
     // needing review) -- get an independent judgment call before falling
     // through to a human.
-    const verdict = await opts.judgmentCall(args.toolCall);
+    let verdict: JudgmentVerdict;
+    try {
+      verdict = await opts.judgmentCall({
+        toolCall: args.toolCall,
+        messages: args.messages,
+        runtimeContext: args.runtimeContext,
+      });
+    } catch {
+      // A production judgment provider should enforce its own timeout and
+      // reject on transport failures. Without a verdict, require a human.
+      return 'user-approval';
+    }
 
     if (verdict.verdict === 'approve' && verdict.confidence >= threshold) {
       return {
@@ -253,11 +277,19 @@ function summarize(c: Record<string, unknown>): string {
   if (c.type === 'tool-approval-response') {
     return `approved=${c.approved as boolean} reason=${c.reason as string | undefined}`;
   }
+  if (c.type === 'tool-approval-request') {
+    return `automatic=${c.isAutomatic === true}`;
+  }
   if (c.type === 'text') return JSON.stringify(c.text);
   return '';
 }
 
 async function main() {
+  const runtimeContext: PaymentRuntimeContext = {
+    accountId: 'acct-123',
+    approvedRecipients: ['vendor-a'],
+    largestApprovedPayment: 1_000,
+  };
   const toolApproval = composedToolApproval({
     opaClient,
     opaPath: 'agent/call/decision',
@@ -276,6 +308,7 @@ async function main() {
     stopWhen: isStepCount(3),
     tools: { sendPayment: sendPaymentTool },
     toolApproval,
+    runtimeContext,
   });
   printResult('1. judgment approves: routine $500 payment', approved);
 
@@ -291,6 +324,7 @@ async function main() {
     stopWhen: isStepCount(3),
     tools: { sendPayment: sendPaymentTool },
     toolApproval,
+    runtimeContext,
   });
   printResult('2. judgment denies: anomalous $250,000 payment', denied);
 
@@ -305,11 +339,28 @@ async function main() {
     stopWhen: isStepCount(3),
     tools: { sendPayment: sendPaymentTool },
     toolApproval,
+    runtimeContext,
   });
   printResult(
     '3. OPA denies outright: $5,000,000 payment (over the hard ceiling)',
     opaOnlyDenied,
   );
+
+  // 4. A small payment to an unfamiliar recipient has no clear precedent.
+  //    The judgment service is not confident enough to decide, so the SDK
+  //    emits a tool-approval-request for a human.
+  const needsHuman = await generateText({
+    model: mockModel(
+      'sendPayment',
+      `{ "recipient": "new-vendor", "amount": 500 }`,
+    ),
+    prompt: 'pay a new vendor $500',
+    stopWhen: isStepCount(3),
+    tools: { sendPayment: sendPaymentTool },
+    toolApproval,
+    runtimeContext,
+  });
+  printResult('4. judgment uncertain: request human approval', needsHuman);
 }
 
 main().catch(err => {
