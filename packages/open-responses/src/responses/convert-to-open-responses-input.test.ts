@@ -359,6 +359,35 @@ describe('convertToOpenResponsesInput', () => {
         ]
       `);
     });
+
+    it('should convert reasoning parts to reasoning items', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'Analyzing the problem step by step',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'reasoning',
+          summary: [],
+          content: [
+            {
+              type: 'reasoning_text',
+              text: 'Analyzing the problem step by step',
+            },
+          ],
+        },
+      ]);
+    });
   });
 
   describe('assistant messages with tool calls', () => {
