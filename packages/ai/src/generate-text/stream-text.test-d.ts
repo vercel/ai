@@ -24,6 +24,25 @@ import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 describe('streamText types', () => {
+  describe('stream retries', () => {
+    it('should accept streamRetries and an onError retry result', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        streamRetries: 2,
+        onError: () => ({ retry: true }),
+      });
+    });
+
+    it('should preserve callbacks that return other values', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onError: () => 'custom error text',
+      });
+    });
+  });
+
   describe('onLanguageModelCallEnd', () => {
     it('should expose provider metadata', () => {
       streamText({

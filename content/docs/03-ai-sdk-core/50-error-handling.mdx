@@ -93,6 +93,58 @@ try {
 }
 ```
 
+## Retrying provider errors after streaming starts
+
+`maxRetries` retries failures that happen while starting a model call. To retry
+well-formed provider error events received after response streaming has begun,
+set `streamRetries`:
+
+```ts highlight="7"
+import { streamText } from 'ai';
+__PROVIDER_IMPORT__;
+
+const { textStream } = streamText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  streamRetries: 2,
+});
+
+for await (const textPart of textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+Stream retries rerun only the failed model step with the same accumulated
+conversation and generation context. Earlier completed steps, including their
+tool calls and tool results, are not replayed.
+
+You can also decide dynamically in `onError`:
+
+```ts highlight="7-12"
+const result = streamText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  streamRetries: 0,
+  onError: ({ error }) => {
+    if (isTransientProviderError(error)) {
+      return { retry: true };
+    }
+  },
+});
+```
+
+The default for `streamRetries` is `0`. An `onError` return value other than
+`{ retry: true }` keeps its previous behavior and does not request recovery.
+Provider error events that are recovered are not emitted as final `error`
+parts.
+
+<Note type="warning">
+  Output emitted before a provider error cannot be retracted. A retried model
+  step may therefore append repeated or divergent partial output to consumer
+  streams. Retries also add latency and may incur additional provider usage and
+  cost.
+</Note>
+
 ## Handling stream aborts
 
 When streams are aborted (e.g., via chat stop button), you may want to perform cleanup operations like updating stored messages in your UI. Use the `onAbort` callback to handle these cases.
