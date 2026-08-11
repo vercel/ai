@@ -96,11 +96,7 @@ function resolveReferences(
   options: XaiVideoCallOptions,
   xaiOptions: XaiParsedVideoModelOptions | undefined,
   warnings: SharedV4Warning[],
-): {
-  images: Array<{ url: string }> | undefined;
-} {
-  let images: Array<{ url: string }> | undefined;
-
+): Array<{ url: string }> | undefined {
   if (options.inputReferences != null && options.inputReferences.length > 0) {
     const imageFiles: VideoModelV4File[] = [];
 
@@ -125,18 +121,19 @@ function resolveReferences(
     // Every reference may have been filtered out (audio- or video-only input),
     // so collapse an empty list to undefined rather than sending an empty
     // `reference_images` array.
-    images =
-      imageFiles.length > 0
-        ? imageFiles.map(reference => ({ url: fileToXaiUrl(reference) }))
-        : undefined;
-  } else if (
+    return imageFiles.length > 0
+      ? imageFiles.map(reference => ({ url: fileToXaiUrl(reference) }))
+      : undefined;
+  }
+
+  if (
     xaiOptions?.referenceImageUrls != null &&
     xaiOptions.referenceImageUrls.length > 0
   ) {
-    images = xaiOptions.referenceImageUrls.map(url => ({ url }));
+    return xaiOptions.referenceImageUrls.map(url => ({ url }));
   }
 
-  return { images };
+  return undefined;
 }
 
 // True when at least one reference would survive as an image. Audio-only or
@@ -370,14 +367,20 @@ export class XaiVideoModel implements VideoModelV4 {
 
     // Reference images for R2V (reference-to-video) generation
     if (hasReferenceImages) {
-      const { images: referenceImages } = resolveReferences(
-        options,
-        xaiOptions,
-        warnings,
-      );
+      const referenceImages = resolveReferences(options, xaiOptions, warnings);
 
       if (referenceImages != null) {
         body.reference_images = referenceImages;
+      } else {
+        // Explicit R2V with no usable image references would silently send
+        // a plain generations request; tell the user it is no longer R2V.
+        warnings.push({
+          type: 'unsupported',
+          feature: 'referenceImages',
+          details:
+            'xAI reference-to-video requires at least one image reference. ' +
+            'The video will be generated without reference images.',
+        });
       }
 
       // Reference-to-video is capped at 720p; downgrade a 1080p request.
@@ -391,6 +394,19 @@ export class XaiVideoModel implements VideoModelV4 {
         });
         body.resolution = '720p';
       }
+    }
+
+    // 1080p requires grok-imagine-video-1.5; the original grok-imagine-video
+    // rejects it. Warn, but send the request as the user asked.
+    if (body.resolution === '1080p' && this.modelId === 'grok-imagine-video') {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'resolution',
+        details:
+          'xAI model "grok-imagine-video" does not support 1080p. Use ' +
+          '"grok-imagine-video-1.5" for 1080p, or a lower resolution. The ' +
+          'request was sent with 1080p.',
+      });
     }
 
     // Warn when references were provided but cannot be used in the resolved

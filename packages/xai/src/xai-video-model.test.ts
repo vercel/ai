@@ -340,6 +340,59 @@ describe('XaiVideoModel', () => {
       expect(body).toMatchObject({ resolution: '1080p' });
     });
 
+    it('should warn when SDK resolution 1920x1080 is used with grok-imagine-video', async () => {
+      const model = createModel();
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        resolution: '1920x1080',
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ resolution: '1080p' });
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'resolution',
+          details: expect.stringContaining('does not support 1080p'),
+        }),
+      );
+    });
+
+    it('should warn when provider resolution 1080p is used with grok-imagine-video', async () => {
+      const model = createModel();
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            resolution: '1080p',
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ resolution: '1080p' });
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'resolution',
+          details: expect.stringContaining('does not support 1080p'),
+        }),
+      );
+    });
+
+    it('should not warn about 1080p with grok-imagine-video-1.5', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        resolution: '1920x1080',
+      });
+
+      expect(result.warnings).toEqual([]);
+    });
+
     it('should prefer provider option resolution over SDK resolution', async () => {
       const model = createModel();
 
@@ -946,6 +999,36 @@ describe('XaiVideoModel', () => {
         expect.objectContaining({
           type: 'unsupported',
           feature: 'inputReferences',
+        }),
+      );
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'referenceImages',
+          details: expect.stringContaining('without reference images'),
+        }),
+      );
+    });
+
+    it('should warn when explicit R2V has no references at all', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('reference_images');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'referenceImages',
+          details: expect.stringContaining('without reference images'),
         }),
       );
     });
