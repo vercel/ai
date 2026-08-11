@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.233
+
+### Patch Changes
+
+- 2604cb6: Prevent `resumeStream` from copying the previous assistant message into the resumed response.
+
 ## 5.0.232
 
 ### Patch Changes
