@@ -768,6 +768,93 @@ function toolResultParts(
 }
 
 describe('runPrompt host tool generator results', () => {
+  test('executes independent host tool calls concurrently', async () => {
+    const submitted: SubmittedResult[] = [];
+    let activeTools = 0;
+    let maxActiveTools = 0;
+    let firstObservedSecondStart = false;
+    let resolveSecondStarted!: () => void;
+    const secondStarted = new Promise<void>(resolve => {
+      resolveSecondStarted = resolve;
+    });
+    const startTool = () => {
+      activeTools += 1;
+      maxActiveTools = Math.max(maxActiveTools, activeTools);
+    };
+    const finishTool = () => {
+      activeTools -= 1;
+    };
+    const first = tool({
+      description: 'First independent tool',
+      inputSchema: z.object({}),
+      execute: async () => {
+        startTool();
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        firstObservedSecondStart = await Promise.race([
+          secondStarted.then(() => true),
+          new Promise<boolean>(resolve => {
+            timer = setTimeout(() => resolve(false), 100);
+          }),
+        ]);
+        if (timer != null) clearTimeout(timer);
+        finishTool();
+        return { tool: 'first' };
+      },
+    });
+    const second = tool({
+      description: 'Second independent tool',
+      inputSchema: z.object({}),
+      execute: async () => {
+        startTool();
+        resolveSecondStarted();
+        finishTool();
+        return { tool: 'second' };
+      },
+    });
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession(
+        [
+          {
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'first',
+            input: '{}',
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'c2',
+            toolName: 'second',
+            input: '{}',
+          },
+          ...finishEvents,
+        ],
+        input => submitted.push(input),
+      ),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { first, second } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    for await (const _part of result.fullStream) {
+      // Drain the stream so both executions and the step boundary settle.
+    }
+    await done;
+
+    expect(firstObservedSecondStart).toBe(true);
+    expect(maxActiveTools).toBe(2);
+    expect(submitted.map(result => result.toolCallId).sort()).toEqual([
+      'c1',
+      'c2',
+    ]);
+  });
+
   test('pauses custom tool execution when approval is required', async () => {
     const submitted: SubmittedResult[] = [];
     const pending: unknown[] = [];
