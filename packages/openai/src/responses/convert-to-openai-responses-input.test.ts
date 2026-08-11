@@ -1,4 +1,3 @@
-import fs from 'node:fs';
 import type { ToolNameMapping } from '../../../provider-utils/src/create-tool-name-mapping';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { describe, it, expect } from 'vitest';
@@ -3929,14 +3928,8 @@ describe('convertToOpenAIResponsesInput', () => {
     });
 
     describe('provider-executed shell', () => {
-      it('should allow a store: false follow-up after a shell call', async () => {
-        const callId = 'call_Mh54tZUuj5gccgizm3BBx288';
-        const providerError = JSON.parse(
-          fs.readFileSync(
-            'src/responses/__fixtures__/issue-18134-shell-store-false-error.json',
-            'utf8',
-          ),
-        );
+      it('should reconstruct the shell call and output with store: false', async () => {
+        const callId = 'call_shell';
 
         const result = await convertToOpenAIResponsesInput({
           toolNameMapping: testToolNameMapping,
@@ -3946,7 +3939,7 @@ describe('convertToOpenAIResponsesInput', () => {
               content: [
                 {
                   type: 'text',
-                  text: 'Run `printf issue-18134` using the shell tool.',
+                  text: 'Run `printf hello` using the shell tool.',
                 },
               ],
             },
@@ -3959,14 +3952,13 @@ describe('convertToOpenAIResponsesInput', () => {
                   toolName: 'shell',
                   input: {
                     action: {
-                      commands: ['printf issue-18134'],
+                      commands: ['printf hello'],
                     },
                   },
                   providerExecuted: true,
                   providerOptions: {
                     openai: {
-                      itemId:
-                        'sh_0c96978688f6a7b2016a7b8bbffa888191b8c4a18493ff26f9',
+                      itemId: 'shell_item',
                     },
                   },
                 },
@@ -3979,7 +3971,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     value: {
                       output: [
                         {
-                          stdout: 'issue-18134',
+                          stdout: 'hello',
                           stderr: '',
                           outcome: { type: 'exit', exitCode: 0 },
                         },
@@ -3989,7 +3981,7 @@ describe('convertToOpenAIResponsesInput', () => {
                 },
                 {
                   type: 'text',
-                  text: 'issue-18134',
+                  text: 'hello',
                 },
               ],
             },
@@ -4004,23 +3996,28 @@ describe('convertToOpenAIResponsesInput', () => {
           hasShellTool: true,
         });
 
-        expect(() => {
-          const hasOrphanedShellOutput = result.input.some(
-            item =>
-              'type' in item &&
-              item.type === 'shell_call_output' &&
-              !result.input.some(
-                candidate =>
-                  'type' in candidate &&
-                  candidate.type === 'shell_call' &&
-                  candidate.call_id === item.call_id,
-              ),
-          );
-
-          if (hasOrphanedShellOutput) {
-            throw new Error(providerError.error.message);
-          }
-        }).not.toThrow();
+        expect(result.input).toContainEqual({
+          type: 'shell_call',
+          call_id: callId,
+          id: 'shell_item',
+          status: 'completed',
+          action: {
+            commands: ['printf hello'],
+            timeout_ms: undefined,
+            max_output_length: undefined,
+          },
+        });
+        expect(result.input).toContainEqual({
+          type: 'shell_call_output',
+          call_id: callId,
+          output: [
+            {
+              stdout: 'hello',
+              stderr: '',
+              outcome: { type: 'exit', exit_code: 0 },
+            },
+          ],
+        });
       });
     });
 
