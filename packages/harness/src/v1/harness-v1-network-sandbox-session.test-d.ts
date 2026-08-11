@@ -3,6 +3,7 @@ import { expectTypeOf, test } from 'vitest';
 import type {
   HarnessV1NetworkPolicy,
   HarnessV1NetworkSandboxSession,
+  HarnessV1PortEndpoint,
 } from './harness-v1-network-sandbox-session';
 
 test('network sandbox session extends the bare sandbox session surface', () => {
@@ -21,10 +22,16 @@ test('restricted() returns the bare sandbox session surface', () => {
   >().toEqualTypeOf<SandboxSession>();
 });
 
-test('network sandbox session exposes ports, getPortUrl, stop as required', () => {
+test('network sandbox session exposes port resolution and stop as required', () => {
   expectTypeOf<HarnessV1NetworkSandboxSession['ports']>().toEqualTypeOf<
     ReadonlyArray<number>
   >();
+  expectTypeOf<
+    HarnessV1NetworkSandboxSession['getPortEndpoint']
+  >().not.toBeUndefined();
+  expectTypeOf<
+    Awaited<ReturnType<HarnessV1NetworkSandboxSession['getPortEndpoint']>>
+  >().toEqualTypeOf<HarnessV1PortEndpoint>();
   expectTypeOf<
     HarnessV1NetworkSandboxSession['getPortUrl']
   >().not.toBeUndefined();
