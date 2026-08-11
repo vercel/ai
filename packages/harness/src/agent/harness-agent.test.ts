@@ -828,7 +828,11 @@ describe('HarnessAgent', () => {
       ],
     });
 
-    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      instructions: 'Be concise.',
+    });
     const session = await agent.createSession({
       continueFrom: {
         type: 'continue-turn',
@@ -850,6 +854,7 @@ describe('HarnessAgent', () => {
     expect(await result.text).toBe('Still running');
     expect(prompts).toEqual([]);
     expect(doContinueTurn).toHaveBeenCalledTimes(1);
+    expect(doContinueTurn.mock.calls[0]?.[0].instructions).toBe('Be concise.');
 
     await session.destroy();
   });

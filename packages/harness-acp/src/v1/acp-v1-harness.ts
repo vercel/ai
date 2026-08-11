@@ -77,6 +77,7 @@ import {
   type ACPSkillCatalogEntry,
 } from './acp-v1-prompt';
 import type {
+  ACPInstructionMapping,
   ACPPermissionModeMapping,
   ACPPermissionModeTarget,
   ACPSerializableValue,
@@ -383,6 +384,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               proc: undefined,
               modelId: settings.modelId,
               sessionMeta: settings.session?.meta,
+              instructionMapping: settings.instructionMapping,
               debug: startOptions.observability?.debug,
               implementationIdentity,
               authenticationProfile,
@@ -440,6 +442,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
                   turnStartConfig,
                   authenticationProfile,
                   sessionMeta: settings.session?.meta,
+                  instructionMapping: settings.instructionMapping,
                   builtinTools: builtinToolCatalog,
                   permissionModeMapping,
                   mcpServers: settings.mcpServers,
@@ -470,6 +473,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
             permissionMode,
             authenticationProfile,
             sessionMeta: settings.session?.meta,
+            instructionMapping: settings.instructionMapping,
             builtinTools: builtinToolCatalog,
             permissionModeMapping,
             mcpServers: settings.mcpServers,
@@ -596,6 +600,9 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               builtinTools: builtinToolCatalog,
               permissionMode,
               permissionModeMapping,
+              ...(settings.instructionMapping == null
+                ? {}
+                : { instructionMapping: settings.instructionMapping }),
               ...(settings.mcpServers == null
                 ? {}
                 : { mcpServers: settings.mcpServers }),
@@ -629,6 +636,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         proc,
         modelId: settings.modelId,
         sessionMeta: settings.session?.meta,
+        instructionMapping: settings.instructionMapping,
         debug: startOptions.observability?.debug,
         implementationIdentity,
         authenticationProfile,
@@ -846,6 +854,7 @@ function createSession({
   proc,
   modelId,
   sessionMeta,
+  instructionMapping,
   debug,
   implementationIdentity,
   authenticationProfile,
@@ -876,6 +885,7 @@ function createSession({
   proc: Experimental_SandboxProcess | undefined;
   modelId: string | undefined;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
+  instructionMapping: ACPInstructionMapping | undefined;
   debug: HarnessV1DebugConfig | undefined;
   implementationIdentity: string;
   authenticationProfile: ACPAuthenticationProfileIdentity;
@@ -1202,6 +1212,7 @@ function createSession({
         debug,
         authenticationProfile,
         sessionMeta,
+        instructionMapping,
       });
       const control = wireTurn({
         emit: options.emit,
@@ -1219,8 +1230,19 @@ function createSession({
               ? prompt
               : prependACPInitialGuidance({
                   prompt,
-                  instructions: options.instructions,
+                  instructions:
+                    instructionMapping == null
+                      ? options.instructions
+                      : undefined,
                   skills: skillCatalog,
+                }),
+            ...(instructionMapping == null
+              ? {}
+              : {
+                  instructionMapping,
+                  ...(options.instructions == null
+                    ? {}
+                    : { instructions: options.instructions }),
                 }),
             debug,
             builtinTools,
@@ -1264,6 +1286,14 @@ function createSession({
             builtinTools: turnStartConfig.builtinTools,
             permissionMode: turnStartConfig.permissionMode,
             permissionModeMapping: turnStartConfig.permissionModeMapping,
+            ...(instructionMapping == null
+              ? {}
+              : {
+                  instructionMapping,
+                  ...(options.instructions == null
+                    ? {}
+                    : { instructions: options.instructions }),
+                }),
             ...(mcpServers == null ? {} : { mcpServers }),
             tools: turnStartConfig.tools,
             turnStartConfig,
@@ -1427,6 +1457,7 @@ function validateACPTurnStartConfig({
   turnStartConfig,
   authenticationProfile,
   sessionMeta,
+  instructionMapping,
   builtinTools,
   permissionModeMapping,
   mcpServers,
@@ -1434,6 +1465,7 @@ function validateACPTurnStartConfig({
   turnStartConfig: ACPTurnStartConfig;
   authenticationProfile: ACPAuthenticationProfileIdentity;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
+  instructionMapping: ACPInstructionMapping | undefined;
   builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   permissionModeMapping: ACPPermissionModeMapping | undefined;
   mcpServers: Record<string, unknown> | undefined;
@@ -1448,6 +1480,7 @@ function validateACPTurnStartConfig({
     debug: turnStartConfig.debug,
     authenticationProfile,
     sessionMeta,
+    instructionMapping,
   });
   if (
     current.configurationFingerprint !==
@@ -1465,6 +1498,7 @@ function validateACPColdSessionConfiguration({
   permissionMode,
   authenticationProfile,
   sessionMeta,
+  instructionMapping,
   builtinTools,
   permissionModeMapping,
   mcpServers,
@@ -1475,6 +1509,7 @@ function validateACPColdSessionConfiguration({
   permissionMode: NonNullable<StartMessage['permissionMode']>;
   authenticationProfile: ACPAuthenticationProfileIdentity;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
+  instructionMapping: ACPInstructionMapping | undefined;
   builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   permissionModeMapping: ACPPermissionModeMapping | undefined;
   mcpServers: Record<string, unknown> | undefined;
@@ -1490,6 +1525,7 @@ function validateACPColdSessionConfiguration({
     debug,
     authenticationProfile,
     sessionMeta,
+    instructionMapping,
   });
   if (
     current.configurationFingerprint !== coldSession.configurationFingerprint ||

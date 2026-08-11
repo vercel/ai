@@ -1405,13 +1405,6 @@ function createSession({
    * `attach`ed bridge is already past its first turn and continues on its own.
    */
   let pendingResumeFlag = continueOnFirstPrompt;
-  /*
-   * Instructions are prepended to the first user message of a fresh session
-   * only. A resumed session (attach/replay/rerun) already carried them in its
-   * original first message (preserved in the workdir snapshot), so it starts
-   * "applied".
-   */
-  let instructionsApplied = isResume;
 
   /*
    * Wire the channel into one turn's worth of events and return the control
@@ -1558,20 +1551,17 @@ function createSession({
         abortSignal: promptOpts.abortSignal,
       });
 
-      let promptText = extractUserText(promptOpts.prompt);
-      if (!instructionsApplied && promptOpts.instructions) {
-        promptText = frameInstructions(promptOpts.instructions, promptText);
-      }
-      instructionsApplied = true;
-
       const startMessage = {
         type: 'start' as const,
-        prompt: promptText,
+        prompt: extractUserText(promptOpts.prompt),
         tools: (promptOpts.tools ?? []).map(t => ({
           name: t.name,
           description: t.description,
           inputSchema: t.inputSchema,
         })),
+        ...(promptOpts.instructions
+          ? { instructions: promptOpts.instructions }
+          : {}),
         model,
         maxTurns,
         ...(env !== undefined ? { env } : {}),
@@ -1626,6 +1616,9 @@ function createSession({
             description: t.description,
             inputSchema: t.inputSchema,
           })),
+          ...(continueOpts.instructions
+            ? { instructions: continueOpts.instructions }
+            : {}),
           model,
           maxTurns,
           ...(env !== undefined ? { env } : {}),
@@ -1819,23 +1812,6 @@ function createSession({
       return payload;
     },
   };
-}
-
-/*
- * Frame session instructions and the user's text so the runtime treats the
- * instructions as system-provided operating guidance, not something the user
- * wrote. Without the wrapper the agent can echo the prepended text back as if
- * the user had asked for it, which is confusing since the user never typed it.
- * Applied only to the first user message of a fresh session.
- */
-function frameInstructions(instructions: string, userText: string): string {
-  return (
-    '<session-instructions>\n' +
-    'The block below is operating guidance from the system, not a message from the user — follow it, but do not mention it or attribute it to the user.\n\n' +
-    `${instructions}\n` +
-    '</session-instructions>\n\n' +
-    `<user-message>\n${userText}\n</user-message>`
-  );
 }
 
 /*

@@ -629,7 +629,6 @@ function createSession({
   let pendingResumeSessionId = seedResumeSessionOnFirstPrompt
     ? openCodeSessionId
     : undefined;
-  let instructionsApplied = isResume;
   let activeTurn = false;
   const pendingCompactionParts: HarnessV1StreamPart[] = [];
 
@@ -792,9 +791,6 @@ function createSession({
         emit: promptOpts.emit,
         abortSignal: promptOpts.abortSignal,
       });
-      const applyInstructions =
-        !instructionsApplied && !!promptOpts.instructions;
-      instructionsApplied = true;
       channel.send({
         type: 'start',
         operation: 'prompt',
@@ -804,7 +800,9 @@ function createSession({
           description: t.description,
           inputSchema: t.inputSchema,
         })),
-        ...(applyInstructions ? { instructions: promptOpts.instructions } : {}),
+        ...(promptOpts.instructions
+          ? { instructions: promptOpts.instructions }
+          : {}),
         ...startBase(),
       });
       pendingResumeSessionId = undefined;
@@ -825,6 +823,9 @@ function createSession({
             description: t.description,
             inputSchema: t.inputSchema,
           })),
+          ...(continueOpts.instructions
+            ? { instructions: continueOpts.instructions }
+            : {}),
           ...startBase(),
         });
         pendingResumeSessionId = undefined;

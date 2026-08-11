@@ -40,6 +40,7 @@ describe('createGrokBuild', () => {
       executable: settings.executable,
       args: settings.args,
       forwardEnv: settings.forwardEnv,
+      instructionMapping: settings.instructionMapping,
       providerAuthentication: settings.providerAuthentication,
       builtinToolNames: Object.keys(settings.builtinTools ?? {}),
     }).toMatchInlineSnapshot(`
@@ -84,6 +85,12 @@ describe('createGrokBuild', () => {
           "XAI_API_KEY",
         ],
         "harnessId": "grok-build",
+        "instructionMapping": {
+          "path": [
+            "rules",
+          ],
+          "type": "session-meta",
+        },
         "providerAuthentication": {
           "gateway": {
             "env": {
