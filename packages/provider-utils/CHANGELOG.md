@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.0.32
+
+### Patch Changes
+
+- 0e51b7b: Preserve streamed download size-limit errors when response cancellation fails.
+
 ## 3.0.31
 
 ### Patch Changes
