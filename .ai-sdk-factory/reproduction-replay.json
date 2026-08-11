@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 9077,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-9077-reasoning-part-id.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-9077-reasoning-part-id.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_9077_REPRODUCED: expected reasoning part ids reasoning_123,reasoning_456 but received undefined,undefined"
+  }
+}
