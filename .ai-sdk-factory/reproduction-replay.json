@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 16565,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-16565-workflow-response-format.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-16565-workflow-response-format.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_16565_REPRODUCED: WorkflowAgent.stream dropped responseFormat and structured output parsing failed"
+  }
+}
