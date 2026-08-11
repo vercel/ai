@@ -1185,6 +1185,7 @@ class DefaultStreamTextResult<
               }),
               tracer,
               endWhenDone: false,
+              endOnError: true,
               fn: async doStreamSpan => {
                 return {
                   startTimestampMs: now(), // get before the call
