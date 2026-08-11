@@ -5,6 +5,7 @@ type Emit = (message: Record<string, unknown>) => void;
 export type ClaudeMessage = {
   type?: string;
   subtype?: string;
+  parent_tool_use_id?: string | null;
   model?: string;
   error?: string;
   error_status?: number | null;
@@ -180,6 +181,13 @@ export function createEmitStreamEvent({
             : {}),
         });
       }
+      return;
+    }
+
+    // Messages emitted by a Task-tool subagent carry the parent tool-use id.
+    // They belong to the subagent stream and must not affect the parent step,
+    // including partial stream events that arrive before assistant messages.
+    if (msg.parent_tool_use_id != null) {
       return;
     }
 
