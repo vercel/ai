@@ -1483,6 +1483,42 @@ describe('streamObject', () => {
       expect(tracer.jsonSpans).toMatchSnapshot();
     });
 
+    it('should end root and model call spans once when the model call fails', async () => {
+      const result = streamObject({
+        model: new MockLanguageModelV2({
+          doStream: async () => {
+            throw new Error('provider failed');
+          },
+        }),
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+        maxRetries: 0,
+        experimental_telemetry: { isEnabled: true, tracer },
+        onError: () => {},
+      });
+
+      await convertAsyncIterableToArray(result.partialObjectStream);
+
+      expect(
+        tracer.spans.map(span => ({
+          name: span.name,
+          endCalls: span.endCalls,
+          status: span.status,
+        })),
+      ).toEqual([
+        {
+          name: 'ai.streamObject',
+          endCalls: 1,
+          status: { code: 2, message: 'provider failed' },
+        },
+        {
+          name: 'ai.streamObject.doStream',
+          endCalls: 1,
+          status: { code: 2, message: 'provider failed' },
+        },
+      ]);
+    });
+
     it('should not record telemetry inputs / outputs when disabled', async () => {
       const result = streamObject({
         model: new MockLanguageModelV2({

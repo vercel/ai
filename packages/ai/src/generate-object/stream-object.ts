@@ -482,6 +482,7 @@ class DefaultStreamObjectResult<
       }),
       tracer,
       endWhenDone: false,
+      endOnError: true,
       fn: async rootSpan => {
         const standardizedPrompt = await standardizePrompt({
           system,
@@ -561,6 +562,7 @@ class DefaultStreamObjectResult<
             }),
             tracer,
             endWhenDone: false,
+            endOnError: true,
             fn: async doStreamSpan => ({
               startTimestampMs: now(),
               doStreamSpan,

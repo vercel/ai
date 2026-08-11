@@ -11,11 +11,24 @@
 export async function consumeStream({
   stream,
   onError,
+  abortSignal,
 }: {
   stream: ReadableStream;
   onError?: (error: unknown) => void;
+  abortSignal?: AbortSignal;
 }): Promise<void> {
   const reader = stream.getReader();
+  let cancelPromise: Promise<void> | undefined;
+  const cancelOnAbort = () => {
+    cancelPromise ??= reader.cancel().catch(() => {});
+  };
+
+  if (abortSignal?.aborted) {
+    cancelOnAbort();
+  } else {
+    abortSignal?.addEventListener('abort', cancelOnAbort, { once: true });
+  }
+
   try {
     while (true) {
       const { done } = await reader.read();
@@ -24,6 +37,8 @@ export async function consumeStream({
   } catch (error) {
     onError?.(error);
   } finally {
+    await cancelPromise;
+    abortSignal?.removeEventListener('abort', cancelOnAbort);
     reader.releaseLock();
   }
 }
