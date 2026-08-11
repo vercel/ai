@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 15872,
+  "command": "pnpm -C examples/ai-core exec tsx src/reproduction/issue-15872-gateway-api-call-error-message.ts",
+  "artifactPaths": [
+    "examples/ai-core/src/reproduction/issue-15872-gateway-api-call-error-message.ts",
+    "packages/gateway/src/gateway-language-model.issue-15872.test.ts",
+    "packages/gateway/src/__fixtures__/issue-15872-live-error-response.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_15872_REPRODUCED: nested AI_APICallError message is [object Object] instead of gateway failure details"
+  }
+}
