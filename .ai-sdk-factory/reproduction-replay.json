@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 17658,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/google-strict-forced-tool-choice.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/google-strict-forced-tool-choice.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_17658_REPRODUCED: strict tools silently dropped the forced-call guarantee."
+  }
+}

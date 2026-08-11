@@ -1,0 +1,40 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "functionCall": {
+              "name": "createMeeting",
+              "args": {
+                "startTime": "2025-05-20T10:00:00Z",
+                "title": "Project Sync"
+              },
+              "id": "sanitized-live-call-id"
+            },
+            "thoughtSignature": "sanitized-live-thought-signature"
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0,
+      "finishMessage": "Model generated function call(s)."
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 61,
+    "candidatesTokenCount": 41,
+    "totalTokenCount": 1107,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 61
+      }
+    ],
+    "thoughtsTokenCount": 1005,
+    "serviceTier": "standard"
+  },
+  "modelVersion": "gemini-3-flash-preview",
+  "responseId": "sanitized-live-response-id"
+}
