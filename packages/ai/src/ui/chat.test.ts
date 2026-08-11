@@ -971,6 +971,28 @@ describe('Chat', () => {
     });
   });
 
+  it('should not send a message when stopped during message preparation', async () => {
+    const sendMessages = vi.fn(async () => new ReadableStream());
+    const chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: {
+        sendMessages,
+        reconnectToStream: () => {
+          throw new Error('not implemented');
+        },
+      },
+    });
+
+    const sendPromise = chat.sendMessage({ text: 'Hello, world!' });
+    await chat.stop();
+    await sendPromise;
+
+    expect(sendMessages).not.toHaveBeenCalled();
+    expect(chat.messages).toEqual([]);
+    expect(chat.status).toBe('ready');
+  });
+
   it('should stop updating messages when a resumed stream is stopped', async () => {
     const nextChunk = createResolvablePromise<void>();
     let reconnectAbortSignal: AbortSignal | undefined;
