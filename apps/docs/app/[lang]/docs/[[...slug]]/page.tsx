@@ -1,7 +1,9 @@
 import { MobileDocsBar } from '@vercel/geistdocs/mobile-docs-bar';
 import { createDocsPage } from '@vercel/geistdocs/pages/docs';
+import { Upsell } from '@/components/docs/upsell';
 import { getMdxComponents } from '@/components/mdx-components';
 import { config } from '@/lib/geistdocs/config';
+import { ogDefaults } from '@/lib/og';
 import { v7Source } from '@/lib/geistdocs/source';
 
 const docsPage = createDocsPage({
@@ -9,13 +11,23 @@ const docsPage = createDocsPage({
   mdx: ({ link }) => getMdxComponents({ link, versionPrefix: '' }),
   metadata: ({ metadata, page }) => ({
     ...metadata,
+    openGraph: {
+      ...metadata.openGraph,
+      ...ogDefaults,
+    },
     alternates: {
       ...metadata.alternates,
       canonical: page.url,
     },
   }),
+  openGraph: {
+    images: true,
+  },
   renderTop: ({ data }) => <MobileDocsBar toc={data.toc} />,
   source: v7Source,
+  tableOfContent: {
+    footer: <Upsell />,
+  },
   tableOfContentPopover: {
     enabled: false,
   },

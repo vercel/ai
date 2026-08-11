@@ -1,5 +1,6 @@
 import { ArrowUpRight } from 'lucide-react';
 import type { Metadata } from 'next';
+import { socialCard } from '@/lib/og';
 import Image from 'next/image';
 import Link from 'next/link';
 import { showcaseProjects } from '@/lib/showcase';
@@ -7,6 +8,10 @@ import { showcaseProjects } from '@/lib/showcase';
 export const metadata: Metadata = {
   title: 'AI SDK Showcase',
   description: 'Popular products and projects built with the AI SDK.',
+  ...socialCard(
+    'AI SDK Showcase',
+    'Popular products and projects built with the AI SDK.',
+  ),
 };
 
 const SiteCard = ({
