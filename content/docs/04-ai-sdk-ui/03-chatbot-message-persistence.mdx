@@ -114,7 +114,7 @@ import { dataPartsSchema, metadataSchema } from '@util/schemas';
 const tools = {
   weather: tool({
     description: 'Get weather information',
-    parameters: z.object({
+    inputSchema: z.object({
       location: z.string(),
       units: z.enum(['celsius', 'fahrenheit']),
     }),

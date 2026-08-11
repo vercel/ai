@@ -10,6 +10,7 @@ export const advisor_20260301ArgsSchema = lazySchema(() =>
     z.object({
       model: z.string(),
       maxUses: z.number().optional(),
+      maxTokens: z.number().int().min(1024).optional(),
       caching: z
         .object({
           type: z.literal('ephemeral'),
@@ -26,10 +27,12 @@ export const advisor_20260301OutputSchema = lazySchema(() =>
       z.object({
         type: z.literal('advisor_result'),
         text: z.string(),
+        stopReason: z.string().optional(),
       }),
       z.object({
         type: z.literal('advisor_redacted_result'),
         encryptedContent: z.string(),
+        stopReason: z.string().optional(),
       }),
       z.object({
         type: z.literal('advisor_tool_result_error'),
@@ -54,6 +57,12 @@ const factory = createProviderExecutedToolFactory<
        * Plaintext advice from the advisor model.
        */
       text: string;
+
+      /**
+       * The advisor sub-inference stop reason when `maxTokens` is configured.
+       * A value of `"max_tokens"` indicates that the advice was truncated.
+       */
+      stopReason?: string;
     }
   | {
       type: 'advisor_redacted_result';
@@ -64,6 +73,12 @@ const factory = createProviderExecutedToolFactory<
        * advice into the executor's prompt.
        */
       encryptedContent: string;
+
+      /**
+       * The advisor sub-inference stop reason when `maxTokens` is configured.
+       * A value of `"max_tokens"` indicates that the advice was truncated.
+       */
+      stopReason?: string;
     }
   | {
       type: 'advisor_tool_result_error';
@@ -98,6 +113,17 @@ const factory = createProviderExecutedToolFactory<
      * API returns `400 invalid_request_error`).
      */
     maxUses?: number;
+
+    /**
+     * Maximum number of tokens the advisor can generate per call, including
+     * thinking and text. This is independent of the executor's request-level
+     * `maxOutputTokens`.
+     *
+     * The minimum value is 1024. Anthropic recommends starting with 2048.
+     * Values above the selected advisor model's output limit return a
+     * `400 invalid_request_error` from the API.
+     */
+    maxTokens?: number;
 
     /**
      * Enables prompt caching for the advisor's own transcript across calls

@@ -6,6 +6,7 @@ import { createDeepAgents } from './deepagents-harness';
 
 // Captures the wireTurn `onClose` handler so tests can fire a close with a chosen reason.
 const closeHolder: { fire?: (code: number, reason: string) => void } = {};
+const sentMessages: unknown[] = [];
 
 vi.mock('@ai-sdk/harness/utils', async importOriginal => {
   const actual = await importOriginal<typeof HarnessUtils>();
@@ -17,7 +18,9 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
     onClose(handler: (code: number, reason: string) => void): void {
       closeHolder.fire = handler;
     }
-    send(): void {}
+    send(message: unknown): void {
+      sentMessages.push(message);
+    }
     suspend(): Promise<number> {
       return Promise.resolve(0);
     }
@@ -57,18 +60,23 @@ function textStream(text: string): ReadableStream<Uint8Array> {
 
 function fakeSandboxSession({
   spawnEnvs,
+  spawns,
 }: {
   spawnEnvs?: Array<Record<string, string | undefined>>;
+  spawns?: string[];
 } = {}): HarnessV1NetworkSandboxSession {
   const session = {
     run: async () => ({ exitCode: 0, stdout: '', stderr: '' }),
     readTextFile: async () => null,
     writeTextFile: async () => {},
     spawn: async ({
+      command,
       env,
     }: {
+      command: string;
       env?: Record<string, string | undefined>;
-    } = {}) => {
+    }) => {
+      spawns?.push(command);
       if (env) spawnEnvs?.push(env);
       return {
         stdout: textStream('{"type":"bridge-ready","port":4319}\n'),
@@ -119,17 +127,18 @@ describe('createDeepAgents', () => {
     const harness = createDeepAgents();
     const bootstrap = await harness.getBootstrap!();
     expect(bootstrap.harnessId).toBe('deepagents');
+    expect(bootstrap.bootstrapDir).toBe('.harness-bootstrap/deepagents');
     const paths = bootstrap.files.map(f => f.path);
-    expect(paths).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining('bridge.mjs'),
-        expect.stringContaining('package.json'),
-        expect.stringContaining('pnpm-lock.yaml'),
-      ]),
-    );
+    expect(paths).toEqual([
+      '.harness-bootstrap/deepagents/bridge.mjs',
+      '.harness-bootstrap/deepagents/package.json',
+      '.harness-bootstrap/deepagents/pnpm-lock.yaml',
+    ]);
     const commands = bootstrap.commands.map(c => c.command).join('\n');
-    expect(commands).toContain('pnpm');
-    expect(commands).toContain('install');
+    expect(commands).toContain(
+      'pnpm install --frozen-lockfile --store-dir .pnpm-store',
+    );
+    expect(commands).not.toContain('mkdir -p .harness-bootstrap/deepagents');
   });
 
   it('caches the bootstrap across calls', async () => {
@@ -146,18 +155,83 @@ describe('createDeepAgents', () => {
 
   it('passes the harness client app to the bridge environment', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const spawns: string[] = [];
     const harness = createDeepAgents();
     const session = await harness.doStart({
       sessionId: 'test-session',
       sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
-      sandboxSession: fakeSandboxSession({ spawnEnvs }),
+      sandboxSession: fakeSandboxSession({ spawnEnvs, spawns }),
     } as unknown as Parameters<typeof harness.doStart>[0]);
 
     expect(spawnEnvs.at(0)?.AI_SDK_HARNESS_CLIENT_APP).toBe(
       'ai-sdk/harness-deepagents/0.0.0-test',
     );
+    expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
+    expect(spawns.at(0)).toContain(
+      "node '/vercel/sandbox/.harness-bootstrap/deepagents/bridge.mjs'",
+    );
+    expect(spawns.at(0)).toContain(
+      "--bootstrap-dir '/vercel/sandbox/.harness-bootstrap/deepagents'",
+    );
 
     await session.doDestroy();
+  });
+
+  it('passes configured MCP servers to the bridge', async () => {
+    sentMessages.length = 0;
+    const mcpServers = {
+      memory: { command: 'memory-mcp', args: [] },
+    };
+    const harness = createDeepAgents({ mcpServers });
+    const session = await harness.doStart({
+      sessionId: 'test-session',
+      sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+      sandboxSession: fakeSandboxSession(),
+    } as unknown as Parameters<typeof harness.doStart>[0]);
+
+    await session.doPromptTurn({
+      prompt: 'Use memory.',
+      emit: () => {},
+    });
+
+    expect(sentMessages[0]).toMatchObject({
+      type: 'start',
+      mcpServers,
+    });
+    await session.doDestroy();
+  });
+
+  it('uses a caller-minted bridge token and reuses it when attaching', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const mintBridgeToken = vi.fn(
+      (sandboxId: string) => `token-for-${sandboxId}`,
+    );
+    const harness = createDeepAgents({ mintBridgeToken });
+    const sandboxSession = fakeSandboxSession({ spawnEnvs });
+    const session = await harness.doStart({
+      sessionId: 'test-session',
+      sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+      sandboxSession,
+    });
+
+    expect(mintBridgeToken).toHaveBeenCalledExactlyOnceWith('test-sandbox');
+    expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toBe(
+      'token-for-test-sandbox',
+    );
+
+    const resumeFrom = await session.doDetach();
+    expect(resumeFrom.data).toMatchObject({
+      bridge: { token: 'token-for-test-sandbox' },
+    });
+
+    const attachedSession = await harness.doStart({
+      sessionId: 'test-session',
+      sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+      sandboxSession,
+      resumeFrom,
+    });
+    expect(mintBridgeToken).toHaveBeenCalledTimes(1);
+    await attachedSession.doDetach();
   });
 
   it('resolves the turn when the channel closes with reason "suspended"', async () => {

@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   commonTool,
@@ -64,6 +65,11 @@ const CLAUDE_CODE_CLIENT_APP = `ai-sdk/harness-claude-code/${VERSION}`;
 export type ClaudeCodeHarnessSettings = {
   readonly auth?: ClaudeCodeAuthOptions;
   /**
+   * MCP server definitions keyed by server name. Each definition uses the
+   * underlying runtime's native MCP server configuration format.
+   */
+  readonly mcpServers?: Record<string, unknown>;
+  /**
    * Anthropic model id the underlying `claude` CLI should use. Leaving this
    * unset defers to the CLI's default.
    */
@@ -73,6 +79,11 @@ export type ClaudeCodeHarnessSettings = {
    * back to the caller. Unset means the CLI's default.
    */
   readonly maxTurns?: number;
+  /**
+   * Environment variables for the Claude Code process. These values are
+   * merged over the sandbox bridge process environment.
+   */
+  readonly env?: Readonly<Record<string, string>>;
   /**
    * Controls extended-thinking behavior and whether reasoning is summarized or
    * omitted. Defaults to `{ type: 'adaptive', display: 'summarized' }`.
@@ -87,19 +98,53 @@ export type ClaudeCodeHarnessSettings = {
   readonly port?: number;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
+  /**
+   * Creates the authentication token used by the sandbox bridge. Defaults to
+   * a random 32-byte hexadecimal token.
+   */
+  readonly mintBridgeToken?: (sandboxId: string) => string;
 };
 
 /*
  * Every native tool the Claude Code CLI can invoke, declared as a `ToolSet`
  * keyed by what the bridge emits as `toolName` on the wire
- * (`commonName ?? nativeName`). Schemas transcribed from
- * `@anthropic-ai/claude-agent-sdk`'s `agentSdkTypes.d.ts`.
+ * (`commonName ?? nativeName`). Schemas are transcribed from the generated
+ * `sdk-tools.d.ts` and the conditionally registered tool definitions in the
+ * pinned Claude Code executable.
  *
  * `MCP` (the generic proxy tool inside the Claude Code SDK) is intentionally
  * omitted — the bridge filters out `mcp__harness-tools__*` tool names before
  * emitting them, and other MCP invocations come through with their own
  * server-tool names rather than the literal `'Mcp'` token.
  */
+const listMcpResourcesInputSchema = z.object({
+  server: z.string().optional(),
+});
+
+const readMcpResourceInputSchema = z.object({
+  server: z.string(),
+  uri: z.string(),
+});
+
+const structuredTeamMessageSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('shutdown_request'),
+    reason: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('shutdown_response'),
+    request_id: z.string(),
+    approve: z.boolean(),
+    reason: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('plan_approval_response'),
+    request_id: z.string(),
+    approve: z.boolean(),
+    feedback: z.string().optional(),
+  }),
+]);
+
 const CLAUDE_CODE_BUILTIN_TOOLS = {
   read: commonTool('read', {
     nativeName: 'Read',
@@ -291,23 +336,66 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       timeout: z.number(),
     }),
   }),
-  Monitor: tool({
-    description: 'Run and monitor a shell command',
-    inputSchema: z.object({
-      command: z.string(),
-      description: z.string().optional(),
-      timeout_ms: z.number().optional(),
-      persistent: z.boolean().optional(),
+  Monitor: {
+    ...tool({
+      description: 'Run and monitor a shell command or WebSocket',
+      inputSchema: z.object({
+        description: z.string().optional(),
+        timeout_ms: z.number().optional(),
+        persistent: z.boolean().optional(),
+        command: z.string().optional(),
+        ws: z
+          .object({
+            url: z.string(),
+            protocols: z.array(z.string()).optional(),
+          })
+          .optional(),
+      }),
     }),
-  }),
-  ListMcpResources: tool({
-    description: 'List resources available from MCP servers',
-    inputSchema: z.object({ server: z.string().optional() }),
-  }),
-  ReadMcpResource: tool({
-    description: 'Read a specific MCP resource by URI',
-    inputSchema: z.object({ server: z.string(), uri: z.string() }),
-  }),
+    toolUseKind: 'bash',
+  },
+  ListMcpResources: {
+    ...tool({
+      description: 'List resources available from MCP servers',
+      inputSchema: listMcpResourcesInputSchema,
+    }),
+    toolUseKind: 'readonly',
+  },
+  ListMcpResourcesTool: {
+    ...tool({
+      description: 'List resources available from MCP servers',
+      inputSchema: listMcpResourcesInputSchema,
+    }),
+    toolUseKind: 'readonly',
+  },
+  ReadMcpResource: {
+    ...tool({
+      description: 'Read a specific MCP resource by URI',
+      inputSchema: readMcpResourceInputSchema,
+    }),
+    toolUseKind: 'readonly',
+  },
+  ReadMcpResourceTool: {
+    ...tool({
+      description: 'Read a specific MCP resource by URI',
+      inputSchema: readMcpResourceInputSchema,
+    }),
+    toolUseKind: 'readonly',
+  },
+  ReadMcpResourceDirTool: {
+    ...tool({
+      description: 'List direct children of an MCP directory resource',
+      inputSchema: readMcpResourceInputSchema,
+    }),
+    toolUseKind: 'readonly',
+  },
+  RefreshMcpTools: {
+    ...tool({
+      description: 'Refresh tools from one or all connected MCP servers',
+      inputSchema: z.object({ server: z.string().optional() }),
+    }),
+    toolUseKind: 'readonly',
+  },
   ExitPlanMode: tool({
     description: 'Exit plan mode with optional permission approvals',
     inputSchema: z.looseObject({
@@ -321,6 +409,13 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
         .optional(),
     }),
   }),
+  EnterPlanMode: {
+    ...tool({
+      description: 'Enter plan mode',
+      inputSchema: z.object({}),
+    }),
+    toolUseKind: 'readonly',
+  },
   EnterWorktree: tool({
     description: 'Create or enter an isolated git worktree',
     inputSchema: z.object({
@@ -368,13 +463,16 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       metadata: z.object({ source: z.string().optional() }).optional(),
     }),
   }),
-  Skill: tool({
-    description: 'Activate a skill by name',
-    inputSchema: z.object({
-      skill: z.string(),
-      args: z.string().optional(),
+  Skill: {
+    ...tool({
+      description: 'Activate a skill by name',
+      inputSchema: z.object({
+        skill: z.string(),
+        args: z.string().optional(),
+      }),
     }),
-  }),
+    toolUseKind: 'readonly',
+  },
   ToolSearch: tool({
     description:
       'Search deferred MCP / catalog tools so the model can load them on demand',
@@ -383,12 +481,277 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       max_results: z.number().optional(),
     }),
   }),
+  Artifact: {
+    ...tool({
+      description: 'Publish or list claude.ai artifacts',
+      inputSchema: z.object({
+        action: z.enum(['publish', 'list']).optional(),
+        file_path: z.string().optional(),
+        favicon: z.string().optional(),
+        limit: z.number().optional(),
+        scope: z.enum(['mine', 'shared', 'all']).optional(),
+        title: z.string().optional(),
+        description: z.string().optional(),
+        label: z.string().optional(),
+        url: z.string().optional(),
+        force: z.boolean().optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  CronCreate: {
+    ...tool({
+      description: 'Schedule a recurring or one-shot prompt',
+      inputSchema: z.object({
+        cron: z.string(),
+        prompt: z.string(),
+        recurring: z.boolean().optional(),
+        durable: z.boolean().optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  CronDelete: {
+    ...tool({
+      description: 'Delete a scheduled prompt by id',
+      inputSchema: z.object({ id: z.string() }),
+    }),
+    toolUseKind: 'edit',
+  },
+  CronList: {
+    ...tool({
+      description: 'List scheduled prompts for the current session',
+      inputSchema: z.object({}),
+    }),
+    toolUseKind: 'readonly',
+  },
+  DesignSync: {
+    ...tool({
+      description: 'Read or update claude.ai Design projects',
+      inputSchema: z.object({
+        method: z.enum([
+          'list_projects',
+          'get_project',
+          'list_files',
+          'get_file',
+          'finalize_plan',
+          'write_files',
+          'delete_files',
+          'register_assets',
+          'unregister_assets',
+          'create_project',
+          'report_validate',
+        ]),
+        projectId: z.string().optional(),
+        path: z.string().optional(),
+        writes: z.array(z.string()).max(256).optional(),
+        deletes: z.array(z.string()).max(256).optional(),
+        planId: z.string().optional(),
+        files: z
+          .array(
+            z.object({
+              path: z.string(),
+              localPath: z.string().optional(),
+              data: z.string().optional(),
+              encoding: z.literal('base64').optional(),
+              mimeType: z.string().optional(),
+            }),
+          )
+          .max(256)
+          .optional(),
+        paths: z.array(z.string()).max(256).optional(),
+        name: z.string().optional(),
+        assets: z
+          .array(
+            z.object({
+              name: z.string(),
+              path: z.string(),
+              subtitle: z.string().optional(),
+              viewport: z
+                .object({
+                  width: z.number(),
+                  height: z.number().optional(),
+                })
+                .optional(),
+              group: z.string().optional(),
+            }),
+          )
+          .max(256)
+          .optional(),
+        localDir: z.string().optional(),
+        counts: z
+          .object({
+            total: z.number(),
+            bad: z.number(),
+            thin: z.number(),
+            variantsIdentical: z.number(),
+            iterations: z.number(),
+          })
+          .optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  LSP: {
+    ...tool({
+      description: 'Query a language server for code intelligence',
+      inputSchema: z.object({
+        operation: z.enum([
+          'goToDefinition',
+          'findReferences',
+          'hover',
+          'documentSymbol',
+          'workspaceSymbol',
+          'goToImplementation',
+          'prepareCallHierarchy',
+          'incomingCalls',
+          'outgoingCalls',
+        ]),
+        filePath: z.string(),
+        line: z.number().int().positive(),
+        character: z.number().int().positive(),
+        query: z.string().optional(),
+      }),
+    }),
+    toolUseKind: 'readonly',
+  },
+  PowerShell: {
+    ...tool({
+      description: 'Execute a PowerShell command, optionally in background',
+      inputSchema: z.object({
+        command: z.string(),
+        timeout: z.number().optional(),
+        description: z.string().optional(),
+        run_in_background: z.boolean().optional(),
+        dangerouslyDisableSandbox: z.boolean().optional(),
+      }),
+    }),
+    toolUseKind: 'bash',
+  },
+  PushNotification: {
+    ...tool({
+      description: 'Send a notification for proactive or scheduled work',
+      inputSchema: z.object({
+        message: z.string(),
+        status: z.literal('proactive'),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  RemoteTrigger: {
+    ...tool({
+      description: 'List, manage, or run a claude.ai Routine trigger',
+      inputSchema: z.object({
+        action: z.enum(['list', 'get', 'create', 'update', 'run']),
+        trigger_id: z.string().optional(),
+        body: z.record(z.string(), z.unknown()).optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  ReportFindings: {
+    ...tool({
+      description: 'Return verified code-review findings',
+      inputSchema: z.object({
+        level: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
+        findings: z
+          .array(
+            z.object({
+              file: z.string(),
+              line: z.number().optional(),
+              summary: z.string(),
+              short_summary: z.string().optional(),
+              failure_scenario: z.string(),
+              category: z.string().optional(),
+              verdict: z.enum(['CONFIRMED', 'PLAUSIBLE']).optional(),
+              outcome: z
+                .enum(['fixed', 'skipped', 'no_change_needed'])
+                .optional(),
+            }),
+          )
+          .max(32),
+      }),
+    }),
+    toolUseKind: 'readonly',
+  },
+  ScheduleWakeup: {
+    ...tool({
+      description: 'Schedule or stop the next iteration of a dynamic loop',
+      inputSchema: z.object({
+        delaySeconds: z.number().optional(),
+        reason: z.string().optional(),
+        prompt: z.string().optional(),
+        stop: z.boolean().optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  SendMessage: {
+    ...tool({
+      description: 'Send a plain-text or protocol message to another agent',
+      inputSchema: z.object({
+        to: z.string(),
+        summary: z.string().max(200).optional(),
+        message: z.union([z.string(), structuredTeamMessageSchema]),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  SendUserFile: {
+    ...tool({
+      description: 'Send one or more files to the user',
+      inputSchema: z.object({
+        files: z.union([z.string(), z.array(z.string()).min(1)]),
+        caption: z.string().optional(),
+        status: z.enum(['normal', 'proactive']),
+        display: z.enum(['render', 'attach']).optional(),
+      }),
+    }),
+    toolUseKind: 'readonly',
+  },
+  ShareOnboardingGuide: {
+    ...tool({
+      description: 'Create, update, inspect, or delete an onboarding guide',
+      inputSchema: z.object({
+        mode: z.enum(['check', 'update', 'create', 'delete']).optional(),
+        short_code: z
+          .string()
+          .regex(/^[A-Za-z0-9_-]{1,64}$/)
+          .optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  WaitForMcpServers: {
+    ...tool({
+      description: 'Wait for MCP servers that are still connecting',
+      inputSchema: z.object({
+        servers: z.array(z.string()).optional(),
+      }),
+    }),
+    toolUseKind: 'readonly',
+  },
+  Workflow: {
+    ...tool({
+      description: 'Run or resume a dynamic multi-agent workflow',
+      inputSchema: z.object({
+        script: z.string().optional(),
+        name: z.string().optional(),
+        description: z.string().optional(),
+        title: z.string().optional(),
+        args: z.record(z.string(), z.unknown()).optional(),
+        scriptPath: z.string().optional(),
+        resumeFromRunId: z.string().optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
 /*
- * Bootstrap lives in /tmp because it's pure derived state — the harness can
- * reinstall the CLI and bridge files on any fresh sandbox from the recipe.
- * Persistence comes from the sandbox provider's snapshot, not the path.
+ * Bootstrap is derived state stored under the sandbox's default working
+ * directory so snapshot-capable providers can preserve the installed CLI,
+ * bridge, and recipe marker without requiring root filesystem access.
  *
  * The session work dir (`startOpts.sessionWorkDir`) and the bridge-state dir
  * derived from `sandboxSession.defaultWorkingDirectory` both live under the sandbox's
@@ -397,7 +760,7 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
  * history is keyed by working directory) and the bridge state files survive
  * both detach -> attach/replay and stop -> snapshot -> resume cycles.
  */
-const BOOTSTRAP_DIR = '/tmp/harness/claude-code';
+const BOOTSTRAP_DIR = '.harness-bootstrap/claude-code';
 
 /**
  * Live bridge coordinates returned by `doDetach()` and `doSuspendTurn()`. A
@@ -429,6 +792,14 @@ type ClaudeCodeBridgeCoords = z.infer<typeof claudeCodeBridgeCoordsSchema>;
 export function createClaudeCode(
   settings: ClaudeCodeHarnessSettings = {},
 ): HarnessV1<typeof CLAUDE_CODE_BUILTIN_TOOLS> {
+  if (
+    settings.mcpServers != null &&
+    Object.prototype.hasOwnProperty.call(settings.mcpServers, 'harness-tools')
+  ) {
+    throw new Error(
+      'Claude Code MCP server name "harness-tools" is reserved for HarnessAgent tools.',
+    );
+  }
   let cachedBootstrap: HarnessV1Bootstrap | undefined;
   const thinking = settings.thinking ?? {
     type: 'adaptive',
@@ -458,12 +829,12 @@ export function createClaudeCode(
           { path: `${BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
         ],
         commands: [
-          { command: `mkdir -p ${BOOTSTRAP_DIR}` },
           {
-            command: `pnpm --dir ${BOOTSTRAP_DIR} install --frozen-lockfile --store-dir ${BOOTSTRAP_DIR}/.pnpm-store`,
+            command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
           },
           {
-            command: `cd ${BOOTSTRAP_DIR} && if [ -f node_modules/@anthropic-ai/claude-code/install.cjs ]; then node node_modules/@anthropic-ai/claude-code/install.cjs; fi && ./node_modules/.bin/claude --version`,
+            command:
+              'if [ -f node_modules/@anthropic-ai/claude-code/install.cjs ]; then node node_modules/@anthropic-ai/claude-code/install.cjs; fi && ./node_modules/.bin/claude --version',
           },
         ],
       };
@@ -473,6 +844,10 @@ export function createClaudeCode(
       const sandboxSession = startOpts.sandboxSession;
       const session = sandboxSession.restricted();
       const sandboxId = sandboxSession.id;
+      const bootstrapDir = posix.resolve(
+        sandboxSession.defaultWorkingDirectory,
+        BOOTSTRAP_DIR,
+      );
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
       const isContinue = startOpts.continueFrom != null;
@@ -542,6 +917,7 @@ export function createClaudeCode(
             proc: undefined,
             model: settings.model,
             maxTurns: settings.maxTurns,
+            env: settings.env,
             thinking,
             isResume: true,
             continueOnFirstPrompt: false,
@@ -553,6 +929,7 @@ export function createClaudeCode(
             permissionMode: startOpts.permissionMode,
             builtinToolFiltering: startOpts.builtinToolFiltering,
             skills: startOpts.skills ?? [],
+            mcpServers: settings.mcpServers,
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -591,16 +968,22 @@ export function createClaudeCode(
             })
           : undefined;
       const port = resolveBridgePort(sandboxSession, settings.port);
-      const token = randomBytes(32).toString('hex');
+      const token =
+        settings.mintBridgeToken == null
+          ? randomBytes(32).toString('hex')
+          : settings.mintBridgeToken(sandboxId);
+      const authEnv = resolveClaudeCodeEnv(settings.auth);
       const env = {
-        ...resolveClaudeCodeEnv(settings.auth),
+        ...authEnv,
         /*
          * The Claude Agent SDK does not expose arbitrary model-request
          * headers. It reads this environment variable and sends the value as
          * `x-client-app`, while also appending `client-app/<value>` to
          * `User-Agent`, so this is the attribution path for AI Gateway.
          */
-        CLAUDE_AGENT_SDK_CLIENT_APP: CLAUDE_CODE_CLIENT_APP,
+        ...(authEnv.AI_GATEWAY_BASE_URL
+          ? { CLAUDE_AGENT_SDK_CLIENT_APP: CLAUDE_CODE_CLIENT_APP }
+          : {}),
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
         ...(sandboxHomeDir ? { HOME: sandboxHomeDir } : {}),
@@ -642,7 +1025,7 @@ export function createClaudeCode(
       });
 
       const proc = await session.spawn({
-        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)}`,
+        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
@@ -709,6 +1092,7 @@ export function createClaudeCode(
         proc,
         model: settings.model,
         maxTurns: settings.maxTurns,
+        env: settings.env,
         thinking,
         isResume: respawnStrategy !== undefined,
         continueOnFirstPrompt: respawnStrategy !== undefined,
@@ -720,6 +1104,7 @@ export function createClaudeCode(
         permissionMode: startOpts.permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
         skills: startOpts.skills ?? [],
+        mcpServers: settings.mcpServers,
       });
     },
   };
@@ -965,6 +1350,7 @@ function createSession({
   proc,
   model,
   maxTurns,
+  env,
   thinking,
   isResume,
   continueOnFirstPrompt,
@@ -976,6 +1362,7 @@ function createSession({
   permissionMode,
   builtinToolFiltering,
   skills,
+  mcpServers,
 }: {
   sessionId: string;
   channel: ClaudeCodeChannel;
@@ -983,6 +1370,7 @@ function createSession({
   proc: Experimental_SandboxProcess | undefined;
   model: string | undefined;
   maxTurns: number | undefined;
+  env: Readonly<Record<string, string>> | undefined;
   thinking: ClaudeCodeThinkingConfig;
   isResume: boolean;
   continueOnFirstPrompt: boolean;
@@ -994,6 +1382,7 @@ function createSession({
   permissionMode: HarnessV1PermissionMode | undefined;
   builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
   skills: ReadonlyArray<HarnessV1Skill>;
+  mcpServers: Record<string, unknown> | undefined;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
@@ -1004,13 +1393,6 @@ function createSession({
    * `attach`ed bridge is already past its first turn and continues on its own.
    */
   let pendingResumeFlag = continueOnFirstPrompt;
-  /*
-   * Instructions are prepended to the first user message of a fresh session
-   * only. A resumed session (attach/replay/rerun) already carried them in its
-   * original first message (preserved in the workdir snapshot), so it starts
-   * "applied".
-   */
-  let instructionsApplied = isResume;
 
   /*
    * Wire the channel into one turn's worth of events and return the control
@@ -1157,26 +1539,25 @@ function createSession({
         abortSignal: promptOpts.abortSignal,
       });
 
-      let promptText = extractUserText(promptOpts.prompt);
-      if (!instructionsApplied && promptOpts.instructions) {
-        promptText = frameInstructions(promptOpts.instructions, promptText);
-      }
-      instructionsApplied = true;
-
       const startMessage = {
         type: 'start' as const,
-        prompt: promptText,
+        prompt: extractUserText(promptOpts.prompt),
         tools: (promptOpts.tools ?? []).map(t => ({
           name: t.name,
           description: t.description,
           inputSchema: t.inputSchema,
         })),
+        ...(promptOpts.instructions
+          ? { instructions: promptOpts.instructions }
+          : {}),
         model,
         maxTurns,
+        ...(env !== undefined ? { env } : {}),
         thinking,
         ...(skills.length > 0
           ? { skills: skills.map(skill => skill.name) }
           : {}),
+        ...(mcpServers == null ? {} : { mcpServers }),
         ...(permissionMode ? { permissionMode } : {}),
         ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
         ...(debug ? { debug } : {}),
@@ -1202,7 +1583,7 @@ function createSession({
        *
        * rerun: the bridge was respawned with no in-flight turn to attach to, so
        * re-drive the runtime's own thread from the workdir snapshot via
-       * `continue: true`. Lossy — work in flight at the interruption is
+       * `continue: true`. Lossy — work in flight at the suspension is
        * recomputed. This is the rare bridge-died fallback; the common slice path
        * is `attach`.
        */
@@ -1223,12 +1604,17 @@ function createSession({
             description: t.description,
             inputSchema: t.inputSchema,
           })),
+          ...(continueOpts.instructions
+            ? { instructions: continueOpts.instructions }
+            : {}),
           model,
           maxTurns,
+          ...(env !== undefined ? { env } : {}),
           thinking,
           ...(skills.length > 0
             ? { skills: skills.map(skill => skill.name) }
             : {}),
+          ...(mcpServers == null ? {} : { mcpServers }),
           ...(permissionMode ? { permissionMode } : {}),
           ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
           ...(debug ? { debug } : {}),
@@ -1284,7 +1670,7 @@ function createSession({
         channel.beginClose();
         try {
           if (!channel.isClosed()) {
-            channel.send({ type: 'shutdown' });
+            channel.send({ type: 'destroy' });
           }
         } catch {}
         let stopTimer: ReturnType<typeof setTimeout> | undefined;
@@ -1317,13 +1703,13 @@ function createSession({
       stopped = true;
       /*
        * If the bridge's channel already closed (e.g. mid-turn WS drop)
-       * there is no one to ack a `detach` message. Synthesize an empty
+       * there is no one to acknowledge a `stop` message. Synthesize an empty
        * payload — for Claude Code the resume state structurally is `{}`
        * (the conversation lives in the workdir, captured by the sandbox
        * snapshot during the subsequent `sandboxSession.stop()`), so we
        * lose nothing by skipping the round-trip.
        */
-      // Tell the channel we are tearing down so the bridge's post-detach
+      // Tell the channel we are tearing down so the bridge's post-stop
       // socket close finalises instead of triggering a reconnect.
       channel.beginClose();
       const data: unknown = channel.isClosed()
@@ -1333,18 +1719,18 @@ function createSession({
               unsub();
               reject(
                 new Error(
-                  `claude-code session ${sessionId} did not reply to detach within 5s.`,
+                  `claude-code session ${sessionId} did not reply to stop within 5s.`,
                 ),
               );
             }, 5000);
             timer.unref?.();
-            const unsub = channel.on('bridge-detach', msg => {
+            const unsub = channel.on('bridge-stop', msg => {
               clearTimeout(timer);
               unsub();
               resolve(msg.data);
             });
             try {
-              channel.send({ type: 'detach' });
+              channel.send({ type: 'stop' });
             } catch (err) {
               clearTimeout(timer);
               unsub();
@@ -1352,7 +1738,7 @@ function createSession({
             }
           });
 
-      // The bridge exits itself ~50ms after sending bridge-detach. Give
+      // The bridge exits itself after sending bridge-stop. Give
       // it a moment, then ensure the process is reaped and the channel
       // closed.
       let stopTimer: ReturnType<typeof setTimeout> | undefined;
@@ -1390,16 +1776,13 @@ function createSession({
       }
       stopped = true;
       /*
-       * First ask the runtime to interrupt the active model turn, then freeze
-       * the host at a precise cursor. `channel.suspend` stops processing
-       * inbound frames (the cursor stops advancing exactly at the last
-       * delivered event), drains what was already dispatched, then closes the
-       * host socket with reason `'suspended'` — which `wireTurn`'s `onClose`
-       * treats as a clean turn end. The bridge keeps the turn running and
-       * accumulates events past the cursor for the next slice to replay. The
-       * sandbox process is deliberately left alive (no `shutdown`/`detach`).
+       * Freeze the host at a precise cursor without stopping the active model
+       * turn. `channel.suspend` stops processing inbound frames, drains what
+       * was already dispatched, then closes the host socket with reason
+       * `'suspended'`. The bridge keeps the turn running and accumulates events
+       * past the cursor for the next slice to replay. The sandbox process is
+       * deliberately left alive.
        */
-      await channel.interrupt();
       const lastSeenEventId = await channel.suspend();
       const payload: HarnessV1ContinueTurnState = {
         type: 'continue-turn',
@@ -1417,23 +1800,6 @@ function createSession({
       return payload;
     },
   };
-}
-
-/*
- * Frame session instructions and the user's text so the runtime treats the
- * instructions as system-provided operating guidance, not something the user
- * wrote. Without the wrapper the agent can echo the prepended text back as if
- * the user had asked for it, which is confusing since the user never typed it.
- * Applied only to the first user message of a fresh session.
- */
-function frameInstructions(instructions: string, userText: string): string {
-  return (
-    '<session-instructions>\n' +
-    'The block below is operating guidance from the system, not a message from the user — follow it, but do not mention it or attribute it to the user.\n\n' +
-    `${instructions}\n` +
-    '</session-instructions>\n\n' +
-    `<user-message>\n${userText}\n</user-message>`
-  );
 }
 
 /*

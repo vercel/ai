@@ -112,10 +112,10 @@ export type HarnessV1PromptTurnOptions = {
 
   /**
    * Free-form instructions for the session. The framework supplies the same
-   * value on every turn; the adapter is responsible for applying it once, by
-   * prepending it to the first user message of a fresh (non-resumed) session.
-   * On a resumed session the adapter must not re-apply it — the original first
-   * message already carried it and lives in the runtime's persisted history.
+   * value on every turn. Adapters should append it to the runtime's native
+   * system or developer prompt when supported. Otherwise, they should prepend
+   * it to the first user message of a fresh session and rely on the runtime's
+   * persisted history when resuming.
    */
   readonly instructions?: string;
 
@@ -148,6 +148,13 @@ export type HarnessV1ContinueTurnOptions = {
    * may ignore them; an adapter that re-drives the turn (rerun) needs them.
    */
   readonly tools?: ReadonlyArray<HarnessV1ToolSpec>;
+
+  /**
+   * Free-form session instructions. An adapter that re-drives the runtime may
+   * need these to reconstruct its native system or developer prompt. An
+   * adapter that attaches to a live turn may ignore them.
+   */
+  readonly instructions?: string;
 
   /**
    * Signal that aborts the continued turn. The adapter must cancel any
@@ -216,7 +223,7 @@ export type HarnessV1Session = {
   /**
    * Continue the in-flight turn **without a new user prompt**, returning the
    * same control surface as `doPromptTurn`. Used to keep consuming a turn that
-   * was interrupted at a process boundary (the workflow slice loop), after the
+   * was suspended at a process boundary (the workflow slice loop), after the
    * session itself has been resumed via `doStart({ continueFrom })`:
    *
    *  - When the runtime's turn is still live and reachable (bridge `attach` /
@@ -225,7 +232,7 @@ export type HarnessV1Session = {
    *  - When the live turn is gone (bridge respawned `rerun`, or a host-resident
    *    runtime like Pi whose turn cannot survive its process), the adapter
    *    re-drives the runtime's own thread from its persisted state. Lossy: work
-   *    in flight at the interruption is recomputed.
+   *    in flight at the suspension is recomputed.
    *
    * Required on every adapter. The behaviour an adapter can guarantee follows
    * from its architecture; the contract is uniform.

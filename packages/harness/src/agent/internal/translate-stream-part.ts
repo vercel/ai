@@ -29,8 +29,9 @@ export function translateStreamPart<TOOLS extends ToolSet>(
 ): ReadonlyArray<TextStreamPart<TOOLS>> {
   switch (event.type) {
     case 'stream-start':
-      // The agent emits its own `start` part with normalized warnings;
-      // the harness-level start signal is consumed internally.
+      // The agent emits its own `start` part as the first chunk of the
+      // stream (see `HarnessStreamTextResult`); the harness-level start
+      // signal is consumed internally.
       return [];
 
     case 'text-start':
@@ -110,6 +111,7 @@ export function translateStreamPart<TOOLS extends ToolSet>(
           ...(event.preliminary !== undefined
             ? { preliminary: event.preliminary }
             : {}),
+          ...(event.dynamic !== undefined ? { dynamic: event.dynamic } : {}),
           ...(event.providerMetadata !== undefined
             ? { providerMetadata: event.providerMetadata }
             : {}),

@@ -2772,6 +2772,82 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+    it('should JSON-encode text outputs only for tools with an output schema', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_text',
+                toolName: 'search',
+                output: {
+                  type: 'text',
+                  value: 'The weather is sunny',
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call_error',
+                toolName: 'search',
+                output: {
+                  type: 'error-text',
+                  value: 'Error: boom',
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call_denied',
+                toolName: 'search',
+                output: {
+                  type: 'execution-denied',
+                  reason: 'User denied the tool execution',
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call_without_schema',
+                toolName: 'lookup',
+                output: {
+                  type: 'error-text',
+                  value: 'Error: unchanged',
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        outputSchemaToolNames: new Set(['search']),
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_text',
+          output: '"The weather is sunny"',
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_error',
+          output: '"Error: boom"',
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_denied',
+          output: '"User denied the tool execution"',
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_without_schema',
+          output: 'Error: unchanged',
+        },
+      ]);
+    });
+
     it('should convert execution-denied tool result to function_call_output', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
@@ -4875,7 +4951,7 @@ describe('convertToOpenAIResponsesInput', () => {
   });
 
   describe('hasPreviousResponseId', () => {
-    it('should keep text item references and skip function call item references when hasPreviousResponseId is true', async () => {
+    it('should keep client-executed function calls paired with their outputs when hasPreviousResponseId is true', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
         prompt: [
@@ -4934,6 +5010,12 @@ describe('convertToOpenAIResponsesInput', () => {
           {
             "id": "msg_existing_123",
             "type": "item_reference",
+          },
+          {
+            "arguments": "{"location":"San Francisco"}",
+            "call_id": "call_123",
+            "name": "getWeather",
+            "type": "function_call",
           },
           {
             "call_id": "call_123",
@@ -5557,6 +5639,177 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('programmatic tool calling', () => {
+    it('should preserve the program output item reference from provider metadata', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'program_call_1',
+                toolName: 'program',
+                output: {
+                  type: 'json',
+                  value: {
+                    result: '{"availableUnits":42}',
+                    status: 'completed',
+                  },
+                },
+                ...({
+                  providerMetadata: {
+                    openai: { itemId: 'program_output_item_1' },
+                  },
+                } as object),
+              },
+            ],
+          },
+        ],
+        toolNameMapping: {
+          toProviderToolName: name =>
+            name === 'program' ? 'programmatic_tool_calling' : name,
+          toCustomToolName: name =>
+            name === 'programmatic_tool_calling' ? 'program' : name,
+        },
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        { type: 'item_reference', id: 'program_output_item_1' },
+      ]);
+    });
+
+    it('should replay program items and preserve nested function caller linkage', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'program_call_1',
+                toolName: 'program',
+                input: {
+                  code: 'const value = await tools.get_inventory({ sku: "A" });',
+                  fingerprint: 'fingerprint_1',
+                },
+                providerExecuted: true,
+                providerOptions: {
+                  openai: { itemId: 'program_item_1' },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'function_call_1',
+                toolName: 'get_inventory',
+                input: { sku: 'A' },
+                providerOptions: {
+                  openai: {
+                    itemId: 'function_item_1',
+                    caller: {
+                      type: 'program',
+                      callerId: 'program_call_1',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'function_call_1',
+                toolName: 'get_inventory',
+                output: {
+                  type: 'json',
+                  value: { sku: 'A', availableUnits: 42 },
+                },
+                providerOptions: {
+                  openai: {
+                    caller: {
+                      type: 'program',
+                      callerId: 'program_call_1',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'program_call_1',
+                toolName: 'program',
+                output: {
+                  type: 'json',
+                  value: {
+                    result: '{"availableUnits":42}',
+                    status: 'completed',
+                  },
+                },
+                providerOptions: {
+                  openai: { itemId: 'program_output_item_1' },
+                },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: {
+          toProviderToolName: name =>
+            name === 'program' ? 'programmatic_tool_calling' : name,
+          toCustomToolName: name =>
+            name === 'programmatic_tool_calling' ? 'program' : name,
+        },
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'program',
+          id: 'program_item_1',
+          call_id: 'program_call_1',
+          code: 'const value = await tools.get_inventory({ sku: "A" });',
+          fingerprint: 'fingerprint_1',
+        },
+        {
+          type: 'function_call',
+          call_id: 'function_call_1',
+          name: 'get_inventory',
+          arguments: '{"sku":"A"}',
+          caller: {
+            type: 'program',
+            caller_id: 'program_call_1',
+          },
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'function_call_1',
+          output: '{"sku":"A","availableUnits":42}',
+          caller: {
+            type: 'program',
+            caller_id: 'program_call_1',
+          },
+        },
+        {
+          type: 'program_output',
+          id: 'program_output_item_1',
+          call_id: 'program_call_1',
+          result: '{"availableUnits":42}',
+          status: 'completed',
+        },
+      ]);
     });
   });
 });

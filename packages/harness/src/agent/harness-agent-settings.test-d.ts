@@ -74,4 +74,36 @@ describe('HarnessAgentSettings tool filtering types', () => {
 
     expectTypeOf(settings).toMatchTypeOf<Settings>();
   });
+
+  test('stopWhen accepts one or multiple predicates with merged tools', () => {
+    type RuntimeContext = { tenantId: string };
+    type RuntimeSettings = HarnessAgentSettings<
+      typeof harness,
+      typeof userTools,
+      RuntimeContext
+    >;
+    const predicate: NonNullable<RuntimeSettings['stopWhen']> = ({ steps }) => {
+      expectTypeOf(steps[0]!.runtimeContext).toEqualTypeOf<RuntimeContext>();
+      expectTypeOf(steps[0]!.staticToolCalls[0]!.toolName).toMatchTypeOf<
+        'bash' | 'echo'
+      >();
+      return false;
+    };
+
+    const single: RuntimeSettings = {
+      harness,
+      tools: userTools,
+      sandbox,
+      stopWhen: predicate,
+    };
+    const multiple: RuntimeSettings = {
+      harness,
+      tools: userTools,
+      sandbox,
+      stopWhen: [predicate],
+    };
+
+    expectTypeOf(single).toMatchTypeOf<RuntimeSettings>();
+    expectTypeOf(multiple).toMatchTypeOf<RuntimeSettings>();
+  });
 });

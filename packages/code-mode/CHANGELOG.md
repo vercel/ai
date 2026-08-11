@@ -1,0 +1,137 @@
+# @ai-sdk/code-mode
+
+## 1.0.17
+
+### Patch Changes
+
+- Updated dependencies [79c52ef]
+  - ai@7.0.60
+
+## 1.0.16
+
+### Patch Changes
+
+- ai@7.0.59
+
+## 1.0.15
+
+### Patch Changes
+
+- Updated dependencies [72ad23f]
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - ai@7.0.58
+
+## 1.0.14
+
+### Patch Changes
+
+- ai@7.0.57
+
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [25c9120]
+- Updated dependencies [89080c8]
+- Updated dependencies [79d6195]
+  - ai@7.0.56
+
+## 1.0.12
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - ai@7.0.55
+
+## 1.0.11
+
+### Patch Changes
+
+- Updated dependencies [a6b17a2]
+- Updated dependencies [5615eb7]
+- Updated dependencies [36a3ff6]
+  - ai@7.0.54
+
+## 1.0.10
+
+### Patch Changes
+
+- Updated dependencies [cd0177b]
+- Updated dependencies [a09fdef]
+  - ai@7.0.53
+
+## 1.0.9
+
+### Patch Changes
+
+- Updated dependencies [3836a85]
+  - ai@7.0.52
+
+## 1.0.8
+
+### Patch Changes
+
+- ai@7.0.51
+
+## 1.0.7
+
+### Patch Changes
+
+- 8b7f805: feat(code-mode): add signed interruption continuations and deterministic nested tool replay
+- da64b51: feat(code-mode): simplify tool caller configuration
+- Updated dependencies [79e133c]
+- Updated dependencies [da64b51]
+  - ai@7.0.50
+
+## 1.0.6
+
+### Patch Changes
+
+- ai@7.0.49
+
+## 1.0.5
+
+### Patch Changes
+
+- ai@7.0.48
+
+## 1.0.4
+
+### Patch Changes
+
+- ai@7.0.47
+
+## 1.0.3
+
+### Patch Changes
+
+- ai@7.0.46
+
+## 1.0.2
+
+### Patch Changes
+
+- Updated dependencies [d6ce0ee]
+- Updated dependencies [fa95504]
+- Updated dependencies [349afe7]
+  - ai@7.0.45
+
+## 1.0.1
+
+### Patch Changes
+
+- Updated dependencies [015acb4]
+  - ai@7.0.44
+
+## 1.0.0
+
+### Major Changes
+
+- 29d7b67: feat: add first-party Code Mode package for orchestrating AI SDK tools from generated code
+
+### Patch Changes
+
+- b192878: feat: add experimental_toolCaller routing to generateText for code mode
+- Updated dependencies [b192878]
+  - ai@7.0.43

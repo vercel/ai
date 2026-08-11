@@ -34,7 +34,13 @@
       "path": "packages/bytedance"
     },
     {
+      "path": "packages/cartesia"
+    },
+    {
       "path": "packages/cerebras"
+    },
+    {
+      "path": "packages/code-mode"
     },
     {
       "path": "packages/codemod"
@@ -64,10 +70,16 @@
       "path": "packages/fireworks"
     },
     {
+      "path": "packages/fish-audio"
+    },
+    {
       "path": "packages/gateway"
     },
     {
       "path": "packages/gladia"
+    },
+    {
+      "path": "packages/gmicloud"
     },
     {
       "path": "packages/google-vertex"
@@ -79,6 +91,9 @@
       "path": "packages/groq"
     },
     {
+      "path": "packages/harness-acp"
+    },
+    {
       "path": "packages/harness-claude-code"
     },
     {
@@ -86,6 +101,9 @@
     },
     {
       "path": "packages/harness-deepagents"
+    },
+    {
+      "path": "packages/harness-grok-build"
     },
     {
       "path": "packages/harness-opencode"
@@ -119,6 +137,9 @@
     },
     {
       "path": "packages/mcp"
+    },
+    {
+      "path": "packages/minimax"
     },
     {
       "path": "packages/mistral"

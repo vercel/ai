@@ -16,6 +16,7 @@ export type {
   HarnessAgentContinueTurnState,
   HarnessAgentLifecycleState,
   HarnessAgentPendingToolApproval,
+  HarnessAgentPendingToolResult,
   HarnessAgentPermissionMode,
   HarnessAgentPrompt,
   HarnessAgentPromptControl,
@@ -32,6 +33,10 @@ export {
   type HarnessAgentToolApprovalContinuation,
 } from '../src/agent/harness-agent-tool-approval-continuation';
 export {
+  collectHarnessAgentToolResultContinuations,
+  type HarnessAgentToolResultContinuation,
+} from '../src/agent/harness-agent-tool-result-continuation';
+export {
   prepareHarnessSandboxTemplate,
   prewarmHarness,
 } from '../src/agent/prepare-harness-sandbox-template';
@@ -47,6 +52,8 @@ export type {
 } from '../src/agent/observability/types';
 export { HarnessError } from '../src/errors/harness-error';
 export { HarnessCapabilityUnsupportedError } from '../src/errors/harness-capability-unsupported-error';
+export { HarnessSandboxAuthenticationError } from '../src/errors/harness-sandbox-authentication-error';
+export { getHarnessErrorMessage } from '../src/agent/get-harness-error-message';
 export {
   createFileReporter,
   createTraceTreeReporter,

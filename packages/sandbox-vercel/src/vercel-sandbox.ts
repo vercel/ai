@@ -1,6 +1,7 @@
-import type {
-  HarnessV1NetworkSandboxSession,
-  HarnessV1SandboxProvider,
+import {
+  HarnessSandboxAuthenticationError,
+  type HarnessV1NetworkSandboxSession,
+  type HarnessV1SandboxProvider,
 } from '@ai-sdk/harness';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import { Sandbox } from '@vercel/sandbox';
@@ -150,10 +151,14 @@ export class VercelSandboxProvider implements HarnessV1SandboxProvider {
       : {};
 
     if (identity == null || onFirstCreate == null) {
-      const sandbox = await Sandbox.create({
-        ...baseParams,
-        ...sessionNameOverride,
-        ...(options?.abortSignal ? { signal: options.abortSignal } : {}),
+      const sandbox = await withVercelSandboxAuthenticationError({
+        settings: this.settings,
+        operation: () =>
+          Sandbox.create({
+            ...baseParams,
+            ...sessionNameOverride,
+            ...(options?.abortSignal ? { signal: options.abortSignal } : {}),
+          }),
       });
       return new VercelNetworkSandboxSession({ sandbox, ownsLifecycle: true });
     }
@@ -163,30 +168,44 @@ export class VercelSandboxProvider implements HarnessV1SandboxProvider {
     let snapshotId = cache.get(templateName);
 
     if (snapshotId == null) {
-      const template = await Sandbox.getOrCreate({
-        ...baseParams,
-        name: templateName,
-        persistent: true,
-        snapshotExpiration: baseParams.snapshotExpiration ?? 0,
-        onCreate: async sbx => {
-          await onFirstCreate(new VercelSandboxSession(sbx), {
-            abortSignal: options?.abortSignal,
-          });
-        },
-        ...(options?.abortSignal ? { signal: options.abortSignal } : {}),
+      const template = await withVercelSandboxAuthenticationError({
+        settings: this.settings,
+        operation: () =>
+          Sandbox.getOrCreate({
+            ...baseParams,
+            name: templateName,
+            persistent: true,
+            snapshotExpiration: baseParams.snapshotExpiration ?? 0,
+            onCreate: async sbx => {
+              await onFirstCreate(new VercelSandboxSession(sbx), {
+                abortSignal: options?.abortSignal,
+              });
+            },
+            ...(options?.abortSignal ? { signal: options.abortSignal } : {}),
+          }),
       });
 
       let resolvedId: string | undefined = template.currentSnapshotId;
       if (resolvedId == null) {
-        const stopResult = await template.stop(
-          options?.abortSignal ? { signal: options.abortSignal } : undefined,
-        );
+        const stopResult = await withVercelSandboxAuthenticationError({
+          settings: this.settings,
+          operation: () =>
+            template.stop(
+              options?.abortSignal
+                ? { signal: options.abortSignal }
+                : undefined,
+            ),
+        });
         resolvedId = stopResult.snapshot?.id;
         if (resolvedId == null) {
-          resolvedId = await pollForTemplateSnapshot({
-            name: templateName,
-            lookupParams: getSandboxLookupParams(baseParams),
-            abortSignal: options?.abortSignal,
+          resolvedId = await withVercelSandboxAuthenticationError({
+            settings: this.settings,
+            operation: () =>
+              pollForTemplateSnapshot({
+                name: templateName,
+                lookupParams: getSandboxLookupParams(baseParams),
+                abortSignal: options?.abortSignal,
+              }),
           });
         }
       }
@@ -202,11 +221,15 @@ export class VercelSandboxProvider implements HarnessV1SandboxProvider {
       ...forkParams
     } = baseParams;
 
-    const fork = await Sandbox.create({
-      ...forkParams,
-      source: { type: 'snapshot', snapshotId },
-      ...sessionNameOverride,
-      ...(options?.abortSignal ? { signal: options.abortSignal } : {}),
+    const fork = await withVercelSandboxAuthenticationError({
+      settings: this.settings,
+      operation: () =>
+        Sandbox.create({
+          ...forkParams,
+          source: { type: 'snapshot', snapshotId },
+          ...sessionNameOverride,
+          ...(options?.abortSignal ? { signal: options.abortSignal } : {}),
+        }),
     });
     return new VercelNetworkSandboxSession({
       sandbox: fork,
@@ -228,10 +251,14 @@ export class VercelSandboxProvider implements HarnessV1SandboxProvider {
       });
     }
 
-    const sandbox = await Sandbox.get({
-      ...getSandboxLookupParams(this.settings),
-      name: sessionSandboxName(options.sessionId),
-      ...(options.abortSignal ? { signal: options.abortSignal } : {}),
+    const sandbox = await withVercelSandboxAuthenticationError({
+      settings: this.settings,
+      operation: () =>
+        Sandbox.get({
+          ...getSandboxLookupParams(this.settings),
+          name: sessionSandboxName(options.sessionId),
+          ...(options.abortSignal ? { signal: options.abortSignal } : {}),
+        }),
     });
     return new VercelNetworkSandboxSession({ sandbox, ownsLifecycle: true });
   };
@@ -286,6 +313,110 @@ function getSnapshotCache(): SnapshotCache {
   }
   return cache;
 }
+
+const VERCEL_SANDBOX_AUTHENTICATION_MESSAGE =
+  'Vercel Sandbox authentication failed. Set VERCEL_OIDC_TOKEN, or pass token, teamId, and projectId to createVercelSandbox(), then verify that they can access Vercel Sandbox.';
+
+async function withVercelSandboxAuthenticationError<T>({
+  settings,
+  operation,
+}: {
+  settings: VercelSandboxSettings;
+  operation: () => Promise<T>;
+}): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (
+      !isVercelSandboxAuthenticationFailure({
+        error,
+        hasConfiguredCredentials: hasConfiguredCredentials(settings),
+      })
+    ) {
+      throw error;
+    }
+    throw new HarnessSandboxAuthenticationError({
+      message: VERCEL_SANDBOX_AUTHENTICATION_MESSAGE,
+      sandboxProviderId: VERCEL_PROVIDER_ID,
+      cause: error,
+    });
+  }
+}
+
+function hasConfiguredCredentials(settings: VercelSandboxSettings): boolean {
+  if (process.env.VERCEL_OIDC_TOKEN) return true;
+  if ('sandbox' in settings && settings.sandbox != null) return true;
+  const { token, teamId, projectId } = getSandboxLookupParams(settings);
+  return Boolean(token && teamId && projectId);
+}
+
+function isVercelSandboxAuthenticationFailure({
+  error,
+  hasConfiguredCredentials,
+}: {
+  error: unknown;
+  hasConfiguredCredentials: boolean;
+}): boolean {
+  const seen = new Set<unknown>();
+  let current = error;
+  while (current != null && !seen.has(current)) {
+    seen.add(current);
+    if (typeof current === 'object') {
+      const candidate = current as {
+        name?: unknown;
+        message?: unknown;
+        code?: unknown;
+        cause?: unknown;
+        response?: { status?: unknown; statusCode?: unknown };
+      };
+      if (
+        candidate.response?.status === 401 ||
+        candidate.response?.status === 403 ||
+        candidate.response?.statusCode === 401 ||
+        candidate.response?.statusCode === 403
+      ) {
+        return true;
+      }
+      if (
+        typeof candidate.name === 'string' &&
+        VERCEL_AUTHENTICATION_ERROR_NAMES.has(candidate.name)
+      ) {
+        return true;
+      }
+      if (
+        typeof candidate.message === 'string' &&
+        VERCEL_AUTHENTICATION_ERROR_MESSAGE.test(candidate.message)
+      ) {
+        return true;
+      }
+      if (
+        !hasConfiguredCredentials &&
+        candidate.code === 'ERR_INVALID_ARG_TYPE' &&
+        typeof candidate.message === 'string' &&
+        candidate.message.includes('"path" argument') &&
+        candidate.message.includes('Received undefined')
+      ) {
+        return true;
+      }
+      current = candidate.cause;
+      continue;
+    }
+    break;
+  }
+  return false;
+}
+
+const VERCEL_AUTHENTICATION_ERROR_NAMES = new Set([
+  'AccessTokenMissingError',
+  'LocalOidcContextError',
+  'OAuthError',
+  'RefreshAccessTokenFailedError',
+  'VercelOidcContextError',
+  'VercelOidcTokenError',
+]);
+
+const VERCEL_AUTHENTICATION_ERROR_MESSAGE =
+  /Could not get credentials from OIDC context|No authentication found|Failed to (?:retrieve|refresh) authentication token|Missing credentials parameters to access the Vercel API|Authentication failed/i;
 
 async function pollForTemplateSnapshot({
   name,

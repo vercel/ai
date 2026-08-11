@@ -48,6 +48,10 @@ import type {
   toolSearchInputSchema,
   toolSearchOutputSchema,
 } from '../tool/tool-search';
+import type {
+  programmaticToolCallingInputSchema,
+  programmaticToolCallingOutputSchema,
+} from '../tool/programmatic-tool-calling';
 import type { webSearchOutputSchema } from '../tool/web-search';
 import {
   convertOpenAIResponsesUsage,
@@ -222,7 +226,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     return this.config.provider;
   }
 
-  private async getArgs({
+  protected async getArgs({
     maxOutputTokens,
     temperature,
     stopSequences,
@@ -313,10 +317,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         'openai.mcp': 'mcp',
         'openai.apply_patch': 'apply_patch',
         'openai.tool_search': 'tool_search',
+        'openai.programmatic_tool_calling': 'programmatic_tool_calling',
       },
     });
 
     const customProviderToolNames = new Set<string>();
+    // OpenAI requires function_call_output.output to contain valid JSON when the
+    // function declares output_schema. Preserve the affected SDK tool names so
+    // prompt conversion can apply that encoding only to their results.
+    const outputSchemaToolNames = new Set<string>();
     const {
       tools: openaiTools,
       toolChoice: openaiToolChoice,
@@ -327,6 +336,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       allowedTools: openaiOptions?.allowedTools ?? undefined,
       toolNameMapping,
       customProviderToolNames,
+      outputSchemaToolNames,
     });
 
     const { input, warnings: inputWarnings } =
@@ -353,6 +363,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
           customProviderToolNames.size > 0
             ? customProviderToolNames
             : undefined,
+        outputSchemaToolNames:
+          outputSchemaToolNames.size > 0 ? outputSchemaToolNames : undefined,
       });
 
     warnings.push(...inputWarnings);
@@ -569,7 +581,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     // Validate priority processing support
     if (
-      openaiOptions?.serviceTier === 'priority' &&
+      (openaiOptions?.serviceTier === 'priority' ||
+        openaiOptions?.serviceTier === 'fast') &&
       !modelCapabilities.supportsPriorityProcessing
     ) {
       warnings.push({
@@ -940,6 +953,56 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               [providerOptionsName]: {
                 itemId: part.id,
                 ...(part.namespace != null && { namespace: part.namespace }),
+                ...(part.caller != null && {
+                  caller:
+                    part.caller.type === 'program'
+                      ? {
+                          type: 'program',
+                          callerId: part.caller.caller_id,
+                        }
+                      : part.caller,
+                }),
+              },
+            },
+          });
+          break;
+        }
+
+        case 'program': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.call_id,
+            toolName: toolNameMapping.toCustomToolName(
+              'programmatic_tool_calling',
+            ),
+            input: JSON.stringify({
+              code: part.code,
+              fingerprint: part.fingerprint,
+            } satisfies InferSchema<typeof programmaticToolCallingInputSchema>),
+            providerExecuted: true,
+            providerMetadata: {
+              [providerOptionsName]: {
+                itemId: part.id,
+              },
+            },
+          });
+          break;
+        }
+
+        case 'program_output': {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.call_id,
+            toolName: toolNameMapping.toCustomToolName(
+              'programmatic_tool_calling',
+            ),
+            result: {
+              result: part.result,
+              status: part.status,
+            } satisfies InferSchema<typeof programmaticToolCallingOutputSchema>,
+            providerMetadata: {
+              [providerOptionsName]: {
+                itemId: part.id,
               },
             },
           });
@@ -1261,6 +1324,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
           ? chunk
           : undefined,
       isOutputChunk: isResponseOutputChunk,
+      isAcceptedChunk: isResponseInProgressChunk,
       url,
       requestBodyValues: body,
       responseHeaders,
@@ -1323,6 +1387,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         summaryParts: Record<string, 'active' | 'can-conclude' | 'concluded'>;
       }
     > = {};
+
+    // OpenAI-compatible providers can rotate opaque item ids between events.
+    // output_index remains stable for the lifetime of an output item.
+    const activeOutputItemIds: Record<number, string | undefined> = {};
+    const resolveOutputItemId = ({
+      itemId,
+      outputIndex,
+    }: {
+      itemId: string;
+      outputIndex?: number | null;
+    }) =>
+      outputIndex == null
+        ? itemId
+        : (activeOutputItemIds[outputIndex] ?? itemId);
 
     let serviceTier: string | undefined;
     let reasoningContext: ResponsesProviderMetadata['reasoningContext'];
@@ -1552,6 +1630,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               } else if (value.item.type === 'shell_call_output') {
                 // shell_call_output is handled in output_item.done
               } else if (value.item.type === 'message') {
+                activeOutputItemIds[value.output_index] = value.item.id;
                 ongoingAnnotations.splice(0, ongoingAnnotations.length);
                 activeMessagePhase = value.item.phase ?? undefined;
                 controller.enqueue({
@@ -1570,6 +1649,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 isResponseOutputItemAddedChunk(value) &&
                 value.item.type === 'reasoning'
               ) {
+                activeOutputItemIds[value.output_index] = value.item.id;
                 activeReasoning[value.item.id] = {
                   encryptedContent: value.item.encrypted_content,
                   summaryParts: { 0: 'active' },
@@ -1589,14 +1669,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               }
             } else if (isResponseOutputItemDoneChunk(value)) {
               if (value.item.type === 'message') {
+                const itemId = resolveOutputItemId({
+                  itemId: value.item.id,
+                  outputIndex: value.output_index,
+                });
                 const phase = value.item.phase ?? activeMessagePhase;
                 activeMessagePhase = undefined;
                 controller.enqueue({
                   type: 'text-end',
-                  id: value.item.id,
+                  id: itemId,
                   providerMetadata: {
                     [providerOptionsName]: {
-                      itemId: value.item.id,
+                      itemId,
                       ...(phase != null && { phase }),
                       ...(ongoingAnnotations.length > 0 && {
                         annotations: ongoingAnnotations,
@@ -1604,6 +1688,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                     } satisfies ResponsesTextProviderMetadata,
                   },
                 });
+                activeOutputItemIds[value.output_index] = undefined;
               } else if (value.item.type === 'function_call') {
                 ongoingToolCalls[value.output_index] = undefined;
                 hasFunctionCall = true;
@@ -1631,6 +1716,54 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                       ...(value.item.namespace != null && {
                         namespace: value.item.namespace,
                       }),
+                      ...(value.item.caller != null && {
+                        caller:
+                          value.item.caller.type === 'program'
+                            ? {
+                                type: 'program',
+                                callerId: value.item.caller.caller_id,
+                              }
+                            : value.item.caller,
+                      }),
+                    },
+                  },
+                });
+              } else if (value.item.type === 'program') {
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.call_id,
+                  toolName: toolNameMapping.toCustomToolName(
+                    'programmatic_tool_calling',
+                  ),
+                  input: JSON.stringify({
+                    code: value.item.code,
+                    fingerprint: value.item.fingerprint,
+                  } satisfies InferSchema<
+                    typeof programmaticToolCallingInputSchema
+                  >),
+                  providerExecuted: true,
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      itemId: value.item.id,
+                    },
+                  },
+                });
+              } else if (value.item.type === 'program_output') {
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.call_id,
+                  toolName: toolNameMapping.toCustomToolName(
+                    'programmatic_tool_calling',
+                  ),
+                  result: {
+                    result: value.item.result,
+                    status: value.item.status,
+                  } satisfies InferSchema<
+                    typeof programmaticToolCallingOutputSchema
+                  >,
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      itemId: value.item.id,
                     },
                   },
                 });
@@ -2024,34 +2157,41 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   } satisfies InferSchema<typeof shellOutputSchema>,
                 });
               } else if (value.item.type === 'reasoning') {
-                const activeReasoningPart = activeReasoning[value.item.id];
+                const itemId = resolveOutputItemId({
+                  itemId: value.item.id,
+                  outputIndex: value.output_index,
+                });
+                const activeReasoningPart = activeReasoning[itemId];
 
-                // get all active or can-conclude summary parts' ids
-                // to conclude ongoing reasoning parts:
-                const summaryPartIndices = Object.entries(
-                  activeReasoningPart.summaryParts,
-                )
-                  .filter(
-                    ([_, status]) =>
-                      status === 'active' || status === 'can-conclude',
+                if (activeReasoningPart != null) {
+                  // get all active or can-conclude summary parts' ids
+                  // to conclude ongoing reasoning parts:
+                  const summaryPartIndices = Object.entries(
+                    activeReasoningPart.summaryParts,
                   )
-                  .map(([summaryIndex]) => summaryIndex);
+                    .filter(
+                      ([_, status]) =>
+                        status === 'active' || status === 'can-conclude',
+                    )
+                    .map(([summaryIndex]) => summaryIndex);
 
-                for (const summaryIndex of summaryPartIndices) {
-                  controller.enqueue({
-                    type: 'reasoning-end',
-                    id: `${value.item.id}:${summaryIndex}`,
-                    providerMetadata: {
-                      [providerOptionsName]: {
-                        itemId: value.item.id,
-                        reasoningEncryptedContent:
-                          value.item.encrypted_content ?? null,
-                      } satisfies ResponsesReasoningProviderMetadata,
-                    },
-                  });
+                  for (const summaryIndex of summaryPartIndices) {
+                    controller.enqueue({
+                      type: 'reasoning-end',
+                      id: `${itemId}:${summaryIndex}`,
+                      providerMetadata: {
+                        [providerOptionsName]: {
+                          itemId,
+                          reasoningEncryptedContent:
+                            value.item.encrypted_content ?? null,
+                        } satisfies ResponsesReasoningProviderMetadata,
+                      },
+                    });
+                  }
+
+                  delete activeReasoning[itemId];
                 }
-
-                delete activeReasoning[value.item.id];
+                activeOutputItemIds[value.output_index] = undefined;
               } else if (value.item.type === 'compaction') {
                 controller.enqueue({
                   type: 'custom',
@@ -2181,9 +2321,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 modelId: value.response.model,
               });
             } else if (isTextDeltaChunk(value)) {
+              const itemId = resolveOutputItemId({
+                itemId: value.item_id,
+                outputIndex: value.output_index,
+              });
               controller.enqueue({
                 type: 'text-delta',
-                id: value.item_id,
+                id: itemId,
                 delta: value.delta,
               });
 
@@ -2194,83 +2338,98 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 logprobs.push(value.logprobs);
               }
             } else if (value.type === 'response.reasoning_summary_part.added') {
+              const itemId = resolveOutputItemId({
+                itemId: value.item_id,
+                outputIndex: value.output_index,
+              });
               // the first reasoning start is pushed in isResponseOutputItemAddedReasoningChunk
               if (value.summary_index > 0) {
-                const activeReasoningPart = activeReasoning[value.item_id]!;
+                const activeReasoningPart = activeReasoning[itemId];
 
-                activeReasoningPart.summaryParts[value.summary_index] =
-                  'active';
+                if (activeReasoningPart != null) {
+                  activeReasoningPart.summaryParts[value.summary_index] =
+                    'active';
 
-                // since there is a new active summary part, we can conclude all can-conclude summary parts
-                for (const summaryIndex of Object.keys(
-                  activeReasoningPart.summaryParts,
-                )) {
-                  if (
-                    activeReasoningPart.summaryParts[summaryIndex] ===
-                    'can-conclude'
-                  ) {
-                    controller.enqueue({
-                      type: 'reasoning-end',
-                      id: `${value.item_id}:${summaryIndex}`,
-                      providerMetadata: {
-                        [providerOptionsName]: {
-                          itemId: value.item_id,
-                        } satisfies ResponsesReasoningProviderMetadata,
-                      },
-                    });
-                    activeReasoningPart.summaryParts[summaryIndex] =
-                      'concluded';
+                  // since there is a new active summary part, we can conclude all can-conclude summary parts
+                  for (const summaryIndex of Object.keys(
+                    activeReasoningPart.summaryParts,
+                  )) {
+                    if (
+                      activeReasoningPart.summaryParts[summaryIndex] ===
+                      'can-conclude'
+                    ) {
+                      controller.enqueue({
+                        type: 'reasoning-end',
+                        id: `${itemId}:${summaryIndex}`,
+                        providerMetadata: {
+                          [providerOptionsName]: {
+                            itemId,
+                          } satisfies ResponsesReasoningProviderMetadata,
+                        },
+                      });
+                      activeReasoningPart.summaryParts[summaryIndex] =
+                        'concluded';
+                    }
                   }
-                }
 
-                controller.enqueue({
-                  type: 'reasoning-start',
-                  id: `${value.item_id}:${value.summary_index}`,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      itemId: value.item_id,
-                      reasoningEncryptedContent:
-                        activeReasoning[value.item_id]?.encryptedContent ??
-                        null,
-                    } satisfies ResponsesReasoningProviderMetadata,
-                  },
-                });
+                  controller.enqueue({
+                    type: 'reasoning-start',
+                    id: `${itemId}:${value.summary_index}`,
+                    providerMetadata: {
+                      [providerOptionsName]: {
+                        itemId,
+                        reasoningEncryptedContent:
+                          activeReasoningPart.encryptedContent ?? null,
+                      } satisfies ResponsesReasoningProviderMetadata,
+                    },
+                  });
+                }
               }
             } else if (value.type === 'response.reasoning_summary_text.delta') {
+              const itemId = resolveOutputItemId({
+                itemId: value.item_id,
+                outputIndex: value.output_index,
+              });
               controller.enqueue({
                 type: 'reasoning-delta',
-                id: `${value.item_id}:${value.summary_index}`,
+                id: `${itemId}:${value.summary_index}`,
                 delta: value.delta,
                 providerMetadata: {
                   [providerOptionsName]: {
-                    itemId: value.item_id,
+                    itemId,
                   } satisfies ResponsesReasoningProviderMetadata,
                 },
               });
             } else if (value.type === 'response.reasoning_summary_part.done') {
-              // when OpenAI stores the message data, we can immediately conclude the reasoning part
-              // since we do not need to send the encrypted content.
-              if (store) {
-                controller.enqueue({
-                  type: 'reasoning-end',
-                  id: `${value.item_id}:${value.summary_index}`,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      itemId: value.item_id,
-                    } satisfies ResponsesReasoningProviderMetadata,
-                  },
-                });
+              const itemId = resolveOutputItemId({
+                itemId: value.item_id,
+                outputIndex: value.output_index,
+              });
+              const activeReasoningPart = activeReasoning[itemId];
 
-                // mark the summary part as concluded
-                activeReasoning[value.item_id]!.summaryParts[
-                  value.summary_index
-                ] = 'concluded';
-              } else {
-                // mark the summary part as can-conclude only
-                // because we need to have a final summary part with the encrypted content
-                activeReasoning[value.item_id]!.summaryParts[
-                  value.summary_index
-                ] = 'can-conclude';
+              if (activeReasoningPart != null) {
+                // when OpenAI stores the message data, we can immediately conclude the reasoning part
+                // since we do not need to send the encrypted content.
+                if (store) {
+                  controller.enqueue({
+                    type: 'reasoning-end',
+                    id: `${itemId}:${value.summary_index}`,
+                    providerMetadata: {
+                      [providerOptionsName]: {
+                        itemId,
+                      } satisfies ResponsesReasoningProviderMetadata,
+                    },
+                  });
+
+                  // mark the summary part as concluded
+                  activeReasoningPart.summaryParts[value.summary_index] =
+                    'concluded';
+                } else {
+                  // mark the summary part as can-conclude only
+                  // because we need to have a final summary part with the encrypted content
+                  activeReasoningPart.summaryParts[value.summary_index] =
+                    'can-conclude';
+                }
               }
             } else if (isResponseFinishedChunk(value)) {
               finishReason = {
@@ -2571,9 +2730,16 @@ function isErrorChunk(
   return chunk.type === 'error';
 }
 
+function isResponseInProgressChunk(
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.in_progress' } {
+  return chunk.type === 'response.in_progress';
+}
+
 function isResponseOutputChunk(chunk: OpenAIResponsesChunk): boolean {
   return !(
     chunk.type === 'response.created' ||
+    chunk.type === 'response.in_progress' ||
     chunk.type === 'response.failed' ||
     chunk.type === 'error' ||
     chunk.type === 'unknown_chunk'
