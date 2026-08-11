@@ -567,6 +567,7 @@ class DefaultStreamObjectResult<
             }),
             tracer,
             endWhenDone: false,
+            endOnError: true,
             fn: async doStreamSpan => ({
               startTimestampMs: now(),
               doStreamSpan,
