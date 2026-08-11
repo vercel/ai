@@ -738,6 +738,13 @@ describe('createClaudeCode adapter', () => {
   });
 
   describe('bridge WebSocket startup', () => {
+    let now: number;
+
+    beforeEach(() => {
+      now = 1_000;
+      vi.spyOn(Date, 'now').mockImplementation(() => now);
+    });
+
     it('does not miss bridge-hello emitted immediately after open', async () => {
       wsMock.scripts.push(socket => {
         queueMicrotask(() => {
@@ -757,6 +764,7 @@ describe('createClaudeCode adapter', () => {
       wsMock.scripts.push(socket => {
         queueMicrotask(() => {
           socket.emit('open');
+          now = 1_020;
         });
       });
 
@@ -767,8 +775,6 @@ describe('createClaudeCode adapter', () => {
     });
 
     it('uses the remaining startup deadline for bridge-hello after open', async () => {
-      let now = 1_000;
-      vi.spyOn(Date, 'now').mockImplementation(() => now);
       wsMock.scripts.push(socket => {
         queueMicrotask(() => {
           now = 1_015;
@@ -787,6 +793,7 @@ describe('createClaudeCode adapter', () => {
       wsMock.scripts.push(socket => {
         queueMicrotask(() => {
           socket.emit('open');
+          now = 1_020;
           socket.close();
         });
       });
@@ -798,6 +805,12 @@ describe('createClaudeCode adapter', () => {
     });
 
     it('rejects when the socket does not open in time', async () => {
+      wsMock.scripts.push(() => {
+        queueMicrotask(() => {
+          now = 1_020;
+        });
+      });
+
       await expect(startWithFakeBridgeSocket(20)).rejects.toThrow(
         'WebSocket open timed out after',
       );
