@@ -52,10 +52,6 @@ export const config = defineConfig({
   pageActions: {
     editSource: false,
   },
-  // Off until the Geistdocs widget surfaces failed submissions: as of
-  // 1.20.0 it shows "Thank you" and blocks retries even when the platform
-  // rejects the post (sendFeedback's result is ignored). Re-enable on the
-  // release that fixes it — the widget then posts to the Geistdocs
-  // platform, which files GitHub issues labeled with `siteId`.
-  feedback: { enabled: false },
+  // Feedback uses the package default (enabled): the widget posts to the
+  // Geistdocs platform, which files GitHub issues labeled with `siteId`.
 });
