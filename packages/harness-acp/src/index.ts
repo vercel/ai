@@ -21,6 +21,7 @@ export type {
 } from './acp-tool-call';
 export type {
   ACPAuthentication,
+  ACPInstructionMapping,
   ACPNpmLockedSource,
   ACPNpmSimpleSource,
   ACPPermissionModeMapping,

@@ -31,6 +31,7 @@ const thinkingSchema = z.discriminatedUnion('type', [
 ]);
 
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
+  instructions: z.string().optional(),
   thinking: thinkingSchema,
   maxTurns: z.number().optional(),
   env: z.record(z.string(), z.string()).optional(),
