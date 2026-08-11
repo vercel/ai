@@ -1,5 +1,18 @@
 # @ai-sdk/provider-utils
 
+## 4.0.44
+
+### Patch Changes
+
+- Updated dependencies [2171d15]
+  - @ai-sdk/provider@3.0.15
+
+## 4.0.43
+
+### Patch Changes
+
+- dab0a08: fix(provider-utils): drop Function-constructor dynamic import shim rejected by Next.js Edge Runtime builds
+
 ## 4.0.42
 
 ### Patch Changes

@@ -46,7 +46,7 @@ export type GenerateVideoPrompt =
  * @param model - The video model to use.
  * @param prompt - The prompt that should be used to generate the video.
  * @param n - Number of videos to generate. Default: 1.
- * @param aspectRatio - Aspect ratio of the videos to generate. Must have the format `{width}:{height}`.
+ * @param aspectRatio - Aspect ratio of the videos to generate. Must have the format `{width}:{height}`, or `'adaptive'`.
  * @param resolution - Resolution of the videos to generate. Must have the format `{width}x{height}`.
  * @param duration - Duration of the video in seconds.
  * @param fps - Frames per second for the video.
@@ -104,9 +104,10 @@ export async function experimental_generateVideo({
   maxVideosPerCall?: number;
 
   /**
-   * Aspect ratio of the videos to generate. Must have the format `{width}:{height}`.
+   * Aspect ratio of the videos to generate. Must have the format
+   * `{width}:{height}`, or `'adaptive'` to inherit the ratio from the input media.
    */
-  aspectRatio?: `${number}:${number}`;
+  aspectRatio?: `${number}:${number}` | 'adaptive';
 
   /**
    * Resolution of the videos to generate. Must have the format `{width}x{height}`.
