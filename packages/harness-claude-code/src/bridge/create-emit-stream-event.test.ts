@@ -92,6 +92,118 @@ describe('createEmitStreamEvent', () => {
     `);
   });
 
+  it('ignores subagent messages when tracking the main tool step', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => (name === 'Bash' ? 'bash' : name),
+    });
+
+    emitStreamEvent({
+      type: 'assistant',
+      parent_tool_use_id: null,
+      message: {
+        usage: { input_tokens: 3, output_tokens: 2 },
+        content: [
+          {
+            type: 'tool_use',
+            id: 'main-agent',
+            name: 'Agent',
+            input: { prompt: 'Run a command' },
+          },
+        ],
+      },
+    });
+    emitStreamEvent({
+      type: 'assistant',
+      parent_tool_use_id: 'main-agent',
+      message: {
+        usage: { input_tokens: 30, output_tokens: 20 },
+        content: [
+          {
+            type: 'tool_use',
+            id: 'subagent-tool',
+            name: 'Bash',
+            input: { command: 'pwd' },
+          },
+        ],
+      },
+    });
+    emitStreamEvent({
+      type: 'user',
+      parent_tool_use_id: 'main-agent',
+      message: {
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: 'subagent-tool',
+            content: '/tmp',
+          },
+        ],
+      },
+    });
+    emitStreamEvent({
+      type: 'user',
+      parent_tool_use_id: null,
+      message: {
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: 'main-agent',
+            content: 'Command completed',
+          },
+        ],
+      },
+    });
+
+    expect(emitted).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+        },
+        {
+          "input": "{\"prompt\":\"Run a command\"}",
+          "nativeName": "Agent",
+          "providerExecuted": true,
+          "toolCallId": "main-agent",
+          "toolName": "Agent",
+          "type": "tool-call",
+        },
+        {
+          "isError": false,
+          "result": "Command completed",
+          "toolCallId": "main-agent",
+          "toolName": "Agent",
+          "type": "tool-result",
+        },
+        {
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
+          "type": "finish-step",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "noCache": 3,
+              "total": 3,
+            },
+            "outputTokens": {
+              "text": 2,
+              "total": 2,
+            },
+          },
+        },
+      ]
+    `);
+  });
+
   it('preserves retry and compaction handling', () => {
     const state = createClaudeStreamEventState();
     const warnings: unknown[] = [];
