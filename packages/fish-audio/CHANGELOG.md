@@ -1,5 +1,12 @@
 # @ai-sdk/fish-audio
 
+## 3.0.5
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+
 ## 3.0.4
 
 ### Patch Changes
