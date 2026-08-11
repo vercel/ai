@@ -1,5 +1,12 @@
 # @ai-sdk/google
 
+## 4.0.41
+
+### Patch Changes
+
+- da78d58: fix(google): convert enum values to the Gemini schema format
+- 8a2482d: Preserve Google API error details in `APICallError.data`.
+
 ## 4.0.40
 
 ### Patch Changes
