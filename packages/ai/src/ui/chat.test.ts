@@ -1692,6 +1692,35 @@ describe('Chat', () => {
     `);
   });
 
+  it('should reject when onFinish throws', async () => {
+    const onFinishError = new Error('onFinish failed');
+    const chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controller.enqueue({ type: 'start' });
+              controller.enqueue({ type: 'start-step' });
+              controller.enqueue({ type: 'finish-step' });
+              controller.enqueue({ type: 'finish', finishReason: 'stop' });
+              controller.close();
+            },
+          }),
+        reconnectToStream: async () => null,
+      },
+      onFinish: () => {
+        throw onFinishError;
+      },
+    });
+
+    await expect(chat.sendMessage({ text: 'Hello, world!' })).rejects.toBe(
+      onFinishError,
+    );
+    expect((chat as any).activeResponse).toBeUndefined();
+  });
+
   it('should handle error parts', async () => {
     server.urls['http://localhost:3000/api/chat'].response = {
       type: 'stream-chunks',
