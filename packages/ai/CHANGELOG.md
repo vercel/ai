@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.62
+
+### Patch Changes
+
+- e0bcf52: feat(ui): add typed custom bodies to Completion APIs
+
 ## 7.0.61
 
 ### Patch Changes

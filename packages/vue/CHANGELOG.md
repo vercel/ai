@@ -1,5 +1,13 @@
 # @ai-sdk/vue
 
+## 4.0.62
+
+### Patch Changes
+
+- e0bcf52: feat(ui): add typed custom bodies to Completion APIs
+- Updated dependencies [e0bcf52]
+  - ai@7.0.62
+
 ## 4.0.61
 
 ### Patch Changes

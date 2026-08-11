@@ -1,5 +1,11 @@
 # @ai-sdk/sandbox-vercel
 
+## 1.0.68
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.68
+
 ## 1.0.67
 
 ### Patch Changes

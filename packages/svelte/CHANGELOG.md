@@ -1,5 +1,13 @@
 # @ai-sdk/svelte
 
+## 5.0.62
+
+### Patch Changes
+
+- e0bcf52: feat(ui): add typed custom bodies to Completion APIs
+- Updated dependencies [e0bcf52]
+  - ai@7.0.62
+
 ## 5.0.61
 
 ### Patch Changes
