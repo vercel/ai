@@ -11,6 +11,7 @@ import {
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonErrorResponseHandler,
+  getErrorMessage,
   parseJsonEventStream,
   postJsonToApi,
   resolve,
@@ -176,7 +177,7 @@ export class GatewayVideoModel implements Experimental_VideoModelV3 {
         },
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         ...(abortSignal && { abortSignal }),
         fetch: this.config.fetch,
