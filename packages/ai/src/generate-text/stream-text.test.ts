@@ -9646,6 +9646,33 @@ describe('streamText', () => {
       expect(tracer.jsonSpans).toMatchSnapshot();
     });
 
+    it('should end telemetry spans once after a model call fails', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV2({
+          doStream: async () => {
+            throw new Error('model call failed');
+          },
+        }),
+        maxRetries: 0,
+        prompt: 'test-input',
+        experimental_telemetry: { isEnabled: true, tracer },
+        onError: () => {},
+      });
+
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+
+      expect(parts.map(part => part.type)).toEqual(['start', 'error']);
+      expect(
+        tracer.spans.map(span => ({
+          name: span.name,
+          endCalls: span.endCalls,
+        })),
+      ).toEqual([
+        { name: 'ai.streamText', endCalls: 1 },
+        { name: 'ai.streamText.doStream', endCalls: 1 },
+      ]);
+    });
+
     it('should record successful tool call', async () => {
       const result = streamText({
         model: createTestModel({
