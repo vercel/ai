@@ -689,7 +689,7 @@ export async function convertToOpenAIResponsesInput({
             }
             processedApprovalIds.add(approvalResponse.approvalId);
 
-            if (store) {
+            if (store && !hasConversation && !hasPreviousResponseId) {
               input.push({
                 type: 'item_reference',
                 id: approvalResponse.approvalId,
