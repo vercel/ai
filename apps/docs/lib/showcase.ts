@@ -21,7 +21,10 @@ export const showcaseProjects: ShowcaseProject[] = [
   },
   {
     name: 'Postgres.new',
-    image: 'postgresnew.png',
+    // The legacy app references postgresnew.png, which never existed; this
+    // screenshot (the same tool, renamed database.build by Supabase) shipped
+    // unreferenced in the legacy asset set.
+    image: 'databasebuild.png',
     link: 'https://postgres.new',
   },
   {
