@@ -112,10 +112,10 @@ export type HarnessV1PromptTurnOptions = {
 
   /**
    * Free-form instructions for the session. The framework supplies the same
-   * value on every turn; the adapter is responsible for applying it once, by
-   * prepending it to the first user message of a fresh (non-resumed) session.
-   * On a resumed session the adapter must not re-apply it — the original first
-   * message already carried it and lives in the runtime's persisted history.
+   * value on every turn. Adapters should append it to the runtime's native
+   * system or developer prompt when supported. Otherwise, they should prepend
+   * it to the first user message of a fresh session and rely on the runtime's
+   * persisted history when resuming.
    */
   readonly instructions?: string;
 
@@ -148,6 +148,13 @@ export type HarnessV1ContinueTurnOptions = {
    * may ignore them; an adapter that re-drives the turn (rerun) needs them.
    */
   readonly tools?: ReadonlyArray<HarnessV1ToolSpec>;
+
+  /**
+   * Free-form session instructions. An adapter that re-drives the runtime may
+   * need these to reconstruct its native system or developer prompt. An
+   * adapter that attaches to a live turn may ignore them.
+   */
+  readonly instructions?: string;
 
   /**
    * Signal that aborts the continued turn. The adapter must cancel any

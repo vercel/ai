@@ -10,12 +10,14 @@ import {
   HarnessAgent,
   type HarnessAgentResumeSessionState,
 } from '@ai-sdk/harness/agent';
-import { openCode } from '@ai-sdk/harness-opencode';
+import { createOpenCode } from '@ai-sdk/harness-opencode';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { mintBridgeToken } from '../../lib/mint-bridge-token';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
 run(async () => {
+  const harness = createOpenCode({ mintBridgeToken });
   const sandbox = createVercelSandbox({
     runtime: 'node24',
     ports: [4000],
@@ -26,7 +28,7 @@ run(async () => {
   let sessionId: string;
   let resumeState: HarnessAgentResumeSessionState;
   {
-    const agent = new HarnessAgent({ harness: openCode, sandbox });
+    const agent = new HarnessAgent({ harness, sandbox });
     const session = await agent.createSession();
     sessionId = session.sessionId;
     console.log('--- turn 1 ---');
@@ -41,7 +43,7 @@ run(async () => {
 
   // Turn 2: brand-new agent instance attaches to the live bridge.
   {
-    const agent = new HarnessAgent({ harness: openCode, sandbox });
+    const agent = new HarnessAgent({ harness, sandbox });
     const session = await agent.createSession({
       sessionId,
       resumeFrom: resumeState,

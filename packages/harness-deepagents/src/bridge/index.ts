@@ -10,6 +10,10 @@ import {
 import { ChatAnthropic } from '@langchain/anthropic';
 import { tool } from '@langchain/core/tools';
 import { Command, MemorySaver } from '@langchain/langgraph';
+import {
+  MultiServerMCPClient,
+  type ClientConfig,
+} from '@langchain/mcp-adapters';
 import { createDeepAgent } from 'deepagents';
 import type { StartMessage } from '../deepagents-bridge-protocol';
 import { buildInterruptOn, collectActionRequests } from './approvals';
@@ -78,6 +82,8 @@ if (!workdir || !bridgeStateDir) {
 // One agent per bridge process, reused across turns; host tools read the live turn via `currentTurn`.
 let agent: ReturnType<typeof createDeepAgent> | undefined;
 let currentTurn: BridgeTurn | undefined;
+let mcpClient: MultiServerMCPClient | undefined;
+let mcpToolNames = new Set<string>();
 
 // Host tools become LangChain tools that emit a `tool-call` and block on the host's `tool-result`.
 function buildHostTools(toolSchemas: StartMessage['tools']) {
@@ -127,12 +133,23 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         },
       },
     );
+    const hostTools = buildHostTools(start.tools);
+    const hostToolNames = new Set(hostTools.map(hostTool => hostTool.name));
+    const externalTools = await loadMcpTools({
+      mcpServers: start.mcpServers,
+    });
+    const mcpTools = externalTools.filter(
+      externalTool => !hostToolNames.has(externalTool.name),
+    );
+    mcpToolNames = new Set(mcpTools.map(mcpTool => mcpTool.name));
     agent = createDeepAgent({
       // Defer to Deep Agents's own default when the host configured no model.
       ...(model ? { model } : {}),
-      tools: buildHostTools(start.tools),
+      tools: [...mcpTools, ...hostTools],
       backend: createLocalShellBackend({ rootDir: workdir }),
-      systemPrompt: start.instructions || undefined,
+      systemPrompt: start.instructions
+        ? { suffix: start.instructions }
+        : undefined,
       // Native skills loaded from the source dirs ($HOME-materialized + <workDir> for repo-provided skills).
       ...(start.skillsPaths?.length ? { skills: start.skillsPaths } : {}),
       ...(builtinToolFilteringMiddleware
@@ -151,6 +168,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     state: streamEventState,
     configuredModel: start.model,
     hostToolNames,
+    mcpToolNames,
     emit,
   });
 
@@ -254,4 +272,37 @@ await runBridge<StartMessage>({
   bridgeType: 'deepagents',
   bridgeStateDir: bridgeStateDir!,
   onStart: runTurn,
+  onStop: async () => {
+    await closeMcpClient();
+    return {};
+  },
+  onDestroy: closeMcpClient,
 });
+
+async function loadMcpTools({
+  mcpServers,
+}: {
+  mcpServers: Record<string, unknown> | undefined;
+}) {
+  if (mcpServers == null || Object.keys(mcpServers).length === 0) return [];
+  for (const [name, value] of Object.entries(mcpServers)) {
+    if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error(
+        `DeepAgents MCP server ${JSON.stringify(name)} must be configured with an object value.`,
+      );
+    }
+  }
+  mcpClient = new MultiServerMCPClient({
+    mcpServers: mcpServers as ClientConfig['mcpServers'],
+    prefixToolNameWithServerName: true,
+    additionalToolNamePrefix: 'mcp',
+  });
+  return mcpClient.getTools();
+}
+
+async function closeMcpClient(): Promise<void> {
+  const client = mcpClient;
+  mcpClient = undefined;
+  mcpToolNames = new Set();
+  await client?.close();
+}

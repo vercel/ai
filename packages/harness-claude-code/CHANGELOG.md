@@ -1,5 +1,78 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.68
+
+### Patch Changes
+
+- 9ee30bf: fix(harness): pass instructions appended to system / developer prompt instead of using the workaround of first user prompt
+- Updated dependencies [9ee30bf]
+  - @ai-sdk/harness@1.0.66
+
+## 1.0.67
+
+### Patch Changes
+
+- a03ff6c: feat(harness): add support for per-harness MCP servers
+- fc3baaf: feat(harness): add optional `mintBridgeToken(sandboxId)` to harness settings to control the bridge token value
+- cfc587b: fix(harness-claude-code): add missing Claude Code built-in tools
+- Updated dependencies [401a4ba]
+- Updated dependencies [a03ff6c]
+  - @ai-sdk/provider-utils@5.0.26
+  - @ai-sdk/harness@1.0.65
+
+## 1.0.66
+
+### Patch Changes
+
+- 8c95b3f: fix(harness-claude-code): fix built-in tool filtering by using actual denylist when passing `inactiveTools`
+- a65bbb2: feat(harness-claude-code): add optional `env` property to `createClaudeCode()` for custom env vars
+
+## 1.0.65
+
+### Patch Changes
+
+- Updated dependencies [81cd026]
+  - @ai-sdk/provider-utils@5.0.25
+  - @ai-sdk/harness@1.0.64
+
+## 1.0.64
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+  - @ai-sdk/harness@1.0.63
+
+## 1.0.63
+
+### Patch Changes
+
+- Updated dependencies [25c9120]
+  - @ai-sdk/harness@1.0.62
+
+## 1.0.62
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.61
+- @ai-sdk/provider-utils@5.0.23
+
+## 1.0.61
+
+### Patch Changes
+
+- 64a0ff2: fix(harness-claude-code): avoid sending custom user-agent for non-AI Gateway requests
+  - @ai-sdk/harness@1.0.60
+
+## 1.0.60
+
+### Patch Changes
+
+- Updated dependencies [2b60826]
+- Updated dependencies [81bcf2e]
+  - @ai-sdk/provider-utils@5.0.22
+  - @ai-sdk/harness@1.0.59
+
 ## 1.0.59
 
 ### Patch Changes

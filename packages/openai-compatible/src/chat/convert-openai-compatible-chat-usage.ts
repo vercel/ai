@@ -35,7 +35,7 @@ export function convertOpenAICompatibleChatUsage(
     },
     outputTokens: {
       total: completionTokens,
-      text: completionTokens - reasoningTokens,
+      text: Math.max(0, completionTokens - reasoningTokens),
       reasoning: reasoningTokens,
     },
     raw: usage,
