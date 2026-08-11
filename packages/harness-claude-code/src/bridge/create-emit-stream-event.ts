@@ -5,6 +5,7 @@ type Emit = (message: Record<string, unknown>) => void;
 export type ClaudeMessage = {
   type?: string;
   subtype?: string;
+  parent_tool_use_id?: string | null;
   model?: string;
   error?: string;
   error_status?: number | null;
@@ -185,6 +186,13 @@ export function createEmitStreamEvent({
 
     if (type === 'stream_event') {
       handleStreamEvent(msg.event, state.partialBlocks, emit);
+      return;
+    }
+
+    if (
+      (type === 'assistant' || type === 'user') &&
+      msg.parent_tool_use_id != null
+    ) {
       return;
     }
 
