@@ -539,7 +539,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     try {
       const response = {
         state: createStreamingUIMessageState({
-          lastMessage: this.state.snapshot(lastMessage),
+          lastMessage:
+            trigger === 'resume-stream'
+              ? undefined
+              : this.state.snapshot(lastMessage),
           messageId: this.generateId(),
         }),
         abortController,
