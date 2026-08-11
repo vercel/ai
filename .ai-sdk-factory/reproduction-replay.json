@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 17658,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/google-strict-forced-tool-choice.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/google-strict-forced-tool-choice.ts",
+    "packages/google/src/__fixtures__/google-strict-forced-tool-choice-validated.json",
+    "packages/google/src/__fixtures__/google-strict-forced-tool-choice-any.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_17658_REPRODUCED: strict tools allowed forced tool choices to return text instead of a required tool call"
+  }
+}
