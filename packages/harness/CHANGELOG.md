@@ -1,5 +1,13 @@
 # @ai-sdk/harness
 
+## 1.0.66
+
+### Patch Changes
+
+- 9ee30bf: fix(harness): pass instructions appended to system / developer prompt instead of using the workaround of first user prompt
+- Updated dependencies [79c52ef]
+  - ai@7.0.60
+
 ## 1.0.65
 
 ### Patch Changes
