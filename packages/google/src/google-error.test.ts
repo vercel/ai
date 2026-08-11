@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { googleFailedResponseHandler } from './google-error';
@@ -9,22 +8,8 @@ const responseBody = readFileSync(
 );
 
 describe('googleFailedResponseHandler', () => {
-  it('preserves Google error details in APICallError.data', async () => {
+  it('preserves Google error details, including google.rpc.RetryInfo, in APICallError.data', async () => {
     const { value: error } = await googleFailedResponseHandler({
-=======
-import fs from 'node:fs';
-import { describe, expect, it } from 'vitest';
-import { googleFailedResponseHandler } from './google-error';
-
-describe('googleFailedResponseHandler', () => {
-  it('preserves google.rpc.RetryInfo in APICallError.data', async () => {
-    const responseBody = fs.readFileSync(
-      'src/__fixtures__/google-429-retry-info.json',
-      'utf8',
-    );
-
-    const result = await googleFailedResponseHandler({
->>>>>>> origin/release-v5.0
       url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
       requestBodyValues: { contents: [] },
       response: new Response(responseBody, {
@@ -33,14 +18,12 @@ describe('googleFailedResponseHandler', () => {
       }),
     });
 
-<<<<<<< HEAD
     expect(error.statusCode).toBe(429);
     expect(error.isRetryable).toBe(true);
     expect(error.responseHeaders?.['retry-after']).toBeUndefined();
     expect(error.responseBody).toBe(responseBody);
     expect(error.data).toEqual(JSON.parse(responseBody));
-=======
-    expect(result.value.data).toMatchObject({
+    expect(error.data).toMatchObject({
       error: {
         details: [
           {
@@ -53,6 +36,5 @@ describe('googleFailedResponseHandler', () => {
         ],
       },
     });
->>>>>>> origin/release-v5.0
   });
 });
