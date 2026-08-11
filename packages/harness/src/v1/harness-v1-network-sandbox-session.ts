@@ -71,10 +71,22 @@ export interface HarnessV1NetworkSandboxSession extends SandboxSession {
   /**
    * Replace the sandbox's outbound request-transformation rules. Optional —
    * implementations expose this only when credentials can be injected outside
-   * the sandbox security boundary. Harness adapters that require credential
-   * brokering must fail when this capability is absent.
+   * the sandbox security boundary. Calling this method assumes authority over
+   * the complete transformation set; harness adapters should normally use
+   * `addRequestTransformations` instead. Adapters that require credential
+   * brokering must fail when the relevant capability is absent.
    */
   readonly setRequestTransformations?: (
+    transformations: ReadonlyArray<HarnessV1RequestTransformation>,
+  ) => PromiseLike<void>;
+
+  /**
+   * Add outbound request-transformation rules without replacing rules already
+   * managed by the sandbox session. Optional for the same reason as
+   * `setRequestTransformations`. Harness adapters should use this additive
+   * capability unless they explicitly own the complete transformation set.
+   */
+  readonly addRequestTransformations?: (
     transformations: ReadonlyArray<HarnessV1RequestTransformation>,
   ) => PromiseLike<void>;
 

@@ -46,6 +46,13 @@ test('setRequestTransformations is optional on the network sandbox session', () 
   >();
 });
 
+test('addRequestTransformations is optional on the network sandbox session', () => {
+  const _session = {} as HarnessV1NetworkSandboxSession;
+  expectTypeOf(_session.addRequestTransformations).toEqualTypeOf<
+    HarnessV1NetworkSandboxSession['addRequestTransformations']
+  >();
+});
+
 test('request transformation includes the host in its match', () => {
   const _transformation: HarnessV1RequestTransformation = {
     match: {
