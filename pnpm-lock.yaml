@@ -2580,6 +2580,9 @@ importers:
       '@vercel/oidc':
         specifier: 3.2.0
         version: 3.2.0
+      cbor-x:
+        specifier: 1.6.0
+        version: 1.6.0
     devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*

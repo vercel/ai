@@ -264,6 +264,18 @@ export interface GatewayProviderSettings {
   metadataCacheRefreshMillis?: number;
 
   /**
+   * Request body encoding for language-model calls. Defaults to `'json'`.
+   *
+   * Set to `'cbor'` to send prompts that contain inline file bytes
+   * (`Uint8Array`) as `application/cbor` instead of base64-in-JSON, reducing
+   * upload size and client/server CPU. Requests without inline file bytes are
+   * always sent as JSON. Requires a gateway deployment that accepts CBOR
+   * bodies; on an HTTP 415 the client retries once as JSON and stops sending
+   * CBOR for the life of the instance.
+   */
+  encoding?: 'json' | 'cbor';
+
+  /**
    * @internal For testing purposes only
    */
   _internal?: {
@@ -422,6 +434,7 @@ export function createGateway(
       headers: getHeaders,
       fetch: options.fetch,
       o11yHeaders: createO11yHeaders(),
+      encoding: options.encoding,
     });
   };
 
