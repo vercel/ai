@@ -2,4 +2,4 @@
 '@ai-sdk/harness-claude-code': patch
 ---
 
-Exclude Claude Code subagent messages from parent step usage and tool-call tracking.
+fix(harness-claude-code): exclude subagent messages from parent step usage and tool-call tracking
