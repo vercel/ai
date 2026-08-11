@@ -1,5 +1,13 @@
 # @ai-sdk/react
 
+## 3.0.253
+
+### Patch Changes
+
+- fb9a415: Reset the useCompletion input after submitting a prompt.
+- Updated dependencies [d13c2e9]
+  - ai@6.0.251
+
 ## 3.0.252
 
 ### Patch Changes

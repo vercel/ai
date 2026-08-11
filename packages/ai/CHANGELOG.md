@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.251
+
+### Patch Changes
+
+- d13c2e9: Respect ToolLoopAgent timeouts configured in agent settings.
+
 ## 6.0.250
 
 ### Patch Changes
