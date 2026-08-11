@@ -352,7 +352,6 @@ export async function convertToOpenAIResponsesInput({
                 (hasLocalShellTool && resolvedToolName === 'local_shell') ||
                 (hasShellTool && resolvedToolName === 'shell') ||
                 (hasApplyPatchTool && resolvedToolName === 'apply_patch') ||
-                (hasComputerTool && resolvedToolName === 'computer') ||
                 (customProviderToolNames?.has(resolvedToolName) ?? false);
 
               // When chaining with a previous response id, items already part
@@ -376,15 +375,6 @@ export async function convertToOpenAIResponsesInput({
               // makes follow-up requests fail with "No tool call found for
               // function call output with call_id", most visibly with parallel
               // tool calls across multiple steps.
-<<<<<<< HEAD
-              const isProviderDefinedToolCall =
-                (hasLocalShellTool && resolvedToolName === 'local_shell') ||
-                (hasShellTool && resolvedToolName === 'shell') ||
-                (hasApplyPatchTool && resolvedToolName === 'apply_patch') ||
-                (customProviderToolNames?.has(resolvedToolName) ?? false);
-
-=======
->>>>>>> d3021348cc (fix: OpenAI Responses follow-up turns with client-executed tools fail when using previousResponseId (#18543))
               if (store && id != null && isProviderDefinedToolCall) {
                 input.push({ type: 'item_reference', id });
                 break;
