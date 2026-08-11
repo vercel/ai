@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 13438,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-13438-provider-reranking-model.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-13438-provider-reranking-model.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE 13438 REPRODUCED: a ProviderV3 implementation without rerankingModel is not assignable to Provider"
+  }
+}
