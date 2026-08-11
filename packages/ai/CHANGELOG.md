@@ -1,5 +1,13 @@
 # ai
 
+## 7.0.60
+
+### Patch Changes
+
+- 79c52ef: Align `ToolLoopAgent` `prepareCall` types with the settings available and honored at runtime.
+- Updated dependencies [3cc1bb6]
+  - @ai-sdk/gateway@4.0.48
+
 ## 7.0.59
 
 ### Patch Changes

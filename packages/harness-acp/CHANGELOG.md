@@ -1,5 +1,13 @@
 # @ai-sdk/harness-acp
 
+## 1.0.3
+
+### Patch Changes
+
+- 9ee30bf: fix(harness): pass instructions appended to system / developer prompt instead of using the workaround of first user prompt
+- Updated dependencies [9ee30bf]
+  - @ai-sdk/harness@1.0.66
+
 ## 1.0.2
 
 ### Patch Changes
