@@ -85,6 +85,7 @@ interface CallState {
   modelId: string;
   runtimeContext: Record<string, unknown> | undefined;
   baseSupplementalAttributes: Attributes;
+  objectSystemInstructions?: GenerateObjectStartEvent['system'];
 }
 
 function msToSeconds(durationMs: number | undefined): number | undefined {
@@ -282,12 +283,13 @@ export class OpenTelemetry implements Telemetry {
       'gen_ai.request.top_p': event.topP,
       'gen_ai.request.stop_sequences': event.stopSequences,
       'gen_ai.request.seed': event.seed,
-      'gen_ai.system_instructions': event.instructions
-        ? {
-            input: () =>
-              JSON.stringify(formatSystemInstructions(event.instructions!)),
-          }
-        : undefined,
+      'gen_ai.system_instructions':
+        event.instructions != null
+          ? {
+              input: () =>
+                JSON.stringify(formatSystemInstructions(event.instructions!)),
+            }
+          : undefined,
       'gen_ai.input.messages': {
         input: () =>
           JSON.stringify(
@@ -436,6 +438,7 @@ export class OpenTelemetry implements Telemetry {
       modelId: event.modelId,
       runtimeContext: undefined,
       baseSupplementalAttributes,
+      objectSystemInstructions: event.system,
     });
   }
 
@@ -446,6 +449,11 @@ export class OpenTelemetry implements Telemetry {
 
     const { telemetry } = state;
     const providerName = mapProviderName(event.provider);
+    const systemInstructionCount =
+      state.objectSystemInstructions == null
+        ? 0
+        : formatSystemInstructions(state.objectSystemInstructions).length;
+    const inputMessages = event.promptMessages?.slice(systemInstructionCount);
 
     const attributes = selectAttributes(telemetry, {
       'gen_ai.operation.name': 'chat',
@@ -466,10 +474,19 @@ export class OpenTelemetry implements Telemetry {
         | undefined,
       'gen_ai.request.top_k': state.settings.topK as number | undefined,
       'gen_ai.request.top_p': state.settings.topP as number | undefined,
+      'gen_ai.system_instructions':
+        state.objectSystemInstructions != null
+          ? {
+              input: () =>
+                JSON.stringify(
+                  formatSystemInstructions(state.objectSystemInstructions!),
+                ),
+            }
+          : undefined,
       'gen_ai.input.messages': {
         input: () =>
-          event.promptMessages
-            ? JSON.stringify(formatInputMessages(event.promptMessages))
+          inputMessages
+            ? JSON.stringify(formatInputMessages(inputMessages))
             : undefined,
       },
       ...state.baseSupplementalAttributes,
@@ -687,6 +704,13 @@ export class OpenTelemetry implements Telemetry {
         | undefined,
       'gen_ai.request.top_k': state.settings.topK as number | undefined,
       'gen_ai.request.top_p': state.settings.topP as number | undefined,
+      'gen_ai.system_instructions':
+        event.instructions != null
+          ? {
+              input: () =>
+                JSON.stringify(formatSystemInstructions(event.instructions!)),
+            }
+          : undefined,
       'gen_ai.input.messages': {
         input: () => {
           const formattedMessages = formatModelMessages({
@@ -764,6 +788,11 @@ export class OpenTelemetry implements Telemetry {
           telemetry,
           this.supplementalAttributes,
           {
+            providerMetadata: {
+              'ai.response.providerMetadata': event.providerMetadata
+                ? JSON.stringify(event.providerMetadata)
+                : undefined,
+            },
             usage: getDetailedUsageAttributes(event.usage),
           },
         ),

@@ -180,4 +180,26 @@ describe('HttpChatTransport', () => {
       );
     });
   });
+
+  describe('reconnectToStream', () => {
+    it('should pass the abort signal to fetch', async () => {
+      const abortController = new AbortController();
+      let receivedAbortSignal: AbortSignal | null | undefined;
+
+      const transport = new MockHttpChatTransport({
+        api: 'http://localhost/api/chat',
+        fetch: async (_input, init) => {
+          receivedAbortSignal = init?.signal;
+          return new Response(null, { status: 204 });
+        },
+      });
+
+      await transport.reconnectToStream({
+        chatId: 'c123',
+        abortSignal: abortController.signal,
+      });
+
+      expect(receivedAbortSignal).toBe(abortController.signal);
+    });
+  });
 });

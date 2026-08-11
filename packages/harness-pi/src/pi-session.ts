@@ -8,6 +8,7 @@ import {
   SettingsManager,
   type AgentSession,
   type AgentToolResult,
+  type ExtensionFactory,
   type Skill,
   type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
@@ -62,6 +63,26 @@ import { PiWorkspaceVfs } from './pi-workspace-vfs';
 import { syncHostWorkspaceFromSandbox } from './pi-workspace-mirror';
 
 const HARNESS_ID = 'pi';
+
+/*
+ * pi-mcp-adapter publishes TypeScript source as its package entry point. A
+ * non-literal specifier keeps the repository type-check focused on this
+ * package's compatibility boundary instead of compiling dependency internals.
+ */
+const PI_MCP_ADAPTER_PACKAGE: string = 'pi-mcp-adapter';
+
+type PiMcpAdapterModule = {
+  createMcpAdapter(options: {
+    config: {
+      mcpServers: Record<string, unknown>;
+      settings: {
+        directTools: boolean;
+        toolPrefix: string;
+        disableProxyTool: boolean;
+      };
+    };
+  }): ExtensionFactory;
+};
 
 /*
  * Pi runs in this Node process, not behind an attachable in-sandbox bridge.
@@ -192,6 +213,8 @@ export interface PiSessionSettings {
   readonly auth?: PiAuthOptions;
   readonly model?: string;
   readonly thinkingLevel?: PiThinkingLevel;
+  readonly mcpServers?: Record<string, unknown>;
+  readonly extensionFactories?: ReadonlyArray<ExtensionFactory>;
 }
 
 export interface CreatePiSessionInput {
@@ -367,19 +390,69 @@ export async function createPiSession(
   // Resolve once: deterministic given the configured model. This is the Pi
   // `Model` object handed to `createAgentSession`.
   const resolvedModel = resolveModel(input.settings.model);
+  const mcpServers = resolvePiMcpServers({
+    mcpServers: input.settings.mcpServers,
+  });
+  const hasMcpServers = Object.keys(mcpServers).length > 0;
 
+  /*
+   * Configured MCP servers are served by an inline Pi extension, so they share
+   * the extension runtime with the caller-supplied factories: both are loaded
+   * by the resource loader below and both are subject to the reload handling
+   * that keeps the active runtime alive across resource-only reloads.
+   */
+  const extensionFactories: ExtensionFactory[] = [
+    ...(input.settings.extensionFactories ?? []),
+  ];
+  if (hasMcpServers) {
+    const { createMcpAdapter } = (await import(
+      PI_MCP_ADAPTER_PACKAGE
+    )) as PiMcpAdapterModule;
+    extensionFactories.push(
+      createMcpAdapter({
+        config: {
+          mcpServers,
+          settings: {
+            directTools: true,
+            toolPrefix: 'mcp',
+            disableProxyTool: true,
+          },
+        },
+      }),
+    );
+  }
+  const hasExtensionFactories = extensionFactories.length > 0;
+  let preserveExtensionsResult = false;
+  let currentExtensionsResult:
+    | ReturnType<DefaultResourceLoader['getExtensions']>
+    | undefined;
   const resourceLoader = new DefaultResourceLoader({
     cwd: sessionWorkDir,
     agentDir: hostAgentDir,
     settingsManager,
     appendSystemPromptOverride: () => [],
-    extensionFactories: [],
+    extensionFactories,
+    ...(hasExtensionFactories
+      ? {
+          // DefaultResourceLoader invokes inline factories on every reload.
+          // Resource-only reloads retain the active extension runtime, while a
+          // genuine Pi session rebuild is allowed to replace that runtime.
+          extensionsOverride: extensions => {
+            if (preserveExtensionsResult && currentExtensionsResult != null) {
+              return currentExtensionsResult;
+            }
+            currentExtensionsResult = extensions;
+            return extensions;
+          },
+        }
+      : {}),
     // Pi runs in the host process, so its default resource discovery reaches
     // the host developer's personal config (`~/.pi/agent/*`, `~/.agents/*`).
-    // The harness does not expose extensions, themes, or prompt templates, so
-    // disable those entirely — this also avoids loading and executing a host
-    // developer's personal Pi extensions inside the server process. Skills are
-    // kept but filtered to workspace project skills plus harness-provided
+    // The harness exposes only explicitly supplied inline extension factories;
+    // disable filesystem extension discovery entirely to avoid loading and
+    // executing a host developer's personal or project Pi extensions inside
+    // the server process. Themes and prompt templates stay disabled. Skills
+    // are kept but filtered to workspace project skills plus harness-provided
     // skills whose files live in sandbox HOME.
     noExtensions: true,
     noThemes: true,
@@ -395,6 +468,22 @@ export async function createPiSession(
     }),
   });
   await resourceLoader.reload();
+
+  async function reloadResourcesOnly(): Promise<void> {
+    if (!hasExtensionFactories) {
+      await resourceLoader.reload();
+      return;
+    }
+
+    const factories = extensionFactories.splice(0);
+    preserveExtensionsResult = true;
+    try {
+      await resourceLoader.reload();
+    } finally {
+      preserveExtensionsResult = false;
+      extensionFactories.push(...factories);
+    }
+  }
 
   // Per-session mutable state we hold across prompts.
   let piSession: AgentSession | undefined;
@@ -571,20 +660,38 @@ export async function createPiSession(
     };
   }
 
+  async function disposePiSession(): Promise<void> {
+    unsubscribe?.();
+    unsubscribe = undefined;
+
+    const session = piSession;
+    piSession = undefined;
+    if (!session) return;
+
+    if (hasMcpServers) {
+      await session.reload().catch(() => {});
+    }
+    session.dispose();
+  }
+
   async function rebuildPiSession(
     userTools: ReadonlyArray<HarnessV1ToolSpec>,
     isFirstBuild: boolean,
-  ): Promise<void> {
+  ): Promise<boolean> {
+    let resourcesReloaded = false;
     if (piSession) {
-      unsubscribe?.();
-      unsubscribe = undefined;
-      piSession.dispose();
-      piSession = undefined;
+      await disposePiSession();
       // Original adapter waits 25 ms here to let Pi's teardown microtasks
       // settle before the next createAgentSession. Port verbatim.
       // TODO(pi-0.77): verify the race still exists; original SDK had a
       // teardown microtask the host needed to wait on.
       await new Promise(resolve => setTimeout(resolve, 25));
+      if (hasExtensionFactories) {
+        // dispose() invalidates Pi's current extension runtime, so a replacement
+        // AgentSession needs factories to create a fresh runtime before build.
+        await resourceLoader.reload();
+        resourcesReloaded = true;
+      }
     }
 
     const { customTools, builtinNames } = buildToolDefinitions(userTools);
@@ -609,13 +716,18 @@ export async function createPiSession(
       settingsManager,
       resourceLoader,
       customTools,
-      tools: toolNames,
+      ...(hasMcpServers
+        ? { noTools: 'builtin' as const }
+        : { tools: toolNames }),
       ...(input.settings.thinkingLevel
         ? { thinkingLevel: input.settings.thinkingLevel }
         : {}),
       ...(resolvedModel ? { model: resolvedModel } : {}),
     });
     piSession = session;
+    if (hasMcpServers) {
+      await piSession.bindExtensions({ mode: 'print' });
+    }
 
     // Pick up the actual session file path so doStop can persist it. Pi
     // 0.77 emits `.jsonl` files; older builds used `.json`. Persist the
@@ -628,6 +740,7 @@ export async function createPiSession(
 
     translatorState = createPiTranslatorState({
       builtinToolNames: builtinNames,
+      hostToolNames: userTools.map(tool => tool.name),
       nativeToCommon: NATIVE_TO_COMMON,
     });
 
@@ -645,6 +758,7 @@ export async function createPiSession(
         // Other event types outside a turn have no consumer and are dropped.
       }
     });
+    return resourcesReloaded;
   }
 
   /*
@@ -665,12 +779,15 @@ export async function createPiSession(
     const userTools = turnOpts.tools;
     const signature = JSON.stringify(userTools.map(t => t.name).sort());
     const needsRebuild = piSession == null || signature !== lastToolsSignature;
+    let resourcesReloaded = false;
     if (needsRebuild) {
-      await rebuildPiSession(userTools, piSession == null);
+      resourcesReloaded = await rebuildPiSession(userTools, piSession == null);
       lastToolsSignature = signature;
     }
 
-    await resourceLoader.reload();
+    if (!resourcesReloaded) {
+      await reloadResourcesOnly();
+    }
     await syncHostWorkspaceFromSandbox({
       sandbox,
       sandboxWorkDir: input.sessionWorkDir,
@@ -682,6 +799,7 @@ export async function createPiSession(
     // session was built with.
     translatorState = createPiTranslatorState({
       builtinToolNames: [...PI_NATIVE_BUILTIN_NAMES],
+      hostToolNames: userTools.map(tool => tool.name),
       nativeToCommon: NATIVE_TO_COMMON,
     });
 
@@ -795,10 +913,7 @@ export async function createPiSession(
       }
     }
 
-    unsubscribe?.();
-    unsubscribe = undefined;
-    piSession?.dispose();
-    piSession = undefined;
+    await disposePiSession();
     workspaceVfs.unmount();
     await rm(hostRoot, { recursive: true, force: true });
 
@@ -884,10 +999,7 @@ export async function createPiSession(
       parkedPiSessions.delete(input.sessionId);
       settlePendingToolResults('Pi session stopped');
       settlePendingToolApprovals('Pi session stopped');
-      unsubscribe?.();
-      unsubscribe = undefined;
-      piSession?.dispose();
-      piSession = undefined;
+      await disposePiSession();
       workspaceVfs.unmount();
       await rm(hostRoot, { recursive: true, force: true });
     },
@@ -972,10 +1084,7 @@ export async function createPiSession(
       parkedPiSessions.delete(input.sessionId);
       settlePendingToolResults('Pi session suspended');
       settlePendingToolApprovals('Pi session suspended');
-      unsubscribe?.();
-      unsubscribe = undefined;
-      piSession?.dispose();
-      piSession = undefined;
+      await disposePiSession();
       workspaceVfs.unmount();
       await rm(hostRoot, { recursive: true, force: true });
 
@@ -989,6 +1098,22 @@ export async function createPiSession(
   };
 
   return sessionImpl;
+}
+
+function resolvePiMcpServers({
+  mcpServers,
+}: {
+  mcpServers: Record<string, unknown> | undefined;
+}): Record<string, unknown> {
+  if (mcpServers == null) return {};
+  for (const [name, value] of Object.entries(mcpServers)) {
+    if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error(
+        `Pi MCP server ${JSON.stringify(name)} must be configured with an object value.`,
+      );
+    }
+  }
+  return mcpServers;
 }
 
 /**

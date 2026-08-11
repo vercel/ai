@@ -11,6 +11,7 @@ export const outboundMessageSchema = harnessV1BridgeOutboundMessageSchema;
 export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
 
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
+  mcpServers: z.record(z.string(), z.unknown()).optional(),
   // Prepended to the first user message (createDeepAgent takes no instructions param).
   instructions: z.string().optional(),
   // In-backend skills source dirs ($HOME and <workDir>), passed to createDeepAgent({ skills }).

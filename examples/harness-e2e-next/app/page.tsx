@@ -54,6 +54,20 @@ const HARNESSES = [
     ],
   },
   {
+    slug: 'grok-build',
+    label: 'Grok Build',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+  {
     slug: 'opencode',
     label: 'OpenCode',
     variants: [
@@ -70,6 +84,48 @@ const HARNESSES = [
   {
     slug: 'pi',
     label: 'Pi',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+  {
+    slug: 'acp-claude-code',
+    label: 'ACP: Claude Code',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+  {
+    slug: 'acp-codex',
+    label: 'ACP: Codex',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+  {
+    slug: 'acp-grok-build',
+    label: 'ACP: Grok Build',
     variants: [
       'basic',
       'basic-with-stop',

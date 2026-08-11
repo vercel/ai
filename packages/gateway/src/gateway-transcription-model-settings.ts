@@ -1,4 +1,5 @@
 export type GatewayTranscriptionModelId =
+  | 'fish-audio/transcribe-1'
   | 'openai/gpt-4o-mini-transcribe'
   | 'openai/gpt-4o-transcribe'
   | 'openai/gpt-realtime-whisper'

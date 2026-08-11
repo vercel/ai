@@ -1,5 +1,85 @@
 # @ai-sdk/harness-codex
 
+## 1.0.67
+
+### Patch Changes
+
+- a03ff6c: feat(harness): add support for per-harness MCP servers
+- fc3baaf: feat(harness): add optional `mintBridgeToken(sandboxId)` to harness settings to control the bridge token value
+- Updated dependencies [401a4ba]
+- Updated dependencies [a03ff6c]
+  - @ai-sdk/provider-utils@5.0.26
+  - @ai-sdk/harness@1.0.65
+
+## 1.0.66
+
+### Patch Changes
+
+- Updated dependencies [81cd026]
+  - @ai-sdk/provider-utils@5.0.25
+  - @ai-sdk/harness@1.0.64
+
+## 1.0.65
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+  - @ai-sdk/harness@1.0.63
+
+## 1.0.64
+
+### Patch Changes
+
+- Updated dependencies [25c9120]
+  - @ai-sdk/harness@1.0.62
+
+## 1.0.63
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.61
+- @ai-sdk/provider-utils@5.0.23
+
+## 1.0.62
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.60
+
+## 1.0.61
+
+### Patch Changes
+
+- Updated dependencies [2b60826]
+- Updated dependencies [81bcf2e]
+  - @ai-sdk/provider-utils@5.0.22
+  - @ai-sdk/harness@1.0.59
+
+## 1.0.60
+
+### Patch Changes
+
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+  - @ai-sdk/harness@1.0.58
+
+## 1.0.59
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+  - @ai-sdk/harness@1.0.57
+
+## 1.0.58
+
+### Patch Changes
+
+- 7e73f9e: fix(harness-codex): ensure reasoning summaries are emitted including when using AI Gateway
+  - @ai-sdk/harness@1.0.56
+  - @ai-sdk/provider-utils@5.0.19
+
 ## 1.0.57
 
 ### Patch Changes
