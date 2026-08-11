@@ -1,4 +1,5 @@
 import { AISDKError } from '@ai-sdk/provider';
+import { createProviderStreamError } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
 import { StreamProviderError } from '../error/stream-provider-error';
 import { normalizeStreamProviderError } from './normalize-stream-provider-error';
@@ -10,10 +11,15 @@ describe('normalizeStreamProviderError', () => {
       type: 'overloaded_error',
     };
 
-    const error = normalizeStreamProviderError({
-      error: data,
-      provider: 'anthropic.messages',
-    });
+    const error = normalizeStreamProviderError(
+      createProviderStreamError({
+        message: data.message,
+        type: data.type,
+        statusCode: 529,
+        isRetryable: true,
+        data,
+      }),
+    );
 
     expect(StreamProviderError.isInstance(error)).toBe(true);
     expect(error).toMatchObject({
@@ -25,14 +31,38 @@ describe('normalizeStreamProviderError', () => {
     });
   });
 
+  it('uses provider-owned metadata without exposing the metadata wrapper as data', () => {
+    const data = {
+      error: {
+        message: 'Request too large',
+        type: 'request_too_large',
+      },
+    };
+
+    const error = normalizeStreamProviderError(
+      createProviderStreamError({
+        message: data.error.message,
+        type: data.error.type,
+        statusCode: 413,
+        isRetryable: false,
+        data,
+      }),
+    );
+
+    expect(error).toMatchObject({
+      message: 'Request too large',
+      type: 'request_too_large',
+      statusCode: 413,
+      isRetryable: false,
+      data,
+    });
+  });
+
   it.each([
     ['Internal server error', 500],
     ['Overloaded', 503],
   ])('normalizes a message-only "%s" provider error', (message, statusCode) => {
-    const error = normalizeStreamProviderError({
-      error: { message },
-      provider: 'openai.chat',
-    });
+    const error = normalizeStreamProviderError({ message });
 
     expect(error).toMatchObject({
       message,
@@ -44,13 +74,10 @@ describe('normalizeStreamProviderError', () => {
 
   it('uses explicit status and retry metadata when available', () => {
     const error = normalizeStreamProviderError({
-      error: {
-        message: 'Request rejected',
-        type: 'provider_rejection',
-        status_code: 422,
-        is_retryable: true,
-      },
-      provider: 'gateway',
+      message: 'Request rejected',
+      type: 'provider_rejection',
+      status_code: 422,
+      is_retryable: true,
     });
 
     expect(error).toMatchObject({
@@ -72,27 +99,22 @@ describe('normalizeStreamProviderError', () => {
       },
     };
 
-    const error = normalizeStreamProviderError({
-      error: data,
-      provider: 'openai.responses',
-    });
+    const error = normalizeStreamProviderError(data);
 
     expect(error).toMatchObject({
       message: 'Try again later',
       type: 'response.failed',
-      statusCode: 429,
-      isRetryable: true,
+      statusCode: undefined,
+      isRetryable: false,
       data,
     });
   });
 
-  it('classifies known non-retryable provider error types', () => {
+  it('uses explicit status metadata for non-retryable provider errors', () => {
     const error = normalizeStreamProviderError({
-      error: {
-        message: 'A required provider dependency is unavailable',
-        type: 'failed_dependency',
-      },
-      provider: 'gateway',
+      message: 'A required provider dependency is unavailable',
+      type: 'failed_dependency',
+      statusCode: 424,
     });
 
     expect(error).toMatchObject({
@@ -103,8 +125,7 @@ describe('normalizeStreamProviderError', () => {
 
   it('uses conservative metadata for unknown message-only errors', () => {
     const error = normalizeStreamProviderError({
-      error: { message: 'Provider-specific failure' },
-      provider: 'custom',
+      message: 'Provider-specific failure',
     });
 
     expect(error).toMatchObject({
@@ -113,15 +134,26 @@ describe('normalizeStreamProviderError', () => {
     });
   });
 
+  it.each(['timeout_warning', 'not_found_in_cache'])(
+    'does not infer metadata from arbitrary provider type "%s"',
+    type => {
+      const error = normalizeStreamProviderError({
+        message: 'Provider-specific failure',
+        type,
+      });
+
+      expect(error).toMatchObject({
+        type,
+        statusCode: undefined,
+        isRetryable: false,
+      });
+    },
+  );
+
   it('preserves existing Error instances', () => {
     const error = new Error('existing error');
 
-    expect(
-      normalizeStreamProviderError({
-        error,
-        provider: 'mock-provider',
-      }),
-    ).toBe(error);
+    expect(normalizeStreamProviderError(error)).toBe(error);
   });
 
   it('preserves cross-realm AI SDK errors', () => {
@@ -131,12 +163,7 @@ describe('normalizeStreamProviderError', () => {
     };
 
     expect(AISDKError.isInstance(error)).toBe(true);
-    expect(
-      normalizeStreamProviderError({
-        error,
-        provider: 'mock-provider',
-      }),
-    ).toBe(error);
+    expect(normalizeStreamProviderError(error)).toBe(error);
   });
 
   it.each([
@@ -145,11 +172,6 @@ describe('normalizeStreamProviderError', () => {
     { message: 123 },
     null,
   ])('preserves non-normalizable values', error => {
-    expect(
-      normalizeStreamProviderError({
-        error,
-        provider: 'mock-provider',
-      }),
-    ).toBe(error);
+    expect(normalizeStreamProviderError(error)).toBe(error);
   });
 });

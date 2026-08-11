@@ -20,6 +20,8 @@ const model = new MockLanguageModelV4({
               error: {
                 type: 'overloaded_error',
                 message: 'Overloaded',
+                statusCode: 529,
+                isRetryable: true,
               },
             },
           ]

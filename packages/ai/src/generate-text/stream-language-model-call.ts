@@ -451,10 +451,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         case 'error':
           controller.enqueue({
             type: 'error',
-            error: normalizeStreamProviderError({
-              error: chunk.error,
-              provider,
-            }),
+            error: normalizeStreamProviderError(chunk.error),
           });
           break;
 

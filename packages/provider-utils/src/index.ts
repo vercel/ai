@@ -15,6 +15,11 @@ export {
   createToolNameMapping,
   type ToolNameMapping,
 } from './create-tool-name-mapping';
+export {
+  createProviderStreamError,
+  isProviderStreamError,
+  type ProviderStreamError,
+} from './create-provider-stream-error';
 export * from './delay';
 export { DelayedPromise } from './delayed-promise';
 export {

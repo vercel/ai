@@ -43,5 +43,7 @@ const result = streamText({
 
 Providers may not include enough metadata to determine a status code. In that
 case, `statusCode` is `undefined`, and retryability is classified
-conservatively. Errors that are already `Error` instances and malformed or
-unknown provider values are preserved unchanged.
+conservatively. Provider-specific status and retry mappings are supplied by the
+provider adapter rather than inferred from arbitrary provider error-code
+substrings. Errors that are already `Error` instances and malformed or unknown
+provider values are preserved unchanged.

@@ -20,9 +20,11 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  createProviderStreamError,
   createToolNameMapping,
   generateId,
   isCustomReasoning,
+  isProviderStreamError,
   mapReasoningToProviderBudget,
   mapReasoningToProviderEffort,
   parseProviderOptions,
@@ -67,6 +69,42 @@ import { convertToAnthropicPrompt } from './convert-to-anthropic-prompt';
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 import { sanitizeJsonSchema } from './sanitize-json-schema';
+
+function createAnthropicStreamError(error: { message: string; type: string }) {
+  return createProviderStreamError({
+    message: error.message,
+    type: error.type,
+    ...getAnthropicStreamErrorMetadata(error.type),
+    data: error,
+  });
+}
+
+function getAnthropicStreamErrorMetadata(type: string): {
+  statusCode?: number;
+  isRetryable?: boolean;
+} {
+  switch (type) {
+    case 'api_error':
+      return { statusCode: 500, isRetryable: true };
+    case 'overloaded_error':
+      return { statusCode: 529, isRetryable: true };
+    case 'rate_limit_error':
+      return { statusCode: 429, isRetryable: true };
+    case 'request_too_large':
+      return { statusCode: 413, isRetryable: false };
+    case 'authentication_error':
+      return { statusCode: 401, isRetryable: false };
+    case 'permission_error':
+      return { statusCode: 403, isRetryable: false };
+    case 'not_found_error':
+      return { statusCode: 404, isRetryable: false };
+    case 'billing_error':
+    case 'invalid_request_error':
+      return { statusCode: 400, isRetryable: false };
+    default:
+      return {};
+  }
+}
 
 function createCitationSource(
   citation: Citation,
@@ -2655,7 +2693,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             }
 
             case 'error': {
-              controller.enqueue({ type: 'error', error: value.error });
+              controller.enqueue({
+                type: 'error',
+                error: createAnthropicStreamError(value.error),
+              });
               return;
             }
 
@@ -2686,16 +2727,20 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       // We handle the case where the first chunk is an error here and transform
       // it into an APICallError.
       if (result.value?.type === 'error') {
-        const error = result.value.error as { message: string; type: string };
+        const error = result.value.error;
+
+        if (!isProviderStreamError(error)) {
+          throw new Error('Expected a normalized Anthropic stream error');
+        }
 
         throw new APICallError({
           message: error.message,
           url,
           requestBodyValues: body,
-          statusCode: error.type === 'overloaded_error' ? 529 : 500,
+          statusCode: error.statusCode ?? 500,
           responseHeaders,
-          responseBody: JSON.stringify(error),
-          isRetryable: error.type === 'overloaded_error',
+          responseBody: JSON.stringify(error.data),
+          isRetryable: error.isRetryable ?? false,
         });
       }
     } finally {

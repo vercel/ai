@@ -1,4 +1,5 @@
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import { isProviderStreamError } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
@@ -460,6 +461,38 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  it('should preserve a provider error envelope in stream errors', async () => {
+    const data = {
+      error: {
+        message: 'Internal server error',
+        type: 'server_error',
+      },
+    };
+
+    server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [`data: ${JSON.stringify(data)}\n\n`, 'data: [DONE]\n\n'],
+    };
+
+    const result = await provider.chatModel('kimi-k3').doStream({
+      prompt: TEST_PROMPT,
+    });
+    const chunks = await convertReadableStreamToArray(result.stream);
+    const errorPart = chunks.find(chunk => chunk.type === 'error');
+
+    expect(errorPart?.type).toBe('error');
+    if (errorPart?.type !== 'error') {
+      expect.fail('Expected an error part');
+    }
+
+    expect(isProviderStreamError(errorPart.error)).toBe(true);
+    expect(errorPart.error).toMatchObject({
+      message: 'Internal server error',
+      type: 'server_error',
+      data,
+    });
+  });
+
   it('should stream reasoning and text deltas with usage', async () => {
     prepareChunksFixtureResponse('moonshotai-stream');
 

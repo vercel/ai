@@ -11,6 +11,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  createProviderStreamError,
   delay,
   DelayedPromise,
   dynamicTool,
@@ -2584,10 +2585,16 @@ describe('streamText', () => {
               { type: 'text-delta', id: '1', delta: 'Hello' },
               {
                 type: 'error',
-                error: {
-                  type: 'overloaded_error',
+                error: createProviderStreamError({
                   message: 'Overloaded',
-                },
+                  type: 'overloaded_error',
+                  statusCode: 529,
+                  isRetryable: true,
+                  data: {
+                    type: 'overloaded_error',
+                    message: 'Overloaded',
+                  },
+                }),
               },
             ]),
           }),
