@@ -1,5 +1,24 @@
 # @ai-sdk/react
 
+## 4.0.64
+
+### Patch Changes
+
+- 8b30ab5: Reset the useCompletion input after submitting a prompt.
+- Updated dependencies [326054b]
+- Updated dependencies [975bb28]
+- Updated dependencies [7fbfc6d]
+  - ai@7.0.61
+  - @ai-sdk/provider-utils@5.0.27
+  - @ai-sdk/mcp@2.0.31
+
+## 4.0.63
+
+### Patch Changes
+
+- Updated dependencies [79c52ef]
+  - ai@7.0.60
+
 ## 4.0.62
 
 ### Patch Changes

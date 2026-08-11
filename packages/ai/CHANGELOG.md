@@ -1,5 +1,23 @@
 # ai
 
+## 7.0.61
+
+### Patch Changes
+
+- 326054b: Prevent `resumeStream` from copying the previous assistant message into the resumed response.
+- 975bb28: Cancel messages that are still being prepared when a chat is stopped.
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+  - @ai-sdk/gateway@4.0.49
+
+## 7.0.60
+
+### Patch Changes
+
+- 79c52ef: Align `ToolLoopAgent` `prepareCall` types with the settings available and honored at runtime.
+- Updated dependencies [3cc1bb6]
+  - @ai-sdk/gateway@4.0.48
+
 ## 7.0.59
 
 ### Patch Changes
