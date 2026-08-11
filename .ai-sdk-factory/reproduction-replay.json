@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 9077,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-9077-reasoning-part-id.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-9077-reasoning-part-id.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_9077_REPRODUCED: reasoning SSE ids were not preserved in ReasoningUIPart objects"
+  }
+}
