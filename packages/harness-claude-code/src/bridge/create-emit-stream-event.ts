@@ -182,12 +182,15 @@ export function createEmitStreamEvent({
       return;
     }
 
-    if (type === 'stream_event') {
-      handleStreamEvent(msg.event, state.partialBlocks, emit);
+    // Messages emitted by a Task-tool subagent carry the parent tool-use id.
+    // They belong to the subagent stream and must not affect the parent step,
+    // including partial stream events that arrive before assistant messages.
+    if (msg.parent_tool_use_id != null) {
       return;
     }
 
-    if (type === 'assistant' && msg.parent_tool_use_id != null) {
+    if (type === 'stream_event') {
+      handleStreamEvent(msg.event, state.partialBlocks, emit);
       return;
     }
 
@@ -229,10 +232,6 @@ export function createEmitStreamEvent({
         state.stepOpen = true;
         if (usage) state.pendingStepUsage = usage;
       }
-      return;
-    }
-
-    if (type === 'user' && msg.parent_tool_use_id != null) {
       return;
     }
 
