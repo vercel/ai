@@ -1,5 +1,14 @@
 # ai
 
+## 5.0.232
+
+### Patch Changes
+
+- 66dd974: Prevent streaming telemetry spans from ending twice or remaining unfinished when model calls fail.
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+  - @ai-sdk/gateway@2.0.131
+
 ## 5.0.231
 
 ### Patch Changes
