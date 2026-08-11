@@ -320,7 +320,7 @@ describe('createOpenCode adapter', () => {
     );
   });
 
-  it('passes reasoningVariant and MCP servers to OpenCode', async () => {
+  it('passes reasoningVariant, instructions, and MCP servers to every OpenCode prompt', async () => {
     harnessUtilsMocks.channels.length = 0;
     harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
     const emptyStream = () =>
@@ -376,6 +376,7 @@ describe('createOpenCode adapter', () => {
     });
     await session.doPromptTurn({
       prompt: 'think',
+      instructions: 'be concise',
       emit: () => {},
     });
 
@@ -383,6 +384,22 @@ describe('createOpenCode adapter', () => {
       type: 'start',
       operation: 'prompt',
       prompt: 'think',
+      instructions: 'be concise',
+      variant: 'high',
+      mcpServers,
+    });
+
+    await session.doPromptTurn({
+      prompt: 'think again',
+      instructions: 'be concise',
+      emit: () => {},
+    });
+
+    expect(harnessUtilsMocks.channels.at(-1)?.sent.at(-1)).toMatchObject({
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'think again',
+      instructions: 'be concise',
       variant: 'high',
       mcpServers,
     });

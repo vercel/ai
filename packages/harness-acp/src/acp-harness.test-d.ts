@@ -75,4 +75,32 @@ describe('createACP built-in tool inference', () => {
       executable: 'acp-agent',
     });
   });
+
+  test('accepts native instruction mappings', () => {
+    createACP({
+      harnessId: 'claude-acp',
+      source: {
+        type: 'npm-simple',
+        packageName: '@agentclientprotocol/claude-agent-acp',
+      },
+      executable: 'claude-agent-acp',
+      instructionMapping: {
+        type: 'session-meta',
+        path: ['systemPrompt', 'append'],
+      },
+    });
+    createACP({
+      harnessId: 'codex-acp',
+      source: {
+        type: 'npm-simple',
+        packageName: '@agentclientprotocol/codex-acp',
+      },
+      executable: 'codex-acp',
+      instructionMapping: {
+        type: 'launch-env-json',
+        variable: 'CODEX_CONFIG',
+        path: ['developer_instructions'],
+      },
+    });
+  });
 });

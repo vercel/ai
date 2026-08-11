@@ -65,6 +65,7 @@ describe('inboundMessageSchema', () => {
       inboundMessageSchema.parse({
         type: 'start',
         prompt: 'hi',
+        instructions: 'Be concise.',
         tools: [{ name: 'deploy' }],
         model: 'claude-sonnet-4-5',
         maxTurns: 5,

@@ -147,7 +147,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       ...(model ? { model } : {}),
       tools: [...mcpTools, ...hostTools],
       backend: createLocalShellBackend({ rootDir: workdir }),
-      systemPrompt: start.instructions || undefined,
+      systemPrompt: start.instructions
+        ? { suffix: start.instructions }
+        : undefined,
       // Native skills loaded from the source dirs ($HOME-materialized + <workDir> for repo-provided skills).
       ...(start.skillsPaths?.length ? { skills: start.skillsPaths } : {}),
       ...(builtinToolFilteringMiddleware
