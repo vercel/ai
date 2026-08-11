@@ -267,7 +267,11 @@ export type StreamTextTransform<TOOLS extends ToolSet> = (options: {
  */
 export type StreamTextOnErrorResult = { retry: true };
 
-export type StreamTextOnErrorCallback = (event: { error: unknown }) => unknown;
+export type StreamTextOnErrorCallback =
+  | ((event: { error: unknown }) => PromiseLike<void> | void)
+  | ((event: {
+      error: unknown;
+    }) => PromiseLike<StreamTextOnErrorResult> | StreamTextOnErrorResult);
 
 /**
  * Callback that is set using the `onChunk` option.
@@ -1216,7 +1220,12 @@ class DefaultStreamTextResult<
 
         const { part } = chunk;
 
-        await onChunk?.({ chunk: part });
+        const callbacksHandledForStreamRetry =
+          part.type === 'error' && errorsHandledForStreamRetry.has(part.error);
+
+        if (!callbacksHandledForStreamRetry) {
+          await onChunk?.({ chunk: part });
+        }
 
         if (part.type === 'error') {
           const error = wrapGatewayError(part.error);
@@ -1225,7 +1234,7 @@ class DefaultStreamTextResult<
             recordedNoOutputError = error;
           }
 
-          if (errorsHandledForStreamRetry.has(part.error)) {
+          if (callbacksHandledForStreamRetry) {
             errorsHandledForStreamRetry.delete(part.error);
           } else {
             await onError({ error });
@@ -2038,6 +2047,7 @@ class DefaultStreamTextResult<
           const stepStartTimestampMs = now();
 
           const { retry } = prepareRetries({ maxRetries, abortSignal });
+          let hasNotifiedStepStart = false;
 
           const callLanguageModel = () =>
             runInStepTracingChannelContext(() =>
@@ -2076,6 +2086,11 @@ class DefaultStreamTextResult<
                       | OnLanguageModelCallEndCallback<TOOLS>,
                   ),
                   onStart: async ({ promptMessages }) => {
+                    if (hasNotifiedStepStart) {
+                      return;
+                    }
+                    hasNotifiedStepStart = true;
+
                     await notify({
                       event: {
                         callId,
@@ -2115,17 +2130,57 @@ class DefaultStreamTextResult<
           let languageModelStreamReader =
             initialLanguageModelCall.stream.getReader();
           let automaticStreamRetryCount = 0;
+          let bufferedAttemptParts: LanguageModelStreamPart<TOOLS>[] = [];
+          const outputChunksHandledBeforeBuffering = new WeakSet<object>();
 
           const languageModelStream = new ReadableStream<
             LanguageModelStreamPart<TOOLS>
           >({
             async pull(controller) {
+              const flushBufferedAttemptParts = () => {
+                for (const part of bufferedAttemptParts) {
+                  controller.enqueue(part);
+                }
+                bufferedAttemptParts = [];
+              };
+
               while (true) {
                 const { done, value } = await languageModelStreamReader.read();
 
                 if (done) {
+                  flushBufferedAttemptParts();
                   controller.close();
                   return;
+                }
+
+                const isToolPart =
+                  value.type === 'tool-input-start' ||
+                  value.type === 'tool-input-delta' ||
+                  value.type === 'tool-input-end' ||
+                  value.type === 'tool-call' ||
+                  value.type === 'tool-approval-request' ||
+                  value.type === 'tool-approval-response' ||
+                  value.type === 'tool-result' ||
+                  value.type === 'tool-error';
+
+                if (value.type === 'model-call-end') {
+                  flushBufferedAttemptParts();
+                  controller.enqueue(value);
+                  return;
+                }
+
+                if (
+                  value.type !== 'error' &&
+                  (isToolPart || bufferedAttemptParts.length > 0)
+                ) {
+                  if (isOutputChunk(value)) {
+                    clearFirstChunkTimeout();
+                    resetChunkTimeout();
+                    outputChunksHandledBeforeBuffering.add(value);
+                  }
+
+                  bufferedAttemptParts.push(value);
+                  continue;
                 }
 
                 if (value.type !== 'error') {
@@ -2133,6 +2188,7 @@ class DefaultStreamTextResult<
                   return;
                 }
 
+                await onChunk?.({ chunk: value });
                 const error = wrapGatewayError(value.error);
                 const onErrorResult = await onError({ error });
                 const callbackRequestedRetry =
@@ -2144,6 +2200,7 @@ class DefaultStreamTextResult<
                   automaticStreamRetryCount < streamRetries;
 
                 if (!automaticRetry && !callbackRequestedRetry) {
+                  flushBufferedAttemptParts();
                   errorsHandledForStreamRetry.add(value.error);
                   controller.enqueue(value);
                   return;
@@ -2154,6 +2211,7 @@ class DefaultStreamTextResult<
                 }
 
                 await languageModelStreamReader.cancel(error);
+                bufferedAttemptParts = [];
 
                 const retryLanguageModelCall = await callLanguageModel();
                 request = retryLanguageModelCall.request;
@@ -2297,13 +2355,21 @@ class DefaultStreamTextResult<
                   const chunkType = chunk.type;
 
                   if (isOutputChunk(chunk)) {
-                    if (!hasReceivedOutputChunk) {
+                    const timeoutHandledBeforeBuffering =
+                      outputChunksHandledBeforeBuffering.has(chunk);
+
+                    if (
+                      !hasReceivedOutputChunk &&
+                      !timeoutHandledBeforeBuffering
+                    ) {
                       // Clear before forwarding the first output so a timeout
                       // cannot race with already-visible generated content.
                       clearFirstChunkTimeout();
                     }
                     hasReceivedOutputChunk = true;
-                    resetChunkTimeout();
+                    if (!timeoutHandledBeforeBuffering) {
+                      resetChunkTimeout();
+                    }
                   }
 
                   switch (chunkType) {

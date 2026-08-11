@@ -116,7 +116,14 @@ for await (const textPart of textStream) {
 
 Stream retries rerun only the failed model step with the same accumulated
 conversation and generation context. Earlier completed steps, including their
-tool calls and tool results, are not replayed.
+tool calls and tool results, are not replayed. Tool input, tool calls, approval
+requests, tool callbacks, and client-side tool execution from a failed attempt
+are discarded. They are only exposed or executed after an attempt reaches a
+successful model-call finish.
+
+A retry remains part of the same logical step. `onStepStart` runs once for that
+step, while `onLanguageModelCallStart` and `onLanguageModelCallEnd` run for each
+provider call attempt.
 
 You can also decide dynamically in `onError`:
 
@@ -139,10 +146,10 @@ Provider error events that are recovered are not emitted as final `error`
 parts.
 
 <Note type="warning">
-  Output emitted before a provider error cannot be retracted. A retried model
-  step may therefore append repeated or divergent partial output to consumer
-  streams. Retries also add latency and may incur additional provider usage and
-  cost.
+  Non-tool output emitted before a provider error cannot be retracted. A retried
+  model step may therefore append repeated or divergent partial text, reasoning,
+  files, or sources to consumer streams. Retries also add latency and may incur
+  additional provider usage and cost.
 </Note>
 
 ## Handling stream aborts

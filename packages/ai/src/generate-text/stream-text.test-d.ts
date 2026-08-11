@@ -22,6 +22,10 @@ import type { DeepPartial } from '../util/deep-partial';
 import type { GenerateTextEndEvent } from './generate-text-events';
 import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
+import type {
+  StreamTextOnErrorCallback,
+  StreamTextOnErrorResult,
+} from './stream-text';
 
 describe('streamText types', () => {
   describe('stream retries', () => {
@@ -34,12 +38,13 @@ describe('streamText types', () => {
       });
     });
 
-    it('should preserve callbacks that return other values', () => {
-      streamText({
-        model: new MockLanguageModelV4(),
-        prompt: 'Hello',
-        onError: () => 'custom error text',
-      });
+    it('should expose a precise callback return union', () => {
+      expectTypeOf<ReturnType<StreamTextOnErrorCallback>>().toEqualTypeOf<
+        | PromiseLike<void>
+        | void
+        | PromiseLike<StreamTextOnErrorResult>
+        | StreamTextOnErrorResult
+      >();
     });
   });
 
