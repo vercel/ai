@@ -1140,70 +1140,79 @@ class DefaultStreamTextResult<
             result: { stream, response, request },
             doStreamSpan,
             startTimestampMs,
-          } = await retry(() =>
-            recordSpan({
-              name: 'ai.streamText.doStream',
-              attributes: selectTelemetryAttributes({
-                telemetry,
-                attributes: {
-                  ...assembleOperationName({
-                    operationId: 'ai.streamText.doStream',
-                    telemetry,
-                  }),
-                  ...baseTelemetryAttributes,
-                  // model:
-                  'ai.model.provider': stepModel.provider,
-                  'ai.model.id': stepModel.modelId,
-                  // prompt:
-                  'ai.prompt.messages': {
-                    input: () => stringifyForTelemetry(promptMessages),
-                  },
-                  'ai.prompt.tools': {
-                    // convert the language model level tools:
-                    input: () => stepTools?.map(tool => JSON.stringify(tool)),
-                  },
-                  'ai.prompt.toolChoice': {
-                    input: () =>
-                      stepToolChoice != null
-                        ? JSON.stringify(stepToolChoice)
-                        : undefined,
-                  },
+          } = await retry(async () => {
+            let doStreamSpan: Span | undefined;
 
-                  // standardized gen-ai llm span attributes:
-                  'gen_ai.system': stepModel.provider,
-                  'gen_ai.request.model': stepModel.modelId,
-                  'gen_ai.request.frequency_penalty':
-                    callSettings.frequencyPenalty,
-                  'gen_ai.request.max_tokens': callSettings.maxOutputTokens,
-                  'gen_ai.request.presence_penalty':
-                    callSettings.presencePenalty,
-                  'gen_ai.request.stop_sequences': callSettings.stopSequences,
-                  'gen_ai.request.temperature': callSettings.temperature,
-                  'gen_ai.request.top_k': callSettings.topK,
-                  'gen_ai.request.top_p': callSettings.topP,
+            try {
+              return await recordSpan({
+                name: 'ai.streamText.doStream',
+                attributes: selectTelemetryAttributes({
+                  telemetry,
+                  attributes: {
+                    ...assembleOperationName({
+                      operationId: 'ai.streamText.doStream',
+                      telemetry,
+                    }),
+                    ...baseTelemetryAttributes,
+                    // model:
+                    'ai.model.provider': stepModel.provider,
+                    'ai.model.id': stepModel.modelId,
+                    // prompt:
+                    'ai.prompt.messages': {
+                      input: () => stringifyForTelemetry(promptMessages),
+                    },
+                    'ai.prompt.tools': {
+                      // convert the language model level tools:
+                      input: () => stepTools?.map(tool => JSON.stringify(tool)),
+                    },
+                    'ai.prompt.toolChoice': {
+                      input: () =>
+                        stepToolChoice != null
+                          ? JSON.stringify(stepToolChoice)
+                          : undefined,
+                    },
+
+                    // standardized gen-ai llm span attributes:
+                    'gen_ai.system': stepModel.provider,
+                    'gen_ai.request.model': stepModel.modelId,
+                    'gen_ai.request.frequency_penalty':
+                      callSettings.frequencyPenalty,
+                    'gen_ai.request.max_tokens': callSettings.maxOutputTokens,
+                    'gen_ai.request.presence_penalty':
+                      callSettings.presencePenalty,
+                    'gen_ai.request.stop_sequences': callSettings.stopSequences,
+                    'gen_ai.request.temperature': callSettings.temperature,
+                    'gen_ai.request.top_k': callSettings.topK,
+                    'gen_ai.request.top_p': callSettings.topP,
+                  },
+                }),
+                tracer,
+                endWhenDone: false,
+                fn: async span => {
+                  doStreamSpan = span;
+
+                  return {
+                    startTimestampMs: now(), // get before the call
+                    doStreamSpan: span,
+                    result: await stepModel.doStream({
+                      ...callSettings,
+                      tools: stepTools,
+                      toolChoice: stepToolChoice,
+                      responseFormat: output?.responseFormat,
+                      prompt: promptMessages,
+                      providerOptions,
+                      abortSignal,
+                      headers,
+                      includeRawChunks,
+                    }),
+                  };
                 },
-              }),
-              tracer,
-              endWhenDone: false,
-              fn: async doStreamSpan => {
-                return {
-                  startTimestampMs: now(), // get before the call
-                  doStreamSpan,
-                  result: await stepModel.doStream({
-                    ...callSettings,
-                    tools: stepTools,
-                    toolChoice: stepToolChoice,
-                    responseFormat: output?.responseFormat,
-                    prompt: promptMessages,
-                    providerOptions,
-                    abortSignal,
-                    headers,
-                    includeRawChunks,
-                  }),
-                };
-              },
-            }),
-          );
+              });
+            } catch (error) {
+              doStreamSpan?.end();
+              throw error;
+            }
+          });
 
           const streamWithToolResults = runToolsTransformation({
             tools: stepToolSet,

@@ -31,8 +31,9 @@ export function recordSpan<T>({
       try {
         recordErrorOnSpan(span, error);
       } finally {
-        // always stop the span when there is an error:
-        span.end();
+        if (endWhenDone) {
+          span.end();
+        }
       }
 
       throw error;
