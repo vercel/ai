@@ -2571,6 +2571,51 @@ describe('streamText', () => {
       );
     });
 
+    it('should surface mid-stream provider error events as Errors with statusCode', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            {
+              type: 'error',
+              error: {
+                type: 'api_error',
+                statusCode: 500,
+                message:
+                  'Unable to complete this request right now. Please try again.',
+              },
+            },
+            {
+              type: 'finish',
+              finishReason: { unified: 'error', raw: undefined },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onError: () => {},
+      });
+
+      const streamParts = await convertAsyncIterableToArray(result.stream);
+      const errorPart = streamParts.find(part => part.type === 'error');
+
+      expect(errorPart).toBeDefined();
+      expect(errorPart!.error).toBeInstanceOf(Error);
+      expect((errorPart!.error as Error).message).toBe(
+        'Unable to complete this request right now. Please try again.',
+      );
+      expect(
+        (errorPart!.error as Error & { statusCode?: number }).statusCode,
+      ).toBe(500);
+    });
+
     it('should invoke onError callback when error is thrown in 2nd step', async () => {
       const onError = vi.fn();
       let responseCount = 0;

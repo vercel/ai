@@ -215,6 +215,49 @@ function isOutputChunk(chunk: ExecuteToolsStreamPart): boolean {
   }
 }
 
+/**
+ * Normalizes an error value received from a model stream.
+ *
+ * Providers surface mid-stream SSE `error` events as raw plain objects
+ * (e.g. `{ type: 'api_error', message: '...', statusCode: 500 }`) rather
+ * than `Error` instances. Normalize such values into `Error` instances so
+ * that consumers receive objects that behave like errors (instanceof,
+ * `.message`, `.statusCode`, `.isRetryable`).
+ *
+ * Values that are already `Error` instances or non-object values are passed
+ * through unchanged so that existing error strings are preserved.
+ */
+function toStreamError(error: unknown): unknown {
+  if (error instanceof Error || error == null || typeof error !== 'object') {
+    return error;
+  }
+
+  const { message, statusCode, type, isRetryable } = error as {
+    message?: unknown;
+    statusCode?: unknown;
+    type?: unknown;
+    isRetryable?: unknown;
+  };
+
+  const normalized = new Error(
+    typeof message === 'string' ? message : getErrorMessage(error),
+  );
+
+  if (typeof type === 'string') {
+    (normalized as Error & { type?: string }).type = type;
+  }
+
+  if (typeof statusCode === 'number') {
+    (normalized as Error & { statusCode?: number }).statusCode = statusCode;
+  }
+
+  if (typeof isRetryable === 'boolean') {
+    (normalized as Error & { isRetryable?: boolean }).isRetryable = isRetryable;
+  }
+
+  return normalized;
+}
+
 export type StreamTextInclude = {
   /**
    * Whether to retain the request body in step results.
@@ -2305,7 +2348,10 @@ class DefaultStreamTextResult<
 
                     case 'error': {
                       hasReceivedTerminalChunk = true;
-                      controller.enqueue(chunk);
+                      controller.enqueue({
+                        type: 'error',
+                        error: toStreamError(chunk.error),
+                      });
                       stepFinishReason = 'error';
                       break;
                     }
