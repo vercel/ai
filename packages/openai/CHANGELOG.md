@@ -1,5 +1,14 @@
 # @ai-sdk/openai
 
+## 3.0.93
+
+### Patch Changes
+
+- f471a1c: Accept `serviceTier: 'fast'` on OpenAI chat and responses models. OpenAI renamed priority processing to Fast mode and accepts `service_tier: 'fast'` and `'priority'` interchangeably, so `'fast'` is now passed through verbatim and gated on the same model capability as `'priority'`.
+- Updated dependencies [2171d15]
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/provider-utils@4.0.44
+
 ## 3.0.92
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @ai-sdk/langchain
 
+## 2.0.256
+
+### Patch Changes
+
+- 5995d53: Preserve LangGraph subgraph namespaces and step lifecycles without letting concurrent namespace counters split active text or reasoning streams.
+- Updated dependencies [2171d15]
+  - ai@6.0.248
+
 ## 2.0.255
 
 ### Patch Changes

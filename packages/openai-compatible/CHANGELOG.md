@@ -1,5 +1,14 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.66
+
+### Patch Changes
+
+- de18066: fix(provider/openai-compatible): clamp `outputTokens.text` at 0 when a provider reports `completion_tokens_details.reasoning_tokens` greater than `completion_tokens` (observed with Baseten serving reasoning models that hit the length stop mid-reasoning). The text share of completion tokens can never be negative; `total` and `reasoning` remain as reported by the provider.
+- Updated dependencies [2171d15]
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/provider-utils@4.0.44
+
 ## 2.0.65
 
 ### Patch Changes
