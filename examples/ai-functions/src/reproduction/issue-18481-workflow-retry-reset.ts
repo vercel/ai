@@ -223,20 +223,15 @@ async function main() {
   await writer.close();
 
   const assistantMessage = await lastMessagePromise;
-  const streamedToolStates = getToolStates(assistantMessage);
-
-  if (
-    streamedToolStates.join(',') !==
-    ['input-streaming', 'approval-requested'].join(',')
-  ) {
-    throw new Error(
-      `Reproduction precondition failed: expected the failed and retried tool calls, received ${streamedToolStates.join(', ')}.`,
-    );
-  }
+  const preApprovalToolStates = getToolStates(assistantMessage);
 
   const retriedApproval = assistantMessage.parts
     .filter(isToolUIPart)
-    .find(part => part.state === 'approval-requested')?.approval;
+    .find(
+      part =>
+        part.toolCallId === 'call-retried' &&
+        part.state === 'approval-requested',
+    )?.approval;
 
   if (retriedApproval == null) {
     throw new Error(
@@ -283,17 +278,34 @@ async function main() {
 
   const toolStates = getToolStates(chat.messages[0]);
 
-  if (
-    toolStates.join(',') !== ['input-streaming', 'approval-responded'].join(',')
-  ) {
+  if (submitCount === 0) {
+    if (
+      preApprovalToolStates.join(',') !==
+      ['input-streaming', 'approval-requested'].join(',')
+    ) {
+      throw new Error(
+        `Reproduction precondition failed: expected the unfixed baseline to contain the failed and retried tool calls, received ${preApprovalToolStates.join(', ')}.`,
+      );
+    }
+
     throw new Error(
-      `Reproduction precondition failed after approval: received ${toolStates.join(', ')}.`,
+      `Reproduced issue #18481: approving the retried tool did not submit because the invalidated partial tool call remained in useChat state (tool states: ${toolStates.join(', ')}).`,
     );
   }
 
   if (submitCount !== 1) {
     throw new Error(
-      `Reproduced issue #18481: approving the retried tool did not submit because the invalidated partial tool call remained in useChat state (tool states: ${toolStates.join(', ')}).`,
+      `Expected approving the retried tool to submit exactly once, but it submitted ${submitCount} times.`,
+    );
+  }
+
+  const retriedTool = chat.messages[0].parts
+    .filter(isToolUIPart)
+    .find(part => part.toolCallId === 'call-retried');
+
+  if (retriedTool?.state !== 'output-available') {
+    throw new Error(
+      `Expected the retried tool to have output after submission, received ${retriedTool?.state ?? 'missing'}.`,
     );
   }
 
