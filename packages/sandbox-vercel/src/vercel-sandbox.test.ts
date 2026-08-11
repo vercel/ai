@@ -98,7 +98,7 @@ describe('createVercelSandbox (wrap existing)', () => {
     expect(spies.delete).not.toHaveBeenCalled();
   });
 
-  describe('getPortUrl', () => {
+  describe('getPortEndpoint', () => {
     it('returns the value from sandbox.domain for https', async () => {
       const { sandbox, spies } = makeMockSandbox({
         routes: [{ port: 3000 }],
@@ -106,33 +106,49 @@ describe('createVercelSandbox (wrap existing)', () => {
       spies.domain.mockReturnValueOnce('https://sub.vercel.run');
 
       const handle = await createVercelSandbox({ sandbox }).createSession();
-      const url = await handle.getPortUrl({ port: 3000 });
+      const endpoint = await handle.getPortEndpoint({ port: 3000 });
       expect(spies.domain).toHaveBeenCalledWith(3000);
-      expect(url).toBe('https://sub.vercel.run/');
+      expect(endpoint).toEqual({ url: 'https://sub.vercel.run/' });
     });
 
     it('upgrades ws to wss when domain is https', async () => {
       const { sandbox, spies } = makeMockSandbox();
       spies.domain.mockReturnValueOnce('https://sub.vercel.run');
       const handle = await createVercelSandbox({ sandbox }).createSession();
-      const url = await handle.getPortUrl({ port: 4000, protocol: 'ws' });
-      expect(url).toBe('wss://sub.vercel.run/');
+      const endpoint = await handle.getPortEndpoint({
+        port: 4000,
+        protocol: 'ws',
+      });
+      expect(endpoint).toEqual({ url: 'wss://sub.vercel.run/' });
     });
 
     it('keeps ws as ws when domain is http', async () => {
       const { sandbox, spies } = makeMockSandbox();
       spies.domain.mockReturnValueOnce('http://sub.vercel.run');
       const handle = await createVercelSandbox({ sandbox }).createSession();
-      const url = await handle.getPortUrl({ port: 4000, protocol: 'ws' });
-      expect(url).toBe('ws://sub.vercel.run/');
+      const endpoint = await handle.getPortEndpoint({
+        port: 4000,
+        protocol: 'ws',
+      });
+      expect(endpoint).toEqual({ url: 'ws://sub.vercel.run/' });
     });
 
     it('throws when the requested port is not in the sandbox routes', async () => {
       const { sandbox } = makeMockSandbox({ routes: [{ port: 4000 }] });
       const handle = await createVercelSandbox({ sandbox }).createSession();
-      await expect(handle.getPortUrl({ port: 9999 })).rejects.toThrow(
+      await expect(handle.getPortEndpoint({ port: 9999 })).rejects.toThrow(
         /Port 9999 is not exposed/,
       );
+    });
+
+    it('keeps getPortUrl as a compatibility wrapper', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      spies.domain.mockReturnValueOnce('https://sub.vercel.run');
+      const handle = await createVercelSandbox({ sandbox }).createSession();
+
+      await expect(
+        handle.getPortUrl({ port: 4000, protocol: 'ws' }),
+      ).resolves.toBe('wss://sub.vercel.run/');
     });
   });
 

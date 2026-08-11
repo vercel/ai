@@ -45,7 +45,7 @@ Credential resolution failures throw
 `HarnessSandboxAuthenticationError` from `@ai-sdk/harness` and preserve the
 underlying Vercel SDK error as `cause`.
 
-`networkSandboxSession.restricted()` is typed as `Experimental_SandboxSession`, so it's safe to pass to AI SDK tools that accept `experimental_sandbox`. The network sandbox session itself carries the infra surface (`ports`, `getPortUrl`, `setNetworkPolicy`, `stop`) that only the harness should reach for.
+`networkSandboxSession.restricted()` is typed as `Experimental_SandboxSession`, so it's safe to pass to AI SDK tools that accept `experimental_sandbox`. The network sandbox session itself carries the infra surface (`ports`, `getPortEndpoint`, `setNetworkPolicy`, `stop`) that only the harness should reach for. `getPortUrl` remains available as a deprecated compatibility wrapper.
 
 The flat-field settings are aliased directly from `@vercel/sandbox`'s `Sandbox.create` parameters, so every option Vercel supports — including its native `NetworkPolicy` — is available without re-declaration:
 
