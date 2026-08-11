@@ -364,7 +364,8 @@ console.log(preparation.identity);
 - `harness`: the adapter instance.
 - `sandbox`: a `HarnessV1SandboxProvider`.
 - `id`: optional stable agent identifier.
-- `instructions`: instructions applied once to a fresh session.
+- `instructions`: instructions appended to the runtime's system or developer
+  prompt when supported, or prepended to the first user prompt otherwise.
 - `stopWhen`: condition(s) for finishing a result slice after a completed
   harness tool step that can continue into another model step.
 - `tools`: AI SDK tools executed by the host when the harness calls them.
