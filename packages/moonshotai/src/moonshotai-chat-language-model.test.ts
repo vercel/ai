@@ -489,6 +489,8 @@ describe('doStream', () => {
     expect(errorPart.error).toMatchObject({
       message: 'Internal server error',
       type: 'server_error',
+      statusCode: 500,
+      isRetryable: true,
       data,
     });
   });

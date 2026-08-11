@@ -1760,6 +1760,15 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/deepseek':
+        specifier: workspace:*
+        version: link:../deepseek
+      '@ai-sdk/moonshotai':
+        specifier: workspace:*
+        version: link:../moonshotai
+      '@ai-sdk/openai':
+        specifier: workspace:*
+        version: link:../openai
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server

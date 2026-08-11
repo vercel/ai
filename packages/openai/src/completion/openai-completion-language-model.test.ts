@@ -594,9 +594,15 @@ describe('doStream', () => {
         },
         {
           "error": {
-            "code": null,
+            "data": {
+              "code": null,
+              "message": "stream failed after output",
+              "param": null,
+              "type": "server_error",
+            },
+            "isRetryable": true,
             "message": "stream failed after output",
-            "param": null,
+            "statusCode": 500,
             "type": "server_error",
           },
           "type": "error",

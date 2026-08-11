@@ -3,6 +3,7 @@
 '@ai-sdk/anthropic': patch
 '@ai-sdk/deepseek': patch
 '@ai-sdk/moonshotai': patch
+'@ai-sdk/openai': patch
 '@ai-sdk/provider-utils': patch
 ---
 

@@ -55,6 +55,53 @@ export type MoonshotAIChatConfig = {
   supportsStructuredOutputs?: boolean;
 };
 
+function createMoonshotAIStreamError(
+  error: { message: string; type?: string | null },
+  data: unknown,
+) {
+  return createProviderStreamError({
+    message: error.message,
+    type: error.type ?? undefined,
+    ...getMoonshotAIStreamErrorMetadata(error.type),
+    data,
+  });
+}
+
+function getMoonshotAIStreamErrorMetadata(type?: string | null): {
+  statusCode?: number;
+  isRetryable?: boolean;
+} {
+  switch (type) {
+    case 'rate_limit_exceeded':
+    case 'rate_limit_error':
+      return { statusCode: 429, isRetryable: true };
+    case 'server_error':
+    case 'api_error':
+    case 'internal_server_error':
+      return { statusCode: 500, isRetryable: true };
+    case 'overloaded_error':
+    case 'service_unavailable':
+      return { statusCode: 503, isRetryable: true };
+    case 'timeout':
+    case 'timeout_error':
+      return { statusCode: 504, isRetryable: true };
+    case 'authentication_error':
+    case 'invalid_api_key':
+      return { statusCode: 401, isRetryable: false };
+    case 'permission_error':
+      return { statusCode: 403, isRetryable: false };
+    case 'not_found_error':
+    case 'model_not_found':
+      return { statusCode: 404, isRetryable: false };
+    case 'bad_request':
+    case 'context_length_exceeded':
+    case 'invalid_request_error':
+      return { statusCode: 400, isRetryable: false };
+    default:
+      return {};
+  }
+}
+
 export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -393,11 +440,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
               finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({
                 type: 'error',
-                error: createProviderStreamError({
-                  message: value.error.message,
-                  type: value.error.type ?? undefined,
-                  data: value,
-                }),
+                error: createMoonshotAIStreamError(value.error, value),
               });
               return;
             }

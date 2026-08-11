@@ -103,7 +103,25 @@ describe('normalizeStreamProviderError', () => {
 
     expect(error).toMatchObject({
       message: 'Try again later',
-      type: 'response.failed',
+      type: 'rate_limit_exceeded',
+      statusCode: undefined,
+      isRetryable: false,
+      data,
+    });
+  });
+
+  it('uses a provider code as the public discriminator', () => {
+    const data = {
+      type: 'error',
+      code: 'rate_limit_exceeded',
+      message: 'Rate limit reached',
+    };
+
+    const error = normalizeStreamProviderError(data);
+
+    expect(error).toMatchObject({
+      message: 'Rate limit reached',
+      type: 'rate_limit_exceeded',
       statusCode: undefined,
       isRetryable: false,
       data,
@@ -153,6 +171,19 @@ describe('normalizeStreamProviderError', () => {
   it('preserves existing Error instances', () => {
     const error = new Error('existing error');
 
+    expect(normalizeStreamProviderError(error)).toBe(error);
+  });
+
+  it('preserves non-AI SDK cross-realm Error instances', () => {
+    const error = {
+      [Symbol.toStringTag]: 'Error',
+      name: 'TypeError',
+      message: 'cross-realm error',
+      stack: 'TypeError: cross-realm error',
+    };
+
+    expect(error instanceof Error).toBe(false);
+    expect(Object.prototype.toString.call(error)).toBe('[object Error]');
     expect(normalizeStreamProviderError(error)).toBe(error);
   });
 

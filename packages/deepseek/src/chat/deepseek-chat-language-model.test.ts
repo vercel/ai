@@ -736,7 +736,9 @@ describe('DeepSeekChatLanguageModel', () => {
       expect(isProviderStreamError(errorPart.error)).toBe(true);
       expect(errorPart.error).toMatchObject({
         message: 'Rate limit reached',
-        type: 'rate_limit_error',
+        type: 'rate_limit_exceeded',
+        statusCode: 429,
+        isRetryable: true,
         data,
       });
     });

@@ -61,6 +61,9 @@
     "@ai-sdk/provider-utils": "workspace:*"
   },
   "devDependencies": {
+    "@ai-sdk/deepseek": "workspace:*",
+    "@ai-sdk/moonshotai": "workspace:*",
+    "@ai-sdk/openai": "workspace:*",
     "@ai-sdk/test-server": "workspace:*",
     "@edge-runtime/vm": "^5.0.0",
     "@types/json-schema": "7.0.15",

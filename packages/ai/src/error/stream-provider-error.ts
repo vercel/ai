@@ -11,7 +11,8 @@ export class StreamProviderError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
   /**
-   * Provider-defined error type, when supplied by the provider.
+   * Provider-defined error type or code discriminator, when supplied by the
+   * provider.
    */
   readonly type?: string;
 

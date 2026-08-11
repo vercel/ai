@@ -8,7 +8,7 @@ import { StreamProviderError } from '../error/stream-provider-error';
  */
 export function normalizeStreamProviderError(error: unknown): unknown {
   if (
-    error instanceof Error ||
+    isError(error) ||
     AISDKError.isInstance(error) ||
     StreamProviderError.isInstance(error)
   ) {
@@ -32,7 +32,9 @@ export function normalizeStreamProviderError(error: unknown): unknown {
   }
 
   const type =
+    getString(details.code) ??
     getString(details.type) ??
+    getString(outer.code) ??
     (outer.type !== 'error' ? getString(outer.type) : undefined);
   const explicitStatusCode =
     getHttpStatusCode(details.statusCode) ??
@@ -40,7 +42,9 @@ export function normalizeStreamProviderError(error: unknown): unknown {
     getHttpStatusCode(details.status_code) ??
     getHttpStatusCode(outer.status_code) ??
     getHttpStatusCode(details.status) ??
-    getHttpStatusCode(outer.status);
+    getHttpStatusCode(outer.status) ??
+    getHttpStatusCode(details.code) ??
+    getHttpStatusCode(outer.code);
   const messageMetadata = inferExactMessageMetadata(details.message);
   const statusCode = explicitStatusCode ?? messageMetadata?.statusCode;
   const explicitRetryability =
@@ -92,6 +96,14 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
   return typeof value === 'object' && value != null
     ? (value as Record<string, unknown>)
     : undefined;
+}
+
+// `instanceof` misses Error instances created in another JavaScript realm.
+function isError(value: unknown): value is Error {
+  return (
+    value instanceof Error ||
+    Object.prototype.toString.call(value) === '[object Error]'
+  );
 }
 
 function getString(value: unknown): string | undefined {
