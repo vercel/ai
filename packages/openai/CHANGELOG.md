@@ -1,5 +1,13 @@
 # @ai-sdk/openai
 
+## 3.0.94
+
+### Patch Changes
+
+- d3247d7: Keep client-executed function calls paired with their outputs when chaining OpenAI Responses with a previous response ID.
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+
 ## 3.0.93
 
 ### Patch Changes
