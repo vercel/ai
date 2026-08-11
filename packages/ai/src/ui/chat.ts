@@ -783,6 +783,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           messageMetadataSchema: this.messageMetadataSchema,
           dataPartSchemas: this.dataPartSchemas,
           runUpdateMessageJob,
+          isResume: trigger === 'resume-stream',
           onError: error => {
             throw error;
           },
