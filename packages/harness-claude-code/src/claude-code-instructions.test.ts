@@ -8,12 +8,10 @@ import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /*
- * The claude-code adapter prepends `instructions` to the user text it puts in
- * the `start` message's `prompt`. We stub `SandboxChannel` so `send()` records
- * the messages instead of opening a real WebSocket, then drive `doStart` →
- * `doPromptTurn` against a fake network sandbox session. This isolates the
- * "prepend to the first user message only" gating without standing up the
- * in-sandbox bridge.
+ * The claude-code adapter sends `instructions` separately from the user text
+ * in each `start` message. We stub `SandboxChannel` so `send()` records the
+ * messages instead of opening a real WebSocket, then drive the session against
+ * a fake network sandbox without standing up the in-sandbox bridge.
  */
 const sentMessages: Array<Record<string, unknown>> = [];
 const openCalls: Array<{ resume?: boolean } | undefined> = [];
@@ -110,13 +108,13 @@ function lastStart(): Record<string, unknown> {
 
 const INSTRUCTIONS = 'Use turbo build --concurrency=4.';
 
-describe('claude-code adapter — instructions gating', () => {
+describe('claude-code adapter — instructions transport', () => {
   beforeEach(() => {
     sentMessages.length = 0;
     openCalls.length = 0;
   });
 
-  it('frames instructions into the first user message only', async () => {
+  it('keeps instructions separate from every user message', async () => {
     const session = await startSession();
 
     await session.doPromptTurn({
@@ -124,12 +122,8 @@ describe('claude-code adapter — instructions gating', () => {
       instructions: INSTRUCTIONS,
       emit: () => {},
     });
-    const framed = lastStart().prompt as string;
-    expect(framed).toContain('<session-instructions>');
-    expect(framed).toContain(INSTRUCTIONS);
-    expect(framed).toContain('<user-message>\nfirst turn\n</user-message>');
-    // The instructions must be marked as system guidance, not user-authored.
-    expect(framed).toMatch(/not a message from the user/i);
+    expect(lastStart().prompt).toBe('first turn');
+    expect(lastStart().instructions).toBe(INSTRUCTIONS);
 
     await session.doPromptTurn({
       prompt: 'second turn',
@@ -137,9 +131,10 @@ describe('claude-code adapter — instructions gating', () => {
       emit: () => {},
     });
     expect(lastStart().prompt).toBe('second turn');
+    expect(lastStart().instructions).toBe(INSTRUCTIONS);
   });
 
-  it('does not apply instructions when resuming a session', async () => {
+  it('keeps instructions separate when resuming a session', async () => {
     const session = await startSession({
       resumeFrom: {
         type: 'resume-session',
@@ -155,6 +150,27 @@ describe('claude-code adapter — instructions gating', () => {
       emit: () => {},
     });
     expect(lastStart().prompt).toBe('resumed turn');
+    expect(lastStart().instructions).toBe(INSTRUCTIONS);
+  });
+
+  it('forwards instructions when rerunning a suspended turn', async () => {
+    const session = await startSession({
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+
+    await session.doContinueTurn({
+      instructions: INSTRUCTIONS,
+      emit: () => {},
+    });
+
+    expect(lastStart().prompt).toBe('Continue.');
+    expect(lastStart().instructions).toBe(INSTRUCTIONS);
+    expect(lastStart().continue).toBe(true);
   });
 
   it('distinguishes parked session resume from suspended turn continuation', async () => {

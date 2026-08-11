@@ -16,6 +16,7 @@ import type {
   InputTextContentParam,
   OpenResponsesRequestBody,
   OutputTextContentParam,
+  ReasoningItemParam,
   RefusalContentParam,
 } from './open-responses-api';
 
@@ -105,10 +106,19 @@ export async function convertToOpenResponsesInput({
         const assistantContent: Array<
           OutputTextContentParam | RefusalContentParam
         > = [];
+        const reasoningItems: Array<ReasoningItemParam> = [];
         const toolCalls: Array<FunctionCallItemParam> = [];
 
         for (const part of content) {
           switch (part.type) {
+            case 'reasoning': {
+              reasoningItems.push({
+                type: 'reasoning',
+                summary: [],
+                content: [{ type: 'reasoning_text', text: part.text }],
+              });
+              break;
+            }
             case 'text': {
               assistantContent.push({ type: 'output_text', text: part.text });
               break;
@@ -127,6 +137,11 @@ export async function convertToOpenResponsesInput({
               break;
             }
           }
+        }
+
+        // Push reasoning as separate items
+        for (const reasoningItem of reasoningItems) {
+          input.push(reasoningItem);
         }
 
         // Push assistant message with text content if any

@@ -2,7 +2,7 @@ import { GeistdocsDocsLayout } from '@vercel/geistdocs/layout';
 import type { ReactNode } from 'react';
 import { VersionSelect } from '@/components/docs/version-select';
 import { config } from '@/lib/geistdocs/config';
-import { v6Source } from '@/lib/geistdocs/source';
+import { v7Source } from '@/lib/geistdocs/source';
 import { missingVersionPaths } from '@/lib/geistdocs/version-paths';
 
 const DocsLayout = async ({
@@ -23,14 +23,14 @@ const DocsLayout = async ({
         config.versions ? (
           <div className="mb-4">
             <VersionSelect
-              current="v6"
+              current="v7"
               missingPaths={missingVersionPaths}
               versions={config.versions.items}
             />
           </div>
         ) : null
       }
-      tree={v6Source.source.pageTree[lang]}
+      tree={v7Source.source.pageTree[lang]}
     >
       {children}
     </GeistdocsDocsLayout>

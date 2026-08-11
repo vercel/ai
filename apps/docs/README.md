@@ -11,10 +11,12 @@ pnpm install
 pnpm --filter ai-sdk-docs dev:site
 ```
 
-The content sync generates `apps/docs/content/` from two reviewed sources:
+The content sync generates `apps/docs/content/` from three reviewed sources:
 
 - v7 documentation from this checkout's `content/docs/` directory.
 - v6 documentation from the commit pinned in
+  `scripts/sync-content.mjs`.
+- v5 documentation from the commit pinned in
   `scripts/sync-content.mjs`.
 
 Generated content, Fumadocs source files, and Next.js output are ignored by
@@ -36,6 +38,21 @@ The outside-root setting is required because the content sync reads the
 repository's `content/docs/` directory and Git metadata.
 
 Ask AI, feedback, and edit-source links remain disabled until their routes and
-source-path mapping are ready. Provider, cookbook, and example links continue
-to the existing production site while those route families remain outside this
-application.
+source-path mapping are ready. Playground and getting-started links continue
+to the existing production site while those route families remain outside
+this application; the resources family (recipes, tools registry, templates,
+showcase) is served by this application, and legacy URLs such as
+`/tools-registry`, `/showcase`, `/examples`, `/elements`, and
+`/model-library` redirect the same way production does.
+
+Mirroring production, every cookbook recipe is served on two URL surfaces:
+`/cookbook/...` and `/resources/recipes/...`. The sitemap, llms.txt, and
+search canonicalize on `/cookbook`.
+
+## Third-party logos
+
+`public/images/icons/` contains third-party provider logos used nominatively
+on the provider index pages, and `public/images/showcase/` contains product
+screenshots and logos for the showcase page (both ported from the previous
+ai-sdk.dev app). The marks belong to their respective owners and are not
+covered by this repository's license.

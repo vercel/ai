@@ -307,7 +307,18 @@ export type ToolLoopAgentSettings<
           NoInfer<TOOLS>,
           NoInfer<RUNTIME_CONTEXT>
         >,
-        'onStepEnd' | 'onStepFinish'
+        | 'abortSignal'
+        | 'timeout'
+        | 'onStart'
+        | 'experimental_onStart'
+        | 'onStepStart'
+        | 'experimental_onStepStart'
+        | 'onToolExecutionStart'
+        | 'onToolExecutionEnd'
+        | 'onStepEnd'
+        | 'onStepFinish'
+        | 'onEnd'
+        | 'onFinish'
       > &
         Pick<
           ToolLoopAgentSettings<
@@ -318,6 +329,8 @@ export type ToolLoopAgentSettings<
           >,
           | 'model'
           | 'tools'
+          | 'toolChoice'
+          | 'maxRetries'
           | 'maxOutputTokens'
           | 'temperature'
           | 'topP'
@@ -326,6 +339,7 @@ export type ToolLoopAgentSettings<
           | 'frequencyPenalty'
           | 'stopSequences'
           | 'seed'
+          | 'reasoning'
           | 'headers'
           | 'instructions'
           | 'allowSystemInMessages'
@@ -336,6 +350,9 @@ export type ToolLoopAgentSettings<
           | 'toolOrder'
           | 'toolApproval'
           | 'experimental_toolCallers'
+          | 'prepareStep'
+          | 'repairToolCall'
+          | 'experimental_repairToolCall'
           | 'providerOptions'
           | 'experimental_download'
           | 'experimental_refineToolInput'
@@ -353,6 +370,8 @@ export type ToolLoopAgentSettings<
         >,
         | 'model'
         | 'tools'
+        | 'toolChoice'
+        | 'maxRetries'
         | 'maxOutputTokens'
         | 'temperature'
         | 'topP'
@@ -361,6 +380,7 @@ export type ToolLoopAgentSettings<
         | 'frequencyPenalty'
         | 'stopSequences'
         | 'seed'
+        | 'reasoning'
         | 'headers'
         | 'instructions'
         | 'allowSystemInMessages'
@@ -371,6 +391,9 @@ export type ToolLoopAgentSettings<
         | 'toolOrder'
         | 'toolApproval'
         | 'experimental_toolCallers'
+        | 'prepareStep'
+        | 'repairToolCall'
+        | 'experimental_repairToolCall'
         | 'providerOptions'
         | 'experimental_download'
         | 'experimental_refineToolInput'
