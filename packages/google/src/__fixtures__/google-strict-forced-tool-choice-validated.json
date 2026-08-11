@@ -1,0 +1,31 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "You're welcome! I'm glad to hear that. Is there anything else I can help you with today?"
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 102,
+    "candidatesTokenCount": 24,
+    "totalTokenCount": 256,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 102
+      }
+    ],
+    "thoughtsTokenCount": 130,
+    "serviceTier": "standard"
+  },
+  "modelVersion": "gemini-3-flash-preview",
+  "responseId": "5It7apDhO628_uMPhcmKwAE"
+}
