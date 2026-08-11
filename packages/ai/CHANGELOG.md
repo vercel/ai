@@ -1,5 +1,15 @@
 # ai
 
+## 6.0.250
+
+### Patch Changes
+
+- a077695: Prevent streaming telemetry spans from ending twice when model calls fail.
+- 7ce3b8c: Prevent `resumeStream` from copying the previous assistant message into the resumed response.
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+  - @ai-sdk/gateway@3.0.170
+
 ## 6.0.249
 
 ### Patch Changes

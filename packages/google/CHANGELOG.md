@@ -1,5 +1,13 @@
 # @ai-sdk/google
 
+## 3.0.107
+
+### Patch Changes
+
+- c29b64f: Preserve Google API error details in `APICallError.data`.
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+
 ## 3.0.106
 
 ### Patch Changes
