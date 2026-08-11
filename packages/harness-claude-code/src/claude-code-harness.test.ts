@@ -8,12 +8,83 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const sentMessages: Array<Record<string, unknown>> = [];
 const openCalls: Array<{ resume?: boolean } | undefined> = [];
+const channelMocks = vi.hoisted(() => ({
+  connectOnOpen: false,
+  connects: [] as Array<() => Promise<unknown>>,
+}));
+const webSocketMocks = vi.hoisted(() => {
+  type Listener = (...args: unknown[]) => void;
+  const calls: Array<{
+    url: string;
+    headers: Record<string, string> | undefined;
+  }> = [];
+
+  class FakeWebSocket {
+    private readonly listeners = new Map<string, Set<Listener>>();
+
+    constructor(url: string, options?: { headers?: Record<string, string> }) {
+      calls.push({ url, headers: options?.headers });
+      queueMicrotask(() => {
+        if (webSocketMocks.failuresRemaining > 0) {
+          webSocketMocks.failuresRemaining--;
+          this.emit('error', new Error('mock connection failure'));
+          return;
+        }
+        this.emit('open');
+        queueMicrotask(() => {
+          this.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+        });
+      });
+    }
+
+    on(type: string, listener: Listener): this {
+      const listeners = this.listeners.get(type) ?? new Set();
+      listeners.add(listener);
+      this.listeners.set(type, listeners);
+      return this;
+    }
+
+    once(type: string, listener: Listener): this {
+      const onceListener: Listener = (...args) => {
+        this.off(type, onceListener);
+        listener(...args);
+      };
+      return this.on(type, onceListener);
+    }
+
+    off(type: string, listener: Listener): this {
+      this.listeners.get(type)?.delete(listener);
+      return this;
+    }
+
+    close(): void {}
+
+    terminate(): void {}
+
+    private emit(type: string, ...args: unknown[]): void {
+      for (const listener of [...(this.listeners.get(type) ?? [])]) {
+        listener(...args);
+      }
+    }
+  }
+
+  return { calls, failuresRemaining: 0, WebSocket: FakeWebSocket };
+});
+
+vi.mock('ws', () => ({ WebSocket: webSocketMocks.WebSocket }));
 
 vi.mock('@ai-sdk/harness/utils', async importOriginal => {
   const actual = await importOriginal<typeof HarnessUtils>();
   class FakeSandboxChannel {
+    constructor({ connect }: { connect: () => Promise<unknown> }) {
+      channelMocks.connects.push(connect);
+    }
+
     async open(opts?: { resume?: boolean }): Promise<void> {
       openCalls.push(opts);
+      if (channelMocks.connectOnOpen) {
+        await channelMocks.connects.at(-1)!();
+      }
     }
     on(): () => void {
       return () => {};
@@ -89,6 +160,9 @@ function fakeNetworkSandboxSessionForStartupFailure({
     defaultWorkingDirectory: '/vercel/sandbox',
     restricted: () => session,
     ports: [port],
+    async getPortEndpoint() {
+      return { url: `ws://127.0.0.1:${port}` };
+    },
     async getPortUrl() {
       return `ws://127.0.0.1:${port}`;
     },
@@ -99,12 +173,14 @@ function fakeNetworkSandboxSessionForStartupFailure({
 
 function fakeNetworkSandboxSessionForStartupSuccess({
   bridgePortUrl,
+  bridgePortHeaders,
   spawns,
   spawnEnvs,
   writes,
   runs,
 }: {
   bridgePortUrl: string;
+  bridgePortHeaders?: Readonly<Record<string, string>>;
   spawns?: string[];
   spawnEnvs?: Array<Record<string, string | undefined>>;
   writes: Array<{ path: string; content: string }>;
@@ -150,6 +226,9 @@ function fakeNetworkSandboxSessionForStartupSuccess({
     defaultWorkingDirectory: '/vercel/sandbox',
     restricted: () => session,
     ports: [4319],
+    async getPortEndpoint() {
+      return { url: bridgePortUrl, headers: bridgePortHeaders };
+    },
     async getPortUrl() {
       return bridgePortUrl;
     },
@@ -168,6 +247,10 @@ describe('createClaudeCode adapter', () => {
   beforeEach(() => {
     sentMessages.length = 0;
     openCalls.length = 0;
+    channelMocks.connectOnOpen = false;
+    channelMocks.connects.length = 0;
+    webSocketMocks.calls.length = 0;
+    webSocketMocks.failuresRemaining = 0;
   });
 
   afterEach(() => {
@@ -252,6 +335,9 @@ describe('createClaudeCode adapter', () => {
       defaultWorkingDirectory: '/vercel/sandbox',
       restricted: () => ({}) as never,
       ports: [] as ReadonlyArray<number>,
+      async getPortEndpoint() {
+        return { url: '' };
+      },
       async getPortUrl() {
         return '';
       },
@@ -352,6 +438,42 @@ describe('createClaudeCode adapter', () => {
       resumeFrom,
     });
     expect(mintBridgeToken).toHaveBeenCalledTimes(1);
+    await attachedSession.doDetach();
+  });
+
+  it('passes port endpoint headers to fresh, retried, and attached WebSocket connections', async () => {
+    channelMocks.connectOnOpen = true;
+    webSocketMocks.failuresRemaining = 1;
+    const headers = { 'E2B-Traffic-Access-Token': 'traffic-token' };
+    const harness = createClaudeCode({
+      mintBridgeToken: () => 'bridge-token',
+    });
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'wss://sandbox.example/bridge?existing=value',
+      bridgePortHeaders: headers,
+      writes: [],
+      runs: [],
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
+    const resumeFrom = await session.doDetach();
+    const attachedSession = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      resumeFrom,
+    });
+
+    expect(webSocketMocks.calls).toHaveLength(3);
+    for (const call of webSocketMocks.calls) {
+      expect(call.headers).toEqual(headers);
+      expect(call.url).toContain('existing=value');
+      expect(call.url).toContain('agent_bridge_token=bridge-token');
+    }
     await attachedSession.doDetach();
   });
 

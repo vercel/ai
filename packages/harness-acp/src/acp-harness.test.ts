@@ -18,12 +18,56 @@ import {
 import { ACP_BRIDGE_CONFIGURATION_ENV } from './v1/bridge/acp-v1-bridge-environment';
 import type { ACPPermissionModeMapping } from './v1/acp-v1-settings';
 
+const webSocketMocks = vi.hoisted(() => {
+  type Listener = (...args: unknown[]) => void;
+  const calls: Array<{
+    url: string;
+    headers: Record<string, string> | undefined;
+  }> = [];
+
+  class FakeWebSocket {
+    private readonly listeners = new Map<string, Set<Listener>>();
+
+    constructor(url: string, options?: { headers?: Record<string, string> }) {
+      calls.push({ url, headers: options?.headers });
+      queueMicrotask(() => this.emit('open'));
+    }
+
+    once(type: string, listener: Listener): this {
+      const onceListener: Listener = (...args) => {
+        this.off(type, onceListener);
+        listener(...args);
+      };
+      const listeners = this.listeners.get(type) ?? new Set();
+      listeners.add(onceListener);
+      this.listeners.set(type, listeners);
+      return this;
+    }
+
+    off(type: string, listener: Listener): this {
+      this.listeners.get(type)?.delete(listener);
+      return this;
+    }
+
+    private emit(type: string, ...args: unknown[]): void {
+      for (const listener of [...(this.listeners.get(type) ?? [])]) {
+        listener(...args);
+      }
+    }
+  }
+
+  return { calls, WebSocket: FakeWebSocket };
+});
+
+vi.mock('ws', () => ({ WebSocket: webSocketMocks.WebSocket }));
+
 const harnessUtilsMocks = vi.hoisted(() => {
   const channels: FakeSandboxChannel[] = [];
   class FakeSandboxChannel {
     readonly sent: unknown[] = [];
     readonly options: {
       initialLastSeenEventId?: number;
+      connect: () => Promise<unknown>;
     };
     openOptions: { resume?: boolean } | undefined;
     private readonly listeners = new Map<
@@ -35,7 +79,10 @@ const harnessUtilsMocks = vi.hoisted(() => {
     >();
     private closed = false;
 
-    constructor(options: { initialLastSeenEventId?: number }) {
+    constructor(options: {
+      initialLastSeenEventId?: number;
+      connect: () => Promise<unknown>;
+    }) {
       this.options = options;
       channels.push(this);
     }
@@ -44,6 +91,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
       this.openOptions = options;
       const error = harnessUtilsMocks.openErrors.shift();
       if (error != null) throw error;
+      if (harnessUtilsMocks.connectOnOpen) await this.options.connect();
     }
     on(
       type: string,
@@ -105,6 +153,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
     waitForBridgeReady: vi.fn(async () => ({ port: 4319 })),
     SandboxChannel: FakeSandboxChannel,
     channels,
+    connectOnOpen: false,
     openErrors: [] as Error[],
     nextSuspensionCursor: 0,
   };
@@ -194,6 +243,7 @@ function fakeSandbox({
   kills,
   files = {},
   homeDir = '/home/agent',
+  bridgePortEndpoint = { url: 'ws://127.0.0.1:4319' },
 }: {
   runs: string[];
   spawns: Array<{
@@ -205,6 +255,10 @@ function fakeSandbox({
   kills?: string[];
   files?: Readonly<Record<string, string>>;
   homeDir?: string;
+  bridgePortEndpoint?: {
+    url: string;
+    headers?: Readonly<Record<string, string>>;
+  };
 }): HarnessV1NetworkSandboxSession {
   const restricted = {
     readTextFile: async ({ path }: { path: string }) => files[path] ?? null,
@@ -247,6 +301,7 @@ function fakeSandbox({
     defaultWorkingDirectory: '/workspace',
     ports: [4319],
     restricted: () => restricted,
+    getPortEndpoint: async () => bridgePortEndpoint,
     getPortUrl: async () => 'ws://127.0.0.1:4319',
     stop,
     ...restricted,
@@ -354,6 +409,8 @@ describe('createACP', () => {
     harnessUtilsMocks.channels.length = 0;
     harnessUtilsMocks.openErrors.length = 0;
     harnessUtilsMocks.nextSuspensionCursor = 0;
+    harnessUtilsMocks.connectOnOpen = false;
+    webSocketMocks.calls.length = 0;
   });
 
   afterEach(() => {
@@ -906,7 +963,8 @@ describe('createACP', () => {
     expect(stop).not.toHaveBeenCalled();
   });
 
-  it('uses a caller-minted bridge token and reuses it when attaching', async () => {
+  it('reuses a caller-minted token and passes endpoint headers when attaching', async () => {
+    harnessUtilsMocks.connectOnOpen = true;
     const spawns: Array<{
       command: string;
       env: Record<string, string | undefined>;
@@ -923,6 +981,10 @@ describe('createACP', () => {
       runs: [],
       spawns,
       stop: async () => {},
+      bridgePortEndpoint: {
+        url: 'wss://sandbox.example/bridge?existing=value',
+        headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+      },
     });
     const session = await harness.doStart({
       sessionId: 'session-1',
@@ -945,6 +1007,16 @@ describe('createACP', () => {
       resumeFrom,
     });
     expect(mintBridgeToken).toHaveBeenCalledTimes(1);
+    expect(webSocketMocks.calls).toEqual([
+      {
+        url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-sandbox-1',
+        headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+      },
+      {
+        url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-sandbox-1',
+        headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+      },
+    ]);
     await attachedSession.doDetach();
   });
 

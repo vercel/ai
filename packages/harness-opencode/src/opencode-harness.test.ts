@@ -4,21 +4,73 @@ import {
 } from '@ai-sdk/harness';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createOpenCode } from './opencode-harness';
 
+const webSocketMocks = vi.hoisted(() => {
+  type Listener = (...args: unknown[]) => void;
+  const calls: Array<{
+    url: string;
+    headers: Record<string, string> | undefined;
+  }> = [];
+
+  class FakeWebSocket {
+    private readonly listeners = new Map<string, Set<Listener>>();
+
+    constructor(url: string, options?: { headers?: Record<string, string> }) {
+      calls.push({ url, headers: options?.headers });
+      queueMicrotask(() => this.emit('open'));
+    }
+
+    once(type: string, listener: Listener): this {
+      const onceListener: Listener = (...args) => {
+        this.off(type, onceListener);
+        listener(...args);
+      };
+      const listeners = this.listeners.get(type) ?? new Set();
+      listeners.add(onceListener);
+      this.listeners.set(type, listeners);
+      return this;
+    }
+
+    off(type: string, listener: Listener): this {
+      this.listeners.get(type)?.delete(listener);
+      return this;
+    }
+
+    private emit(type: string, ...args: unknown[]): void {
+      for (const listener of [...(this.listeners.get(type) ?? [])]) {
+        listener(...args);
+      }
+    }
+  }
+
+  return { calls, WebSocket: FakeWebSocket };
+});
+
+vi.mock('ws', () => ({ WebSocket: webSocketMocks.WebSocket }));
+
 const harnessUtilsMocks = vi.hoisted(() => {
-  const channels: Array<{ sent: unknown[]; closed: boolean }> = [];
+  const channels: Array<{
+    sent: unknown[];
+    closed: boolean;
+    connect: () => Promise<unknown>;
+  }> = [];
 
   class MockSandboxChannel {
     sent: unknown[] = [];
     closed = false;
 
-    constructor() {
+    constructor({ connect }: { connect: () => Promise<unknown> }) {
+      this.connect = connect;
       channels.push(this);
     }
 
-    async open() {}
+    readonly connect: () => Promise<unknown>;
+
+    async open() {
+      if (harnessUtilsMocks.connectOnOpen) await this.connect();
+    }
 
     send(message: unknown) {
       this.sent.push(message);
@@ -47,6 +99,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
 
   return {
     channels,
+    connectOnOpen: false,
     markBridgeStarting: vi.fn(),
     SandboxChannel: MockSandboxChannel,
     waitForBridgeReady: vi.fn(async (): Promise<{ port: number }> => {
@@ -91,6 +144,11 @@ function getBuiltinToolMetadata(tool: unknown): {
 }
 
 describe('createOpenCode adapter', () => {
+  beforeEach(() => {
+    harnessUtilsMocks.connectOnOpen = false;
+    webSocketMocks.calls.length = 0;
+  });
+
   it('declares the harness id and builtin tools', () => {
     const harness = createOpenCode();
     expect(harness.harnessId).toBe('opencode');
@@ -128,6 +186,9 @@ describe('createOpenCode adapter', () => {
       defaultWorkingDirectory: '/vercel/sandbox',
       restricted: () => ({}) as never,
       ports: [] as ReadonlyArray<number>,
+      async getPortEndpoint() {
+        return { url: '' };
+      },
       async getPortUrl() {
         return '';
       },
@@ -142,7 +203,8 @@ describe('createOpenCode adapter', () => {
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
   });
 
-  it('uses a caller-minted bridge token and reuses it when attaching', async () => {
+  it('reuses a caller-minted token and passes endpoint headers when attaching', async () => {
+    harnessUtilsMocks.connectOnOpen = true;
     harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const mintBridgeToken = vi.fn(
@@ -178,6 +240,12 @@ describe('createOpenCode adapter', () => {
       defaultWorkingDirectory: '/workspace',
       restricted: () => sandbox,
       ports: [4000] as ReadonlyArray<number>,
+      async getPortEndpoint() {
+        return {
+          url: 'wss://sandbox.example/bridge?existing=value',
+          headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+        };
+      },
       async getPortUrl() {
         return 'ws://sandbox.example';
       },
@@ -207,6 +275,16 @@ describe('createOpenCode adapter', () => {
       resumeFrom,
     });
     expect(mintBridgeToken).toHaveBeenCalledTimes(1);
+    expect(webSocketMocks.calls).toEqual([
+      {
+        url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-test-sandbox',
+        headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+      },
+      {
+        url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-test-sandbox',
+        headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+      },
+    ]);
     await attachedSession.doDetach();
   });
 
@@ -257,6 +335,9 @@ describe('createOpenCode adapter', () => {
       defaultWorkingDirectory: '/workspace',
       restricted: () => sandbox,
       ports: [4000] as ReadonlyArray<number>,
+      async getPortEndpoint() {
+        return { url: 'ws://sandbox.example' };
+      },
       async getPortUrl() {
         return 'ws://sandbox.example';
       },
@@ -354,6 +435,9 @@ describe('createOpenCode adapter', () => {
       defaultWorkingDirectory: '/workspace',
       restricted: () => sandbox,
       ports: [4000] as ReadonlyArray<number>,
+      async getPortEndpoint() {
+        return { url: 'ws://sandbox.example' };
+      },
       async getPortUrl() {
         return 'ws://sandbox.example';
       },

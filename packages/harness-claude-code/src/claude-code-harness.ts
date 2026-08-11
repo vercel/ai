@@ -880,9 +880,17 @@ export function createClaudeCode(
       // Builds the `connect` thunk a `SandboxChannel` re-invokes on every
       // (re)connect: open the socket, then wait for `bridge-hello` so the
       // end-to-end link is proven live before any frame is sent.
-      const buildConnect = (wsUrl: string) => async (): Promise<WebSocket> => {
-        return openBridgeWebSocket({ wsUrl, timeoutMs });
-      };
+      const buildConnect =
+        ({
+          wsUrl,
+          headers,
+        }: {
+          wsUrl: string;
+          headers?: Readonly<Record<string, string>>;
+        }) =>
+        async (): Promise<WebSocket> => {
+          return openBridgeWebSocket({ wsUrl, headers, timeoutMs });
+        };
 
       /*
        * Rung 1 — ATTACH. When lifecycle state carries live bridge coordinates,
@@ -894,13 +902,19 @@ export function createClaudeCode(
        */
       if (coords) {
         try {
-          const attachUrl =
-            (await sandboxSession.getPortUrl({
-              port: coords.port,
-              protocol: 'ws',
-            })) + `?agent_bridge_token=${encodeURIComponent(coords.token)}`;
+          const endpoint = await sandboxSession.getPortEndpoint({
+            port: coords.port,
+            protocol: 'ws',
+          });
+          const attachUrl = withBridgeToken({
+            url: endpoint.url,
+            token: coords.token,
+          });
           const attachChannel: ClaudeCodeChannel = new SandboxChannel({
-            connect: buildConnect(attachUrl),
+            connect: buildConnect({
+              wsUrl: attachUrl,
+              headers: endpoint.headers,
+            }),
             outboundSchema: outboundMessageSchema,
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
@@ -1063,14 +1077,14 @@ export function createClaudeCode(
       });
       void drainBridgeProcessStream(proc.stdout);
 
-      const wsUrl =
-        (await sandboxSession.getPortUrl({
-          port: boundPort,
-          protocol: 'ws',
-        })) + `?agent_bridge_token=${encodeURIComponent(token)}`;
+      const endpoint = await sandboxSession.getPortEndpoint({
+        port: boundPort,
+        protocol: 'ws',
+      });
+      const wsUrl = withBridgeToken({ url: endpoint.url, token });
 
       const channel: ClaudeCodeChannel = new SandboxChannel({
-        connect: buildConnect(wsUrl),
+        connect: buildConnect({ wsUrl, headers: endpoint.headers }),
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
         onBridgeError,
@@ -1243,9 +1257,11 @@ async function waitForBridgeHello({
 
 async function openBridgeWebSocket({
   wsUrl,
+  headers,
   timeoutMs,
 }: {
   wsUrl: string;
+  headers?: Readonly<Record<string, string>>;
   timeoutMs: number;
 }): Promise<WebSocket> {
   const deadline = Date.now() + timeoutMs;
@@ -1259,6 +1275,7 @@ async function openBridgeWebSocket({
       const remaining = Math.max(1, deadline - Date.now());
       ws = await openWebSocket({
         url: wsUrl,
+        headers,
         timeoutMs: Math.min(10_000, remaining),
       });
       await waitForBridgeHello({
@@ -1284,13 +1301,17 @@ async function openBridgeWebSocket({
 
 function openWebSocket({
   url,
+  headers,
   timeoutMs,
 }: {
   url: string;
+  headers?: Readonly<Record<string, string>>;
   timeoutMs: number;
 }): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(url);
+    const ws = new WebSocket(url, {
+      headers: headers == null ? undefined : { ...headers },
+    });
     const timer = setTimeout(() => {
       cleanup();
       try {
@@ -1315,6 +1336,12 @@ function openWebSocket({
     ws.once('open', onOpen);
     ws.once('error', onError);
   });
+}
+
+function withBridgeToken({ url, token }: { url: string; token: string }) {
+  const bridgeUrl = new URL(url);
+  bridgeUrl.searchParams.set('agent_bridge_token', token);
+  return bridgeUrl.toString();
 }
 
 function sleep(ms: number): Promise<void> {
