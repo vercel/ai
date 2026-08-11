@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 7891,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-7891-react-strict-mode-stop-race.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-7891-react-strict-mode-stop-race.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #7891 REPRODUCED: Strict Mode cleanup failed to cancel the first send; expected 1 transport request, observed 2."
+  }
+}
