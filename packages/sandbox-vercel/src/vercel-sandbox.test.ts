@@ -47,7 +47,10 @@ function makeMockSandbox(overrides: Partial<MockSpies> = {}) {
     delete: deleteSandbox,
     routes,
     networkPolicy,
-    currentSession: () => ({ cwd: '/vercel/sandbox' }),
+    currentSession: () => ({
+      cwd: '/vercel/sandbox',
+      networkPolicy,
+    }),
   } as unknown as Sandbox;
   return {
     sandbox,
@@ -73,6 +76,18 @@ function getSetRequestTransformations(
     );
   }
   return setRequestTransformations;
+}
+
+function getAddRequestTransformations(
+  session: HarnessV1NetworkSandboxSession,
+): NonNullable<HarnessV1NetworkSandboxSession['addRequestTransformations']> {
+  const addRequestTransformations = session.addRequestTransformations;
+  if (addRequestTransformations == null) {
+    throw new Error(
+      'Expected Vercel Sandbox to support additive request transformations.',
+    );
+  }
+  return addRequestTransformations;
 }
 
 async function captureError(promise: PromiseLike<unknown>): Promise<unknown> {
@@ -164,7 +179,9 @@ describe('createVercelSandbox (wrap existing)', () => {
 
   describe('setNetworkPolicy', () => {
     it('maps allow-all', async () => {
-      const { sandbox, spies } = makeMockSandbox();
+      const { sandbox, spies } = makeMockSandbox({
+        networkPolicy: 'deny-all',
+      });
       const handle = await createVercelSandbox({ sandbox }).createSession();
       await handle.setNetworkPolicy!({ mode: 'allow-all' });
       expect(spies.update).toHaveBeenCalledWith({ networkPolicy: 'allow-all' });
@@ -295,7 +312,7 @@ describe('createVercelSandbox (wrap existing)', () => {
       ).toHaveLength(2);
     });
 
-    it('merges access policies and request transformations regardless of setter order', async () => {
+    it('keeps access policy authoritative regardless of setter order', async () => {
       const { sandbox, spies } = makeMockSandbox();
       const handle = await createVercelSandbox({ sandbox }).createSession();
       await getSetRequestTransformations(handle)([credentialTransformation]);
@@ -306,39 +323,27 @@ describe('createVercelSandbox (wrap existing)', () => {
       });
       expect(spies.update).toHaveBeenLastCalledWith({
         networkPolicy: {
-          allow: {
-            'registry.npmjs.org': [],
-            'ai-gateway.vercel.sh': [
-              {
-                match: {
-                  method: ['POST'],
-                  path: { startsWith: '/v1/' },
-                },
-                transform: [
-                  {
-                    headers: {
-                      authorization: 'Bearer host-only-credential',
-                    },
-                  },
-                ],
-              },
-            ],
-          },
+          allow: ['registry.npmjs.org'],
           subnets: { deny: ['169.254.169.254/32'] },
         },
       });
     });
 
-    it('merges request transformations with the sandbox initial network policy', async () => {
+    it('keeps transformations pending when the initial policy does not allow their host', async () => {
       const { sandbox, spies } = makeMockSandbox({
         networkPolicy: { allow: ['registry.npmjs.org'] },
       });
       const handle = await createVercelSandbox({ sandbox }).createSession();
       await getSetRequestTransformations(handle)([credentialTransformation]);
+      expect(spies.update).not.toHaveBeenCalled();
+
+      await handle.setNetworkPolicy!({
+        mode: 'custom',
+        allowedHosts: ['ai-gateway.vercel.sh'],
+      });
       expect(spies.update).toHaveBeenLastCalledWith({
         networkPolicy: {
           allow: {
-            'registry.npmjs.org': [],
             'ai-gateway.vercel.sh': expect.any(Array),
           },
         },
@@ -357,6 +362,33 @@ describe('createVercelSandbox (wrap existing)', () => {
       await setRequestTransformations([]);
       expect(spies.update).toHaveBeenLastCalledWith({
         networkPolicy: { allow: ['registry.npmjs.org'] },
+      });
+    });
+  });
+
+  describe('addRequestTransformations', () => {
+    it('delegates additive transformations to the policy manager', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      const handle = await createVercelSandbox({ sandbox }).createSession();
+
+      await getAddRequestTransformations(handle)([
+        {
+          match: { host: 'api.example.com' },
+          transform: { headers: { authorization: 'Bearer secret' } },
+        },
+      ]);
+
+      expect(spies.update).toHaveBeenCalledWith({
+        networkPolicy: {
+          allow: {
+            '*': [],
+            'api.example.com': [
+              {
+                transform: [{ headers: { authorization: 'Bearer secret' } }],
+              },
+            ],
+          },
+        },
       });
     });
   });
