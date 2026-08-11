@@ -290,7 +290,13 @@ describe('validateUIMessages', () => {
           {
             id: '1',
             role: 'assistant',
-            parts: [{ type: 'reasoning', text: 'Hello, world!' }],
+            parts: [
+              {
+                type: 'reasoning',
+                id: 'reasoning-1',
+                text: 'Hello, world!',
+              },
+            ],
           },
         ],
       });
@@ -303,6 +309,7 @@ describe('validateUIMessages', () => {
             "id": "1",
             "parts": [
               {
+                "id": "reasoning-1",
                 "text": "Hello, world!",
                 "type": "reasoning",
               },
