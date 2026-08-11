@@ -13686,6 +13686,8 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
+      const rootSpan = tracer.spans.find(span => span.name === 'ai.streamText');
+
       expect(
         tracer.spans.map(span => ({
           name: span.name,
@@ -13704,6 +13706,11 @@ describe('streamText', () => {
           status: { code: 2, message: 'provider failed' },
         },
       ]);
+
+      // The provider rejected before producing a finish part or usage, so
+      // failure telemetry must not fabricate response metadata.
+      expect(rootSpan?.attributes['ai.response.finishReason']).toBeUndefined();
+      expect(rootSpan?.attributes['ai.usage.totalTokens']).toBeUndefined();
     });
 
     it('should record successful tool call', async () => {
