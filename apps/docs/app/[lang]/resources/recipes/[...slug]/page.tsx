@@ -3,25 +3,22 @@ import { createDocsPage } from '@vercel/geistdocs/pages/docs';
 import { Upsell } from '@/components/docs/upsell';
 import { getMdxComponents } from '@/components/mdx-components';
 import { config } from '@/lib/geistdocs/config';
-import { ogDefaults } from '@/lib/og';
+import { withOgDefaults } from '@/lib/og';
 import { recipesV7Source } from '@/lib/geistdocs/source';
 
 const recipesPage = createDocsPage({
   config,
   mdx: ({ link }) => getMdxComponents({ link, versionPrefix: '' }),
-  metadata: ({ metadata, page }) => ({
-    ...metadata,
-    openGraph: {
-      ...metadata.openGraph,
-      ...ogDefaults,
-    },
-    alternates: {
-      ...metadata.alternates,
-      // The same recipe is served on both URL surfaces (mirroring
-      // production); /cookbook is the canonical one.
-      canonical: page.url.replace('/resources/recipes/', '/cookbook/'),
-    },
-  }),
+  metadata: ({ metadata, page }) =>
+    withOgDefaults({
+      ...metadata,
+      alternates: {
+        ...metadata.alternates,
+        // The same recipe is served on both URL surfaces (mirroring
+        // production); /cookbook is the canonical one.
+        canonical: page.url.replace('/resources/recipes/', '/cookbook/'),
+      },
+    }),
   openGraph: {
     images: true,
   },

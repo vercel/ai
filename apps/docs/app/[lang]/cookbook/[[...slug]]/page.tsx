@@ -3,23 +3,20 @@ import { createDocsPage } from '@vercel/geistdocs/pages/docs';
 import { Upsell } from '@/components/docs/upsell';
 import { getMdxComponents } from '@/components/mdx-components';
 import { config } from '@/lib/geistdocs/config';
-import { ogDefaults } from '@/lib/og';
+import { withOgDefaults } from '@/lib/og';
 import { cookbookV7Source } from '@/lib/geistdocs/source';
 
 const cookbookPage = createDocsPage({
   config,
   mdx: ({ link }) => getMdxComponents({ link, versionPrefix: '' }),
-  metadata: ({ metadata, page }) => ({
-    ...metadata,
-    openGraph: {
-      ...metadata.openGraph,
-      ...ogDefaults,
-    },
-    alternates: {
-      ...metadata.alternates,
-      canonical: page.url,
-    },
-  }),
+  metadata: ({ metadata, page }) =>
+    withOgDefaults({
+      ...metadata,
+      alternates: {
+        ...metadata.alternates,
+        canonical: page.url,
+      },
+    }),
   openGraph: {
     images: true,
   },

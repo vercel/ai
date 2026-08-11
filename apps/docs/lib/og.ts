@@ -11,6 +11,17 @@ export const ogDefaults = {
 } as const;
 
 /**
+ * Layers the site-level Open Graph fields onto page metadata. Every docs
+ * page factory that turns on `openGraph.images` must pass its metadata
+ * through this so `og:site_name`/`og:type` survive Next's segment
+ * replacement.
+ */
+export const withOgDefaults = <T extends Metadata>(metadata: T): T => ({
+  ...metadata,
+  openGraph: { ...metadata.openGraph, ...ogDefaults },
+});
+
+/**
  * Social-card metadata for pages outside the docs page factories, using the
  * legacy production URL shape (/og/docs?title=…&description=…) served by
  * app/[lang]/og/[...slug]/route.tsx.

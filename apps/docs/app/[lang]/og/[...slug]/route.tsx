@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ImageResponse } from 'next/og';
 import type { NextRequest } from 'next/server';
+import { translations } from '@/geistdocs';
 import {
   cookbookV7Source,
   providersV7Source,
@@ -22,20 +23,47 @@ const DESCRIPTION_MAX_LENGTH = 320;
 const clamp = (value: string | null, maxLength: number) =>
   value === null ? null : value.slice(0, maxLength);
 
-// The card is a pure function of the URL; deploys purge the CDN cache.
-const CACHE_CONTROL = 'public, immutable, no-transform, max-age=31536000';
+// The query-param card is a pure function of its URL (copy changes change
+// the URL), so browsers may cache it forever.
+const IMMUTABLE_CACHE_CONTROL =
+  'public, immutable, no-transform, max-age=31536000';
+// The slug card's URL stays stable when a page's title changes: let the
+// CDN cache it (deploys purge that) but make browsers revalidate.
+const REVALIDATED_CACHE_CONTROL =
+  'public, max-age=0, must-revalidate, no-transform, s-maxage=31536000';
 
-const renderCard = async (title: string | null, description: string | null) => {
-  const [regularFont, semiboldFont, backgroundImage] = await Promise.all([
-    readFile(join(routeDir, 'geist-sans-regular.ttf')),
-    readFile(join(routeDir, 'geist-sans-semibold.ttf')),
-    readFile(join(routeDir, 'background.png')),
-  ]);
+/** Static card assets, read once per server process. */
+let assetsPromise: Promise<{
+  regularFont: Buffer;
+  semiboldFont: Buffer;
+  backgroundImageData: ArrayBuffer;
+}> | null = null;
 
-  const backgroundImageData = backgroundImage.buffer.slice(
-    backgroundImage.byteOffset,
-    backgroundImage.byteOffset + backgroundImage.byteLength,
-  );
+const loadAssets = () => {
+  assetsPromise ??= (async () => {
+    const [regularFont, semiboldFont, backgroundImage] = await Promise.all([
+      readFile(join(routeDir, 'geist-sans-regular.ttf')),
+      readFile(join(routeDir, 'geist-sans-semibold.ttf')),
+      readFile(join(routeDir, 'background.png')),
+    ]);
+    return {
+      regularFont,
+      semiboldFont,
+      backgroundImageData: backgroundImage.buffer.slice(
+        backgroundImage.byteOffset,
+        backgroundImage.byteOffset + backgroundImage.byteLength,
+      ) as ArrayBuffer,
+    };
+  })();
+  return assetsPromise;
+};
+
+const renderCard = async (
+  title: string | null,
+  description: string | null,
+  cacheControl: string,
+) => {
+  const { regularFont, semiboldFont, backgroundImageData } = await loadAssets();
 
   return new ImageResponse(
     <div style={{ fontFamily: 'Geist Sans' }} tw="flex h-full w-full bg-black">
@@ -74,7 +102,7 @@ const renderCard = async (title: string | null, description: string | null) => {
       width: 1200,
       height: 628,
       headers: {
-        'Cache-Control': CACHE_CONTROL,
+        'Cache-Control': cacheControl,
       },
       fonts: [
         {
@@ -98,6 +126,11 @@ export const GET = async (
 ) => {
   const { lang, slug } = await params;
 
+  // Bound the locale axis: unknown locales never render cards.
+  if (!(lang in translations)) {
+    return new Response('Not found', { status: 404 });
+  }
+
   // Legacy production shape, also used by the landing pages:
   // /og/docs?title=…&description=…
   if (slug.length === 1 && slug[0] === 'docs') {
@@ -105,6 +138,7 @@ export const GET = async (
     return renderCard(
       clamp(searchParams.get('title'), TITLE_MAX_LENGTH),
       clamp(searchParams.get('description'), DESCRIPTION_MAX_LENGTH),
+      IMMUTABLE_CACHE_CONTROL,
     );
   }
 
@@ -119,6 +153,7 @@ export const GET = async (
       return renderCard(
         clamp(page.data.title ?? null, TITLE_MAX_LENGTH),
         clamp(page.data.description ?? null, DESCRIPTION_MAX_LENGTH),
+        REVALIDATED_CACHE_CONTROL,
       );
     }
   }
