@@ -1,0 +1,8 @@
+{
+  "error": {
+    "message": "No tool call found for shell call output with call_id call_Mh54tZUuj5gccgizm3BBx288.",
+    "type": "invalid_request_error",
+    "param": "input",
+    "code": null
+  }
+}
