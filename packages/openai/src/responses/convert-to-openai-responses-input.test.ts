@@ -4038,6 +4038,66 @@ describe('convertToOpenAIResponsesInput', () => {
   });
 
   describe('MCP tool approval responses', () => {
+    it('should not reference an MCP approval request from a previous response', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'mcp-approval-previous-response',
+                approved: true,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasPreviousResponseId: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'mcp_approval_response',
+          approval_request_id: 'mcp-approval-previous-response',
+          approve: true,
+        },
+      ]);
+    });
+
+    it('should not reference an MCP approval request from a conversation', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'mcp-approval-conversation',
+                approved: false,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasConversation: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'mcp_approval_response',
+          approval_request_id: 'mcp-approval-conversation',
+          approve: false,
+        },
+      ]);
+    });
+
     it('should convert approved tool-approval-response to mcp_approval_response with store: true', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
