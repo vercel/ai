@@ -1,54 +1,46 @@
 # Neovate Code memory benchmark
 
-This tool records a reproducible memory baseline for Neovate Code without
-modifying or instrumenting the application.
-
-It runs a fixed prompt against a small immutable fixture project and samples the
-complete application process group every 100 ms. This includes the Bun process
-and any subprocesses created by the coding agent.
+This tool runs Neovate Code in an ephemeral Linux VM using Apple's
+[`container`](https://github.com/apple/container) CLI. The host injects the
+Anthropic credential through a local proxy, so the key never enters the VM.
+Neovate receives only read-only tools and runs with its default approval mode.
 
 ## Setup
 
-Run all commands from the AI SDK repository root. Prerequisites are Node.js,
-Git, pnpm, and Bun.
+Requirements: Apple silicon, macOS 26, Apple `container`, and Node.js.
 
-Clone Neovate Code and install its dependencies:
-
-```bash
-pnpm benchmark:memory setup
-```
-
-Create the benchmark environment file:
+Create the scoped environment file:
 
 ```bash
 cp tools/memory-benchmark/.env.example tools/memory-benchmark/.env
 ```
 
-Set `ANTHROPIC_API_KEY` in that file. The CLI passes it to Neovate Code without
-copying it into the cloned repository. Both `.env` and the `.repos/` cache are
-ignored by Git.
+Set `ANTHROPIC_API_KEY`, then optionally prebuild the sandbox image:
+
+```bash
+pnpm benchmark:memory setup
+```
+
+The image contains a pinned Neovate checkout and a Turbo-pruned copy of the
+required AI SDK packages. Dependencies are cached separately from source
+changes; credentials, repositories, existing results, and `node_modules` are
+excluded.
 
 ## Run
 
 ```bash
 pnpm benchmark:memory run
-```
-
-Before measuring, the CLI builds the current AI SDK workspace and links
-Neovate Code's `ai` and `@ai-sdk/*` dependencies to the local packages. This
-ensures each run measures the current checkout instead of Neovate Code's pinned
-registry versions.
-
-The benchmark runs five fresh-process iterations by default. Override the
-iteration count or sampling interval when needed:
-
-```bash
 pnpm benchmark:memory run --iterations 1
 pnpm benchmark:memory run --iterations 5 --sample-interval 50 --verbose
 ```
 
-Use the synthetic smoke test to verify process-tree sampling and report
-generation without an API key:
+`run` builds the cached image, starts the host credential proxy, and runs five
+fresh-process iterations inside an 8 GiB, four-CPU VM. The benchmark runner and
+its `ps` sampler both run inside the VM, so RSS covers Bun, Neovate, and its
+child processes. Only the dedicated results directory is mounted from the host;
+the CLI deletes the container when the run ends.
+
+Use the native synthetic smoke test to check sampling without an API key:
 
 ```bash
 pnpm benchmark:memory smoke
@@ -56,27 +48,16 @@ pnpm benchmark:memory smoke
 
 ## Results
 
-Each benchmark invocation is written to the next numbered directory, beginning
-with `tools/memory-benchmark/results/run-1/`.
+Each invocation writes the next
+`tools/memory-benchmark/results/run-N/` directory:
 
 - `report.md` is the human-readable summary.
-- `report.json` contains aggregate statistics and host details.
-- `neovate-code/run-XX/summary.json` contains metrics for one iteration.
-- `neovate-code/run-XX/samples.csv` contains the raw time series.
+- `report.json` contains aggregates and guest host details.
+- `neovate-code/run-XX/summary.json` contains one iteration.
+- `neovate-code/run-XX/samples.csv` contains its raw time series.
 - `neovate-code/run-XX/application.log` contains application output.
 
-The primary comparison is peak RSS. The report also records mean, p50, and p95
-RSS, virtual memory size, process count, the process snapshot at peak RSS,
-duration, command, Git commit, dirty state, host, CPU, OS, and Node version.
-
-RSS is the physical memory currently resident in RAM. It is not the same as the
-JavaScript heap: it also includes native buffers, loaded code, runtime data, and
-shared libraries reported for each process.
-
-For comparable before-and-after measurements:
-
-1. Pin Neovate Code to a commit and keep its working tree clean.
-2. Keep the host, runtime, provider, model, prompt, and fixture unchanged.
-3. Run at least five fresh-process iterations.
-4. Avoid other heavy work during measurement.
-5. Compare the median peak RSS and inspect min, max, and p95 for variance.
+RSS is total resident memory reported for the complete guest process group, not
+JavaScript heap or total VM memory. Compare runs made with the same image,
+runtime, model, prompt, host load, and VM resources; the primary value is median
+peak RSS across at least five iterations.
