@@ -1,8 +1,0 @@
-{
-  "error": {
-    "message": "Duplicate item found with id mcpr_022444f7f0878ab8006a766d20b08881a290edfa9c9943f2ae. Remove duplicate items from your input and try again.",
-    "type": "invalid_request_error",
-    "param": "input",
-    "code": null
-  }
-}
