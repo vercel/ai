@@ -4584,7 +4584,7 @@ describe('convertToOpenAIResponsesInput', () => {
   });
 
   describe('hasPreviousResponseId', () => {
-    it('should keep text item references and skip function call item references when hasPreviousResponseId is true', async () => {
+    it('should keep client-executed function calls paired with their outputs when hasPreviousResponseId is true', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
         prompt: [
@@ -4643,6 +4643,12 @@ describe('convertToOpenAIResponsesInput', () => {
           {
             "id": "msg_existing_123",
             "type": "item_reference",
+          },
+          {
+            "arguments": "{"location":"San Francisco"}",
+            "call_id": "call_123",
+            "name": "getWeather",
+            "type": "function_call",
           },
           {
             "call_id": "call_123",
