@@ -1,3 +1,4 @@
+import { InvalidArgumentError } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { XaiVideoModel } from './xai-video-model';
@@ -1076,6 +1077,149 @@ describe('XaiVideoModel', () => {
       expect(result.warnings).not.toContainEqual(
         expect.objectContaining({ feature: 'aspectRatio' }),
       );
+    });
+
+    it('should send reference_audios for preset reference voices', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+            referenceImageUrls: ['https://example.com/ref1.jpg'],
+            referenceVoiceIds: ['eve'],
+          },
+        },
+      });
+
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/videos/generations`,
+      );
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        reference_images: [{ url: 'https://example.com/ref1.jpg' }],
+        reference_audios: [{ voice_id: 'eve' }],
+      });
+    });
+
+    it('should send up to 3 preset reference voices in order', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+            referenceImageUrls: ['https://example.com/ref1.jpg'],
+            referenceVoiceIds: ['eve', 'leo', 'rex'],
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        reference_audios: [
+          { voice_id: 'eve' },
+          { voice_id: 'leo' },
+          { voice_id: 'rex' },
+        ],
+      });
+    });
+
+    it('should reject more than 3 preset reference voices', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      await expect(
+        model.doStart({
+          ...defaultOptions,
+          providerOptions: {
+            xai: {
+              mode: 'reference-to-video',
+              referenceImageUrls: ['https://example.com/ref1.jpg'],
+              referenceVoiceIds: ['ara', 'eve', 'leo', 'rex'],
+            },
+          },
+        }),
+      ).rejects.toThrow(InvalidArgumentError);
+    });
+
+    it('should reject empty-string preset reference voice ids', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      await expect(
+        model.doStart({
+          ...defaultOptions,
+          providerOptions: {
+            xai: {
+              mode: 'reference-to-video',
+              referenceImageUrls: ['https://example.com/ref1.jpg'],
+              referenceVoiceIds: [''],
+            },
+          },
+        }),
+      ).rejects.toThrow(InvalidArgumentError);
+    });
+
+    it('should omit reference_audios for an empty referenceVoiceIds array', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+            referenceImageUrls: ['https://example.com/ref1.jpg'],
+            referenceVoiceIds: [],
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('reference_audios');
+      expect(result.warnings).not.toContainEqual(
+        expect.objectContaining({ feature: 'referenceVoiceIds' }),
+      );
+    });
+
+    it('should warn and omit referenceVoiceIds outside reference-to-video', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            referenceVoiceIds: ['eve'],
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('reference_audios');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'referenceVoiceIds',
+        }),
+      );
+    });
+
+    it('should never forward referenceVoiceIds as a raw body key', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+            referenceImageUrls: ['https://example.com/ref1.jpg'],
+            referenceVoiceIds: ['eve'],
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('referenceVoiceIds');
     });
   });
 

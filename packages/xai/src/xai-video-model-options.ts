@@ -48,6 +48,10 @@ interface XaiVideoReferenceToVideoOptions
   mode: 'reference-to-video';
   /** Reference image URLs (1-7) for R2V generation. */
   referenceImageUrls: string[];
+  /**
+   * Preset voice ids (up to 3) that give the subject a voice.
+   */
+  referenceVoiceIds?: string[];
 }
 
 interface XaiVideoGenerationOptions
@@ -75,6 +79,10 @@ interface XaiLegacyReferenceToVideoOptions
    */
   mode?: undefined;
   referenceImageUrls: string[];
+  /**
+   * Preset voice ids (up to 3) that give the subject a voice.
+   */
+  referenceVoiceIds?: string[];
 }
 
 /**
@@ -86,9 +94,6 @@ interface XaiLegacyReferenceToVideoOptions
  * - `'extend-video'`       + `videoUrl`           -- video extension (`POST /v1/videos/extensions`)
  * - `'reference-to-video'` + `referenceImageUrls` -- R2V generation  (`POST /v1/videos/generations`)
  * - no `mode`                                     -- standard generation from text prompts or image input
- *
- * Reference images may also come from the top-level `inputReferences` option
- * instead of `referenceImageUrls`.
  *
  * Runtime remains backward compatible with legacy auto-detected provider
  * options, but the public TypeScript type is intentionally explicit so editors
@@ -113,6 +118,7 @@ const runtimeSchema = z.looseObject({
   mode: modeSchema.optional(),
   videoUrl: nonEmptyStringSchema.optional(),
   referenceImageUrls: z.array(nonEmptyStringSchema).min(1).max(7).optional(),
+  referenceVoiceIds: z.array(nonEmptyStringSchema).max(3).optional(),
   user: z.string().optional(),
   ...baseFields,
 });

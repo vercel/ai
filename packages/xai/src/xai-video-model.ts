@@ -118,9 +118,6 @@ function resolveReferences(
       imageFiles.push(reference);
     }
 
-    // Every reference may have been filtered out (audio- or video-only input),
-    // so collapse an empty list to undefined rather than sending an empty
-    // `reference_images` array.
     return imageFiles.length > 0
       ? imageFiles.map(reference => ({ url: fileToXaiUrl(reference) }))
       : undefined;
@@ -136,8 +133,7 @@ function resolveReferences(
   return undefined;
 }
 
-// True when at least one reference would survive as an image. Audio-only or
-// video-only references cannot drive reference-to-video on their own.
+// True when at least one reference would survive as an image.
 function hasImageInputReference(options: XaiVideoCallOptions): boolean {
   return options.inputReferences?.some(isImageReference) ?? false;
 }
@@ -383,6 +379,13 @@ export class XaiVideoModel implements VideoModelV4 {
         });
       }
 
+      const referenceVoiceIds = xaiOptions?.referenceVoiceIds;
+      if (referenceVoiceIds != null && referenceVoiceIds.length > 0) {
+        body.reference_audios = referenceVoiceIds.map(voiceId => ({
+          voice_id: voiceId,
+        }));
+      }
+
       // Reference-to-video is capped at 720p; downgrade a 1080p request.
       if (body.resolution === '1080p') {
         warnings.push({
@@ -428,6 +431,21 @@ export class XaiVideoModel implements VideoModelV4 {
       });
     }
 
+    // Preset reference voices only apply to reference-to-video generation.
+    if (
+      xaiOptions?.referenceVoiceIds != null &&
+      xaiOptions.referenceVoiceIds.length > 0 &&
+      !hasReferenceImages
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'referenceVoiceIds',
+        details:
+          'xAI only supports reference voices for reference-to-video ' +
+          'generation. The reference voices were ignored.',
+      });
+    }
+
     if (!isExtension && xaiOptions?.user !== undefined) {
       body.user = xaiOptions.user;
     }
@@ -442,6 +460,7 @@ export class XaiVideoModel implements VideoModelV4 {
             'resolution',
             'videoUrl',
             'referenceImageUrls',
+            'referenceVoiceIds',
             'user',
           ].includes(key)
         ) {
