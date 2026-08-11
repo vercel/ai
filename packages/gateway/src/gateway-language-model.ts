@@ -21,7 +21,7 @@ import {
   type Resolvable,
   type ResponseHandler,
 } from '@ai-sdk/provider-utils';
-import { encode as encodeCbor } from 'cbor-x';
+import { encodeCbor } from './cbor';
 import { z } from './zod';
 import type { GatewayConfig } from './gateway-config';
 import type { GatewayModelId } from './gateway-language-model-settings';

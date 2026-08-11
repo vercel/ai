@@ -12,3 +12,7 @@ uploads, no client-side base64 encode). Requests without inline file bytes are
 always sent as JSON. On HTTP 415 the client retries once as JSON and stops
 sending CBOR for the life of the instance. Requires a gateway deployment that
 accepts CBOR request bodies.
+
+CBOR is implemented by a small vendored RFC 8949 encoder/decoder
+(`src/cbor.ts`, definite lengths, no tags, JSON parity for `toJSON` and
+`undefined`) rather than an external dependency.
