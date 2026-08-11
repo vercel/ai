@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/react",
-  "version": "4.0.64",
+  "version": "4.0.65",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,

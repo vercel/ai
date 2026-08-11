@@ -1,5 +1,13 @@
 # @ai-sdk/workflow
 
+## 1.0.62
+
+### Patch Changes
+
+- 419adc7: Honor `maxRetries` and `abortSignal` overrides returned from `prepareCall`.
+- Updated dependencies [e0bcf52]
+  - ai@7.0.62
+
 ## 1.0.61
 
 ### Patch Changes

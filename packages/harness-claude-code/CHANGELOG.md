@@ -1,5 +1,13 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.70
+
+### Patch Changes
+
+- 5cc654f: fix(harness-claude-code): fix bridge WebSocket startup so an immediate `bridge-hello` frame cannot be missed before the listener is attached
+- f133c4c: fix(harness-claude-code): exclude subagent messages from parent step usage and tool-call tracking
+  - @ai-sdk/harness@1.0.68
+
 ## 1.0.69
 
 ### Patch Changes
