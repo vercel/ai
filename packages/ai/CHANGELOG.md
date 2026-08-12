@@ -1,5 +1,13 @@
 # ai
 
+## 5.0.234
+
+### Patch Changes
+
+- 412c15e: Preserve reasoning part IDs when processing UI message streams.
+- Updated dependencies [1e632f7]
+  - @ai-sdk/gateway@2.0.132
+
 ## 5.0.233
 
 ### Patch Changes

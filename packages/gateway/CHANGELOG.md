@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.132
+
+### Patch Changes
+
+- 1e632f7: feat(xai): add Grok 4.6 models
+
 ## 2.0.131
 
 ### Patch Changes
