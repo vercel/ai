@@ -1358,6 +1358,22 @@ describe('XaiChatLanguageModel', () => {
       );
     });
 
+    it('should pass reasoning_effort: "xhigh" via providerOptions for grok-4.6', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      const grok46Model = new XaiChatLanguageModel('grok-4.6', testConfig);
+      await grok46Model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          xai: { reasoningEffort: 'xhigh' },
+        },
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'xhigh',
+      );
+    });
+
     it('should coerce top-level reasoning xhigh to high', async () => {
       prepareJsonFixtureResponse('xai-text');
 
@@ -1368,6 +1384,20 @@ describe('XaiChatLanguageModel', () => {
 
       expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
         'high',
+      );
+    });
+
+    it('should map top-level reasoning xhigh to reasoning_effort: "xhigh" for grok-4.6', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      const grok46Model = new XaiChatLanguageModel('grok-4.6', testConfig);
+      await grok46Model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'xhigh',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'xhigh',
       );
     });
 
