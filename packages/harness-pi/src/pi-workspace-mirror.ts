@@ -67,33 +67,38 @@ async function listRemoteWorkspaceEntries(
   sandbox: Experimental_SandboxSession,
   sandboxWorkDir: string,
 ): Promise<{ directories: string[]; files: string[] }> {
-  const contextPredicate = PI_CONTEXT_FILENAMES.map(
-    name => `-name ${shellQuote(name)}`,
-  ).join(' -o ');
-
   // Enumerate only the `.pi`/`.agents` config subtrees plus the root-level
-  // context files — never the rest of the workspace. `find -L` dereferences
-  // symlinks so that linked targets (e.g. `.agents/skills` pointing elsewhere)
-  // are walked and reported through the symlinked path; the resolved file/dir
-  // types from `[ -d ]`/`[ -f ]` then tag each entry `d`/`f`, NUL-joined
-  // exactly like a full-tree walk so the reconcile below is unchanged.
-  const configFinds = PI_CONFIG_DIRS.map(
-    dir =>
-      `  if [ -d ./${dir} ]; then find -L ./${dir} \\( -type d -o -type f \\) -print0; fi;`,
-  );
+  // context files — never the rest of the workspace. Use shell glob traversal
+  // instead of `find -L`, which is not supported by all sandbox shells. Testing
+  // each path with `[ -d ]`/`[ -f ]` follows symlinks, so linked config targets
+  // are still reported through the symlinked path and copied as real entries.
+  const scopedPaths = [
+    ...PI_CONFIG_DIRS.map(dir => `./${dir}`),
+    ...PI_CONTEXT_FILENAMES.map(name => `./${name}`),
+  ];
   const listCommand = [
-    '{',
-    ...configFinds,
-    `  find . -maxdepth 1 -type f \\( ${contextPredicate} \\) -print0;`,
-    '} |',
-    "while IFS= read -r -d '' entry; do",
-    '  rel=${entry#./}',
-    '  if [ -d "$entry" ]; then',
-    `    printf 'd\\t%s\\n' "$rel"`,
-    '  elif [ -f "$entry" ]; then',
-    `    printf 'f\\t%s\\n' "$rel"`,
+    'walk_pi_config() {',
+    '  entry=$1',
+    '  depth=$2',
+    '  if [ "$depth" -gt 100 ]; then',
+    `    printf 'Pi config traversal exceeded the maximum depth at %s\\n' "$entry" >&2`,
+    '    return 1',
     '  fi',
-    'done | LC_ALL=C sort',
+    '  if [ -d "$entry" ]; then',
+    `    printf 'd\\t%s\\n' "\${entry#./}"`,
+    '    next_depth=$((depth + 1))',
+    '    for child in "$entry"/* "$entry"/.[!.]* "$entry"/..?*; do',
+    '      if [ -d "$child" ] || [ -f "$child" ]; then',
+    '        walk_pi_config "$child" "$next_depth" || return',
+    '      fi',
+    '    done',
+    '  elif [ -f "$entry" ]; then',
+    `    printf 'f\\t%s\\n' "\${entry#./}"`,
+    '  fi',
+    '}',
+    ...scopedPaths.map(
+      scopedPath => `walk_pi_config ${shellQuote(scopedPath)} 0 || exit $?`,
+    ),
   ].join('\n');
 
   const output = await readCommandOutput(
