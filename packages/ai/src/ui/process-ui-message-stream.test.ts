@@ -1458,6 +1458,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
@@ -1476,6 +1477,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1498,6 +1500,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1520,6 +1523,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1542,6 +1546,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1577,6 +1582,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1614,6 +1620,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1642,6 +1649,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
@@ -1660,6 +1668,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1688,6 +1697,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "abc123",
@@ -1710,6 +1720,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1738,6 +1749,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "abc123",
@@ -1760,6 +1772,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1788,6 +1801,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "abc123",
@@ -1816,6 +1830,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1844,6 +1859,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "abc123",
@@ -1872,6 +1888,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1900,6 +1917,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "abc123",
@@ -1925,61 +1943,63 @@ describe('processUIMessageStream', () => {
 
     it('should have the correct final message state', async () => {
       expect(state!.message).toMatchInlineSnapshot(`
-        {
-          "id": "msg-123",
-          "metadata": undefined,
-          "parts": [
-            {
-              "type": "step-start",
-            },
-            {
-              "providerMetadata": {
-                "testProvider": {
-                  "signature": "1234567890",
-                },
-              },
-              "state": "done",
-              "text": "I will use a tool to get the weather in London.",
-              "type": "reasoning",
-            },
-            {
-              "errorText": undefined,
-              "input": {
-                "city": "London",
-              },
-              "output": {
-                "weather": "sunny",
-              },
-              "preliminary": undefined,
-              "providerExecuted": undefined,
-              "rawInput": undefined,
-              "state": "output-available",
-              "toolCallId": "tool-call-id",
-              "type": "tool-tool-name",
-            },
-            {
-              "type": "step-start",
-            },
-            {
-              "providerMetadata": {
-                "testProvider": {
-                  "signature": "abc123",
-                },
-              },
-              "state": "done",
-              "text": "I now know the weather in London.",
-              "type": "reasoning",
-            },
-            {
-              "providerMetadata": undefined,
-              "state": "done",
-              "text": "The weather in London is sunny.",
-              "type": "text",
-            },
-          ],
-          "role": "assistant",
-        }
-      `);
+                    {
+                      "id": "msg-123",
+                      "metadata": undefined,
+                      "parts": [
+                        {
+                          "type": "step-start",
+                        },
+                        {
+                          "id": "reasoning-1",
+                          "providerMetadata": {
+                            "testProvider": {
+                              "signature": "1234567890",
+                            },
+                          },
+                          "state": "done",
+                          "text": "I will use a tool to get the weather in London.",
+                          "type": "reasoning",
+                        },
+                        {
+                          "errorText": undefined,
+                          "input": {
+                            "city": "London",
+                          },
+                          "output": {
+                            "weather": "sunny",
+                          },
+                          "preliminary": undefined,
+                          "providerExecuted": undefined,
+                          "rawInput": undefined,
+                          "state": "output-available",
+                          "toolCallId": "tool-call-id",
+                          "type": "tool-tool-name",
+                        },
+                        {
+                          "type": "step-start",
+                        },
+                        {
+                          "id": "reasoning-2",
+                          "providerMetadata": {
+                            "testProvider": {
+                              "signature": "abc123",
+                            },
+                          },
+                          "state": "done",
+                          "text": "I now know the weather in London.",
+                          "type": "reasoning",
+                        },
+                        {
+                          "providerMetadata": undefined,
+                          "state": "done",
+                          "text": "The weather in London is sunny.",
+                          "type": "text",
+                        },
+                      ],
+                      "role": "assistant",
+                    }
+                  `);
     });
   });
 
@@ -3216,544 +3236,586 @@ describe('processUIMessageStream', () => {
 
     it('should call the update function with the correct arguments', async () => {
       expect(writeCalls).toMatchInlineSnapshot(`
-        [
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": undefined,
-              "parts": [],
-              "role": "assistant",
+          [
+            {
+              "message": {
+                "id": "msg-123",
+                "metadata": undefined,
+                "parts": [],
+                "role": "assistant",
+              },
             },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": undefined,
-                  "state": "streaming",
-                  "text": "",
-                  "type": "reasoning",
-                },
-              ],
-              "role": "assistant",
+            {
+              "message": {
+                "id": "msg-123",
+                "metadata": undefined,
+                "parts": [
+                  {
+                    "type": "step-start",
+                  },
+                  {
+                    "id": "reasoning-1",
+                    "providerMetadata": undefined,
+                    "state": "streaming",
+                    "text": "",
+                    "type": "reasoning",
+                  },
+                ],
+                "role": "assistant",
+              },
             },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": undefined,
-                  "state": "streaming",
-                  "text": "I will open the conversation",
-                  "type": "reasoning",
-                },
-              ],
-              "role": "assistant",
+            {
+              "message": {
+                "id": "msg-123",
+                "metadata": undefined,
+                "parts": [
+                  {
+                    "type": "step-start",
+                  },
+                  {
+                    "id": "reasoning-1",
+                    "providerMetadata": undefined,
+                    "state": "streaming",
+                    "text": "I will open the conversation",
+                    "type": "reasoning",
+                  },
+                ],
+                "role": "assistant",
+              },
             },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "1234567890",
-                    },
+            {
+              "message": {
+                "id": "msg-123",
+                "metadata": undefined,
+                "parts": [
+                  {
+                    "type": "step-start",
                   },
-                  "state": "streaming",
-                  "text": "I will open the conversation with witty banter. ",
-                  "type": "reasoning",
-                },
-              ],
-              "role": "assistant",
+                  {
+                    "id": "reasoning-1",
+                    "providerMetadata": {
+                      "testProvider": {
+                        "signature": "1234567890",
+                      },
+                    },
+                    "state": "streaming",
+                    "text": "I will open the conversation with witty banter. ",
+                    "type": "reasoning",
+                  },
+                ],
+                "role": "assistant",
+              },
             },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "1234567890",
-                    },
+            {
+              "message": {
+                "id": "msg-123",
+                "metadata": undefined,
+                "parts": [
+                  {
+                    "type": "step-start",
                   },
-                  "state": "done",
-                  "text": "I will open the conversation with witty banter. ",
-                  "type": "reasoning",
-                },
-              ],
-              "role": "assistant",
+                  {
+                    "id": "reasoning-1",
+                    "providerMetadata": {
+                      "testProvider": {
+                        "signature": "1234567890",
+                      },
+                    },
+                    "state": "done",
+                    "text": "I will open the conversation with witty banter. ",
+                    "type": "reasoning",
+                  },
+                ],
+                "role": "assistant",
+              },
             },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "1234567890",
-                    },
+            {
+              "message": {
+                "id": "msg-123",
+                "metadata": undefined,
+                "parts": [
+                  {
+                    "type": "step-start",
                   },
-                  "state": "done",
-                  "text": "I will open the conversation with witty banter. ",
-                  "type": "reasoning",
-                },
-                {
-                  "providerMetadata": undefined,
-                  "state": "streaming",
-                  "text": "",
-                  "type": "reasoning",
-                },
-              ],
-              "role": "assistant",
+                  {
+                    "id": "reasoning-1",
+                    "providerMetadata": {
+                      "testProvider": {
+                        "signature": "1234567890",
+                      },
+                    },
+                    "state": "done",
+                    "text": "I will open the conversation with witty banter. ",
+                    "type": "reasoning",
+                  },
+                  {
+                    "id": "reasoning-2",
+                    "providerMetadata": undefined,
+                    "state": "streaming",
+                    "text": "",
+                    "type": "reasoning",
+                  },
+                ],
+                "role": "assistant",
+              },
             },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "1234567890",
-                    },
+            {
+              "message": {
+                "id": "msg-123",
+                "metadata": undefined,
+                "parts": [
+                  {
+                    "type": "step-start",
                   },
-                  "state": "done",
-                  "text": "I will open the conversation with witty banter. ",
-                  "type": "reasoning",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "isRedacted": true,
+                  {
+                    "id": "reasoning-1",
+                    "providerMetadata": {
+                      "testProvider": {
+                        "signature": "1234567890",
+                      },
                     },
+                    "state": "done",
+                    "text": "I will open the conversation with witty banter. ",
+                    "type": "reasoning",
                   },
-                  "state": "streaming",
-                  "text": "redacted-data",
-                  "type": "reasoning",
-                },
-              ],
-              "role": "assistant",
+                  {
+                    "id": "reasoning-2",
+                    "providerMetadata": {
+                      "testProvider": {
+                        "isRedacted": true,
+                      },
+                    },
+                    "state": "streaming",
+                    "text": "redacted-data",
+                    "type": "reasoning",
+                  },
+                ],
+                "role": "assistant",
+              },
             },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "1234567890",
-                    },
+            {
+              "message": {
+                "id": "msg-123",
+                "metadata": undefined,
+                "parts": [
+                  {
+                    "type": "step-start",
                   },
-                  "state": "done",
-                  "text": "I will open the conversation with witty banter. ",
-                  "type": "reasoning",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "isRedacted": true,
+                  {
+                    "id": "reasoning-1",
+                    "providerMetadata": {
+                      "testProvider": {
+                        "signature": "1234567890",
+                      },
                     },
+                    "state": "done",
+                    "text": "I will open the conversation with witty banter. ",
+                    "type": "reasoning",
                   },
-                  "state": "done",
-                  "text": "redacted-data",
-                  "type": "reasoning",
-                },
-              ],
-              "role": "assistant",
+                  {
+                    "id": "reasoning-2",
+                    "providerMetadata": {
+                      "testProvider": {
+                        "isRedacted": true,
+                      },
+                    },
+                    "state": "done",
+                    "text": "redacted-data",
+                    "type": "reasoning",
+                  },
+                ],
+                "role": "assistant",
+              },
             },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "1234567890",
-                    },
+            {
+              "message": {
+                "id": "msg-123",
+                "metadata": undefined,
+                "parts": [
+                  {
+                    "type": "step-start",
                   },
-                  "state": "done",
-                  "text": "I will open the conversation with witty banter. ",
-                  "type": "reasoning",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "isRedacted": true,
+                  {
+                    "id": "reasoning-1",
+                    "providerMetadata": {
+                      "testProvider": {
+                        "signature": "1234567890",
+                      },
                     },
+                    "state": "done",
+                    "text": "I will open the conversation with witty banter. ",
+                    "type": "reasoning",
                   },
-                  "state": "done",
-                  "text": "redacted-data",
-                  "type": "reasoning",
-                },
-                {
-                  "providerMetadata": undefined,
-                  "state": "streaming",
-                  "text": "",
-                  "type": "reasoning",
-                },
-              ],
-              "role": "assistant",
+                  {
+                    "id": "reasoning-2",
+                    "providerMetadata": {
+                      "testProvider": {
+                        "isRedacted": true,
+                      },
+                    },
+                    "state": "done",
+                    "text": "redacted-data",
+                    "type": "reasoning",
+                  },
+                  {
+                    "id": "reasoning-3",
+                    "providerMetadata": undefined,
+                    "state": "streaming",
+                    "text": "",
+                    "type": "reasoning",
+                  },
+                ],
+                "role": "assistant",
+              },
             },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "1234567890",
-                    },
+            {
+              "message": {
+                "id": "msg-123",
+                "metadata": undefined,
+                "parts": [
+                  {
+                    "type": "step-start",
                   },
-                  "state": "done",
-                  "text": "I will open the conversation with witty banter. ",
-                  "type": "reasoning",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "isRedacted": true,
+                  {
+                    "id": "reasoning-1",
+                    "providerMetadata": {
+                      "testProvider": {
+                        "signature": "1234567890",
+                      },
                     },
+                    "state": "done",
+                    "text": "I will open the conversation with witty banter. ",
+                    "type": "reasoning",
                   },
-                  "state": "done",
-                  "text": "redacted-data",
-                  "type": "reasoning",
-                },
-                {
-                  "providerMetadata": undefined,
-                  "state": "streaming",
-                  "text": "Once the user has relaxed,",
-                  "type": "reasoning",
-                },
-              ],
-              "role": "assistant",
+                  {
+                    "id": "reasoning-2",
+                    "providerMetadata": {
+                      "testProvider": {
+                        "isRedacted": true,
+                      },
+                    },
+                    "state": "done",
+                    "text": "redacted-data",
+                    "type": "reasoning",
+                  },
+                  {
+                    "id": "reasoning-3",
+                    "providerMetadata": undefined,
+                    "state": "streaming",
+                    "text": "Once the user has relaxed,",
+                    "type": "reasoning",
+                  },
+                ],
+                "role": "assistant",
+              },
             },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "1234567890",
-                    },
+            {
+              "message": {
+                "id": "msg-123",
+                "metadata": undefined,
+                "parts": [
+                  {
+                    "type": "step-start",
                   },
-                  "state": "done",
-                  "text": "I will open the conversation with witty banter. ",
-                  "type": "reasoning",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "isRedacted": true,
+                  {
+                    "id": "reasoning-1",
+                    "providerMetadata": {
+                      "testProvider": {
+                        "signature": "1234567890",
+                      },
                     },
+                    "state": "done",
+                    "text": "I will open the conversation with witty banter. ",
+                    "type": "reasoning",
                   },
-                  "state": "done",
-                  "text": "redacted-data",
-                  "type": "reasoning",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "abc123",
+                  {
+                    "id": "reasoning-2",
+                    "providerMetadata": {
+                      "testProvider": {
+                        "isRedacted": true,
+                      },
                     },
+                    "state": "done",
+                    "text": "redacted-data",
+                    "type": "reasoning",
                   },
-                  "state": "streaming",
-                  "text": "Once the user has relaxed, I will pry for valuable information.",
-                  "type": "reasoning",
-                },
-              ],
-              "role": "assistant",
+                  {
+                    "id": "reasoning-3",
+                    "providerMetadata": {
+                      "testProvider": {
+                        "signature": "abc123",
+                      },
+                    },
+                    "state": "streaming",
+                    "text": "Once the user has relaxed, I will pry for valuable information.",
+                    "type": "reasoning",
+                  },
+                ],
+                "role": "assistant",
+              },
             },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "1234567890",
-                    },
+            {
+              "message": {
+                "id": "msg-123",
+                "metadata": undefined,
+                "parts": [
+                  {
+                    "type": "step-start",
                   },
-                  "state": "done",
-                  "text": "I will open the conversation with witty banter. ",
-                  "type": "reasoning",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "isRedacted": true,
+                  {
+                    "id": "reasoning-1",
+                    "providerMetadata": {
+                      "testProvider": {
+                        "signature": "1234567890",
+                      },
                     },
+                    "state": "done",
+                    "text": "I will open the conversation with witty banter. ",
+                    "type": "reasoning",
                   },
-                  "state": "done",
-                  "text": "redacted-data",
-                  "type": "reasoning",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "abc123",
+                  {
+                    "id": "reasoning-2",
+                    "providerMetadata": {
+                      "testProvider": {
+                        "isRedacted": true,
+                      },
                     },
+                    "state": "done",
+                    "text": "redacted-data",
+                    "type": "reasoning",
                   },
-                  "state": "done",
-                  "text": "Once the user has relaxed, I will pry for valuable information.",
-                  "type": "reasoning",
-                },
-              ],
-              "role": "assistant",
+                  {
+                    "id": "reasoning-3",
+                    "providerMetadata": {
+                      "testProvider": {
+                        "signature": "abc123",
+                      },
+                    },
+                    "state": "done",
+                    "text": "Once the user has relaxed, I will pry for valuable information.",
+                    "type": "reasoning",
+                  },
+                ],
+                "role": "assistant",
+              },
             },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "1234567890",
-                    },
+            {
+              "message": {
+                "id": "msg-123",
+                "metadata": undefined,
+                "parts": [
+                  {
+                    "type": "step-start",
                   },
-                  "state": "done",
-                  "text": "I will open the conversation with witty banter. ",
-                  "type": "reasoning",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "isRedacted": true,
+                  {
+                    "id": "reasoning-1",
+                    "providerMetadata": {
+                      "testProvider": {
+                        "signature": "1234567890",
+                      },
                     },
+                    "state": "done",
+                    "text": "I will open the conversation with witty banter. ",
+                    "type": "reasoning",
                   },
-                  "state": "done",
-                  "text": "redacted-data",
-                  "type": "reasoning",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "abc123",
+                  {
+                    "id": "reasoning-2",
+                    "providerMetadata": {
+                      "testProvider": {
+                        "isRedacted": true,
+                      },
                     },
+                    "state": "done",
+                    "text": "redacted-data",
+                    "type": "reasoning",
                   },
-                  "state": "done",
-                  "text": "Once the user has relaxed, I will pry for valuable information.",
-                  "type": "reasoning",
-                },
-                {
-                  "providerMetadata": undefined,
-                  "state": "streaming",
-                  "text": "",
-                  "type": "text",
-                },
-              ],
-              "role": "assistant",
+                  {
+                    "id": "reasoning-3",
+                    "providerMetadata": {
+                      "testProvider": {
+                        "signature": "abc123",
+                      },
+                    },
+                    "state": "done",
+                    "text": "Once the user has relaxed, I will pry for valuable information.",
+                    "type": "reasoning",
+                  },
+                  {
+                    "providerMetadata": undefined,
+                    "state": "streaming",
+                    "text": "",
+                    "type": "text",
+                  },
+                ],
+                "role": "assistant",
+              },
             },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "1234567890",
-                    },
+            {
+              "message": {
+                "id": "msg-123",
+                "metadata": undefined,
+                "parts": [
+                  {
+                    "type": "step-start",
                   },
-                  "state": "done",
-                  "text": "I will open the conversation with witty banter. ",
-                  "type": "reasoning",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "isRedacted": true,
+                  {
+                    "id": "reasoning-1",
+                    "providerMetadata": {
+                      "testProvider": {
+                        "signature": "1234567890",
+                      },
                     },
+                    "state": "done",
+                    "text": "I will open the conversation with witty banter. ",
+                    "type": "reasoning",
                   },
-                  "state": "done",
-                  "text": "redacted-data",
-                  "type": "reasoning",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "abc123",
+                  {
+                    "id": "reasoning-2",
+                    "providerMetadata": {
+                      "testProvider": {
+                        "isRedacted": true,
+                      },
                     },
+                    "state": "done",
+                    "text": "redacted-data",
+                    "type": "reasoning",
                   },
-                  "state": "done",
-                  "text": "Once the user has relaxed, I will pry for valuable information.",
-                  "type": "reasoning",
-                },
-                {
-                  "providerMetadata": undefined,
-                  "state": "streaming",
-                  "text": "Hi there!",
-                  "type": "text",
-                },
-              ],
-              "role": "assistant",
+                  {
+                    "id": "reasoning-3",
+                    "providerMetadata": {
+                      "testProvider": {
+                        "signature": "abc123",
+                      },
+                    },
+                    "state": "done",
+                    "text": "Once the user has relaxed, I will pry for valuable information.",
+                    "type": "reasoning",
+                  },
+                  {
+                    "providerMetadata": undefined,
+                    "state": "streaming",
+                    "text": "Hi there!",
+                    "type": "text",
+                  },
+                ],
+                "role": "assistant",
+              },
             },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": undefined,
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "1234567890",
-                    },
+            {
+              "message": {
+                "id": "msg-123",
+                "metadata": undefined,
+                "parts": [
+                  {
+                    "type": "step-start",
                   },
-                  "state": "done",
-                  "text": "I will open the conversation with witty banter. ",
-                  "type": "reasoning",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "isRedacted": true,
+                  {
+                    "id": "reasoning-1",
+                    "providerMetadata": {
+                      "testProvider": {
+                        "signature": "1234567890",
+                      },
                     },
+                    "state": "done",
+                    "text": "I will open the conversation with witty banter. ",
+                    "type": "reasoning",
                   },
-                  "state": "done",
-                  "text": "redacted-data",
-                  "type": "reasoning",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "abc123",
+                  {
+                    "id": "reasoning-2",
+                    "providerMetadata": {
+                      "testProvider": {
+                        "isRedacted": true,
+                      },
                     },
+                    "state": "done",
+                    "text": "redacted-data",
+                    "type": "reasoning",
                   },
-                  "state": "done",
-                  "text": "Once the user has relaxed, I will pry for valuable information.",
-                  "type": "reasoning",
-                },
-                {
-                  "providerMetadata": undefined,
-                  "state": "done",
-                  "text": "Hi there!",
-                  "type": "text",
-                },
-              ],
-              "role": "assistant",
+                  {
+                    "id": "reasoning-3",
+                    "providerMetadata": {
+                      "testProvider": {
+                        "signature": "abc123",
+                      },
+                    },
+                    "state": "done",
+                    "text": "Once the user has relaxed, I will pry for valuable information.",
+                    "type": "reasoning",
+                  },
+                  {
+                    "providerMetadata": undefined,
+                    "state": "done",
+                    "text": "Hi there!",
+                    "type": "text",
+                  },
+                ],
+                "role": "assistant",
+              },
             },
-          },
-        ]
-      `);
+          ]
+        `);
     });
 
     it('should have the correct final message state', async () => {
       expect(state!.message).toMatchInlineSnapshot(`
-        {
-          "id": "msg-123",
-          "metadata": undefined,
-          "parts": [
-            {
-              "type": "step-start",
-            },
-            {
-              "providerMetadata": {
-                "testProvider": {
-                  "signature": "1234567890",
-                },
-              },
-              "state": "done",
-              "text": "I will open the conversation with witty banter. ",
-              "type": "reasoning",
-            },
-            {
-              "providerMetadata": {
-                "testProvider": {
-                  "isRedacted": true,
-                },
-              },
-              "state": "done",
-              "text": "redacted-data",
-              "type": "reasoning",
-            },
-            {
-              "providerMetadata": {
-                "testProvider": {
-                  "signature": "abc123",
-                },
-              },
-              "state": "done",
-              "text": "Once the user has relaxed, I will pry for valuable information.",
-              "type": "reasoning",
-            },
-            {
-              "providerMetadata": undefined,
-              "state": "done",
-              "text": "Hi there!",
-              "type": "text",
-            },
-          ],
-          "role": "assistant",
-        }
-      `);
+                      {
+                        "id": "msg-123",
+                        "metadata": undefined,
+                        "parts": [
+                          {
+                            "type": "step-start",
+                          },
+                          {
+                            "id": "reasoning-1",
+                            "providerMetadata": {
+                              "testProvider": {
+                                "signature": "1234567890",
+                              },
+                            },
+                            "state": "done",
+                            "text": "I will open the conversation with witty banter. ",
+                            "type": "reasoning",
+                          },
+                          {
+                            "id": "reasoning-2",
+                            "providerMetadata": {
+                              "testProvider": {
+                                "isRedacted": true,
+                              },
+                            },
+                            "state": "done",
+                            "text": "redacted-data",
+                            "type": "reasoning",
+                          },
+                          {
+                            "id": "reasoning-3",
+                            "providerMetadata": {
+                              "testProvider": {
+                                "signature": "abc123",
+                              },
+                            },
+                            "state": "done",
+                            "text": "Once the user has relaxed, I will pry for valuable information.",
+                            "type": "reasoning",
+                          },
+                          {
+                            "providerMetadata": undefined,
+                            "state": "done",
+                            "text": "Hi there!",
+                            "type": "text",
+                          },
+                        ],
+                        "role": "assistant",
+                      }
+                    `);
+    });
+
+    it('should preserve reasoning part ids', () => {
+      expect(
+        state!.message.parts
+          .filter(part => part.type === 'reasoning')
+          .map(part => part.id),
+      ).toEqual(['reasoning-1', 'reasoning-2', 'reasoning-3']);
     });
   });
 
