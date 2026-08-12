@@ -202,7 +202,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             low: 'low',
             medium: 'medium',
             high: 'high',
-            xhigh: 'high',
+            xhigh: this.modelId === 'grok-4.6' ? 'xhigh' : 'high',
           },
           warnings,
         });
