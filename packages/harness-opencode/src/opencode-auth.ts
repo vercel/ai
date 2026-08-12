@@ -1,4 +1,61 @@
-import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
+import type { HarnessV1RequestTransformation } from '@ai-sdk/harness';
+import {
+  createCredentialRequestTransformation,
+  getAiGatewayAuthFromEnv,
+} from '@ai-sdk/harness/utils';
+
+export const OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES = [
+  'AI_GATEWAY_API_KEY',
+  'OPENAI_API_KEY',
+  'ANTHROPIC_API_KEY',
+  'ANTHROPIC_AUTH_TOKEN',
+] as const;
+
+export function createOpenCodeRequestTransformations(
+  env: Record<string, string>,
+  auth: OpenCodeAuthMethod,
+): HarnessV1RequestTransformation[] {
+  switch (auth) {
+    case 'gateway':
+      return env.AI_GATEWAY_API_KEY
+        ? [
+            createCredentialRequestTransformation({
+              baseUrl: env.AI_GATEWAY_BASE_URL,
+              headers: {
+                Authorization: `Bearer ${env.AI_GATEWAY_API_KEY}`,
+              },
+            }),
+          ]
+        : [];
+    case 'openai':
+    case 'openaiCompatible':
+      return env.OPENAI_API_KEY
+        ? [
+            createCredentialRequestTransformation({
+              baseUrl: env.OPENAI_BASE_URL ?? 'https://api.openai.com/v1',
+              headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}` },
+            }),
+          ]
+        : [];
+    case 'anthropic': {
+      const headers: Record<string, string> = {};
+      if (env.ANTHROPIC_API_KEY) {
+        headers['x-api-key'] = env.ANTHROPIC_API_KEY;
+      }
+      if (env.ANTHROPIC_AUTH_TOKEN) {
+        headers.Authorization = `Bearer ${env.ANTHROPIC_AUTH_TOKEN}`;
+      }
+      return Object.keys(headers).length === 0
+        ? []
+        : [
+            createCredentialRequestTransformation({
+              baseUrl: env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com',
+              headers,
+            }),
+          ];
+    }
+  }
+}
 
 export type OpenCodeAuthOptions = {
   readonly gateway?: {
@@ -23,6 +80,8 @@ export type OpenCodeAuthOptions = {
     readonly queryParams?: Record<string, string>;
   };
 };
+
+export type OpenCodeAuthMethod = keyof OpenCodeAuthOptions;
 
 export function resolveOpenCodeProvider({
   model,
@@ -74,28 +133,45 @@ export function resolveOpenCodeEnv({
   provider?: string;
   processEnv?: Record<string, string | undefined>;
 }): Record<string, string> {
-  const selectedProvider = resolveOpenCodeProvider({ model, provider });
-  if (auth?.openaiCompatible) {
-    return pickOpenAICompatible(auth.openaiCompatible, processEnv);
+  const authMethod = resolveOpenCodeAuthMethod({
+    auth,
+    model,
+    provider,
+    processEnv,
+  });
+  switch (authMethod) {
+    case 'openaiCompatible':
+      return pickOpenAICompatible(auth?.openaiCompatible ?? {}, processEnv);
+    case 'openai':
+      return pickOpenAI({ explicit: auth?.openai, processEnv });
+    case 'anthropic':
+      return pickAnthropic({ explicit: auth?.anthropic, processEnv });
+    case 'gateway':
+      return pickGateway({
+        explicit: auth?.gateway ?? {},
+        gatewayAuthFromEnv: getAiGatewayAuthFromEnv({ env: processEnv }),
+      });
   }
-  if (selectedProvider === 'openai') {
-    if (auth?.openai) {
-      return pickOpenAI({ explicit: auth.openai, processEnv });
-    }
-  } else if (auth?.anthropic) {
-    return pickAnthropic({ explicit: auth.anthropic, processEnv });
-  }
+}
 
-  const gatewayAuthFromEnv = getAiGatewayAuthFromEnv({ env: processEnv });
-  if (auth?.gateway) {
-    return pickGateway({ explicit: auth.gateway, gatewayAuthFromEnv });
-  }
-  if (gatewayAuthFromEnv.apiKey) {
-    return pickGateway({ explicit: {}, gatewayAuthFromEnv });
-  }
-  return selectedProvider === 'openai'
-    ? pickOpenAI({ processEnv })
-    : pickAnthropic({ processEnv });
+export function resolveOpenCodeAuthMethod({
+  auth,
+  model,
+  provider,
+  processEnv = process.env,
+}: {
+  auth: OpenCodeAuthOptions | undefined;
+  model?: string;
+  provider?: string;
+  processEnv?: Record<string, string | undefined>;
+}): OpenCodeAuthMethod {
+  if (auth?.openaiCompatible) return 'openaiCompatible';
+  const selectedProvider = resolveOpenCodeProvider({ model, provider });
+  if (selectedProvider === 'openai' && auth?.openai) return 'openai';
+  if (selectedProvider === 'anthropic' && auth?.anthropic) return 'anthropic';
+  if (auth?.gateway) return 'gateway';
+  if (getAiGatewayAuthFromEnv({ env: processEnv }).apiKey) return 'gateway';
+  return selectedProvider;
 }
 
 function pickOpenAICompatible(
@@ -163,9 +239,10 @@ function pickGateway({
   const env: Record<string, string> = {};
   const apiKey = explicit.apiKey ?? gatewayAuthFromEnv.apiKey;
   if (apiKey) env.AI_GATEWAY_API_KEY = apiKey;
-  env.AI_GATEWAY_BASE_URL = toOpenCodeGatewayBaseUrl(
+  const baseUrl = toOpenCodeGatewayBaseUrl(
     explicit.baseUrl ?? gatewayAuthFromEnv.baseUrl,
   );
+  env.AI_GATEWAY_BASE_URL = baseUrl;
   return env;
 }
 

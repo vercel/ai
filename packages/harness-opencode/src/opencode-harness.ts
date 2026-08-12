@@ -28,9 +28,11 @@ import {
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
   markBridgeStarting,
+  maskSandboxCredentials,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
+  warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   writeSkills as writeHarnessSkills,
 } from '@ai-sdk/harness/utils';
@@ -42,6 +44,9 @@ import {
 import { WebSocket } from 'ws';
 import { z } from 'zod/v4';
 import {
+  createOpenCodeRequestTransformations,
+  OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
+  resolveOpenCodeAuthMethod,
   resolveOpenCodeEnv,
   splitOpenCodeModel,
   type OpenCodeAuthOptions,
@@ -261,6 +266,35 @@ export function createOpenCode(
     },
     doStart: async startOpts => {
       const sandboxSession = startOpts.sandboxSession;
+      const authMethod = resolveOpenCodeAuthMethod({
+        auth: settings.auth,
+        model: settings.model,
+        provider: settings.provider,
+      });
+      const resolvedAuthEnvironment = resolveOpenCodeEnv({
+        auth: settings.auth,
+        model: settings.model,
+        provider: settings.provider,
+      });
+      let sandboxAuthEnvironment = resolvedAuthEnvironment;
+      if (sandboxSession.addRequestTransformations != null) {
+        const requestTransformations = createOpenCodeRequestTransformations(
+          resolvedAuthEnvironment,
+          authMethod,
+        );
+        if (requestTransformations.length > 0) {
+          await sandboxSession.addRequestTransformations(
+            requestTransformations,
+          );
+        }
+        sandboxAuthEnvironment = maskSandboxCredentials({
+          environment: resolvedAuthEnvironment,
+          credentialEnvironmentVariables:
+            OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
+        });
+      } else {
+        warnCredentialBrokeringUnavailable();
+      }
       const session = sandboxSession.restricted();
       const sandboxId = sandboxSession.id;
       const bootstrapDir = path.posix.resolve(
@@ -380,11 +414,7 @@ export function createOpenCode(
             })
           : undefined;
       const env = {
-        ...resolveOpenCodeEnv({
-          auth: settings.auth,
-          model: settings.model,
-          provider: settings.provider,
-        }),
+        ...sandboxAuthEnvironment,
         AI_SDK_HARNESS_CLIENT_APP: OPENCODE_CLIENT_APP,
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),

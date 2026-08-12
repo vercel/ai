@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  createOpenCodeRequestTransformations,
+  resolveOpenCodeAuthMethod,
   resolveOpenCodeEnv,
   resolveOpenCodeProvider,
   splitOpenCodeModel,
@@ -53,7 +55,10 @@ describe('OpenCode auth', () => {
       resolveOpenCodeEnv({
         auth: { openai: { apiKey: 'openai-key' } },
         provider: 'openai',
-        processEnv: { AI_GATEWAY_API_KEY: 'gateway-key' },
+        processEnv: {
+          AI_GATEWAY_API_KEY: 'gateway-key',
+          AI_GATEWAY_BASE_URL: 'https://gateway.example/v1',
+        },
       }),
     ).toEqual({ OPENAI_API_KEY: 'openai-key' });
   });
@@ -87,5 +92,107 @@ describe('OpenCode auth', () => {
     expect(toOpenCodeGatewayBaseUrl('https://ai-gateway.vercel.sh/v1')).toBe(
       'https://ai-gateway.vercel.sh/v1',
     );
+  });
+});
+
+describe('resolveOpenCodeAuthMethod', () => {
+  it('preserves explicit selected-provider auth despite ambient Gateway credentials', () => {
+    expect(
+      resolveOpenCodeAuthMethod({
+        auth: { openai: {} },
+        provider: 'openai',
+        processEnv: { AI_GATEWAY_API_KEY: 'gateway-key' },
+      }),
+    ).toBe('openai');
+  });
+
+  it('preserves the OpenAI-compatible identifier', () => {
+    expect(
+      resolveOpenCodeAuthMethod({
+        auth: { openaiCompatible: {} },
+        processEnv: {},
+      }),
+    ).toBe('openaiCompatible');
+  });
+
+  it('resolves ambient Gateway credentials to Gateway auth', () => {
+    expect(
+      resolveOpenCodeAuthMethod({
+        auth: undefined,
+        processEnv: { VERCEL_OIDC_TOKEN: 'oidc-token' },
+      }),
+    ).toBe('gateway');
+  });
+});
+
+describe('createOpenCodeRequestTransformations', () => {
+  it('uses the resolved OpenAI route', () => {
+    expect(
+      createOpenCodeRequestTransformations(
+        {
+          OPENAI_API_KEY: 'openai-secret',
+          OPENAI_BASE_URL: 'https://openai.example/v1',
+          AI_GATEWAY_API_KEY: 'unselected-gateway-secret',
+          AI_GATEWAY_BASE_URL: 'https://unselected-gateway.example/v1',
+        },
+        'openai',
+      ),
+    ).toEqual([
+      {
+        match: {
+          host: 'openai.example',
+          path: { startsWith: '/v1' },
+        },
+        transform: {
+          headers: { Authorization: 'Bearer openai-secret' },
+        },
+      },
+    ]);
+  });
+
+  it('uses the resolved Gateway route', () => {
+    expect(
+      createOpenCodeRequestTransformations(
+        {
+          OPENAI_API_KEY: 'unselected-openai-secret',
+          OPENAI_BASE_URL: 'https://unselected-openai.example/v1',
+          AI_GATEWAY_API_KEY: 'gateway-secret',
+          AI_GATEWAY_BASE_URL: 'https://gateway.example/v1',
+        },
+        'gateway',
+      ),
+    ).toEqual([
+      {
+        match: {
+          host: 'gateway.example',
+          path: { startsWith: '/v1' },
+        },
+        transform: {
+          headers: { Authorization: 'Bearer gateway-secret' },
+        },
+      },
+    ]);
+  });
+
+  it('injects both supported Anthropic credential headers', () => {
+    expect(
+      createOpenCodeRequestTransformations(
+        {
+          ANTHROPIC_API_KEY: 'api-secret',
+          ANTHROPIC_AUTH_TOKEN: 'token-secret',
+        },
+        'anthropic',
+      ),
+    ).toEqual([
+      {
+        match: { host: 'api.anthropic.com' },
+        transform: {
+          headers: {
+            'x-api-key': 'api-secret',
+            Authorization: 'Bearer token-secret',
+          },
+        },
+      },
+    ]);
   });
 });
