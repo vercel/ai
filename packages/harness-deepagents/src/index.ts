@@ -12,5 +12,4 @@ export type {
 export type {
   DeepAgentsAuthenticationMode,
   DeepAgentsAuthOptions,
-  LegacyDeepAgentsAuthOptions,
 } from './deepagents-auth';

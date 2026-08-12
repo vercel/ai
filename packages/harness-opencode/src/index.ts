@@ -12,5 +12,4 @@ export type { OpenCodeHarnessSettings } from './opencode-harness';
 export type {
   OpenCodeAuthenticationMode,
   OpenCodeAuthOptions,
-  LegacyOpenCodeAuthOptions,
 } from './opencode-auth';

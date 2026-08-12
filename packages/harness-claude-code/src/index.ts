@@ -13,6 +13,5 @@ export type { ClaudeCodeHarnessSettings } from './claude-code-harness';
 export type {
   ClaudeCodeAuthenticationMode,
   ClaudeCodeAuthOptions,
-  LegacyClaudeCodeAuthOptions,
 } from './claude-code-auth';
 export type { ClaudeCodeThinkingConfig } from './claude-code-thinking';
