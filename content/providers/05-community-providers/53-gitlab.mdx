@@ -82,19 +82,19 @@ You can use the following optional settings to customize the GitLab provider ins
 
 ## Language Models
 
-You can create a chat model with the default `duo-chat` ID:
+You can create a chat model with a registered model ID such as `duo-chat-sonnet-4-5`:
 
 ```ts
 import { gitlab } from '@gitlab/gitlab-ai-provider';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: gitlab.chat('duo-chat'),
+  model: gitlab.chat('duo-chat-sonnet-4-5'),
   prompt: 'Explain how to create a merge request in GitLab',
 });
 ```
 
-`gitlab('duo-chat')`, `gitlab.chat('duo-chat')`, and `gitlab.languageModel('duo-chat')` are equivalent.
+`gitlab('duo-chat-sonnet-4-5')`, `gitlab.chat('duo-chat-sonnet-4-5')`, and `gitlab.languageModel('duo-chat-sonnet-4-5')` are equivalent.
 
 ### Agentic chat
 
@@ -150,7 +150,7 @@ const gitlab = createGitLab({
 });
 
 const { text } = await generateText({
-  model: gitlab.chat('duo-chat'),
+  model: gitlab.chat('duo-chat-sonnet-4-5'),
   prompt: 'What is a GitLab CI job?',
 });
 
