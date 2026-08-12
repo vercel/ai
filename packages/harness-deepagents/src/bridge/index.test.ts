@@ -1,7 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type DeepAgentOptions = {
+  middleware?: Array<{
+    wrapModelCall?: (request: any, handler: any) => Promise<unknown>;
+  }>;
+  model?: unknown;
   systemPrompt?: string | { suffix?: string };
+};
+
+type ChatAnthropicOptions = {
+  model?: string;
+  thinking?: unknown;
+  outputConfig?: unknown;
 };
 
 const state = vi.hoisted(() => ({
@@ -30,6 +40,8 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
       {
         prompt: 'What is the capital of France?',
         instructions: 'Answer every question in German.',
+        thinking: { type: 'adaptive', display: 'summarized' },
+        effort: 'max',
         tools: [],
       },
       {
@@ -43,7 +55,17 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
 }));
 
 vi.mock('@langchain/anthropic', () => ({
-  ChatAnthropic: class {},
+  ChatAnthropic: class {
+    model?: string;
+    outputConfig?: unknown;
+    thinking?: unknown;
+
+    constructor(options: ChatAnthropicOptions) {
+      this.model = options.model;
+      this.outputConfig = options.outputConfig;
+      this.thinking = options.thinking;
+    }
+  },
 }));
 
 vi.mock('@langchain/core/messages', () => ({
@@ -91,5 +113,36 @@ describe('Deep Agents bridge instructions', () => {
     expect(state.createDeepAgentOptions[0]?.systemPrompt).toEqual({
       suffix: 'Answer every question in German.',
     });
+  });
+
+  it('configures reasoning on the default Deep Agents model', async () => {
+    await import('./index');
+
+    const { ChatAnthropic } = await import('@langchain/anthropic');
+    const resolvedModel = new ChatAnthropic({
+      model: 'upstream-selected-model',
+    });
+    const handler = vi.fn(async request => request.model);
+    const wrapModelCall =
+      state.createDeepAgentOptions[0]?.middleware?.[0]?.wrapModelCall;
+
+    expect(state.createDeepAgentOptions[0]?.model).toBeUndefined();
+    expect(wrapModelCall).toBeDefined();
+    await wrapModelCall!(
+      {
+        model: {
+          _getModelInstance: async () => resolvedModel,
+        },
+      },
+      handler,
+    );
+    const configuredModel = handler.mock.calls[0]?.[0].model;
+    expect(configuredModel).not.toBe(resolvedModel);
+    expect(configuredModel).toMatchObject({
+      model: 'upstream-selected-model',
+      outputConfig: { effort: 'max' },
+      thinking: { type: 'adaptive', display: 'summarized' },
+    });
+    expect(handler).toHaveBeenCalledWith({ model: configuredModel });
   });
 });
