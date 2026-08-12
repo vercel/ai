@@ -3560,6 +3560,100 @@ describe('convertToOpenAIResponsesInput', () => {
       });
     });
 
+    describe('provider-executed shell', () => {
+      it('should reconstruct the shell call and output with store: false', async () => {
+        const callId = 'call_shell';
+
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Run `printf hello` using the shell tool.',
+                },
+              ],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: callId,
+                  toolName: 'shell',
+                  input: {
+                    action: {
+                      commands: ['printf hello'],
+                    },
+                  },
+                  providerExecuted: true,
+                  providerOptions: {
+                    openai: {
+                      itemId: 'shell_item',
+                    },
+                  },
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: callId,
+                  toolName: 'shell',
+                  output: {
+                    type: 'json',
+                    value: {
+                      output: [
+                        {
+                          stdout: 'hello',
+                          stderr: '',
+                          outcome: { type: 'exit', exitCode: 0 },
+                        },
+                      ],
+                    },
+                  },
+                },
+                {
+                  type: 'text',
+                  text: 'hello',
+                },
+              ],
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'What did the command print?' }],
+            },
+          ],
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: false,
+          hasShellTool: true,
+        });
+
+        expect(result.input).toContainEqual({
+          type: 'shell_call',
+          call_id: callId,
+          id: 'shell_item',
+          status: 'completed',
+          action: {
+            commands: ['printf hello'],
+            timeout_ms: undefined,
+            max_output_length: undefined,
+          },
+        });
+        expect(result.input).toContainEqual({
+          type: 'shell_call_output',
+          call_id: callId,
+          output: [
+            {
+              stdout: 'hello',
+              stderr: '',
+              outcome: { type: 'exit', exit_code: 0 },
+            },
+          ],
+        });
+      });
+    });
+
     describe('local shell', () => {
       it('should convert local shell tool call and result into item reference with store: true', async () => {
         const result = await convertToOpenAIResponsesInput({
