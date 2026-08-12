@@ -2,6 +2,7 @@ import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
 } from '@ai-sdk/provider-utils/test';
+import type { UIMessage } from '../ui/ui-messages';
 import type { UIMessageChunk } from './ui-message-chunks';
 import { readUIMessageStream } from './read-ui-message-stream';
 import { describe, it, expect } from 'vitest';
@@ -164,6 +165,61 @@ describe('readUIMessageStream', () => {
         callProviderMetadata: { openai: { itemId: 'fc-step-2' } },
       },
     ]);
+  });
+
+  it('should create structural-sharing snapshots', async () => {
+    type TestUIMessage = UIMessage<
+      { nested: { value: string } },
+      { test: { value: string } }
+    >;
+
+    const nestedMetadata = { value: 'metadata' };
+    const nestedData = { value: 'data' };
+    const message: TestUIMessage = {
+      id: 'msg-123',
+      role: 'assistant',
+      metadata: { nested: nestedMetadata },
+      parts: [{ type: 'data-test', data: nestedData }],
+    };
+
+    const snapshots = await convertAsyncIterableToArray(
+      readUIMessageStream({
+        message,
+        stream: createUIMessageStream([
+          { type: 'text-start', id: 'text-1' },
+          { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+          { type: 'text-end', id: 'text-1' },
+        ]),
+      }),
+    );
+
+    expect(snapshots).toHaveLength(3);
+    expect(snapshots[0]).not.toBe(snapshots[1]);
+    expect(snapshots[0].parts).not.toBe(snapshots[1].parts);
+    expect(snapshots[0].parts[0]).not.toBe(snapshots[1].parts[0]);
+    expect(snapshots[0].metadata).not.toBe(snapshots[1].metadata);
+
+    expect(snapshots[0].metadata?.nested).toBe(nestedMetadata);
+    expect(snapshots[0].parts[0]).toMatchObject({
+      type: 'data-test',
+      data: nestedData,
+    });
+
+    expect(snapshots[0].parts[1]).toMatchObject({
+      type: 'text',
+      text: '',
+      state: 'streaming',
+    });
+    expect(snapshots[1].parts[1]).toMatchObject({
+      type: 'text',
+      text: 'Hello',
+      state: 'streaming',
+    });
+    expect(snapshots[2].parts[1]).toMatchObject({
+      type: 'text',
+      text: 'Hello',
+      state: 'done',
+    });
   });
 
   it('should throw an error when encountering an error UI stream part', async () => {
