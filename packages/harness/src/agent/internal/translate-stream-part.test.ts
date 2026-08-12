@@ -34,6 +34,76 @@ describe('translateStreamPart', () => {
     ]);
   });
 
+  it('translates a failed tool-result into a provider-executed tool-error', () => {
+    const out = translateStreamPart<ToolSet>({
+      type: 'tool-result',
+      toolCallId: 'c1',
+      toolName: 'bash',
+      result: 'bash: command not found: pnpmm',
+      isError: true,
+      providerMetadata: {
+        'claude-code': { subtype: 'error_during_execution' },
+      },
+    });
+
+    expect(out).toEqual([
+      {
+        type: 'tool-error',
+        toolCallId: 'c1',
+        toolName: 'bash',
+        input: undefined,
+        // `providerExecuted` keeps the runtime's own message; without it the
+        // AI SDK replaces `error` with the generic `onError` string.
+        error: 'bash: command not found: pnpmm',
+        providerExecuted: true,
+        providerMetadata: {
+          'claude-code': { subtype: 'error_during_execution' },
+        },
+      },
+    ]);
+  });
+
+  it('preserves dynamic on a failed tool-result', () => {
+    const out = translateStreamPart<ToolSet>({
+      type: 'tool-result',
+      toolCallId: 'c1',
+      toolName: 'mcp__weather__current',
+      result: { message: 'upstream timeout' },
+      isError: true,
+      dynamic: true,
+    });
+
+    expect(out).toEqual([
+      expect.objectContaining({
+        type: 'tool-error',
+        toolCallId: 'c1',
+        toolName: 'mcp__weather__current',
+        error: { message: 'upstream timeout' },
+        providerExecuted: true,
+        dynamic: true,
+      }),
+    ]);
+  });
+
+  it('keeps a tool-result with isError false as a tool-result', () => {
+    const out = translateStreamPart<ToolSet>({
+      type: 'tool-result',
+      toolCallId: 'c1',
+      toolName: 'bash',
+      result: 'ok',
+      isError: false,
+    });
+
+    expect(out).toEqual([
+      expect.objectContaining({
+        type: 'tool-result',
+        toolCallId: 'c1',
+        toolName: 'bash',
+        output: 'ok',
+      }),
+    ]);
+  });
+
   it('fans file-change out into a dynamic provider-executed tool-call + tool-result pair', () => {
     const out = translateStreamPart<ToolSet>({
       type: 'file-change',

@@ -741,6 +741,11 @@ export class HarnessStreamTextResult<
           ...(part as object),
         } as ContentPart<TOOLS>);
         return;
+      case 'tool-error':
+        this.currentStepContent.push({
+          ...(part as object),
+        } as ContentPart<TOOLS>);
+        return;
       default:
         // text-start/end, reasoning-*, raw, error, finish-step, finish are
         // not directly stored as ContentParts. (Reasoning content parts

@@ -14,6 +14,7 @@ import { generateId, type ToolSet } from '@ai-sdk/provider-utils';
  *   - tool-call events are not translated here — validation against the
  *     merged tool set is async and handled by `validateToolCall` in
  *     `run-prompt.ts`
+ *   - a `tool-result` with `isError` becomes a provider-executed `tool-error`
  *   - the harness `raw` part is forwarded as the AI SDK `raw` part
  *
  * Returns an array of zero or more AI SDK parts. Most harness events project
@@ -101,6 +102,31 @@ export function translateStreamPart<TOOLS extends ToolSet>(
       return [];
 
     case 'tool-result':
+      if (event.isError === true) {
+        /*
+         * A failed provider-executed tool becomes a `tool-error` part, not a
+         * `tool-result` carrying the error as its output. `providerExecuted`
+         * is load-bearing: `toUIMessageChunk` only forwards the real error
+         * text for provider-executed errors — without it the runtime's
+         * failure reason is replaced by the generic `onError` string and
+         * never reaches the consumer.
+         */
+        return [
+          {
+            type: 'tool-error',
+            toolCallId: event.toolCallId,
+            toolName: event.toolName,
+            input: undefined,
+            error: event.result,
+            providerExecuted: true,
+            ...(event.dynamic !== undefined ? { dynamic: event.dynamic } : {}),
+            ...(event.providerMetadata !== undefined
+              ? { providerMetadata: event.providerMetadata }
+              : {}),
+          } as TextStreamPart<TOOLS>,
+        ];
+      }
+
       return [
         {
           type: 'tool-result',

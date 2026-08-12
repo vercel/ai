@@ -431,6 +431,64 @@ describe('runPrompt step accounting', () => {
     expect(await hasToolCall('weather')({ steps })).toBe(true);
   });
 
+  test('surfaces a failed provider-executed tool result as a tool-error carrying the runtime message', async () => {
+    const weather = tool({
+      description: 'Get weather',
+      inputSchema: z.object({ city: z.string() }),
+    });
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'SF' }),
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          result: 'weather service unreachable',
+          isError: true,
+        },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { weather } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-error',
+        toolCallId: 'c1',
+        toolName: 'weather',
+        error: 'weather service unreachable',
+        providerExecuted: true,
+      }),
+    );
+    expect(parts).not.toContainEqual(
+      expect.objectContaining({ type: 'tool-result', toolCallId: 'c1' }),
+    );
+
+    const steps = await result.steps;
+    expect(steps[0]!.content.map(part => part.type)).toEqual([
+      'tool-call',
+      'tool-error',
+    ]);
+  });
+
   test('does not expose provider-executed tool calls as pending client results', async () => {
     const pending: unknown[] = [];
     const weather = tool({
