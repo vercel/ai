@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.95
+
+### Patch Changes
+
+- bdb46fe: Avoid duplicate MCP approval request references when continuing stored OpenAI Responses.
+
 ## 3.0.94
 
 ### Patch Changes

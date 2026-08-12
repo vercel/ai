@@ -1,5 +1,15 @@
 # ai
 
+## 6.0.252
+
+### Patch Changes
+
+- 2f96d3f: Allow providers without reranking model support to satisfy the `Provider` type.
+- afb1965: Propagate errors thrown by the Chat `onFinish` callback to the initiating request.
+- Updated dependencies [18b0965]
+- Updated dependencies [451d2c3]
+  - @ai-sdk/gateway@3.0.171
+
 ## 6.0.251
 
 ### Patch Changes

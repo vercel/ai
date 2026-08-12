@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 3.0.171
+
+### Patch Changes
+
+- 18b0965: Serialize structured Gateway error responses in nested API call error messages.
+- 451d2c3: feat(xai): Add the Grok 4.6 model IDs and support its `xhigh` reasoning effort
+
 ## 3.0.170
 
 ### Patch Changes
