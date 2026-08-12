@@ -846,15 +846,13 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
             finishReason: activeResponse.state.finishReason,
           });
         }
-      } catch (err) {
-        console.error(err);
-      }
+      } finally {
+        if (this.activeResponse === activeResponse) {
+          this.activeResponse = undefined;
+        }
 
-      if (this.activeResponse === activeResponse) {
-        this.activeResponse = undefined;
+        clearActiveResumeRequest();
       }
-
-      clearActiveResumeRequest();
     }
 
     // automatically send the message if the sendAutomaticallyWhen function returns true
