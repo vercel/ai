@@ -1434,6 +1434,10 @@ export class WorkflowAgent<
         effectiveGenerationSettings.stopSequences = prepared.stopSequences;
       if (prepared.seed !== undefined)
         effectiveGenerationSettings.seed = prepared.seed;
+      if (prepared.maxRetries !== undefined)
+        effectiveGenerationSettings.maxRetries = prepared.maxRetries;
+      if (prepared.abortSignal !== undefined)
+        effectiveGenerationSettings.abortSignal = prepared.abortSignal;
       if (prepared.headers !== undefined)
         effectiveGenerationSettings.headers = prepared.headers;
       if (prepared.reasoning !== undefined)
