@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.50
+
+### Patch Changes
+
+- a4d386d: feat(xai): add the Grok 4.6 model IDs and support its `xhigh` reasoning effort
+
 ## 4.0.49
 
 ### Patch Changes
