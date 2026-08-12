@@ -1,0 +1,177 @@
+---
+title: SiftQ
+description: Learn how to use SiftQ MiniMax-H3 video generation with the AI SDK.
+---
+
+# SiftQ Provider
+
+The SiftQ provider adds asynchronous MiniMax-H3 V2 video generation to the AI SDK. It supports text-to-video, first-frame and first-and-last-frame generation, and reference-to-video with image, video, and audio inputs.
+
+SiftQ exposes one fixed model through this provider. Call `.video()` without a model ID; the provider always submits `MiniMax-H3` in the compatible request body.
+
+## Setup
+
+The provider is available in the `@ai-sdk/siftq` package:
+
+<InstallPackages packages="@ai-sdk/siftq" />
+
+Set the `SIFTQ_API_KEY` environment variable before making requests.
+
+## Provider Instance
+
+Import the default `siftq` provider:
+
+```ts
+import { siftq } from '@ai-sdk/siftq';
+```
+
+Create a customized instance when you need custom headers, a test endpoint, or a custom fetch implementation:
+
+```ts
+import { createSiftQ } from '@ai-sdk/siftq';
+
+const siftq = createSiftQ({
+  apiKey: process.env.SIFTQ_API_KEY,
+  baseURL: 'https://siftq.com/api/minimax/',
+  headers: {
+    'x-project-id': 'my-project',
+  },
+});
+```
+
+The default base URL is `https://siftq.com/api/minimax/`. The provider normalizes the boundary slash, so video creation uses exactly `https://siftq.com/api/minimax/v2/video_generation`, not a double-slash URL. Only `http:` and `https:` base URLs are accepted. API keys are sent as Bearer tokens and default to `SIFTQ_API_KEY`.
+
+## Video Generation
+
+Create the fixed MiniMax-H3 model with `.video()` or `.videoModel()`.
+
+### Text-to-video
+
+```ts
+import { siftq, type SiftQVideoModelOptions } from '@ai-sdk/siftq';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: siftq.video(),
+  prompt: 'A paper boat crossing a moonlit ocean, cinematic lighting',
+  aspectRatio: '16:9',
+  duration: 6,
+  providerOptions: {
+    siftq: {
+      resolution: '2K',
+    } satisfies SiftQVideoModelOptions,
+  },
+});
+```
+
+Text-to-video requires a concrete ratio. When omitted, the provider uses `16:9`.
+
+### First-frame image-to-video
+
+Pass the first frame through the image prompt form. Frame-based generation always uses the input image's ratio.
+
+```ts
+const { video } = await generateVideo({
+  model: siftq.video(),
+  prompt: {
+    image: 'https://example.com/first-frame.png',
+    text: 'The lanterns flicker as the camera moves forward',
+  },
+  duration: 6,
+});
+```
+
+### First-and-last-frame generation
+
+```ts
+const { video } = await generateVideo({
+  model: siftq.video(),
+  prompt: 'Move smoothly from the opening composition to the final frame',
+  frameImages: [
+    {
+      frameType: 'first_frame',
+      image: 'https://example.com/first-frame.png',
+    },
+    {
+      frameType: 'last_frame',
+      image: 'https://example.com/last-frame.png',
+    },
+  ],
+  duration: 6,
+});
+```
+
+A last frame must be paired with a first frame.
+
+### Reference-to-video
+
+Use `inputReferences` for typed image, video, or audio inputs. You can also pass audio locations through `providerOptions.siftq.referenceAudioUrls`.
+
+```ts
+import { type SiftQVideoModelOptions } from '@ai-sdk/siftq';
+
+const { video } = await generateVideo({
+  model: siftq.video(),
+  prompt: 'The character walks through a neon market at night',
+  inputReferences: [
+    {
+      data: 'https://example.com/character.png',
+      mediaType: 'image/png',
+    },
+    {
+      data: 'https://example.com/movement.mp4',
+      mediaType: 'video/mp4',
+    },
+  ],
+  providerOptions: {
+    siftq: {
+      referenceAudioUrls: ['https://example.com/voice-reference.wav'],
+      resolution: '768P',
+      ratio: 'adaptive',
+    } satisfies SiftQVideoModelOptions,
+  },
+});
+```
+
+SiftQ accepts up to nine reference images, three reference videos, and three reference audio inputs per task. Frame roles and reference roles cannot be combined in one request. Untyped URL references are treated as images with a warning; add `mediaType` when passing video or audio URLs.
+
+## Provider Options
+
+The following options are available through `providerOptions.siftq`:
+
+- **resolution** `'768P' | '2K'`
+
+  Named output resolution tier. Defaults to `2K`. Common 2K pixel dimensions such as `2560x1440` are mapped to the `2K` tier; use this provider option for `768P` or when you want to select the tier directly.
+
+- **ratio** `'adaptive' | '21:9' | '16:9' | '4:3' | '1:1' | '3:4' | '9:16'`
+
+  Provider-native aspect ratio. It takes precedence over the generic `aspectRatio` option. Frame-based requests always use `adaptive`; text-only requests require a concrete ratio.
+
+- **referenceAudioUrls** _string[]_
+
+  Up to three public URLs, data URIs, or `mm_file://` locations used as audio references.
+
+The prompt must be non-empty and no longer than 7000 characters. Duration must be an integer from 4 through 15 seconds. Custom `fps`, deterministic `seed`, `generateAudio`, and pixel-dimension `resolution` are unsupported and produce warnings.
+
+## Polling, Webhooks, and Cancellation
+
+Configure asynchronous polling with the top-level `poll` option:
+
+```ts
+const { video } = await generateVideo({
+  model: siftq.video(),
+  prompt: 'A time-lapse of clouds passing over a mountain lake',
+  poll: {
+    intervalMs: 5000,
+    timeoutMs: 900000,
+  },
+});
+```
+
+The provider also supports the AI SDK `webhook` option. Its callback URL is sent as `callback_url`; after the notification arrives, the SDK queries the task once to obtain and download the final video. The webhook receiver must echo SiftQ's verification challenge within three seconds and should resolve its `received` promise only for a terminal `succeeded`, `failed`, or `cancelled` notification, not for `queued` or `running` updates.
+
+Passing an `abortSignal` stops local submission, polling, or download work. It does not change an accepted remote task. The compatible REST API can cancel a task only while it is `queued`; a `running` task cannot be cancelled. The AI SDK video model interface does not expose that REST delete operation.
+
+## Result Security
+
+The provider queries `/v2/query/video_generation/{task_id}` and reads successful output from `task.content.url`. Returned URLs are validated before download. Credentials and caller headers are removed for cross-origin CDN downloads and redirects. Empty or non-video responses are rejected.

@@ -576,11 +576,13 @@
     "openai-compatible": "OpenAICompatible",
     "opencode": "OpenCode",
     "quiverai": "QuiverAI",
+    "siftq": "SiftQ",
     "togetherai": "TogetherAI"
   },
   "kebabToCamelMap": {
     "acp": "acp",
     "lmnt": "lmnt",
-    "minimax": "minimax"
+    "minimax": "minimax",
+    "siftq": "siftq"
   }
 }

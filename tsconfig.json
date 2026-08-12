@@ -196,6 +196,9 @@
       "path": "packages/sandbox-vercel"
     },
     {
+      "path": "packages/siftq"
+    },
+    {
       "path": "packages/svelte"
     },
     {
