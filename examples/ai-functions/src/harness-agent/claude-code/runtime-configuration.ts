@@ -1,5 +1,5 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { createClaudeCode } from '@ai-sdk/harness-claude-code';
+import { createClaudeCode } from './_create';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { run } from '../../lib/run';
 
@@ -20,7 +20,6 @@ run(async () => {
     sandbox,
   });
 
-  let exitCode = 0;
   const session = await agent.createSession();
   try {
     const result = await agent.generate({
@@ -29,11 +28,7 @@ run(async () => {
         'Use Bash to read AI_SDK_EXAMPLE_ENV, then report its value as instructed.',
     });
     console.log('text:', result.text);
-  } catch (err) {
-    exitCode = 1;
-    console.error('[example] failed:', err);
   } finally {
     await session.destroy();
-    process.exit(exitCode);
   }
 });

@@ -1,5 +1,5 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { deepAgents } from '@ai-sdk/harness-deepagents';
+import { createDeepAgents } from './_create';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
 import { z } from 'zod';
@@ -9,6 +9,8 @@ import {
 } from '../../lib/harness-tool-approval';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
+
+const deepAgents = createDeepAgents();
 
 run(async () => {
   const sandbox = createVercelSandbox({
@@ -36,7 +38,6 @@ run(async () => {
     toolApproval: { weather: 'user-approval' },
   });
 
-  let exitCode = 0;
   const session = await agent.createSession();
   try {
     const first = await agent.stream({
@@ -59,11 +60,7 @@ run(async () => {
       }),
     });
     await printFullStream({ result: second });
-  } catch (err) {
-    exitCode = 1;
-    console.error('[example] failed:', err);
   } finally {
     await session.destroy();
-    process.exit(exitCode);
   }
 });

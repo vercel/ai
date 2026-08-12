@@ -10,7 +10,7 @@ import {
   HarnessAgent,
   type HarnessAgentResumeSessionState,
 } from '@ai-sdk/harness/agent';
-import { createOpenCode } from '@ai-sdk/harness-opencode';
+import { createOpenCode } from './_create';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { mintBridgeToken } from '../../lib/mint-bridge-token';
 import { printFullStream } from '../../lib/print-full-stream';
