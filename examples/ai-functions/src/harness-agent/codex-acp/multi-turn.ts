@@ -1,6 +1,6 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
-import { createCodexACP } from '../../lib/codex-acp-harness';
+import { createCodexACP } from './_create';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
@@ -14,7 +14,6 @@ run(async () => {
     }),
   });
 
-  let exitCode = 0;
   const session = await agent.createSession();
   try {
     console.log('--- turn 1 ---');
@@ -30,11 +29,7 @@ run(async () => {
       prompt: 'What is my name? Answer in one word.',
     });
     await printFullStream({ result: second });
-  } catch (err) {
-    exitCode = 1;
-    console.error('[example] failed:', err);
   } finally {
     await session.destroy();
-    process.exit(exitCode);
   }
 });

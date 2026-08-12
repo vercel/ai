@@ -1,5 +1,27 @@
 # @ai-sdk/angular
 
+## 3.0.64
+
+### Patch Changes
+
+- ai@7.0.64
+
+## 3.0.63
+
+### Patch Changes
+
+- Updated dependencies [d0a5807]
+- Updated dependencies [dcf33e8]
+  - ai@7.0.63
+
+## 3.0.62
+
+### Patch Changes
+
+- e0bcf52: feat(ui): add typed custom bodies to Completion APIs
+- Updated dependencies [e0bcf52]
+  - ai@7.0.62
+
 ## 3.0.61
 
 ### Patch Changes

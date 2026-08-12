@@ -5,15 +5,25 @@ import {
   type HarnessAgentSandboxConfig,
 } from '@ai-sdk/harness/agent';
 import type { HarnessV1NetworkSandboxSession } from '@ai-sdk/harness';
-import { claudeCode } from '@ai-sdk/harness-claude-code';
-import { codex } from '@ai-sdk/harness-codex';
-import { deepAgents } from '@ai-sdk/harness-deepagents';
-import { openCode } from '@ai-sdk/harness-opencode';
-import { pi } from '@ai-sdk/harness-pi';
+import { createClaudeCode } from './claude-code/_create';
+import { createCodex } from './codex/_create';
+import { createDeepAgents } from './deepagents/_create';
+import { createOpenCode } from './opencode/_create';
+import { createPi } from './pi/_create';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { Sandbox } from '@vercel/sandbox';
 import { posix } from 'node:path';
 import { run } from '../lib/run';
+
+const pi = createPi();
+
+const openCode = createOpenCode();
+
+const deepAgents = createDeepAgents();
+
+const codex = createCodex();
+
+const claudeCode = createClaudeCode();
 
 const sandboxTimeout = 10 * 60 * 1000;
 const bridgePort = 4000;

@@ -13,6 +13,7 @@ import {
 const authPaths: string[] = [];
 
 afterEach(async () => {
+  vi.unstubAllEnvs();
   await Promise.all(
     authPaths.splice(0).map(authPath => rm(authPath, { force: true })),
   );
@@ -123,6 +124,60 @@ describe('resolvePiEnv', () => {
   it('returns {} when no auth is configured anywhere', () => {
     expect(resolvePiEnv({ options: undefined, env: {} })).toEqual({});
   });
+
+  it('supports string authentication modes', () => {
+    expect(
+      resolvePiEnv({
+        options: 'ai-gateway',
+        env: { AI_GATEWAY_API_KEY: 'gw-mode' },
+      }),
+    ).toEqual({
+      AI_GATEWAY_API_KEY: 'gw-mode',
+      AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
+    });
+
+    expect(
+      resolvePiEnv({
+        options: 'openai',
+        env: { OPENAI_API_KEY: 'sk-test' },
+      }),
+    ).toEqual({
+      OPENAI_API_KEY: 'sk-test',
+    });
+
+    expect(
+      resolvePiEnv({
+        options: 'anthropic',
+        env: { ANTHROPIC_API_KEY: 'sk-ant' },
+      }),
+    ).toEqual({
+      ANTHROPIC_API_KEY: 'sk-ant',
+    });
+
+    expect(
+      resolvePiEnv({
+        options: 'custom',
+        env: {
+          MISTRAL_API_KEY: 'mk',
+          MISTRAL_BASE_URL: 'https://api.mistral.example',
+        },
+      }),
+    ).toEqual({
+      MISTRAL_API_KEY: 'mk',
+      MISTRAL_BASE_URL: 'https://api.mistral.example',
+    });
+  });
+
+  it('warns when passing a legacy object shape', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    resolvePiEnv({ options: { gateway: {} }, env: {} });
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Passing an object to auth options is deprecated',
+      ),
+    );
+    spy.mockRestore();
+  });
 });
 
 describe('registerPiProviders', () => {
@@ -212,5 +267,212 @@ describe('registerPiProviders', () => {
 
     expect(registries.setRuntimeApiKey).not.toHaveBeenCalled();
     expect(registries.registerProvider).not.toHaveBeenCalled();
+  });
+
+  it('registers only openai when openai mode is explicit', async () => {
+    vi.stubEnv('OPENAI_API_KEY', 'sk-oai');
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-ant');
+    vi.stubEnv('AI_GATEWAY_API_KEY', 'gw');
+
+    const resolvedEnv = resolvePiEnv({
+      options: 'openai',
+      env: {
+        OPENAI_API_KEY: 'sk-oai',
+        ANTHROPIC_API_KEY: 'sk-ant',
+        AI_GATEWAY_API_KEY: 'gw',
+      },
+    });
+    expect(resolvedEnv).toEqual({ OPENAI_API_KEY: 'sk-oai' });
+
+    const registries = await registerProviders({
+      options: 'openai',
+      resolvedEnv,
+    });
+    const providers = registries.registerProvider.mock.calls.map(c => c[0]);
+
+    expect(providers).toEqual(['openai']);
+    expect(registries.setRuntimeApiKey).toHaveBeenCalledWith(
+      'openai',
+      'sk-oai',
+    );
+    expect(registries.registerProvider).toHaveBeenCalledWith('openai', {
+      apiKey: 'sk-oai',
+      baseUrl: 'https://api.openai.com/v1',
+      authHeader: true,
+    });
+  });
+
+  it('registers only anthropic when anthropic mode is explicit', async () => {
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-ant');
+    vi.stubEnv('ANTHROPIC_AUTH_TOKEN', 'tok');
+    vi.stubEnv('OPENAI_API_KEY', 'sk-oai');
+
+    const resolvedEnv = resolvePiEnv({
+      options: 'anthropic',
+      env: {
+        ANTHROPIC_API_KEY: 'sk-ant',
+        ANTHROPIC_AUTH_TOKEN: 'tok',
+        OPENAI_API_KEY: 'sk-oai',
+      },
+    });
+    expect(resolvedEnv).toEqual({
+      ANTHROPIC_API_KEY: 'sk-ant',
+      ANTHROPIC_AUTH_TOKEN: 'tok',
+    });
+
+    const registries = await registerProviders({
+      options: 'anthropic',
+      resolvedEnv,
+    });
+    const providers = registries.registerProvider.mock.calls.map(c => c[0]);
+
+    expect(providers).toEqual(['anthropic']);
+    expect(registries.registerProvider).toHaveBeenCalledWith('anthropic', {
+      apiKey: 'sk-ant',
+      baseUrl: 'https://api.anthropic.com',
+      headers: { authorization: 'Bearer tok' },
+    });
+  });
+
+  it('registers only gateway when ai-gateway mode is explicit', async () => {
+    vi.stubEnv('AI_GATEWAY_API_KEY', 'gw');
+    vi.stubEnv('OPENAI_API_KEY', 'sk-oai');
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-ant');
+
+    const resolvedEnv = resolvePiEnv({
+      options: 'ai-gateway',
+      env: {
+        AI_GATEWAY_API_KEY: 'gw',
+        OPENAI_API_KEY: 'sk-oai',
+        ANTHROPIC_API_KEY: 'sk-ant',
+      },
+    });
+    expect(resolvedEnv).toEqual({
+      AI_GATEWAY_API_KEY: 'gw',
+      AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
+    });
+
+    const registries = await registerProviders({
+      options: 'ai-gateway',
+      resolvedEnv,
+    });
+    const providers = registries.registerProvider.mock.calls.map(c => c[0]);
+
+    expect(providers).toEqual(['vercel-ai-gateway']);
+  });
+
+  it('registers nothing when ai-gateway mode has no gateway credentials', async () => {
+    vi.stubEnv('AI_GATEWAY_API_KEY', '');
+    vi.stubEnv('VERCEL_OIDC_TOKEN', '');
+    vi.stubEnv('OPENAI_API_KEY', 'sk-oai');
+
+    const resolvedEnv = resolvePiEnv({
+      options: 'ai-gateway',
+      env: { OPENAI_API_KEY: 'sk-oai' },
+    });
+    expect(resolvedEnv).toEqual({});
+
+    const registries = await registerProviders({
+      options: 'ai-gateway',
+      resolvedEnv,
+    });
+
+    expect(registries.setRuntimeApiKey).not.toHaveBeenCalled();
+    expect(registries.registerProvider).not.toHaveBeenCalled();
+  });
+
+  it('auto mode prefers the gateway over other provider credentials', async () => {
+    vi.stubEnv('AI_GATEWAY_API_KEY', 'gw');
+    vi.stubEnv('OPENAI_API_KEY', 'sk-oai');
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-ant');
+
+    const resolvedEnv = resolvePiEnv({
+      options: 'auto',
+      env: {
+        AI_GATEWAY_API_KEY: 'gw',
+        OPENAI_API_KEY: 'sk-oai',
+        ANTHROPIC_API_KEY: 'sk-ant',
+      },
+    });
+    expect(resolvedEnv).toEqual({
+      AI_GATEWAY_API_KEY: 'gw',
+      AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
+    });
+
+    const registries = await registerProviders({
+      options: 'auto',
+      resolvedEnv,
+    });
+    const providers = registries.registerProvider.mock.calls.map(c => c[0]);
+
+    expect(providers).toEqual(['vercel-ai-gateway']);
+  });
+
+  it('auto mode falls back to other providers when no gateway credentials exist', async () => {
+    vi.stubEnv('OPENAI_API_KEY', 'sk-oai');
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-ant');
+    vi.stubEnv('MISTRAL_API_KEY', 'mk');
+    vi.stubEnv('MISTRAL_BASE_URL', 'https://api.mistral.example');
+    vi.stubEnv('AI_GATEWAY_API_KEY', '');
+    vi.stubEnv('VERCEL_OIDC_TOKEN', '');
+
+    const resolvedEnv = resolvePiEnv({
+      options: 'auto',
+      env: {
+        OPENAI_API_KEY: 'sk-oai',
+        ANTHROPIC_API_KEY: 'sk-ant',
+        MISTRAL_API_KEY: 'mk',
+        MISTRAL_BASE_URL: 'https://api.mistral.example',
+      },
+    });
+    expect(resolvedEnv).toEqual({
+      OPENAI_API_KEY: 'sk-oai',
+      ANTHROPIC_API_KEY: 'sk-ant',
+      MISTRAL_API_KEY: 'mk',
+      MISTRAL_BASE_URL: 'https://api.mistral.example',
+    });
+
+    const registries = await registerProviders({
+      options: 'auto',
+      resolvedEnv,
+    });
+    const providers = registries.registerProvider.mock.calls
+      .map(c => c[0])
+      .sort();
+
+    expect(providers).toEqual(['anthropic', 'mistral', 'openai']);
+  });
+
+  it('custom mode registers all provider env vars including gateway', async () => {
+    vi.stubEnv('AI_GATEWAY_API_KEY', 'gw');
+    vi.stubEnv('OPENAI_API_KEY', 'sk-oai');
+    vi.stubEnv('MISTRAL_API_KEY', 'mk');
+    vi.stubEnv('MISTRAL_BASE_URL', 'https://api.mistral.example');
+
+    const resolvedEnv = resolvePiEnv({
+      options: 'custom',
+      env: {
+        AI_GATEWAY_API_KEY: 'gw',
+        OPENAI_API_KEY: 'sk-oai',
+        MISTRAL_API_KEY: 'mk',
+        MISTRAL_BASE_URL: 'https://api.mistral.example',
+      },
+    });
+    expect(resolvedEnv).toEqual({
+      AI_GATEWAY_API_KEY: 'gw',
+      OPENAI_API_KEY: 'sk-oai',
+      MISTRAL_API_KEY: 'mk',
+      MISTRAL_BASE_URL: 'https://api.mistral.example',
+    });
+
+    const registries = await registerProviders({
+      options: 'custom',
+      resolvedEnv,
+    });
+    const providers = registries.registerProvider.mock.calls
+      .map(c => c[0])
+      .sort();
+
+    expect(providers).toEqual(['mistral', 'openai', 'vercel-ai-gateway']);
   });
 });

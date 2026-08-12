@@ -144,4 +144,38 @@ describe('resolveClaudeCodeEnv', () => {
     );
     expect(env).toEqual({});
   });
+
+  it('supports string authentication modes', () => {
+    expect(
+      resolveClaudeCodeEnv(
+        'direct',
+        { ANTHROPIC_API_KEY: 'sk-direct' },
+        { readApiKeyHelper: noHelper },
+      ),
+    ).toEqual({ ANTHROPIC_API_KEY: 'sk-direct' });
+
+    expect(
+      resolveClaudeCodeEnv(
+        'ai-gateway',
+        { AI_GATEWAY_API_KEY: 'gw-mode' },
+        { readApiKeyHelper: noHelper },
+      ),
+    ).toEqual({
+      AI_GATEWAY_API_KEY: 'gw-mode',
+      ANTHROPIC_API_KEY: 'gw-mode',
+      AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
+      ANTHROPIC_BASE_URL: 'https://ai-gateway.vercel.sh',
+    });
+  });
+
+  it('warns when passing a legacy object shape', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    resolveClaudeCodeEnv({ anthropic: {} }, {}, { readApiKeyHelper: noHelper });
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Passing an object to auth options is deprecated',
+      ),
+    );
+    spy.mockRestore();
+  });
 });

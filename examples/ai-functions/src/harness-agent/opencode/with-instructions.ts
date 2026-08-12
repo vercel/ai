@@ -1,7 +1,9 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { openCode } from '@ai-sdk/harness-opencode';
+import { createOpenCode } from './_create';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { run } from '../../lib/run';
+
+const openCode = createOpenCode();
 
 run(async () => {
   const sandbox = createVercelSandbox({
@@ -16,7 +18,6 @@ run(async () => {
       'Answer every question in German, even when the user requests another language.',
   });
 
-  let exitCode = 0;
   const session = await agent.createSession();
   try {
     const first = await agent.generate({
@@ -32,11 +33,7 @@ run(async () => {
     console.log('second text:', second.text);
     console.log('finishReason:', second.finishReason);
     console.log('usage:', second.usage);
-  } catch (err) {
-    exitCode = 1;
-    console.error('[example] failed:', err);
   } finally {
     await session.destroy();
-    process.exit(exitCode);
   }
 });
