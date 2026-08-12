@@ -78,8 +78,7 @@ async function listRemoteWorkspaceEntries(
   ];
   const listCommand = [
     'walk_pi_config() {',
-    '  entry=$1',
-    '  depth=$2',
+    '  local entry=$1 depth=$2 next_depth child',
     '  if [ "$depth" -gt 100 ]; then',
     `    printf 'Pi config traversal exceeded the maximum depth at %s\\n' "$entry" >&2`,
     '    return 1',

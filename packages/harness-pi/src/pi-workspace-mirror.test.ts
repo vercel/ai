@@ -8,6 +8,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { syncHostWorkspaceFromSandbox } from './pi-workspace-mirror';
@@ -122,6 +123,41 @@ describe('syncHostWorkspaceFromSandbox', () => {
     expect(readFileSync(path.join(hostWorkDir, '.pi/SYSTEM.md'), 'utf8')).toBe(
       '# Project system prompt',
     );
+  });
+
+  it('mirrors shallow config trees with many siblings in just-bash', async () => {
+    const sandboxSession = await createJustBashSandbox({
+      cwd: sandboxWorkDir,
+    }).createSession();
+    const sandbox = sandboxSession.restricted();
+
+    try {
+      const setupResult = await sandbox.run({
+        command: [
+          'mkdir -p .pi',
+          'i=0',
+          'while [ "$i" -lt 101 ]; do',
+          '  mkdir -p ".pi/group-$i"',
+          `  printf 'prompt %s' "$i" > ".pi/group-$i/SYSTEM.md"`,
+          '  i=$((i + 1))',
+          'done',
+        ].join('\n'),
+        workingDirectory: sandboxWorkDir,
+      });
+      expect(setupResult.exitCode).toBe(0);
+
+      await syncHostWorkspaceFromSandbox({
+        sandbox,
+        sandboxWorkDir,
+        hostWorkDir,
+      });
+
+      expect(
+        readFileSync(path.join(hostWorkDir, '.pi/group-100/SYSTEM.md'), 'utf8'),
+      ).toBe('prompt 100');
+    } finally {
+      await sandboxSession.destroy?.();
+    }
   });
 
   it('mirrors the .agents config subtree, resolving symlinked targets', async () => {
