@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.119
+
+### Patch Changes
+
+- 451d2c3: feat(xai): Add the Grok 4.6 model IDs and support its `xhigh` reasoning effort
+
 ## 3.0.118
 
 ### Patch Changes
