@@ -189,6 +189,7 @@ export interface AnthropicServerToolUseContent {
     // advisor:
     | 'advisor';
   input: unknown;
+  caller?: AnthropicToolCallCaller;
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -250,6 +251,7 @@ export interface AnthropicWebSearchToolResultContent {
         type: 'web_search_tool_result_error';
         error_code: string;
       };
+  caller?: AnthropicToolCallCaller;
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -294,6 +296,7 @@ export interface AnthropicCodeExecutionToolResultContent {
         type: 'code_execution_tool_result_error';
         error_code: string;
       };
+  caller?: AnthropicToolCallCaller;
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -398,6 +401,7 @@ export interface AnthropicWebFetchToolResultContent {
         type: 'web_fetch_tool_result_error';
         error_code: string;
       };
+  caller?: AnthropicToolCallCaller;
   cache_control: AnthropicCacheControl | undefined;
 }
 export interface AnthropicMcpToolUseContent {
@@ -754,6 +758,17 @@ export const anthropicResponseSchema = lazySchema(() =>
           z.object({
             type: z.literal('web_fetch_tool_result'),
             tool_use_id: z.string(),
+            caller: z
+              .union([
+                z.object({
+                  type: z.literal('code_execution_20260120'),
+                  tool_id: z.string(),
+                }),
+                z.object({
+                  type: z.literal('direct'),
+                }),
+              ])
+              .optional(),
             content: z.union([
               z.object({
                 type: z.literal('web_fetch_result'),
@@ -786,6 +801,17 @@ export const anthropicResponseSchema = lazySchema(() =>
           z.object({
             type: z.literal('web_search_tool_result'),
             tool_use_id: z.string(),
+            caller: z
+              .union([
+                z.object({
+                  type: z.literal('code_execution_20260120'),
+                  tool_id: z.string(),
+                }),
+                z.object({
+                  type: z.literal('direct'),
+                }),
+              ])
+              .optional(),
             content: z.union([
               z.array(
                 z.object({
@@ -1153,6 +1179,17 @@ export const anthropicChunkSchema = lazySchema(() =>
           z.object({
             type: z.literal('web_fetch_tool_result'),
             tool_use_id: z.string(),
+            caller: z
+              .union([
+                z.object({
+                  type: z.literal('code_execution_20260120'),
+                  tool_id: z.string(),
+                }),
+                z.object({
+                  type: z.literal('direct'),
+                }),
+              ])
+              .optional(),
             content: z.union([
               z.object({
                 type: z.literal('web_fetch_result'),
@@ -1185,6 +1222,17 @@ export const anthropicChunkSchema = lazySchema(() =>
           z.object({
             type: z.literal('web_search_tool_result'),
             tool_use_id: z.string(),
+            caller: z
+              .union([
+                z.object({
+                  type: z.literal('code_execution_20260120'),
+                  tool_id: z.string(),
+                }),
+                z.object({
+                  type: z.literal('direct'),
+                }),
+              ])
+              .optional(),
             content: z.union([
               z.array(
                 z.object({

@@ -1,12 +1,12 @@
 {
   "model": "claude-sonnet-4-6",
-  "id": "msg_011CdyCfLiveIssue18785",
+  "id": "msg_dynamic_filtering_multiple_searches",
   "type": "message",
   "role": "assistant",
   "content": [
     {
       "type": "server_tool_use",
-      "id": "srvtoolu_code_execution_issue_18785",
+      "id": "srvtoolu_dynamic_filtering_code_execution",
       "name": "code_execution",
       "input": {
         "code": "for query in [\"AI SDK\", \"Vercel\", \"Anthropic\"]:\n    result = await web_search({\"query\": query})\n    print(result)\n"
@@ -17,19 +17,19 @@
     },
     {
       "type": "server_tool_use",
-      "id": "srvtoolu_web_search_issue_18785_1",
+      "id": "srvtoolu_dynamic_filtering_web_search_1",
       "name": "web_search",
       "input": {
         "query": "AI SDK"
       },
       "caller": {
         "type": "code_execution_20260120",
-        "tool_id": "srvtoolu_code_execution_issue_18785"
+        "tool_id": "srvtoolu_dynamic_filtering_code_execution"
       }
     },
     {
       "type": "web_search_tool_result",
-      "tool_use_id": "srvtoolu_web_search_issue_18785_1",
+      "tool_use_id": "srvtoolu_dynamic_filtering_web_search_1",
       "content": [
         {
           "type": "web_search_result",
@@ -41,24 +41,24 @@
       ],
       "caller": {
         "type": "code_execution_20260120",
-        "tool_id": "srvtoolu_code_execution_issue_18785"
+        "tool_id": "srvtoolu_dynamic_filtering_code_execution"
       }
     },
     {
       "type": "server_tool_use",
-      "id": "srvtoolu_web_search_issue_18785_2",
+      "id": "srvtoolu_dynamic_filtering_web_search_2",
       "name": "web_search",
       "input": {
         "query": "Vercel"
       },
       "caller": {
         "type": "code_execution_20260120",
-        "tool_id": "srvtoolu_code_execution_issue_18785"
+        "tool_id": "srvtoolu_dynamic_filtering_code_execution"
       }
     },
     {
       "type": "web_search_tool_result",
-      "tool_use_id": "srvtoolu_web_search_issue_18785_2",
+      "tool_use_id": "srvtoolu_dynamic_filtering_web_search_2",
       "content": [
         {
           "type": "web_search_result",
@@ -70,24 +70,24 @@
       ],
       "caller": {
         "type": "code_execution_20260120",
-        "tool_id": "srvtoolu_code_execution_issue_18785"
+        "tool_id": "srvtoolu_dynamic_filtering_code_execution"
       }
     },
     {
       "type": "server_tool_use",
-      "id": "srvtoolu_web_search_issue_18785_3",
+      "id": "srvtoolu_dynamic_filtering_web_search_3",
       "name": "web_search",
       "input": {
         "query": "Anthropic"
       },
       "caller": {
         "type": "code_execution_20260120",
-        "tool_id": "srvtoolu_code_execution_issue_18785"
+        "tool_id": "srvtoolu_dynamic_filtering_code_execution"
       }
     },
     {
       "type": "web_search_tool_result",
-      "tool_use_id": "srvtoolu_web_search_issue_18785_3",
+      "tool_use_id": "srvtoolu_dynamic_filtering_web_search_3",
       "content": [
         {
           "type": "web_search_result",
@@ -99,12 +99,12 @@
       ],
       "caller": {
         "type": "code_execution_20260120",
-        "tool_id": "srvtoolu_code_execution_issue_18785"
+        "tool_id": "srvtoolu_dynamic_filtering_code_execution"
       }
     },
     {
       "type": "code_execution_tool_result",
-      "tool_use_id": "srvtoolu_code_execution_issue_18785",
+      "tool_use_id": "srvtoolu_dynamic_filtering_code_execution",
       "content": {
         "type": "encrypted_code_execution_result",
         "encrypted_stdout": "redacted-live-encrypted-stdout",
@@ -119,7 +119,7 @@
     }
   ],
   "container": {
-    "id": "container_issue_18785",
+    "id": "container_dynamic_filtering",
     "expires_at": "2026-08-12T17:30:00Z"
   },
   "stop_reason": "end_turn",

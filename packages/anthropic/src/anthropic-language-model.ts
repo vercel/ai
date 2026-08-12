@@ -51,6 +51,7 @@ import {
   type AnthropicResponseContextManagement,
   type AnthropicStopDetails,
   type AnthropicTool,
+  type AnthropicToolCallCaller,
   type Citation,
 } from './anthropic-api';
 import {
@@ -125,6 +126,15 @@ function createCitationSource(
             },
     } satisfies SharedV4ProviderMetadata,
   };
+}
+
+function getAnthropicCallerInfo(caller: AnthropicToolCallCaller | undefined) {
+  return caller && 'tool_id' in caller
+    ? {
+        type: caller.type,
+        toolId: caller.tool_id,
+      }
+    : undefined;
 }
 
 export type AnthropicLanguageModelConfig = {
@@ -1087,6 +1097,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           break;
         }
         case 'server_tool_use': {
+          const callerInfo = getAnthropicCallerInfo(part.caller);
+
           // code execution 20250825 needs mapping:
           if (
             part.name === 'text_editor_code_execution' ||
@@ -1109,6 +1121,13 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               providerToolName === 'code_execution'
                 ? { dynamic: true }
                 : {}),
+              ...(callerInfo && {
+                providerMetadata: {
+                  anthropic: {
+                    caller: callerInfo,
+                  },
+                },
+              }),
             });
           } else if (
             part.name === 'web_search' ||
@@ -1138,6 +1157,13 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               ...(markCodeExecutionDynamic && part.name === 'code_execution'
                 ? { dynamic: true }
                 : {}),
+              ...(callerInfo && {
+                providerMetadata: {
+                  anthropic: {
+                    caller: callerInfo,
+                  },
+                },
+              }),
             });
           } else if (
             part.name === 'tool_search_tool_regex' ||
@@ -1194,6 +1220,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           break;
         }
         case 'web_fetch_tool_result': {
+          const callerInfo = getAnthropicCallerInfo(part.caller);
+
           if (part.content.type === 'web_fetch_result') {
             citationDocuments.push({
               title: part.content.content.title ?? part.content.url,
@@ -1218,6 +1246,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                   },
                 },
               },
+              ...(callerInfo && {
+                providerMetadata: {
+                  anthropic: { caller: callerInfo },
+                },
+              }),
             });
           } else if (part.content.type === 'web_fetch_tool_result_error') {
             content.push({
@@ -1229,11 +1262,18 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 type: 'web_fetch_tool_result_error',
                 errorCode: part.content.error_code,
               },
+              ...(callerInfo && {
+                providerMetadata: {
+                  anthropic: { caller: callerInfo },
+                },
+              }),
             });
           }
           break;
         }
         case 'web_search_tool_result': {
+          const callerInfo = getAnthropicCallerInfo(part.caller);
+
           if (Array.isArray(part.content)) {
             content.push({
               type: 'tool-result',
@@ -1246,6 +1286,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 encryptedContent: result.encrypted_content,
                 type: result.type,
               })),
+              ...(callerInfo && {
+                providerMetadata: {
+                  anthropic: { caller: callerInfo },
+                },
+              }),
             });
 
             for (const result of part.content) {
@@ -1272,6 +1317,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 type: 'web_search_tool_result_error',
                 errorCode: part.content.error_code,
               },
+              ...(callerInfo && {
+                providerMetadata: {
+                  anthropic: { caller: callerInfo },
+                },
+              }),
             });
           }
           break;
@@ -1776,6 +1826,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 }
 
                 case 'server_tool_use': {
+                  const callerInfo = getAnthropicCallerInfo(part.caller);
+
                   if (
                     [
                       'web_fetch',
@@ -1832,6 +1884,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       firstDelta: finalInput.length === 0,
                       providerToolName,
                       providerToolInputType,
+                      ...(callerInfo && { caller: callerInfo }),
                     };
 
                     controller.enqueue({
@@ -1899,6 +1952,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 }
 
                 case 'web_fetch_tool_result': {
+                  const callerInfo = getAnthropicCallerInfo(part.caller);
+
                   if (part.content.type === 'web_fetch_result') {
                     citationDocuments.push({
                       title: part.content.content.title ?? part.content.url,
@@ -1923,6 +1978,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                           },
                         },
                       },
+                      ...(callerInfo && {
+                        providerMetadata: {
+                          anthropic: { caller: callerInfo },
+                        },
+                      }),
                     });
                   } else if (
                     part.content.type === 'web_fetch_tool_result_error'
@@ -1936,6 +1996,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                         type: 'web_fetch_tool_result_error',
                         errorCode: part.content.error_code,
                       },
+                      ...(callerInfo && {
+                        providerMetadata: {
+                          anthropic: { caller: callerInfo },
+                        },
+                      }),
                     });
                   }
 
@@ -1943,6 +2008,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 }
 
                 case 'web_search_tool_result': {
+                  const callerInfo = getAnthropicCallerInfo(part.caller);
+
                   if (Array.isArray(part.content)) {
                     controller.enqueue({
                       type: 'tool-result',
@@ -1955,6 +2022,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                         encryptedContent: result.encrypted_content,
                         type: result.type,
                       })),
+                      ...(callerInfo && {
+                        providerMetadata: {
+                          anthropic: { caller: callerInfo },
+                        },
+                      }),
                     });
 
                     for (const result of part.content) {
@@ -1981,6 +2053,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                         type: 'web_search_tool_result_error',
                         errorCode: part.content.error_code,
                       },
+                      ...(callerInfo && {
+                        providerMetadata: {
+                          anthropic: { caller: callerInfo },
+                        },
+                      }),
                     });
                   }
                   return;

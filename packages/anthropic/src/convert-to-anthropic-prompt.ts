@@ -26,6 +26,7 @@ import {
   type AnthropicSystemMessage,
   type AnthropicTextContent,
   type AnthropicToolChangeContent,
+  type AnthropicToolCallCaller,
   type AnthropicToolResultContent,
   type AnthropicUserMessage,
   type AnthropicWebFetchToolResultContent,
@@ -723,6 +724,8 @@ export async function convertToAnthropicPrompt({
               }
 
               case 'tool-call': {
+                const caller = getAnthropicCaller(part.providerOptions);
+
                 if (part.providerExecuted) {
                   const providerToolName = toolNameMapping.toProviderToolName(
                     part.toolName,
@@ -771,6 +774,7 @@ export async function convertToAnthropicPrompt({
                       id: part.toolCallId,
                       name: codeExecutionType, // map back to subtool name
                       input: inputWithoutType,
+                      ...(caller && { caller }),
                       cache_control: cacheControl,
                     });
                   } else if (
@@ -791,6 +795,7 @@ export async function convertToAnthropicPrompt({
                       id: part.toolCallId,
                       name: 'code_execution',
                       input: inputWithoutType,
+                      ...(caller && { caller }),
                       cache_control: cacheControl,
                     });
                   } else {
@@ -804,6 +809,7 @@ export async function convertToAnthropicPrompt({
                         id: part.toolCallId,
                         name: providerToolName,
                         input: part.input,
+                        ...(caller && { caller }),
                         cache_control: cacheControl,
                       });
                     } else if (
@@ -837,26 +843,6 @@ export async function convertToAnthropicPrompt({
                   break;
                 }
 
-                // Extract caller info from provider options for programmatic tool calling
-                const callerOptions = part.providerOptions?.anthropic as
-                  | { caller?: { type: string; toolId?: string } }
-                  | undefined;
-                const caller = callerOptions?.caller
-                  ? (callerOptions.caller.type === 'code_execution_20250825' ||
-                      callerOptions.caller.type ===
-                        'code_execution_20260120') &&
-                    callerOptions.caller.toolId
-                    ? {
-                        type: callerOptions.caller.type as
-                          | 'code_execution_20250825'
-                          | 'code_execution_20260120',
-                        tool_id: callerOptions.caller.toolId,
-                      }
-                    : callerOptions.caller.type === 'direct'
-                      ? { type: 'direct' as const }
-                      : undefined
-                  : undefined;
-
                 anthropicContent.push({
                   type: 'tool_use',
                   id: part.toolCallId,
@@ -872,6 +858,7 @@ export async function convertToAnthropicPrompt({
                 const providerToolName = toolNameMapping.toProviderToolName(
                   part.toolName,
                 );
+                const caller = getAnthropicCaller(part.providerOptions);
 
                 if (mcpToolUseIds.has(part.toolCallId)) {
                   const output = part.output;
@@ -1078,6 +1065,7 @@ export async function convertToAnthropicPrompt({
                           extractErrorValue(output.value).errorCode ??
                           'unavailable',
                       },
+                      ...(caller && { caller }),
                       cache_control: cacheControl,
                     });
 
@@ -1122,6 +1110,7 @@ export async function convertToAnthropicPrompt({
                         >['content']['source'],
                       },
                     },
+                    ...(caller && { caller }),
                     cache_control: cacheControl,
                   });
 
@@ -1141,6 +1130,7 @@ export async function convertToAnthropicPrompt({
                           extractErrorValue(output.value).errorCode ??
                           'unavailable',
                       },
+                      ...(caller && { caller }),
                       cache_control: cacheControl,
                     });
 
@@ -1174,6 +1164,7 @@ export async function convertToAnthropicPrompt({
                       encrypted_content: result.encryptedContent,
                       type: result.type,
                     })),
+                    ...(caller && { caller }),
                     cache_control: cacheControl,
                   });
 
@@ -1304,7 +1295,10 @@ export async function convertToAnthropicPrompt({
   }
 
   return {
-    prompt: { system, messages },
+    prompt: {
+      system,
+      messages: coLocateServerToolResults(messages),
+    },
     betas,
   };
 }
@@ -1402,6 +1396,116 @@ function moveToolUseBlocksToEnd(
   }
 
   flushSegment();
+
+  return result;
+}
+
+function getAnthropicCaller(
+  providerOptions: SharedV4ProviderMetadata | undefined,
+): AnthropicToolCallCaller | undefined {
+  const caller = (
+    providerOptions?.anthropic as
+      | { caller?: { type: string; toolId?: string } }
+      | undefined
+  )?.caller;
+
+  if (
+    (caller?.type === 'code_execution_20250825' ||
+      caller?.type === 'code_execution_20260120') &&
+    caller.toolId
+  ) {
+    return {
+      type: caller.type,
+      tool_id: caller.toolId,
+    };
+  }
+
+  return caller?.type === 'direct' ? ({ type: 'direct' } as const) : undefined;
+}
+
+function coLocateServerToolResults(
+  messages: AnthropicPrompt['messages'],
+): AnthropicPrompt['messages'] {
+  const serverToolUseIds = new Set<string>();
+
+  for (const message of messages) {
+    if (message.role !== 'assistant') {
+      continue;
+    }
+
+    for (const part of message.content) {
+      if (part.type === 'server_tool_use' || part.type === 'mcp_tool_use') {
+        serverToolUseIds.add(part.id);
+      }
+    }
+  }
+
+  const resultsByToolUseId = new Map<
+    string,
+    AnthropicAssistantMessage['content']
+  >();
+
+  for (const message of messages) {
+    if (message.role !== 'assistant') {
+      continue;
+    }
+
+    for (const part of message.content) {
+      if ('tool_use_id' in part && serverToolUseIds.has(part.tool_use_id)) {
+        const results = resultsByToolUseId.get(part.tool_use_id) ?? [];
+        results.push(part);
+        resultsByToolUseId.set(part.tool_use_id, results);
+      }
+    }
+  }
+
+  const relocatedMessages = messages
+    .map(message => {
+      if (message.role !== 'assistant') {
+        return message;
+      }
+
+      const content: AnthropicAssistantMessage['content'] = [];
+
+      for (const part of message.content) {
+        if ('tool_use_id' in part && serverToolUseIds.has(part.tool_use_id)) {
+          continue;
+        }
+
+        content.push(part);
+
+        if (part.type === 'server_tool_use' || part.type === 'mcp_tool_use') {
+          content.push(...(resultsByToolUseId.get(part.id) ?? []));
+        }
+      }
+
+      return { ...message, content };
+    })
+    .filter(
+      message => message.role !== 'assistant' || message.content.length > 0,
+    );
+
+  const result: AnthropicPrompt['messages'] = [];
+
+  for (const message of relocatedMessages) {
+    const previousMessage = result.at(-1);
+
+    if (previousMessage?.role === 'user' && message.role === 'user') {
+      previousMessage.content.push(...message.content);
+    } else if (
+      previousMessage?.role === 'assistant' &&
+      message.role === 'assistant'
+    ) {
+      previousMessage.content.push(...message.content);
+    } else if (
+      previousMessage?.role === 'system' &&
+      message.role === 'system'
+    ) {
+      previousMessage.content.push(...message.content);
+    } else {
+      result.push(message);
+    }
+  }
 
   return result;
 }
