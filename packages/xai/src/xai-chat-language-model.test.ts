@@ -1326,6 +1326,32 @@ describe('XaiChatLanguageModel', () => {
       `);
     });
 
+    it('should pass reasoning_effort xhigh parameter', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      const model = new XaiChatLanguageModel('grok-4.6', testConfig);
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          xai: { reasoningEffort: 'xhigh' },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "grok-4.6",
+          "reasoning_effort": "xhigh",
+        }
+      `);
+    });
+
     it('should extract reasoning content', async () => {
       prepareJsonFixtureResponse('xai-text');
 

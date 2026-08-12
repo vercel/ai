@@ -2,6 +2,7 @@ import { z } from 'zod/v4';
 
 // https://docs.x.ai/docs/models
 export type XaiChatModelId =
+  | 'grok-4.6'
   | 'grok-4.5'
   | 'grok-4.3'
   | 'grok-4.20-0309-reasoning'
@@ -52,7 +53,9 @@ const searchSourceSchema = z.discriminatedUnion('type', [
 
 // xai-specific provider options
 export const xaiLanguageModelChatOptions = z.object({
-  reasoningEffort: z.enum(['none', 'low', 'medium', 'high']).optional(),
+  reasoningEffort: z
+    .enum(['none', 'low', 'medium', 'high', 'xhigh'])
+    .optional(),
   logprobs: z.boolean().optional(),
   topLogprobs: z.number().int().min(0).max(8).optional(),
 
