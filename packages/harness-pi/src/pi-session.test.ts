@@ -21,6 +21,7 @@ type FakeExtensionsResult = {
   readonly runtime: object;
 };
 type ResourceLoaderOptions = {
+  readonly appendSystemPromptOverride?: (base: string[]) => string[];
   readonly extensionFactories?: Array<ExtensionFactory>;
   readonly extensionsOverride?: (
     base: FakeExtensionsResult,
@@ -36,6 +37,7 @@ const piMock = vi.hoisted(() => {
     agentSessionExtensionResults: [] as FakeExtensionsResult[],
     createAgentSession: vi.fn(),
     customTools: [] as FakePiTool[],
+    appendSystemPrompts: [] as string[][],
     extensionApi: {
       on: vi.fn((eventType: string, handler: () => unknown) => {
         const handlers = extensionHandlers.get(eventType) ?? [];
@@ -87,6 +89,9 @@ vi.mock('@earendil-works/pi-coding-agent', () => {
 
       async reload() {
         piMock.resourceLoaderReloadCount += 1;
+        piMock.appendSystemPrompts.push(
+          this.options.appendSystemPromptOverride?.([]) ?? [],
+        );
         for (const factory of this.options.extensionFactories ?? []) {
           await factory(piMock.extensionApi);
         }
@@ -127,6 +132,7 @@ describe('createPiSession', () => {
   beforeEach(() => {
     piMock.agentSessionExtensionResults = [];
     piMock.customTools = [];
+    piMock.appendSystemPrompts = [];
     piMock.extensionFactoryInputs = [];
     piMock.extensionHandlers.clear();
     piMock.resourceLoaderReloadCount = 0;
@@ -411,6 +417,47 @@ describe('createPiSession', () => {
     ).rejects.toThrow('Invalid Pi session file name');
 
     expect(sandboxSession.readBinaryFile).not.toHaveBeenCalled();
+  });
+
+  it('appends instructions without changing the user prompt or reloading MCP extensions', async () => {
+    const prompt = vi.fn(async () => {});
+    piMock.session = {
+      abort: vi.fn(async () => {}),
+      bindExtensions: vi.fn(async () => {}),
+      compact: vi.fn(async () => {}),
+      dispose: vi.fn(),
+      getActiveToolNames: vi.fn(() => []),
+      getSessionStats: () => ({
+        tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      }),
+      prompt,
+      reload: vi.fn(async () => {}),
+      setActiveToolsByName: vi.fn(),
+      steer: vi.fn(async () => {}),
+      subscribe: vi.fn(() => () => {}),
+    } as unknown as AgentSession;
+
+    const session = await createPiSession({
+      sessionId: 'session-instructions',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      skills: [],
+      settings: {
+        mcpServers: { memory: { command: 'memory-mcp', args: [] } },
+      },
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: false,
+    });
+    const control = await session.doPromptTurn({
+      prompt: 'do the thing',
+      instructions: 'Use turbo build.',
+      emit: vi.fn(),
+    });
+    await control.done;
+
+    expect(piMock.appendSystemPrompts.at(-1)).toEqual(['Use turbo build.']);
+    expect(prompt).toHaveBeenCalledWith('do the thing');
+    expect(mcpAdapterMock.mcpExtensionFactory).toHaveBeenCalledOnce();
   });
 
   it('parks a pending tool turn on suspend and resumes it in-process', async () => {

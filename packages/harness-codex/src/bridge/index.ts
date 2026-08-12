@@ -121,6 +121,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   }
 
   const codexConfig: Record<string, unknown> = {
+    developer_instructions: [
+      start.instructions,
+      'Only respond with your `final` message once you have fully addressed the user request.',
+    ]
+      .filter((instruction): instruction is string => Boolean(instruction))
+      .join('\n\n'),
     model_reasoning_summary: 'detailed',
   };
 
