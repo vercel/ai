@@ -105,9 +105,11 @@ Settings:
 Deep Agents always drives the Anthropic client. Non-Anthropic models reach it
 through AI Gateway's Anthropic-compatible endpoint, which translates to any
 model (Gemini, OpenAI, etc.), tool calls included. Authentication is resolved
-from the host environment and forwarded to the sandbox bridge: explicit
-Anthropic auth first, then AI Gateway credentials, then ambient Anthropic
-credentials.
+from the host environment: explicit Anthropic auth first, then AI Gateway
+credentials, then ambient Anthropic credentials. When the sandbox supports
+additive request transformations, the bridge receives placeholders and the
+adapter injects credentials into matching outbound requests. Other sandboxes
+retain direct credential forwarding.
 
 Supported environment variables:
 

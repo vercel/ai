@@ -1,4 +1,38 @@
-import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
+import type { HarnessV1RequestTransformation } from '@ai-sdk/harness';
+import {
+  createCredentialRequestTransformation,
+  getAiGatewayAuthFromEnv,
+} from '@ai-sdk/harness/utils';
+
+export const DEEPAGENTS_CREDENTIAL_ENVIRONMENT_VARIABLES = [
+  'AI_GATEWAY_API_KEY',
+  'ANTHROPIC_API_KEY',
+  'ANTHROPIC_AUTH_TOKEN',
+] as const;
+
+export function createDeepAgentsRequestTransformations(
+  env: Record<string, string>,
+  auth: DeepAgentsAuthMethod,
+): HarnessV1RequestTransformation[] {
+  const headers: Record<string, string> = {};
+  if (env.ANTHROPIC_API_KEY) {
+    headers['x-api-key'] = env.ANTHROPIC_API_KEY;
+  }
+  if (env.ANTHROPIC_AUTH_TOKEN) {
+    headers.Authorization = `Bearer ${env.ANTHROPIC_AUTH_TOKEN}`;
+  }
+  return Object.keys(headers).length === 0
+    ? []
+    : [
+        createCredentialRequestTransformation({
+          baseUrl:
+            auth === 'gateway'
+              ? env.ANTHROPIC_BASE_URL
+              : (env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com'),
+          headers,
+        }),
+      ];
+}
 
 export type DeepAgentsAuthOptions = {
   readonly anthropic?: {
@@ -12,6 +46,8 @@ export type DeepAgentsAuthOptions = {
   };
 };
 
+export type DeepAgentsAuthMethod = keyof DeepAgentsAuthOptions;
+
 // DeepAgents always drives the Anthropic client. Non-Anthropic models reach it
 // through AI Gateway's Anthropic-compatible endpoint, which translates to any
 // model (Gemini, OpenAI, etc.), tool calls included.
@@ -22,19 +58,30 @@ export function resolveDeepAgentsEnv({
   auth?: DeepAgentsAuthOptions;
   processEnv?: Record<string, string | undefined>;
 }): Record<string, string> {
-  if (auth?.anthropic) {
-    return pickAnthropic({ explicit: auth.anthropic, processEnv });
+  const authMethod = resolveDeepAgentsAuthMethod({ auth, processEnv });
+  switch (authMethod) {
+    case 'anthropic':
+      return pickAnthropic({ explicit: auth?.anthropic, processEnv });
+    case 'gateway':
+      return pickGateway({
+        explicit: auth?.gateway ?? {},
+        gatewayAuthFromEnv: getAiGatewayAuthFromEnv({ env: processEnv }),
+      });
   }
+}
 
-  const gatewayAuthFromEnv = getAiGatewayAuthFromEnv({ env: processEnv });
-  if (auth?.gateway) {
-    return pickGateway({ explicit: auth.gateway, gatewayAuthFromEnv });
-  }
-  if (gatewayAuthFromEnv.apiKey) {
-    return pickGateway({ explicit: {}, gatewayAuthFromEnv });
-  }
-
-  return pickAnthropic({ processEnv });
+export function resolveDeepAgentsAuthMethod({
+  auth,
+  processEnv = process.env,
+}: {
+  auth?: DeepAgentsAuthOptions;
+  processEnv?: Record<string, string | undefined>;
+}): DeepAgentsAuthMethod {
+  if (auth?.anthropic) return 'anthropic';
+  if (auth?.gateway) return 'gateway';
+  return getAiGatewayAuthFromEnv({ env: processEnv }).apiKey
+    ? 'gateway'
+    : 'anthropic';
 }
 
 function pickAnthropic({

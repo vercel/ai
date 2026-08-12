@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { resolveDeepAgentsEnv } from './deepagents-auth';
+import {
+  createDeepAgentsRequestTransformations,
+  resolveDeepAgentsAuthMethod,
+  resolveDeepAgentsEnv,
+} from './deepagents-auth';
 
 describe('resolveDeepAgentsEnv', () => {
   it('pins explicit anthropic auth', () => {
@@ -73,5 +77,78 @@ describe('resolveDeepAgentsEnv', () => {
       processEnv: { ANTHROPIC_API_KEY: 'ambient-ant' },
     });
     expect(env).toEqual({ ANTHROPIC_API_KEY: 'ambient-ant' });
+  });
+});
+
+describe('resolveDeepAgentsAuthMethod', () => {
+  it('preserves explicit Anthropic auth despite ambient Gateway credentials', () => {
+    expect(
+      resolveDeepAgentsAuthMethod({
+        auth: { anthropic: {} },
+        processEnv: { AI_GATEWAY_API_KEY: 'gateway-key' },
+      }),
+    ).toBe('anthropic');
+  });
+
+  it('resolves ambient Gateway credentials to Gateway auth', () => {
+    expect(
+      resolveDeepAgentsAuthMethod({
+        processEnv: { VERCEL_OIDC_TOKEN: 'oidc-token' },
+      }),
+    ).toBe('gateway');
+  });
+});
+
+describe('createDeepAgentsRequestTransformations', () => {
+  it('injects the Anthropic API key at the configured endpoint', () => {
+    expect(
+      createDeepAgentsRequestTransformations(
+        {
+          ANTHROPIC_API_KEY: 'api-secret',
+          ANTHROPIC_BASE_URL: 'https://anthropic.example',
+        },
+        'anthropic',
+      ),
+    ).toEqual([
+      {
+        match: { host: 'anthropic.example' },
+        transform: { headers: { 'x-api-key': 'api-secret' } },
+      },
+    ]);
+  });
+
+  it('injects the Anthropic auth token as a bearer credential', () => {
+    expect(
+      createDeepAgentsRequestTransformations(
+        {
+          ANTHROPIC_AUTH_TOKEN: 'token-secret',
+        },
+        'anthropic',
+      ),
+    ).toEqual([
+      {
+        match: { host: 'api.anthropic.com' },
+        transform: {
+          headers: { Authorization: 'Bearer token-secret' },
+        },
+      },
+    ]);
+  });
+
+  it('uses the resolved Gateway route', () => {
+    expect(
+      createDeepAgentsRequestTransformations(
+        {
+          ANTHROPIC_API_KEY: 'gateway-secret',
+          ANTHROPIC_BASE_URL: 'https://gateway.example',
+        },
+        'gateway',
+      ),
+    ).toEqual([
+      {
+        match: { host: 'gateway.example' },
+        transform: { headers: { 'x-api-key': 'gateway-secret' } },
+      },
+    ]);
   });
 });
