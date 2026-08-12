@@ -1,11 +1,16 @@
 import 'dotenv/config';
-import { xai } from '@ai-sdk/xai';
+import { xai, XaiProviderOptions } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 async function main() {
   const result = await generateText({
-    model: xai('grok-4.5'),
+    model: xai('grok-4.6'),
     prompt: 'Invent a new holiday and describe its traditions.',
+    providerOptions: {
+      xai: {
+        reasoningEffort: 'xhigh',
+      } satisfies XaiProviderOptions,
+    },
   });
 
   console.log(result.text);
