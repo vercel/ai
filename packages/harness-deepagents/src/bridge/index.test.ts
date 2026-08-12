@@ -86,6 +86,10 @@ vi.mock('@langchain/mcp-adapters', () => ({
   MultiServerMCPClient: class {},
 }));
 
+vi.mock('langchain', () => ({
+  createMiddleware: <Middleware>(middleware: Middleware) => middleware,
+}));
+
 describe('Deep Agents bridge instructions', () => {
   beforeEach(() => {
     state.createDeepAgentOptions = [];
