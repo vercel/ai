@@ -21,6 +21,7 @@ describe('translateStreamPart', () => {
       toolCallId: 'c1',
       toolName: 'mcp__weather__current',
       result: { temperature: 72 },
+      isError: false,
       dynamic: true,
     });
 
@@ -52,14 +53,33 @@ describe('translateStreamPart', () => {
         toolCallId: 'c1',
         toolName: 'bash',
         input: undefined,
-        // `providerExecuted` keeps the runtime's own message; without it the
-        // AI SDK replaces `error` with the generic `onError` string.
         error: 'bash: command not found: pnpmm',
         providerExecuted: true,
         providerMetadata: {
           'claude-code': { subtype: 'error_during_execution' },
         },
       },
+    ]);
+  });
+
+  it('leaves a failed host tool result as a tool-result', () => {
+    const out = translateStreamPart<ToolSet>(
+      {
+        type: 'tool-result',
+        toolCallId: 'c1',
+        toolName: 'weather',
+        result: { error: 'Error: boom' },
+        isError: true,
+      },
+      { isProviderExecuted: () => false },
+    );
+
+    expect(out).toEqual([
+      expect.objectContaining({
+        type: 'tool-result',
+        toolCallId: 'c1',
+        output: { error: 'Error: boom' },
+      }),
     ]);
   });
 
@@ -81,25 +101,6 @@ describe('translateStreamPart', () => {
         error: { message: 'upstream timeout' },
         providerExecuted: true,
         dynamic: true,
-      }),
-    ]);
-  });
-
-  it('keeps a tool-result with isError false as a tool-result', () => {
-    const out = translateStreamPart<ToolSet>({
-      type: 'tool-result',
-      toolCallId: 'c1',
-      toolName: 'bash',
-      result: 'ok',
-      isError: false,
-    });
-
-    expect(out).toEqual([
-      expect.objectContaining({
-        type: 'tool-result',
-        toolCallId: 'c1',
-        toolName: 'bash',
-        output: 'ok',
       }),
     ]);
   });

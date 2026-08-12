@@ -14,7 +14,8 @@ import { generateId, type ToolSet } from '@ai-sdk/provider-utils';
  *   - tool-call events are not translated here — validation against the
  *     merged tool set is async and handled by `validateToolCall` in
  *     `run-prompt.ts`
- *   - a `tool-result` with `isError` becomes a provider-executed `tool-error`
+ *   - a failed `tool-result` from a provider-executed tool becomes a
+ *     `tool-error` (see `isProviderExecuted`)
  *   - the harness `raw` part is forwarded as the AI SDK `raw` part
  *
  * Returns an array of zero or more AI SDK parts. Most harness events project
@@ -27,6 +28,17 @@ import { generateId, type ToolSet } from '@ai-sdk/provider-utils';
  */
 export function translateStreamPart<TOOLS extends ToolSet>(
   event: HarnessV1StreamPart,
+  options: {
+    /**
+     * Whether the tool call that produced this event ran inside the harness
+     * runtime. Host tools travel the same `tool-result` events — their calls
+     * are emitted with `providerExecuted: false` and their failures are
+     * echoed back with `isError` — so the flag cannot be assumed. Defaults to
+     * `true` when the originating call is unknown, which is the case only for
+     * a call that arrived in an earlier slice.
+     */
+    isProviderExecuted?: (toolCallId: string) => boolean;
+  } = {},
 ): ReadonlyArray<TextStreamPart<TOOLS>> {
   switch (event.type) {
     case 'stream-start':
@@ -102,14 +114,19 @@ export function translateStreamPart<TOOLS extends ToolSet>(
       return [];
 
     case 'tool-result':
-      if (event.isError === true) {
+      if (
+        event.isError === true &&
+        (options.isProviderExecuted?.(event.toolCallId) ?? true)
+      ) {
         /*
          * A failed provider-executed tool becomes a `tool-error` part, not a
          * `tool-result` carrying the error as its output. `providerExecuted`
          * is load-bearing: `toUIMessageChunk` only forwards the real error
          * text for provider-executed errors — without it the runtime's
          * failure reason is replaced by the generic `onError` string and
-         * never reaches the consumer.
+         * never reaches the consumer. Host tool failures keep the existing
+         * `tool-result` projection: their error text is the host's own, and
+         * redacting it through `onError` is the consumer's call, not ours.
          */
         return [
           {

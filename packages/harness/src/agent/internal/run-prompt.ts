@@ -211,6 +211,15 @@ export function runPrompt<
       string,
       Extract<HarnessV1StreamPart, { type: 'tool-call' }>
     >();
+    /*
+     * Host tool results are submitted to the runtime and echoed back as
+     * `tool-result` events, so the event alone cannot say who ran the tool.
+     * The originating `tool-call` can — it is recorded below as it streams by.
+     */
+    const translateOptions = {
+      isProviderExecuted: (toolCallId: string): boolean =>
+        rawToolCallsByToolCallId.get(toolCallId)?.providerExecuted ?? true,
+    };
     const pendingApprovalsByApprovalId = new Map(
       pendingToolApprovals.map(approval => [approval.approvalId, approval]),
     );
@@ -680,7 +689,10 @@ export function runPrompt<
         }
 
         // Forward to consumer as soon as possible.
-        for (const part of translateStreamPart<TOOLS>(displayValue)) {
+        for (const part of translateStreamPart<TOOLS>(
+          displayValue,
+          translateOptions,
+        )) {
           result.enqueue(part);
         }
 
