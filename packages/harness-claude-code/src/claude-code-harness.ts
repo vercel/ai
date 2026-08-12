@@ -28,9 +28,11 @@ import {
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
   markBridgeStarting,
+  maskSandboxCredentials,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
+  warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   writeSkills as writeHarnessSkills,
 } from '@ai-sdk/harness/utils';
@@ -42,6 +44,9 @@ import {
 import { WebSocket } from 'ws';
 import { z } from 'zod/v4';
 import {
+  CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
+  createClaudeCodeRequestTransformations,
+  resolveClaudeCodeAuthMethod,
   resolveClaudeCodeEnv,
   type ClaudeCodeAuthOptions,
 } from './claude-code-auth';
@@ -841,6 +846,36 @@ export function createClaudeCode(
     },
     doStart: async startOpts => {
       const sandboxSession = startOpts.sandboxSession;
+      const authMethod = resolveClaudeCodeAuthMethod(settings.auth);
+      const resolvedAuthEnvironment = resolveClaudeCodeEnv(settings.auth);
+      let authEnv = resolvedAuthEnvironment;
+      let sandboxTurnEnvironment = settings.env;
+      if (sandboxSession.addRequestTransformations != null) {
+        const requestTransformations = createClaudeCodeRequestTransformations(
+          {
+            ...resolvedAuthEnvironment,
+            ...settings.env,
+          },
+          authMethod,
+        );
+        if (requestTransformations.length > 0) {
+          await sandboxSession.addRequestTransformations(
+            requestTransformations,
+          );
+        }
+        authEnv = maskSandboxCredentials({
+          environment: resolvedAuthEnvironment,
+          credentialEnvironmentVariables:
+            CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
+        });
+        sandboxTurnEnvironment = maskSandboxCredentials({
+          environment: settings.env ?? {},
+          credentialEnvironmentVariables:
+            CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
+        });
+      } else {
+        warnCredentialBrokeringUnavailable();
+      }
       const session = sandboxSession.restricted();
       const sandboxId = sandboxSession.id;
       const bootstrapDir = posix.resolve(
@@ -916,7 +951,7 @@ export function createClaudeCode(
             proc: undefined,
             model: settings.model,
             maxTurns: settings.maxTurns,
-            env: settings.env,
+            env: sandboxTurnEnvironment,
             thinking,
             isResume: true,
             continueOnFirstPrompt: false,
@@ -971,7 +1006,6 @@ export function createClaudeCode(
         settings.mintBridgeToken == null
           ? randomBytes(32).toString('hex')
           : settings.mintBridgeToken(sandboxId);
-      const authEnv = resolveClaudeCodeEnv(settings.auth);
       const env = {
         ...authEnv,
         /*
@@ -1091,7 +1125,7 @@ export function createClaudeCode(
         proc,
         model: settings.model,
         maxTurns: settings.maxTurns,
-        env: settings.env,
+        env: sandboxTurnEnvironment,
         thinking,
         isResume: respawnStrategy !== undefined,
         continueOnFirstPrompt: respawnStrategy !== undefined,

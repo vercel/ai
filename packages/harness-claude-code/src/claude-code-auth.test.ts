@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { resolveClaudeCodeEnv } from './claude-code-auth';
+import {
+  createClaudeCodeRequestTransformations,
+  resolveClaudeCodeAuthMethod,
+  resolveClaudeCodeEnv,
+} from './claude-code-auth';
 
 const noHelper = () => undefined;
 
@@ -143,5 +147,69 @@ describe('resolveClaudeCodeEnv', () => {
       },
     );
     expect(env).toEqual({});
+  });
+});
+
+describe('resolveClaudeCodeAuthMethod', () => {
+  it('preserves explicit Anthropic auth despite ambient Gateway credentials', () => {
+    expect(
+      resolveClaudeCodeAuthMethod(
+        { anthropic: {} },
+        { AI_GATEWAY_API_KEY: 'gateway-key' },
+      ),
+    ).toBe('anthropic');
+  });
+
+  it('resolves ambient Gateway credentials to Gateway auth', () => {
+    expect(
+      resolveClaudeCodeAuthMethod(undefined, {
+        VERCEL_OIDC_TOKEN: 'oidc-token',
+      }),
+    ).toBe('gateway');
+  });
+});
+
+describe('createClaudeCodeRequestTransformations', () => {
+  it('injects Anthropic API key and auth token headers at the configured endpoint', () => {
+    expect(
+      createClaudeCodeRequestTransformations(
+        {
+          ANTHROPIC_API_KEY: 'api-secret',
+          ANTHROPIC_AUTH_TOKEN: 'token-secret',
+          ANTHROPIC_BASE_URL: 'https://anthropic.example/v1',
+        },
+        'anthropic',
+      ),
+    ).toEqual([
+      {
+        match: {
+          host: 'anthropic.example',
+          path: { startsWith: '/v1' },
+        },
+        transform: {
+          headers: {
+            'x-api-key': 'api-secret',
+            Authorization: 'Bearer token-secret',
+          },
+        },
+      },
+    ]);
+  });
+
+  it('uses the resolved Gateway route', () => {
+    expect(
+      createClaudeCodeRequestTransformations(
+        {
+          ANTHROPIC_API_KEY: 'gateway-secret',
+          ANTHROPIC_BASE_URL: 'https://gateway.example',
+        },
+        'gateway',
+      ),
+    ).toEqual([
+      {
+        match: { host: 'gateway.example' },
+        transform: { headers: { 'x-api-key': 'gateway-secret' } },
+      },
+    ]);
   });
 });

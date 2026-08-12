@@ -111,8 +111,11 @@ Settings:
 
 ## Authentication
 
-By default, authentication is resolved from the host environment and forwarded
-to the sandbox bridge. The adapter checks for AI Gateway and Anthropic credentials.
+By default, authentication is resolved from the host environment. When the
+sandbox supports additive request transformations, the bridge receives
+placeholders and the adapter injects credentials into matching outbound
+requests. Sandboxes without that capability retain direct credential
+forwarding. The adapter checks for AI Gateway and Anthropic credentials.
 
 Supported environment variables:
 

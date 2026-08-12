@@ -2,7 +2,41 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
+import type { HarnessV1RequestTransformation } from '@ai-sdk/harness';
+import {
+  createCredentialRequestTransformation,
+  getAiGatewayAuthFromEnv,
+} from '@ai-sdk/harness/utils';
+
+export const CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES = [
+  'AI_GATEWAY_API_KEY',
+  'ANTHROPIC_API_KEY',
+  'ANTHROPIC_AUTH_TOKEN',
+] as const;
+
+export function createClaudeCodeRequestTransformations(
+  env: Record<string, string>,
+  auth: ClaudeCodeAuthMethod,
+): HarnessV1RequestTransformation[] {
+  const headers: Record<string, string> = {};
+  if (env.ANTHROPIC_API_KEY) {
+    headers['x-api-key'] = env.ANTHROPIC_API_KEY;
+  }
+  if (env.ANTHROPIC_AUTH_TOKEN) {
+    headers.Authorization = `Bearer ${env.ANTHROPIC_AUTH_TOKEN}`;
+  }
+  return Object.keys(headers).length === 0
+    ? []
+    : [
+        createCredentialRequestTransformation({
+          baseUrl:
+            auth === 'gateway'
+              ? env.ANTHROPIC_BASE_URL
+              : (env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com'),
+          headers,
+        }),
+      ];
+}
 
 export type ClaudeCodeAuthOptions = {
   readonly anthropic?: {
@@ -15,6 +49,8 @@ export type ClaudeCodeAuthOptions = {
     readonly baseUrl?: string;
   };
 };
+
+export type ClaudeCodeAuthMethod = keyof ClaudeCodeAuthOptions;
 
 /**
  * Resolve the environment-variable blob the bridge needs to authenticate
@@ -43,25 +79,31 @@ export function resolveClaudeCodeEnv(
   options: ResolveClaudeCodeEnvOptions = {},
 ): Record<string, string> {
   const readApiKey = options.readApiKeyHelper ?? readApiKeyHelper;
-  if (auth?.anthropic) {
-    return pickAnthropic({ explicit: auth.anthropic, processEnv, readApiKey });
+  const authMethod = resolveClaudeCodeAuthMethod(auth, processEnv);
+  switch (authMethod) {
+    case 'anthropic':
+      return pickAnthropic({
+        explicit: auth?.anthropic,
+        processEnv,
+        readApiKey,
+      });
+    case 'gateway':
+      return pickGateway({
+        explicit: auth?.gateway ?? {},
+        gatewayAuthFromEnv: getAiGatewayAuthFromEnv({ env: processEnv }),
+      });
   }
+}
 
-  const gatewayAuthFromEnv = getAiGatewayAuthFromEnv({ env: processEnv });
-  if (auth?.gateway) {
-    return pickGateway({
-      explicit: auth.gateway,
-      gatewayAuthFromEnv,
-    });
-  }
-  if (gatewayAuthFromEnv.apiKey) {
-    return pickGateway({
-      explicit: {},
-      gatewayAuthFromEnv,
-    });
-  }
-
-  return pickAnthropic({ processEnv, readApiKey });
+export function resolveClaudeCodeAuthMethod(
+  auth: ClaudeCodeAuthOptions | undefined,
+  processEnv: Record<string, string | undefined> = process.env,
+): ClaudeCodeAuthMethod {
+  if (auth?.anthropic) return 'anthropic';
+  if (auth?.gateway) return 'gateway';
+  return getAiGatewayAuthFromEnv({ env: processEnv }).apiKey
+    ? 'gateway'
+    : 'anthropic';
 }
 
 function pickAnthropic({
