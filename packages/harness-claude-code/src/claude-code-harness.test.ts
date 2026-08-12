@@ -459,9 +459,9 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('sends the structured thinking configuration to the bridge', async () => {
+  it('sends the thinking configuration and effort to the bridge', async () => {
     const thinking = { type: 'enabled' as const, display: 'omitted' as const };
-    const harness = createClaudeCode({ thinking });
+    const harness = createClaudeCode({ thinking, effort: 'max' });
     const session = await harness.doStart({
       sessionId: 's1',
       sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
@@ -477,7 +477,7 @@ describe('createClaudeCode adapter', () => {
     });
     void Promise.resolve(control.done).catch(() => {});
 
-    expect(lastStart()).toMatchObject({ thinking });
+    expect(lastStart()).toMatchObject({ thinking, effort: 'max' });
 
     await session.doDestroy();
   });

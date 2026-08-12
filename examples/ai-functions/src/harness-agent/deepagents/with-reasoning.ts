@@ -1,5 +1,5 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { createClaudeCode } from '@ai-sdk/harness-claude-code';
+import { createDeepAgents } from '@ai-sdk/harness-deepagents';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
@@ -11,9 +11,12 @@ run(async () => {
     timeout: 10 * 60 * 1000,
   });
   const agent = new HarnessAgent({
-    harness: createClaudeCode({
-      thinking: { type: 'adaptive', display: 'summarized' },
-      effort: 'max',
+    harness: createDeepAgents({
+      thinking: {
+        type: 'enabled',
+        budget_tokens: 4096,
+        display: 'summarized',
+      },
     }),
     sandbox,
   });
