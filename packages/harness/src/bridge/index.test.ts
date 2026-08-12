@@ -39,6 +39,10 @@ type Client = {
     pred: (f: Record<string, unknown>) => boolean,
   ): Promise<Record<string, unknown>>;
   send(msg: object): void;
+  /** Send a frame the protocol cannot parse. */
+  sendRaw(text: string): void;
+  /** `seq` of every event frame received, in arrival order. */
+  seqs(): number[];
   close(): void;
 };
 
@@ -71,6 +75,14 @@ function connect(port: number): Promise<Client> {
     },
     send(msg) {
       ws.send(JSON.stringify(msg));
+    },
+    sendRaw(text) {
+      ws.send(text);
+    },
+    seqs() {
+      return frames
+        .map(f => f.seq)
+        .filter((seq): seq is number => typeof seq === 'number');
     },
     close() {
       ws.close();
@@ -325,37 +337,7 @@ describe('runBridge', () => {
     expect(exited).toBe(true);
   });
 
-  it('keeps streaming to the running turn when a second client only connects', async () => {
-    let release!: () => void;
-    const gate = new Promise<void>(r => (release = r));
-    const handle = await startBridge({
-      onStart: async (_start, turn) => {
-        turn.emit({ type: 'text-delta', delta: 'one' }); // seq 1
-        await gate;
-        turn.emit({ type: 'text-delta', delta: 'two' }); // seq 2
-        turn.emit({ type: 'finish' }); // seq 3
-      },
-    });
-
-    const a = await connect(handle.port);
-    await a.waitFor(f => f.type === 'bridge-hello');
-    a.send({ type: 'start' });
-    await a.waitFor(f => f.seq === 1);
-
-    // B connects mid-turn without asking for a turn or a catch-up. Connecting
-    // must not take the stream away from A.
-    const b = await connect(handle.port);
-    await b.waitFor(f => f.type === 'bridge-hello');
-
-    release();
-    await a.waitFor(f => f.type === 'finish');
-
-    expect(a.frames.filter(f => typeof f.seq === 'number').map(f => f.seq)) //
-      .toEqual([1, 2, 3]);
-    expect(b.frames.some(f => typeof f.seq === 'number')).toBe(false);
-  });
-
-  it('lets an unclaimed socket abort without stranding the turn events', async () => {
+  it('keeps streaming to the running turn when a second client connects to abort it', async () => {
     let aborted!: () => void;
     const abortObserved = new Promise<void>(r => (aborted = r));
     const handle = await startBridge({
@@ -375,9 +357,9 @@ describe('runBridge', () => {
     a.send({ type: 'start' });
     await a.waitFor(f => f.seq === 1);
 
-    // The regression: a second client that connects only to abort used to claim
-    // the stream on connect, so the turn's remaining events went to it (with
-    // live delivery still disabled) and A saw nothing after the abort.
+    // The regression: a second client that connected only to abort used to
+    // claim the stream on connect, so the turn's remaining events went to it
+    // instead — and, with live delivery disabled there, nowhere at all.
     const b = await connect(handle.port);
     await b.waitFor(f => f.type === 'bridge-hello');
     b.send({ type: 'abort' });
@@ -389,16 +371,12 @@ describe('runBridge', () => {
       'aborted',
       'finish',
     ]);
+    expect(b.seqs()).toEqual([]);
   });
 
   it('hands the stream to whichever socket asks for the next turn', async () => {
-    let turnNo = 0;
     const handle = await startBridge({
-      onStart: async (_start, turn) => {
-        turnNo++;
-        turn.emit({ type: 'text-delta', delta: `t${turnNo}` });
-        turn.emit({ type: 'finish' });
-      },
+      onStart: async (_start, turn) => turn.emit({ type: 'finish' }),
     });
 
     const a = await connect(handle.port);
@@ -411,25 +389,24 @@ describe('runBridge', () => {
     b.send({ type: 'start' });
     await b.waitFor(f => f.type === 'finish');
 
-    expect(b.frames.filter(f => typeof f.seq === 'number')).toEqual([
-      expect.objectContaining({ type: 'text-delta', delta: 't2', seq: 3 }),
-      expect.objectContaining({ type: 'finish', seq: 4 }),
-    ]);
-    // A stays on its own turn's events; the second turn went to B.
-    expect(a.frames.filter(f => typeof f.seq === 'number').map(f => f.seq)) //
-      .toEqual([1, 2]);
+    // The second turn streamed to B; A kept only the turn it asked for.
+    expect(a.seqs()).toEqual([1]);
+    expect(b.seqs()).toEqual([2]);
   });
 
   it('replies to the sending socket when it cannot parse a frame', async () => {
-    const handle = await startBridge({ onStart: async () => {} });
+    const handle = await startBridge({
+      onStart: async (_start, turn) => turn.emit({ type: 'finish' }),
+    });
 
     const a = await connect(handle.port);
     await a.waitFor(f => f.type === 'bridge-hello');
     a.send({ type: 'start' });
+    await a.waitFor(f => f.type === 'finish'); // A now owns the stream
 
     const b = await connect(handle.port);
     await b.waitFor(f => f.type === 'bridge-hello');
-    b.ws.send('not json');
+    b.sendRaw('not json');
 
     const error = await b.waitFor(f => f.type === 'error');
     expect(error.error).toContain('protocol parse error');
