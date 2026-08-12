@@ -11,6 +11,38 @@ import {
 } from '../util/async-iterable-stream';
 import { consumeStream } from '../util/consume-stream';
 
+function cloneMetadata<METADATA>(metadata: METADATA): METADATA {
+  if (Array.isArray(metadata)) {
+    return [...metadata] as METADATA;
+  }
+
+  if (
+    metadata != null &&
+    typeof metadata === 'object' &&
+    (Object.getPrototypeOf(metadata) === Object.prototype ||
+      Object.getPrototypeOf(metadata) === null)
+  ) {
+    return { ...metadata } as METADATA;
+  }
+
+  return metadata;
+}
+
+function createUIMessageSnapshot<UI_MESSAGE extends UIMessage>(
+  message: UI_MESSAGE,
+): UI_MESSAGE {
+  const snapshot = {
+    ...message,
+    parts: message.parts.map(part => ({ ...part })),
+  };
+
+  if ('metadata' in message) {
+    snapshot.metadata = cloneMetadata(message.metadata);
+  }
+
+  return snapshot as UI_MESSAGE;
+}
+
 /**
  * Transforms a stream of `UIMessageChunk`s into an `AsyncIterableStream` of `UIMessage`s.
  *
@@ -68,7 +100,7 @@ export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
         return job({
           state,
           write: () => {
-            controller?.enqueue(structuredClone(state.message));
+            controller?.enqueue(createUIMessageSnapshot(state.message));
           },
         });
       },
