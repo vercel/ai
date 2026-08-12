@@ -3335,6 +3335,266 @@ describe('assistant messages', () => {
   });
 
   describe('code_execution 20260120', () => {
+    it('should co-locate nested server tool results with their calls', async () => {
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'code-execution-call',
+                toolName: 'code_execution',
+                input: {
+                  type: 'programmatic-tool-call',
+                  code: 'await web_search({"query":"AI SDK"})',
+                },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'web-search-call',
+                toolName: 'web_search',
+                input: { query: 'AI SDK' },
+                providerExecuted: true,
+                providerOptions: {
+                  anthropic: {
+                    caller: {
+                      type: 'code_execution_20260120',
+                      toolId: 'code-execution-call',
+                    },
+                  },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'web-search-call',
+                toolName: 'web_search',
+                output: {
+                  type: 'json',
+                  value: [
+                    {
+                      type: 'web_search_result',
+                      url: 'https://ai-sdk.dev',
+                      title: 'AI SDK',
+                      pageAge: null,
+                      encryptedContent: 'encrypted-search-result',
+                    },
+                  ],
+                },
+                providerOptions: {
+                  anthropic: {
+                    caller: {
+                      type: 'code_execution_20260120',
+                      toolId: 'code-execution-call',
+                    },
+                  },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'code-execution-call',
+                toolName: 'code_execution',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'encrypted_code_execution_result',
+                    encrypted_stdout: 'encrypted-output',
+                    stderr: '',
+                    return_code: 0,
+                    content: [],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.messages).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'server_tool_use',
+              id: 'code-execution-call',
+              name: 'code_execution',
+              input: {
+                code: 'await web_search({"query":"AI SDK"})',
+              },
+              cache_control: undefined,
+            },
+            {
+              type: 'code_execution_tool_result',
+              tool_use_id: 'code-execution-call',
+              content: {
+                type: 'encrypted_code_execution_result',
+                encrypted_stdout: 'encrypted-output',
+                stderr: '',
+                return_code: 0,
+                content: [],
+              },
+              cache_control: undefined,
+            },
+            {
+              type: 'server_tool_use',
+              id: 'web-search-call',
+              name: 'web_search',
+              input: { query: 'AI SDK' },
+              caller: {
+                type: 'code_execution_20260120',
+                tool_id: 'code-execution-call',
+              },
+              cache_control: undefined,
+            },
+            {
+              type: 'web_search_tool_result',
+              tool_use_id: 'web-search-call',
+              content: [
+                {
+                  type: 'web_search_result',
+                  url: 'https://ai-sdk.dev',
+                  title: 'AI SDK',
+                  page_age: null,
+                  encrypted_content: 'encrypted-search-result',
+                },
+              ],
+              caller: {
+                type: 'code_execution_20260120',
+                tool_id: 'code-execution-call',
+              },
+              cache_control: undefined,
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should move deferred server tool results to the message containing their call', async () => {
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'code-execution-call',
+                toolName: 'code_execution',
+                input: {
+                  type: 'programmatic-tool-call',
+                  code: 'await fetch_url({"url":"https://ai-sdk.dev"})',
+                },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'client-tool-call',
+                toolName: 'fetch_url',
+                input: { url: 'https://ai-sdk.dev' },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'client-tool-call',
+                toolName: 'fetch_url',
+                output: {
+                  type: 'json',
+                  value: { status: 200 },
+                },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'code-execution-call',
+                toolName: 'code_execution',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'encrypted_code_execution_result',
+                    encrypted_stdout: 'encrypted-output',
+                    stderr: '',
+                    return_code: 0,
+                    content: [],
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Summarize the result.' }],
+          },
+        ],
+        sendReasoning: false,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.messages).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'server_tool_use',
+              id: 'code-execution-call',
+              name: 'code_execution',
+              input: {
+                code: 'await fetch_url({"url":"https://ai-sdk.dev"})',
+              },
+              cache_control: undefined,
+            },
+            {
+              type: 'code_execution_tool_result',
+              tool_use_id: 'code-execution-call',
+              content: {
+                type: 'encrypted_code_execution_result',
+                encrypted_stdout: 'encrypted-output',
+                stderr: '',
+                return_code: 0,
+                content: [],
+              },
+              cache_control: undefined,
+            },
+            {
+              type: 'tool_use',
+              id: 'client-tool-call',
+              name: 'fetch_url',
+              input: { url: 'https://ai-sdk.dev' },
+              cache_control: undefined,
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'client-tool-call',
+              is_error: undefined,
+              content: JSON.stringify({ status: 200 }),
+              cache_control: undefined,
+            },
+            {
+              type: 'text',
+              text: 'Summarize the result.',
+              cache_control: undefined,
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should replay server_tool_use input without the internal discriminator', async () => {
       const warnings: SharedV4Warning[] = [];
       const result = await convertToAnthropicPrompt({

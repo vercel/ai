@@ -3221,7 +3221,19 @@ describe('AnthropicLanguageModel', () => {
         for (const call of webSearchCalls) {
           expect(call.providerMetadata?.anthropic?.caller).toEqual({
             type: 'code_execution_20260120',
-            toolId: 'srvtoolu_code_execution_issue_18785',
+            toolId: 'srvtoolu_dynamic_filtering_code_execution',
+          });
+        }
+
+        const webSearchResults = result.content.filter(
+          part => part.type === 'tool-result' && part.toolName === 'web_search',
+        );
+
+        expect(webSearchResults).toHaveLength(3);
+        for (const toolResult of webSearchResults) {
+          expect(toolResult.providerMetadata?.anthropic?.caller).toEqual({
+            type: 'code_execution_20260120',
+            toolId: 'srvtoolu_dynamic_filtering_code_execution',
           });
         }
       });
@@ -10303,8 +10315,16 @@ describe('AnthropicLanguageModel', () => {
           (part): part is LanguageModelV4StreamPart & { type: 'tool-call' } =>
             part.type === 'tool-call' && part.toolName === 'web_fetch',
         );
+        const webFetchResult = streamArray.find(
+          (part): part is LanguageModelV4StreamPart & { type: 'tool-result' } =>
+            part.type === 'tool-result' && part.toolName === 'web_fetch',
+        );
 
         expect(webFetchCall?.providerMetadata?.anthropic?.caller).toEqual({
+          type: 'code_execution_20260120',
+          toolId: 'srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK',
+        });
+        expect(webFetchResult?.providerMetadata?.anthropic?.caller).toEqual({
           type: 'code_execution_20260120',
           toolId: 'srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK',
         });
