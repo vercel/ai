@@ -1,0 +1,8 @@
+{
+  "error": {
+    "message": "Invalid schema for response_format 'response': In context=('properties', 'elements', 'items', 'properties', 'shared'), reference to component '#/$defs/Shared' which was not found in the schema.",
+    "type": "invalid_request_error",
+    "param": "text.format.schema",
+    "code": "invalid_json_schema"
+  }
+}

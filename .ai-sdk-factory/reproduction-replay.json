@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 6454,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-6454-openai-array-definitions.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-6454-openai-array-definitions.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_6454_REPRODUCED: OpenAI rejected array output schemas because root definitions were nested under items"
+  }
+}
