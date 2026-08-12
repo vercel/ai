@@ -1644,6 +1644,46 @@ describe('Chat', () => {
     expect(chat.status).toBe('error');
   });
 
+  it('should reject with onFinish errors and clear the active response', async () => {
+    const onFinishError = new Error('onFinish failed');
+
+    const chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controller.enqueue({ type: 'start' });
+              controller.enqueue({ type: 'start-step' });
+              controller.enqueue({ type: 'text-start', id: 'text-1' });
+              controller.enqueue({
+                type: 'text-delta',
+                id: 'text-1',
+                delta: 'Hello',
+              });
+              controller.enqueue({ type: 'text-end', id: 'text-1' });
+              controller.enqueue({ type: 'finish-step' });
+              controller.enqueue({ type: 'finish', finishReason: 'stop' });
+              controller.close();
+            },
+          }),
+        reconnectToStream: async () => null,
+      },
+      onFinish: () => {
+        throw onFinishError;
+      },
+    });
+
+    await expect(
+      chat.sendMessage({
+        text: 'Hello, world!',
+      }),
+    ).rejects.toBe(onFinishError);
+
+    expect((chat as any).activeResponse).toBeUndefined();
+  });
+
   it('should not copy the previous assistant message when resuming a stream', async () => {
     const state = new TestChatState<UIMessage>([
       {
