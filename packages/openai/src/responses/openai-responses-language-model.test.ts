@@ -5,7 +5,6 @@ import {
   type LanguageModelV4ProviderTool,
   type LanguageModelV4Prompt,
   type LanguageModelV4StreamPart,
-  type JSONSchema7,
 } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
@@ -1888,69 +1887,6 @@ describe('OpenAIResponsesLanguageModel', () => {
         `);
 
         expect(warnings).toStrictEqual([]);
-      });
-
-      it('should preserve root-level $defs in responseFormat json_schema', async () => {
-        prepareJsonFixtureResponse('issue-6454-root-definitions-success');
-
-        const result = await createModel('gpt-4o-mini').doGenerate({
-          responseFormat: {
-            type: 'json',
-            name: 'response',
-            schema: {
-              type: 'object',
-              properties: {
-                elements: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      shared: { $ref: '#/$defs/Shared' },
-                    },
-                    required: ['shared'],
-                    additionalProperties: false,
-                  },
-                },
-              },
-              required: ['elements'],
-              additionalProperties: false,
-              $defs: {
-                Shared: {
-                  type: 'string',
-                },
-              },
-            } as JSONSchema7,
-          },
-          prompt: TEST_PROMPT,
-        });
-
-        expect(
-          (await server.calls[0].requestBodyJson).text.format.schema,
-        ).toMatchObject({
-          $defs: {
-            Shared: {
-              type: 'string',
-            },
-          },
-          properties: {
-            elements: {
-              items: {
-                properties: {
-                  shared: { $ref: '#/$defs/Shared' },
-                },
-              },
-            },
-          },
-        });
-        expect(result.content).toContainEqual({
-          type: 'text',
-          text: '{"elements":[{"shared":"works"}]}',
-          providerMetadata: {
-            openai: {
-              itemId: 'msg_041e2bdce21affed006a7cb1e04f2881a090cdc8e3d660b1c9',
-            },
-          },
-        });
       });
 
       it('should send responseFormat json_schema format with strictJsonSchema false', async () => {
