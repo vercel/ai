@@ -932,7 +932,7 @@ it('should use VALIDATED mode with toolChoice auto when strict: true', () => {
   });
 });
 
-it('should use VALIDATED mode with toolChoice required when strict: true', () => {
+it('should use ANY mode with toolChoice required when strict: true', () => {
   const result = prepareTools({
     tools: [
       {
@@ -952,7 +952,45 @@ it('should use VALIDATED mode with toolChoice required when strict: true', () =>
     modelId: 'gemini-3-flash-preview',
   });
   expect(result.toolConfig).toEqual({
-    functionCallingConfig: { mode: 'VALIDATED' },
+    functionCallingConfig: { mode: 'ANY' },
+  });
+});
+
+it('should use ANY mode with named toolChoice when another tool has strict: true', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'createMeeting',
+        description: 'Create meeting',
+        inputSchema: {
+          type: 'object',
+          properties: { title: { type: 'string' } },
+          required: ['title'],
+          additionalProperties: false,
+        },
+      },
+      {
+        type: 'function',
+        name: 'getWeather',
+        description: 'Get weather',
+        inputSchema: {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+          additionalProperties: false,
+        },
+        strict: true,
+      },
+    ],
+    toolChoice: { type: 'tool', toolName: 'createMeeting' },
+    modelId: 'gemini-3-flash-preview',
+  });
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: {
+      mode: 'ANY',
+      allowedFunctionNames: ['createMeeting'],
+    },
   });
 });
 

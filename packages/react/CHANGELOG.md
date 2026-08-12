@@ -1,5 +1,51 @@
 # @ai-sdk/react
 
+## 3.0.256
+
+### Patch Changes
+
+- d3d3124: Avoid repeatedly deep-cloning accumulated message payloads during chat streaming.
+
+## 3.0.255
+
+### Patch Changes
+
+- Updated dependencies [d91d30b]
+  - ai@6.0.253
+
+## 3.0.254
+
+### Patch Changes
+
+- Updated dependencies [2f96d3f]
+- Updated dependencies [afb1965]
+  - ai@6.0.252
+
+## 3.0.253
+
+### Patch Changes
+
+- fb9a415: Reset the useCompletion input after submitting a prompt.
+- Updated dependencies [d13c2e9]
+  - ai@6.0.251
+
+## 3.0.252
+
+### Patch Changes
+
+- Updated dependencies [a077695]
+- Updated dependencies [7ce3b8c]
+- Updated dependencies [b2a4d5a]
+  - ai@6.0.250
+  - @ai-sdk/provider-utils@4.0.45
+
+## 3.0.251
+
+### Patch Changes
+
+- Updated dependencies [a774b7b]
+  - ai@6.0.249
+
 ## 3.0.250
 
 ### Patch Changes

@@ -1,5 +1,32 @@
 # @ai-sdk/gateway
 
+## 3.0.172
+
+### Patch Changes
+
+- 0ec239b: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.171
+
+### Patch Changes
+
+- 18b0965: Serialize structured Gateway error responses in nested API call error messages.
+- 451d2c3: feat(xai): Add the Grok 4.6 model IDs and support its `xhigh` reasoning effort
+
+## 3.0.170
+
+### Patch Changes
+
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+
+## 3.0.169
+
+### Patch Changes
+
+- b39f987: Backport: chore(provider/gateway): update gateway model settings files
+- d79117b: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 3.0.168
 
 ### Patch Changes

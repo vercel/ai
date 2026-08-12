@@ -1,6 +1,7 @@
 import { z } from 'zod/v4';
 
 export type XaiResponsesModelId =
+  | 'grok-4.6'
   | 'grok-4.5'
   | 'grok-4.3'
   | 'grok-4.20-0309-reasoning'
@@ -16,12 +17,16 @@ export const xaiLanguageModelResponsesOptions = z.object({
   /**
    * Constrains how hard a reasoning model thinks before responding.
    * Possible values are `none` (disables reasoning), `low` (uses fewer reasoning
-   * tokens), `medium` and `high` (uses more reasoning tokens). Not all models
-   * support reasoning effort; see xAI's docs for the values each model accepts.
+   * tokens), `medium`, `high`, and `xhigh` (uses more reasoning tokens). Not all
+   * models support reasoning effort; see xAI's docs for the values each model
+   * accepts. `xhigh` is currently only supported by `grok-4.6`.
    */
-  reasoningEffort: z.enum(['none', 'low', 'medium', 'high']).optional(),
+  reasoningEffort: z
+    .enum(['none', 'low', 'medium', 'high', 'xhigh'])
+    .optional(),
   logprobs: z.boolean().optional(),
   topLogprobs: z.number().int().min(0).max(8).optional(),
+  serviceTier: z.enum(['default', 'priority']).optional(),
   /**
    * Whether to store the input message(s) and model response for later retrieval.
    * Must be set to `false` for teams with Zero Data Retention (ZDR) enabled,

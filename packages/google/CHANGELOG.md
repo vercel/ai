@@ -1,5 +1,19 @@
 # @ai-sdk/google
 
+## 3.0.108
+
+### Patch Changes
+
+- dd7ecd7: Preserve forced tool calls when strict function tools are configured.
+
+## 3.0.107
+
+### Patch Changes
+
+- c29b64f: Preserve Google API error details in `APICallError.data`.
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+
 ## 3.0.106
 
 ### Patch Changes

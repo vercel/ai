@@ -300,6 +300,94 @@ describe('XaiChatLanguageModel', () => {
       });
     });
 
+    it('should pass serviceTier as service_tier', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          xai: {
+            serviceTier: 'priority',
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        model: 'grok-3',
+        service_tier: 'priority',
+      });
+    });
+
+    it('should expose the applied service tier as provider metadata', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'tier-id',
+          object: 'chat.completion',
+          created: 1699472111,
+          model: 'grok-4.6',
+          service_tier: 'priority',
+          choices: [
+            {
+              index: 0,
+              message: { role: 'assistant', content: 'Hello' },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: { prompt_tokens: 4, total_tokens: 34, completion_tokens: 30 },
+        },
+      };
+
+      const { providerMetadata } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: { xai: { serviceTier: 'priority' } },
+      });
+
+      expect(providerMetadata).toStrictEqual({
+        xai: { serviceTier: 'priority' },
+      });
+    });
+
+    it('should report the downgraded tier when priority capacity is unavailable', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'tier-id',
+          object: 'chat.completion',
+          created: 1699472111,
+          model: 'grok-4.6',
+          service_tier: 'default',
+          choices: [
+            {
+              index: 0,
+              message: { role: 'assistant', content: 'Hello' },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: { prompt_tokens: 4, total_tokens: 34, completion_tokens: 30 },
+        },
+      };
+
+      const { providerMetadata } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: { xai: { serviceTier: 'priority' } },
+      });
+
+      expect(providerMetadata).toStrictEqual({
+        xai: { serviceTier: 'default' },
+      });
+    });
+
+    it('should omit provider metadata when the response has no service tier', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      const { providerMetadata } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(providerMetadata).toBeUndefined();
+    });
+
     it('should pass headers', async () => {
       prepareJsonFixtureResponse('xai-text');
 
@@ -377,6 +465,7 @@ describe('XaiChatLanguageModel', () => {
             "response_format": undefined,
             "search_parameters": undefined,
             "seed": undefined,
+            "service_tier": undefined,
             "temperature": undefined,
             "tool_choice": undefined,
             "tools": undefined,
@@ -945,6 +1034,30 @@ describe('XaiChatLanguageModel', () => {
       `);
     });
 
+    it('should expose the applied service tier on the finish part', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"tier-id","object":"chat.completion.chunk","created":1699472111,"model":"grok-4.6","service_tier":"priority","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"}}]}\n\n`,
+          `data: {"id":"tier-id","object":"chat.completion.chunk","created":1699472111,"model":"grok-4.6","service_tier":"priority","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":4,"total_tokens":34,"completion_tokens":30}}\n\n`,
+          `data: [DONE]\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: { xai: { serviceTier: 'priority' } },
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+      const finish = chunks.find(chunk => chunk.type === 'finish');
+
+      expect(finish?.providerMetadata).toStrictEqual({
+        xai: { serviceTier: 'priority' },
+      });
+    });
+
     it('should avoid duplication when there is a trailing assistant message', async () => {
       prepareChunksFixtureResponse('xai-text');
 
@@ -1052,6 +1165,7 @@ describe('XaiChatLanguageModel', () => {
             "response_format": undefined,
             "search_parameters": undefined,
             "seed": undefined,
+            "service_tier": undefined,
             "stream": true,
             "stream_options": {
               "include_usage": true,
@@ -1322,6 +1436,32 @@ describe('XaiChatLanguageModel', () => {
           ],
           "model": "grok-3-mini",
           "reasoning_effort": "none",
+        }
+      `);
+    });
+
+    it('should pass reasoning_effort xhigh parameter', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      const model = new XaiChatLanguageModel('grok-4.6', testConfig);
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          xai: { reasoningEffort: 'xhigh' },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "grok-4.6",
+          "reasoning_effort": "xhigh",
         }
       `);
     });

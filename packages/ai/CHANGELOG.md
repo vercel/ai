@@ -1,5 +1,49 @@
 # ai
 
+## 6.0.253
+
+### Patch Changes
+
+- d91d30b: Preserve reasoning block IDs from UI message streams on reasoning UI parts.
+- Updated dependencies [0ec239b]
+  - @ai-sdk/gateway@3.0.172
+
+## 6.0.252
+
+### Patch Changes
+
+- 2f96d3f: Allow providers without reranking model support to satisfy the `Provider` type.
+- afb1965: Propagate errors thrown by the Chat `onFinish` callback to the initiating request.
+- Updated dependencies [18b0965]
+- Updated dependencies [451d2c3]
+  - @ai-sdk/gateway@3.0.171
+
+## 6.0.251
+
+### Patch Changes
+
+- d13c2e9: Respect ToolLoopAgent timeouts configured in agent settings.
+
+## 6.0.250
+
+### Patch Changes
+
+- a077695: Prevent streaming telemetry spans from ending twice when model calls fail.
+- 7ce3b8c: Prevent `resumeStream` from copying the previous assistant message into the resumed response.
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+  - @ai-sdk/gateway@3.0.170
+
+## 6.0.249
+
+### Patch Changes
+
+- a774b7b: Stop pending and active resumed chat streams after cancellation, and prevent
+  overlapping resumptions from applying stale updates.
+- Updated dependencies [b39f987]
+- Updated dependencies [d79117b]
+  - @ai-sdk/gateway@3.0.169
+
 ## 6.0.248
 
 ### Patch Changes

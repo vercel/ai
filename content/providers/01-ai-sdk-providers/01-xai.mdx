@@ -73,10 +73,10 @@ You can use the following optional settings to customize the xAI provider instan
 ## Language Models
 
 You can create [xAI models](https://console.x.ai) using a provider instance. The
-first argument is the model id, e.g. `grok-4.5`.
+first argument is the model id, e.g. `grok-4.6`.
 
 ```ts
-const model = xai('grok-4.5');
+const model = xai('grok-4.6');
 ```
 
 By default, `xai(modelId)` uses the Chat API. To use the Responses API with server-side agentic tools, explicitly use `xai.responses(modelId)`.
@@ -90,7 +90,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai('grok-4.5'),
+  model: xai('grok-4.6'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -104,16 +104,19 @@ and support structured data generation with [`Output`](/docs/reference/ai-sdk-co
 For models with configurable reasoning, you can control how much effort the
 model spends thinking before responding with
 `providerOptions.xai.reasoningEffort`. The AI SDK option accepts `'none'`,
-`'low'`, `'medium'`, and `'high'`, but each xAI model supports a subset.
+`'low'`, `'medium'`, `'high'`, and `'xhigh'`, but each xAI model supports a
+subset.
 
 <Note>
-  Support and defaults are model-specific. `grok-4.3` supports `'none'`,
-  `'low'`, `'medium'`, and `'high'`. `grok-4.5` supports `'low'`, `'medium'`,
-  and `'high'`, defaults to `'high'`, and cannot disable reasoning. The
-  `grok-4.20-reasoning` and `grok-4.20-non-reasoning` variants do not accept
-  this option, and neither does `grok-build-0.1`. For
-  `grok-4.20-multi-agent`, `'low'`, `'medium'`, and `'high'` control the number
-  of agents instead of reasoning depth. See xAI's [reasoning
+  Support and defaults are model-specific. `grok-4.6` supports `'low'`,
+  `'medium'`, `'high'`, and `'xhigh'`, defaults to `'high'`, and cannot disable
+  reasoning. `grok-4.3` supports `'none'`, `'low'`, `'medium'`, and `'high'`.
+  `grok-4.5` supports `'low'`, `'medium'`, and `'high'`, defaults to `'high'`,
+  and cannot disable reasoning. The `grok-4.20-reasoning` and
+  `grok-4.20-non-reasoning` variants do not accept this option, and neither does
+  `grok-build-0.1`. For `grok-4.20-multi-agent`, `'low'`, `'medium'`, and
+  `'high'` control the number of agents instead of reasoning depth. See xAI's
+  [reasoning
   docs](https://docs.x.ai/developers/model-capabilities/text/reasoning) and
   [Grok 4.3 model page](https://docs.x.ai/developers/models/grok-4.3) for
   current details.
@@ -127,7 +130,7 @@ the [standard call settings](/docs/ai-sdk-core/settings). You can pass them in t
 ```ts
 import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
 
-const model = xai('grok-4.5');
+const model = xai('grok-4.6');
 
 await generateText({
   model,
@@ -157,12 +160,43 @@ The following optional provider options are available for xAI chat models:
 
   Whether to enable parallel function calling during tool use. When true, the model can call multiple functions in parallel. When false, the model will call functions sequentially. Defaults to `true`.
 
+### Priority Processing
+
+`providerOptions.xai.serviceTier` requests higher scheduling priority, which
+typically lowers time-to-first-token and speeds up inter-token latency. This
+works for both the Responses API (default) and the Chat Completions API
+(`xai.chat()`).
+
+```ts
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
+
+const { providerMetadata } = await generateText({
+  model: xai('grok-4.6'),
+  prompt: 'Explain quantum entanglement.',
+  providerOptions: {
+    xai: { serviceTier: 'priority' },
+  },
+});
+
+// 'priority' when the request was served at the priority tier,
+// 'default' when priority capacity was unavailable.
+console.log(providerMetadata?.xai?.serviceTier);
+```
+
+Priority requests are billed at a premium per-token rate, and xAI only charges
+that rate when the response confirms the priority tier — so read the applied
+tier back from `providerMetadata.xai.serviceTier` rather than assuming the
+request you sent is the tier you got. Omitting the option is equivalent to
+`'default'`. See xAI's [priority processing
+docs](https://docs.x.ai/developers/advanced-api-usage/priority-processing).
+
 ## Responses API (Agentic Tools)
 
 You can use the xAI Responses API with the `xai.responses(modelId)` factory method for server-side agentic tool calling. This enables the model to autonomously orchestrate tool calls and research on xAI's servers.
 
 ```ts
-const model = xai.responses('grok-4.5');
+const model = xai.responses('grok-4.6');
 ```
 
 The Responses API provides server-side tools that the model can autonomously execute during its reasoning process:
@@ -498,7 +532,7 @@ import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: xai.responses('grok-4.5'),
+  model: xai.responses('grok-4.6'),
   providerOptions: {
     xai: {
       reasoningEffort: 'high',
@@ -510,7 +544,7 @@ const result = await generateText({
 
 The following provider options are available:
 
-- **reasoningEffort** _'none' | 'low' | 'medium' | 'high'_
+- **reasoningEffort** _'none' | 'low' | 'medium' | 'high' | 'xhigh'_
 
   Control the reasoning effort for supported models. See [Reasoning Effort](#reasoning-effort) for model-specific values and defaults.
 
@@ -533,6 +567,10 @@ The following provider options are available:
 - **previousResponseId** _string_
 
   The ID of the previous response from the model. You can use it to continue a conversation.
+
+- **serviceTier** _'default' | 'priority'_
+
+  Scheduling priority for the request. `'priority'` buys lower time-to-first-token and faster inter-token latency at a premium per-token price. The tier xAI actually applied comes back on `providerMetadata.xai.serviceTier`, and is `'default'` when priority capacity was unavailable. See [Priority Processing](https://docs.x.ai/developers/advanced-api-usage/priority-processing).
 
 <Note>
   The Responses API only supports server-side tools. You cannot mix server-side
@@ -828,6 +866,7 @@ console.log('Sources:', await result.sources);
 
 | Model                         | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Reasoning           |
 | ----------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `grok-4.6`                    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `grok-4.5`                    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `grok-4.20-reasoning`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `grok-4.20-non-reasoning`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
