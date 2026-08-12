@@ -5,6 +5,8 @@ import {
   type ACPSource,
 } from '@ai-sdk/harness-acp';
 import { commonTool } from '@ai-sdk/harness';
+import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
+import { secureJsonParse } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 
 const webSearchActionSchema = z.discriminatedUnion('type', [
@@ -60,6 +62,17 @@ const CODEX_ACP_PERMISSION_MODE_MAPPING = {
   'allow-all': { type: 'session-mode', modeId: 'agent-full-access' },
 } as const satisfies ACPPermissionModeMapping;
 
+const codexConfigSchema = z.object({
+  model_provider: z.string().optional(),
+  model_providers: z
+    .record(
+      z.object({
+        base_url: z.string().optional(),
+      }),
+    )
+    .optional(),
+});
+
 export function createCodexACP({
   auth = 'auto',
   mcpServers,
@@ -81,7 +94,18 @@ export function createCodexACP({
     mintBridgeToken,
     source,
     executable: CODEX_ACP_EXECUTABLE,
-    forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
+    forwardEnv: webSearch ? [] : ['CODEX_CONFIG'],
+    credentialEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
+    credentialBrokering: ({ env }) => {
+      const credential = env.CODEX_API_KEY ?? env.OPENAI_API_KEY;
+      if (!credential) return [];
+      return [
+        createCredentialRequestTransformation({
+          baseUrl: resolveCodexACPBaseUrl({ env }),
+          headers: { Authorization: `Bearer ${credential}` },
+        }),
+      ];
+    },
     instructionMapping: {
       type: 'launch-env-json',
       variable: 'CODEX_CONFIG',
@@ -130,4 +154,23 @@ export function createCodexACP({
       },
     },
   });
+}
+
+function resolveCodexACPBaseUrl({
+  env,
+}: {
+  env: Readonly<Record<string, string>>;
+}): string {
+  const config = env.CODEX_CONFIG;
+  if (config != null) {
+    try {
+      const result = codexConfigSchema.safeParse(secureJsonParse(config));
+      if (result.success && result.data.model_provider != null) {
+        const baseUrl =
+          result.data.model_providers?.[result.data.model_provider]?.base_url;
+        if (baseUrl != null) return baseUrl;
+      }
+    } catch {}
+  }
+  return 'https://api.openai.com/v1';
 }

@@ -22,9 +22,11 @@ import {
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
   markBridgeStarting,
+  maskSandboxCredentials,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
+  warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
 } from '@ai-sdk/harness/utils';
 import {
@@ -61,6 +63,7 @@ import {
   type StartMessage,
 } from './acp-v1-bridge-protocol';
 import { createACPBridgeEnvironment } from './bridge/acp-v1-bridge-environment';
+import { resolveACPLaunchEnvironment } from './bridge/protocol-configuration';
 import {
   createACPColdSessionState,
   createACPTurnStartConfig,
@@ -128,6 +131,14 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
     HarnessV1<TBuiltinTools>['lifecycleStateSchema']
   >;
 }): HarnessV1<TBuiltinTools> {
+  if (
+    (settings.credentialEnv == null) !==
+    (settings.credentialBrokering == null)
+  ) {
+    throw new Error(
+      'ACP credentialEnv and credentialBrokering must be configured together.',
+    );
+  }
   if (
     settings.mcpServers != null &&
     Object.prototype.hasOwnProperty.call(
@@ -267,6 +278,71 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         compatibility: providerAuthenticationCompatibility,
       });
       const sandboxSession = startOptions.sandboxSession;
+      const implementationEnvironment = resolveImplementationEnvironment({
+        implementation,
+        env,
+      });
+      let sandboxImplementationEnvironment = implementationEnvironment;
+      let sandboxProviderAuthenticationEnvironment =
+        resolvedProviderAuthentication.env;
+      let sandboxProviderEnvironment: Record<string, string> | undefined;
+
+      if (
+        settings.credentialBrokering != null &&
+        sandboxSession.addRequestTransformations != null
+      ) {
+        const providerEnvironment = resolveProviderEnvironment({
+          resolvedProviderAuthentication,
+          clientApp,
+        });
+        const credentialEnvironmentVariables = [
+          ...new Set([
+            ...(settings.credentialEnv ?? []),
+            'AI_GATEWAY_API_KEY',
+            'VERCEL_OIDC_TOKEN',
+          ]),
+        ];
+        const requestTransformations = settings.credentialBrokering({
+          env: {
+            ...implementationEnvironment,
+            ...providerEnvironment,
+          },
+        });
+        if (requestTransformations.length > 0) {
+          await sandboxSession.addRequestTransformations(
+            requestTransformations,
+          );
+        }
+        sandboxImplementationEnvironment = maskSandboxCredentials({
+          environment: implementationEnvironment,
+          credentialEnvironmentVariables,
+        });
+
+        /*
+         * Gateway profiles are resolved on the host twice: real values feed
+         * the transformation callback, while the bridge receives only a
+         * structurally equivalent environment with credential placeholders.
+         * Resolving the profile inside the sandbox would require serializing
+         * the Gateway credential into the bridge process environment.
+         */
+        sandboxProviderEnvironment = maskSandboxCredentials({
+          environment: resolveProviderEnvironment({
+            resolvedProviderAuthentication,
+            clientApp,
+            gatewayApiKey: 'AI_GATEWAY_API_KEY',
+          }),
+          credentialEnvironmentVariables,
+        });
+        sandboxProviderAuthenticationEnvironment = Object.fromEntries(
+          Object.entries(resolvedProviderAuthentication.env).filter(
+            ([key]) =>
+              key !== 'AI_SDK_ACP_GATEWAY_API_KEY' &&
+              key !== 'AI_SDK_ACP_GATEWAY_BASE_URL',
+          ),
+        );
+      } else if (settings.credentialBrokering != null) {
+        warnCredentialBrokeringUnavailable();
+      }
       const sandbox = sandboxSession.restricted();
       const resolvedBridgeDir = posix.resolve(
         sandboxSession.defaultWorkingDirectory,
@@ -508,17 +584,15 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           ` --implementation-dir ${shellQuote(resolvedImplementationDir)}` +
           ` --bridge-type ${shellQuote(settings.harnessId)}`,
         env: {
-          ...resolveImplementationEnvironment({
-            implementation,
-            env,
-          }),
+          ...sandboxImplementationEnvironment,
           ...createACPBridgeEnvironment({
             authentication: settings.authentication,
             providerAuthentication:
               resolvedProviderAuthentication.providerAuthentication,
+            providerEnvironment: sandboxProviderEnvironment,
             sessionMeta: settings.session?.meta,
           }),
-          ...resolvedProviderAuthentication.env,
+          ...sandboxProviderAuthenticationEnvironment,
           BRIDGE_CHANNEL_TOKEN: token,
           BRIDGE_WS_PORT: String(port),
           ...(respawnStrategy?.mode === 'disk-replay'
@@ -675,6 +749,56 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       });
     },
   };
+}
+
+function resolveProviderEnvironment({
+  resolvedProviderAuthentication,
+  clientApp,
+  gatewayApiKey,
+}: {
+  resolvedProviderAuthentication: ReturnType<
+    typeof resolveACPProviderAuthentication
+  >;
+  clientApp: ACPClientApp;
+  gatewayApiKey?: string;
+}): Record<string, string> {
+  if (
+    resolvedProviderAuthentication.providerAuthentication?.type !== 'ai-gateway'
+  ) {
+    return {};
+  }
+  return resolveACPLaunchEnvironment({
+    providerAuthentication:
+      resolvedProviderAuthentication.providerAuthentication,
+    gateway: {
+      apiKey:
+        gatewayApiKey ??
+        requireResolvedEnvironmentValue({
+          environment: resolvedProviderAuthentication.env,
+          name: 'AI_SDK_ACP_GATEWAY_API_KEY',
+        }),
+      baseUrl: requireResolvedEnvironmentValue({
+        environment: resolvedProviderAuthentication.env,
+        name: 'AI_SDK_ACP_GATEWAY_BASE_URL',
+      }),
+      clientAppName: clientApp.name,
+      clientAppVersion: clientApp.version,
+    },
+  });
+}
+
+function requireResolvedEnvironmentValue({
+  environment,
+  name,
+}: {
+  environment: Readonly<Record<string, string>>;
+  name: string;
+}): string {
+  const value = environment[name];
+  if (value == null) {
+    throw new Error(`ACP resolved environment value ${name} is unavailable.`);
+  }
+  return value;
 }
 
 async function readBridgeAsset({ name }: { name: string }): Promise<string> {
