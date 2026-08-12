@@ -197,6 +197,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       ...(options.previousResponseId != null && {
         previous_response_id: options.previousResponseId,
       }),
+      ...(options.serviceTier != null && {
+        service_tier: options.serviceTier,
+      }),
     };
 
     if (xaiTools && xaiTools.length > 0) {
@@ -432,6 +435,22 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
             inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
             outputTokens: { total: 0, text: 0, reasoning: 0 },
           },
+<<<<<<< HEAD
+=======
+      ...((response.usage?.cost_in_usd_ticks != null ||
+        response.service_tier != null) && {
+        providerMetadata: {
+          xai: {
+            ...(response.usage?.cost_in_usd_ticks != null && {
+              costInUsdTicks: response.usage.cost_in_usd_ticks,
+            }),
+            ...(response.service_tier != null && {
+              serviceTier: response.service_tier,
+            }),
+          },
+        },
+      }),
+>>>>>>> 484293f2ff (feat(xai): support priority service tier on chat and responses (#18792))
       request: { body },
       response: {
         ...getResponseMetadata(response),
@@ -476,7 +495,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       raw: undefined,
     };
     let hasFunctionCall = false;
+<<<<<<< HEAD
     let usage: LanguageModelV3Usage | undefined = undefined;
+=======
+    let usage: LanguageModelV4Usage | undefined = undefined;
+    let costInUsdTicks: number | undefined = undefined;
+    let serviceTier: string | undefined = undefined;
+>>>>>>> 484293f2ff (feat(xai): support priority service tier on chat and responses (#18792))
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
     const seenToolCalls = new Set<string>();
@@ -669,6 +694,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               if (response.usage) {
                 usage = convertXaiResponsesUsage(response.usage);
               }
+
+              serviceTier = response.service_tier ?? undefined;
 
               if (event.type === 'response.incomplete') {
                 const reason =
@@ -1022,6 +1049,17 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                 },
                 outputTokens: { total: 0, text: 0, reasoning: 0 },
               },
+<<<<<<< HEAD
+=======
+              ...((costInUsdTicks != null || serviceTier != null) && {
+                providerMetadata: {
+                  xai: {
+                    ...(costInUsdTicks != null && { costInUsdTicks }),
+                    ...(serviceTier != null && { serviceTier }),
+                  },
+                },
+              }),
+>>>>>>> 484293f2ff (feat(xai): support priority service tier on chat and responses (#18792))
             });
           },
         }),

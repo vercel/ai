@@ -59,6 +59,8 @@ export const xaiLanguageModelChatOptions = z.object({
   logprobs: z.boolean().optional(),
   topLogprobs: z.number().int().min(0).max(8).optional(),
 
+  serviceTier: z.enum(['default', 'priority']).optional(),
+
   /**
    * Whether to enable parallel function calling during tool use.
    * When true, the model can call multiple functions in parallel.
