@@ -1,9 +1,10 @@
-import type {
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4StreamPart,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4StreamResult,
+import {
+  APICallError,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4StreamResult,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -11,13 +12,16 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
+  postToApi,
   resolve,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   type ParseResult,
   type Resolvable,
+  type ResponseHandler,
 } from '@ai-sdk/provider-utils';
+import { encodeCbor } from './cbor';
 import { z } from './zod';
 import type { GatewayConfig } from './gateway-config';
 import type { GatewayModelId } from './gateway-language-model-settings';
@@ -56,13 +60,80 @@ export class GatewayLanguageModel implements LanguageModelV4 {
     return this.config.provider;
   }
 
+  /**
+   * Set when the gateway rejects a CBOR body with 415; CBOR is not retried
+   * for the life of this model instance.
+   */
+  private cborUnsupported = false;
+
   private async getArgs(options: LanguageModelV4CallOptions) {
     const { abortSignal: _abortSignal, ...optionsWithoutSignal } = options;
 
     return {
-      args: this.maybeEncodeFileParts(optionsWithoutSignal),
+      args: optionsWithoutSignal,
       warnings: [],
     };
+  }
+
+  private shouldUseCbor(options: LanguageModelV4CallOptions): boolean {
+    return (
+      this.config.encoding === 'cbor' &&
+      !this.cborUnsupported &&
+      hasInlineFileData(options.prompt)
+    );
+  }
+
+  /**
+   * POSTs the call options as CBOR when requested, falling back to the JSON
+   * encoding (with base64 file parts) on a 415. The JSON leg is the
+   * historical wire format.
+   */
+  private async postCallOptions<T>({
+    args,
+    abortSignal,
+    headers,
+    useCbor,
+    successfulResponseHandler,
+  }: {
+    args: Omit<LanguageModelV4CallOptions, 'abortSignal'>;
+    abortSignal: AbortSignal | undefined;
+    headers: Record<string, string | undefined>;
+    useCbor: boolean;
+    successfulResponseHandler: ResponseHandler<T>;
+  }) {
+    const failedResponseHandler = createJsonErrorResponseHandler({
+      errorSchema: z.any(),
+      errorToMessage: data => data,
+    });
+
+    if (useCbor) {
+      try {
+        return await postToApi<T>({
+          url: this.getUrl(),
+          headers: { 'Content-Type': 'application/cbor', ...headers },
+          body: { content: encodeCbor(args), values: args },
+          successfulResponseHandler,
+          failedResponseHandler,
+          ...(abortSignal && { abortSignal }),
+          fetch: this.config.fetch,
+        });
+      } catch (error) {
+        if (!APICallError.isInstance(error) || error.statusCode !== 415) {
+          throw error;
+        }
+        this.cborUnsupported = true;
+      }
+    }
+
+    return postJsonToApi<T>({
+      url: this.getUrl(),
+      headers,
+      body: this.maybeEncodeFileParts(args),
+      successfulResponseHandler,
+      failedResponseHandler,
+      ...(abortSignal && { abortSignal }),
+      fetch: this.config.fetch,
+    });
   }
 
   async doGenerate(
@@ -80,22 +151,17 @@ export class GatewayLanguageModel implements LanguageModelV4 {
         responseHeaders,
         value: responseBody,
         rawValue: rawResponse,
-      } = await postJsonToApi({
-        url: this.getUrl(),
+      } = await this.postCallOptions({
+        args,
+        abortSignal,
         headers: combineHeaders(
           resolvedHeaders,
           options.headers,
           this.getModelConfigHeaders(this.modelId, false),
           await resolve(this.config.o11yHeaders),
         ),
-        body: args,
+        useCbor: this.shouldUseCbor(options),
         successfulResponseHandler: createJsonResponseHandler(z.any()),
-        failedResponseHandler: createJsonErrorResponseHandler({
-          errorSchema: z.any(),
-          errorToMessage: data => data,
-        }),
-        ...(abortSignal && { abortSignal }),
-        fetch: this.config.fetch,
       });
 
       return {
@@ -123,22 +189,17 @@ export class GatewayLanguageModel implements LanguageModelV4 {
       : undefined;
 
     try {
-      const { value: response, responseHeaders } = await postJsonToApi({
-        url: this.getUrl(),
+      const { value: response, responseHeaders } = await this.postCallOptions({
+        args,
+        abortSignal,
         headers: combineHeaders(
           resolvedHeaders,
           options.headers,
           this.getModelConfigHeaders(this.modelId, true),
           await resolve(this.config.o11yHeaders),
         ),
-        body: args,
+        useCbor: this.shouldUseCbor(options),
         successfulResponseHandler: createEventSourceResponseHandler(z.any()),
-        failedResponseHandler: createJsonErrorResponseHandler({
-          errorSchema: z.any(),
-          errorToMessage: data => data,
-        }),
-        ...(abortSignal && { abortSignal }),
-        fetch: this.config.fetch,
       });
 
       return {
@@ -239,4 +300,45 @@ function maybeBase64EncodeFileData<T extends { type: string }>(data: T): T {
     }
   }
   return data;
+}
+
+/**
+ * True when the prompt carries at least one inline `Uint8Array` file payload
+ * (file, reasoning-file, or tool-result file part) — the only case where
+ * CBOR beats the JSON/base64 encoding on the wire.
+ */
+function hasInlineFileData(
+  prompt: LanguageModelV4CallOptions['prompt'],
+): boolean {
+  for (const message of prompt) {
+    if (!Array.isArray(message.content)) {
+      continue;
+    }
+    for (const part of message.content) {
+      if (
+        (part.type === 'file' || part.type === 'reasoning-file') &&
+        isInlineBytesFileData(part.data)
+      ) {
+        return true;
+      }
+      if (part.type === 'tool-result' && part.output.type === 'content') {
+        for (const contentPart of part.output.value) {
+          if (
+            contentPart.type === 'file' &&
+            isInlineBytesFileData(contentPart.data)
+          ) {
+            return true;
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+
+function isInlineBytesFileData(data: { type: string }): boolean {
+  return (
+    data.type === 'data' &&
+    (data as { data?: unknown }).data instanceof Uint8Array
+  );
 }

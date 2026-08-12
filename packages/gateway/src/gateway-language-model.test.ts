@@ -4,6 +4,7 @@ import type {
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
+import { decodeCbor } from './cbor';
 import { GatewayLanguageModel } from './gateway-language-model';
 import type { GatewayConfig } from './gateway-config';
 import {
@@ -1773,6 +1774,170 @@ describe('GatewayLanguageModel', () => {
         type: 'url',
         url: 'https://example.com/a.png',
       });
+    });
+  });
+
+  describe('CBOR request encoding', () => {
+    const GENERATE_RESPONSE = {
+      id: 'test-id',
+      created: 1711115037,
+      model: 'test-model',
+      content: { type: 'text', text: 'ok' },
+      finish_reason: 'stop',
+      usage: { prompt_tokens: 4, completion_tokens: 30 },
+    };
+
+    function createCaptureFetch({
+      failFirstWith = undefined as number | undefined,
+    } = {}) {
+      const calls: Array<{
+        headers: Record<string, string>;
+        body: unknown;
+      }> = [];
+      const fetchFn: typeof globalThis.fetch = async (_url, init) => {
+        const headers: Record<string, string> = {};
+        new Headers(init?.headers).forEach((value, key) => {
+          headers[key.toLowerCase()] = value;
+        });
+        calls.push({ headers, body: init?.body });
+        const status =
+          failFirstWith !== undefined && calls.length === 1
+            ? failFirstWith
+            : 200;
+        return new Response(
+          JSON.stringify(
+            status === 200 ? GENERATE_RESPONSE : { error: 'request failed' },
+          ),
+          { status, headers: { 'Content-Type': 'application/json' } },
+        );
+      };
+      return { calls, fetchFn };
+    }
+
+    const promptWithImageBytes = (bytes: Uint8Array): LanguageModelV4Prompt => [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'describe' },
+          {
+            type: 'file',
+            data: { type: 'data', data: bytes },
+            mediaType: 'image/png',
+          },
+        ],
+      },
+    ];
+
+    it('sends CBOR with intact bytes when opted in and the prompt has inline file data', async () => {
+      const { calls, fetchFn } = createCaptureFetch();
+      const bytes = new Uint8Array([1, 2, 3, 4]);
+
+      await createTestModel({ encoding: 'cbor', fetch: fetchFn }).doGenerate({
+        prompt: promptWithImageBytes(bytes),
+      });
+
+      expect(calls).toHaveLength(1);
+      expect(calls[0].headers['content-type']).toContain('application/cbor');
+      expect(calls[0].body).toBeInstanceOf(Uint8Array);
+
+      const decoded = decodeCbor(calls[0].body as Uint8Array) as any;
+      expect(decoded.prompt[0].content[0]).toEqual({
+        type: 'text',
+        text: 'describe',
+      });
+      const fileData = decoded.prompt[0].content[1].data;
+      expect(fileData.type).toBe('data');
+      expect(Array.from(fileData.data)).toEqual([1, 2, 3, 4]);
+    });
+
+    it('sends JSON when opted in but the prompt has no inline file data', async () => {
+      const { calls, fetchFn } = createCaptureFetch();
+
+      await createTestModel({ encoding: 'cbor', fetch: fetchFn }).doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(calls).toHaveLength(1);
+      expect(calls[0].headers['content-type']).toContain('application/json');
+    });
+
+    it('sends CBOR for reasoning-file and tool-result inline bytes', async () => {
+      const { calls, fetchFn } = createCaptureFetch();
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning-file',
+              data: { type: 'data', data: new Uint8Array([9, 9]) },
+              mediaType: 'image/png',
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'call_1',
+              toolName: 'render',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file',
+                    data: { type: 'data', data: new Uint8Array([8, 8]) },
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ];
+
+      await createTestModel({ encoding: 'cbor', fetch: fetchFn }).doGenerate({
+        prompt,
+      });
+
+      expect(calls).toHaveLength(1);
+      expect(calls[0].headers['content-type']).toContain('application/cbor');
+      const decoded = decodeCbor(calls[0].body as Uint8Array) as any;
+      const [reasoningFile, toolResult] = decoded.prompt[0].content;
+      expect(Array.from(reasoningFile.data.data)).toEqual([9, 9]);
+      expect(Array.from(toolResult.output.value[0].data.data)).toEqual([8, 8]);
+    });
+
+    it('retries once as JSON on 415 and stops sending CBOR afterwards', async () => {
+      const { calls, fetchFn } = createCaptureFetch({ failFirstWith: 415 });
+      const bytes = new Uint8Array([1, 2, 3, 4]);
+      const model = createTestModel({ encoding: 'cbor', fetch: fetchFn });
+
+      const result = await model.doGenerate({
+        prompt: promptWithImageBytes(bytes),
+      });
+      expect(result.content).toBeDefined();
+
+      expect(calls).toHaveLength(2);
+      expect(calls[0].headers['content-type']).toContain('application/cbor');
+      expect(calls[1].headers['content-type']).toContain('application/json');
+      const retriedBody = JSON.parse(calls[1].body as string);
+      expect(retriedBody.prompt[0].content[1].data).toEqual({
+        type: 'data',
+        data: Buffer.from(bytes).toString('base64'),
+      });
+
+      // Capability is cached: the next request goes straight to JSON.
+      await model.doGenerate({ prompt: promptWithImageBytes(bytes) });
+      expect(calls).toHaveLength(3);
+      expect(calls[2].headers['content-type']).toContain('application/json');
+    });
+
+    it('does not retry as JSON on errors other than 415', async () => {
+      const { calls, fetchFn } = createCaptureFetch({ failFirstWith: 500 });
+
+      await expect(
+        createTestModel({ encoding: 'cbor', fetch: fetchFn }).doGenerate({
+          prompt: promptWithImageBytes(new Uint8Array([1])),
+        }),
+      ).rejects.toThrow();
+
+      expect(calls).toHaveLength(1);
     });
   });
 });
