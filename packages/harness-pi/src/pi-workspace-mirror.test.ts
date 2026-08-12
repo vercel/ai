@@ -14,10 +14,15 @@ import { syncHostWorkspaceFromSandbox } from './pi-workspace-mirror';
 
 const sandboxWorkDir = '/sandbox/work';
 
-function makeSandbox(remoteListing: {
-  directories: string[];
-  files: Record<string, string>;
-}): {
+function makeSandbox(
+  remoteListing: {
+    directories: string[];
+    files: Record<string, string>;
+  },
+  options?: {
+    rejectFindSymlinkFlags?: boolean;
+  },
+): {
   sandbox: Experimental_SandboxSession;
   run: ReturnType<typeof vi.fn>;
   readBinaryFile: ReturnType<typeof vi.fn>;
@@ -29,11 +34,19 @@ function makeSandbox(remoteListing: {
     .sort()
     .join('\n');
 
-  const run = vi.fn(async () => ({
-    exitCode: 0,
-    stdout: listOutput,
-    stderr: '',
-  }));
+  const run = vi.fn(async ({ command }: { command: string }) =>
+    options?.rejectFindSymlinkFlags && command.includes('find -L')
+      ? {
+          exitCode: 0,
+          stdout: '',
+          stderr: "find: unknown predicate '-L'\n",
+        }
+      : {
+          exitCode: 0,
+          stdout: listOutput,
+          stderr: '',
+        },
+  );
   const readBinaryFile = vi.fn(
     async ({ path: requestedPath }: { path: string }) => {
       const relative = path.posix.relative(sandboxWorkDir, requestedPath);
@@ -89,10 +102,32 @@ describe('syncHostWorkspaceFromSandbox', () => {
     );
   });
 
+  it('mirrors .pi config when sandbox find rejects symlink-following flags', async () => {
+    const { sandbox } = makeSandbox(
+      {
+        directories: ['.pi'],
+        files: {
+          '.pi/SYSTEM.md': '# Project system prompt',
+        },
+      },
+      { rejectFindSymlinkFlags: true },
+    );
+
+    await syncHostWorkspaceFromSandbox({
+      sandbox,
+      sandboxWorkDir,
+      hostWorkDir,
+    });
+
+    expect(readFileSync(path.join(hostWorkDir, '.pi/SYSTEM.md'), 'utf8')).toBe(
+      '# Project system prompt',
+    );
+  });
+
   it('mirrors the .agents config subtree, resolving symlinked targets', async () => {
-    // `.agents/skills` is a symlink to a `skills` directory elsewhere; `find -L`
-    // resolves it on the sandbox so the listing reports the real files through
-    // the symlinked path.
+    // `.agents/skills` is a symlink to a `skills` directory elsewhere; the
+    // sandbox traversal resolves it so the listing reports the real files
+    // through the symlinked path.
     const { sandbox } = makeSandbox({
       directories: ['.agents', '.agents/skills', '.agents/skills/demo'],
       files: {
@@ -125,9 +160,10 @@ describe('syncHostWorkspaceFromSandbox', () => {
     expect(command).toContain('.agents');
     expect(command).toContain('AGENTS.md');
     expect(command).not.toContain('CLAUDE.md');
-    // Symlinks within the scoped config dirs must be dereferenced so linked
-    // targets are mirrored as real files.
-    expect(command).toContain('find -L');
+    // Use shell traversal because some sandbox `find` implementations do not
+    // support symlink-following flags.
+    expect(command).toContain('walk_pi_config');
+    expect(command).not.toContain('find -L');
     // The previous full-tree walk used `-mindepth 1`; the scoped walk must not.
     expect(command).not.toContain('-mindepth 1');
   });
