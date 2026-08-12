@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 18785,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/anthropic-dynamic-filtering-multiturn.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/anthropic-dynamic-filtering-multiturn.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #18785 REPRODUCED: Anthropic rejected the multi-turn replay even though code_execution_tool_result was present."
+  }
+}
