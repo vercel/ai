@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.86
+
+### Patch Changes
+
+- 1e632f7: feat(xai): add Grok 4.6 models
+
 ## 2.0.85
 
 ### Patch Changes
