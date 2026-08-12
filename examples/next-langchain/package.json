@@ -10,7 +10,7 @@
     "start": "next start"
   },
   "dependencies": {
-    "@ai-sdk/react": "3.0.255",
+    "@ai-sdk/react": "3.0.256",
     "@ai-sdk/langchain": "2.0.261",
     "@langchain/openai": "^1.2.0",
     "@langchain/core": "^1.1.5",

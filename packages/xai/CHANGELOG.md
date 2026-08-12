@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.120
+
+### Patch Changes
+
+- 3283e3e: feat(xai): support the priority service tier on chat and responses
+
 ## 3.0.119
 
 ### Patch Changes
