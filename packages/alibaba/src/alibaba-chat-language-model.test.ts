@@ -100,6 +100,67 @@ describe('doGenerate', () => {
       expect(result).toMatchSnapshot();
     });
 
+    it('should omit historical reasoning from visible assistant content', async () => {
+      prepareJsonFixtureResponse('alibaba-issue-18759');
+
+      const firstUserMessage = {
+        role: 'user' as const,
+        content: [
+          {
+            type: 'text' as const,
+            text: 'What is 17 * 23? Reply with only the result.',
+          },
+        ],
+      };
+
+      const first = await model.doGenerate({
+        prompt: [firstUserMessage],
+        providerOptions: {
+          alibaba: {
+            enableThinking: true,
+          },
+        },
+      });
+
+      const responseContent = first.content.filter(
+        part => part.type === 'text' || part.type === 'reasoning',
+      );
+
+      await model.doGenerate({
+        prompt: [
+          firstUserMessage,
+          {
+            role: 'assistant',
+            content: responseContent,
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Now multiply that result by 3. Reply with only the result.',
+              },
+            ],
+          },
+        ],
+        providerOptions: {
+          alibaba: {
+            enableThinking: true,
+          },
+        },
+      });
+
+      const secondRequest = await server.calls[1].requestBodyJson;
+      expect(
+        secondRequest.messages.find(
+          (message: { role: string }) => message.role === 'assistant',
+        ),
+      ).toMatchObject({
+        role: 'assistant',
+        content: '391',
+      });
+    });
+
     it('should extract usage with reasoning tokens', async () => {
       const { usage } = await model.doGenerate({
         prompt: TEST_PROMPT,
