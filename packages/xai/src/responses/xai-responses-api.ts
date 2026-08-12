@@ -287,6 +287,7 @@ export const xaiResponsesResponseSchema = z.object({
   output: z.array(outputItemSchema),
   usage: xaiResponsesUsageSchema.nullish(),
   status: z.string(),
+  service_tier: z.string().nullish(),
 });
 
 export const xaiResponsesChunkSchema = z.union([
@@ -571,6 +572,7 @@ export const xaiResponsesChunkSchema = z.union([
     response: z.object({
       incomplete_details: z.object({ reason: z.string() }).nullish(),
       usage: xaiResponsesUsageSchema.nullish(),
+      service_tier: z.string().nullish(),
     }),
   }),
   z.object({

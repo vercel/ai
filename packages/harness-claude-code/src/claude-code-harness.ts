@@ -90,6 +90,11 @@ export type ClaudeCodeHarnessSettings = {
    */
   readonly thinking?: ClaudeCodeThinkingConfig;
   /**
+   * Controls how much effort Claude applies when adaptive thinking is enabled.
+   * Unset uses the Claude Agent SDK default.
+   */
+  readonly effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+  /**
    * Override the port the bridge binds inside the sandbox. By default the
    * adapter uses the first port the sandbox declares via `sandbox.ports`.
    * Only set this if the sandbox declares multiple ports and the first one
@@ -919,6 +924,7 @@ export function createClaudeCode(
             maxTurns: settings.maxTurns,
             env: settings.env,
             thinking,
+            effort: settings.effort,
             isResume: true,
             continueOnFirstPrompt: false,
             rerunContinue: false,
@@ -1094,6 +1100,7 @@ export function createClaudeCode(
         maxTurns: settings.maxTurns,
         env: settings.env,
         thinking,
+        effort: settings.effort,
         isResume: respawnStrategy !== undefined,
         continueOnFirstPrompt: respawnStrategy !== undefined,
         rerunContinue: respawnStrategy === 'rerun',
@@ -1352,6 +1359,7 @@ function createSession({
   maxTurns,
   env,
   thinking,
+  effort,
   isResume,
   continueOnFirstPrompt,
   rerunContinue,
@@ -1372,6 +1380,7 @@ function createSession({
   maxTurns: number | undefined;
   env: Readonly<Record<string, string>> | undefined;
   thinking: ClaudeCodeThinkingConfig;
+  effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
   isResume: boolean;
   continueOnFirstPrompt: boolean;
   rerunContinue: boolean;
@@ -1554,6 +1563,7 @@ function createSession({
         maxTurns,
         ...(env !== undefined ? { env } : {}),
         thinking,
+        ...(effort !== undefined ? { effort } : {}),
         ...(skills.length > 0
           ? { skills: skills.map(skill => skill.name) }
           : {}),
@@ -1611,6 +1621,7 @@ function createSession({
           maxTurns,
           ...(env !== undefined ? { env } : {}),
           thinking,
+          ...(effort !== undefined ? { effort } : {}),
           ...(skills.length > 0
             ? { skills: skills.map(skill => skill.name) }
             : {}),
