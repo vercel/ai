@@ -1,8 +1,8 @@
 // Shared in-sandbox bridge runtime. Adapter `bridge.mjs` bundles re-bundle
 // this module (tsup inlines it; `ws` stays external and resolves from the
 // sandbox-installed node_modules). It owns everything generic to the bridge
-// transport — the WebSocket server, token auth, single-flight connection
-// replacement, the in-memory event log + monotonic `seq`, resume replay, and
+// transport — the WebSocket server, token auth, single-flight event-stream
+// ownership, the in-memory event log + monotonic `seq`, resume replay, and
 // the lifecycle/meta files. The adapter supplies only `onStart` (drive its
 // CLI/SDK and translate to wire events) and lifecycle-specific cleanup hooks.
 
@@ -374,10 +374,19 @@ export async function runBridge<TStart extends { type: 'start' }>(
   };
 
   // ─── wire send + replay ─────────────────────────────────────────────
-  const sendControl = (msg: Record<string, unknown>): void => {
-    if (activeSocket?.readyState === WS_OPEN) {
+  /*
+   * Control frames answer the socket that asked for them, so the target is
+   * explicit. `activeSocket` owns the *event stream*, which is a separate thing:
+   * a socket that never claimed the stream (see `handleInbound`) still gets its
+   * `bridge-hello`, its parse errors, and its `bridge-stop`.
+   */
+  const sendControl = (
+    socket: WebSocket | undefined,
+    msg: Record<string, unknown>,
+  ): void => {
+    if (socket?.readyState === WS_OPEN) {
       try {
-        activeSocket.send(JSON.stringify(msg));
+        socket.send(JSON.stringify(msg));
       } catch {
         // best-effort
       }
@@ -526,7 +535,8 @@ export async function runBridge<TStart extends { type: 'start' }>(
   ): Promise<void> => {
     switch (msg.type) {
       case 'start': {
-        if (activeSocket !== ws) return;
+        // Asking for a turn is what makes this socket the one events stream to.
+        activeSocket = ws;
         activeSocketReadyForLiveEvents = true;
         const firstTurn = isFirstTurn;
         isFirstTurn = false;
@@ -616,7 +626,8 @@ export async function runBridge<TStart extends { type: 'start' }>(
         turnAbort?.abort();
         return;
       case 'resume':
-        if (activeSocket !== ws) return;
+        // Asking to be caught up is the other way a socket claims the stream.
+        activeSocket = ws;
         replay(ws, msg.lastSeenEventId);
         activeSocketReadyForLiveEvents = true;
         return;
@@ -630,7 +641,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
         currentTurnState = 'done';
         void writeBridgeMeta('done');
         const data = (await onStop?.()) ?? {};
-        sendControl({ type: 'bridge-stop', data });
+        sendControl(ws, { type: 'bridge-stop', data });
         drainThenExit(ws, 1000, 'stop');
         return;
       }
@@ -693,16 +704,19 @@ export async function runBridge<TStart extends { type: 'start' }>(
       return;
     }
 
-    // Single-flight: a fresh authorized connection *replaces* the active one
-    // (the host reconnecting after a drop). The previous socket's close is a
-    // no-op below because it is no longer `activeSocket`.
-    activeSocket = ws;
-    activeSocketReadyForLiveEvents = false;
+    /*
+     * Connecting does NOT claim the event stream — `start` and `resume` do
+     * (see `handleInbound`). Every event goes to `activeSocket` alone, so
+     * claiming here would silence a turn that is already streaming: a second
+     * client that connects only to send `abort` would strand the running slice
+     * on a socket nobody is reading. Asking for a turn or for a catch-up is the
+     * real signal; connecting is not.
+     */
 
     // Announce liveness the instant we accept. Some sandbox runtimes complete
     // the host-side WS handshake before the connection is forwarded here; the
     // host waits for this frame before sending `start`/`resume`.
-    sendControl({
+    sendControl(ws, {
       type: 'bridge-hello',
       state: currentTurnState,
       lastSeq: seqCounter,
@@ -715,7 +729,9 @@ export async function runBridge<TStart extends { type: 'start' }>(
           typeof raw === 'string' ? raw : Buffer.from(raw).toString('utf8');
         parsed = JSON.parse(text) as TStart | InboundControl;
       } catch (err) {
-        sendControl({
+        // Answers the sender: a socket that never claimed the stream still
+        // learns that its frame was unreadable.
+        sendControl(ws, {
           type: 'error',
           error: `protocol parse error: ${(err as Error).message}`,
         });
@@ -725,10 +741,10 @@ export async function runBridge<TStart extends { type: 'start' }>(
     });
 
     ws.on('close', () => {
-      // Only the *current* socket's close matters. A stale socket (already
-      // replaced by a reconnect) closing is a no-op. Crucially we do NOT abort
-      // the in-flight turn — it keeps running and its events accumulate in the
-      // log for replay when the host reconnects.
+      // Only the stream owner's close matters. A socket that never claimed the
+      // stream — or that a later `start`/`resume` displaced — closing is a
+      // no-op. Crucially we do NOT abort the in-flight turn: it keeps running
+      // and its events accumulate in the log for replay on reconnect.
       if (activeSocket === ws) {
         activeSocket = undefined;
         activeSocketReadyForLiveEvents = false;

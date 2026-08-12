@@ -325,6 +325,117 @@ describe('runBridge', () => {
     expect(exited).toBe(true);
   });
 
+  it('keeps streaming to the running turn when a second client only connects', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>(r => (release = r));
+    const handle = await startBridge({
+      onStart: async (_start, turn) => {
+        turn.emit({ type: 'text-delta', delta: 'one' }); // seq 1
+        await gate;
+        turn.emit({ type: 'text-delta', delta: 'two' }); // seq 2
+        turn.emit({ type: 'finish' }); // seq 3
+      },
+    });
+
+    const a = await connect(handle.port);
+    await a.waitFor(f => f.type === 'bridge-hello');
+    a.send({ type: 'start' });
+    await a.waitFor(f => f.seq === 1);
+
+    // B connects mid-turn without asking for a turn or a catch-up. Connecting
+    // must not take the stream away from A.
+    const b = await connect(handle.port);
+    await b.waitFor(f => f.type === 'bridge-hello');
+
+    release();
+    await a.waitFor(f => f.type === 'finish');
+
+    expect(a.frames.filter(f => typeof f.seq === 'number').map(f => f.seq)) //
+      .toEqual([1, 2, 3]);
+    expect(b.frames.some(f => typeof f.seq === 'number')).toBe(false);
+  });
+
+  it('lets an unclaimed socket abort without stranding the turn events', async () => {
+    let aborted!: () => void;
+    const abortObserved = new Promise<void>(r => (aborted = r));
+    const handle = await startBridge({
+      onStart: async (_start, turn) => {
+        turn.emit({ type: 'text-delta', delta: 'one' }); // seq 1
+        turn.abortSignal.addEventListener('abort', () => aborted(), {
+          once: true,
+        });
+        await abortObserved;
+        turn.emit({ type: 'aborted' }); // seq 2
+        turn.emit({ type: 'finish' }); // seq 3
+      },
+    });
+
+    const a = await connect(handle.port);
+    await a.waitFor(f => f.type === 'bridge-hello');
+    a.send({ type: 'start' });
+    await a.waitFor(f => f.seq === 1);
+
+    // The regression: a second client that connects only to abort used to claim
+    // the stream on connect, so the turn's remaining events went to it (with
+    // live delivery still disabled) and A saw nothing after the abort.
+    const b = await connect(handle.port);
+    await b.waitFor(f => f.type === 'bridge-hello');
+    b.send({ type: 'abort' });
+
+    await a.waitFor(f => f.type === 'finish');
+    expect(a.frames.map(f => f.type)).toEqual([
+      'bridge-hello',
+      'text-delta',
+      'aborted',
+      'finish',
+    ]);
+  });
+
+  it('hands the stream to whichever socket asks for the next turn', async () => {
+    let turnNo = 0;
+    const handle = await startBridge({
+      onStart: async (_start, turn) => {
+        turnNo++;
+        turn.emit({ type: 'text-delta', delta: `t${turnNo}` });
+        turn.emit({ type: 'finish' });
+      },
+    });
+
+    const a = await connect(handle.port);
+    await a.waitFor(f => f.type === 'bridge-hello');
+    a.send({ type: 'start' });
+    await a.waitFor(f => f.type === 'finish');
+
+    const b = await connect(handle.port);
+    await b.waitFor(f => f.type === 'bridge-hello');
+    b.send({ type: 'start' });
+    await b.waitFor(f => f.type === 'finish');
+
+    expect(b.frames.filter(f => typeof f.seq === 'number')).toEqual([
+      expect.objectContaining({ type: 'text-delta', delta: 't2', seq: 3 }),
+      expect.objectContaining({ type: 'finish', seq: 4 }),
+    ]);
+    // A stays on its own turn's events; the second turn went to B.
+    expect(a.frames.filter(f => typeof f.seq === 'number').map(f => f.seq)) //
+      .toEqual([1, 2]);
+  });
+
+  it('replies to the sending socket when it cannot parse a frame', async () => {
+    const handle = await startBridge({ onStart: async () => {} });
+
+    const a = await connect(handle.port);
+    await a.waitFor(f => f.type === 'bridge-hello');
+    a.send({ type: 'start' });
+
+    const b = await connect(handle.port);
+    await b.waitFor(f => f.type === 'bridge-hello');
+    b.ws.send('not json');
+
+    const error = await b.waitFor(f => f.type === 'error');
+    expect(error.error).toContain('protocol parse error');
+    expect(a.frames.some(f => f.type === 'error')).toBe(false);
+  });
+
   it('runs onDestroy before exiting', async () => {
     let exited = false;
     const onDestroy = vi.fn(async () => {});
