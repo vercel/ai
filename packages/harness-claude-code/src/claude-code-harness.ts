@@ -15,6 +15,7 @@ import {
   type HarnessV1PermissionMode,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
+  type HarnessV1PortEndpoint,
   type HarnessV1ResumeSessionState,
   type HarnessV1NetworkSandboxSession,
   type HarnessV1Session,
@@ -882,15 +883,8 @@ export function createClaudeCode(
       // (re)connect: open the socket, then wait for `bridge-hello` so the
       // end-to-end link is proven live before any frame is sent.
       const buildConnect =
-        ({
-          wsUrl,
-          headers,
-        }: {
-          wsUrl: string;
-          headers?: Readonly<Record<string, string>>;
-        }) =>
-        async (): Promise<WebSocket> => {
-          return openBridgeWebSocket({ wsUrl, headers, timeoutMs });
+        (endpoint: HarnessV1PortEndpoint) => async (): Promise<WebSocket> => {
+          return openBridgeWebSocket({ endpoint, timeoutMs });
         };
 
       /*
@@ -907,15 +901,12 @@ export function createClaudeCode(
             port: coords.port,
             protocol: 'ws',
           });
-          const attachUrl = withBridgeToken({
-            url: endpoint.url,
+          const attachEndpoint = withBridgeToken({
+            endpoint,
             token: coords.token,
           });
           const attachChannel: ClaudeCodeChannel = new SandboxChannel({
-            connect: buildConnect({
-              wsUrl: attachUrl,
-              headers: endpoint.headers,
-            }),
+            connect: buildConnect(attachEndpoint),
             outboundSchema: outboundMessageSchema,
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
@@ -1082,10 +1073,10 @@ export function createClaudeCode(
         port: boundPort,
         protocol: 'ws',
       });
-      const wsUrl = withBridgeToken({ url: endpoint.url, token });
+      const bridgeEndpoint = withBridgeToken({ endpoint, token });
 
       const channel: ClaudeCodeChannel = new SandboxChannel({
-        connect: buildConnect({ wsUrl, headers: endpoint.headers }),
+        connect: buildConnect(bridgeEndpoint),
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
         onBridgeError,
@@ -1199,19 +1190,17 @@ async function readBridgeAsset(name: string): Promise<string> {
  * is the only reliable evidence that the end-to-end link is live.
  */
 function openWebSocketAndWaitForBridgeHello({
-  url,
-  headers,
+  endpoint,
   openTimeoutMs,
   getHelloTimeoutMs,
 }: {
-  url: string;
-  headers?: Readonly<Record<string, string>>;
+  endpoint: HarnessV1PortEndpoint;
   openTimeoutMs: number;
   getHelloTimeoutMs: () => number;
 }): Promise<WebSocket> {
   return new Promise<WebSocket>((resolve, reject) => {
-    const ws = new WebSocket(url, {
-      headers: headers == null ? undefined : { ...headers },
+    const ws = new WebSocket(endpoint.url, {
+      headers: endpoint.headers == null ? undefined : { ...endpoint.headers },
     });
     let opened = false;
     let sawBridgeHello = false;
@@ -1304,12 +1293,10 @@ function openWebSocketAndWaitForBridgeHello({
 }
 
 async function openBridgeWebSocket({
-  wsUrl,
-  headers,
+  endpoint,
   timeoutMs,
 }: {
-  wsUrl: string;
-  headers?: Readonly<Record<string, string>>;
+  endpoint: HarnessV1PortEndpoint;
   timeoutMs: number;
 }): Promise<WebSocket> {
   const deadline = Date.now() + timeoutMs;
@@ -1321,8 +1308,7 @@ async function openBridgeWebSocket({
     try {
       const remaining = Math.max(1, deadline - Date.now());
       return await openWebSocketAndWaitForBridgeHello({
-        url: wsUrl,
-        headers,
+        endpoint,
         openTimeoutMs: Math.min(10_000, remaining),
         getHelloTimeoutMs: () =>
           Math.min(5_000, Math.max(1, deadline - Date.now())),
@@ -1353,10 +1339,16 @@ function webSocketMessageToString(raw: unknown): string {
   return String(raw);
 }
 
-function withBridgeToken({ url, token }: { url: string; token: string }) {
-  const bridgeUrl = new URL(url);
+function withBridgeToken({
+  endpoint,
+  token,
+}: {
+  endpoint: HarnessV1PortEndpoint;
+  token: string;
+}): HarnessV1PortEndpoint {
+  const bridgeUrl = new URL(endpoint.url);
   bridgeUrl.searchParams.set('agent_bridge_token', token);
-  return bridgeUrl.toString();
+  return { ...endpoint, url: bridgeUrl.toString() };
 }
 
 function sleep(ms: number): Promise<void> {

@@ -2,6 +2,7 @@ import {
   commonTool,
   HarnessCapabilityUnsupportedError,
   type HarnessV1NetworkSandboxSession,
+  type HarnessV1PortEndpoint,
   type HarnessV1SandboxProvider,
 } from '@ai-sdk/harness';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
@@ -255,10 +256,7 @@ function fakeSandbox({
   kills?: string[];
   files?: Readonly<Record<string, string>>;
   homeDir?: string;
-  bridgePortEndpoint?: {
-    url: string;
-    headers?: Readonly<Record<string, string>>;
-  };
+  bridgePortEndpoint?: HarnessV1PortEndpoint;
 }): HarnessV1NetworkSandboxSession {
   const restricted = {
     readTextFile: async ({ path }: { path: string }) => files[path] ?? null,

@@ -1,4 +1,7 @@
-import type { HarnessV1NetworkSandboxSession } from '@ai-sdk/harness';
+import type {
+  HarnessV1NetworkSandboxSession,
+  HarnessV1PortEndpoint,
+} from '@ai-sdk/harness';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -118,10 +121,7 @@ function fakeSandboxSession({
 }: {
   spawnEnvs?: Array<Record<string, string | undefined>>;
   spawns?: string[];
-  bridgePortEndpoint?: {
-    url: string;
-    headers?: Readonly<Record<string, string>>;
-  };
+  bridgePortEndpoint?: HarnessV1PortEndpoint;
 } = {}): HarnessV1NetworkSandboxSession {
   const session = {
     run: async () => ({ exitCode: 0, stdout: '', stderr: '' }),

@@ -16,6 +16,7 @@ import {
   type HarnessV1PermissionMode,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
+  type HarnessV1PortEndpoint,
   type HarnessV1ResumeSessionState,
   type HarnessV1Session,
   type HarnessV1Skill,
@@ -311,13 +312,12 @@ export function createOpenCode(
             port: coords.port,
             protocol: 'ws',
           });
-          const attachUrl = withBridgeToken({
-            url: endpoint.url,
+          const attachEndpoint = withBridgeToken({
+            endpoint,
             token: coords.token,
           });
           const attachChannel: OpenCodeChannel = new SandboxChannel({
-            connect: () =>
-              openWebSocket({ url: attachUrl, headers: endpoint.headers }),
+            connect: () => openWebSocket(attachEndpoint),
             outboundSchema: outboundMessageSchema,
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
@@ -460,10 +460,10 @@ export function createOpenCode(
         port: boundPort,
         protocol: 'ws',
       });
-      const wsUrl = withBridgeToken({ url: endpoint.url, token });
+      const bridgeEndpoint = withBridgeToken({ endpoint, token });
 
       const channel: OpenCodeChannel = new SandboxChannel({
-        connect: () => openWebSocket({ url: wsUrl, headers: endpoint.headers }),
+        connect: () => openWebSocket(bridgeEndpoint),
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
         onBridgeError,
@@ -559,10 +559,7 @@ async function writeOpenCodeSkills({
 function openWebSocket({
   url,
   headers,
-}: {
-  url: string;
-  headers?: Readonly<Record<string, string>>;
-}): Promise<WebSocket> {
+}: HarnessV1PortEndpoint): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(url, {
       headers: headers == null ? undefined : { ...headers },
@@ -580,10 +577,16 @@ function openWebSocket({
   });
 }
 
-function withBridgeToken({ url, token }: { url: string; token: string }) {
-  const bridgeUrl = new URL(url);
+function withBridgeToken({
+  endpoint,
+  token,
+}: {
+  endpoint: HarnessV1PortEndpoint;
+  token: string;
+}): HarnessV1PortEndpoint {
+  const bridgeUrl = new URL(endpoint.url);
   bridgeUrl.searchParams.set('agent_bridge_token', token);
-  return bridgeUrl.toString();
+  return { ...endpoint, url: bridgeUrl.toString() };
 }
 
 function createSession({
