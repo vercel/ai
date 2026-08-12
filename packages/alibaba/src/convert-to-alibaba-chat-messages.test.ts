@@ -106,6 +106,28 @@ describe('convertToAlibabaChatMessages', () => {
     `);
   });
 
+  it('should omit reasoning from assistant message content', () => {
+    const result = convertToAlibabaChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            { type: 'reasoning', text: 'Hidden reasoning.' },
+            { type: 'text', text: 'Visible answer.' },
+          ],
+        },
+      ],
+    });
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: 'Visible answer.',
+        tool_calls: undefined,
+      },
+    ]);
+  });
+
   it('should convert tool results', () => {
     const result = convertToAlibabaChatMessages({
       prompt: [
