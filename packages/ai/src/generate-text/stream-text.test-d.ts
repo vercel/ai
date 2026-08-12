@@ -40,11 +40,22 @@ describe('streamText types', () => {
 
     it('should expose a precise callback return union', () => {
       expectTypeOf<ReturnType<StreamTextOnErrorCallback>>().toEqualTypeOf<
-        | PromiseLike<void>
+        | PromiseLike<void | StreamTextOnErrorResult>
         | void
-        | PromiseLike<StreamTextOnErrorResult>
         | StreamTextOnErrorResult
       >();
+    });
+
+    it('should accept a conditional async retry result', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onError: async ({ error }) => {
+          if (error instanceof Error) {
+            return { retry: true } as const;
+          }
+        },
+      });
     });
   });
 

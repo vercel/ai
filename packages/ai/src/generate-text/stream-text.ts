@@ -267,11 +267,12 @@ export type StreamTextTransform<TOOLS extends ToolSet> = (options: {
  */
 export type StreamTextOnErrorResult = { retry: true };
 
-export type StreamTextOnErrorCallback =
-  | ((event: { error: unknown }) => PromiseLike<void> | void)
-  | ((event: {
-      error: unknown;
-    }) => PromiseLike<StreamTextOnErrorResult> | StreamTextOnErrorResult);
+export type StreamTextOnErrorCallback = (event: {
+  error: unknown;
+}) =>
+  | PromiseLike<void | StreamTextOnErrorResult>
+  | void
+  | StreamTextOnErrorResult;
 
 /**
  * Callback that is set using the `onChunk` option.
@@ -401,9 +402,7 @@ export function streamText<
   experimental_download: download,
   includeRawChunks,
   onChunk,
-  onError = ({ error }) => {
-    console.error(error);
-  },
+  onError: onErrorArg,
   onFinish,
   onEnd = onFinish,
   onAbort,
@@ -781,6 +780,11 @@ export function streamText<
     firstChunkTimeoutMs != null ? new AbortController() : undefined;
   const chunkAbortController =
     chunkTimeoutMs != null ? new AbortController() : undefined;
+  const onError: StreamTextOnErrorCallback =
+    onErrorArg ??
+    (({ error }) => {
+      console.error(error);
+    });
   const resolvedOnStart = onStart ?? experimental_onStart;
   const resolvedOnStepStart = onStepStart ?? experimental_onStepStart;
   const resolvedOnLanguageModelCallStart =
@@ -837,6 +841,7 @@ export function streamText<
     timeout,
     onChunk,
     onError,
+    canRetryStreamViaOnError: onErrorArg != null,
     onEnd,
     onAbort,
     onStepFinish: resolvedOnStepEnd,
@@ -1056,6 +1061,7 @@ class DefaultStreamTextResult<
     timeout,
     onChunk,
     onError,
+    canRetryStreamViaOnError,
     onEnd,
     onAbort,
     onStepFinish,
@@ -1119,6 +1125,7 @@ class DefaultStreamTextResult<
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
     onError: StreamTextOnErrorCallback;
+    canRetryStreamViaOnError: boolean;
     onEnd:
       | undefined
       | GenerateTextOnEndCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
@@ -2132,16 +2139,53 @@ class DefaultStreamTextResult<
           let automaticStreamRetryCount = 0;
           let bufferedAttemptParts: LanguageModelStreamPart<TOOLS>[] = [];
           const outputChunksHandledBeforeBuffering = new WeakSet<object>();
+          const openTextParts = new Set<string>();
+          const openReasoningParts = new Set<string>();
+          const shouldBufferToolParts =
+            streamRetries > 0 || canRetryStreamViaOnError;
 
           const languageModelStream = new ReadableStream<
             LanguageModelStreamPart<TOOLS>
           >({
             async pull(controller) {
+              const enqueueAttemptPart = (
+                part: LanguageModelStreamPart<TOOLS>,
+              ) => {
+                switch (part.type) {
+                  case 'text-start':
+                    openTextParts.add(part.id);
+                    break;
+                  case 'text-end':
+                    openTextParts.delete(part.id);
+                    break;
+                  case 'reasoning-start':
+                    openReasoningParts.add(part.id);
+                    break;
+                  case 'reasoning-end':
+                    openReasoningParts.delete(part.id);
+                    break;
+                }
+
+                controller.enqueue(part);
+              };
+
               const flushBufferedAttemptParts = () => {
                 for (const part of bufferedAttemptParts) {
-                  controller.enqueue(part);
+                  enqueueAttemptPart(part);
                 }
                 bufferedAttemptParts = [];
+              };
+
+              const closeOpenAttemptParts = () => {
+                for (const id of openTextParts) {
+                  controller.enqueue({ type: 'text-end', id });
+                }
+                openTextParts.clear();
+
+                for (const id of openReasoningParts) {
+                  controller.enqueue({ type: 'reasoning-end', id });
+                }
+                openReasoningParts.clear();
               };
 
               while (true) {
@@ -2165,11 +2209,12 @@ class DefaultStreamTextResult<
 
                 if (value.type === 'model-call-end') {
                   flushBufferedAttemptParts();
-                  controller.enqueue(value);
+                  enqueueAttemptPart(value);
                   return;
                 }
 
                 if (
+                  shouldBufferToolParts &&
                   value.type !== 'error' &&
                   (isToolPart || bufferedAttemptParts.length > 0)
                 ) {
@@ -2184,7 +2229,7 @@ class DefaultStreamTextResult<
                 }
 
                 if (value.type !== 'error') {
-                  controller.enqueue(value);
+                  enqueueAttemptPart(value);
                   return;
                 }
 
@@ -2212,6 +2257,7 @@ class DefaultStreamTextResult<
 
                 await languageModelStreamReader.cancel(error);
                 bufferedAttemptParts = [];
+                closeOpenAttemptParts();
 
                 const retryLanguageModelCall = await callLanguageModel();
                 request = retryLanguageModelCall.request;

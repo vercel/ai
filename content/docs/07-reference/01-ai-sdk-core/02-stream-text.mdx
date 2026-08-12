@@ -473,7 +473,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: 'number',
       isOptional: true,
       description:
-        'Maximum number of retries for provider error events received after response streaming begins. Retries rerun only the current model step and preserve completed earlier steps and their tool results. Tool-related output and client-side tool work from failed attempts are discarded; other output already emitted cannot be retracted. onStepStart runs once for the logical step, while language-model call lifecycle callbacks run for each attempt. Set to 0 to disable automatic stream retries. Default: 0.',
+        'Maximum number of retries for provider error events received after response streaming begins. Retries rerun only the current model step and preserve completed earlier steps and their tool results. Tool-related output and client-side tool work from failed attempts are discarded; other output already emitted cannot be retracted. Open text and reasoning parts are ended before recovered output begins. onStepStart runs once for the logical step, onLanguageModelCallStart runs for each attempt, and onLanguageModelCallEnd runs for attempts that reach a model-call finish. Provider-executed tool work cannot be undone and may repeat. Set to 0 to disable automatic stream retries. Default: 0.',
     },
     {
       name: 'abortSignal',
@@ -1191,7 +1191,7 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'onError',
-      type: '(event: OnErrorResult) => void | PromiseLike<void> | { retry: true } | PromiseLike<{ retry: true }>',
+      type: '(event: OnErrorResult) => void | { retry: true } | PromiseLike<void | { retry: true }>',
       isOptional: true,
       description:
         'Callback that is called when an error occurs during streaming. Return `{ retry: true }` for a provider error event to retry the current model step. Other return values do not request a retry.',
