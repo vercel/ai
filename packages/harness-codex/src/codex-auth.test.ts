@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { resolveCodexEnv } from './codex-auth';
 
 describe('resolveCodexEnv', () => {
@@ -99,5 +99,30 @@ describe('resolveCodexEnv', () => {
   it('returns an empty env when nothing is configured', () => {
     const env = resolveCodexEnv(undefined, {});
     expect(env).toEqual({});
+  });
+
+  it('supports string authentication modes', () => {
+    expect(resolveCodexEnv('direct', { OPENAI_API_KEY: 'sk-direct' })).toEqual({
+      CODEX_API_KEY: 'sk-direct',
+    });
+
+    expect(
+      resolveCodexEnv('ai-gateway', { AI_GATEWAY_API_KEY: 'gw-mode' }),
+    ).toEqual({
+      AI_GATEWAY_API_KEY: 'gw-mode',
+      CODEX_API_KEY: 'gw-mode',
+      AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh/v1',
+    });
+  });
+
+  it('warns when passing a legacy object shape', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    resolveCodexEnv({ openai: {} }, {});
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Passing an object to auth options is deprecated',
+      ),
+    );
+    spy.mockRestore();
   });
 });
