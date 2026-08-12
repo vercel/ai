@@ -1,5 +1,30 @@
 # ai
 
+## 7.0.63
+
+### Patch Changes
+
+- d0a5807: Preserve reasoning block IDs from UI message streams on reasoning UI parts.
+- dcf33e8: Allow providers without reranking model support to be assigned to `Provider`.
+- Updated dependencies [a4d386d]
+  - @ai-sdk/gateway@4.0.50
+
+## 7.0.62
+
+### Patch Changes
+
+- e0bcf52: feat(ui): add typed custom bodies to Completion APIs
+
+## 7.0.61
+
+### Patch Changes
+
+- 326054b: Prevent `resumeStream` from copying the previous assistant message into the resumed response.
+- 975bb28: Cancel messages that are still being prepared when a chat is stopped.
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+  - @ai-sdk/gateway@4.0.49
+
 ## 7.0.60
 
 ### Patch Changes

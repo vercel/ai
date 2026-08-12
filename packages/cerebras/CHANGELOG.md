@@ -1,5 +1,14 @@
 # @ai-sdk/cerebras
 
+## 3.0.30
+
+### Patch Changes
+
+- f563df6: Update Cerebras model ID autocomplete and package documentation to the current public model catalog.
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+  - @ai-sdk/openai-compatible@3.0.30
+
 ## 3.0.29
 
 ### Patch Changes

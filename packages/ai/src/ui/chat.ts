@@ -257,6 +257,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   private onData?: ChatInit<UI_MESSAGE>['onData'];
   private sendAutomaticallyWhen?: ChatInit<UI_MESSAGE>['sendAutomaticallyWhen'];
 
+  private pendingMessagePreparations = new Set<AbortController>();
   private activeResponse: ActiveResponse<UI_MESSAGE> | undefined = undefined;
   private activeResumeRequest: ActiveResumeRequest | undefined = undefined;
   private jobExecutor = new SerialJobExecutor();
@@ -370,9 +371,21 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     let uiMessage: CreateUIMessage<UI_MESSAGE>;
 
     if ('text' in message || 'files' in message) {
-      const fileParts = Array.isArray(message.files)
-        ? message.files
-        : await convertFileListToFileUIParts(message.files);
+      const abortController = new AbortController();
+      this.pendingMessagePreparations.add(abortController);
+
+      let fileParts: FileUIPart[];
+      try {
+        fileParts = Array.isArray(message.files)
+          ? message.files
+          : await convertFileListToFileUIParts(message.files);
+      } finally {
+        this.pendingMessagePreparations.delete(abortController);
+      }
+
+      if (abortController.signal.aborted) {
+        return;
+      }
 
       uiMessage = {
         parts: [
@@ -589,6 +602,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
    * Abort the current request immediately, keep the generated tokens if any.
    */
   stop = async () => {
+    for (const controller of this.pendingMessagePreparations) {
+      controller.abort();
+    }
     this.activeResumeRequest?.abortController.abort();
     this.activeResponse?.abortController.abort();
   };
@@ -705,7 +721,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const response = {
         state: createStreamingUIMessageState({
           lastMessage:
-            trigger === 'regenerate-message'
+            trigger === 'resume-stream' || trigger === 'regenerate-message'
               ? undefined
               : this.state.snapshot(lastMessage),
           messageId: this.generateId(),
