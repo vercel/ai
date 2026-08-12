@@ -345,7 +345,12 @@ export async function convertToOpenAIResponsesInput({
                 if (store && id != null) {
                   input.push({ type: 'item_reference', id });
                 }
-                break;
+
+                // Without response storage, shell calls must be reconstructed
+                // together with their matching shell_call_output.
+                if (store || !hasShellTool || resolvedToolName !== 'shell') {
+                  break;
+                }
               }
 
               const isProviderDefinedToolCall =
