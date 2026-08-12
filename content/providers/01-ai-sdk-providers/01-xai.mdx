@@ -160,6 +160,37 @@ The following optional provider options are available for xAI chat models:
 
   Whether to enable parallel function calling during tool use. When true, the model can call multiple functions in parallel. When false, the model will call functions sequentially. Defaults to `true`.
 
+### Priority Processing
+
+`providerOptions.xai.serviceTier` requests higher scheduling priority, which
+typically lowers time-to-first-token and speeds up inter-token latency. This
+works for both the Responses API (default) and the Chat Completions API
+(`xai.chat()`).
+
+```ts
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
+
+const { providerMetadata } = await generateText({
+  model: xai('grok-4.6'),
+  prompt: 'Explain quantum entanglement.',
+  providerOptions: {
+    xai: { serviceTier: 'priority' },
+  },
+});
+
+// 'priority' when the request was served at the priority tier,
+// 'default' when priority capacity was unavailable.
+console.log(providerMetadata?.xai?.serviceTier);
+```
+
+Priority requests are billed at a premium per-token rate, and xAI only charges
+that rate when the response confirms the priority tier — so read the applied
+tier back from `providerMetadata.xai.serviceTier` rather than assuming the
+request you sent is the tier you got. Omitting the option is equivalent to
+`'default'`. See xAI's [priority processing
+docs](https://docs.x.ai/developers/advanced-api-usage/priority-processing).
+
 ## Responses API (Agentic Tools)
 
 You can use the xAI Responses API with the `xai.responses(modelId)` factory method for server-side agentic tool calling. This enables the model to autonomously orchestrate tool calls and research on xAI's servers.
@@ -536,6 +567,10 @@ The following provider options are available:
 - **previousResponseId** _string_
 
   The ID of the previous response from the model. You can use it to continue a conversation.
+
+- **serviceTier** _'default' | 'priority'_
+
+  Scheduling priority for the request. `'priority'` buys lower time-to-first-token and faster inter-token latency at a premium per-token price. The tier xAI actually applied comes back on `providerMetadata.xai.serviceTier`, and is `'default'` when priority capacity was unavailable. See [Priority Processing](https://docs.x.ai/developers/advanced-api-usage/priority-processing).
 
 <Note>
   The Responses API only supports server-side tools. You cannot mix server-side

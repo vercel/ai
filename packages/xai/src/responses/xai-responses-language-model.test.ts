@@ -710,6 +710,54 @@ describe('XaiResponsesLanguageModel', () => {
           expect(requestBody.previous_response_id).toBe('resp_456');
         });
 
+        it('serviceTier', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.6',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+            service_tier: 'priority',
+          });
+
+          const { providerMetadata } = await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                serviceTier: 'priority',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.service_tier).toBe('priority');
+          expect(providerMetadata?.xai.serviceTier).toBe('priority');
+        });
+
+        it('serviceTier reports a downgrade to default', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.6',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+            service_tier: 'default',
+          });
+
+          const { providerMetadata } = await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                serviceTier: 'priority',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          expect(providerMetadata?.xai.serviceTier).toBe('default');
+        });
+
         it('include with file_search_call.results', async () => {
           prepareJsonResponse({
             id: 'resp_123',
