@@ -3192,6 +3192,40 @@ describe('AnthropicLanguageModel', () => {
     });
 
     describe('web search tool', () => {
+      it('should preserve caller metadata for dynamic-filtering server tool calls', async () => {
+        prepareJsonFixtureResponse(
+          'anthropic-web-search-dynamic-filtering-multiple.1',
+        );
+        const fixtureProvider = createAnthropic({
+          apiKey: 'test-api-key',
+          generateId: () => 'source-id',
+        });
+
+        const result = await fixtureProvider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.web_search_20260209',
+              name: 'web_search',
+              args: {},
+            },
+          ],
+        });
+
+        const webSearchCalls = result.content.filter(
+          part => part.type === 'tool-call' && part.toolName === 'web_search',
+        );
+
+        expect(webSearchCalls).toHaveLength(3);
+        for (const call of webSearchCalls) {
+          expect(call.providerMetadata?.anthropic?.caller).toEqual({
+            type: 'code_execution_20260120',
+            toolId: 'srvtoolu_code_execution_issue_18785',
+          });
+        }
+      });
+
       describe('with fixture', () => {
         let result: LanguageModelV4GenerateResult;
 
@@ -10246,6 +10280,36 @@ describe('AnthropicLanguageModel', () => {
     });
 
     describe('web fetch 20260209 tool', () => {
+      it('should preserve caller metadata for streamed dynamic-filtering server tool calls', async () => {
+        prepareChunksFixtureResponse('anthropic-web-fetch-tool-20260209.1');
+        const fixtureProvider = createAnthropic({
+          apiKey: 'test-api-key',
+          generateId: () => 'source-id',
+        });
+
+        const result = await fixtureProvider('claude-sonnet-4-6').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.web_fetch_20260209',
+              name: 'web_fetch',
+              args: {},
+            },
+          ],
+        });
+        const streamArray = await convertReadableStreamToArray(result.stream);
+        const webFetchCall = streamArray.find(
+          (part): part is LanguageModelV4StreamPart & { type: 'tool-call' } =>
+            part.type === 'tool-call' && part.toolName === 'web_fetch',
+        );
+
+        expect(webFetchCall?.providerMetadata?.anthropic?.caller).toEqual({
+          type: 'code_execution_20260120',
+          toolId: 'srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK',
+        });
+      });
+
       describe('input provided in content_block_start', () => {
         let result: LanguageModelV4StreamResult;
 
