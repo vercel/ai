@@ -74,6 +74,21 @@ export const xaiLanguageModelChatOptions = z.object({
   topLogprobs: z.number().int().min(0).max(8).optional(),
 
   /**
+   * Scheduling priority for the request, sent as the `service_tier` body field.
+   *
+   * - `default`: standard scheduling, same as omitting the field.
+   * - `priority`: higher scheduling priority for lower time-to-first-token and
+   *   faster inter-token latency, at a premium per-token price.
+   *
+   * xAI only bills the premium rate when the response confirms the request was
+   * served at the priority tier; the applied tier is reported back on
+   * `providerMetadata.xai.serviceTier`.
+   *
+   * @see https://docs.x.ai/developers/advanced-api-usage/priority-processing
+   */
+  serviceTier: z.enum(['default', 'priority']).optional(),
+
+  /**
    * Whether to enable parallel function calling during tool use.
    * When true, the model can call multiple functions in parallel.
    * When false, the model will call functions sequentially.
