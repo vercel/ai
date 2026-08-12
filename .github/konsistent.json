@@ -353,6 +353,33 @@
           }
         },
         {
+          "name": "harness-auth-file-for-bridge-harness-must-export-relevant-symbols",
+          "description": "Every harness auth file for a bridge based harness must export the relevant symbols.",
+          "for": { "files": ["${harnessId}-auth.ts"] },
+          "if": { "hasFile": "bridge/index.ts" },
+          "must": {
+            "importTypes": [
+              {
+                "name": "HarnessV1RequestTransformation",
+                "from": "@ai-sdk/harness"
+              }
+            ],
+            "exportConstants": [
+              "${harnessId.toConstantCase()}_CREDENTIAL_ENVIRONMENT_VARIABLES"
+            ],
+            "exportFunctions": [
+              {
+                "name": "create${harnessId.toPascalCase()}RequestTransformations",
+                "receiveParamsOfTypes": [
+                  "Record<string, string>",
+                  "${harnessId.toPascalCase()}AuthMethod"
+                ],
+                "returnValueOfType": "HarnessV1RequestTransformation[]"
+              }
+            ]
+          }
+        },
+        {
           "name": "harness-bridge-protocol-file-must-export-relevant-symbols",
           "description": "Every harness bridge protocol file must export the relevant symbols.",
           "for": { "files": ["${harnessId}-bridge-protocol.ts"] },
