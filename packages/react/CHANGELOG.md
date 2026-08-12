@@ -1,5 +1,28 @@
 # @ai-sdk/react
 
+## 4.0.67
+
+### Patch Changes
+
+- 097b552: Avoid repeatedly deep-cloning accumulated message payloads during chat streaming.
+  - ai@7.0.64
+
+## 4.0.66
+
+### Patch Changes
+
+- Updated dependencies [d0a5807]
+- Updated dependencies [dcf33e8]
+  - ai@7.0.63
+
+## 4.0.65
+
+### Patch Changes
+
+- e0bcf52: feat(ui): add typed custom bodies to Completion APIs
+- Updated dependencies [e0bcf52]
+  - ai@7.0.62
+
 ## 4.0.64
 
 ### Patch Changes

@@ -4,7 +4,12 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
 
-export type ClaudeCodeAuthOptions = {
+export type ClaudeCodeAuthenticationMode = 'auto' | 'direct' | 'ai-gateway';
+
+/**
+ * @deprecated Passing an object to auth options is deprecated. Use a `ClaudeCodeAuthenticationMode` string value ("auto" | "direct" | "ai-gateway") instead, and pass credentials via environment variables.
+ */
+export type LegacyClaudeCodeAuthOptions = {
   readonly anthropic?: {
     readonly apiKey?: string;
     readonly authToken?: string;
@@ -15,6 +20,10 @@ export type ClaudeCodeAuthOptions = {
     readonly baseUrl?: string;
   };
 };
+
+export type ClaudeCodeAuthOptions =
+  | ClaudeCodeAuthenticationMode
+  | LegacyClaudeCodeAuthOptions;
 
 /**
  * Resolve the environment-variable blob the bridge needs to authenticate
@@ -42,15 +51,21 @@ export function resolveClaudeCodeEnv(
   processEnv: Record<string, string | undefined> = process.env,
   options: ResolveClaudeCodeEnvOptions = {},
 ): Record<string, string> {
+  const normalizedAuth = normalizeClaudeCodeAuthToLegacyAuth(auth);
+
   const readApiKey = options.readApiKeyHelper ?? readApiKeyHelper;
-  if (auth?.anthropic) {
-    return pickAnthropic({ explicit: auth.anthropic, processEnv, readApiKey });
+  if (normalizedAuth?.anthropic) {
+    return pickAnthropic({
+      explicit: normalizedAuth.anthropic,
+      processEnv,
+      readApiKey,
+    });
   }
 
   const gatewayAuthFromEnv = getAiGatewayAuthFromEnv({ env: processEnv });
-  if (auth?.gateway) {
+  if (normalizedAuth?.gateway) {
     return pickGateway({
-      explicit: auth.gateway,
+      explicit: normalizedAuth.gateway,
       gatewayAuthFromEnv,
     });
   }
@@ -64,12 +79,35 @@ export function resolveClaudeCodeEnv(
   return pickAnthropic({ processEnv, readApiKey });
 }
 
+function normalizeClaudeCodeAuthToLegacyAuth(
+  auth: ClaudeCodeAuthOptions | undefined,
+): LegacyClaudeCodeAuthOptions | undefined {
+  if (auth == null || auth === 'auto') {
+    return undefined;
+  }
+  if (typeof auth === 'string') {
+    switch (auth) {
+      case 'direct':
+        return { anthropic: {} };
+      case 'ai-gateway':
+        return { gateway: {} };
+      default:
+        return undefined;
+    }
+  }
+
+  console.warn(
+    '[claude-code] Passing an object to auth options is deprecated. Use a string mode ("auto" | "direct" | "ai-gateway") instead, and pass credentials via environment variables.',
+  );
+  return auth;
+}
+
 function pickAnthropic({
   explicit,
   processEnv,
   readApiKey,
 }: {
-  explicit?: NonNullable<ClaudeCodeAuthOptions['anthropic']>;
+  explicit?: NonNullable<LegacyClaudeCodeAuthOptions['anthropic']>;
   processEnv: Record<string, string | undefined>;
   readApiKey: () => string | undefined;
 }): Record<string, string> {
@@ -125,7 +163,7 @@ function pickGateway({
   explicit,
   gatewayAuthFromEnv,
 }: {
-  explicit: NonNullable<ClaudeCodeAuthOptions['gateway']>;
+  explicit: NonNullable<LegacyClaudeCodeAuthOptions['gateway']>;
   gatewayAuthFromEnv: ReturnType<typeof getAiGatewayAuthFromEnv>;
 }): Record<string, string> {
   const apiKey = explicit.apiKey ?? gatewayAuthFromEnv.apiKey;

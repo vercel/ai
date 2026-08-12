@@ -1,5 +1,17 @@
 # @ai-sdk/openai
 
+## 4.0.41
+
+### Patch Changes
+
+- 59d6def: Reconstruct provider-executed shell calls when continuing OpenAI Responses with storage disabled.
+
+## 4.0.40
+
+### Patch Changes
+
+- e19a4a6: Avoid duplicate MCP approval request references when continuing stored OpenAI Responses.
+
 ## 4.0.39
 
 ### Patch Changes

@@ -18,6 +18,7 @@ import {
 } from '@opentelemetry/sdk-trace-base';
 import { z } from 'zod/v4';
 import {
+  embed,
   generateObject,
   generateText,
   streamObject,
@@ -25,7 +26,7 @@ import {
   type GenerateTextEndEvent,
   type Telemetry,
 } from 'ai';
-import { MockLanguageModelV4 } from 'ai/test';
+import { MockEmbeddingModelV4, MockLanguageModelV4 } from 'ai/test';
 import { OpenTelemetry, type EnrichSpan } from './open-telemetry';
 
 type MockSpan = Span & {
@@ -1825,6 +1826,35 @@ describe('OpenTelemetry', () => {
           ],
         }
       `);
+    });
+  });
+
+  describe('embed integration', () => {
+    it('omits usage attributes when the provider does not return usage', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+
+      const result = await embed({
+        model: new MockEmbeddingModelV4({
+          provider: 'openai',
+          modelId: 'text-embedding-model',
+          doEmbed: {
+            embeddings: [[0.1, 0.2, 0.3]],
+            warnings: [],
+          },
+        }),
+        value: 'sunny day at the beach',
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      expect(result.usage.tokens).toBeNaN();
+      expect(sdkTrace.exporter.getFinishedSpans()).toHaveLength(2);
+
+      for (const span of sdkTrace.exporter.getFinishedSpans()) {
+        expect('gen_ai.usage.input_tokens' in span.attributes).toBe(false);
+      }
     });
   });
 
