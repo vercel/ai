@@ -13,6 +13,7 @@ run(async () => {
   const agent = new HarnessAgent({
     harness: createClaudeCode({
       thinking: { type: 'adaptive', display: 'summarized' },
+      effort: 'max',
     }),
     sandbox,
   });

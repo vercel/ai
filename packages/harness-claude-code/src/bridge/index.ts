@@ -347,6 +347,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         : {}),
       systemPrompt: createClaudeCodeSystemPrompt(start.instructions),
       thinking: start.thinking,
+      ...(start.effort !== undefined ? { effort: start.effort } : {}),
       includePartialMessages: true,
       // The `PostCompact` hook carries the compaction summary, which the
       // `compact_boundary` system message does not. Latch it for the unified
