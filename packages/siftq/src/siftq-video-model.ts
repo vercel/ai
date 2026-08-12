@@ -10,16 +10,18 @@ import {
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
-  createBinaryResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   detectMediaType,
   getFromApi,
   getTopLevelMediaType,
+  loadApiKey,
   parseProviderOptions,
   postJsonToApi,
+  readResponseWithSizeLimit,
   resolve,
   serializeModelOptions,
+  withUserAgentSuffix,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
   type FetchFunction,
@@ -30,6 +32,7 @@ import {
   siftQVideoModelOptionsSchema,
   type SiftQVideoModelOptions,
 } from './siftq-video-model-options';
+import { VERSION } from './version';
 
 interface SiftQVideoModelConfig {
   provider: string;
@@ -39,6 +42,7 @@ interface SiftQVideoModelConfig {
   _internal?: {
     currentDate?: () => Date;
     maxRequestBytes?: number;
+    maxDownloadBytes?: number;
   };
 }
 
@@ -70,6 +74,7 @@ const DEFAULT_RESOLUTION = '2K' as const;
 const DEFAULT_TEXT_RATIO = '16:9' as const;
 const MAX_PROMPT_LENGTH = 7000;
 const MAX_REQUEST_BYTES = 64 * 1024 * 1024;
+const MAX_DOWNLOAD_BYTES = 512 * 1024 * 1024;
 const MAX_REFERENCE_IMAGES = 9;
 const MAX_REFERENCE_VIDEOS = 3;
 const MAX_REFERENCE_AUDIOS = 3;
@@ -205,9 +210,16 @@ export class SiftQVideoModel implements VideoModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: SiftQVideoModel) {
+    const config: Pick<SiftQVideoModelConfig, 'provider' | 'baseURL'> & {
+      headers?: SiftQVideoModelConfig['headers'];
+    } = {
+      provider: model.config.provider,
+      baseURL: model.config.baseURL,
+    };
+
     return serializeModelOptions({
       modelId: MODEL_ID,
-      config: model.config,
+      config,
     });
   }
 
@@ -219,6 +231,31 @@ export class SiftQVideoModel implements VideoModelV4 {
   }
 
   constructor(private readonly config: SiftQVideoModelConfig) {}
+
+  private async getRequestHeaders(
+    requestHeaders?: Record<string, string | undefined>,
+  ): Promise<Record<string, string | undefined>> {
+    if (this.config.headers != null) {
+      return combineHeaders(await resolve(this.config.headers), requestHeaders);
+    }
+
+    const headers = new Headers(requestHeaders as HeadersInit | undefined);
+    if (!headers.has('authorization')) {
+      headers.set(
+        'authorization',
+        `Bearer ${loadApiKey({
+          apiKey: undefined,
+          environmentVariableName: 'SIFTQ_API_KEY',
+          description: 'SiftQ API key',
+        })}`,
+      );
+    }
+
+    return withUserAgentSuffix(
+      Object.fromEntries(headers.entries()),
+      `ai-sdk/siftq/${VERSION}`,
+    );
+  }
 
   async handleWebhookOption(
     options: Parameters<NonNullable<VideoModelV4['handleWebhookOption']>>[0],
@@ -521,10 +558,7 @@ export class SiftQVideoModel implements VideoModelV4 {
 
     const { value, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/v2/video_generation`,
-      headers: combineHeaders(
-        await resolve(this.config.headers ?? {}),
-        options.headers,
-      ),
+      headers: await this.getRequestHeaders(options.headers),
       body,
       failedResponseHandler: siftQFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -567,10 +601,7 @@ export class SiftQVideoModel implements VideoModelV4 {
     }
 
     const taskId = operation.data.taskId;
-    const headers = combineHeaders(
-      await resolve(this.config.headers ?? {}),
-      options.headers,
-    );
+    const headers = await this.getRequestHeaders(options.headers);
     const { value, responseHeaders } = await getFromApi({
       url: `${this.config.baseURL}/v2/query/video_generation/${encodeURIComponent(taskId)}`,
       validateUrl: false,
@@ -637,7 +668,15 @@ export class SiftQVideoModel implements VideoModelV4 {
         credentialedOrigin: this.config.baseURL,
         headers,
         failedResponseHandler: siftQFailedResponseHandler,
-        successfulResponseHandler: createBinaryResponseHandler(),
+        successfulResponseHandler: async ({ response, url }) => ({
+          value: await readResponseWithSizeLimit({
+            response,
+            url,
+            maxBytes:
+              this.config._internal?.maxDownloadBytes ?? MAX_DOWNLOAD_BYTES,
+          }),
+          responseHeaders: Object.fromEntries(response.headers.entries()),
+        }),
         abortSignal: options.abortSignal,
         fetch: this.config.fetch,
       });

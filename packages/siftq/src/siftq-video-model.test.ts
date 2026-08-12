@@ -36,18 +36,22 @@ function createModel({
   fetch,
   currentDate,
   maxRequestBytes,
+  maxDownloadBytes,
 }: {
   fetch?: FetchFunction;
   currentDate?: () => Date;
   maxRequestBytes?: number;
+  maxDownloadBytes?: number;
 } = {}) {
   return new SiftQVideoModel({
     provider: 'siftq.video',
     baseURL: BASE_URL,
     headers: () => ({ Authorization: 'Bearer test-key' }),
     fetch,
-    ...(currentDate != null || maxRequestBytes != null
-      ? { _internal: { currentDate, maxRequestBytes } }
+    ...(currentDate != null ||
+    maxRequestBytes != null ||
+    maxDownloadBytes != null
+      ? { _internal: { currentDate, maxRequestBytes, maxDownloadBytes } }
       : {}),
   });
 }
@@ -85,7 +89,7 @@ const server = createTestServer({
 });
 
 describe('SiftQVideoModel', () => {
-  it('exposes the fixed model and supports workflow serialization', () => {
+  it('exposes the fixed model and securely supports workflow serialization', async () => {
     const model = createModel({ fetch: async () => new Response() });
 
     expect(model.provider).toBe('siftq.video');
@@ -99,19 +103,28 @@ describe('SiftQVideoModel', () => {
       config: {
         provider: 'siftq.video',
         baseURL: BASE_URL,
-        headers: { Authorization: 'Bearer test-key' },
       },
     });
+    expect(JSON.stringify(serialized)).not.toContain('test-key');
+    expect(serialized.config).not.toHaveProperty('headers');
+    expect(serialized.config).not.toHaveProperty('fetch');
 
     const restored = SiftQVideoModel[WORKFLOW_DESERIALIZE]({
       modelId: 'MiniMax-H3',
       config: serialized.config as {
         provider: string;
         baseURL: string;
-        headers: Record<string, string>;
       },
     });
     expect(restored.modelId).toBe('MiniMax-H3');
+
+    await restored.doStart({
+      ...defaultOptions,
+      headers: { Authorization: 'Bearer runtime-key' },
+    });
+    expect(server.calls[0].requestHeaders).toMatchObject({
+      authorization: 'Bearer runtime-key',
+    });
   });
 
   describe('request mapping', () => {
@@ -619,6 +632,62 @@ describe('SiftQVideoModel', () => {
       await expect(
         createModel().doStatus({ operation: { taskId: 'task-123' } }),
       ).rejects.toMatchObject({ name: 'SIFTQ_INVALID_VIDEO_RESULT' });
+    });
+
+    it('rejects downloads whose Content-Length exceeds the limit', async () => {
+      const fetch: FetchFunction = async (input, init) => {
+        const url = input instanceof Request ? input.url : input.toString();
+        if (url !== CDN_URL) {
+          return globalThis.fetch(input, init);
+        }
+
+        return new Response(MP4_BYTES, {
+          headers: {
+            'Content-Type': 'video/mp4',
+            'Content-Length': String(MP4_BYTES.byteLength),
+          },
+        });
+      };
+
+      await expect(
+        createModel({
+          fetch,
+          maxDownloadBytes: MP4_BYTES.byteLength - 1,
+        }).doStatus({ operation: { taskId: 'task-123' } }),
+      ).rejects.toMatchObject({
+        name: 'AI_APICallError',
+        cause: { name: 'AI_DownloadError' },
+      });
+    });
+
+    it('rejects streamed downloads that exceed the limit', async () => {
+      const fetch: FetchFunction = async (input, init) => {
+        const url = input instanceof Request ? input.url : input.toString();
+        if (url !== CDN_URL) {
+          return globalThis.fetch(input, init);
+        }
+
+        return new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              controller.enqueue(MP4_BYTES.subarray(0, 12));
+              controller.enqueue(MP4_BYTES.subarray(12));
+              controller.close();
+            },
+          }),
+          { headers: { 'Content-Type': 'video/mp4' } },
+        );
+      };
+
+      await expect(
+        createModel({
+          fetch,
+          maxDownloadBytes: MP4_BYTES.byteLength - 1,
+        }).doStatus({ operation: { taskId: 'task-123' } }),
+      ).rejects.toMatchObject({
+        name: 'AI_APICallError',
+        cause: { name: 'AI_DownloadError' },
+      });
     });
 
     it('maps status and download failures', async () => {
