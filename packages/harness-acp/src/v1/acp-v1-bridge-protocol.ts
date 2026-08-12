@@ -11,7 +11,11 @@ import {
   type HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
 import { z } from 'zod/v4';
-import type { ACPPermissionModeMapping } from './acp-v1-settings';
+import type { ACPToolCall } from '../acp-tool-call';
+import type {
+  ACPInstructionMapping,
+  ACPPermissionModeMapping,
+} from './acp-v1-settings';
 import { acpTextContentBlockSchema } from './acp-v1-prompt';
 
 export type ACPBuiltinToolMapping = {
@@ -81,6 +85,21 @@ const permissionModeMappingSchema: z.ZodType<ACPPermissionModeMapping> =
     'allow-all': permissionModeTargetSchema.nullable(),
   });
 
+const instructionMappingPathSchema = z.array(z.string().min(1)).min(1);
+
+const instructionMappingSchema: z.ZodType<ACPInstructionMapping> =
+  z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('session-meta'),
+      path: instructionMappingPathSchema,
+    }),
+    z.object({
+      type: z.literal('launch-env-json'),
+      variable: z.string().min(1),
+      path: instructionMappingPathSchema,
+    }),
+  ]);
+
 export type ACPTurnStartConfig = {
   readonly version: 1;
   readonly configurationFingerprint: string;
@@ -126,11 +145,28 @@ const coldRestoreSchema = z.object({
   acpSessionId: z.string(),
 });
 
-export const outboundMessageSchema = harnessV1BridgeOutboundMessageSchema;
+const acpToolCallCandidateSchema = z.object({
+  type: z.literal('acp-tool-call-candidate'),
+  toolCall: z.custom<ACPToolCall>(
+    value =>
+      value != null &&
+      typeof value === 'object' &&
+      typeof (value as { toolCallId?: unknown }).toolCallId === 'string' &&
+      typeof (value as { title?: unknown }).title === 'string',
+  ),
+});
+
+export const outboundMessageSchema = z.union([
+  harnessV1BridgeOutboundMessageSchema,
+  acpToolCallCandidateSchema,
+]);
 export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
 
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   prompt: z.array(acpTextContentBlockSchema),
+  instructions: z.string().optional(),
+  instructionMapping: instructionMappingSchema.optional(),
+  mcpServers: z.record(z.string(), z.unknown()).optional(),
   tools: z.array(acpSerializableToolSpecSchema).optional(),
   builtinTools: z.array(builtinToolSchema).readonly().default([]),
   permissionModeMapping: permissionModeMappingSchema.optional(),

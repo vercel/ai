@@ -127,6 +127,27 @@ export async function doStreamStep(
     ? resolveSerializableTools(serializedTools)
     : undefined;
 
+  // streamModelCall derives the model responseFormat from its output spec.
+  // WorkflowAgent parses output outside the model-call helper, so this minimal
+  // output spec only carries the responseFormat across the step boundary.
+  const output =
+    options?.responseFormat == null
+      ? undefined
+      : {
+          name: 'workflow',
+          responseFormat: Promise.resolve(options.responseFormat),
+          async parseCompleteOutput() {
+            throw new Error(
+              'WorkflowAgent does not use streamModelCall output parsing.',
+            );
+          },
+          async parsePartialOutput() {
+            return undefined;
+          },
+          createElementStreamTransform() {
+            return undefined;
+          },
+        };
   // Consume the stream: capture data and write to writable in real-time
   const toolCalls: ParsedToolCall[] = [];
   const providerExecutedToolResults = new Map<
@@ -176,6 +197,7 @@ export async function doStreamStep(
       abortSignal: options?.abortSignal,
       headers: options?.headers,
       reasoning: options?.reasoning,
+      output,
       maxOutputTokens: options?.maxOutputTokens,
       temperature: options?.temperature,
       topP: options?.topP,

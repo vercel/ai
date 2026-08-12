@@ -1,5 +1,31 @@
 # @ai-sdk/openai
 
+## 4.0.40
+
+### Patch Changes
+
+- e19a4a6: Avoid duplicate MCP approval request references when continuing stored OpenAI Responses.
+
+## 4.0.39
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+
+## 4.0.38
+
+### Patch Changes
+
+- d302134: Keep client-executed function calls paired with their outputs when chaining OpenAI Responses with a previous response ID.
+
+## 4.0.37
+
+### Patch Changes
+
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+
 ## 4.0.36
 
 ### Patch Changes

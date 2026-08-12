@@ -1,5 +1,25 @@
 # @ai-sdk/moonshotai
 
+## 3.0.34
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+
+## 3.0.33
+
+### Patch Changes
+
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+
+## 3.0.32
+
+### Patch Changes
+
+- b283a6f: feat(provider/moonshotai): own the chat implementation, support video input. The provider no longer builds on `@ai-sdk/openai-compatible`; the converter, language model, and helpers are owned by the package. Video file parts (e.g. `mediaType: 'video/mp4'`) are converted to Moonshot's `video_url` content parts for video-capable models (`kimi-k3`, `kimi-k2.7-code`, `kimi-k2.6`, `kimi-k2.5`). Audio and PDF file parts now throw client-side (the API rejects those part types). `reasoningHistory: 'preserved'` now maps to Moonshot's `thinking.keep: 'all'` request field (previously a no-op, the API ignores `reasoning_history`), gated per model with a warning on models without `thinking.keep` support. Adds `promptCacheKey` and `safetyIdentifier` provider options, widens `reasoningEffort` to `'low' | 'high' | 'max'` per Moonshot's docs, maps the generic `reasoning` call option to `reasoning_effort`, and passes `ms://` Files API references through natively (declared in `supportedUrls`).
+
 ## 3.0.31
 
 ### Patch Changes

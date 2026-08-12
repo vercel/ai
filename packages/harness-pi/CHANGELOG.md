@@ -1,5 +1,44 @@
 # @ai-sdk/harness-pi
 
+## 1.0.69
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.68
+
+## 1.0.68
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+  - @ai-sdk/harness@1.0.67
+
+## 1.0.67
+
+### Patch Changes
+
+- 9ee30bf: fix(harness): pass instructions appended to system / developer prompt instead of using the workaround of first user prompt
+- Updated dependencies [9ee30bf]
+  - @ai-sdk/harness@1.0.66
+
+## 1.0.66
+
+### Patch Changes
+
+- b6642fa: fix(harness-pi): resolve compound provider/id model ids under their scoped provider
+
+## 1.0.65
+
+### Patch Changes
+
+- c20a315: feat(harness-pi): support caller-supplied inline Pi extension factories
+- a03ff6c: feat(harness): add support for per-harness MCP servers
+- Updated dependencies [401a4ba]
+- Updated dependencies [a03ff6c]
+  - @ai-sdk/provider-utils@5.0.26
+  - @ai-sdk/harness@1.0.65
+
 ## 1.0.64
 
 ### Patch Changes

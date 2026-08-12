@@ -1,5 +1,20 @@
 # @ai-sdk/open-responses
 
+## 2.0.27
+
+### Patch Changes
+
+- 5441aa2: Preserve assistant reasoning parts when converting prompts to Open Responses input.
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+
+## 2.0.26
+
+### Patch Changes
+
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+
 ## 2.0.25
 
 ### Patch Changes

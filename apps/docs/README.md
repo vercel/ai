@@ -38,10 +38,12 @@ The outside-root setting is required because the content sync reads the
 repository's `content/docs/` directory and Git metadata.
 
 Ask AI, feedback, and edit-source links remain disabled until their routes and
-source-path mapping are ready. Example, playground, and resource links (other
-than `/resources/recipes`, which is served by this application) continue to
-the existing production site while those route families remain outside this
-application.
+source-path mapping are ready. Playground and getting-started links continue
+to the existing production site while those route families remain outside
+this application; the resources family (recipes, tools registry, templates,
+showcase) is served by this application, and legacy URLs such as
+`/tools-registry`, `/showcase`, `/examples`, `/elements`, and
+`/model-library` redirect the same way production does.
 
 Mirroring production, every cookbook recipe is served on two URL surfaces:
 `/cookbook/...` and `/resources/recipes/...`. The sitemap, llms.txt, and
@@ -50,6 +52,7 @@ search canonicalize on `/cookbook`.
 ## Third-party logos
 
 `public/images/icons/` contains third-party provider logos used nominatively
-on the provider index pages (ported from the previous ai-sdk.dev app). The
-marks belong to their respective owners and are not covered by this
-repository's license.
+on the provider index pages, and `public/images/showcase/` contains product
+screenshots and logos for the showcase page (both ported from the previous
+ai-sdk.dev app). The marks belong to their respective owners and are not
+covered by this repository's license.

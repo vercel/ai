@@ -443,9 +443,21 @@ export async function convertToOpenAIResponsesInput({
                 break;
               }
 
+              const isProviderDefinedToolCall =
+                (hasLocalShellTool && resolvedToolName === 'local_shell') ||
+                (hasShellTool && resolvedToolName === 'shell') ||
+                (hasApplyPatchTool && resolvedToolName === 'apply_patch') ||
+                (hasComputerTool && resolvedToolName === 'computer') ||
+                (customProviderToolNames?.has(resolvedToolName) ?? false);
+
               // When chaining with a previous response id, items already part
               // of that response chain must not be resent.
-              if (hasPreviousResponseId && store && id != null) {
+              if (
+                hasPreviousResponseId &&
+                store &&
+                id != null &&
+                isProviderDefinedToolCall
+              ) {
                 break;
               }
 
@@ -459,13 +471,6 @@ export async function convertToOpenAIResponsesInput({
               // makes follow-up requests fail with "No tool call found for
               // function call output with call_id", most visibly with parallel
               // tool calls across multiple steps.
-              const isProviderDefinedToolCall =
-                (hasLocalShellTool && resolvedToolName === 'local_shell') ||
-                (hasShellTool && resolvedToolName === 'shell') ||
-                (hasApplyPatchTool && resolvedToolName === 'apply_patch') ||
-                (hasComputerTool && resolvedToolName === 'computer') ||
-                (customProviderToolNames?.has(resolvedToolName) ?? false);
-
               if (store && id != null && isProviderDefinedToolCall) {
                 input.push({ type: 'item_reference', id });
                 break;
@@ -893,7 +898,7 @@ export async function convertToOpenAIResponsesInput({
             }
             processedApprovalIds.add(approvalResponse.approvalId);
 
-            if (store) {
+            if (store && !hasConversation && !hasPreviousResponseId) {
               input.push({
                 type: 'item_reference',
                 id: approvalResponse.approvalId,

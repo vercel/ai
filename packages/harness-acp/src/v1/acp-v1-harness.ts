@@ -40,6 +40,7 @@ import {
   type ACPAuthenticationProfileIdentity,
   type ACPClientApp,
 } from '../acp-auth';
+import type { ACPToolCall } from '../acp-tool-call';
 import {
   createACPV1Implementation,
   createImplementationDescriptor,
@@ -76,6 +77,7 @@ import {
   type ACPSkillCatalogEntry,
 } from './acp-v1-prompt';
 import type {
+  ACPInstructionMapping,
   ACPPermissionModeMapping,
   ACPPermissionModeTarget,
   ACPSerializableValue,
@@ -126,6 +128,17 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
     HarnessV1<TBuiltinTools>['lifecycleStateSchema']
   >;
 }): HarnessV1<TBuiltinTools> {
+  if (
+    settings.mcpServers != null &&
+    Object.prototype.hasOwnProperty.call(
+      settings.mcpServers,
+      'ai-sdk-harness-tools',
+    )
+  ) {
+    throw new Error(
+      'ACP MCP server name "ai-sdk-harness-tools" is reserved for HarnessAgent tools.',
+    );
+  }
   if (!HARNESS_ID_REGEXP.test(settings.harnessId)) {
     throw new Error(
       `ACP harnessId must be a stable kebab-case identifier; received ${JSON.stringify(settings.harnessId)}.`,
@@ -364,12 +377,15 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               proc: undefined,
               modelId: settings.modelId,
               sessionMeta: settings.session?.meta,
+              instructionMapping: settings.instructionMapping,
               debug: startOptions.observability?.debug,
               implementationIdentity,
               authenticationProfile,
               builtinTools: builtinToolCatalog,
               permissionMode,
               permissionModeMapping,
+              mcpServers: settings.mcpServers,
+              isMcpToolCall: settings.isMcpToolCall,
               initialGuidanceApplied: resolveACPInitialGuidanceApplied({
                 isResume: true,
                 lifecycleState: lifecycleData,
@@ -419,8 +435,10 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
                   turnStartConfig,
                   authenticationProfile,
                   sessionMeta: settings.session?.meta,
+                  instructionMapping: settings.instructionMapping,
                   builtinTools: builtinToolCatalog,
                   permissionModeMapping,
+                  mcpServers: settings.mcpServers,
                 });
                 respawnStrategy = {
                   mode: 'lossy-rerun',
@@ -448,8 +466,10 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
             permissionMode,
             authenticationProfile,
             sessionMeta: settings.session?.meta,
+            instructionMapping: settings.instructionMapping,
             builtinTools: builtinToolCatalog,
             permissionModeMapping,
+            mcpServers: settings.mcpServers,
             debug: startOptions.observability?.debug,
           });
           respawnStrategy = {
@@ -465,7 +485,10 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         override: portOverride,
         harnessId: settings.harnessId,
       });
-      const token = randomBytes(32).toString('hex');
+      const token =
+        settings.mintBridgeToken == null
+          ? randomBytes(32).toString('hex')
+          : settings.mintBridgeToken(sandboxSession.id);
       await sandbox.run({
         command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
         abortSignal: startOptions.abortSignal,
@@ -570,6 +593,12 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               builtinTools: builtinToolCatalog,
               permissionMode,
               permissionModeMapping,
+              ...(settings.instructionMapping == null
+                ? {}
+                : { instructionMapping: settings.instructionMapping }),
+              ...(settings.mcpServers == null
+                ? {}
+                : { mcpServers: settings.mcpServers }),
               tools: respawnStrategy.turnStartConfig.tools,
               turnStartConfig: respawnStrategy.turnStartConfig,
               recoveryMode: {
@@ -600,12 +629,15 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         proc,
         modelId: settings.modelId,
         sessionMeta: settings.session?.meta,
+        instructionMapping: settings.instructionMapping,
         debug: startOptions.observability?.debug,
         implementationIdentity,
         authenticationProfile,
         builtinTools: builtinToolCatalog,
         permissionMode,
         permissionModeMapping,
+        mcpServers: settings.mcpServers,
+        isMcpToolCall: settings.isMcpToolCall,
         initialGuidanceApplied: resolveACPInitialGuidanceApplied({
           isResume,
           lifecycleState: lifecycleData,
@@ -801,12 +833,15 @@ function createSession({
   proc,
   modelId,
   sessionMeta,
+  instructionMapping,
   debug,
   implementationIdentity,
   authenticationProfile,
   builtinTools,
   permissionMode,
   permissionModeMapping,
+  mcpServers,
+  isMcpToolCall,
   initialGuidanceApplied: initialGuidanceAppliedAtStart,
   skillCatalog,
   skillsFingerprint,
@@ -829,12 +864,15 @@ function createSession({
   proc: Experimental_SandboxProcess | undefined;
   modelId: string | undefined;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
+  instructionMapping: ACPInstructionMapping | undefined;
   debug: HarnessV1DebugConfig | undefined;
   implementationIdentity: string;
   authenticationProfile: ACPAuthenticationProfileIdentity;
   builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   permissionMode: NonNullable<StartMessage['permissionMode']>;
   permissionModeMapping: StartMessage['permissionModeMapping'];
+  mcpServers: Record<string, unknown> | undefined;
+  isMcpToolCall: ((toolCall: ACPToolCall) => boolean) | undefined;
   initialGuidanceApplied: boolean;
   skillCatalog: ReadonlyArray<ACPSkillCatalogEntry>;
   skillsFingerprint: string;
@@ -889,6 +927,8 @@ function createSession({
     let openBlock:
       | { readonly type: 'text' | 'reasoning'; readonly id: string }
       | undefined;
+    const dynamicToolCalls = new Map<string, boolean>();
+    const toolCallClassificationErrors = new Map<string, unknown>();
     const subscriptions: Array<() => void> = [];
     const forward = (event: HarnessV1StreamPart) => {
       if (event.type === 'text-start' || event.type === 'reasoning-start') {
@@ -923,9 +963,7 @@ function createSession({
       'reasoning-start',
       'reasoning-delta',
       'reasoning-end',
-      'tool-call',
       'tool-approval-request',
-      'tool-result',
       'file-change',
       'finish-step',
       'raw',
@@ -954,6 +992,45 @@ function createSession({
         settle({ error: abortError });
       }
     };
+    subscriptions.push(
+      channel.on('acp-tool-call-candidate', event => {
+        try {
+          dynamicToolCalls.set(
+            event.toolCall.toolCallId,
+            isMcpToolCall?.(event.toolCall) === true,
+          );
+        } catch (error) {
+          toolCallClassificationErrors.set(event.toolCall.toolCallId, error);
+        }
+      }),
+    );
+    subscriptions.push(
+      channel.on('tool-call', event => {
+        if (toolCallClassificationErrors.has(event.toolCallId)) {
+          const error = toolCallClassificationErrors.get(event.toolCallId);
+          closeForwardedBlock();
+          forward({ type: 'error', error });
+          try {
+            channel.send({ type: 'abort' });
+          } catch {}
+          settle({ error });
+          return;
+        }
+        forward(
+          dynamicToolCalls.get(event.toolCallId) === true
+            ? { ...event, dynamic: true }
+            : event,
+        );
+      }),
+    );
+    subscriptions.push(
+      channel.on('tool-result', event => {
+        const dynamic = dynamicToolCalls.get(event.toolCallId) === true;
+        dynamicToolCalls.delete(event.toolCallId);
+        toolCallClassificationErrors.delete(event.toolCallId);
+        forward(dynamic ? { ...event, dynamic: true } : event);
+      }),
+    );
     for (const type of eventTypes) {
       subscriptions.push(channel.on(type, event => forward(event)));
     }
@@ -1110,9 +1187,11 @@ function createSession({
         builtinTools,
         permissionMode,
         permissionModeMapping,
+        mcpServers,
         debug,
         authenticationProfile,
         sessionMeta,
+        instructionMapping,
       });
       const control = wireTurn({
         emit: options.emit,
@@ -1130,13 +1209,25 @@ function createSession({
               ? prompt
               : prependACPInitialGuidance({
                   prompt,
-                  instructions: options.instructions,
+                  instructions:
+                    instructionMapping == null
+                      ? options.instructions
+                      : undefined,
                   skills: skillCatalog,
+                }),
+            ...(instructionMapping == null
+              ? {}
+              : {
+                  instructionMapping,
+                  ...(options.instructions == null
+                    ? {}
+                    : { instructions: options.instructions }),
                 }),
             debug,
             builtinTools,
             permissionMode,
             permissionModeMapping,
+            ...(mcpServers == null ? {} : { mcpServers }),
             tools: options.tools == null ? undefined : turnStartConfig.tools,
             turnStartConfig,
           });
@@ -1174,6 +1265,15 @@ function createSession({
             builtinTools: turnStartConfig.builtinTools,
             permissionMode: turnStartConfig.permissionMode,
             permissionModeMapping: turnStartConfig.permissionModeMapping,
+            ...(instructionMapping == null
+              ? {}
+              : {
+                  instructionMapping,
+                  ...(options.instructions == null
+                    ? {}
+                    : { instructions: options.instructions }),
+                }),
+            ...(mcpServers == null ? {} : { mcpServers }),
             tools: turnStartConfig.tools,
             turnStartConfig,
             recoveryMode: {
@@ -1336,14 +1436,18 @@ function validateACPTurnStartConfig({
   turnStartConfig,
   authenticationProfile,
   sessionMeta,
+  instructionMapping,
   builtinTools,
   permissionModeMapping,
+  mcpServers,
 }: {
   turnStartConfig: ACPTurnStartConfig;
   authenticationProfile: ACPAuthenticationProfileIdentity;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
+  instructionMapping: ACPInstructionMapping | undefined;
   builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   permissionModeMapping: ACPPermissionModeMapping | undefined;
+  mcpServers: Record<string, unknown> | undefined;
 }): void {
   const current = createACPTurnStartConfig({
     prompt: turnStartConfig.prompt,
@@ -1351,9 +1455,11 @@ function validateACPTurnStartConfig({
     builtinTools,
     permissionMode: turnStartConfig.permissionMode,
     permissionModeMapping,
+    mcpServers,
     debug: turnStartConfig.debug,
     authenticationProfile,
     sessionMeta,
+    instructionMapping,
   });
   if (
     current.configurationFingerprint !==
@@ -1371,8 +1477,10 @@ function validateACPColdSessionConfiguration({
   permissionMode,
   authenticationProfile,
   sessionMeta,
+  instructionMapping,
   builtinTools,
   permissionModeMapping,
+  mcpServers,
   debug,
 }: {
   coldSession: ACPColdSessionState;
@@ -1380,8 +1488,10 @@ function validateACPColdSessionConfiguration({
   permissionMode: NonNullable<StartMessage['permissionMode']>;
   authenticationProfile: ACPAuthenticationProfileIdentity;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
+  instructionMapping: ACPInstructionMapping | undefined;
   builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   permissionModeMapping: ACPPermissionModeMapping | undefined;
+  mcpServers: Record<string, unknown> | undefined;
   debug: HarnessV1DebugConfig | undefined;
 }): ACPTurnStartConfig {
   const current = createACPTurnStartConfig({
@@ -1390,9 +1500,11 @@ function validateACPColdSessionConfiguration({
     builtinTools,
     permissionMode,
     permissionModeMapping,
+    mcpServers,
     debug,
     authenticationProfile,
     sessionMeta,
+    instructionMapping,
   });
   if (
     current.configurationFingerprint !== coldSession.configurationFingerprint ||

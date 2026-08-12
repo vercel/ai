@@ -225,7 +225,17 @@
                 "returnValueOfType": "HarnessV1"
               }
             ],
-            "exportTypes": ["${harnessId.toPascalCase()}HarnessSettings"]
+            "exportTypes": [
+              {
+                "name": "${harnessId.toPascalCase()}HarnessSettings",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mcpServers": {}
+                  }
+                }
+              }
+            ]
           }
         },
         {
@@ -252,6 +262,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "mintBridgeToken": {},
                     "port": { "type": "number" },
                     "startupTimeoutMs": { "type": "number" }
                   }
@@ -278,6 +289,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "mintBridgeToken": {},
                     "port": { "type": "number" },
                     "startupTimeoutMs": { "type": "number" }
                   }
@@ -528,7 +540,7 @@
     {
       "name": "harness-bridge-must-not-import-core-ai-sdk-packages",
       "description": "Harness bridge code must not import AI SDK packages that are unavailable in the isolated bridge runtime.",
-      "paths": ["packages/harness-*/src/*/bridge/*.ts"],
+      "paths": ["packages/harness-*/src/**/bridge/*.ts"],
       "mustNot": {
         "importValuesFrom": [
           "ai",

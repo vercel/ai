@@ -35,6 +35,7 @@ import {
   writeSkills as writeHarnessSkills,
 } from '@ai-sdk/harness/utils';
 import {
+  safeParseJSON,
   tool,
   type Experimental_SandboxSession,
   type Experimental_SandboxProcess,
@@ -64,6 +65,11 @@ const CLAUDE_CODE_CLIENT_APP = `ai-sdk/harness-claude-code/${VERSION}`;
 export type ClaudeCodeHarnessSettings = {
   readonly auth?: ClaudeCodeAuthOptions;
   /**
+   * MCP server definitions keyed by server name. Each definition uses the
+   * underlying runtime's native MCP server configuration format.
+   */
+  readonly mcpServers?: Record<string, unknown>;
+  /**
    * Anthropic model id the underlying `claude` CLI should use. Leaving this
    * unset defers to the CLI's default.
    */
@@ -73,6 +79,11 @@ export type ClaudeCodeHarnessSettings = {
    * back to the caller. Unset means the CLI's default.
    */
   readonly maxTurns?: number;
+  /**
+   * Environment variables for the Claude Code process. These values are
+   * merged over the sandbox bridge process environment.
+   */
+  readonly env?: Readonly<Record<string, string>>;
   /**
    * Controls extended-thinking behavior and whether reasoning is summarized or
    * omitted. Defaults to `{ type: 'adaptive', display: 'summarized' }`.
@@ -87,19 +98,53 @@ export type ClaudeCodeHarnessSettings = {
   readonly port?: number;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
+  /**
+   * Creates the authentication token used by the sandbox bridge. Defaults to
+   * a random 32-byte hexadecimal token.
+   */
+  readonly mintBridgeToken?: (sandboxId: string) => string;
 };
 
 /*
  * Every native tool the Claude Code CLI can invoke, declared as a `ToolSet`
  * keyed by what the bridge emits as `toolName` on the wire
- * (`commonName ?? nativeName`). Schemas transcribed from
- * `@anthropic-ai/claude-agent-sdk`'s `agentSdkTypes.d.ts`.
+ * (`commonName ?? nativeName`). Schemas are transcribed from the generated
+ * `sdk-tools.d.ts` and the conditionally registered tool definitions in the
+ * pinned Claude Code executable.
  *
  * `MCP` (the generic proxy tool inside the Claude Code SDK) is intentionally
  * omitted — the bridge filters out `mcp__harness-tools__*` tool names before
  * emitting them, and other MCP invocations come through with their own
  * server-tool names rather than the literal `'Mcp'` token.
  */
+const listMcpResourcesInputSchema = z.object({
+  server: z.string().optional(),
+});
+
+const readMcpResourceInputSchema = z.object({
+  server: z.string(),
+  uri: z.string(),
+});
+
+const structuredTeamMessageSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('shutdown_request'),
+    reason: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('shutdown_response'),
+    request_id: z.string(),
+    approve: z.boolean(),
+    reason: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('plan_approval_response'),
+    request_id: z.string(),
+    approve: z.boolean(),
+    feedback: z.string().optional(),
+  }),
+]);
+
 const CLAUDE_CODE_BUILTIN_TOOLS = {
   read: commonTool('read', {
     nativeName: 'Read',
@@ -291,23 +336,66 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       timeout: z.number(),
     }),
   }),
-  Monitor: tool({
-    description: 'Run and monitor a shell command',
-    inputSchema: z.object({
-      command: z.string(),
-      description: z.string().optional(),
-      timeout_ms: z.number().optional(),
-      persistent: z.boolean().optional(),
+  Monitor: {
+    ...tool({
+      description: 'Run and monitor a shell command or WebSocket',
+      inputSchema: z.object({
+        description: z.string().optional(),
+        timeout_ms: z.number().optional(),
+        persistent: z.boolean().optional(),
+        command: z.string().optional(),
+        ws: z
+          .object({
+            url: z.string(),
+            protocols: z.array(z.string()).optional(),
+          })
+          .optional(),
+      }),
     }),
-  }),
-  ListMcpResources: tool({
-    description: 'List resources available from MCP servers',
-    inputSchema: z.object({ server: z.string().optional() }),
-  }),
-  ReadMcpResource: tool({
-    description: 'Read a specific MCP resource by URI',
-    inputSchema: z.object({ server: z.string(), uri: z.string() }),
-  }),
+    toolUseKind: 'bash',
+  },
+  ListMcpResources: {
+    ...tool({
+      description: 'List resources available from MCP servers',
+      inputSchema: listMcpResourcesInputSchema,
+    }),
+    toolUseKind: 'readonly',
+  },
+  ListMcpResourcesTool: {
+    ...tool({
+      description: 'List resources available from MCP servers',
+      inputSchema: listMcpResourcesInputSchema,
+    }),
+    toolUseKind: 'readonly',
+  },
+  ReadMcpResource: {
+    ...tool({
+      description: 'Read a specific MCP resource by URI',
+      inputSchema: readMcpResourceInputSchema,
+    }),
+    toolUseKind: 'readonly',
+  },
+  ReadMcpResourceTool: {
+    ...tool({
+      description: 'Read a specific MCP resource by URI',
+      inputSchema: readMcpResourceInputSchema,
+    }),
+    toolUseKind: 'readonly',
+  },
+  ReadMcpResourceDirTool: {
+    ...tool({
+      description: 'List direct children of an MCP directory resource',
+      inputSchema: readMcpResourceInputSchema,
+    }),
+    toolUseKind: 'readonly',
+  },
+  RefreshMcpTools: {
+    ...tool({
+      description: 'Refresh tools from one or all connected MCP servers',
+      inputSchema: z.object({ server: z.string().optional() }),
+    }),
+    toolUseKind: 'readonly',
+  },
   ExitPlanMode: tool({
     description: 'Exit plan mode with optional permission approvals',
     inputSchema: z.looseObject({
@@ -321,6 +409,13 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
         .optional(),
     }),
   }),
+  EnterPlanMode: {
+    ...tool({
+      description: 'Enter plan mode',
+      inputSchema: z.object({}),
+    }),
+    toolUseKind: 'readonly',
+  },
   EnterWorktree: tool({
     description: 'Create or enter an isolated git worktree',
     inputSchema: z.object({
@@ -386,6 +481,271 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       max_results: z.number().optional(),
     }),
   }),
+  Artifact: {
+    ...tool({
+      description: 'Publish or list claude.ai artifacts',
+      inputSchema: z.object({
+        action: z.enum(['publish', 'list']).optional(),
+        file_path: z.string().optional(),
+        favicon: z.string().optional(),
+        limit: z.number().optional(),
+        scope: z.enum(['mine', 'shared', 'all']).optional(),
+        title: z.string().optional(),
+        description: z.string().optional(),
+        label: z.string().optional(),
+        url: z.string().optional(),
+        force: z.boolean().optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  CronCreate: {
+    ...tool({
+      description: 'Schedule a recurring or one-shot prompt',
+      inputSchema: z.object({
+        cron: z.string(),
+        prompt: z.string(),
+        recurring: z.boolean().optional(),
+        durable: z.boolean().optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  CronDelete: {
+    ...tool({
+      description: 'Delete a scheduled prompt by id',
+      inputSchema: z.object({ id: z.string() }),
+    }),
+    toolUseKind: 'edit',
+  },
+  CronList: {
+    ...tool({
+      description: 'List scheduled prompts for the current session',
+      inputSchema: z.object({}),
+    }),
+    toolUseKind: 'readonly',
+  },
+  DesignSync: {
+    ...tool({
+      description: 'Read or update claude.ai Design projects',
+      inputSchema: z.object({
+        method: z.enum([
+          'list_projects',
+          'get_project',
+          'list_files',
+          'get_file',
+          'finalize_plan',
+          'write_files',
+          'delete_files',
+          'register_assets',
+          'unregister_assets',
+          'create_project',
+          'report_validate',
+        ]),
+        projectId: z.string().optional(),
+        path: z.string().optional(),
+        writes: z.array(z.string()).max(256).optional(),
+        deletes: z.array(z.string()).max(256).optional(),
+        planId: z.string().optional(),
+        files: z
+          .array(
+            z.object({
+              path: z.string(),
+              localPath: z.string().optional(),
+              data: z.string().optional(),
+              encoding: z.literal('base64').optional(),
+              mimeType: z.string().optional(),
+            }),
+          )
+          .max(256)
+          .optional(),
+        paths: z.array(z.string()).max(256).optional(),
+        name: z.string().optional(),
+        assets: z
+          .array(
+            z.object({
+              name: z.string(),
+              path: z.string(),
+              subtitle: z.string().optional(),
+              viewport: z
+                .object({
+                  width: z.number(),
+                  height: z.number().optional(),
+                })
+                .optional(),
+              group: z.string().optional(),
+            }),
+          )
+          .max(256)
+          .optional(),
+        localDir: z.string().optional(),
+        counts: z
+          .object({
+            total: z.number(),
+            bad: z.number(),
+            thin: z.number(),
+            variantsIdentical: z.number(),
+            iterations: z.number(),
+          })
+          .optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  LSP: {
+    ...tool({
+      description: 'Query a language server for code intelligence',
+      inputSchema: z.object({
+        operation: z.enum([
+          'goToDefinition',
+          'findReferences',
+          'hover',
+          'documentSymbol',
+          'workspaceSymbol',
+          'goToImplementation',
+          'prepareCallHierarchy',
+          'incomingCalls',
+          'outgoingCalls',
+        ]),
+        filePath: z.string(),
+        line: z.number().int().positive(),
+        character: z.number().int().positive(),
+        query: z.string().optional(),
+      }),
+    }),
+    toolUseKind: 'readonly',
+  },
+  PowerShell: {
+    ...tool({
+      description: 'Execute a PowerShell command, optionally in background',
+      inputSchema: z.object({
+        command: z.string(),
+        timeout: z.number().optional(),
+        description: z.string().optional(),
+        run_in_background: z.boolean().optional(),
+        dangerouslyDisableSandbox: z.boolean().optional(),
+      }),
+    }),
+    toolUseKind: 'bash',
+  },
+  PushNotification: {
+    ...tool({
+      description: 'Send a notification for proactive or scheduled work',
+      inputSchema: z.object({
+        message: z.string(),
+        status: z.literal('proactive'),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  RemoteTrigger: {
+    ...tool({
+      description: 'List, manage, or run a claude.ai Routine trigger',
+      inputSchema: z.object({
+        action: z.enum(['list', 'get', 'create', 'update', 'run']),
+        trigger_id: z.string().optional(),
+        body: z.record(z.string(), z.unknown()).optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  ReportFindings: {
+    ...tool({
+      description: 'Return verified code-review findings',
+      inputSchema: z.object({
+        level: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
+        findings: z
+          .array(
+            z.object({
+              file: z.string(),
+              line: z.number().optional(),
+              summary: z.string(),
+              short_summary: z.string().optional(),
+              failure_scenario: z.string(),
+              category: z.string().optional(),
+              verdict: z.enum(['CONFIRMED', 'PLAUSIBLE']).optional(),
+              outcome: z
+                .enum(['fixed', 'skipped', 'no_change_needed'])
+                .optional(),
+            }),
+          )
+          .max(32),
+      }),
+    }),
+    toolUseKind: 'readonly',
+  },
+  ScheduleWakeup: {
+    ...tool({
+      description: 'Schedule or stop the next iteration of a dynamic loop',
+      inputSchema: z.object({
+        delaySeconds: z.number().optional(),
+        reason: z.string().optional(),
+        prompt: z.string().optional(),
+        stop: z.boolean().optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  SendMessage: {
+    ...tool({
+      description: 'Send a plain-text or protocol message to another agent',
+      inputSchema: z.object({
+        to: z.string(),
+        summary: z.string().max(200).optional(),
+        message: z.union([z.string(), structuredTeamMessageSchema]),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  SendUserFile: {
+    ...tool({
+      description: 'Send one or more files to the user',
+      inputSchema: z.object({
+        files: z.union([z.string(), z.array(z.string()).min(1)]),
+        caption: z.string().optional(),
+        status: z.enum(['normal', 'proactive']),
+        display: z.enum(['render', 'attach']).optional(),
+      }),
+    }),
+    toolUseKind: 'readonly',
+  },
+  ShareOnboardingGuide: {
+    ...tool({
+      description: 'Create, update, inspect, or delete an onboarding guide',
+      inputSchema: z.object({
+        mode: z.enum(['check', 'update', 'create', 'delete']).optional(),
+        short_code: z
+          .string()
+          .regex(/^[A-Za-z0-9_-]{1,64}$/)
+          .optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  WaitForMcpServers: {
+    ...tool({
+      description: 'Wait for MCP servers that are still connecting',
+      inputSchema: z.object({
+        servers: z.array(z.string()).optional(),
+      }),
+    }),
+    toolUseKind: 'readonly',
+  },
+  Workflow: {
+    ...tool({
+      description: 'Run or resume a dynamic multi-agent workflow',
+      inputSchema: z.object({
+        script: z.string().optional(),
+        name: z.string().optional(),
+        description: z.string().optional(),
+        title: z.string().optional(),
+        args: z.record(z.string(), z.unknown()).optional(),
+        scriptPath: z.string().optional(),
+        resumeFromRunId: z.string().optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
 /*
@@ -432,6 +792,14 @@ type ClaudeCodeBridgeCoords = z.infer<typeof claudeCodeBridgeCoordsSchema>;
 export function createClaudeCode(
   settings: ClaudeCodeHarnessSettings = {},
 ): HarnessV1<typeof CLAUDE_CODE_BUILTIN_TOOLS> {
+  if (
+    settings.mcpServers != null &&
+    Object.prototype.hasOwnProperty.call(settings.mcpServers, 'harness-tools')
+  ) {
+    throw new Error(
+      'Claude Code MCP server name "harness-tools" is reserved for HarnessAgent tools.',
+    );
+  }
   let cachedBootstrap: HarnessV1Bootstrap | undefined;
   const thinking = settings.thinking ?? {
     type: 'adaptive',
@@ -549,6 +917,7 @@ export function createClaudeCode(
             proc: undefined,
             model: settings.model,
             maxTurns: settings.maxTurns,
+            env: settings.env,
             thinking,
             isResume: true,
             continueOnFirstPrompt: false,
@@ -560,6 +929,7 @@ export function createClaudeCode(
             permissionMode: startOpts.permissionMode,
             builtinToolFiltering: startOpts.builtinToolFiltering,
             skills: startOpts.skills ?? [],
+            mcpServers: settings.mcpServers,
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -598,7 +968,10 @@ export function createClaudeCode(
             })
           : undefined;
       const port = resolveBridgePort(sandboxSession, settings.port);
-      const token = randomBytes(32).toString('hex');
+      const token =
+        settings.mintBridgeToken == null
+          ? randomBytes(32).toString('hex')
+          : settings.mintBridgeToken(sandboxId);
       const authEnv = resolveClaudeCodeEnv(settings.auth);
       const env = {
         ...authEnv,
@@ -719,6 +1092,7 @@ export function createClaudeCode(
         proc,
         model: settings.model,
         maxTurns: settings.maxTurns,
+        env: settings.env,
         thinking,
         isResume: respawnStrategy !== undefined,
         continueOnFirstPrompt: respawnStrategy !== undefined,
@@ -730,6 +1104,7 @@ export function createClaudeCode(
         permissionMode: startOpts.permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
         skills: startOpts.skills ?? [],
+        mcpServers: settings.mcpServers,
       });
     },
   };
@@ -809,41 +1184,87 @@ async function readBridgeAsset(name: string): Promise<string> {
  * `bridge-hello` the instant it accepts the connection, so receiving it
  * is the only reliable evidence that the end-to-end link is live.
  */
-async function waitForBridgeHello({
-  ws,
-  timeoutMs,
+function openWebSocketAndWaitForBridgeHello({
+  url,
+  openTimeoutMs,
+  getHelloTimeoutMs,
 }: {
-  ws: WebSocket;
-  timeoutMs: number;
-}): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
+  url: string;
+  openTimeoutMs: number;
+  getHelloTimeoutMs: () => number;
+}): Promise<WebSocket> {
+  return new Promise<WebSocket>((resolve, reject) => {
+    const ws = new WebSocket(url);
+    let opened = false;
+    let sawBridgeHello = false;
     let settled = false;
+    let openTimer: ReturnType<typeof setTimeout> | undefined;
+    let helloTimer: ReturnType<typeof setTimeout> | undefined;
+
     const cleanup = () => {
+      if (openTimer) clearTimeout(openTimer);
+      if (helloTimer) clearTimeout(helloTimer);
+      ws.off('open', onOpen);
       ws.off('message', onMessage);
       ws.off('close', onClose);
       ws.off('error', onError);
-      if (timer) clearTimeout(timer);
     };
     const settle = (err?: unknown) => {
       if (settled) return;
       settled = true;
       cleanup();
-      if (err) reject(err);
-      else resolve();
+      if (err) {
+        try {
+          ws.terminate();
+        } catch {}
+        reject(err);
+      } else {
+        resolve(ws);
+      }
+    };
+    const tryResolve = () => {
+      if (opened && sawBridgeHello) settle();
+    };
+    const startHelloTimer = () => {
+      if (helloTimer) return;
+      const helloTimeoutMs = getHelloTimeoutMs();
+      helloTimer = setTimeout(
+        () =>
+          settle(
+            new Error(
+              `claude-code bridge did not send bridge-hello within ${helloTimeoutMs}ms`,
+            ),
+          ),
+        helloTimeoutMs,
+      );
+      helloTimer.unref?.();
+    };
+    const onOpen = () => {
+      opened = true;
+      if (openTimer) {
+        clearTimeout(openTimer);
+        openTimer = undefined;
+      }
+      startHelloTimer();
+      tryResolve();
     };
     const onMessage = (raw: unknown) => {
-      try {
-        const text =
-          typeof raw === 'string'
-            ? raw
-            : (raw as Buffer | ArrayBufferLike).toString
-              ? (raw as Buffer).toString('utf8')
-              : String(raw);
-        const parsed = JSON.parse(text) as { type?: unknown };
-        if (parsed?.type === 'bridge-hello') settle();
-      } catch {
-        // Ignore malformed frames while waiting.
-      }
+      void (async () => {
+        const parsed = await safeParseJSON({
+          text: webSocketMessageToString(raw),
+        });
+        if (!parsed.success || settled) return;
+        const value = parsed.value;
+        if (
+          typeof value === 'object' &&
+          value !== null &&
+          !Array.isArray(value) &&
+          (value as { type?: unknown }).type === 'bridge-hello'
+        ) {
+          sawBridgeHello = true;
+          tryResolve();
+        }
+      })();
     };
     const onClose = () => {
       settle(
@@ -851,16 +1272,13 @@ async function waitForBridgeHello({
       );
     };
     const onError = (err: Error) => settle(err);
-    const timer = setTimeout(
+    openTimer = setTimeout(
       () =>
-        settle(
-          new Error(
-            `claude-code bridge did not send bridge-hello within ${timeoutMs}ms`,
-          ),
-        ),
-      timeoutMs,
+        settle(new Error(`WebSocket open timed out after ${openTimeoutMs}ms`)),
+      openTimeoutMs,
     );
-    timer.unref?.();
+    openTimer.unref?.();
+    ws.on('open', onOpen);
     ws.on('message', onMessage);
     ws.on('close', onClose);
     ws.on('error', onError);
@@ -880,23 +1298,16 @@ async function openBridgeWebSocket({
 
   while (Date.now() < deadline) {
     attempt++;
-    let ws: WebSocket | undefined;
     try {
       const remaining = Math.max(1, deadline - Date.now());
-      ws = await openWebSocket({
+      return await openWebSocketAndWaitForBridgeHello({
         url: wsUrl,
-        timeoutMs: Math.min(10_000, remaining),
+        openTimeoutMs: Math.min(10_000, remaining),
+        getHelloTimeoutMs: () =>
+          Math.min(5_000, Math.max(1, deadline - Date.now())),
       });
-      await waitForBridgeHello({
-        ws,
-        timeoutMs: Math.min(5_000, Math.max(1, deadline - Date.now())),
-      });
-      return ws;
     } catch (err) {
       lastError = err;
-      try {
-        ws?.close();
-      } catch {}
       const remaining = deadline - Date.now();
       if (remaining <= 0) break;
       await sleep(Math.min(250 * attempt, 1_000, remaining));
@@ -908,39 +1319,17 @@ async function openBridgeWebSocket({
   );
 }
 
-function openWebSocket({
-  url,
-  timeoutMs,
-}: {
-  url: string;
-  timeoutMs: number;
-}): Promise<WebSocket> {
-  return new Promise((resolve, reject) => {
-    const ws = new WebSocket(url);
-    const timer = setTimeout(() => {
-      cleanup();
-      try {
-        ws.terminate();
-      } catch {}
-      reject(new Error(`WebSocket open timed out after ${timeoutMs}ms`));
-    }, timeoutMs);
-    timer.unref?.();
-    const cleanup = () => {
-      clearTimeout(timer);
-      ws.off('open', onOpen);
-      ws.off('error', onError);
-    };
-    const onOpen = () => {
-      cleanup();
-      resolve(ws);
-    };
-    const onError = (err: Error) => {
-      cleanup();
-      reject(err);
-    };
-    ws.once('open', onOpen);
-    ws.once('error', onError);
-  });
+function webSocketMessageToString(raw: unknown): string {
+  if (typeof raw === 'string') return raw;
+  if (Buffer.isBuffer(raw)) return raw.toString('utf8');
+  if (Array.isArray(raw)) return Buffer.concat(raw).toString('utf8');
+  if (raw instanceof ArrayBuffer) return Buffer.from(raw).toString('utf8');
+  if (ArrayBuffer.isView(raw)) {
+    return Buffer.from(raw.buffer, raw.byteOffset, raw.byteLength).toString(
+      'utf8',
+    );
+  }
+  return String(raw);
 }
 
 function sleep(ms: number): Promise<void> {
@@ -961,6 +1350,7 @@ function createSession({
   proc,
   model,
   maxTurns,
+  env,
   thinking,
   isResume,
   continueOnFirstPrompt,
@@ -972,6 +1362,7 @@ function createSession({
   permissionMode,
   builtinToolFiltering,
   skills,
+  mcpServers,
 }: {
   sessionId: string;
   channel: ClaudeCodeChannel;
@@ -979,6 +1370,7 @@ function createSession({
   proc: Experimental_SandboxProcess | undefined;
   model: string | undefined;
   maxTurns: number | undefined;
+  env: Readonly<Record<string, string>> | undefined;
   thinking: ClaudeCodeThinkingConfig;
   isResume: boolean;
   continueOnFirstPrompt: boolean;
@@ -990,6 +1382,7 @@ function createSession({
   permissionMode: HarnessV1PermissionMode | undefined;
   builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
   skills: ReadonlyArray<HarnessV1Skill>;
+  mcpServers: Record<string, unknown> | undefined;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
@@ -1000,13 +1393,6 @@ function createSession({
    * `attach`ed bridge is already past its first turn and continues on its own.
    */
   let pendingResumeFlag = continueOnFirstPrompt;
-  /*
-   * Instructions are prepended to the first user message of a fresh session
-   * only. A resumed session (attach/replay/rerun) already carried them in its
-   * original first message (preserved in the workdir snapshot), so it starts
-   * "applied".
-   */
-  let instructionsApplied = isResume;
 
   /*
    * Wire the channel into one turn's worth of events and return the control
@@ -1153,26 +1539,25 @@ function createSession({
         abortSignal: promptOpts.abortSignal,
       });
 
-      let promptText = extractUserText(promptOpts.prompt);
-      if (!instructionsApplied && promptOpts.instructions) {
-        promptText = frameInstructions(promptOpts.instructions, promptText);
-      }
-      instructionsApplied = true;
-
       const startMessage = {
         type: 'start' as const,
-        prompt: promptText,
+        prompt: extractUserText(promptOpts.prompt),
         tools: (promptOpts.tools ?? []).map(t => ({
           name: t.name,
           description: t.description,
           inputSchema: t.inputSchema,
         })),
+        ...(promptOpts.instructions
+          ? { instructions: promptOpts.instructions }
+          : {}),
         model,
         maxTurns,
+        ...(env !== undefined ? { env } : {}),
         thinking,
         ...(skills.length > 0
           ? { skills: skills.map(skill => skill.name) }
           : {}),
+        ...(mcpServers == null ? {} : { mcpServers }),
         ...(permissionMode ? { permissionMode } : {}),
         ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
         ...(debug ? { debug } : {}),
@@ -1219,12 +1604,17 @@ function createSession({
             description: t.description,
             inputSchema: t.inputSchema,
           })),
+          ...(continueOpts.instructions
+            ? { instructions: continueOpts.instructions }
+            : {}),
           model,
           maxTurns,
+          ...(env !== undefined ? { env } : {}),
           thinking,
           ...(skills.length > 0
             ? { skills: skills.map(skill => skill.name) }
             : {}),
+          ...(mcpServers == null ? {} : { mcpServers }),
           ...(permissionMode ? { permissionMode } : {}),
           ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
           ...(debug ? { debug } : {}),
@@ -1410,23 +1800,6 @@ function createSession({
       return payload;
     },
   };
-}
-
-/*
- * Frame session instructions and the user's text so the runtime treats the
- * instructions as system-provided operating guidance, not something the user
- * wrote. Without the wrapper the agent can echo the prepended text back as if
- * the user had asked for it, which is confusing since the user never typed it.
- * Applied only to the first user message of a fresh session.
- */
-function frameInstructions(instructions: string, userText: string): string {
-  return (
-    '<session-instructions>\n' +
-    'The block below is operating guidance from the system, not a message from the user — follow it, but do not mention it or attribute it to the user.\n\n' +
-    `${instructions}\n` +
-    '</session-instructions>\n\n' +
-    `<user-message>\n${userText}\n</user-message>`
-  );
 }
 
 /*

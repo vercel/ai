@@ -32,6 +32,7 @@ import {
 } from './acp-diagnostics';
 import { monitorACPAgentStderr } from './agent-stderr-monitor';
 import { createEmitStreamEvent } from './create-emit-stream-event';
+import { resolveACPInstructionConfiguration } from './instruction-mapping';
 import {
   startHostToolRelay,
   type HostToolRelay,
@@ -230,6 +231,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   turn.emit({ type: 'stream-start' });
   const emitStreamEvent = createEmitStreamEvent({
     emit: event => turn.emit(event as BridgeEvent),
+    emitToolCallCandidate: ({ toolCall }) => {
+      turn.emit({
+        type: 'acp-tool-call-candidate',
+        toolCall,
+      });
+    },
     builtinTools: start.builtinTools,
     hostToolServerName: HOST_TOOL_MCP_SERVER_NAME,
     hostTools: start.tools ?? [],
@@ -320,8 +327,10 @@ async function ensureSession({
     authentication: bridgeConfiguration.authentication,
     providerAuthentication: bridgeConfiguration.providerAuthentication,
     sessionMeta: bridgeConfiguration.sessionMeta,
+    instructionMapping: start.instructionMapping,
     permissionMode: start.permissionMode,
     permissionModeMapping: start.permissionModeMapping,
+    mcpServers: start.mcpServers,
   });
   if (session != null) {
     if (catalogRefreshError != null) throw catalogRefreshError;
@@ -360,12 +369,18 @@ async function ensureSession({
     providerAuthentication: bridgeConfiguration.providerAuthentication,
     gateway,
   });
+  const instructionConfiguration = await resolveACPInstructionConfiguration({
+    instructions: start.instructions,
+    instructionMapping: start.instructionMapping,
+    sessionMeta: bridgeConfiguration.sessionMeta,
+    environment: createChildEnvironment({ launchEnv }),
+  });
   child = spawn(
     `${implementationDir}/node_modules/.bin/${implementation.executable}`,
     [...implementation.args],
     {
       cwd: workDir,
-      env: createChildEnvironment({ launchEnv }),
+      env: instructionConfiguration.environment,
       shell: false,
       stdio: ['pipe', 'pipe', 'pipe'],
     },
@@ -437,6 +452,10 @@ async function ensureSession({
       authentication,
     });
   }
+  const externalMcpServers = createExternalMcpServers({
+    mcpServers: start.mcpServers,
+    initialization,
+  });
   const tools = start.tools ?? [];
   const catalogPath = `${bridgeStateDir}/host-tools.json`;
   await writeFile(catalogPath, JSON.stringify(tools), { mode: 0o600 });
@@ -446,6 +465,7 @@ async function ensureSession({
   });
 
   const mcpServers: acp.McpServer[] = [
+    ...externalMcpServers,
     {
       name: HOST_TOOL_MCP_SERVER_NAME,
       command: process.execPath,
@@ -478,9 +498,9 @@ async function ensureSession({
       sessionId: recoveredSessionId,
       cwd: workDir,
       mcpServers,
-      ...(bridgeConfiguration.sessionMeta == null
+      ...(instructionConfiguration.sessionMeta == null
         ? {}
-        : { _meta: bridgeConfiguration.sessionMeta }),
+        : { _meta: instructionConfiguration.sessionMeta }),
     });
     createdSession = createACPRecoveredSession({
       agent: connection.agent,
@@ -497,7 +517,7 @@ async function ensureSession({
       sessionId: recoveredSessionId,
       cwd: workDir,
       mcpServers,
-      meta: bridgeConfiguration.sessionMeta,
+      meta: instructionConfiguration.sessionMeta,
       harnessId: bridgeType,
       setHistoricalUpdatesSuppressed: ({ suppressed }) => {
         historicalUpdatesSuppressed = suppressed;
@@ -518,9 +538,9 @@ async function ensureSession({
       .buildSession({
         cwd: workDir,
         mcpServers,
-        ...(bridgeConfiguration.sessionMeta == null
+        ...(instructionConfiguration.sessionMeta == null
           ? {}
-          : { _meta: bridgeConfiguration.sessionMeta }),
+          : { _meta: instructionConfiguration.sessionMeta }),
       })
       .start();
   }
@@ -555,6 +575,41 @@ async function ensureSession({
     sessionId: createdSession.sessionId,
   });
   sessionConfigurationFingerprint = fingerprint;
+}
+
+function createExternalMcpServers({
+  mcpServers,
+  initialization,
+}: {
+  mcpServers: Record<string, unknown> | undefined;
+  initialization: acp.InitializeResponse;
+}): acp.McpServer[] {
+  if (mcpServers == null) return [];
+  return Object.entries(mcpServers).map(([name, value]) => {
+    if (!isRecord(value)) {
+      throw new Error(
+        `ACP MCP server ${JSON.stringify(name)} must be configured with an object value.`,
+      );
+    }
+    if (value.type === 'acp') {
+      throw new HarnessBridgeCapabilityUnsupportedError({
+        harnessId: bridgeType,
+        message:
+          'ACP-transport MCP servers require client-side mcp/connect handling, which this harness does not provide.',
+      });
+    }
+    const mcpCapabilities = initialization.agentCapabilities?.mcpCapabilities;
+    if (
+      (value.type === 'http' && mcpCapabilities?.http !== true) ||
+      (value.type === 'sse' && mcpCapabilities?.sse !== true)
+    ) {
+      throw new HarnessBridgeCapabilityUnsupportedError({
+        harnessId: bridgeType,
+        message: `The ACP agent does not advertise support for ${value.type.toUpperCase()} MCP servers.`,
+      });
+    }
+    return { ...value, name } as acp.McpServer;
+  });
 }
 
 function unknownUsage() {

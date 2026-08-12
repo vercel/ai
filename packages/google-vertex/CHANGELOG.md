@@ -1,5 +1,34 @@
 # @ai-sdk/google-vertex
 
+## 5.0.51
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+  - @ai-sdk/anthropic@4.0.38
+  - @ai-sdk/google@4.0.42
+  - @ai-sdk/openai-compatible@3.0.30
+
+## 5.0.50
+
+### Patch Changes
+
+- 6d9951b: feat(provider/google-vertex): add Chirp 3 HD voices (Cloud Text-to-Speech) speech model
+- Updated dependencies [da78d58]
+- Updated dependencies [8a2482d]
+  - @ai-sdk/google@4.0.41
+
+## 5.0.49
+
+### Patch Changes
+
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+  - @ai-sdk/anthropic@4.0.37
+  - @ai-sdk/google@4.0.40
+  - @ai-sdk/openai-compatible@3.0.29
+
 ## 5.0.48
 
 ### Patch Changes

@@ -1,10 +1,17 @@
 import { commonTool } from '@ai-sdk/harness';
+import type { ToolCall } from '@agentclientprotocol/sdk';
 import { describe, expectTypeOf, test } from 'vitest';
 import { z } from 'zod/v4';
 import { createACP, type ACPHarnessSettings } from './acp-harness';
+import type { ACPToolCall } from './acp-tool-call';
 import type { ACPV1Settings } from './v1';
 
 describe('createACP built-in tool inference', () => {
+  test('keeps the local ACP tool-call type aligned with the protocol SDK', () => {
+    expectTypeOf<ACPToolCall>().toExtend<ToolCall>();
+    expectTypeOf<ToolCall>().toExtend<ACPToolCall>();
+  });
+
   test('separates version-independent settings from ACP v1 settings', () => {
     expectTypeOf<
       Extract<
@@ -66,6 +73,34 @@ describe('createACP built-in tool inference', () => {
         pnpmLockYaml: "lockfileVersion: '9.0'\n",
       },
       executable: 'acp-agent',
+    });
+  });
+
+  test('accepts native instruction mappings', () => {
+    createACP({
+      harnessId: 'claude-acp',
+      source: {
+        type: 'npm-simple',
+        packageName: '@agentclientprotocol/claude-agent-acp',
+      },
+      executable: 'claude-agent-acp',
+      instructionMapping: {
+        type: 'session-meta',
+        path: ['systemPrompt', 'append'],
+      },
+    });
+    createACP({
+      harnessId: 'codex-acp',
+      source: {
+        type: 'npm-simple',
+        packageName: '@agentclientprotocol/codex-acp',
+      },
+      executable: 'codex-acp',
+      instructionMapping: {
+        type: 'launch-env-json',
+        variable: 'CODEX_CONFIG',
+        path: ['developer_instructions'],
+      },
     });
   });
 });

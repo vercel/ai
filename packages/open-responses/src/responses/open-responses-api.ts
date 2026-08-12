@@ -143,7 +143,7 @@ export type ReasoningItemParam = {
   id?: string;
   type: 'reasoning';
   summary: ReasoningSummaryContentParam[];
-  content?: unknown;
+  content?: ReasoningTextContent[];
   encrypted_content?: string;
 };
 

@@ -86,11 +86,16 @@ const harness = createCodex({
 Settings:
 
 - `auth`: OpenAI, OpenAI-compatible, or AI Gateway authentication settings.
+- `mcpServers`: MCP server definitions keyed by server name.
 - `model`: OpenAI model id. If omitted, the adapter uses its pinned default.
 - `reasoningEffort`: `low`, `medium`, or `high`.
 - `webSearch`: allow live web search.
 - `port`: bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the bridge to start.
+- `mintBridgeToken`: synchronous function that receives the sandbox id and
+  returns the bridge authentication token. By default, the adapter generates a
+  random 32-byte token. Custom implementations must return a suitably secret
+  token.
 
 ## Authentication
 

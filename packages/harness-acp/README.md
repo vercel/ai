@@ -34,6 +34,11 @@ const codexACP = createACP({
   },
   executable: 'codex-acp',
   forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
+  instructionMapping: {
+    type: 'launch-env-json',
+    variable: 'CODEX_CONFIG',
+    path: ['developer_instructions'],
+  },
   permissionModeMapping: {
     'allow-reads': null,
     'allow-edits': null,
@@ -69,3 +74,11 @@ resolves the value when the ACP process starts and does not store it in the
 profile. Codex ACP supports only `permissionMode: 'allow-all'` because its
 restrictive modes enable Codex's internal sandbox. A bridge-backed ACP harness
 requires a sandbox with at least one exposed port.
+
+Use `instructionMapping` when the ACP implementation exposes a native system
+or developer prompt. A `session-meta` mapping writes `HarnessAgent`
+instructions below the ACP session request's `_meta` field. A
+`launch-env-json` mapping merges them into a JSON environment variable before
+the implementation starts. Without a mapping, the adapter preserves its
+backward-compatible behavior and prepends instructions to the first user
+prompt.

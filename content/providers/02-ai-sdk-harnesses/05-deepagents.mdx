@@ -87,6 +87,7 @@ const harness = createDeepAgents({
 Settings:
 
 - `auth`: Anthropic or AI Gateway authentication settings.
+- `mcpServers`: MCP server definitions keyed by server name.
 - `model`: model id passed to the Deep Agents (LangChain) runtime. Through AI
   Gateway, use the `creator/model` slug (e.g. `anthropic/claude-sonnet-4-6`,
   `google/gemini-2.5-flash`, `openai/gpt-4.1-mini`).
@@ -94,6 +95,10 @@ Settings:
 - `recursionLimit`: maximum LangGraph super-steps per turn. When omitted, the
   Deep Agents default applies.
 - `startupTimeoutMs`: maximum time to wait for the bridge to start.
+- `mintBridgeToken`: synchronous function that receives the sandbox id and
+  returns the bridge authentication token. By default, the adapter generates a
+  random 32-byte token. Custom implementations must return a suitably secret
+  token.
 
 ## Authentication
 

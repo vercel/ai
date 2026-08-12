@@ -385,6 +385,127 @@ describe('createACP', () => {
     ).toBe('harness-v1');
   });
 
+  it('forwards MCP servers and lets the implementation classify unknown ACP tools', async () => {
+    const isMcpToolCall = vi.fn(
+      (toolCall: { _meta?: Record<string, unknown> | null }) =>
+        toolCall._meta?.is_mcp_tool_call === true,
+    );
+    const mcpServers = {
+      external: {
+        command: '/usr/bin/external-mcp',
+        args: [],
+        env: [],
+      },
+    };
+    const harness = createACP({
+      harnessId: 'codex-acp',
+      ...agentSettings,
+      mcpServers,
+      isMcpToolCall,
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+    const events: unknown[] = [];
+    const control = await session.doPromptTurn({
+      prompt: 'Use the external tool.',
+      emit: event => events.push(event),
+    });
+    const channel = harnessUtilsMocks.channels[0]!;
+
+    expect(channel.sent[0]).toMatchObject({
+      type: 'start',
+      mcpServers,
+    });
+    channel.emit({
+      type: 'acp-tool-call-candidate',
+      toolCall: {
+        toolCallId: 'call-1',
+        title: 'External tool',
+        _meta: { is_mcp_tool_call: true },
+      },
+    });
+    channel.emit({
+      type: 'tool-call',
+      toolCallId: 'call-1',
+      toolName: 'external_tool',
+      input: '{}',
+      providerExecuted: true,
+    });
+    channel.emit({
+      type: 'tool-result',
+      toolCallId: 'call-1',
+      toolName: 'external_tool',
+      result: { ok: true },
+    });
+    channel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+
+    await control.done;
+    expect(isMcpToolCall).toHaveBeenCalledOnce();
+    expect(events).toMatchInlineSnapshot(`
+      [
+        {
+          "dynamic": true,
+          "input": "{}",
+          "providerExecuted": true,
+          "toolCallId": "call-1",
+          "toolName": "external_tool",
+          "type": "tool-call",
+        },
+        {
+          "dynamic": true,
+          "result": {
+            "ok": true,
+          },
+          "toolCallId": "call-1",
+          "toolName": "external_tool",
+          "type": "tool-result",
+        },
+        {
+          "finishReason": {
+            "raw": "end_turn",
+            "unified": "stop",
+          },
+          "totalUsage": {
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+          },
+          "type": "finish",
+        },
+      ]
+    `);
+    await session.doDestroy();
+  });
+
+  it('reserves the host-tool MCP server name', () => {
+    expect(() =>
+      createACP({
+        harnessId: 'codex-acp',
+        ...agentSettings,
+        mcpServers: { 'ai-sdk-harness-tools': {} },
+      }),
+    ).toThrow('reserved for HarnessAgent tools');
+  });
+
   it('advertises approvals with and without a complete mapping', () => {
     const mapped = createACP({
       harnessId: 'codex-acp',
@@ -785,6 +906,48 @@ describe('createACP', () => {
     expect(stop).not.toHaveBeenCalled();
   });
 
+  it('uses a caller-minted bridge token and reuses it when attaching', async () => {
+    const spawns: Array<{
+      command: string;
+      env: Record<string, string | undefined>;
+    }> = [];
+    const mintBridgeToken = vi.fn(
+      (sandboxId: string) => `token-for-${sandboxId}`,
+    );
+    const harness = createACP({
+      harnessId: 'codex-acp',
+      ...agentSettings,
+      mintBridgeToken,
+    });
+    const sandboxSession = fakeSandbox({
+      runs: [],
+      spawns,
+      stop: async () => {},
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/user-project',
+    });
+
+    expect(mintBridgeToken).toHaveBeenCalledExactlyOnceWith('sandbox-1');
+    expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).toBe('token-for-sandbox-1');
+
+    const resumeFrom = await session.doDetach();
+    expect(resumeFrom.data).toMatchObject({
+      bridge: { token: 'token-for-sandbox-1' },
+    });
+
+    const attachedSession = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/user-project',
+      resumeFrom,
+    });
+    expect(mintBridgeToken).toHaveBeenCalledTimes(1);
+    await attachedSession.doDetach();
+  });
+
   it('rejects an already-aborted turn without sending a start frame', async () => {
     const harness = createACP({
       harnessId: 'codex-acp',
@@ -937,6 +1100,86 @@ describe('createACP', () => {
       skillsMaterialized: true,
       skillsFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
     });
+  });
+
+  it('keeps mapped instructions separate from prompts while preserving skill guidance', async () => {
+    const harness = createACP({
+      harnessId: 'claude-acp',
+      ...agentSettings,
+      instructionMapping: {
+        type: 'session-meta',
+        path: ['systemPrompt', 'append'],
+      },
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+      skills: [
+        {
+          name: 'release-notes',
+          description: 'Prepare concise release notes.',
+          content: 'Use active voice.',
+        },
+      ],
+    });
+    const channel = harnessUtilsMocks.channels[0]!;
+
+    const first = await session.doPromptTurn({
+      prompt: 'Draft release notes.',
+      instructions: 'Answer every question in German.',
+      emit: () => {},
+    });
+    expect(channel.sent[0]).toMatchObject({
+      type: 'start',
+      instructions: 'Answer every question in German.',
+      instructionMapping: {
+        type: 'session-meta',
+        path: ['systemPrompt', 'append'],
+      },
+      prompt: [
+        {
+          type: 'text',
+          text: expect.stringContaining('<available-skills>'),
+        },
+        { type: 'text', text: 'Draft release notes.' },
+      ],
+    });
+    expect(
+      JSON.stringify(Reflect.get(channel.sent[0]!, 'prompt')),
+    ).not.toContain('Answer every question in German.');
+    channel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await first.done;
+
+    const second = await session.doPromptTurn({
+      prompt: 'Revise them.',
+      instructions: 'Answer every question in German.',
+      emit: () => {},
+    });
+    expect(channel.sent[1]).toMatchObject({
+      type: 'start',
+      instructions: 'Answer every question in German.',
+      instructionMapping: {
+        type: 'session-meta',
+        path: ['systemPrompt', 'append'],
+      },
+      prompt: [{ type: 'text', text: 'Revise them.' }],
+    });
+    channel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await second.done;
+    await session.doDestroy();
   });
 
   it('detaches between turns and attaches without spawning or reapplying guidance and skills', async () => {
@@ -1720,6 +1963,11 @@ describe('createACP', () => {
       harnessId: 'codex-acp',
       auth: 'ai-gateway',
       ...agentSettings,
+      instructionMapping: {
+        type: 'launch-env-json',
+        variable: 'CODEX_CONFIG',
+        path: ['developer_instructions'],
+      },
       providerAuthentication: {
         gateway: {
           env: {
@@ -1738,6 +1986,7 @@ describe('createACP', () => {
     const initialChannel = harnessUtilsMocks.channels[0]!;
     const initialTurn = await initialSession.doPromptTurn({
       prompt: 'Finish this durable operation.',
+      instructions: 'Keep working until the operation is complete.',
       emit: () => {},
     });
     initialChannel.emit({
@@ -1785,6 +2034,7 @@ describe('createACP', () => {
 
     const rerunChannel = harnessUtilsMocks.channels[2]!;
     const continued = await recoveredSession.doContinueTurn({
+      instructions: 'Keep working until the operation is complete.',
       emit: () => {},
     });
     expect(rerunChannel.sent[0]).toMatchObject({
@@ -1799,6 +2049,12 @@ describe('createACP', () => {
         type: 'lossy-rerun',
         acpSessionId: 'acp-rerun-session',
         reason: 'event log not replayable',
+      },
+      instructions: 'Keep working until the operation is complete.',
+      instructionMapping: {
+        type: 'launch-env-json',
+        variable: 'CODEX_CONFIG',
+        path: ['developer_instructions'],
       },
     });
     expect(JSON.stringify(rerunChannel.sent[0])).not.toContain(

@@ -6,6 +6,7 @@ const harnessId = 'acp-codex';
 export const codexACPHarness = createACP({
   harnessId,
   builtinTools: codexACPBuiltinTools,
+  isMcpToolCall: toolCall => toolCall._meta?.is_mcp_tool_call === true,
   source: {
     type: 'npm-simple',
     packageName: '@agentclientprotocol/codex-acp',
@@ -13,6 +14,11 @@ export const codexACPHarness = createACP({
   },
   executable: 'codex-acp',
   forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
+  instructionMapping: {
+    type: 'launch-env-json',
+    variable: 'CODEX_CONFIG',
+    path: ['developer_instructions'],
+  },
   permissionModeMapping: {
     'allow-reads': null,
     'allow-edits': null,

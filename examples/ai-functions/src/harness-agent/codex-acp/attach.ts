@@ -12,11 +12,12 @@ import {
 } from '@ai-sdk/harness/agent';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { createCodexACP } from '../../lib/codex-acp-harness';
+import { mintBridgeToken } from '../../lib/mint-bridge-token';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const harness = createCodexACP();
+  const harness = createCodexACP({ mintBridgeToken });
   const sandbox = createVercelSandbox({
     runtime: 'node24',
     ports: [4000],

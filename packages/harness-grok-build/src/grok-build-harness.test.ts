@@ -40,6 +40,7 @@ describe('createGrokBuild', () => {
       executable: settings.executable,
       args: settings.args,
       forwardEnv: settings.forwardEnv,
+      instructionMapping: settings.instructionMapping,
       providerAuthentication: settings.providerAuthentication,
       builtinToolNames: Object.keys(settings.builtinTools ?? {}),
     }).toMatchInlineSnapshot(`
@@ -84,6 +85,12 @@ describe('createGrokBuild', () => {
           "XAI_API_KEY",
         ],
         "harnessId": "grok-build",
+        "instructionMapping": {
+          "path": [
+            "rules",
+          ],
+          "type": "session-meta",
+        },
         "providerAuthentication": {
           "gateway": {
             "env": {
@@ -130,11 +137,14 @@ describe('createGrokBuild', () => {
   });
 
   it('forwards user-configurable settings', () => {
+    const mintBridgeToken = (sandboxId: string) => `token-for-${sandboxId}`;
     createGrokBuild({
       auth: 'direct',
       model: 'grok-code-fast-1',
       port: 4319,
       startupTimeoutMs: 45_000,
+      mcpServers: { external: { command: 'external-mcp' } },
+      mintBridgeToken,
     });
 
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
@@ -144,12 +154,37 @@ describe('createGrokBuild', () => {
       modelId: settings.modelId,
       port: settings.port,
       startupTimeoutMs: settings.startupTimeoutMs,
+      mcpServers: settings.mcpServers,
+      mintBridgeToken: settings.mintBridgeToken,
     }).toEqual({
       auth: 'direct',
       modelId: 'grok-code-fast-1',
       port: 4319,
       startupTimeoutMs: 45_000,
+      mcpServers: { external: { command: 'external-mcp' } },
+      mintBridgeToken,
     });
+  });
+
+  it('classifies Grok Build MCP tool calls from ACP metadata', () => {
+    createGrokBuild();
+
+    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+
+    expect(
+      settings.isMcpToolCall?.({
+        toolCallId: 'call-1',
+        title: 'External MCP tool',
+        _meta: { 'x.ai/tool': { namespace: 'mcp' } },
+      }),
+    ).toBe(true);
+    expect(
+      settings.isMcpToolCall?.({
+        toolCallId: 'call-2',
+        title: 'Unknown non-MCP tool',
+        _meta: { 'x.ai/tool': { namespace: 'custom' } },
+      }),
+    ).toBe(false);
   });
 
   it('exposes a test version outside the bundle', () => {

@@ -1,4 +1,5 @@
 import type { HarnessV1PermissionMode } from '@ai-sdk/harness';
+import type { ACPToolCall } from '../acp-tool-call';
 
 export type ACPSerializablePrimitive = string | number | boolean | null;
 
@@ -74,9 +75,27 @@ export type ACPPermissionModeMapping = Readonly<
   Record<HarnessV1PermissionMode, ACPPermissionModeTarget | null>
 >;
 
+/**
+ * Describes where an ACP implementation accepts native session instructions.
+ * Session metadata paths are relative to `_meta`; launch environment paths are
+ * relative to the parsed JSON object stored in `variable`.
+ */
+export type ACPInstructionMapping =
+  | {
+      readonly type: 'session-meta';
+      readonly path: ReadonlyArray<string>;
+    }
+  | {
+      readonly type: 'launch-env-json';
+      readonly variable: string;
+      readonly path: ReadonlyArray<string>;
+    };
+
 export type ACPV1Settings = {
   readonly version?: 'v1';
   readonly harnessId: string;
+  readonly mcpServers?: Record<string, unknown>;
+  readonly isMcpToolCall?: (toolCall: ACPToolCall) => boolean;
   readonly auth?: ACPProviderAuthenticationMode;
   readonly source: ACPSource;
   readonly executable: string;
@@ -90,8 +109,18 @@ export type ACPV1Settings = {
   readonly authentication?: ACPAuthentication;
   readonly providerAuthentication?: ACPProviderAuthentication;
   readonly modelId?: string;
+  /**
+   * Routes HarnessAgent instructions to a runtime-native system or developer
+   * prompt. When omitted, instructions are prepended to the first user prompt.
+   */
+  readonly instructionMapping?: ACPInstructionMapping;
   readonly permissionModeMapping?: ACPPermissionModeMapping;
   readonly session?: {
     readonly meta?: Readonly<Record<string, ACPSerializableValue>>;
   };
+  /**
+   * Creates the authentication token used by the sandbox bridge. Defaults to
+   * a random 32-byte hexadecimal token.
+   */
+  readonly mintBridgeToken?: (sandboxId: string) => string;
 };

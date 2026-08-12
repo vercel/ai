@@ -40,6 +40,16 @@ export type GrokBuildHarnessSettings = {
    * Maximum milliseconds to wait for the ACP bridge to start.
    */
   readonly startupTimeoutMs?: number;
+  /**
+   * MCP server definitions keyed by server name. Each definition uses the
+   * underlying runtime's native MCP server configuration format.
+   */
+  readonly mcpServers?: Record<string, unknown>;
+  /**
+   * Creates the authentication token used by the sandbox bridge. Defaults to
+   * a random 32-byte hexadecimal token.
+   */
+  readonly mintBridgeToken?: (sandboxId: string) => string;
 };
 
 /*
@@ -278,6 +288,12 @@ export function createGrokBuild(
     modelId: settings.model,
     port: settings.port,
     startupTimeoutMs: settings.startupTimeoutMs,
+    mcpServers: settings.mcpServers,
+    isMcpToolCall: toolCall => {
+      const metadata = toolCall._meta?.['x.ai/tool'];
+      return isRecord(metadata) && metadata.namespace === 'mcp';
+    },
+    mintBridgeToken: settings.mintBridgeToken,
     version: 'v1',
     harnessId: 'grok-build',
     builtinTools: GROK_BUILD_BUILTIN_TOOLS,
@@ -293,6 +309,10 @@ export function createGrokBuild(
     executable: 'grok',
     args: ['agent', 'stdio'],
     forwardEnv: ['XAI_API_KEY'],
+    instructionMapping: {
+      type: 'session-meta',
+      path: ['rules'],
+    },
     providerAuthentication: {
       gateway: {
         env: {
@@ -311,4 +331,8 @@ export function createGrokBuild(
       },
     },
   });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
 }
