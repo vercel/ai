@@ -53,6 +53,17 @@ export interface HarnessWorkflowStreamContext {
     HarnessWorkflowSerializedChunk
   >;
   readonly pendingToolInputs?: Record<string, HarnessWorkflowSerializedChunk>;
+  /**
+   * `tool-input-start` chunks for tool inputs still streaming when the slice
+   * ended, keyed by tool-call id. Replayed as a prelude in the next slice —
+   * a `tool-input-delta` whose start the client never saw is a stream error.
+   * Cleared once the input settles (`tool-input-available` /
+   * `tool-input-error`).
+   */
+  readonly activeToolInputStreams?: Record<
+    string,
+    HarnessWorkflowSerializedChunk
+  >;
 }
 
 /**

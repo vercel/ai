@@ -58,6 +58,30 @@ export type HarnessV1StreamPart =
     }
   | { type: 'reasoning-end'; id: string; harnessMetadata?: HarnessV1Metadata }
 
+  // Streaming tool input. Emitted while the runtime writes a tool call's
+  // input JSON, before the settled `tool-call` arrives carrying the same
+  // `toolCallId`. Adapters that can observe partial input opt in; the
+  // `tool-call` is still emitted either way, so consumers that ignore these
+  // parts see no change.
+  //
+  // The correlation key is named `toolCallId` (V4 names it `id` on its own
+  // `tool-input-*` variants) to match every other tool part on this wire —
+  // the agent renames it when projecting to AI SDK parts.
+  //
+  // `dynamic` mirrors what the adapter puts on the matching `tool-call`. It
+  // must agree with the settled call: AI SDK keys dynamic and static tool
+  // parts differently, so a mismatch opens two UI parts for one tool.
+  | {
+      type: 'tool-input-start';
+      toolCallId: string;
+      toolName: string;
+      providerExecuted?: boolean;
+      dynamic?: boolean;
+      providerMetadata?: SharedV4ProviderMetadata;
+    }
+  | { type: 'tool-input-delta'; toolCallId: string; delta: string }
+  | { type: 'tool-input-end'; toolCallId: string }
+
   // Tool calls, approvals, results — reuse V4 primitives.
   //
   // `nativeName` is the only harness-only extension on `tool-call`. It lets
@@ -258,6 +282,26 @@ export const harnessV1ReasoningEndPartSchema = z.object({
   harnessMetadata: harnessV1MetadataSchema.optional(),
 });
 
+export const harnessV1ToolInputStartPartSchema = z.object({
+  type: z.literal('tool-input-start'),
+  toolCallId: z.string(),
+  toolName: z.string(),
+  providerExecuted: z.boolean().optional(),
+  dynamic: z.boolean().optional(),
+  providerMetadata: harnessV1ProviderMetadataSchema.optional(),
+});
+
+export const harnessV1ToolInputDeltaPartSchema = z.object({
+  type: z.literal('tool-input-delta'),
+  toolCallId: z.string(),
+  delta: z.string(),
+});
+
+export const harnessV1ToolInputEndPartSchema = z.object({
+  type: z.literal('tool-input-end'),
+  toolCallId: z.string(),
+});
+
 export const harnessV1ToolCallPartSchema = z.object({
   type: z.literal('tool-call'),
   toolCallId: z.string(),
@@ -341,6 +385,9 @@ export const harnessV1StreamPartSchema = z.discriminatedUnion('type', [
   harnessV1ReasoningStartPartSchema,
   harnessV1ReasoningDeltaPartSchema,
   harnessV1ReasoningEndPartSchema,
+  harnessV1ToolInputStartPartSchema,
+  harnessV1ToolInputDeltaPartSchema,
+  harnessV1ToolInputEndPartSchema,
   harnessV1ToolCallPartSchema,
   harnessV1ToolApprovalRequestPartSchema,
   harnessV1ToolResultPartSchema,

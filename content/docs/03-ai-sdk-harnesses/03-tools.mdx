@@ -261,6 +261,39 @@ support it will error if an unsupported tool approval mode is specified.
 Host-executed tool approvals are handled by `HarnessAgent`, so they work across
 adapters.
 
+## Streaming Tool Input
+
+Adapters that can observe a tool call's input as the model writes it stream that
+input ahead of the settled call, so a UI can render the tool the moment it
+starts rather than after its input finishes:
+
+- `tool-input-start` — the tool call opened. Carries `id` (the tool call id),
+  `toolName`, and the same `dynamic` / `providerExecuted` flags the eventual
+  `tool-call` carries.
+- `tool-input-delta` — one fragment of the input JSON.
+- `tool-input-end` — the input is complete.
+
+```ts
+for await (const part of result.stream) {
+  if (part.type === 'tool-input-start') {
+    console.log('tool starting:', part.toolName);
+  }
+  if (part.type === 'tool-input-delta') {
+    process.stdout.write(part.delta);
+  }
+}
+```
+
+The deltas are raw JSON fragments and are only valid JSON once complete. The
+`tool-call` part still follows under the same tool call id, carrying the parsed
+input — so consumers that ignore these parts behave exactly as before.
+
+Support is per adapter: an adapter whose runtime does not report partial input
+emits the `tool-call` alone. Claude Code streams the input of built-in and
+external MCP tool calls. Your own host-executed tools do not stream — the
+adapter routes them through an internal MCP server that reports them only once
+their input is complete.
+
 ## File Changes and Compaction
 
 Some harness events are not ordinary tool calls. For UI compatibility,

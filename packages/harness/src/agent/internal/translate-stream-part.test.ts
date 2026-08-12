@@ -15,6 +15,77 @@ describe('translateStreamPart', () => {
     expect(out).toHaveLength(0);
   });
 
+  it('renames toolCallId to id on the streamed tool-input parts', () => {
+    expect(
+      translateStreamPart<ToolSet>({
+        type: 'tool-input-start',
+        toolCallId: 'c1',
+        toolName: 'bash',
+        providerExecuted: true,
+      }),
+    ).toEqual([
+      {
+        type: 'tool-input-start',
+        id: 'c1',
+        toolName: 'bash',
+        providerExecuted: true,
+      },
+    ]);
+
+    expect(
+      translateStreamPart<ToolSet>({
+        type: 'tool-input-delta',
+        toolCallId: 'c1',
+        delta: '{"command":',
+      }),
+    ).toEqual([{ type: 'tool-input-delta', id: 'c1', delta: '{"command":' }]);
+
+    expect(
+      translateStreamPart<ToolSet>({
+        type: 'tool-input-end',
+        toolCallId: 'c1',
+      }),
+    ).toEqual([{ type: 'tool-input-end', id: 'c1' }]);
+  });
+
+  it('carries dynamic and providerMetadata through tool-input-start', () => {
+    const out = translateStreamPart<ToolSet>({
+      type: 'tool-input-start',
+      toolCallId: 'c1',
+      toolName: 'mcp__weather__current',
+      providerExecuted: true,
+      dynamic: true,
+      providerMetadata: {
+        'claude-code': { nativeName: 'mcp__weather__current' },
+      },
+    });
+
+    expect(out).toEqual([
+      {
+        type: 'tool-input-start',
+        id: 'c1',
+        toolName: 'mcp__weather__current',
+        providerExecuted: true,
+        dynamic: true,
+        providerMetadata: {
+          'claude-code': { nativeName: 'mcp__weather__current' },
+        },
+      },
+    ]);
+  });
+
+  it('omits absent optional fields on tool-input-start', () => {
+    const out = translateStreamPart<ToolSet>({
+      type: 'tool-input-start',
+      toolCallId: 'c1',
+      toolName: 'bash',
+    });
+
+    expect(out[0]).not.toHaveProperty('dynamic');
+    expect(out[0]).not.toHaveProperty('providerExecuted');
+    expect(out[0]).not.toHaveProperty('providerMetadata');
+  });
+
   it('preserves dynamic on a tool-result event', () => {
     const out = translateStreamPart<ToolSet>({
       type: 'tool-result',

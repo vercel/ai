@@ -21,8 +21,13 @@ export type ClaudeMessage = {
   event?: {
     type?: string;
     index?: number;
-    content_block?: { type?: string };
-    delta?: { type?: string; text?: string; thinking?: string };
+    content_block?: { type?: string; id?: string; name?: string };
+    delta?: {
+      type?: string;
+      text?: string;
+      thinking?: string;
+      partial_json?: string;
+    };
   };
   message?: {
     content?: ReadonlyArray<MessageBlock>;
@@ -47,6 +52,16 @@ type MessageBlock = {
   is_error?: boolean;
 };
 
+/**
+ * A content block the CLI is still streaming, keyed by its block index.
+ *
+ * `text` and `thinking` blocks carry a generated id (the partial-message
+ * events have none); a `tool` block carries the tool-use id the settled
+ * `tool_use` block will repeat, so the streamed input and the eventual
+ * `tool-call` correlate.
+ */
+type PartialBlock = { id: string; kind: 'text' | 'thinking' | 'tool' };
+
 export type ClaudeStreamEventState = {
   /*
    * Map of native tool-use id → tool name. Claude assistant messages emit
@@ -56,7 +71,7 @@ export type ClaudeStreamEventState = {
    */
   nativeToolCallNames: Map<string, string>;
   approvalRequestedToolUseIds: Set<string>;
-  partialBlocks: Map<number, { id: string; kind: 'text' | 'thinking' }>;
+  partialBlocks: Map<number, PartialBlock>;
   stepUsage: Record<string, unknown> | undefined;
   pendingStepToolUseIds: Set<string>;
   pendingStepUsage: Record<string, unknown> | undefined;
@@ -91,6 +106,25 @@ export function createClaudeStreamEventState(): ClaudeStreamEventState {
 }
 
 const UNRECOVERABLE_API_RETRY_STATUSES = new Set([401, 403, 404]);
+
+/** Native-name prefix of the MCP server the bridge hosts `HarnessAgent` tools on. */
+const HARNESS_TOOLS_MCP_PREFIX = 'mcp__harness-tools__';
+
+/** Native tool the CLI uses to return structured output; carried in `finish`. */
+const STRUCTURED_OUTPUT_TOOL_NAME = 'StructuredOutput';
+
+/**
+ * Whether a tool call is settled on this wire by a `tool-call` of its own.
+ * The bridge swallows the rest — tools on its own MCP server report under a
+ * synthetic id, and `StructuredOutput` is folded into the turn result — so a
+ * streamed input for one would leave a tool part with nothing to settle it.
+ */
+function emitsToolCall(nativeName: string): boolean {
+  return (
+    !nativeName.startsWith(HARNESS_TOOLS_MCP_PREFIX) &&
+    nativeName !== STRUCTURED_OUTPUT_TOOL_NAME
+  );
+}
 
 export function createEmitStreamEvent({
   state,
@@ -195,7 +229,7 @@ export function createEmitStreamEvent({
     }
 
     if (type === 'stream_event') {
-      handleStreamEvent(msg.event, state.partialBlocks, emit);
+      handleStreamEvent(msg.event, state.partialBlocks, emit, toCommonName);
       return;
     }
 
@@ -210,12 +244,11 @@ export function createEmitStreamEvent({
           typeof block.name === 'string'
         ) {
           toolUseIds.push(block.id);
-          if (block.name === 'StructuredOutput') {
+          if (block.name === STRUCTURED_OUTPUT_TOOL_NAME) {
             state.structuredOutputToolUseIds.add(block.id);
             continue;
           }
-          const mcpPrefix = 'mcp__harness-tools__';
-          if (block.name.startsWith(mcpPrefix)) {
+          if (block.name.startsWith(HARNESS_TOOLS_MCP_PREFIX)) {
             state.pendingStepToolUseIds.add(block.id);
             state.mcpToolUseIds.add(block.id);
             opensStep = true;
@@ -373,14 +406,16 @@ function formatApiRetryWarning(msg: ClaudeMessage): string {
 
 function handleStreamEvent(
   event: ClaudeMessage['event'] | undefined,
-  partialBlocks: Map<number, { id: string; kind: 'text' | 'thinking' }>,
+  partialBlocks: Map<number, PartialBlock>,
   send: Emit,
+  toCommonName: (nativeName: string) => string,
 ): void {
   if (!event || typeof event.index !== 'number') return;
   const index = event.index;
 
   if (event.type === 'content_block_start') {
-    const blockType = event.content_block?.type;
+    const block = event.content_block;
+    const blockType = block?.type;
     if (blockType === 'text') {
       const id = randomUUID();
       partialBlocks.set(index, { id, kind: 'text' });
@@ -389,6 +424,25 @@ function handleStreamEvent(
       const id = randomUUID();
       partialBlocks.set(index, { id, kind: 'thinking' });
       send({ type: 'reasoning-start', id });
+    } else if (
+      blockType === 'tool_use' &&
+      typeof block?.id === 'string' &&
+      typeof block.name === 'string' &&
+      emitsToolCall(block.name)
+    ) {
+      /*
+       * The tool-use id is already known here, so the streamed input and the
+       * `tool-call` the assistant message emits later share a `toolCallId`.
+       * `dynamic` must match what that `tool-call` will carry.
+       */
+      partialBlocks.set(index, { id: block.id, kind: 'tool' });
+      send({
+        type: 'tool-input-start',
+        toolCallId: block.id,
+        toolName: toCommonName(block.name),
+        providerExecuted: true,
+        ...(block.name.startsWith('mcp__') ? { dynamic: true } : {}),
+      });
     }
     return;
   }
@@ -412,6 +466,16 @@ function handleStreamEvent(
         id: block.id,
         delta: event.delta.thinking,
       });
+    } else if (
+      block.kind === 'tool' &&
+      event.delta?.type === 'input_json_delta' &&
+      typeof event.delta.partial_json === 'string'
+    ) {
+      send({
+        type: 'tool-input-delta',
+        toolCallId: block.id,
+        delta: event.delta.partial_json,
+      });
     }
     return;
   }
@@ -422,6 +486,8 @@ function handleStreamEvent(
     partialBlocks.delete(index);
     if (block.kind === 'text') {
       send({ type: 'text-end', id: block.id });
+    } else if (block.kind === 'tool') {
+      send({ type: 'tool-input-end', toolCallId: block.id });
     } else {
       send({ type: 'reasoning-end', id: block.id });
     }

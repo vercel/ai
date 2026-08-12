@@ -94,6 +94,159 @@ describe('createEmitStreamEvent', () => {
     `);
   });
 
+  it('streams a tool_use block input as tool-input-start/-delta/-end before the tool-call', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => (name === 'Bash' ? 'bash' : name),
+    });
+
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'tool_use', id: 'tool-1', name: 'Bash' },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'content_block_delta',
+        index: 0,
+        delta: { type: 'input_json_delta', partial_json: '{"command"' },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'content_block_delta',
+        index: 0,
+        delta: { type: 'input_json_delta', partial_json: ':"pwd"}' },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: { type: 'content_block_stop', index: 0 },
+    });
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        content: [
+          {
+            type: 'tool_use',
+            id: 'tool-1',
+            name: 'Bash',
+            input: { command: 'pwd' },
+          },
+        ],
+      },
+    });
+
+    expect(emitted.filter(event => event.type !== 'stream-start')).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'tool-1',
+        toolName: 'bash',
+        providerExecuted: true,
+      },
+      { type: 'tool-input-delta', toolCallId: 'tool-1', delta: '{"command"' },
+      { type: 'tool-input-delta', toolCallId: 'tool-1', delta: ':"pwd"}' },
+      { type: 'tool-input-end', toolCallId: 'tool-1' },
+      {
+        type: 'tool-call',
+        toolCallId: 'tool-1',
+        toolName: 'bash',
+        nativeName: 'Bash',
+        input: '{"command":"pwd"}',
+        providerExecuted: true,
+      },
+    ]);
+  });
+
+  it('marks a streamed external MCP tool input dynamic, like its tool-call', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'content_block_start',
+        index: 0,
+        content_block: {
+          type: 'tool_use',
+          id: 'tool-1',
+          name: 'mcp__weather__current',
+        },
+      },
+    });
+
+    expect(emitted.find(event => event.type === 'tool-input-start')).toEqual({
+      type: 'tool-input-start',
+      toolCallId: 'tool-1',
+      toolName: 'mcp__weather__current',
+      providerExecuted: true,
+      dynamic: true,
+    });
+  });
+
+  it('does not stream input for the bridge-hosted harness-tools MCP server', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'content_block_start',
+        index: 0,
+        content_block: {
+          type: 'tool_use',
+          id: 'tool-1',
+          name: 'mcp__harness-tools__lookup',
+        },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'content_block_delta',
+        index: 0,
+        delta: { type: 'input_json_delta', partial_json: '{"q":"x"}' },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: { type: 'content_block_stop', index: 0 },
+    });
+
+    // Those tools never produce a `tool-call` on this wire, so a streamed
+    // input would leave a tool part streaming with nothing to settle it.
+    expect(
+      emitted.filter(event => String(event.type).startsWith('tool-input-')),
+    ).toEqual([]);
+  });
+
   it('keeps subagent messages out of the main Agent-tool step', () => {
     const messages = JSON.parse(
       readFileSync(

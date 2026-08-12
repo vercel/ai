@@ -573,6 +573,138 @@ describe('runHarnessAgentTimeSlice', () => {
     ]);
   });
 
+  test('continued slice replays tool-input-start before a delta from the previous slice', async () => {
+    const firstSession = fakeSession();
+    const { result: firstResult, closeForSuspend } = streamResult({
+      chunks: [
+        { type: 'start' },
+        {
+          type: 'tool-input-start',
+          toolCallId: 'call_1',
+          toolName: 'write',
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'call_1',
+          inputTextDelta: '{"path":',
+        },
+      ],
+      blockAfter: true,
+    });
+    const suspendingSession = firstSession as unknown as {
+      suspendTurn: () => Promise<HarnessV1ContinueTurnState>;
+    };
+    const originalSuspend = suspendingSession.suspendTurn.bind(firstSession);
+    suspendingSession.suspendTurn = async () => {
+      closeForSuspend();
+      return originalSuspend();
+    };
+
+    const firstAgent: HarnessWorkflowAgent = {
+      createSession: vi.fn(async () => firstSession),
+      stream: vi.fn(async () => firstResult),
+      continueStream: vi.fn(async () => {
+        throw new Error('continue should not be called on the first slice');
+      }),
+    };
+
+    const readyForNextStep = await runHarnessAgentTimeSlice({
+      agent: firstAgent,
+      state: createHarnessWorkflowState({ prompt: 'hi', sessionId: 'ses_1' }),
+      timeSliceSeconds: 0.05,
+      writable: collectingWritable().writable,
+    });
+
+    expect(readyForNextStep.streamContext?.activeToolInputStreams).toEqual({
+      call_1: {
+        type: 'tool-input-start',
+        toolCallId: 'call_1',
+        toolName: 'write',
+        providerExecuted: true,
+      },
+    });
+
+    // The second slice also suspends, so its stream context is persisted and
+    // the clear-on-settle can be asserted.
+    const secondSession = fakeSession();
+    const { result: secondResult, closeForSuspend: closeSecondForSuspend } =
+      streamResult({
+        chunks: [
+          { type: 'start' },
+          {
+            type: 'tool-input-delta',
+            toolCallId: 'call_1',
+            inputTextDelta: '"app/page.tsx"}',
+          },
+          {
+            type: 'tool-input-available',
+            toolCallId: 'call_1',
+            toolName: 'write',
+            input: { path: 'app/page.tsx' },
+            providerExecuted: true,
+          },
+        ],
+        blockAfter: true,
+      });
+    const secondSuspending = secondSession as unknown as {
+      suspendTurn: () => Promise<HarnessV1ContinueTurnState>;
+    };
+    const originalSecondSuspend =
+      secondSuspending.suspendTurn.bind(secondSession);
+    secondSuspending.suspendTurn = async () => {
+      closeSecondForSuspend();
+      return originalSecondSuspend();
+    };
+    const secondAgent: HarnessWorkflowAgent = {
+      createSession: vi.fn(async () => secondSession),
+      stream: vi.fn(async () => {
+        throw new Error('stream should not be called on a continued slice');
+      }),
+      continueStream: vi.fn(async () => secondResult),
+    };
+    const secondWritable = collectingWritable();
+
+    const afterSecondSlice = await runHarnessAgentTimeSlice({
+      agent: secondAgent,
+      state: readyForNextStep,
+      timeSliceSeconds: 0.05,
+      writable: secondWritable.writable,
+    });
+
+    expect(afterSecondSlice.status).toBe('ready_for_next_step');
+    // The replayed start comes first: without it the client rejects a delta
+    // for a tool call it never saw begin.
+    expect(secondWritable.chunks).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call_1',
+        toolName: 'write',
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'call_1',
+        inputTextDelta: '"app/page.tsx"}',
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'call_1',
+        toolName: 'write',
+        input: { path: 'app/page.tsx' },
+        providerExecuted: true,
+      },
+    ]);
+    // The settled input clears the replay entry, so a later slice does not
+    // re-open a tool part that already resolved.
+    expect(
+      afterSecondSlice.streamContext?.activeToolInputStreams,
+    ).toBeUndefined();
+    expect(
+      Object.keys(afterSecondSlice.streamContext?.pendingToolInputs ?? {}),
+    ).toEqual(['call_1']);
+  });
+
   test('approval response messages resume through stream messages', async () => {
     const session = fakeSession();
     const { result } = streamResult({ chunks: [{ type: 'start' }] });

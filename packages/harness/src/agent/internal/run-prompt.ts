@@ -653,7 +653,10 @@ export function runPrompt<
         const settledHostInputReplay =
           (displayValue.type === 'tool-call' ||
             displayValue.type === 'tool-result' ||
-            displayValue.type === 'tool-approval-request') &&
+            displayValue.type === 'tool-approval-request' ||
+            displayValue.type === 'tool-input-start' ||
+            displayValue.type === 'tool-input-delta' ||
+            displayValue.type === 'tool-input-end') &&
           settledHostToolCallIds.has(displayValue.toolCallId);
 
         if (settledHostInputReplay) {

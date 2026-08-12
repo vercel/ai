@@ -25,6 +25,13 @@ export function stripWorkDir(
   switch (part.type) {
     case 'tool-call':
       return { ...part, input: stripString(part.input, sessionWorkDir) };
+    /*
+     * Best-effort: a work-dir prefix split across two deltas survives the
+     * streamed projection. It is corrected once the settled `tool-call`
+     * lands — its stripped input replaces the accumulated partial input.
+     */
+    case 'tool-input-delta':
+      return { ...part, delta: stripString(part.delta, sessionWorkDir) };
     case 'tool-result':
       return {
         ...part,

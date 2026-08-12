@@ -21,6 +21,19 @@ describe('stripWorkDir', () => {
     });
   });
 
+  it('strips the prefix from a streamed tool-input delta', () => {
+    const part: HarnessV1StreamPart = {
+      type: 'tool-input-delta',
+      toolCallId: 'c1',
+      delta: `{"path":"${WORK_DIR}/src/foo.ts"`,
+    };
+    const out = stripWorkDir(part, WORK_DIR) as Extract<
+      HarnessV1StreamPart,
+      { type: 'tool-input-delta' }
+    >;
+    expect(out.delta).toBe('{"path":"src/foo.ts"');
+  });
+
   it('strips every occurrence in free-form tool-result string output', () => {
     const part: HarnessV1StreamPart = {
       type: 'tool-result',

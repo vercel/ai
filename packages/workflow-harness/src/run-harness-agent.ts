@@ -341,11 +341,13 @@ type MutableStreamContext = {
   activeTextParts: Record<string, HarnessWorkflowSerializedChunk>;
   activeReasoningParts: Record<string, HarnessWorkflowSerializedChunk>;
   pendingToolInputs: Record<string, HarnessWorkflowSerializedChunk>;
+  activeToolInputStreams: Record<string, HarnessWorkflowSerializedChunk>;
 };
 
 type ExecutionPartState = {
   openedTextParts: Set<string>;
   openedReasoningParts: Set<string>;
+  openedToolInputStreams: Set<string>;
 };
 
 function createMutableStreamContext(
@@ -355,6 +357,7 @@ function createMutableStreamContext(
     activeTextParts: { ...(context?.activeTextParts ?? {}) },
     activeReasoningParts: { ...(context?.activeReasoningParts ?? {}) },
     pendingToolInputs: { ...(context?.pendingToolInputs ?? {}) },
+    activeToolInputStreams: { ...(context?.activeToolInputStreams ?? {}) },
   };
 }
 
@@ -362,6 +365,7 @@ function createExecutionPartState(): ExecutionPartState {
   return {
     openedTextParts: new Set(),
     openedReasoningParts: new Set(),
+    openedToolInputStreams: new Set(),
   };
 }
 
@@ -404,6 +408,30 @@ async function writeRequiredPrelude(options: {
     await writer.write(streamContext.activeReasoningParts[id]);
     executionPartState.openedReasoningParts.add(id);
   }
+
+  /*
+   * A tool input can still be streaming when a slice ends, so its deltas
+   * continue in the next one. Re-open the part first — the client rejects a
+   * `tool-input-delta` for a tool call it never saw start. Only the deltas of
+   * this slice accumulate into the re-opened part; the settled
+   * `tool-input-available` replaces the partial input with the whole thing.
+   *
+   * A *settled* input is deliberately not replayed here — see #18348, where
+   * replaying one across a slice boundary opened a second UI part. This
+   * replay is confined to inputs that are still streaming, which the client
+   * rejects outright without their start.
+   */
+  if (chunk.type === 'tool-input-delta') {
+    const toolCallId = stringProperty({ chunk, key: 'toolCallId' });
+    if (
+      toolCallId != null &&
+      streamContext.activeToolInputStreams[toolCallId] != null &&
+      !executionPartState.openedToolInputStreams.has(toolCallId)
+    ) {
+      await writer.write(streamContext.activeToolInputStreams[toolCallId]);
+      executionPartState.openedToolInputStreams.add(toolCallId);
+    }
+  }
 }
 
 function recordWorkflowChunk(options: {
@@ -439,13 +467,21 @@ function recordWorkflowChunk(options: {
     return;
   }
 
+  if (chunk.type === 'tool-input-start' && toolCallId != null) {
+    streamContext.activeToolInputStreams[toolCallId] = cloneChunk(chunk);
+    executionPartState.openedToolInputStreams.add(toolCallId);
+    return;
+  }
+
   if (chunk.type === 'tool-input-available' && toolCallId != null) {
     streamContext.pendingToolInputs[toolCallId] = cloneChunk(chunk);
+    delete streamContext.activeToolInputStreams[toolCallId];
     return;
   }
 
   if (chunk.type === 'tool-input-error' && toolCallId != null) {
     delete streamContext.pendingToolInputs[toolCallId];
+    delete streamContext.activeToolInputStreams[toolCallId];
     return;
   }
 
@@ -494,6 +530,9 @@ function serializeStreamContextField(context: MutableStreamContext): {
       : {}),
     ...(Object.keys(context.pendingToolInputs).length > 0
       ? { pendingToolInputs: context.pendingToolInputs }
+      : {}),
+    ...(Object.keys(context.activeToolInputStreams).length > 0
+      ? { activeToolInputStreams: context.activeToolInputStreams }
       : {}),
   };
   return Object.keys(streamContext).length > 0 ? { streamContext } : {};
