@@ -1,5 +1,31 @@
 # @ai-sdk/xai
 
+## 4.0.38
+
+### Patch Changes
+
+- 484293f: feat(xai): support the priority service tier on chat and responses
+
+## 4.0.37
+
+### Patch Changes
+
+- a4d386d: feat(xai): add the Grok 4.6 model IDs and support its `xhigh` reasoning effort
+
+## 4.0.36
+
+### Patch Changes
+
+- 8edc775: feat (provider/xai): support Grok Imagine Video 1.5. Adds the `grok-imagine-video-1.5` model id and native `1080p` for text-to-video and image-to-video (the standard `resolution: '1920x1080'` now maps to `1080p`). Reference-to-video remains capped at `720p`, so a `1080p` request in that mode is downgraded with a warning. Also fixes reference routing: previously any non-empty `inputReferences` array selected reference-to-video, so an array holding only a non-image reference sent `reference_images: []` with no usable references.
+- 3d05053: feat (provider/xai): add `referenceVoiceIds` for reference-to-video reference audio. Pass up to 3 xAI preset voice ids (e.g. `['eve']`) and reference them from the prompt with `<AUDIO_0>`–`<AUDIO_2>`; they are sent as `reference_audios: [{ voice_id }]` on `POST /v1/videos/generations`.
+
+## 4.0.35
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+
 ## 4.0.34
 
 ### Patch Changes

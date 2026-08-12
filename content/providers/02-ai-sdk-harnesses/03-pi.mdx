@@ -81,7 +81,8 @@ const harness = createPi({
 
 Settings:
 
-- `auth`: AI Gateway or custom provider environment configuration.
+- `auth`: authentication mode: `auto`, `openai`, `anthropic`, `custom`, or
+  `ai-gateway`.
 - `extensionFactories`: trusted inline Pi extension factories that run in the
   host Node.js process.
 - `mcpServers`: MCP server definitions keyed by server name.
@@ -117,23 +118,25 @@ prompt templates also remain disabled.
 
 ## Authentication
 
-Pi can use AI Gateway credentials or custom provider environment variables.
-When no explicit auth is configured, it checks the host environment for
-`AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN`.
+The `auth` setting selects which credentials Pi reads from the host environment:
+
+- `auto` (default): use AI Gateway credentials when available, then fall back
+  to all provider credentials found in the environment.
+- `openai`: use `OPENAI_API_KEY` and the optional `OPENAI_BASE_URL`.
+- `anthropic`: use `ANTHROPIC_API_KEY` and the optional
+  `ANTHROPIC_AUTH_TOKEN` and `ANTHROPIC_BASE_URL`.
+- `custom`: register all providers configured through environment variables.
+- `ai-gateway`: use `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` and the
+  optional `AI_GATEWAY_BASE_URL`.
 
 ```ts
-const harness = createPi({
-  auth: {
-    gateway: {
-      apiKey: process.env.AI_GATEWAY_API_KEY,
-    },
-  },
-});
+const harness = createPi({ auth: 'ai-gateway' });
 ```
 
-For multiple providers, pass `auth.customEnv` with standard environment pairs
-such as `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `ANTHROPIC_API_KEY`, or
-`ANTHROPIC_BASE_URL`.
+With `custom`, standard providers use environment variables such as
+`OPENAI_API_KEY`, `OPENAI_BASE_URL`, `ANTHROPIC_API_KEY`, and
+`ANTHROPIC_BASE_URL`. Other providers use a `<PREFIX>_API_KEY` and matching
+`<PREFIX>_BASE_URL` pair.
 
 ## Sandbox
 
