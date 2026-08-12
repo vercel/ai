@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const agent = new HarnessAgent({
-    harness: createCodexACP(),
+    harness: createCodexACP({ reasoningEffort: 'high' }),
     sandbox: createVercelSandbox({
       runtime: 'node24',
       ports: [4000],
