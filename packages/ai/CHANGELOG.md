@@ -1,5 +1,14 @@
 # ai
 
+## 7.0.63
+
+### Patch Changes
+
+- d0a5807: Preserve reasoning block IDs from UI message streams on reasoning UI parts.
+- dcf33e8: Allow providers without reranking model support to be assigned to `Provider`.
+- Updated dependencies [a4d386d]
+  - @ai-sdk/gateway@4.0.50
+
 ## 7.0.62
 
 ### Patch Changes
