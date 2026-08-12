@@ -455,6 +455,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             case 'reasoning-start': {
               const reasoningPart: ReasoningUIPart = {
                 type: 'reasoning',
+                id: chunk.id,
                 text: '',
                 providerMetadata: chunk.providerMetadata,
                 state: 'streaming',
