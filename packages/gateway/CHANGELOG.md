@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 2.0.133
+
+### Patch Changes
+
+- 91e93fa: Serialize structured Gateway error responses in nested API call error messages.
+- de0921d: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 2.0.132
 
 ### Patch Changes
