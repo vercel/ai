@@ -73,8 +73,9 @@ export interface HarnessV1NetworkSandboxSession extends SandboxSession {
    * implementations expose this only when credentials can be injected outside
    * the sandbox security boundary. Calling this method assumes authority over
    * the complete transformation set; harness adapters should normally use
-   * `addRequestTransformations` instead. Adapters that require credential
-   * brokering must fail when the relevant capability is absent.
+   * `addRequestTransformations` instead. Adapters may preserve legacy
+   * credential-forwarding behavior when additive request transformations are
+   * unavailable.
    */
   readonly setRequestTransformations?: (
     transformations: ReadonlyArray<HarnessV1RequestTransformation>,
