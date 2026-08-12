@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.108
+
+### Patch Changes
+
+- dd7ecd7: Preserve forced tool calls when strict function tools are configured.
+
 ## 3.0.107
 
 ### Patch Changes

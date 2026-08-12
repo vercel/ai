@@ -1,5 +1,13 @@
 # ai
 
+## 6.0.253
+
+### Patch Changes
+
+- d91d30b: Preserve reasoning block IDs from UI message streams on reasoning UI parts.
+- Updated dependencies [0ec239b]
+  - @ai-sdk/gateway@3.0.172
+
 ## 6.0.252
 
 ### Patch Changes
