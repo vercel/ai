@@ -73,19 +73,6 @@ export const xaiLanguageModelChatOptions = z.object({
   logprobs: z.boolean().optional(),
   topLogprobs: z.number().int().min(0).max(8).optional(),
 
-  /**
-   * Scheduling priority for the request, sent as the `service_tier` body field.
-   *
-   * - `default`: standard scheduling, same as omitting the field.
-   * - `priority`: higher scheduling priority for lower time-to-first-token and
-   *   faster inter-token latency, at a premium per-token price.
-   *
-   * xAI only bills the premium rate when the response confirms the request was
-   * served at the priority tier; the applied tier is reported back on
-   * `providerMetadata.xai.serviceTier`.
-   *
-   * @see https://docs.x.ai/developers/advanced-api-usage/priority-processing
-   */
   serviceTier: z.enum(['default', 'priority']).optional(),
 
   /**
