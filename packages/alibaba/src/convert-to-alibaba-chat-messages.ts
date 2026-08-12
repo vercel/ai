@@ -148,6 +148,10 @@ export function convertToAlibabaChatMessages({
           }
         }
 
+        if (text.length === 0 && toolCalls.length === 0) {
+          break;
+        }
+
         messages.push({
           role: 'assistant',
           content: messageCacheControl
