@@ -126,10 +126,7 @@ vi.mock('node:fs/promises', async importOriginal => {
 });
 
 // eslint-disable-next-line import/first
-import {
-  createClaudeCode,
-  FORWARDED_BRIDGE_EVENT_TYPES,
-} from './claude-code-harness';
+import { createClaudeCode } from './claude-code-harness';
 
 function textStream(text: string): ReadableStream<Uint8Array> {
   return new ReadableStream<Uint8Array>({
@@ -274,17 +271,6 @@ describe('createClaudeCode adapter', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
-  });
-
-  it('forwards the streamed tool-input parts to the turn', () => {
-    /*
-     * The channel buffers a part with no listener instead of raising, so a
-     * type missing here is dropped with no error anywhere — the bridge emits
-     * it, the schema validates it, and the turn never sees it.
-     */
-    expect(FORWARDED_BRIDGE_EVENT_TYPES).toContain('tool-input-start');
-    expect(FORWARDED_BRIDGE_EVENT_TYPES).toContain('tool-input-delta');
-    expect(FORWARDED_BRIDGE_EVENT_TYPES).toContain('tool-input-end');
   });
 
   it('declares the harness id and builtin tools', () => {

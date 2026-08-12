@@ -15,6 +15,10 @@ import type { HarnessV1StreamPart } from '../../v1';
  * output — where paths can appear anywhere and field-aware rewriting is
  * impossible. The prefix is long and contains the session id, so it is unique
  * enough that replacing every occurrence is safe.
+ *
+ * That holds for whole strings. Streamed `tool-input-delta` fragments are the
+ * exception — a prefix can straddle two of them — so the strip there is
+ * best-effort; see the case below.
  */
 export function stripWorkDir(
   part: HarnessV1StreamPart,
@@ -26,9 +30,10 @@ export function stripWorkDir(
     case 'tool-call':
       return { ...part, input: stripString(part.input, sessionWorkDir) };
     /*
-     * Best-effort: a work-dir prefix split across two deltas survives the
-     * streamed projection. It is corrected once the settled `tool-call`
-     * lands — its stripped input replaces the accumulated partial input.
+     * Best-effort by construction: this function is stateless and a work-dir
+     * prefix can straddle two deltas, so such a path survives into the
+     * streamed projection. Only the transient display is affected — the
+     * settled `tool-call` below is stripped whole and replaces it.
      */
     case 'tool-input-delta':
       return { ...part, delta: stripString(part.delta, sessionWorkDir) };
@@ -52,8 +57,12 @@ export function stripWorkDir(
  * directory followed by a separator becomes workspace-relative
  * (`/work/dir/src/a.ts` → `src/a.ts`); a bare reference to the directory itself
  * becomes `.`.
+ *
+ * The early return matters: this runs per streamed delta and on every string
+ * of a `tool-result` payload, and almost none of them mention the work dir.
  */
 function stripString(value: string, workDir: string): string {
+  if (!value.includes(workDir)) return value;
   return value.split(`${workDir}/`).join('').split(workDir).join('.');
 }
 

@@ -69,6 +69,26 @@ export async function printFullStream<TOOLS extends ToolSet>({
         break;
       }
 
+      // Streamed while the model writes a tool call's input JSON. The deltas
+      // are raw fragments and only form valid JSON once complete; the settled
+      // `tool-call` above carries the parsed input.
+      case 'tool-input-start': {
+        process.stdout.write(
+          `\n\n\x1b[32m\x1b[1mTOOL INPUT\x1b[22m ${chunk.toolName}\n`,
+        );
+        break;
+      }
+
+      case 'tool-input-delta': {
+        process.stdout.write(chunk.delta);
+        break;
+      }
+
+      case 'tool-input-end': {
+        process.stdout.write('\x1b[0m\n');
+        break;
+      }
+
       case 'reasoning-start': {
         activeReasoning.set(chunk.id, {
           type: 'reasoning',

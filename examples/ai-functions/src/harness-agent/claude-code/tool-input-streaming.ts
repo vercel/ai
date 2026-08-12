@@ -1,5 +1,6 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { claudeCode } from '@ai-sdk/harness-claude-code';
+import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
@@ -10,9 +11,9 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
  * long enough that a UI showing nothing until it lands looks stalled. The
  * adapter streams the input as it arrives: `tool-input-start` when the tool
  * call opens, `tool-input-delta` per fragment, `tool-input-end` when the input
- * is complete. The settled `tool-call` still follows, carrying the same
- * `toolCallId` and the parsed input — these parts are additive, so consumers
- * that ignore them are unaffected.
+ * is complete — printed below under "TOOL INPUT". The settled `tool-call`
+ * still follows under the same tool call id with the parsed input, so
+ * consumers that ignore these parts are unaffected.
  *
  * The prompt asks for a file whose contents are long enough that the `write`
  * tool's input takes several seconds to stream.
@@ -35,40 +36,7 @@ run(async () => {
         'Write it in one tool call; do not read anything first.',
     });
 
-    for await (const chunk of result.stream) {
-      switch (chunk.type) {
-        case 'tool-input-start':
-          process.stdout.write(
-            `\n\x1b[32m\x1b[1mTOOL INPUT\x1b[22m ${chunk.toolName} (${chunk.id})\n`,
-          );
-          break;
-
-        // The deltas are raw JSON fragments — they only form valid JSON once
-        // the input is complete. Parse progressively (the AI SDK UI helpers do
-        // this for you) rather than per delta.
-        case 'tool-input-delta':
-          process.stdout.write(chunk.delta);
-          break;
-
-        case 'tool-input-end':
-          process.stdout.write('\x1b[0m\n');
-          break;
-
-        case 'tool-call':
-          console.log(
-            `\n\x1b[32m\x1b[1mTOOL CALL\x1b[22m ${chunk.toolName} (${chunk.toolCallId})\x1b[0m`,
-          );
-          break;
-
-        case 'text-delta':
-          process.stdout.write(chunk.text);
-          break;
-
-        case 'error':
-          console.error('\n[example] stream error:', chunk.error);
-          break;
-      }
-    }
+    await printFullStream({ result });
 
     console.log('\nfinishReason:', await result.finishReason);
   } catch (err) {

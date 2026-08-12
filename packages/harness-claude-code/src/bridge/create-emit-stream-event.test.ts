@@ -94,6 +94,38 @@ describe('createEmitStreamEvent', () => {
     `);
   });
 
+  /** Drives one `tool_use` content block through its full partial-message lifecycle. */
+  function streamToolInputBlock(options: {
+    emitStreamEvent: (msg: ClaudeMessage) => void;
+    id: string;
+    name: string;
+    fragments: string[];
+  }): void {
+    const { emitStreamEvent, id, name, fragments } = options;
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'tool_use', id, name },
+      },
+    });
+    for (const partial_json of fragments) {
+      emitStreamEvent({
+        type: 'stream_event',
+        event: {
+          type: 'content_block_delta',
+          index: 0,
+          delta: { type: 'input_json_delta', partial_json },
+        },
+      });
+    }
+    emitStreamEvent({
+      type: 'stream_event',
+      event: { type: 'content_block_stop', index: 0 },
+    });
+  }
+
   it('streams a tool_use block input as tool-input-start/-delta/-end before the tool-call', () => {
     const state = createClaudeStreamEventState();
     const emitted: Record<string, unknown>[] = [];
@@ -106,33 +138,11 @@ describe('createEmitStreamEvent', () => {
       toCommonName: name => (name === 'Bash' ? 'bash' : name),
     });
 
-    emitStreamEvent({
-      type: 'stream_event',
-      event: {
-        type: 'content_block_start',
-        index: 0,
-        content_block: { type: 'tool_use', id: 'tool-1', name: 'Bash' },
-      },
-    });
-    emitStreamEvent({
-      type: 'stream_event',
-      event: {
-        type: 'content_block_delta',
-        index: 0,
-        delta: { type: 'input_json_delta', partial_json: '{"command"' },
-      },
-    });
-    emitStreamEvent({
-      type: 'stream_event',
-      event: {
-        type: 'content_block_delta',
-        index: 0,
-        delta: { type: 'input_json_delta', partial_json: ':"pwd"}' },
-      },
-    });
-    emitStreamEvent({
-      type: 'stream_event',
-      event: { type: 'content_block_stop', index: 0 },
+    streamToolInputBlock({
+      emitStreamEvent,
+      id: 'tool-1',
+      name: 'Bash',
+      fragments: ['{"command"', ':"pwd"}'],
     });
     emitStreamEvent({
       type: 'assistant',
@@ -169,82 +179,48 @@ describe('createEmitStreamEvent', () => {
     ]);
   });
 
-  it('marks a streamed external MCP tool input dynamic, like its tool-call', () => {
-    const state = createClaudeStreamEventState();
+  /*
+   * An external MCP tool is `dynamic`, matching its own `tool-call`. A tool on
+   * the bridge's own server never produces a `tool-call` here at all, so
+   * streaming its input would leave a tool part with nothing to settle it.
+   */
+  it.each([
+    {
+      name: 'mcp__weather__current',
+      expected: [
+        {
+          type: 'tool-input-start',
+          toolCallId: 'tool-1',
+          toolName: 'mcp__weather__current',
+          providerExecuted: true,
+          dynamic: true,
+        },
+        { type: 'tool-input-delta', toolCallId: 'tool-1', delta: '{"q":"x"}' },
+        { type: 'tool-input-end', toolCallId: 'tool-1' },
+      ],
+    },
+    { name: 'mcp__harness-tools__lookup', expected: [] },
+  ])('streams tool input for $name as expected', ({ name, expected }) => {
     const emitted: Record<string, unknown>[] = [];
     const emitStreamEvent = createEmitStreamEvent({
-      state,
+      state: createClaudeStreamEventState(),
       emit: event => emitted.push(event),
       emitWarning: () => {},
       emitTerminalError: () => {},
       onCompactionBoundary: () => {},
-      toCommonName: name => name,
+      toCommonName: toolName => toolName,
     });
 
-    emitStreamEvent({
-      type: 'stream_event',
-      event: {
-        type: 'content_block_start',
-        index: 0,
-        content_block: {
-          type: 'tool_use',
-          id: 'tool-1',
-          name: 'mcp__weather__current',
-        },
-      },
+    streamToolInputBlock({
+      emitStreamEvent,
+      id: 'tool-1',
+      name,
+      fragments: ['{"q":"x"}'],
     });
 
-    expect(emitted.find(event => event.type === 'tool-input-start')).toEqual({
-      type: 'tool-input-start',
-      toolCallId: 'tool-1',
-      toolName: 'mcp__weather__current',
-      providerExecuted: true,
-      dynamic: true,
-    });
-  });
-
-  it('does not stream input for the bridge-hosted harness-tools MCP server', () => {
-    const state = createClaudeStreamEventState();
-    const emitted: Record<string, unknown>[] = [];
-    const emitStreamEvent = createEmitStreamEvent({
-      state,
-      emit: event => emitted.push(event),
-      emitWarning: () => {},
-      emitTerminalError: () => {},
-      onCompactionBoundary: () => {},
-      toCommonName: name => name,
-    });
-
-    emitStreamEvent({
-      type: 'stream_event',
-      event: {
-        type: 'content_block_start',
-        index: 0,
-        content_block: {
-          type: 'tool_use',
-          id: 'tool-1',
-          name: 'mcp__harness-tools__lookup',
-        },
-      },
-    });
-    emitStreamEvent({
-      type: 'stream_event',
-      event: {
-        type: 'content_block_delta',
-        index: 0,
-        delta: { type: 'input_json_delta', partial_json: '{"q":"x"}' },
-      },
-    });
-    emitStreamEvent({
-      type: 'stream_event',
-      event: { type: 'content_block_stop', index: 0 },
-    });
-
-    // Those tools never produce a `tool-call` on this wire, so a streamed
-    // input would leave a tool part streaming with nothing to settle it.
     expect(
       emitted.filter(event => String(event.type).startsWith('tool-input-')),
-    ).toEqual([]);
+    ).toEqual(expected);
   });
 
   it('keeps subagent messages out of the main Agent-tool step', () => {

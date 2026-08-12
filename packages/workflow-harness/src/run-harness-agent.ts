@@ -389,24 +389,22 @@ async function writeRequiredPrelude(options: {
   const { chunk, writer, streamContext, executionPartState } = options;
   const id = stringProperty({ chunk, key: 'id' });
 
-  if (
-    (chunk.type === 'text-delta' || chunk.type === 'text-end') &&
-    id != null &&
-    streamContext.activeTextParts[id] != null &&
-    !executionPartState.openedTextParts.has(id)
-  ) {
-    await writer.write(streamContext.activeTextParts[id]);
-    executionPartState.openedTextParts.add(id);
+  if (chunk.type === 'text-delta' || chunk.type === 'text-end') {
+    await replayOnce({
+      writer,
+      key: id,
+      carried: streamContext.activeTextParts,
+      written: executionPartState.openedTextParts,
+    });
   }
 
-  if (
-    (chunk.type === 'reasoning-delta' || chunk.type === 'reasoning-end') &&
-    id != null &&
-    streamContext.activeReasoningParts[id] != null &&
-    !executionPartState.openedReasoningParts.has(id)
-  ) {
-    await writer.write(streamContext.activeReasoningParts[id]);
-    executionPartState.openedReasoningParts.add(id);
+  if (chunk.type === 'reasoning-delta' || chunk.type === 'reasoning-end') {
+    await replayOnce({
+      writer,
+      key: id,
+      carried: streamContext.activeReasoningParts,
+      written: executionPartState.openedReasoningParts,
+    });
   }
 
   /*
@@ -422,16 +420,30 @@ async function writeRequiredPrelude(options: {
    * rejects outright without their start.
    */
   if (chunk.type === 'tool-input-delta') {
-    const toolCallId = stringProperty({ chunk, key: 'toolCallId' });
-    if (
-      toolCallId != null &&
-      streamContext.activeToolInputStreams[toolCallId] != null &&
-      !executionPartState.openedToolInputStreams.has(toolCallId)
-    ) {
-      await writer.write(streamContext.activeToolInputStreams[toolCallId]);
-      executionPartState.openedToolInputStreams.add(toolCallId);
-    }
+    await replayOnce({
+      writer,
+      key: stringProperty({ chunk, key: 'toolCallId' }),
+      carried: streamContext.activeToolInputStreams,
+      written: executionPartState.openedToolInputStreams,
+    });
   }
+}
+
+/**
+ * Write a chunk carried over from an earlier slice, at most once per
+ * execution. A no-op when the chunk originated in this slice (nothing was
+ * carried) or when it has already been replayed.
+ */
+async function replayOnce(options: {
+  writer: WritableStreamDefaultWriter<HarnessWorkflowChunk>;
+  key: string | undefined;
+  carried: Record<string, HarnessWorkflowSerializedChunk>;
+  written: Set<string>;
+}): Promise<void> {
+  const { writer, key, carried, written } = options;
+  if (key == null || carried[key] == null || written.has(key)) return;
+  await writer.write(carried[key]);
+  written.add(key);
 }
 
 function recordWorkflowChunk(options: {

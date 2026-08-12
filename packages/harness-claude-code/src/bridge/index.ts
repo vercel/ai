@@ -43,6 +43,7 @@ import {
   defaultUsage,
   emitFinishStep,
   finishApprovalStep,
+  HARNESS_TOOLS_MCP_PREFIX,
   mapUsage,
   type ClaudeMessage,
 } from './create-emit-stream-event';
@@ -168,7 +169,7 @@ function createPermissionOptions(input: {
       toolInput: Record<string, unknown>,
       options: { toolUseID: string },
     ) => {
-      if (toolName.startsWith('mcp__harness-tools__')) {
+      if (toolName.startsWith(HARNESS_TOOLS_MCP_PREFIX)) {
         return { behavior: 'allow', updatedInput: toolInput };
       }
       if (

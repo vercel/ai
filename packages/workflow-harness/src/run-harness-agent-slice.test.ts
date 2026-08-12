@@ -39,6 +39,11 @@ function fakeSession(
   options: {
     unfinishedTurn?: boolean;
     suspendState?: HarnessV1ContinueTurnState;
+    /**
+     * Runs before the suspend resolves — pair it with `streamResult`'s
+     * `closeForSuspend` so a blocked stream ends when the slice is torn down.
+     */
+    onSuspend?: () => void;
   } = {},
 ): HarnessAgentSession & {
   suspendCalls: number;
@@ -57,6 +62,7 @@ function fakeSession(
     },
     async suspendTurn() {
       session.suspendCalls++;
+      options.onSuspend?.();
       return options.suspendState ?? continueState('suspended');
     },
     async detach() {
@@ -312,19 +318,11 @@ describe('runHarnessAgentTimeSlice', () => {
   });
 
   test('completes the time slice: suspends at the budget and carries the cursor forward', async () => {
-    const session = fakeSession();
     const { result, closeForSuspend } = streamResult({
       chunks: [{ type: 'start' }, { type: 'text-delta', id: 't', delta: 'a' }],
       blockAfter: true,
     });
-    const suspendingSession = session as unknown as {
-      suspendTurn: () => Promise<HarnessV1ContinueTurnState>;
-    };
-    const originalSuspend = suspendingSession.suspendTurn.bind(session);
-    suspendingSession.suspendTurn = async () => {
-      closeForSuspend();
-      return originalSuspend();
-    };
+    const session = fakeSession({ onSuspend: closeForSuspend });
 
     const agent: HarnessWorkflowAgent = {
       createSession: vi.fn(async () => session),
@@ -390,7 +388,6 @@ describe('runHarnessAgentTimeSlice', () => {
   });
 
   test('continued slice reopens active parts and preserves aggregate token usage', async () => {
-    const firstSession = fakeSession();
     const { result: firstResult, closeForSuspend } = streamResult({
       chunks: [
         { type: 'start' },
@@ -401,14 +398,7 @@ describe('runHarnessAgentTimeSlice', () => {
       ],
       blockAfter: true,
     });
-    const suspendingSession = firstSession as unknown as {
-      suspendTurn: () => Promise<HarnessV1ContinueTurnState>;
-    };
-    const originalSuspend = suspendingSession.suspendTurn.bind(firstSession);
-    suspendingSession.suspendTurn = async () => {
-      closeForSuspend();
-      return originalSuspend();
-    };
+    const firstSession = fakeSession({ onSuspend: closeForSuspend });
 
     const firstAgent: HarnessWorkflowAgent = {
       createSession: vi.fn(async () => firstSession),
@@ -483,7 +473,6 @@ describe('runHarnessAgentTimeSlice', () => {
   });
 
   test('continued slice emits a pending tool input only once across the time-slice boundary', async () => {
-    const firstSession = fakeSession();
     const { result: firstResult, closeForSuspend } = streamResult({
       chunks: [
         { type: 'start' },
@@ -498,14 +487,7 @@ describe('runHarnessAgentTimeSlice', () => {
       ],
       blockAfter: true,
     });
-    const suspendingSession = firstSession as unknown as {
-      suspendTurn: () => Promise<HarnessV1ContinueTurnState>;
-    };
-    const originalSuspend = suspendingSession.suspendTurn.bind(firstSession);
-    suspendingSession.suspendTurn = async () => {
-      closeForSuspend();
-      return originalSuspend();
-    };
+    const firstSession = fakeSession({ onSuspend: closeForSuspend });
 
     const firstAgent: HarnessWorkflowAgent = {
       createSession: vi.fn(async () => firstSession),
@@ -574,7 +556,6 @@ describe('runHarnessAgentTimeSlice', () => {
   });
 
   test('continued slice replays tool-input-start before a delta from the previous slice', async () => {
-    const firstSession = fakeSession();
     const { result: firstResult, closeForSuspend } = streamResult({
       chunks: [
         { type: 'start' },
@@ -592,14 +573,7 @@ describe('runHarnessAgentTimeSlice', () => {
       ],
       blockAfter: true,
     });
-    const suspendingSession = firstSession as unknown as {
-      suspendTurn: () => Promise<HarnessV1ContinueTurnState>;
-    };
-    const originalSuspend = suspendingSession.suspendTurn.bind(firstSession);
-    suspendingSession.suspendTurn = async () => {
-      closeForSuspend();
-      return originalSuspend();
-    };
+    const firstSession = fakeSession({ onSuspend: closeForSuspend });
 
     const firstAgent: HarnessWorkflowAgent = {
       createSession: vi.fn(async () => firstSession),
@@ -627,7 +601,6 @@ describe('runHarnessAgentTimeSlice', () => {
 
     // The second slice also suspends, so its stream context is persisted and
     // the clear-on-settle can be asserted.
-    const secondSession = fakeSession();
     const { result: secondResult, closeForSuspend: closeSecondForSuspend } =
       streamResult({
         chunks: [
@@ -647,15 +620,7 @@ describe('runHarnessAgentTimeSlice', () => {
         ],
         blockAfter: true,
       });
-    const secondSuspending = secondSession as unknown as {
-      suspendTurn: () => Promise<HarnessV1ContinueTurnState>;
-    };
-    const originalSecondSuspend =
-      secondSuspending.suspendTurn.bind(secondSession);
-    secondSuspending.suspendTurn = async () => {
-      closeSecondForSuspend();
-      return originalSecondSuspend();
-    };
+    const secondSession = fakeSession({ onSuspend: closeSecondForSuspend });
     const secondAgent: HarnessWorkflowAgent = {
       createSession: vi.fn(async () => secondSession),
       stream: vi.fn(async () => {
@@ -828,19 +793,11 @@ describe('runHarnessAgentStep', () => {
 
 describe('runHarnessAgentSlice', () => {
   test('supports sliceTimeoutSeconds and maps ready_for_next_step to timed_out', async () => {
-    const session = fakeSession();
     const { result, closeForSuspend } = streamResult({
       chunks: [{ type: 'start' }],
       blockAfter: true,
     });
-    const suspendingSession = session as unknown as {
-      suspendTurn: () => Promise<HarnessV1ContinueTurnState>;
-    };
-    const originalSuspend = suspendingSession.suspendTurn.bind(session);
-    suspendingSession.suspendTurn = async () => {
-      closeForSuspend();
-      return originalSuspend();
-    };
+    const session = fakeSession({ onSuspend: closeForSuspend });
     const agent: HarnessWorkflowAgent = {
       createSession: vi.fn(async () => session),
       stream: vi.fn(async () => result),

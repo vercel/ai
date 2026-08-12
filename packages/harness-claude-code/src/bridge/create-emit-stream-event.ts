@@ -108,7 +108,23 @@ export function createClaudeStreamEventState(): ClaudeStreamEventState {
 const UNRECOVERABLE_API_RETRY_STATUSES = new Set([401, 403, 404]);
 
 /** Native-name prefix of the MCP server the bridge hosts `HarnessAgent` tools on. */
-const HARNESS_TOOLS_MCP_PREFIX = 'mcp__harness-tools__';
+export const HARNESS_TOOLS_MCP_PREFIX = 'mcp__harness-tools__';
+
+/**
+ * Whether a native name belongs to a user-configured MCP server, which makes
+ * its calls `dynamic` on the wire — they are not in the agent's typed tool set.
+ * The bridge's own server is excluded: it emits its calls under a synthetic id
+ * with the user-facing tool name.
+ *
+ * The `tool-call` and the streamed `tool-input-start` for one tool must agree
+ * on this flag, so both derive it here rather than repeating the rule.
+ */
+function isExternalMcpTool(nativeName: string): boolean {
+  return (
+    nativeName.startsWith('mcp__') &&
+    !nativeName.startsWith(HARNESS_TOOLS_MCP_PREFIX)
+  );
+}
 
 /** Native tool the CLI uses to return structured output; carried in `finish`. */
 const STRUCTURED_OUTPUT_TOOL_NAME = 'StructuredOutput';
@@ -255,7 +271,7 @@ export function createEmitStreamEvent({
             continue;
           }
           state.nativeToolCallNames.set(block.id, block.name);
-          const dynamic = block.name.startsWith('mcp__');
+          const dynamic = isExternalMcpTool(block.name);
           if (dynamic) state.externalMcpToolUseIds.add(block.id);
           if (state.approvalRequestedToolUseIds.has(block.id)) {
             continue;
@@ -424,24 +440,21 @@ function handleStreamEvent(
       const id = randomUUID();
       partialBlocks.set(index, { id, kind: 'thinking' });
       send({ type: 'reasoning-start', id });
-    } else if (
-      blockType === 'tool_use' &&
-      typeof block?.id === 'string' &&
-      typeof block.name === 'string' &&
-      emitsToolCall(block.name)
-    ) {
-      /*
-       * The tool-use id is already known here, so the streamed input and the
-       * `tool-call` the assistant message emits later share a `toolCallId`.
-       * `dynamic` must match what that `tool-call` will carry.
-       */
-      partialBlocks.set(index, { id: block.id, kind: 'tool' });
+    } else if (blockType === 'tool_use') {
+      const id = block?.id;
+      const name = block?.name;
+      if (typeof id !== 'string' || typeof name !== 'string') return;
+      if (!emitsToolCall(name)) return;
+
+      // The tool-use id is already known here, so the streamed input and the
+      // `tool-call` the assistant message emits later share a `toolCallId`.
+      partialBlocks.set(index, { id, kind: 'tool' });
       send({
         type: 'tool-input-start',
-        toolCallId: block.id,
-        toolName: toCommonName(block.name),
+        toolCallId: id,
+        toolName: toCommonName(name),
         providerExecuted: true,
-        ...(block.name.startsWith('mcp__') ? { dynamic: true } : {}),
+        ...(isExternalMcpTool(name) ? { dynamic: true } : {}),
       });
     }
     return;
@@ -484,12 +497,24 @@ function handleStreamEvent(
     const block = partialBlocks.get(index);
     if (!block) return;
     partialBlocks.delete(index);
-    if (block.kind === 'text') {
-      send({ type: 'text-end', id: block.id });
-    } else if (block.kind === 'tool') {
-      send({ type: 'tool-input-end', toolCallId: block.id });
-    } else {
-      send({ type: 'reasoning-end', id: block.id });
+    /*
+     * Exhaustive on purpose: a catch-all `else` here would silently close a
+     * future block kind as `reasoning-end`.
+     */
+    switch (block.kind) {
+      case 'text':
+        send({ type: 'text-end', id: block.id });
+        return;
+      case 'thinking':
+        send({ type: 'reasoning-end', id: block.id });
+        return;
+      case 'tool':
+        send({ type: 'tool-input-end', toolCallId: block.id });
+        return;
+      default: {
+        const exhaustive: never = block.kind;
+        void exhaustive;
+      }
     }
   }
 }
