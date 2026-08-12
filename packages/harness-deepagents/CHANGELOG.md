@@ -1,5 +1,11 @@
 # @ai-sdk/harness-deepagents
 
+## 1.0.70
+
+### Patch Changes
+
+- 616730a: fix(harness): fix missing reasoning controls
+
 ## 1.0.69
 
 ### Patch Changes
