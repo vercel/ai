@@ -1,5 +1,5 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { createDeepAgents } from '@ai-sdk/harness-deepagents';
+import { createDeepAgents } from './_create';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
@@ -36,9 +36,6 @@ run(async () => {
     console.log('toolCalls:', JSON.stringify(toolCalls, null, 2));
     console.log('finishReason:', await result.finishReason);
     console.log('usage:', await result.usage);
-  } catch (error) {
-    process.exitCode = 1;
-    throw error;
   } finally {
     await session?.destroy();
   }

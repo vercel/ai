@@ -2,7 +2,7 @@ import {
   HarnessAgent,
   type HarnessAgentResumeSessionState,
 } from '@ai-sdk/harness/agent';
-import { createDeepAgents } from '@ai-sdk/harness-deepagents';
+import { createDeepAgents } from './_create';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { mintBridgeToken } from '../../lib/mint-bridge-token';
 import { printFullStream } from '../../lib/print-full-stream';

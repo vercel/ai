@@ -2,7 +2,7 @@ import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
 import { z } from 'zod';
-import { createCodexACP } from '../../lib/codex-acp-harness';
+import { createCodexACP } from './_create';
 import {
   createToolApprovalResponseMessages,
   printFullStreamAndCaptureToolApproval,
