@@ -148,9 +148,18 @@ The following optional provider options are available for xAI chat models:
 
   Control the reasoning effort for supported models. See [Reasoning Effort](#reasoning-effort) for model-specific values and defaults.
 
-<<<<<<< HEAD
 - **logprobs** _boolean_
-=======
+
+  Return log probabilities for output tokens.
+
+- **topLogprobs** _number_
+
+  Number of most likely tokens to return per token position (0-8). When set, `logprobs` is automatically enabled.
+
+- **parallel_function_calling** _boolean_
+
+  Whether to enable parallel function calling during tool use. When true, the model can call multiple functions in parallel. When false, the model will call functions sequentially. Defaults to `true`.
+
 ### Priority Processing
 
 `providerOptions.xai.serviceTier` requests higher scheduling priority, which
@@ -181,19 +190,6 @@ tier back from `providerMetadata.xai.serviceTier` rather than assuming the
 request you sent is the tier you got. Omitting the option is equivalent to
 `'default'`. See xAI's [priority processing
 docs](https://docs.x.ai/developers/advanced-api-usage/priority-processing).
-
-## Realtime Models
->>>>>>> 484293f2ff (feat(xai): support priority service tier on chat and responses (#18792))
-
-  Return log probabilities for output tokens.
-
-- **topLogprobs** _number_
-
-  Number of most likely tokens to return per token position (0-8). When set, `logprobs` is automatically enabled.
-
-- **parallel_function_calling** _boolean_
-
-  Whether to enable parallel function calling during tool use. When true, the model can call multiple functions in parallel. When false, the model will call functions sequentially. Defaults to `true`.
 
 ## Responses API (Agentic Tools)
 

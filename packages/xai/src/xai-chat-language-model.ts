@@ -387,12 +387,8 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
       unified: 'other',
       raw: undefined,
     };
-<<<<<<< HEAD
     let usage: LanguageModelV3Usage | undefined = undefined;
-=======
-    let usage: LanguageModelV4Usage | undefined = undefined;
     let serviceTier: string | undefined = undefined;
->>>>>>> 484293f2ff (feat(xai): support priority service tier on chat and responses (#18792))
     let isFirstChunk = true;
     const contentBlocks: Record<
       string,
