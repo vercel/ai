@@ -142,9 +142,7 @@ export function convertToAlibabaChatMessages({
               break;
             }
             case 'reasoning': {
-              // Reasoning content is handled separately in the response
-              // but may appear in assistant messages during multi-turn conversations
-              text += part.text;
+              // Alibaba ignores historical reasoning in multi-turn conversations.
               break;
             }
           }
