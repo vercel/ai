@@ -3,7 +3,7 @@ import { rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   registerPiProviders,
   resolvePiEnv,
@@ -12,7 +12,7 @@ import {
 
 const authPaths: string[] = [];
 
-beforeEach(() => {
+function clearAmbientProviderCredentials() {
   for (const key of Object.keys(process.env)) {
     if (
       key.endsWith('_API_KEY') ||
@@ -20,10 +20,10 @@ beforeEach(() => {
       key === 'ANTHROPIC_AUTH_TOKEN' ||
       key === 'VERCEL_OIDC_TOKEN'
     ) {
-      vi.stubEnv(key, '');
+      vi.stubEnv(key, undefined);
     }
   }
-});
+}
 
 afterEach(async () => {
   vi.unstubAllEnvs();
@@ -273,6 +273,8 @@ describe('registerPiProviders', () => {
   });
 
   it('does not register providers when no auth is configured', async () => {
+    clearAmbientProviderCredentials();
+
     const registries = await registerProviders({
       options: undefined,
       resolvedEnv: {},
@@ -457,6 +459,7 @@ describe('registerPiProviders', () => {
   });
 
   it('custom mode registers all provider env vars including gateway', async () => {
+    clearAmbientProviderCredentials();
     vi.stubEnv('AI_GATEWAY_API_KEY', 'gw');
     vi.stubEnv('OPENAI_API_KEY', 'sk-oai');
     vi.stubEnv('MISTRAL_API_KEY', 'mk');

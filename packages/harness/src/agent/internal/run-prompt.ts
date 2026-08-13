@@ -259,7 +259,13 @@ export function runPrompt<
     const waitForOutstandingHostToolExecutions = async (): Promise<void> => {
       if (outstandingHostToolExecutions.length === 0) return;
       const executions = outstandingHostToolExecutions.splice(0);
-      await Promise.all(executions);
+      const results = await Promise.allSettled(executions);
+      const failedExecution = results.find(
+        result => result.status === 'rejected',
+      );
+      if (failedExecution != null) {
+        throw failedExecution.reason;
+      }
     };
     const releasePendingStopBoundary = (): void => {
       pendingStopBoundary?.releaseCheckpoint?.();
