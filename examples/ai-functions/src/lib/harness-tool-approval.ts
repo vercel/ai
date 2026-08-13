@@ -1,4 +1,5 @@
 import type { ModelMessage, StreamTextResult, ToolApprovalResponse } from 'ai';
+import { printFullStream } from './print-full-stream';
 
 type CapturedToolApproval = {
   approvalId: string;
@@ -18,73 +19,23 @@ export async function printFullStreamAndCaptureToolApproval({
 }): Promise<CapturedToolApproval | undefined> {
   let approval: CapturedToolApproval | undefined;
 
-  for await (const chunk of result.fullStream as AsyncIterable<any>) {
-    switch (chunk.type) {
-      case 'tool-call': {
-        console.log(
-          `\n\x1b[32m\x1b[1mTOOL CALL\x1b[22m\n${JSON.stringify(chunk, null, 2)}\x1b[0m`,
-        );
-        break;
-      }
-
-      case 'tool-approval-request': {
-        approval ??= {
-          approvalId: chunk.approvalId,
-          toolCall: {
-            type: 'tool-call',
-            toolCallId: chunk.toolCall.toolCallId,
-            toolName: chunk.toolCall.toolName,
-            input: chunk.toolCall.input,
-            ...(chunk.toolCall.providerExecuted !== undefined
-              ? { providerExecuted: chunk.toolCall.providerExecuted }
-              : {}),
-          },
-        };
-        console.log(
-          `\n\x1b[33m\x1b[1mTOOL APPROVAL REQUEST\x1b[22m\n${JSON.stringify(chunk, null, 2)}\x1b[0m`,
-        );
-        break;
-      }
-
-      case 'tool-approval-response': {
-        console.log(
-          `\n\x1b[33m\x1b[1mTOOL APPROVAL RESPONSE\x1b[22m\n${JSON.stringify(chunk, null, 2)}\x1b[0m`,
-        );
-        break;
-      }
-
-      case 'tool-result': {
-        console.log(
-          `\n\x1b[32m\x1b[1mTOOL RESULT\x1b[22m\n${JSON.stringify(chunk, null, 2)}\x1b[0m`,
-        );
-        break;
-      }
-
-      case 'reasoning-start':
-        process.stdout.write('\n\n\x1b[34m\x1b[1mREASONING\x1b[22m\n');
-        break;
-
-      case 'text-start':
-        process.stdout.write('\n\n\x1b[1mTEXT\x1b[22m\n');
-        break;
-
-      case 'text-delta':
-      case 'reasoning-delta':
-        process.stdout.write(chunk.text);
-        break;
-
-      case 'text-end':
-      case 'reasoning-end':
-        process.stdout.write('\x1b[0m\n');
-        break;
-
-      case 'error':
-        console.error(
-          `\n\x1b[31m\x1b[1mERROR\x1b[22m\n${formatStreamError(chunk.error)}\x1b[0m`,
-        );
-        break;
-    }
-  }
+  await printFullStream({
+    result,
+    onToolApproval: chunk => {
+      approval ??= {
+        approvalId: chunk.approvalId,
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: chunk.toolCall.toolCallId,
+          toolName: chunk.toolCall.toolName,
+          input: chunk.toolCall.input,
+          ...(chunk.toolCall.providerExecuted !== undefined
+            ? { providerExecuted: chunk.toolCall.providerExecuted }
+            : {}),
+        },
+      };
+    },
+  });
 
   return approval;
 }
@@ -130,19 +81,4 @@ export function createToolApprovalResponseMessages({
       content: [response],
     },
   ];
-}
-
-function formatStreamError(error: unknown): string {
-  if (error instanceof Error) {
-    return JSON.stringify(
-      {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-      },
-      null,
-      2,
-    );
-  }
-  return JSON.stringify(error, null, 2);
 }
