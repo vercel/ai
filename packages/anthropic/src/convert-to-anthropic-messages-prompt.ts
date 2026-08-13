@@ -23,6 +23,7 @@ import {
   type AnthropicSystemMessage,
   type AnthropicTextContent,
   type AnthropicToolChangeContent,
+  type AnthropicToolCallCaller,
   type AnthropicToolResultContent,
   type AnthropicUserMessage,
   type AnthropicWebFetchToolResultContent,
@@ -645,6 +646,8 @@ export async function convertToAnthropicMessagesPrompt({
               }
 
               case 'tool-call': {
+                const caller = getAnthropicCaller(part.providerOptions);
+
                 if (part.providerExecuted) {
                   const providerToolName = toolNameMapping.toProviderToolName(
                     part.toolName,
@@ -689,8 +692,14 @@ export async function convertToAnthropicMessagesPrompt({
                     anthropicContent.push({
                       type: 'server_tool_use',
                       id: part.toolCallId,
+<<<<<<< HEAD:packages/anthropic/src/convert-to-anthropic-messages-prompt.ts
                       name: subtoolName, // map back to subtool name
                       input,
+=======
+                      name: codeExecutionType, // map back to subtool name
+                      input: inputWithoutType,
+                      ...(caller && { caller }),
+>>>>>>> 4579b08403 (fix(anthropic): replay dynamic-filtering callers without reordering (#18887)):packages/anthropic/src/convert-to-anthropic-prompt.ts
                       cache_control: cacheControl,
                     });
                   } else if (
@@ -711,6 +720,7 @@ export async function convertToAnthropicMessagesPrompt({
                       id: part.toolCallId,
                       name: 'code_execution',
                       input: inputWithoutType,
+                      ...(caller && { caller }),
                       cache_control: cacheControl,
                     });
                   } else {
@@ -724,6 +734,7 @@ export async function convertToAnthropicMessagesPrompt({
                         id: part.toolCallId,
                         name: providerToolName,
                         input: part.input,
+                        ...(caller && { caller }),
                         cache_control: cacheControl,
                       });
                     } else if (
@@ -735,6 +746,7 @@ export async function convertToAnthropicMessagesPrompt({
                         id: part.toolCallId,
                         name: providerToolName,
                         input: part.input,
+                        ...(caller && { caller }),
                         cache_control: cacheControl,
                       });
                     } else if (providerToolName === 'advisor') {
@@ -744,6 +756,7 @@ export async function convertToAnthropicMessagesPrompt({
                         id: part.toolCallId,
                         name: 'advisor',
                         input: {},
+                        ...(caller && { caller }),
                         cache_control: cacheControl,
                       });
                     } else {
@@ -756,26 +769,6 @@ export async function convertToAnthropicMessagesPrompt({
 
                   break;
                 }
-
-                // Extract caller info from provider options for programmatic tool calling
-                const callerOptions = part.providerOptions?.anthropic as
-                  | { caller?: { type: string; toolId?: string } }
-                  | undefined;
-                const caller = callerOptions?.caller
-                  ? (callerOptions.caller.type === 'code_execution_20250825' ||
-                      callerOptions.caller.type ===
-                        'code_execution_20260120') &&
-                    callerOptions.caller.toolId
-                    ? {
-                        type: callerOptions.caller.type as
-                          | 'code_execution_20250825'
-                          | 'code_execution_20260120',
-                        tool_id: callerOptions.caller.toolId,
-                      }
-                    : callerOptions.caller.type === 'direct'
-                      ? { type: 'direct' as const }
-                      : undefined
-                  : undefined;
 
                 anthropicContent.push({
                   type: 'tool_use',
@@ -792,6 +785,7 @@ export async function convertToAnthropicMessagesPrompt({
                 const providerToolName = toolNameMapping.toProviderToolName(
                   part.toolName,
                 );
+                const caller = getAnthropicCaller(part.providerOptions);
 
                 if (mcpToolUseIds.has(part.toolCallId)) {
                   const output = part.output;
@@ -998,6 +992,7 @@ export async function convertToAnthropicMessagesPrompt({
                           (await extractErrorValue(output.value)).errorCode ??
                           'unavailable',
                       },
+                      ...(caller && { caller }),
                       cache_control: cacheControl,
                     });
 
@@ -1042,6 +1037,7 @@ export async function convertToAnthropicMessagesPrompt({
                         >['content']['source'],
                       },
                     },
+                    ...(caller && { caller }),
                     cache_control: cacheControl,
                   });
 
@@ -1061,6 +1057,7 @@ export async function convertToAnthropicMessagesPrompt({
                           (await extractErrorValue(output.value)).errorCode ??
                           'unavailable',
                       },
+                      ...(caller && { caller }),
                       cache_control: cacheControl,
                     });
 
@@ -1094,6 +1091,7 @@ export async function convertToAnthropicMessagesPrompt({
                       encrypted_content: result.encryptedContent,
                       type: result.type,
                     })),
+                    ...(caller && { caller }),
                     cache_control: cacheControl,
                   });
 
@@ -1319,3 +1317,36 @@ function moveToolUseBlocksToEnd(
 
   return result;
 }
+<<<<<<< HEAD:packages/anthropic/src/convert-to-anthropic-messages-prompt.ts
+=======
+
+function getAnthropicCaller(
+  providerOptions: SharedV4ProviderMetadata | undefined,
+): AnthropicToolCallCaller | undefined {
+  const caller = (
+    providerOptions?.anthropic as
+      | { caller?: { type: string; toolId?: string } }
+      | undefined
+  )?.caller;
+
+  if (
+    (caller?.type === 'code_execution_20250825' ||
+      caller?.type === 'code_execution_20260120') &&
+    caller.toolId
+  ) {
+    return {
+      type: caller.type,
+      tool_id: caller.toolId,
+    };
+  }
+
+  return caller?.type === 'direct' ? { type: 'direct' } : undefined;
+}
+
+// wrap invalid tool call input because Anthropic requires it to be an object
+function toAnthropicToolInput(input: unknown): JSONObject {
+  return typeof input === 'object' && input !== null && !Array.isArray(input)
+    ? (input as JSONObject)
+    : { rawInvalidInput: input as JSONValue };
+}
+>>>>>>> 4579b08403 (fix(anthropic): replay dynamic-filtering callers without reordering (#18887)):packages/anthropic/src/convert-to-anthropic-prompt.ts
