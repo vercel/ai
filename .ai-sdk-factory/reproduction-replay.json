@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 9210,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/use-object-api-change.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/use-object-api-change.ts",
+    "examples/ai-functions/package.json",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #9210 REPRODUCED: changing the useObject api cleared the received object (observed undefined; expected {\"recipe\":{\"name\":\"Lasagna\"}}), and restoring the previous api restored the object."
+  }
+}
