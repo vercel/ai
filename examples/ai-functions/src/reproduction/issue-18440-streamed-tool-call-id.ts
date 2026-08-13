@@ -1,296 +1,527 @@
+import { mkdir, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { streamText } from '../../../../packages/ai/src/generate-text/stream-text';
+import type { ToolSet } from '../../../../packages/ai/src/generate-text/tool-set';
 import { createOpenAICompatible } from '../../../../packages/openai-compatible/src';
 import { createOpenAI } from '../../../../packages/openai/src';
+import {
+  jsonSchema,
+  safeParseJSON,
+  tool,
+  type FetchFunction,
+} from '../../../../packages/provider-utils/src';
+
+/**
+ * Live end-to-end reproduction for https://github.com/vercel/ai/issues/18440.
+ *
+ * Required:
+ *   AI_SDK_ISSUE_18440_MODEL=<installed-tool-capable-model>
+ *
+ * Optional:
+ *   AI_SDK_ISSUE_18440_BASE_URL=http://localhost:11434/v1
+ *   AI_SDK_ISSUE_18440_API_KEY=ollama
+ *   AI_SDK_ISSUE_18440_PROVIDER=openai-compatible # or openai
+ *
+ * The request body, raw SSE response, provider raw chunks, and comparison summary
+ * are saved under examples/ai-functions/output. Authentication headers are never
+ * recorded.
+ */
 
 type ProviderKind = 'openai-compatible' | 'openai';
 
-type ToolCallDelta = {
-  index?: number;
-  id?: string;
-  type?: 'function';
-  function: {
-    name?: string;
-    arguments?: string;
-  };
+type CapturedExchange = {
+  url: string;
+  method: string;
+  requestBody?: string;
+  responseStatus?: number;
+  responseContentType?: string | null;
+  responseBody?: string;
+  responseBodyError?: string;
+  fetchError?: string;
 };
 
-type ScenarioResult = {
-  error?: string;
-  streamErrors: string[];
-  toolCalls: Array<{
-    toolCallId: string;
-    toolName: string;
-    input: string;
-  }>;
+type WireToolCallDelta = {
+  eventNumber: number;
+  choiceIndex: unknown;
+  position: number;
+  indexPresent: boolean;
+  index: unknown;
+  idPresent: boolean;
+  id: unknown;
+  namePresent: boolean;
+  name: unknown;
+  argumentsPresent: boolean;
+  arguments: unknown;
 };
 
-const prompt = [
-  {
-    role: 'user' as const,
-    content: [{ type: 'text' as const, text: 'Use the requested tools.' }],
-  },
-];
+type EmittedToolCall = {
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+};
 
-function createSseResponse(deltas: ToolCallDelta[]): Response {
-  const chunks = deltas.map(
-    toolCall =>
-      `data: ${JSON.stringify({
-        id: 'chatcmpl-issue-18440',
-        object: 'chat.completion.chunk',
-        created: 1,
-        model: 'reproduction-model',
-        choices: [
-          {
-            index: 0,
-            delta: { tool_calls: [toolCall] },
-            finish_reason: null,
-          },
-        ],
-      })}\n\n`,
-  );
+const outputDirectory = resolve(__dirname, '../../output');
+const artifactPrefix = 'issue-18440';
 
-  chunks.push(
-    `data: ${JSON.stringify({
-      id: 'chatcmpl-issue-18440',
-      object: 'chat.completion.chunk',
-      created: 1,
-      model: 'reproduction-model',
-      choices: [{ index: 0, delta: {}, finish_reason: 'tool_calls' }],
-    })}\n\n`,
-    'data: [DONE]\n\n',
-  );
+const tools = {
+  read_file: tool({
+    description: 'Read a text file.',
+    inputSchema: jsonSchema<{ path: string }>({
+      type: 'object',
+      properties: { path: { type: 'string' } },
+      required: ['path'],
+      additionalProperties: false,
+    }),
+  }),
+  write_file: tool({
+    description: 'Write text to a file.',
+    inputSchema: jsonSchema<{ path: string; content: string }>({
+      type: 'object',
+      properties: {
+        path: { type: 'string' },
+        content: { type: 'string' },
+      },
+      required: ['path', 'content'],
+      additionalProperties: false,
+    }),
+  }),
+  list_directory: tool({
+    description: 'List the entries in a directory.',
+    inputSchema: jsonSchema<{ path: string }>({
+      type: 'object',
+      properties: { path: { type: 'string' } },
+      required: ['path'],
+      additionalProperties: false,
+    }),
+  }),
+};
 
-  return new Response(chunks.join(''), {
-    status: 200,
-    headers: { 'content-type': 'text/event-stream' },
-  });
+function errorMessage(error: unknown): string {
+  return error instanceof Error
+    ? `${error.name}: ${error.message}`
+    : String(error);
 }
 
-function createModel(providerKind: ProviderKind, deltas: ToolCallDelta[]) {
-  const fetch = async () => createSseResponse(deltas);
+function hasOwn(record: Record<string, unknown>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(record, key);
+}
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value != null && !Array.isArray(value);
+}
+
+function isUsableString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function sanitizeUrl(value: string): string {
+  try {
+    const url = new URL(value);
+    url.username = '';
+    url.password = '';
+    url.search = '';
+    return url.href;
+  } catch {
+    return '<invalid URL>';
+  }
+}
+
+function getProviderKind(): ProviderKind {
+  const value = process.env.AI_SDK_ISSUE_18440_PROVIDER ?? 'openai-compatible';
+
+  if (value !== 'openai-compatible' && value !== 'openai') {
+    throw new Error(
+      'AI_SDK_ISSUE_18440_PROVIDER must be "openai-compatible" or "openai".',
+    );
+  }
+
+  return value;
+}
+
+function getModelId(): string {
+  const modelId = process.env.AI_SDK_ISSUE_18440_MODEL?.trim();
+
+  if (!modelId) {
+    throw new Error(
+      [
+        'AI_SDK_ISSUE_18440_MODEL is required.',
+        'Example:',
+        'AI_SDK_ISSUE_18440_MODEL=<installed-tool-capable-model> pnpm -C examples/ai-functions exec tsx src/reproduction/issue-18440-streamed-tool-call-id.ts',
+      ].join('\n'),
+    );
+  }
+
+  return modelId;
+}
+
+function createCapturingFetch({
+  exchanges,
+  responseCaptures,
+}: {
+  exchanges: CapturedExchange[];
+  responseCaptures: Promise<void>[];
+}): FetchFunction {
+  return async (input, init) => {
+    const exchange: CapturedExchange = {
+      url: sanitizeUrl(
+        typeof input === 'string'
+          ? input
+          : input instanceof URL
+            ? input.href
+            : input.url,
+      ),
+      method: init?.method ?? (input instanceof Request ? input.method : 'GET'),
+      ...(typeof init?.body === 'string' && { requestBody: init.body }),
+    };
+    exchanges.push(exchange);
+
+    let response: Response;
+    try {
+      response = await globalThis.fetch(input, init);
+    } catch (error) {
+      exchange.fetchError = errorMessage(error);
+      throw error;
+    }
+
+    exchange.responseStatus = response.status;
+    exchange.responseContentType = response.headers.get('content-type');
+
+    responseCaptures.push(
+      response
+        .clone()
+        .text()
+        .then(body => {
+          exchange.responseBody = body;
+        })
+        .catch(error => {
+          exchange.responseBodyError = errorMessage(error);
+        }),
+    );
+
+    return response;
+  };
+}
+
+async function extractWireToolCallDeltas(
+  responseBodies: string[],
+): Promise<WireToolCallDelta[]> {
+  const result: WireToolCallDelta[] = [];
+  let eventNumber = 0;
+
+  for (const responseBody of responseBodies) {
+    for (const event of responseBody.split(/\r?\n\r?\n/)) {
+      const data = event
+        .split(/\r?\n/)
+        .filter(line => line.startsWith('data:'))
+        .map(line => line.slice(5).trimStart())
+        .join('\n');
+
+      if (!data || data === '[DONE]') {
+        continue;
+      }
+
+      eventNumber += 1;
+      const parsed = await safeParseJSON({ text: data });
+      if (!parsed.success || !isRecord(parsed.value)) {
+        continue;
+      }
+
+      const choices = parsed.value.choices;
+      if (!Array.isArray(choices)) {
+        continue;
+      }
+
+      for (const choice of choices) {
+        if (!isRecord(choice) || !isRecord(choice.delta)) {
+          continue;
+        }
+
+        const toolCalls = choice.delta.tool_calls;
+        if (!Array.isArray(toolCalls)) {
+          continue;
+        }
+
+        for (const [position, toolCall] of toolCalls.entries()) {
+          if (!isRecord(toolCall)) {
+            continue;
+          }
+
+          const fn = isRecord(toolCall.function) ? toolCall.function : {};
+          result.push({
+            eventNumber,
+            choiceIndex: choice.index,
+            position,
+            indexPresent: hasOwn(toolCall, 'index'),
+            index: toolCall.index,
+            idPresent: hasOwn(toolCall, 'id'),
+            id: toolCall.id,
+            namePresent: hasOwn(fn, 'name'),
+            name: fn.name,
+            argumentsPresent: hasOwn(fn, 'arguments'),
+            arguments: fn.arguments,
+          });
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
+function findConflictingDuplicateIds(
+  deltas: WireToolCallDelta[],
+): Array<{ id: string; first: number; second: number }> {
+  const namedDeltas = deltas.filter(delta => isUsableString(delta.name));
+  const duplicates: Array<{ id: string; first: number; second: number }> = [];
+
+  for (let first = 0; first < namedDeltas.length; first += 1) {
+    for (let second = first + 1; second < namedDeltas.length; second += 1) {
+      const left = namedDeltas[first];
+      const right = namedDeltas[second];
+
+      if (
+        isUsableString(left.id) &&
+        left.id === right.id &&
+        (left.index !== right.index || left.name !== right.name)
+      ) {
+        duplicates.push({ id: left.id, first, second });
+      }
+    }
+  }
+
+  return duplicates;
+}
+
+function createModel({
+  providerKind,
+  baseURL,
+  modelId,
+  apiKey,
+  fetch,
+}: {
+  providerKind: ProviderKind;
+  baseURL: string;
+  modelId: string;
+  apiKey: string;
+  fetch: FetchFunction;
+}) {
   if (providerKind === 'openai') {
     return createOpenAI({
-      apiKey: 'test-api-key',
-      baseURL: 'https://issue-18440.invalid/v1',
+      apiKey,
+      baseURL,
+      name: 'issue-18440',
       fetch,
-    }).chat('gpt-4o-mini');
+    }).chat(modelId);
   }
 
   return createOpenAICompatible({
-    apiKey: 'test-api-key',
-    baseURL: 'https://issue-18440.invalid/v1',
+    apiKey,
+    baseURL,
     name: 'issue-18440',
     fetch,
-  })('reproduction-model');
+  }).chatModel(modelId);
 }
 
-async function runScenario(
-  providerKind: ProviderKind,
-  deltas: ToolCallDelta[],
-): Promise<ScenarioResult> {
-  const toolCalls: ScenarioResult['toolCalls'] = [];
-  const streamErrors: string[] = [];
+async function writeArtifacts({
+  exchanges,
+  rawChunks,
+  summary,
+}: {
+  exchanges: CapturedExchange[];
+  rawChunks: unknown[];
+  summary: unknown;
+}) {
+  await mkdir(outputDirectory, { recursive: true });
 
-  try {
-    const { stream } = await createModel(providerKind, deltas).doStream({
-      prompt,
-    });
+  const request = exchanges[0]?.requestBody ?? '';
+  const response = exchanges[0]?.responseBody ?? '';
+  const rawChunkLines = rawChunks
+    .map(chunk => JSON.stringify(chunk))
+    .join('\n');
 
-    for await (const part of stream) {
-      if (part.type === 'tool-call') {
-        toolCalls.push({
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          input: part.input,
-        });
-      } else if (part.type === 'error') {
-        streamErrors.push(
-          part.error instanceof Error ? part.error.message : String(part.error),
-        );
-      }
-    }
-
-    return { streamErrors, toolCalls };
-  } catch (error) {
-    return {
-      error: error instanceof Error ? error.message : String(error),
-      streamErrors,
-      toolCalls,
-    };
-  }
-}
-
-async function forBothProviders(deltas: ToolCallDelta[]) {
-  return Promise.all(
-    (['openai-compatible', 'openai'] as const).map(async provider => ({
-      provider,
-      result: await runScenario(provider, deltas),
-    })),
-  );
+  await Promise.all([
+    writeFile(`${outputDirectory}/${artifactPrefix}-request.json`, request),
+    writeFile(`${outputDirectory}/${artifactPrefix}-response.sse`, response),
+    writeFile(
+      `${outputDirectory}/${artifactPrefix}-raw-chunks.jsonl`,
+      rawChunkLines,
+    ),
+    writeFile(
+      `${outputDirectory}/${artifactPrefix}-summary.json`,
+      `${JSON.stringify(summary, null, 2)}\n`,
+    ),
+  ]);
 }
 
 async function main() {
-  const omittedId = await forBothProviders([
-    {
-      index: 0,
-      type: 'function',
-      function: { name: 'read_file', arguments: '{"path":"p0"}' },
-    },
-    {
-      index: 0,
-      type: 'function',
-      function: { name: 'write_file', arguments: '{"path":"p1"}' },
-    },
-    {
-      index: 0,
-      type: 'function',
-      function: { name: 'read_file', arguments: '{"path":"p2"}' },
-    },
-  ]);
+  const providerKind = getProviderKind();
+  const modelId = getModelId();
+  const baseURL =
+    process.env.AI_SDK_ISSUE_18440_BASE_URL ?? 'http://localhost:11434/v1';
+  const apiKey = process.env.AI_SDK_ISSUE_18440_API_KEY ?? 'ollama';
+  const exchanges: CapturedExchange[] = [];
+  const responseCaptures: Promise<void>[] = [];
+  const rawChunks: unknown[] = [];
+  const emittedToolCalls: EmittedToolCall[] = [];
+  const sdkErrors: string[] = [];
 
-  const blankContinuationId = await forBothProviders([
-    {
-      index: 0,
-      id: 'call_a',
-      type: 'function',
-      function: { name: 'read_file', arguments: '{"pa' },
-    },
-    {
-      index: 0,
-      id: '   ',
-      type: 'function',
-      function: { arguments: 'th":"a"}' },
-    },
-  ]);
-
-  const completeCallBeforeFailure = await runScenario('openai-compatible', [
-    {
-      index: 1,
-      id: 'call_done',
-      type: 'function',
-      function: { name: 'write_file', arguments: '{"path":"done"}' },
-    },
-    {
-      index: 0,
-      type: 'function',
-      function: { name: 'read_file', arguments: '{"path":"fatal"}' },
-    },
-  ]);
-
-  const repeatedId = await forBothProviders([
-    {
-      index: 0,
-      id: 'dup',
-      type: 'function',
-      function: { name: 'read_file', arguments: '{"path":"a"}' },
-    },
-    {
-      index: 1,
-      id: 'dup',
-      type: 'function',
-      function: { name: 'write_file', arguments: '{"path":"b"}' },
-    },
-  ]);
-
-  const blankName = await forBothProviders([
-    {
-      index: 0,
-      id: 'call_a',
-      type: 'function',
-      function: { name: '', arguments: '{"path":"a"}' },
-    },
-  ]);
-
-  const blankId = await forBothProviders([
-    {
-      index: 0,
-      id: '',
-      type: 'function',
-      function: { name: 'read_file', arguments: '{"path":"a"}' },
-    },
-  ]);
-
-  const unattributableDelta = await runScenario('openai-compatible', [
-    {
-      index: 0,
-      id: 'call_a',
-      type: 'function',
-      function: { name: 'read_file', arguments: '{"path":"a"}' },
-    },
-    {
-      index: 1,
-      id: 'call_b',
-      type: 'function',
-      function: { name: 'write_file', arguments: '{"path":"b"}' },
-    },
-    {
-      function: { arguments: '{"unattributed":true}' },
-    },
-  ]);
-
-  const outOfOrder = await runScenario('openai-compatible', [
-    {
-      index: 1,
-      id: 'call_1',
-      type: 'function',
-      function: { name: 'second_by_index', arguments: '{}' },
-    },
-    {
-      index: 0,
-      id: 'call_0',
-      type: 'function',
-      function: { name: 'first_by_index', arguments: '{}' },
-    },
-  ]);
-
-  console.log(
-    JSON.stringify(
-      {
-        omittedId,
-        blankContinuationId,
-        completeCallBeforeFailure,
-        repeatedId,
-        blankName,
-        blankId,
-        unattributableDelta,
-        outOfOrder,
-      },
-      null,
-      2,
-    ),
-  );
-
-  const expectedNames = ['read_file', 'write_file', 'read_file'];
-  const expectedInputs = ['{"path":"p0"}', '{"path":"p1"}', '{"path":"p2"}'];
-  const omittedIdWorks = omittedId.every(({ result }) => {
-    const ids = result.toolCalls.map(call => call.toolCallId);
-    return (
-      result.error == null &&
-      result.toolCalls.length === 3 &&
-      result.toolCalls.every(
-        (call, index) =>
-          call.toolName === expectedNames[index] &&
-          call.input === expectedInputs[index],
-      ) &&
-      ids.every(id => id.trim().length > 0) &&
-      new Set(ids).size === ids.length
-    );
+  const model = createModel({
+    providerKind,
+    baseURL,
+    modelId,
+    apiKey,
+    fetch: createCapturingFetch({ exchanges, responseCaptures }),
   });
 
-  if (!omittedIdWorks) {
+  try {
+    const result = streamText({
+      model,
+      maxRetries: 0,
+      maxOutputTokens: 512,
+      temperature: 0,
+      tools: tools as unknown as ToolSet,
+      toolChoice: 'required',
+      includeRawChunks: true,
+      prompt: [
+        'Call all three available tools exactly once in this single assistant turn.',
+        'Make the calls in parallel if supported:',
+        '- read_file with path "alpha.txt"',
+        '- write_file with path "beta.txt" and content "beta"',
+        '- list_directory with path "."',
+        'Do not call any tool twice and do not answer with text.',
+      ].join('\n'),
+    });
+
+    for await (const chunk of result.fullStream) {
+      switch (chunk.type) {
+        case 'raw':
+          rawChunks.push(chunk.rawValue);
+          break;
+        case 'tool-call':
+          emittedToolCalls.push({
+            toolCallId: chunk.toolCallId,
+            toolName: chunk.toolName,
+            input: chunk.input,
+          });
+          break;
+        case 'error':
+          sdkErrors.push(errorMessage(chunk.error));
+          break;
+      }
+    }
+  } catch (error) {
+    sdkErrors.push(errorMessage(error));
+  }
+
+  await Promise.allSettled(responseCaptures);
+
+  const wireToolCallDeltas = await extractWireToolCallDeltas(
+    exchanges.flatMap(exchange =>
+      exchange.responseBody == null ? [] : [exchange.responseBody],
+    ),
+  );
+  const namedWireDeltas = wireToolCallDeltas.filter(delta =>
+    isUsableString(delta.name),
+  );
+  const unusableIdOnNamedCall = namedWireDeltas.filter(
+    delta => !isUsableString(delta.id),
+  );
+  const blankIds = wireToolCallDeltas.filter(
+    delta => typeof delta.id === 'string' && delta.id.trim().length === 0,
+  );
+  const conflictingDuplicateIds =
+    findConflictingDuplicateIds(wireToolCallDeltas);
+  const requestedToolNames = Object.keys(tools);
+  const observedNamedTools = new Set(
+    namedWireDeltas.flatMap(delta =>
+      isUsableString(delta.name) ? [delta.name] : [],
+    ),
+  );
+  const exercisedRequestedParallelCalls = requestedToolNames.every(toolName =>
+    observedNamedTools.has(toolName),
+  );
+  const invalidEmittedCalls = emittedToolCalls.filter(
+    call => !isUsableString(call.toolCallId) || !isUsableString(call.toolName),
+  );
+  const missingEmittedCalls =
+    namedWireDeltas.length > emittedToolCalls.length &&
+    namedWireDeltas.length > 1;
+  const wireHasClaimedIdentityProblem =
+    unusableIdOnNamedCall.length > 0 ||
+    blankIds.length > 0 ||
+    conflictingDuplicateIds.length > 0;
+  const sdkMishandledCalls =
+    sdkErrors.length > 0 ||
+    invalidEmittedCalls.length > 0 ||
+    missingEmittedCalls;
+  const reproduced = wireHasClaimedIdentityProblem && sdkMishandledCalls;
+  const conclusive = reproduced || exercisedRequestedParallelCalls;
+
+  const summary = {
+    configuration: {
+      providerKind,
+      baseURL: sanitizeUrl(baseURL),
+      modelId,
+    },
+    request: {
+      exchangeCount: exchanges.length,
+      exchanges: exchanges.map(exchange => ({
+        url: exchange.url,
+        method: exchange.method,
+        responseStatus: exchange.responseStatus,
+        responseContentType: exchange.responseContentType,
+        responseBodyError: exchange.responseBodyError,
+        fetchError: exchange.fetchError,
+      })),
+    },
+    wireToolCallDeltas,
+    emittedToolCalls,
+    sdkErrors,
+    evidence: {
+      namedWireDeltaCount: namedWireDeltas.length,
+      unusableIdOnNamedCallCount: unusableIdOnNamedCall.length,
+      blankIdDeltaCount: blankIds.length,
+      conflictingDuplicateIds,
+      requestedToolNames,
+      observedNamedTools: [...observedNamedTools],
+      exercisedRequestedParallelCalls,
+      invalidEmittedCallCount: invalidEmittedCalls.length,
+      missingEmittedCalls,
+      wireHasClaimedIdentityProblem,
+      sdkMishandledCalls,
+      conclusive,
+      reproduced,
+    },
+  };
+
+  await writeArtifacts({ exchanges, rawChunks, summary });
+  console.log(JSON.stringify(summary, null, 2));
+  console.log(`Trace artifacts: ${outputDirectory}/${artifactPrefix}-*`);
+
+  if (reproduced) {
     console.error(
-      'ISSUE 18440 REPRODUCED: omitted tool-call IDs abort the streamed turn before three calls can be emitted.',
+      'ISSUE 18440 REPRODUCED: the live endpoint emitted unusable or conflicting tool-call IDs and the SDK did not preserve every call.',
     );
     process.exitCode = 1;
     return;
   }
 
+  if (!conclusive) {
+    console.error(
+      "ISSUE 18440 INCONCLUSIVE: the live endpoint did not emit all three requested tool calls; inspect the saved trace and retry with the reporter's model and settings.",
+    );
+    process.exitCode = 2;
+    return;
+  }
+
   console.log(
-    'ISSUE 18440 NOT REPRODUCED: omitted-ID calls were emitted separately with usable unique IDs.',
+    wireHasClaimedIdentityProblem
+      ? 'ISSUE 18440 NOT REPRODUCED: the live endpoint emitted suspect identifiers, but this SDK run preserved the calls.'
+      : 'ISSUE 18440 NOT REPRODUCED: the live endpoint did not emit the claimed unusable or conflicting tool-call IDs.',
   );
 }
 
 main().catch(error => {
-  console.error(error);
+  console.error(errorMessage(error));
   process.exitCode = 1;
 });

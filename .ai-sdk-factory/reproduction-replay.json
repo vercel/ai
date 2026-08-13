@@ -3,11 +3,13 @@
   "issueId": 18440,
   "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-18440-streamed-tool-call-id.ts",
   "artifactPaths": [
+    "examples/ai-functions/.gitignore",
     "examples/ai-functions/package.json",
+    "pnpm-lock.yaml",
     "examples/ai-functions/src/reproduction/issue-18440-streamed-tool-call-id.ts"
   ],
   "expectedFailure": {
     "exitCode": 1,
-    "signal": "ISSUE 18440 REPRODUCED: omitted tool-call IDs abort the streamed turn before three calls can be emitted."
+    "signal": "ISSUE 18440 REPRODUCED: the live endpoint emitted unusable or conflicting tool-call IDs and the SDK did not preserve every call."
   }
 }
