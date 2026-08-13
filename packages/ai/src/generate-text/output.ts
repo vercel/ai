@@ -1,5 +1,6 @@
 import {
   TypeValidationError,
+  type JSONSchema7,
   type JSONValue,
   type LanguageModelV4CallOptions,
 } from '@ai-sdk/provider';
@@ -217,13 +218,22 @@ export const array = <ELEMENT>({
 
     // JSON schema that describes an array of elements:
     responseFormat: resolve(elementSchema.jsonSchema).then(jsonSchema => {
-      // remove $schema from schema.jsonSchema:
-      const { $schema: _$schema, ...itemSchema } = jsonSchema;
+      // keep root-level definitions available to root-relative references:
+      const {
+        $schema: _$schema,
+        definitions,
+        $defs,
+        ...itemSchema
+      } = jsonSchema as JSONSchema7 & {
+        $defs?: JSONSchema7['definitions'];
+      };
 
       return {
         type: 'json' as const,
         schema: {
           $schema: 'http://json-schema.org/draft-07/schema#',
+          ...(definitions != null && { definitions }),
+          ...($defs != null && { $defs }),
           type: 'object',
           properties: {
             elements: { type: 'array', items: itemSchema },

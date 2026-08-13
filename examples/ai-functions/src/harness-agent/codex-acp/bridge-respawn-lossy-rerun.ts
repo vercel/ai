@@ -9,7 +9,7 @@ import {
   terminateACPBridgeForRecovery,
   writeACPHandoffState,
 } from '../../lib/codex-acp-handoff';
-import { createCodexACP } from '../../lib/codex-acp-harness';
+import { createCodexACP } from './_create';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 

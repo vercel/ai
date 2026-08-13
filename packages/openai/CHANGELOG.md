@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.41
+
+### Patch Changes
+
+- 59d6def: Reconstruct provider-executed shell calls when continuing OpenAI Responses with storage disabled.
+
 ## 4.0.40
 
 ### Patch Changes

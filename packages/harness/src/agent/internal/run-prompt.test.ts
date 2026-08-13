@@ -768,6 +768,188 @@ function toolResultParts(
 }
 
 describe('runPrompt host tool generator results', () => {
+  test('executes independent host tool calls concurrently', async () => {
+    const submitted: SubmittedResult[] = [];
+    let activeTools = 0;
+    let maxActiveTools = 0;
+    let firstObservedSecondStart = false;
+    let resolveSecondStarted!: () => void;
+    const secondStarted = new Promise<void>(resolve => {
+      resolveSecondStarted = resolve;
+    });
+    const startTool = () => {
+      activeTools += 1;
+      maxActiveTools = Math.max(maxActiveTools, activeTools);
+    };
+    const finishTool = () => {
+      activeTools -= 1;
+    };
+    const first = tool({
+      description: 'First independent tool',
+      inputSchema: z.object({}),
+      execute: async () => {
+        startTool();
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        firstObservedSecondStart = await Promise.race([
+          secondStarted.then(() => true),
+          new Promise<boolean>(resolve => {
+            timer = setTimeout(() => resolve(false), 100);
+          }),
+        ]);
+        if (timer != null) clearTimeout(timer);
+        finishTool();
+        return { tool: 'first' };
+      },
+    });
+    const second = tool({
+      description: 'Second independent tool',
+      inputSchema: z.object({}),
+      execute: async () => {
+        startTool();
+        resolveSecondStarted();
+        finishTool();
+        return { tool: 'second' };
+      },
+    });
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession(
+        [
+          {
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'first',
+            input: '{}',
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'c2',
+            toolName: 'second',
+            input: '{}',
+          },
+          ...finishEvents,
+        ],
+        input => submitted.push(input),
+      ),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { first, second } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    for await (const _part of result.fullStream) {
+      // Drain the stream so both executions and the step boundary settle.
+    }
+    await done;
+
+    expect(firstObservedSecondStart).toBe(true);
+    expect(maxActiveTools).toBe(2);
+    expect(submitted.map(result => result.toolCallId).sort()).toEqual([
+      'c1',
+      'c2',
+    ]);
+  });
+
+  test('waits for every concurrent host tool when result submission fails', async () => {
+    const submittedToolCallIds: string[] = [];
+    let resolveSlowTool!: () => void;
+    const slowToolCanFinish = new Promise<void>(resolve => {
+      resolveSlowTool = resolve;
+    });
+    let slowToolFinished = false;
+    let resolveFailedSubmission!: () => void;
+    const failedSubmission = new Promise<void>(resolve => {
+      resolveFailedSubmission = resolve;
+    });
+    let failedSubmissionAttempts = 0;
+    const fast = tool({
+      description: 'Fast independent tool',
+      inputSchema: z.object({}),
+      execute: async () => ({ tool: 'fast' }),
+    });
+    const slow = tool({
+      description: 'Slow independent tool',
+      inputSchema: z.object({}),
+      execute: async () => {
+        await slowToolCanFinish;
+        slowToolFinished = true;
+        return { tool: 'slow' };
+      },
+    });
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession(
+        [
+          {
+            type: 'tool-call',
+            toolCallId: 'fast-call',
+            toolName: 'fast',
+            input: '{}',
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'slow-call',
+            toolName: 'slow',
+            input: '{}',
+          },
+          ...finishEvents,
+        ],
+        input => {
+          submittedToolCallIds.push(input.toolCallId);
+          if (input.toolCallId === 'fast-call') {
+            failedSubmissionAttempts += 1;
+            if (failedSubmissionAttempts === 2) {
+              resolveFailedSubmission();
+            }
+            throw new Error('result submission failed');
+          }
+        },
+      ),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { fast, slow } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    let turnSettled = false;
+    void done.then(() => {
+      turnSettled = true;
+    });
+    const consumeStream = result.consumeStream();
+
+    try {
+      await failedSubmission;
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      expect(slowToolFinished).toBe(false);
+      expect(turnSettled).toBe(false);
+    } finally {
+      resolveSlowTool();
+      await Promise.all([done, consumeStream]);
+    }
+
+    expect(slowToolFinished).toBe(true);
+    expect(turnSettled).toBe(true);
+    expect(submittedToolCallIds).toEqual([
+      'fast-call',
+      'fast-call',
+      'slow-call',
+    ]);
+    await expect(result.finishReason).rejects.toThrow(
+      'result submission failed',
+    );
+  });
+
   test('pauses custom tool execution when approval is required', async () => {
     const submitted: SubmittedResult[] = [];
     const pending: unknown[] = [];
