@@ -25,6 +25,39 @@ describe('run compatibility adapter', () => {
     ).resolves.toEqual({ id: 'user-1' });
   });
 
+  it('applies maxToolOutputBytes to interrupt resolutions', async () => {
+    const tools = {
+      authorize: tool({
+        inputSchema: z.object({}),
+        execute: async (_input, options) => {
+          const resume = (options as CodeModeToolExecutionOptions)
+            .codeModeInterrupt;
+          if (resume === undefined) {
+            requestCodeModeInterrupt({ kind: 'authorization' });
+          }
+          return resume.resolution;
+        },
+      }),
+    };
+    const options = {
+      executionPolicy: { maxToolOutputBytes: 8 },
+    };
+    const pending = await runCodeMode({
+      js: 'return await tools.authorize({});',
+      tools,
+      options,
+    });
+
+    await expect(
+      continueCodeModeInterrupt({
+        interrupt: pending as CodeModeInterrupt,
+        resolution: { authorized: true },
+        tools,
+        options,
+      }),
+    ).rejects.toThrow('exceeds the 8 byte size limit');
+  });
+
   it('accepts legacy short continuation signing keys', async () => {
     const tools = {
       authorize: tool({

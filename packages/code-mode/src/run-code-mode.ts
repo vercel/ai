@@ -73,7 +73,11 @@ export async function runCodeMode(input: RunCodeModeInput): Promise<unknown> {
   assertSourceSize(input.js, policy.maxSourceBytes);
 
   const toolNames = Object.keys(input.tools).sort();
-  const continuationState = prepareContinuation(input, toolNames);
+  const continuationState = prepareContinuation(
+    input,
+    toolNames,
+    policy.maxToolOutputBytes,
+  );
   if (continuationState.nextInterrupt !== undefined) {
     return continuationState.nextInterrupt;
   }
@@ -398,6 +402,7 @@ function isValidRunLimit(value: number): boolean {
 function prepareContinuation(
   input: RunCodeModeInput,
   toolNames: string[],
+  maxToolOutputBytes: number,
 ): {
   token?: string;
   resolutions?: RunResolution[];
@@ -446,6 +451,7 @@ function prepareContinuation(
   const resolutionValue = normalizeResolutionForPending(
     pending,
     input.interruptResolution.resolution,
+    maxToolOutputBytes,
   );
   const resolutions: CodeModePendingResolution[] = [
     ...input.continuation.resolutions,
@@ -481,13 +487,14 @@ function prepareContinuation(
 function normalizeResolutionForPending(
   pending: CodeModePendingInterruption,
   resolution: unknown,
+  maxToolOutputBytes: number,
 ): unknown {
   return isCodeModeApprovalInterruptPayload(pending.payload)
     ? normalizeApprovalResolution(resolution)
     : fromJsonPayload(
         toJsonPayload(
           resolution,
-          DEFAULT_MAX_TOOL_OUTPUT_BYTES,
+          maxToolOutputBytes,
           `Resolution "${pending.interruptId}"`,
         ),
       );
