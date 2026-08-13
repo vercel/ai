@@ -1,5 +1,12 @@
 # @ai-sdk/react
 
+## 3.0.257
+
+### Patch Changes
+
+- b519617: Preserve the generated `useObject` value when the API URL changes.
+  - ai@6.0.254
+
 ## 3.0.256
 
 ### Patch Changes
