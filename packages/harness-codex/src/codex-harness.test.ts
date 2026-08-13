@@ -65,12 +65,16 @@ function fakeNetworkSandboxSessionForStartupSuccess({
   spawns,
   spawnEnvs,
   writes,
+  addRequestTransformations = async () => {},
 }: {
   bridgePortUrl: string;
   runs: string[];
   spawns: string[];
   spawnEnvs?: Array<Record<string, string | undefined>>;
   writes: Array<{ path: string; content: string }>;
+  addRequestTransformations?: NonNullable<
+    HarnessV1NetworkSandboxSession['addRequestTransformations']
+  >;
 }): HarnessV1NetworkSandboxSession {
   const session = {
     run: async ({ command }: { command: string }) => {
@@ -109,6 +113,7 @@ function fakeNetworkSandboxSessionForStartupSuccess({
     defaultWorkingDirectory: '/vercel/sandbox',
     restricted: () => session,
     ports: [4319],
+    addRequestTransformations,
     async getPortUrl() {
       return bridgePortUrl;
     },
@@ -208,6 +213,87 @@ describe('createCodex adapter', () => {
     );
     expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     expect(session.modelId).toBe('gpt-5.5');
+    await session.doDestroy();
+  });
+
+  it('brokers credentials when the sandbox supports additive request transformations', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const addRequestTransformations = vi.fn(async () => {});
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      runs: [],
+      spawns: [],
+      spawnEnvs,
+      writes: [],
+      addRequestTransformations,
+    });
+    const harness = createCodex({
+      auth: {
+        openai: {
+          apiKey: 'openai-secret',
+          baseUrl: 'https://openai.example/v1',
+        },
+      },
+    });
+
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+    });
+
+    expect(addRequestTransformations).toHaveBeenCalledWith([
+      {
+        match: {
+          host: 'openai.example',
+          path: { startsWith: '/v1' },
+        },
+        transform: {
+          headers: { Authorization: 'Bearer openai-secret' },
+        },
+      },
+    ]);
+    expect(spawnEnvs.at(0)?.CODEX_API_KEY).toBe('CODEX_API_KEY');
+    expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('openai-secret');
+
+    await session.doDestroy();
+  });
+
+  it('configures the standard OpenAI URL for brokered direct auth', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const addRequestTransformations = vi.fn(async () => {});
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      runs: [],
+      spawns: [],
+      spawnEnvs,
+      writes: [],
+      addRequestTransformations,
+    });
+    const harness = createCodex({
+      auth: { openai: { apiKey: 'openai-secret' } },
+    });
+
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+    });
+
+    expect(addRequestTransformations).toHaveBeenCalledWith([
+      {
+        match: {
+          host: 'api.openai.com',
+          path: { startsWith: '/v1' },
+        },
+        transform: {
+          headers: { Authorization: 'Bearer openai-secret' },
+        },
+      },
+    ]);
+    expect(spawnEnvs.at(0)?.CODEX_API_KEY).toBe('CODEX_API_KEY');
+    expect(spawnEnvs.at(0)?.OPENAI_BASE_URL).toBe('https://api.openai.com/v1');
+
     await session.doDestroy();
   });
 

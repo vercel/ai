@@ -1,5 +1,13 @@
 # @ai-sdk/harness-deepagents
 
+## 1.0.71
+
+### Patch Changes
+
+- 83fe754: chore(harness): simplify the `auth` param to be a simple string to choose the auth method
+- Updated dependencies [8d717b3]
+  - @ai-sdk/harness@1.0.71
+
 ## 1.0.70
 
 ### Patch Changes
