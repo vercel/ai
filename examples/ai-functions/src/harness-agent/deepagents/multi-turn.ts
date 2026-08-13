@@ -22,7 +22,7 @@ run(async () => {
     console.log('--- turn 1 ---');
     const first = await agent.stream({
       session,
-      prompt: 'My name is Ada. Remember it.',
+      prompt: 'My name is Felix. Remember it.',
     });
     await printFullStream({ result: first });
 
@@ -31,7 +31,16 @@ run(async () => {
       session,
       prompt: 'What is my name? Answer in one word.',
     });
-    await printFullStream({ result: second });
+    let secondTurnText = '';
+    await printFullStream({
+      result: second,
+      onText: text => {
+        secondTurnText += text.text;
+      },
+    });
+    if (!secondTurnText.includes('Felix')) {
+      throw new Error('Second turn did not retain context from previous turn');
+    }
   } finally {
     await session.destroy();
   }

@@ -1,10 +1,8 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import type { ToolApprovalRequestOutput } from 'ai';
 import { createCodexACP } from './_create';
-import {
-  createToolApprovalResponseMessages,
-  printFullStreamAndCaptureToolApproval,
-} from '../../lib/harness-tool-approval';
+import { createToolApprovalResponseMessages } from '../../lib/harness-tool-approval';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
@@ -24,10 +22,18 @@ run(async () => {
       session,
       prompt: 'Run `pwd` with Bash and tell me the working directory.',
     });
-    const approval = await printFullStreamAndCaptureToolApproval({
+    let approval: ToolApprovalRequestOutput<any> | undefined;
+    await printFullStream({
       result: first,
+      onToolApproval: toolApproval => {
+        approval ??= toolApproval;
+      },
     });
-    if (approval == null || approval.toolCall.providerExecuted === false) {
+    if (
+      approval == null ||
+      approval.toolCall.toolName !== 'bash' ||
+      approval.toolCall.providerExecuted === false
+    ) {
       throw new Error('Expected a native ACP tool approval request.');
     }
 

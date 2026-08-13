@@ -32,6 +32,10 @@ run(async () => {
     console.log('second text:', second.text);
     console.log('finishReason:', second.finishReason);
     console.log('usage:', second.usage);
+
+    if (!/\bist\b/i.test(second.text)) {
+      throw new Error('Reply is not in German, violating the system prompt');
+    }
   } finally {
     await session.destroy();
   }
