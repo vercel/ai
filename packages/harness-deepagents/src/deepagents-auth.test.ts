@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   createDeepAgentsRequestTransformations,
   resolveDeepAgentsAuthMethod,
@@ -77,6 +77,40 @@ describe('resolveDeepAgentsEnv', () => {
       processEnv: { ANTHROPIC_API_KEY: 'ambient-ant' },
     });
     expect(env).toEqual({ ANTHROPIC_API_KEY: 'ambient-ant' });
+  });
+
+  it('supports string authentication modes', () => {
+    expect(
+      resolveDeepAgentsEnv({
+        auth: 'anthropic',
+        processEnv: { ANTHROPIC_API_KEY: 'sk-anthropic' },
+      }),
+    ).toEqual({ ANTHROPIC_API_KEY: 'sk-anthropic' });
+
+    expect(
+      resolveDeepAgentsEnv({
+        auth: 'ai-gateway',
+        processEnv: { AI_GATEWAY_API_KEY: 'gw-mode' },
+      }),
+    ).toEqual({
+      AI_GATEWAY_API_KEY: 'gw-mode',
+      ANTHROPIC_API_KEY: 'gw-mode',
+      ANTHROPIC_BASE_URL: 'https://ai-gateway.vercel.sh',
+    });
+  });
+
+  it('warns when passing a legacy object shape', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    resolveDeepAgentsEnv({
+      auth: { anthropic: {} },
+      processEnv: {},
+    });
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Passing an object to auth options is deprecated',
+      ),
+    );
+    spy.mockRestore();
   });
 });
 

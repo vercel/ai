@@ -13,10 +13,12 @@ import {
   HarnessAgent,
   type HarnessAgentResumeSessionState,
 } from '@ai-sdk/harness/agent';
-import { codex } from '@ai-sdk/harness-codex';
+import { createCodex } from './_create';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
+
+const codex = createCodex();
 
 run(async () => {
   const sandbox = createVercelSandbox({

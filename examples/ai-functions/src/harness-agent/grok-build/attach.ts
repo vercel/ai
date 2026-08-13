@@ -10,7 +10,7 @@ import {
   HarnessAgent,
   type HarnessAgentResumeSessionState,
 } from '@ai-sdk/harness/agent';
-import { createGrokBuild } from '@ai-sdk/harness-grok-build';
+import { createGrokBuild } from './_create';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { mintBridgeToken } from '../../lib/mint-bridge-token';
 import { printFullStream } from '../../lib/print-full-stream';

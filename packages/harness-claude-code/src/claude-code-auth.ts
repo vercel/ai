@@ -38,7 +38,12 @@ export function createClaudeCodeRequestTransformations(
       ];
 }
 
-export type ClaudeCodeAuthOptions = {
+export type ClaudeCodeAuthenticationMode = 'auto' | 'direct' | 'ai-gateway';
+
+/**
+ * @deprecated Passing an object to auth options is deprecated. Use a `ClaudeCodeAuthenticationMode` string value ("auto" | "direct" | "ai-gateway") instead, and pass credentials via environment variables.
+ */
+export type LegacyClaudeCodeAuthOptions = {
   readonly anthropic?: {
     readonly apiKey?: string;
     readonly authToken?: string;
@@ -50,7 +55,11 @@ export type ClaudeCodeAuthOptions = {
   };
 };
 
-export type ClaudeCodeAuthMethod = keyof ClaudeCodeAuthOptions;
+export type ClaudeCodeAuthOptions =
+  | ClaudeCodeAuthenticationMode
+  | LegacyClaudeCodeAuthOptions;
+
+export type ClaudeCodeAuthMethod = keyof LegacyClaudeCodeAuthOptions;
 
 /**
  * Resolve the environment-variable blob the bridge needs to authenticate
@@ -78,32 +87,70 @@ export function resolveClaudeCodeEnv(
   processEnv: Record<string, string | undefined> = process.env,
   options: ResolveClaudeCodeEnvOptions = {},
 ): Record<string, string> {
+  const normalizedAuth = normalizeClaudeCodeAuthToLegacyAuth(auth);
+
   const readApiKey = options.readApiKeyHelper ?? readApiKeyHelper;
-  const authMethod = resolveClaudeCodeAuthMethod(auth, processEnv);
-  switch (authMethod) {
-    case 'anthropic':
-      return pickAnthropic({
-        explicit: auth?.anthropic,
-        processEnv,
-        readApiKey,
-      });
-    case 'gateway':
-      return pickGateway({
-        explicit: auth?.gateway ?? {},
-        gatewayAuthFromEnv: getAiGatewayAuthFromEnv({ env: processEnv }),
-      });
+  if (normalizedAuth?.anthropic) {
+    return pickAnthropic({
+      explicit: normalizedAuth.anthropic,
+      processEnv,
+      readApiKey,
+    });
   }
+
+  const gatewayAuthFromEnv = getAiGatewayAuthFromEnv({ env: processEnv });
+  if (normalizedAuth?.gateway) {
+    return pickGateway({
+      explicit: normalizedAuth.gateway,
+      gatewayAuthFromEnv,
+    });
+  }
+  if (gatewayAuthFromEnv.apiKey) {
+    return pickGateway({
+      explicit: {},
+      gatewayAuthFromEnv,
+    });
+  }
+
+  return pickAnthropic({ processEnv, readApiKey });
 }
 
 export function resolveClaudeCodeAuthMethod(
   auth: ClaudeCodeAuthOptions | undefined,
   processEnv: Record<string, string | undefined> = process.env,
 ): ClaudeCodeAuthMethod {
-  if (auth?.anthropic) return 'anthropic';
-  if (auth?.gateway) return 'gateway';
+  if (auth === 'direct' || (typeof auth !== 'string' && auth?.anthropic)) {
+    return 'anthropic';
+  }
+  if (auth === 'ai-gateway' || (typeof auth !== 'string' && auth?.gateway)) {
+    return 'gateway';
+  }
   return getAiGatewayAuthFromEnv({ env: processEnv }).apiKey
     ? 'gateway'
     : 'anthropic';
+}
+
+function normalizeClaudeCodeAuthToLegacyAuth(
+  auth: ClaudeCodeAuthOptions | undefined,
+): LegacyClaudeCodeAuthOptions | undefined {
+  if (auth == null || auth === 'auto') {
+    return undefined;
+  }
+  if (typeof auth === 'string') {
+    switch (auth) {
+      case 'direct':
+        return { anthropic: {} };
+      case 'ai-gateway':
+        return { gateway: {} };
+      default:
+        return undefined;
+    }
+  }
+
+  console.warn(
+    '[claude-code] Passing an object to auth options is deprecated. Use a string mode ("auto" | "direct" | "ai-gateway") instead, and pass credentials via environment variables.',
+  );
+  return auth;
 }
 
 function pickAnthropic({
@@ -111,7 +158,7 @@ function pickAnthropic({
   processEnv,
   readApiKey,
 }: {
-  explicit?: NonNullable<ClaudeCodeAuthOptions['anthropic']>;
+  explicit?: NonNullable<LegacyClaudeCodeAuthOptions['anthropic']>;
   processEnv: Record<string, string | undefined>;
   readApiKey: () => string | undefined;
 }): Record<string, string> {
@@ -167,7 +214,7 @@ function pickGateway({
   explicit,
   gatewayAuthFromEnv,
 }: {
-  explicit: NonNullable<ClaudeCodeAuthOptions['gateway']>;
+  explicit: NonNullable<LegacyClaudeCodeAuthOptions['gateway']>;
   gatewayAuthFromEnv: ReturnType<typeof getAiGatewayAuthFromEnv>;
 }): Record<string, string> {
   const apiKey = explicit.apiKey ?? gatewayAuthFromEnv.apiKey;

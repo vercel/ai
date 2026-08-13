@@ -1,5 +1,47 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.73
+
+### Patch Changes
+
+- 616730a: fix(harness): fix missing reasoning controls
+
+## 1.0.72
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.70
+
+## 1.0.71
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.69
+
+## 1.0.70
+
+### Patch Changes
+
+- 5cc654f: fix(harness-claude-code): fix bridge WebSocket startup so an immediate `bridge-hello` frame cannot be missed before the listener is attached
+- f133c4c: fix(harness-claude-code): exclude subagent messages from parent step usage and tool-call tracking
+  - @ai-sdk/harness@1.0.68
+
+## 1.0.69
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+  - @ai-sdk/harness@1.0.67
+
+## 1.0.68
+
+### Patch Changes
+
+- 9ee30bf: fix(harness): pass instructions appended to system / developer prompt instead of using the workaround of first user prompt
+- Updated dependencies [9ee30bf]
+  - @ai-sdk/harness@1.0.66
+
 ## 1.0.67
 
 ### Patch Changes

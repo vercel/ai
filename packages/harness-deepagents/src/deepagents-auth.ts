@@ -34,7 +34,12 @@ export function createDeepAgentsRequestTransformations(
       ];
 }
 
-export type DeepAgentsAuthOptions = {
+export type DeepAgentsAuthenticationMode = 'auto' | 'anthropic' | 'ai-gateway';
+
+/**
+ * @deprecated Passing an object to auth options is deprecated. Use a `DeepAgentsAuthenticationMode` string value ("auto" | "anthropic" | "ai-gateway") instead, and pass credentials via environment variables.
+ */
+export type LegacyDeepAgentsAuthOptions = {
   readonly anthropic?: {
     readonly apiKey?: string;
     readonly authToken?: string;
@@ -46,7 +51,11 @@ export type DeepAgentsAuthOptions = {
   };
 };
 
-export type DeepAgentsAuthMethod = keyof DeepAgentsAuthOptions;
+export type DeepAgentsAuthOptions =
+  | DeepAgentsAuthenticationMode
+  | LegacyDeepAgentsAuthOptions;
+
+export type DeepAgentsAuthMethod = keyof LegacyDeepAgentsAuthOptions;
 
 // DeepAgents always drives the Anthropic client. Non-Anthropic models reach it
 // through AI Gateway's Anthropic-compatible endpoint, which translates to any
@@ -58,16 +67,24 @@ export function resolveDeepAgentsEnv({
   auth?: DeepAgentsAuthOptions;
   processEnv?: Record<string, string | undefined>;
 }): Record<string, string> {
-  const authMethod = resolveDeepAgentsAuthMethod({ auth, processEnv });
-  switch (authMethod) {
-    case 'anthropic':
-      return pickAnthropic({ explicit: auth?.anthropic, processEnv });
-    case 'gateway':
-      return pickGateway({
-        explicit: auth?.gateway ?? {},
-        gatewayAuthFromEnv: getAiGatewayAuthFromEnv({ env: processEnv }),
-      });
+  const normalizedAuth = normalizeDeepAgentsAuthToLegacyAuth(auth);
+
+  if (normalizedAuth?.anthropic) {
+    return pickAnthropic({ explicit: normalizedAuth.anthropic, processEnv });
   }
+
+  const gatewayAuthFromEnv = getAiGatewayAuthFromEnv({ env: processEnv });
+  if (normalizedAuth?.gateway) {
+    return pickGateway({
+      explicit: normalizedAuth.gateway,
+      gatewayAuthFromEnv,
+    });
+  }
+  if (gatewayAuthFromEnv.apiKey) {
+    return pickGateway({ explicit: {}, gatewayAuthFromEnv });
+  }
+
+  return pickAnthropic({ processEnv });
 }
 
 export function resolveDeepAgentsAuthMethod({
@@ -77,18 +94,45 @@ export function resolveDeepAgentsAuthMethod({
   auth?: DeepAgentsAuthOptions;
   processEnv?: Record<string, string | undefined>;
 }): DeepAgentsAuthMethod {
-  if (auth?.anthropic) return 'anthropic';
-  if (auth?.gateway) return 'gateway';
+  if (auth === 'anthropic' || (typeof auth !== 'string' && auth?.anthropic)) {
+    return 'anthropic';
+  }
+  if (auth === 'ai-gateway' || (typeof auth !== 'string' && auth?.gateway)) {
+    return 'gateway';
+  }
   return getAiGatewayAuthFromEnv({ env: processEnv }).apiKey
     ? 'gateway'
     : 'anthropic';
+}
+
+function normalizeDeepAgentsAuthToLegacyAuth(
+  auth: DeepAgentsAuthOptions | undefined,
+): LegacyDeepAgentsAuthOptions | undefined {
+  if (auth == null || auth === 'auto') {
+    return undefined;
+  }
+  if (typeof auth === 'string') {
+    switch (auth) {
+      case 'anthropic':
+        return { anthropic: {} };
+      case 'ai-gateway':
+        return { gateway: {} };
+      default:
+        return undefined;
+    }
+  }
+
+  console.warn(
+    '[deepagents] Passing an object to auth options is deprecated. Use a string mode ("auto" | "anthropic" | "ai-gateway") instead, and pass credentials via environment variables.',
+  );
+  return auth;
 }
 
 function pickAnthropic({
   explicit,
   processEnv,
 }: {
-  explicit?: NonNullable<DeepAgentsAuthOptions['anthropic']>;
+  explicit?: NonNullable<LegacyDeepAgentsAuthOptions['anthropic']>;
   processEnv: Record<string, string | undefined>;
 }): Record<string, string> {
   const env: Record<string, string> = {};
@@ -105,7 +149,7 @@ function pickGateway({
   explicit,
   gatewayAuthFromEnv,
 }: {
-  explicit: NonNullable<DeepAgentsAuthOptions['gateway']>;
+  explicit: NonNullable<LegacyDeepAgentsAuthOptions['gateway']>;
   gatewayAuthFromEnv: ReturnType<typeof getAiGatewayAuthFromEnv>;
 }): Record<string, string> {
   const apiKey = explicit.apiKey ?? gatewayAuthFromEnv.apiKey;

@@ -57,7 +57,16 @@ export function createOpenCodeRequestTransformations(
   }
 }
 
-export type OpenCodeAuthOptions = {
+export type OpenCodeAuthenticationMode =
+  | 'auto'
+  | 'anthropic'
+  | 'openai'
+  | 'ai-gateway';
+
+/**
+ * @deprecated Passing an object to auth options is deprecated. Use an `OpenCodeAuthenticationMode` string value ("auto" | "anthropic" | "openai" | "ai-gateway") instead, and pass credentials via environment variables.
+ */
+export type LegacyOpenCodeAuthOptions = {
   readonly gateway?: {
     readonly apiKey?: string;
     readonly baseUrl?: string;
@@ -81,7 +90,11 @@ export type OpenCodeAuthOptions = {
   };
 };
 
-export type OpenCodeAuthMethod = keyof OpenCodeAuthOptions;
+export type OpenCodeAuthOptions =
+  | OpenCodeAuthenticationMode
+  | LegacyOpenCodeAuthOptions;
+
+export type OpenCodeAuthMethod = keyof LegacyOpenCodeAuthOptions;
 
 export function resolveOpenCodeProvider({
   model,
@@ -133,25 +146,32 @@ export function resolveOpenCodeEnv({
   provider?: string;
   processEnv?: Record<string, string | undefined>;
 }): Record<string, string> {
-  const authMethod = resolveOpenCodeAuthMethod({
-    auth,
-    model,
-    provider,
-    processEnv,
-  });
-  switch (authMethod) {
-    case 'openaiCompatible':
-      return pickOpenAICompatible(auth?.openaiCompatible ?? {}, processEnv);
-    case 'openai':
-      return pickOpenAI({ explicit: auth?.openai, processEnv });
-    case 'anthropic':
-      return pickAnthropic({ explicit: auth?.anthropic, processEnv });
-    case 'gateway':
-      return pickGateway({
-        explicit: auth?.gateway ?? {},
-        gatewayAuthFromEnv: getAiGatewayAuthFromEnv({ env: processEnv }),
-      });
+  const normalizedAuth = normalizeOpenCodeAuthToLegacyAuth(auth);
+  const selectedProvider = resolveOpenCodeProvider({ model, provider });
+  if (normalizedAuth?.openaiCompatible) {
+    return pickOpenAICompatible(normalizedAuth.openaiCompatible, processEnv);
   }
+  if (selectedProvider === 'openai') {
+    if (normalizedAuth?.openai) {
+      return pickOpenAI({ explicit: normalizedAuth.openai, processEnv });
+    }
+  } else if (normalizedAuth?.anthropic) {
+    return pickAnthropic({ explicit: normalizedAuth.anthropic, processEnv });
+  }
+
+  const gatewayAuthFromEnv = getAiGatewayAuthFromEnv({ env: processEnv });
+  if (normalizedAuth?.gateway) {
+    return pickGateway({
+      explicit: normalizedAuth.gateway,
+      gatewayAuthFromEnv,
+    });
+  }
+  if (gatewayAuthFromEnv.apiKey) {
+    return pickGateway({ explicit: {}, gatewayAuthFromEnv });
+  }
+  return selectedProvider === 'openai'
+    ? pickOpenAI({ processEnv })
+    : pickAnthropic({ processEnv });
 }
 
 export function resolveOpenCodeAuthMethod({
@@ -165,17 +185,57 @@ export function resolveOpenCodeAuthMethod({
   provider?: string;
   processEnv?: Record<string, string | undefined>;
 }): OpenCodeAuthMethod {
-  if (auth?.openaiCompatible) return 'openaiCompatible';
+  if (typeof auth !== 'string' && auth?.openaiCompatible) {
+    return 'openaiCompatible';
+  }
+
   const selectedProvider = resolveOpenCodeProvider({ model, provider });
-  if (selectedProvider === 'openai' && auth?.openai) return 'openai';
-  if (selectedProvider === 'anthropic' && auth?.anthropic) return 'anthropic';
-  if (auth?.gateway) return 'gateway';
+  if (
+    selectedProvider === 'openai' &&
+    (auth === 'openai' || (typeof auth !== 'string' && auth?.openai))
+  ) {
+    return 'openai';
+  }
+  if (
+    selectedProvider === 'anthropic' &&
+    (auth === 'anthropic' || (typeof auth !== 'string' && auth?.anthropic))
+  ) {
+    return 'anthropic';
+  }
+  if (auth === 'ai-gateway' || (typeof auth !== 'string' && auth?.gateway)) {
+    return 'gateway';
+  }
   if (getAiGatewayAuthFromEnv({ env: processEnv }).apiKey) return 'gateway';
   return selectedProvider;
 }
 
+function normalizeOpenCodeAuthToLegacyAuth(
+  auth: OpenCodeAuthOptions | undefined,
+): LegacyOpenCodeAuthOptions | undefined {
+  if (auth == null || auth === 'auto') {
+    return undefined;
+  }
+  if (typeof auth === 'string') {
+    switch (auth) {
+      case 'anthropic':
+        return { anthropic: {} };
+      case 'openai':
+        return { openai: {} };
+      case 'ai-gateway':
+        return { gateway: {} };
+      default:
+        return undefined;
+    }
+  }
+
+  console.warn(
+    '[opencode] Passing an object to auth options is deprecated. Use a string mode ("auto" | "anthropic" | "openai" | "ai-gateway") instead, and pass credentials via environment variables.',
+  );
+  return auth;
+}
+
 function pickOpenAICompatible(
-  explicit: NonNullable<OpenCodeAuthOptions['openaiCompatible']>,
+  explicit: NonNullable<LegacyOpenCodeAuthOptions['openaiCompatible']>,
   processEnv: Record<string, string | undefined>,
 ): Record<string, string> {
   const env: Record<string, string> = {};
@@ -197,7 +257,7 @@ function pickOpenAI({
   explicit,
   processEnv,
 }: {
-  explicit?: NonNullable<OpenCodeAuthOptions['openai']>;
+  explicit?: NonNullable<LegacyOpenCodeAuthOptions['openai']>;
   processEnv: Record<string, string | undefined>;
 }): Record<string, string> {
   const env: Record<string, string> = {};
@@ -216,7 +276,7 @@ function pickAnthropic({
   explicit,
   processEnv,
 }: {
-  explicit?: NonNullable<OpenCodeAuthOptions['anthropic']>;
+  explicit?: NonNullable<LegacyOpenCodeAuthOptions['anthropic']>;
   processEnv: Record<string, string | undefined>;
 }): Record<string, string> {
   const env: Record<string, string> = {};
@@ -233,7 +293,7 @@ function pickGateway({
   explicit,
   gatewayAuthFromEnv,
 }: {
-  explicit: NonNullable<OpenCodeAuthOptions['gateway']>;
+  explicit: NonNullable<LegacyOpenCodeAuthOptions['gateway']>;
   gatewayAuthFromEnv: ReturnType<typeof getAiGatewayAuthFromEnv>;
 }): Record<string, string> {
   const env: Record<string, string> = {};

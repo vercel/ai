@@ -86,8 +86,7 @@ const harness = createOpenCode({
 
 Settings:
 
-- `auth`: Anthropic, OpenAI, OpenAI-compatible, or AI Gateway authentication
-  settings.
+- `auth`: authentication mode: `auto`, `anthropic`, `openai`, or `ai-gateway`.
 - `mcpServers`: MCP server definitions keyed by server name.
 - `model`: OpenCode model id. Provider-prefixed values such as
   `anthropic/claude-sonnet-4-6` are passed through to OpenCode.
@@ -103,11 +102,19 @@ Settings:
 
 ## Authentication
 
-By default, authentication is resolved from the host environment. When the
-sandbox supports additive request transformations, the bridge receives
+The `auth` setting selects how credentials are resolved from the host
+environment:
+
+- `auto` (default): use AI Gateway credentials when available, then use the
+  credentials for the selected model provider.
+- `anthropic`: use Anthropic credentials.
+- `openai`: use OpenAI credentials.
+- `ai-gateway`: use AI Gateway credentials.
+
+When the sandbox supports additive request transformations, the bridge receives
 placeholders and the adapter injects credentials into matching outbound
 requests. Sandboxes without that capability retain direct credential
-forwarding. The adapter checks for AI Gateway, Anthropic, and OpenAI credentials.
+forwarding.
 
 Supported environment variables:
 
@@ -122,20 +129,15 @@ Supported environment variables:
 - `OPENAI_ORGANIZATION`
 - `OPENAI_PROJECT`
 
-You can also pass explicit auth settings:
+Select a specific authentication mode when you do not want automatic detection:
 
 ```ts
-const harness = createOpenCode({
-  auth: {
-    gateway: {
-      apiKey: process.env.AI_GATEWAY_API_KEY,
-    },
-  },
-});
+const anthropicHarness = createOpenCode({ auth: 'anthropic' });
+const openAIHarness = createOpenCode({ auth: 'openai' });
+const gatewayHarness = createOpenCode({ auth: 'ai-gateway' });
 ```
 
-For OpenAI-compatible endpoints, use `auth.openaiCompatible` and set `name` to
-the OpenCode provider id.
+For OpenAI-compatible endpoints, select `openai` and set `OPENAI_BASE_URL`.
 
 ## Sandbox
 

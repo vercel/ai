@@ -64,6 +64,20 @@ const BOOTSTRAP_DIR = '.harness-bootstrap/deepagents';
  */
 const DEEPAGENTS_CLIENT_APP = `ai-sdk/harness-deepagents/${VERSION}`;
 
+export type DeepAgentsThinkingConfig =
+  | {
+      readonly type: 'adaptive';
+      readonly display?: 'summarized' | 'omitted';
+    }
+  | {
+      readonly type: 'enabled';
+      readonly budget_tokens: number;
+      readonly display?: 'summarized' | 'omitted';
+    }
+  | {
+      readonly type: 'disabled';
+    };
+
 // Pinned ripgrep release + per-arch tarball checksums (verified before install).
 const RIPGREP_VERSION = '14.1.1';
 const RIPGREP_SHA256_X64 =
@@ -97,6 +111,16 @@ export type DeepAgentsHarnessSettings = {
   readonly auth?: DeepAgentsAuthOptions;
   /** Model id for the DeepAgents runtime, e.g. `claude-sonnet-4` (converted to `provider:model`). */
   readonly model?: string;
+  /**
+   * Controls Anthropic extended thinking for the Deep Agents model. Unset
+   * preserves the Deep Agents runtime default.
+   */
+  readonly thinking?: DeepAgentsThinkingConfig;
+  /**
+   * Controls how much effort Claude applies when adaptive thinking is enabled.
+   * Unset uses the LangChain Anthropic client default.
+   */
+  readonly effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
   /** Bridge port override; defaults to the sandbox's first declared port. */
   readonly port?: number;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
@@ -308,6 +332,8 @@ export function createDeepAgents(
             channel: attachChannel,
             proc: undefined,
             model: settings.model,
+            thinking: settings.thinking,
+            effort: settings.effort,
             bridgePort: coords.port,
             bridgeToken: coords.token,
             sandboxId,
@@ -425,6 +451,8 @@ export function createDeepAgents(
         channel,
         proc,
         model: settings.model,
+        thinking: settings.thinking,
+        effort: settings.effort,
         bridgePort: boundPort,
         bridgeToken: token,
         sandboxId,
@@ -524,6 +552,8 @@ function createSession({
   channel,
   proc,
   model,
+  thinking,
+  effort,
   bridgePort,
   bridgeToken,
   sandboxId,
@@ -540,6 +570,8 @@ function createSession({
   // Undefined on attach — the live bridge was spawned by another process.
   proc: Experimental_SandboxProcess | undefined;
   model: string | undefined;
+  thinking: DeepAgentsThinkingConfig | undefined;
+  effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
   bridgePort: number;
   bridgeToken: string;
   sandboxId: string;
@@ -706,6 +738,8 @@ function createSession({
           inputSchema: t.inputSchema,
         })),
         ...(model ? { model } : {}),
+        ...(thinking ? { thinking } : {}),
+        ...(effort ? { effort } : {}),
         ...(skillsPaths?.length ? { skillsPaths } : {}),
         ...(permissionMode ? { permissionMode } : {}),
         ...(builtinToolFiltering ? { builtinToolFiltering } : {}),

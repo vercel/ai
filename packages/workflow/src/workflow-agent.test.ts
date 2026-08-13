@@ -113,6 +113,52 @@ describe('WorkflowAgent', () => {
   });
 
   describe('prepareCall', () => {
+    it('applies maxRetries to generation settings', async () => {
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockReturnValue({
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      } as unknown as MockIterator);
+
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        maxRetries: 1,
+        prepareCall: () => ({ maxRetries: 5 }),
+      });
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: new WritableStream({ write: vi.fn(), close: vi.fn() }),
+      });
+
+      expect(streamTextIterator).toHaveBeenCalledWith(
+        expect.objectContaining({
+          generationSettings: expect.objectContaining({ maxRetries: 5 }),
+        }),
+      );
+    });
+
+    it('aborts before starting when prepareCall returns an aborted signal', async () => {
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockClear();
+
+      const abortController = new AbortController();
+      abortController.abort();
+      const onAbort = vi.fn();
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        prepareCall: () => ({ abortSignal: abortController.signal }),
+      });
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: new WritableStream({ write: vi.fn(), close: vi.fn() }),
+        onAbort,
+      });
+
+      expect(streamTextIterator).not.toHaveBeenCalled();
+      expect(onAbort).toHaveBeenCalledWith({ steps: [] });
+    });
+
     it('applies stopWhen, activeTools, and experimental_download', async () => {
       const tools = {
         first: tool({

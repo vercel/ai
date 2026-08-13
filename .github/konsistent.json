@@ -231,6 +231,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "auth": {},
                     "mcpServers": {}
                   }
                 }

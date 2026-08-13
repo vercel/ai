@@ -86,7 +86,7 @@ const harness = createDeepAgents({
 
 Settings:
 
-- `auth`: Anthropic or AI Gateway authentication settings.
+- `auth`: authentication mode: `auto`, `anthropic`, or `ai-gateway`.
 - `mcpServers`: MCP server definitions keyed by server name.
 - `model`: model id passed to the Deep Agents (LangChain) runtime. Through AI
   Gateway, use the `creator/model` slug (e.g. `anthropic/claude-sonnet-4-6`,
@@ -104,12 +104,20 @@ Settings:
 
 Deep Agents always drives the Anthropic client. Non-Anthropic models reach it
 through AI Gateway's Anthropic-compatible endpoint, which translates to any
-model (Gemini, OpenAI, etc.), tool calls included. Authentication is resolved
-from the host environment: explicit Anthropic auth first, then AI Gateway
-credentials, then ambient Anthropic credentials. When the sandbox supports
-additive request transformations, the bridge receives placeholders and the
-adapter injects credentials into matching outbound requests. Other sandboxes
-retain direct credential forwarding.
+model (Gemini, OpenAI, etc.), tool calls included.
+
+The `auth` setting selects how credentials are resolved from the host
+environment:
+
+- `auto` (default): use AI Gateway credentials when available, then fall back
+  to Anthropic credentials.
+- `anthropic`: use Anthropic credentials.
+- `ai-gateway`: use AI Gateway credentials.
+
+When the sandbox supports additive request transformations, the bridge receives
+placeholders and the adapter injects credentials into matching outbound
+requests. Sandboxes without that capability retain direct credential
+forwarding.
 
 Supported environment variables:
 
@@ -120,17 +128,12 @@ Supported environment variables:
 - `ANTHROPIC_AUTH_TOKEN`
 - `ANTHROPIC_BASE_URL`
 
-You can also pass explicit auth settings (`anthropic` or `gateway`). To run a
-non-Anthropic model, route it through AI Gateway:
+To run a non-Anthropic model, select `ai-gateway`:
 
 ```ts
 const harness = createDeepAgents({
   model: 'google/gemini-2.5-flash',
-  auth: {
-    gateway: {
-      apiKey: process.env.AI_GATEWAY_API_KEY,
-    },
-  },
+  auth: 'ai-gateway',
 });
 ```
 
