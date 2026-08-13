@@ -1252,6 +1252,40 @@ function getLangGraphNamespaceKey(namespace: string[] | undefined): string {
   return JSON.stringify(namespace ?? []);
 }
 
+function hasEmittedToolCallInCurrentStep(
+  state: LangGraphEventState,
+  toolCallId: string,
+): boolean {
+  return state.currentStep === null
+    ? state.emittedToolCalls.has(toolCallId)
+    : state.emittedToolCallsInCurrentStep.has(toolCallId);
+}
+
+function markToolCallEmitted(
+  state: LangGraphEventState,
+  toolCallId: string,
+): void {
+  state.emittedToolCalls.add(toolCallId);
+  state.emittedToolCallsInCurrentStep.add(toolCallId);
+}
+
+function hasEmittedToolInputInCurrentStep(
+  state: LangGraphEventState,
+  toolCallId: string,
+): boolean {
+  return state.currentStep === null
+    ? state.emittedToolInputs.has(toolCallId)
+    : state.emittedToolInputsInCurrentStep.has(toolCallId);
+}
+
+function markToolInputEmitted(
+  state: LangGraphEventState,
+  toolCallId: string,
+): void {
+  state.emittedToolInputs.add(toolCallId);
+  state.emittedToolInputsInCurrentStep.add(toolCallId);
+}
+
 /**
  * Ends and clears message state for the namespace that drives the global UI
  * step lifecycle. Returns whether another namespace still has active text or
@@ -1312,7 +1346,6 @@ export function processLangGraphEvent(
     messageReasoningIds,
     toolCallInfoByIndex,
     emittedToolCallsByKey,
-    emittedToolInputs,
   } = state;
   const [rawNamespace, type, data] = parseLangGraphEvent(event);
   const namespace =
@@ -1403,6 +1436,8 @@ export function processLangGraphEvent(
           if (!hasConcurrentMessageParts) {
             controller.enqueue({ type: 'finish-step' });
             controller.enqueue({ type: 'start-step' });
+            state.emittedToolCallsInCurrentStep.clear();
+            state.emittedToolInputsInCurrentStep.clear();
           }
         } else {
           controller.enqueue({ type: 'start-step' });
@@ -1533,8 +1568,8 @@ export function processLangGraphEvent(
               updatedSeen.tool ??= new Set();
               updatedSeen.tool.add(toolCallId);
 
-              if (!emittedToolCalls.has(toolCallId)) {
-                emittedToolCalls.add(toolCallId);
+              if (!hasEmittedToolCallInCurrentStep(state, toolCallId)) {
+                markToolCallEmitted(state, toolCallId);
                 controller.enqueue({
                   type: 'tool-input-start',
                   toolCallId: toolCallId,
@@ -1693,9 +1728,17 @@ export function processLangGraphEvent(
 
       if (!toolCallId) return;
 
-      const ensureToolInputLifecycle = () => {
-        if (!emittedToolCalls.has(toolCallId)) {
-          emittedToolCalls.add(toolCallId);
+      const ensureToolInputLifecycle = ({
+        allowPreviousStep,
+      }: {
+        allowPreviousStep: boolean;
+      }) => {
+        if (!hasEmittedToolCallInCurrentStep(state, toolCallId)) {
+          if (allowPreviousStep && emittedToolCalls.has(toolCallId)) {
+            return;
+          }
+
+          markToolCallEmitted(state, toolCallId);
           controller.enqueue({
             type: 'tool-input-start',
             toolCallId,
@@ -1704,8 +1747,8 @@ export function processLangGraphEvent(
           });
         }
 
-        if (!emittedToolInputs.has(toolCallId)) {
-          emittedToolInputs.add(toolCallId);
+        if (!hasEmittedToolInputInCurrentStep(state, toolCallId)) {
+          markToolInputEmitted(state, toolCallId);
           controller.enqueue({
             type: 'tool-input-available',
             toolCallId,
@@ -1721,12 +1764,12 @@ export function processLangGraphEvent(
           const toolCallKey = `${toolName}:${JSON.stringify(payload.input)}`;
           emittedToolCallsByKey.set(toolCallKey, toolCallId);
 
-          ensureToolInputLifecycle();
+          ensureToolInputLifecycle({ allowPreviousStep: false });
           break;
         }
 
         case 'on_tool_event': {
-          ensureToolInputLifecycle();
+          ensureToolInputLifecycle({ allowPreviousStep: true });
           controller.enqueue({
             type: 'tool-output-available',
             toolCallId,
@@ -1737,7 +1780,7 @@ export function processLangGraphEvent(
         }
 
         case 'on_tool_end': {
-          ensureToolInputLifecycle();
+          ensureToolInputLifecycle({ allowPreviousStep: true });
           controller.enqueue({
             type: 'tool-output-available',
             toolCallId,
@@ -1747,7 +1790,7 @@ export function processLangGraphEvent(
         }
 
         case 'on_tool_error': {
-          ensureToolInputLifecycle();
+          ensureToolInputLifecycle({ allowPreviousStep: true });
           controller.enqueue({
             type: 'tool-output-error',
             toolCallId,
@@ -1774,12 +1817,12 @@ export function processLangGraphEvent(
             );
 
             if (toolCall) {
-              emittedToolCalls.add(toolCallId);
+              markToolCallEmitted(state, toolCallId);
               // Store mapping for HITL interrupt lookup
               const toolCallKey = `${toolCall.name}:${JSON.stringify(toolCall.args)}`;
               emittedToolCallsByKey.set(toolCallKey, toolCallId);
-              if (!emittedToolInputs.has(toolCallId)) {
-                emittedToolInputs.add(toolCallId);
+              if (!hasEmittedToolInputInCurrentStep(state, toolCallId)) {
+                markToolInputEmitted(state, toolCallId);
                 controller.enqueue({
                   type: 'tool-input-available',
                   toolCallId,
@@ -1935,7 +1978,7 @@ export function processLangGraphEvent(
                   !emittedToolCalls.has(toolCall.id) &&
                   !completedToolCallIds.has(toolCall.id)
                 ) {
-                  emittedToolCalls.add(toolCall.id);
+                  markToolCallEmitted(state, toolCall.id);
                   // Store mapping for HITL interrupt lookup
                   const toolCallKey = `${toolCall.name}:${JSON.stringify(toolCall.args)}`;
                   emittedToolCallsByKey.set(toolCallKey, toolCall.id);
@@ -1950,7 +1993,7 @@ export function processLangGraphEvent(
                     toolName: toolCall.name,
                     dynamic: true,
                   });
-                  emittedToolInputs.add(toolCall.id);
+                  markToolInputEmitted(state, toolCall.id);
                   controller.enqueue({
                     type: 'tool-input-available',
                     toolCallId: toolCall.id,
@@ -2076,7 +2119,7 @@ export function processLangGraphEvent(
                * so the UI knows what tool is being called with proper lifecycle
                */
               if (!emittedToolCalls.has(toolCallId)) {
-                emittedToolCalls.add(toolCallId);
+                markToolCallEmitted(state, toolCallId);
                 emittedToolCallsByKey.set(toolCallKey, toolCallId);
                 controller.enqueue({
                   type: 'tool-input-start',
@@ -2084,7 +2127,7 @@ export function processLangGraphEvent(
                   toolName,
                   dynamic: true,
                 });
-                emittedToolInputs.add(toolCallId);
+                markToolInputEmitted(state, toolCallId);
                 controller.enqueue({
                   type: 'tool-input-available',
                   toolCallId,
