@@ -20,6 +20,7 @@ export type {
   ACPToolKind,
 } from './acp-tool-call';
 export type {
+  ACPCredentialBrokering,
   ACPAuthentication,
   ACPInstructionMapping,
   ACPNpmLockedSource,

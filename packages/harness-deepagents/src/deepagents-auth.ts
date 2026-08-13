@@ -1,6 +1,44 @@
-import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
+import type { HarnessV1RequestTransformation } from '@ai-sdk/harness';
+import {
+  createCredentialRequestTransformation,
+  getAiGatewayAuthFromEnv,
+} from '@ai-sdk/harness/utils';
 
-export type DeepAgentsAuthenticationMode = 'auto' | 'anthropic' | 'ai-gateway';
+export const DEEPAGENTS_CREDENTIAL_ENVIRONMENT_VARIABLES = [
+  'AI_GATEWAY_API_KEY',
+  'ANTHROPIC_API_KEY',
+  'ANTHROPIC_AUTH_TOKEN',
+] as const;
+
+export function createDeepAgentsRequestTransformations(
+  env: Record<string, string>,
+  auth: DeepAgentsResolvedAuthenticationMode,
+): HarnessV1RequestTransformation[] {
+  const headers: Record<string, string> = {};
+  if (env.ANTHROPIC_API_KEY) {
+    headers['x-api-key'] = env.ANTHROPIC_API_KEY;
+  }
+  if (env.ANTHROPIC_AUTH_TOKEN) {
+    headers.Authorization = `Bearer ${env.ANTHROPIC_AUTH_TOKEN}`;
+  }
+  return Object.keys(headers).length === 0
+    ? []
+    : [
+        createCredentialRequestTransformation({
+          baseUrl:
+            auth === 'ai-gateway'
+              ? env.ANTHROPIC_BASE_URL
+              : (env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com'),
+          headers,
+        }),
+      ];
+}
+
+export type DeepAgentsResolvedAuthenticationMode = 'anthropic' | 'ai-gateway';
+
+export type DeepAgentsAuthenticationMode =
+  | DeepAgentsResolvedAuthenticationMode
+  | 'auto';
 
 /**
  * @deprecated Passing an object to auth options is deprecated. Use a `DeepAgentsAuthenticationMode` string value ("auto" | "anthropic" | "ai-gateway") instead, and pass credentials via environment variables.
@@ -49,6 +87,24 @@ export function resolveDeepAgentsEnv({
   }
 
   return pickAnthropic({ processEnv });
+}
+
+export function resolveDeepAgentsAuthenticationMode({
+  auth,
+  processEnv = process.env,
+}: {
+  auth?: DeepAgentsAuthOptions;
+  processEnv?: Record<string, string | undefined>;
+}): DeepAgentsResolvedAuthenticationMode {
+  if (auth === 'anthropic' || (typeof auth !== 'string' && auth?.anthropic)) {
+    return 'anthropic';
+  }
+  if (auth === 'ai-gateway' || (typeof auth !== 'string' && auth?.gateway)) {
+    return 'ai-gateway';
+  }
+  return getAiGatewayAuthFromEnv({ env: processEnv }).apiKey
+    ? 'ai-gateway'
+    : 'anthropic';
 }
 
 function normalizeDeepAgentsAuthToLegacyAuth(

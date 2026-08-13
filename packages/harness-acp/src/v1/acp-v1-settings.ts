@@ -1,4 +1,7 @@
-import type { HarnessV1PermissionMode } from '@ai-sdk/harness';
+import type {
+  HarnessV1PermissionMode,
+  HarnessV1RequestTransformation,
+} from '@ai-sdk/harness';
 import type { ACPToolCall } from '../acp-tool-call';
 
 export type ACPSerializablePrimitive = string | number | boolean | null;
@@ -60,6 +63,12 @@ export type ACPProviderAuthentication = {
   };
 };
 
+export type ACPCredentialBrokering = ({
+  env,
+}: {
+  env: Readonly<Record<string, string>>;
+}) => ReadonlyArray<HarnessV1RequestTransformation>;
+
 export type ACPPermissionModeTarget =
   | {
       readonly type: 'session-mode';
@@ -101,6 +110,8 @@ export type ACPV1Settings = {
   readonly executable: string;
   readonly args?: ReadonlyArray<string>;
   readonly forwardEnv?: ReadonlyArray<string>;
+  readonly credentialEnv?: ReadonlyArray<string>;
+  readonly credentialBrokering?: ACPCredentialBrokering;
   /**
    * Runtime environment values that are safe to persist in bootstrap and
    * lifecycle compatibility identity.
