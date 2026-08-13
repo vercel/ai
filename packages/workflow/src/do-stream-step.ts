@@ -2,9 +2,12 @@ import type {
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
+import { retryWithExponentialBackoff } from '@ai-sdk/provider-utils';
 import {
   experimental_streamLanguageModelCall as streamModelCall,
   gateway,
+  InvalidArgumentError,
+  RetryError,
   type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
   type FinishReason,
   type LanguageModel,
@@ -99,6 +102,40 @@ export interface DoStreamStepRawResult {
   warnings?: unknown[];
 }
 
+function prepareRetries({
+  maxRetries,
+  abortSignal,
+}: {
+  maxRetries: number | undefined;
+  abortSignal: AbortSignal | undefined;
+}) {
+  if (maxRetries != null) {
+    if (!Number.isInteger(maxRetries)) {
+      throw new InvalidArgumentError({
+        parameter: 'maxRetries',
+        value: maxRetries,
+        message: 'maxRetries must be an integer',
+      });
+    }
+
+    if (maxRetries < 0) {
+      throw new InvalidArgumentError({
+        parameter: 'maxRetries',
+        value: maxRetries,
+        message: 'maxRetries must be >= 0',
+      });
+    }
+  }
+
+  return retryWithExponentialBackoff({
+    maxRetries: maxRetries ?? 2,
+    abortSignal,
+    shouldRetry: () => true,
+    createRetryError: ({ message, reason, errors }) =>
+      new RetryError({ message, reason, errors }),
+  });
+}
+
 export async function doStreamStep(
   conversationPrompt: LanguageModelV4Prompt,
   modelInit: LanguageModel,
@@ -148,34 +185,40 @@ export async function doStreamStep(
           },
         };
 
-  // streamModelCall handles: prompt standardization, tool preparation,
-  // model.doStream(), retry logic, and stream part transformation
-  // (tool call parsing, finish reason mapping, file wrapping).
-  const { stream: modelStream } = await streamModelCall({
-    model,
-    // streamModelCall expects Prompt (ModelMessage[]) but we pass the
-    // pre-converted LanguageModelV4Prompt. standardizePrompt inside
-    // streamModelCall handles both formats.
-    messages: conversationPrompt as unknown as ModelMessage[],
-    allowSystemInMessages: true,
-    tools,
-    toolChoice: options?.toolChoice,
-    includeRawChunks: options?.includeRawChunks,
-    providerOptions: options?.providerOptions,
+  // streamModelCall handles prompt standardization, tool preparation,
+  // model.doStream(), and stream part transformation. Retries are applied
+  // around the model dispatch because streamModelCall itself does not retry.
+  const retry = prepareRetries({
+    maxRetries: options?.maxRetries,
     abortSignal: options?.abortSignal,
-    headers: options?.headers,
-    reasoning: options?.reasoning,
-    output,
-    maxOutputTokens: options?.maxOutputTokens,
-    temperature: options?.temperature,
-    topP: options?.topP,
-    topK: options?.topK,
-    presencePenalty: options?.presencePenalty,
-    frequencyPenalty: options?.frequencyPenalty,
-    stopSequences: options?.stopSequences,
-    seed: options?.seed,
-    repairToolCall: options?.repairToolCall,
   });
+  const { stream: modelStream } = await retry(() =>
+    streamModelCall({
+      model,
+      // streamModelCall expects Prompt (ModelMessage[]) but we pass the
+      // pre-converted LanguageModelV4Prompt. standardizePrompt inside
+      // streamModelCall handles both formats.
+      messages: conversationPrompt as unknown as ModelMessage[],
+      allowSystemInMessages: true,
+      tools,
+      toolChoice: options?.toolChoice,
+      includeRawChunks: options?.includeRawChunks,
+      providerOptions: options?.providerOptions,
+      abortSignal: options?.abortSignal,
+      headers: options?.headers,
+      reasoning: options?.reasoning,
+      output,
+      maxOutputTokens: options?.maxOutputTokens,
+      temperature: options?.temperature,
+      topP: options?.topP,
+      topK: options?.topK,
+      presencePenalty: options?.presencePenalty,
+      frequencyPenalty: options?.frequencyPenalty,
+      stopSequences: options?.stopSequences,
+      seed: options?.seed,
+      repairToolCall: options?.repairToolCall,
+    }),
+  );
 
   // Consume the stream: capture data and write to writable in real-time
   const toolCalls: ParsedToolCall[] = [];
@@ -286,3 +329,7 @@ export async function doStreamStep(
     providerExecutedToolResults,
   };
 }
+
+// Model-call retries are handled above so the workflow runtime must not add
+// another retry layer around the durable step.
+doStreamStep.maxRetries = 0;
