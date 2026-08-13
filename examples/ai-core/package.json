@@ -20,6 +20,7 @@
     "@ai-sdk/fireworks": "workspace:*",
     "@ai-sdk/gateway": "workspace:*",
     "@ai-sdk/gladia": "workspace:*",
+    "@ai-sdk/gmicloud": "workspace:*",
     "@ai-sdk/google": "workspace:*",
     "@ai-sdk/google-vertex": "workspace:*",
     "@ai-sdk/groq": "workspace:*",
