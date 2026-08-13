@@ -15,6 +15,9 @@ import {
  */
 export interface ClineTranslatorState {
   readonly builtinToolNames: ReadonlySet<string>;
+  readonly dynamicToolCallIds: Set<string>;
+  readonly hostToolNames: ReadonlySet<string>;
+  readonly mcpToolNames: ReadonlySet<string>;
   openTextBlockId?: string;
   openReasoningBlockId?: string;
   emittedToolCalls: Set<string>;
@@ -23,11 +26,18 @@ export interface ClineTranslatorState {
 
 export function createClineTranslatorState({
   builtinToolNames,
+  hostToolNames = [],
+  mcpToolNames = [],
 }: {
   builtinToolNames: Iterable<string>;
+  hostToolNames?: Iterable<string>;
+  mcpToolNames?: Iterable<string>;
 }): ClineTranslatorState {
   return {
     builtinToolNames: new Set(builtinToolNames),
+    dynamicToolCallIds: new Set(),
+    hostToolNames: new Set(hostToolNames),
+    mcpToolNames: new Set(mcpToolNames),
     emittedToolCalls: new Set(),
     blockCounter: 0,
   };
@@ -50,16 +60,26 @@ function toolCallPart(
   state: ClineTranslatorState,
   toolCall: { toolCallId: string; toolName: string; input: unknown },
 ): HarnessV1StreamPart {
+  const isMcpTool =
+    state.mcpToolNames.has(toolCall.toolName) &&
+    !state.hostToolNames.has(toolCall.toolName);
+  if (isMcpTool) {
+    state.dynamicToolCallIds.add(toolCall.toolCallId);
+  }
   return {
     type: 'tool-call',
     toolCallId: toolCall.toolCallId,
     toolName: toolCall.toolName,
     input: JSON.stringify(toolCall.input ?? {}),
-    // Built-ins are executed by the Cline runtime (against the sandbox);
-    // user tools wait for host dispatch via `submitToolResult`.
-    ...(state.builtinToolNames.has(toolCall.toolName)
+    /*
+     * Built-ins and external MCP tools are executed by the Cline runtime.
+     * Typed host tools wait for dispatch through `submitToolResult`, including
+     * when a host tool has the same name as a configured MCP tool.
+     */
+    ...(state.builtinToolNames.has(toolCall.toolName) || isMcpTool
       ? { providerExecuted: true }
       : {}),
+    ...(isMcpTool ? { dynamic: true } : {}),
   };
 }
 
@@ -155,6 +175,9 @@ export function translateClineEvent(
           part.toolCallId === event.toolCall.toolCallId,
       );
       const output = resultPart?.output as AgentToolResult['output'] | unknown;
+      const dynamic = state.dynamicToolCallIds.delete(
+        event.toolCall.toolCallId,
+      );
       return [
         {
           type: 'tool-result',
@@ -162,6 +185,7 @@ export function translateClineEvent(
           toolName: event.toolCall.toolName,
           result: toToolResultValue(output),
           ...(resultPart?.isError ? { isError: true } : {}),
+          ...(dynamic ? { dynamic: true } : {}),
         },
       ];
     }

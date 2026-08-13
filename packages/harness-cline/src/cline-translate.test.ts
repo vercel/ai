@@ -163,6 +163,109 @@ describe('translateClineEvent', () => {
     expect(parts[0].providerExecuted).toBeUndefined();
   });
 
+  it('marks external MCP tool calls and results as provider-executed dynamic tools', () => {
+    const state = createClineTranslatorState({
+      builtinToolNames: [],
+      mcpToolNames: ['context7__resolve-library-id'],
+    });
+    const toolCall = {
+      type: 'tool-call' as const,
+      toolCallId: 'mcp-call',
+      toolName: 'context7__resolve-library-id',
+      input: { libraryName: 'next.js' },
+    };
+
+    const call = translateClineEvent(
+      {
+        type: 'tool-started',
+        snapshot,
+        iteration: 1,
+        toolCall,
+      },
+      state,
+    );
+    const result = translateClineEvent(
+      {
+        type: 'tool-finished',
+        snapshot,
+        iteration: 1,
+        toolCall,
+        message: {
+          id: 'mcp-result',
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'mcp-call',
+              toolName: 'context7__resolve-library-id',
+              output: { content: [{ type: 'text', text: '/vercel/next.js' }] },
+            },
+          ],
+          createdAt: 0,
+        },
+      },
+      state,
+    );
+
+    expect([call[0], result[0]]).toMatchInlineSnapshot(`
+      [
+        {
+          "dynamic": true,
+          "input": "{\"libraryName\":\"next.js\"}",
+          "providerExecuted": true,
+          "toolCallId": "mcp-call",
+          "toolName": "context7__resolve-library-id",
+          "type": "tool-call",
+        },
+        {
+          "dynamic": true,
+          "result": {
+            "content": [
+              {
+                "text": "/vercel/next.js",
+                "type": "text",
+              },
+            ],
+          },
+          "toolCallId": "mcp-call",
+          "toolName": "context7__resolve-library-id",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
+
+  it('keeps a typed host tool static when its name matches an MCP tool', () => {
+    const state = createClineTranslatorState({
+      builtinToolNames: [],
+      hostToolNames: ['context7__resolve-library-id'],
+      mcpToolNames: ['context7__resolve-library-id'],
+    });
+    const parts = translateClineEvent(
+      {
+        type: 'tool-started',
+        snapshot,
+        iteration: 1,
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'host-call',
+          toolName: 'context7__resolve-library-id',
+          input: {},
+        },
+      },
+      state,
+    );
+
+    expect(parts).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'host-call',
+        toolName: 'context7__resolve-library-id',
+        input: '{}',
+      },
+    ]);
+  });
+
   it('emits tool-result from the tool message', () => {
     const state = newState();
     const parts = translateClineEvent(

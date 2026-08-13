@@ -5,8 +5,15 @@ import {
 } from '@ai-sdk/harness';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { resolveClineEnv, type ClineAuthOptions } from './cline-auth';
 import { clineResumeStateSchema } from './cline-resume-state';
 import { createClineSession } from './cline-session';
+import { VERSION } from './version';
+
+/**
+ * Value used to identify the harness in provider request headers.
+ */
+const CLINE_CLIENT_APP = `ai-sdk/harness-cline/${VERSION}`;
 
 /**
  * Configuration knobs for `createCline`. The Cline runtime
@@ -14,13 +21,21 @@ import { createClineSession } from './cline-session';
  * library — no bridge, so there is no `port` or `startupTimeoutMs` to set.
  */
 export type ClineHarnessSettings = {
+  /** Where Cline sources direct or AI Gateway credentials from. */
+  readonly auth?: ClineAuthOptions;
+  /**
+   * MCP server definitions keyed by server name. Each definition uses the
+   * underlying runtime's native MCP server configuration format.
+   */
+  readonly mcpServers?: Record<string, unknown>;
   /**
    * Cline LLM provider id (e.g. `'anthropic'`, `'openai'`, `'gemini'`).
-   * Defaults to `'anthropic'`.
+   * When omitted, direct authentication uses the Cline backend.
    */
   readonly providerId?: string;
   /**
-   * Model id for the configured provider. Defaults to `'claude-opus-5'`.
+   * Model id for the configured provider. When omitted, Cline selects the
+   * provider's default model.
    */
   readonly modelId?: string;
   /**
@@ -37,9 +52,6 @@ export type ClineHarnessSettings = {
    */
   readonly maxIterations?: number;
 };
-
-const DEFAULT_PROVIDER_ID = 'anthropic';
-const DEFAULT_MODEL_ID = 'claude-opus-5';
 
 /*
  * The Cline runtime requires snake_case tool names, and each of these
@@ -134,6 +146,7 @@ export function createCline(
     supportsBuiltinToolFiltering: true,
     lifecycleStateSchema: clineResumeStateSchema,
     doStart: async startOpts => {
+      const authEnv = resolveClineEnv({ auth: settings.auth });
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const resumeData = lifecycleState?.data as
         | { historyFileName?: string }
@@ -145,8 +158,10 @@ export function createCline(
         sessionWorkDir: startOpts.sessionWorkDir,
         skills: startOpts.skills ?? [],
         settings: {
-          providerId: settings.providerId ?? DEFAULT_PROVIDER_ID,
-          modelId: settings.modelId ?? DEFAULT_MODEL_ID,
+          authEnv,
+          ...(settings.mcpServers ? { mcpServers: settings.mcpServers } : {}),
+          ...(settings.providerId ? { providerId: settings.providerId } : {}),
+          ...(settings.modelId ? { modelId: settings.modelId } : {}),
           ...(settings.apiKey ? { apiKey: settings.apiKey } : {}),
           ...(settings.baseUrl ? { baseUrl: settings.baseUrl } : {}),
           ...(settings.headers ? { headers: settings.headers } : {}),
@@ -154,6 +169,7 @@ export function createCline(
             ? { maxIterations: settings.maxIterations }
             : {}),
         },
+        clientApp: CLINE_CLIENT_APP,
         isResume: lifecycleState != null,
         ...(startOpts.permissionMode
           ? { permissionMode: startOpts.permissionMode }

@@ -6,11 +6,19 @@ import type {
   AgentRuntimeConfig,
 } from '@cline/agents';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createClineSession } from './cline-session';
+import { createClineSession, type ClineSessionSettings } from './cline-session';
 
 const clineMock = vi.hoisted(() => ({
   configs: [] as AgentRuntimeConfig[],
   continueInputs: [] as Array<AgentRunInput | undefined>,
+  modelSelections: [] as Array<{ providerId: string; modelId?: string }>,
+  providerConfigs: [] as Array<{
+    providerId: string;
+    apiKey?: string;
+    apiKeyEnv?: string[];
+    baseUrl?: string;
+    headers?: Record<string, string>;
+  }>,
   runInputs: [] as AgentRunInput[],
 }));
 
@@ -68,10 +76,40 @@ vi.mock('@cline/agents', () => ({
   createTool: vi.fn((tool: unknown) => tool),
 }));
 
+vi.mock('@cline/core', async importOriginal => {
+  const original = (await importOriginal()) as Record<string, unknown> & {
+    Llms: Record<string, unknown>;
+  };
+  return {
+    ...original,
+    Llms: {
+      ...original.Llms,
+      createGateway: vi.fn(
+        (config: {
+          providerConfigs: Array<(typeof clineMock.providerConfigs)[number]>;
+        }) => {
+          clineMock.providerConfigs.push(...config.providerConfigs);
+          return {
+            createAgentModel: (selection: {
+              providerId: string;
+              modelId?: string;
+            }) => {
+              clineMock.modelSelections.push(selection);
+              return { stream: vi.fn() };
+            },
+          };
+        },
+      ),
+    },
+  };
+});
+
 describe('createClineSession instructions', () => {
   beforeEach(() => {
     clineMock.configs = [];
     clineMock.continueInputs = [];
+    clineMock.modelSelections = [];
+    clineMock.providerConfigs = [];
     clineMock.runInputs = [];
   });
 
@@ -198,16 +236,161 @@ describe('createClineSession instructions', () => {
   });
 });
 
-async function createSession(input: { isResume?: boolean } = {}) {
+describe('createClineSession model configuration', () => {
+  beforeEach(() => {
+    clineMock.configs = [];
+    clineMock.continueInputs = [];
+    clineMock.modelSelections = [];
+    clineMock.providerConfigs = [];
+    clineMock.runInputs = [];
+  });
+
+  it('uses the Cline backend and delegates default model selection', async () => {
+    const session = await createSession();
+
+    try {
+      expect(clineMock.providerConfigs).toEqual([{ providerId: 'cline' }]);
+      expect(clineMock.modelSelections).toEqual([{ providerId: 'cline' }]);
+      expect(session.modelId).toBeUndefined();
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('maps official Cline environment variables to direct configuration', async () => {
+    const session = await createSession({
+      settings: {
+        authEnv: {
+          CLINE_API_KEY: 'cline-key',
+          CLINE_API_BASE_URL: 'https://cline.example/',
+        },
+      },
+    });
+
+    try {
+      expect(clineMock.providerConfigs).toEqual([
+        {
+          providerId: 'cline',
+          apiKey: 'cline-key',
+          baseUrl: 'https://cline.example/api/v1',
+        },
+      ]);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('preserves explicit direct provider configuration', async () => {
+    const session = await createSession({
+      settings: {
+        authEnv: { CLINE_API_KEY: 'cline-key' },
+        providerId: 'anthropic',
+        modelId: 'claude-opus-5',
+        apiKey: 'anthropic-key',
+        baseUrl: 'https://anthropic.example',
+        headers: { 'x-custom': 'custom' },
+      },
+    });
+
+    try {
+      expect(clineMock.providerConfigs).toEqual([
+        {
+          providerId: 'anthropic',
+          apiKey: 'anthropic-key',
+          baseUrl: 'https://anthropic.example',
+          headers: { 'x-custom': 'custom' },
+        },
+      ]);
+      expect(clineMock.modelSelections).toEqual([
+        { providerId: 'anthropic', modelId: 'claude-opus-5' },
+      ]);
+      expect(session.modelId).toBe('claude-opus-5');
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('overrides direct routing and credentials for AI Gateway', async () => {
+    const session = await createSession({
+      settings: {
+        authEnv: {
+          AI_GATEWAY_API_KEY: 'gateway-key',
+          AI_GATEWAY_BASE_URL: 'https://gateway.example/',
+        },
+        providerId: 'anthropic',
+        modelId: 'anthropic/claude-opus-5',
+        apiKey: 'anthropic-key',
+        baseUrl: 'https://anthropic.example',
+        headers: { 'x-custom': 'custom' },
+      },
+    });
+
+    try {
+      expect(clineMock.providerConfigs).toEqual([
+        {
+          providerId: 'cline',
+          apiKey: 'gateway-key',
+          apiKeyEnv: [],
+          baseUrl: 'https://gateway.example/v1',
+          headers: {
+            'x-custom': 'custom',
+            'User-Agent': 'ai-sdk/harness-cline/0.0.0-test',
+            'x-client-app': 'ai-sdk/harness-cline/0.0.0-test',
+          },
+        },
+      ]);
+      expect(clineMock.modelSelections).toEqual([
+        { providerId: 'cline', modelId: 'anthropic/claude-opus-5' },
+      ]);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('disables direct credential fallback when Gateway credentials are missing', async () => {
+    const session = await createSession({
+      settings: {
+        authEnv: {
+          AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
+        },
+        apiKey: 'direct-key',
+      },
+    });
+
+    try {
+      expect(clineMock.providerConfigs).toEqual([
+        {
+          providerId: 'cline',
+          apiKeyEnv: [],
+          baseUrl: 'https://ai-gateway.vercel.sh/v1',
+          headers: {
+            'User-Agent': 'ai-sdk/harness-cline/0.0.0-test',
+            'x-client-app': 'ai-sdk/harness-cline/0.0.0-test',
+          },
+        },
+      ]);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+});
+
+async function createSession(
+  input: {
+    isResume?: boolean;
+    settings?: Partial<ClineSessionSettings>;
+  } = {},
+) {
   return createClineSession({
     sessionId: 'session-1',
     sandboxSession: createSandboxSession(),
     sessionWorkDir: '/sandbox/work',
     skills: [],
     settings: {
-      providerId: 'anthropic',
-      modelId: 'claude-opus-5',
+      authEnv: {},
+      ...input.settings,
     },
+    clientApp: 'ai-sdk/harness-cline/0.0.0-test',
     isResume: input.isResume ?? false,
   });
 }

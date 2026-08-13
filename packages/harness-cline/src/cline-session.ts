@@ -14,7 +14,14 @@ import {
   type HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
 import { resolveSandboxHomeDir } from '@ai-sdk/harness/utils';
-import { Agent, type AgentMessage, type AgentRunResult } from '@cline/agents';
+import {
+  Agent,
+  type AgentMessage,
+  type AgentModel,
+  type AgentRunResult,
+} from '@cline/agents';
+import { Llms } from '@cline/core';
+import { createClineMcpRuntime } from './cline-mcp';
 import { createClineRemoteOps } from './cline-remote-ops';
 import {
   CLINE_DEFAULT_HISTORY_FILE_NAME,
@@ -58,8 +65,10 @@ const HARNESS_ID = 'cline';
 const parkedClineSessions = new Map<string, HarnessV1Session>();
 
 export interface ClineSessionSettings {
-  readonly providerId: string;
-  readonly modelId: string;
+  readonly authEnv: Record<string, string>;
+  readonly mcpServers?: Record<string, unknown>;
+  readonly providerId?: string;
+  readonly modelId?: string;
   readonly apiKey?: string;
   readonly baseUrl?: string;
   readonly headers?: Record<string, string>;
@@ -72,6 +81,7 @@ export interface CreateClineSessionInput {
   readonly sessionWorkDir: string;
   readonly skills: ReadonlyArray<HarnessV1Skill>;
   readonly settings: ClineSessionSettings;
+  readonly clientApp: string;
   readonly isResume: boolean;
   readonly permissionMode?: HarnessV1PermissionMode;
   readonly builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
@@ -131,6 +141,63 @@ function buildSystemPrompt(input: {
     sections.push(input.skillsSection);
   }
   return sections.join('\n\n');
+}
+
+function toClineBackendProviderBaseUrl(baseUrl: string): string {
+  return `${baseUrl.replace(/\/+$/, '')}/api/v1`;
+}
+
+function toAiGatewayProviderBaseUrl(baseUrl: string): string {
+  const trimmed = baseUrl.replace(/\/+$/, '');
+  return trimmed.endsWith('/v1') ? trimmed : `${trimmed}/v1`;
+}
+
+function createClineAgentModel({
+  settings,
+  clientApp,
+}: {
+  settings: ClineSessionSettings;
+  clientApp: string;
+}): { model: AgentModel; providerId: string } {
+  const gatewayBaseUrl = settings.authEnv.AI_GATEWAY_BASE_URL;
+  const isAiGateway = gatewayBaseUrl != null;
+  const providerId = isAiGateway ? 'cline' : (settings.providerId ?? 'cline');
+  const apiKey = isAiGateway
+    ? settings.authEnv.AI_GATEWAY_API_KEY
+    : (settings.apiKey ??
+      (providerId === 'cline' ? settings.authEnv.CLINE_API_KEY : undefined));
+  const baseUrl = isAiGateway
+    ? toAiGatewayProviderBaseUrl(gatewayBaseUrl)
+    : (settings.baseUrl ??
+      (providerId === 'cline' && settings.authEnv.CLINE_API_BASE_URL
+        ? toClineBackendProviderBaseUrl(settings.authEnv.CLINE_API_BASE_URL)
+        : undefined));
+  const headers = isAiGateway
+    ? {
+        ...settings.headers,
+        'User-Agent': clientApp,
+        'x-client-app': clientApp,
+      }
+    : settings.headers;
+  const gateway = Llms.createGateway({
+    providerConfigs: [
+      {
+        providerId,
+        ...(apiKey ? { apiKey } : {}),
+        ...(baseUrl ? { baseUrl } : {}),
+        ...(headers ? { headers } : {}),
+        ...(isAiGateway ? { apiKeyEnv: [] } : {}),
+      },
+    ],
+  });
+
+  return {
+    model: gateway.createAgentModel({
+      providerId,
+      ...(settings.modelId ? { modelId: settings.modelId } : {}),
+    }),
+    providerId,
+  };
 }
 
 export async function createClineSession(
@@ -202,6 +269,13 @@ export async function createClineSession(
       currentMessages = restored;
     }
   }
+  const mcpRuntime = await createClineMcpRuntime({
+    mcpServers: input.settings.mcpServers,
+  });
+  const { model, providerId } = createClineAgentModel({
+    settings: input.settings,
+    clientApp: input.clientApp,
+  });
 
   // Per-session mutable state we hold across prompts.
   let agent: Agent | undefined;
@@ -271,11 +345,15 @@ export async function createClineSession(
     unsubscribe?.();
     unsubscribe = undefined;
     agent = new Agent({
-      providerId: input.settings.providerId,
-      modelId: input.settings.modelId,
-      ...(input.settings.apiKey ? { apiKey: input.settings.apiKey } : {}),
-      ...(input.settings.baseUrl ? { baseUrl: input.settings.baseUrl } : {}),
-      ...(input.settings.headers ? { headers: input.settings.headers } : {}),
+      model,
+      ...(input.settings.modelId
+        ? {
+            messageModelInfo: {
+              id: input.settings.modelId,
+              provider: providerId,
+            },
+          }
+        : {}),
       sessionId: input.sessionId,
       systemPrompt: rebuildInput.instructions
         ? `${baseSystemPrompt}\n\n${rebuildInput.instructions}`
@@ -286,6 +364,7 @@ export async function createClineSession(
         : {}),
       tools: [
         ...buildBuiltinAgentTools({ ops, activeNames: activeBuiltinNames }),
+        ...mcpRuntime.tools,
         ...buildUserAgentTools({
           specs: rebuildInput.userTools,
           pendingToolResults,
@@ -411,11 +490,13 @@ export async function createClineSession(
     currentEmit = turnOpts.emit;
     translatorState = createClineTranslatorState({
       builtinToolNames: activeBuiltinNames,
+      hostToolNames: userTools.map(tool => tool.name),
+      mcpToolNames: mcpRuntime.toolNames,
     });
 
     turnOpts.emit({
       type: 'stream-start',
-      modelId: input.settings.modelId,
+      ...(input.settings.modelId ? { modelId: input.settings.modelId } : {}),
     });
 
     const turnPromise = (async () => {
@@ -498,10 +579,11 @@ export async function createClineSession(
     });
   }
 
-  function teardown(): void {
+  async function teardown(): Promise<void> {
     unsubscribe?.();
     unsubscribe = undefined;
     agent = undefined;
+    await mcpRuntime.dispose();
   }
 
   const doStop = async (): Promise<HarnessV1ResumeSessionState> => {
@@ -523,7 +605,7 @@ export async function createClineSession(
     }
 
     agent?.abort('Cline session stopped');
-    teardown();
+    await teardown();
 
     return {
       type: 'resume-session',
@@ -536,7 +618,7 @@ export async function createClineSession(
   const sessionImpl: HarnessV1Session = {
     sessionId: input.sessionId,
     isResume: input.isResume,
-    modelId: input.settings.modelId,
+    ...(input.settings.modelId ? { modelId: input.settings.modelId } : {}),
 
     // The Cline runtime has no bridge to attach to and no in-sandbox event
     // log to replay; its only cross-process resume path is restoring the
@@ -606,7 +688,7 @@ export async function createClineSession(
       settlePendingToolResults('Cline session stopped');
       settlePendingToolApprovals('Cline session stopped');
       agent?.abort('Cline session destroyed');
-      teardown();
+      await teardown();
     },
 
     doStop,
@@ -687,7 +769,7 @@ export async function createClineSession(
       parkedClineSessions.delete(input.sessionId);
       settlePendingToolResults('Cline session suspended');
       settlePendingToolApprovals('Cline session suspended');
-      teardown();
+      await teardown();
 
       return {
         type: 'continue-turn',

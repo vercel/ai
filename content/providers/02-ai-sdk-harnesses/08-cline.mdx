@@ -69,8 +69,8 @@ try {
 ```
 
 To use this agent, ensure environment variables include `VERCEL_OIDC_TOKEN`
-for Vercel Sandbox and a provider key such as `ANTHROPIC_API_KEY` for the
-Cline runtime's model calls.
+for Vercel Sandbox. The same token authenticates model calls through AI
+Gateway when the default `auto` authentication mode is used.
 
 ## Adapter Settings
 
@@ -78,25 +78,49 @@ Use `createCline()` to configure the runtime:
 
 ```ts
 const harness = createCline({
-  providerId: 'anthropic',
-  modelId: 'claude-opus-5',
+  auth: 'direct',
+  modelId: 'anthropic/claude-opus-5',
 });
 ```
 
 Settings:
 
+- `auth`: authentication mode: `auto`, `direct`, or `ai-gateway`.
+- `mcpServers`: MCP server definitions keyed by server name.
 - `providerId`: Cline LLM provider id (e.g. `anthropic`, `openai`, `gemini`).
-  Defaults to `anthropic`.
-- `modelId`: model id for the configured provider. Defaults to
-  `claude-opus-5`.
+  When omitted, direct authentication uses the Cline backend. Explicit custom
+  providers apply only to direct authentication.
+- `modelId`: model id for the configured provider. When omitted, the Cline SDK
+  selects the provider's default model.
 - `apiKey`: provider API key. When omitted, the Cline gateway falls back to
-  the provider's environment variable (e.g. `ANTHROPIC_API_KEY`).
+  the configured provider's environment variable.
 - `baseUrl`: custom provider endpoint.
 - `headers`: extra headers sent to the provider.
 - `maxIterations`: safety cap on agent-loop iterations per turn.
 
 To provide additional operating guidance, use the `instructions` setting on
 `HarnessAgent`. The adapter appends it to Cline's system prompt.
+
+## Authentication
+
+The `auth` setting selects which credentials Cline reads from the host
+environment:
+
+- `auto` (default): use AI Gateway credentials when available, otherwise use
+  direct Cline credentials.
+- `direct`: use `CLINE_API_KEY` and the optional `CLINE_API_BASE_URL`.
+- `ai-gateway`: use `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` and the
+  optional `AI_GATEWAY_BASE_URL`.
+
+```ts
+const harness = createCline({ auth: 'ai-gateway' });
+```
+
+`CLINE_API_BASE_URL` is Cline's backend root URL; the SDK's `/api/v1` provider
+path is appended to it. For AI Gateway, the adapter instead overrides Cline's
+in-process provider configuration with the Gateway credential and its `/v1`
+endpoint. Direct Cline credentials are never used as a fallback in explicit
+Gateway mode.
 
 ## Sandbox
 
