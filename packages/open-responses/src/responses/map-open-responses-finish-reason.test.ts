@@ -56,13 +56,13 @@ describe('mapOpenResponsesFinishReason', () => {
     ).toBe('content-filter');
   });
 
-  it('should return tool-calls when hasToolCalls is true and finishReason is unknown', () => {
+  it('should return other when hasToolCalls is true and finishReason is unknown', () => {
     expect(
       mapOpenResponsesFinishReason({
         finishReason: 'completed',
         hasToolCalls: true,
       }),
-    ).toBe('tool-calls');
+    ).toBe('other');
   });
 
   it('should return other when hasToolCalls is false and finishReason is unknown', () => {

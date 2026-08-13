@@ -689,6 +689,16 @@ describe('OpenResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    function prepareChunksResponse(chunks: unknown[]) {
+      server.urls[URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          ...chunks.map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+          'data: [DONE]\n\n',
+        ],
+      };
+    }
+
     function prepareChunksFixtureResponse(filename: string) {
       const chunks = fs
         .readFileSync(
@@ -731,6 +741,104 @@ describe('OpenResponsesLanguageModel', () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
+      });
+    });
+
+    it('should close truncated reasoning with the active reasoning id', async () => {
+      prepareChunksResponse([
+        {
+          type: 'response.output_item.added',
+          sequence_number: 0,
+          output_index: 0,
+          item: {
+            id: 'rs_active',
+            type: 'reasoning',
+            status: 'in_progress',
+            summary: [],
+          },
+        },
+        {
+          type: 'response.incomplete',
+          sequence_number: 1,
+          response: {
+            status: 'incomplete',
+            incomplete_details: { reason: 'max_output_tokens' },
+            usage: {
+              input_tokens: 1,
+              input_tokens_details: { cached_tokens: 0 },
+              output_tokens: 1,
+              output_tokens_details: { reasoning_tokens: 1 },
+              total_tokens: 2,
+            },
+          },
+        },
+      ]);
+
+      const result = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const streamParts = await convertReadableStreamToArray(result.stream);
+
+      expect(
+        streamParts.filter(part => part.type.startsWith('reasoning-')),
+      ).toStrictEqual([
+        { type: 'reasoning-start', id: 'rs_active' },
+        { type: 'reasoning-end', id: 'rs_active' },
+      ]);
+      expect(streamParts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: {
+          unified: 'length',
+          raw: 'max_output_tokens',
+        },
+      });
+    });
+
+    it('should map unknown incomplete reasons to other when tool calls exist', async () => {
+      prepareChunksResponse([
+        {
+          type: 'response.output_item.done',
+          sequence_number: 0,
+          output_index: 0,
+          item: {
+            id: 'fc_weather',
+            type: 'function_call',
+            status: 'completed',
+            call_id: 'call_weather',
+            name: 'get_weather',
+            arguments: '{"location":"San Francisco"}',
+          },
+        },
+        {
+          type: 'response.incomplete',
+          sequence_number: 1,
+          response: {
+            status: 'incomplete',
+            incomplete_details: { reason: 'server_timeout' },
+            usage: {
+              input_tokens: 1,
+              input_tokens_details: { cached_tokens: 0 },
+              output_tokens: 1,
+              output_tokens_details: { reasoning_tokens: 0 },
+              total_tokens: 2,
+            },
+          },
+        },
+      ]);
+
+      const result = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const streamParts = await convertReadableStreamToArray(result.stream);
+
+      expect(streamParts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: {
+          unified: 'other',
+          raw: 'server_timeout',
+        },
       });
     });
 
