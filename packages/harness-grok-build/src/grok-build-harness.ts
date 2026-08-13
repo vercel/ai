@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import {
   commonTool,
   type HarnessV1,
@@ -12,15 +11,14 @@ import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
 
+declare const __GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON__: string;
+declare const __GROK_BUILD_IMPLEMENTATION_PNPM_LOCK_YAML__: string;
+
 const GROK_BUILD_CLIENT_APP = `ai-sdk/harness-grok-build/${VERSION}`;
-const GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON = readFileSync(
-  new URL('./bridge/package.json', import.meta.url),
-  'utf8',
-);
-const GROK_BUILD_IMPLEMENTATION_PNPM_LOCK = readFileSync(
-  new URL('./bridge/pnpm-lock.yaml', import.meta.url),
-  'utf8',
-);
+const GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON =
+  __GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON__;
+const GROK_BUILD_IMPLEMENTATION_PNPM_LOCK =
+  __GROK_BUILD_IMPLEMENTATION_PNPM_LOCK_YAML__;
 
 export type GrokBuildHarnessSettings = {
   /**
