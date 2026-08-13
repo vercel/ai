@@ -706,6 +706,54 @@ describe('OpenResponsesLanguageModel', () => {
       };
     }
 
+    describe('truncated responses', () => {
+      it('should close active reasoning with its actual item id', async () => {
+        prepareChunksFixtureResponse('issue-18872-truncated-reasoning');
+
+        const result = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+        const parts = await convertReadableStreamToArray(result.stream);
+        const reasoningStart = parts.find(
+          part => part.type === 'reasoning-start',
+        );
+        const reasoningEnd = parts.find(part => part.type === 'reasoning-end');
+
+        expect(reasoningStart).toMatchObject({
+          type: 'reasoning-start',
+          id: 'rs_actual_reasoning_id',
+        });
+        expect(reasoningEnd).toMatchObject({
+          type: 'reasoning-end',
+          id: 'rs_actual_reasoning_id',
+        });
+        expect(parts.at(-1)).toMatchObject({
+          type: 'finish',
+          finishReason: {
+            unified: 'length',
+            raw: 'max_output_tokens',
+          },
+        });
+      });
+
+      it('should map an unknown incomplete reason to other even when tool calls exist', async () => {
+        prepareChunksFixtureResponse('issue-18872-unknown-incomplete-reason');
+
+        const result = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+        const parts = await convertReadableStreamToArray(result.stream);
+
+        expect(parts.at(-1)).toMatchObject({
+          type: 'finish',
+          finishReason: {
+            unified: 'other',
+            raw: 'server_timeout',
+          },
+        });
+      });
+    });
+
     describe('basic generation', () => {
       it('should stream content', async () => {
         prepareChunksFixtureResponse('lmstudio-basic.1');
