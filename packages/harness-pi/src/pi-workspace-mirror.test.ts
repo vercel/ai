@@ -263,6 +263,31 @@ describe('syncHostWorkspaceFromSandbox', () => {
     }
   });
 
+  it('skips config symlinks that resolve to the filesystem root in just-bash', async () => {
+    const sandboxSession = await createJustBashSandbox({
+      cwd: sandboxWorkDir,
+    }).createSession();
+    const sandbox = sandboxSession.restricted();
+
+    try {
+      const setupResult = await sandbox.run({
+        command: 'ln -s / .pi',
+        workingDirectory: sandboxWorkDir,
+      });
+      expect(setupResult.exitCode).toBe(0);
+
+      await syncHostWorkspaceFromSandbox({
+        sandbox,
+        sandboxWorkDir,
+        hostWorkDir,
+      });
+
+      expect(existsSync(path.join(hostWorkDir, '.pi'))).toBe(false);
+    } finally {
+      await sandboxSession.destroy?.();
+    }
+  });
+
   it('rejects symlink cycles in just-bash', async () => {
     const sandboxSession = await createJustBashSandbox({
       cwd: sandboxWorkDir,
