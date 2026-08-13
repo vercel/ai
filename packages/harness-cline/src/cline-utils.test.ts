@@ -58,6 +58,21 @@ describe('toToolResultValue', () => {
     expect(toToolResultValue({ a: 1, b: ['x'] })).toEqual({ a: 1, b: ['x'] });
   });
 
+  it('round-trips values with custom JSON serialization', () => {
+    expect(toToolResultValue(new Date('2026-08-13T00:00:00.000Z'))).toBe(
+      '2026-08-13T00:00:00.000Z',
+    );
+  });
+
+  it('stringifies objects with unsafe prototype properties', () => {
+    const value = Object.defineProperty({}, '__proto__', {
+      enumerable: true,
+      value: { polluted: true },
+    });
+
+    expect(toToolResultValue(value)).toBe('[object Object]');
+  });
+
   it('stringifies values that cannot be serialized', () => {
     const cyclic: Record<string, unknown> = {};
     cyclic.self = cyclic;

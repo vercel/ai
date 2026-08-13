@@ -1,6 +1,9 @@
 import { createHash } from 'node:crypto';
 import path from 'node:path';
-import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
+import {
+  safeParseJSON,
+  type Experimental_SandboxSession,
+} from '@ai-sdk/provider-utils';
 import type { AgentMessage } from '@cline/agents';
 import { z } from 'zod/v4';
 
@@ -129,10 +132,8 @@ export async function pullHistoryFromSandbox(args: {
     ...(args.abortSignal ? { abortSignal: args.abortSignal } : {}),
   });
   if (content == null) return undefined;
-  try {
-    const parsed = JSON.parse(content);
-    return Array.isArray(parsed) ? (parsed as AgentMessage[]) : undefined;
-  } catch {
-    return undefined;
-  }
+  const parsed = await safeParseJSON({ text: content });
+  return parsed.success && Array.isArray(parsed.value)
+    ? (parsed.value as unknown as AgentMessage[])
+    : undefined;
 }

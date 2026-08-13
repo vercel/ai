@@ -147,4 +147,22 @@ describe('persist/pull history round trip', () => {
       }),
     ).toBeUndefined();
   });
+
+  it('returns undefined for history with unsafe prototype properties', async () => {
+    const files = new Map([
+      [
+        '/sandbox/home/.ai-sdk/harness-cline/session-key/history.json',
+        '[{"__proto__":{"polluted":true}}]',
+      ],
+    ]);
+    const sandbox = createFakeSandbox(files);
+
+    expect(
+      await pullHistoryFromSandbox({
+        sandbox,
+        privateSessionDir,
+        historyFileName: 'history.json',
+      }),
+    ).toBeUndefined();
+  });
 });

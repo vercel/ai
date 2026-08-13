@@ -7,6 +7,7 @@ import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1Prompt,
 } from '@ai-sdk/harness';
+import { secureJsonParse } from '@ai-sdk/provider-utils';
 import type { AgentMessage, AgentUsage } from '@cline/agents';
 
 const HARNESS_ID = 'cline';
@@ -58,7 +59,10 @@ export function toToolResultValue(output: unknown): NonNullable<JSONValue> {
     return output;
   }
   try {
-    return JSON.parse(JSON.stringify(output)) as NonNullable<JSONValue>;
+    const serialized = JSON.stringify(output);
+    return serialized === undefined
+      ? String(output)
+      : (secureJsonParse(serialized) as NonNullable<JSONValue>);
   } catch {
     return String(output);
   }
