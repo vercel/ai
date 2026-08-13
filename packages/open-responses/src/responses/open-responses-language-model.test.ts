@@ -189,12 +189,39 @@ describe('OpenResponsesLanguageModel', () => {
               },
               strict: true,
             },
+            {
+              type: 'provider',
+              id: 'openai.web_search',
+              name: 'web_search',
+              args: {},
+            },
+            {
+              type: 'provider',
+              id: 'openai.file_search',
+              name: 'file_search',
+              args: { vectorStoreIds: ['vs_123'] },
+            },
           ],
         });
       });
 
       it('should send correct request body with tools', async () => {
         expect(await server.calls[0].requestBodyJson).toMatchSnapshot();
+      });
+
+      it('should warn for each unsupported provider-defined tool', async () => {
+        expect(result.warnings).toMatchInlineSnapshot(`
+          [
+            {
+              "feature": "provider-defined tool openai.web_search",
+              "type": "unsupported",
+            },
+            {
+              "feature": "provider-defined tool openai.file_search",
+              "type": "unsupported",
+            },
+          ]
+        `);
       });
     });
 
