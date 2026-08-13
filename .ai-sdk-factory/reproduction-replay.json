@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 8579,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-8579-loading-state.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-8579-loading-state.ts",
+    "examples/ai-functions/package.json",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_8579_REPRODUCED: start chunks prematurely changed status to streaming before content: messageId, messageMetadata"
+  }
+}
