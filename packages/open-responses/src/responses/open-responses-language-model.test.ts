@@ -9,6 +9,7 @@ import {
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
+import type { OpenResponsesLanguageModelOptions } from './open-responses-language-model-options';
 import { OpenResponsesLanguageModel } from './open-responses-language-model';
 
 describe('OpenResponsesLanguageModel', () => {
@@ -552,6 +553,42 @@ describe('OpenResponsesLanguageModel', () => {
         prepareJsonFixtureResponse('lmstudio-basic.1');
       });
 
+      it('should send a provider-native reasoning effort', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            lmstudio: {
+              reasoningEffort: 'max',
+            } satisfies OpenResponsesLanguageModelOptions,
+          },
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning).toStrictEqual(
+          { effort: 'max' },
+        );
+      });
+
+      it('should prefer providerOptions reasoning effort over top-level reasoning', async () => {
+        const { warnings } = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'low',
+          providerOptions: {
+            lmstudio: {
+              reasoningEffort: 'max',
+              reasoningSummary: 'detailed',
+            } satisfies OpenResponsesLanguageModelOptions,
+          },
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning).toStrictEqual(
+          {
+            effort: 'max',
+            summary: 'detailed',
+          },
+        );
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should send reasoning.summary via providerOptions', async () => {
         await createModel().doGenerate({
           prompt: TEST_PROMPT,
@@ -1084,6 +1121,25 @@ describe('OpenResponsesLanguageModel', () => {
       });
     });
 
+    it('should send provider-native reasoning effort when streaming', async () => {
+      prepareChunksFixtureResponse('lmstudio-basic.1');
+
+      const result = await createModel().doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          lmstudio: {
+            reasoningEffort: 'max',
+          } satisfies OpenResponsesLanguageModelOptions,
+        },
+      });
+
+      await convertReadableStreamToArray(result.stream);
+
+      expect((await server.calls[0].requestBodyJson).reasoning).toStrictEqual({
+        effort: 'max',
+      });
+    });
+
     describe('reasoning with tool call', () => {
       it('should stream reasoning and tool call content', async () => {
         prepareChunksFixtureResponse('lmstudio-tool-call.2');
@@ -1095,6 +1151,62 @@ describe('OpenResponsesLanguageModel', () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
+      });
+    });
+
+    it('should close unfinished reasoning items with their original ids', async () => {
+      server.urls[URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'response.output_item.added',
+            sequence_number: 0,
+            output_index: 0,
+            item: {
+              id: 'rs_reasoning_item',
+              type: 'reasoning',
+              summary: [],
+            },
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.incomplete',
+            sequence_number: 1,
+            response: {
+              status: 'incomplete',
+              incomplete_details: { reason: 'max_output_tokens' },
+              usage: {
+                input_tokens: 1,
+                input_tokens_details: { cached_tokens: 0 },
+                output_tokens: 1,
+                output_tokens_details: { reasoning_tokens: 1 },
+                total_tokens: 2,
+              },
+            },
+          })}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const result = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(result.stream);
+
+      expect(parts).toContainEqual({
+        type: 'reasoning-start',
+        id: 'rs_reasoning_item',
+      });
+      expect(parts).toContainEqual({
+        type: 'reasoning-end',
+        id: 'rs_reasoning_item',
+      });
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: {
+          unified: 'length',
+          raw: 'max_output_tokens',
+        },
       });
     });
 

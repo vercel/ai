@@ -13,7 +13,7 @@ import {
 import type { MCPTransport } from './mcp-transport';
 import { VERSION } from '../version';
 import {
-  extractResourceMetadataUrl,
+  extractWWWAuthenticateParams,
   UnauthorizedError,
   auth,
   type AuthResult,
@@ -159,7 +159,10 @@ export class HttpMCPTransport implements MCPTransport {
   /**
    * Runs a single OAuth recovery flow for concurrent 401 responses.
    */
-  private authorizeOnce(resourceMetadataUrl?: URL): Promise<AuthResult> {
+  private authorizeOnce(
+    resourceMetadataUrl?: URL,
+    scope?: string,
+  ): Promise<AuthResult> {
     if (!this.authProvider) {
       return Promise.resolve('REDIRECT');
     }
@@ -168,6 +171,7 @@ export class HttpMCPTransport implements MCPTransport {
       this.authPromise = auth(this.authProvider, {
         serverUrl: this.url,
         resourceMetadataUrl,
+        scope,
         fetchFn: this.fetchFn,
       }).finally(() => {
         this.authPromise = undefined;
@@ -256,9 +260,14 @@ export class HttpMCPTransport implements MCPTransport {
         this.applySessionIdFromResponse(response);
 
         if (response.status === 401 && this.authProvider && !triedAuth) {
-          this.resourceMetadataUrl = extractResourceMetadataUrl(response);
+          const { resourceMetadataUrl, scope } =
+            extractWWWAuthenticateParams(response);
+          this.resourceMetadataUrl = resourceMetadataUrl;
           try {
-            const result = await this.authorizeOnce(this.resourceMetadataUrl);
+            const result = await this.authorizeOnce(
+              this.resourceMetadataUrl,
+              scope,
+            );
             if (result !== 'AUTHORIZED') {
               const error = new UnauthorizedError();
               throw error;
@@ -473,9 +482,14 @@ export class HttpMCPTransport implements MCPTransport {
       this.applySessionIdFromResponse(response);
 
       if (response.status === 401 && this.authProvider && !triedAuth) {
-        this.resourceMetadataUrl = extractResourceMetadataUrl(response);
+        const { resourceMetadataUrl, scope } =
+          extractWWWAuthenticateParams(response);
+        this.resourceMetadataUrl = resourceMetadataUrl;
         try {
-          const result = await this.authorizeOnce(this.resourceMetadataUrl);
+          const result = await this.authorizeOnce(
+            this.resourceMetadataUrl,
+            scope,
+          );
           if (result !== 'AUTHORIZED') {
             const error = new UnauthorizedError();
             this.onerror?.(error);
