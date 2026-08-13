@@ -7,6 +7,6 @@
   ],
   "expectedFailure": {
     "exitCode": 1,
-    "signal": "ISSUE 18440 REPRODUCED: omitted or blank tool-call IDs abort the turn; B1-B4 and out-of-order emission also match the report."
+    "signal": "ISSUE 18440 REPRODUCED: the live endpoint emitted unusable or conflicting tool-call IDs and the SDK did not preserve every call."
   }
 }
