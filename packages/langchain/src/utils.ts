@@ -1436,6 +1436,7 @@ export function processLangGraphEvent(
           if (!hasConcurrentMessageParts) {
             controller.enqueue({ type: 'finish-step' });
             controller.enqueue({ type: 'start-step' });
+            state.messageIdsInCurrentStep.clear();
             state.emittedToolCallsInCurrentStep.clear();
             state.emittedToolInputsInCurrentStep.clear();
           }
@@ -1444,6 +1445,7 @@ export function processLangGraphEvent(
         }
         state.currentStep = langgraphStep;
       }
+      state.messageIdsInCurrentStep.add(msgId);
 
       /**
        * Accumulate message chunks for later reference
@@ -1967,16 +1969,21 @@ export function processLangGraphEvent(
 
             if (toolCalls && toolCalls.length > 0) {
               for (const toolCall of toolCalls) {
+                const wasObservedInCurrentStep =
+                  state.currentStep !== null &&
+                  state.messageIdsInCurrentStep.has(msgId);
                 /**
-                 * Only emit if we haven't already processed this tool call
-                 * AND if it's not a historical tool call that already has a ToolMessage response.
-                 * Historical completed tool calls should not be re-emitted as this would create
-                 * orphaned tool parts in the UI without corresponding outputs.
+                 * Emit tool calls recovered from a message in the current step,
+                 * even when a prior step used the same provider-scoped ID.
+                 * Otherwise, preserve stream-wide suppression for historical
+                 * completed calls and values-only streams without step metadata.
                  */
                 if (
                   toolCall.id &&
-                  !emittedToolCalls.has(toolCall.id) &&
-                  !completedToolCallIds.has(toolCall.id)
+                  !hasEmittedToolCallInCurrentStep(state, toolCall.id) &&
+                  (wasObservedInCurrentStep ||
+                    (!emittedToolCalls.has(toolCall.id) &&
+                      !completedToolCallIds.has(toolCall.id)))
                 ) {
                   markToolCallEmitted(state, toolCall.id);
                   // Store mapping for HITL interrupt lookup

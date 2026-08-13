@@ -16,6 +16,8 @@ export interface LangGraphEventState {
   messageNamespaces: Map<string, string[]>;
   /** Accumulates message chunks for later reference */
   messageConcat: Map<string, AIMessageChunk>;
+  /** Tracks message IDs observed in the current or pending UI step */
+  messageIdsInCurrentStep: Set<string>;
   /** Tracks which tool call IDs have emitted tool-input-start */
   emittedToolCalls: Set<string>;
   /** Tracks tool-input-start chunks emitted in the current or pending UI step */

@@ -944,6 +944,160 @@ describe('toUIMessageStream', () => {
     ]);
   });
 
+  it('should preserve values-recovered tool lifecycles when tool call ids repeat across steps', async () => {
+    const firstToolCall = {
+      id: 'call-reused',
+      name: 'write_column',
+      args: { column: 'first' },
+    };
+    const secondToolCall = {
+      id: 'call-reused',
+      name: 'deploy_creatives',
+      args: { column: 'second' },
+    };
+    const inputStream = convertArrayToReadableStream([
+      [
+        'messages',
+        [
+          {
+            id: 'message-1',
+            type: 'ai',
+            content: '',
+            tool_call_chunks: [
+              {
+                name: firstToolCall.name,
+                args: '{"column":"first"}',
+                index: 0,
+              },
+            ],
+          },
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        'values',
+        {
+          messages: [
+            {
+              id: 'message-1',
+              type: 'ai',
+              content: '',
+              tool_calls: [firstToolCall],
+            },
+          ],
+        },
+      ],
+      [
+        'messages',
+        [
+          {
+            id: 'message-2',
+            type: 'ai',
+            content: '',
+            tool_call_chunks: [
+              {
+                name: secondToolCall.name,
+                args: '{"column":"second"}',
+                index: 0,
+              },
+            ],
+          },
+          { langgraph_step: 2 },
+        ],
+      ],
+      [
+        'values',
+        {
+          messages: [
+            {
+              id: 'message-1',
+              type: 'ai',
+              content: '',
+              tool_calls: [firstToolCall],
+            },
+            {
+              id: 'tool-message-1',
+              type: 'tool',
+              content: 'done',
+              tool_call_id: 'call-reused',
+            },
+            {
+              id: 'message-2',
+              type: 'ai',
+              content: '',
+              tool_calls: [secondToolCall],
+            },
+          ],
+        },
+      ],
+    ]);
+
+    const [rawStream, messageStream] = toUIMessageStream(inputStream).tee();
+    const rawChunks = await convertReadableStreamToArray(rawStream);
+
+    let finalMessage: UIMessage | undefined;
+    for await (const message of readUIMessageStream({
+      stream: messageStream,
+    })) {
+      finalMessage = message;
+    }
+
+    expect(
+      rawChunks
+        .filter(
+          chunk =>
+            chunk.type === 'tool-input-start' ||
+            chunk.type === 'tool-input-available',
+        )
+        .map(chunk => ({
+          type: chunk.type,
+          toolCallId: chunk.toolCallId,
+          toolName: chunk.toolName,
+        })),
+    ).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+      },
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+      },
+    ]);
+    expect(
+      finalMessage?.parts
+        .filter(part => part.type === 'dynamic-tool')
+        .map(part => ({
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          input: part.input,
+        })),
+    ).toEqual([
+      {
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+        input: { column: 'first' },
+      },
+      {
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+        input: { column: 'second' },
+      },
+    ]);
+  });
+
   it('should skip tool call chunks without id and use values instead', async () => {
     // Simulate a case where streaming chunks don't have an id (common with RemoteGraph)
     // The tool call should only be emitted from values, not from streaming
