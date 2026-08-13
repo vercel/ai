@@ -2167,6 +2167,7 @@ export class WorkflowAgent<
     // Track the final conversation messages from the iterator
     let finalMessages: LanguageModelV4Prompt | undefined;
     let encounteredError: unknown;
+    let hasEncounteredError = false;
     let wasAborted = false;
 
     try {
@@ -2525,6 +2526,7 @@ export class WorkflowAgent<
       }
     } catch (error) {
       encounteredError = error;
+      hasEncounteredError = true;
       // Check if this is an abort error
       if (error instanceof Error && error.name === 'AbortError') {
         wasAborted = true;
@@ -2562,8 +2564,9 @@ export class WorkflowAgent<
         } catch (parseError) {
           // If there's already an error, don't override it
           // If not, set this as the error
-          if (!encounteredError) {
+          if (!hasEncounteredError) {
             encounteredError = parseError;
+            hasEncounteredError = true;
           }
         }
       }
@@ -2599,7 +2602,7 @@ export class WorkflowAgent<
     }
 
     // Re-throw any error that occurred
-    if (encounteredError) {
+    if (hasEncounteredError) {
       // Close the stream before throwing
       if (options.writable) {
         const sendFinish = options.sendFinish ?? true;

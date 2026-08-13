@@ -269,6 +269,10 @@ export async function doStreamStep(
       if (writer) {
         await writer.write(part);
       }
+
+      if (part.type === 'error') {
+        throw part.error;
+      }
     }
   } finally {
     writer?.releaseLock();
