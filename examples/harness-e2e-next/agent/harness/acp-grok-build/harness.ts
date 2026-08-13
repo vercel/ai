@@ -1,4 +1,5 @@
 import { createACP } from '@ai-sdk/harness-acp';
+import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
 import { grokBuildACPBuiltinTools } from './builtin-tools';
 
 const harnessId = 'acp-grok-build';
@@ -17,7 +18,16 @@ export const grokBuildACPHarness = createACP({
   },
   executable: 'grok',
   args: ['agent', 'stdio'],
-  forwardEnv: ['XAI_API_KEY'],
+  credentialEnv: ['XAI_API_KEY'],
+  credentialBrokering: ({ env }) => {
+    if (!env.XAI_API_KEY) return [];
+    return [
+      createCredentialRequestTransformation({
+        baseUrl: env.GROK_XAI_API_BASE_URL ?? 'https://api.x.ai/v1',
+        headers: { Authorization: `Bearer ${env.XAI_API_KEY}` },
+      }),
+    ];
+  },
   instructionMapping: {
     type: 'session-meta',
     path: ['rules'],
