@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import type {
   LanguageModelV3,
   LanguageModelV3CallOptions,
@@ -8,6 +9,20 @@ import type {
   LanguageModelV3StreamResult,
   LanguageModelV3Usage,
   SharedV3Warning,
+=======
+import {
+  APICallError,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type LanguageModelV4Usage,
+  type SharedV4ProviderMetadata,
+  type SharedV4Warning,
+>>>>>>> 1c1a9d18e7 (fix: preserve Open Responses items across manual history round trips (#18844))
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -23,10 +38,12 @@ import { z } from 'zod/v4';
 import { convertToOpenResponsesInput } from './convert-to-open-responses-input';
 import {
   openResponsesErrorSchema,
+  type Annotation,
   type FunctionToolParam,
   type OpenResponsesRequestBody,
   type OpenResponsesResponseBody,
   type OpenResponsesChunk,
+  type ReasoningBody,
   type ToolChoiceParam,
 } from './open-responses-api';
 import { mapOpenResponsesFinishReason } from './map-open-responses-finish-reason';
@@ -92,7 +109,10 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
     } = await convertToOpenResponsesInput({
       prompt,
       providerOptionsName: this.config.providerOptionsName,
+<<<<<<< HEAD
       strictResponseInput: this.config.strictResponseInput,
+=======
+>>>>>>> 1c1a9d18e7 (fix: preserve Open Responses items across manual history round trips (#18844))
     });
 
     warnings.push(...inputWarnings);
@@ -199,10 +219,26 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
       switch (part.type) {
         // TODO AI SDK 7 adjust reasoning in the specification to better support the reasoning structure from open responses.
         case 'reasoning': {
-          for (const contentPart of part.content ?? []) {
+          if ((part.content?.length ?? 0) > 0) {
+            for (const contentPart of part.content!) {
+              content.push({
+                type: 'reasoning',
+                text: contentPart.text,
+                providerMetadata: createReasoningProviderMetadata({
+                  part,
+                  providerOptionsName: this.config.providerOptionsName,
+                  reasoningContent: [contentPart],
+                }),
+              });
+            }
+          } else {
             content.push({
               type: 'reasoning',
-              text: contentPart.text,
+              text: part.summary.map(summaryPart => summaryPart.text).join(''),
+              providerMetadata: createReasoningProviderMetadata({
+                part,
+                providerOptionsName: this.config.providerOptionsName,
+              }),
             });
           }
           break;
@@ -210,9 +246,17 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
 
         case 'message': {
           for (const contentPart of part.content) {
+            const annotations = getOutputTextAnnotations(contentPart);
+
             content.push({
               type: 'text',
               text: contentPart.text,
+              providerMetadata: {
+                [this.config.providerOptionsName]: {
+                  itemId: part.id,
+                  ...(annotations.length > 0 && { annotations }),
+                },
+              },
             });
           }
 
@@ -226,6 +270,9 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
             toolCallId: part.call_id,
             toolName: part.name,
             input: part.arguments,
+            providerMetadata: {
+              [this.config.providerOptionsName]: { itemId: part.id },
+            },
           });
           break;
         }
@@ -347,6 +394,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
       string,
       { toolName?: string; toolCallId?: string; arguments?: string }
     >();
+    const providerOptionsName = this.config.providerOptionsName;
 
     return {
       stream: response.pipeThrough(
@@ -424,6 +472,11 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
                 toolCallId,
                 toolName,
                 input,
+                providerMetadata: {
+                  [providerOptionsName]: {
+                    itemId: chunk.item.id,
+                  },
+                },
               });
               hasToolCalls = true;
 
@@ -458,8 +511,22 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
               chunk.type === 'response.output_item.done' &&
               chunk.item.type === 'reasoning'
             ) {
+<<<<<<< HEAD
               controller.enqueue({ type: 'reasoning-end', id: chunk.item.id });
               isActiveReasoning = false;
+=======
+              controller.enqueue({
+                type: 'reasoning-end',
+                id: chunk.item.id,
+                providerMetadata: createReasoningProviderMetadata({
+                  part: chunk.item,
+                  providerOptionsName,
+                }),
+              });
+              if (activeReasoningId === chunk.item.id) {
+                activeReasoningId = undefined;
+              }
+>>>>>>> 1c1a9d18e7 (fix: preserve Open Responses items across manual history round trips (#18844))
             }
 
             // Text events
@@ -478,7 +545,20 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
               chunk.type === 'response.output_item.done' &&
               chunk.item.type === 'message'
             ) {
-              controller.enqueue({ type: 'text-end', id: chunk.item.id });
+              const annotations = chunk.item.content.flatMap(
+                getOutputTextAnnotations,
+              );
+
+              controller.enqueue({
+                type: 'text-end',
+                id: chunk.item.id,
+                providerMetadata: {
+                  [providerOptionsName]: {
+                    itemId: chunk.item.id,
+                    ...(annotations.length > 0 && { annotations }),
+                  },
+                },
+              });
             } else if (
               chunk.type === 'response.completed' ||
               chunk.type === 'response.incomplete'
@@ -519,4 +599,64 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
       response: { headers: responseHeaders },
     };
   }
+}
+
+function createReasoningProviderMetadata({
+  part,
+  providerOptionsName,
+  reasoningContent = part.content,
+}: {
+  part: ReasoningBody;
+  providerOptionsName: string;
+  reasoningContent?: ReasoningBody['content'];
+}): SharedV4ProviderMetadata {
+  return {
+    [providerOptionsName]: {
+      itemId: part.id,
+      reasoningSummary: part.summary.map(summaryPart => ({
+        type: 'summary_text',
+        text: summaryPart.text,
+      })),
+      reasoningContent:
+        reasoningContent == null
+          ? null
+          : reasoningContent.map(contentPart => ({
+              type: 'reasoning_text',
+              text: contentPart.text,
+            })),
+      ...(part.encrypted_content != null && {
+        reasoningEncryptedContent: part.encrypted_content,
+      }),
+    },
+  };
+}
+
+function getOutputTextAnnotations(value: unknown): Annotation[] {
+  if (
+    value == null ||
+    typeof value !== 'object' ||
+    !('annotations' in value) ||
+    !Array.isArray(value.annotations) ||
+    !value.annotations.every(
+      annotation =>
+        annotation != null &&
+        typeof annotation === 'object' &&
+        (annotation as { type?: unknown }).type === 'url_citation' &&
+        typeof (annotation as { start_index?: unknown }).start_index ===
+          'number' &&
+        typeof (annotation as { end_index?: unknown }).end_index === 'number' &&
+        typeof (annotation as { url?: unknown }).url === 'string' &&
+        typeof (annotation as { title?: unknown }).title === 'string',
+    )
+  ) {
+    return [];
+  }
+
+  return value.annotations.map(annotation => ({
+    type: 'url_citation',
+    start_index: (annotation as { start_index: number }).start_index,
+    end_index: (annotation as { end_index: number }).end_index,
+    url: (annotation as { url: string }).url,
+    title: (annotation as { title: string }).title,
+  }));
 }
