@@ -6,6 +6,7 @@ import {
 } from '@ai-sdk/harness/agent';
 import type { HarnessV1NetworkSandboxSession } from '@ai-sdk/harness';
 import { claudeCode } from '@ai-sdk/harness-claude-code';
+import { cline } from '@ai-sdk/harness-cline';
 import { codex } from '@ai-sdk/harness-codex';
 import { deepAgents } from '@ai-sdk/harness-deepagents';
 import { openCode } from '@ai-sdk/harness-opencode';
@@ -20,6 +21,7 @@ const bridgePort = 4000;
 
 const harnesses = [
   { name: 'claude-code', harness: claudeCode },
+  { name: 'cline', harness: cline },
   { name: 'codex', harness: codex },
   { name: 'deepagents', harness: deepAgents },
   { name: 'opencode', harness: openCode },

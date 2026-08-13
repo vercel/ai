@@ -27,6 +27,20 @@ const HARNESSES = [
     ],
   },
   {
+    slug: 'cline',
+    label: 'Cline',
+    variants: [
+      'basic',
+      'basic-with-stop',
+      'ai-sdk-coding',
+      'weather',
+      'weather-only',
+      'weather-approval',
+      'workflow-timed',
+      'workflow-stepped',
+    ],
+  },
+  {
     slug: 'codex',
     label: 'Codex',
     variants: [
