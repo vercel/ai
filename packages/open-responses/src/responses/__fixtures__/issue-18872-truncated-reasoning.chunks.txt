@@ -1,0 +1,2 @@
+{"type":"response.output_item.added","sequence_number":0,"output_index":0,"item":{"id":"rs_actual_reasoning_id","type":"reasoning","status":"in_progress","summary":[]}}
+{"type":"response.incomplete","sequence_number":1,"response":{"status":"incomplete","incomplete_details":{"reason":"max_output_tokens"},"usage":{"input_tokens":1,"input_tokens_details":{"cached_tokens":0},"output_tokens":1,"output_tokens_details":{"reasoning_tokens":1},"total_tokens":2}}}
