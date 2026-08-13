@@ -1,13 +1,10 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createGrokBuild } from './_create';
-import { tool } from 'ai';
+import { tool, type ToolApprovalRequestOutput } from 'ai';
 import { z } from 'zod';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
-import {
-  createToolApprovalResponseMessages,
-  printFullStreamAndCaptureToolApproval,
-} from '../../lib/harness-tool-approval';
+import { createToolApprovalResponseMessages } from '../../lib/harness-tool-approval';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 const grokBuild = createGrokBuild();
@@ -47,10 +44,14 @@ run(async () => {
       prompt:
         'What is the weather in Paris? Use the `weather` tool, then summarize in one sentence.',
     });
-    const approval = await printFullStreamAndCaptureToolApproval({
+    let approval: ToolApprovalRequestOutput<any> | undefined;
+    await printFullStream({
       result: first,
+      onToolApproval: toolApproval => {
+        approval ??= toolApproval;
+      },
     });
-    if (approval == null) {
+    if (approval?.toolCall.toolName !== 'weather') {
       throw new Error('Expected a weather tool approval request.');
     }
 
