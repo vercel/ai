@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 18823,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/workflow-agent-inert-max-retries.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/workflow-agent-inert-max-retries.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "WorkflowAgent maxRetries is inert: maxRetries=0 made 1 attempt(s) and maxRetries=2 made 1 attempt(s); expected 3 attempts for maxRetries=2"
+  }
+}
