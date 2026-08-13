@@ -1,5 +1,14 @@
 # ai
 
+## 5.0.236
+
+### Patch Changes
+
+- c425210: Propagate errors thrown by chat `onFinish` callbacks.
+- eb7f2ac: Keep chat status submitted until response content begins streaming.
+- Updated dependencies [df0cbe9]
+  - @ai-sdk/gateway@2.0.134
+
 ## 5.0.235
 
 ### Patch Changes
